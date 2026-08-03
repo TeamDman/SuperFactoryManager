@@ -15,6 +15,7 @@ import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /** Composable terminal leaf. Rust/Vox frames are presented when that backend is configured. */
@@ -54,6 +55,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private int pressedMouseButtons;
     private boolean suppressPasteRelease;
     private boolean startRequested;
+    private String lastLoggedPresentationStreamIdentity;
     private long lastLoggedPresentationSequence = Long.MIN_VALUE;
     private String connectionStatus;
     private int startButtonLeft;
@@ -99,6 +101,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         this.minecraft = minecraft;
         this.bounds = bounds;
         this.context = context;
+        this.lastLoggedPresentationStreamIdentity = null;
         this.lastLoggedPresentationSequence = Long.MIN_VALUE;
         if (remoteService != null) {
             resized(minecraft, bounds);
@@ -129,6 +132,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (remoteService != null) remoteService.close();
         minecraft = null;
         context = null;
+        lastLoggedPresentationStreamIdentity = null;
         lastLoggedPresentationSequence = Long.MIN_VALUE;
     }
 
@@ -152,9 +156,14 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 bounds.y() + 8, TEXT, false);
         if (remoteService != null) {
             Optional<SFMTerminalFrame> frame = remoteService.latestFrame();
-            if (pngRenderer.render(poseStack, minecraft, left, contentTop, width,
+            if ((frame.isPresent() || remoteService.canPresentRetainedFrame())
+                    && pngRenderer.render(poseStack, minecraft, left, contentTop, width,
                     renderHeight, frame)) {
-                if (frame.isPresent() && frame.get().sequence() != lastLoggedPresentationSequence) {
+                if (frame.isPresent() && isNewPresentation(
+                        lastLoggedPresentationStreamIdentity,
+                        lastLoggedPresentationSequence,
+                        frame.get())) {
+                    lastLoggedPresentationStreamIdentity = frame.get().streamIdentity();
                     lastLoggedPresentationSequence = frame.get().sequence();
                     logPresentationTiming(frame.get(), pngRenderer.telemetry());
                 }
@@ -188,7 +197,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             SFMTerminalFrame frame,
             SFMTerminalPngTelemetry.Snapshot telemetry) {
         SFMTerminalFrameMetadata metadata = frame.metadata();
-        String message = "SFM_TERMINAL_PRESENTATION_TIMING correlation_id={} request_sequence={} "
+        String message = "SFM_TERMINAL_PRESENTATION_TIMING correlation_id={} stream_identity={} request_sequence={} "
                 + "frame_sequence={} java_render_calls={} java_render_successes={} "
                 + "java_render_total_us={} java_render_max_us={} java_upload_attempts={} "
                 + "java_upload_failures={} java_upload_total_us={} java_upload_max_us={} "
@@ -209,7 +218,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 + "panel_width={} panel_height={} "
                 + "cell_width={} cell_height={} font_pixel_size={}";
         Object[] fields = {
-                metadata.correlationId(), metadata.requestSequence(), frame.sequence(),
+                metadata.correlationId(), frame.streamIdentity(), metadata.requestSequence(), frame.sequence(),
                 telemetry.renderCalls(), telemetry.renderSuccesses(), micros(telemetry.renderNanosTotal()),
                 micros(telemetry.renderNanosMax()), telemetry.uploadAttempts(), telemetry.uploadFailures(),
                 micros(telemetry.uploadNanosTotal()), micros(telemetry.uploadNanosMax()),
@@ -235,6 +244,14 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 metadata.cellWidth(), metadata.cellHeight(), metadata.fontPixelSize()
         };
         SFM.LOGGER.info(message, fields);
+    }
+
+    static boolean isNewPresentation(
+            String previousStreamIdentity,
+            long previousSequence,
+            SFMTerminalFrame frame) {
+        return !Objects.equals(previousStreamIdentity, frame.streamIdentity())
+                || previousSequence != frame.sequence();
     }
 
     private static long micros(long nanos) {
@@ -442,6 +459,14 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     /** Returns bounded timing/counter evidence for the Rust PNG presentation path. */
     public SFMTerminalPngTelemetry.Snapshot pngTelemetry() {
         return pngRenderer.telemetry();
+    }
+
+    /** Validates and returns machine-readable Vox push evidence for puppets. */
+    public String assertPushEvidenceForAutomation(boolean reconnectExpected) {
+        if (remoteService instanceof SFMVoxTerminalService voxService) {
+            return voxService.assertPushEvidenceForAutomation(reconnectExpected);
+        }
+        throw new IllegalStateException("Terminal panel is not backed by the Vox push service");
     }
 
     @Override

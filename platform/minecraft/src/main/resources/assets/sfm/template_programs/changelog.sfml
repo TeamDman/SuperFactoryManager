@@ -20,6 +20,7 @@ NAME "Changelog"
 -- Add a Java-local in-game REPL with bounded virtual files and safe commands
 -- Add a Rust-authoritative Vox terminal scene with full-PNG presentation and an explicit disconnected state
 -- Improve Rust-authoritative terminal responsiveness by retaining fonts, glyphs, frame buffers, and Minecraft textures between frames
+-- Replace periodic Rust-terminal snapshot polling with bounded pushed Vox frame subscriptions
 -- Make owned Rust terminal server restarts wait for listener shutdown before reconnecting
 -- Add hierarchical panel-opening actions and lifecycle-only Rust terminal server actions
 -- Retire the superseded managed-bundle review surface while preserving comment and review-session behavior

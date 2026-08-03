@@ -29,6 +29,11 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
 
     Optional<SFMTerminalFrame> latestFrame();
 
+    /** True while an empty latest-frame handoff may reuse the renderer's current texture. */
+    default boolean canPresentRetainedFrame() {
+        return isConnected();
+    }
+
     int logicalWidth();
 
     int logicalHeight();

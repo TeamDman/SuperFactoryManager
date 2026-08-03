@@ -213,6 +213,15 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    /** Asserts the push transport's zero-polling and bounded-queue evidence. */
+    public void assertTerminalPushEvidence(String artifactName, boolean reconnectExpected) {
+        add(new AssertTerminalPushEvidencePuppetAction(
+                Objects.requireNonNull(artifactName, "artifactName"),
+                reconnectExpected
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     /** Sends a real mouse click into the visible Rust terminal panel. */
     public void clickTerminal() {
         add(new ClickTerminalPuppetAction());

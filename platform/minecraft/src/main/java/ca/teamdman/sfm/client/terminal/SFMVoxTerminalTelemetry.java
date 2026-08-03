@@ -2,7 +2,7 @@ package ca.teamdman.sfm.client.terminal;
 
 import java.util.Optional;
 
-/** Bounded in-memory polling and Vox wait evidence for one terminal service. */
+/** Bounded in-memory subscription, snapshot, and Vox wait evidence for one terminal service. */
 public final class SFMVoxTerminalTelemetry {
     private long pollsStarted;
     private long pollsCompleted;
@@ -20,7 +20,18 @@ public final class SFMVoxTerminalTelemetry {
     private long droppedFrames;
     private long coalescedFrames;
     private long acceptedFrames;
+    private long subscriptionsStarted;
+    private long subscriptionsCompleted;
+    private long subscriptionsFailed;
+    private long subscriptionEventsReceived;
+    private long subscriptionEventsAccepted;
+    private long subscriptionEventsSuperseded;
+    private long subscriptionEventsRejected;
+    private long subscriptionChannelsClosed;
+    private long snapshotCalls;
     private NativeFrameMetadata latest;
+    private ProducerMetadata latestProducer;
+    private SubscriptionEventMetadata latestSubscriptionEvent;
 
     public record NativeFrameMetadata(
             long sequence, long requestSequence, int logicalColumns, int logicalRows,
@@ -35,16 +46,39 @@ public final class SFMVoxTerminalTelemetry {
         }
     }
 
+    /** Latest Rust producer counters carried by a pushed frame. */
+    public record ProducerMetadata(
+            long mutations, long rendersStarted, long rendersCompleted,
+            long preRenderCoalesced, long creditBlockedSends, long framesPushed,
+            int pendingDepth, int pendingDepthMax, long mutationToSendUs,
+            long creditWaitUs) {}
+
+    /** Identity and ordering evidence for the latest accepted pushed event. */
+    public record SubscriptionEventMetadata(
+            String sessionId, String connectionEpoch, String sessionEpoch,
+            long terminalSequence, long frameSequence, boolean fullResync,
+            long maxFrameBytes, String correlationId) {}
+
     public record Snapshot(
             long pollsStarted, long pollsCompleted, long pollsFailed,
             long pollsSkippedInFlight, long pollsSkippedUnavailable,
             long pollNanosTotal, long pollNanosMax, long voxWaits,
             long voxWaitNanosTotal, long voxWaitNanosMax, long voxWaitFailures,
             long voxWaitTimeouts, long staleFrames, long droppedFrames,
-            long coalescedFrames, long acceptedFrames,
-            Optional<NativeFrameMetadata> latest) {
+            long coalescedFrames, long acceptedFrames, long subscriptionsStarted,
+            long subscriptionsCompleted, long subscriptionsFailed,
+            long subscriptionEventsReceived, long subscriptionEventsAccepted,
+            long subscriptionEventsSuperseded, long subscriptionEventsRejected,
+            long subscriptionChannelsClosed, long snapshotCalls,
+            Optional<NativeFrameMetadata> latest,
+            Optional<ProducerMetadata> latestProducer,
+            Optional<SubscriptionEventMetadata> latestSubscriptionEvent) {
         public Snapshot {
             latest = latest == null ? Optional.empty() : latest;
+            latestProducer = latestProducer == null ? Optional.empty() : latestProducer;
+            latestSubscriptionEvent = latestSubscriptionEvent == null
+                    ? Optional.empty()
+                    : latestSubscriptionEvent;
         }
     }
 
@@ -53,7 +87,12 @@ public final class SFMVoxTerminalTelemetry {
                 pollsSkippedInFlight, pollsSkippedUnavailable, pollNanosTotal,
                 pollNanosMax, voxWaits, voxWaitNanosTotal, voxWaitNanosMax,
                 voxWaitFailures, voxWaitTimeouts, staleFrames, droppedFrames,
-                coalescedFrames, acceptedFrames, Optional.ofNullable(latest));
+                coalescedFrames, acceptedFrames, subscriptionsStarted,
+                subscriptionsCompleted, subscriptionsFailed,
+                subscriptionEventsReceived, subscriptionEventsAccepted,
+                subscriptionEventsSuperseded, subscriptionEventsRejected,
+                subscriptionChannelsClosed, snapshotCalls, Optional.ofNullable(latest),
+                Optional.ofNullable(latestProducer), Optional.ofNullable(latestSubscriptionEvent));
     }
 
     synchronized void recordPollStarted() { pollsStarted = increment(pollsStarted); }
@@ -78,6 +117,27 @@ public final class SFMVoxTerminalTelemetry {
     }
     synchronized void recordStale() { staleFrames = increment(staleFrames); }
     synchronized void recordDropped() { droppedFrames = increment(droppedFrames); }
+    synchronized void recordSubscriptionStarted() { subscriptionsStarted = increment(subscriptionsStarted); }
+    synchronized void recordSubscriptionCompleted() { subscriptionsCompleted = increment(subscriptionsCompleted); }
+    synchronized void recordSubscriptionFailed() { subscriptionsFailed = increment(subscriptionsFailed); }
+    synchronized void recordSubscriptionEventReceived() {
+        subscriptionEventsReceived = increment(subscriptionEventsReceived);
+    }
+    synchronized void recordSubscriptionEventAccepted(boolean superseded) {
+        subscriptionEventsAccepted = increment(subscriptionEventsAccepted);
+        if (superseded) subscriptionEventsSuperseded = increment(subscriptionEventsSuperseded);
+    }
+    synchronized void recordSubscriptionEventRejected() {
+        subscriptionEventsRejected = increment(subscriptionEventsRejected);
+    }
+    synchronized void recordSubscriptionChannelClosed() {
+        subscriptionChannelsClosed = increment(subscriptionChannelsClosed);
+    }
+    synchronized void recordSnapshotCall() { snapshotCalls = increment(snapshotCalls); }
+    synchronized void recordProducer(ProducerMetadata producer) { latestProducer = producer; }
+    synchronized void recordSubscriptionEvent(SubscriptionEventMetadata event) {
+        latestSubscriptionEvent = event;
+    }
 
     private void recordPollDuration(long nanos) {
         long duration = nonNegative(nanos);

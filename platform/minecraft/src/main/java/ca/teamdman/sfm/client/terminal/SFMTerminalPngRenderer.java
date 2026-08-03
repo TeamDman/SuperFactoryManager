@@ -11,6 +11,7 @@ import org.lwjgl.system.MemoryUtil;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -28,6 +29,7 @@ final class SFMTerminalPngRenderer {
     private final SFMTerminalPngTelemetry telemetry = new SFMTerminalPngTelemetry();
     private DynamicTexture texture;
     private ByteBuffer encodedBuffer;
+    private String streamIdentity;
     private long sequence = Long.MIN_VALUE;
     private int imageWidth;
     private int imageHeight;
@@ -46,29 +48,36 @@ final class SFMTerminalPngRenderer {
         long startedNanos = System.nanoTime();
         boolean presented = false;
         try {
-            if (snapshot.isEmpty()) return false;
-            SFMTerminalFrame frame = snapshot.get();
-            if (frame.sequence() < sequence) telemetry.recordStaleFrame();
-            if (!frame.png() || !frame.full()) {
-                telemetry.recordDroppedFrame();
-                return false;
-            }
-            if (frame.sequence() == sequence && failed) return false;
-            if (frame.sequence() != sequence) {
-                byte[] payload = frame.payload();
-                if (!isPng(payload)) {
+            if (snapshot.isPresent()) {
+                SFMTerminalFrame frame = snapshot.get();
+                FrameOrder order = classifyFrame(streamIdentity, sequence, frame);
+                if (order == FrameOrder.STALE) {
+                    telemetry.recordStaleFrame();
                     telemetry.recordDroppedFrame();
-                    return false;
-                }
-                try {
-                    if (failed) telemetry.recordCoalescedFrame();
-                    upload(minecraft, frame, payload);
-                } catch (IOException | RuntimeException error) {
-                    sequence = frame.sequence();
-                    failed = true;
-                    telemetry.recordUploadFailure();
-                    telemetry.recordDroppedFrame();
-                    return false;
+                } else {
+                    if (!frame.png() || !frame.full()) {
+                        telemetry.recordDroppedFrame();
+                        return false;
+                    }
+                    if (order == FrameOrder.DUPLICATE && failed) return false;
+                    if (order.requiresUpload()) {
+                        byte[] payload = frame.payload();
+                        if (!isPng(payload)) {
+                            telemetry.recordDroppedFrame();
+                            return false;
+                        }
+                        try {
+                            if (failed) telemetry.recordCoalescedFrame();
+                            upload(minecraft, frame, payload);
+                        } catch (IOException | RuntimeException error) {
+                            streamIdentity = frame.streamIdentity();
+                            sequence = frame.sequence();
+                            failed = true;
+                            telemetry.recordUploadFailure();
+                            telemetry.recordDroppedFrame();
+                            return false;
+                        }
+                    }
                 }
             }
             if (texture == null || failed || width <= 0 || height <= 0) return false;
@@ -86,7 +95,7 @@ final class SFMTerminalPngRenderer {
             RenderSystem.setShaderTexture(0, textureLocation);
             GuiComponent.blit(poseStack, drawX, drawY, drawWidth, drawHeight,
                     0, 0, imageWidth, imageHeight, imageWidth, imageHeight);
-            telemetry.recordPresented(frame.sequence());
+            telemetry.recordPresented(sequence);
             presented = true;
             return true;
         } finally {
@@ -107,6 +116,7 @@ final class SFMTerminalPngRenderer {
             encodedBuffer = null;
             if (resources.encodedBufferClosed()) telemetry.recordEncodedBufferClose();
         }
+        streamIdentity = null;
         sequence = Long.MIN_VALUE;
         imageWidth = 0;
         imageHeight = 0;
@@ -145,6 +155,7 @@ final class SFMTerminalPngRenderer {
                 }
                 imageWidth = width;
                 imageHeight = height;
+                streamIdentity = frame.streamIdentity();
                 sequence = frame.sequence();
                 failed = false;
             } finally {
@@ -251,6 +262,29 @@ final class SFMTerminalPngRenderer {
         int capacity = MIN_ENCODED_BUFFER_CAPACITY;
         while (capacity < requiredCapacity && capacity <= MAX_ENCODED_PNG_BYTES / 2) capacity *= 2;
         return Math.max(requiredCapacity, capacity);
+    }
+
+    enum FrameOrder {
+        STREAM_CHANGED,
+        ADVANCED,
+        DUPLICATE,
+        STALE;
+
+        boolean requiresUpload() {
+            return this == STREAM_CHANGED || this == ADVANCED;
+        }
+    }
+
+    static FrameOrder classifyFrame(
+            String currentStreamIdentity,
+            long currentSequence,
+            SFMTerminalFrame frame) {
+        if (!Objects.equals(currentStreamIdentity, frame.streamIdentity())) {
+            return FrameOrder.STREAM_CHANGED;
+        }
+        if (frame.sequence() < currentSequence) return FrameOrder.STALE;
+        if (frame.sequence() == currentSequence) return FrameOrder.DUPLICATE;
+        return FrameOrder.ADVANCED;
     }
 
     private static boolean isPng(byte[] payload) {

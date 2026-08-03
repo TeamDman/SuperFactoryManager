@@ -393,6 +393,27 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         );
     }
 
+    @Override
+    public void assertTerminalPushEvidence(String artifactName, boolean reconnectExpected) {
+        String safeArtifactName = validateCaptureName(artifactName);
+        String evidence = requireTerminalPanel().assertPushEvidenceForAutomation(reconnectExpected);
+        Path directory = minecraft.gameDirectory.toPath().resolve("terminal-content");
+        Path file = directory.resolve(active.definition.puppetName() + "__" + safeArtifactName + ".txt");
+        try {
+            Files.createDirectories(directory);
+            Files.writeString(file, evidence, StandardCharsets.UTF_8);
+        } catch (IOException error) {
+            throw new IllegalStateException("Could not write terminal push evidence " + file, error);
+        }
+        SFM.LOGGER.info(
+                "SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN puppet={} artifact={} file={} chars={}",
+                active.definition.puppetName(),
+                safeArtifactName,
+                file.getFileName(),
+                evidence.length()
+        );
+    }
+
     /**
      * Content assertions normally search the complete visible witness. A
      * {@code line:...} assertion searches trimmed terminal rows instead, so

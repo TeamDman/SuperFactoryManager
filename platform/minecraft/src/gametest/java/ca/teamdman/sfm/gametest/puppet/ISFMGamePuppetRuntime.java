@@ -55,6 +55,9 @@ public interface ISFMGamePuppetRuntime {
     /** Writes the current terminal text and validates optional content witnesses. */
     void writeTerminalContent(String artifactName, String requiredText, String forbiddenText);
 
+    /** Validates bounded Vox push invariants and writes their machine-readable evidence. */
+    void assertTerminalPushEvidence(String artifactName, boolean reconnectExpected);
+
     void clickTerminal();
 
     void dragTerminal();

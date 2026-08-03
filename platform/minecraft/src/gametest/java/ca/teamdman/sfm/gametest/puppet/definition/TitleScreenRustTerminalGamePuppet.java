@@ -150,6 +150,7 @@ public final class TitleScreenRustTerminalGamePuppet {
         // runs, so assert the stable post-cancellation prompt rather than a
         // particular number that may have just scrolled out of view.
         puppet.writeTerminalContent("cancel-rpc", "line:❯", "line:10000");
+        puppet.assertTerminalPushEvidence("push-delivery", true);
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);

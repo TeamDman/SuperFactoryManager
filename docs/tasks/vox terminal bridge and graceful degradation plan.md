@@ -44,14 +44,13 @@ owns the later slug/GPU renderer and dirty-upload optimization; those are not
 part of the immediate panel/action goal.
 
 Native-size/cell-metric negotiation, the correlated multi-second lag witness,
-and retained font/glyph/frame/texture resources are now complete. The next
-performance gate before choosing among Rust CPU, Rust GPU/slug, or Java cell
-rendering is to add the missing Facet Java `Tx`/`Rx` runtime/codegen slice and
-replace Java's 50 ms unary snapshot poller with a bounded Rust-to-Java frame
-subscription. Teamy
-Terminal Phase 3.6.2a/3.6.2b is authoritative for the cross-repository design;
-the SFM work items below own the Java consumer, presentation resources, and
-end-to-end proof.
+retained font/glyph/frame/texture resources, and bounded Rust-to-Java Vox
+`Tx`/`Rx` frame delivery are now complete. The next performance gate before
+choosing among Rust CPU, Rust GPU/slug, or Java cell rendering is to preserve
+and name the CPU reference renderer/transport paths, then run the independent
+renderer/transport comparison. Teamy Terminal Phase 3.6.3 and later Phase 3.6
+items are authoritative for the cross-repository design; the SFM work items
+below own the Java consumer, presentation resources, and end-to-end proof.
 
 ### Batch 3 planning items
 
@@ -131,7 +130,7 @@ corrected the inaccurately named one-minute whole-puppet watchdog and completed
 all 13 captures at 4K. Rust and Java clocks are never subtracted as if
 synchronized.
 
-### [ ] V-4.1a Consume a Vox Tx/Rx frame subscription and remove live polling
+### [x] V-4.1a Consume a Vox Tx/Rx frame subscription and remove live polling
 
 Replace `SFMVoxTerminalService`'s `FRAME_POLL_MILLIS` scheduler with the typed
 Facet/Vox terminal frame subscription defined by Teamy Terminal 3.6.2b. The
@@ -169,6 +168,33 @@ server restart, full reconnect/resync, old-epoch rejection, and two sessions.
 The normal and high-scale puppets retain machine-readable content/screenshots
 and demonstrate lower change-to-present latency than the measured polling
 baseline without unexplained drops.
+
+**Completion evidence — 2026-08-03:** Facet commit
+`4d62d2cfb211f48f89ca4a06c466ca8fe452ca03` supplies the packaged Java channel
+binding and complete Rust-authoritative nested schema closure; the lockfile pins
+that exact source revision and BLAKE3 package hash
+`14d192241617c123a37b37434b7f0bfbf681eb3e`. Teamy Terminal commit `7117b00`
+supplies immediate actor-owned publication, one render/send in flight plus one
+newest pending sequence, full resynchronization, channel/epoch ownership, and
+bounded telemetry. SFM consumes `Rx` on a dedicated receiver, validates
+connection/session identity and monotonic sequences, retains only the newest
+render handoff, performs input/resize/cancel calls without blocking the Vox
+driver, and tears down replaced subscriptions outside the connection lock.
+
+Focused SFM terminal service, frame-identity, inbox, and telemetry tests pass.
+The normal and 3840×2130 GUI-scale-7 real puppets both pass output-without-input,
+`1..10000`, Ctrl+C, resize, alternate-screen restoration, mouse/drag/wheel,
+cancellation, channel drop, server restart/reconnect, and triple-Escape gates.
+Normal records zero snapshots/polls, two subscriptions, one closed old channel,
+397 accepted events, 393 delivered Java frames, four supersedes, 34 completed
+pushes, 119 pre-render coalesces, and maximum producer pending depth one.
+GUI-scale 7 records zero snapshots/polls, two subscriptions, one closed old
+channel, 399 accepted events, 397 delivered Java frames, two supersedes, 32
+completed pushes, 125 pre-render coalesces, maximum pending depth one, and a
+4,321-microsecond mutation-to-send sample. Both report zero rejected events.
+The reproducible commands, counters, checks, revisions, and artifact locations
+are preserved in
+`docs/architecture/evidence/vox-terminal-push-delivery-1.19.2.json`.
 
 ### [x] V-4.1b Retain compatible Java presentation resources
 
@@ -218,8 +244,8 @@ proves distinct ready PIDs across reconnect, and gives screenshot-heavy 4K
 puppets an honest two-minute whole-run watchdog without relaxing their
 individual action bounds. The preserved evidence logs are
 `retained-resources-{normal,scale7}-console.log` under the terminal-guide
-artifact directory. V-4.1a remains intentionally open: these acceptance runs
-still use the historical 50 ms unary snapshot poller.
+artifact directory. Those runs are the historical polling baseline; V-4.1a's
+later completion evidence above proves that the 50 ms poller has been removed.
 
 ### [ ] V-4.2 Introduce explicit presentation backends and capabilities
 

@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.terminal;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -30,6 +31,8 @@ class SFMVoxTerminalServiceTests {
             assertFalse(response.success());
             assertTrue(response.lines().get(0).startsWith("Rust terminal unavailable:"));
             assertTrue(vox.latestSnapshot().isEmpty());
+            assertEquals(0, vox.telemetry().pollsStarted());
+            assertEquals(0, vox.telemetry().snapshotCalls());
         }
     }
 
@@ -40,6 +43,23 @@ class SFMVoxTerminalServiceTests {
 
             assertTrue(response.success());
             assertTrue(response.lines().isEmpty());
+        }
+    }
+
+    @Test
+    void interactiveInputAndResizeNeverWaitForTheUnavailableEndpoint() {
+        try (SFMVoxTerminalService vox = unavailableService(new SFMJavaLocalTerminalService())) {
+            long started = System.nanoTime();
+
+            assertTrue(vox.resize(100, 30, 1000, 600));
+            assertTrue(vox.sendKey(65, 0, true, false));
+            assertTrue(vox.sendText("a"));
+            assertTrue(vox.sendMouse(1, 1, 0, 0, false, true, 0, 0));
+
+            long elapsedMillis = Duration.ofNanos(System.nanoTime() - started).toMillis();
+            assertTrue(elapsedMillis < 250,
+                    "Minecraft-thread terminal callbacks must only enqueue work; elapsed="
+                            + elapsedMillis + "ms");
         }
     }
 
