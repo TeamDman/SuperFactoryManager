@@ -247,15 +247,72 @@ individual action bounds. The preserved evidence logs are
 artifact directory. Those runs are the historical polling baseline; V-4.1a's
 later completion evidence above proves that the 50 ms poller has been removed.
 
-### [ ] V-4.2 Introduce explicit presentation backends and capabilities
+### [ ] V-4.2a Introduce CPU presentation transports and the panel selector
 
 Keep the existing Rust-authoritative terminal session independent from the
 presentation backend. Add an explicit Java panel presentation interface whose
-implementations can consume full pixels, dirty pixels/tiles, or semantic
-cells. Backend and transport names must appear in configuration, capability
-negotiation, screenshots, content artifacts, traces, and result manifests;
-unsupported combinations fail clearly instead of silently falling back and
-spoiling a comparison.
+implementations consume `full-png`, `full-raw-rgba`, or `dirty-raw-rgba` from
+Teamy Terminal 3.6.3. Backend, raster/damage mode, and transport names must
+appear independently in configuration, capability negotiation, screenshots,
+content artifacts, traces, and result manifests; unsupported combinations fail
+clearly instead of silently falling back and spoiling a comparison. Full and
+dirty raw payloads validate the versioned RGBA8 layout, dimensions, row stride,
+alpha interpretation, frame/base sequence, region bounds, and ordered patch
+application before touching presentation resources.
+
+Every Rust-backed SFM terminal panel has a visible **Transport** dropdown. Each
+panel owns its remote service/subscription, so this is a panel-local selection:
+two terminal panels may deliberately use different transports for comparison.
+The dropdown is populated from the intersection of cached server-advertised
+capabilities and Java presentation implementations, uses stable transport ids,
+and labels unsupported choices with a reason rather than silently selecting a
+different path. Full PNG remains the initial compatibility default unless the
+client configuration names another supported default.
+
+The UI distinguishes **requested** from **active** transport. While disconnected,
+the dropdown chooses the desired transport for the next connection. While
+connected, changing it preserves the Rust session/PTY and visible last accepted
+frame, performs a bounded request-scoped resubscription, waits for a complete
+resynchronization frame carrying the requested transport id and a fresh
+transport generation, and only then reports the choice as active. Late frames
+from the retired generation are rejected. Selection must not block Minecraft's
+render thread, restart the shell, lose input, or affect another terminal panel.
+Failure leaves an explicit error and requested/active state instead of claiming
+the switch succeeded.
+
+Back the dropdown with the hierarchical command-palette/automation action
+`sfm:terminal/transport/set <transport-id>`. Resolve its target from the
+workspace's focused slot and the top/active panel in that slot at invocation
+time. The action is contextually available only when that exact panel exposes a
+Rust-terminal transport action target; a Java-local REPL, a non-terminal panel,
+an obscured panel lower in the focused stack, or no focused workspace panel is
+not eligible. Direct invocation in an ineligible context fails with an explicit
+"focused panel is not a Rust terminal" result rather than choosing another
+terminal or doing nothing. Capture the target panel identity before beginning
+the asynchronous switch; if that panel is closed or replaced, cancel/ignore the
+completion instead of applying it to the panel that later gains focus.
+
+The `<transport-id>` suggestions come from that captured panel's cached
+capability intersection. Dropdown and action use the same target model and
+transition path; clicking the dropdown focuses its panel, while command
+invocation does not otherwise move focus. Puppets first focus the intended
+panel and then invoke the action, without automating mouse coordinates.
+Candidate enumeration and tooltip rendering must not perform synchronous Vox,
+filesystem, font, or renderer construction work. Tests cover contextual action
+availability, direct-invocation failure, focused stacked-panel resolution,
+target capture across asynchronous focus/close changes, keyboard operation,
+panel-local independence, disconnected selection, successful switch and full
+resync, failed/unsupported selection, stale-generation rejection, and
+requested-versus-active artifact/telemetry fields.
+
+**Completion criteria:** The focused-panel dropdown/action can switch among all
+three CPU transports through the real bridge without restarting the PTY, losing
+input, stretching pixels, affecting another panel, or accepting a stale/base-
+mismatched frame. Headless composition and normal/GUI-scale-7 puppets prove
+full-versus-dirty pixel equivalence and record comparable renderer, damage,
+transport, byte, queue, cache, upload-region, and stage-timing manifests.
+
+### [ ] V-4.2b Define the semantic-cell transport contract
 
 Semantic transport is not a string transcript. It must preserve bounded cell
 content, foreground/background, bold, underline, inverse, width/continuation,
@@ -355,7 +412,7 @@ revisions so the decision can be repeated rather than remembered.
 
 ### Parallel work allocation
 
-After V-4.1 establishes the correlation vocabulary and the first V-4.2
+After V-4.1 establishes the correlation vocabulary and the V-4.2a
 contract revision is reviewed, the following tracks may run concurrently as
 separate subagents or user-visible Codex tasks backed by isolated
 branches/worktrees. One integration owner
