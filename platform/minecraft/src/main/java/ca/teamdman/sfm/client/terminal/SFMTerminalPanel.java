@@ -97,7 +97,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         this.minecraft = minecraft;
         this.bounds = bounds;
         this.context = context;
-        if (remoteService != null) remoteService.requestConnect();
+        if (remoteService != null) {
+            resized(minecraft, bounds);
+            remoteService.requestConnect();
+        }
     }
 
     @Override
@@ -106,7 +109,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (remoteService != null) {
             int cellWidth = Math.max(1, minecraft.font.width("W"));
             int cellHeight = Math.max(1, minecraft.font.lineHeight + 2);
-            remoteService.resize(bounds.width() / cellWidth, bounds.height() / cellHeight);
+            remoteService.resize(bounds.width() / cellWidth, bounds.height() / cellHeight,
+                    bounds.width(), bounds.height());
             remoteService.requestConnect();
         }
     }
@@ -367,6 +371,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     public SFMTerminalScrollback scrollback() {
         return scrollback;
+    }
+
+    /** Returns bounded timing/counter evidence for the Rust PNG presentation path. */
+    public SFMTerminalPngTelemetry.Snapshot pngTelemetry() {
+        return pngRenderer.telemetry();
     }
 
     @Override

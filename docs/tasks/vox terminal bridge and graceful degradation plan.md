@@ -53,7 +53,7 @@ cell rendering.
 - **[x] V-3.1:** implement and test disconnected/connected terminal presentation,
   including Start/Retry and stale-frame rejection;
 - **[x] V-3.2:** expose terminal and size-display scenes through the panel registry;
-- **[ ] V-3.3:** document and test the logical-size/cell-metric frame contract at
+- **[~] V-3.3:** document and test the logical-size/cell-metric frame contract at
   normal scale and GUI scale 7, asserting stable columns/rows, larger Rust
   font/cell pixels, native frame dimensions, and no Java bitmap upscaling; and
 - **[ ] V-3.4:** execute the evidence-driven renderer/transport comparison
@@ -86,7 +86,7 @@ version-dependent adapter boundary. Java's vanilla-font result remains a
 first-class comparison even though its glyph geometry and appearance will not
 be pixel-identical to Caskaydia.
 
-### [ ] V-4.1 Reproduce and correlate the current lag
+### [~] V-4.1 Reproduce and correlate the current lag
 
 Add a correlation id and terminal/frame sequence that can be followed from a
 Java input or expected-output marker through Rust input receipt, PTY/VT update,
@@ -104,6 +104,17 @@ not reproduce the multi-second delay, add typed capture start/mark/stop actions
 and use the exact manual interaction to produce the same manifest. This item
 is not complete until the perceived delay can be pointed to in milliseconds
 and associated with one or more measured stages.
+
+**Progress notes — 2026-08-02:** The Rust CPU/full-PNG path now emits a bounded
+`SFM_TERMINAL_TIMING_WITNESS` with a request sequence, server sequence,
+correlation ID, logical/native dimensions, payload size, and local stage
+durations. The reproducible focused puppet test measured a 2.853889-second
+snapshot at 1200×760 / 120×40; cold font loading accounted for 2.278390 seconds,
+with 136.599 ms rasterization and 393.669 ms PNG encoding. SFM now carries the
+correlation ID through Vox polling and logs Java wait/poll/presentation fields;
+the canonical Java compile and 17 focused terminal tests pass. A live SFM
+panel run that joins those Rust timings with Java decode/texture/present values
+is still required before this gate can be marked complete.
 
 ### [ ] V-4.2 Introduce explicit presentation backends and capabilities
 
@@ -136,7 +147,7 @@ back into lines of plain text. The Java renderers are performance and visual
 comparators and may become a production choice only after the matrix; they do
 not change Rust's authority over terminal state.
 
-### [ ] V-4.4 Instrument Minecraft decode, upload, and presentation
+### [~] V-4.4 Instrument Minecraft decode, upload, and presentation
 
 Add bounded Java-side timing and counters for snapshot polling and wait,
 payload bytes, PNG or raw decode, `NativeImage` and other allocations, texture
@@ -152,6 +163,16 @@ texture when a sequence changes, so decode/allocation/registration/upload and
 bitmap scaling are explicit hypotheses alongside `fontdue`. Measure them
 before introducing texture reuse, raw/dirty uploads, or scheduling changes,
 then retain matched evidence for each accepted change.
+
+**Progress notes — 2026-08-02:** `SFMTerminalPngTelemetry` now bounds render,
+PNG decode, dynamic-texture allocation/registration, upload, stale/drop,
+coalesced, and presented-sequence counters with total/max durations.
+`SFMVoxTerminalTelemetry` separately bounds poll, Vox wait, failure/timeout,
+stale/drop/coalesced, and latest native-frame metadata. The Java logger emits
+`SFM_VOX_TERMINAL_TIMING` with the same correlation/request/sequence vocabulary
+and labels Rust stage fields as externally sourced rather than subtracting
+unsynchronized clocks. The implementation compiles and its focused tests pass;
+runtime values from a live Minecraft presentation are the remaining evidence.
 
 ### [ ] V-4.5 Generate matched visual and temporal artifacts
 

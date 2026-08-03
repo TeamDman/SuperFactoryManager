@@ -24,34 +24,58 @@ final class SFMTerminalPngRenderer {
     private int imageWidth;
     private int imageHeight;
     private boolean failed;
+    private final SFMTerminalPngTelemetry telemetry = new SFMTerminalPngTelemetry();
+
+    SFMTerminalPngTelemetry.Snapshot telemetry() {
+        return telemetry.snapshot();
+    }
 
     boolean render(PoseStack poseStack, Minecraft minecraft, int x, int y, int width, int height,
                    Optional<SFMTerminalFrame> snapshot) {
-        if (snapshot.isEmpty()) return false;
-        SFMTerminalFrame frame = snapshot.get();
-        if (!frame.png() || !frame.full() || !isPng(frame.payload())) return false;
-        if (frame.sequence() == sequence && failed) return false;
-        if (frame.sequence() != sequence) {
-            try {
-                upload(minecraft, frame);
-            } catch (IOException | RuntimeException error) {
-                sequence = frame.sequence();
-                failed = true;
+        long startedNanos = System.nanoTime();
+        boolean presented = false;
+        try {
+            if (snapshot.isEmpty()) return false;
+            SFMTerminalFrame frame = snapshot.get();
+            if (frame.sequence() < sequence) telemetry.recordStaleFrame();
+            if (!frame.png() || !frame.full() || !isPng(frame.payload())) {
+                telemetry.recordDroppedFrame();
                 return false;
             }
-        }
-        if (texture == null || failed || width <= 0 || height <= 0) return false;
+            if (frame.sequence() == sequence && failed) return false;
+            if (frame.sequence() != sequence) {
+                try {
+                    if (failed) telemetry.recordCoalescedFrame();
+                    upload(minecraft, frame);
+                } catch (IOException | RuntimeException error) {
+                    sequence = frame.sequence();
+                    failed = true;
+                    telemetry.recordUploadFailure();
+                    telemetry.recordDroppedFrame();
+                    return false;
+                }
+            }
+            if (texture == null || failed || width <= 0 || height <= 0) return false;
 
-        double scale = Math.min(width / (double) imageWidth, height / (double) imageHeight);
-        int drawWidth = Math.max(1, (int) Math.floor(imageWidth * scale));
-        int drawHeight = Math.max(1, (int) Math.floor(imageHeight * scale));
-        int drawX = x + (width - drawWidth) / 2;
-        int drawY = y + (height - drawHeight) / 2;
-        minecraft.getTextureManager().bindForSetup(TEXTURE);
-        RenderSystem.setShaderTexture(0, TEXTURE);
-        GuiComponent.blit(poseStack, drawX, drawY, drawWidth, drawHeight,
-                0, 0, imageWidth, imageHeight, imageWidth, imageHeight);
-        return true;
+            // Never enlarge a smaller Rust frame in Java. The bridge now
+            // carries the physical target so Rust can increase its font size;
+            // stretching here only creates blur and hides the real metrics.
+            double scale = Math.min(1.0, Math.min(
+                    width / (double) imageWidth, height / (double) imageHeight));
+            int drawWidth = Math.max(1, (int) Math.floor(imageWidth * scale));
+            int drawHeight = Math.max(1, (int) Math.floor(imageHeight * scale));
+            int drawX = x + (width - drawWidth) / 2;
+            int drawY = y + (height - drawHeight) / 2;
+            minecraft.getTextureManager().bindForSetup(TEXTURE);
+            RenderSystem.setShaderTexture(0, TEXTURE);
+            GuiComponent.blit(poseStack, drawX, drawY, drawWidth, drawHeight,
+                    0, 0, imageWidth, imageHeight, imageWidth, imageHeight);
+            telemetry.recordPresented(frame.sequence());
+            presented = true;
+            return true;
+        } finally {
+            telemetry.recordRender(System.nanoTime() - startedNanos, presented);
+        }
     }
 
     void close(Minecraft minecraft) {
@@ -64,29 +88,52 @@ final class SFMTerminalPngRenderer {
     }
 
     private void upload(Minecraft minecraft, SFMTerminalFrame frame) throws IOException {
-        byte[] payload = frame.payload();
-        ByteBuffer encoded = MemoryUtil.memAlloc(payload.length);
-        NativeImage image;
+        long uploadStartedNanos = System.nanoTime();
+        telemetry.recordUploadStarted();
         try {
-            encoded.put(payload).flip();
-            image = NativeImage.read(encoded);
+            byte[] payload = frame.payload();
+            ByteBuffer encoded = MemoryUtil.memAlloc(payload.length);
+            NativeImage image;
+            try {
+                encoded.put(payload).flip();
+                long decodeStartedNanos = System.nanoTime();
+                try {
+                    image = NativeImage.read(encoded);
+                } finally {
+                    telemetry.recordPngDecode(System.nanoTime() - decodeStartedNanos);
+                }
+            } finally {
+                MemoryUtil.memFree(encoded);
+            }
+            int width = image.getWidth();
+            int height = image.getHeight();
+            if (width <= 0 || height <= 0 || width > MAX_IMAGE_DIMENSION
+                    || height > MAX_IMAGE_DIMENSION
+                    || (long) width * height > MAX_IMAGE_PIXELS) {
+                image.close();
+                throw new IOException("Rust terminal PNG dimensions exceed the presentation bound");
+            }
+            long allocationStartedNanos = System.nanoTime();
+            DynamicTexture next;
+            try {
+                next = new DynamicTexture(image);
+            } finally {
+                telemetry.recordDynamicTextureAllocation(System.nanoTime() - allocationStartedNanos);
+            }
+            long registrationStartedNanos = System.nanoTime();
+            try {
+                minecraft.getTextureManager().register(TEXTURE, next);
+            } finally {
+                telemetry.recordDynamicTextureRegistration(System.nanoTime() - registrationStartedNanos);
+            }
+            texture = next;
+            imageWidth = width;
+            imageHeight = height;
+            sequence = frame.sequence();
+            failed = false;
         } finally {
-            MemoryUtil.memFree(encoded);
+            telemetry.recordUploadFinished(System.nanoTime() - uploadStartedNanos);
         }
-        int width = image.getWidth();
-        int height = image.getHeight();
-        if (width <= 0 || height <= 0 || width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION
-                || (long) width * height > MAX_IMAGE_PIXELS) {
-            image.close();
-            throw new IOException("Rust terminal PNG dimensions exceed the presentation bound");
-        }
-        DynamicTexture next = new DynamicTexture(image);
-        minecraft.getTextureManager().register(TEXTURE, next);
-        texture = next;
-        imageWidth = width;
-        imageHeight = height;
-        sequence = frame.sequence();
-        failed = false;
     }
 
     private static boolean isPng(byte[] payload) {

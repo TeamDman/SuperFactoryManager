@@ -123,7 +123,7 @@ not only the names of the proposed features.
   The linked terminal plans compare Rust CPU/fontdue, Rust GPU/slug, Java
   vanilla-font cells, and Java Caskaydia cells visually and temporally.
 
-## Terminal performance release gate [ ]
+## Terminal performance release gate [~]
 
 This plan does not duplicate the implementation details in Teamy Terminal
 Phase 3.6 or Vox bridge V-4. It coordinates their release consequence:
@@ -141,6 +141,16 @@ Phase 3.6 or Vox bridge V-4. It coordinates their release consequence:
   explicit terminal-feature deferral. A short GPU span, reduced transport
   bytes, or a visually appealing screenshot alone is not acceptance; the
   original workload must have no unexplained multi-second presentation delay.
+
+**Progress notes — 2026-08-02:** The Rust CPU/full-PNG witness now reproduces a
+2.853889-second snapshot with the dominant measured stage exposed as cold
+`font_load_us=2278390`; SFM carries the same correlation vocabulary through
+Java polling and has bounded decode/upload/presentation telemetry. The
+canonical SFM compile and 17 focused terminal Java tests pass against Vox
+`blake3:400629d4488f9544ff098e47c9478ba799f4171e`. R-PERF.1 remains partial
+until a live Minecraft panel capture joins the Rust stage witness to Java
+decode/texture/present measurements; no GPU/slug or Java-renderer choice is
+being made from this preliminary data.
 
 The renderer candidates and reporting tool can be developed concurrently in
 the separate worktrees/tasks listed by the linked plans after their shared

@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.terminal;
 
+import ca.teamdman.sfm.SFM;
 import org.facet.vox.ConnectionOptions;
 import org.facet.vox.ConnectionState;
 import org.facet.vox.LaneOptions;
@@ -25,6 +26,7 @@ import org.facet.vox.generated.TerminalResizeResult;
 import org.facet.vox.generated.TerminalServiceDescriptor;
 import org.facet.vox.generated.TerminalSnapshot;
 import org.facet.vox.generated.TerminalSnapshotRequest;
+import org.facet.vox.generated.TerminalSurfaceMetrics;
 import org.facet.vox.generated.TerminalState;
 import org.facet.vox.generated.TerminalTextInput;
 
@@ -42,6 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Optional Java client for the generated Vox terminal service.
@@ -65,6 +68,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private final Duration callTimeout;
     private final ExecutorService driver;
     private final ScheduledExecutorService poller;
+    private final SFMVoxTerminalTelemetry telemetry = new SFMVoxTerminalTelemetry();
     private final Object lock = new Object();
     private VoxConnection connection;
     private ServiceLane lane;
@@ -76,6 +80,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private long clientSequence;
     private int requestedWidth = REQUEST_WIDTH;
     private int requestedHeight = REQUEST_HEIGHT;
+    private int requestedPixelWidth;
+    private int requestedPixelHeight;
     private boolean polling;
     private boolean snapshotInFlight;
     private boolean connectionInFlight;
@@ -188,6 +194,11 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         }
     }
 
+    /** Returns bounded machine-readable polling and frame evidence. */
+    public SFMVoxTerminalTelemetry.Snapshot telemetry() {
+        return telemetry.snapshot();
+    }
+
     @Override
     public Optional<SFMTerminalFrame> latestFrame() {
         synchronized (lock) {
@@ -196,8 +207,51 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                     latestSnapshot.sequence(),
                     latestSnapshot.kind() == TerminalFrameKind.FULL,
                     latestSnapshot.encoding() == TerminalFrameEncoding.PNG,
-                    latestSnapshot.payload()));
+                    latestSnapshot.payload(),
+                    frameMetadata(latestSnapshot)));
         }
+    }
+
+    private SFMTerminalFrameMetadata frameMetadata(TerminalSnapshot snapshot) {
+        return new SFMTerminalFrameMetadata(
+                snapshot.requestSequence(),
+                snapshot.logicalColumns(),
+                snapshot.logicalRows(),
+                snapshot.panelWidth(),
+                snapshot.panelHeight(),
+                snapshot.cellWidth(),
+                snapshot.cellHeight(),
+                snapshot.fontPixelSize(),
+                "rust.cpu.fontdue",
+                "vox",
+                0L,
+                0L,
+                0L,
+                0L,
+                0L,
+                0L,
+                0L,
+                0L,
+                snapshot.correlationId());
+    }
+
+    private static SFMVoxTerminalTelemetry.NativeFrameMetadata nativeFrameMetadata(
+            TerminalSnapshot snapshot) {
+        return new SFMVoxTerminalTelemetry.NativeFrameMetadata(
+                snapshot.sequence(),
+                snapshot.requestSequence(),
+                snapshot.logicalColumns(),
+                snapshot.logicalRows(),
+                snapshot.panelWidth(),
+                snapshot.panelHeight(),
+                snapshot.cellWidth(),
+                snapshot.cellHeight(),
+                snapshot.fontPixelSize(),
+                "rust.cpu.fontdue",
+                "vox",
+                snapshot.correlationId(),
+                0L,
+                snapshot.payload().length);
     }
 
     /** Returns a defensive copy of the latest frame payload for a renderer. */
@@ -279,6 +333,12 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         }
     }
 
+    private TerminalSurfaceMetrics requestedSurface() {
+        return new TerminalSurfaceMetrics(
+                requestedWidth, requestedHeight, requestedPixelWidth, requestedPixelHeight,
+                0, 0, 0);
+    }
+
     /** Clears a failed transport so the next command attempts a fresh connection. */
     public void reconnect() {
         synchronized (lock) {
@@ -321,28 +381,61 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         String currentSession;
         long afterSequence;
         synchronized (lock) {
-            if (closed || client == null || sessionId == null || snapshotInFlight) return;
+            if (closed) return;
+            if (client == null || sessionId == null) {
+                telemetry.recordPollSkippedUnavailable();
+                return;
+            }
+            if (snapshotInFlight) {
+                telemetry.recordPollSkippedInFlight();
+                return;
+            }
             snapshotInFlight = true;
+            telemetry.recordPollStarted();
             currentClient = client;
             currentSession = sessionId;
             afterSequence = latestSnapshot == null ? 0 : latestSnapshot.sequence();
         }
+        long pollStarted = System.nanoTime();
+        long requestSequence = nextSequence();
+        String correlationId = correlationId("snapshot", requestSequence);
+        long voxWaitStarted = 0L;
+        boolean voxWaitStartedFlag = false;
         CompletableFuture<VoxResult<TerminalSnapshot, TerminalError>> future;
         try {
+            voxWaitStarted = System.nanoTime();
+            voxWaitStartedFlag = true;
             future = currentClient.snapshot(new TerminalSnapshotRequest(
-                    currentSession, afterSequence, MAX_FRAME_BYTES, nextSequence()));
+                    currentSession, afterSequence, MAX_FRAME_BYTES, requestSequence, correlationId));
             TerminalSnapshot snapshot = requireSuccess(
                     await(future, "polling terminal snapshot"), "polling terminal snapshot");
+            long voxWaitUs = elapsedMicros(voxWaitStarted);
+            telemetry.recordVoxWait(System.nanoTime() - voxWaitStarted, false, false);
             synchronized (lock) {
                 snapshotInFlight = false;
-                if (closed || (snapshot.payload().length == 0 && !snapshot.complete())) return;
+                if (closed || (snapshot.payload().length == 0 && !snapshot.complete())) {
+                    telemetry.recordDropped();
+                    telemetry.recordPollCompleted(System.nanoTime() - pollStarted);
+                    return;
+                }
                 validateSnapshot(snapshot, "polled terminal snapshot");
                 latestSnapshot = snapshot;
             }
+            telemetry.recordObserved(nativeFrameMetadata(snapshot));
+            telemetry.recordAccepted(false);
+            logSnapshotTiming(snapshot, voxWaitUs, elapsedMicros(pollStarted), false);
+            telemetry.recordPollCompleted(System.nanoTime() - pollStarted);
             pollContent();
         } catch (Exception error) {
             synchronized (lock) {
                 snapshotInFlight = false;
+                telemetry.recordPollFailed(System.nanoTime() - pollStarted);
+                if (voxWaitStartedFlag) {
+                    telemetry.recordVoxWait(
+                            System.nanoTime() - voxWaitStarted,
+                            true,
+                            error instanceof TimeoutException);
+                }
                 // A poll may belong to a transport that reconnect() already
                 // replaced. Never let that stale completion tear down the
                 // replacement client.
@@ -399,9 +492,12 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             TerminalClient newClient = new TerminalClient(newLane);
             TerminalCapabilities capabilities = new TerminalCapabilities(
                     true, true, true, false, true, false, false, false,
-                    requestedWidth, requestedHeight, MAX_FRAME_BYTES);
+                    requestedWidth, requestedHeight, MAX_FRAME_BYTES,
+                    "rust.cpu.fontdue", "vox");
+            long requestSequence = nextSequence();
             TerminalConnectRequest request = new TerminalConnectRequest(
-                    "sfm-terminal", requestedWidth, requestedHeight, capabilities, nextSequence());
+                    "sfm-terminal", requestedWidth, requestedHeight, requestedSurface(), capabilities,
+                    requestSequence, correlationId("connect", requestSequence));
             TerminalConnectResult connected = requireSuccess(
                     await(newClient.connect(request), "connecting terminal"), "connecting terminal");
             synchronized (lock) {
@@ -428,18 +524,33 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     /** Sends a bounded logical terminal resize; the next frame remains Rust-owned. */
+    @Override
     public boolean resize(int width, int height) {
+        synchronized (lock) {
+            return resize(width, height, requestedPixelWidth, requestedPixelHeight);
+        }
+    }
+
+    @Override
+    public boolean resize(int width, int height, int panelWidth, int panelHeight) {
         int boundedWidth = Math.max(1, Math.min(240, width));
         int boundedHeight = Math.max(1, Math.min(120, height));
+        int boundedPanelWidth = Math.max(0, Math.min(4096, panelWidth));
+        int boundedPanelHeight = Math.max(0, Math.min(4096, panelHeight));
         synchronized (lock) {
             if (closed) return false;
             requestedWidth = boundedWidth;
             requestedHeight = boundedHeight;
+            requestedPixelWidth = boundedPanelWidth;
+            requestedPixelHeight = boundedPanelHeight;
             if (sessionId == null) return true;
             try {
+                long requestSequence = nextSequence();
                 TerminalResizeResult resized = requireSuccess(
                         await(client.resize(new TerminalResizeRequest(
-                                sessionId, boundedWidth, boundedHeight, nextSequence())), "resizing terminal"),
+                                sessionId, boundedWidth, boundedHeight, requestedSurface(),
+                                requestSequence, correlationId("resize", requestSequence))),
+                                "resizing terminal"),
                         "resizing terminal");
                 if (resized.width() != boundedWidth || resized.height() != boundedHeight) {
                     throw new IllegalStateException("resize response dimensions were "
@@ -448,7 +559,9 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 }
                 TerminalSnapshot snapshot = requireSuccess(
                         await(client.snapshot(new TerminalSnapshotRequest(
-                                sessionId, 0, MAX_FRAME_BYTES, nextSequence())), "reading resized terminal snapshot"),
+                                sessionId, 0, MAX_FRAME_BYTES,
+                                nextSequence(), correlationId("resize-snapshot", clientSequence))),
+                                "reading resized terminal snapshot"),
                         "reading resized terminal snapshot");
                 if (snapshot.payload().length != 0) {
                     validateSnapshot(snapshot, "resized terminal snapshot");
@@ -476,9 +589,11 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 currentSession = sessionId;
                 currentClient = client;
             }
+            long requestSequence = nextSequence();
             requireSuccess(
                     await(currentClient.sendText(new TerminalTextInput(
-                            currentSession, text, nextSequence())), "sending terminal text"),
+                            currentSession, text, requestSequence,
+                            correlationId("text", requestSequence))), "sending terminal text"),
                     "sending terminal text");
             return true;
         } catch (Exception error) {
@@ -500,9 +615,11 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 currentSession = sessionId;
                 currentClient = client;
             }
+            long requestSequence = nextSequence();
             requireSuccess(
                     await(currentClient.sendKey(new TerminalKeyInput(
-                            currentSession, keyCode, modifiers, pressed, repeat, nextSequence())),
+                            currentSession, keyCode, modifiers, pressed, repeat, requestSequence,
+                            correlationId("key", requestSequence))),
                             "sending terminal key"),
                     "sending terminal key");
             return true;
@@ -525,12 +642,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 currentSession = sessionId;
                 currentClient = client;
             }
+            long requestSequence = nextSequence();
             return requireSuccess(
                     await(currentClient.cancel(new TerminalCancelRequest(
                             currentSession,
                             0,
                             "SFM terminal cancellation",
-                            nextSequence())), "cancelling terminal operation"),
+                            requestSequence, correlationId("cancel", requestSequence))),
+                            "cancelling terminal operation"),
                     "cancelling terminal operation").state() == TerminalState.READY;
         } catch (Exception error) {
             synchronized (lock) {
@@ -559,6 +678,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 currentSession = sessionId;
                 currentClient = client;
             }
+            long requestSequence = nextSequence();
             requireSuccess(
                     await(currentClient.sendMouse(new TerminalMouseInput(
                             currentSession,
@@ -570,7 +690,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                             motion,
                             wheelX,
                             wheelY,
-                            nextSequence())), "sending terminal mouse"),
+                            requestSequence,
+                            correlationId("mouse", requestSequence))), "sending terminal mouse"),
                     "sending terminal mouse");
             return true;
         } catch (Exception error) {
@@ -586,13 +707,18 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         String workingDirectory = workingDirectory();
         try {
             ensureConnected();
+            long requestSequence = nextSequence();
             TerminalInputResult input = requireSuccess(
                     await(client.sendText(new TerminalTextInput(
-                            sessionId, command + "\r", nextSequence())), "sending terminal text"),
+                            sessionId, command + "\r", requestSequence,
+                            correlationId("execute", requestSequence))), "sending terminal text"),
                     "sending terminal text");
+            long snapshotSequence = nextSequence();
             TerminalSnapshot snapshot = requireSuccess(
                     await(client.snapshot(new TerminalSnapshotRequest(
-                            sessionId, 0, MAX_FRAME_BYTES, nextSequence())), "reading terminal snapshot"),
+                            sessionId, 0, MAX_FRAME_BYTES, snapshotSequence,
+                            correlationId("execute-snapshot", snapshotSequence))),
+                            "reading terminal snapshot"),
                     "reading terminal snapshot");
             if (snapshot.payload().length != 0) {
                 validateSnapshot(snapshot, "terminal snapshot");
@@ -631,6 +757,42 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         if (snapshot.encoding() != TerminalFrameEncoding.PNG || !isPng(snapshot.payload())) {
             throw new IllegalStateException(operation + " did not return a full PNG frame");
         }
+    }
+
+    private void logSnapshotTiming(
+            TerminalSnapshot snapshot, long voxWaitUs, long javaPollUs, boolean stale) {
+        int logicalColumns = snapshot.logicalColumns();
+        int logicalRows = snapshot.logicalRows();
+        int panelWidth = snapshot.panelWidth();
+        int panelHeight = snapshot.panelHeight();
+        int cellWidth = snapshot.cellWidth();
+        int cellHeight = snapshot.cellHeight();
+        String message = "SFM_VOX_TERMINAL_TIMING correlation_id={} request_sequence={} "
+                + "server_sequence={} rust_total_us={} pty_drain_us={} vt_update_us={} "
+                + "snapshot_us={} font_load_us={} raster_us={} frame_build_us={} encode_us={} "
+                + "java_vox_wait_us={} java_poll_us={} logical_columns={} logical_rows={} "
+                + "panel_width={} panel_height={} cell_width={} cell_height={} font_pixel_size={} "
+                + "payload_bytes={} backend_id={} transport_id={} rust_timing_source={} stale={}";
+        Object[] fields = {
+                snapshot.correlationId(), snapshot.requestSequence(), snapshot.sequence(),
+                0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L,
+                voxWaitUs, javaPollUs, logicalColumns, logicalRows, panelWidth, panelHeight,
+                cellWidth, cellHeight, snapshot.fontPixelSize(), snapshot.payload().length,
+                "rust.cpu.fontdue", "vox", "rust-tracing", stale
+        };
+        if (javaPollUs >= 100_000) {
+            SFM.LOGGER.info(message, fields);
+        } else {
+            SFM.LOGGER.debug(message, fields);
+        }
+    }
+
+    private static long elapsedMicros(long startedNanos) {
+        return Math.max(0L, (System.nanoTime() - startedNanos) / 1_000L);
+    }
+
+    private static String correlationId(String operation, long sequence) {
+        return "sfm-terminal/" + operation + "/" + sequence;
     }
 
     private void awaitConnectionOpen(VoxConnection currentConnection, CompletableFuture<Void> closedFuture) throws Exception {

@@ -15,6 +15,11 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
 
     boolean resize(int columns, int rows);
 
+    /** Resize logical cells and declare the physical panel target separately. */
+    default boolean resize(int columns, int rows, int panelWidth, int panelHeight) {
+        return resize(columns, rows);
+    }
+
     boolean sendKey(int keyCode, int modifiers, boolean pressed, boolean repeat);
 
     boolean sendText(String text);
