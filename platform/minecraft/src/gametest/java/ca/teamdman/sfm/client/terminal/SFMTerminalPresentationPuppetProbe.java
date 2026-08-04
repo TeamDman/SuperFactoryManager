@@ -120,6 +120,8 @@ public final class SFMTerminalPresentationPuppetProbe {
             int cellWidth,
             int cellHeight,
             int fontPixelSize,
+            String fontId,
+            String fontSha256,
             RendererObservation rendererTelemetry,
             String content,
             String servicePushEvidence
@@ -158,6 +160,8 @@ public final class SFMTerminalPresentationPuppetProbe {
                     "cell_width=" + cellWidth,
                     "cell_height=" + cellHeight,
                     "font_pixel_size=" + fontPixelSize,
+                    "font_id=" + fontId,
+                    "font_sha256=" + fontSha256,
                     rendererTelemetry.artifact(),
                     "grid_native_width=" + (long) logicalColumns * cellWidth,
                     "grid_native_height=" + (long) logicalRows * cellHeight,
@@ -250,6 +254,11 @@ public final class SFMTerminalPresentationPuppetProbe {
         int cellWidth = positiveInt(fields, "cell_width");
         int cellHeight = positiveInt(fields, "cell_height");
         int fontPixelSize = positiveInt(fields, "font_pixel_size");
+        String fontId = requiredNonBlank(fields, "font_id");
+        String fontSha256 = requiredNonBlank(fields, "font_sha256").toLowerCase(java.util.Locale.ROOT);
+        if (!fontSha256.matches("[0-9a-f]{64}")) {
+            throw new IllegalStateException("Terminal push evidence contained an invalid font SHA-256");
+        }
         RendererObservation rendererTelemetry = rendererObservation(
                 fields,
                 expectedRenderer,
@@ -327,6 +336,8 @@ public final class SFMTerminalPresentationPuppetProbe {
                 cellWidth,
                 cellHeight,
                 fontPixelSize,
+                fontId,
+                fontSha256,
                 rendererTelemetry,
                 content,
                 pushEvidence

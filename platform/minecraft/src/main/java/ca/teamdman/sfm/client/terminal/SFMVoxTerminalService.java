@@ -180,6 +180,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         private int cellWidth;
         private int cellHeight;
         private int fontPixelSize;
+        private String fontId = "";
+        private String fontSha256 = "";
         private int frameContractVersion;
         private long baseFrameSequence;
         private boolean fullResync;
@@ -210,6 +212,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             cellWidth = surface.cellWidth();
             cellHeight = surface.cellHeight();
             fontPixelSize = surface.fontPixelSize();
+            fontId = frame.fontId();
+            fontSha256 = frame.fontSha256();
             frameContractVersion = event.frameContractVersion();
             baseFrameSequence = event.baseFrameSequence();
             fullResync = event.fullResync();
@@ -418,6 +422,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         || activeStream.nativeWidth <= 0 || activeStream.nativeHeight <= 0
                         || activeStream.cellWidth <= 0 || activeStream.cellHeight <= 0
                         || activeStream.fontPixelSize <= 0
+                        || activeStream.fontId.isBlank()
+                        || !activeStream.fontSha256.matches("[0-9a-fA-F]{64}")
                         || activeStream.rendererTelemetry == null) {
                     throw new IllegalStateException(
                             "Accepted Rust raster stream has incomplete grid/native metric evidence");
@@ -470,6 +476,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         "cell_width=" + activeStream.cellWidth,
                         "cell_height=" + activeStream.cellHeight,
                         "font_pixel_size=" + activeStream.fontPixelSize,
+                        "font_id=" + activeStream.fontId,
+                        "font_sha256=" + activeStream.fontSha256.toLowerCase(java.util.Locale.ROOT),
                         rendererTelemetryEvidence(activeStream.rendererTelemetry),
                         "producer_renders_started=" + producer.rendersStarted(),
                         "producer_renders_completed=" + producer.rendersCompleted(),
