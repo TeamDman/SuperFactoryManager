@@ -67,8 +67,13 @@ public interface ISFMGamePuppetRuntime {
             String rendererId,
             String transportId,
             String requiredContentLine,
-            boolean freshPresentationExpected
+            boolean initialDefaultExpected,
+            boolean freshPresentationExpected,
+            boolean panelResizeExpected
     );
+
+    /** Selects one presentation axis through the panel's real click/keyboard UI path. */
+    void selectTerminalPresentationThroughUi(boolean rendererAxis, String optionId);
 
     void clickTerminal();
 

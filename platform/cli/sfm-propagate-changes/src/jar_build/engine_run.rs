@@ -3423,6 +3423,8 @@ struct GamePuppetPreviewArtifact {
     relative_path: PathBuf,
     width: u32,
     height: u32,
+    caption_pixel_height: u32,
+    viewport_crop: GamePuppetPreviewViewportCrop,
     hash: ContentHash,
     metadata: GamePuppetPreviewCaptureMetadata,
 }
@@ -3499,6 +3501,8 @@ pub(crate) struct GamePuppetPreviewViewport {
 pub(crate) struct GamePuppetPreviewCaptureProfile {
     #[facet(rename = "nativeMainRenderTarget")]
     pub(crate) native_main_render_target: bool,
+    #[facet(default)]
+    pub(crate) composition: String,
     #[facet(rename = "hideHud")]
     pub(crate) hide_hud: bool,
     #[facet(rename = "clearTransientOverlays")]
@@ -3517,11 +3521,25 @@ pub(crate) struct GamePuppetPreviewManifestCapture {
     pub(crate) path: String,
     pub(crate) width: u32,
     pub(crate) height: u32,
+    #[facet(rename = "captionPixelHeight")]
+    #[facet(default)]
+    pub(crate) caption_pixel_height: u32,
+    #[facet(rename = "viewportCrop")]
+    #[facet(default)]
+    pub(crate) viewport_crop: Option<GamePuppetPreviewViewportCrop>,
     pub(crate) hash: ContentHash,
     pub(crate) camera: Option<GamePuppetPreviewCamera>,
     pub(crate) screen: Option<String>,
     #[facet(rename = "hudHidden")]
     pub(crate) hud_hidden: Option<bool>,
+}
+
+#[derive(Clone, Debug, Facet, PartialEq, Eq)]
+pub(crate) struct GamePuppetPreviewViewportCrop {
+    pub(crate) x: u32,
+    pub(crate) y: u32,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
 }
 
 #[derive(Debug, Facet)]
@@ -3620,6 +3638,11 @@ fn publish_game_puppet_preview_artifacts(
             .wrap_err_with(|| format!("Failed to read {}", staging_path.display()))?;
         let (width, height) = png_dimensions(&bytes)
             .ok_or_else(|| eyre::eyre!("Preview screenshot was not a valid PNG: {}", staging_path.display()))?;
+        let viewport = metadata.viewport.as_ref().ok_or_else(|| {
+            eyre::eyre!("Preview screenshot marker omitted viewport geometry: {file_name}")
+        })?;
+        let (caption_pixel_height, viewport_crop) =
+            captioned_viewport_geometry(width, height, viewport)?;
         let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
 
         let figure_number = metadata.figure_number.ok_or_else(|| {
@@ -3657,6 +3680,8 @@ fn publish_game_puppet_preview_artifacts(
             relative_path,
             width,
             height,
+            caption_pixel_height,
+            viewport_crop,
             hash,
             metadata,
         });
@@ -3980,6 +4005,38 @@ pub(crate) fn png_dimensions(bytes: &[u8]) -> Option<(u32, u32)> {
     (width > 0 && height > 0).then_some((width, height))
 }
 
+const MAX_PUPPET_CAPTION_PIXEL_HEIGHT: u32 = 1_024;
+
+fn captioned_viewport_geometry(
+    artifact_width: u32,
+    artifact_height: u32,
+    viewport: &GamePuppetPreviewVariantObservation,
+) -> eyre::Result<(u32, GamePuppetPreviewViewportCrop)> {
+    let framebuffer_width = u32::from(viewport.framebuffer_width);
+    let framebuffer_height = u32::from(viewport.framebuffer_height);
+    if artifact_width != framebuffer_width || artifact_height <= framebuffer_height {
+        eyre::bail!(
+            "Captioned preview artifact is {artifact_width}x{artifact_height}, but its native framebuffer is {framebuffer_width}x{framebuffer_height}"
+        );
+    }
+    let caption_pixel_height = artifact_height - framebuffer_height;
+    if caption_pixel_height > MAX_PUPPET_CAPTION_PIXEL_HEIGHT {
+        eyre::bail!(
+            "Captioned preview added {caption_pixel_height} pixels, exceeding the bounded {}-pixel caption area",
+            MAX_PUPPET_CAPTION_PIXEL_HEIGHT
+        );
+    }
+    Ok((
+        caption_pixel_height,
+        GamePuppetPreviewViewportCrop {
+            x: 0,
+            y: caption_pixel_height,
+            width: framebuffer_width,
+            height: framebuffer_height,
+        },
+    ))
+}
+
 fn render_game_puppet_preview_manifest(
     plan: &BuildPlan,
     run_options: &RunOptions,
@@ -3997,7 +4054,8 @@ fn render_game_puppet_preview_manifest(
         },
         viewport_selection: run_options.game_puppet_viewport_selection.clone(),
         capture_profile: GamePuppetPreviewCaptureProfile {
-            native_main_render_target: true,
+            native_main_render_target: false,
+            composition: "captioned-native-main-render-target".to_string(),
             hide_hud: true,
             clear_transient_overlays: false,
         },
@@ -4012,6 +4070,8 @@ fn render_game_puppet_preview_manifest(
                 path: artifact.relative_path.to_string_lossy().replace('\\', "/"),
                 width: artifact.width,
                 height: artifact.height,
+                caption_pixel_height: artifact.caption_pixel_height,
+                viewport_crop: Some(artifact.viewport_crop.clone()),
                 hash: artifact.hash,
                 camera: artifact.metadata.camera.clone(),
                 screen: artifact.metadata.screen.clone(),
@@ -4098,7 +4158,9 @@ mod game_puppet_preview_tests {
     use super::GamePuppetPreviewManifestCapture;
     use super::GamePuppetPreviewManifestTerminalArtifact;
     use super::GamePuppetPreviewVariantObservation;
+    use super::GamePuppetPreviewViewportCrop;
     use super::GamePuppetPreviewViewport;
+    use super::captioned_viewport_geometry;
     use super::create_game_puppet_preview_run_root;
     use super::game_puppet_preview_artifact_file_name;
     use super::is_safe_preview_name;
@@ -4140,7 +4202,14 @@ mod game_puppet_preview_tests {
                 figure_number: figure,
                 relative_path: std::path::PathBuf::from(format!("{puppet}/{capture}-{scale}.png")),
                 width: 1280,
-                height: 720,
+                height: 834,
+                caption_pixel_height: 114,
+                viewport_crop: GamePuppetPreviewViewportCrop {
+                    x: 0,
+                    y: 114,
+                    width: 1280,
+                    height: 720,
+                },
                 hash: ContentHash::from_bytes(b"preview", ContentHashAlgorithm::Blake3),
                 metadata: GamePuppetPreviewCaptureMetadata {
                     puppet: Some(puppet.to_string()),
@@ -4218,6 +4287,51 @@ mod game_puppet_preview_tests {
     }
 
     #[test]
+    fn captioned_capture_records_a_bounded_native_viewport_crop() {
+        let normal = GamePuppetPreviewVariantObservation {
+            actual_window_width: 1280,
+            actual_window_height: 720,
+            framebuffer_width: 1280,
+            framebuffer_height: 720,
+            requested_gui_scale: "auto".to_string(),
+            effective_gui_scale: 3,
+            logical_width: 427,
+            logical_height: 240,
+        };
+        let (caption, crop) = captioned_viewport_geometry(1280, 834, &normal)
+            .expect("normal caption geometry");
+        assert_eq!(caption, 114);
+        assert_eq!(
+            crop,
+            GamePuppetPreviewViewportCrop {
+                x: 0,
+                y: 114,
+                width: 1280,
+                height: 720,
+            }
+        );
+
+        let scale_seven = GamePuppetPreviewVariantObservation {
+            actual_window_width: 3840,
+            actual_window_height: 2130,
+            framebuffer_width: 3840,
+            framebuffer_height: 2130,
+            requested_gui_scale: "7".to_string(),
+            effective_gui_scale: 7,
+            logical_width: 549,
+            logical_height: 305,
+        };
+        let (caption, crop) = captioned_viewport_geometry(3840, 2396, &scale_seven)
+            .expect("GUI-scale-7 caption geometry");
+        assert_eq!(caption, 266);
+        assert_eq!(crop.y, 266);
+        assert_eq!((crop.width, crop.height), (3840, 2130));
+
+        assert!(captioned_viewport_geometry(1279, 834, &normal).is_err());
+        assert!(captioned_viewport_geometry(1280, 1745, &normal).is_err());
+    }
+
+    #[test]
     fn preview_manifest_uses_facet_json_with_the_stable_external_field_names() {
         let hash = ContentHash::from_bytes(b"preview", ContentHashAlgorithm::Blake3);
         let manifest = GamePuppetPreviewManifest {
@@ -4231,7 +4345,8 @@ mod game_puppet_preview_tests {
             },
             viewport_selection: "preferred".to_string(),
             capture_profile: GamePuppetPreviewCaptureProfile {
-                native_main_render_target: true,
+                native_main_render_target: false,
+                composition: "captioned-native-main-render-target".to_string(),
                 hide_hud: true,
                 clear_transient_overlays: false,
             },
@@ -4244,6 +4359,13 @@ mod game_puppet_preview_tests {
                 path: "move_1_stack_direct_walkthrough/figure_01_overview-00.png".to_string(),
                 width: 1280,
                 height: 807,
+                caption_pixel_height: 87,
+                viewport_crop: Some(GamePuppetPreviewViewportCrop {
+                    x: 0,
+                    y: 87,
+                    width: 1280,
+                    height: 720,
+                }),
                 hash,
                 camera: None,
                 screen: Some("SFM \"editor\"".to_string()),
@@ -4263,7 +4385,10 @@ mod game_puppet_preview_tests {
         let json = facet_json::to_string_pretty(&manifest).expect("preview manifest should serialize");
         assert!(json.contains("\"minecraftVersion\": \"1.19.2\""));
         assert!(json.contains("\"puppetSelection\": \"move_1_stack_direct_walkthrough\""));
-        assert!(json.contains("\"nativeMainRenderTarget\": true"));
+        assert!(json.contains("\"nativeMainRenderTarget\": false"));
+        assert!(json.contains("\"composition\": \"captioned-native-main-render-target\""));
+        assert!(json.contains("\"captionPixelHeight\": 87"));
+        assert!(json.contains("\"viewportCrop\""));
         assert!(json.contains("\"hudHidden\": true"));
         assert!(json.contains("\"clearTransientOverlays\": false"));
         assert!(json.contains(&format!("\"hash\": \"{hash}\"")));

@@ -8,6 +8,7 @@ use crate::cli::run::normalize_game_puppet_game_test;
 use crate::jar_build::ErrorAction;
 use crate::jar_build::GamePuppetPreviewManifest;
 use crate::jar_build::GamePuppetPreviewVariantObservation;
+use crate::jar_build::GamePuppetPreviewViewportCrop;
 use crate::jar_build::Parallelism;
 use crate::jar_build::game_puppet_preview_artifact_root;
 use crate::jar_build::hash::ContentHash;
@@ -97,6 +98,12 @@ struct PuppetMatrixCapture {
     matrix_path: String,
     width: u32,
     height: u32,
+    #[facet(rename = "captionPixelHeight")]
+    #[facet(default)]
+    caption_pixel_height: u32,
+    #[facet(rename = "viewportCrop")]
+    #[facet(default)]
+    viewport_crop: Option<GamePuppetPreviewViewportCrop>,
     hash: ContentHash,
 }
 
@@ -285,6 +292,16 @@ fn collect_target_preview(
                 capture.height
             );
         }
+        if source_manifest.capture_profile.composition == "captioned-native-main-render-target" {
+            validate_captioned_preview_geometry(
+                capture.viewport.as_ref(),
+                capture.viewport_crop.as_ref(),
+                capture.caption_pixel_height,
+                width,
+                height,
+                &source_path,
+            )?;
+        }
         let actual_hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
         if capture.hash.algorithm != ContentHashAlgorithm::Blake3 || capture.hash != actual_hash {
             eyre::bail!(
@@ -305,6 +322,8 @@ fn collect_target_preview(
             matrix_path: portable_path(&matrix_relative_path),
             width,
             height,
+            caption_pixel_height: capture.caption_pixel_height,
+            viewport_crop: capture.viewport_crop.clone(),
             hash: actual_hash,
         });
     }
@@ -328,6 +347,45 @@ fn collect_target_preview(
         error: None,
         captures: validated,
     })
+}
+
+fn validate_captioned_preview_geometry(
+    viewport: Option<&GamePuppetPreviewVariantObservation>,
+    crop: Option<&GamePuppetPreviewViewportCrop>,
+    caption_pixel_height: u32,
+    width: u32,
+    height: u32,
+    source_path: &Path,
+) -> eyre::Result<()> {
+    let viewport = viewport.ok_or_else(|| {
+        eyre::eyre!(
+            "Captioned preview omitted viewport metadata: {}",
+            source_path.display()
+        )
+    })?;
+    let crop = crop.ok_or_else(|| {
+        eyre::eyre!(
+            "Captioned preview omitted its native viewport crop: {}",
+            source_path.display()
+        )
+    })?;
+    let framebuffer_width = u32::from(viewport.framebuffer_width);
+    let framebuffer_height = u32::from(viewport.framebuffer_height);
+    if caption_pixel_height == 0
+        || caption_pixel_height > 1_024
+        || crop.x != 0
+        || crop.y != caption_pixel_height
+        || crop.width != framebuffer_width
+        || crop.height != framebuffer_height
+        || width != framebuffer_width
+        || height != framebuffer_height + caption_pixel_height
+    {
+        eyre::bail!(
+            "Captioned preview native viewport crop is inconsistent for {}",
+            source_path.display()
+        );
+    }
+    Ok(())
 }
 
 fn copy_target_preview(

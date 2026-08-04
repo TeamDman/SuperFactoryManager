@@ -8,7 +8,9 @@ public record AssertTerminalPresentationEvidencePuppetAction(
         String rendererId,
         String transportId,
         String requiredContentLine,
-        boolean freshPresentationExpected
+        boolean initialDefaultExpected,
+        boolean freshPresentationExpected,
+        boolean panelResizeExpected
 ) implements SFMPuppetAction {
     public AssertTerminalPresentationEvidencePuppetAction {
         if (artifactName == null || artifactName.isBlank()) {
@@ -34,7 +36,9 @@ public record AssertTerminalPresentationEvidencePuppetAction(
                 rendererId,
                 transportId,
                 requiredContentLine,
-                freshPresentationExpected
+                initialDefaultExpected,
+                freshPresentationExpected,
+                panelResizeExpected
         );
         return true;
     }

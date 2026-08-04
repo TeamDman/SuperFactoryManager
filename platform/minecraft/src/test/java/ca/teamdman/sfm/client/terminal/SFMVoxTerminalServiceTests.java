@@ -3,6 +3,8 @@ package ca.teamdman.sfm.client.terminal;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -91,6 +93,23 @@ class SFMVoxTerminalServiceTests {
                 malformedCatalog.transportOptions(SFMTerminalRendererId.RUST_CPU_FONTDUE);
         assertTrue(malformed.stream().noneMatch(SFMTerminalTransportOption::supported));
         assertTrue(malformed.stream().allMatch(option -> !option.unavailableReason().isBlank()));
+    }
+
+    @Test
+    void gpuPixelTelemetryDistinguishesFullTargetsFromDirtyRegions() {
+        assertDoesNotThrow(() -> SFMVoxTerminalService.validateGpuPixelTelemetry(
+                97_020, 388_080, 420, 231, SFMTerminalTransportId.FULL_RAW_RGBA));
+        assertDoesNotThrow(() -> SFMVoxTerminalService.validateGpuPixelTelemetry(
+                29_700, 118_800, 420, 231, SFMTerminalTransportId.DIRTY_RAW_RGBA));
+
+        assertThrows(IllegalStateException.class, () -> SFMVoxTerminalService.validateGpuPixelTelemetry(
+                29_700, 118_800, 420, 231, SFMTerminalTransportId.FULL_PNG));
+        assertThrows(IllegalStateException.class, () -> SFMVoxTerminalService.validateGpuPixelTelemetry(
+                0, 0, 420, 231, SFMTerminalTransportId.DIRTY_RAW_RGBA));
+        assertThrows(IllegalStateException.class, () -> SFMVoxTerminalService.validateGpuPixelTelemetry(
+                97_021, 388_084, 420, 231, SFMTerminalTransportId.DIRTY_RAW_RGBA));
+        assertThrows(IllegalStateException.class, () -> SFMVoxTerminalService.validateGpuPixelTelemetry(
+                29_700, 118_799, 420, 231, SFMTerminalTransportId.DIRTY_RAW_RGBA));
     }
 
     private static TerminalPresentationMode mode(

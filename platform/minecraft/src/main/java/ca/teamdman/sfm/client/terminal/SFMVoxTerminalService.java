@@ -35,6 +35,7 @@ import org.facet.vox.generated.TerminalPresentationCapabilitiesResult;
 import org.facet.vox.generated.TerminalPresentationMode;
 import org.facet.vox.generated.TerminalRasterFrameEvent;
 import org.facet.vox.generated.TerminalRasterFrameKind;
+import org.facet.vox.generated.TerminalRasterRendererTelemetry;
 import org.facet.vox.generated.TerminalRasterRegion;
 import org.facet.vox.generated.TerminalRasterSubscribeRequest;
 import org.facet.vox.generated.TerminalResizeRequest;
@@ -179,6 +180,13 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         private int cellWidth;
         private int cellHeight;
         private int fontPixelSize;
+        private int frameContractVersion;
+        private long baseFrameSequence;
+        private boolean fullResync;
+        private TerminalRasterFrameKind frameKind;
+        private int payloadBytes;
+        private int dirtyRegions;
+        private TerminalRasterRendererTelemetry rendererTelemetry;
         private boolean cleanupScheduled;
 
         private RasterStream(
@@ -202,6 +210,13 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             cellWidth = surface.cellWidth();
             cellHeight = surface.cellHeight();
             fontPixelSize = surface.fontPixelSize();
+            frameContractVersion = event.frameContractVersion();
+            baseFrameSequence = event.baseFrameSequence();
+            fullResync = event.fullResync();
+            frameKind = frame.kind();
+            payloadBytes = frame.payload().length;
+            dirtyRegions = frame.regions().size();
+            rendererTelemetry = frame.renderer();
         }
     }
 
@@ -402,7 +417,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         || activeStream.targetPanelWidth <= 0 || activeStream.targetPanelHeight <= 0
                         || activeStream.nativeWidth <= 0 || activeStream.nativeHeight <= 0
                         || activeStream.cellWidth <= 0 || activeStream.cellHeight <= 0
-                        || activeStream.fontPixelSize <= 0) {
+                        || activeStream.fontPixelSize <= 0
+                        || activeStream.rendererTelemetry == null) {
                     throw new IllegalStateException(
                             "Accepted Rust raster stream has incomplete grid/native metric evidence");
                 }
@@ -410,12 +426,25 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         || producer.pendingDepthMax() < 0 || producer.pendingDepthMax() > 1) {
                     throw new IllegalStateException("Rust raster producer violated its bounded pending depth");
                 }
+                validateRendererTelemetry(
+                        activeStream.rendererTelemetry,
+                        activePresentation,
+                        activeStream.nativeWidth,
+                        activeStream.nativeHeight);
                 String result = String.join("\n",
                         "transport=vox.txrx.raster",
+                        "session_id=" + activeStream.subscription.sessionId(),
+                        "connection_epoch=" + activeStream.connectionEpoch,
+                        "session_epoch=" + activeStream.sessionEpoch,
                         "requested_renderer=" + requestedPresentation.rendererId().wireId(),
                         "requested_transport=" + requestedPresentation.transportId().wireId(),
                         "active_renderer=" + activePresentation.rendererId().wireId(),
                         "active_transport=" + activePresentation.transportId().wireId(),
+                        "rasterization_owner=" + activePresentation.rendererId()
+                                .rasterizationOwner().wireId(),
+                        "damage_mode_id=" + activeStream.subscription.mode().damageModeId(),
+                        "transport_version=" + activeStream.subscription.mode().transportVersion(),
+                        "frame_contract_version=" + activeStream.frameContractVersion,
                         "presentation_generation=" + acceptedRasterPresentationGeneration,
                         "raster_subscriptions_started=" + rasterSubscriptionsStarted,
                         "raster_frames_received=" + rasterFramesReceived,
@@ -427,6 +456,11 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         "raster_full_resync_frames=" + rasterFullResyncFrames,
                         "latest_terminal_sequence=" + rasterLastTerminalSequence,
                         "latest_frame_sequence=" + rasterLastFrameSequence,
+                        "latest_base_frame_sequence=" + activeStream.baseFrameSequence,
+                        "latest_full_resync=" + activeStream.fullResync,
+                        "latest_frame_kind=" + activeStream.frameKind,
+                        "latest_payload_bytes=" + activeStream.payloadBytes,
+                        "latest_dirty_regions=" + activeStream.dirtyRegions,
                         "logical_columns=" + activeStream.logicalColumns,
                         "logical_rows=" + activeStream.logicalRows,
                         "panel_width=" + activeStream.targetPanelWidth,
@@ -436,6 +470,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         "cell_width=" + activeStream.cellWidth,
                         "cell_height=" + activeStream.cellHeight,
                         "font_pixel_size=" + activeStream.fontPixelSize,
+                        rendererTelemetryEvidence(activeStream.rendererTelemetry),
                         "producer_renders_started=" + producer.rendersStarted(),
                         "producer_renders_completed=" + producer.rendersCompleted(),
                         "producer_frames_pushed=" + producer.framesPushed(),
@@ -517,6 +552,178 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 "latest_frame_sequence=" + event.frameSequence());
         SFM.LOGGER.info("SFM_VOX_TERMINAL_PUSH_EVIDENCE {}", result.replace('\n', ' '));
         return result + "\n";
+    }
+
+    private static void validateRendererTelemetry(
+            TerminalRasterRendererTelemetry renderer,
+            SFMTerminalPresentationSelection activePresentation,
+            int nativeWidth,
+            int nativeHeight
+    ) {
+        boolean gpuExpected = activePresentation.rendererId() == SFMTerminalRendererId.RUST_GPU_SLUG;
+        if (renderer.gpuStagesPresent() != gpuExpected) {
+            throw new IllegalStateException("Renderer telemetry GPU-stage presence did not match "
+                    + activePresentation.rendererId().wireId());
+        }
+        if (gpuExpected) {
+            if (renderer.deviceIdentity().isBlank() || renderer.shaderIdentity().isBlank()) {
+                throw new IllegalStateException("GPU renderer telemetry omitted device or shader identity");
+            }
+            validateGpuPixelTelemetry(
+                    renderer.requestedPixels(),
+                    renderer.readbackBytes(),
+                    nativeWidth,
+                    nativeHeight,
+                    activePresentation.transportId());
+            if (renderer.targetAllocationId() <= 0
+                    || renderer.targetCapacity() <= 0
+                    || renderer.retainedTargets() <= 0
+                    || renderer.retainedTargets() > renderer.targetCapacity()
+                    || renderer.targetAllocations() + renderer.targetReuses() <= 0) {
+                throw new IllegalStateException("GPU renderer target/cache telemetry is incomplete");
+            }
+        } else if (!renderer.deviceIdentity().isBlank() || !renderer.shaderIdentity().isBlank()) {
+            throw new IllegalStateException("CPU renderer unexpectedly reported GPU device/shader identity");
+        }
+
+        boolean pngExpected = activePresentation.transportId() == SFMTerminalTransportId.FULL_PNG;
+        if (renderer.pngPacketPackPresent() != pngExpected
+                || renderer.rawPacketPackPresent() == pngExpected) {
+            throw new IllegalStateException("Renderer packet-stage presence did not match "
+                    + activePresentation.transportId().wireId());
+        }
+        requireNonNegativeRendererTelemetry(renderer);
+        requireCacheBounds(
+                "GPU glyph",
+                renderer.retainedGlyphs(),
+                renderer.glyphCapacity());
+        requireCacheBounds(
+                "GPU target",
+                renderer.retainedTargets(),
+                renderer.targetCapacity());
+        requireCacheBounds(
+                "CPU font renderer",
+                renderer.fontRendererCacheLen(),
+                renderer.fontRendererCacheCapacity());
+        requireCacheBounds(
+                "CPU glyph",
+                renderer.cachedGlyphs(),
+                renderer.glyphCacheCapacity());
+    }
+
+    static void validateGpuPixelTelemetry(
+            long requestedPixels,
+            long readbackBytes,
+            int nativeWidth,
+            int nativeHeight,
+            SFMTerminalTransportId transport
+    ) {
+        long targetPixels = (long) nativeWidth * nativeHeight;
+        boolean dirtyTransport = transport == SFMTerminalTransportId.DIRTY_RAW_RGBA;
+        if (requestedPixels <= 0
+                || requestedPixels > targetPixels
+                || !dirtyTransport && requestedPixels != targetPixels) {
+            throw new IllegalStateException("GPU renderer requested " + requestedPixels
+                    + " pixels for a " + nativeWidth + "x" + nativeHeight + " raster");
+        }
+        if (readbackBytes < requestedPixels * 4L) {
+            throw new IllegalStateException("GPU renderer readback was smaller than its requested RGBA8 pixels");
+        }
+    }
+
+    private static void requireCacheBounds(String name, long retained, long capacity) {
+        if (retained < 0 || capacity < 0 || retained > capacity) {
+            throw new IllegalStateException(name + " cache retained " + retained
+                    + " entries with capacity " + capacity);
+        }
+    }
+
+    private static void requireNonNegativeRendererTelemetry(TerminalRasterRendererTelemetry renderer) {
+        long[] values = {
+                renderer.geometryBuildUs(), renderer.outlineExtractionUs(),
+                renderer.directionalBandBuildUs(), renderer.uploadBytes(), renderer.uploadUs(),
+                renderer.commandRecordUs(), renderer.queueSubmitUs(), renderer.gpuCompletionWaitUs(),
+                renderer.readbackMapCopyUs(), renderer.fullRgbaPackUs(), renderer.dirtyRegionPackUs(),
+                renderer.rawPacketPackUs(), renderer.pngPacketPackUs(), renderer.requestedPixels(),
+                renderer.readbackBytes(), renderer.targetAllocationId(), renderer.geometryHits(),
+                renderer.geometryMisses(), renderer.geometryEvictions(), renderer.retainedGlyphs(),
+                renderer.glyphCapacity(), renderer.bufferAllocations(), renderer.targetCapacity(),
+                renderer.retainedTargets(), renderer.targetAllocations(), renderer.targetReuses(),
+                renderer.targetEvictions(), renderer.targetDestructions(),
+                renderer.fontCatalogAcquisitions(), renderer.processFontCatalogLoads(),
+                renderer.fontRendererCacheHits(), renderer.fontRendererCacheMisses(),
+                renderer.fontRendererConstructions(), renderer.fontRendererEvictions(),
+                renderer.fontRendererCacheLen(), renderer.fontRendererCacheCapacity(),
+                renderer.glyphCacheHits(), renderer.glyphCacheMisses(), renderer.glyphCacheEvictions(),
+                renderer.cachedGlyphs(), renderer.glyphCacheCapacity(), renderer.frameBufferGrows(),
+                renderer.frameBufferReuses(), renderer.frameBufferCapacityBytes(),
+                renderer.pngBufferGrows(), renderer.pngBufferReuses(), renderer.pngBufferCapacityBytes(),
+                renderer.transportPayloadCopies()
+        };
+        for (long value : values) {
+            if (value < 0) {
+                throw new IllegalStateException("Renderer telemetry contained a negative counter or duration");
+            }
+        }
+    }
+
+    private static String rendererTelemetryEvidence(TerminalRasterRendererTelemetry renderer) {
+        return String.join("\n",
+                "renderer_device_identity=" + renderer.deviceIdentity(),
+                "renderer_shader_identity=" + renderer.shaderIdentity(),
+                "renderer_gpu_stages_present=" + renderer.gpuStagesPresent(),
+                "renderer_full_rgba_pack_present=" + renderer.fullRgbaPackPresent(),
+                "renderer_dirty_region_pack_present=" + renderer.dirtyRegionPackPresent(),
+                "renderer_raw_packet_pack_present=" + renderer.rawPacketPackPresent(),
+                "renderer_png_packet_pack_present=" + renderer.pngPacketPackPresent(),
+                "renderer_geometry_build_us=" + renderer.geometryBuildUs(),
+                "renderer_outline_extraction_us=" + renderer.outlineExtractionUs(),
+                "renderer_directional_band_build_us=" + renderer.directionalBandBuildUs(),
+                "renderer_upload_bytes=" + renderer.uploadBytes(),
+                "renderer_upload_us=" + renderer.uploadUs(),
+                "renderer_command_record_us=" + renderer.commandRecordUs(),
+                "renderer_queue_submit_us=" + renderer.queueSubmitUs(),
+                "renderer_gpu_completion_wait_us=" + renderer.gpuCompletionWaitUs(),
+                "renderer_readback_map_copy_us=" + renderer.readbackMapCopyUs(),
+                "renderer_full_rgba_pack_us=" + renderer.fullRgbaPackUs(),
+                "renderer_dirty_region_pack_us=" + renderer.dirtyRegionPackUs(),
+                "renderer_raw_packet_pack_us=" + renderer.rawPacketPackUs(),
+                "renderer_png_packet_pack_us=" + renderer.pngPacketPackUs(),
+                "renderer_requested_pixels=" + renderer.requestedPixels(),
+                "renderer_readback_bytes=" + renderer.readbackBytes(),
+                "renderer_target_allocation_id=" + renderer.targetAllocationId(),
+                "renderer_geometry_hits=" + renderer.geometryHits(),
+                "renderer_geometry_misses=" + renderer.geometryMisses(),
+                "renderer_geometry_evictions=" + renderer.geometryEvictions(),
+                "renderer_retained_glyphs=" + renderer.retainedGlyphs(),
+                "renderer_glyph_capacity=" + renderer.glyphCapacity(),
+                "renderer_buffer_allocations=" + renderer.bufferAllocations(),
+                "renderer_target_capacity=" + renderer.targetCapacity(),
+                "renderer_retained_targets=" + renderer.retainedTargets(),
+                "renderer_target_allocations=" + renderer.targetAllocations(),
+                "renderer_target_reuses=" + renderer.targetReuses(),
+                "renderer_target_evictions=" + renderer.targetEvictions(),
+                "renderer_target_destructions=" + renderer.targetDestructions(),
+                "renderer_font_catalog_acquisitions=" + renderer.fontCatalogAcquisitions(),
+                "renderer_process_font_catalog_loads=" + renderer.processFontCatalogLoads(),
+                "renderer_font_renderer_cache_hits=" + renderer.fontRendererCacheHits(),
+                "renderer_font_renderer_cache_misses=" + renderer.fontRendererCacheMisses(),
+                "renderer_font_renderer_constructions=" + renderer.fontRendererConstructions(),
+                "renderer_font_renderer_evictions=" + renderer.fontRendererEvictions(),
+                "renderer_font_renderer_cache_len=" + renderer.fontRendererCacheLen(),
+                "renderer_font_renderer_cache_capacity=" + renderer.fontRendererCacheCapacity(),
+                "renderer_glyph_cache_hits=" + renderer.glyphCacheHits(),
+                "renderer_glyph_cache_misses=" + renderer.glyphCacheMisses(),
+                "renderer_glyph_cache_evictions=" + renderer.glyphCacheEvictions(),
+                "renderer_cached_glyphs=" + renderer.cachedGlyphs(),
+                "renderer_glyph_cache_capacity=" + renderer.glyphCacheCapacity(),
+                "renderer_frame_buffer_grows=" + renderer.frameBufferGrows(),
+                "renderer_frame_buffer_reuses=" + renderer.frameBufferReuses(),
+                "renderer_frame_buffer_capacity_bytes=" + renderer.frameBufferCapacityBytes(),
+                "renderer_png_buffer_grows=" + renderer.pngBufferGrows(),
+                "renderer_png_buffer_reuses=" + renderer.pngBufferReuses(),
+                "renderer_png_buffer_capacity_bytes=" + renderer.pngBufferCapacityBytes(),
+                "renderer_transport_payload_copies=" + renderer.transportPayloadCopies());
     }
 
     @Override

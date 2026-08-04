@@ -56,6 +56,7 @@ pub(crate) use engine::ArtifactSource;
 pub(crate) use engine::DependencyLockEntry;
 pub(crate) use engine::GamePuppetPreviewManifest;
 pub(crate) use engine::GamePuppetPreviewVariantObservation;
+pub(crate) use engine::GamePuppetPreviewViewportCrop;
 pub(crate) use engine::Repository;
 pub(crate) use engine::SourceBuildProvenance;
 pub(crate) use engine::SourceGitProvenance;

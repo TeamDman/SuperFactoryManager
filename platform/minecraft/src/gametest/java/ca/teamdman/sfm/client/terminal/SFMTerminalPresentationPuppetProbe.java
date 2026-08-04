@@ -32,16 +32,84 @@ public final class SFMTerminalPresentationPuppetProbe {
     private SFMTerminalPresentationPuppetProbe() {
     }
 
+    public record RendererObservation(
+            String deviceIdentity,
+            String shaderIdentity,
+            boolean gpuStagesPresent,
+            boolean fullRgbaPackPresent,
+            boolean dirtyRegionPackPresent,
+            boolean rawPacketPackPresent,
+            boolean pngPacketPackPresent,
+            long requestedPixels,
+            long readbackBytes,
+            long targetAllocationId,
+            long geometryHits,
+            long geometryMisses,
+            long targetCapacity,
+            long retainedTargets,
+            long targetAllocations,
+            long targetReuses,
+            long fontRendererCacheHits,
+            long fontRendererCacheMisses,
+            long glyphCacheHits,
+            long glyphCacheMisses,
+            long frameBufferGrows,
+            long frameBufferReuses,
+            long pngBufferGrows,
+            long pngBufferReuses,
+            long transportPayloadCopies
+    ) {
+        private String artifact() {
+            return String.join("\n",
+                    "renderer_device_identity=" + deviceIdentity,
+                    "renderer_shader_identity=" + shaderIdentity,
+                    "renderer_gpu_stages_present=" + gpuStagesPresent,
+                    "renderer_full_rgba_pack_present=" + fullRgbaPackPresent,
+                    "renderer_dirty_region_pack_present=" + dirtyRegionPackPresent,
+                    "renderer_raw_packet_pack_present=" + rawPacketPackPresent,
+                    "renderer_png_packet_pack_present=" + pngPacketPackPresent,
+                    "renderer_requested_pixels=" + requestedPixels,
+                    "renderer_readback_bytes=" + readbackBytes,
+                    "renderer_target_allocation_id=" + targetAllocationId,
+                    "renderer_geometry_hits=" + geometryHits,
+                    "renderer_geometry_misses=" + geometryMisses,
+                    "renderer_target_capacity=" + targetCapacity,
+                    "renderer_retained_targets=" + retainedTargets,
+                    "renderer_target_allocations=" + targetAllocations,
+                    "renderer_target_reuses=" + targetReuses,
+                    "renderer_font_renderer_cache_hits=" + fontRendererCacheHits,
+                    "renderer_font_renderer_cache_misses=" + fontRendererCacheMisses,
+                    "renderer_glyph_cache_hits=" + glyphCacheHits,
+                    "renderer_glyph_cache_misses=" + glyphCacheMisses,
+                    "renderer_frame_buffer_grows=" + frameBufferGrows,
+                    "renderer_frame_buffer_reuses=" + frameBufferReuses,
+                    "renderer_png_buffer_grows=" + pngBufferGrows,
+                    "renderer_png_buffer_reuses=" + pngBufferReuses,
+                    "renderer_transport_payload_copies=" + transportPayloadCopies);
+        }
+    }
+
     public record Observation(
             String rasterizationOwner,
             String requestedRenderer,
             String activeRenderer,
             String requestedTransport,
             String activeTransport,
+            String sessionId,
+            String connectionEpoch,
+            String sessionEpoch,
+            String damageModeId,
+            int transportVersion,
+            int frameContractVersion,
             String presentationGeneration,
             long fullResyncFrames,
             long terminalSequence,
             long latestFrameSequence,
+            long latestBaseFrameSequence,
+            boolean latestFullResync,
+            String latestFrameKind,
+            int latestPayloadBytes,
+            int latestDirtyRegions,
             long presentedFrameSequence,
             int targetPanelWidth,
             int targetPanelHeight,
@@ -52,6 +120,7 @@ public final class SFMTerminalPresentationPuppetProbe {
             int cellWidth,
             int cellHeight,
             int fontPixelSize,
+            RendererObservation rendererTelemetry,
             String content,
             String servicePushEvidence
     ) {
@@ -64,10 +133,21 @@ public final class SFMTerminalPresentationPuppetProbe {
                     "active_renderer=" + activeRenderer,
                     "requested_transport=" + requestedTransport,
                     "active_transport=" + activeTransport,
+                    "session_id=" + sessionId,
+                    "connection_epoch=" + connectionEpoch,
+                    "session_epoch=" + sessionEpoch,
+                    "damage_mode_id=" + damageModeId,
+                    "transport_version=" + transportVersion,
+                    "frame_contract_version=" + frameContractVersion,
                     "presentation_generation=" + presentationGeneration,
                     "full_resync_frames=" + fullResyncFrames,
                     "terminal_sequence=" + terminalSequence,
                     "latest_frame_sequence=" + latestFrameSequence,
+                    "latest_base_frame_sequence=" + latestBaseFrameSequence,
+                    "latest_full_resync=" + latestFullResync,
+                    "latest_frame_kind=" + latestFrameKind,
+                    "latest_payload_bytes=" + latestPayloadBytes,
+                    "latest_dirty_regions=" + latestDirtyRegions,
                     "presented_frame_sequence=" + presentedFrameSequence,
                     "target_panel_width=" + targetPanelWidth,
                     "target_panel_height=" + targetPanelHeight,
@@ -78,6 +158,7 @@ public final class SFMTerminalPresentationPuppetProbe {
                     "cell_width=" + cellWidth,
                     "cell_height=" + cellHeight,
                     "font_pixel_size=" + fontPixelSize,
+                    rendererTelemetry.artifact(),
                     "grid_native_width=" + (long) logicalColumns * cellWidth,
                     "grid_native_height=" + (long) logicalRows * cellHeight,
                     "native_within_target=true",
@@ -140,6 +221,14 @@ public final class SFMTerminalPresentationPuppetProbe {
                 "push requested transport");
         requireEqual(expectedTransport, required(fields, "active_transport"),
                 "push active transport");
+        requireEqual(renderer.rasterizationOwner().wireId(), required(fields, "rasterization_owner"),
+                "push rasterization owner");
+        String sessionId = requiredNonBlank(fields, "session_id");
+        String connectionEpoch = requiredNonBlank(fields, "connection_epoch");
+        String sessionEpoch = requiredNonBlank(fields, "session_epoch");
+        String damageModeId = requiredNonBlank(fields, "damage_mode_id");
+        int transportVersion = positiveInt(fields, "transport_version");
+        int frameContractVersion = positiveInt(fields, "frame_contract_version");
         String generation = required(fields, "presentation_generation");
         if (generation.isBlank()) {
             throw new IllegalStateException("Push evidence omitted the presentation generation");
@@ -147,6 +236,11 @@ public final class SFMTerminalPresentationPuppetProbe {
         long fullResyncFrames = positiveLong(fields, "raster_full_resync_frames");
         long terminalSequence = positiveLong(fields, "latest_terminal_sequence");
         long latestFrameSequence = positiveLong(fields, "latest_frame_sequence");
+        long latestBaseFrameSequence = nonNegativeLong(fields, "latest_base_frame_sequence");
+        boolean latestFullResync = booleanValue(fields, "latest_full_resync");
+        String latestFrameKind = requiredNonBlank(fields, "latest_frame_kind");
+        int latestPayloadBytes = positiveInt(fields, "latest_payload_bytes");
+        int latestDirtyRegions = nonNegativeInt(fields, "latest_dirty_regions");
         int logicalColumns = positiveInt(fields, "logical_columns");
         int logicalRows = positiveInt(fields, "logical_rows");
         int targetPanelWidth = positiveInt(fields, "panel_width");
@@ -156,6 +250,12 @@ public final class SFMTerminalPresentationPuppetProbe {
         int cellWidth = positiveInt(fields, "cell_width");
         int cellHeight = positiveInt(fields, "cell_height");
         int fontPixelSize = positiveInt(fields, "font_pixel_size");
+        RendererObservation rendererTelemetry = rendererObservation(
+                fields,
+                expectedRenderer,
+                expectedTransport,
+                nativeWidth,
+                nativeHeight);
         if ((long) logicalColumns * cellWidth != nativeWidth
                 || (long) logicalRows * cellHeight != nativeHeight) {
             throw new IllegalStateException("Native raster " + nativeWidth + "x" + nativeHeight
@@ -202,10 +302,21 @@ public final class SFMTerminalPresentationPuppetProbe {
                 active.rendererId().wireId(),
                 state.requested().transportId().wireId(),
                 active.transportId().wireId(),
+                sessionId,
+                connectionEpoch,
+                sessionEpoch,
+                damageModeId,
+                transportVersion,
+                frameContractVersion,
                 generation,
                 fullResyncFrames,
                 terminalSequence,
                 latestFrameSequence,
+                latestBaseFrameSequence,
+                latestFullResync,
+                latestFrameKind,
+                latestPayloadBytes,
+                latestDirtyRegions,
                 presenter.sequence(),
                 targetPanelWidth,
                 targetPanelHeight,
@@ -216,9 +327,99 @@ public final class SFMTerminalPresentationPuppetProbe {
                 cellWidth,
                 cellHeight,
                 fontPixelSize,
+                rendererTelemetry,
                 content,
                 pushEvidence
         );
+    }
+
+    private static RendererObservation rendererObservation(
+            Map<String, String> fields,
+            String expectedRenderer,
+            String expectedTransport,
+            int nativeWidth,
+            int nativeHeight
+    ) {
+        String deviceIdentity = required(fields, "renderer_device_identity");
+        String shaderIdentity = required(fields, "renderer_shader_identity");
+        boolean gpuStagesPresent = booleanValue(fields, "renderer_gpu_stages_present");
+        boolean fullRgbaPackPresent = booleanValue(fields, "renderer_full_rgba_pack_present");
+        boolean dirtyRegionPackPresent = booleanValue(fields, "renderer_dirty_region_pack_present");
+        boolean rawPacketPackPresent = booleanValue(fields, "renderer_raw_packet_pack_present");
+        boolean pngPacketPackPresent = booleanValue(fields, "renderer_png_packet_pack_present");
+        long requestedPixels = nonNegativeLong(fields, "renderer_requested_pixels");
+        long readbackBytes = nonNegativeLong(fields, "renderer_readback_bytes");
+        long targetAllocationId = nonNegativeLong(fields, "renderer_target_allocation_id");
+        long geometryHits = nonNegativeLong(fields, "renderer_geometry_hits");
+        long geometryMisses = nonNegativeLong(fields, "renderer_geometry_misses");
+        long targetCapacity = nonNegativeLong(fields, "renderer_target_capacity");
+        long retainedTargets = nonNegativeLong(fields, "renderer_retained_targets");
+        long targetAllocations = nonNegativeLong(fields, "renderer_target_allocations");
+        long targetReuses = nonNegativeLong(fields, "renderer_target_reuses");
+        long fontRendererCacheHits = nonNegativeLong(fields, "renderer_font_renderer_cache_hits");
+        long fontRendererCacheMisses = nonNegativeLong(fields, "renderer_font_renderer_cache_misses");
+        long glyphCacheHits = nonNegativeLong(fields, "renderer_glyph_cache_hits");
+        long glyphCacheMisses = nonNegativeLong(fields, "renderer_glyph_cache_misses");
+        long frameBufferGrows = nonNegativeLong(fields, "renderer_frame_buffer_grows");
+        long frameBufferReuses = nonNegativeLong(fields, "renderer_frame_buffer_reuses");
+        long pngBufferGrows = nonNegativeLong(fields, "renderer_png_buffer_grows");
+        long pngBufferReuses = nonNegativeLong(fields, "renderer_png_buffer_reuses");
+        long transportPayloadCopies = nonNegativeLong(fields, "renderer_transport_payload_copies");
+
+        boolean gpuExpected = SFMTerminalRendererId.RUST_GPU_SLUG.wireId().equals(expectedRenderer);
+        if (gpuStagesPresent != gpuExpected) {
+            throw new IllegalStateException("GPU-stage telemetry did not match renderer " + expectedRenderer);
+        }
+        if (gpuExpected) {
+            if (deviceIdentity.isBlank() || shaderIdentity.isBlank()) {
+                throw new IllegalStateException("GPU telemetry omitted device or shader identity");
+            }
+            long nativePixels = (long) nativeWidth * nativeHeight;
+            boolean dirtyTransport = SFMTerminalTransportId.DIRTY_RAW_RGBA.wireId()
+                    .equals(expectedTransport);
+            if (requestedPixels <= 0 || requestedPixels > nativePixels
+                    || !dirtyTransport && requestedPixels != nativePixels
+                    || readbackBytes < requestedPixels * 4L) {
+                throw new IllegalStateException("GPU requested/readback pixel telemetry did not match the native raster");
+            }
+            if (targetAllocationId <= 0 || targetCapacity <= 0 || retainedTargets <= 0
+                    || retainedTargets > targetCapacity || targetAllocations + targetReuses <= 0) {
+                throw new IllegalStateException("GPU target allocation/reuse telemetry was incoherent");
+            }
+        } else if (!deviceIdentity.isBlank() || !shaderIdentity.isBlank()) {
+            throw new IllegalStateException("CPU telemetry unexpectedly included GPU identities");
+        }
+        boolean pngExpected = SFMTerminalTransportId.FULL_PNG.wireId().equals(expectedTransport);
+        if (pngPacketPackPresent != pngExpected || rawPacketPackPresent == pngExpected) {
+            throw new IllegalStateException("Packet-stage telemetry did not match transport " + expectedTransport);
+        }
+
+        return new RendererObservation(
+                deviceIdentity,
+                shaderIdentity,
+                gpuStagesPresent,
+                fullRgbaPackPresent,
+                dirtyRegionPackPresent,
+                rawPacketPackPresent,
+                pngPacketPackPresent,
+                requestedPixels,
+                readbackBytes,
+                targetAllocationId,
+                geometryHits,
+                geometryMisses,
+                targetCapacity,
+                retainedTargets,
+                targetAllocations,
+                targetReuses,
+                fontRendererCacheHits,
+                fontRendererCacheMisses,
+                glyphCacheHits,
+                glyphCacheMisses,
+                frameBufferGrows,
+                frameBufferReuses,
+                pngBufferGrows,
+                pngBufferReuses,
+                transportPayloadCopies);
     }
 
     private static SFMTerminalRemoteService remoteService(SFMTerminalPanel panel) {
@@ -262,6 +463,12 @@ public final class SFMTerminalPresentationPuppetProbe {
         return value;
     }
 
+    private static String requiredNonBlank(Map<String, String> fields, String name) {
+        String value = required(fields, name);
+        if (value.isBlank()) throw new IllegalStateException(name + " must not be blank");
+        return value;
+    }
+
     private static long positiveLong(Map<String, String> fields, String name) {
         try {
             long value = Long.parseLong(required(fields, name));
@@ -278,6 +485,32 @@ public final class SFMTerminalPresentationPuppetProbe {
             throw new IllegalStateException(name + " exceeds the Java integer range: " + value);
         }
         return (int) value;
+    }
+
+    private static long nonNegativeLong(Map<String, String> fields, String name) {
+        try {
+            long value = Long.parseLong(required(fields, name));
+            if (value < 0) throw new IllegalStateException(name + " must not be negative, got " + value);
+            return value;
+        } catch (NumberFormatException error) {
+            throw new IllegalStateException(name + " was not an integer", error);
+        }
+    }
+
+    private static int nonNegativeInt(Map<String, String> fields, String name) {
+        long value = nonNegativeLong(fields, name);
+        if (value > Integer.MAX_VALUE) {
+            throw new IllegalStateException(name + " exceeds the Java integer range: " + value);
+        }
+        return (int) value;
+    }
+
+    private static boolean booleanValue(Map<String, String> fields, String name) {
+        return switch (required(fields, name)) {
+            case "true" -> true;
+            case "false" -> false;
+            default -> throw new IllegalStateException(name + " was not a boolean");
+        };
     }
 
     private static void requireEqual(String expected, String actual, String name) {

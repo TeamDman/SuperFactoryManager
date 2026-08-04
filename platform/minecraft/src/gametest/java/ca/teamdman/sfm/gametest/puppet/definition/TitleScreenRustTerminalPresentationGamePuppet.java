@@ -5,6 +5,7 @@ import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
 /**
  * V-4.2c live matrix for panel-local renderer and pixel-transport selection.
@@ -37,19 +38,48 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         puppet.openCommandPalette();
         puppet.executeCommandPalette("sfm action invoke sfm:panel/open sfm:terminal");
         puppet.waitTicks(80);
+        puppet.assertTerminalPresentationEvidence(
+                "initial-default", CPU, FULL_PNG, null,
+                true, false, false);
         puppet.executeTerminal("$global:SfmPresentationWitness='" + LEFT_TOKEN
                 + "'; $global:SfmPresentationStep=0");
 
-        exercise(puppet, CPU, FULL_PNG, "cpu-full-png", 1, false);
-        exercise(puppet, CPU, FULL_RGBA, "cpu-full-raw-rgba", 2, true);
-        exercise(puppet, CPU, DIRTY_RGBA, "cpu-dirty-raw-rgba", 3, true);
-        exercise(puppet, GPU, FULL_PNG, "gpu-full-png", 4, true);
-        exercise(puppet, GPU, FULL_RGBA, "gpu-full-raw-rgba", 5, true);
-        exercise(puppet, GPU, DIRTY_RGBA, "gpu-dirty-raw-rgba", 6, true);
+        exercise(puppet, CPU, FULL_PNG, "cpu-full-png", 1, false, false);
+        exercise(puppet, CPU, FULL_RGBA, "cpu-full-raw-rgba", 2, true, false);
+        exercise(puppet, CPU, DIRTY_RGBA, "cpu-dirty-raw-rgba", 3, true, false);
+        // Exercise both axes through the actual keyboard-accessible
+        // Presentation popover; the remaining tuples also retain typed action
+        // coverage so the two user surfaces converge on the same transition.
+        exercise(puppet, GPU, FULL_PNG, "gpu-full-png", 4, true, true);
+        exercise(puppet, GPU, FULL_RGBA, "gpu-full-raw-rgba", 5, true, false);
+        exercise(puppet, GPU, DIRTY_RGBA, "gpu-dirty-raw-rgba", 6, true, false);
+
+        puppet.executeTerminal("& 'G:\\Programming\\Repos\\ratatui-key-debug\\target\\debug\\ratatui_key_debug.exe'");
+        puppet.waitTicks(30);
+        puppet.capture("gpu-dirty-alternate-active", caption(GPU, DIRTY_RGBA,
+                "The retained GPU presentation shows the child TUI alternate screen."));
+        puppet.assertTerminalPresentationEvidence(
+                "gpu-dirty-alternate-active", GPU, DIRTY_RGBA, null, false);
+        puppet.writeTerminalContent("gpu-dirty-alternate-active-text", "Key Events", null);
+        puppet.pressTerminalKeyDirect(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.pressTerminalKeyDirect(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.pressTerminalKeyDirect(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.waitTicks(30);
+        puppet.executeTerminal(witnessCommand());
+        puppet.waitTicks(30);
+        puppet.capture("gpu-dirty-alternate-restored", caption(GPU, DIRTY_RGBA,
+                "The same GPU presentation restores the original PowerShell screen and global."));
+        puppet.assertTerminalPresentationEvidence(
+                "gpu-dirty-alternate-restored", GPU, DIRTY_RGBA,
+                "SFM-WITNESS:" + LEFT_TOKEN + ":6", false);
+        puppet.writeTerminalContent(
+                "gpu-dirty-alternate-restored-text",
+                "line:SFM-WITNESS:" + LEFT_TOKEN + ":6",
+                "Key Events");
 
         // Return to CPU in the same PTY. The global token and monotonic step
         // prove that renderer replacement did not recreate PowerShell.
-        exercise(puppet, CPU, FULL_PNG, "cpu-full-png-return", 7, true);
+        exercise(puppet, CPU, FULL_PNG, "cpu-full-png-return", 7, true, false);
 
         puppet.openCommandPalette();
         puppet.executeCommandPalette("sfm action invoke sfm:panel/open/right sfm:terminal");
@@ -74,7 +104,8 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
                 "The left panel switches while the right panel remains GPU/dirty."));
         puppet.assertTerminalPresentationEvidence(
                 "independent-left-cpu-full-raw", CPU, FULL_RGBA,
-                "SFM-WITNESS:" + LEFT_TOKEN + ":8", true);
+                "SFM-WITNESS:" + LEFT_TOKEN + ":8",
+                false, true, true);
 
         puppet.clickWorkspacePanel(1);
         puppet.executeTerminal("$global:SfmPresentationStep++; " + witnessCommand());
@@ -92,9 +123,17 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
             String transport,
             String artifact,
             int step,
-            boolean freshPresentationExpected
+            boolean freshPresentationExpected,
+            boolean selectThroughUi
     ) {
-        select(puppet, renderer, transport);
+        if (selectThroughUi) {
+            puppet.selectTerminalRendererThroughUi(renderer);
+            puppet.waitTicks(60);
+            puppet.selectTerminalTransportThroughUi(transport);
+            puppet.waitTicks(60);
+        } else {
+            select(puppet, renderer, transport);
+        }
         String witness = "SFM-WITNESS:" + LEFT_TOKEN + ":" + step;
         puppet.executeTerminal("$global:SfmPresentationStep++; "
                 + "1..100 | Out-Host; "

@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.gametest.puppet;
 
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.MultipleTestTracker;
@@ -17,6 +18,23 @@ public final class ActivePuppet {
     public final String worldId;
 
     public final Map<String, PuppetCaptureState> captures = new HashMap<>();
+    public final Map<SFMWorkspacePanelId, TerminalPresentationProgress> terminalPresentations =
+            new HashMap<>();
+    public final Map<SFMWorkspacePanelId, Integer> terminalPresentationUiSelections =
+            new HashMap<>();
+
+    public record TerminalPresentationProgress(
+            String generation,
+            long fullResyncFrames,
+            String sessionId,
+            String connectionEpoch,
+            String sessionEpoch,
+            long terminalSequence,
+            long frameSequence,
+            int panelWidth,
+            int panelHeight
+    ) {
+    }
 
     public boolean worldCreationStarted;
 

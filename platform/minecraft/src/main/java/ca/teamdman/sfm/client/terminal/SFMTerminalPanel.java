@@ -829,8 +829,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT) {
-            presentationAxis = presentationAxis == PresentationAxis.RENDERER
-                    ? PresentationAxis.TRANSPORT : PresentationAxis.RENDERER;
+            presentationAxis = keyCode == GLFW.GLFW_KEY_LEFT
+                    ? PresentationAxis.RENDERER : PresentationAxis.TRANSPORT;
             presentationMenuOpen = true;
             synchronizePresentationSelection();
             return true;

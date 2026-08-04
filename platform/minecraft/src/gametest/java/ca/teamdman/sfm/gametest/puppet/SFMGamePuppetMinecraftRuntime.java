@@ -65,9 +65,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
@@ -76,10 +74,6 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 
     private final Minecraft minecraft;
     private SFMWorkspacePanelId rememberedFileViewerId;
-    private final Map<SFMWorkspacePanelId, PresentationProgress> terminalPresentations = new HashMap<>();
-
-    private record PresentationProgress(String generation, long fullResyncFrames) {
-    }
 
     SFMGamePuppetMinecraftRuntime(
             ActivePuppet active,
@@ -430,7 +424,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             String rendererId,
             String transportId,
             String requiredContentLine,
-            boolean freshPresentationExpected
+            boolean initialDefaultExpected,
+            boolean freshPresentationExpected,
+            boolean panelResizeExpected
     ) {
         String safeArtifactName = validateCaptureName(artifactName);
         SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
@@ -449,7 +445,41 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                         bounds.width(),
                         bounds.height()
                 );
-        PresentationProgress previous = terminalPresentations.get(panelId);
+        ActivePuppet.TerminalPresentationProgress previous =
+                active.terminalPresentations.get(panelId);
+        boolean initialDefaultAsserted = initialDefaultExpected
+                && previous == null
+                && "rust-cpu-fontdue".equals(rendererId)
+                && "full-png".equals(transportId);
+        if (initialDefaultExpected && !initialDefaultAsserted) {
+            throw new IllegalStateException(
+                    "Initial terminal presentation was not the first CPU/full-PNG observation");
+        }
+        boolean sameSession = previous == null || previous.sessionId().equals(observation.sessionId());
+        boolean sameConnectionEpoch = previous == null
+                || previous.connectionEpoch().equals(observation.connectionEpoch());
+        boolean sameSessionEpoch = previous == null
+                || previous.sessionEpoch().equals(observation.sessionEpoch());
+        boolean terminalSequenceAdvanced = previous == null
+                || observation.terminalSequence() > previous.terminalSequence();
+        boolean frameSequenceContinuous = previous == null
+                || !previous.generation().equals(observation.presentationGeneration())
+                || observation.latestFrameSequence() > previous.frameSequence();
+        boolean panelDimensionsChanged = previous != null
+                && (previous.panelWidth() != observation.targetPanelWidth()
+                || previous.panelHeight() != observation.targetPanelHeight());
+        if (!sameSession || !sameConnectionEpoch || !sameSessionEpoch) {
+            throw new IllegalStateException("Terminal presentation switch replaced the PTY/session identity");
+        }
+        if (!terminalSequenceAdvanced) {
+            throw new IllegalStateException("Terminal sequence did not advance across the live witness");
+        }
+        if (!frameSequenceContinuous) {
+            throw new IllegalStateException("Frame sequence did not advance within the active presentation generation");
+        }
+        if (panelResizeExpected && !panelDimensionsChanged) {
+            throw new IllegalStateException("Expected a real panel resize before presentation evidence");
+        }
         if (previous != null && freshPresentationExpected) {
             if (previous.generation().equals(observation.presentationGeneration())) {
                 throw new IllegalStateException("Terminal presentation generation did not change for "
@@ -460,12 +490,21 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             }
         } else if (previous != null) {
             if (!previous.generation().equals(observation.presentationGeneration())
-                    || previous.fullResyncFrames() != observation.fullResyncFrames()) {
-                throw new IllegalStateException("Independent terminal presentation changed unexpectedly");
+                    || observation.fullResyncFrames() < previous.fullResyncFrames()) {
+                throw new IllegalStateException(
+                        "Terminal presentation generation changed or its full-resync counter regressed");
             }
         }
-        terminalPresentations.put(panelId, new PresentationProgress(
-                observation.presentationGeneration(), observation.fullResyncFrames()));
+        active.terminalPresentations.put(panelId, new ActivePuppet.TerminalPresentationProgress(
+                observation.presentationGeneration(),
+                observation.fullResyncFrames(),
+                observation.sessionId(),
+                observation.connectionEpoch(),
+                observation.sessionEpoch(),
+                observation.terminalSequence(),
+                observation.latestFrameSequence(),
+                observation.targetPanelWidth(),
+                observation.targetPanelHeight()));
 
         Path directory = minecraft.gameDirectory.toPath().resolve("terminal-content");
         Path contentFile = directory.resolve(
@@ -482,9 +521,25 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                 "requested_gui_scale=" + active.viewportVariant.requestedScaleName(),
                 "effective_gui_scale=" + active.viewportObservation.effectiveGuiScale(),
                 "panel_id=" + panelId.value(),
+                "initial_default_expected=" + initialDefaultExpected,
+                "initial_default_asserted=" + initialDefaultAsserted,
                 "fresh_presentation_expected=" + freshPresentationExpected,
+                "panel_resize_expected=" + panelResizeExpected,
+                "panel_dimensions_changed=" + panelDimensionsChanged,
+                "presentation_ui_selection_count="
+                        + active.terminalPresentationUiSelections.getOrDefault(panelId, 0),
                 "previous_presentation_generation=" + (previous == null ? "none" : previous.generation()),
                 "previous_full_resync_frames=" + (previous == null ? 0 : previous.fullResyncFrames()),
+                "previous_session_id=" + (previous == null ? "none" : previous.sessionId()),
+                "previous_connection_epoch=" + (previous == null ? "none" : previous.connectionEpoch()),
+                "previous_session_epoch=" + (previous == null ? "none" : previous.sessionEpoch()),
+                "previous_terminal_sequence=" + (previous == null ? 0 : previous.terminalSequence()),
+                "previous_frame_sequence=" + (previous == null ? 0 : previous.frameSequence()),
+                "session_id_unchanged=" + sameSession,
+                "connection_epoch_unchanged=" + sameConnectionEpoch,
+                "session_epoch_unchanged=" + sameSessionEpoch,
+                "terminal_sequence_advanced=" + terminalSequenceAdvanced,
+                "frame_sequence_continuity=" + frameSequenceContinuous,
                 "presentation_generation_changed=" + generationChanged,
                 "full_resync_advanced=" + fullResyncAdvanced,
                 "content_asserted=" + (requiredContentLine != null),
@@ -518,6 +573,51 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                 evidenceFile.getFileName(),
                 evidence.length()
         );
+    }
+
+    @Override
+    public void selectTerminalPresentationThroughUi(boolean rendererAxis, String optionId) {
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        SFMTerminalPanel panel = requireTerminalPanel();
+        SFMWorkspacePanelId panelId = multiplexer.focusedPanelId();
+        SFMScreenPanelBounds bounds = multiplexer.panelContentBounds(panelId);
+        if (bounds == null) {
+            throw new IllegalStateException("Focused terminal panel has no content bounds");
+        }
+        var options = rendererAxis ? panel.rendererOptions() : panel.transportOptions();
+        int targetIndex = -1;
+        for (int index = 0; index < options.size(); index++) {
+            String candidate = rendererAxis
+                    ? panel.rendererOptions().get(index).id().wireId()
+                    : panel.transportOptions().get(index).id().wireId();
+            if (optionId.equals(candidate)) {
+                targetIndex = index;
+                boolean supported = rendererAxis
+                        ? panel.rendererOptions().get(index).supported()
+                        : panel.transportOptions().get(index).supported();
+                if (!supported) {
+                    throw new IllegalStateException("Presentation UI option is unavailable: " + optionId);
+                }
+                break;
+            }
+        }
+        if (targetIndex < 0) {
+            throw new IllegalStateException("Presentation UI omitted option: " + optionId);
+        }
+
+        int controlHeight = minecraft.font.lineHeight + 6;
+        int controlWidth = Math.min(380, Math.max(150, bounds.width() - 12));
+        double controlX = bounds.x() + bounds.width() - 6D - controlWidth / 2D;
+        double controlY = bounds.y() + 4D + controlHeight / 2D;
+        multiplexer.mouseClicked(controlX, controlY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseReleased(controlX, controlY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.keyPressed(rendererAxis ? GLFW.GLFW_KEY_LEFT : GLFW.GLFW_KEY_RIGHT, 0, 0);
+        multiplexer.keyPressed(GLFW.GLFW_KEY_HOME, 0, 0);
+        for (int index = 0; index < targetIndex; index++) {
+            multiplexer.keyPressed(GLFW.GLFW_KEY_DOWN, 0, 0);
+        }
+        multiplexer.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0);
+        active.terminalPresentationUiSelections.merge(panelId, 1, Integer::sum);
     }
 
     /**

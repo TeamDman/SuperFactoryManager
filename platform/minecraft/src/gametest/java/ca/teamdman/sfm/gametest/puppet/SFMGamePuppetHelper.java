@@ -230,13 +230,41 @@ public final class SFMGamePuppetHelper {
             String requiredContentLine,
             boolean freshPresentationExpected
     ) {
+        assertTerminalPresentationEvidence(
+                artifactName, rendererId, transportId, requiredContentLine,
+                false, freshPresentationExpected, false);
+    }
+
+    public void assertTerminalPresentationEvidence(
+            String artifactName,
+            String rendererId,
+            String transportId,
+            String requiredContentLine,
+            boolean initialDefaultExpected,
+            boolean freshPresentationExpected,
+            boolean panelResizeExpected
+    ) {
         add(new AssertTerminalPresentationEvidencePuppetAction(
                 Objects.requireNonNull(artifactName, "artifactName"),
                 Objects.requireNonNull(rendererId, "rendererId"),
                 Objects.requireNonNull(transportId, "transportId"),
                 requiredContentLine,
-                freshPresentationExpected
+                initialDefaultExpected,
+                freshPresentationExpected,
+                panelResizeExpected
         ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void selectTerminalRendererThroughUi(String rendererId) {
+        add(new SelectTerminalPresentationUiPuppetAction(true,
+                Objects.requireNonNull(rendererId, "rendererId")));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void selectTerminalTransportThroughUi(String transportId) {
+        add(new SelectTerminalPresentationUiPuppetAction(false,
+                Objects.requireNonNull(transportId, "transportId")));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
