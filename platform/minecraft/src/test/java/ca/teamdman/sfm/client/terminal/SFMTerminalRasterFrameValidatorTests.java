@@ -66,7 +66,7 @@ class SFMTerminalRasterFrameValidatorTests {
     void negotiatedLimitsCannotExceedContractVersionOneHardBounds() {
         assertEquals(4096, SFMTerminalRasterLimits.RGBA8_V1_DEFAULTS.maxWidth());
         assertEquals(4096, SFMTerminalRasterLimits.RGBA8_V1_DEFAULTS.maxHeight());
-        assertEquals(16L * 1024L * 1024L,
+        assertEquals(64L * 1024L * 1024L,
                 SFMTerminalRasterLimits.RGBA8_V1_DEFAULTS.maxPayloadBytes());
         assertEquals(64, SFMTerminalRasterLimits.RGBA8_V1_DEFAULTS.maxRegions());
 
@@ -77,7 +77,7 @@ class SFMTerminalRasterFrameValidatorTests {
         assertThrows(IllegalArgumentException.class,
                 () -> new SFMTerminalRasterLimits(1, 4097, 4, 1));
         assertThrows(IllegalArgumentException.class,
-                () -> new SFMTerminalRasterLimits(1, 1, 16L * 1024L * 1024L + 1, 1));
+                () -> new SFMTerminalRasterLimits(1, 1, 64L * 1024L * 1024L + 1, 1));
         assertThrows(IllegalArgumentException.class,
                 () -> new SFMTerminalRasterLimits(1, 1, 4, 65));
     }

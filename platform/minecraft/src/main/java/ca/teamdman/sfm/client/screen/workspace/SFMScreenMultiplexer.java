@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /** Owns Minecraft's Screen lifecycle while hosting a normalized tree of SFM panels. */
@@ -255,6 +256,31 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             refreshLayout(true);
         }
         return SFMWorkspacePanelIntentResult.APPLIED;
+    }
+
+    @Override
+    public Optional<SFMWorkspacePanelMetrics> measure(
+            SFMWorkspacePanelId source,
+            SFMScreenPanelBounds logicalBounds
+    ) {
+        SFMWorkspaceLayout.PanelEntry entry = layout.entry(source);
+        SFMScreenPanelBounds slotBounds = panelBounds.get(source);
+        if (entry == null || slotBounds == null || this.minecraft == null) return Optional.empty();
+        SFMScreenPanelBounds guiContent = slotBounds.inset(1);
+        double panelScale = panelRenderScale(entry);
+        var window = this.minecraft.getWindow();
+        int guiWidth = Math.max(1, window.getGuiScaledWidth());
+        int guiHeight = Math.max(1, window.getGuiScaledHeight());
+        return Optional.of(SFMWorkspacePanelMetrics.map(
+                logicalBounds,
+                guiContent.x(),
+                guiContent.y(),
+                panelScale,
+                window.getWidth(),
+                window.getHeight(),
+                guiWidth,
+                guiHeight
+        ));
     }
 
     @Override

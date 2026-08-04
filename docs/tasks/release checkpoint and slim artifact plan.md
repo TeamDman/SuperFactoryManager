@@ -141,6 +141,14 @@ Phase 3.6 or Vox bridge V-4. It coordinates their release consequence:
   explicit terminal-feature deferral. A short GPU span, reduced transport
   bytes, or a visually appealing screenshot alone is not acceptance; the
   original workload must have no unexplained multi-second presentation delay.
+- **R-PERF.4:** High-GUI-scale evidence records GUI-logical and physical panel
+  bounds separately and proves scale-one framebuffer presentation for every
+  Rust renderer/transport tuple. Raw frames larger than 1,000,000 bytes traverse
+  the real generated Vox channel without applying a collection-entry limit,
+  and bounded payload limits support the declared 4096x4096 RGBA8 maximum. A
+  terminal-properties panel and typed auto/set/increase/decrease actions expose
+  surface, font, cell-grid, scale, clamp, remainder, and last-error state so a
+  visual result can be reconciled with Rust and Java telemetry.
 
 **Progress notes — 2026-08-02:** The Rust CPU/full-PNG witness now reproduces a
 2.853889-second snapshot with the dominant measured stage exposed as cold
@@ -151,6 +159,15 @@ canonical SFM compile and 17 focused terminal Java tests pass against Vox
 until a live Minecraft panel capture joins the Rust stage witness to Java
 decode/texture/present measurements; no GPU/slug or Java-renderer choice is
 being made from this preliminary data.
+
+**Correction progress — 2026-08-04:** V-4.2c.2 now carries a real 1,100,000-byte
+generated-channel regression and pins Facet
+`fab9388feb0630e8abf856e6f7ea53dc996cea6b` /
+`blake3:c4c15544c3621933058db5e0a3f00bd2427f32e2`. SFM maps terminal
+GUI-logical viewport bounds to exact framebuffer pixels, keeps the logical cell
+grid independent, and raises the bounded RGBA8 path to 64 MiB. Focused Java,
+Rust Vox, and canonical compile gates pass. R-PERF.4 remains open for the live
+high-GUI-scale six-tuple artifact and terminal-properties/tuning surface.
 
 The renderer candidates and reporting tool can be developed concurrently in
 the separate worktrees/tasks listed by the linked plans after their shared
@@ -180,6 +197,11 @@ sfm:panel/rotate/content/left|right
 sfm:panel/rotate/scale/left|right
 sfm:terminal/server/start [address]
 sfm:terminal/server/connect [address]
+sfm:terminal/properties/surface/auto|set|width/increase|width/decrease|height/increase|height/decrease
+sfm:terminal/properties/font/auto|set|increase|decrease
+sfm:terminal/properties/cells/auto|set|columns/increase|columns/decrease|rows/increase|rows/decrease
+sfm:screen/close
+sfm:palette/close
 ```
 
 Examples include `sfm:panel/open sfm:terminal` and
@@ -192,6 +214,13 @@ puppets/keybindings migrated rather than retained indefinitely as an alias.
 `sfm:terminal/open` is retired. The terminal-specific actions only manage the
 Rust server/connection lifecycle and do not open a panel. `sfm:repl/open`
 remains the independent Java-local REPL entry point.
+
+F3 and Escape use reduced, action-backed choice surfaces rather than bespoke
+mutations. F3 offers deduplicated applicable placements of `sfm:size_display`
+and contextual `sfm:terminal_properties` choices. An unhandled Escape offers
+panel close, screen close, and cancel; terminal Escape remains PTY input for
+the first two presses and opens that chooser on the third. These surfaces and
+the command palette share availability and execution semantics.
 
 ## Completed goal — Release cleanup and completion safety P-1 (2026-08-02)
 
@@ -696,7 +725,7 @@ Do not begin implementation in a later phase while an earlier decision gate is u
 
 - `SFMTerminalPanel` now gives the Rust/Vox PNG the full terminal content area and does not render the Java-local `> _` input strip on that path; the Java-local REPL prompt remains unchanged.
 - `SFMTerminalFocusSequence` exposes localized, time-bounded progress state for Escape and Tab. The Rust-terminal puppet visibly captured “Press Esc 2 more times within 1.5 seconds to close terminal” and “Press Tab 2 more times within 1.5 seconds to return focus to Minecraft.”
-- `SFMClientActionCommandTree.getPaletteSuggestions(...)` adds fuzzy action-id/title discovery only in the palette action-id slot. Brigadier remains authoritative for availability, parse ranges, typed arguments, and execution; the JUnit regression proves unavailable actions stay out and the selected action executes through Brigadier.
+- `SFMClientActionCommandTree.getPaletteSuggestions(...)` originally added fuzzy action-id/title discovery only in the palette action-id slot. The V-4.2c.2 correction also ranks immutable literal children in the active nested Brigadier slot, allowing `sfm:panel/open term` to discover `sfm:terminal` without fuzzing numeric/path/free-text arguments. Brigadier remains authoritative for availability, parse ranges, typed arguments, and execution.
 - The command-palette puppet visibly captured the live `sfm action invoke open` query with ranked results including the then-current `sfm:terminal/open`. P-1 retires that action in favor of `sfm:panel/open sfm:terminal`; the capture remains historical fuzzy-ranking evidence.
 - The installed propagation CLI also now reports Windows `os_error=5` lock failures explicitly, warns immediately, and caps the ambiguous retry at 10 seconds instead of waiting 15 minutes. Its `check-all.ps1` gate passed with 363 tests passing and 1 ignored.
 

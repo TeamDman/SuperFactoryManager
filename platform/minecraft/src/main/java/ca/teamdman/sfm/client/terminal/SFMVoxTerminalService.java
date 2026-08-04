@@ -78,7 +78,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private static final int REQUEST_WIDTH = 120;
     private static final int REQUEST_HEIGHT = 40;
-    private static final int MAX_FRAME_BYTES = 4 * 1024 * 1024;
+    private static final int MAX_FRAME_BYTES = 64 * 1024 * 1024;
     private static final int MAX_CONTENT_CHARS = 256 * 1024;
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(15);
     private static final Duration CONTENT_READINESS_TIMEOUT = Duration.ofSeconds(3);
@@ -255,6 +255,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
 
     public SFMVoxTerminalService(InetSocketAddress endpoint) {
         this(endpoint, ConnectionOptions.builder()
+                .maxFrameBytes(MAX_FRAME_BYTES)
+                .maxQueuedOutboundBytes(MAX_FRAME_BYTES)
                 .handshakeTimeout(Duration.ofMillis(500))
                 .idleTimeout(DEFAULT_TIMEOUT)
                 .closeTimeout(Duration.ofSeconds(1))
@@ -265,6 +267,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     /** Retained as a source-compatible constructor; the fallback is deliberately ignored. */
     public SFMVoxTerminalService(InetSocketAddress endpoint, SFMTerminalService fallbackService) {
         this(endpoint, ConnectionOptions.builder()
+                .maxFrameBytes(MAX_FRAME_BYTES)
+                .maxQueuedOutboundBytes(MAX_FRAME_BYTES)
                 .handshakeTimeout(Duration.ofMillis(500))
                 .idleTimeout(DEFAULT_TIMEOUT)
                 .closeTimeout(Duration.ofSeconds(1))

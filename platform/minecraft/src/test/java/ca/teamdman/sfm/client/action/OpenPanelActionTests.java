@@ -61,6 +61,31 @@ class OpenPanelActionTests {
     }
 
     @Test
+    void paletteFuzzyFindsNestedSceneIdsWithoutChangingBrigadierExecution() throws Exception {
+        ResourceLocation terminal = new ResourceLocation("sfm", "terminal");
+        OpenPanelAction action = new OpenPanelAction(
+                OpenPanelAction.Direction.FOCUSED,
+                () -> List.of(
+                        Map.entry(terminal, new ca.teamdman.sfm.client.screen.workspace.SFMTerminalScreenType()),
+                        Map.entry(SCREEN_ID, new SFMTestScreenType())
+                )
+        );
+        SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(List.of(
+                Map.entry(ACTION_ID, action)
+        ));
+        SFMClientActionSource source = new SFMClientActionSource(SFMClientActionContext.create(null, () -> true));
+        String query = "sfm action invoke sfm:panel/open term";
+
+        var suggestions = tree.getPaletteSuggestions(query, tree.parse(query, source)).get();
+
+        assertTrue(suggestions.getList().stream()
+                .anyMatch(suggestion -> suggestion.getText().equals(terminal.toString())));
+        assertFalse(isExecutable(tree.parse(query, source)));
+        assertTrue(isExecutable(tree.parse(
+                "sfm action invoke sfm:panel/open " + terminal, source)));
+    }
+
+    @Test
     void completionDoesNotReinvokeACompletedSceneCatalog() {
         AtomicInteger catalogCalls = new AtomicInteger();
         OpenPanelAction action = new OpenPanelAction(

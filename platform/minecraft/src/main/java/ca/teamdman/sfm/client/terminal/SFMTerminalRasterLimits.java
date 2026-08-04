@@ -8,7 +8,7 @@ public record SFMTerminalRasterLimits(
         int maxRegions) {
     public static final int RGBA8_V1_MAX_WIDTH = 4096;
     public static final int RGBA8_V1_MAX_HEIGHT = 4096;
-    public static final long RGBA8_V1_MAX_PAYLOAD_BYTES = 16L * 1024L * 1024L;
+    public static final long RGBA8_V1_MAX_PAYLOAD_BYTES = 64L * 1024L * 1024L;
     public static final int RGBA8_V1_MAX_REGIONS = 64;
 
     public static final SFMTerminalRasterLimits RGBA8_V1_DEFAULTS =

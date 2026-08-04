@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetrics;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
@@ -160,14 +161,45 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         applyViewport(viewport);
         layoutPresentationControl(viewport.lineHeight() + 4);
         if (remoteService != null) {
+            SFMScreenPanelBounds logicalViewport = new SFMScreenPanelBounds(
+                    viewport.left(), viewport.top(), viewport.width(), viewport.height());
+            SFMScreenPanelBounds rasterTarget = rasterTarget(context, logicalViewport);
             remoteService.resize(
                     viewport.columns(),
                     viewport.rows(),
-                    viewport.width(),
-                    viewport.height()
+                    rasterTarget.width(),
+                    rasterTarget.height()
             );
             remoteService.requestConnect();
         }
+    }
+
+    static SFMScreenPanelBounds rasterTarget(
+            SFMWorkspacePanelContext context,
+            SFMScreenPanelBounds logicalViewport
+    ) {
+        SFMScreenPanelBounds measured = context == null
+                ? logicalViewport
+                : context.measure(logicalViewport)
+                        .map(SFMWorkspacePanelMetrics::physicalPixelBounds)
+                        .orElse(logicalViewport);
+        return boundedRasterTarget(measured);
+    }
+
+    static SFMScreenPanelBounds boundedRasterTarget(SFMScreenPanelBounds requested) {
+        double shrink = Math.min(
+                1.0D,
+                Math.min(
+                        SFMTerminalRasterLimits.RGBA8_V1_MAX_WIDTH / (double) Math.max(1, requested.width()),
+                        SFMTerminalRasterLimits.RGBA8_V1_MAX_HEIGHT / (double) Math.max(1, requested.height())
+                )
+        );
+        return new SFMScreenPanelBounds(
+                requested.x(),
+                requested.y(),
+                Math.max(1, (int) Math.floor(requested.width() * shrink)),
+                Math.max(1, (int) Math.floor(requested.height() * shrink))
+        );
     }
 
     static ViewportGeometry viewportGeometry(

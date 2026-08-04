@@ -689,6 +689,132 @@ transfer through the live panel. Canonical schema-v4 validation and
 `sfm-propagate-changes.exe run compile --branch 1.19.2
 --wait-for-build-lock` also pass.
 
+#### [~] V-4.2c.2 Correct large channel byte lists and physical-pixel presentation
+
+Subsequent user testing exposed two assumptions that V-4.2c.1's fixtures did
+not actually prove. Its 531x272 RGBA fixture is only 577,728 bytes, below the
+1,000,000-entry compatibility limit. A 766x409 RGBA frame is 1,253,176 bytes
+and still failed when `ChannelRuntime.Receiver.item` transcoded schema
+`List<u8>` as a boxed collection. Facet must preserve `List<u8>` as one bounded
+byte run across compact encode/decode, compatibility translation, and Vox wire
+conversion. The regression must send at least 1,100,000 generated RGBA bytes
+through the real generated-response channel receiver; a direct codec-only test
+is insufficient.
+
+The corrected Facet work is commit
+`fab9388feb0630e8abf856e6f7ea53dc996cea6b` on pushed branch
+`TeamDman/facet:teamy/phon-byte-list-run`. It preserves byte lists as
+`Value.bytes`, applies `byteRunLength` rather than `collectionEntries`, and
+passes Phon conformance, stream framing, Vox runtime, generated-response, and
+deterministic Java packaging gates. The canonical SFM lock now pins that exact
+source revision and accepts `org.facet:vox-java:0.10.0-rc.5` at
+`blake3:c4c15544c3621933058db5e0a3f00bd2427f32e2`. This is a reachable feature
+branch pin pending the normal review/merge decision; it does not imply a direct
+push to Facet `main`.
+
+The second false assumption was treating the 766x409 GUI-logical viewport as a
+766x409 physical-pixel target. At a roughly 5x GUI transform in a 3840x2054
+framebuffer, that asks Rust to rasterize a tiny image which Minecraft then
+stretches. The workspace host must expose an exact panel-local logical to
+framebuffer mapping including global GUI X/Y scale and per-panel scale. The
+terminal keeps columns and rows derived from logical layout but requests a Rust
+raster target from the physical viewport. Presentation is scale-one in
+framebuffer space: drawing that physical texture into the inverse-sized GUI
+quad is expected and is not Java downscaling. Evidence must distinguish GUI
+logical bounds, framebuffer bounds, Rust requested/accepted target, native
+raster size, and Java draw quad.
+
+The implementation adds `SFMWorkspacePanelMetrics`, maps rectangle endpoints
+with floor/ceil coverage, aspect-preservingly clamps targets to 4096x4096, and
+raises the bounded raw-frame path to 64 MiB end-to-end so a 4096x4096 RGBA8
+frame remains valid. Rust's font fitting must retain the terminal cell grid and
+increase glyph pixel size for the larger physical target; font and GPU objects
+remain cached across frames and compatible resizes. Unit and compile gates are
+complete. The item remains in progress until live high-GUI-scale evidence runs
+all six renderer/transport tuples without compact decode failures and records
+near-one texture-pixel to framebuffer-pixel presentation without blur.
+
+The same user test also found that fuzzy ranking stopped after the top-level
+action id. Palette completion now ranks immutable literal children in the
+current nested Brigadier slot, so `sfm action invoke sfm:panel/open term`
+discovers `sfm:terminal`. It does not fuzzy arbitrary numeric, path, or free-text
+arguments, and the partial spelling remains non-executable until an exact
+Brigadier literal is selected.
+
+#### [ ] V-4.2d Add terminal properties, typed tuning, and bounded workspace choices
+
+Register an `sfm:terminal_properties` panel associated with exactly one terminal
+panel. It resolves the focused terminal directly, or the owner terminal when
+the properties panel itself is focused; it must not mutate an arbitrary or
+merely most-recent terminal. Its live diagnostics show both requested and
+effective values for:
+
+- configured/effective global GUI scale, framebuffer dimensions, and GUI-logical dimensions;
+- panel and terminal-viewport bounds in panel-local logical, global GUI-logical,
+  and physical pixels, including X/Y GUI-to-physical ratios and panel scale override;
+- requested and accepted Rust surface target, native raster dimensions, Java
+  draw quad, renderer, transport, presentation/frame generation, payload bytes,
+  and whether presentation is physically scale-one;
+- columns, rows, cell metrics, effective font pixel size, sub-cell remainder,
+  centering/letterboxing, active auto/manual overrides, applied clamps, and the
+  last typed rejection while the last valid frame remains visible.
+
+All tuning uses the same typed actions as the panel buttons. The hierarchical
+action family is:
+
+```text
+sfm:terminal/properties/surface/auto
+sfm:terminal/properties/surface/set <width> <height>
+sfm:terminal/properties/surface/width/increase|decrease
+sfm:terminal/properties/surface/height/increase|decrease
+sfm:terminal/properties/font/auto
+sfm:terminal/properties/font/set <pixel-size>
+sfm:terminal/properties/font/increase|decrease
+sfm:terminal/properties/cells/auto
+sfm:terminal/properties/cells/set <columns> <rows>
+sfm:terminal/properties/cells/columns/increase|decrease
+sfm:terminal/properties/cells/rows/increase|decrease
+```
+
+The increment constants are named and shown in the properties panel. Auto
+surface follows the measured physical viewport; auto cells follow logical
+layout; auto font fits the requested grid. Manual font is exact rather than a
+hint. An over-constrained surface/font/grid combination produces a typed,
+visible error and retains the last valid presentation instead of silently
+shrinking a different variable. A valid raster smaller than its allocated
+physical viewport is centered with explicit remainder/letterbox metrics.
+
+F3 opens a bounded diagnostics chooser, not the unrestricted command palette.
+It deduplicates and offers the applicable current/left/right/above/below
+`sfm:size_display` panel-opening actions plus contextual toggle/open actions for
+`sfm:terminal_properties`; opening terminal properties to the right is the
+preferred one-keystroke terminal-tuning path. The chooser is backed by the same
+registered actions, so availability, labels, keyboard handling, and command-
+palette invocation cannot diverge.
+
+An otherwise-unhandled Escape opens a bounded chooser containing exactly the
+currently available equivalents of:
+
+```text
+sfm action invoke sfm:panel/close
+sfm action invoke sfm:screen/close
+sfm action invoke sfm:palette/close
+```
+
+`sfm:palette/close` is the cancel operation; Escape while the chooser is open
+also cancels it. A terminal's first two Escape presses continue to go to the
+PTY and display the close-gesture countdown; its third opens this chooser
+instead of closing the whole screen directly. No single unhandled Escape may
+silently call the multiplexer's screen close while a panel can be closed.
+
+Acceptance covers focused-terminal and owner-terminal routing, absent or
+multiple terminals, every set/increase/decrease/auto action, invalid override
+retention, GUI-scale and panel-scale changes, F3 placement deduplication,
+keyboard/mouse return from both choosers, the terminal triple-Escape sequence,
+and command-palette parity. A high-GUI-scale live artifact captures the
+properties values beside the terminal and reconciles them with Rust and Java
+telemetry for all six renderer/transport tuples.
+
 ### [ ] V-4.3 Implement the two Java text/font comparators
 
 Implement one semantic-cell renderer using Minecraft's vanilla font and one

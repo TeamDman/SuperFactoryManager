@@ -7,6 +7,7 @@ import com.mojang.brigadier.context.StringRange;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentContents;
 import net.minecraft.network.chat.contents.LiteralContents;
@@ -17,6 +18,7 @@ import org.simmetrics.metrics.StringDistances;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -112,7 +114,9 @@ public final class SFMClientActionCommandTree {
     ) {
         return getCompletionSuggestions(parsed).thenApply(brigadierSuggestions -> {
             StringRange actionRange = actionIdRange(command);
-            if (actionRange == null) return brigadierSuggestions;
+            if (actionRange == null) {
+                return fuzzyNestedLiteralSuggestions(command, parsed, brigadierSuggestions);
+            }
 
             String query = command.substring(actionRange.getStart(), actionRange.getEnd())
                     .toLowerCase(Locale.ROOT);
@@ -137,6 +141,56 @@ public final class SFMClientActionCommandTree {
                     ranked.stream().map(RankedAction::suggestion).toList()
             );
         });
+    }
+
+    /**
+     * Brigadier only prefix-matches literal children. Keep its parser and
+     * execution semantics authoritative, but broaden the palette's current
+     * literal slot so nested resource IDs (notably panel scene IDs) receive
+     * the same typo-tolerant discovery as top-level action IDs.
+     */
+    private static Suggestions fuzzyNestedLiteralSuggestions(
+            String command,
+            ParseResults<SFMClientActionSource> parsed,
+            Suggestions brigadierSuggestions
+    ) {
+        int tokenStart = command.length();
+        while (tokenStart > 0 && !Character.isWhitespace(command.charAt(tokenStart - 1))) tokenStart--;
+        if (tokenStart == command.length()) return brigadierSuggestions;
+
+        List<com.mojang.brigadier.context.ParsedCommandNode<SFMClientActionSource>> nodes =
+                parsed.getContext().getLastChild().getNodes();
+        if (nodes.isEmpty()) return brigadierSuggestions;
+        var parent = nodes.get(nodes.size() - 1).getNode();
+        String query = command.substring(tokenStart).toLowerCase(Locale.ROOT);
+        StringRange range = StringRange.between(tokenStart, command.length());
+        Map<String, RankedLiteral> candidates = new LinkedHashMap<>();
+        for (var child : parent.getChildren()) {
+            if (!(child instanceof LiteralCommandNode<SFMClientActionSource> literal)
+                    || !literal.canUse(parsed.getContext().getSource())) continue;
+            float score = literalScore(query, literal.getLiteral());
+            if (score <= 0.65f) {
+                candidates.put(literal.getLiteral(), new RankedLiteral(
+                        new Suggestion(range, literal.getLiteral()),
+                        score,
+                        literal.getLiteral()
+                ));
+            }
+        }
+        if (candidates.isEmpty()) return brigadierSuggestions;
+
+        for (Suggestion suggestion : brigadierSuggestions.getList()) {
+            candidates.putIfAbsent(suggestion.getText(), new RankedLiteral(
+                    new Suggestion(range, suggestion.getText(), suggestion.getTooltip()),
+                    literalScore(query, suggestion.getText()),
+                    suggestion.getText()
+            ));
+        }
+        List<RankedLiteral> ranked = new ArrayList<>(candidates.values());
+        ranked.sort(Comparator
+                .comparingDouble(RankedLiteral::score)
+                .thenComparing(RankedLiteral::literal));
+        return new Suggestions(range, ranked.stream().map(RankedLiteral::suggestion).toList());
     }
 
     private static StringRange actionIdRange(String command) {
@@ -166,6 +220,15 @@ public final class SFMClientActionCommandTree {
             best = Math.min(best, distance);
         }
         return best;
+    }
+
+    private static float literalScore(String query, String candidate) {
+        String normalized = candidate.toLowerCase(Locale.ROOT);
+        float distance = ACTION_DISTANCE.distance(query, normalized)
+                / Math.max(1, Math.max(query.length(), normalized.length()));
+        if (normalized.startsWith(query)) distance -= 0.05f;
+        if (normalized.contains(query)) distance -= 0.5f;
+        return distance;
     }
 
     /**
@@ -199,6 +262,9 @@ public final class SFMClientActionCommandTree {
     }
 
     private record RankedAction(Suggestion suggestion, float score, String id) {
+    }
+
+    private record RankedLiteral(Suggestion suggestion, float score, String literal) {
     }
 
     private record ActionSearchMetadata(String id, String path, String title, String description) {

@@ -25,7 +25,8 @@ NAME "Changelog"
 -- Add a true no-window Vulkan Slug terminal renderer with independent panel-local renderer and transport selection
 -- Return keyboard input to the Rust terminal immediately when its viewport is clicked after using the Presentation menu
 -- Fix large raw Rust terminal frames disconnecting Vox when byte payloads exceed the unrelated collection-entry limit
--- Request Rust terminal targets at the padded content viewport size so Java presents native cell rasters without downscaling
+-- Request Rust terminal targets in framebuffer pixels so high GUI scales render crisp glyphs without stretching a small raster
+-- Fuzzy-find nested command-palette literals such as the terminal scene in panel-opening actions
 -- Explain server-advertised terminal renderer failures in cached dropdown and command-palette options
 -- Keep the active Rust terminal presentation live until a replacement delivers a valid full resynchronization frame
 -- Add strict raster validation and durable screenshot, terminal-content, and push-telemetry puppet evidence

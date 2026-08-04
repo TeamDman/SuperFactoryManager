@@ -1,6 +1,10 @@
 package ca.teamdman.sfm.client.terminal;
 
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetrics;
 import org.junit.jupiter.api.Test;
 import org.lwjgl.glfw.GLFW;
 
@@ -69,10 +73,7 @@ class SFMTerminalPanelInteractionTests {
     }
 
     @Test
-    void highGuiScaleResizeKeepsRustRasterNativeToTheSmallerDrawViewport() {
-        // 3840x2160 at GUI scale 7 yields approximately this effective panel
-        // size. The Rust target must match the local draw rectangle, not the
-        // larger unpadded panel bounds that Java would have to downscale.
+    void unhostedResizeFallsBackToTheLogicalDrawViewport() {
         SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 547, 303);
         SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
         RecordingRemoteService service = resizePanel(bounds);
@@ -84,6 +85,53 @@ class SFMTerminalPanelInteractionTests {
         assertEquals(viewport.height(), request.pixelHeight());
         assertEquals(viewport.columns(), request.columns());
         assertEquals(viewport.rows(), request.rows());
+    }
+
+    @Test
+    void hostedHighGuiScaleUsesTheMeasuredPhysicalViewport() {
+        SFMScreenPanelBounds logicalViewport = new SFMScreenPanelBounds(8, 23, 766, 409);
+        SFMScreenPanelBounds physicalViewport = new SFMScreenPanelBounds(40, 115, 3830, 2045);
+        SFMWorkspacePanelContext context = new SFMWorkspacePanelContext(
+                new SFMWorkspacePanelId(1),
+                new ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelHost() {
+                    @Override
+                    public SFMWorkspacePanelIntentResult submit(
+                            SFMWorkspacePanelId source,
+                            ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent intent
+                    ) {
+                        return SFMWorkspacePanelIntentResult.APPLIED;
+                    }
+
+                    @Override
+                    public Optional<SFMWorkspacePanelMetrics> measure(
+                            SFMWorkspacePanelId source,
+                            SFMScreenPanelBounds requested
+                    ) {
+                        assertEquals(logicalViewport, requested);
+                        return Optional.of(new SFMWorkspacePanelMetrics(
+                                requested,
+                                physicalViewport,
+                                1.0D,
+                                5.0D,
+                                5.0D,
+                                3840,
+                                2045,
+                                768,
+                                409
+                        ));
+                    }
+                }
+        );
+
+        assertEquals(physicalViewport, SFMTerminalPanel.rasterTarget(context, logicalViewport));
+    }
+
+    @Test
+    void physicalTargetClampPreservesAspectRatio() {
+        assertEquals(
+                new SFMScreenPanelBounds(10, 20, 4096, 1024),
+                SFMTerminalPanel.boundedRasterTarget(new SFMScreenPanelBounds(10, 20, 8192, 2048))
+        );
     }
 
     private static RecordingRemoteService resizePanel(SFMScreenPanelBounds bounds) {
