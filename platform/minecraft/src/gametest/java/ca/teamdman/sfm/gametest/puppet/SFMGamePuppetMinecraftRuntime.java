@@ -441,9 +441,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                         panel,
                         rendererId,
                         transportId,
-                        requiredContentLine,
-                        bounds.width(),
-                        bounds.height()
+                        requiredContentLine
                 );
         ActivePuppet.TerminalPresentationProgress previous =
                 active.terminalPresentations.get(panelId);

@@ -21,6 +21,9 @@ import java.util.Optional;
 /** Composable terminal leaf. Rust/Vox frames are presented when that backend is configured. */
 public final class SFMTerminalPanel implements SFMScreenPanel {
     private static final String FOCUS_HINT_SECONDS = "1.5";
+    private static final int CONTENT_HORIZONTAL_PADDING = 8;
+    private static final int CONTENT_BOTTOM_PADDING = 4;
+    private static final int TITLE_CONTENT_GAP = 12;
 
     @SFMLocalizationDatagen
     public static final LocalizationEntry ESCAPE_FOCUS_HINT = new LocalizationEntry(
@@ -72,6 +75,19 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private int presentationButtonTop;
     private int presentationButtonRight;
     private int presentationButtonBottom;
+
+    record ViewportGeometry(
+            int left,
+            int top,
+            int width,
+            int height,
+            int contentBottom,
+            int inputY,
+            int lineHeight,
+            int columns,
+            int rows
+    ) {
+    }
 
     private enum PresentationAxis {
         RENDERER,
@@ -126,14 +142,68 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public void resized(Minecraft minecraft, SFMScreenPanelBounds bounds) {
+        resizeRemoteViewport(
+                bounds,
+                Math.max(1, minecraft.font.width("W")),
+                Math.max(1, minecraft.font.lineHeight + 2)
+        );
+    }
+
+    void resizeRemoteViewport(SFMScreenPanelBounds bounds, int cellWidth, int lineHeight) {
         this.bounds = bounds;
+        ViewportGeometry viewport = viewportGeometry(
+                bounds,
+                cellWidth,
+                lineHeight,
+                remoteService != null
+        );
+        applyViewport(viewport);
+        layoutPresentationControl(viewport.lineHeight() + 4);
         if (remoteService != null) {
-            int cellWidth = Math.max(1, minecraft.font.width("W"));
-            int cellHeight = Math.max(1, minecraft.font.lineHeight + 2);
-            remoteService.resize(bounds.width() / cellWidth, bounds.height() / cellHeight,
-                    bounds.width(), bounds.height());
+            remoteService.resize(
+                    viewport.columns(),
+                    viewport.rows(),
+                    viewport.width(),
+                    viewport.height()
+            );
             remoteService.requestConnect();
         }
+    }
+
+    static ViewportGeometry viewportGeometry(
+            SFMScreenPanelBounds bounds,
+            int cellWidth,
+            int lineHeight,
+            boolean remote
+    ) {
+        int boundedCellWidth = Math.max(1, cellWidth);
+        int boundedLineHeight = Math.max(1, lineHeight);
+        int left = bounds.x() + CONTENT_HORIZONTAL_PADDING;
+        int width = Math.max(1, bounds.width() - CONTENT_HORIZONTAL_PADDING * 2);
+        int inputY = bounds.y() + bounds.height() - boundedLineHeight - 8;
+        int contentBottom = remote
+                ? bounds.y() + bounds.height() - CONTENT_BOTTOM_PADDING
+                : inputY;
+        int top = bounds.y() + boundedLineHeight + TITLE_CONTENT_GAP;
+        int height = Math.max(1, contentBottom - top - CONTENT_BOTTOM_PADDING);
+        return new ViewportGeometry(
+                left,
+                top,
+                width,
+                height,
+                contentBottom,
+                inputY,
+                boundedLineHeight,
+                Math.max(1, width / boundedCellWidth),
+                Math.max(1, height / boundedLineHeight)
+        );
+    }
+
+    private void applyViewport(ViewportGeometry viewport) {
+        renderLeft = viewport.left();
+        renderTop = viewport.top();
+        renderWidth = viewport.width();
+        renderHeight = viewport.height();
     }
 
     @Override
@@ -158,18 +228,21 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
                        int mouseX, int mouseY, float partialTick, boolean focused) {
         GuiComponent.fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), PANEL);
-        int left = bounds.x() + 8;
-        int width = Math.max(1, bounds.width() - 16);
-        int lineHeight = minecraft.font.lineHeight + 2;
-        int inputY = bounds.y() + bounds.height() - lineHeight - 8;
-        int contentBottom = remoteService == null ? inputY : bounds.y() + bounds.height() - 4;
+        ViewportGeometry viewport = viewportGeometry(
+                bounds,
+                minecraft.font.width("W"),
+                minecraft.font.lineHeight + 2,
+                remoteService != null
+        );
+        applyViewport(viewport);
+        int left = viewport.left();
+        int width = viewport.width();
+        int lineHeight = viewport.lineHeight();
+        int inputY = viewport.inputY();
+        int contentBottom = viewport.contentBottom();
         int visibleLines = Math.max(0, (contentBottom - bounds.y() - 22) / lineHeight);
         scrollback.setViewportLineCount(Math.max(1, visibleLines));
-        int contentTop = bounds.y() + lineHeight + 12;
-        renderLeft = left;
-        renderTop = contentTop;
-        renderWidth = width;
-        renderHeight = Math.max(1, contentBottom - contentTop - 4);
+        int contentTop = viewport.top();
         SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
                 bounds.y() + 8, TEXT, false);
         if (remoteService != null) {
@@ -560,11 +633,20 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         }
         if (remoteService != null && mouseX >= startButtonLeft && mouseX < startButtonRight
                 && mouseY >= startButtonTop && mouseY < startButtonBottom) {
+            focusTerminalInput();
             startRustServer();
             return true;
         }
+        // Presentation controls and their menu rows return above so they keep
+        // intentional Java control focus. Panel chrome/outside clicks do not
+        // synthesize PTY input or silently change the current control focus.
         if (!containsTerminalPoint(mouseX, mouseY)) return false;
         if (remoteService == null) return false;
+        // A viewport click is terminal interaction even if the selector was
+        // previously keyboard-focused. Restore terminal focus before the PTY
+        // receives the click so subsequent keyboard input cannot be consumed
+        // by a stale presentation menu.
+        focusTerminalInput();
         int mask = mouseMask(button);
         pressedMouseButtons |= mask;
         remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true,
@@ -657,6 +739,12 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 && (modifiers & (GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) == 0;
     }
 
+    private void focusTerminalInput() {
+        presentationControlFocused = false;
+        presentationMenuOpen = false;
+        focusSequence.reset();
+    }
+
     private void renderInput(PoseStack poseStack, Minecraft minecraft, int left, int width, int inputY,
                              boolean focused) {
         GuiComponent.fill(poseStack, bounds.x() + 4, inputY - 4, bounds.x() + bounds.width() - 4,
@@ -747,11 +835,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private void renderPresentationControl(PoseStack poseStack, Minecraft minecraft) {
         if (remoteService == null) return;
         int height = minecraft.font.lineHeight + 6;
-        int width = Math.min(380, Math.max(150, bounds.width() - 12));
-        presentationButtonRight = bounds.x() + bounds.width() - 6;
-        presentationButtonLeft = presentationButtonRight - width;
-        presentationButtonTop = bounds.y() + 4;
-        presentationButtonBottom = presentationButtonTop + height;
+        layoutPresentationControl(height);
+        int width = presentationButtonRight - presentationButtonLeft;
         int background = presentationControlFocused ? 0xFF315568 : 0xE0223038;
         GuiComponent.fill(poseStack, presentationButtonLeft, presentationButtonTop,
                 presentationButtonRight, presentationButtonBottom, background);
@@ -815,6 +900,15 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                     minecraft.font.plainSubstrByWidth(state.failure().get(), width - 8),
                     presentationButtonLeft + 4, rowTop + 3, ERROR, false);
         }
+    }
+
+    private void layoutPresentationControl(int height) {
+        if (remoteService == null) return;
+        int width = Math.min(380, Math.max(150, bounds.width() - 12));
+        presentationButtonRight = bounds.x() + bounds.width() - 6;
+        presentationButtonLeft = presentationButtonRight - width;
+        presentationButtonTop = bounds.y() + 4;
+        presentationButtonBottom = presentationButtonTop + Math.max(1, height);
     }
 
     private boolean presentationControlKeyPressed(int keyCode) {

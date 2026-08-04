@@ -614,6 +614,81 @@ the native framebuffer crop separately from the explanatory caption. No
 Gradle command, newer-branch propagation, release publication, Teamy Studio
 edit, Cloud Terrastodon edit, or default-selection change occurred.
 
+#### [x] V-4.2c.1 Correct selector focus, raster decoding limits, and native viewport sizing
+
+User testing after V-4.2c found three coupled defects that its original
+evidence did not reject:
+
+1. activating the Presentation menu left its Java-local keyboard focus active;
+   a later click in the terminal viewport forwarded the PTY mouse event but did
+   not return keyboard input to the terminal, so Tab was incorrectly required;
+2. Java Phon decoded byte-run length prefixes through the
+   `collectionEntries` limit before applying `byteRunLength`, so a valid raw
+   raster payload larger than 1,000,000 bytes closed the Vox lane with
+   `count exceeds collectionEntries`; subsequent mouse-send failures were
+   fallout from that closed connection, not a second mouse protocol defect;
+   and
+3. SFM asked Rust to rasterize to the complete panel bounds while drawing into
+   a smaller rectangle after horizontal padding, the title, and bottom
+   padding. The Java presenter correctly refused to upscale, but downscaled the
+   oversized Rust image and blurred glyphs.
+
+The earlier GUI-scale-7 claim that a 546x297 raster was native to a 547x303
+panel is therefore narrowed: it proved `java_upscale=false`, not scale-one
+presentation. For the 547x303 effective panel used by the deterministic
+geometry fixture, the actual drawable terminal viewport is 531x272. Future
+evidence must record both panel bounds and content-viewport bounds and assert
+that Rust's requested/accepted panel target equals the latter exactly. The
+cell-grid raster may be smaller than that target only by the sub-cell remainder
+(strictly less than one cell on each axis), and Java must present that native
+raster at scale one; neither Java upscaling nor Java downscaling is acceptable.
+
+`SFMTerminalPanel` now derives resize requests, columns/rows, drawing, and
+mouse mapping from one immutable viewport geometry. A click inside that
+viewport closes the Presentation menu, clears its focus sequence, and restores
+terminal keyboard focus before forwarding the PTY mouse event. Presentation
+headers retain control focus, and title/panel chrome remains outside the PTY.
+Focused interaction tests cover the transfer without Tab, non-terminal chrome,
+normal sizing, and the GUI-scale-7-sized 547x303 fixture.
+
+Facet commit `e3193ab547b22989b73937f76043556db20adf5b` separates collection
+counts from compact, dynamic, schema, and self-describing byte-run lengths in
+the Java Phon runtime. Its conformance fixture deliberately permits a byte run
+larger than `collectionEntries` while still rejecting one larger than
+`byteRunLength`; all 83 conformance assertions and generated Vox Java runtime
+tests pass. The commit is reachable on `TeamDman/facet` `main`. SFM's canonical
+lock pins that exact source revision and deterministic
+`org.facet:vox-java:0.10.0-rc.5` artifact at
+`blake3:e22506e8baf4b34b5d9ed8074313767d606475f5`. The integrated focused
+SFM test quarantined the stale `600faad...` cache artifact, rebuilt the new
+source pin through the normal lock-directed path, and passed all four terminal
+panel interaction tests.
+
+This correction does not alter renderer/transport independence, the initial
+CPU/full-PNG default, semantic-cell deferral, or Rust authority over the PTY.
+
+Live acceptance passed. The strict six-tuple Presentation matrix completed
+with `failed=0` at normal scale in run
+`sfm-title_screen-20260804-165345-318` and at 3840x2130/effective GUI scale 7
+in run `sfm-title_screen-20260804-165710-156`. Both runs covered all CPU/GPU
+and PNG/full-raw/dirty-raw combinations, CPU→GPU→CPU, alternate-screen
+restoration, split-panel resize, and independent panels with zero compact
+decode or raster-receiver failures. The GUI-scale-7 GPU/dirty artifact records
+a 531x272 requested target equal to the drawable viewport, a 528x264 native
+88x24 cell raster at 6x11 pixels, `java_presenter_native_match=true`, and zero
+rejected frames; visual inspection of the retained native screenshot found
+crisp scale-one glyphs without the former downscale blur.
+
+The older transport-only puppet had retained its pre-V-4.2c flat-selector key
+sequence and could misleadingly caption a transport switch after selecting the
+Renderer axis. It now uses the typed two-axis UI helper, asserts exact active
+tuples, clicks the real terminal viewport, and then sends normal paste/Enter
+input without Tab. Run `sfm-title_screen-20260804-170353-892` passed with
+`failed=0`, proving both Transport selection and the mouse-to-terminal focus
+transfer through the live panel. Canonical schema-v4 validation and
+`sfm-propagate-changes.exe run compile --branch 1.19.2
+--wait-for-build-lock` also pass.
+
 ### [ ] V-4.3 Implement the two Java text/font comparators
 
 Implement one semantic-cell renderer using Minecraft's vanilla font and one

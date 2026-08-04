@@ -1,0 +1,214 @@
+package ca.teamdman.sfm.client.terminal;
+
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
+import org.junit.jupiter.api.Test;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class SFMTerminalPanelInteractionTests {
+    private static final int CELL_WIDTH = 6;
+    private static final int LINE_HEIGHT = 11;
+
+    @Test
+    void viewportClickLeavesPresentationControlBeforeForwardingMouseAndKeyboard() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
+
+        assertTrue(panel.mouseClicked(700, 10, 0), "presentation button should open the menu");
+        service.clearInput();
+
+        assertTrue(panel.mouseClicked(viewport.left() + 2, viewport.top() + 2, 0));
+        assertEquals(List.of(new MouseInput(0, 0, 1, 0, true)), service.mouseInputs,
+                "the viewport click must be forwarded after leaving the Java presentation control");
+
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertEquals(List.of(new KeyInput(GLFW.GLFW_KEY_ENTER, true)), service.keyInputs,
+                "keyboard input after a viewport click must return to the Rust terminal");
+    }
+
+    @Test
+    void presentationHeadersAndPanelChromeDoNotBecomeTerminalMouseInput() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+
+        assertTrue(panel.mouseClicked(700, 10, 0), "presentation button should open the menu");
+        service.clearInput();
+
+        assertTrue(panel.mouseClicked(700, 22, 0), "renderer menu header should remain a Java control");
+        assertFalse(panel.mouseClicked(8, 20, 0), "title chrome is outside the terminal viewport");
+        assertTrue(service.mouseInputs.isEmpty(), "menu headers and panel chrome must not reach the PTY");
+
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertTrue(service.keyInputs.isEmpty(),
+                "non-viewport clicks must not silently transfer presentation-control focus");
+    }
+
+    @Test
+    void normalGuiScaleResizeUsesTheExactPaddedTitleAdjustedNativeViewport() {
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
+        RecordingRemoteService service = resizePanel(bounds);
+
+        assertEquals(new SFMTerminalPanel.ViewportGeometry(
+                8, 23, 944, 509, 536, 521, 11, 157, 46), viewport);
+        assertEquals(new ResizeRequest(
+                viewport.columns(), viewport.rows(), viewport.width(), viewport.height()),
+                service.resizeRequests.get(0));
+    }
+
+    @Test
+    void highGuiScaleResizeKeepsRustRasterNativeToTheSmallerDrawViewport() {
+        // 3840x2160 at GUI scale 7 yields approximately this effective panel
+        // size. The Rust target must match the local draw rectangle, not the
+        // larger unpadded panel bounds that Java would have to downscale.
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 547, 303);
+        SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
+        RecordingRemoteService service = resizePanel(bounds);
+
+        assertEquals(new SFMTerminalPanel.ViewportGeometry(
+                8, 23, 531, 272, 299, 284, 11, 88, 24), viewport);
+        ResizeRequest request = service.resizeRequests.get(0);
+        assertEquals(viewport.width(), request.pixelWidth());
+        assertEquals(viewport.height(), request.pixelHeight());
+        assertEquals(viewport.columns(), request.columns());
+        assertEquals(viewport.rows(), request.rows());
+    }
+
+    private static RecordingRemoteService resizePanel(SFMScreenPanelBounds bounds) {
+        RecordingRemoteService service = new RecordingRemoteService();
+        new SFMTerminalPanel(service).resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        return service;
+    }
+
+    private static SFMTerminalPanel.ViewportGeometry remoteViewport(SFMScreenPanelBounds bounds) {
+        return SFMTerminalPanel.viewportGeometry(bounds, CELL_WIDTH, LINE_HEIGHT, true);
+    }
+
+    private record ResizeRequest(int columns, int rows, int pixelWidth, int pixelHeight) {
+    }
+
+    private record KeyInput(int keyCode, boolean pressed) {
+    }
+
+    private record MouseInput(int x, int y, int buttons, int button, boolean pressed) {
+    }
+
+    private static final class RecordingRemoteService implements SFMTerminalRemoteService {
+        private final List<ResizeRequest> resizeRequests = new ArrayList<>();
+        private final List<KeyInput> keyInputs = new ArrayList<>();
+        private final List<MouseInput> mouseInputs = new ArrayList<>();
+
+        @Override
+        public SFMTerminalSession openSession() {
+            return new SFMTerminalSession() {
+                @Override
+                public SFMTerminalResponse execute(String command) {
+                    return SFMTerminalResponse.ok(List.of(), "test");
+                }
+
+                @Override
+                public String workingDirectory() {
+                    return "test";
+                }
+            };
+        }
+
+        @Override
+        public void requestConnect() {
+        }
+
+        @Override
+        public boolean isConnected() {
+            return true;
+        }
+
+        @Override
+        public boolean isConnecting() {
+            return false;
+        }
+
+        @Override
+        public Optional<String> failureMessage() {
+            return Optional.empty();
+        }
+
+        @Override
+        public boolean resize(int columns, int rows) {
+            return resize(columns, rows, 0, 0);
+        }
+
+        @Override
+        public boolean resize(int columns, int rows, int panelWidth, int panelHeight) {
+            resizeRequests.add(new ResizeRequest(columns, rows, panelWidth, panelHeight));
+            return true;
+        }
+
+        @Override
+        public boolean sendKey(int keyCode, int modifiers, boolean pressed, boolean repeat) {
+            keyInputs.add(new KeyInput(keyCode, pressed));
+            return true;
+        }
+
+        @Override
+        public boolean sendText(String text) {
+            return true;
+        }
+
+        @Override
+        public boolean sendMouse(int x, int y, int buttons, int button, boolean pressed,
+                                 boolean motion, int wheelX, int wheelY) {
+            mouseInputs.add(new MouseInput(x, y, buttons, button, pressed));
+            return true;
+        }
+
+        @Override
+        public Optional<SFMTerminalFrame> latestFrame() {
+            return Optional.empty();
+        }
+
+        @Override
+        public int logicalWidth() {
+            return 80;
+        }
+
+        @Override
+        public int logicalHeight() {
+            return 24;
+        }
+
+        @Override
+        public String contentForAutomation() {
+            return "";
+        }
+
+        @Override
+        public boolean cancel() {
+            return true;
+        }
+
+        @Override
+        public void reconnect() {
+        }
+
+        @Override
+        public void close() {
+        }
+
+        private void clearInput() {
+            keyInputs.clear();
+            mouseInputs.clear();
+        }
+    }
+}

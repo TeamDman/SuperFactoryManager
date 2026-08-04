@@ -10,6 +10,11 @@ import org.lwjgl.glfw.GLFW;
 /** Focused V-4.2a proof for transport selection, session retention, and independent panels. */
 @SFMGamePuppet
 public final class TitleScreenRustTerminalTransportGamePuppet {
+    private static final String CPU = "rust-cpu-fontdue";
+    private static final String FULL_PNG = "full-png";
+    private static final String FULL_RGBA = "full-raw-rgba";
+    private static final String DIRTY_RGBA = "dirty-raw-rgba";
+
     private TitleScreenRustTerminalTransportGamePuppet() {
     }
 
@@ -33,24 +38,21 @@ public final class TitleScreenRustTerminalTransportGamePuppet {
         puppet.pasteTerminalText("$global:SfmTransportWitness='session-preserved'; Write-Output $global:SfmTransportWitness");
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ENTER);
         puppet.waitTicks(30);
-        puppet.writeTerminalContent("transport-full-png", "session-preserved", null);
-        puppet.assertTerminalPushEvidence("transport-full-png", false);
+        puppet.assertTerminalPresentationEvidence(
+                "transport-full-png", CPU, FULL_PNG, "session-preserved",
+                true, false, false);
 
-        // The third Tab focuses the visible selector; Enter/Down/Enter chooses
-        // full-raw-rgba, and the final Tab returns focus to terminal input.
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_TAB);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_TAB);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_TAB);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ENTER);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_DOWN);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ENTER);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_TAB);
+        // Use the current two-axis Presentation popover, then click the actual
+        // terminal viewport. This proves a mouse click returns keyboard input
+        // from the Java selector without requiring Tab.
+        puppet.selectTerminalTransportThroughUi(FULL_RGBA);
+        puppet.clickTerminal();
         puppet.waitTicks(60);
         puppet.pasteTerminalText("Write-Output $global:SfmTransportWitness");
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ENTER);
         puppet.waitTicks(30);
-        puppet.writeTerminalContent("transport-full-raw-rgba", "session-preserved", null);
-        puppet.assertTerminalPushEvidence("transport-full-raw-rgba", false);
+        puppet.assertTerminalPresentationEvidence(
+                "transport-full-raw-rgba", CPU, FULL_RGBA, "session-preserved", true);
         puppet.capture("transport-full-raw-rgba", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Keyboard dropdown switched to full RGBA without replacing the PTY.")));
@@ -61,8 +63,8 @@ public final class TitleScreenRustTerminalTransportGamePuppet {
         puppet.waitTicks(60);
         puppet.executeTerminal("1..100");
         puppet.waitTicks(40);
-        puppet.writeTerminalContent("transport-dirty-raw-rgba", "100", null);
-        puppet.assertTerminalPushEvidence("transport-dirty-raw-rgba", false);
+        puppet.assertTerminalPresentationEvidence(
+                "transport-dirty-raw-rgba", CPU, DIRTY_RGBA, "100", true);
         puppet.capture("transport-dirty-raw-rgba", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Focused action selected sequence-preserving dirty RGBA.")));
@@ -79,8 +81,8 @@ public final class TitleScreenRustTerminalTransportGamePuppet {
         puppet.waitTicks(60);
         puppet.executeTerminal("Write-Output independent-right-panel");
         puppet.waitTicks(30);
-        puppet.writeTerminalContent("transport-independent-right", "independent-right-panel", null);
-        puppet.assertTerminalPushEvidence("transport-independent-right", false);
+        puppet.assertTerminalPresentationEvidence(
+                "transport-independent-right", CPU, FULL_RGBA, "independent-right-panel", false);
         puppet.capture("transport-independent-panels", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Left full-png and right full-raw-rgba panels retain independent sessions.")));

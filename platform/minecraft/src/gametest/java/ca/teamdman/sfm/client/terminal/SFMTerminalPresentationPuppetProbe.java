@@ -18,6 +18,8 @@ import java.util.Map;
  */
 public final class SFMTerminalPresentationPuppetProbe {
     private static final Field REMOTE_SERVICE = field(SFMTerminalPanel.class, "remoteService");
+    private static final Field RENDER_WIDTH = field(SFMTerminalPanel.class, "renderWidth");
+    private static final Field RENDER_HEIGHT = field(SFMTerminalPanel.class, "renderHeight");
     private static final Field PNG_RENDERER = field(SFMTerminalPanel.class, "pngRenderer");
     private static final Field RGBA_RENDERER = field(SFMTerminalPanel.class, "rgbaRenderer");
     private static final Field PNG_IMAGE_WIDTH = field(SFMTerminalPngRenderer.class, "imageWidth");
@@ -180,9 +182,7 @@ public final class SFMTerminalPresentationPuppetProbe {
             SFMTerminalPanel panel,
             String expectedRenderer,
             String expectedTransport,
-            String requiredContentLine,
-            int expectedPanelWidth,
-            int expectedPanelHeight
+            String requiredContentLine
     ) {
         SFMTerminalRemoteService service = remoteService(panel);
         SFMTerminalPresentationTransitionState state = service.presentationState();
@@ -275,10 +275,12 @@ public final class SFMTerminalPresentationPuppetProbe {
             throw new IllegalStateException("Grid-native raster " + nativeWidth + "x" + nativeHeight
                     + " exceeds accepted panel target " + targetPanelWidth + "x" + targetPanelHeight);
         }
-        if (targetPanelWidth != expectedPanelWidth || targetPanelHeight != expectedPanelHeight) {
+        int expectedViewportWidth = readInt(RENDER_WIDTH, panel);
+        int expectedViewportHeight = readInt(RENDER_HEIGHT, panel);
+        if (targetPanelWidth != expectedViewportWidth || targetPanelHeight != expectedViewportHeight) {
             throw new IllegalStateException("Accepted panel target was " + targetPanelWidth + "x"
-                    + targetPanelHeight + " instead of focused panel "
-                    + expectedPanelWidth + "x" + expectedPanelHeight);
+                    + targetPanelHeight + " instead of the focused terminal's drawable viewport "
+                    + expectedViewportWidth + "x" + expectedViewportHeight);
         }
         if (service.logicalWidth() != logicalColumns || service.logicalHeight() != logicalRows) {
             throw new IllegalStateException("Accepted grid does not match the panel's requested logical size");
