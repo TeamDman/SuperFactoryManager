@@ -45,17 +45,16 @@ part of the immediate panel/action goal.
 
 Native-size/cell-metric negotiation, the correlated multi-second lag witness,
 retained font/glyph/frame/texture resources, bounded Rust-to-Java Vox `Tx`/`Rx`
-frame delivery, and V-4.2a's three named CPU presentation transports are now
-complete. The next goal-sized vertical slice is Teamy Terminal 3.6.2c and
-3.6.4a–3.6.4e together with SFM V-4.2c: add the true no-window
-`rust-gpu-slug` backend, migrate the contract from a transport-only generation
-to an atomic renderer/transport presentation generation, and select the two
-axes independently from a focused SFM terminal panel. V-4.2b semantic cells
-and V-4.3 Java font renderers remain independent later work. CPU/full-PNG stays
-the initial default until V-4.5/V-4.6 compare visual and temporal evidence.
-Teamy Terminal Phase 3.6 remains authoritative for Rust renderer work; the SFM
-items below own Java capability consumption, panel controls, presentation
-resources, and end-to-end proof.
+frame delivery, V-4.2a's three named CPU presentation transports, and V-4.2c's
+true no-window `rust-gpu-slug` bridge are now complete. Renderer and transport
+remain independent panel-local choices under one atomic presentation
+generation, while CPU/full-PNG remains the initial default. The next coherent
+comparison slice is V-4.3 plus Teamy Terminal 3.6.5, followed by V-4.5/V-4.6's
+matched visual/temporal report and evidence-based default decision; this plan
+does not preselect that future goal. V-4.2b semantic cells remain independent
+later contract work. Teamy Terminal Phase 3.6 remains authoritative for Rust
+renderer work; the SFM items below own Java capability consumption, panel
+controls, presentation resources, and end-to-end proof.
 
 ### Batch 3 planning items
 
@@ -392,7 +391,7 @@ locally registered client-owned renderers to form valid presentation tuples
 such as `java-vanilla + semantic-cells`. Plain transcript text is never an
 acceptable substitute.
 
-### [ ] V-4.2c Add panel-local renderer selection and prove the GPU bridge slice
+### [x] V-4.2c Add panel-local renderer selection and prove the GPU bridge slice
 
 This item depends on completed V-4.2a and Teamy Terminal 3.6.2c plus
 3.6.4a–3.6.4e; it does **not** depend on V-4.2b. It is complete only when the
@@ -573,6 +572,47 @@ normal/GUI-scale-7 evidence, contributor-default Java development remains
 Rust-optional, and the resulting telemetry is sufficient for V-4.5/V-4.6 to
 compare rather than guess. Rasterization ownership is explicit metadata rather
 than a third selector, and CPU/full-PNG remains the default.
+
+**Completion notes — 2026-08-04:** Facet revision
+`f4fba5e88b723040b6a62282af4a1aef33199704` adds the defaulted V6 renderer
+telemetry record and was pushed to `TeamDman/facet` `main`; the canonical SFM
+lock now pins that exact source-built Vox Java artifact with BLAKE3
+`600faad40e0b697682efd142b3fcffc106eda242`. SFM commits
+`b3f9a5ddc384981f34d8d5a2e78c6f38f16e07e2` and
+`a67ac505043276d209486c071ba2fe097cd636a5` consume and validate per-frame
+renderer stages, retained cache/target counters, device/shader identity, exact
+Caskaydia font ID/SHA-256, native grid geometry, payload/dirty-region shape,
+and session/connection/presentation continuity. The real panel Presentation
+UI is exercised for both axes; renderer and transport actions still target
+only the focused active Rust-terminal panel.
+
+The final normal and GUI-scale-7 runs are retained under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+as `sfm-title_screen-20260804-014845-875` and
+`sfm-title_screen-20260804-015218-676`. Each bundle contains 12 captioned
+native screenshots, terminal text artifacts, and machine-readable push
+evidence for the CPU/full-PNG initial default, all six Rust renderer/transport
+tuples, GPU alternate-screen entry/restoration, CPU→GPU→CPU with unchanged
+PTY/session epochs, a real split-panel resize, and independent CPU/GPU panels.
+At 3840×2130/effective GUI scale 7, the GPU dirty state produced a native
+546×297 raster for a 547×303 panel with `java_upscale=false`, retained an RTX
+4090 target, and recorded shader identity `fnv1a64:e0b20e4e5c7dd553` plus font
+SHA-256 `32aa528c1d9be2240ceac90aa05f4e554679cabeb11b93684eb24ec4930bd0ea`.
+The unavailable-GPU catalog/no-fallback behavior is covered by deterministic
+Java capability tests and Teamy Terminal's typed unavailable/device-loss
+tests; the supported live machine proves the real GPU path instead of
+disabling it for a second visual run.
+
+Verification used only supported tooling: the SFM CLI `check-all.ps1` gate
+passed 366 tests with one ignored; `sfm-propagate-changes.exe run compile
+--branch 1.19.2 --wait-for-build-lock` passed; focused and complete
+`sfm-propagate-changes.exe test run` invocations passed (two unrelated symlink
+tests were assumption-aborted because this Windows account lacks symlink
+privilege); and both exact puppet commands passed with variants
+`1280x720@auto` and `3840x2130@7`. The CLI's caption-aware manifests preserve
+the native framebuffer crop separately from the explanatory caption. No
+Gradle command, newer-branch propagation, release publication, Teamy Studio
+edit, Cloud Terrastodon edit, or default-selection change occurred.
 
 ### [ ] V-4.3 Implement the two Java text/font comparators
 
