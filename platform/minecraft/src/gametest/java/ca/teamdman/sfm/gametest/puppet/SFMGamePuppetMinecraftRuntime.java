@@ -436,7 +436,10 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
         SFMTerminalPanel panel = requireTerminalPanel();
         SFMWorkspacePanelId panelId = multiplexer.focusedPanelId();
-        SFMScreenPanelBounds bounds = terminalBounds(multiplexer);
+        SFMScreenPanelBounds bounds = multiplexer.panelContentBounds(panelId);
+        if (bounds == null) {
+            throw new IllegalStateException("Focused terminal panel has no allocated content bounds");
+        }
         SFMTerminalPresentationPuppetProbe.Observation observation =
                 SFMTerminalPresentationPuppetProbe.observe(
                         panel,

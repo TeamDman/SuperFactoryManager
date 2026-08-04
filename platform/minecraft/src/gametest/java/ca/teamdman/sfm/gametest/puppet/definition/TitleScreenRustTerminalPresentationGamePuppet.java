@@ -18,8 +18,12 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
     private static final String FULL_PNG = "full-png";
     private static final String FULL_RGBA = "full-raw-rgba";
     private static final String DIRTY_RGBA = "dirty-raw-rgba";
-    private static final String LEFT_TOKEN = "SFM-PRESENTATION-PTY-V1";
-    private static final String RIGHT_TOKEN = "SFM-INDEPENDENT-PTY-V1";
+    // Keep the witness short enough to remain a single logical line after the
+    // terminal is split into two narrow panels.
+    private static final String LEFT_TOKEN = "SFM-LEFT-PTY-V1";
+    // Keep the exact machine-readable output line within the 35-column split
+    // panel so terminal soft wrapping cannot turn one witness into two rows.
+    private static final String RIGHT_TOKEN = "SFM-RIGHT-PTY-V1";
 
     private TitleScreenRustTerminalPresentationGamePuppet() {
     }
