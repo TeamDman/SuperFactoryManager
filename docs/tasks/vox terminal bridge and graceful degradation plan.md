@@ -431,6 +431,18 @@ is the canonical new-raster identity in service state, logs, captions, and
 artifacts. Keep legacy `backend_id` handling only where an old snapshot API
 still requires it.
 
+Consume Facet's separate `unavailable_presentations` collection alongside the
+valid `modes`. Match each diagnostic by the exact renderer/owner/damage/
+transport/version tuple, retain its typed error code/message/retryability in
+the in-memory catalog, and use that cached reason for disabled selector labels,
+request rejection, command-palette suggestion tooltips, telemetry, and puppet
+artifacts. The valid-mode list must not contain disabled/fake tuples, and a GPU
+probe failure must not fail the complete capabilities request or hide the
+three usable CPU tuples. The generic “not advertised by the server” reason is
+reserved for combinations for which the server supplied neither a valid mode
+nor an explicit negative diagnostic. No UI/candidate path repeats the probe or
+performs Vox I/O.
+
 Renderer and transport are independent user choices but one atomic service
 transition. Changing either axis combines the new value with the panel's
 currently requested value on the other axis, validates the resulting tuple,
