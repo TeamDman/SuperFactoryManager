@@ -15,6 +15,7 @@ import org.facet.vox.generated.TerminalFrameEncoding;
 import org.facet.vox.generated.TerminalFrameOrigin;
 import org.facet.vox.generated.TerminalPresentationMode;
 import org.facet.vox.generated.TerminalRasterFrameKind;
+import org.facet.vox.generated.TerminalRasterizationOwner;
 import org.junit.jupiter.api.Test;
 
 class SFMVoxTerminalServiceTests {
@@ -98,7 +99,8 @@ class SFMVoxTerminalServiceTests {
             TerminalFrameEncoding encoding,
             TerminalRasterFrameKind kind) {
         return new TerminalPresentationMode(
-                "rust-cpu-fontdue", damage, transport, 1, encoding, kind, 1,
+                "rust-cpu-fontdue", TerminalRasterizationOwner.SERVER,
+                damage, transport, 1, encoding, kind, 1,
                 TerminalFrameOrigin.TOP_LEFT, TerminalAlphaMode.STRAIGHT, TerminalColorSpace.SRGB,
                 1280, 720, 4 * 1024 * 1024L, 64);
     }

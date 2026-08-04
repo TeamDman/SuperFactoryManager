@@ -8,15 +8,14 @@ import org.facet.vox.generated.TerminalPresentationCapabilitiesResult;
 import org.facet.vox.generated.TerminalPresentationMode;
 import org.facet.vox.generated.TerminalRasterFrameEvent;
 import org.facet.vox.generated.TerminalRasterFrameKind;
+import org.facet.vox.generated.TerminalRasterizationOwner;
 import org.facet.vox.generated.TerminalRasterSubscribeRequest;
 
 import java.util.List;
 
 /**
- * The only compatibility seam for the pre-migration generated Vox raster
- * bindings. Replace the two legacy defaults/generation accessors here when
- * Facet supplies default_renderer_id, rasterization_owner, and
- * presentation_generation; the rest of the Java model remains unchanged.
+ * Converts the generated Vox presentation contract into SFM's panel-local
+ * renderer/transport model without inferring ownership from renderer names.
  */
 final class SFMVoxTerminalPresentationAdapter {
     private SFMVoxTerminalPresentationAdapter() {
@@ -28,11 +27,8 @@ final class SFMVoxTerminalPresentationAdapter {
         List<SFMTerminalPresentationAdvertisedMode> modes = result.modes().stream()
                 .map(SFMVoxTerminalPresentationAdapter::advertisedMode)
                 .toList();
-        // The legacy method is specifically subscribe_raster_frames, so its
-        // producer is explicitly server-owned. This is adapter context, not an
-        // inference from renderer-id spelling.
         return SFMTerminalPresentationCatalog.intersect(
-                SFMTerminalRendererId.RUST_CPU_FONTDUE.wireId(),
+                result.defaultRendererId(),
                 result.defaultTransportId(),
                 modes);
     }
@@ -40,7 +36,7 @@ final class SFMVoxTerminalPresentationAdapter {
     static SFMTerminalPresentationAdvertisedMode advertisedMode(TerminalPresentationMode mode) {
         return new SFMTerminalPresentationAdvertisedMode(
                 mode.rendererId(),
-                SFMTerminalRasterizationOwner.SERVER.wireId(),
+                rasterizationOwner(mode.rasterizationOwner()).wireId(),
                 mode.damageModeId(),
                 mode.transportId(),
                 mode.transportVersion(),
@@ -57,7 +53,7 @@ final class SFMVoxTerminalPresentationAdapter {
     }
 
     static String presentationGeneration(TerminalRasterFrameEvent event) {
-        return event.transportGeneration();
+        return event.presentationGeneration();
     }
 
     static TerminalRasterSubscribeRequest subscribeRequest(
@@ -90,6 +86,17 @@ final class SFMVoxTerminalPresentationAdapter {
             case RGBA8 -> SFMTerminalRasterEncoding.RGBA8;
             default -> throw new IllegalArgumentException(
                     "Unsupported terminal frame encoding: " + encoding);
+        };
+    }
+
+    private static SFMTerminalRasterizationOwner rasterizationOwner(
+            TerminalRasterizationOwner owner
+    ) {
+        return switch (owner) {
+            case SERVER -> SFMTerminalRasterizationOwner.SERVER;
+            case CLIENT -> SFMTerminalRasterizationOwner.CLIENT;
+            default -> throw new IllegalArgumentException(
+                    "Unsupported terminal rasterization owner: " + owner);
         };
     }
 

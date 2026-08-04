@@ -1946,7 +1946,7 @@
           "derived_checks": {
             "artifact_id": "org-facet-vox-java-0-10-0-rc-5-ff6894ba",
             "resolved_coordinate": "org.facet:vox-java:0.10.0-rc.5",
-            "expected_hash": "blake3:7e30d059e0b53ec54b02517b504d5fadbcd60d32",
+            "expected_hash": "blake3:bfa0c9dd97b92b72b121ed9d35e829c38a18be5e",
             "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar"
           },
           "source_providers": []
@@ -3454,12 +3454,12 @@
       "coordinate": "org.facet:vox-java:0.10.0-rc.5",
       "repository_id": null,
       "url": null,
-      "hash": "blake3:7e30d059e0b53ec54b02517b504d5fadbcd60d32",
+      "hash": "blake3:bfa0c9dd97b92b72b121ed9d35e829c38a18be5e",
       "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar",
       "provenance": "source-build",
       "source_git": {
-        "root": "$sfm-cache\\source-builds\\facet-71fc22e9defc07ca2258b45ff51fb89a93c74389",
-        "commit": "71fc22e9defc07ca2258b45ff51fb89a93c74389",
+        "root": "$sfm-cache\\source-builds\\facet-9225acdf574807814d35e79209f41f0b03bd448c",
+        "commit": "9225acdf574807814d35e79209f41f0b03bd448c",
         "branch": "main",
         "dirty": false,
         "remote_url": "https://github.com/TeamDman/facet"
