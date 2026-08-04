@@ -2,6 +2,8 @@ package ca.teamdman.sfm.client.terminal;
 
 import org.facet.vox.generated.TerminalAlphaMode;
 import org.facet.vox.generated.TerminalColorSpace;
+import org.facet.vox.generated.TerminalError;
+import org.facet.vox.generated.TerminalErrorCode;
 import org.facet.vox.generated.TerminalFrameEncoding;
 import org.facet.vox.generated.TerminalFrameOrigin;
 import org.facet.vox.generated.TerminalPresentationCapabilitiesResult;
@@ -27,10 +29,15 @@ final class SFMVoxTerminalPresentationAdapter {
         List<SFMTerminalPresentationAdvertisedMode> modes = result.modes().stream()
                 .map(SFMVoxTerminalPresentationAdapter::advertisedMode)
                 .toList();
+        List<SFMTerminalPresentationUnavailable> unavailablePresentations =
+                result.unavailablePresentations().stream()
+                        .map(SFMVoxTerminalPresentationAdapter::unavailablePresentation)
+                        .toList();
         return SFMTerminalPresentationCatalog.intersect(
                 result.defaultRendererId(),
                 result.defaultTransportId(),
-                modes);
+                modes,
+                unavailablePresentations);
     }
 
     static SFMTerminalPresentationAdvertisedMode advertisedMode(TerminalPresentationMode mode) {
@@ -50,6 +57,40 @@ final class SFMVoxTerminalPresentationAdapter {
                 mode.maxPixelHeight(),
                 mode.maxFrameBytes(),
                 mode.maxRegions());
+    }
+
+    static SFMTerminalPresentationUnavailable unavailablePresentation(
+            org.facet.vox.generated.TerminalPresentationUnavailable unavailable
+    ) {
+        return new SFMTerminalPresentationUnavailable(
+                unavailable.rendererId(),
+                rasterizationOwner(unavailable.rasterizationOwner()),
+                unavailable.damageModeId(),
+                unavailable.transportId(),
+                unavailable.transportVersion(),
+                terminalError(unavailable.error()));
+    }
+
+    private static SFMTerminalError terminalError(TerminalError error) {
+        return new SFMTerminalError(
+                terminalErrorCode(error.code()),
+                error.message(),
+                error.retryable(),
+                error.serverSequence());
+    }
+
+    private static SFMTerminalErrorCode terminalErrorCode(TerminalErrorCode code) {
+        return switch (code) {
+            case INVALID_REQUEST -> SFMTerminalErrorCode.INVALID_REQUEST;
+            case UNSUPPORTED_CAPABILITY -> SFMTerminalErrorCode.UNSUPPORTED_CAPABILITY;
+            case SESSION_NOT_FOUND -> SFMTerminalErrorCode.SESSION_NOT_FOUND;
+            case CAPACITY_EXCEEDED -> SFMTerminalErrorCode.CAPACITY_EXCEEDED;
+            case CANCELLED -> SFMTerminalErrorCode.CANCELLED;
+            case DISCONNECTED -> SFMTerminalErrorCode.DISCONNECTED;
+            case INTERNAL -> SFMTerminalErrorCode.INTERNAL;
+            default -> throw new IllegalArgumentException(
+                    "Unsupported terminal error code: " + code);
+        };
     }
 
     static String presentationGeneration(TerminalRasterFrameEvent event) {

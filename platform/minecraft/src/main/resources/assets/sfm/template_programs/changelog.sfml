@@ -22,6 +22,7 @@ NAME "Changelog"
 -- Improve Rust-authoritative terminal responsiveness by retaining fonts, glyphs, frame buffers, and Minecraft textures between frames
 -- Replace periodic Rust-terminal snapshot polling with bounded pushed Vox frame subscriptions
 -- Add panel-local Rust terminal transport selection for full PNG, full RGBA, and dirty RGBA while preserving the shell session
+-- Explain server-advertised terminal renderer failures in cached dropdown and command-palette options
 -- Keep the active Rust terminal presentation live until a replacement delivers a valid full resynchronization frame
 -- Add strict raster validation and durable screenshot, terminal-content, and push-telemetry puppet evidence
 -- Make owned Rust terminal server restarts wait for listener shutdown before reconnecting

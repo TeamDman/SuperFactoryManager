@@ -2,17 +2,21 @@ package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceLayout;
+import ca.teamdman.sfm.client.terminal.SFMTerminalError;
+import ca.teamdman.sfm.client.terminal.SFMTerminalErrorCode;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPresentationAdvertisedMode;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPresentationCatalog;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPresentationChangeResult;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPresentationSelection;
+import ca.teamdman.sfm.client.terminal.SFMTerminalPresentationUnavailable;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPresentationTransitionState;
 import ca.teamdman.sfm.client.terminal.SFMTerminalRasterAlphaMode;
 import ca.teamdman.sfm.client.terminal.SFMTerminalRasterColorSpace;
 import ca.teamdman.sfm.client.terminal.SFMTerminalRasterEncoding;
 import ca.teamdman.sfm.client.terminal.SFMTerminalRasterFrameKind;
 import ca.teamdman.sfm.client.terminal.SFMTerminalRasterOrigin;
+import ca.teamdman.sfm.client.terminal.SFMTerminalRasterizationOwner;
 import ca.teamdman.sfm.client.terminal.SFMTerminalRemoteService;
 import ca.teamdman.sfm.client.terminal.SFMTerminalRendererId;
 import ca.teamdman.sfm.client.terminal.SFMTerminalRendererOption;
@@ -71,6 +75,48 @@ class SFMTerminalPresentationActionTests {
         assertEquals(1, service.transportOptionReads.get());
         assertEquals(0, service.connectRequests.get(),
                 "candidate enumeration must not initiate remote discovery or connection work");
+        assertEquals(0, service.presentationRequests.get());
+    }
+
+    @Test
+    void actionCandidatesSurfaceCachedNegativeCapabilityReasonsWithoutProbing() throws Exception {
+        SFMTerminalPresentationSelection gpuPng = new SFMTerminalPresentationSelection(
+                SFMTerminalRendererId.RUST_GPU_SLUG,
+                SFMTerminalTransportId.FULL_PNG);
+        FakeRemoteService service = new FakeRemoteService(
+                "session-left", FakeRemoteService.NEGATIVE_GPU_CATALOG, gpuPng);
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        SFMScreenMultiplexer workspace = headlessWorkspace(SFMWorkspaceLayout.single(panel));
+        SFMClientActionCommandTree tree = actionTree();
+        SFMClientActionSource source = source(workspace);
+
+        var rendererSuggestions = assertTimeoutPreemptively(
+                Duration.ofMillis(250),
+                () -> tree.getCompletionSuggestions(tree.parse(
+                        "sfm action invoke sfm:terminal/renderer/set ", source))
+                        .get()
+                        .getList());
+        var transportSuggestions = assertTimeoutPreemptively(
+                Duration.ofMillis(250),
+                () -> tree.getCompletionSuggestions(tree.parse(
+                        "sfm action invoke sfm:terminal/transport/set ", source))
+                        .get()
+                        .getList());
+
+        assertEquals("Vulkan unavailable: no compatible compute device",
+                rendererSuggestions.stream()
+                        .filter(suggestion -> suggestion.getText().equals("rust-gpu-slug"))
+                        .findFirst()
+                        .orElseThrow()
+                        .getTooltip()
+                        .getString());
+        assertTrue(transportSuggestions.stream().allMatch(suggestion ->
+                suggestion.getTooltip() != null
+                        && suggestion.getTooltip().getString().equals(
+                        "Vulkan unavailable: no compatible compute device")));
+        assertEquals(1, service.rendererOptionReads.get());
+        assertEquals(1, service.transportOptionReads.get());
+        assertEquals(0, service.connectRequests.get());
         assertEquals(0, service.presentationRequests.get());
     }
 
@@ -182,20 +228,41 @@ class SFMTerminalPresentationActionTests {
                                 .flatMap(renderer -> Arrays.stream(SFMTerminalTransportId.values())
                                         .map(transport -> advertised(renderer, transport)))
                                 .toList());
+        private static final SFMTerminalPresentationCatalog NEGATIVE_GPU_CATALOG =
+                SFMTerminalPresentationCatalog.intersect(
+                        "rust-cpu-fontdue",
+                        "full-png",
+                        Arrays.stream(SFMTerminalTransportId.values())
+                                .map(transport -> advertised(
+                                        SFMTerminalRendererId.RUST_CPU_FONTDUE, transport))
+                                .toList(),
+                        Arrays.stream(SFMTerminalTransportId.values())
+                                .map(FakeRemoteService::unavailableGpu)
+                                .toList());
 
         private final String sessionOwner;
+        private final SFMTerminalPresentationCatalog catalog;
         private final AtomicInteger rendererOptionReads = new AtomicInteger();
         private final AtomicInteger transportOptionReads = new AtomicInteger();
         private final AtomicInteger connectRequests = new AtomicInteger();
         private final AtomicInteger presentationRequests = new AtomicInteger();
-        private SFMTerminalPresentationSelection requested =
-                SFMTerminalPresentationSelection.DEFAULT;
+        private SFMTerminalPresentationSelection requested;
         private SFMTerminalPresentationSelection active =
                 SFMTerminalPresentationSelection.DEFAULT;
         private Runnable duringRequest = () -> {};
 
         private FakeRemoteService(String sessionOwner) {
+            this(sessionOwner, CATALOG, SFMTerminalPresentationSelection.DEFAULT);
+        }
+
+        private FakeRemoteService(
+                String sessionOwner,
+                SFMTerminalPresentationCatalog catalog,
+                SFMTerminalPresentationSelection requested
+        ) {
             this.sessionOwner = sessionOwner;
+            this.catalog = catalog;
+            this.requested = requested;
         }
 
         @Override
@@ -216,13 +283,13 @@ class SFMTerminalPresentationActionTests {
         @Override
         public List<SFMTerminalRendererOption> rendererOptions() {
             rendererOptionReads.incrementAndGet();
-            return CATALOG.rendererOptions(requested.transportId());
+            return catalog.rendererOptions(requested.transportId());
         }
 
         @Override
         public List<SFMTerminalTransportOption> transportOptions() {
             transportOptionReads.incrementAndGet();
-            return CATALOG.transportOptions(requested.rendererId());
+            return catalog.transportOptions(requested.rendererId());
         }
 
         @Override
@@ -309,6 +376,22 @@ class SFMTerminalPresentationActionTests {
                     720,
                     4 * 1024 * 1024L,
                     64);
+        }
+
+        private static SFMTerminalPresentationUnavailable unavailableGpu(
+                SFMTerminalTransportId transport
+        ) {
+            return new SFMTerminalPresentationUnavailable(
+                    SFMTerminalRendererId.RUST_GPU_SLUG.wireId(),
+                    SFMTerminalRasterizationOwner.SERVER,
+                    transport.damageModeId(),
+                    transport.wireId(),
+                    SFMTerminalTransportId.SUPPORTED_VERSION,
+                    new SFMTerminalError(
+                            SFMTerminalErrorCode.UNSUPPORTED_CAPABILITY,
+                            "Vulkan unavailable: no compatible compute device",
+                            false,
+                            7));
         }
     }
 }

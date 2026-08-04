@@ -14,12 +14,15 @@ public final class SFMTerminalPresentationCatalog {
     public record Rejection(
             String rendererId,
             String rasterizationOwner,
+            String damageModeId,
             String transportId,
+            int transportVersion,
             String reason
     ) {
         public Rejection {
             rendererId = rendererId == null ? "" : rendererId;
             rasterizationOwner = rasterizationOwner == null ? "" : rasterizationOwner;
+            damageModeId = damageModeId == null ? "" : damageModeId;
             transportId = transportId == null ? "" : transportId;
             reason = Objects.requireNonNull(reason, "reason");
         }
@@ -29,22 +32,25 @@ public final class SFMTerminalPresentationCatalog {
     private final SFMTerminalPresentationSelection defaultSelection;
     private final List<SFMTerminalPresentationModeOption> modes;
     private final List<Rejection> rejections;
+    private final List<SFMTerminalPresentationUnavailable> unavailablePresentations;
 
     private SFMTerminalPresentationCatalog(
             boolean discovered,
             SFMTerminalPresentationSelection defaultSelection,
             List<SFMTerminalPresentationModeOption> modes,
-            List<Rejection> rejections
+            List<Rejection> rejections,
+            List<SFMTerminalPresentationUnavailable> unavailablePresentations
     ) {
         this.discovered = discovered;
         this.defaultSelection = Objects.requireNonNull(defaultSelection, "defaultSelection");
         this.modes = List.copyOf(modes);
         this.rejections = List.copyOf(rejections);
+        this.unavailablePresentations = List.copyOf(unavailablePresentations);
     }
 
     public static SFMTerminalPresentationCatalog undiscovered() {
         return new SFMTerminalPresentationCatalog(
-                false, SFMTerminalPresentationSelection.DEFAULT, List.of(), List.of());
+                false, SFMTerminalPresentationSelection.DEFAULT, List.of(), List.of(), List.of());
     }
 
     public static SFMTerminalPresentationCatalog intersect(
@@ -52,7 +58,17 @@ public final class SFMTerminalPresentationCatalog {
             String defaultTransportId,
             List<SFMTerminalPresentationAdvertisedMode> advertisedModes
     ) {
+        return intersect(defaultRendererId, defaultTransportId, advertisedModes, List.of());
+    }
+
+    public static SFMTerminalPresentationCatalog intersect(
+            String defaultRendererId,
+            String defaultTransportId,
+            List<SFMTerminalPresentationAdvertisedMode> advertisedModes,
+            List<SFMTerminalPresentationUnavailable> unavailablePresentations
+    ) {
         Objects.requireNonNull(advertisedModes, "advertisedModes");
+        Objects.requireNonNull(unavailablePresentations, "unavailablePresentations");
         SFMTerminalPresentationSelection defaultSelection = new SFMTerminalPresentationSelection(
                 SFMTerminalRendererId.fromWireId(defaultRendererId),
                 SFMTerminalTransportId.fromWireId(defaultTransportId));
@@ -69,7 +85,8 @@ public final class SFMTerminalPresentationCatalog {
             } catch (IllegalArgumentException error) {
                 rejections.add(new Rejection(
                         advertised.rendererId(), advertised.rasterizationOwner(),
-                        advertised.transportId(), error.getMessage()));
+                        advertised.damageModeId(), advertised.transportId(),
+                        advertised.transportVersion(), error.getMessage()));
                 continue;
             }
             SFMTerminalPresentationTuple tuple;
@@ -80,10 +97,21 @@ public final class SFMTerminalPresentationCatalog {
             } catch (IllegalArgumentException error) {
                 rejections.add(new Rejection(
                         advertised.rendererId(), advertised.rasterizationOwner(),
-                        advertised.transportId(), error.getMessage()));
+                        advertised.damageModeId(), advertised.transportId(),
+                        advertised.transportVersion(), error.getMessage()));
                 continue;
             }
             String reason = unsupportedReason(advertised, tuple);
+            if (reason != null) {
+                rejections.add(new Rejection(
+                        advertised.rendererId(),
+                        advertised.rasterizationOwner(),
+                        advertised.damageModeId(),
+                        advertised.transportId(),
+                        advertised.transportVersion(),
+                        reason));
+                continue;
+            }
             modes.add(new SFMTerminalPresentationModeOption(
                     tuple,
                     advertised.encoding(),
@@ -93,10 +121,11 @@ public final class SFMTerminalPresentationCatalog {
                     advertised.maxPixelHeight(),
                     advertised.maxFrameBytes(),
                     advertised.maxRegions(),
-                    reason == null,
-                    reason == null ? "" : reason));
+                    true,
+                    ""));
         }
-        return new SFMTerminalPresentationCatalog(true, defaultSelection, modes, rejections);
+        return new SFMTerminalPresentationCatalog(
+                true, defaultSelection, modes, rejections, unavailablePresentations);
     }
 
     private static String unsupportedReason(
@@ -157,6 +186,10 @@ public final class SFMTerminalPresentationCatalog {
         return rejections;
     }
 
+    public List<SFMTerminalPresentationUnavailable> unavailablePresentations() {
+        return unavailablePresentations;
+    }
+
     public Optional<SFMTerminalPresentationModeOption> supportedMode(
             SFMTerminalPresentationSelection selection
     ) {
@@ -197,15 +230,44 @@ public final class SFMTerminalPresentationCatalog {
 
     public String unavailableReason(SFMTerminalPresentationSelection selection) {
         if (!discovered) return "awaiting server capabilities";
-        Optional<SFMTerminalPresentationModeOption> advertised = modes.stream()
-                .filter(mode -> mode.tuple().selection().equals(selection))
+        if (supportedMode(selection).isPresent()) return "";
+        Optional<SFMTerminalPresentationUnavailable> unavailable = unavailablePresentations.stream()
+                .filter(candidate -> exactIdentityMatches(candidate, selection))
                 .findFirst();
-        if (advertised.isPresent()) return advertised.get().unavailableReason();
+        if (unavailable.isPresent()) return unavailable.get().error().message();
         Optional<Rejection> rejected = rejections.stream()
                 .filter(rejection -> rejection.rendererId().equals(selection.rendererId().wireId()))
                 .filter(rejection -> rejection.transportId().equals(selection.transportId().wireId()))
                 .findFirst();
         if (rejected.isPresent()) return rejected.get().reason();
         return "combination was not advertised by the server";
+    }
+
+    private static boolean exactIdentityMatches(
+            SFMTerminalPresentationUnavailable unavailable,
+            SFMTerminalPresentationSelection selection
+    ) {
+        return exactIdentityMatches(
+                unavailable.rendererId(),
+                unavailable.rasterizationOwner().wireId(),
+                unavailable.damageModeId(),
+                unavailable.transportId(),
+                unavailable.transportVersion(),
+                selection);
+    }
+
+    private static boolean exactIdentityMatches(
+            String rendererId,
+            String rasterizationOwner,
+            String damageModeId,
+            String transportId,
+            int transportVersion,
+            SFMTerminalPresentationSelection selection
+    ) {
+        return rendererId.equals(selection.rendererId().wireId())
+                && rasterizationOwner.equals(selection.rendererId().rasterizationOwner().wireId())
+                && damageModeId.equals(selection.transportId().damageModeId())
+                && transportId.equals(selection.transportId().wireId())
+                && transportVersion == SFMTerminalTransportId.SUPPORTED_VERSION;
     }
 }

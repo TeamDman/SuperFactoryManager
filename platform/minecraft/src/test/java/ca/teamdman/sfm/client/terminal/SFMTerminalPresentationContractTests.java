@@ -2,6 +2,8 @@ package ca.teamdman.sfm.client.terminal;
 
 import org.facet.vox.generated.TerminalAlphaMode;
 import org.facet.vox.generated.TerminalColorSpace;
+import org.facet.vox.generated.TerminalError;
+import org.facet.vox.generated.TerminalErrorCode;
 import org.facet.vox.generated.TerminalFrameEncoding;
 import org.facet.vox.generated.TerminalFrameOrigin;
 import org.facet.vox.generated.TerminalPresentationCapabilitiesResult;
@@ -70,6 +72,120 @@ class SFMTerminalPresentationContractTests {
             assertEquals(2, catalog.rendererOptions(transport).stream()
                     .filter(SFMTerminalRendererOption::supported)
                     .count());
+        }
+    }
+
+    @Test
+    void generatedNegativeCapabilitiesRemainTypedDiagnosticOnlyExactTuples() {
+        List<TerminalPresentationMode> cpuModes = List.of(
+                mode("rust-cpu-fontdue", "full-png"),
+                mode("rust-cpu-fontdue", "full-raw-rgba"),
+                mode("rust-cpu-fontdue", "dirty-raw-rgba"));
+        List<org.facet.vox.generated.TerminalPresentationUnavailable> unavailable = List.of(
+                unavailable("full-png", "full", 1, "GPU PNG unavailable", false, 7),
+                unavailable("full-raw-rgba", "full", 1, "GPU raw unavailable", true, 8),
+                unavailable("dirty-raw-rgba", "dirty", 1, "GPU dirty unavailable", false, 9));
+        TerminalPresentationCapabilitiesResult generated =
+                new TerminalPresentationCapabilitiesResult(
+                        "session-a",
+                        "rust-cpu-fontdue",
+                        "full-png",
+                        cpuModes,
+                        unavailable,
+                        10);
+
+        SFMTerminalPresentationCatalog catalog =
+                SFMVoxTerminalPresentationAdapter.catalog(generated);
+
+        assertEquals(3, catalog.modes().size());
+        assertTrue(catalog.modes().stream().allMatch(SFMTerminalPresentationModeOption::supported));
+        assertTrue(catalog.modes().stream().allMatch(mode ->
+                mode.tuple().rendererId() == SFMTerminalRendererId.RUST_CPU_FONTDUE));
+        assertEquals(3, catalog.unavailablePresentations().size());
+        assertEquals(
+                new SFMTerminalPresentationSelection(
+                        SFMTerminalRendererId.RUST_CPU_FONTDUE,
+                        SFMTerminalTransportId.FULL_PNG),
+                catalog.defaultSelection());
+        assertTrue(catalog.supportedMode(catalog.defaultSelection()).isPresent(),
+                "the advertised default must remain a valid selectable CPU tuple");
+
+        SFMTerminalPresentationUnavailable pngUnavailable =
+                catalog.unavailablePresentations().get(0);
+        assertEquals("rust-gpu-slug", pngUnavailable.rendererId());
+        assertEquals(SFMTerminalRasterizationOwner.SERVER, pngUnavailable.rasterizationOwner());
+        assertEquals("full", pngUnavailable.damageModeId());
+        assertEquals("full-png", pngUnavailable.transportId());
+        assertEquals(1, pngUnavailable.transportVersion());
+        assertEquals(SFMTerminalErrorCode.UNSUPPORTED_CAPABILITY, pngUnavailable.error().code());
+        assertEquals("GPU PNG unavailable", pngUnavailable.error().message());
+        assertFalse(pngUnavailable.error().retryable());
+        assertEquals(7, pngUnavailable.error().serverSequence());
+
+        Map<SFMTerminalTransportId, String> expectedReasons = Map.of(
+                SFMTerminalTransportId.FULL_PNG, "GPU PNG unavailable",
+                SFMTerminalTransportId.FULL_RAW_RGBA, "GPU raw unavailable",
+                SFMTerminalTransportId.DIRTY_RAW_RGBA, "GPU dirty unavailable");
+        expectedReasons.forEach((transport, reason) -> {
+            SFMTerminalPresentationSelection selection = new SFMTerminalPresentationSelection(
+                    SFMTerminalRendererId.RUST_GPU_SLUG, transport);
+            assertTrue(catalog.supportedMode(selection).isEmpty(),
+                    "negative capabilities must never become selectable modes");
+            assertEquals(reason, catalog.unavailableReason(selection));
+            SFMTerminalRendererOption rendererOption = catalog.rendererOptions(transport).stream()
+                    .filter(option -> option.id() == SFMTerminalRendererId.RUST_GPU_SLUG)
+                    .findFirst()
+                    .orElseThrow();
+            assertFalse(rendererOption.supported());
+            assertEquals(reason, rendererOption.unavailableReason());
+            assertTrue(rendererOption.label().contains(reason));
+        });
+        assertTrue(catalog.transportOptions(SFMTerminalRendererId.RUST_GPU_SLUG).stream()
+                .noneMatch(SFMTerminalTransportOption::supported));
+        assertEquals(
+                List.of("GPU PNG unavailable", "GPU raw unavailable", "GPU dirty unavailable"),
+                catalog.transportOptions(SFMTerminalRendererId.RUST_GPU_SLUG).stream()
+                        .map(SFMTerminalTransportOption::unavailableReason)
+                        .toList());
+    }
+
+    @Test
+    void negativeCapabilityLookupRequiresExactOwnerDamageAndTransportVersion() {
+        List<SFMTerminalPresentationUnavailable> malformedNegatives = List.of(
+                localUnavailable(
+                        SFMTerminalRasterizationOwner.CLIENT,
+                        "full",
+                        "full-png",
+                        1,
+                        "wrong owner"),
+                localUnavailable(
+                        SFMTerminalRasterizationOwner.SERVER,
+                        "dirty",
+                        "full-raw-rgba",
+                        1,
+                        "wrong damage"),
+                localUnavailable(
+                        SFMTerminalRasterizationOwner.SERVER,
+                        "dirty",
+                        "dirty-raw-rgba",
+                        2,
+                        "wrong version"));
+        SFMTerminalPresentationCatalog catalog = SFMTerminalPresentationCatalog.intersect(
+                "rust-cpu-fontdue",
+                "full-png",
+                List.of(
+                        advertised("rust-cpu-fontdue", "server", "full-png"),
+                        advertised("rust-cpu-fontdue", "server", "full-raw-rgba"),
+                        advertised("rust-cpu-fontdue", "server", "dirty-raw-rgba")),
+                malformedNegatives);
+
+        assertEquals(3, catalog.unavailablePresentations().size(),
+                "malformed negative identities are retained exactly for diagnostics");
+        for (SFMTerminalTransportId transport : SFMTerminalTransportId.values()) {
+            SFMTerminalPresentationSelection selection = new SFMTerminalPresentationSelection(
+                    SFMTerminalRendererId.RUST_GPU_SLUG, transport);
+            assertEquals("combination was not advertised by the server",
+                    catalog.unavailableReason(selection));
         }
     }
 
@@ -169,6 +285,47 @@ class SFMTerminalPresentationContractTests {
                 720,
                 4 * 1024 * 1024L,
                 64);
+    }
+
+    private static org.facet.vox.generated.TerminalPresentationUnavailable unavailable(
+            String transport,
+            String damage,
+            int version,
+            String message,
+            boolean retryable,
+            long serverSequence
+    ) {
+        return new org.facet.vox.generated.TerminalPresentationUnavailable(
+                "rust-gpu-slug",
+                TerminalRasterizationOwner.SERVER,
+                damage,
+                transport,
+                version,
+                new TerminalError(
+                        TerminalErrorCode.UNSUPPORTED_CAPABILITY,
+                        message,
+                        retryable,
+                        serverSequence));
+    }
+
+    private static SFMTerminalPresentationUnavailable localUnavailable(
+            SFMTerminalRasterizationOwner owner,
+            String damage,
+            String transport,
+            int version,
+            String message
+    ) {
+        return new SFMTerminalPresentationUnavailable(
+                "rust-gpu-slug",
+                owner,
+                damage,
+                transport,
+                version,
+                new SFMTerminalError(
+                        SFMTerminalErrorCode.UNSUPPORTED_CAPABILITY,
+                        message,
+                        false,
+                        7));
     }
 
     private static SFMTerminalPresentationAdvertisedMode advertised(

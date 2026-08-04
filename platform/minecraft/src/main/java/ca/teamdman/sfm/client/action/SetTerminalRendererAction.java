@@ -37,7 +37,15 @@ public final class SetTerminalRendererAction implements SFMClientAction<SFMScree
                     PanelActionSupport.resolve(context.getSource().context());
             if (availability.isAvailable()
                     && availability.target().focusedPanelInstance() instanceof SFMTerminalPanel terminal) {
-                terminal.rendererOptions().forEach(option -> builder.suggest(option.id().wireId()));
+                terminal.rendererOptions().forEach(option -> {
+                    if (option.supported()) {
+                        builder.suggest(option.id().wireId());
+                    } else {
+                        builder.suggest(
+                                option.id().wireId(),
+                                Component.literal(option.unavailableReason()));
+                    }
+                });
             }
             return builder.buildFuture();
         }).executes(this::invoke));
