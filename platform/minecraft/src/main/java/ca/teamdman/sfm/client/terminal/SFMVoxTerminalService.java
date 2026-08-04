@@ -170,6 +170,15 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         private String sessionEpoch = "";
         private long lastTerminalSequence;
         private long lastFrameSequence;
+        private int logicalColumns;
+        private int logicalRows;
+        private int targetPanelWidth;
+        private int targetPanelHeight;
+        private int nativeWidth;
+        private int nativeHeight;
+        private int cellWidth;
+        private int cellHeight;
+        private int fontPixelSize;
         private boolean cleanupScheduled;
 
         private RasterStream(
@@ -179,6 +188,20 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             this.subscription = subscription;
             this.lane = lane;
             this.receiver = receiver;
+        }
+
+        private void recordAcceptedFrame(TerminalRasterFrameEvent event) {
+            org.facet.vox.generated.TerminalRasterFrame frame = event.frame();
+            TerminalSurfaceMetrics surface = frame.surface();
+            logicalColumns = frame.logicalColumns();
+            logicalRows = frame.logicalRows();
+            targetPanelWidth = surface.panelWidth();
+            targetPanelHeight = surface.panelHeight();
+            nativeWidth = frame.width();
+            nativeHeight = frame.height();
+            cellWidth = surface.cellWidth();
+            cellHeight = surface.cellHeight();
+            fontPixelSize = surface.fontPixelSize();
         }
     }
 
@@ -373,6 +396,16 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                                     + " failure=" + failure);
                 }
                 TerminalPublicationTelemetry producer = latestRasterPublication;
+                RasterStream activeStream = rasterHandoff.active();
+                if (activeStream == null
+                        || activeStream.logicalColumns <= 0 || activeStream.logicalRows <= 0
+                        || activeStream.targetPanelWidth <= 0 || activeStream.targetPanelHeight <= 0
+                        || activeStream.nativeWidth <= 0 || activeStream.nativeHeight <= 0
+                        || activeStream.cellWidth <= 0 || activeStream.cellHeight <= 0
+                        || activeStream.fontPixelSize <= 0) {
+                    throw new IllegalStateException(
+                            "Accepted Rust raster stream has incomplete grid/native metric evidence");
+                }
                 if (producer.pendingDepth() < 0 || producer.pendingDepth() > 1
                         || producer.pendingDepthMax() < 0 || producer.pendingDepthMax() > 1) {
                     throw new IllegalStateException("Rust raster producer violated its bounded pending depth");
@@ -394,6 +427,15 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         "raster_full_resync_frames=" + rasterFullResyncFrames,
                         "latest_terminal_sequence=" + rasterLastTerminalSequence,
                         "latest_frame_sequence=" + rasterLastFrameSequence,
+                        "logical_columns=" + activeStream.logicalColumns,
+                        "logical_rows=" + activeStream.logicalRows,
+                        "panel_width=" + activeStream.targetPanelWidth,
+                        "panel_height=" + activeStream.targetPanelHeight,
+                        "native_width=" + activeStream.nativeWidth,
+                        "native_height=" + activeStream.nativeHeight,
+                        "cell_width=" + activeStream.cellWidth,
+                        "cell_height=" + activeStream.cellHeight,
+                        "font_pixel_size=" + activeStream.fontPixelSize,
                         "producer_renders_started=" + producer.rendersStarted(),
                         "producer_renders_completed=" + producer.rendersCompleted(),
                         "producer_frames_pushed=" + producer.framesPushed(),
@@ -1337,6 +1379,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 currentStream.sessionEpoch = event.sessionEpoch();
                 currentStream.lastTerminalSequence = event.terminalSequence();
                 currentStream.lastFrameSequence = event.frameSequence();
+                currentStream.recordAcceptedFrame(event);
                 acceptedRasterPresentationGeneration = eventPresentationGeneration;
                 rasterConnectionEpoch = event.connectionEpoch();
                 rasterSessionEpoch = event.sessionEpoch();
