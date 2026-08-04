@@ -53,6 +53,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -60,6 +61,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -87,18 +89,15 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private final ExecutorService driver;
     private final ExecutorService connectionDriver;
     private final ExecutorService subscriptionReceiver;
+    private final ExecutorService rasterSubscriptionReceiver;
     private final ExecutorService transportCleanup;
     private final SFMVoxTerminalTelemetry telemetry = new SFMVoxTerminalTelemetry();
     private final SFMVoxTerminalFrameInbox frameInbox =
             new SFMVoxTerminalFrameInbox(MAX_FRAME_BYTES);
-    private final SFMTerminalRgbaCompositor rgbaCompositor =
-            new SFMTerminalRgbaCompositor(SFMTerminalRasterLimits.RGBA8_V1_DEFAULTS);
     private final Object lock = new Object();
     private VoxConnection connection;
     private ServiceLane lane;
     private TerminalClient client;
-    private ServiceLane rasterLane;
-    private TerminalClient rasterClient;
     private String sessionId;
     private String failure;
     private TerminalSnapshot latestSnapshot;
@@ -106,9 +105,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private VoxRx<TerminalFrameEvent> frameReceiver;
     private CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> subscriptionCall;
     private SFMVoxTerminalFrameInbox.Subscription subscription;
-    private VoxRx<TerminalRasterFrameEvent> rasterFrameReceiver;
-    private CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> rasterSubscriptionCall;
-    private RasterSubscription rasterSubscription;
+    private final SFMVoxTerminalRasterHandoff<RasterStream> rasterHandoff;
     private List<TerminalPresentationMode> presentationModes = List.of();
     private SFMTerminalPresentationCatalog presentationCatalog =
             SFMTerminalPresentationCatalog.undiscovered();
@@ -161,10 +158,29 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             SFMTerminalPresentationSelection selection,
             TerminalPresentationMode mode) {}
 
-    private record DetachedRasterSubscription(
-            VoxRx<TerminalRasterFrameEvent> receiver,
-            CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> call,
-            ServiceLane lane) {}
+    private static final class RasterStream {
+        private final RasterSubscription subscription;
+        private final ServiceLane lane;
+        private final VoxRx<TerminalRasterFrameEvent> receiver;
+        private final SFMTerminalRgbaCompositor compositor =
+                new SFMTerminalRgbaCompositor(SFMTerminalRasterLimits.RGBA8_V1_DEFAULTS);
+        private CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> call;
+        private String acceptedPresentationGeneration = "";
+        private String connectionEpoch = "";
+        private String sessionEpoch = "";
+        private long lastTerminalSequence;
+        private long lastFrameSequence;
+        private boolean cleanupScheduled;
+
+        private RasterStream(
+                RasterSubscription subscription,
+                ServiceLane lane,
+                VoxRx<TerminalRasterFrameEvent> receiver) {
+            this.subscription = subscription;
+            this.lane = lane;
+            this.receiver = receiver;
+        }
+    }
 
     private record DetachedTransport(
             TerminalClient client,
@@ -239,11 +255,27 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             thread.setDaemon(true);
             return thread;
         });
+        AtomicLong rasterReceiverSequence = new AtomicLong();
+        this.rasterSubscriptionReceiver = new ThreadPoolExecutor(
+                2,
+                2,
+                0L,
+                TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(2),
+                runnable -> {
+                    Thread thread = new Thread(runnable,
+                            "sfm-vox-terminal-raster-receiver-"
+                                    + rasterReceiverSequence.incrementAndGet());
+                    thread.setDaemon(true);
+                    return thread;
+                },
+                new ThreadPoolExecutor.AbortPolicy());
         this.transportCleanup = Executors.newSingleThreadExecutor(runnable -> {
             Thread thread = new Thread(runnable, "sfm-vox-terminal-cleanup");
             thread.setDaemon(true);
             return thread;
         });
+        this.rasterHandoff = new SFMVoxTerminalRasterHandoff<>(this::retireRasterStreamLocked);
     }
 
     /** Retained as a source-compatible constructor; the fallback is deliberately ignored. */
@@ -336,7 +368,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                                     + " accepted=" + rasterFramesAccepted
                                     + " rejected=" + rasterFramesRejected
                                     + " stale=" + rasterStaleFrames
-                                    + " lane=" + (rasterLane == null ? "none" : rasterLane.state())
+                                    + " lane=" + (rasterHandoff.active() == null
+                                    ? "none" : rasterHandoff.active().lane.state())
                                     + " failure=" + failure);
                 }
                 TerminalPublicationTelemetry producer = latestRasterPublication;
@@ -552,6 +585,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     ) {
         final String currentSession;
         final long generation;
+        final boolean alreadyActive;
         synchronized (lock) {
             if (closed) return SFMTerminalPresentationChangeResult.rejected("Rust terminal is closed");
             if (presentationCatalog.discovered()
@@ -562,8 +596,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             }
             if (requested.equals(requestedPresentation)
                     && (requested.equals(activePresentation)
-                    || rasterSubscription != null
-                    && requested.equals(rasterSubscription.selection()))) {
+                    || rasterHandoff.pending() != null
+                    && requested.equals(rasterHandoff.pending().subscription.selection()))) {
                 return SFMTerminalPresentationChangeResult.accepted(
                         "Terminal presentation is already " + requested.label());
             }
@@ -573,11 +607,18 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             presentationRequestGeneration = incrementGeneration(
                     presentationRequestGeneration, "terminal presentation request generation");
             generation = presentationRequestGeneration;
+            RasterStream supersededPending = rasterHandoff.pending();
+            if (supersededPending != null) rasterHandoff.failPending(supersededPending);
+            alreadyActive = requested.equals(activePresentation);
             currentSession = sessionId;
         }
         if (currentSession == null) {
             return SFMTerminalPresentationChangeResult.accepted(
                     "Terminal presentation " + requested.label() + " will activate after connection");
+        }
+        if (alreadyActive) {
+            return SFMTerminalPresentationChangeResult.accepted(
+                    "Terminal presentation is already active as " + requested.label());
         }
         if (!submitDriver(() -> switchRasterSubscription(currentSession, requested, generation))) {
             synchronized (lock) {
@@ -800,6 +841,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         driver.shutdownNow();
         connectionDriver.shutdownNow();
         subscriptionReceiver.shutdownNow();
+        rasterSubscriptionReceiver.shutdownNow();
         transportCleanup.shutdown();
     }
 
@@ -1089,7 +1131,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                             "Terminal presentation '" + selection.label() + "' is unavailable";
                     return;
                 }
-                closeRasterSubscriptionLocked();
+                RasterStream activeStream = rasterHandoff.active();
+                if (activeStream != null
+                        && selection.equals(activeStream.subscription.selection())) {
+                    RasterStream pendingStream = rasterHandoff.pending();
+                    if (pendingStream != null) rasterHandoff.failPending(pendingStream);
+                    presentationTransitionFailure = null;
+                    return;
+                }
             }
             startRasterSubscription(currentConnection, currentSession, selection, mode, generation);
         } catch (Exception error) {
@@ -1111,88 +1160,102 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             long generation) throws Exception {
         ServiceLane currentRasterLane = currentConnection.openLane(
                 TerminalServiceDescriptor.INSTANCE, LaneOptions.defaults());
-        await(currentRasterLane.opened(), "opening terminal raster lane");
-        TerminalClient currentClient = new TerminalClient(currentRasterLane);
-        VoxChannels.Pair<TerminalRasterFrameEvent> channel = VoxChannels.channel(
-                TerminalRasterFrameEvent.ADAPTER);
-        long requestSequence = nextSequence();
-        String wireGeneration = "sfm-presentation-" + generation + "-" + requestSequence;
-        long maxFrameBytes = Math.min(MAX_FRAME_BYTES, mode.maxFrameBytes());
-        int maxRegions = Math.min(SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS, mode.maxRegions());
-        RasterSubscription currentSubscription = new RasterSubscription(
-                generation, currentSession, wireGeneration, selection, mode);
-        synchronized (lock) {
-            if (closed || connection != currentConnection || !Objects.equals(sessionId, currentSession)
-                    || generation != presentationRequestGeneration
-                    || !requestedPresentation.equals(selection)) {
-                channel.rx().close();
-                currentRasterLane.close();
-                return;
-            }
-            rasterLane = currentRasterLane;
-            rasterClient = currentClient;
-            rasterSubscription = currentSubscription;
-            rasterFrameReceiver = channel.rx();
-            acceptedRasterPresentationGeneration = "";
-            rasterConnectionEpoch = "";
-            rasterSessionEpoch = "";
-            rasterLastTerminalSequence = 0;
-            rasterLastFrameSequence = 0;
-            if (mode.encoding() == TerminalFrameEncoding.RGBA8) {
-                rgbaCompositor.expectGeneration(wireGeneration);
-            }
-            rasterSubscriptionsStarted = incrementGeneration(
-                    rasterSubscriptionsStarted, "raster subscriptions started");
-            SFM.LOGGER.info(
-                    "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_STARTED session={} renderer={} transport={} "
-                            + "presentation_generation={} lane={}",
-                    currentSession,
-                    mode.rendererId(),
-                    mode.transportId(),
-                    wireGeneration,
-                    currentRasterLane.state());
-        }
-        CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> currentCall =
-                currentClient.subscribeRasterFrames(
-                        SFMVoxTerminalPresentationAdapter.subscribeRequest(
-                                currentSession,
-                                mode,
-                                wireGeneration,
-                                maxFrameBytes,
-                                maxRegions,
-                                requestSequence,
-                                correlationId("raster-subscribe", requestSequence)),
-                        channel.tx(),
-                        CallOptions.withIdleTimeout(SUBSCRIPTION_IDLE_TIMEOUT));
-        synchronized (lock) {
-            if (!isCurrentRasterSubscriptionLocked(currentSubscription)) {
-                currentRasterLane.close();
-                return;
-            }
-            rasterSubscriptionCall = currentCall;
-        }
-        currentCall.whenComplete((result, error) ->
-                rasterSubscriptionCompleted(currentSubscription, result, error));
+        RasterStream openedStream = null;
         try {
-            subscriptionReceiver.execute(() -> receiveRasterFrames(currentSubscription, channel.rx()));
-        } catch (RejectedExecutionException error) {
+            await(currentRasterLane.opened(), "opening terminal raster lane");
+            TerminalClient currentClient = new TerminalClient(currentRasterLane);
+            VoxChannels.Pair<TerminalRasterFrameEvent> channel = VoxChannels.channel(
+                    TerminalRasterFrameEvent.ADAPTER);
+            long requestSequence = nextSequence();
+            String wireGeneration = "sfm-presentation-" + generation + "-" + requestSequence;
+            long maxFrameBytes = Math.min(MAX_FRAME_BYTES, mode.maxFrameBytes());
+            int maxRegions = Math.min(SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS, mode.maxRegions());
+            RasterSubscription currentSubscription = new RasterSubscription(
+                    generation, currentSession, wireGeneration, selection, mode);
+            RasterStream currentStream = new RasterStream(
+                    currentSubscription, currentRasterLane, channel.rx());
+            openedStream = currentStream;
+            if (mode.encoding() == TerminalFrameEncoding.RGBA8) {
+                currentStream.compositor.expectGeneration(wireGeneration);
+            }
             synchronized (lock) {
-                if (rasterLane == currentRasterLane) closeRasterSubscriptionLocked();
-                else currentRasterLane.close();
+                if (closed || connection != currentConnection
+                        || !Objects.equals(sessionId, currentSession)
+                        || generation != presentationRequestGeneration
+                        || !requestedPresentation.equals(selection)) {
+                    retireRasterStreamLocked(currentStream);
+                    return;
+                }
+                rasterHandoff.beginPending(currentStream);
+                rasterSubscriptionsStarted = incrementGeneration(
+                        rasterSubscriptionsStarted, "raster subscriptions started");
+                SFM.LOGGER.info(
+                        "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_STARTED session={} renderer={} transport={} "
+                                + "presentation_generation={} lane={}",
+                        currentSession,
+                        mode.rendererId(),
+                        mode.transportId(),
+                        wireGeneration,
+                        currentRasterLane.state());
+            }
+            CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> currentCall =
+                    currentClient.subscribeRasterFrames(
+                            SFMVoxTerminalPresentationAdapter.subscribeRequest(
+                                    currentSession,
+                                    mode,
+                                    wireGeneration,
+                                    maxFrameBytes,
+                                    maxRegions,
+                                    requestSequence,
+                                    correlationId("raster-subscribe", requestSequence)),
+                            channel.tx(),
+                            CallOptions.withIdleTimeout(SUBSCRIPTION_IDLE_TIMEOUT));
+            synchronized (lock) {
+                if (rasterHandoff.role(currentStream)
+                        != SFMVoxTerminalRasterHandoff.Role.PENDING) {
+                    retireRasterStreamLocked(currentStream);
+                    return;
+                }
+                currentStream.call = currentCall;
+            }
+            currentCall.whenComplete((result, error) ->
+                    rasterSubscriptionCompleted(currentStream, result, error));
+            synchronized (lock) {
+                if (rasterHandoff.role(currentStream)
+                        != SFMVoxTerminalRasterHandoff.Role.PENDING) return;
+            }
+            try {
+                rasterSubscriptionReceiver.execute(() -> receiveRasterFrames(currentStream));
+            } catch (RejectedExecutionException error) {
+                synchronized (lock) {
+                    failPendingRasterStreamLocked(
+                            currentStream,
+                            "Vox terminal raster receiver capacity is exhausted");
+                }
+                throw error;
+            }
+        } catch (Exception error) {
+            synchronized (lock) {
+                if (openedStream == null) {
+                    currentRasterLane.close();
+                } else if (rasterHandoff.role(openedStream)
+                        == SFMVoxTerminalRasterHandoff.Role.PENDING) {
+                    rasterHandoff.failPending(openedStream);
+                } else {
+                    retireRasterStreamLocked(openedStream);
+                }
             }
             throw error;
         }
     }
 
-    private void receiveRasterFrames(
-            RasterSubscription currentSubscription,
-            VoxRx<TerminalRasterFrameEvent> receiver) {
+    private void receiveRasterFrames(RasterStream currentStream) {
         Throwable receiverFailure = null;
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                TerminalRasterFrameEvent event = receiver.receive();
+                TerminalRasterFrameEvent event = currentStream.receiver.receive();
                 if (event == null) break;
-                acceptRasterFrame(currentSubscription, event);
+                acceptRasterFrame(currentStream, event);
             }
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt();
@@ -1200,23 +1263,33 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         } catch (Exception error) {
             receiverFailure = error;
         } finally {
-            rasterReceiverStopped(currentSubscription, receiverFailure);
+            rasterReceiverStopped(currentStream, receiverFailure);
         }
     }
 
     private void acceptRasterFrame(
-            RasterSubscription currentSubscription,
+            RasterStream currentStream,
             TerminalRasterFrameEvent event) {
         String eventPresentationGeneration =
                 SFMVoxTerminalPresentationAdapter.presentationGeneration(event);
         try {
             synchronized (lock) {
                 rasterFramesReceived = incrementGeneration(rasterFramesReceived, "raster frames received");
-                if (!isCurrentRasterSubscriptionLocked(currentSubscription)) {
+                SFMVoxTerminalRasterHandoff.Role role = rasterHandoff.role(currentStream);
+                if (role == SFMVoxTerminalRasterHandoff.Role.STALE) {
                     rasterStaleFrames = incrementGeneration(rasterStaleFrames, "raster stale frames");
                     return;
                 }
-                validateRasterEnvelopeLocked(currentSubscription, event);
+                RasterSubscription currentSubscription = currentStream.subscription;
+                if (role == SFMVoxTerminalRasterHandoff.Role.PENDING
+                        && (currentSubscription.generation() != presentationRequestGeneration
+                        || !currentSubscription.selection().equals(requestedPresentation)
+                        || !Objects.equals(currentSubscription.sessionId(), sessionId))) {
+                    rasterStaleFrames = incrementGeneration(rasterStaleFrames, "raster stale frames");
+                    rasterHandoff.failPending(currentStream);
+                    return;
+                }
+                validateRasterEnvelopeLocked(currentStream, event);
                 org.facet.vox.generated.TerminalRasterFrame nativeFrame = event.frame();
                 byte[] presentedPayload;
                 boolean png;
@@ -1234,9 +1307,9 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                             Math.min(currentSubscription.mode().maxRegions(),
                                     SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS));
                     SFMTerminalRasterFrameValidator.validateRgba8(rasterFrame, negotiated);
-                    if (rgbaCompositor.apply(rasterFrame)
+                    if (currentStream.compositor.apply(rasterFrame)
                             == SFMTerminalRgbaCompositor.ApplyResult.STALE_GENERATION) return;
-                    presentedPayload = rgbaCompositor.pixels();
+                    presentedPayload = currentStream.compositor.pixels();
                     png = false;
                 }
                 SFMTerminalFrame frame = new SFMTerminalFrame(
@@ -1244,8 +1317,26 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         rasterFrameMetadata(event),
                         streamIdentity(event.connectionEpoch(), event.sessionEpoch())
                                 + ":" + eventPresentationGeneration);
+                boolean promoted = false;
+                if (role == SFMVoxTerminalRasterHandoff.Role.PENDING) {
+                    promoted = rasterHandoff.promotePending(
+                            currentStream,
+                            event.fullResync()
+                                    && event.frame().kind() == TerminalRasterFrameKind.FULL
+                                    && event.baseFrameSequence() == 0);
+                    if (!promoted) {
+                        rasterStaleFrames = incrementGeneration(
+                                rasterStaleFrames, "raster stale frames");
+                        return;
+                    }
+                }
                 pendingRasterFrame = frame;
                 activePresentation = currentSubscription.selection();
+                currentStream.acceptedPresentationGeneration = eventPresentationGeneration;
+                currentStream.connectionEpoch = event.connectionEpoch();
+                currentStream.sessionEpoch = event.sessionEpoch();
+                currentStream.lastTerminalSequence = event.terminalSequence();
+                currentStream.lastFrameSequence = event.frameSequence();
                 acceptedRasterPresentationGeneration = eventPresentationGeneration;
                 rasterConnectionEpoch = event.connectionEpoch();
                 rasterSessionEpoch = event.sessionEpoch();
@@ -1263,7 +1354,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 }
                 latestRasterPublication = event.publication();
                 failure = null;
-                presentationTransitionFailure = null;
+                if (promoted || rasterHandoff.pending() == null
+                        && requestedPresentation.equals(activePresentation)) {
+                    presentationTransitionFailure = null;
+                }
                 if (event.fullResync()) {
                     SFM.LOGGER.info(
                             "SFM_VOX_TERMINAL_RASTER_ACTIVE session={} renderer={} transport={} "
@@ -1277,11 +1371,21 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             }
         } catch (RuntimeException error) {
             synchronized (lock) {
-                if (isCurrentRasterSubscriptionLocked(currentSubscription)) {
+                SFMVoxTerminalRasterHandoff.Role role = rasterHandoff.role(currentStream);
+                if (role != SFMVoxTerminalRasterHandoff.Role.STALE) {
                     rasterFramesRejected = incrementGeneration(
                             rasterFramesRejected, "raster frames rejected");
-                    failure = "Rejected malformed terminal raster frame: " + describe(error);
-                    presentationTransitionFailure = failure;
+                    String rejection = "Rejected malformed terminal raster frame: " + describe(error);
+                    if (role == SFMVoxTerminalRasterHandoff.Role.PENDING) {
+                        presentationTransitionFailure = rejection;
+                        if (rasterHandoff.active() == null) failure = rejection;
+                        rasterHandoff.failPending(currentStream);
+                    } else {
+                        failure = rejection;
+                        if (rasterHandoff.pending() == null) {
+                            presentationTransitionFailure = rejection;
+                        }
+                    }
                     SFM.LOGGER.warn(
                             "SFM_VOX_TERMINAL_RASTER_FRAME_REJECTED session={} renderer={} transport={} "
                                     + "presentation_generation={} "
@@ -1297,7 +1401,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                             event.fullResync(),
                             event.frame().kind(),
                             event.frame().encoding(),
-                            failure,
+                            rejection,
                             error);
                 }
             }
@@ -1305,8 +1409,9 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     private void validateRasterEnvelopeLocked(
-            RasterSubscription currentSubscription,
+            RasterStream currentStream,
             TerminalRasterFrameEvent event) {
+        RasterSubscription currentSubscription = currentStream.subscription;
         TerminalPresentationMode mode = currentSubscription.mode();
         String eventPresentationGeneration =
                 SFMVoxTerminalPresentationAdapter.presentationGeneration(event);
@@ -1325,22 +1430,22 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 || event.frame().payload().length > negotiatedBytes) {
             throw new IllegalArgumentException("raster event does not match its negotiated subscription");
         }
-        boolean first = acceptedRasterPresentationGeneration.isEmpty();
+        boolean first = currentStream.acceptedPresentationGeneration.isEmpty();
         if (first) {
             if (!event.fullResync()
                     || event.frame().kind() != TerminalRasterFrameKind.FULL
                     || event.baseFrameSequence() != 0) {
                 throw new IllegalArgumentException(
-                        "replacement transport must begin with a full resynchronization"
+                        "replacement presentation must begin with a full resynchronization"
                                 + " [full_resync=" + event.fullResync()
                                 + ", frame_kind=" + event.frame().kind()
                                 + ", base_frame_sequence=" + event.baseFrameSequence() + "]");
             }
-        } else if (!acceptedRasterPresentationGeneration.equals(eventPresentationGeneration)
-                || !rasterConnectionEpoch.equals(event.connectionEpoch())
-                || !rasterSessionEpoch.equals(event.sessionEpoch())
-                || event.terminalSequence() < rasterLastTerminalSequence
-                || event.frameSequence() <= rasterLastFrameSequence) {
+        } else if (!currentStream.acceptedPresentationGeneration.equals(eventPresentationGeneration)
+                || !currentStream.connectionEpoch.equals(event.connectionEpoch())
+                || !currentStream.sessionEpoch.equals(event.sessionEpoch())
+                || event.terminalSequence() < currentStream.lastTerminalSequence
+                || event.frameSequence() <= currentStream.lastFrameSequence) {
             throw new IllegalArgumentException("stale or out-of-order raster event");
         }
     }
@@ -1407,15 +1512,17 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     private void rasterSubscriptionCompleted(
-            RasterSubscription currentSubscription,
+            RasterStream currentStream,
             VoxResult<TerminalOperationResult, TerminalError> result,
             Throwable error) {
         synchronized (lock) {
-            if (!isCurrentRasterSubscriptionLocked(currentSubscription)) return;
+            SFMVoxTerminalRasterHandoff.Role role = rasterHandoff.role(currentStream);
+            if (role == SFMVoxTerminalRasterHandoff.Role.STALE) return;
             if (error == null && result != null && result.isSuccess()) return;
-            failure = "Vox terminal raster subscription failed: "
+            String streamFailure = "Vox terminal raster subscription failed: "
                     + (error == null ? describeSubscriptionResult(result) : describe(error));
-            presentationTransitionFailure = failure;
+            recordRasterStreamFailureLocked(currentStream, role, streamFailure);
+            RasterSubscription currentSubscription = currentStream.subscription;
             SFM.LOGGER.warn(
                     "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_FAILED session={} renderer={} transport={} "
                             + "presentation_generation={} failure={}",
@@ -1423,18 +1530,20 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                     currentSubscription.selection().rendererId().wireId(),
                     currentSubscription.mode().transportId(),
                     currentSubscription.presentationGeneration(),
-                    failure,
+                    streamFailure,
                     error);
         }
     }
 
-    private void rasterReceiverStopped(RasterSubscription currentSubscription, Throwable error) {
+    private void rasterReceiverStopped(RasterStream currentStream, Throwable error) {
         synchronized (lock) {
-            if (!isCurrentRasterSubscriptionLocked(currentSubscription)) return;
-            failure = error == null
+            SFMVoxTerminalRasterHandoff.Role role = rasterHandoff.role(currentStream);
+            if (role == SFMVoxTerminalRasterHandoff.Role.STALE) return;
+            String streamFailure = error == null
                     ? "Vox terminal raster subscription closed"
                     : "Vox terminal raster subscription unavailable: " + describe(error);
-            presentationTransitionFailure = failure;
+            recordRasterStreamFailureLocked(currentStream, role, streamFailure);
+            RasterSubscription currentSubscription = currentStream.subscription;
             SFM.LOGGER.warn(
                     "SFM_VOX_TERMINAL_RASTER_RECEIVER_STOPPED session={} renderer={} transport={} "
                             + "presentation_generation={} failure={}",
@@ -1442,18 +1551,32 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                     currentSubscription.selection().rendererId().wireId(),
                     currentSubscription.mode().transportId(),
                     currentSubscription.presentationGeneration(),
-                    failure,
+                    streamFailure,
                     error);
         }
     }
 
-    private boolean isCurrentRasterSubscriptionLocked(RasterSubscription candidate) {
-        return candidate != null
-                && rasterSubscription == candidate
-                && candidate.generation() == presentationRequestGeneration
-                && Objects.equals(candidate.sessionId(), sessionId)
-                && candidate.presentationGeneration().equals(
-                rasterSubscription == null ? "" : rasterSubscription.presentationGeneration());
+    private void recordRasterStreamFailureLocked(
+            RasterStream currentStream,
+            SFMVoxTerminalRasterHandoff.Role role,
+            String streamFailure) {
+        if (role == SFMVoxTerminalRasterHandoff.Role.PENDING) {
+            failPendingRasterStreamLocked(currentStream, streamFailure);
+            return;
+        }
+        failure = streamFailure;
+        if (rasterHandoff.pending() == null) presentationTransitionFailure = streamFailure;
+        if (rasterHandoff.failActive(currentStream)) {
+            activePresentation = null;
+            clearAcceptedRasterStateLocked();
+        }
+    }
+
+    private void failPendingRasterStreamLocked(RasterStream currentStream, String streamFailure) {
+        if (rasterHandoff.role(currentStream) != SFMVoxTerminalRasterHandoff.Role.PENDING) return;
+        presentationTransitionFailure = streamFailure;
+        if (rasterHandoff.active() == null) failure = streamFailure;
+        rasterHandoff.failPending(currentStream);
     }
 
     private void ensureConnected() throws Exception {
@@ -2053,39 +2176,25 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     private void closeRasterSubscriptionLocked() {
-        DetachedRasterSubscription detached = new DetachedRasterSubscription(
-                rasterFrameReceiver, rasterSubscriptionCall, rasterLane);
-        rasterSubscription = null;
-        rasterFrameReceiver = null;
-        rasterSubscriptionCall = null;
-        rasterLane = null;
-        rasterClient = null;
+        rasterHandoff.closeAll();
+        clearAcceptedRasterStateLocked();
+    }
+
+    private void clearAcceptedRasterStateLocked() {
         acceptedRasterPresentationGeneration = "";
         rasterConnectionEpoch = "";
         rasterSessionEpoch = "";
         rasterLastTerminalSequence = 0;
         rasterLastFrameSequence = 0;
-        if (detached.lane() != null) {
-            // Queue LaneClose before the replacement LaneOpen. The peer's
-            // later LaneAccept then provides an ordered barrier proving that
-            // any old in-flight channel messages have been observed.
-            detached.lane().close();
-        } else if (detached.receiver() != null || detached.call() != null) {
-            scheduleTransportCleanup(() -> closeDetachedRasterSubscription(detached));
-        }
     }
 
-    private void closeDetachedRasterSubscription(DetachedRasterSubscription detached) {
-        // Raster streaming owns a dedicated service lane on the same Vox
-        // connection. Replacing that lane cancels only its request and channel;
-        // the control/input lane and Rust PTY session remain untouched.
-        if (detached.lane() != null) {
-            detached.lane().close();
-        } else if (detached.call() != null) {
-            detached.call().cancel(true);
-        } else if (detached.receiver() != null) {
-            detached.receiver().close();
-        }
+    private void retireRasterStreamLocked(RasterStream stream) {
+        if (stream == null || stream.cleanupScheduled) return;
+        stream.cleanupScheduled = true;
+        // A raster stream owns an independent lane. One lane close retires its
+        // request, Tx/Rx channel, and receiver without disturbing the control
+        // lane, PTY session, active sibling, or a replacement pending stream.
+        scheduleTransportCleanup(stream.lane::close);
     }
 
     private void closeDetachedTransport(DetachedTransport detached) {
