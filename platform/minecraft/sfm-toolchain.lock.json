@@ -3458,8 +3458,8 @@
       "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar",
       "provenance": "source-build",
       "source_git": {
-        "root": "$sfm-cache\\source-builds\\facet-95da1ade547956643d48bf96fb6821e350063f57",
-        "commit": "95da1ade547956643d48bf96fb6821e350063f57",
+        "root": "$sfm-cache\\source-builds\\facet-e8221f79c74d30fb6aa89ac5e3d50c71fff446fd",
+        "commit": "e8221f79c74d30fb6aa89ac5e3d50c71fff446fd",
         "branch": "main",
         "dirty": false,
         "remote_url": "https://github.com/TeamDman/facet"

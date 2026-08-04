@@ -4,6 +4,7 @@ use super::v3::DependencyV3;
 use super::v3::LockfilePolicyV3;
 use super::v3::PlatformV3;
 use super::v3::RepositoryV3;
+use crate::jar_build::ArtifactLockfile;
 use facet::Facet;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
@@ -227,6 +228,53 @@ impl ArtifactLockfileV4 {
         let projected = self.as_v3(dependencies, artifacts);
         projected.validate()?;
         Ok(projected)
+    }
+
+    /// Refreshes resolver-owned evidence for the Rust-toolchain projection
+    /// without discarding feature/profile declarations or components owned by
+    /// inactive features.
+    pub(crate) fn refresh_resolved_artifacts(
+        &self,
+        resolved: &ArtifactLockfile,
+    ) -> eyre::Result<Self> {
+        self.validate()?;
+        let effective = self.effective_lockfile("rust-toolchain")?;
+        let refreshed_effective = effective.refresh_resolved_artifacts(resolved)?;
+        let mut refreshed = self.clone();
+
+        for dependency in refreshed_effective.dependencies {
+            let maintained_dependency = refreshed
+                .dependencies
+                .iter_mut()
+                .find(|candidate| candidate.id == dependency.id)
+                .expect("effective dependencies originate in the maintained v4 document");
+            for component in dependency.components {
+                let maintained_component = maintained_dependency
+                    .components
+                    .iter_mut()
+                    .find(|candidate| candidate.id == component.id)
+                    .expect("effective components originate in the maintained v4 document");
+                maintained_component
+                    .derived_checks
+                    .clone_from(&component.derived_checks);
+            }
+        }
+
+        for artifact in refreshed_effective.artifacts {
+            if let Some(maintained) = refreshed
+                .artifacts
+                .iter_mut()
+                .find(|candidate| candidate.id == artifact.id)
+            {
+                *maintained = artifact;
+            } else {
+                refreshed.artifacts.push(artifact);
+            }
+        }
+
+        refreshed.canonicalize();
+        refreshed.validate()?;
+        Ok(refreshed)
     }
 
     fn active_features(&self, profile_id: &str) -> eyre::Result<BTreeSet<&str>> {

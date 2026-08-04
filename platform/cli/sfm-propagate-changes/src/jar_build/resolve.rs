@@ -351,8 +351,8 @@ impl Resolver {
             schema_version: 1,
             source: ArtifactSource::SourceBuild,
             coordinate: Some(coordinate.to_string()),
-            repository: Some("source-build".to_string()),
-            url: Some(remote_url.to_string()),
+            repository: None,
+            url: None,
             original_path: None,
             source_relative_path: Some(source_build.output_path.clone()),
             source_git: Some(SourceGitProvenance {

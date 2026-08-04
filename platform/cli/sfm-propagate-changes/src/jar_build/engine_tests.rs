@@ -57,6 +57,8 @@ use super::copy_file_to_path_checked;
 use super::diagnostic_counts_from_log_text;
 use super::download_to_path_overwrite_with_expected_hash;
 use super::enforce_portable_artifacts;
+use super::project_v3_artifact_lockfile;
+use super::refresh_maintained_lockfile_document;
 use super::execute_targets_parallel;
 use super::execute_targets_parallel_with_cancellation;
 use super::extract_client_puppet_failure;
@@ -2228,6 +2230,10 @@ fn resolver_materializes_locked_artifact_from_source_build() {
         .expect("artifact should materialize from source build");
 
     assert_eq!(artifact.provenance.source, ArtifactSource::SourceBuild);
+    assert_eq!(artifact.repository, None);
+    assert_eq!(artifact.url, None);
+    assert_eq!(artifact.provenance.repository, None);
+    assert_eq!(artifact.provenance.url, None);
     assert_eq!(
         String::from_utf8(fs::read(&artifact.cache_path).expect("artifact should read"))
             .expect("artifact should be utf8")
@@ -2251,6 +2257,55 @@ fn resolver_materializes_locked_artifact_from_source_build() {
         artifact.provenance.source_relative_path.as_deref(),
         Some(output_path.as_path())
     );
+
+    let mut plan = minimal_plan_for_paths();
+    plan.common_cache_dir = test_dir.path.clone();
+    plan.maven_cache_dir = test_dir.path.join("maven-cache");
+    plan.repositories.clear();
+    plan.dependencies.clear();
+    plan.artifacts = vec![artifact];
+    plan.lockfile = None;
+    let projected = build_artifact_lockfile(&plan, &[])
+        .expect("source-built artifact should project into a valid lock entry");
+    let projected_artifact = projected
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.coordinate.as_deref() == Some(coordinate.to_string().as_str()))
+        .expect("projected source-built artifact");
+    assert_eq!(projected_artifact.source, ArtifactSource::SourceBuild);
+    assert_eq!(projected_artifact.repository, None);
+    assert_eq!(projected_artifact.url, None);
+}
+
+#[test]
+fn artifact_refresh_preserves_v4_features_and_profiles() {
+    let input = include_str!("../../../../minecraft/sfm-toolchain.lock.json");
+    let crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(before) =
+        crate::toolchain_lockfile_schema::parse_document(input).expect("checked-in v4 lockfile")
+    else {
+        panic!("checked-in lockfile must remain schema v4");
+    };
+    let effective = before
+        .effective_lockfile("rust-toolchain")
+        .expect("Rust profile should project");
+    let resolved = project_v3_artifact_lockfile(
+        &effective,
+        "1.19.2",
+        Path::new("$sfm-cache").join("maven").as_path(),
+    )
+    .expect("effective v4 lockfile should project into the resolver model");
+
+    let output = refresh_maintained_lockfile_document(input, &resolved)
+        .expect("artifact refresh should preserve the source schema");
+    let crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(after) =
+        crate::toolchain_lockfile_schema::parse_document(&output)
+            .expect("refreshed document should remain valid v4")
+    else {
+        panic!("artifact refresh must not downgrade schema v4");
+    };
+    assert_eq!(after.schema_version, 4);
+    assert_eq!(after.features, before.features);
+    assert_eq!(after.profiles, before.profiles);
 }
 
 #[test]

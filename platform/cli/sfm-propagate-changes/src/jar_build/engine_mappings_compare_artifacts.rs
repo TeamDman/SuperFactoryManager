@@ -1046,25 +1046,37 @@ fn write_artifact_lockfile_with_extra_cache_paths(
     plan: &BuildPlan,
     extra_cache_paths: &[PathBuf],
 ) -> eyre::Result<()> {
-    if let Some(current) = std::fs::read_to_string(&plan.lockfile_path)
-        .ok()
-        .and_then(|input| crate::toolchain_lockfile_schema::read_current(&input).ok())
+    if let Ok(input) = std::fs::read_to_string(&plan.lockfile_path)
+        && matches!(
+            crate::toolchain_lockfile_schema::parse_document(&input),
+            Ok(crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V3(_)
+                | crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(_))
+        )
     {
-        if plan.refresh {
-            let resolved = build_artifact_lockfile(plan, extra_cache_paths)?;
-            let refreshed = current.refresh_resolved_artifacts(&resolved)?;
-            fs::write(&plan.lockfile_path, refreshed.to_canonical_json()?)
-                .wrap_err_with(|| format!("Failed to write {}", plan.lockfile_path.display()))?;
-            tracing::info!(
-                "Schema v3 lockfile: {} ({} artifacts after explicit refresh)",
-                plan.lockfile_path.display(),
-                refreshed.artifacts.len()
+        if !plan.refresh {
+            tracing::debug!(
+                lockfile = %plan.lockfile_path.display(),
+                "schema v3/v4 lockfile is declaration-owned; use --refresh to update resolved artifact evidence"
             );
             return Ok(());
         }
-        tracing::debug!(
-            lockfile = %plan.lockfile_path.display(),
-            "schema v3 lockfile is declaration-owned; use --refresh to update resolved artifact evidence"
+        let resolved = build_artifact_lockfile(plan, extra_cache_paths)?;
+        let output = refresh_maintained_lockfile_document(&input, &resolved)?;
+        let artifact_count = match crate::toolchain_lockfile_schema::parse_document(&output)? {
+            crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V3(lockfile) => {
+                lockfile.artifacts.len()
+            }
+            crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(lockfile) => {
+                lockfile.artifacts.len()
+            }
+            _ => unreachable!("refresh helper only emits maintained v3/v4 documents"),
+        };
+        fs::write(&plan.lockfile_path, output)
+            .wrap_err_with(|| format!("Failed to write {}", plan.lockfile_path.display()))?;
+        tracing::info!(
+            "Maintained schema v3/v4 lockfile: {} ({} artifacts after explicit refresh)",
+            plan.lockfile_path.display(),
+            artifact_count
         );
         return Ok(());
     }
@@ -1083,6 +1095,23 @@ fn write_artifact_lockfile_with_extra_cache_paths(
         lockfile.artifacts.len()
     );
     Ok(())
+}
+
+fn refresh_maintained_lockfile_document(
+    input: &str,
+    resolved: &ArtifactLockfile,
+) -> eyre::Result<String> {
+    match crate::toolchain_lockfile_schema::parse_document(input)? {
+        crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V3(lockfile) => {
+            lockfile.refresh_resolved_artifacts(resolved)?.to_canonical_json()
+        }
+        crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(lockfile) => {
+            lockfile.refresh_resolved_artifacts(resolved)?.to_canonical_json()
+        }
+        _ => eyre::bail!(
+            "artifact refresh requires schema version 3 or 4; migrate the lockfile first"
+        ),
+    }
 }
 
 #[instrument(
