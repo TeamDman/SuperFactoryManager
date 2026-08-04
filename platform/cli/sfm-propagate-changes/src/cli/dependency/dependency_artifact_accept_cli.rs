@@ -6,6 +6,10 @@ use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
 use crate::paths::CacheHome;
 use crate::terminal_output::stdout_line;
+use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
+use crate::toolchain_lockfile_schema::parse_document;
+use crate::toolchain_lockfile_schema::version::v3::ArtifactV3;
+use crate::toolchain_lockfile_schema::version::v3::DependencyV3;
 use crate::toolchain_lockfile_schema::version::v3::WeakArtifactValidationV3;
 use crate::toolchain_lockfile_write::write_lockfile_atomically;
 use eyre::Context;
@@ -50,7 +54,7 @@ impl DependencyArtifactAcceptArgs {
     ) -> eyre::Result<()> {
         cancellation_token.bail_if_cancelled()?;
         let inventory = load_inventory(self.branch.clone(), cache_home)?;
-        let report = accept_artifact(inventory, &self)?;
+        let report = accept_artifact(&inventory, &self)?;
         stdout_line(format!(
             "Accepted {}/{}: {} -> {} ({})",
             report.dependency_id,
@@ -76,7 +80,7 @@ struct ArtifactAcceptReport {
 }
 
 fn accept_artifact(
-    mut inventory: DependencyInventory,
+    inventory: &DependencyInventory,
     args: &DependencyArtifactAcceptArgs,
 ) -> eyre::Result<ArtifactAcceptReport> {
     let (dependency_id, requested_component) = split_target(&args.target)?;
@@ -110,16 +114,8 @@ fn accept_artifact(
         None
     };
     let old_hash = inventory.lockfile.artifacts[artifact_index].hash;
-    inventory.lockfile.artifacts[artifact_index].hash = hash;
-    inventory.lockfile.artifacts[artifact_index].weak = weak;
-    for dependency in &mut inventory.lockfile.dependencies {
-        for component in &mut dependency.components {
-            if component.derived_checks.artifact_id == artifact_id {
-                component.derived_checks.expected_hash = hash;
-            }
-        }
-    }
-    let output = inventory.lockfile.to_canonical_json()?;
+    let accepted_weak_metadata = weak.is_some();
+    let output = update_original_document(&inventory.original_input, &artifact_id, hash, weak)?;
     write_lockfile_atomically(
         &inventory.lockfile_path,
         &inventory.original_input,
@@ -130,8 +126,65 @@ fn accept_artifact(
         component_id,
         old_hash,
         new_hash: hash,
-        weak: inventory.lockfile.artifacts[artifact_index].weak.is_some(),
+        weak: accepted_weak_metadata,
     })
+}
+
+fn update_original_document(
+    input: &str,
+    artifact_id: &str,
+    hash: ContentHash,
+    weak: Option<WeakArtifactValidationV3>,
+) -> eyre::Result<String> {
+    match parse_document(input)? {
+        ToolchainLockfileDocument::V3(mut lockfile) => {
+            update_artifact_evidence(
+                &mut lockfile.dependencies,
+                &mut lockfile.artifacts,
+                artifact_id,
+                hash,
+                weak,
+            )?;
+            lockfile.to_canonical_json()
+        }
+        ToolchainLockfileDocument::V4(mut lockfile) => {
+            update_artifact_evidence(
+                &mut lockfile.dependencies,
+                &mut lockfile.artifacts,
+                artifact_id,
+                hash,
+                weak,
+            )?;
+            lockfile.to_canonical_json()
+        }
+        ToolchainLockfileDocument::V1(_) | ToolchainLockfileDocument::V2 { .. } => eyre::bail!(
+            "dependency commands require schema version 3 or 4; run dependency migrate --branch <branch> first"
+        ),
+    }
+}
+
+fn update_artifact_evidence(
+    dependencies: &mut [DependencyV3],
+    artifacts: &mut [ArtifactV3],
+    artifact_id: &str,
+    hash: ContentHash,
+    weak: Option<WeakArtifactValidationV3>,
+) -> eyre::Result<()> {
+    let artifact = artifacts
+        .iter_mut()
+        .find(|artifact| artifact.id == artifact_id)
+        .ok_or_else(|| eyre::eyre!("Unknown artifact '{artifact_id}'."))?;
+    artifact.hash = hash;
+    artifact.weak = weak;
+
+    for dependency in dependencies {
+        for component in &mut dependency.components {
+            if component.derived_checks.artifact_id == artifact_id {
+                component.derived_checks.expected_hash = hash;
+            }
+        }
+    }
+    Ok(())
 }
 
 fn split_target(target: &str) -> eyre::Result<(&str, Option<&str>)> {
@@ -240,14 +293,42 @@ mod tests {
     use crate::branch_targets::WorktreePath;
     use crate::branch_targets::WorktreeTarget;
     use crate::toolchain_lockfile_schema::read_current;
+    use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
 
     #[test]
-    fn accept_uses_injected_cache_and_updates_all_artifact_checks() {
+    fn accept_preserves_v4_and_only_updates_selected_artifact_evidence() {
         let directory = tempfile::tempdir().expect("temp directory");
         let cache_home = CacheHome(directory.path().join("isolated-cache"));
-        let input = include_str!("../../../../../minecraft/sfm-toolchain.lock.json");
+        let fixture = include_str!("../../../../../minecraft/sfm-toolchain.lock.json");
+        let ToolchainLockfileDocument::V4(mut before) =
+            parse_document(fixture).expect("real schema-v4 lock fixture")
+        else {
+            panic!("checked-in lock fixture must remain schema v4");
+        };
+        let artifact_id = before
+            .dependencies
+            .iter()
+            .find(|dependency| dependency.id == "cc-tweaked")
+            .expect("CC:Tweaked fixture")
+            .components[0]
+            .derived_checks
+            .artifact_id
+            .clone();
+        before
+            .artifacts
+            .iter_mut()
+            .find(|artifact| artifact.id == artifact_id)
+            .expect("CC:Tweaked artifact")
+            .weak = Some(WeakArtifactValidationV3 {
+            metadata_path: PathBuf::from("META-INF/mods.toml"),
+            mod_id: "computercraft".to_owned(),
+            version: "1.101.3".to_owned(),
+        });
+        let input = before
+            .to_canonical_json()
+            .expect("schema-v4 fixture with prior weak metadata");
         let lockfile_path = directory.path().join("sfm-toolchain.lock.json");
-        std::fs::write(&lockfile_path, input).expect("lockfile fixture");
+        std::fs::write(&lockfile_path, &input).expect("lockfile fixture");
         let inventory = DependencyInventory {
             target: WorktreeTarget {
                 branch: BranchName::from("1.19.2"),
@@ -257,8 +338,8 @@ mod tests {
             },
             lockfile_path: lockfile_path.clone(),
             cache_home,
-            original_input: input.to_owned(),
-            lockfile: read_current(input).expect("v3 fixture"),
+            original_input: input.clone(),
+            lockfile: read_current(&input).expect("effective v4 fixture"),
         };
         let component = &inventory
             .lockfile
@@ -267,37 +348,42 @@ mod tests {
             .find(|dependency| dependency.id == "cc-tweaked")
             .expect("CC:Tweaked fixture")
             .components[0];
-        let artifact_id = component.derived_checks.artifact_id.clone();
+        assert_eq!(component.derived_checks.artifact_id, artifact_id);
         let artifact_path = inventory.local_path(&component.derived_checks.cache_path);
         std::fs::create_dir_all(artifact_path.parent().expect("artifact parent"))
             .expect("cache fixture");
         std::fs::write(&artifact_path, b"controlled artifact bytes").expect("artifact fixture");
 
-        let report = accept_artifact(inventory, &args("cc-tweaked")).expect("accept artifact");
+        let report = accept_artifact(&inventory, &args("cc-tweaked")).expect("accept artifact");
 
         let expected =
             ContentHash::from_bytes(b"controlled artifact bytes", ContentHashAlgorithm::Blake3);
         assert_eq!(report.new_hash, expected);
-        let written =
-            read_current(&std::fs::read_to_string(lockfile_path).expect("updated lockfile read"))
-                .expect("updated v3 lockfile");
-        assert_eq!(
-            written
-                .artifacts
-                .iter()
-                .find(|artifact| artifact.id == artifact_id)
-                .expect("updated artifact")
-                .hash,
-            expected
-        );
-        assert!(
-            written
-                .dependencies
-                .iter()
-                .flat_map(|dependency| &dependency.components)
-                .filter(|component| component.derived_checks.artifact_id == artifact_id)
-                .all(|component| component.derived_checks.expected_hash == expected)
-        );
+        let written_input = std::fs::read_to_string(lockfile_path).expect("updated lockfile read");
+        let ToolchainLockfileDocument::V4(written) =
+            parse_document(&written_input).expect("updated schema-v4 lockfile")
+        else {
+            panic!("artifact acceptance must not downgrade schema v4");
+        };
+
+        let mut expected_document: ArtifactLockfileV4 = before;
+        let expected_artifact = expected_document
+            .artifacts
+            .iter_mut()
+            .find(|artifact| artifact.id == artifact_id)
+            .expect("expected artifact");
+        expected_artifact.hash = expected;
+        expected_artifact.weak = None;
+        for dependency in &mut expected_document.dependencies {
+            for component in &mut dependency.components {
+                if component.derived_checks.artifact_id == artifact_id {
+                    component.derived_checks.expected_hash = expected;
+                }
+            }
+        }
+
+        assert_eq!(written.schema_version, 4);
+        assert_eq!(written, expected_document);
     }
 
     #[test]
