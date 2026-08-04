@@ -58,6 +58,18 @@ public interface ISFMGamePuppetRuntime {
     /** Validates bounded Vox push invariants and writes their machine-readable evidence. */
     void assertTerminalPushEvidence(String artifactName, boolean reconnectExpected);
 
+    /**
+     * Samples one already-pushed presentation without polling and writes typed
+     * content plus renderer/transport/native-frame evidence.
+     */
+    void assertTerminalPresentationEvidence(
+            String artifactName,
+            String rendererId,
+            String transportId,
+            String requiredContentLine,
+            boolean freshPresentationExpected
+    );
+
     void clickTerminal();
 
     void dragTerminal();

@@ -222,6 +222,24 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    /** Samples one pushed frame/content state and records its complete presentation identity. */
+    public void assertTerminalPresentationEvidence(
+            String artifactName,
+            String rendererId,
+            String transportId,
+            String requiredContentLine,
+            boolean freshPresentationExpected
+    ) {
+        add(new AssertTerminalPresentationEvidencePuppetAction(
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(rendererId, "rendererId"),
+                Objects.requireNonNull(transportId, "transportId"),
+                requiredContentLine,
+                freshPresentationExpected
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     /** Sends a real mouse click into the visible Rust terminal panel. */
     public void clickTerminal() {
         add(new ClickTerminalPuppetAction());

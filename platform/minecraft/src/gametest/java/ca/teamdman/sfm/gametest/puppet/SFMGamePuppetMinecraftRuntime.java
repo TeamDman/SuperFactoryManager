@@ -15,6 +15,7 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
+import ca.teamdman.sfm.client.terminal.SFMTerminalPresentationPuppetProbe;
 import ca.teamdman.sfm.client.terminal.SFMTerminalServiceFactory;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
@@ -64,7 +65,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
@@ -73,6 +76,10 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 
     private final Minecraft minecraft;
     private SFMWorkspacePanelId rememberedFileViewerId;
+    private final Map<SFMWorkspacePanelId, PresentationProgress> terminalPresentations = new HashMap<>();
+
+    private record PresentationProgress(String generation, long fullResyncFrames) {
+    }
 
     SFMGamePuppetMinecraftRuntime(
             ActivePuppet active,
@@ -413,6 +420,99 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                 active.viewportVariant.id(),
                 safeArtifactName,
                 file.getFileName(),
+                evidence.length()
+        );
+    }
+
+    @Override
+    public void assertTerminalPresentationEvidence(
+            String artifactName,
+            String rendererId,
+            String transportId,
+            String requiredContentLine,
+            boolean freshPresentationExpected
+    ) {
+        String safeArtifactName = validateCaptureName(artifactName);
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        SFMTerminalPanel panel = requireTerminalPanel();
+        SFMWorkspacePanelId panelId = multiplexer.focusedPanelId();
+        SFMScreenPanelBounds bounds = terminalBounds(multiplexer);
+        SFMTerminalPresentationPuppetProbe.Observation observation =
+                SFMTerminalPresentationPuppetProbe.observe(
+                        panel,
+                        rendererId,
+                        transportId,
+                        requiredContentLine,
+                        bounds.width(),
+                        bounds.height()
+                );
+        PresentationProgress previous = terminalPresentations.get(panelId);
+        if (previous != null && freshPresentationExpected) {
+            if (previous.generation().equals(observation.presentationGeneration())) {
+                throw new IllegalStateException("Terminal presentation generation did not change for "
+                        + rendererId + " / " + transportId);
+            }
+            if (observation.fullResyncFrames() <= previous.fullResyncFrames()) {
+                throw new IllegalStateException("Terminal presentation switch did not accept a fresh full resync");
+            }
+        } else if (previous != null) {
+            if (!previous.generation().equals(observation.presentationGeneration())
+                    || previous.fullResyncFrames() != observation.fullResyncFrames()) {
+                throw new IllegalStateException("Independent terminal presentation changed unexpectedly");
+            }
+        }
+        terminalPresentations.put(panelId, new PresentationProgress(
+                observation.presentationGeneration(), observation.fullResyncFrames()));
+
+        Path directory = minecraft.gameDirectory.toPath().resolve("terminal-content");
+        Path contentFile = directory.resolve(
+                active.definition.puppetName() + "__" + safeArtifactName + ".txt");
+        Path evidenceFile = directory.resolve(
+                active.definition.puppetName() + "__" + safeArtifactName + "__push-evidence.txt");
+        boolean generationChanged = previous != null
+                && !previous.generation().equals(observation.presentationGeneration());
+        boolean fullResyncAdvanced = previous != null
+                && observation.fullResyncFrames() > previous.fullResyncFrames();
+        String evidence = String.join("\n",
+                "puppet=" + active.definition.puppetName(),
+                "viewport_variant=" + active.viewportVariant.id(),
+                "requested_gui_scale=" + active.viewportVariant.requestedScaleName(),
+                "effective_gui_scale=" + active.viewportObservation.effectiveGuiScale(),
+                "panel_id=" + panelId.value(),
+                "fresh_presentation_expected=" + freshPresentationExpected,
+                "previous_presentation_generation=" + (previous == null ? "none" : previous.generation()),
+                "previous_full_resync_frames=" + (previous == null ? 0 : previous.fullResyncFrames()),
+                "presentation_generation_changed=" + generationChanged,
+                "full_resync_advanced=" + fullResyncAdvanced,
+                "content_asserted=" + (requiredContentLine != null),
+                "required_content_line=" + (requiredContentLine == null ? "none" : requiredContentLine),
+                observation.artifact());
+        if (active.viewportVariant.guiScale() == 7
+                && active.viewportObservation.effectiveGuiScale() != 7) {
+            throw new IllegalStateException("GUI-scale-7 presentation run was clamped to effective scale "
+                    + active.viewportObservation.effectiveGuiScale());
+        }
+        try {
+            Files.createDirectories(directory);
+            Files.writeString(contentFile, observation.content(), StandardCharsets.UTF_8);
+            Files.writeString(evidenceFile, evidence, StandardCharsets.UTF_8);
+        } catch (IOException error) {
+            throw new IllegalStateException("Could not write terminal presentation artifacts", error);
+        }
+        SFM.LOGGER.info(
+                "SFM_GAME_PUPPET_TERMINAL_CONTENT_WRITTEN puppet={} variant={} artifact={} file={} chars={}",
+                active.definition.puppetName(),
+                active.viewportVariant.id(),
+                safeArtifactName,
+                contentFile.getFileName(),
+                observation.content().length()
+        );
+        SFM.LOGGER.info(
+                "SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN puppet={} variant={} artifact={} file={} chars={}",
+                active.definition.puppetName(),
+                active.viewportVariant.id(),
+                safeArtifactName,
+                evidenceFile.getFileName(),
                 evidence.length()
         );
     }
