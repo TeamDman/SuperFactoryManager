@@ -12,15 +12,15 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.network.chat.Component;
 
 /** Changes only the exact terminal panel currently focused in the workspace. */
-public final class SetTerminalTransportAction implements SFMClientAction<SFMScreenMultiplexer> {
+public final class SetTerminalRendererAction implements SFMClientAction<SFMScreenMultiplexer> {
     @Override
     public Component title() {
-        return Component.literal("Set terminal transport");
+        return Component.literal("Set terminal renderer");
     }
 
     @Override
     public Component description() {
-        return Component.literal("Select the Rust raster transport for the focused terminal panel");
+        return Component.literal("Select the rasterizer for the focused Rust terminal panel");
     }
 
     @Override
@@ -31,13 +31,13 @@ public final class SetTerminalTransportAction implements SFMClientAction<SFMScre
     @Override
     public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
         node.then(RequiredArgumentBuilder.<SFMClientActionSource, String>argument(
-                "transport-id", StringArgumentType.word()
+                "renderer-id", StringArgumentType.word()
         ).suggests((context, builder) -> {
             SFMClientActionAvailability<SFMScreenMultiplexer> availability =
                     PanelActionSupport.resolve(context.getSource().context());
             if (availability.isAvailable()
                     && availability.target().focusedPanelInstance() instanceof SFMTerminalPanel terminal) {
-                terminal.transportOptions().forEach(option -> builder.suggest(option.id().wireId()));
+                terminal.rendererOptions().forEach(option -> builder.suggest(option.id().wireId()));
             }
             return builder.buildFuture();
         }).executes(this::invoke));
@@ -46,12 +46,14 @@ public final class SetTerminalTransportAction implements SFMClientAction<SFMScre
     @Override
     public int execute(SFMScreenMultiplexer workspace, CommandContext<SFMClientActionSource> context)
             throws CommandSyntaxException {
+        // Capture the exact visible panel before its service queues work. A
+        // later focus change cannot redirect this request to another panel.
         if (!(workspace.focusedPanelInstance() instanceof SFMTerminalPanel terminal)) {
             throw new SimpleCommandExceptionType(Component.literal(
                     "Focused panel is not a Rust terminal")).create();
         }
-        String transportId = StringArgumentType.getString(context, "transport-id");
-        SFMTerminalPresentationChangeResult result = terminal.requestTransport(transportId);
+        String rendererId = StringArgumentType.getString(context, "renderer-id");
+        SFMTerminalPresentationChangeResult result = terminal.requestRenderer(rendererId);
         if (!result.accepted()) {
             throw new SimpleCommandExceptionType(Component.literal(result.message())).create();
         }

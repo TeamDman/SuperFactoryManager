@@ -8,9 +8,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMTerminalPngResourceStateTests {
     private static final SFMTerminalPngResourceState.TextureKey A =
-            new SFMTerminalPngResourceState.TextureKey(640, 360, "RGBA", "rust.cpu.fontdue");
+            new SFMTerminalPngResourceState.TextureKey(640, 360, "RGBA");
     private static final SFMTerminalPngResourceState.TextureKey B =
-            new SFMTerminalPngResourceState.TextureKey(960, 540, "RGBA", "rust.cpu.fontdue");
+            new SFMTerminalPngResourceState.TextureKey(960, 540, "RGBA");
 
     @Test
     void splitPanelRenderersUseIndependentTextureRegistrations() {
@@ -81,14 +81,15 @@ class SFMTerminalPngResourceStateTests {
     }
 
     @Test
-    void backendIdentityIsPartOfTextureCompatibility() {
+    void rendererIdentityDoesNotInvalidateCompatibleTextureStorage() {
         SFMTerminalPngResourceState state = new SFMTerminalPngResourceState();
         state.textureCommitted(A);
 
-        SFMTerminalPngResourceState.TextureKey gpu =
-                new SFMTerminalPngResourceState.TextureKey(640, 360, "RGBA", "rust.gpu.slug");
+        SFMTerminalPngResourceState.TextureKey gpuCompatiblePixels =
+                new SFMTerminalPngResourceState.TextureKey(640, 360, "RGBA");
 
-        assertEquals(SFMTerminalPngResourceState.Change.REPLACE, state.textureChange(gpu));
+        assertEquals(SFMTerminalPngResourceState.Change.REUSE,
+                state.textureChange(gpuCompatiblePixels));
     }
 
     @Test

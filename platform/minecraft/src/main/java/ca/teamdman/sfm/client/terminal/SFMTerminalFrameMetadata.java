@@ -14,7 +14,7 @@ record SFMTerminalFrameMetadata(
         int cellWidth,
         int cellHeight,
         int fontPixelSize,
-        String backendId,
+        String rendererId,
         String transportId,
         long ptyDrainUs,
         long vtUpdateUs,
@@ -26,8 +26,13 @@ record SFMTerminalFrameMetadata(
         long rustTotalUs,
         String correlationId) {
     SFMTerminalFrameMetadata {
-        backendId = backendId == null ? "" : backendId;
+        rendererId = rendererId == null ? "" : rendererId;
         transportId = transportId == null ? "" : transportId;
         correlationId = correlationId == null ? "" : correlationId;
+    }
+
+    /** Compatibility alias used only by the retired snapshot/frame binding. */
+    String backendId() {
+        return rendererId;
     }
 }

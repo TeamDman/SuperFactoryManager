@@ -145,7 +145,7 @@ final class SFMTerminalPngRenderer {
                     throw new IOException("Rust terminal PNG dimensions exceed the presentation bound");
                 }
                 SFMTerminalPngResourceState.TextureKey key = new SFMTerminalPngResourceState.TextureKey(
-                        width, height, image.format().name(), frame.metadata().backendId());
+                        width, height, image.format().name());
                 SFMTerminalPngResourceState.Change change = resources.textureChange(key);
                 if (change == SFMTerminalPngResourceState.Change.REUSE) {
                     uploadIntoExistingTexture(image);

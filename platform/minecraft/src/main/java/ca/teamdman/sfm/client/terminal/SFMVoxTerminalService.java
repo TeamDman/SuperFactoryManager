@@ -110,13 +110,16 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> rasterSubscriptionCall;
     private RasterSubscription rasterSubscription;
     private List<TerminalPresentationMode> presentationModes = List.of();
-    private List<SFMTerminalTransportOption> terminalTransportOptions = undiscoveredTransportOptions();
-    private String requestedTransportId = SFMTerminalTransportId.FULL_PNG.wireId();
-    private String activeTransportId;
+    private SFMTerminalPresentationCatalog presentationCatalog =
+            SFMTerminalPresentationCatalog.undiscovered();
+    private SFMTerminalPresentationSelection requestedPresentation =
+            SFMTerminalPresentationSelection.DEFAULT;
+    private SFMTerminalPresentationSelection activePresentation;
+    private String presentationTransitionFailure;
     private SFMTerminalFrame pendingRasterFrame;
-    private long rasterSubscriptionGeneration;
-    private boolean transportExplicitlyRequested;
-    private String acceptedRasterTransportGeneration = "";
+    private long presentationRequestGeneration;
+    private boolean presentationExplicitlyRequested;
+    private String acceptedRasterPresentationGeneration = "";
     private String rasterConnectionEpoch = "";
     private String rasterSessionEpoch = "";
     private long rasterLastTerminalSequence;
@@ -154,7 +157,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private record RasterSubscription(
             long generation,
             String sessionId,
-            String transportGeneration,
+            String presentationGeneration,
+            SFMTerminalPresentationSelection selection,
             TerminalPresentationMode mode) {}
 
     private record DetachedRasterSubscription(
@@ -320,12 +324,13 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     public String assertPushEvidenceForAutomation(boolean reconnectExpected) {
         synchronized (lock) {
             if (rasterSubscriptionsStarted > 0) {
-                if (activeTransportId == null || rasterFramesAccepted < 1
+                if (activePresentation == null || rasterFramesAccepted < 1
                         || rasterLastFrameSequence < 1 || latestRasterPublication == null) {
                     throw new IllegalStateException(
                             "Java raster subscription has no accepted live evidence"
-                                    + " requested=" + requestedTransportId
-                                    + " active=" + activeTransportId
+                                    + " requested=" + requestedPresentation.label()
+                                    + " active=" + (activePresentation == null
+                                    ? "none" : activePresentation.label())
                                     + " subscriptions=" + rasterSubscriptionsStarted
                                     + " received=" + rasterFramesReceived
                                     + " accepted=" + rasterFramesAccepted
@@ -341,9 +346,11 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 }
                 String result = String.join("\n",
                         "transport=vox.txrx.raster",
-                        "requested_transport=" + requestedTransportId,
-                        "active_transport=" + activeTransportId,
-                        "transport_generation=" + acceptedRasterTransportGeneration,
+                        "requested_renderer=" + requestedPresentation.rendererId().wireId(),
+                        "requested_transport=" + requestedPresentation.transportId().wireId(),
+                        "active_renderer=" + activePresentation.rendererId().wireId(),
+                        "active_transport=" + activePresentation.transportId().wireId(),
+                        "presentation_generation=" + acceptedRasterPresentationGeneration,
                         "raster_subscriptions_started=" + rasterSubscriptionsStarted,
                         "raster_frames_received=" + rasterFramesReceived,
                         "raster_frames_accepted=" + rasterFramesAccepted,
@@ -452,73 +459,139 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     @Override
     public boolean canPresentRetainedFrame() {
         synchronized (lock) {
-            return sessionId != null && (activeTransportId != null || frameInbox.isLive());
+            return sessionId != null && (activePresentation != null || frameInbox.isLive());
+        }
+    }
+
+    @Override
+    public List<SFMTerminalRendererOption> rendererOptions() {
+        synchronized (lock) {
+            return presentationCatalog.rendererOptions(requestedPresentation.transportId());
         }
     }
 
     @Override
     public List<SFMTerminalTransportOption> transportOptions() {
         synchronized (lock) {
-            return terminalTransportOptions;
+            return presentationCatalog.transportOptions(requestedPresentation.rendererId());
+        }
+    }
+
+    @Override
+    public String requestedRendererId() {
+        synchronized (lock) {
+            return requestedPresentation.rendererId().wireId();
         }
     }
 
     @Override
     public String requestedTransportId() {
         synchronized (lock) {
-            return requestedTransportId;
+            return requestedPresentation.transportId().wireId();
+        }
+    }
+
+    @Override
+    public Optional<String> activeRendererId() {
+        synchronized (lock) {
+            return Optional.ofNullable(activePresentation)
+                    .map(selection -> selection.rendererId().wireId());
         }
     }
 
     @Override
     public Optional<String> activeTransportId() {
         synchronized (lock) {
-            return Optional.ofNullable(activeTransportId);
+            return Optional.ofNullable(activePresentation)
+                    .map(selection -> selection.transportId().wireId());
         }
     }
 
     @Override
-    public SFMTerminalTransportChangeResult requestTransport(String transportId) {
-        final String requested;
-        try {
-            requested = SFMTerminalTransportId.fromWireId(transportId).wireId();
-        } catch (IllegalArgumentException error) {
-            return SFMTerminalTransportChangeResult.rejected(error.getMessage());
+    public SFMTerminalPresentationTransitionState presentationState() {
+        synchronized (lock) {
+            return new SFMTerminalPresentationTransitionState(
+                    requestedPresentation,
+                    Optional.ofNullable(activePresentation),
+                    Optional.ofNullable(presentationTransitionFailure));
         }
+    }
+
+    @Override
+    public SFMTerminalPresentationChangeResult requestRenderer(String rendererId) {
+        final SFMTerminalRendererId renderer;
+        try {
+            renderer = SFMTerminalRendererId.fromWireId(rendererId);
+        } catch (IllegalArgumentException error) {
+            return SFMTerminalPresentationChangeResult.rejected(error.getMessage());
+        }
+        final SFMTerminalPresentationSelection requested;
+        synchronized (lock) {
+            requested = requestedPresentation.withRenderer(renderer);
+        }
+        return requestPresentation(requested);
+    }
+
+    @Override
+    public SFMTerminalPresentationChangeResult requestTransport(String transportId) {
+        final SFMTerminalTransportId transport;
+        try {
+            transport = SFMTerminalTransportId.fromWireId(transportId);
+        } catch (IllegalArgumentException error) {
+            return SFMTerminalPresentationChangeResult.rejected(error.getMessage());
+        }
+        final SFMTerminalPresentationSelection requested;
+        synchronized (lock) {
+            requested = requestedPresentation.withTransport(transport);
+        }
+        return requestPresentation(requested);
+    }
+
+    private SFMTerminalPresentationChangeResult requestPresentation(
+            SFMTerminalPresentationSelection requested
+    ) {
         final String currentSession;
         final long generation;
         synchronized (lock) {
-            if (closed) return SFMTerminalTransportChangeResult.rejected("Rust terminal is closed");
-            SFMTerminalTransportOption option = terminalTransportOptions.stream()
-                    .filter(candidate -> candidate.id().equals(requested))
-                    .findFirst()
-                    .orElse(null);
-            if (option == null || !option.supported()) {
-                String reason = option == null ? "not advertised by the server" : option.unavailableReason();
-                return SFMTerminalTransportChangeResult.rejected(
-                        "Terminal transport '" + requested + "' is unavailable: " + reason);
+            if (closed) return SFMTerminalPresentationChangeResult.rejected("Rust terminal is closed");
+            if (presentationCatalog.discovered()
+                    && presentationCatalog.supportedMode(requested).isEmpty()) {
+                return SFMTerminalPresentationChangeResult.rejected(
+                        "Terminal presentation '" + requested.label() + "' is unavailable: "
+                                + presentationCatalog.unavailableReason(requested));
             }
-            if (requested.equals(requestedTransportId)
-                    && (requested.equals(activeTransportId) || rasterSubscription != null)) {
-                return SFMTerminalTransportChangeResult.accepted(
-                        "Terminal transport is already " + requested);
+            if (requested.equals(requestedPresentation)
+                    && (requested.equals(activePresentation)
+                    || rasterSubscription != null
+                    && requested.equals(rasterSubscription.selection()))) {
+                return SFMTerminalPresentationChangeResult.accepted(
+                        "Terminal presentation is already " + requested.label());
             }
-            requestedTransportId = requested;
-            transportExplicitlyRequested = true;
-            rasterSubscriptionGeneration = incrementGeneration(
-                    rasterSubscriptionGeneration, "terminal raster subscription generation");
-            generation = rasterSubscriptionGeneration;
+            requestedPresentation = requested;
+            presentationExplicitlyRequested = true;
+            presentationTransitionFailure = null;
+            presentationRequestGeneration = incrementGeneration(
+                    presentationRequestGeneration, "terminal presentation request generation");
+            generation = presentationRequestGeneration;
             currentSession = sessionId;
         }
         if (currentSession == null) {
-            return SFMTerminalTransportChangeResult.accepted(
-                    "Terminal transport " + requested + " will activate after connection");
+            return SFMTerminalPresentationChangeResult.accepted(
+                    "Terminal presentation " + requested.label() + " will activate after connection");
         }
         if (!submitDriver(() -> switchRasterSubscription(currentSession, requested, generation))) {
-            return SFMTerminalTransportChangeResult.rejected("Rust terminal transport switch could not be queued");
+            synchronized (lock) {
+                if (generation == presentationRequestGeneration) {
+                    presentationTransitionFailure =
+                            "Rust terminal presentation switch could not be queued";
+                }
+            }
+            return SFMTerminalPresentationChangeResult.rejected(
+                    "Rust terminal presentation switch could not be queued");
         }
-        return SFMTerminalTransportChangeResult.accepted(
-                "Requested terminal transport " + requested + "; awaiting full resynchronization");
+        return SFMTerminalPresentationChangeResult.accepted(
+                "Requested terminal presentation " + requested.label()
+                        + "; awaiting full resynchronization");
     }
 
     private SFMTerminalFrameMetadata frameMetadata(TerminalSnapshot snapshot) {
@@ -928,64 +1001,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         }
     }
 
-    private static List<SFMTerminalTransportOption> undiscoveredTransportOptions() {
-        return Arrays.stream(SFMTerminalTransportId.values())
-                .map(id -> new SFMTerminalTransportOption(
-                        id.wireId(), "rust-cpu-fontdue",
-                        id == SFMTerminalTransportId.DIRTY_RAW_RGBA ? "dirty" : "full",
-                        1, false, "awaiting server capabilities"))
-                .toList();
-    }
-
-    static List<SFMTerminalTransportOption> intersectPresentationModes(
+    static SFMTerminalPresentationCatalog intersectPresentationModes(
             List<TerminalPresentationMode> modes) {
-        return Arrays.stream(SFMTerminalTransportId.values()).map(id -> {
-            List<TerminalPresentationMode> advertised = modes.stream()
-                    .filter(mode -> mode.transportId().equals(id.wireId()))
-                    .toList();
-            TerminalPresentationMode supported = advertised.stream()
-                    .filter(SFMVoxTerminalService::javaSupports)
-                    .findFirst().orElse(null);
-            if (supported != null) {
-                return new SFMTerminalTransportOption(
-                        supported.transportId(), supported.rendererId(), supported.damageModeId(),
-                        supported.transportVersion(), true, "");
-            }
-            TerminalPresentationMode first = advertised.stream().findFirst().orElse(null);
-            String reason = first == null
-                    ? "not advertised by the server"
-                    : "advertised contract is not supported by the Java presenter";
-            return new SFMTerminalTransportOption(
-                    id.wireId(), first == null ? "" : first.rendererId(),
-                    first == null ? "" : first.damageModeId(),
-                    first == null ? 0 : first.transportVersion(), false, reason);
-        }).toList();
-    }
-
-    private static boolean javaSupports(TerminalPresentationMode mode) {
-        if (!"rust-cpu-fontdue".equals(mode.rendererId())
-                || mode.transportVersion() != 1
-                || mode.frameContractVersion() != 1
-                || mode.origin() != TerminalFrameOrigin.TOP_LEFT
-                || mode.alphaMode() != TerminalAlphaMode.STRAIGHT
-                || mode.colorSpace() != TerminalColorSpace.SRGB
-                || mode.maxPixelWidth() <= 0 || mode.maxPixelWidth() > 4096
-                || mode.maxPixelHeight() <= 0 || mode.maxPixelHeight() > 4096
-                || mode.maxFrameBytes() <= 0 || mode.maxRegions() <= 0) {
-            return false;
-        }
-        return switch (mode.transportId()) {
-            case "full-png" -> "full".equals(mode.damageModeId())
-                    && mode.encoding() == TerminalFrameEncoding.PNG
-                    && mode.steadyFrameKind() == TerminalRasterFrameKind.FULL;
-            case "full-raw-rgba" -> "full".equals(mode.damageModeId())
-                    && mode.encoding() == TerminalFrameEncoding.RGBA8
-                    && mode.steadyFrameKind() == TerminalRasterFrameKind.FULL;
-            case "dirty-raw-rgba" -> "dirty".equals(mode.damageModeId())
-                    && mode.encoding() == TerminalFrameEncoding.RGBA8
-                    && mode.steadyFrameKind() == TerminalRasterFrameKind.DIRTY_REGIONS;
-            default -> false;
-        };
+        return SFMTerminalPresentationCatalog.intersect(
+                SFMTerminalRendererId.RUST_CPU_FONTDUE.wireId(),
+                SFMTerminalTransportId.FULL_PNG.wireId(),
+                modes.stream()
+                        .map(SFMVoxTerminalPresentationAdapter::advertisedMode)
+                        .toList());
     }
 
     private void discoverPresentationModes(TerminalClient currentClient, String currentSession)
@@ -999,71 +1022,82 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             throw new IllegalStateException("terminal presentation capabilities returned another session");
         }
         List<TerminalPresentationMode> modes = List.copyOf(result.modes());
-        List<SFMTerminalTransportOption> options = intersectPresentationModes(modes);
-        String selected;
+        SFMTerminalPresentationCatalog catalog =
+                SFMVoxTerminalPresentationAdapter.catalog(result);
+        SFMTerminalPresentationSelection selected;
         long generation;
         synchronized (lock) {
             if (closed || client != currentClient || !Objects.equals(sessionId, currentSession)) {
                 throw new IllegalStateException("terminal capability discovery was superseded");
             }
             presentationModes = modes;
-            terminalTransportOptions = options;
-            boolean requestedSupported = options.stream().anyMatch(option ->
-                    option.supported() && option.id().equals(requestedTransportId));
+            presentationCatalog = catalog;
+            boolean requestedSupported = catalog.supportedMode(requestedPresentation).isPresent();
             if (!requestedSupported) {
-                if (transportExplicitlyRequested) {
+                if (presentationExplicitlyRequested) {
                     throw new IllegalStateException(
-                            "requested terminal transport is not supported: " + requestedTransportId);
+                            "requested terminal presentation is not supported: "
+                                    + requestedPresentation.label() + ": "
+                                    + catalog.unavailableReason(requestedPresentation));
                 }
-                boolean defaultSupported = options.stream().anyMatch(option ->
-                        option.supported() && option.id().equals(result.defaultTransportId()));
-                if (!defaultSupported) {
+                if (catalog.supportedMode(catalog.defaultSelection()).isEmpty()) {
                     throw new IllegalStateException(
-                            "server default terminal transport has no Java presenter: "
-                                    + result.defaultTransportId());
+                            "server default terminal presentation has no Java presenter: "
+                                    + catalog.defaultSelection().label());
                 }
-                requestedTransportId = result.defaultTransportId();
+                requestedPresentation = catalog.defaultSelection();
             }
-            selected = requestedTransportId;
-            rasterSubscriptionGeneration = incrementGeneration(
-                    rasterSubscriptionGeneration, "terminal raster subscription generation");
-            generation = rasterSubscriptionGeneration;
+            selected = requestedPresentation;
+            presentationTransitionFailure = null;
+            presentationRequestGeneration = incrementGeneration(
+                    presentationRequestGeneration, "terminal presentation request generation");
+            generation = presentationRequestGeneration;
         }
         switchRasterSubscription(currentSession, selected, generation);
     }
 
-    private TerminalPresentationMode presentationMode(String transportId) {
+    private TerminalPresentationMode presentationMode(
+            SFMTerminalPresentationSelection selection
+    ) {
         return presentationModes.stream()
-                .filter(mode -> mode.transportId().equals(transportId) && javaSupports(mode))
+                .filter(mode -> mode.rendererId().equals(selection.rendererId().wireId()))
+                .filter(mode -> mode.transportId().equals(selection.transportId().wireId()))
+                .filter(mode -> SFMTerminalPresentationCatalog.intersect(
+                                selection.rendererId().wireId(),
+                                selection.transportId().wireId(),
+                                List.of(SFMVoxTerminalPresentationAdapter.advertisedMode(mode)))
+                        .supportedMode(selection).isPresent())
                 .findFirst()
                 .orElse(null);
     }
 
     private void switchRasterSubscription(
             String currentSession,
-            String transportId,
+            SFMTerminalPresentationSelection selection,
             long generation) {
         try {
             VoxConnection currentConnection;
             TerminalPresentationMode mode;
             synchronized (lock) {
                 if (closed || !Objects.equals(sessionId, currentSession)
-                        || generation != rasterSubscriptionGeneration
-                        || !requestedTransportId.equals(transportId)) return;
+                        || generation != presentationRequestGeneration
+                        || !requestedPresentation.equals(selection)) return;
                 currentConnection = connection;
-                mode = presentationMode(transportId);
+                mode = presentationMode(selection);
                 if (currentConnection == null || mode == null) {
-                    failure = "Terminal transport '" + transportId + "' is unavailable";
+                    presentationTransitionFailure =
+                            "Terminal presentation '" + selection.label() + "' is unavailable";
                     return;
                 }
                 closeRasterSubscriptionLocked();
             }
-            startRasterSubscription(currentConnection, currentSession, mode, generation);
+            startRasterSubscription(currentConnection, currentSession, selection, mode, generation);
         } catch (Exception error) {
             synchronized (lock) {
-                if (generation == rasterSubscriptionGeneration
+                if (generation == presentationRequestGeneration
                         && Objects.equals(sessionId, currentSession)) {
-                    failure = "Vox terminal transport switch failed: " + describe(error);
+                    presentationTransitionFailure =
+                            "Vox terminal presentation switch failed: " + describe(error);
                 }
             }
         }
@@ -1072,6 +1106,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private void startRasterSubscription(
             VoxConnection currentConnection,
             String currentSession,
+            SFMTerminalPresentationSelection selection,
             TerminalPresentationMode mode,
             long generation) throws Exception {
         ServiceLane currentRasterLane = currentConnection.openLane(
@@ -1081,14 +1116,15 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         VoxChannels.Pair<TerminalRasterFrameEvent> channel = VoxChannels.channel(
                 TerminalRasterFrameEvent.ADAPTER);
         long requestSequence = nextSequence();
-        String wireGeneration = "sfm-" + generation + "-" + requestSequence;
+        String wireGeneration = "sfm-presentation-" + generation + "-" + requestSequence;
         long maxFrameBytes = Math.min(MAX_FRAME_BYTES, mode.maxFrameBytes());
         int maxRegions = Math.min(SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS, mode.maxRegions());
         RasterSubscription currentSubscription = new RasterSubscription(
-                generation, currentSession, wireGeneration, mode);
+                generation, currentSession, wireGeneration, selection, mode);
         synchronized (lock) {
             if (closed || connection != currentConnection || !Objects.equals(sessionId, currentSession)
-                    || generation != rasterSubscriptionGeneration) {
+                    || generation != presentationRequestGeneration
+                    || !requestedPresentation.equals(selection)) {
                 channel.rx().close();
                 currentRasterLane.close();
                 return;
@@ -1097,7 +1133,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             rasterClient = currentClient;
             rasterSubscription = currentSubscription;
             rasterFrameReceiver = channel.rx();
-            acceptedRasterTransportGeneration = "";
+            acceptedRasterPresentationGeneration = "";
             rasterConnectionEpoch = "";
             rasterSessionEpoch = "";
             rasterLastTerminalSequence = 0;
@@ -1108,23 +1144,20 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             rasterSubscriptionsStarted = incrementGeneration(
                     rasterSubscriptionsStarted, "raster subscriptions started");
             SFM.LOGGER.info(
-                    "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_STARTED session={} transport={} generation={} lane={}",
+                    "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_STARTED session={} renderer={} transport={} "
+                            + "presentation_generation={} lane={}",
                     currentSession,
+                    mode.rendererId(),
                     mode.transportId(),
                     wireGeneration,
                     currentRasterLane.state());
         }
         CompletableFuture<VoxResult<TerminalOperationResult, TerminalError>> currentCall =
                 currentClient.subscribeRasterFrames(
-                        new TerminalRasterSubscribeRequest(
+                        SFMVoxTerminalPresentationAdapter.subscribeRequest(
                                 currentSession,
-                                mode.rendererId(),
-                                mode.damageModeId(),
-                                mode.transportId(),
-                                mode.transportVersion(),
+                                mode,
                                 wireGeneration,
-                                0,
-                                0,
                                 maxFrameBytes,
                                 maxRegions,
                                 requestSequence,
@@ -1174,6 +1207,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private void acceptRasterFrame(
             RasterSubscription currentSubscription,
             TerminalRasterFrameEvent event) {
+        String eventPresentationGeneration =
+                SFMVoxTerminalPresentationAdapter.presentationGeneration(event);
         try {
             synchronized (lock) {
                 rasterFramesReceived = incrementGeneration(rasterFramesReceived, "raster frames received");
@@ -1208,10 +1243,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         event.frameSequence(), true, png, presentedPayload,
                         rasterFrameMetadata(event),
                         streamIdentity(event.connectionEpoch(), event.sessionEpoch())
-                                + ":" + event.transportGeneration());
+                                + ":" + eventPresentationGeneration);
                 pendingRasterFrame = frame;
-                activeTransportId = event.transportId();
-                acceptedRasterTransportGeneration = event.transportGeneration();
+                activePresentation = currentSubscription.selection();
+                acceptedRasterPresentationGeneration = eventPresentationGeneration;
                 rasterConnectionEpoch = event.connectionEpoch();
                 rasterSessionEpoch = event.sessionEpoch();
                 rasterLastTerminalSequence = event.terminalSequence();
@@ -1228,12 +1263,15 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 }
                 latestRasterPublication = event.publication();
                 failure = null;
+                presentationTransitionFailure = null;
                 if (event.fullResync()) {
                     SFM.LOGGER.info(
-                            "SFM_VOX_TERMINAL_RASTER_ACTIVE session={} transport={} generation={} frame_sequence={}",
+                            "SFM_VOX_TERMINAL_RASTER_ACTIVE session={} renderer={} transport={} "
+                                    + "presentation_generation={} frame_sequence={}",
                             event.sessionId(),
+                            event.rendererId(),
                             event.transportId(),
-                            event.transportGeneration(),
+                            eventPresentationGeneration,
                             event.frameSequence());
                 }
             }
@@ -1243,13 +1281,16 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                     rasterFramesRejected = incrementGeneration(
                             rasterFramesRejected, "raster frames rejected");
                     failure = "Rejected malformed terminal raster frame: " + describe(error);
+                    presentationTransitionFailure = failure;
                     SFM.LOGGER.warn(
-                            "SFM_VOX_TERMINAL_RASTER_FRAME_REJECTED session={} transport={} generation={} "
+                            "SFM_VOX_TERMINAL_RASTER_FRAME_REJECTED session={} renderer={} transport={} "
+                                    + "presentation_generation={} "
                                     + "terminal_sequence={} frame_sequence={} base_frame_sequence={} "
                                     + "full_resync={} frame_kind={} frame_encoding={} failure={}",
                             event.sessionId(),
+                            event.rendererId(),
                             event.transportId(),
-                            event.transportGeneration(),
+                            eventPresentationGeneration,
                             event.terminalSequence(),
                             event.frameSequence(),
                             event.baseFrameSequence(),
@@ -1267,10 +1308,12 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             RasterSubscription currentSubscription,
             TerminalRasterFrameEvent event) {
         TerminalPresentationMode mode = currentSubscription.mode();
+        String eventPresentationGeneration =
+                SFMVoxTerminalPresentationAdapter.presentationGeneration(event);
         long negotiatedBytes = Math.min(MAX_FRAME_BYTES, mode.maxFrameBytes());
         int negotiatedRegions = Math.min(SFMTerminalRasterLimits.RGBA8_V1_MAX_REGIONS, mode.maxRegions());
         if (!currentSubscription.sessionId().equals(event.sessionId())
-                || !currentSubscription.transportGeneration().equals(event.transportGeneration())
+                || !currentSubscription.presentationGeneration().equals(eventPresentationGeneration)
                 || !mode.rendererId().equals(event.rendererId())
                 || !mode.damageModeId().equals(event.damageModeId())
                 || !mode.transportId().equals(event.transportId())
@@ -1282,7 +1325,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 || event.frame().payload().length > negotiatedBytes) {
             throw new IllegalArgumentException("raster event does not match its negotiated subscription");
         }
-        boolean first = acceptedRasterTransportGeneration.isEmpty();
+        boolean first = acceptedRasterPresentationGeneration.isEmpty();
         if (first) {
             if (!event.fullResync()
                     || event.frame().kind() != TerminalRasterFrameKind.FULL
@@ -1293,7 +1336,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                                 + ", frame_kind=" + event.frame().kind()
                                 + ", base_frame_sequence=" + event.baseFrameSequence() + "]");
             }
-        } else if (!acceptedRasterTransportGeneration.equals(event.transportGeneration())
+        } else if (!acceptedRasterPresentationGeneration.equals(eventPresentationGeneration)
                 || !rasterConnectionEpoch.equals(event.connectionEpoch())
                 || !rasterSessionEpoch.equals(event.sessionEpoch())
                 || event.terminalSequence() < rasterLastTerminalSequence
@@ -1337,7 +1380,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 .toList();
         return new SFMTerminalRasterFrame(
                 SFMTerminalTransportId.fromWireId(event.transportId()),
-                event.transportVersion(), event.frameContractVersion(), event.transportGeneration(),
+                event.transportVersion(), event.frameContractVersion(),
+                SFMVoxTerminalPresentationAdapter.presentationGeneration(event),
                 event.frameSequence(), event.baseFrameSequence(), event.fullResync(),
                 SFMTerminalRasterEncoding.RGBA8,
                 frame.kind() == TerminalRasterFrameKind.FULL
@@ -1371,11 +1415,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             if (error == null && result != null && result.isSuccess()) return;
             failure = "Vox terminal raster subscription failed: "
                     + (error == null ? describeSubscriptionResult(result) : describe(error));
+            presentationTransitionFailure = failure;
             SFM.LOGGER.warn(
-                    "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_FAILED session={} transport={} generation={} failure={}",
+                    "SFM_VOX_TERMINAL_RASTER_SUBSCRIPTION_FAILED session={} renderer={} transport={} "
+                            + "presentation_generation={} failure={}",
                     currentSubscription.sessionId(),
+                    currentSubscription.selection().rendererId().wireId(),
                     currentSubscription.mode().transportId(),
-                    currentSubscription.transportGeneration(),
+                    currentSubscription.presentationGeneration(),
                     failure,
                     error);
         }
@@ -1387,11 +1434,14 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             failure = error == null
                     ? "Vox terminal raster subscription closed"
                     : "Vox terminal raster subscription unavailable: " + describe(error);
+            presentationTransitionFailure = failure;
             SFM.LOGGER.warn(
-                    "SFM_VOX_TERMINAL_RASTER_RECEIVER_STOPPED session={} transport={} generation={} failure={}",
+                    "SFM_VOX_TERMINAL_RASTER_RECEIVER_STOPPED session={} renderer={} transport={} "
+                            + "presentation_generation={} failure={}",
                     currentSubscription.sessionId(),
+                    currentSubscription.selection().rendererId().wireId(),
                     currentSubscription.mode().transportId(),
-                    currentSubscription.transportGeneration(),
+                    currentSubscription.presentationGeneration(),
                     failure,
                     error);
         }
@@ -1400,10 +1450,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private boolean isCurrentRasterSubscriptionLocked(RasterSubscription candidate) {
         return candidate != null
                 && rasterSubscription == candidate
-                && candidate.generation() == rasterSubscriptionGeneration
+                && candidate.generation() == presentationRequestGeneration
                 && Objects.equals(candidate.sessionId(), sessionId)
-                && candidate.transportGeneration().equals(
-                rasterSubscription == null ? "" : rasterSubscription.transportGeneration());
+                && candidate.presentationGeneration().equals(
+                rasterSubscription == null ? "" : rasterSubscription.presentationGeneration());
     }
 
     private void ensureConnected() throws Exception {
@@ -1965,9 +2015,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         latestSnapshot = null;
         latestContent = null;
         pendingRasterFrame = null;
-        activeTransportId = null;
+        activePresentation = null;
+        presentationTransitionFailure = null;
         presentationModes = List.of();
-        terminalTransportOptions = undiscoveredTransportOptions();
+        presentationCatalog = SFMTerminalPresentationCatalog.undiscovered();
         if (detached.client() != null || detached.lane() != null || detached.connection() != null) {
             scheduleTransportCleanup(() -> closeDetachedTransport(detached));
         }
@@ -2009,7 +2060,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         rasterSubscriptionCall = null;
         rasterLane = null;
         rasterClient = null;
-        acceptedRasterTransportGeneration = "";
+        acceptedRasterPresentationGeneration = "";
         rasterConnectionEpoch = "";
         rasterSessionEpoch = "";
         rasterLastTerminalSequence = 0;

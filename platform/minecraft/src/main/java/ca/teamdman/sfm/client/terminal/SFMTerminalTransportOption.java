@@ -1,21 +1,19 @@
 package ca.teamdman.sfm.client.terminal;
 
-/** One server-advertised raster transport after intersecting it with Java presenters. */
+import java.util.Objects;
+
+/** Cached transport selector row for the currently requested renderer. */
 public record SFMTerminalTransportOption(
-        String id,
-        String rendererId,
-        String damageModeId,
-        int version,
+        SFMTerminalTransportId id,
         boolean supported,
         String unavailableReason) {
     public SFMTerminalTransportOption {
-        if (id == null || id.isBlank()) throw new IllegalArgumentException("transport id must not be blank");
-        rendererId = rendererId == null ? "" : rendererId;
-        damageModeId = damageModeId == null ? "" : damageModeId;
+        Objects.requireNonNull(id, "id");
         unavailableReason = unavailableReason == null ? "" : unavailableReason;
     }
 
     public String label() {
-        return id + (supported ? "" : " (unavailable)");
+        return id.wireId()
+                + (supported ? "" : " (unavailable: " + unavailableReason + ")");
     }
 }

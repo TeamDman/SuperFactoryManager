@@ -63,13 +63,20 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private int startButtonTop;
     private int startButtonRight;
     private int startButtonBottom;
-    private boolean transportSelectorFocused;
-    private boolean transportDropdownOpen;
+    private boolean presentationControlFocused;
+    private boolean presentationMenuOpen;
+    private PresentationAxis presentationAxis = PresentationAxis.RENDERER;
+    private int rendererSelectionIndex;
     private int transportSelectionIndex;
-    private int transportButtonLeft;
-    private int transportButtonTop;
-    private int transportButtonRight;
-    private int transportButtonBottom;
+    private int presentationButtonLeft;
+    private int presentationButtonTop;
+    private int presentationButtonRight;
+    private int presentationButtonBottom;
+
+    private enum PresentationAxis {
+        RENDERER,
+        TRANSPORT
+    }
 
     public SFMTerminalPanel(SFMTerminalService service) {
         this(new SFMTerminalClient(service), service instanceof SFMTerminalRemoteService remote ? remote : null);
@@ -188,11 +195,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                     logPresentationTiming(frame.get(), pngRenderer.telemetry());
                 }
                 renderFocusHint(poseStack, minecraft, left, width, contentBottom);
-                renderTransportSelector(poseStack, minecraft);
+                renderPresentationControl(poseStack, minecraft);
                 return;
             }
             renderDisconnected(poseStack, minecraft, left, width, contentTop, contentBottom);
-            renderTransportSelector(poseStack, minecraft);
+            renderPresentationControl(poseStack, minecraft);
             return;
         }
         int y = contentTop;
@@ -236,7 +243,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 + "java_stale_frames={} java_dropped_frames={} java_coalesced_frames={} "
                 + "java_frames_presented={} java_sequence_presented={} payload_bytes={} "
                 + "rust_total_us={} rust_pty_drain_us={} rust_snapshot_us={} rust_font_load_us={} "
-                + "rust_raster_us={} rust_encode_us={} backend_id={} transport_id={} "
+                + "rust_raster_us={} rust_encode_us={} renderer_id={} transport_id={} "
                 + "panel_width={} panel_height={} "
                 + "cell_width={} cell_height={} font_pixel_size={}";
         Object[] fields = {
@@ -262,7 +269,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 telemetry.sequencePresented(), frame.payload().length, metadata.rustTotalUs(),
                 metadata.ptyDrainUs(), metadata.snapshotUs(), metadata.fontLoadUs(),
                 metadata.rasterUs(), metadata.encodeUs(),
-                metadata.backendId(), metadata.transportId(), metadata.panelWidth(), metadata.panelHeight(),
+                metadata.rendererId(), metadata.transportId(), metadata.panelWidth(), metadata.panelHeight(),
                 metadata.cellWidth(), metadata.cellHeight(), metadata.fontPixelSize()
         };
         SFM.LOGGER.info(message, fields);
@@ -282,8 +289,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (remoteService != null && transportSelectorFocused) {
-            return transportSelectorKeyPressed(keyCode);
+        if (remoteService != null && presentationControlFocused) {
+            return presentationControlKeyPressed(keyCode);
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             if (focusSequence.escape(System.nanoTime()) == SFMTerminalFocusSequence.Decision.EXIT) {
@@ -296,9 +303,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (keyCode == GLFW.GLFW_KEY_TAB) {
             SFMTerminalFocusSequence.Decision decision = focusSequence.tab(System.nanoTime());
             if (decision == SFMTerminalFocusSequence.Decision.JAVA_FOCUS) {
-                transportSelectorFocused = true;
-                transportDropdownOpen = false;
-                synchronizeTransportSelection();
+                presentationControlFocused = true;
+                presentationMenuOpen = false;
+                synchronizePresentationSelection();
                 return true;
             }
             if (remoteService != null) remoteService.sendKey(keyCode, modifiers, true, false);
@@ -360,7 +367,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
         if (remoteService == null) return false;
-        if (transportSelectorFocused) return true;
+        if (presentationControlFocused) return true;
         if (suppressPasteRelease && keyCode == GLFW.GLFW_KEY_V) {
             suppressPasteRelease = false;
             return true;
@@ -375,7 +382,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public boolean charTyped(char character, int modifiers) {
         if (remoteService != null) {
-            if (transportSelectorFocused) return true;
+            if (presentationControlFocused) return true;
             if (character >= 0x20 && character != 0x7F) {
                 remoteService.sendText(String.valueOf(character));
             }
@@ -512,21 +519,42 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (remoteService != null && button == 0
-                && mouseX >= transportButtonLeft && mouseX < transportButtonRight
-                && mouseY >= transportButtonTop && mouseY < transportButtonBottom) {
-            transportSelectorFocused = true;
-            transportDropdownOpen = !transportDropdownOpen;
-            synchronizeTransportSelection();
+                && mouseX >= presentationButtonLeft && mouseX < presentationButtonRight
+                && mouseY >= presentationButtonTop && mouseY < presentationButtonBottom) {
+            presentationControlFocused = true;
+            presentationMenuOpen = !presentationMenuOpen;
+            synchronizePresentationSelection();
             return true;
         }
-        if (remoteService != null && button == 0 && transportDropdownOpen) {
-            List<SFMTerminalTransportOption> options = remoteService.transportOptions();
+        if (remoteService != null && button == 0 && presentationMenuOpen) {
+            List<SFMTerminalRendererOption> rendererOptions = remoteService.rendererOptions();
+            List<SFMTerminalTransportOption> transportOptions = remoteService.transportOptions();
             int rowHeight = minecraft == null ? 14 : minecraft.font.lineHeight + 6;
-            int index = (int) ((mouseY - transportButtonBottom) / rowHeight);
-            if (mouseX >= transportButtonLeft && mouseX < transportButtonRight
-                    && index >= 0 && index < options.size()) {
-                transportSelectionIndex = index;
-                selectCurrentTransport();
+            int row = (int) ((mouseY - presentationButtonBottom) / rowHeight);
+            if (mouseX >= presentationButtonLeft && mouseX < presentationButtonRight
+                    && row >= 0) {
+                if (row == 0) {
+                    presentationAxis = PresentationAxis.RENDERER;
+                    return true;
+                }
+                if (row <= rendererOptions.size()) {
+                    presentationAxis = PresentationAxis.RENDERER;
+                    rendererSelectionIndex = row - 1;
+                    selectCurrentPresentationChoice();
+                    return true;
+                }
+                int transportHeader = rendererOptions.size() + 1;
+                if (row == transportHeader) {
+                    presentationAxis = PresentationAxis.TRANSPORT;
+                    return true;
+                }
+                int transportIndex = row - transportHeader - 1;
+                if (transportIndex >= 0 && transportIndex < transportOptions.size()) {
+                    presentationAxis = PresentationAxis.TRANSPORT;
+                    transportSelectionIndex = transportIndex;
+                    selectCurrentPresentationChoice();
+                    return true;
+                }
                 return true;
             }
         }
@@ -574,9 +602,26 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     /** Panel-local action surface; callers must resolve this exact focused panel first. */
-    public SFMTerminalTransportChangeResult requestTransport(String transportId) {
+    public List<SFMTerminalRendererOption> rendererOptions() {
+        return remoteService == null ? List.of() : remoteService.rendererOptions();
+    }
+
+    public List<SFMTerminalTransportOption> transportOptions() {
+        return remoteService == null ? List.of() : remoteService.transportOptions();
+    }
+
+    public SFMTerminalPresentationChangeResult requestRenderer(String rendererId) {
         if (remoteService == null) {
-            return SFMTerminalTransportChangeResult.rejected(
+            return SFMTerminalPresentationChangeResult.rejected(
+                    "Focused panel is not a Rust terminal");
+        }
+        return remoteService.requestRenderer(rendererId);
+    }
+
+    /** Panel-local action surface; callers must resolve this exact focused panel first. */
+    public SFMTerminalPresentationChangeResult requestTransport(String transportId) {
+        if (remoteService == null) {
+            return SFMTerminalPresentationChangeResult.rejected(
                     "Focused panel is not a Rust terminal");
         }
         return remoteService.requestTransport(transportId);
@@ -699,96 +744,159 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 minecraft.font.plainSubstrByWidth(message.getString(), width), left, y, MUTED, false);
     }
 
-    private void renderTransportSelector(PoseStack poseStack, Minecraft minecraft) {
+    private void renderPresentationControl(PoseStack poseStack, Minecraft minecraft) {
         if (remoteService == null) return;
         int height = minecraft.font.lineHeight + 6;
-        int width = Math.min(230, Math.max(120, bounds.width() / 2));
-        transportButtonRight = bounds.x() + bounds.width() - 6;
-        transportButtonLeft = transportButtonRight - width;
-        transportButtonTop = bounds.y() + 4;
-        transportButtonBottom = transportButtonTop + height;
-        int background = transportSelectorFocused ? 0xFF315568 : 0xE0223038;
-        GuiComponent.fill(poseStack, transportButtonLeft, transportButtonTop,
-                transportButtonRight, transportButtonBottom, background);
-        String requested = remoteService.requestedTransportId();
-        String active = remoteService.activeTransportId().orElse("");
-        String value = requested.isBlank() ? "discovering..." : requested;
-        if (!active.isBlank() && !active.equals(requested)) value = requested + " -> " + active;
-        else if (!requested.isBlank() && active.isBlank()) value += " (pending)";
-        String label = "Transport: " + value + (transportDropdownOpen ? " ^" : " v");
+        int width = Math.min(380, Math.max(150, bounds.width() - 12));
+        presentationButtonRight = bounds.x() + bounds.width() - 6;
+        presentationButtonLeft = presentationButtonRight - width;
+        presentationButtonTop = bounds.y() + 4;
+        presentationButtonBottom = presentationButtonTop + height;
+        int background = presentationControlFocused ? 0xFF315568 : 0xE0223038;
+        GuiComponent.fill(poseStack, presentationButtonLeft, presentationButtonTop,
+                presentationButtonRight, presentationButtonBottom, background);
+        SFMTerminalPresentationTransitionState state = remoteService.presentationState();
+        String value = state.requested().label();
+        if (state.active().isEmpty()) {
+            value += " (pending)";
+        } else if (!state.active().get().equals(state.requested())) {
+            value = state.active().get().label() + " -> " + value + " (pending)";
+        }
+        if (state.failure().isPresent()) value += " !";
+        String label = "Presentation: " + value + (presentationMenuOpen ? " ^" : " v");
         SFMFontUtils.draw(poseStack, minecraft.font,
                 minecraft.font.plainSubstrByWidth(label, width - 8),
-                transportButtonLeft + 4, transportButtonTop + 3, TEXT, false);
-        if (!transportDropdownOpen) return;
+                presentationButtonLeft + 4, presentationButtonTop + 3, TEXT, false);
+        if (!presentationMenuOpen) return;
 
-        List<SFMTerminalTransportOption> options = remoteService.transportOptions();
-        int rowTop = transportButtonBottom;
-        for (int index = 0; index < options.size(); index++) {
-            SFMTerminalTransportOption option = options.get(index);
+        List<SFMTerminalRendererOption> rendererOptions = remoteService.rendererOptions();
+        List<SFMTerminalTransportOption> transportOptions = remoteService.transportOptions();
+        int rowTop = presentationButtonBottom;
+        GuiComponent.fill(poseStack, presentationButtonLeft, rowTop,
+                presentationButtonRight, rowTop + height,
+                presentationAxis == PresentationAxis.RENDERER ? 0xFF315568 : 0xF018252D);
+        SFMFontUtils.draw(poseStack, minecraft.font, "Renderer", presentationButtonLeft + 4,
+                rowTop + 3, MUTED, false);
+        rowTop += height;
+        for (int index = 0; index < rendererOptions.size(); index++) {
+            SFMTerminalRendererOption option = rendererOptions.get(index);
             int rowBottom = rowTop + height;
-            int rowColor = index == transportSelectionIndex ? 0xFF315568 : 0xF018252D;
-            GuiComponent.fill(poseStack, transportButtonLeft, rowTop,
-                    transportButtonRight, rowBottom, rowColor);
+            int rowColor = presentationAxis == PresentationAxis.RENDERER
+                    && index == rendererSelectionIndex ? 0xFF315568 : 0xF018252D;
+            GuiComponent.fill(poseStack, presentationButtonLeft, rowTop,
+                    presentationButtonRight, rowBottom, rowColor);
             int color = option.supported() ? TEXT : ERROR;
             SFMFontUtils.draw(poseStack, minecraft.font,
                     minecraft.font.plainSubstrByWidth(option.label(), width - 8),
-                    transportButtonLeft + 4, rowTop + 3, color, false);
+                    presentationButtonLeft + 4, rowTop + 3, color, false);
             rowTop = rowBottom;
+        }
+        GuiComponent.fill(poseStack, presentationButtonLeft, rowTop,
+                presentationButtonRight, rowTop + height,
+                presentationAxis == PresentationAxis.TRANSPORT ? 0xFF315568 : 0xF018252D);
+        SFMFontUtils.draw(poseStack, minecraft.font, "Transport", presentationButtonLeft + 4,
+                rowTop + 3, MUTED, false);
+        rowTop += height;
+        for (int index = 0; index < transportOptions.size(); index++) {
+            SFMTerminalTransportOption option = transportOptions.get(index);
+            int rowBottom = rowTop + height;
+            int rowColor = presentationAxis == PresentationAxis.TRANSPORT
+                    && index == transportSelectionIndex ? 0xFF315568 : 0xF018252D;
+            GuiComponent.fill(poseStack, presentationButtonLeft, rowTop,
+                    presentationButtonRight, rowBottom, rowColor);
+            int color = option.supported() ? TEXT : ERROR;
+            SFMFontUtils.draw(poseStack, minecraft.font,
+                    minecraft.font.plainSubstrByWidth(option.label(), width - 8),
+                    presentationButtonLeft + 4, rowTop + 3, color, false);
+            rowTop = rowBottom;
+        }
+        if (state.failure().isPresent()) {
+            SFMFontUtils.draw(poseStack, minecraft.font,
+                    minecraft.font.plainSubstrByWidth(state.failure().get(), width - 8),
+                    presentationButtonLeft + 4, rowTop + 3, ERROR, false);
         }
     }
 
-    private boolean transportSelectorKeyPressed(int keyCode) {
-        List<SFMTerminalTransportOption> options = remoteService.transportOptions();
+    private boolean presentationControlKeyPressed(int keyCode) {
         if (keyCode == GLFW.GLFW_KEY_TAB) {
-            transportSelectorFocused = false;
-            transportDropdownOpen = false;
+            presentationControlFocused = false;
+            presentationMenuOpen = false;
             focusSequence.reset();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-            transportDropdownOpen = false;
+            presentationMenuOpen = false;
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT) {
+            presentationAxis = presentationAxis == PresentationAxis.RENDERER
+                    ? PresentationAxis.TRANSPORT : PresentationAxis.RENDERER;
+            presentationMenuOpen = true;
+            synchronizePresentationSelection();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER
                 || keyCode == GLFW.GLFW_KEY_SPACE) {
-            if (!transportDropdownOpen) {
-                transportDropdownOpen = true;
-                synchronizeTransportSelection();
+            if (!presentationMenuOpen) {
+                presentationMenuOpen = true;
+                synchronizePresentationSelection();
             } else {
-                selectCurrentTransport();
+                selectCurrentPresentationChoice();
             }
             return true;
         }
-        if (options.isEmpty()) return true;
-        if (keyCode == GLFW.GLFW_KEY_HOME) transportSelectionIndex = 0;
-        else if (keyCode == GLFW.GLFW_KEY_END) transportSelectionIndex = options.size() - 1;
-        else if (keyCode == GLFW.GLFW_KEY_UP) {
-            transportSelectionIndex = Math.floorMod(transportSelectionIndex - 1, options.size());
-        } else if (keyCode == GLFW.GLFW_KEY_DOWN) {
-            transportSelectionIndex = (transportSelectionIndex + 1) % options.size();
-        } else {
-            return true;
-        }
-        transportDropdownOpen = true;
+        int optionCount = presentationAxis == PresentationAxis.RENDERER
+                ? remoteService.rendererOptions().size()
+                : remoteService.transportOptions().size();
+        if (optionCount == 0) return true;
+        int selected = presentationAxis == PresentationAxis.RENDERER
+                ? rendererSelectionIndex : transportSelectionIndex;
+        if (keyCode == GLFW.GLFW_KEY_HOME) selected = 0;
+        else if (keyCode == GLFW.GLFW_KEY_END) selected = optionCount - 1;
+        else if (keyCode == GLFW.GLFW_KEY_UP) selected = Math.floorMod(selected - 1, optionCount);
+        else if (keyCode == GLFW.GLFW_KEY_DOWN) selected = (selected + 1) % optionCount;
+        else return true;
+        if (presentationAxis == PresentationAxis.RENDERER) rendererSelectionIndex = selected;
+        else transportSelectionIndex = selected;
+        presentationMenuOpen = true;
         return true;
     }
 
-    private void synchronizeTransportSelection() {
-        List<SFMTerminalTransportOption> options = remoteService.transportOptions();
-        String requested = remoteService.requestedTransportId();
-        for (int index = 0; index < options.size(); index++) {
-            if (options.get(index).id().equals(requested)) {
-                transportSelectionIndex = index;
-                return;
+    private void synchronizePresentationSelection() {
+        List<SFMTerminalRendererOption> rendererOptions = remoteService.rendererOptions();
+        String requestedRenderer = remoteService.requestedRendererId();
+        for (int index = 0; index < rendererOptions.size(); index++) {
+            if (rendererOptions.get(index).id().wireId().equals(requestedRenderer)) {
+                rendererSelectionIndex = index;
+                break;
             }
         }
-        transportSelectionIndex = Math.min(transportSelectionIndex, Math.max(0, options.size() - 1));
+        rendererSelectionIndex = Math.min(rendererSelectionIndex,
+                Math.max(0, rendererOptions.size() - 1));
+
+        List<SFMTerminalTransportOption> transportOptions = remoteService.transportOptions();
+        String requestedTransport = remoteService.requestedTransportId();
+        for (int index = 0; index < transportOptions.size(); index++) {
+            if (transportOptions.get(index).id().wireId().equals(requestedTransport)) {
+                transportSelectionIndex = index;
+                break;
+            }
+        }
+        transportSelectionIndex = Math.min(transportSelectionIndex,
+                Math.max(0, transportOptions.size() - 1));
     }
 
-    private void selectCurrentTransport() {
-        List<SFMTerminalTransportOption> options = remoteService.transportOptions();
-        if (transportSelectionIndex < 0 || transportSelectionIndex >= options.size()) return;
-        requestTransport(options.get(transportSelectionIndex).id());
-        transportDropdownOpen = false;
+    private void selectCurrentPresentationChoice() {
+        SFMTerminalPresentationChangeResult result;
+        if (presentationAxis == PresentationAxis.RENDERER) {
+            List<SFMTerminalRendererOption> options = remoteService.rendererOptions();
+            if (rendererSelectionIndex < 0 || rendererSelectionIndex >= options.size()) return;
+            result = requestRenderer(options.get(rendererSelectionIndex).id().wireId());
+        } else {
+            List<SFMTerminalTransportOption> options = remoteService.transportOptions();
+            if (transportSelectionIndex < 0 || transportSelectionIndex >= options.size()) return;
+            result = requestTransport(options.get(transportSelectionIndex).id().wireId());
+        }
+        if (result.accepted()) presentationMenuOpen = false;
     }
 }

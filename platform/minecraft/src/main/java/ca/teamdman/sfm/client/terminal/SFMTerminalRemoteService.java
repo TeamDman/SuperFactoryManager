@@ -30,9 +30,19 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
 
     Optional<SFMTerminalFrame> latestFrame();
 
-    /** Server capability intersection shown by this panel's transport selector. */
+    /** Cached server/Java intersection shown by this panel's renderer selector. */
+    default List<SFMTerminalRendererOption> rendererOptions() {
+        return List.of();
+    }
+
+    /** Cached server/Java intersection shown by this panel's transport selector. */
     default List<SFMTerminalTransportOption> transportOptions() {
         return List.of();
+    }
+
+    /** Latest user renderer request, including while a full resync is pending. */
+    default String requestedRendererId() {
+        return "";
     }
 
     /** Latest user request, including while its replacement stream awaits a full resync. */
@@ -40,14 +50,31 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
         return "";
     }
 
+    /** Renderer of the last accepted frame; stable during an in-flight switch. */
+    default Optional<String> activeRendererId() {
+        return Optional.empty();
+    }
+
     /** Transport of the last accepted frame; remains stable during an in-flight switch. */
     default Optional<String> activeTransportId() {
         return Optional.empty();
     }
 
-    /** Requests a non-blocking stream replacement without replacing the PTY/session. */
-    default SFMTerminalTransportChangeResult requestTransport(String transportId) {
-        return SFMTerminalTransportChangeResult.rejected("Terminal transport selection is unavailable");
+    default SFMTerminalPresentationTransitionState presentationState() {
+        return new SFMTerminalPresentationTransitionState(
+                SFMTerminalPresentationSelection.DEFAULT, Optional.empty(), Optional.empty());
+    }
+
+    /** Requests a non-blocking atomic presentation replacement without replacing the PTY/session. */
+    default SFMTerminalPresentationChangeResult requestRenderer(String rendererId) {
+        return SFMTerminalPresentationChangeResult.rejected(
+                "Terminal renderer selection is unavailable");
+    }
+
+    /** Requests a non-blocking atomic presentation replacement without replacing the PTY/session. */
+    default SFMTerminalPresentationChangeResult requestTransport(String transportId) {
+        return SFMTerminalPresentationChangeResult.rejected(
+                "Terminal transport selection is unavailable");
     }
 
     /** True while an empty latest-frame handoff may reuse the renderer's current texture. */

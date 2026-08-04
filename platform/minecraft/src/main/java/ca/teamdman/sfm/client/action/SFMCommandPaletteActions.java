@@ -166,6 +166,11 @@ public final class SFMCommandPaletteActions {
             SetTerminalTransportAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, SetTerminalRendererAction> SET_TERMINAL_RENDERER = REGISTERER.register(
+            "terminal/renderer/set",
+            SetTerminalRendererAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, SFMThemeAction> THEME_RELOAD = REGISTERER.register(
             "theme/reload",
             () -> new SFMThemeAction(SFMThemeAction.Operation.RELOAD)

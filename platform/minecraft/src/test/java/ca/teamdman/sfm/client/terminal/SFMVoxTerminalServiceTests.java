@@ -71,19 +71,23 @@ class SFMVoxTerminalServiceTests {
 
     @Test
     void capabilityIntersectionRequiresTheExactStableContractTuples() {
-        List<SFMTerminalTransportOption> options = SFMVoxTerminalService.intersectPresentationModes(List.of(
+        SFMTerminalPresentationCatalog catalog = SFMVoxTerminalService.intersectPresentationModes(List.of(
                 mode("full-png", "full", TerminalFrameEncoding.PNG, TerminalRasterFrameKind.FULL),
                 mode("full-raw-rgba", "full", TerminalFrameEncoding.RGBA8, TerminalRasterFrameKind.FULL),
                 mode("dirty-raw-rgba", "dirty", TerminalFrameEncoding.RGBA8,
                         TerminalRasterFrameKind.DIRTY_REGIONS)));
+        List<SFMTerminalTransportOption> options =
+                catalog.transportOptions(SFMTerminalRendererId.RUST_CPU_FONTDUE);
 
         assertEquals(List.of("full-png", "full-raw-rgba", "dirty-raw-rgba"),
-                options.stream().map(SFMTerminalTransportOption::id).toList());
+                options.stream().map(option -> option.id().wireId()).toList());
         assertTrue(options.stream().allMatch(SFMTerminalTransportOption::supported));
 
-        List<SFMTerminalTransportOption> malformed = SFMVoxTerminalService.intersectPresentationModes(List.of(
+        SFMTerminalPresentationCatalog malformedCatalog = SFMVoxTerminalService.intersectPresentationModes(List.of(
                 mode("dirty-raw-rgba", "full", TerminalFrameEncoding.RGBA8,
                         TerminalRasterFrameKind.DIRTY_REGIONS)));
+        List<SFMTerminalTransportOption> malformed =
+                malformedCatalog.transportOptions(SFMTerminalRendererId.RUST_CPU_FONTDUE);
         assertTrue(malformed.stream().noneMatch(SFMTerminalTransportOption::supported));
         assertTrue(malformed.stream().allMatch(option -> !option.unavailableReason().isBlank()));
     }

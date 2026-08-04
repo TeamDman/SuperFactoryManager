@@ -23,11 +23,10 @@ final class SFMTerminalPngResourceState {
         }
     }
 
-    record TextureKey(int width, int height, String format, String backendId) {
+    record TextureKey(int width, int height, String format) {
         TextureKey {
             if (width <= 0 || height <= 0) throw new IllegalArgumentException("Texture dimensions must be positive");
             format = Objects.requireNonNull(format, "format");
-            backendId = backendId == null ? "" : backendId;
         }
     }
 
