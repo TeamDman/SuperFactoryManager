@@ -66,10 +66,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private String lastLoggedPresentationStreamIdentity;
     private long lastLoggedPresentationSequence = Long.MIN_VALUE;
     private String connectionStatus;
-    private int startButtonLeft;
-    private int startButtonTop;
-    private int startButtonRight;
-    private int startButtonBottom;
+    private final RustServerStarter rustServerStarter;
+    private StartButtonHitState startButtonHitState = StartButtonHitState.inactive();
     private boolean presentationControlFocused;
     private boolean presentationMenuOpen;
     private PresentationAxis presentationAxis = PresentationAxis.RENDERER;
@@ -95,6 +93,39 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private record PendingPaste(String text, String preview, String contentId, long interactionEpoch) {
     }
 
+    @FunctionalInterface
+    interface RustServerStarter {
+        void start() throws Exception;
+    }
+
+    private record StartButtonHitState(
+            boolean current,
+            int left,
+            int top,
+            int right,
+            int bottom
+    ) {
+        private static StartButtonHitState inactive() {
+            return new StartButtonHitState(false, 0, 0, 0, 0);
+        }
+
+        private static StartButtonHitState current(SFMScreenPanelBounds bounds) {
+            return new StartButtonHitState(
+                    true,
+                    bounds.x(),
+                    bounds.y(),
+                    bounds.x() + bounds.width(),
+                    bounds.y() + bounds.height());
+        }
+
+        private boolean accepts(double mouseX, double mouseY, int button) {
+            return current
+                    && button == GLFW.GLFW_MOUSE_BUTTON_LEFT
+                    && mouseX >= left && mouseX < right
+                    && mouseY >= top && mouseY < bottom;
+        }
+    }
+
     record ViewportGeometry(
             int left,
             int top,
@@ -114,16 +145,28 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     public SFMTerminalPanel(SFMTerminalService service) {
-        this(new SFMTerminalClient(service), service instanceof SFMTerminalRemoteService remote ? remote : null);
+        this(
+                new SFMTerminalClient(service),
+                service instanceof SFMTerminalRemoteService remote ? remote : null,
+                () -> SFMTerminalServiceFactory.startRustServer(null));
     }
 
     public SFMTerminalPanel(SFMTerminalClient client) {
-        this(client, null);
+        this(client, null, () -> SFMTerminalServiceFactory.startRustServer(null));
     }
 
-    private SFMTerminalPanel(SFMTerminalClient client, SFMTerminalRemoteService remoteService) {
+    SFMTerminalPanel(SFMTerminalRemoteService remoteService, RustServerStarter rustServerStarter) {
+        this(new SFMTerminalClient(remoteService), remoteService, rustServerStarter);
+    }
+
+    private SFMTerminalPanel(
+            SFMTerminalClient client,
+            SFMTerminalRemoteService remoteService,
+            RustServerStarter rustServerStarter
+    ) {
         this.client = client;
         this.remoteService = remoteService;
+        this.rustServerStarter = Objects.requireNonNull(rustServerStarter);
         this.connectionStatus = remoteService == null
                 ? "Java-local terminal"
                 : "Rust terminal is disconnected";
@@ -169,6 +212,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     void resizeRemoteViewport(SFMScreenPanelBounds bounds, int cellWidth, int lineHeight) {
+        invalidateDisconnectedStartButtonPresentation();
         this.bounds = bounds;
         ViewportGeometry viewport = viewportGeometry(
                 bounds,
@@ -282,6 +326,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public void closed() {
+        invalidateDisconnectedStartButtonPresentation();
         if (minecraft != null) {
             pngRenderer.close(minecraft);
             rgbaRenderer.close(minecraft);
@@ -316,6 +361,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
                 bounds.y() + 8, TEXT, false);
         if (remoteService != null) {
+            // The old disconnected controls stop existing before either a new
+            // frame or a retained texture can become the current presentation.
+            invalidateDisconnectedStartButtonPresentation();
             Optional<SFMTerminalFrame> frame = remoteService.latestFrame();
             frame.ifPresent(accepted -> {
                 lastAcceptedFrame = accepted;
@@ -725,8 +773,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 return true;
             }
         }
-        if (remoteService != null && mouseX >= startButtonLeft && mouseX < startButtonRight
-                && mouseY >= startButtonTop && mouseY < startButtonBottom) {
+        if (remoteService != null && startButtonHitState.accepts(mouseX, mouseY, button)) {
             focusTerminalInput();
             startRustServer();
             return true;
@@ -1240,10 +1287,15 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             nextY += minecraft.font.lineHeight + 8;
         }
         int buttonWidth = Math.min(180, Math.max(120, width));
-        startButtonLeft = left;
-        startButtonTop = Math.min(nextY, contentBottom - 26);
-        startButtonRight = startButtonLeft + buttonWidth;
-        startButtonBottom = Math.min(contentBottom, startButtonTop + 22);
+        int startButtonLeft = left;
+        int startButtonTop = Math.min(nextY, contentBottom - 26);
+        int startButtonRight = startButtonLeft + buttonWidth;
+        int startButtonBottom = Math.min(contentBottom, startButtonTop + 22);
+        recordDisconnectedStartButtonPresentation(new SFMScreenPanelBounds(
+                startButtonLeft,
+                startButtonTop,
+                Math.max(0, startButtonRight - startButtonLeft),
+                Math.max(0, startButtonBottom - startButtonTop)));
         GuiComponent.fill(poseStack, startButtonLeft, startButtonTop,
                 startButtonRight, startButtonBottom, 0xFF28506A);
         String label = startRequested ? "Starting..." : "Start / Retry Rust server";
@@ -1258,7 +1310,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         Minecraft currentMinecraft = minecraft;
         Thread thread = new Thread(() -> {
             try {
-                SFMTerminalServiceFactory.startRustServer(null);
+                rustServerStarter.start();
                 remoteService.reconnect();
                 remoteService.requestConnect();
                 if (currentMinecraft != null) currentMinecraft.execute(() -> {
@@ -1274,6 +1326,18 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         }, "sfm-rust-terminal-start");
         thread.setDaemon(true);
         thread.start();
+    }
+
+    void recordDisconnectedStartButtonPresentation(SFMScreenPanelBounds buttonBounds) {
+        startButtonHitState = StartButtonHitState.current(buttonBounds);
+    }
+
+    void invalidateDisconnectedStartButtonPresentation() {
+        startButtonHitState = StartButtonHitState.inactive();
+    }
+
+    boolean startRequestedForAutomation() {
+        return startRequested;
     }
 
     private void renderFocusHint(PoseStack poseStack, Minecraft minecraft, int left, int width, int contentBottom) {

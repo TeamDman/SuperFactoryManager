@@ -41,6 +41,51 @@ class SFMTerminalPanelInteractionTests {
     }
 
     @Test
+    void terminalPixelsInvalidateTheOldDisconnectedStartButtonBeforeMouseRouting() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> {
+            throw new AssertionError("stale Start/Retry hit target launched the Rust server");
+        });
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
+        SFMScreenPanelBounds oldButton = new SFMScreenPanelBounds(
+                viewport.left(), viewport.top() + 30, 180, 22);
+        panel.recordDisconnectedStartButtonPresentation(oldButton);
+
+        panel.invalidateDisconnectedStartButtonPresentation();
+        assertTrue(panel.mouseClicked(oldButton.x() + 2, oldButton.y() + 2,
+                GLFW.GLFW_MOUSE_BUTTON_LEFT));
+
+        assertFalse(panel.startRequestedForAutomation());
+        assertEquals(List.of(new MouseInput(0, 1, 1, GLFW.GLFW_MOUSE_BUTTON_LEFT, true)),
+                service.mouseInputs,
+                "old Start/Retry coordinates must become ordinary terminal input");
+    }
+
+    @Test
+    void disconnectedStartButtonDoesNotAcceptNonPrimaryClicks() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> {
+            throw new AssertionError("non-primary click launched the Rust server");
+        });
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
+        SFMScreenPanelBounds button = new SFMScreenPanelBounds(
+                viewport.left(), viewport.top() + 30, 180, 22);
+        panel.recordDisconnectedStartButtonPresentation(button);
+
+        assertTrue(panel.mouseClicked(button.x() + 2, button.y() + 2,
+                GLFW.GLFW_MOUSE_BUTTON_RIGHT));
+
+        assertFalse(panel.startRequestedForAutomation());
+        assertEquals(1, service.mouseInputs.size(),
+                "a non-primary click must bypass Start/Retry and retain terminal routing");
+        assertEquals(GLFW.GLFW_MOUSE_BUTTON_RIGHT, service.mouseInputs.get(0).button());
+    }
+
+    @Test
     void presentationHeadersAndPanelChromeDoNotBecomeTerminalMouseInput() {
         RecordingRemoteService service = new RecordingRemoteService();
         SFMTerminalPanel panel = new SFMTerminalPanel(service);
