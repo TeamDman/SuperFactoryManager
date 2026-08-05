@@ -906,14 +906,14 @@ aborted. Teamy Terminal's focused 29-test Vox server suite and complete
 runtime, generated-response integration, and deterministic Java packaging
 gates. V-4.3 Java semantic-cell renderers remain explicitly out of scope.
 
-### [ ] V-4.2e Restore selection, copy, and guarded paste across Vox
+### [x] V-4.2e Restore selection, copy, and guarded paste across Vox
 
 This correction precedes the Java semantic renderers. It preserves Rust as the
 terminal-state authority while making selection a renderer-neutral interaction
 state that Java can present without forcing a new PNG/raw/GPU raster for every
 mouse-motion cell.
 
-#### [ ] V-4.2e.1 Freeze the interaction and clipboard contract
+#### [x] V-4.2e.1 Freeze the interaction and clipboard contract
 
 Use the existing `TerminalSelection` plus `selection_present` fields on full
 snapshot/raster state as the resynchronization representation. Extend the
@@ -957,7 +957,7 @@ ordinary puppet artifacts.
 state ordering, bounds, error/disposition, privacy, and compatibility rules;
 selection activation alone does not require a raster transport version bump.
 
-#### [ ] V-4.2e.2 Implement Facet generation and Teamy Terminal behavior
+#### [x] V-4.2e.2 Implement Facet generation and Teamy Terminal behavior
 
 Add the typed operations and result fields to Facet, regenerate Rust/Java
 bindings, pass Phon round trips, generated-source freshness, Java 17 runtime,
@@ -998,7 +998,7 @@ automatic clipboard, and Vox supplied clipboard.
 engine; the immutable Teamy commit pins the reviewed Facet package and all
 quality gates pass.
 
-#### [ ] V-4.2e.3 Integrate selection overlay and guarded paste in SFM
+#### [x] V-4.2e.3 Integrate selection overlay and guarded paste in SFM
 
 Retain the latest typed selection independently from `SFMTerminalFrame` pixel
 payload. Convert the inclusive ordered cell range into one rectangle for each
@@ -1027,7 +1027,7 @@ run focused/full tests only through `sfm-propagate-changes.exe`.
 Rust pixel presenter, copies exact selected text, preserves no-selection Ctrl+C,
 and never pastes multiline content before explicit confirmation.
 
-#### [ ] V-4.2e.4 Retain live cross-renderer interaction evidence
+#### [x] V-4.2e.4 Retain live cross-renderer interaction evidence
 
 Extend the Rust-terminal puppet with pointer press/motion/release at known
 cells, headless selection-state artifacts, screenshot highlight bounds, exact
@@ -1044,6 +1044,38 @@ silently converted to selection.
 tests, and both live variants pass with machine-readable selection/copy/paste
 evidence. Update both plans and `changelog.sfml`; do not begin V-4.3, propagate,
 publish a release, or change Cloud Terrastodon in this slice.
+
+**Completion notes — 2026-08-05:** Facet commit
+`f2afdece6c79e64085d2f8c047e22fe16b2c8c54` is pushed on
+`teamy/terminal-selection-paste`; Teamy Terminal commits `bb2d1c8`, `8b945bf`,
+and `fb9592e` pass `check-all.ps1`. SFM commit `5d9b4cd41` pins the generated
+Vox JAR at BLAKE3 `4d1e88353f941be926fdf84f1dd8da9bd594b60f`, implements
+separately ordered authoritative selection, overlay geometry, atomic copy,
+no-selection interrupt, guarded paste, stale/disconnect invalidation, and
+privacy-safe puppet evidence. The SFM CLI cache-hit repair in that commit also
+restores canonical source-build provenance sidecars from the lock; its focused
+test and complete 368-test library suite pass (367 passed, one existing
+ignored), and production-library strict Clippy passes.
+
+Live runs `sfm-title_screen-20260805-162634-248` (`1280x720@auto`, effective
+scale 3) and `sfm-title_screen-20260805-163350-709` (`3840x2130@7`) pass the
+same six CPU/GPU × PNG/full-raw/dirty-raw tuples. Each tuple records exact
+forward/reverse selection plus Java highlight bounds while raster publication,
+Rust render/readback/encode/payload-copy, Java PNG decode, and Java texture/raw
+upload counters remain unchanged. The runs also prove Ctrl+C and right-click
+copy/clear, single-line Ctrl+V/right-click paste, exact warning copy/default
+Cancel focus, `99\n100` cancel and exact-once approval, focus restoration,
+no-selection Ctrl+C interruption before `line:10000`, and child-TUI
+`Drag(Left)` forwarding without host selection.
+
+The canonical SFM compile passes. The full Java suite found 557 tests: 555
+passed, zero failed, and two symlink-policy assumptions aborted because the
+Windows account lacks symlink privilege. Lock schema-v4 canonical validation
+passes, and the final strict artifact audit verifies 109/109 artifacts with
+`fresh_slate_portable=true` and zero warnings, errors, hash mismatches,
+provenance mismatches, source-Git mismatches, or non-portable artifacts. No
+V-4.3 work, propagation, release publication, or Cloud Terrastodon change was
+performed.
 
 ### [ ] V-4.3 Implement the two Java text/font comparators
 

@@ -32,6 +32,9 @@ NAME "Changelog"
 -- Explain server-advertised terminal renderer failures in cached dropdown and command-palette options
 -- Keep the active Rust terminal presentation live until a replacement delivers a valid full resynchronization frame
 -- Add strict raster validation and durable screenshot, terminal-content, and push-telemetry puppet evidence
+-- Add renderer-neutral Rust-authoritative terminal selection with crisp Java highlight overlays across PNG and raw transports
+-- Add exact Ctrl+C and right-click copy/clear behavior while preserving no-selection Ctrl+C interruption and child mouse reporting
+-- Guard multiline Rust-terminal paste behind an exact warning, bounded preview, explicit approval, and stale-session invalidation
 -- Make owned Rust terminal server restarts wait for listener shutdown before reconnecting
 -- Add hierarchical panel-opening actions and lifecycle-only Rust terminal server actions
 -- Retire the superseded managed-bundle review surface while preserving comment and review-session behavior
