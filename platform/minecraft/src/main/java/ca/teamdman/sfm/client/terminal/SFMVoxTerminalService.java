@@ -17,6 +17,8 @@ import org.facet.vox.generated.TerminalConnectRequest;
 import org.facet.vox.generated.TerminalConnectResult;
 import org.facet.vox.generated.TerminalContentRequest;
 import org.facet.vox.generated.TerminalContentResult;
+import org.facet.vox.generated.TerminalCopySelectionDisposition;
+import org.facet.vox.generated.TerminalCopySelectionRequest;
 import org.facet.vox.generated.TerminalDisconnectRequest;
 import org.facet.vox.generated.TerminalError;
 import org.facet.vox.generated.TerminalFrameEncoding;
@@ -29,6 +31,10 @@ import org.facet.vox.generated.TerminalInputResult;
 import org.facet.vox.generated.TerminalKeyInput;
 import org.facet.vox.generated.TerminalMouseInput;
 import org.facet.vox.generated.TerminalOperationResult;
+import org.facet.vox.generated.TerminalPasteDisposition;
+import org.facet.vox.generated.TerminalPastePolicy;
+import org.facet.vox.generated.TerminalPasteRequest;
+import org.facet.vox.generated.TerminalPasteSource;
 import org.facet.vox.generated.TerminalPublicationTelemetry;
 import org.facet.vox.generated.TerminalPresentationCapabilitiesRequest;
 import org.facet.vox.generated.TerminalPresentationCapabilitiesResult;
@@ -68,6 +74,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  * Optional Java client for the generated Vox terminal service.
@@ -150,6 +157,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private boolean resizeTaskQueued;
     private MouseOperation pendingMouseMotion;
     private boolean mouseMotionTaskQueued;
+    private SFMTerminalSelection latestSelection;
+    private long latestInteractionSequence;
     private boolean connectionInFlight;
     private long transportGeneration;
     private volatile Thread driverThread;
@@ -535,6 +544,12 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         "raster_dirty_frames=" + rasterDirtyFrames,
                         "raster_full_resync_frames=" + rasterFullResyncFrames,
                         "latest_terminal_sequence=" + rasterLastTerminalSequence,
+                        "latest_interaction_sequence=" + latestInteractionSequence,
+                        "selection_present=" + (latestSelection != null),
+                        "selection_anchor_x=" + selectionCoordinate(latestSelection, true, true),
+                        "selection_anchor_y=" + selectionCoordinate(latestSelection, true, false),
+                        "selection_focus_x=" + selectionCoordinate(latestSelection, false, true),
+                        "selection_focus_y=" + selectionCoordinate(latestSelection, false, false),
                         "latest_frame_sequence=" + rasterLastFrameSequence,
                         "latest_base_frame_sequence=" + activeStream.baseFrameSequence,
                         "latest_full_resync=" + activeStream.fullResync,
@@ -637,6 +652,16 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 "latest_frame_sequence=" + event.frameSequence());
         SFM.LOGGER.info("SFM_VOX_TERMINAL_PUSH_EVIDENCE {}", result.replace('\n', ' '));
         return result + "\n";
+    }
+
+    private static int selectionCoordinate(
+            SFMTerminalSelection selection,
+            boolean anchor,
+            boolean horizontal
+    ) {
+        if (selection == null) return -1;
+        if (anchor) return horizontal ? selection.anchorX() : selection.anchorY();
+        return horizontal ? selection.focusX() : selection.focusY();
     }
 
     private static void validateRendererTelemetry(
@@ -1329,6 +1354,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         synchronized (lock) {
             if (!frameInbox.isCurrent(currentSubscription)) return;
             latestSnapshot = snapshot;
+            acceptSelection(
+                    event.terminalSequence(),
+                    snapshot.selectionPresent(),
+                    snapshot.selection());
             failure = null;
             telemetry.recordSubscriptionEventAccepted(result.superseded());
             telemetry.recordAccepted(result.superseded());
@@ -1700,6 +1729,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                     }
                 }
                 pendingRasterFrame = frame;
+                acceptSelection(
+                        event.terminalSequence(),
+                        nativeFrame.selectionPresent(),
+                        nativeFrame.selection());
                 activePresentation = currentSubscription.selection();
                 currentStream.acceptedPresentationGeneration = eventPresentationGeneration;
                 currentStream.connectionEpoch = event.connectionEpoch();
@@ -1981,7 +2014,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             await(newLane.opened(), "opening terminal lane");
             newClient = new TerminalClient(newLane);
             TerminalCapabilities capabilities = new TerminalCapabilities(
-                    true, true, true, false, true, false, false, false,
+                    true, true, true, false, true, true, false, false,
                     requestedWidth, requestedHeight, MAX_FRAME_BYTES,
                     "rust.cpu.fontdue", "vox");
             long requestSequence = nextSequence();
@@ -2128,17 +2161,18 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             schedule = !resizeTaskQueued;
             if (schedule) resizeTaskQueued = true;
         }
-        SFM.LOGGER.info(
-                "SFM_VOX_TERMINAL_RESIZE_QUEUED version={} requested={}x{} surface={}x{} font_px={} scheduled={}",
-                queuedVersion,
-                boundedWidth,
-                boundedHeight,
-                boundedPanelWidth,
-                boundedPanelHeight,
-                fontPixelSize,
-                schedule);
         if (!schedule) return true;
-        if (submitDriver(this::runLatestResize)) return true;
+        if (submitDriver(() -> {
+            SFM.LOGGER.info(
+                    "SFM_VOX_TERMINAL_RESIZE_QUEUED version={} requested={}x{} surface={}x{} font_px={} scheduled=true",
+                    queuedVersion,
+                    boundedWidth,
+                    boundedHeight,
+                    boundedPanelWidth,
+                    boundedPanelHeight,
+                    fontPixelSize);
+            runLatestResize();
+        })) return true;
         synchronized (lock) {
             resizeTaskQueued = false;
         }
@@ -2150,11 +2184,12 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         if (text == null || text.isEmpty()) return true;
         return enqueueRemoteOperation("Vox terminal input unavailable: ", transport -> {
             long requestSequence = nextSequence();
-            requireSuccess(
+            TerminalInputResult result = requireSuccess(
                     await(transport.client().sendText(new TerminalTextInput(
                             transport.sessionId(), text, requestSequence,
                             correlationId("text", requestSequence))), "sending terminal text"),
                     "sending terminal text");
+            acceptInteractionResult(transport, result);
         });
     }
 
@@ -2162,12 +2197,13 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     public boolean sendKey(int keyCode, int modifiers, boolean pressed, boolean repeat) {
         return enqueueRemoteOperation("Vox terminal key unavailable: ", transport -> {
             long requestSequence = nextSequence();
-            requireSuccess(
+            TerminalInputResult result = requireSuccess(
                     await(transport.client().sendKey(new TerminalKeyInput(
                             transport.sessionId(), keyCode, modifiers, pressed, repeat, requestSequence,
                             correlationId("key", requestSequence))),
                             "sending terminal key"),
                     "sending terminal key");
+            acceptInteractionResult(transport, result);
         });
     }
 
@@ -2199,23 +2235,48 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             boolean motion,
             int wheelX,
             int wheelY) {
+        return sendMouse(x, y, buttons, button, pressed, motion, wheelX, wheelY, null);
+    }
+
+    @Override
+    public boolean sendMouse(
+            int x,
+            int y,
+            int buttons,
+            int button,
+            boolean pressed,
+            boolean motion,
+            int wheelX,
+            int wheelY,
+            Consumer<SFMTerminalInputDisposition> completion
+    ) {
+        int maximumX;
+        int maximumY;
+        synchronized (lock) {
+            maximumX = Math.max(0, requestedWidth - 1);
+            maximumY = Math.max(0, requestedHeight - 1);
+        }
         MouseOperation operation = new MouseOperation(
-                Math.max(0, Math.min(239, x)),
-                Math.max(0, Math.min(119, y)),
+                Math.max(0, Math.min(maximumX, x)),
+                Math.max(0, Math.min(maximumY, y)),
                 Math.max(0, Math.min(255, buttons)),
                 Math.max(0, Math.min(255, button)),
                 pressed,
                 motion,
                 wheelX,
                 wheelY);
-        if (motion) return enqueueLatestMouseMotion(operation);
-        return enqueueRemoteOperation("Vox terminal mouse unavailable: ",
-                transport -> performMouse(transport, operation));
+        if (motion && completion == null) return enqueueLatestMouseMotion(operation);
+        return enqueueRemoteOperation("Vox terminal mouse unavailable: ", transport -> {
+            TerminalInputResult result = performMouse(transport, operation);
+            if (completion != null && isCurrentResult(transport, result.sessionId())) {
+                completeInteraction(completion, mapInputDisposition(result));
+            }
+        });
     }
 
-    private void performMouse(Transport transport, MouseOperation operation) throws Exception {
+    private TerminalInputResult performMouse(Transport transport, MouseOperation operation) throws Exception {
         long requestSequence = nextSequence();
-        requireSuccess(
+        TerminalInputResult result = requireSuccess(
                 await(transport.client().sendMouse(new TerminalMouseInput(
                         transport.sessionId(),
                         operation.x(),
@@ -2229,6 +2290,148 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         requestSequence,
                         correlationId("mouse", requestSequence))), "sending terminal mouse"),
                 "sending terminal mouse");
+        acceptInteractionResult(transport, result);
+        return result;
+    }
+
+    @Override
+    public Optional<SFMTerminalSelection> selection() {
+        synchronized (lock) {
+            return Optional.ofNullable(latestSelection);
+        }
+    }
+
+    @Override
+    public long interactionEpoch() {
+        synchronized (lock) {
+            return transportGeneration;
+        }
+    }
+
+    @Override
+    public boolean copySelection(Consumer<SFMTerminalCopyResult> completion) {
+        Objects.requireNonNull(completion, "completion");
+        return enqueueRemoteOperation("Vox terminal selection copy unavailable: ", transport -> {
+            long requestSequence = nextSequence();
+            org.facet.vox.generated.TerminalCopySelectionResult result = requireSuccess(
+                    await(transport.client().copySelection(new TerminalCopySelectionRequest(
+                            transport.sessionId(),
+                            requestSequence,
+                            correlationId("copy-selection", requestSequence))),
+                            "copying terminal selection"),
+                    "copying terminal selection");
+            if (!isCurrentResult(transport, result.sessionId())) return;
+            acceptSelection(
+                    result.serverSequence(),
+                    result.selectionPresent(),
+                    result.selection());
+            SFMTerminalCopyResult mapped = new SFMTerminalCopyResult(
+                    result.disposition() == TerminalCopySelectionDisposition.COPIED
+                            ? SFMTerminalCopyResult.Disposition.COPIED
+                            : SFMTerminalCopyResult.Disposition.NO_SELECTION,
+                    result.text());
+            completeInteraction(completion, mapped);
+        });
+    }
+
+    @Override
+    public boolean pasteWithGuard(String text, Consumer<SFMTerminalPasteResult> completion) {
+        return paste(text, "", TerminalPastePolicy.GUARD_MULTILINE, completion);
+    }
+
+    @Override
+    public boolean pasteWithoutGuard(
+            String text,
+            String approvedContentId,
+            Consumer<SFMTerminalPasteResult> completion
+    ) {
+        if (approvedContentId == null || approvedContentId.isBlank()) return false;
+        return paste(text, approvedContentId, TerminalPastePolicy.BYPASS_GUARD, completion);
+    }
+
+    private boolean paste(
+            String text,
+            String approvedContentId,
+            TerminalPastePolicy policy,
+            Consumer<SFMTerminalPasteResult> completion
+    ) {
+        Objects.requireNonNull(completion, "completion");
+        String suppliedText = text == null ? "" : text;
+        String contentId = approvedContentId == null ? "" : approvedContentId;
+        return enqueueRemoteOperation("Vox terminal paste unavailable: ", transport -> {
+            long requestSequence = nextSequence();
+            org.facet.vox.generated.TerminalPasteResult result = requireSuccess(
+                    await(transport.client().paste(new TerminalPasteRequest(
+                            transport.sessionId(),
+                            policy,
+                            TerminalPasteSource.SUPPLIED,
+                            suppliedText,
+                            contentId,
+                            requestSequence,
+                            correlationId("paste", requestSequence))),
+                            "pasting terminal text"),
+                    "pasting terminal text");
+            if (!isCurrentResult(transport, result.sessionId())) return;
+            SFMTerminalPasteResult mapped = new SFMTerminalPasteResult(
+                    result.disposition() == TerminalPasteDisposition.PASTED
+                            ? SFMTerminalPasteResult.Disposition.PASTED
+                            : SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED,
+                    result.preview(),
+                    result.contentId());
+            completeInteraction(completion, mapped);
+        });
+    }
+
+    private void acceptInteractionResult(Transport transport, TerminalInputResult result) {
+        if (!isCurrentResult(transport, result.sessionId())) return;
+        acceptSelection(
+                result.serverSequence(),
+                result.selectionPresent(),
+                result.selection());
+    }
+
+    private void acceptSelection(
+            long serverSequence,
+            boolean selectionPresent,
+            org.facet.vox.generated.TerminalSelection selection
+    ) {
+        synchronized (lock) {
+            if (serverSequence < latestInteractionSequence) return;
+            latestInteractionSequence = serverSequence;
+            latestSelection = selectionPresent
+                    ? new SFMTerminalSelection(
+                            selection.anchorX(),
+                            selection.anchorY(),
+                            selection.focusX(),
+                            selection.focusY())
+                    : null;
+        }
+    }
+
+    private boolean isCurrentResult(Transport transport, String resultSessionId) {
+        synchronized (lock) {
+            return !closed
+                    && transport.generation() == transportGeneration
+                    && transport.client() == client
+                    && Objects.equals(transport.sessionId(), sessionId)
+                    && Objects.equals(resultSessionId, sessionId);
+        }
+    }
+
+    private static SFMTerminalInputDisposition mapInputDisposition(TerminalInputResult result) {
+        return switch (result.disposition()) {
+            case FORWARDED -> SFMTerminalInputDisposition.FORWARDED;
+            case SELECTION_CHANGED -> SFMTerminalInputDisposition.SELECTION_CHANGED;
+            case NO_CHANGE -> SFMTerminalInputDisposition.NO_CHANGE;
+        };
+    }
+
+    private static <T> void completeInteraction(Consumer<T> completion, T result) {
+        try {
+            completion.accept(result);
+        } catch (RuntimeException error) {
+            SFM.LOGGER.warn("Terminal interaction completion callback failed", error);
+        }
     }
 
     private boolean enqueueLatestMouseMotion(MouseOperation operation) {
@@ -2683,6 +2886,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         sessionId = null;
         latestSnapshot = null;
         latestContent = null;
+        latestSelection = null;
+        latestInteractionSequence = 0;
         pendingRasterFrame = null;
         activePresentation = null;
         presentationTransitionFailure = null;

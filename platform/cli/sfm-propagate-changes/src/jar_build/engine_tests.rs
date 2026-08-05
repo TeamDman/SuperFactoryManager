@@ -2278,6 +2278,105 @@ fn resolver_materializes_locked_artifact_from_source_build() {
 }
 
 #[test]
+fn cached_artifact_repairs_source_build_provenance_from_the_lock() {
+    let test_dir = TestDir::new("resolver-repairs-source-build-provenance");
+    let coordinate = MavenCoordinate::parse("org.facet:vox-java:0.10.0-rc.5")
+        .expect("coordinate should parse");
+    let cache_path = test_dir
+        .path
+        .join("maven/org/facet/vox-java/0.10.0-rc.5/vox-java-0.10.0-rc.5.jar");
+    fs::create_dir_all(cache_path.parent().expect("cache parent"))
+        .expect("cache parent should be created");
+    fs::write(&cache_path, b"vox-java").expect("cached artifact should be written");
+    let hash = ContentHash::from_bytes(b"vox-java", ContentHashAlgorithm::Blake3);
+    let output_path = PathBuf::from("vox/java/target/vox-java-0.10.0-rc.5.jar");
+    let source_git = super::SourceGitProvenance {
+        root: PathBuf::from("$sfm-cache/source-builds/facet-test"),
+        commit: "0123456789abcdef0123456789abcdef01234567".to_string(),
+        branch: "teamy/terminal-selection-paste".to_string(),
+        dirty: false,
+        remote_url: Some("https://github.com/TeamDman/facet".to_string()),
+    };
+    let source_build = SourceBuildProvenance {
+        build_system: SourceBuildSystem::CargoCommand,
+        tasks: vec!["package-java".to_string()],
+        environment: BTreeMap::new(),
+        output_path: output_path.clone(),
+    };
+    let lockfile = ArtifactLockfile {
+        schema_version: crate::toolchain_lockfile_schema::ENGINE_SCHEMA_VERSION,
+        minecraft_version: "1.19.2".to_string(),
+        maven_cache_dir: PathBuf::from("$sfm-cache/maven"),
+        allow_local_artifact_cache: false,
+        repositories: Vec::new(),
+        dependencies: Vec::new(),
+        artifacts: vec![ArtifactLockEntry {
+            coordinate: Some(coordinate.to_string()),
+            source: ArtifactSource::SourceBuild,
+            repository: None,
+            url: None,
+            cache_path: PathBuf::from(
+                "$sfm-cache/maven/org/facet/vox-java/0.10.0-rc.5/vox-java-0.10.0-rc.5.jar",
+            ),
+            original_path: None,
+            source_relative_path: None,
+            source_git: Some(source_git.clone()),
+            source_build: Some(source_build.clone()),
+            hash,
+            weak: None,
+        }],
+    };
+    let stale = ArtifactProvenance {
+        schema_version: 1,
+        source: ArtifactSource::SourceBuild,
+        coordinate: Some(coordinate.to_string()),
+        repository: None,
+        url: None,
+        original_path: None,
+        source_relative_path: None,
+        source_git: Some(source_git),
+        source_build: Some(source_build),
+        hash,
+    };
+    super::write_artifact_provenance(&cache_path, &stale)
+        .expect("stale sidecar should be written for the fixture");
+
+    let resolver = Resolver::new(
+        test_dir.path.join("maven-cache"),
+        Vec::new(),
+        false,
+        false,
+        Vec::new(),
+        Some(lockfile),
+        None,
+        test_cancellation_token(),
+    )
+    .expect("resolver should build");
+    let artifact = resolver
+        .cached_artifact_plan(
+            &ArtifactId::from("vox-java"),
+            &coordinate,
+            cache_path.clone(),
+            &ArtifactPurpose::from("source-build provenance repair"),
+            hash,
+        )
+        .expect("cached artifact should resolve");
+
+    assert_eq!(
+        artifact.provenance.source_relative_path.as_deref(),
+        Some(output_path.as_path())
+    );
+    assert_eq!(
+        super::read_artifact_provenance(&cache_path)
+            .expect("repaired sidecar should parse")
+            .expect("repaired sidecar should exist")
+            .source_relative_path
+            .as_deref(),
+        Some(output_path.as_path())
+    );
+}
+
+#[test]
 fn artifact_refresh_preserves_v4_features_and_profiles() {
     let input = include_str!("../../../../minecraft/sfm-toolchain.lock.json");
     let crate::toolchain_lockfile_schema::ToolchainLockfileDocument::V4(before) =

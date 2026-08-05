@@ -68,6 +68,68 @@ public final class SFMTerminalSelectionLayout {
         }
     }
 
+    /** A clipped panel-local rectangle suitable for {@code renderHighlight}. */
+    public record LogicalHighlight(double startX, double startY, double endX, double endY) {
+        public LogicalHighlight {
+            if (!Double.isFinite(startX) || !Double.isFinite(startY)
+                    || !Double.isFinite(endX) || !Double.isFinite(endY)
+                    || endX <= startX || endY <= startY) {
+                throw new IllegalArgumentException("Terminal logical highlight must be finite and non-empty");
+            }
+        }
+    }
+
+    /**
+     * Maps the same inclusive selection to panel-local rectangles. Fractional
+     * cell boundaries are retained so the active panel/gui transform performs
+     * the final framebuffer projection exactly once.
+     */
+    public static List<LogicalHighlight> logicalHighlights(
+            Cell anchor,
+            Cell active,
+            NativeGrid grid,
+            SFMTerminalImageLayout imageLayout,
+            SFMScreenPanelBounds logicalClip
+    ) {
+        Objects.requireNonNull(anchor, "anchor");
+        Objects.requireNonNull(active, "active");
+        Objects.requireNonNull(grid, "grid");
+        Objects.requireNonNull(imageLayout, "imageLayout");
+        Objects.requireNonNull(logicalClip, "logicalClip");
+        Cell start = clamp(anchor, grid);
+        Cell end = clamp(active, grid);
+        if (start.equals(end)) return List.of();
+        if (compare(start, end) > 0) {
+            Cell swap = start;
+            start = end;
+            end = swap;
+        }
+
+        double clipRight = (double) logicalClip.x() + logicalClip.width();
+        double clipBottom = (double) logicalClip.y() + logicalClip.height();
+        List<LogicalHighlight> highlights = new ArrayList<>(end.row() - start.row() + 1);
+        for (int row = start.row(); row <= end.row(); row++) {
+            int startColumn = row == start.row() ? start.column() : 0;
+            int endColumn = row == end.row() ? end.column() : grid.columns() - 1;
+            double startX = imageLayout.x()
+                    + startColumn * (double) grid.cellWidth() * imageLayout.width() / grid.imageWidth();
+            double endX = imageLayout.x()
+                    + (endColumn + 1) * (double) grid.cellWidth() * imageLayout.width() / grid.imageWidth();
+            double startY = imageLayout.y()
+                    + row * (double) grid.cellHeight() * imageLayout.height() / grid.imageHeight();
+            double endY = imageLayout.y()
+                    + (row + 1) * (double) grid.cellHeight() * imageLayout.height() / grid.imageHeight();
+            startX = Math.max(startX, logicalClip.x());
+            startY = Math.max(startY, logicalClip.y());
+            endX = Math.min(endX, clipRight);
+            endY = Math.min(endY, clipBottom);
+            if (endX > startX && endY > startY) {
+                highlights.add(new LogicalHighlight(startX, startY, endX, endY));
+            }
+        }
+        return List.copyOf(highlights);
+    }
+
     /**
      * Maps an inclusive anchor/active cell pair to one physical rectangle per
      * participating row. Endpoints are clamped before ordering, so forward and

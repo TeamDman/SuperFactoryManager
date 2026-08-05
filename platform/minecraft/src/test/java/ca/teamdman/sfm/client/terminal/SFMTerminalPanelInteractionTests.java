@@ -75,6 +75,136 @@ class SFMTerminalPanelInteractionTests {
     }
 
     @Test
+    void ctrlCCopiesSelectionAndSuppressesThePhysicalKeyRelease() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.copyResult = new SFMTerminalCopyResult(
+                SFMTerminalCopyResult.Disposition.COPIED, "selected");
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_C, 0, GLFW.GLFW_MOD_CONTROL));
+        assertTrue(panel.keyReleased(GLFW.GLFW_KEY_C, 0, GLFW.GLFW_MOD_CONTROL));
+
+        assertEquals(1, service.copyRequests);
+        assertTrue(service.keyInputs.isEmpty(),
+                "copying a selection must not also send Ctrl+C to the PTY");
+    }
+
+    @Test
+    void ctrlCWithoutSelectionForwardsOneCompleteInterruptChord() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_C, 0, GLFW.GLFW_MOD_CONTROL));
+        assertTrue(panel.keyReleased(GLFW.GLFW_KEY_C, 0, GLFW.GLFW_MOD_CONTROL));
+
+        assertEquals(List.of(
+                new KeyInput(GLFW.GLFW_KEY_C, true),
+                new KeyInput(GLFW.GLFW_KEY_C, false)
+        ), service.keyInputs);
+    }
+
+    @Test
+    void rightClickRespectsChildMouseReportingBeforeCopying() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.mouseDisposition = SFMTerminalInputDisposition.FORWARDED;
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
+
+        assertTrue(panel.mouseClicked(viewport.left() + 2, viewport.top() + 2,
+                GLFW.GLFW_MOUSE_BUTTON_RIGHT));
+        assertEquals(0, service.copyRequests);
+        assertEquals(1, service.mouseInputs.size());
+    }
+
+    @Test
+    void ordinaryShellRightClickUsesTheAuthoritativeCopyPath() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.copyResult = new SFMTerminalCopyResult(
+                SFMTerminalCopyResult.Disposition.COPIED, "selected");
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
+
+        assertTrue(panel.mouseClicked(viewport.left() + 2, viewport.top() + 2,
+                GLFW.GLFW_MOUSE_BUTTON_RIGHT));
+        assertEquals(1, service.copyRequests);
+    }
+
+    @Test
+    void automationPasteUsesTheGuardedPasteRpcInsteadOfRawTextInput() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+
+        panel.pasteForAutomation("safe single line");
+
+        assertEquals(List.of("safe single line"), service.guardedPastes);
+    }
+
+    @Test
+    void multilinePasteWritesNothingUntilTheMatchingConfirmationIsApprovedOnce() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.pasteResult = new SFMTerminalPasteResult(
+                SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED,
+                "99\n100",
+                "paste-1");
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+
+        panel.pasteForAutomation("99\n100");
+
+        assertEquals(Optional.of("paste-1"), panel.pendingPasteContentIdForAutomation());
+        assertEquals(Optional.of("99\n100"), panel.pendingPastePreviewForAutomation());
+        assertTrue(service.approvedPastes.isEmpty(), "guarded paste must not write before approval");
+
+        panel.resolvePendingPasteForAutomation("paste-1", true);
+        panel.resolvePendingPasteForAutomation("paste-1", true);
+
+        assertEquals(List.of(new ApprovedPaste("99\n100", "paste-1")), service.approvedPastes);
+        assertTrue(panel.pendingPasteContentIdForAutomation().isEmpty());
+    }
+
+    @Test
+    void cancelAndStaleConfirmationNeverReleaseMultilinePaste() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.pasteResult = new SFMTerminalPasteResult(
+                SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED,
+                "99\n100",
+                "paste-1");
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+
+        panel.pasteForAutomation("99\n100");
+        panel.resolvePendingPasteForAutomation("wrong-id", true);
+        assertEquals(Optional.of("paste-1"), panel.pendingPasteContentIdForAutomation());
+        assertTrue(service.approvedPastes.isEmpty());
+
+        panel.resolvePendingPasteForAutomation("paste-1", false);
+        assertTrue(service.approvedPastes.isEmpty());
+        assertTrue(panel.pendingPasteContentIdForAutomation().isEmpty());
+    }
+
+    @Test
+    void reconnectOrDisconnectInvalidatesPendingConfirmation() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.pasteResult = new SFMTerminalPasteResult(
+                SFMTerminalPasteResult.Disposition.CONFIRMATION_REQUIRED,
+                "99\n100",
+                "paste-1");
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+
+        panel.pasteForAutomation("99\n100");
+        service.interactionEpoch++;
+        panel.resolvePendingPasteForAutomation("paste-1", true);
+        assertTrue(service.approvedPastes.isEmpty());
+
+        panel.pasteForAutomation("99\n100");
+        service.connected = false;
+        panel.resolvePendingPasteForAutomation("paste-1", true);
+        assertTrue(service.approvedPastes.isEmpty());
+    }
+
+    @Test
     void normalGuiScaleResizeUsesTheExactPaddedTitleAdjustedNativeViewport() {
         SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
         SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
@@ -270,6 +400,9 @@ class SFMTerminalPanelInteractionTests {
     private record MouseInput(int x, int y, int buttons, int button, boolean pressed) {
     }
 
+    private record ApprovedPaste(String text, String contentId) {
+    }
+
     private static final class RecordingRemoteService implements SFMTerminalRemoteService {
         private final List<ResizeRequest> resizeRequests = new ArrayList<>();
         private final List<KeyInput> keyInputs = new ArrayList<>();
@@ -277,6 +410,16 @@ class SFMTerminalPanelInteractionTests {
         private int lastFontPixelSize;
         private SFMTerminalTuningRejection tuningFailure;
         private boolean tuningPending;
+        private int copyRequests;
+        private SFMTerminalCopyResult copyResult = new SFMTerminalCopyResult(
+                SFMTerminalCopyResult.Disposition.NO_SELECTION, "");
+        private SFMTerminalInputDisposition mouseDisposition = SFMTerminalInputDisposition.NO_CHANGE;
+        private final List<String> guardedPastes = new ArrayList<>();
+        private final List<ApprovedPaste> approvedPastes = new ArrayList<>();
+        private SFMTerminalPasteResult pasteResult = new SFMTerminalPasteResult(
+                SFMTerminalPasteResult.Disposition.PASTED, "", "");
+        private boolean connected = true;
+        private long interactionEpoch;
 
         @Override
         public SFMTerminalSession openSession() {
@@ -299,7 +442,12 @@ class SFMTerminalPanelInteractionTests {
 
         @Override
         public boolean isConnected() {
-            return true;
+            return connected;
+        }
+
+        @Override
+        public long interactionEpoch() {
+            return interactionEpoch;
         }
 
         @Override
@@ -354,6 +502,52 @@ class SFMTerminalPanelInteractionTests {
         public boolean sendMouse(int x, int y, int buttons, int button, boolean pressed,
                                  boolean motion, int wheelX, int wheelY) {
             mouseInputs.add(new MouseInput(x, y, buttons, button, pressed));
+            return true;
+        }
+
+        @Override
+        public boolean sendMouse(
+                int x,
+                int y,
+                int buttons,
+                int button,
+                boolean pressed,
+                boolean motion,
+                int wheelX,
+                int wheelY,
+                java.util.function.Consumer<SFMTerminalInputDisposition> completion
+        ) {
+            boolean accepted = sendMouse(x, y, buttons, button, pressed, motion, wheelX, wheelY);
+            if (accepted) completion.accept(mouseDisposition);
+            return accepted;
+        }
+
+        @Override
+        public boolean copySelection(java.util.function.Consumer<SFMTerminalCopyResult> completion) {
+            copyRequests++;
+            completion.accept(copyResult);
+            return true;
+        }
+
+        @Override
+        public boolean pasteWithGuard(
+                String text,
+                java.util.function.Consumer<SFMTerminalPasteResult> completion
+        ) {
+            guardedPastes.add(text);
+            completion.accept(pasteResult);
+            return true;
+        }
+
+        @Override
+        public boolean pasteWithoutGuard(
+                String text,
+                String approvedContentId,
+                java.util.function.Consumer<SFMTerminalPasteResult> completion
+        ) {
+            approvedPastes.add(new ApprovedPaste(text, approvedContentId));
+            completion.accept(new SFMTerminalPasteResult(
+                    SFMTerminalPasteResult.Disposition.PASTED, "", ""));
             return true;
         }
 

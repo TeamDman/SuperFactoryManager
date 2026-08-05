@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.SFMActionChoiceScreen;
+import ca.teamdman.sfm.client.screen.SFMTerminalPasteConfirmationScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerPanel;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerLayout;
@@ -16,6 +17,7 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
+import ca.teamdman.sfm.client.terminal.SFMTerminalInteractionPuppetProbe;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPresentationPuppetProbe;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPropertiesPanel;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPropertiesSnapshot;
@@ -367,6 +369,119 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     @Override
     public void pasteTerminalText(String text) {
         requireTerminalPanel().pasteForAutomation(text);
+    }
+
+    @Override
+    public SFMTerminalInteractionPuppetProbe.TextRange locateTerminalText(String exactText) {
+        return SFMTerminalInteractionPuppetProbe.locateExactVisibleLine(requireTerminalPanel(), exactText);
+    }
+
+    @Override
+    public SFMTerminalInteractionPuppetProbe.Observation observeTerminalInteraction(
+            String rendererId,
+            String transportId
+    ) {
+        return SFMTerminalInteractionPuppetProbe.observe(
+                requireTerminalPanel(), rendererId, transportId);
+    }
+
+    @Override
+    public void dragTerminalRange(
+            SFMTerminalInteractionPuppetProbe.TextRange range,
+            boolean reverse
+    ) {
+        SFMTerminalPanel panel = requireTerminalPanel();
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        SFMTerminalInteractionPuppetProbe.Point start = SFMTerminalInteractionPuppetProbe.point(
+                panel, range.startColumn(), range.row());
+        SFMTerminalInteractionPuppetProbe.Point end = SFMTerminalInteractionPuppetProbe.point(
+                panel, range.endColumn(), range.row());
+        if (reverse) {
+            SFMTerminalInteractionPuppetProbe.Point swap = start;
+            start = end;
+            end = swap;
+        }
+        multiplexer.mouseClicked(start.x(), start.y(), GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseMoved(end.x(), end.y());
+        multiplexer.mouseDragged(
+                end.x(), end.y(), GLFW.GLFW_MOUSE_BUTTON_LEFT,
+                end.x() - start.x(), end.y() - start.y());
+        multiplexer.mouseReleased(end.x(), end.y(), GLFW.GLFW_MOUSE_BUTTON_LEFT);
+    }
+
+    @Override
+    public void copyTerminalSelection(boolean rightClick) {
+        if (!rightClick) {
+            pressTerminalKey(GLFW.GLFW_KEY_C, GLFW.GLFW_MOD_CONTROL);
+            return;
+        }
+        SFMTerminalPanel panel = requireTerminalPanel();
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        SFMTerminalInteractionPuppetProbe.Point point = SFMTerminalInteractionPuppetProbe.point(
+                panel, 0, 0);
+        multiplexer.mouseClicked(point.x(), point.y(), GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+        multiplexer.mouseReleased(point.x(), point.y(), GLFW.GLFW_MOUSE_BUTTON_RIGHT);
+    }
+
+    @Override
+    public String terminalClipboard() {
+        return minecraft.keyboardHandler.getClipboard();
+    }
+
+    @Override
+    public void pasteTerminalTextByRightClick(String text) {
+        minecraft.keyboardHandler.setClipboard(text);
+        copyTerminalSelection(true);
+    }
+
+    @Override
+    public boolean isTerminalPasteWarningOpen() {
+        return minecraft.screen instanceof SFMTerminalPasteConfirmationScreen;
+    }
+
+    @Override
+    public String terminalPasteWarningText() {
+        if (!(minecraft.screen instanceof SFMTerminalPasteConfirmationScreen warning)) {
+            throw new IllegalStateException("Terminal paste warning is not open");
+        }
+        return warning.warningTextForAutomation();
+    }
+
+    @Override
+    public boolean terminalPasteWarningCancelFocused() {
+        if (!(minecraft.screen instanceof SFMTerminalPasteConfirmationScreen warning)) {
+            throw new IllegalStateException("Terminal paste warning is not open");
+        }
+        return warning.cancelFocusedForAutomation();
+    }
+
+    @Override
+    public boolean terminalContentHasExactLine(String line) {
+        return requireTerminalPanel().contentForAutomation().lines()
+                .map(String::strip)
+                .anyMatch(line::equals);
+    }
+
+    @Override
+    public void writeTerminalInteractionEvidence(String artifactName, String evidence) {
+        String safeArtifactName = validateCaptureName(artifactName);
+        Path directory = minecraft.gameDirectory.toPath().resolve("terminal-content");
+        Path file = directory.resolve(
+                active.definition.puppetName() + "__" + safeArtifactName + "__push-evidence.txt");
+        try {
+            Files.createDirectories(directory);
+            Files.writeString(file, evidence, StandardCharsets.UTF_8);
+        } catch (IOException error) {
+            throw new IllegalStateException("Could not write terminal interaction evidence " + file, error);
+        }
+        SFM.LOGGER.info(
+                "SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN puppet={} variant={} artifact={} file={} chars={}",
+                active.definition.puppetName(),
+                active.viewportVariant.id(),
+                safeArtifactName,
+                file.getFileName(),
+                evidence.length()
+        );
     }
 
     @Override

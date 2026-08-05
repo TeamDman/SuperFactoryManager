@@ -2,6 +2,7 @@ package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
+import ca.teamdman.sfm.client.terminal.SFMTerminalInteractionPuppetProbe;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -57,6 +58,31 @@ public interface ISFMGamePuppetRuntime {
 
     /** Places deterministic text in the clipboard and exercises the terminal Ctrl+V path. */
     void pasteTerminalText(String text);
+
+    SFMTerminalInteractionPuppetProbe.TextRange locateTerminalText(String exactText);
+
+    SFMTerminalInteractionPuppetProbe.Observation observeTerminalInteraction(
+            String rendererId,
+            String transportId
+    );
+
+    void dragTerminalRange(SFMTerminalInteractionPuppetProbe.TextRange range, boolean reverse);
+
+    void copyTerminalSelection(boolean rightClick);
+
+    String terminalClipboard();
+
+    void pasteTerminalTextByRightClick(String text);
+
+    boolean isTerminalPasteWarningOpen();
+
+    String terminalPasteWarningText();
+
+    boolean terminalPasteWarningCancelFocused();
+
+    boolean terminalContentHasExactLine(String line);
+
+    void writeTerminalInteractionEvidence(String artifactName, String evidence);
 
     /** Writes the current terminal text and validates optional content witnesses. */
     void writeTerminalContent(String artifactName, String requiredText, String forbiddenText);

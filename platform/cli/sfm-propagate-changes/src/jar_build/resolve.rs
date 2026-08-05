@@ -789,7 +789,7 @@ impl Resolver {
     }
 
     #[instrument(level = "debug", skip_all)]
-    fn cached_artifact_plan(
+    pub(super) fn cached_artifact_plan(
         &self,
         id: &ArtifactId,
         coordinate: &MavenCoordinate,
@@ -797,13 +797,18 @@ impl Resolver {
         required_for: &ArtifactPurpose,
         hash: ContentHash,
     ) -> eyre::Result<ArtifactPlan> {
-        let provenance = match read_artifact_provenance(&cache_path)? {
-            Some(provenance) if provenance.hash == hash => provenance,
-            _ => {
-                let provenance = self
-                    .locked_artifact_provenance(coordinate, hash)
-                    .unwrap_or_else(|| {
-                        artifact_provenance(
+        let cached_provenance = read_artifact_provenance(&cache_path)?;
+        let provenance =
+            if let Some(locked_provenance) = self.locked_artifact_provenance(coordinate, hash) {
+                if cached_provenance.as_ref() != Some(&locked_provenance) {
+                    write_artifact_provenance(&cache_path, &locked_provenance)?;
+                }
+                locked_provenance
+            } else {
+                match cached_provenance {
+                    Some(provenance) if provenance.hash == hash => provenance,
+                    _ => {
+                        let provenance = artifact_provenance(
                             ArtifactSource::ExistingSfmCacheUnknown,
                             Some(coordinate.to_string()),
                             None,
@@ -811,12 +816,12 @@ impl Resolver {
                             None,
                             None,
                             hash,
-                        )
-                    });
-                write_artifact_provenance(&cache_path, &provenance)?;
-                provenance
-            }
-        };
+                        );
+                        write_artifact_provenance(&cache_path, &provenance)?;
+                        provenance
+                    }
+                }
+            };
         Ok(ArtifactPlan {
             id: id.clone(),
             coordinate: Some(coordinate.to_string()),
@@ -846,7 +851,12 @@ impl Resolver {
             repository: locked.repository.clone(),
             url: locked.url.clone(),
             original_path: locked.original_path.clone(),
-            source_relative_path: locked.source_relative_path.clone(),
+            source_relative_path: locked.source_relative_path.clone().or_else(|| {
+                locked
+                    .source_build
+                    .as_ref()
+                    .map(|source_build| source_build.output_path.clone())
+            }),
             source_git: locked.source_git.clone(),
             source_build: locked.source_build.clone(),
             hash,

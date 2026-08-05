@@ -100,7 +100,7 @@ struct ArtifactPlan {
     provenance: ArtifactProvenance,
 }
 
-#[derive(Clone, Debug, Facet)]
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
 struct ArtifactProvenance {
     schema_version: u32,
     source: ArtifactSource,

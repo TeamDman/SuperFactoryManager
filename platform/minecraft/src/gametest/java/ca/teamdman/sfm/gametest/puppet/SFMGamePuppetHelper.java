@@ -212,6 +212,78 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    /** Selects one exact visible line and retains zero-raster-work evidence. */
+    public void selectTerminalText(
+            String artifactName,
+            String rendererId,
+            String transportId,
+            String exactText,
+            boolean reverse
+    ) {
+        add(new SelectTerminalTextPuppetAction(
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(rendererId, "rendererId"),
+                Objects.requireNonNull(transportId, "transportId"),
+                Objects.requireNonNull(exactText, "exactText"),
+                reverse));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Copies and clears the current selection through Ctrl+C or secondary click. */
+    public void copyTerminalSelection(
+            String artifactName,
+            String rendererId,
+            String transportId,
+            String expectedText,
+            boolean rightClick
+    ) {
+        add(new CopyTerminalSelectionPuppetAction(
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(rendererId, "rendererId"),
+                Objects.requireNonNull(transportId, "transportId"),
+                Objects.requireNonNull(expectedText, "expectedText"),
+                rightClick));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void pasteTerminalTextByRightClick(String text) {
+        add(new RightClickPasteTerminalTextPuppetAction(Objects.requireNonNull(text, "text")));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void assertTerminalPasteWarning(String artifactName, String canonicalPreview) {
+        add(new AssertTerminalPasteWarningPuppetAction(
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(canonicalPreview, "canonicalPreview")));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void assertTerminalPrivateContent(
+            String artifactName,
+            List<String> requiredExactLines,
+            List<String> forbiddenExactLines
+    ) {
+        add(new AssertTerminalPrivateContentPuppetAction(
+                Objects.requireNonNull(artifactName, "artifactName"),
+                List.copyOf(requiredExactLines),
+                List.copyOf(forbiddenExactLines)));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void assertTerminalSelectionAbsent(
+            String artifactName,
+            String rendererId,
+            String transportId,
+            boolean childMouseForwarded
+    ) {
+        add(new AssertTerminalSelectionAbsentPuppetAction(
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(rendererId, "rendererId"),
+                Objects.requireNonNull(transportId, "transportId"),
+                childMouseForwarded));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     /** Writes the Rust-owned visible terminal text and checks optional witnesses. */
     public void writeTerminalContent(String artifactName, String requiredText, String forbiddenText) {
         add(new WriteTerminalContentPuppetAction(

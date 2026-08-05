@@ -1920,7 +1920,7 @@
       "role": "library",
       "display_name": "Vox Java terminal contract",
       "project_url": "https://github.com/TeamDman/facet",
-      "notes": "Pinned to a Facet main revision; SFM materializes the Java artifact with the Cargo xtask source-build recipe.",
+      "notes": "Pinned to a reviewed Facet revision; SFM materializes the Java artifact with the Cargo xtask source-build recipe.",
       "components": [
         {
           "id": "main",
@@ -1946,7 +1946,7 @@
           "derived_checks": {
             "artifact_id": "org-facet-vox-java-0-10-0-rc-5-ff6894ba",
             "resolved_coordinate": "org.facet:vox-java:0.10.0-rc.5",
-            "expected_hash": "blake3:5f52a106cfd0a92f6917dace414f1c556423328d",
+            "expected_hash": "blake3:4d1e88353f941be926fdf84f1dd8da9bd594b60f",
             "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar"
           },
           "source_providers": []
@@ -3454,13 +3454,13 @@
       "coordinate": "org.facet:vox-java:0.10.0-rc.5",
       "repository_id": null,
       "url": null,
-      "hash": "blake3:5f52a106cfd0a92f6917dace414f1c556423328d",
+      "hash": "blake3:4d1e88353f941be926fdf84f1dd8da9bd594b60f",
       "cache_path": "$sfm-cache\\maven\\org\\facet\\vox-java\\0.10.0-rc.5\\vox-java-0.10.0-rc.5.jar",
       "provenance": "source-build",
       "source_git": {
-        "root": "$sfm-cache\\source-builds\\facet-765f0851bef7ce764b44554b7d2db059af1e7759",
-        "commit": "765f0851bef7ce764b44554b7d2db059af1e7759",
-        "branch": "teamy/phon-byte-list-run",
+        "root": "$sfm-cache\\source-builds\\facet-f2afdece6c79e64085d2f8c047e22fe16b2c8c54",
+        "commit": "f2afdece6c79e64085d2f8c047e22fe16b2c8c54",
+        "branch": "teamy/terminal-selection-paste",
         "dirty": false,
         "remote_url": "https://github.com/TeamDman/facet"
       },
@@ -3906,7 +3906,7 @@
       "coordinate": null,
       "repository_id": null,
       "url": "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
-      "hash": "blake3:867e97315bd3e7100125db20739d0c1ab40ef0a8",
+      "hash": "blake3:13fc8058e084e22e01c9fef08a61f4cb9cbb7d4f",
       "cache_path": "$sfm-cache\\minecraft\\metadata\\version_manifest_v2.json",
       "provenance": "remote-http",
       "source_git": null,

@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.terminal;
 
 import java.util.Optional;
 import java.util.List;
+import java.util.function.Consumer;
 
 /** Optional remote-terminal capability kept free of the Vox generated API. */
 public interface SFMTerminalRemoteService extends SFMTerminalService, AutoCloseable {
@@ -69,6 +70,58 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
 
     boolean sendMouse(int x, int y, int buttons, int button, boolean pressed, boolean motion,
                       int wheelX, int wheelY);
+
+    /**
+     * Send mouse input and report whether a child TUI consumed it. Legacy test
+     * doubles behave like an ordinary shell unless they override this seam.
+     */
+    default boolean sendMouse(
+            int x,
+            int y,
+            int buttons,
+            int button,
+            boolean pressed,
+            boolean motion,
+            int wheelX,
+            int wheelY,
+            Consumer<SFMTerminalInputDisposition> completion
+    ) {
+        boolean accepted = sendMouse(x, y, buttons, button, pressed, motion, wheelX, wheelY);
+        if (accepted) completion.accept(SFMTerminalInputDisposition.NO_CHANGE);
+        return accepted;
+    }
+
+    /** Latest Rust-authoritative selection, independent from raster publication. */
+    default Optional<SFMTerminalSelection> selection() {
+        return Optional.empty();
+    }
+
+    /**
+     * Monotonic client-side identity for the currently connected remote
+     * terminal. Pending confirmations must be discarded when this changes.
+     */
+    default long interactionEpoch() {
+        return 0L;
+    }
+
+    /** Atomically copy and clear the Rust-owned selection without rerasterizing unchanged glyphs. */
+    default boolean copySelection(Consumer<SFMTerminalCopyResult> completion) {
+        return false;
+    }
+
+    /** Paste immediately when safe, or return an opaque confirmation identity for multiline text. */
+    default boolean pasteWithGuard(String text, Consumer<SFMTerminalPasteResult> completion) {
+        return false;
+    }
+
+    /** Release exactly one retained multiline paste after explicit Java-side confirmation. */
+    default boolean pasteWithoutGuard(
+            String text,
+            String approvedContentId,
+            Consumer<SFMTerminalPasteResult> completion
+    ) {
+        return false;
+    }
 
     Optional<SFMTerminalFrame> latestFrame();
 

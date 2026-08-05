@@ -8,6 +8,7 @@ import java.util.List;
 
 import static ca.teamdman.sfm.client.terminal.SFMTerminalSelectionLayout.Cell;
 import static ca.teamdman.sfm.client.terminal.SFMTerminalSelectionLayout.NativeGrid;
+import static ca.teamdman.sfm.client.terminal.SFMTerminalSelectionLayout.LogicalHighlight;
 import static ca.teamdman.sfm.client.terminal.SFMTerminalSelectionLayout.PhysicalHighlight;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -29,6 +30,34 @@ class SFMTerminalSelectionLayoutTests {
         assertEquals(
                 List.of(new PhysicalHighlight(114, 227, 144, 247)),
                 highlights(new Cell(1, 1), new Cell(3, 1))
+        );
+    }
+
+    @Test
+    void logicalHighlightsRemainPanelLocalForTheActivePoseTransform() {
+        assertEquals(
+                List.of(new LogicalHighlight(14.0D, 27.0D, 44.0D, 47.0D)),
+                SFMTerminalSelectionLayout.logicalHighlights(
+                        new Cell(1, 1),
+                        new Cell(3, 1),
+                        GRID,
+                        IMAGE,
+                        new SFMScreenPanelBounds(0, 0, 100, 100))
+        );
+    }
+
+    @Test
+    void logicalHighlightsClipWithoutIncludingNativePadding() {
+        SFMTerminalImageLayout image = new SFMTerminalImageLayout(5, 10, 24, 12);
+        NativeGrid grid = new NativeGrid(2, 1, 10, 10, 24, 12);
+        assertEquals(
+                List.of(new LogicalHighlight(8.0D, 10.0D, 25.0D, 20.0D)),
+                SFMTerminalSelectionLayout.logicalHighlights(
+                        new Cell(0, 0),
+                        new Cell(1, 0),
+                        grid,
+                        image,
+                        new SFMScreenPanelBounds(8, 0, 17, 100))
         );
     }
 

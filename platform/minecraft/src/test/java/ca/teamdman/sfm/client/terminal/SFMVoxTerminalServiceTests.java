@@ -107,14 +107,21 @@ class SFMVoxTerminalServiceTests {
             long started = System.nanoTime();
 
             assertTrue(vox.resize(100, 30, 1000, 600));
+            long afterResize = System.nanoTime();
             assertTrue(vox.sendKey(65, 0, true, false));
+            long afterKey = System.nanoTime();
             assertTrue(vox.sendText("a"));
+            long afterText = System.nanoTime();
             assertTrue(vox.sendMouse(1, 1, 0, 0, false, true, 0, 0));
+            long afterMouse = System.nanoTime();
 
-            long elapsedMillis = Duration.ofNanos(System.nanoTime() - started).toMillis();
+            long elapsedMillis = Duration.ofNanos(afterMouse - started).toMillis();
             assertTrue(elapsedMillis < 250,
                     "Minecraft-thread terminal callbacks must only enqueue work; elapsed="
-                            + elapsedMillis + "ms");
+                            + elapsedMillis + "ms resize=" + Duration.ofNanos(afterResize - started).toMillis()
+                            + "ms key=" + Duration.ofNanos(afterKey - afterResize).toMillis()
+                            + "ms text=" + Duration.ofNanos(afterText - afterKey).toMillis()
+                            + "ms mouse=" + Duration.ofNanos(afterMouse - afterText).toMillis() + "ms");
         }
     }
 

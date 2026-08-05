@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet.definition;
 
+import ca.teamdman.sfm.client.screen.SFMTerminalPasteConfirmationScreen;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppet;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetViewportProfile;
@@ -60,6 +62,8 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         exercise(puppet, GPU, FULL_RGBA, "gpu-full-raw-rgba", 5, true, false);
         exercise(puppet, GPU, DIRTY_RGBA, "gpu-dirty-raw-rgba", 6, true, false);
 
+        exerciseClipboardAndGuard(puppet);
+
         exerciseTerminalPropertiesAndChoices(puppet);
 
         puppet.executeTerminal("& 'G:\\Programming\\Repos\\ratatui-key-debug\\target\\debug\\ratatui_key_debug.exe'");
@@ -69,6 +73,12 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         puppet.assertTerminalPresentationEvidence(
                 "gpu-dirty-alternate-active", GPU, DIRTY_RGBA, null, false);
         puppet.writeTerminalContent("gpu-dirty-alternate-active-text", "Key Events", null);
+        puppet.clickTerminal();
+        puppet.dragTerminal();
+        puppet.waitTicks(20);
+        puppet.writeTerminalContent("gpu-dirty-child-mouse-text", "Drag(Left)", null);
+        puppet.assertTerminalSelectionAbsent(
+                "gpu-dirty-child-mouse-forwarding", GPU, DIRTY_RGBA, true);
         puppet.pressTerminalKeyDirect(GLFW.GLFW_KEY_ESCAPE, 0);
         puppet.pressTerminalKeyDirect(GLFW.GLFW_KEY_ESCAPE, 0);
         puppet.pressTerminalKeyDirect(GLFW.GLFW_KEY_ESCAPE, 0);
@@ -155,16 +165,26 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
             select(puppet, renderer, transport);
         }
         String witness = "SFM-WITNESS:" + LEFT_TOKEN + ":" + step;
+        String copyToken = "SFM-COPY-" + step;
         puppet.executeTerminal("$global:SfmPresentationStep++; "
                 + "1..100 | Out-Host; "
                 + "Write-Host -ForegroundColor Cyan 'hello, world!'; "
                 + "Write-Output 'SFM-SLUG: g / b r 6 ❯ │ ┌─┐ \uE0B0 表 e\u0301 😀 �'; "
+                + "Write-Output '" + copyToken + "'; "
                 + witnessCommand());
         puppet.waitTicks(40);
         puppet.capture(artifact, caption(renderer, transport,
                 "The same range, ANSI colour, and difficult-glyph fixture is pushed without polling."));
         puppet.assertTerminalPresentationEvidence(
                 artifact, renderer, transport, witness, freshPresentationExpected);
+        boolean reverse = (step & 1) == 0;
+        boolean rightClickCopy = (step & 1) == 0;
+        puppet.selectTerminalText(
+                artifact + "-selection", renderer, transport, copyToken, reverse);
+        puppet.capture(artifact + "-selection", caption(renderer, transport,
+                "Java overlays the Rust-authoritative selection without a new raster or texture upload."));
+        puppet.copyTerminalSelection(
+                artifact + "-copy", renderer, transport, copyToken, rightClickCopy);
         puppet.openCommandPalette();
         puppet.executeCommandPalette("sfm action invoke sfm:panel/open/right sfm:terminal_properties");
         puppet.waitTicks(30);
@@ -176,6 +196,65 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         puppet.openCommandPalette();
         puppet.executeCommandPalette("sfm action invoke sfm:panel/close");
         puppet.waitTicks(30);
+    }
+
+    private static void exerciseClipboardAndGuard(SFMGamePuppetHelper puppet) {
+        puppet.executeTerminal("Clear-Host; Write-Output 'SFM-PASTE-BASELINE'");
+        puppet.waitTicks(30);
+
+        puppet.pasteTerminalText("Write-Output 'SFM-CTRL-V-SINGLE'");
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_ENTER);
+        puppet.waitTicks(20);
+        puppet.assertTerminalPrivateContent(
+                "ctrl-v-single-line-paste",
+                List.of("SFM-CTRL-V-SINGLE"),
+                List.of());
+
+        puppet.pasteTerminalTextByRightClick("Write-Output 'SFM-RIGHT-CLICK-SINGLE'");
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_ENTER);
+        puppet.waitTicks(20);
+        puppet.assertTerminalPrivateContent(
+                "right-click-single-line-paste",
+                List.of("SFM-RIGHT-CLICK-SINGLE"),
+                List.of());
+
+        puppet.executeTerminal("Clear-Host; Write-Output 'SFM-GUARD-BASELINE'");
+        puppet.waitTicks(20);
+        puppet.pasteTerminalText("99\n100");
+        puppet.waitForScreen(SFMTerminalPasteConfirmationScreen.class);
+        puppet.assertTerminalPasteWarning("multiline-paste-cancel-warning", "99\n100");
+        puppet.capture("multiline-paste-cancel-warning", caption(GPU, DIRTY_RGBA,
+                "The exact multiline warning opens with Cancel focused and no PTY write."));
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, 0);
+        puppet.waitForScreen(SFMScreenMultiplexer.class);
+        puppet.assertTerminalPrivateContent(
+                "multiline-paste-cancelled",
+                List.of("SFM-GUARD-BASELINE"),
+                List.of("99", "100"));
+
+        puppet.pasteTerminalText("99\n100");
+        puppet.waitForScreen(SFMTerminalPasteConfirmationScreen.class);
+        puppet.assertTerminalPasteWarning("multiline-paste-approve-warning", "99\n100");
+        puppet.capture("multiline-paste-approve-warning", caption(GPU, DIRTY_RGBA,
+                "Paste anyway releases only the exact privately retained multiline body."));
+        puppet.pressScreenKey(GLFW.GLFW_KEY_TAB, GLFW.GLFW_MOD_SHIFT);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, 0);
+        puppet.waitForScreen(SFMScreenMultiplexer.class);
+        // The second line remains at the shell prompt until Enter. Routing
+        // this through the workspace proves terminal focus was restored.
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, 0);
+        puppet.waitTicks(30);
+        puppet.assertTerminalPrivateContent(
+                "multiline-paste-approved-once",
+                List.of("99", "100"),
+                List.of());
+
+        puppet.executeTerminal("1..10000 | ForEach-Object { Write-Output $_; Start-Sleep -Milliseconds 1 }");
+        puppet.waitTicks(10);
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_C, GLFW.GLFW_MOD_CONTROL);
+        puppet.waitTicks(30);
+        puppet.writeTerminalContent(
+                "no-selection-ctrl-c-interrupt", "❯", "line:10000");
     }
 
     private static void exerciseTerminalPropertiesAndChoices(SFMGamePuppetHelper puppet) {

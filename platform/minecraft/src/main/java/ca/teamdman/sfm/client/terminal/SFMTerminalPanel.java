@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.client.terminal;
 
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
+import ca.teamdman.sfm.client.screen.SFMTerminalPasteConfirmationScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
@@ -58,6 +60,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private int renderWidth;
     private int renderHeight;
     private int pressedMouseButtons;
+    private boolean suppressCopyRelease;
     private boolean suppressPasteRelease;
     private boolean startRequested;
     private String lastLoggedPresentationStreamIdentity;
@@ -87,6 +90,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private SFMScreenPanelBounds viewportLogicalBounds = new SFMScreenPanelBounds(0, 0, 1, 1);
     private Optional<SFMWorkspacePanelMetrics> viewportMetrics = Optional.empty();
     private SFMTerminalFrame lastAcceptedFrame;
+    private PendingPaste pendingPaste;
+
+    private record PendingPaste(String text, String preview, String contentId, long interactionEpoch) {
+    }
 
     record ViewportGeometry(
             int left,
@@ -280,6 +287,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             rgbaRenderer.close(minecraft);
         }
         if (remoteService != null) remoteService.close();
+        pendingPaste = null;
         minecraft = null;
         context = null;
         lastLoggedPresentationStreamIdentity = null;
@@ -324,6 +332,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                         renderHeight, localToPhysicalScaleX(), localToPhysicalScaleY(), frame);
             }
             if (presented) {
+                renderRemoteSelection(poseStack);
                 if (frame.isPresent() && isNewPresentation(
                         lastLoggedPresentationStreamIdentity,
                         lastLoggedPresentationSequence,
@@ -452,10 +461,18 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             else input += "\t";
             return true;
         }
+        if (remoteService != null && isCopyShortcut(keyCode, modifiers)) {
+            suppressCopyRelease = true;
+            if (!requestCopy(false)) {
+                suppressCopyRelease = false;
+                return false;
+            }
+            return true;
+        }
         if (remoteService != null && isPasteShortcut(keyCode, modifiers)) {
             suppressPasteRelease = true;
             String clipboard = minecraft == null ? "" : minecraft.keyboardHandler.getClipboard();
-            if (!clipboard.isEmpty() && !remoteService.sendText(clipboard)) {
+            if (!clipboard.isEmpty() && !requestGuardedPaste(clipboard)) {
                 suppressPasteRelease = false;
                 return false;
             }
@@ -508,6 +525,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
         if (remoteService == null) return false;
         if (presentationControlFocused) return true;
+        if (suppressCopyRelease && keyCode == GLFW.GLFW_KEY_C) {
+            suppressCopyRelease = false;
+            return true;
+        }
         if (suppressPasteRelease && keyCode == GLFW.GLFW_KEY_V) {
             suppressPasteRelease = false;
             return true;
@@ -599,6 +620,12 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     public void pasteForAutomation(String text) {
         if (remoteService == null) {
             input += text == null ? "" : text;
+            return;
+        }
+        if (minecraft == null) {
+            if (!requestGuardedPaste(text == null ? "" : text)) {
+                throw new IllegalStateException("Rust terminal rejected automation paste");
+            }
             return;
         }
         String previous = minecraft == null ? "" : minecraft.keyboardHandler.getClipboard();
@@ -716,15 +743,34 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         focusTerminalInput();
         int mask = mouseMask(button);
         pressedMouseButtons |= mask;
-        remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true,
-                false, 0, 0);
+        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+            Minecraft requestMinecraft = minecraft;
+            remoteService.sendMouse(
+                    logicalX(mouseX),
+                    logicalY(mouseY),
+                    pressedMouseButtons,
+                    button,
+                    true,
+                    false,
+                    0,
+                    0,
+                    disposition -> runOnMinecraftThread(requestMinecraft, () -> {
+                        if (disposition != SFMTerminalInputDisposition.FORWARDED) requestCopy(true);
+                    }));
+        } else {
+            remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true,
+                    false, 0, 0);
+        }
         return true;
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        if (remoteService == null || !containsTerminalPoint(mouseX, mouseY)) return false;
+        if (remoteService == null) return false;
+        int mask = mouseMask(button);
+        boolean wasPressed = (pressedMouseButtons & mask) != 0;
         pressedMouseButtons &= ~mouseMask(button);
+        if (!wasPressed) return false;
         remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, false,
                 false, 0, 0);
         return true;
@@ -732,7 +778,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
-        if (remoteService == null || !containsTerminalPoint(mouseX, mouseY)) return false;
+        if (remoteService == null || pressedMouseButtons == 0) return false;
         remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
                 button, true, true, 0, 0);
         return true;
@@ -740,7 +786,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
-        if (remoteService != null && pressedMouseButtons != 0 && containsTerminalPoint(mouseX, mouseY)) {
+        if (remoteService != null && pressedMouseButtons != 0) {
             remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
                     0, true, true, 0, 0);
         }
@@ -930,17 +976,204 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         return value == 0 ? "auto" : Integer.toString(value);
     }
 
+    private void renderRemoteSelection(PoseStack poseStack) {
+        for (SFMTerminalSelectionLayout.LogicalHighlight highlight : selectionHighlightsForAutomation()) {
+            SFMScreenRenderUtils.renderHighlight(
+                    poseStack,
+                    highlight.startX(),
+                    highlight.startY(),
+                    highlight.endX(),
+                    highlight.endY());
+        }
+    }
+
+    List<SFMTerminalSelectionLayout.LogicalHighlight> selectionHighlightsForAutomation() {
+        if (remoteService == null || lastAcceptedFrame == null) return List.of();
+        Optional<SFMTerminalSelection> selected = remoteService.selection();
+        if (selected.isEmpty()) return List.of();
+        SFMTerminalFrameMetadata metadata = lastAcceptedFrame.metadata();
+        if (metadata.logicalColumns() < 1 || metadata.logicalRows() < 1
+                || metadata.cellWidth() < 1 || metadata.cellHeight() < 1
+                || metadata.panelWidth() < 1 || metadata.panelHeight() < 1) return List.of();
+        SFMTerminalImageLayout layout = terminalImageLayout();
+        SFMTerminalSelection selection = selected.get();
+        SFMTerminalSelectionLayout.NativeGrid grid;
+        try {
+            grid = new SFMTerminalSelectionLayout.NativeGrid(
+                    metadata.logicalColumns(),
+                    metadata.logicalRows(),
+                    metadata.cellWidth(),
+                    metadata.cellHeight(),
+                    metadata.panelWidth(),
+                    metadata.panelHeight());
+        } catch (IllegalArgumentException ignored) {
+            return List.of();
+        }
+        return SFMTerminalSelectionLayout.logicalHighlights(
+                new SFMTerminalSelectionLayout.Cell(selection.anchorX(), selection.anchorY()),
+                new SFMTerminalSelectionLayout.Cell(selection.focusX(), selection.focusY()),
+                grid,
+                layout,
+                viewportLogicalBounds);
+    }
+
+    record TerminalCellPoint(double x, double y) {
+    }
+
+    TerminalCellPoint terminalCellCenterForAutomation(int column, int row) {
+        if (remoteService == null || lastAcceptedFrame == null) {
+            throw new IllegalStateException("Terminal has no accepted remote frame");
+        }
+        SFMTerminalFrameMetadata metadata = lastAcceptedFrame.metadata();
+        int columns = Math.max(1, metadata.logicalColumns());
+        int rows = Math.max(1, metadata.logicalRows());
+        int boundedColumn = Math.max(0, Math.min(columns - 1, column));
+        int boundedRow = Math.max(0, Math.min(rows - 1, row));
+        SFMTerminalImageLayout layout = terminalImageLayout();
+        return new TerminalCellPoint(
+                layout.x() + (boundedColumn + 0.5D) * layout.width() / columns,
+                layout.y() + (boundedRow + 0.5D) * layout.height() / rows);
+    }
+
+    Optional<SFMTerminalSelection> selectionForAutomation() {
+        return remoteService == null ? Optional.empty() : remoteService.selection();
+    }
+
+    Optional<SFMTerminalFrame> acceptedFrameForAutomation() {
+        return Optional.ofNullable(lastAcceptedFrame);
+    }
+
+    SFMTerminalPngTelemetry.Snapshot pngTelemetryForAutomation() {
+        return pngRenderer.telemetry();
+    }
+
+    SFMTerminalRgbaRenderer.Snapshot rgbaTelemetryForAutomation() {
+        return rgbaRenderer.telemetry();
+    }
+
+    private boolean requestCopy(boolean pasteClipboardWhenEmpty) {
+        if (remoteService == null) return false;
+        Minecraft requestMinecraft = minecraft;
+        return remoteService.copySelection(result -> runOnMinecraftThread(requestMinecraft, () -> {
+            if (result.disposition() == SFMTerminalCopyResult.Disposition.COPIED) {
+                if (requestMinecraft != null) requestMinecraft.keyboardHandler.setClipboard(result.text());
+                focusTerminalInput();
+                return;
+            }
+            if (pasteClipboardWhenEmpty) {
+                String clipboard = requestMinecraft == null
+                        ? ""
+                        : requestMinecraft.keyboardHandler.getClipboard();
+                if (!clipboard.isEmpty()) requestGuardedPaste(clipboard);
+            } else {
+                remoteService.sendKey(GLFW.GLFW_KEY_C, GLFW.GLFW_MOD_CONTROL, true, false);
+                remoteService.sendKey(GLFW.GLFW_KEY_C, GLFW.GLFW_MOD_CONTROL, false, false);
+            }
+            focusTerminalInput();
+        }));
+    }
+
+    private boolean requestGuardedPaste(String text) {
+        if (remoteService == null || text == null || text.isEmpty()) return true;
+        Minecraft requestMinecraft = minecraft;
+        return remoteService.pasteWithGuard(text, result -> runOnMinecraftThread(requestMinecraft, () -> {
+            if (result.disposition() == SFMTerminalPasteResult.Disposition.PASTED) {
+                pendingPaste = null;
+                focusTerminalInput();
+                return;
+            }
+            PendingPaste pending = new PendingPaste(
+                    text,
+                    result.preview(),
+                    result.contentId(),
+                    remoteService.interactionEpoch());
+            pendingPaste = pending;
+            if (requestMinecraft != null) {
+                SFMTerminalPasteConfirmationScreen.open(
+                        result.preview(),
+                        approved -> resolvePendingPaste(pending.contentId(), approved));
+            }
+        }));
+    }
+
+    private void resolvePendingPaste(String expectedContentId, boolean approved) {
+        PendingPaste pending = pendingPaste;
+        if (pending == null || !pending.contentId().equals(expectedContentId)) return;
+        pendingPaste = null;
+        focusTerminalInput();
+        if (!approved || remoteService == null
+                || !remoteService.isConnected()
+                || remoteService.interactionEpoch() != pending.interactionEpoch()) return;
+        Minecraft requestMinecraft = minecraft;
+        remoteService.pasteWithoutGuard(
+                pending.text(),
+                pending.contentId(),
+                ignored -> runOnMinecraftThread(requestMinecraft, this::focusTerminalInput));
+    }
+
+    Optional<String> pendingPasteContentIdForAutomation() {
+        return Optional.ofNullable(pendingPaste).map(PendingPaste::contentId);
+    }
+
+    Optional<String> pendingPastePreviewForAutomation() {
+        return Optional.ofNullable(pendingPaste).map(PendingPaste::preview);
+    }
+
+    void resolvePendingPasteForAutomation(String contentId, boolean approved) {
+        resolvePendingPaste(contentId, approved);
+    }
+
+    private void runOnMinecraftThread(Minecraft requestMinecraft, Runnable operation) {
+        if (requestMinecraft == null) {
+            operation.run();
+            return;
+        }
+        if (minecraft != requestMinecraft) return;
+        requestMinecraft.execute(() -> {
+            if (minecraft == requestMinecraft) operation.run();
+        });
+    }
+
+    private SFMTerminalImageLayout terminalImageLayout() {
+        if (lastAcceptedFrame == null) {
+            return new SFMTerminalImageLayout(renderLeft, renderTop, renderWidth, renderHeight);
+        }
+        SFMTerminalFrameMetadata metadata = lastAcceptedFrame.metadata();
+        return SFMTerminalImageLayout.fitPhysical(
+                renderLeft,
+                renderTop,
+                renderWidth,
+                renderHeight,
+                Math.max(1, metadata.panelWidth()),
+                Math.max(1, metadata.panelHeight()),
+                localToPhysicalScaleX(),
+                localToPhysicalScaleY());
+    }
+
     private boolean containsTerminalPoint(double mouseX, double mouseY) {
-        return mouseX >= renderLeft && mouseX < renderLeft + renderWidth
-                && mouseY >= renderTop && mouseY < renderTop + renderHeight;
+        SFMTerminalImageLayout layout = terminalImageLayout();
+        return mouseX >= layout.x() && mouseX < layout.x() + layout.width()
+                && mouseY >= layout.y() && mouseY < layout.y() + layout.height();
     }
 
     private int logicalX(double mouseX) {
-        return Math.max(0, (int) ((mouseX - renderLeft) * remoteService.logicalWidth() / Math.max(1, renderWidth)));
+        SFMTerminalImageLayout layout = terminalImageLayout();
+        int columns = lastAcceptedFrame == null
+                ? remoteService.logicalWidth()
+                : lastAcceptedFrame.metadata().logicalColumns();
+        int cell = (int) Math.floor((mouseX - layout.x()) * Math.max(1, columns)
+                / Math.max(1, layout.width()));
+        return Math.max(0, Math.min(Math.max(1, columns) - 1, cell));
     }
 
     private int logicalY(double mouseY) {
-        return Math.max(0, (int) ((mouseY - renderTop) * remoteService.logicalHeight() / Math.max(1, renderHeight)));
+        SFMTerminalImageLayout layout = terminalImageLayout();
+        int rows = lastAcceptedFrame == null
+                ? remoteService.logicalHeight()
+                : lastAcceptedFrame.metadata().logicalRows();
+        int cell = (int) Math.floor((mouseY - layout.y()) * Math.max(1, rows)
+                / Math.max(1, layout.height()));
+        return Math.max(0, Math.min(Math.max(1, rows) - 1, cell));
     }
 
     private static int mouseMask(int button) {
@@ -956,6 +1189,12 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     private static boolean isPasteShortcut(int keyCode, int modifiers) {
         return keyCode == GLFW.GLFW_KEY_V
+                && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0
+                && (modifiers & (GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) == 0;
+    }
+
+    private static boolean isCopyShortcut(int keyCode, int modifiers) {
+        return keyCode == GLFW.GLFW_KEY_C
                 && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0
                 && (modifiers & (GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) == 0;
     }
