@@ -154,6 +154,16 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    public void exerciseCommandPaletteViewport() {
+        add(new ExerciseCommandPaletteViewportPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void assertFormerTerminalStartButtonRoutesToTerminal() {
+        add(new AssertFormerTerminalStartButtonPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void assertActionChoice(List<String> expectedCommands) {
         add(new AssertActionChoicePuppetAction(expectedCommands));
     }

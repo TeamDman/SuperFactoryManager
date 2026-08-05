@@ -5,7 +5,6 @@ import ca.teamdman.sfm.client.handler.SFMCommandPaletteKeyHandler;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
-import ca.teamdman.sfm.client.screen.SFMActionChoiceScreen;
 import ca.teamdman.sfm.client.screen.SFMTerminalPasteConfirmationScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerPanel;
@@ -256,24 +255,43 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public void exerciseCommandPaletteViewport() {
+        if (!(minecraft.screen instanceof SFMCommandPaletteScreen palette)) {
+            throw new IllegalStateException("Expected command palette before viewport exercise");
+        }
+        palette.exerciseSuggestionViewportForAutomation();
+    }
+
+    @Override
+    public void assertFormerTerminalStartButtonRoutesToTerminal() {
+        requireTerminalPanel().assertFormerStartButtonRoutesToTerminalForAutomation();
+    }
+
+    @Override
+    public boolean isFormerTerminalStartButtonRoutingReady() {
+        return minecraft.screen instanceof SFMScreenMultiplexer
+                && requireTerminalPanel().formerStartButtonRoutingReadyForAutomation();
+    }
+
+    @Override
     public void assertActionChoice(List<String> expectedCommands) {
-        if (!(minecraft.screen instanceof SFMActionChoiceScreen chooser)) {
-            throw new IllegalStateException("Expected a bounded action chooser but found "
+        if (!(minecraft.screen instanceof SFMCommandPaletteScreen palette)) {
+            throw new IllegalStateException("Expected a constrained command palette but found "
                     + (minecraft.screen == null ? "no screen" : minecraft.screen.getClass().getName()));
         }
-        List<String> actual = chooser.commandsForAutomation();
+        List<String> actual = palette.choiceCommandsForAutomation();
         if (!actual.equals(expectedCommands)) {
-            throw new IllegalStateException("Bounded action chooser commands were " + actual
+            throw new IllegalStateException("Constrained command palette choices were " + actual
                     + " instead of " + expectedCommands);
         }
     }
 
     @Override
     public void clickActionChoice(String command) {
-        if (!(minecraft.screen instanceof SFMActionChoiceScreen chooser)) {
-            throw new IllegalStateException("Expected a bounded action chooser before mouse selection");
+        if (!(minecraft.screen instanceof SFMCommandPaletteScreen palette)) {
+            throw new IllegalStateException("Expected a constrained command palette before choice execution");
         }
-        chooser.clickChoiceForAutomation(command);
+        palette.clickChoiceForAutomation(command);
     }
 
     @Override

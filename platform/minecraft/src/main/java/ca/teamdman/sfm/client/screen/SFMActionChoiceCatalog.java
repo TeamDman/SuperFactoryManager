@@ -12,7 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.function.Function;
 
-/** Pure filtering seam shared by the bounded chooser and focused tests. */
+/** Pure filtering seam shared by constrained choice sessions and focused tests. */
 public final class SFMActionChoiceCatalog {
     private SFMActionChoiceCatalog() {
     }

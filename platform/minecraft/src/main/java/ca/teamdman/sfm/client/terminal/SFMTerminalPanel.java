@@ -68,6 +68,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private String connectionStatus;
     private final RustServerStarter rustServerStarter;
     private StartButtonHitState startButtonHitState = StartButtonHitState.inactive();
+    private SFMScreenPanelBounds lastDisconnectedStartButtonBounds;
+    private long startButtonAttemptCount;
     private boolean presentationControlFocused;
     private boolean presentationMenuOpen;
     private PresentationAxis presentationAxis = PresentationAxis.RENDERER;
@@ -491,7 +493,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             if (focusSequence.escape(System.nanoTime()) == SFMTerminalFocusSequence.Decision.HOST_ESCAPE) {
                 // The first two presses belong to the PTY. The third is not
                 // forwarded and deliberately falls through to the workspace's
-                // bounded close chooser instead of closing a panel directly.
+                // constrained close palette instead of closing a panel directly.
                 return false;
             }
             if (remoteService != null) remoteService.sendKey(keyCode, modifiers, true, false);
@@ -1305,6 +1307,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     private void startRustServer() {
         if (startRequested || remoteService == null) return;
+        startButtonAttemptCount++;
         startRequested = true;
         connectionStatus = "Starting the Rust terminal server...";
         Minecraft currentMinecraft = minecraft;
@@ -1329,6 +1332,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     void recordDisconnectedStartButtonPresentation(SFMScreenPanelBounds buttonBounds) {
+        lastDisconnectedStartButtonBounds = buttonBounds;
         startButtonHitState = StartButtonHitState.current(buttonBounds);
     }
 
@@ -1338,6 +1342,35 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     boolean startRequestedForAutomation() {
         return startRequested;
+    }
+
+    public void assertFormerStartButtonRoutesToTerminalForAutomation() {
+        if (lastAcceptedFrame == null) {
+            throw new IllegalStateException("Terminal has not presented a Rust frame after its disconnected state");
+        }
+        if (startButtonHitState.current()) {
+            throw new IllegalStateException("Disconnected Start/Retry target is still active over terminal pixels");
+        }
+        SFMScreenPanelBounds former = lastDisconnectedStartButtonBounds;
+        if (former == null) {
+            throw new IllegalStateException("Terminal never presented a disconnected Start/Retry target");
+        }
+        long attemptsBefore = startButtonAttemptCount;
+        if (!mouseClicked(
+                former.x() + Math.max(0, former.width() - 1) / 2.0d,
+                former.y() + Math.max(0, former.height() - 1) / 2.0d,
+                GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
+            throw new IllegalStateException("Former Start/Retry coordinates did not reach terminal input");
+        }
+        if (startButtonAttemptCount != attemptsBefore) {
+            throw new IllegalStateException("Former Start/Retry coordinates launched the Rust server again");
+        }
+    }
+
+    public boolean formerStartButtonRoutingReadyForAutomation() {
+        return lastAcceptedFrame != null
+                && lastDisconnectedStartButtonBounds != null
+                && !startButtonHitState.current();
     }
 
     private void renderFocusHint(PoseStack poseStack, Minecraft minecraft, int left, int width, int contentBottom) {

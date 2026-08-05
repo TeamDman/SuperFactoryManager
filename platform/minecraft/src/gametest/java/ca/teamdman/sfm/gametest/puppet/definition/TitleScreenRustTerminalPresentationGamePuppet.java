@@ -138,6 +138,9 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         // terminals exist and focus moves to the properties panel.
         puppet.pressScreenKey(GLFW.GLFW_KEY_F3, 0);
         puppet.assertActionChoice(terminalDiagnosticChoices());
+        puppet.pressScreenKey(GLFW.GLFW_KEY_DOWN, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_UP, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_TAB, 0);
         puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, 0);
         puppet.waitTicks(20);
         puppet.capture("terminal-properties-beside-gpu-dirty", caption(GPU, DIRTY_RGBA,
@@ -360,7 +363,7 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         puppet.assertActionChoice(propertiesDiagnosticChoices());
         puppet.clickActionChoice("sfm action invoke sfm:panel/open sfm:size_display");
         puppet.capture("terminal-size-display-from-f3", caption(GPU, DIRTY_RGBA,
-                "The bounded diagnostics chooser opened the live size-display scene."));
+                "The constrained diagnostics palette opened the live size-display scene."));
         puppet.openCommandPalette();
         puppet.executeCommandPalette("sfm action invoke sfm:panel/close");
         puppet.waitTicks(20);
@@ -380,7 +383,7 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         puppet.writeTerminalContent("chooser-mouse-return", "SFM-CHOOSER-MOUSE-RETURN", null);
 
         // The terminal's first two Escapes reach the PTY; the third delegates
-        // to the exact bounded close chooser. Escape cancels it and keyboard
+        // to the exact constrained close palette. Escape cancels it and keyboard
         // input immediately returns to the same terminal.
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.capture("terminal-escape-two-remaining", caption(GPU, DIRTY_RGBA,

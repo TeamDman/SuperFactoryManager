@@ -33,19 +33,16 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.capture("rust-terminal-disconnected", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Rust-authoritative terminal shows an explicit disconnected state.")));
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
-        puppet.waitTicks(10);
         puppet.openCommandPalette();
         puppet.executeCommandPalette("sfm action invoke sfm:terminal/server/start");
         puppet.openCommandPalette();
         puppet.executeCommandPalette("sfm action invoke sfm:terminal/server/connect");
+        puppet.executeCommandPalette("sfm action invoke sfm:palette/close");
+        puppet.waitTicks(80);
+        puppet.assertFormerTerminalStartButtonRoutesToTerminal();
         puppet.capture("rust-terminal-lifecycle-actions", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
-                .append(Component.literal("Rust terminal lifecycle actions do not open or replace a panel.")));
-        puppet.openCommandPalette();
-        puppet.executeCommandPalette("sfm action invoke sfm:panel/open sfm:terminal");
+                .append(Component.literal("Lifecycle actions retain the panel and loaded pixels retire Start/Retry hit routing.")));
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.capture("rust-terminal-escape-guidance", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
@@ -158,10 +155,10 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
         puppet.capture("rust-terminal-triple-escape-chooser", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
-                .append(Component.literal("Three Escape presses open the bounded close chooser.")));
+                .append(Component.literal("Three Escape presses open the constrained close palette.")));
         puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, 0);
         puppet.capture("rust-terminal-triple-escape-close", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
-                .append(Component.literal("The chooser's focused Close panel action returns to the underlying screen.")));
+                .append(Component.literal("The palette's selected Close panel action returns to the underlying screen.")));
     }
 }

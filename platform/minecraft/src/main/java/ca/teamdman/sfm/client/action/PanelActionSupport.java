@@ -17,6 +17,11 @@ final class PanelActionSupport {
             return SFMClientActionAvailability.unavailable(
                     Component.literal("Panel actions require an SFM panel workspace"));
         }
+        if (context.originatingPanelId() != null
+                && !workspace.containsPanel(context.originatingPanelId())) {
+            return SFMClientActionAvailability.unavailable(
+                    Component.literal("The originating SFM panel is no longer available"));
+        }
         return SFMClientActionAvailability.available(workspace);
     }
 

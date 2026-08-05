@@ -2,7 +2,7 @@ package ca.teamdman.sfm.client.screen.workspace;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
-import ca.teamdman.sfm.client.screen.SFMActionChoiceScreen;
+import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
@@ -150,6 +150,15 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         submit(layout.focusedPanel(), new SFMWorkspacePanelIntent.OpenToSide(SFMWorkspaceSide.RIGHT, panel));
     }
 
+    public SFMWorkspacePanelIntentResult openToSide(
+            SFMWorkspacePanelId source,
+            SFMWorkspaceSide side,
+            SFMScreenPanel panel
+    ) {
+        if (layout.panel(source) == null) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
+        return submit(source, new SFMWorkspacePanelIntent.OpenToSide(side, panel));
+    }
+
     public SFMWorkspacePanelIntentResult openFocused(
             SFMScreenPanel panel,
             SFMWorkspacePanelMetadata metadata
@@ -178,6 +187,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     public SFMWorkspacePanelIntentResult closeFocused() {
         return submit(layout.focusedPanel(), new SFMWorkspacePanelIntent.Close());
+    }
+
+    public SFMWorkspacePanelIntentResult closePanel(SFMWorkspacePanelId panelId) {
+        if (layout.panel(panelId) == null) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
+        return submit(panelId, new SFMWorkspacePanelIntent.Close());
     }
 
     public SFMWorkspacePanelIntentResult moveFocused(SFMWorkspaceSide side) {
@@ -226,6 +240,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     /** Exact visible panel targeted by focused-panel actions. */
     public @Nullable SFMScreenPanel focusedPanelInstance() {
         return layout.panel(layout.focusedPanel());
+    }
+
+    public @Nullable SFMScreenPanel panelInstance(SFMWorkspacePanelId panelId) {
+        return layout.panel(panelId);
     }
 
     public List<SFMScreenPanel> panels() {
@@ -403,7 +421,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         boolean control = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0 || Screen.hasControlDown();
         boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0 || Screen.hasShiftDown();
         if (keyCode == GLFW.GLFW_KEY_F3) {
-            SFMActionChoiceScreen.open(
+            SFMCommandPaletteScreen.openChoices(
                     Component.literal("SFM diagnostics"),
                     diagnosticChoices(layout.panel(layout.focusedPanel())));
             return true;
@@ -432,7 +450,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         if (focused != null && focused.keyPressed(keyCode, scanCode, modifiers)) return true;
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-            SFMActionChoiceScreen.open(Component.literal("Close SFM workspace"), escapeChoices());
+            SFMCommandPaletteScreen.openChoices(Component.literal("Close SFM workspace"), escapeChoices());
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);

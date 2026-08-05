@@ -24,6 +24,17 @@ import org.junit.jupiter.api.Test;
 
 class SFMVoxTerminalServiceTests {
     @Test
+    void rasterEvidenceAllowsOnlySupersededReceiverFailuresDuringExpectedReconnect() {
+        assertTrue(SFMVoxTerminalService.rasterDeliveryCountsValid(false, 1, 0, 0));
+        assertFalse(SFMVoxTerminalService.rasterDeliveryCountsValid(false, 1, 0, 1));
+        assertFalse(SFMVoxTerminalService.rasterDeliveryCountsValid(true, 1, 0, 0));
+        assertTrue(SFMVoxTerminalService.rasterDeliveryCountsValid(true, 2, 0, 0));
+        assertTrue(SFMVoxTerminalService.rasterDeliveryCountsValid(true, 2, 0, 1));
+        assertFalse(SFMVoxTerminalService.rasterDeliveryCountsValid(true, 2, 0, 2));
+        assertFalse(SFMVoxTerminalService.rasterDeliveryCountsValid(true, 2, 1, 0));
+    }
+
+    @Test
     void typedTuningPreservesAutomaticAxesWithEffectiveCompatibilityValues() {
         TerminalTuningRequest request = SFMVoxTerminalService.requestedTuningRequest(
                 "rust-gpu-slug",

@@ -490,9 +490,15 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                                     ? "none" : rasterHandoff.active().lane.state())
                                     + " failure=" + failure);
                 }
-                if (rasterFramesRejected != 0 || rasterReceiverFailures != 0) {
+                if (!rasterDeliveryCountsValid(
+                        reconnectExpected,
+                        rasterSubscriptionsStarted,
+                        rasterFramesRejected,
+                        rasterReceiverFailures)) {
                     throw new IllegalStateException(
                             "Java raster delivery recorded rejected frames or receiver failures"
+                                    + " reconnect_expected=" + reconnectExpected
+                                    + " subscriptions=" + rasterSubscriptionsStarted
                                     + " rejected=" + rasterFramesRejected
                                     + " receiver_failures=" + rasterReceiverFailures);
                 }
@@ -652,6 +658,17 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 "latest_frame_sequence=" + event.frameSequence());
         SFM.LOGGER.info("SFM_VOX_TERMINAL_PUSH_EVIDENCE {}", result.replace('\n', ' '));
         return result + "\n";
+    }
+
+    static boolean rasterDeliveryCountsValid(
+            boolean reconnectExpected,
+            long subscriptionsStarted,
+            long rejectedFrames,
+            long receiverFailures
+    ) {
+        if (rejectedFrames != 0 || receiverFailures < 0) return false;
+        if (!reconnectExpected) return receiverFailures == 0;
+        return subscriptionsStarted >= 2 && receiverFailures < subscriptionsStarted;
     }
 
     private static int selectionCoordinate(

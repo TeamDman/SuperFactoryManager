@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.network.chat.Component;
 
@@ -23,9 +24,12 @@ public final class ClosePanelAction implements SFMClientAction<SFMScreenMultiple
 
     @Override
     public int execute(SFMScreenMultiplexer workspace, CommandContext<SFMClientActionSource> context) {
+        var panelId = context.getSource().context().originatingPanelId();
+        SFMWorkspacePanelIntentResult result = panelId == null
+                ? workspace.closeFocused()
+                : workspace.closePanel(panelId);
         return PanelActionSupport.closePaletteAfter(
-                workspace.closeFocused() == ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult.APPLIED
-                        ? 1 : 0
+                result == SFMWorkspacePanelIntentResult.APPLIED ? 1 : 0
         );
     }
 }

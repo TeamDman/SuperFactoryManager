@@ -11,7 +11,7 @@ public record AssertActionChoicePuppetAction(List<String> expectedCommands) impl
 
     @Override
     public String description() {
-        return "assert bounded action chooser " + expectedCommands;
+        return "assert constrained command palette " + expectedCommands;
     }
 
     @Override

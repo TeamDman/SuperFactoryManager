@@ -17,6 +17,7 @@ import org.simmetrics.StringDistance;
 import org.simmetrics.metrics.StringDistances;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -32,13 +33,34 @@ public final class SFMClientActionCommandTree {
     private final CommandDispatcher<SFMClientActionSource> dispatcher;
     private final Map<ResourceLocation, SFMClientAction<?>> actions;
     private final Map<ResourceLocation, ActionSearchMetadata> searchMetadata;
+    private final List<String> paletteActionPrefixes;
+    private final Map<String, ResourceLocation> paletteChoiceActions;
 
     SFMClientActionCommandTree(
             CommandDispatcher<SFMClientActionSource> dispatcher,
             Map<ResourceLocation, SFMClientAction<?>> actions
     ) {
+        this(dispatcher, actions, List.of(PALETTE_ACTION_PREFIX));
+    }
+
+    private SFMClientActionCommandTree(
+            CommandDispatcher<SFMClientActionSource> dispatcher,
+            Map<ResourceLocation, SFMClientAction<?>> actions,
+            List<String> paletteActionPrefixes
+    ) {
+        this(dispatcher, actions, paletteActionPrefixes, Map.of());
+    }
+
+    private SFMClientActionCommandTree(
+            CommandDispatcher<SFMClientActionSource> dispatcher,
+            Map<ResourceLocation, SFMClientAction<?>> actions,
+            List<String> paletteActionPrefixes,
+            Map<String, ResourceLocation> paletteChoiceActions
+    ) {
         this.dispatcher = dispatcher;
         this.actions = Map.copyOf(actions);
+        this.paletteActionPrefixes = List.copyOf(paletteActionPrefixes);
+        this.paletteChoiceActions = Collections.unmodifiableMap(new LinkedHashMap<>(paletteChoiceActions));
         this.searchMetadata = this.actions.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
                 Map.Entry::getKey,
                 entry -> new ActionSearchMetadata(
@@ -48,6 +70,20 @@ public final class SFMClientActionCommandTree {
                         searchableComponentText(entry.getValue().description())
                 )
         ));
+    }
+
+    /**
+     * Creates an isolated palette command surface without adding ephemeral
+     * nodes to the process-wide client-action dispatcher.
+     */
+    public static SFMClientActionCommandTree isolatedPaletteSurface(
+            CommandDispatcher<SFMClientActionSource> dispatcher,
+            Map<ResourceLocation, SFMClientAction<?>> actions,
+            String paletteActionPrefix,
+            Map<String, ResourceLocation> paletteChoiceActions
+    ) {
+        return new SFMClientActionCommandTree(
+                dispatcher, actions, List.of(paletteActionPrefix), paletteChoiceActions);
     }
 
     CommandDispatcher<SFMClientActionSource> dispatcher() {
@@ -112,6 +148,30 @@ public final class SFMClientActionCommandTree {
             String command,
             ParseResults<SFMClientActionSource> parsed
     ) {
+        StringRange choiceRange = paletteChoiceRange(command);
+        if (choiceRange != null) {
+            String query = command.substring(choiceRange.getStart(), choiceRange.getEnd())
+                    .toLowerCase(Locale.ROOT);
+            SFMClientActionSource source = parsed.getContext().getSource();
+            List<RankedChoice> ranked = new ArrayList<>();
+            for (Map.Entry<String, ResourceLocation> choice : paletteChoiceActions.entrySet()) {
+                if (!isAvailable(choice.getValue(), source)) continue;
+                float score = choiceScore(query, choice.getKey(), searchMetadata.get(choice.getValue()));
+                if (query.isBlank() || score <= 0.65f) {
+                    ranked.add(new RankedChoice(
+                            new Suggestion(choiceRange, choice.getKey()),
+                            score,
+                            choice.getKey()));
+                }
+            }
+            if (!query.isBlank()) {
+                ranked.sort(Comparator.comparingDouble(RankedChoice::score)
+                        .thenComparing(RankedChoice::command));
+            }
+            return CompletableFuture.completedFuture(new Suggestions(
+                    choiceRange,
+                    ranked.stream().map(RankedChoice::suggestion).toList()));
+        }
         return getCompletionSuggestions(parsed).thenApply(brigadierSuggestions -> {
             StringRange actionRange = actionIdRange(command);
             if (actionRange == null) {
@@ -193,13 +253,26 @@ public final class SFMClientActionCommandTree {
         return new Suggestions(range, ranked.stream().map(RankedLiteral::suggestion).toList());
     }
 
-    private static StringRange actionIdRange(String command) {
-        if (!command.startsWith(PALETTE_ACTION_PREFIX)) return null;
-        int actionStart = PALETTE_ACTION_PREFIX.length();
-        for (int index = actionStart; index < command.length(); index++) {
-            if (Character.isWhitespace(command.charAt(index))) return null;
+    private StringRange actionIdRange(String command) {
+        for (String prefix : paletteActionPrefixes) {
+            if (!command.startsWith(prefix)) continue;
+            int actionStart = prefix.length();
+            for (int index = actionStart; index < command.length(); index++) {
+                if (Character.isWhitespace(command.charAt(index))) return null;
+            }
+            return StringRange.between(actionStart, command.length());
         }
-        return StringRange.between(actionStart, command.length());
+        return null;
+    }
+
+    private StringRange paletteChoiceRange(String command) {
+        if (paletteChoiceActions.isEmpty()) return null;
+        for (String prefix : paletteActionPrefixes) {
+            if (command.startsWith(prefix)) {
+                return StringRange.between(prefix.length(), command.length());
+            }
+        }
+        return null;
     }
 
     private static float actionScore(String query, ActionSearchMetadata action) {
@@ -220,6 +293,16 @@ public final class SFMClientActionCommandTree {
             best = Math.min(best, distance);
         }
         return best;
+    }
+
+    private static float choiceScore(String query, String choice, ActionSearchMetadata action) {
+        float score = actionScore(query, action);
+        String normalized = choice.toLowerCase(Locale.ROOT);
+        float choiceDistance = ACTION_DISTANCE.distance(query, normalized)
+                / Math.max(1, Math.max(query.length(), normalized.length()));
+        if (normalized.startsWith(query)) choiceDistance -= 0.05f;
+        if (normalized.contains(query)) choiceDistance -= 0.5f;
+        return Math.min(score, choiceDistance);
     }
 
     private static float literalScore(String query, String candidate) {
@@ -265,6 +348,9 @@ public final class SFMClientActionCommandTree {
     }
 
     private record RankedLiteral(Suggestion suggestion, float score, String literal) {
+    }
+
+    private record RankedChoice(Suggestion suggestion, float score, String command) {
     }
 
     private record ActionSearchMetadata(String id, String path, String title, String description) {

@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.action.SFMClientActionCommandTree;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
@@ -14,6 +15,7 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.widget.SFMConsoleWidget;
+import ca.teamdman.sfm.client.screen.widget.SFMVerticalListViewport;
 import ca.teamdman.sfm.client.theme.SFMClientTheme;
 import ca.teamdman.sfm.client.theme.SFMClientThemeService;
 import ca.teamdman.sfm.client.theme.SFMColourRole;
@@ -38,6 +40,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 
 /**
  * The first, deliberately small, presentation of SFM's contextual action
@@ -96,12 +99,19 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private static final int PANEL_MARGIN = 12;
     private static final int PANEL_BASE_HEIGHT = 92;
     private static final int SUGGESTION_ROW_HEIGHT = 18;
+    private static final int SUGGESTION_ROW_CONTENT_HEIGHT = 16;
+    private static final int SCROLLBAR_WIDTH = 6;
+    private static final int SCROLLBAR_GAP = 4;
+    private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 12;
 
     private static @Nullable SFMCommandPaletteScreen ACTIVE;
 
     private final SFMClientActionContext actionContext;
     private final boolean pushed;
     private final String initialQuery;
+    private final @Nullable SFMChoiceSession choiceSession;
+    @SuppressWarnings("NotNullFieldNotInitialized")
+    private SFMClientActionCommandTree commandTree;
 
     @SuppressWarnings("NotNullFieldNotInitialized")
     private EditBox input;
@@ -111,8 +121,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private SFMConsoleWidget consoleWidget;
     private List<Suggestion> suggestions = List.of();
     private final List<Component> feedback = new ArrayList<>();
-    private int selectedSuggestion = -1;
-    private int firstVisibleSuggestion;
+    private final SFMVerticalListViewport suggestionViewport = new SFMVerticalListViewport();
     private String error = "";
     private long suggestionRevision;
     private long bindingCycleTicks;
@@ -128,6 +137,23 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.actionContext = actionContext;
         this.initialQuery = initialQuery.isBlank() ? DEFAULT_QUERY : initialQuery;
         this.pushed = pushed;
+        this.choiceSession = null;
+        this.commandTree = SFMClientActions.commandTree();
+    }
+
+    private SFMCommandPaletteScreen(
+            @Nullable Screen origin,
+            Component title,
+            List<SFMActionChoice> choices,
+            boolean pushed
+    ) {
+        super(title);
+        this.pushed = pushed;
+        this.actionContext = SFMClientActionContext.create(
+                origin,
+                () -> ACTIVE == this && Minecraft.getInstance().screen == this);
+        this.choiceSession = SFMChoiceSessionService.create(choices, actionContext);
+        this.initialQuery = choiceSession.prefix();
     }
 
     public static SFMClientActionContext createOriginContext() {
@@ -157,6 +183,22 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         SFMScreenChangeHelpers.setOrPushScreen(palette);
     }
 
+    public static void openChoices(Component title, List<SFMActionChoice> choices) {
+        Minecraft minecraft = Minecraft.getInstance();
+        Screen origin = minecraft.screen;
+        boolean pushed = origin != null;
+        SFMCommandPaletteScreen palette = new SFMCommandPaletteScreen(
+                origin, title, choices, pushed);
+        ACTIVE = palette;
+        try {
+            SFMScreenChangeHelpers.setOrPushScreen(palette);
+        } catch (RuntimeException exception) {
+            SFMChoiceSessionService.invalidate(palette.choiceSession);
+            if (ACTIVE == palette) ACTIVE = null;
+            throw exception;
+        }
+    }
+
     @Override
     public boolean isPauseScreen() {
         return true;
@@ -164,12 +206,13 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     @Override
     public Component getNarrationMessage() {
-        if (selectedSuggestion < 0 || selectedSuggestion >= suggestions.size()) return TITLE.getComponent();
+        int selectedSuggestion = suggestionViewport.selectedRow();
+        if (selectedSuggestion < 0 || selectedSuggestion >= suggestions.size()) return title;
         Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(selectedSuggestion));
-        if (actionId.isEmpty()) return TITLE.getComponent();
+        if (actionId.isEmpty()) return title;
         var action = SFMClientActions.registry().get(actionId.get());
-        if (action == null) return TITLE.getComponent();
-        var narration = TITLE.getComponent().copy().append(". ").append(action.title()).append(". ")
+        if (action == null) return title;
+        var narration = title.copy().append(". ").append(action.title()).append(". ")
                 .append(action.description());
         action.itemIcon(actionContext).ifPresent(icon -> narration.append(". Icon: " + icon.accessibleLabel()));
         int bindingCount = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get()).size();
@@ -188,6 +231,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     protected void init() {
         super.init();
         ACTIVE = this;
+        if (choiceSession != null) commandTree = choiceSession.activate();
         SFMScreenRenderUtils.enableKeyRepeating();
         int width = Math.min(460, this.width - 24);
         int left = (this.width - width) / 2;
@@ -232,6 +276,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     public void onClose() {
         if (this.closing) return;
         this.closing = true;
+        if (choiceSession != null) SFMChoiceSessionService.invalidate(choiceSession);
         if (ACTIVE == this) ACTIVE = null;
         if (this.pushed) {
             SFMScreenChangeHelpers.popScreen();
@@ -247,6 +292,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     @Override
     public void removed() {
+        if (choiceSession != null) SFMChoiceSessionService.invalidate(choiceSession);
         if (ACTIVE == this) ACTIVE = null;
         super.removed();
     }
@@ -258,6 +304,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             return true;
         }
         if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) {
+            if (!currentInputIsExecutable()
+                    && suggestionViewport.selectedRow() != SFMVerticalListViewport.NO_SELECTION) {
+                applySelectedSuggestion();
+                if (!currentInputIsExecutable()) return true;
+            }
             executeInput();
             return true;
         }
@@ -272,12 +323,25 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         }
         if (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN) {
             if (!suggestions.isEmpty()) {
-                int delta = key == GLFW.GLFW_KEY_UP ? -1 : 1;
-                int next = selectedSuggestion < 0 ? 0 : selectedSuggestion + delta;
-                selectedSuggestion = Math.max(0, Math.min(suggestions.size() - 1, next));
-                ensureSelectedSuggestionVisible();
+                suggestionViewport.moveSelection(key == GLFW.GLFW_KEY_UP ? -1 : 1);
                 return true;
             }
+        }
+        if (!suggestions.isEmpty() && key == GLFW.GLFW_KEY_PAGE_UP) {
+            suggestionViewport.pageSelection(-1);
+            return true;
+        }
+        if (!suggestions.isEmpty() && key == GLFW.GLFW_KEY_PAGE_DOWN) {
+            suggestionViewport.pageSelection(1);
+            return true;
+        }
+        if (!suggestions.isEmpty() && key == GLFW.GLFW_KEY_HOME) {
+            suggestionViewport.selectFirst();
+            return true;
+        }
+        if (!suggestions.isEmpty() && key == GLFW.GLFW_KEY_END) {
+            suggestionViewport.selectLast();
+            return true;
         }
         return super.keyPressed(key, scanCode, modifiers);
     }
@@ -287,29 +351,29 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         if (this.consoleWidget.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
-        int left = panelLeft();
-        int top = panelTop();
-        int width = panelWidth();
-        if (mouseX >= left && mouseX <= left + width) {
-            int suggestionTop = top + 72;
-            int visibleIndex = (int) ((mouseY - suggestionTop) / SUGGESTION_ROW_HEIGHT);
-            int suggestionIndex = firstVisibleSuggestion + visibleIndex;
-            if (visibleIndex >= 0
-                    && visibleIndex < visibleSuggestionCount()
-                    && suggestionIndex < suggestions.size()) {
-                if (mouseX >= left + width - 28) {
-                    Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
-                    if (actionId.isPresent()) {
-                        SFMScreenChangeHelpers.setOrPushScreen(new SFMKeyBindingDetailsScreen(this, actionId.get()));
-                        return true;
-                    }
+        if (super.mouseClicked(mouseX, mouseY, button)) return true;
+        SFMVerticalListViewport.ScrollbarGeometry scrollbar = suggestionScrollbarGeometry();
+        if (suggestionViewport.mouseClickedScrollbar(mouseX, mouseY, button, scrollbar)) return true;
+        OptionalInt row = suggestionViewport.rowAt(
+                mouseX,
+                mouseY,
+                suggestionRowBounds(scrollbar.visible()),
+                SUGGESTION_ROW_HEIGHT,
+                SUGGESTION_ROW_CONTENT_HEIGHT);
+        if (button == 0 && row.isPresent()) {
+            int suggestionIndex = row.getAsInt();
+            if (mouseX >= suggestionDetailsLeft(scrollbar.visible())) {
+                Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
+                if (actionId.isPresent()) {
+                    SFMScreenChangeHelpers.setOrPushScreen(new SFMKeyBindingDetailsScreen(this, actionId.get()));
+                    return true;
                 }
-                selectedSuggestion = suggestionIndex;
-                applySelectedSuggestion();
-                return true;
             }
+            suggestionViewport.select(suggestionIndex);
+            applySelectedSuggestion();
+            return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return false;
     }
 
     @Override
@@ -317,7 +381,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         if (this.consoleWidget.mouseReleased(mouseX, mouseY, button)) {
             return true;
         }
-        return super.mouseReleased(mouseX, mouseY, button);
+        return suggestionViewport.mouseReleasedScrollbar(button)
+                || super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
@@ -331,14 +396,18 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         if (this.consoleWidget.mouseDragged(mouseX, mouseY, button, dragX, dragY)) {
             return true;
         }
-        return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        return suggestionViewport.mouseDraggedScrollbar(mouseY, button, suggestionScrollbarGeometry())
+                || super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        if (this.consoleWidget.mouseScrolled(mouseX, mouseY, delta)) {
-            return true;
-        }
+        ScrollRegion region = scrollRegionAt(
+                mouseX, mouseY, suggestionListBounds(), consoleBounds());
+        if (region == ScrollRegion.CONSOLE
+                && this.consoleWidget.mouseScrolled(mouseX, mouseY, delta)) return true;
+        if (region == ScrollRegion.SUGGESTIONS
+                && suggestionViewport.scrollWheel(delta)) return true;
         return super.mouseScrolled(mouseX, mouseY, delta);
     }
 
@@ -362,7 +431,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         fill(poseStack, left, top, left + 1, bottom, border);
         fill(poseStack, right - 1, top, right, bottom, border);
 
-        SFMFontUtils.draw(poseStack, this.font, TITLE.getComponent().withStyle(ChatFormatting.BOLD), left + 10, top + 12, text, false);
+        SFMFontUtils.draw(poseStack, this.font, title.copy().withStyle(ChatFormatting.BOLD), left + 10, top + 12, text, false);
         Component guidance = insertedRequiredArgumentSeparator
                 ? REQUIRED_ARGUMENT.getComponent().withStyle(ChatFormatting.GOLD)
                 : ACCEPT_SUGGESTION.getComponent(Component.literal("Tab").withStyle(ChatFormatting.AQUA));
@@ -375,24 +444,31 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 muted,
                 false
         );
-        int visibleSuggestions = visibleSuggestionCount();
         if (suggestions.isEmpty()) {
             SFMFontUtils.draw(poseStack, this.font, EMPTY_RESULTS.getComponent(), left + 10, top + 72, muted, false);
         } else {
-            for (int i = 0; i < visibleSuggestions; i++) {
-                int suggestionIndex = firstVisibleSuggestion + i;
-                if (suggestionIndex >= suggestions.size()) break;
-                int y = top + 72 + i * SUGGESTION_ROW_HEIGHT;
-                if (suggestionIndex == selectedSuggestion) {
-                    fill(poseStack, left + 6, y - 2, right - 6, y + 14, theme.colour(SFMColourRole.PANEL_SELECTION));
+            SFMVerticalListViewport.ScrollbarGeometry scrollbar = suggestionScrollbarGeometry();
+            SFMVerticalListViewport.Bounds rows = suggestionRowBounds(scrollbar.visible());
+            for (int suggestionIndex = suggestionViewport.firstVisibleRow();
+                 suggestionIndex < suggestionViewport.lastVisibleRowExclusive();
+                 suggestionIndex++) {
+                int visibleIndex = suggestionIndex - suggestionViewport.firstVisibleRow();
+                int rowTop = rows.y() + visibleIndex * SUGGESTION_ROW_HEIGHT;
+                int textY = rowTop + 2;
+                if (suggestionIndex == suggestionViewport.selectedRow()) {
+                    fill(poseStack, rows.x(), rowTop, rows.x() + rows.width(),
+                            rowTop + SUGGESTION_ROW_CONTENT_HEIGHT,
+                            theme.colour(SFMColourRole.PANEL_SELECTION));
                 }
                 Suggestion suggestion = suggestions.get(suggestionIndex);
                 int textX = actionIcon(suggestion).isPresent()
                         ? left + 10 + SFMItemIconRenderer.SIZE + 4
                         : left + 12;
-                SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion, textX - left), textX, y, text, false);
-                renderBindingSummary(poseStack, suggestion, right, y);
+                SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion, textX - left),
+                        textX, textY, text, false);
+                renderBindingSummary(poseStack, suggestion, right, textY, scrollbar.visible());
             }
+            renderSuggestionScrollbar(poseStack, mouseX, mouseY, scrollbar);
         }
         if (!this.error.isEmpty()) {
             SFMFontUtils.draw(
@@ -426,11 +502,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         // The palette is translucent and intentionally preserves the title/world colour buffer.
         // Clear only stale scene depth before GUI item models so they cannot be hidden by the origin screen.
         RenderSystem.clear(0x00000100, Minecraft.ON_OSX);
-        int count = visibleSuggestionCount();
-        for (int index = 0; index < count; index++) {
-            int suggestionIndex = firstVisibleSuggestion + index;
-            if (suggestionIndex >= suggestions.size()) break;
-            int y = panelTop() + 68 + index * SUGGESTION_ROW_HEIGHT;
+        for (int suggestionIndex = suggestionViewport.firstVisibleRow();
+             suggestionIndex < suggestionViewport.lastVisibleRowExclusive();
+             suggestionIndex++) {
+            int index = suggestionIndex - suggestionViewport.firstVisibleRow();
+            int y = suggestionRowBounds(suggestionViewport.canScroll()).y()
+                    + index * SUGGESTION_ROW_HEIGHT;
             actionIcon(suggestions.get(suggestionIndex)).ifPresent(icon ->
                     SFMItemIconRenderer.render(minecraft, icon, panelLeft() + 10, y)
             );
@@ -438,13 +515,19 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     }
 
     private void renderActionIconTooltip(PoseStack poseStack, int mouseX, int mouseY) {
-        int firstY = panelTop() + 68;
-        int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
-        int suggestionIndex = firstVisibleSuggestion + visibleIndex;
+        SFMVerticalListViewport.ScrollbarGeometry scrollbar = suggestionScrollbarGeometry();
+        OptionalInt row = suggestionViewport.rowAt(
+                mouseX,
+                mouseY,
+                suggestionRowBounds(scrollbar.visible()),
+                SUGGESTION_ROW_HEIGHT,
+                SUGGESTION_ROW_CONTENT_HEIGHT);
+        if (row.isEmpty()) return;
+        int suggestionIndex = row.getAsInt();
+        int visibleIndex = suggestionIndex - suggestionViewport.firstVisibleRow();
         int iconX = panelLeft() + 10;
-        int iconY = panelTop() + 68 + visibleIndex * SUGGESTION_ROW_HEIGHT;
-        if (visibleIndex < 0 || visibleIndex >= visibleSuggestionCount() || suggestionIndex >= suggestions.size()
-                || mouseX < iconX || mouseX >= iconX + SFMItemIconRenderer.SIZE
+        int iconY = suggestionRowBounds(scrollbar.visible()).y() + visibleIndex * SUGGESTION_ROW_HEIGHT;
+        if (mouseX < iconX || mouseX >= iconX + SFMItemIconRenderer.SIZE
                 || mouseY < iconY || mouseY >= iconY + SFMItemIconRenderer.SIZE) return;
         Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
         if (actionId.isEmpty()) return;
@@ -457,27 +540,37 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         });
     }
 
-    private void renderBindingSummary(PoseStack poseStack, Suggestion suggestion, int right, int y) {
+    private void renderBindingSummary(
+            PoseStack poseStack,
+            Suggestion suggestion,
+            int right,
+            int y,
+            boolean scrollbarVisible
+    ) {
         Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return;
         List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get());
         String bindingText = SFMKeyBindingCycle.displayedSequence(bindings, bindingCycleTicks);
-        int bindingAreaLeft = right - 146;
+        int scrollbarSpace = scrollbarVisible ? SCROLLBAR_WIDTH + SCROLLBAR_GAP : 0;
+        int bindingAreaLeft = right - 146 - scrollbarSpace;
         int bindingAreaWidth = 108;
         String shown = font.plainSubstrByWidth(bindingText, bindingAreaWidth);
         SFMFontUtils.draw(poseStack, font, shown, bindingAreaLeft, y,
                 SFMClientThemeService.active().colour(SFMColourRole.TEXT_ACCENT), false);
-        SFMFontUtils.draw(poseStack, font, "[?]", right - 28, y,
+        SFMFontUtils.draw(poseStack, font, "[?]", right - 28 - scrollbarSpace, y,
                 SFMClientThemeService.active().colour(SFMColourRole.TEXT_ACCENT), false);
     }
 
     private void renderActionDetailsTooltip(PoseStack poseStack, int mouseX, int mouseY) {
-        int right = panelLeft() + panelWidth();
-        int firstY = panelTop() + 70;
-        int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
-        int suggestionIndex = firstVisibleSuggestion + visibleIndex;
-        if (mouseX < right - 28 || mouseX > right - 6 || visibleIndex < 0
-                || visibleIndex >= visibleSuggestionCount() || suggestionIndex >= suggestions.size()) return;
+        SFMVerticalListViewport.ScrollbarGeometry scrollbar = suggestionScrollbarGeometry();
+        OptionalInt row = suggestionViewport.rowAt(
+                mouseX,
+                mouseY,
+                suggestionRowBounds(scrollbar.visible()),
+                SUGGESTION_ROW_HEIGHT,
+                SUGGESTION_ROW_CONTENT_HEIGHT);
+        if (row.isEmpty() || mouseX < suggestionDetailsLeft(scrollbar.visible())) return;
+        int suggestionIndex = row.getAsInt();
         Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
         if (actionId.isEmpty()) return;
         var action = SFMClientActions.registry().get(actionId.get());
@@ -500,7 +593,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         return font.plainSubstrByWidth(suggestion.getText(), Math.max(20, panelWidth() - 150 - leftInset));
     }
 
-    private static Optional<ResourceLocation> suggestionActionId(Suggestion suggestion) {
+    private Optional<ResourceLocation> suggestionActionId(Suggestion suggestion) {
+        if (choiceSession != null) {
+            Optional<ResourceLocation> actionId = choiceSession.actionIdForSuggestion(suggestion.getText());
+            if (actionId.isPresent()) return actionId;
+        }
         try {
             ResourceLocation id = new ResourceLocation(suggestion.getText());
             return SFMClientActions.registry().get(id) == null ? Optional.empty() : Optional.of(id);
@@ -570,25 +667,77 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 width - horizontalPadding * 2,
                 consoleHeight()
         );
-        ensureSelectedSuggestionVisible();
+        suggestionViewport.configure(suggestions.size(), visibleSuggestionCount());
     }
 
-    private void ensureSelectedSuggestionVisible() {
-        if (this.suggestions.isEmpty() || this.selectedSuggestion < 0) {
-            this.firstVisibleSuggestion = 0;
-            return;
-        }
-        int visibleCount = visibleSuggestionCount();
-        int maximumFirstVisible = Math.max(0, this.suggestions.size() - visibleCount);
-        if (this.selectedSuggestion < this.firstVisibleSuggestion) {
-            this.firstVisibleSuggestion = this.selectedSuggestion;
-        } else if (this.selectedSuggestion >= this.firstVisibleSuggestion + visibleCount) {
-            this.firstVisibleSuggestion = this.selectedSuggestion - visibleCount + 1;
-        }
-        this.firstVisibleSuggestion = Math.max(
-                0,
-                Math.min(maximumFirstVisible, this.firstVisibleSuggestion)
-        );
+    private SFMVerticalListViewport.Bounds suggestionListBounds() {
+        return new SFMVerticalListViewport.Bounds(
+                panelLeft() + 6,
+                panelTop() + 70,
+                Math.max(0, panelWidth() - 12),
+                visibleSuggestionCount() * SUGGESTION_ROW_HEIGHT);
+    }
+
+    private SFMVerticalListViewport.Bounds consoleBounds() {
+        return new SFMVerticalListViewport.Bounds(
+                panelLeft() + 10,
+                consoleTop(panelTop()),
+                Math.max(0, panelWidth() - 20),
+                consoleHeight());
+    }
+
+    static ScrollRegion scrollRegionAt(
+            double mouseX,
+            double mouseY,
+            SFMVerticalListViewport.Bounds suggestionBounds,
+            SFMVerticalListViewport.Bounds consoleBounds
+    ) {
+        if (consoleBounds.contains(mouseX, mouseY)) return ScrollRegion.CONSOLE;
+        if (suggestionBounds.contains(mouseX, mouseY)) return ScrollRegion.SUGGESTIONS;
+        return ScrollRegion.NONE;
+    }
+
+    enum ScrollRegion {
+        CONSOLE,
+        SUGGESTIONS,
+        NONE
+    }
+
+    private SFMVerticalListViewport.Bounds suggestionRowBounds(boolean scrollbarVisible) {
+        SFMVerticalListViewport.Bounds list = suggestionListBounds();
+        int scrollbarSpace = scrollbarVisible ? SCROLLBAR_WIDTH + SCROLLBAR_GAP : 0;
+        return new SFMVerticalListViewport.Bounds(
+                list.x(), list.y(), Math.max(0, list.width() - scrollbarSpace), list.height());
+    }
+
+    private SFMVerticalListViewport.ScrollbarGeometry suggestionScrollbarGeometry() {
+        SFMVerticalListViewport.Bounds list = suggestionListBounds();
+        return suggestionViewport.scrollbarGeometry(new SFMVerticalListViewport.Bounds(
+                list.x() + list.width() - SCROLLBAR_WIDTH,
+                list.y(),
+                SCROLLBAR_WIDTH,
+                list.height()), SCROLLBAR_MIN_THUMB_HEIGHT);
+    }
+
+    private int suggestionDetailsLeft(boolean scrollbarVisible) {
+        return panelLeft() + panelWidth() - 28
+                - (scrollbarVisible ? SCROLLBAR_WIDTH + SCROLLBAR_GAP : 0);
+    }
+
+    private void renderSuggestionScrollbar(
+            PoseStack poseStack,
+            int mouseX,
+            int mouseY,
+            SFMVerticalListViewport.ScrollbarGeometry geometry
+    ) {
+        if (!geometry.visible()) return;
+        var track = geometry.track();
+        var thumb = geometry.thumb();
+        fill(poseStack, track.x(), track.y(), track.x() + track.width(), track.y() + track.height(),
+                0x55303030);
+        boolean hovered = thumb.contains(mouseX, mouseY);
+        fill(poseStack, thumb.x(), thumb.y(), thumb.x() + thumb.width(), thumb.y() + thumb.height(),
+                hovered || suggestionViewport.isScrollbarDragActive() ? 0xFFAAAAAA : 0xFF707070);
     }
 
     private String truncateToPanel(String value) {
@@ -617,7 +766,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.error = "";
         this.input.setSuggestion(command.isEmpty() ? INPUT_PLACEHOLDER.getString() : "");
         long revision = ++this.suggestionRevision;
-        var tree = SFMClientActions.commandTree();
+        var tree = commandTree;
         ParseResults<SFMClientActionSource> parsed = tree.parse(
                 command,
                 new SFMClientActionSource(this.actionContext)
@@ -626,8 +775,10 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         tree.getPaletteSuggestions(command, parsed).thenAccept(result -> Minecraft.getInstance().execute(() -> {
             if (ACTIVE != this || revision != this.suggestionRevision) return;
             this.suggestions = result.getList();
-            this.selectedSuggestion = this.suggestions.isEmpty() ? -1 : 0;
-            this.firstVisibleSuggestion = 0;
+            suggestionViewport.configure(this.suggestions.size(), visibleSuggestionCount());
+            suggestionViewport.select(this.suggestions.isEmpty()
+                    ? SFMVerticalListViewport.NO_SELECTION
+                    : 0);
             layoutWidgets();
         }));
     }
@@ -636,13 +787,20 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         return SFMClientActionExecutor.isExecutable(parsed);
     }
 
+    private boolean currentInputIsExecutable() {
+        return isExecutable(commandTree.parse(
+                commandInput().stripLeading(),
+                new SFMClientActionSource(actionContext)));
+    }
+
     private void applySelectedSuggestion() {
-        if (this.selectedSuggestion < 0 || this.selectedSuggestion >= this.suggestions.size()) return;
+        int selectedSuggestion = suggestionViewport.selectedRow();
+        if (selectedSuggestion < 0 || selectedSuggestion >= this.suggestions.size()) return;
         String current = commandInput();
-        String suggestedValue = this.suggestions.get(this.selectedSuggestion).apply(current);
+        String suggestedValue = this.suggestions.get(selectedSuggestion).apply(current);
         String value = SFMClientCommandInsertion.prepare(
                 suggestedValue,
-                SFMClientActions.commandTree(),
+                commandTree,
                 new SFMClientActionSource(actionContext)
         );
         this.input.setValue(value);
@@ -653,10 +811,10 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private void executeInput() {
         String rawCommand = commandInput().stripLeading();
         var source = new SFMClientActionSource(actionContext);
-        var parsed = SFMClientActions.commandTree().parse(rawCommand, source);
+        var parsed = commandTree.parse(rawCommand, source);
         String prepared = SFMClientCommandInsertion.prepare(
                 rawCommand,
-                SFMClientActions.commandTree(),
+                commandTree,
                 source
         );
         if (!prepared.equals(rawCommand)) {
@@ -671,7 +829,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         }
         if (SFMClientCommandInsertion.isAwaitingRequiredArgument(
                 rawCommand,
-                SFMClientActions.commandTree(),
+                commandTree,
                 new SFMClientActionSource(actionContext)
         )) {
             this.insertedRequiredArgumentSeparator = true;
@@ -692,8 +850,14 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     private void executeCommand(String command) throws CommandSyntaxException {
         this.feedback.clear();
-        SFMClientActionExecutor.execute(command, this.actionContext, this.feedback::add);
+        int result = commandTree.execute(
+                command,
+                new SFMClientActionSource(this.actionContext, this.feedback::add));
         this.error = "";
+        if (choiceSession != null && result > 0) {
+            if (Minecraft.getInstance().screen == this) onClose();
+            return;
+        }
         resetToDefaultQuery();
     }
 
@@ -714,6 +878,96 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                     "Command palette automation command could not be executed: " + normalized,
                     exception
             );
+        }
+    }
+
+    /** Exact canonical actions exposed by an active constrained palette. */
+    public List<String> choiceCommandsForAutomation() {
+        if (choiceSession == null) {
+            throw new IllegalStateException("Command palette is not constrained by a choice session");
+        }
+        return choiceSession.canonicalCommands();
+    }
+
+    /** Executes a canonical choice through its real session-scoped Brigadier path. */
+    public void executeChoiceForAutomation(String canonicalCommand) {
+        if (choiceSession == null) {
+            throw new IllegalStateException("Command palette is not constrained by a choice session");
+        }
+        executeCommandForAutomation(choiceSession.surfaceCommand(canonicalCommand));
+    }
+
+    /** Selects a constrained choice by pointer and confirms it through the real Enter path. */
+    public void clickChoiceForAutomation(String canonicalCommand) {
+        if (choiceSession == null) {
+            throw new IllegalStateException("Command palette is not constrained by a choice session");
+        }
+        String surfaceCommand = choiceSession.surfaceCommand(canonicalCommand);
+        String suggestionText = surfaceCommand.substring(choiceSession.prefix().length());
+        int index = -1;
+        for (int candidate = 0; candidate < suggestions.size(); candidate++) {
+            if (suggestions.get(candidate).getText().equals(suggestionText)) {
+                index = candidate;
+                break;
+            }
+        }
+        if (index < 0) throw new IllegalStateException("Choice is not currently suggested: " + canonicalCommand);
+        suggestionViewport.select(index);
+        SFMVerticalListViewport.ScrollbarGeometry scrollbar = suggestionScrollbarGeometry();
+        SFMVerticalListViewport.Bounds rows = suggestionRowBounds(scrollbar.visible());
+        int visibleIndex = index - suggestionViewport.firstVisibleRow();
+        double mouseX = rows.x() + 2;
+        double mouseY = rows.y() + visibleIndex * SUGGESTION_ROW_HEIGHT
+                + SUGGESTION_ROW_CONTENT_HEIGHT / 2.0d;
+        if (!mouseClicked(mouseX, mouseY, 0)) {
+            throw new IllegalStateException("Choice pointer event was not consumed: " + canonicalCommand);
+        }
+        if (!commandInput().equals(surfaceCommand)) {
+            throw new IllegalStateException("Choice pointer selected '" + commandInput()
+                    + "' instead of '" + surfaceCommand + "'");
+        }
+        keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0);
+    }
+
+    /** Exercises the real suggestion wheel, keyboard, track, and thumb event paths. */
+    public void exerciseSuggestionViewportForAutomation() {
+        layoutWidgets();
+        if (!suggestionViewport.canScroll()) {
+            throw new IllegalStateException("Palette needs more suggestions than visible rows for scrolling proof");
+        }
+        SFMVerticalListViewport.Bounds list = suggestionListBounds();
+        double listX = list.x() + 2;
+        double listY = list.y() + 2;
+        int initialFirst = suggestionViewport.firstVisibleRow();
+        if (!mouseScrolled(listX, listY, -1.0d)
+                || suggestionViewport.firstVisibleRow() <= initialFirst) {
+            throw new IllegalStateException("Suggestion wheel did not advance the viewport");
+        }
+        keyPressed(GLFW.GLFW_KEY_PAGE_DOWN, 0, 0);
+        keyPressed(GLFW.GLFW_KEY_END, 0, 0);
+        if (suggestionViewport.selectedRow() != suggestions.size() - 1) {
+            throw new IllegalStateException("End did not select the final suggestion");
+        }
+        keyPressed(GLFW.GLFW_KEY_HOME, 0, 0);
+        if (suggestionViewport.firstVisibleRow() != 0 || suggestionViewport.selectedRow() != 0) {
+            throw new IllegalStateException("Home did not restore the first suggestion");
+        }
+
+        SFMVerticalListViewport.ScrollbarGeometry geometry = suggestionScrollbarGeometry();
+        double trackX = geometry.track().x() + geometry.track().width() / 2.0d;
+        double trackBottom = geometry.track().y() + geometry.track().height() - 1.0d;
+        if (!mouseClicked(trackX, trackBottom, 0)
+                || suggestionViewport.firstVisibleRow() == 0) {
+            throw new IllegalStateException("Suggestion scrollbar track click did not advance the viewport");
+        }
+        keyPressed(GLFW.GLFW_KEY_HOME, 0, 0);
+        geometry = suggestionScrollbarGeometry();
+        double thumbY = geometry.thumb().y() + geometry.thumb().height() / 2.0d;
+        if (!mouseClicked(trackX, thumbY, 0)
+                || !mouseDragged(trackX, trackBottom, 0, 0, trackBottom - thumbY)
+                || !mouseReleased(trackX, trackBottom, 0)
+                || suggestionViewport.firstVisibleRow() != suggestionViewport.maxFirstVisibleRow()) {
+            throw new IllegalStateException("Suggestion scrollbar thumb did not reach the final viewport");
         }
     }
 

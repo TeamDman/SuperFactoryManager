@@ -19,14 +19,15 @@ public final class SFMTerminalPropertiesScreenType implements SFMClientScreenTyp
         return LiteralArgumentBuilder.<SFMClientActionSource>literal(screenTypeId.toString())
                 .executes(context -> {
                     SFMClientActionContext actionContext = context.getSource().context();
+                    SFMWorkspacePanelId owner = actionContext.originatingPanelId();
                     if (!actionContext.originatingHostIsCurrent().getAsBoolean()
                             || !(actionContext.originatingHost() instanceof SFMScreenMultiplexer workspace)
-                            || !(workspace.focusedPanelInstance() instanceof SFMTerminalPanel terminal)
+                            || owner == null
+                            || !(workspace.panelInstance(owner) instanceof SFMTerminalPanel terminal)
                             || !terminal.isRustBacked()) {
                         throw new SimpleCommandExceptionType(Component.literal(
                                 "Terminal properties require a focused Rust terminal panel")).create();
                     }
-                    SFMWorkspacePanelId owner = workspace.focusedPanelId();
                     return opener.open(context, new SFMTerminalPropertiesPanel(owner));
                 });
     }

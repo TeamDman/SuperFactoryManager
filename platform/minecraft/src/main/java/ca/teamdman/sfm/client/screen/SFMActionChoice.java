@@ -4,7 +4,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.Objects;
 
-/** One exact registered client-action invocation shown by a bounded chooser. */
+/** One exact registered client-action invocation exposed by a constrained palette. */
 public record SFMActionChoice(ResourceLocation actionId, String command) {
     public SFMActionChoice {
         Objects.requireNonNull(actionId);

@@ -32,6 +32,12 @@ public interface ISFMGamePuppetRuntime {
 
     void pressScreenKey(int keyCode, int modifiers);
 
+    void exerciseCommandPaletteViewport();
+
+    void assertFormerTerminalStartButtonRoutesToTerminal();
+
+    boolean isFormerTerminalStartButtonRoutingReady();
+
     void assertActionChoice(List<String> expectedCommands);
 
     void clickActionChoice(String command);

@@ -14,7 +14,7 @@ public final class ClosePaletteAction implements SFMClientAction<SFMTransientAct
 
     @Override
     public Component description() {
-        return Component.literal("Close this action chooser without changing the workspace");
+        return Component.literal("Close this constrained command palette without changing the workspace");
     }
 
     @Override
