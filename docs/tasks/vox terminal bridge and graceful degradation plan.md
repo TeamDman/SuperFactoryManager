@@ -1,5 +1,40 @@
 # Vox Terminal Bridge and Graceful Degradation Plan
 
+**Plan status:** Active
+**Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
+**Teamy implementation root:** `G:\Programming\Repos\teamy-terminal`
+**Last updated:** 2026-08-05
+**Intent audit:** Passed 2026-08-05 for the selection/copy/paste follow-up
+
+## How to update this plan
+
+- `[ ]` Not started
+- `[~]` In progress
+- `[x]` Complete
+- `[!]` Blocked
+
+Update the status and completion notes together. One integration owner controls
+Facet generated outputs, Teamy pins, the canonical SFM lock, and this plan.
+Use only `sfm-propagate-changes.exe` for SFM compile/test/runtime gates and do
+not propagate or publish merely because a canonical slice passes.
+
+## Terminal interaction guidance ledger — 2026-08-05
+
+| ID | Active guidance | Required consequence | Coverage |
+| --- | --- | --- | --- |
+| T-SEL-1 | Java-hosted mouse drag must create and visibly update the Rust-authoritative selection. Selection is its own terminal state, not merely blue/white pixels in a Rust raster. | Activate the existing wire selection coordinates, return current selection from interaction operations, keep remote base rasters selection-free, and apply Java's existing inversion highlight over the fitted cell rectangles. | V-4.2e.1–V-4.2e.4 |
+| T-SEL-2 | Ctrl+C copies/clears when selected and interrupts the PTY when not selected. | Add typed atomic copy/no-selection behavior and branch only on the server result, tolerating stale client metadata. | V-4.2e.2–V-4.2e.4 |
+| T-SEL-3 | Right click copies/clears an active selection; with none it pastes. | Route keyboard and secondary click through the same copy result and guarded paste path. | V-4.2e.2–V-4.2e.4 |
+| T-PASTE-1 | CR/LF paste requires an exact warning, bounded preview, `Paste anyway`, and `Cancel`; no command bytes may be written before confirmation. | Add guarded/bypass policy and confirmation-required result, with exact UI copy and PTY mutation tests. | V-4.2e.1–V-4.2e.4 |
+| T-PASTE-2 | Native Teamy Terminal and SFM/Java have separate clipboard adapters, while the Teamy service exposes supplied/automatic paste bodies. | Resolve `Auto` at the invoking UI adapter; Vox/SFM supplies Java clipboard text explicitly so a headless or remote server never guesses the caller's clipboard. | V-4.2e.1–V-4.2e.4 |
+
+### Terminal interaction intent audit evidence
+
+- **Pass 1 — extraction:** Reread the complete 2026-08-05 message and preserved drag visibility, separate selection state, copy/clear, right-click branching, exact warning copy, preview, confirmation choices, and both suggested paste enum axes.
+- **Pass 2 — traceability:** Mapped every requirement to the contract, Facet generation, Teamy session/native adapter, SFM overlay/UI, and live acceptance items below.
+- **Pass 3 — adversarial omission:** Rechecked that remote pixels are not the sole selection signal, Ctrl+C still interrupts without selection, guard decisions precede every PTY write, Java does not read a server-global clipboard, and all six raster tuples share one overlay contract.
+- **Known source limitation:** None for this follow-up message.
+
 This plan supersedes the colour-picker flow as the first user-facing Vox
 experiment. The colour-input panel remains useful reusable UI infrastructure,
 but the first bridge should solve a more practical problem: an in-game
@@ -48,8 +83,10 @@ retained font/glyph/frame/texture resources, bounded Rust-to-Java Vox `Tx`/`Rx`
 frame delivery, V-4.2a's three named CPU presentation transports, and V-4.2c's
 true no-window `rust-gpu-slug` bridge are now complete. Renderer and transport
 remain independent panel-local choices under one atomic presentation
-generation, while CPU/full-PNG remains the initial default. The next coherent
-comparison slice is V-4.3 plus Teamy Terminal 3.6.5, followed by V-4.5/V-4.6's
+generation, while CPU/full-PNG remains the initial default. The newly observed
+selection and clipboard regression makes V-4.2e plus Teamy Terminal 3.6.4f the
+next correctness slice. The next coherent comparison slice after that is
+V-4.3 plus Teamy Terminal 3.6.5, followed by V-4.5/V-4.6's
 matched visual/temporal report and evidence-based default decision; this plan
 does not preselect that future goal. V-4.2b semantic cells remain independent
 later contract work. Teamy Terminal Phase 3.6 remains authoritative for Rust
@@ -868,6 +905,145 @@ aborted. Teamy Terminal's focused 29-test Vox server suite and complete
 `check-all.ps1` gate pass, as do Facet's Phon conformance, stream framing, Vox
 runtime, generated-response integration, and deterministic Java packaging
 gates. V-4.3 Java semantic-cell renderers remain explicitly out of scope.
+
+### [ ] V-4.2e Restore selection, copy, and guarded paste across Vox
+
+This correction precedes the Java semantic renderers. It preserves Rust as the
+terminal-state authority while making selection a renderer-neutral interaction
+state that Java can present without forcing a new PNG/raw/GPU raster for every
+mouse-motion cell.
+
+#### [ ] V-4.2e.1 Freeze the interaction and clipboard contract
+
+Use the existing `TerminalSelection` plus `selection_present` fields on full
+snapshot/raster state as the resynchronization representation. Extend the
+mouse/input result, or an equivalently narrow typed selection response, with
+the current selection and a disposition distinguishing PTY mouse forwarding,
+selection mutation, and no change. When the child has enabled terminal mouse
+reporting, preserve xterm forwarding. Otherwise left press begins, held motion
+extends, and release finalizes the bounded visible-grid selection, matching the
+native Teamy path. A collapsed click clears selection. Responses and later full
+state carry the Rust-clamped range in either drag direction.
+
+For remote Rust pixel modes, rasterize a selection-free snapshot and carry the
+authoritative range separately. Native Teamy rendering continues to use its
+blue-background/white-text selection style. This prevents double highlighting
+and avoids full CPU/GPU/PNG work solely because the pointer crossed another
+cell. Java overlays the range after the accepted image is fitted. Cursor,
+selection, raster sequence, and interaction sequence must have explicit stale
+ordering rules.
+
+Define typed operations equivalent to:
+
+```text
+PastePolicy = GuardMultiline | BypassGuard
+PasteSource = Supplied | AutomaticCallerClipboard
+PasteResult = Pasted | ConfirmationRequired
+CopySelectionResult = Copied(text) | NoSelection
+```
+
+The Facet wire may flatten these enums into Java-friendly enum fields plus a
+`supplied_text` field, but it must retain the same semantic axes. `Auto` is
+resolved at the invoking client boundary: native Teamy captures its desktop
+clipboard; SFM captures Minecraft's Java clipboard and sends `Supplied`.
+Headless Vox never substitutes a process/server clipboard for a caller's
+clipboard. The guard detects any `\r` or `\n`, applies the existing 16-KiB
+input bound, returns a separately bounded preview and content identity, and
+writes zero PTY bytes. Bypass must use the exact body the user approved and
+write it once. Clipboard bodies and previews are never logged or put in
+ordinary puppet artifacts.
+
+**Completion criteria:** Facet's public contract has unambiguous ownership,
+state ordering, bounds, error/disposition, privacy, and compatibility rules;
+selection activation alone does not require a raster transport version bump.
+
+#### [ ] V-4.2e.2 Implement Facet generation and Teamy Terminal behavior
+
+Add the typed operations and result fields to Facet, regenerate Rust/Java
+bindings, pass Phon round trips, generated-source freshness, Java 17 runtime,
+large generated-response, and deterministic package gates, then publish one
+immutable reviewed Facet revision before updating Teamy pins.
+
+In Teamy Terminal, share selection mutation, selected-text extraction, copy
+clear, multiline guard, bounded preview, and exact paste write logic between
+the native interactive adapter and Vox service. Add native right-click and a
+native warning overlay using the exact copy below. Keep clipboard acquisition
+in the UI adapter, not core. Copy/clear and each actual selection mutation
+advance typed state; selection-only updates do not enter the raster work queue.
+
+```text
+Warning
+
+You are about to paste text that contains multiple lines. If you paste this
+text into your shell, it may result in the unexpected execution of commands.
+Do you wish to continue?
+
+Clipboard contents (preview):
+<bounded preview>
+
+Paste anyway
+Cancel
+```
+
+**Validation:** From Facet run `cargo run -p vox-xtask -- test-java` and
+`cargo run -p vox-xtask -- package-java`. From Teamy Terminal run focused core,
+interactive, renderer, and Vox tests followed by `.\check-all.ps1`. Tests cover
+forward/backward drag, collapsed clear, mouse-report forwarding, CPU/GPU base
+pixels without selection, full-state metadata, copy/no-selection, clear,
+single-line paste, CR, LF, CRLF, cancellation, exact-once bypass, 16-KiB and
+preview bounds (including the canonical `99\n100` two-line preview), native
+automatic clipboard, and Vox supplied clipboard.
+
+**Completion criteria:** Native and service paths share one tested semantic
+engine; the immutable Teamy commit pins the reviewed Facet package and all
+quality gates pass.
+
+#### [ ] V-4.2e.3 Integrate selection overlay and guarded paste in SFM
+
+Retain the latest typed selection independently from `SFMTerminalFrame` pixel
+payload. Convert the inclusive ordered cell range into one rectangle for each
+participating row using the accepted logical grid, native cell metrics,
+`SFMTerminalImageLayout` fitted bounds, GUI/panel-scale transforms, clipping,
+and endpoint rounding. Draw those rectangles after PNG/raw presentation with
+`SFMScreenRenderUtils.renderHighlight`; do not decode, recolor, or replace the
+base texture on drag-only changes.
+
+Ctrl+C first invokes atomic copy. `Copied` updates Minecraft's clipboard and
+accepts the cleared state; `NoSelection` sends the ordinary Ctrl+C key
+transition to the PTY. Right click invokes the same copy operation and, only on
+`NoSelection`, captures Java's clipboard and submits guarded paste. Ctrl+V and
+automation use that same guarded path. `ConfirmationRequired` opens a bounded
+warning over the existing workspace, preserves the exact supplied body in
+private transient state, and offers only `Paste anyway` and `Cancel`; either
+choice restores terminal focus. Disconnect, panel close, stale session, or a
+changed content identity invalidates the pending confirmation.
+
+**Validation:** Add pure cell-to-highlight geometry, reverse/clamp/scale,
+copy-versus-interrupt, secondary-click branch, guard state-machine, focus,
+disconnect, stale response, privacy, and all-presenter reuse tests. Compile and
+run focused/full tests only through `sfm-propagate-changes.exe`.
+
+**Completion criteria:** Java visibly tracks authoritative selection over every
+Rust pixel presenter, copies exact selected text, preserves no-selection Ctrl+C,
+and never pastes multiline content before explicit confirmation.
+
+#### [ ] V-4.2e.4 Retain live cross-renderer interaction evidence
+
+Extend the Rust-terminal puppet with pointer press/motion/release at known
+cells, headless selection-state artifacts, screenshot highlight bounds, exact
+clipboard assertions, Ctrl+C interruption with no selection, right-click copy,
+right-click and Ctrl+V single-line paste, multiline cancel, multiline approve,
+the exact `99\n100` warning preview, and cleared-selection proof. Run normal
+scale and GUI scale 7. Exercise all six
+CPU/GPU × PNG/full-raw/dirty-raw tuples without reraster/upload counters moving
+for selection-only drag after a compatible base frame. Include a child with
+mouse reporting enabled to prove those events are forwarded rather than
+silently converted to selection.
+
+**Completion criteria:** Focused Teamy/Facet/SFM gates, canonical compile/full
+tests, and both live variants pass with machine-readable selection/copy/paste
+evidence. Update both plans and `changelog.sfml`; do not begin V-4.3, propagate,
+publish a release, or change Cloud Terrastodon in this slice.
 
 ### [ ] V-4.3 Implement the two Java text/font comparators
 

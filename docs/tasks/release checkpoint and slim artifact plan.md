@@ -2,7 +2,7 @@
 
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-05
 **Update rules:** Keep this plan executable. Record decisions and evidence beside the affected work item, keep at most one current implementation focus, and update this file after every release-scope or artifact-policy change. Do not mark a phase complete from compilation alone; attach the command and the artifact or runtime evidence that proves it.
 
 ## Purpose
@@ -10,6 +10,41 @@
 Checkpoint the unpublished 1.19.2 work into a releasable product scope and graduate the prospective command-palette, Rust/Vox terminal, and related tooling features to a complete, distributable implementation. The release must have an explicit support statement, a known dependency footprint, and an artifact that can be installed and exercised outside userdev. The lockfile will provide feature-aware entry-point profiles so the Rust CLI can build the full feature set while legacy Gradle remains a low-friction Java-only contributor path by default.
 
 This plan coordinates the existing terminal-bridge, dependency-lock, and cross-version propagation plans. It does not replace them and does not authorize publishing or pushing by itself.
+
+## Interaction follow-up guidance ledger — 2026-08-05
+
+| ID | Active user guidance | Required plan consequence | Superseded by |
+| --- | --- | --- | --- |
+| I-SEL-1 | Dragging in the SFM Rust terminal must create the same visible selection as native Teamy Terminal. Rust remains authoritative, but Java must receive selection as terminal state and draw the existing inversion/highlight rather than depending only on selected pixels baked into a raster. | Vox plan V-4.2e and Teamy 3.6.4f activate the existing selection coordinates, separate remote selection presentation from base pixels, and prove drag state without rerasterizing unchanged glyphs. | — |
+| I-SEL-2 | Ctrl+C copies and clears an active selection; with no selection it remains the PTY interrupt. Right click atomically copies/clears when selection exists and otherwise initiates paste. | V-4.2e defines typed copy/no-selection results and one client decision path shared by keyboard and right-click. | — |
+| I-PASTE-1 | Any paste containing CR or LF must stop before PTY mutation and show the exact multiline warning, bounded clipboard preview, and `Paste anyway` / `Cancel` choices. | V-4.2e specifies guard detection, exact warning copy, bounded private preview, focus restoration, and no-write-before-confirmation tests. | — |
+| I-PASTE-2 | Teamy Terminal and Java each retain their own clipboard adapter while collaborating through typed guarded and bypass paste signals, with supplied versus automatic clipboard bodies. | Teamy 3.6.4f and V-4.2e define one guard engine and Java-friendly wire records equivalent to `Paste{WithGuard,WithoutGuard}` and `PasteBody{Supplied,Auto}`. | — |
+| I-KEY-1 | Default action bindings are Ctrl+plus, Ctrl+minus, and Ctrl+zero for focused-panel scale increase, decrease, and clear. They must appear in the palette `[?]` binding behavior. | P-5.2 adds stable, overridable defaults and verifies both display and event consumption. | — |
+| I-HIST-1 | The palette stores command history for ranking; at the default `sfm action invoke ` query, the exact most recently executed command is the first suggestion. | P-5.3 records successful palette executions and injects full-command MRU candidates ahead of ordinary blank-query action ids. | — |
+| I-HIST-2 | `sfm:palette/history/open` opens a read-only history document, supports center/left/right/above/below placement and an optional editor id, and discards changes. | P-5.4 uses hierarchical placement actions, with the base action meaning center/focused, and enforces read-only behavior across every selectable editor. | — |
+| I-HIST-3 | `sfm:palette/history/clear` empties history. | P-5.4 makes maintenance actions non-recordable so clear remains truly empty. | — |
+| I-LIST-1 | `sfm:keybindings/manage` needs a real scrollbar and complete wheel/keyboard traversal. | P-5.1 removes data truncation and uses a shared bounded list viewport. | — |
+| I-LIST-2 | Clicking the shortcuts search box or nearby non-row space must never open row zero. | P-5.1 requires widget-first dispatch and explicit half-open row hit bounds; negative division is never used as a hit test. | — |
+| I-LIST-3 | The command palette suggestion list needs a scrollbar and mouse-wheel behavior, independently from its feedback-console scrollbar. | P-5.1 routes by hovered region and proves suggestion/console scrolling cannot steal from one another. | — |
+
+## Interaction guidance traceability
+
+| Guidance | Plan coverage | Evidence when complete |
+| --- | --- | --- |
+| I-SEL-1, I-SEL-2, I-PASTE-1, I-PASTE-2 | Vox terminal plan V-4.2e; Teamy Terminal plan 3.6.4f | Facet round trips/package, Teamy core/Vox/native tests, SFM focused tests, and a live normal/high-scale selection/copy/paste puppet |
+| I-KEY-1 | P-5.2 and P-5.5 | Storage/default/conflict tests, palette `[?]` capture, and focused-terminal non-leak assertion |
+| I-HIST-1 | P-5.3 and P-5.5 | Bounded storage/ranking tests and a live execute/reopen/MRU witness |
+| I-HIST-2, I-HIST-3 | P-5.4 and P-5.5 | Action completion, all placements, editor selection/read-only enforcement, and clear-remains-empty witness |
+| I-LIST-1, I-LIST-2, I-LIST-3 | P-5.1 and P-5.5 | Pure viewport geometry tests plus wheel, thumb-drag, search-hit isolation, and palette/console routing puppets |
+
+**Intent audit:** Passed 2026-08-05 against the complete 2026-08-05 user-testing message.
+
+### Intent audit evidence
+
+- **Pass 1 — extraction:** Reread the message from terminal drag through palette scrolling and split every observable behavior, example, ownership statement, action id, warning string, and qualifier into I-SEL-1 through I-LIST-3.
+- **Pass 2 — traceability:** Mapped every active id to V-4.2e/Teamy 3.6.4f or P-5.1 through P-5.5, including protocol, persistence, UI, focused tests, and live evidence rather than treating the list as detached notes.
+- **Pass 3 — adversarial omission:** Rechecked the distinctions between base pixels and Java selection overlay, copy-versus-interrupt Ctrl+C, copy-versus-paste right click, guarded-versus-bypass paste, exact full-command MRU ordering, center as the base hierarchical open action, optional editor selection, read-only/discard semantics, and the two independent palette scroll regions.
+- **Known source limitation:** None for this follow-up message. Earlier release and panel requirements remain in their existing durable ledgers and completed work-item notes.
 
 ## Scope
 
@@ -216,6 +251,9 @@ sfm:terminal/properties/font/auto|set|increase|decrease
 sfm:terminal/properties/cells/auto|set|columns/increase|columns/decrease|rows/increase|rows/decrease
 sfm:screen/close
 sfm:palette/close
+sfm:palette/history/open [editor-id]
+sfm:palette/history/open/left|right|above|below [editor-id]
+sfm:palette/history/clear
 ```
 
 Examples include `sfm:panel/open sfm:terminal` and
@@ -571,6 +609,158 @@ puppet evidence.
   grammar, configured-default, and explicit v3 panel captures under:
   `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_tex-20260802-174031-177`.
   Both live runs emitted only the known non-portable artifact warning.
+
+## Command-surface reliability and history batch P-5
+
+### [ ] P-5.1 Share bounded list scrolling and correct hit testing
+
+**Work:** Extract a pure reusable vertical-list viewport model covering item
+count, visible-row count, first visible row, selected-row visibility, wheel and
+page movement, half-open row hit testing, track clicks, thumb dragging, and
+scrollbar geometry. Use it for command-palette suggestions and
+`SFMKeyBindingScreen`; reuse the established `SFMConsoleWidget` interaction
+laws and `SFMScreenPanelBounds.contains` bounds convention without coupling
+ranked suggestions to `PickList` sorting.
+
+Remove `SFMKeyBindingScreen.refresh()`'s `.limit(...)`; retain the complete
+filtered action list and scroll through it. Dispatch to the search `EditBox`
+before row activation and require `rowTop <= mouseY < rowBottom`, fixing the
+current `(mouseY - 64) / 24` truncation that maps a small negative value to row
+zero. Give both lists visible scrollbars, wheel, PageUp/PageDown, Home/End, and
+clamped resize/filter behavior. In the palette, the feedback console consumes
+wheel/drag only inside its own bounds; the suggestion viewport consumes only
+inside its rows/scrollbar. Manual suggestion scrolling may clamp the selected
+row into the new viewport and must not be undone by per-frame layout.
+
+**Validation:** Add pure viewport and scrollbar-geometry tests, shortcut-screen
+search/blank-space/row hit tests, and palette tests for wheel, thumb, keyboard,
+filter shrink, resize, empty list, and independent console routing.
+
+**Completion criteria:** Every filtered shortcut and palette suggestion is
+reachable without keyboard-only traversal; both thumb and wheel work; clicking
+the search box or any gap cannot open an action; and neither scroll region
+steals input from the other.
+
+### [ ] P-5.2 Add persistent, overridable panel-scale defaults
+
+**Work:** Define stable built-in binding ids for:
+
+- Ctrl+plus (`Ctrl+Shift+=`, displayed as `Ctrl++`, plus keypad-add parity) →
+  `sfm action invoke sfm:panel/scale/increase`;
+- Ctrl+minus (main minus plus keypad-subtract parity) →
+  `sfm action invoke sfm:panel/scale/decrease`; and
+- Ctrl+zero (main zero plus keypad-zero parity) →
+  `sfm action invoke sfm:panel/scale/clear`.
+
+Evolve keybinding persistence so user overrides, disablement, or removal of a
+default survives restart. Do not blindly reseed a removed default. Stable
+default ids plus persisted override/tombstone state must migrate schema 1
+without losing existing user bindings. The ordinary binding service remains
+the sole source queried by palette rows and `[?]`, so defaults need no bespoke
+display path. Prove matched global input is consumed before the focused
+terminal/editor receives the same keystroke, while an unavailable panel action
+does not bypass its contextual requirement.
+
+**Validation:** Add schema migration/default override/tombstone, display,
+conflict, main-key/keypad, contextual availability, and event-consumption
+tests. A puppet opens `[?]`, invokes all three defaults in a multiplexer, and
+asserts no `+`, `-`, or `0` leaked into the focused terminal.
+
+**Completion criteria:** Fresh profiles receive the documented defaults,
+existing profiles migrate safely, user choices persist, `[?]` reports the same
+active bindings, and each chord changes only the focused panel scale.
+
+### [ ] P-5.3 Persist successful palette commands and rank full MRU entries
+
+**Work:** Add a bounded command-palette history service that records the exact
+normalized command only after successful user-initiated palette execution.
+Keep repeated executions in the bounded history document, but deduplicate by
+exact command when producing MRU suggestions so the newest occurrence wins.
+Use a versioned file under the instance `config` directory, a 200-entry and
+16-KiB-per-command bound, atomic replacement, and background persistence; no
+file read/write or corpus parsing may occur in completion/ranking callbacks.
+Automation uses an injected temporary/in-memory store unless a puppet
+explicitly tests persistence.
+
+At the blank `sfm action invoke ` action slot, offer the exact newest complete,
+currently available historical command—including arguments—as suggestion zero,
+then older unique history, then ordinary available action ids. A typed query
+keeps textual fuzzy relevance authoritative and uses recency only as a bounded
+boost/tie-break; history must not make an unrelated command look like a good
+match. Parse the first action-id token for icons, titles, bindings, and `[?]`
+instead of treating an entire argument-bearing suggestion as a
+`ResourceLocation`. Failed, incomplete, unavailable, and cancelled commands
+are not recorded.
+
+**Validation:** Test success/failure boundaries, duplicates, bounds, corrupt
+file recovery, atomic snapshots, async completion safety, availability,
+argument-bearing suggestions, blank-query exact MRU order, typed fuzzy order,
+and action metadata on historical rows.
+
+**Completion criteria:** Reopening the default palette places the exact last
+successful palette command first without synchronous I/O or loss of existing
+fuzzy/Brigadier correctness.
+
+### [ ] P-5.4 Expose read-only history open and true clear actions
+
+**Work:** Register the hierarchical family:
+
+```text
+sfm:palette/history/open [editor-id]
+sfm:palette/history/open/left [editor-id]
+sfm:palette/history/open/right [editor-id]
+sfm:palette/history/open/above [editor-id]
+sfm:palette/history/open/below [editor-id]
+sfm:palette/history/clear
+```
+
+The base open action is the requested center/focused placement. Omitted editor
+id uses the configured default; an explicit id uses registry-backed in-memory
+completion. Open a point-in-time, newest-last one-command-per-line history
+document through `SFMTextEditorPanelOpenContext` with `readOnly=true`, a no-op
+save boundary, no dirty-close prompt, and discarded edits. Because v1/v2 do not
+currently enforce the record's read-only flag, either complete that shared
+contract for every advertised editor or exclude a nonconforming editor from
+this action; never claim arbitrary editor support while allowing mutation.
+
+`history/open*` and `history/clear` are maintenance commands and are not added
+to history. Clear atomically empties memory and persistence before reporting
+success, so reopening immediately displays an empty document and the blank
+palette falls back to ordinary action ranking.
+
+**Validation:** Test every placement, default/explicit/unknown editor,
+read-only input suppression, close-without-save, snapshot ordering, clear,
+clear persistence, and non-recordability.
+
+**Completion criteria:** The action family opens the same immutable history in
+the chosen panel/editor, all selectable editors remain genuinely read-only,
+and clear leaves no self-repopulating maintenance entry.
+
+### [ ] P-5.5 Prove the command-surface slice live and update release notes
+
+Run focused tests, canonical compile/full tests through
+`sfm-propagate-changes.exe`, and live puppets that exercise long-list wheel and
+thumb scrolling, shortcut search hit isolation, all three default panel-scale
+bindings and `[?]`, successful versus failed history recording, exact MRU
+reopen, argument-bearing history execution, every history placement,
+read-only/discard behavior, and clear-remains-empty. Update
+`changelog.sfml`. Preserve the two current generated-resource edits and do not
+propagate or publish in this batch.
+
+**Completion criteria:** Pure tests and live evidence prove every I-KEY,
+I-HIST, and I-LIST ledger item, and no observed UI path depends on screenshot
+interpretation alone.
+
+### P-5 parallel implementation topology
+
+V-4.2e/Teamy 3.6.4f may run in parallel with P-5.1/P-5.2 because they own
+different repositories and Java packages. Within SFM, P-5.1's keybinding-list
+work and P-5.2's storage/default work are independent. Palette scrolling and
+history ranking both touch `SFMCommandPaletteScreen`, so one integration owner
+must serialize or merge those changes deliberately. P-5.4 follows the history
+service contract; P-5.5 is the canonical join gate. No subagent edits the
+canonical plans, generated Vox outputs, lockfile, or changelog concurrently
+with the integration owner.
 
 ## Resolved design decisions — 2026-08-02
 
