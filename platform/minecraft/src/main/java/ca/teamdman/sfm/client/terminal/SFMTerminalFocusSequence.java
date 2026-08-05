@@ -10,7 +10,7 @@ final class SFMTerminalFocusSequence {
 
     enum Decision {
         FORWARD,
-        EXIT,
+        HOST_ESCAPE,
         JAVA_FOCUS
     }
 
@@ -34,7 +34,7 @@ final class SFMTerminalFocusSequence {
         lastEscape = now;
         if (escapes >= REQUIRED_PRESSES) {
             escapes = 0;
-            return Decision.EXIT;
+            return Decision.HOST_ESCAPE;
         }
         return Decision.FORWARD;
     }

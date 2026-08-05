@@ -21,6 +21,48 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
         return resize(columns, rows);
     }
 
+    /** Resize with zero meaning automatic font fitting and a positive value meaning exact pixels. */
+    default boolean resize(int columns, int rows, int panelWidth, int panelHeight, int fontPixelSize) {
+        return resize(columns, rows, panelWidth, panelHeight);
+    }
+
+    /**
+     * Resize while preserving which tuning axes are automatic versus explicit.
+     * The effective dimensions remain suitable for legacy backends; typed Vox
+     * backends override this method to transmit both the modes and values.
+     */
+    default boolean resize(
+            SFMTerminalTuningSettings requested,
+            SFMTerminalTuningSettings.Effective effective
+    ) {
+        return resize(
+                effective.columns(),
+                effective.rows(),
+                effective.surfaceWidth(),
+                effective.surfaceHeight(),
+                effective.fontPixelSize()
+        );
+    }
+
+    /** Latest typed resize/tuning rejection; independent from connection health. */
+    default Optional<SFMTerminalTuningRejection> tuningFailure() {
+        return Optional.empty();
+    }
+
+    /** True until the latest typed resize/tuning request is accepted or rejected. */
+    default boolean tuningPending() {
+        return false;
+    }
+
+    default Optional<String> tuningFailureMessage() {
+        return tuningFailure().map(rejection -> rejection.error().message());
+    }
+
+    /** Latest accepted Rust-raster stream diagnostics, when this backend exposes them. */
+    default Optional<SFMTerminalPresentationDiagnostics> presentationDiagnostics() {
+        return Optional.empty();
+    }
+
     boolean sendKey(int keyCode, int modifiers, boolean pressed, boolean repeat);
 
     boolean sendText(String text);

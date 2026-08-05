@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceSide;
+import ca.teamdman.sfm.client.terminal.SFMTerminalTuningOperation;
 import net.minecraftforge.eventbus.api.IEventBus;
 
 public final class SFMCommandPaletteActions {
@@ -59,6 +60,16 @@ public final class SFMCommandPaletteActions {
     public static final SFMRegistryObject<SFMClientAction<?>, ClosePanelAction> CLOSE_PANEL = REGISTERER.register(
             "panel/close",
             ClosePanelAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, CloseScreenAction> CLOSE_SCREEN = REGISTERER.register(
+            "screen/close",
+            CloseScreenAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, ClosePaletteAction> CLOSE_PALETTE = REGISTERER.register(
+            "palette/close",
+            ClosePaletteAction::new
     );
 
     public static final SFMRegistryObject<SFMClientAction<?>, MovePanelAction> MOVE_PANEL_LEFT = REGISTERER.register(
@@ -169,6 +180,71 @@ public final class SFMCommandPaletteActions {
     public static final SFMRegistryObject<SFMClientAction<?>, SetTerminalRendererAction> SET_TERMINAL_RENDERER = REGISTERER.register(
             "terminal/renderer/set",
             SetTerminalRendererAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_SURFACE_AUTO = REGISTERER.register(
+            "terminal/properties/surface/auto",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.SURFACE_AUTO)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_SURFACE_SET = REGISTERER.register(
+            "terminal/properties/surface/set",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.SURFACE_SET)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_SURFACE_WIDTH_INCREASE = REGISTERER.register(
+            "terminal/properties/surface/width/increase",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.SURFACE_WIDTH_INCREASE)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_SURFACE_WIDTH_DECREASE = REGISTERER.register(
+            "terminal/properties/surface/width/decrease",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.SURFACE_WIDTH_DECREASE)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_SURFACE_HEIGHT_INCREASE = REGISTERER.register(
+            "terminal/properties/surface/height/increase",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.SURFACE_HEIGHT_INCREASE)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_SURFACE_HEIGHT_DECREASE = REGISTERER.register(
+            "terminal/properties/surface/height/decrease",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.SURFACE_HEIGHT_DECREASE)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_FONT_AUTO = REGISTERER.register(
+            "terminal/properties/font/auto",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.FONT_AUTO)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_FONT_SET = REGISTERER.register(
+            "terminal/properties/font/set",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.FONT_SET)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_FONT_INCREASE = REGISTERER.register(
+            "terminal/properties/font/increase",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.FONT_INCREASE)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_FONT_DECREASE = REGISTERER.register(
+            "terminal/properties/font/decrease",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.FONT_DECREASE)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_CELLS_AUTO = REGISTERER.register(
+            "terminal/properties/cells/auto",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.CELLS_AUTO)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_CELLS_SET = REGISTERER.register(
+            "terminal/properties/cells/set",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.CELLS_SET)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_COLUMNS_INCREASE = REGISTERER.register(
+            "terminal/properties/cells/columns/increase",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.COLUMNS_INCREASE)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_COLUMNS_DECREASE = REGISTERER.register(
+            "terminal/properties/cells/columns/decrease",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.COLUMNS_DECREASE)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_ROWS_INCREASE = REGISTERER.register(
+            "terminal/properties/cells/rows/increase",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.ROWS_INCREASE)
+    );
+    public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_ROWS_DECREASE = REGISTERER.register(
+            "terminal/properties/cells/rows/decrease",
+            () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.ROWS_DECREASE)
     );
 
     public static final SFMRegistryObject<SFMClientAction<?>, SFMThemeAction> THEME_RELOAD = REGISTERER.register(

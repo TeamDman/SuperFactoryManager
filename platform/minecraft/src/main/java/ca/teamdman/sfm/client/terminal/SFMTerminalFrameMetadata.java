@@ -9,8 +9,14 @@ record SFMTerminalFrameMetadata(
         long requestSequence,
         int logicalColumns,
         int logicalRows,
+        /** Native payload width; raw presenters must use this dimension. */
         int panelWidth,
+        /** Native payload height; raw presenters must use this dimension. */
         int panelHeight,
+        /** Requested physical allocation before cell-grid remainder letterboxing. */
+        int targetPanelWidth,
+        /** Requested physical allocation before cell-grid remainder letterboxing. */
+        int targetPanelHeight,
         int cellWidth,
         int cellHeight,
         int fontPixelSize,

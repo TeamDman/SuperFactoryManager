@@ -15,4 +15,9 @@ public interface SFMWorkspacePanelHost {
     ) {
         return Optional.empty();
     }
+
+    /** Resolves the exact stable panel identity without retargeting to focus. */
+    default Optional<SFMScreenPanel> panel(SFMWorkspacePanelId panelId) {
+        return Optional.empty();
+    }
 }

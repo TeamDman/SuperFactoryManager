@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 
 class SFMTerminalFocusSequenceTests {
     @Test
-    void singleAndDoubleEscapeForwardButTripleEscapeExits() {
+    void singleAndDoubleEscapeForwardButTripleEscapeDelegatesToTheHost() {
         SFMTerminalFocusSequence sequence = new SFMTerminalFocusSequence();
 
         assertEquals(SFMTerminalFocusSequence.Decision.FORWARD, sequence.escape(100));
@@ -20,7 +20,7 @@ class SFMTerminalFocusSequenceTests {
                 new SFMTerminalFocusSequence.Hint(SFMTerminalFocusSequence.HintKind.ESCAPE, 1),
                 sequence.hint(200)
         );
-        assertEquals(SFMTerminalFocusSequence.Decision.EXIT, sequence.escape(300));
+        assertEquals(SFMTerminalFocusSequence.Decision.HOST_ESCAPE, sequence.escape(300));
         assertNull(sequence.hint(300));
         assertEquals(SFMTerminalFocusSequence.Decision.FORWARD, sequence.escape(400));
     }

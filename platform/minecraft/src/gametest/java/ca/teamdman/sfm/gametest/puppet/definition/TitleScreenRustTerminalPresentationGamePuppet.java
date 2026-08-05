@@ -2,17 +2,23 @@ package ca.teamdman.sfm.gametest.puppet.definition;
 
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppet;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetViewportProfile;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
+
+import java.util.List;
 
 /**
  * V-4.2c live matrix for panel-local renderer and pixel-transport selection.
  * Run this same puppet at {@code 1280x720@auto} and {@code 3840x2130@7}; the
  * latter is rejected if Minecraft does not actually reach effective scale 7.
  */
-@SFMGamePuppet
+@SFMGamePuppet(
+        timeoutTicks = 20 * 5 * 60,
+        viewportProfile = SFMGamePuppetViewportProfile.TERMINAL_PRESENTATION
+)
 public final class TitleScreenRustTerminalPresentationGamePuppet {
     private static final String CPU = "rust-cpu-fontdue";
     private static final String GPU = "rust-gpu-slug";
@@ -53,6 +59,8 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         exercise(puppet, GPU, FULL_PNG, "gpu-full-png", 4, true, true);
         exercise(puppet, GPU, FULL_RGBA, "gpu-full-raw-rgba", 5, true, false);
         exercise(puppet, GPU, DIRTY_RGBA, "gpu-dirty-raw-rgba", 6, true, false);
+
+        exerciseTerminalPropertiesAndChoices(puppet);
 
         puppet.executeTerminal("& 'G:\\Programming\\Repos\\ratatui-key-debug\\target\\debug\\ratatui_key_debug.exe'");
         puppet.waitTicks(30);
@@ -115,6 +123,18 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         puppet.assertTerminalPresentationEvidence(
                 "independent-right-stable", GPU, DIRTY_RGBA,
                 "SFM-WITNESS:" + RIGHT_TOKEN + ":2", false);
+
+        // The exact-owner relationship is also retained when multiple Rust
+        // terminals exist and focus moves to the properties panel.
+        puppet.pressScreenKey(GLFW.GLFW_KEY_F3, 0);
+        puppet.assertActionChoice(terminalDiagnosticChoices());
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, 0);
+        puppet.waitTicks(20);
+        puppet.capture("terminal-properties-beside-gpu-dirty", caption(GPU, DIRTY_RGBA,
+                "Requested/effective logical, physical, raster, font, cell, and scale values are visible beside their owner terminal."));
+        puppet.assertTerminalPropertiesEvidence(
+                "independent-right-properties", GPU, DIRTY_RGBA,
+                "auto", "auto", "auto", 0, 0, null, false);
     }
 
     private static void exercise(
@@ -145,6 +165,203 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
                 "The same range, ANSI colour, and difficult-glyph fixture is pushed without polling."));
         puppet.assertTerminalPresentationEvidence(
                 artifact, renderer, transport, witness, freshPresentationExpected);
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:panel/open/right sfm:terminal_properties");
+        puppet.waitTicks(30);
+        puppet.capture(artifact + "-properties", caption(renderer, transport,
+                "The exact-owner properties panel reconciles logical, physical, Rust-raster, and Java draw telemetry for this tuple."));
+        puppet.assertTerminalPropertiesEvidence(
+                artifact, renderer, transport,
+                "auto", "auto", "auto", null, 0, null, false);
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:panel/close");
+        puppet.waitTicks(30);
+    }
+
+    private static void exerciseTerminalPropertiesAndChoices(SFMGamePuppetHelper puppet) {
+        // Keyboard selection from F3 opens the preferred exact-owner panel.
+        puppet.pressScreenKey(GLFW.GLFW_KEY_F3, 0);
+        puppet.assertActionChoice(terminalDiagnosticChoices());
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, 0);
+        puppet.waitTicks(30);
+        puppet.assertTerminalPropertiesEvidence(
+                "properties-open-keyboard", GPU, DIRTY_RGBA,
+                "auto", "auto", "auto", null, 0, null, false);
+
+        // The visible +/-/auto controls use the same typed path as palette
+        // actions. Exercise each rendered operation through real mouse input.
+        for (String operation : List.of(
+                "SURFACE_WIDTH_INCREASE", "SURFACE_WIDTH_DECREASE",
+                "SURFACE_HEIGHT_INCREASE", "SURFACE_HEIGHT_DECREASE", "SURFACE_AUTO",
+                "FONT_INCREASE", "FONT_DECREASE", "FONT_AUTO",
+                "COLUMNS_INCREASE", "COLUMNS_DECREASE",
+                "ROWS_INCREASE", "ROWS_DECREASE", "CELLS_AUTO")) {
+            puppet.clickTerminalPropertiesControl(operation);
+        }
+        puppet.waitTicks(30);
+        puppet.assertTerminalPropertiesEvidence(
+                "properties-buttons-auto", GPU, DIRTY_RGBA,
+                "auto", "auto", "auto", null, 0, null, false);
+
+        // Global and panel-local scales are independent inputs to the physical
+        // viewport contract. Change and restore both through registered actions.
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:ui/gui_scale/set 1");
+        puppet.waitTicks(50);
+        puppet.assertTerminalPropertiesEvidence(
+                "properties-global-scale-one", GPU, DIRTY_RGBA,
+                "auto", "auto", "auto", 1, 0, null, false);
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:ui/gui_scale/set 0");
+        puppet.waitTicks(50);
+        puppet.assertTerminalPropertiesEvidence(
+                "properties-global-scale-auto", GPU, DIRTY_RGBA,
+                "auto", "auto", "auto", 0, 0, null, false);
+
+        puppet.pressScreenKey(GLFW.GLFW_KEY_1, GLFW.GLFW_MOD_CONTROL);
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:panel/scale/set 2");
+        puppet.waitTicks(50);
+        puppet.assertTerminalPropertiesEvidence(
+                "properties-panel-scale-two", GPU, DIRTY_RGBA,
+                "auto", "auto", "auto", 0, 2, null, false);
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:panel/scale/clear");
+        puppet.waitTicks(50);
+        puppet.assertTerminalPropertiesEvidence(
+                "properties-panel-scale-cleared", GPU, DIRTY_RGBA,
+                "auto", "auto", "auto", 0, 0, null, false);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_2, GLFW.GLFW_MOD_CONTROL);
+
+        // Every registered tuning operation uses this same owner-routed path.
+        invokeTuning(puppet, "surface/width/increase", 20);
+        invokeTuning(puppet, "surface/width/decrease", 20);
+        invokeTuning(puppet, "surface/height/increase", 20);
+        invokeTuning(puppet, "surface/height/decrease", 20);
+        invokeTuning(puppet, "font/decrease", 20);
+        invokeTuning(puppet, "font/increase", 20);
+        invokeTuning(puppet, "font/auto", 20);
+        invokeTuning(puppet, "cells/columns/increase", 20);
+        invokeTuning(puppet, "cells/columns/decrease", 20);
+        invokeTuning(puppet, "cells/rows/increase", 20);
+        invokeTuning(puppet, "cells/rows/decrease", 20);
+
+        // Establish a large valid manual surface/grid, then request an exact
+        // font which cannot fit. Rust must return a typed INVALID_REQUEST while
+        // Java retains the last accepted image and PTY, and atomically rolls
+        // the rejected font override back to the accepted automatic mode.
+        invokeTuning(puppet, "surface/set 2048 2048", 40);
+        invokeTuning(puppet, "cells/set 240 120", 40);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_1, GLFW.GLFW_MOD_CONTROL);
+        puppet.executeTerminal(witnessCommand());
+        puppet.waitTicks(30);
+        puppet.assertTerminalPresentationEvidence(
+                "properties-pre-rejection", GPU, DIRTY_RGBA,
+                "SFM-WITNESS:" + LEFT_TOKEN + ":6",
+                false, false, true);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_2, GLFW.GLFW_MOD_CONTROL);
+        invokeTuning(puppet, "font/set 64", 50);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_END, 0);
+        puppet.capture("terminal-properties-invalid", caption(GPU, DIRTY_RGBA,
+                "A typed INVALID_REQUEST is visible while the last valid frame remains retained."));
+        puppet.assertTerminalPropertiesEvidence(
+                "typed-invalid-request", GPU, DIRTY_RGBA,
+                "manual", "auto", "manual", 0, 0, "INVALID_REQUEST", true);
+
+        invokeTuning(puppet, "font/auto", 30);
+        invokeTuning(puppet, "cells/auto", 30);
+        invokeTuning(puppet, "surface/auto", 40);
+        puppet.assertTerminalPropertiesEvidence(
+                "properties-recovered-auto", GPU, DIRTY_RGBA,
+                "auto", "auto", "auto", 0, 0, null, false);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_HOME, 0);
+
+        // F3's size-display entry must be executable, not merely listed.
+        puppet.pressScreenKey(GLFW.GLFW_KEY_F3, 0);
+        puppet.assertActionChoice(propertiesDiagnosticChoices());
+        puppet.clickActionChoice("sfm action invoke sfm:panel/open sfm:size_display");
+        puppet.capture("terminal-size-display-from-f3", caption(GPU, DIRTY_RGBA,
+                "The bounded diagnostics chooser opened the live size-display scene."));
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:panel/close");
+        puppet.waitTicks(20);
+
+        // Escape cancels F3 without changing focus; a second F3 is selected by
+        // mouse and closes only the properties panel.
+        puppet.pressScreenKey(GLFW.GLFW_KEY_F3, 0);
+        puppet.assertActionChoice(propertiesDiagnosticChoices());
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_F3, 0);
+        puppet.assertActionChoice(propertiesDiagnosticChoices());
+        puppet.clickActionChoice("sfm action invoke sfm:panel/close");
+        puppet.waitTicks(30);
+        puppet.clickTerminal();
+        puppet.executeTerminal("Write-Output 'SFM-CHOOSER-MOUSE-RETURN'");
+        puppet.waitTicks(20);
+        puppet.writeTerminalContent("chooser-mouse-return", "SFM-CHOOSER-MOUSE-RETURN", null);
+
+        // The terminal's first two Escapes reach the PTY; the third delegates
+        // to the exact bounded close chooser. Escape cancels it and keyboard
+        // input immediately returns to the same terminal.
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
+        puppet.capture("terminal-escape-two-remaining", caption(GPU, DIRTY_RGBA,
+                "The first Escape visibly reports that two presses remain."));
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
+        puppet.capture("terminal-escape-one-remaining", caption(GPU, DIRTY_RGBA,
+                "The second Escape visibly reports that one press remains."));
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.assertActionChoice(escapeChoices());
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.clickTerminal();
+        puppet.executeTerminal("Write-Output 'SFM-ESCAPE-CHOOSER-RETURN'");
+        puppet.waitTicks(20);
+        puppet.writeTerminalContent("escape-chooser-return", "SFM-ESCAPE-CHOOSER-RETURN", null);
+
+        // Repeat the bounded close gesture and exercise its explicit mouse
+        // cancel action as a second return-to-terminal path.
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.assertActionChoice(escapeChoices());
+        puppet.clickActionChoice("sfm action invoke sfm:palette/close");
+        puppet.clickTerminal();
+        puppet.executeTerminal("Write-Output 'SFM-ESCAPE-MOUSE-CANCEL-RETURN'");
+        puppet.waitTicks(20);
+        puppet.writeTerminalContent(
+                "escape-mouse-cancel-return", "SFM-ESCAPE-MOUSE-CANCEL-RETURN", null);
+    }
+
+    private static void invokeTuning(SFMGamePuppetHelper puppet, String suffix, int waitTicks) {
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:terminal/properties/" + suffix);
+        puppet.waitTicks(waitTicks);
+    }
+
+    private static List<String> terminalDiagnosticChoices() {
+        return List.of(
+                "sfm action invoke sfm:panel/open/right sfm:terminal_properties",
+                "sfm action invoke sfm:panel/open sfm:size_display",
+                "sfm action invoke sfm:panel/open/left sfm:size_display",
+                "sfm action invoke sfm:panel/open/right sfm:size_display",
+                "sfm action invoke sfm:panel/open/above sfm:size_display",
+                "sfm action invoke sfm:panel/open/below sfm:size_display");
+    }
+
+    private static List<String> propertiesDiagnosticChoices() {
+        return List.of(
+                "sfm action invoke sfm:panel/close",
+                "sfm action invoke sfm:panel/open sfm:size_display",
+                "sfm action invoke sfm:panel/open/left sfm:size_display",
+                "sfm action invoke sfm:panel/open/right sfm:size_display",
+                "sfm action invoke sfm:panel/open/above sfm:size_display",
+                "sfm action invoke sfm:panel/open/below sfm:size_display");
+    }
+
+    private static List<String> escapeChoices() {
+        return List.of(
+                "sfm action invoke sfm:panel/close",
+                "sfm action invoke sfm:screen/close",
+                "sfm action invoke sfm:palette/close");
     }
 
     private static void select(SFMGamePuppetHelper puppet, String renderer, String transport) {

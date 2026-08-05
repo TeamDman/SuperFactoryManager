@@ -1,17 +1,24 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.screen.SFMActionChoice;
+import ca.teamdman.sfm.client.screen.SFMActionChoiceScreen;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
+import ca.teamdman.sfm.client.terminal.SFMTerminalPropertiesPanel;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +31,14 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private static final int PANEL_BACKGROUND = 0xE0202020;
     private static final int FOCUSED_BORDER = 0xFF55FFFF;
     private static final int UNFOCUSED_BORDER = 0xFF606060;
+    private static final ResourceLocation OPEN_PANEL = new ResourceLocation(SFM.MOD_ID, "panel/open");
+    private static final ResourceLocation OPEN_PANEL_LEFT = new ResourceLocation(SFM.MOD_ID, "panel/open/left");
+    private static final ResourceLocation OPEN_PANEL_RIGHT = new ResourceLocation(SFM.MOD_ID, "panel/open/right");
+    private static final ResourceLocation OPEN_PANEL_ABOVE = new ResourceLocation(SFM.MOD_ID, "panel/open/above");
+    private static final ResourceLocation OPEN_PANEL_BELOW = new ResourceLocation(SFM.MOD_ID, "panel/open/below");
+    private static final ResourceLocation CLOSE_PANEL = new ResourceLocation(SFM.MOD_ID, "panel/close");
+    private static final ResourceLocation CLOSE_SCREEN = new ResourceLocation(SFM.MOD_ID, "screen/close");
+    private static final ResourceLocation CLOSE_PALETTE = new ResourceLocation(SFM.MOD_ID, "palette/close");
 
     private final @Nullable Screen previousScreen;
     private final SFMWorkspaceLayout layout;
@@ -276,11 +291,17 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 guiContent.x(),
                 guiContent.y(),
                 panelScale,
+                entry.metadata().guiScaleOverride() == null ? 0 : entry.metadata().guiScaleOverride(),
                 window.getWidth(),
                 window.getHeight(),
                 guiWidth,
                 guiHeight
         ));
+    }
+
+    @Override
+    public Optional<SFMScreenPanel> panel(SFMWorkspacePanelId panelId) {
+        return Optional.ofNullable(layout.panel(panelId));
     }
 
     @Override
@@ -381,6 +402,12 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         boolean control = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0 || Screen.hasControlDown();
         boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0 || Screen.hasShiftDown();
+        if (keyCode == GLFW.GLFW_KEY_F3) {
+            SFMActionChoiceScreen.open(
+                    Component.literal("SFM diagnostics"),
+                    diagnosticChoices(layout.panel(layout.focusedPanel())));
+            return true;
+        }
         if (panelGroup != null && control && keyCode == GLFW.GLFW_KEY_M) {
             SFMScreenPanel focused = layout.panel(layout.focusedPanel());
             if (focused != null) {
@@ -405,10 +432,38 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         if (focused != null && focused.keyPressed(keyCode, scanCode, modifiers)) return true;
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-            onClose();
+            SFMActionChoiceScreen.open(Component.literal("Close SFM workspace"), escapeChoices());
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    static List<SFMActionChoice> diagnosticChoices() {
+        return diagnosticChoices(null);
+    }
+
+    static List<SFMActionChoice> diagnosticChoices(@Nullable SFMScreenPanel focused) {
+        String scene = "sfm:size_display";
+        List<SFMActionChoice> choices = new ArrayList<>();
+        if (focused instanceof SFMTerminalPanel terminal && terminal.isRustBacked()) {
+            choices.add(SFMActionChoice.invoke(OPEN_PANEL_RIGHT, "sfm:terminal_properties"));
+        } else if (focused instanceof SFMTerminalPropertiesPanel) {
+            choices.add(SFMActionChoice.invoke(CLOSE_PANEL, ""));
+        }
+        choices.add(SFMActionChoice.invoke(OPEN_PANEL, scene));
+        choices.add(SFMActionChoice.invoke(OPEN_PANEL_LEFT, scene));
+        choices.add(SFMActionChoice.invoke(OPEN_PANEL_RIGHT, scene));
+        choices.add(SFMActionChoice.invoke(OPEN_PANEL_ABOVE, scene));
+        choices.add(SFMActionChoice.invoke(OPEN_PANEL_BELOW, scene));
+        return List.copyOf(choices);
+    }
+
+    static List<SFMActionChoice> escapeChoices() {
+        return List.of(
+                SFMActionChoice.invoke(CLOSE_PANEL, ""),
+                SFMActionChoice.invoke(CLOSE_SCREEN, ""),
+                SFMActionChoice.invoke(CLOSE_PALETTE, "")
+        );
     }
 
     @Override

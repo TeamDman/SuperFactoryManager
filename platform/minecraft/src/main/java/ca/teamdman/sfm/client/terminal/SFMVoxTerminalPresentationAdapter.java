@@ -71,7 +71,7 @@ final class SFMVoxTerminalPresentationAdapter {
                 terminalError(unavailable.error()));
     }
 
-    private static SFMTerminalError terminalError(TerminalError error) {
+    static SFMTerminalError terminalError(TerminalError error) {
         return new SFMTerminalError(
                 terminalErrorCode(error.code()),
                 error.message(),

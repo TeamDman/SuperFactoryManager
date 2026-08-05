@@ -45,7 +45,7 @@ import java.util.Optional;
  * otherwise replaces the in-world view, so closing it always restores the
  * view from which the palette was opened.
  */
-public final class SFMCommandPaletteScreen extends Screen {
+public final class SFMCommandPaletteScreen extends Screen implements SFMTransientActionScreen {
     public static final String DEFAULT_QUERY = "sfm action invoke ";
 
     @SFMLocalizationDatagen
@@ -238,6 +238,11 @@ public final class SFMCommandPaletteScreen extends Screen {
         } else {
             SFMScreenChangeHelpers.setScreen(null);
         }
+    }
+
+    @Override
+    public void dismissActionSurface() {
+        onClose();
     }
 
     @Override

@@ -160,14 +160,28 @@ until a live Minecraft panel capture joins the Rust stage witness to Java
 decode/texture/present measurements; no GPU/slug or Java-renderer choice is
 being made from this preliminary data.
 
-**Correction progress — 2026-08-04:** V-4.2c.2 now carries a real 1,100,000-byte
-generated-channel regression and pins Facet
-`fab9388feb0630e8abf856e6f7ea53dc996cea6b` /
-`blake3:c4c15544c3621933058db5e0a3f00bd2427f32e2`. SFM maps terminal
-GUI-logical viewport bounds to exact framebuffer pixels, keeps the logical cell
-grid independent, and raises the bounded RGBA8 path to 64 MiB. Focused Java,
-Rust Vox, and canonical compile gates pass. R-PERF.4 remains open for the live
-high-GUI-scale six-tuple artifact and terminal-properties/tuning surface.
+**Correction completion — 2026-08-05:** V-4.2c.2 carries the real
+1,100,000-byte generated-channel regression and V-4.2d supplies the terminal-
+owned properties/tuning surface. The canonical lock pins published Facet
+`765f0851bef7ce764b44554b7d2db059af1e7759` /
+`blake3:5f52a106cfd0a92f6917dace414f1c556423328d`, including the fix that retains
+partially read frame state across Java's recoverable 25 ms socket timeouts.
+SFM maps terminal GUI-logical viewport bounds to exact framebuffer pixels,
+keeps the logical cell grid independent, and raises the bounded RGBA8 path to
+64 MiB. Run `title_screen_rus-20260805-121733-142` completed all six tuples at
+3840x2130/effective GUI scale 7 with zero compact-decode/receiver failures and
+retains 24 screenshots plus 49 text artifacts. Its representative 1785x1901
+physical target produces an 11,491,200-byte native full raster and reports
+scale-one framebuffer presentation; the run observed payloads through
+24,076,800 bytes. Typed invalid-request retention/recovery, automatic clamp and
+letterbox telemetry, F3/Escape choices, focus return, alternate screen,
+CPU->GPU->CPU, and independent split terminals all passed. R-PERF.4 is complete;
+R-PERF.2/R-PERF.3 remain open for the deferred V-4.3 Java renderers and final
+matrix/default decision. The normal-resolution companion
+`title_screen_rus-20260805-123110-589` retained the same 24 screenshots and 49
+text artifacts. Canonical SFM compile and tests passed (531/533, with only the
+two expected Windows symlink-privilege assumptions aborted), alongside Teamy
+Terminal's complete `check-all.ps1` gate and Facet's full Java packaging gate.
 
 The renderer candidates and reporting tool can be developed concurrently in
 the separate worktrees/tasks listed by the linked plans after their shared

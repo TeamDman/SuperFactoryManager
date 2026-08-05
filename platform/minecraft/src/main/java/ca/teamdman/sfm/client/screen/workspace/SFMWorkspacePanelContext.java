@@ -18,6 +18,10 @@ public record SFMWorkspacePanelContext(SFMWorkspacePanelId panelId, SFMWorkspace
         return host.measure(panelId, Objects.requireNonNull(logicalBounds));
     }
 
+    public Optional<SFMScreenPanel> panel(SFMWorkspacePanelId requestedPanelId) {
+        return host.panel(Objects.requireNonNull(requestedPanelId));
+    }
+
     public static SFMWorkspacePanelContext unhosted(SFMWorkspacePanelId panelId) {
         return new SFMWorkspacePanelContext(panelId, SFMWorkspacePanelHost.UNAVAILABLE);
     }

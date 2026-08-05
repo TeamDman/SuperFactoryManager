@@ -85,7 +85,7 @@ public final class SFMGuiScaleAction implements SFMClientAction<SFMClientActionC
         minecraft.options.save();
         minecraft.resizeDisplay();
         context.getSource().sendFeedback(Component.literal("GUI scale set to " + displayScale(requested)));
-        return 1;
+        return PanelActionSupport.closePaletteAfter(1);
     }
 
     static int nextScale(int current, int maximum, Operation operation) {

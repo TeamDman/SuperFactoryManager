@@ -33,11 +33,6 @@ import java.util.List;
 public final class SFMGamePuppetHarness {
     public static final String WORLD_ID_PREFIX = "sfm_game_puppet_";
     public static final String WORLD_NAME_PREFIX = "SFM Game Puppet: ";
-    // This is a whole-puppet watchdog, not an individual-action timeout. A
-    // screenshot-heavy 4K viewport proof can legitimately exceed one minute
-    // even when every terminal frame is fast, so keep the watchdog above that
-    // supported workload while individual actions retain their own bounds.
-    public static final int PUPPET_TIMEOUT_TICKS = 20 * 2 * 60;
     public static final int SCREENSHOT_TIMEOUT_TICKS = 20 * 20;
     public static final int CAPTION_HORIZONTAL_PADDING = 12;
     public static final int CAPTION_VERTICAL_PADDING = 10;
@@ -135,10 +130,11 @@ public final class SFMGamePuppetHarness {
             returnToTitle(minecraft);
             return;
         }
-        if (++active.totalActionTicks > PUPPET_TIMEOUT_TICKS) {
+        int timeoutTicks = active.definition.timeoutTicks();
+        if (++active.totalActionTicks > timeoutTicks) {
             failActivePuppet(
                     active,
-                    new IllegalStateException("Timed out after " + PUPPET_TIMEOUT_TICKS + " client ticks")
+                    new IllegalStateException("Timed out after " + timeoutTicks + " client ticks")
             );
             returnToTitle(minecraft);
             return;

@@ -32,7 +32,10 @@ public final class ActivePuppet {
             long terminalSequence,
             long frameSequence,
             int panelWidth,
-            int panelHeight
+            int panelHeight,
+            int columns,
+            int rows,
+            int fontPixelSize
     ) {
     }
 
@@ -53,6 +56,8 @@ public final class ActivePuppet {
     public int nextFigureNumber = 1;
 
     public int totalActionTicks;
+
+    public String terminalPropertiesWaitState = "";
 
     public boolean failureRecorded;
 

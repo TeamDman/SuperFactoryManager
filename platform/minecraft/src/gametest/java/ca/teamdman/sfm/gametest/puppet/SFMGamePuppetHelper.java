@@ -154,6 +154,15 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    public void assertActionChoice(List<String> expectedCommands) {
+        add(new AssertActionChoicePuppetAction(expectedCommands));
+    }
+
+    public void clickActionChoice(String command) {
+        add(new ClickActionChoicePuppetAction(Objects.requireNonNull(command, "command")));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void assertWorkspaceState(
             int totalEntries,
             int visibleEntries,
@@ -219,6 +228,38 @@ public final class SFMGamePuppetHelper {
                 Objects.requireNonNull(artifactName, "artifactName"),
                 reconnectExpected
         ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void assertTerminalPropertiesEvidence(
+            String artifactName,
+            String expectedRendererId,
+            String expectedTransportId,
+            String expectedSurfaceMode,
+            String expectedFontMode,
+            String expectedCellsMode,
+            Integer expectedConfiguredGuiScale,
+            Integer expectedPanelGuiScaleOverride,
+            String expectedRejectionCode,
+            boolean retainedFrameExpected
+    ) {
+        add(new AssertTerminalPropertiesEvidencePuppetAction(
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(expectedRendererId, "expectedRendererId"),
+                Objects.requireNonNull(expectedTransportId, "expectedTransportId"),
+                Objects.requireNonNull(expectedSurfaceMode, "expectedSurfaceMode"),
+                Objects.requireNonNull(expectedFontMode, "expectedFontMode"),
+                Objects.requireNonNull(expectedCellsMode, "expectedCellsMode"),
+                expectedConfiguredGuiScale,
+                expectedPanelGuiScaleOverride,
+                expectedRejectionCode,
+                retainedFrameExpected));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void clickTerminalPropertiesControl(String operation) {
+        add(new ClickTerminalPropertiesControlPuppetAction(
+                Objects.requireNonNull(operation, "operation")));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 

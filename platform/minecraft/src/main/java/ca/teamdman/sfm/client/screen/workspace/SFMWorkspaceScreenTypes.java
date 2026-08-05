@@ -26,6 +26,11 @@ public final class SFMWorkspaceScreenTypes {
             SFMTerminalScreenType::new
     );
 
+    public static final SFMRegistryObject<SFMClientScreenType, SFMTerminalPropertiesScreenType> TERMINAL_PROPERTIES = REGISTERER.register(
+            "terminal_properties",
+            SFMTerminalPropertiesScreenType::new
+    );
+
     public static final SFMRegistryObject<SFMClientScreenType, SFMTextEditorScreenType> TEXT_EDITOR = REGISTERER.register(
             "text_editor",
             SFMTextEditorScreenType::new

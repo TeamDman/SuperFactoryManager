@@ -42,6 +42,7 @@ final class SFMTerminalRgbaRenderer {
     }
 
     boolean render(PoseStack poseStack, Minecraft minecraft, int x, int y, int width, int height,
+                   double localToPhysicalScaleX, double localToPhysicalScaleY,
                    Optional<SFMTerminalFrame> snapshot) {
         if (snapshot.isPresent()) {
             SFMTerminalFrame frame = snapshot.get();
@@ -61,15 +62,12 @@ final class SFMTerminalRgbaRenderer {
             }
         }
         if (texture == null || width <= 0 || height <= 0) return false;
-        double scale = Math.min(1.0, Math.min(
-                width / (double) imageWidth, height / (double) imageHeight));
-        int drawWidth = Math.max(1, (int) Math.floor(imageWidth * scale));
-        int drawHeight = Math.max(1, (int) Math.floor(imageHeight * scale));
-        int drawX = x + (width - drawWidth) / 2;
-        int drawY = y + (height - drawHeight) / 2;
+        SFMTerminalImageLayout layout = SFMTerminalImageLayout.fitPhysical(
+                x, y, width, height, imageWidth, imageHeight,
+                localToPhysicalScaleX, localToPhysicalScaleY);
         minecraft.getTextureManager().bindForSetup(textureLocation);
         RenderSystem.setShaderTexture(0, textureLocation);
-        GuiComponent.blit(poseStack, drawX, drawY, drawWidth, drawHeight,
+        GuiComponent.blit(poseStack, layout.x(), layout.y(), layout.width(), layout.height(),
                 0, 0, imageWidth, imageHeight, imageWidth, imageHeight);
         return true;
     }

@@ -23,6 +23,8 @@ NAME "Changelog"
 -- Replace periodic Rust-terminal snapshot polling with bounded pushed Vox frame subscriptions
 -- Add panel-local Rust terminal transport selection for full PNG, full RGBA, and dirty RGBA while preserving the shell session
 -- Add a true no-window Vulkan Slug terminal renderer with independent panel-local renderer and transport selection
+-- Add a terminal properties panel with exact surface, font-size, and cell-grid controls shared with hierarchical command-palette actions
+-- Add bounded F3 diagnostics and Escape close choosers while preserving the terminal's triple-Escape gesture
 -- Return keyboard input to the Rust terminal immediately when its viewport is clicked after using the Presentation menu
 -- Fix large raw Rust terminal frames disconnecting Vox when byte payloads exceed the unrelated collection-entry limit
 -- Request Rust terminal targets in framebuffer pixels so high GUI scales render crisp glyphs without stretching a small raster

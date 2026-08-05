@@ -689,7 +689,7 @@ transfer through the live panel. Canonical schema-v4 validation and
 `sfm-propagate-changes.exe run compile --branch 1.19.2
 --wait-for-build-lock` also pass.
 
-#### [~] V-4.2c.2 Correct large channel byte lists and physical-pixel presentation
+#### [x] V-4.2c.2 Correct large channel byte lists and physical-pixel presentation
 
 Subsequent user testing exposed two assumptions that V-4.2c.1's fixtures did
 not actually prove. Its 531x272 RGBA fixture is only 577,728 bytes, below the
@@ -701,16 +701,31 @@ conversion. The regression must send at least 1,100,000 generated RGBA bytes
 through the real generated-response channel receiver; a direct codec-only test
 is insufficient.
 
-The corrected Facet work is commit
-`fab9388feb0630e8abf856e6f7ea53dc996cea6b` on pushed branch
+The corrected Facet work was integrated into published merge
+`a194cc92346f8e4546a227e192433f2a49d953c6` on pushed branch
 `TeamDman/facet:teamy/phon-byte-list-run`. It preserves byte lists as
 `Value.bytes`, applies `byteRunLength` rather than `collectionEntries`, and
-passes Phon conformance, stream framing, Vox runtime, generated-response, and
-deterministic Java packaging gates. The canonical SFM lock now pins that exact
-source revision and accepts `org.facet:vox-java:0.10.0-rc.5` at
-`blake3:c4c15544c3621933058db5e0a3f00bd2427f32e2`. This is a reachable feature
-branch pin pending the normal review/merge decision; it does not imply a direct
-push to Facet `main`.
+passes the real 1,100,000-byte generated-response channel regression in
+addition to Phon conformance, stream framing, Vox runtime, and deterministic
+Java packaging gates.
+
+The first archival 3840x2130 rerun then exposed a separate intermittent stream
+framing defect. Java's single connection driver uses a 25 ms socket timeout so
+it can service outbound commands, but `StreamFraming.readFrame` had retained a
+partially consumed header/body only in local variables. A timeout partway
+through a 10-24 MiB raw frame discarded that progress; the next raster bytes
+were treated as a fresh length prefix and eventually failed compact `Message`
+decode as `need 8 bytes, have 5`. Facet commits
+`66d8e4c3a51d0de7ecdab048b95a23b19a4fe638` and
+`765f0851bef7ce764b44554b7d2db059af1e7759` add bounded frame-offset evidence
+and make header/body progress transport-owned across recoverable timeouts.
+Deterministic tests interrupt both a partial header and a partial body and prove
+that the exact original frame resumes. Rust's owned frame queue, single
+outbound worker, and single stream writer were audited and ruled out as frame
+interleaving sources. The canonical SFM lock and both Teamy Terminal lockfiles
+now pin the published `765f0851...` revision; SFM accepts the deterministic
+`org.facet:vox-java:0.10.0-rc.5` artifact at
+`blake3:5f52a106cfd0a92f6917dace414f1c556423328d`.
 
 The second false assumption was treating the 766x409 GUI-logical viewport as a
 766x409 physical-pixel target. At a roughly 5x GUI transform in a 3840x2054
@@ -730,9 +745,18 @@ raises the bounded raw-frame path to 64 MiB end-to-end so a 4096x4096 RGBA8
 frame remains valid. Rust's font fitting must retain the terminal cell grid and
 increase glyph pixel size for the larger physical target; font and GPU objects
 remain cached across frames and compatible resizes. Unit and compile gates are
-complete. The item remains in progress until live high-GUI-scale evidence runs
-all six renderer/transport tuples without compact decode failures and records
-near-one texture-pixel to framebuffer-pixel presentation without blur.
+complete. Live acceptance is retained as run
+`title_screen_rus-20260805-121733-142`: 24 native screenshots and 49 textual
+artifacts, including 16 terminal-properties snapshots and 14 push-evidence
+files. All six renderer/transport tuples completed at 3840x2130/effective GUI
+scale 7 with zero rejected/stale frames, zero receiver failures, and no compact
+decode failure. The representative CPU/full-raw and GPU/dirty states each map
+a 255x272 logical viewport to a 1785x1901 physical target, retain a 42x24 grid,
+fit 64 px glyphs into a 1596x1800 native raster, present it as 1596x1803
+physical pixels with the three-pixel endpoint-rounding tolerance, and report
+`java_framebuffer_scale_one=true`. Their full payload is 11,491,200 bytes and
+the observed maximum is 24,076,800 bytes, both traversing the real generated
+Vox channel under the 64 MiB bound.
 
 The same user test also found that fuzzy ranking stopped after the top-level
 action id. Palette completion now ranks immutable literal children in the
@@ -741,7 +765,7 @@ discovers `sfm:terminal`. It does not fuzzy arbitrary numeric, path, or free-tex
 arguments, and the partial spelling remains non-executable until an exact
 Brigadier literal is selected.
 
-#### [ ] V-4.2d Add terminal properties, typed tuning, and bounded workspace choices
+#### [x] V-4.2d Add terminal properties, typed tuning, and bounded workspace choices
 
 Register an `sfm:terminal_properties` panel associated with exactly one terminal
 panel. It resolves the focused terminal directly, or the owner terminal when
@@ -814,6 +838,36 @@ keyboard/mouse return from both choosers, the terminal triple-Escape sequence,
 and command-palette parity. A high-GUI-scale live artifact captures the
 properties values beside the terminal and reconciles them with Rust and Java
 telemetry for all six renderer/transport tuples.
+
+**Completion notes — 2026-08-05:** `sfm:terminal_properties` is a terminal-owned
+workspace scene. Focused-terminal and owner-properties routing use the same
+typed action context; absent/non-terminal focus is rejected instead of falling
+back to a recent terminal. The registered hierarchical surface/font/cell
+actions and panel buttons share immutable tuning settings, named steps, exact
+manual values, automatic allocation, and explicit 4096x4096, 240-column, and
+120-row bounds. Automatic values and clamp deltas are preserved separately: at
+global GUI scale 1 the live 1901x2097 viewport proposed 316x190 cells, selected
+240x120, and exposed clamps of 76 columns and 70 rows. Its 1680x1680 native
+raster and Java draw were exactly scale one with measured letterboxing.
+
+The same live run exercised every action family, global and per-panel scale
+transitions, keyboard/mouse return, owner routing, split terminals with
+independent CPU/GPU choices, CPU->GPU->CPU session continuity, alternate-screen
+entry/restoration, the bounded F3 diagnostics chooser, and the terminal
+triple-Escape countdown/choice surface. A deliberately impossible manual
+request (`surface=2048x2048`, `font=64`, `cells=240x120`) returned typed
+`INVALID_REQUEST`, retained the prior frame, recorded the exact rejection, and
+then recovered through the same automatic actions. The completed 4K artifact
+bundle above contains properties evidence for all six tuples plus keyboard,
+button, scale, invalid/recovery, return, and independent-panel states. The
+normal-resolution companion run `title_screen_rus-20260805-123110-589` also
+completed with the same 24 screenshots and 49 text artifacts. The canonical
+SFM compile and full test suite pass on the same published Facet pin: 533 tests
+were found, 531 passed, and the two Windows symlink-privilege assumptions were
+aborted. Teamy Terminal's focused 29-test Vox server suite and complete
+`check-all.ps1` gate pass, as do Facet's Phon conformance, stream framing, Vox
+runtime, generated-response integration, and deterministic Java packaging
+gates. V-4.3 Java semantic-cell renderers remain explicitly out of scope.
 
 ### [ ] V-4.3 Implement the two Java text/font comparators
 

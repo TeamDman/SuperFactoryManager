@@ -3891,10 +3891,14 @@ fn parse_game_puppet_terminal_artifact_metadata(
 ) -> eyre::Result<Vec<GamePuppetPreviewTerminalArtifactMetadata>> {
     const CONTENT_MARKER: &str = "SFM_GAME_PUPPET_TERMINAL_CONTENT_WRITTEN";
     const PUSH_EVIDENCE_MARKER: &str = "SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN";
+    const PROPERTIES_EVIDENCE_MARKER: &str =
+        "SFM_GAME_PUPPET_TERMINAL_PROPERTIES_EVIDENCE_WRITTEN";
     let mut artifacts = Vec::new();
     let mut reported_files = BTreeSet::new();
     for line in launch_output.lines() {
-        let kind = if line.contains(PUSH_EVIDENCE_MARKER) {
+        let kind = if line.contains(PROPERTIES_EVIDENCE_MARKER) {
+            "terminal-properties"
+        } else if line.contains(PUSH_EVIDENCE_MARKER) {
             "push-evidence"
         } else if line.contains(CONTENT_MARKER) {
             "terminal-content"
@@ -3971,6 +3975,7 @@ fn game_puppet_preview_terminal_artifact_file_name(
     match kind {
         "terminal-content" => Ok(format!("terminal_{artifact_name}.txt")),
         "push-evidence" => Ok(format!("terminal_{artifact_name}__push-evidence.txt")),
+        "terminal-properties" => Ok(format!("terminal_{artifact_name}__properties.txt")),
         _ => eyre::bail!("Unsupported terminal artifact kind {kind}"),
     }
 }
@@ -4399,18 +4404,21 @@ mod game_puppet_preview_tests {
     }
 
     #[test]
-    fn terminal_artifact_metadata_distinguishes_content_from_push_evidence() {
+    fn terminal_artifact_metadata_distinguishes_content_push_and_properties_evidence() {
         let metadata = parse_game_puppet_terminal_artifact_metadata(
             "SFM_GAME_PUPPET_TERMINAL_CONTENT_WRITTEN puppet=terminal_transport variant=1280x720@auto artifact=full_png file=terminal_transport__full_png.txt chars=42\n\
-             SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN puppet=terminal_transport variant=1280x720@auto artifact=full_png file=terminal_transport__full_png__push-evidence.txt chars=99",
+             SFM_GAME_PUPPET_TERMINAL_PUSH_EVIDENCE_WRITTEN puppet=terminal_transport variant=1280x720@auto artifact=full_png file=terminal_transport__full_png__push-evidence.txt chars=99\n\
+             SFM_GAME_PUPPET_TERMINAL_PROPERTIES_EVIDENCE_WRITTEN puppet=terminal_transport variant=1280x720@auto artifact=full_png file=terminal_transport__full_png__terminal-properties.txt chars=199",
         )
         .expect("terminal artifact markers should parse");
 
-        assert_eq!(metadata.len(), 2);
+        assert_eq!(metadata.len(), 3);
         assert_eq!(metadata[0].kind, "terminal-content");
         assert_eq!(metadata[0].variant, "1280x720@auto");
         assert_eq!(metadata[1].kind, "push-evidence");
+        assert_eq!(metadata[2].kind, "terminal-properties");
         assert_ne!(metadata[0].file_name, metadata[1].file_name);
+        assert_ne!(metadata[1].file_name, metadata[2].file_name);
     }
 
     #[test]

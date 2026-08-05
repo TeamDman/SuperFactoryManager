@@ -13,7 +13,7 @@ public record SFMTerminalFrame(
     public SFMTerminalFrame {
         payload = payload == null ? new byte[0] : Arrays.copyOf(payload, payload.length);
         metadata = metadata == null
-                ? new SFMTerminalFrameMetadata(0, 0, 0, 0, 0, 0, 0, 0,
+                ? new SFMTerminalFrameMetadata(0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                         "", "", 0, 0, 0, 0, 0, 0, 0, 0, "")
                 : metadata;
         streamIdentity = normalizeStreamIdentity(streamIdentity, metadata);

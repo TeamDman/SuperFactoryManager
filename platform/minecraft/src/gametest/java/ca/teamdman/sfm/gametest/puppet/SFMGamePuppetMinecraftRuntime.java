@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.handler.SFMCommandPaletteKeyHandler;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
+import ca.teamdman.sfm.client.screen.SFMActionChoiceScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerPanel;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerLayout;
@@ -16,6 +17,10 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPresentationPuppetProbe;
+import ca.teamdman.sfm.client.terminal.SFMTerminalPropertiesPanel;
+import ca.teamdman.sfm.client.terminal.SFMTerminalPropertiesSnapshot;
+import ca.teamdman.sfm.client.terminal.SFMTerminalErrorCode;
+import ca.teamdman.sfm.client.terminal.SFMTerminalTuningOperation;
 import ca.teamdman.sfm.client.terminal.SFMTerminalServiceFactory;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
@@ -249,6 +254,27 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public void assertActionChoice(List<String> expectedCommands) {
+        if (!(minecraft.screen instanceof SFMActionChoiceScreen chooser)) {
+            throw new IllegalStateException("Expected a bounded action chooser but found "
+                    + (minecraft.screen == null ? "no screen" : minecraft.screen.getClass().getName()));
+        }
+        List<String> actual = chooser.commandsForAutomation();
+        if (!actual.equals(expectedCommands)) {
+            throw new IllegalStateException("Bounded action chooser commands were " + actual
+                    + " instead of " + expectedCommands);
+        }
+    }
+
+    @Override
+    public void clickActionChoice(String command) {
+        if (!(minecraft.screen instanceof SFMActionChoiceScreen chooser)) {
+            throw new IllegalStateException("Expected a bounded action chooser before mouse selection");
+        }
+        chooser.clickChoiceForAutomation(command);
+    }
+
+    @Override
     public void assertWorkspaceState(
             int totalEntries,
             int visibleEntries,
@@ -419,6 +445,222 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public boolean assertTerminalPropertiesEvidence(
+            String artifactName,
+            String expectedRendererId,
+            String expectedTransportId,
+            String expectedSurfaceMode,
+            String expectedFontMode,
+            String expectedCellsMode,
+            Integer expectedConfiguredGuiScale,
+            Integer expectedPanelGuiScaleOverride,
+            String expectedRejectionCode,
+            boolean retainedFrameExpected
+    ) {
+        String safeArtifactName = validateCaptureName(artifactName);
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        SFMWorkspacePanelId ownerId;
+        SFMTerminalPanel terminal;
+        if (multiplexer.focusedPanelInstance() instanceof SFMTerminalPropertiesPanel properties) {
+            ownerId = properties.ownerPanelId();
+            terminal = properties.ownerTerminal().orElseThrow(() ->
+                    new IllegalStateException("Focused terminal-properties panel has no live owner"));
+        } else if (multiplexer.focusedPanelInstance() instanceof SFMTerminalPanel focusedTerminal) {
+            ownerId = multiplexer.focusedPanelId();
+            terminal = focusedTerminal;
+        } else {
+            throw new IllegalStateException("Terminal properties evidence requires a terminal or its properties panel");
+        }
+        if (multiplexer.panel(ownerId).orElse(null) != terminal) {
+            throw new IllegalStateException("Terminal-properties owner identity retargeted unexpectedly");
+        }
+        SFMTerminalPropertiesSnapshot snapshot = terminal.propertiesSnapshot();
+        if (snapshot.panelMetrics().isEmpty() || snapshot.workspaceMetrics().isEmpty()
+                || snapshot.acceptedFrame().isEmpty() || snapshot.presentation().isEmpty()) {
+            reportTerminalPropertiesWait(safeArtifactName, "telemetry-incomplete");
+            return false;
+        }
+        if (snapshot.tuningPending()) {
+            reportTerminalPropertiesWait(safeArtifactName,
+                    "tuning-pending requested=" + snapshot.requested()
+                            + " effective=" + snapshot.effective());
+            return false;
+        }
+        assertTerminalProperty("renderer", expectedRendererId,
+                snapshot.requestedRenderer(), snapshot.activeRenderer(),
+                snapshot.acceptedFrame().orElseThrow().renderer());
+        assertTerminalProperty("transport", expectedTransportId,
+                snapshot.requestedTransport(), snapshot.activeTransport(),
+                snapshot.acceptedFrame().orElseThrow().transport());
+        assertTerminalMode("surface", expectedSurfaceMode,
+                snapshot.requested().surfaceWidth() == 0 && snapshot.requested().surfaceHeight() == 0);
+        assertTerminalMode("font", expectedFontMode, snapshot.requested().fontPixelSize() == 0);
+        assertTerminalMode("cells", expectedCellsMode,
+                snapshot.requested().columns() == 0 && snapshot.requested().rows() == 0);
+        if (expectedConfiguredGuiScale != null
+                && snapshot.configuredGuiScale() != expectedConfiguredGuiScale) {
+            throw new IllegalStateException("Terminal configured GUI scale was "
+                    + snapshot.configuredGuiScale() + " instead of " + expectedConfiguredGuiScale);
+        }
+        if (expectedPanelGuiScaleOverride != null) {
+            int actualOverride = snapshot.panelMetrics().orElseThrow().panelGuiScaleOverride();
+            if (actualOverride != expectedPanelGuiScaleOverride) {
+                throw new IllegalStateException("Terminal panel GUI scale override was "
+                        + actualOverride + " instead of " + expectedPanelGuiScaleOverride);
+            }
+        }
+        var presentation = snapshot.presentation().orElseThrow();
+        if (presentation.framesRejected() != 0 || presentation.receiverFailures() != 0) {
+            throw new IllegalStateException("Terminal properties recorded rejected frames or receiver failures");
+        }
+        if (expectedRejectionCode == null) {
+            if (snapshot.lastTypedRejection().isPresent()) {
+                throw new IllegalStateException("Unexpected terminal tuning rejection: " + snapshot.lastRejection());
+            }
+        } else {
+            SFMTerminalErrorCode expected = SFMTerminalErrorCode.valueOf(expectedRejectionCode);
+            var rejection = snapshot.lastTypedRejection().orElseThrow(() ->
+                    new IllegalStateException("Expected typed terminal tuning rejection " + expected));
+            if (rejection.error().code() != expected) {
+                throw new IllegalStateException("Terminal tuning rejection was "
+                        + rejection.error().code() + " instead of " + expected);
+            }
+        }
+        ActivePuppet.TerminalPresentationProgress baseline = active.terminalPresentations.get(ownerId);
+        if (retainedFrameExpected) {
+            if (baseline == null) {
+                throw new IllegalStateException("No pre-rejection terminal frame baseline was recorded");
+            }
+            var accepted = snapshot.acceptedFrame().orElseThrow();
+            var retainedPresentation = snapshot.presentation().orElseThrow();
+            if (accepted.sequence() < baseline.frameSequence()
+                    || !retainedPresentation.presentationGeneration().equals(baseline.generation())
+                    || accepted.targetWidth() != baseline.panelWidth()
+                    || accepted.targetHeight() != baseline.panelHeight()
+                    || accepted.columns() != baseline.columns()
+                    || accepted.rows() != baseline.rows()
+                    || accepted.fontPixelSize() != baseline.fontPixelSize()) {
+                throw new IllegalStateException(
+                        "Rejected tuning did not retain the last accepted semantic frame: baseline="
+                                + baseline + " accepted=" + accepted);
+            }
+        }
+        String evidence = String.join("\n",
+                "puppet=" + active.definition.puppetName(),
+                "viewport_variant=" + active.viewportVariant.id(),
+                "owner_panel_id=" + ownerId.value(),
+                "focused_panel_id=" + multiplexer.focusedPanelId().value(),
+                "retained_frame_expected=" + retainedFrameExpected,
+                "retained_frame_baseline=" + (baseline == null ? 0 : baseline.frameSequence()),
+                snapshot.artifact(),
+                "");
+        if ("auto".equals(expectedSurfaceMode)
+                && !evidence.contains("properties_java_framebuffer_scale_one=true")) {
+            // Opening, closing, or rescaling an adjacent panel changes the
+            // terminal allocation immediately. The Rust frame follows over
+            // the push lane; keep this action pending until that accepted
+            // frame and the Java draw rectangle describe the same pixels.
+            var frame = snapshot.acceptedFrame().orElseThrow();
+            var draw = snapshot.javaDrawPhysicalBounds().orElse(null);
+            reportTerminalPropertiesWait(safeArtifactName,
+                    "framebuffer-scale native=" + frame.nativeWidth() + "x" + frame.nativeHeight()
+                            + " java=" + (draw == null ? "missing" : draw.width() + "x" + draw.height())
+                            + " effective=" + snapshot.effective().surfaceWidth() + "x"
+                            + snapshot.effective().surfaceHeight()
+                            + " frame_sequence=" + frame.sequence());
+            return false;
+        }
+        Path directory = minecraft.gameDirectory.toPath().resolve("terminal-content");
+        Path file = directory.resolve(active.definition.puppetName() + "__" + safeArtifactName
+                + "__terminal-properties.txt");
+        try {
+            Files.createDirectories(directory);
+            Files.writeString(file, evidence, StandardCharsets.UTF_8);
+        } catch (IOException error) {
+            throw new IllegalStateException("Could not write terminal properties evidence " + file, error);
+        }
+        SFM.LOGGER.info(
+                "SFM_GAME_PUPPET_TERMINAL_PROPERTIES_EVIDENCE_WRITTEN puppet={} variant={} artifact={} file={} chars={}",
+                active.definition.puppetName(),
+                active.viewportVariant.id(),
+                safeArtifactName,
+                file.getFileName(),
+                evidence.length());
+        active.terminalPropertiesWaitState = "";
+        return true;
+    }
+
+    private void reportTerminalPropertiesWait(String artifactName, String state) {
+        String identified = artifactName + " " + state;
+        if (identified.equals(active.terminalPropertiesWaitState)) return;
+        active.terminalPropertiesWaitState = identified;
+        SFM.LOGGER.info("SFM_GAME_PUPPET_TERMINAL_PROPERTIES_WAIT artifact={} state={}", artifactName, state);
+    }
+
+    @Override
+    public boolean clickTerminalPropertiesControl(String operation) {
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        if (!(multiplexer.focusedPanelInstance() instanceof SFMTerminalPropertiesPanel properties)) {
+            throw new IllegalStateException("Expected a focused terminal-properties panel before clicking a control");
+        }
+        SFMTerminalTuningOperation parsed;
+        try {
+            parsed = SFMTerminalTuningOperation.valueOf(operation);
+        } catch (IllegalArgumentException error) {
+            throw new IllegalArgumentException("Unknown terminal tuning operation " + operation, error);
+        }
+        SFMScreenPanelBounds control = properties.controlBoundsForAutomation(parsed).orElseThrow(() ->
+                new IllegalStateException("Terminal-properties control is not rendered: " + operation));
+        SFMWorkspacePanelId panelId = multiplexer.focusedPanelId();
+        SFMScreenPanelBounds panel = multiplexer.panelBounds(panelId);
+        SFMScreenPanelBounds globalControl = multiplexer.measure(panelId, control)
+                .map(metrics -> metrics.globalGuiLogicalBounds())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Terminal-properties control could not be mapped to the workspace: " + operation));
+        double x = globalControl.x() + globalControl.width() / 2D;
+        double y = globalControl.y() + globalControl.height() / 2D;
+        if (panel == null || x < panel.x() || x >= panel.x() + panel.width()) {
+            throw new IllegalStateException(
+                    "Terminal-properties control is horizontally outside the visible panel: " + operation);
+        }
+        if (y < panel.y() || y >= panel.y() + panel.height()) {
+            double panelX = panel.x() + panel.width() / 2D;
+            double panelY = panel.y() + panel.height() / 2D;
+            double direction = y < panel.y() ? 1D : -1D;
+            if (!multiplexer.mouseScrolled(panelX, panelY, direction)) {
+                throw new IllegalStateException(
+                        "Terminal-properties control could not be scrolled into view: " + operation);
+            }
+            return false;
+        }
+        if (!multiplexer.mouseClicked(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
+            throw new IllegalStateException("Terminal-properties panel rejected control click: " + operation);
+        }
+        multiplexer.mouseReleased(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        return true;
+    }
+
+    private static void assertTerminalProperty(
+            String axis,
+            String expected,
+            String requested,
+            String active,
+            String accepted
+    ) {
+        if (!expected.equals(requested) || !expected.equals(active) || !expected.equals(accepted)) {
+            throw new IllegalStateException("Terminal " + axis + " identities were requested=" + requested
+                    + ", active=" + active + ", accepted=" + accepted + " instead of " + expected);
+        }
+    }
+
+    private static void assertTerminalMode(String axis, String expected, boolean automatic) {
+        String actual = automatic ? "auto" : "manual";
+        if (!expected.equals(actual)) {
+            throw new IllegalStateException("Terminal " + axis + " mode was " + actual + " instead of " + expected);
+        }
+    }
+
+    @Override
     public void assertTerminalPresentationEvidence(
             String artifactName,
             String rendererId,
@@ -439,6 +681,8 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         SFMTerminalPresentationPuppetProbe.Observation observation =
                 SFMTerminalPresentationPuppetProbe.observe(
                         panel,
+                        multiplexer,
+                        panelId,
                         rendererId,
                         transportId,
                         requiredContentLine
@@ -502,7 +746,10 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                 observation.terminalSequence(),
                 observation.latestFrameSequence(),
                 observation.targetPanelWidth(),
-                observation.targetPanelHeight()));
+                observation.targetPanelHeight(),
+                observation.logicalColumns(),
+                observation.logicalRows(),
+                observation.fontPixelSize()));
 
         Path directory = minecraft.gameDirectory.toPath().resolve("terminal-content");
         Path contentFile = directory.resolve(
@@ -542,6 +789,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                 "full_resync_advanced=" + fullResyncAdvanced,
                 "content_asserted=" + (requiredContentLine != null),
                 "required_content_line=" + (requiredContentLine == null ? "none" : requiredContentLine),
+                panel.propertiesSnapshot().artifact(),
                 observation.artifact());
         if (active.viewportVariant.guiScale() == 7
                 && active.viewportObservation.effectiveGuiScale() != 7) {

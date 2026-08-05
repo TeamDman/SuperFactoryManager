@@ -60,6 +60,21 @@ class SFMTerminalPanelInteractionTests {
     }
 
     @Test
+    void firstTwoEscapesReachThePtyAndTheThirdFallsThroughToTheWorkspace() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0));
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0));
+        assertFalse(panel.keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0));
+
+        assertEquals(List.of(
+                new KeyInput(GLFW.GLFW_KEY_ESCAPE, true),
+                new KeyInput(GLFW.GLFW_KEY_ESCAPE, true)
+        ), service.keyInputs);
+    }
+
+    @Test
     void normalGuiScaleResizeUsesTheExactPaddedTitleAdjustedNativeViewport() {
         SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
         SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
@@ -110,8 +125,10 @@ class SFMTerminalPanelInteractionTests {
                         assertEquals(logicalViewport, requested);
                         return Optional.of(new SFMWorkspacePanelMetrics(
                                 requested,
+                                logicalViewport,
                                 physicalViewport,
                                 1.0D,
+                                0,
                                 5.0D,
                                 5.0D,
                                 3840,
@@ -132,6 +149,106 @@ class SFMTerminalPanelInteractionTests {
                 new SFMScreenPanelBounds(10, 20, 4096, 1024),
                 SFMTerminalPanel.boundedRasterTarget(new SFMScreenPanelBounds(10, 20, 8192, 2048))
         );
+    }
+
+    @Test
+    void typedTuningActionsShareOnePanelLocalRequestPath() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+
+        assertTrue(panel.requestTuning(SFMTerminalTuningOperation.SURFACE_SET, 800, 600).accepted());
+        assertTrue(panel.requestTuning(SFMTerminalTuningOperation.FONT_SET, 24, 0).accepted());
+        assertTrue(panel.requestTuning(SFMTerminalTuningOperation.CELLS_SET, 80, 25).accepted());
+
+        ResizeRequest latest = service.resizeRequests.get(service.resizeRequests.size() - 1);
+        assertEquals(new ResizeRequest(80, 25, 800, 600), latest);
+        assertEquals(24, service.lastFontPixelSize);
+        assertEquals(new SFMTerminalTuningSettings(800, 600, 24, 80, 25),
+                panel.propertiesSnapshot().requested());
+    }
+
+    @Test
+    void invalidLocalTuningRetainsThePreviousRequest() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+        assertTrue(panel.requestTuning(SFMTerminalTuningOperation.FONT_SET, 24, 0).accepted());
+
+        SFMTerminalTuningChangeResult rejected =
+                panel.requestTuning(SFMTerminalTuningOperation.FONT_SET, 7, 0);
+
+        assertFalse(rejected.accepted());
+        assertEquals(24, panel.propertiesSnapshot().requested().fontPixelSize());
+        assertEquals(24, service.lastFontPixelSize);
+    }
+
+    @Test
+    void asynchronousRustRejectionRollsBackWithoutClosingTheTerminal() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+        assertTrue(panel.requestTuning(SFMTerminalTuningOperation.SURFACE_SET, 100, 100).accepted());
+        service.tuningFailure = SFMTerminalTuningRejection.localInvalid(
+                "exact font cannot fit requested surface",
+                "surface=100x100, font=24, cells=auto");
+
+        panel.tick();
+
+        assertEquals(SFMTerminalTuningSettings.automatic(), panel.propertiesSnapshot().requested());
+        assertTrue(panel.propertiesSnapshot().lastRejection().contains("cannot fit"));
+        ResizeRequest rollback = service.resizeRequests.get(service.resizeRequests.size() - 1);
+        SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540));
+        assertEquals(new ResizeRequest(viewport.columns(), viewport.rows(), viewport.width(), viewport.height()), rollback);
+    }
+
+    @Test
+    void successfulTypedTuningRemainsPendingUntilTheRemoteResizeIsAccepted() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+        service.tuningPending = true;
+
+        assertTrue(panel.requestTuning(SFMTerminalTuningOperation.SURFACE_SET, 800, 500).accepted());
+        panel.tick();
+        assertTrue(panel.propertiesSnapshot().tuningPending());
+        assertEquals(SFMTerminalTuningSettings.automatic(), panel.propertiesSnapshot().accepted());
+
+        service.tuningPending = false;
+        panel.tick();
+        assertFalse(panel.propertiesSnapshot().tuningPending());
+        assertEquals(new SFMTerminalTuningSettings(800, 500, 0, 0, 0),
+                panel.propertiesSnapshot().accepted());
+    }
+
+    @Test
+    void propertiesPanelKeepsItsStableOwnerIdentity() {
+        SFMTerminalPanel owner = new SFMTerminalPanel(new RecordingRemoteService());
+        SFMTerminalPanel unrelated = new SFMTerminalPanel(new RecordingRemoteService());
+        SFMWorkspacePanelId ownerId = new SFMWorkspacePanelId(11);
+        SFMTerminalPropertiesPanel properties = new SFMTerminalPropertiesPanel(ownerId);
+        SFMWorkspacePanelContext context = new SFMWorkspacePanelContext(
+                new SFMWorkspacePanelId(12),
+                new ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelHost() {
+                    @Override
+                    public SFMWorkspacePanelIntentResult submit(
+                            SFMWorkspacePanelId source,
+                            ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent intent
+                    ) {
+                        return SFMWorkspacePanelIntentResult.APPLIED;
+                    }
+
+                    @Override
+                    public Optional<ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel> panel(
+                            SFMWorkspacePanelId requested
+                    ) {
+                        return Optional.of(requested.equals(ownerId) ? owner : unrelated);
+                    }
+                }
+        );
+        properties.opened(null, new SFMScreenPanelBounds(0, 0, 100, 100), context);
+
+        assertEquals(Optional.of(owner), properties.ownerTerminal());
     }
 
     private static RecordingRemoteService resizePanel(SFMScreenPanelBounds bounds) {
@@ -157,6 +274,9 @@ class SFMTerminalPanelInteractionTests {
         private final List<ResizeRequest> resizeRequests = new ArrayList<>();
         private final List<KeyInput> keyInputs = new ArrayList<>();
         private final List<MouseInput> mouseInputs = new ArrayList<>();
+        private int lastFontPixelSize;
+        private SFMTerminalTuningRejection tuningFailure;
+        private boolean tuningPending;
 
         @Override
         public SFMTerminalSession openSession() {
@@ -201,6 +321,22 @@ class SFMTerminalPanelInteractionTests {
         public boolean resize(int columns, int rows, int panelWidth, int panelHeight) {
             resizeRequests.add(new ResizeRequest(columns, rows, panelWidth, panelHeight));
             return true;
+        }
+
+        @Override
+        public boolean resize(int columns, int rows, int panelWidth, int panelHeight, int fontPixelSize) {
+            lastFontPixelSize = fontPixelSize;
+            return resize(columns, rows, panelWidth, panelHeight);
+        }
+
+        @Override
+        public Optional<SFMTerminalTuningRejection> tuningFailure() {
+            return Optional.ofNullable(tuningFailure);
+        }
+
+        @Override
+        public boolean tuningPending() {
+            return tuningPending;
         }
 
         @Override

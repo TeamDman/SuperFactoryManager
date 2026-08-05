@@ -1,5 +1,9 @@
 package ca.teamdman.sfm.client.terminal;
 
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetrics;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
@@ -18,6 +22,8 @@ import java.util.Map;
  */
 public final class SFMTerminalPresentationPuppetProbe {
     private static final Field REMOTE_SERVICE = field(SFMTerminalPanel.class, "remoteService");
+    private static final Field RENDER_LEFT = field(SFMTerminalPanel.class, "renderLeft");
+    private static final Field RENDER_TOP = field(SFMTerminalPanel.class, "renderTop");
     private static final Field RENDER_WIDTH = field(SFMTerminalPanel.class, "renderWidth");
     private static final Field RENDER_HEIGHT = field(SFMTerminalPanel.class, "renderHeight");
     private static final Field PNG_RENDERER = field(SFMTerminalPanel.class, "pngRenderer");
@@ -124,6 +130,18 @@ public final class SFMTerminalPresentationPuppetProbe {
             int fontPixelSize,
             String fontId,
             String fontSha256,
+            SFMScreenPanelBounds logicalViewport,
+            SFMScreenPanelBounds physicalViewport,
+            SFMScreenPanelBounds boundedRasterTarget,
+            SFMTerminalImageLayout javaDrawQuad,
+            SFMScreenPanelBounds javaPhysicalDrawBounds,
+            double localToPhysicalScaleX,
+            double localToPhysicalScaleY,
+            int physicalWidthDelta,
+            int physicalHeightDelta,
+            int physicalLetterboxWidth,
+            int physicalLetterboxHeight,
+            boolean javaFramebufferScaleOne,
             RendererObservation rendererTelemetry,
             String content,
             String servicePushEvidence
@@ -164,12 +182,36 @@ public final class SFMTerminalPresentationPuppetProbe {
                     "font_pixel_size=" + fontPixelSize,
                     "font_id=" + fontId,
                     "font_sha256=" + fontSha256,
+                    "panel_local_logical_x=" + logicalViewport.x(),
+                    "panel_local_logical_y=" + logicalViewport.y(),
+                    "panel_local_logical_width=" + logicalViewport.width(),
+                    "panel_local_logical_height=" + logicalViewport.height(),
+                    "physical_viewport_x=" + physicalViewport.x(),
+                    "physical_viewport_y=" + physicalViewport.y(),
+                    "physical_viewport_width=" + physicalViewport.width(),
+                    "physical_viewport_height=" + physicalViewport.height(),
+                    "bounded_raster_target_width=" + boundedRasterTarget.width(),
+                    "bounded_raster_target_height=" + boundedRasterTarget.height(),
+                    "java_draw_logical_x=" + javaDrawQuad.x(),
+                    "java_draw_logical_y=" + javaDrawQuad.y(),
+                    "java_draw_logical_width=" + javaDrawQuad.width(),
+                    "java_draw_logical_height=" + javaDrawQuad.height(),
+                    "java_draw_physical_x=" + javaPhysicalDrawBounds.x(),
+                    "java_draw_physical_y=" + javaPhysicalDrawBounds.y(),
+                    "java_draw_physical_width=" + javaPhysicalDrawBounds.width(),
+                    "java_draw_physical_height=" + javaPhysicalDrawBounds.height(),
+                    "local_to_physical_scale_x=" + localToPhysicalScaleX,
+                    "local_to_physical_scale_y=" + localToPhysicalScaleY,
+                    "java_physical_width_delta=" + physicalWidthDelta,
+                    "java_physical_height_delta=" + physicalHeightDelta,
+                    "physical_letterbox_width=" + physicalLetterboxWidth,
+                    "physical_letterbox_height=" + physicalLetterboxHeight,
                     rendererTelemetry.artifact(),
                     "grid_native_width=" + (long) logicalColumns * cellWidth,
                     "grid_native_height=" + (long) logicalRows * cellHeight,
                     "native_within_target=true",
                     "java_presenter_native_match=true",
-                    "java_upscale=false",
+                    "java_framebuffer_scale_one=" + javaFramebufferScaleOne,
                     "content_utf8_bytes=" + content.getBytes(StandardCharsets.UTF_8).length,
                     "service_push_evidence_begin=true",
                     servicePushEvidence.stripTrailing(),
@@ -180,6 +222,8 @@ public final class SFMTerminalPresentationPuppetProbe {
 
     public static Observation observe(
             SFMTerminalPanel panel,
+            SFMScreenMultiplexer workspace,
+            SFMWorkspacePanelId panelId,
             String expectedRenderer,
             String expectedTransport,
             String requiredContentLine
@@ -244,6 +288,20 @@ public final class SFMTerminalPresentationPuppetProbe {
         boolean latestFullResync = booleanValue(fields, "latest_full_resync");
         String latestFrameKind = requiredNonBlank(fields, "latest_frame_kind");
         int latestPayloadBytes = positiveInt(fields, "latest_payload_bytes");
+        int maximumPayloadBytes = positiveInt(fields, "maximum_payload_bytes");
+        int maximumWireFrameBytes = positiveInt(fields, "maximum_wire_frame_bytes");
+        long rejectedFrames = nonNegativeLong(fields, "raster_frames_rejected");
+        long receiverFailures = nonNegativeLong(fields, "raster_receiver_failures");
+        if (rejectedFrames != 0 || receiverFailures != 0) {
+            throw new IllegalStateException("Raster delivery was not failure-free: rejected="
+                    + rejectedFrames + " receiver_failures=" + receiverFailures);
+        }
+        if (maximumPayloadBytes < latestPayloadBytes
+                || maximumWireFrameBytes < maximumPayloadBytes) {
+            throw new IllegalStateException("Raster payload maxima are incoherent: latest="
+                    + latestPayloadBytes + " maximum=" + maximumPayloadBytes
+                    + " wire=" + maximumWireFrameBytes);
+        }
         int latestDirtyRegions = nonNegativeInt(fields, "latest_dirty_regions");
         int logicalColumns = positiveInt(fields, "logical_columns");
         int logicalRows = positiveInt(fields, "logical_rows");
@@ -275,12 +333,55 @@ public final class SFMTerminalPresentationPuppetProbe {
             throw new IllegalStateException("Grid-native raster " + nativeWidth + "x" + nativeHeight
                     + " exceeds accepted panel target " + targetPanelWidth + "x" + targetPanelHeight);
         }
-        int expectedViewportWidth = readInt(RENDER_WIDTH, panel);
-        int expectedViewportHeight = readInt(RENDER_HEIGHT, panel);
-        if (targetPanelWidth != expectedViewportWidth || targetPanelHeight != expectedViewportHeight) {
+        SFMScreenPanelBounds logicalViewport = new SFMScreenPanelBounds(
+                readInt(RENDER_LEFT, panel),
+                readInt(RENDER_TOP, panel),
+                readInt(RENDER_WIDTH, panel),
+                readInt(RENDER_HEIGHT, panel));
+        SFMWorkspacePanelMetrics viewportMetrics = workspace.measure(panelId, logicalViewport)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Focused terminal viewport has no framebuffer mapping"));
+        SFMScreenPanelBounds physicalViewport = viewportMetrics.physicalPixelBounds();
+        SFMScreenPanelBounds boundedTarget = SFMTerminalPanel.boundedRasterTarget(physicalViewport);
+        SFMTerminalPropertiesSnapshot tuning = panel.propertiesSnapshot();
+        SFMTerminalTuningSettings.Effective effectiveTuning = tuning.effective();
+        if (targetPanelWidth != effectiveTuning.surfaceWidth()
+                || targetPanelHeight != effectiveTuning.surfaceHeight()) {
             throw new IllegalStateException("Accepted panel target was " + targetPanelWidth + "x"
-                    + targetPanelHeight + " instead of the focused terminal's drawable viewport "
-                    + expectedViewportWidth + "x" + expectedViewportHeight);
+                    + targetPanelHeight + " instead of effective tuning "
+                    + effectiveTuning.surfaceWidth() + "x" + effectiveTuning.surfaceHeight());
+        }
+        boolean automaticSurface = tuning.requested().surfaceWidth() == 0
+                && tuning.requested().surfaceHeight() == 0;
+        if (automaticSurface
+                && (targetPanelWidth != boundedTarget.width() || targetPanelHeight != boundedTarget.height())) {
+            throw new IllegalStateException("Automatic panel target was " + targetPanelWidth + "x"
+                    + targetPanelHeight + " instead of the focused terminal's bounded physical viewport "
+                    + boundedTarget.width() + "x" + boundedTarget.height()
+                    + " measured from logical " + logicalViewport.width() + "x" + logicalViewport.height());
+        }
+        boolean rawTransport = SFMTerminalTransportId.FULL_RAW_RGBA.wireId().equals(expectedTransport)
+                || SFMTerminalTransportId.DIRTY_RAW_RGBA.wireId().equals(expectedTransport);
+        long nativeRgbaBytes = Math.multiplyExact(Math.multiplyExact(
+                (long) nativeWidth, nativeHeight), 4L);
+        if (SFMTerminalTransportId.FULL_RAW_RGBA.wireId().equals(expectedTransport)
+                && latestPayloadBytes != nativeRgbaBytes) {
+            throw new IllegalStateException("Full raw RGBA payload was " + latestPayloadBytes
+                    + " bytes instead of native RGBA8 size " + nativeRgbaBytes);
+        }
+        long boundedTargetRgbaBytes = Math.multiplyExact(Math.multiplyExact(
+                (long) boundedTarget.width(), boundedTarget.height()), 4L);
+        if (rawTransport && boundedTargetRgbaBytes >= 1_100_000L
+                && maximumPayloadBytes < 1_100_000) {
+            throw new IllegalStateException("High-resolution raw transport never carried the required "
+                    + "1,100,000-byte generated-response payload; maximum=" + maximumPayloadBytes);
+        }
+        if ((viewportMetrics.localToPhysicalScaleX() > 1.5D
+                || viewportMetrics.localToPhysicalScaleY() > 1.5D)
+                && boundedTarget.width() <= logicalViewport.width()
+                && boundedTarget.height() <= logicalViewport.height()) {
+            throw new IllegalStateException("High-GUI-scale terminal still requested its logical viewport "
+                    + "instead of the physical framebuffer allocation");
         }
         if (service.logicalWidth() != logicalColumns || service.logicalHeight() != logicalRows) {
             throw new IllegalStateException("Accepted grid does not match the panel's requested logical size");
@@ -300,6 +401,33 @@ public final class SFMTerminalPresentationPuppetProbe {
             throw new IllegalStateException("Presented frame sequence " + presenter.sequence()
                     + " exceeded the latest accepted sequence " + latestFrameSequence);
         }
+
+        SFMTerminalImageLayout javaDrawQuad = SFMTerminalImageLayout.fitPhysical(
+                logicalViewport.x(), logicalViewport.y(),
+                logicalViewport.width(), logicalViewport.height(),
+                nativeWidth, nativeHeight,
+                viewportMetrics.localToPhysicalScaleX(),
+                viewportMetrics.localToPhysicalScaleY());
+        SFMScreenPanelBounds physicalDrawBounds = workspace.measure(panelId, javaDrawQuad.bounds())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Java terminal draw quad has no framebuffer mapping"))
+                .physicalPixelBounds();
+        int physicalWidthDelta = physicalDrawBounds.width() - nativeWidth;
+        int physicalHeightDelta = physicalDrawBounds.height() - nativeHeight;
+        int widthTolerance = Math.max(1, (int) Math.ceil(viewportMetrics.localToPhysicalScaleX()));
+        int heightTolerance = Math.max(1, (int) Math.ceil(viewportMetrics.localToPhysicalScaleY()));
+        boolean javaFramebufferScaleOne = Math.abs(physicalWidthDelta) <= widthTolerance
+                && Math.abs(physicalHeightDelta) <= heightTolerance;
+        if (automaticSurface && !javaFramebufferScaleOne) {
+            throw new IllegalStateException("Java draw quad maps to "
+                    + physicalDrawBounds.width() + "x" + physicalDrawBounds.height()
+                    + " framebuffer pixels for a " + nativeWidth + "x" + nativeHeight
+                    + " native raster; tolerance=" + widthTolerance + "x" + heightTolerance);
+        }
+        int physicalLetterboxWidth = Math.max(0,
+                physicalViewport.width() - physicalDrawBounds.width());
+        int physicalLetterboxHeight = Math.max(0,
+                physicalViewport.height() - physicalDrawBounds.height());
 
         String content = panel.contentForAutomation();
         if (requiredContentLine != null && content.lines().map(String::strip)
@@ -340,6 +468,18 @@ public final class SFMTerminalPresentationPuppetProbe {
                 fontPixelSize,
                 fontId,
                 fontSha256,
+                logicalViewport,
+                physicalViewport,
+                boundedTarget,
+                javaDrawQuad,
+                physicalDrawBounds,
+                viewportMetrics.localToPhysicalScaleX(),
+                viewportMetrics.localToPhysicalScaleY(),
+                physicalWidthDelta,
+                physicalHeightDelta,
+                physicalLetterboxWidth,
+                physicalLetterboxHeight,
+                javaFramebufferScaleOne,
                 rendererTelemetry,
                 content,
                 pushEvidence

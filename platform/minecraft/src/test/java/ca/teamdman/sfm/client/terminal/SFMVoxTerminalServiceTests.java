@@ -18,9 +18,55 @@ import org.facet.vox.generated.TerminalFrameOrigin;
 import org.facet.vox.generated.TerminalPresentationMode;
 import org.facet.vox.generated.TerminalRasterFrameKind;
 import org.facet.vox.generated.TerminalRasterizationOwner;
+import org.facet.vox.generated.TerminalTuningMode;
+import org.facet.vox.generated.TerminalTuningRequest;
 import org.junit.jupiter.api.Test;
 
 class SFMVoxTerminalServiceTests {
+    @Test
+    void typedTuningPreservesAutomaticAxesWithEffectiveCompatibilityValues() {
+        TerminalTuningRequest request = SFMVoxTerminalService.requestedTuningRequest(
+                "rust-gpu-slug",
+                SFMTerminalTuningSettings.automatic(),
+                120,
+                40,
+                1600,
+                900,
+                0
+        );
+
+        assertEquals("rust-gpu-slug", request.rendererId());
+        assertEquals(TerminalTuningMode.AUTO, request.surfaceMode());
+        assertEquals(1600, request.surfaceWidth());
+        assertEquals(900, request.surfaceHeight());
+        assertEquals(TerminalTuningMode.AUTO, request.fontMode());
+        assertEquals(0, request.fontPixelSize());
+        assertEquals(TerminalTuningMode.AUTO, request.cellsMode());
+        assertEquals(120, request.columns());
+        assertEquals(40, request.rows());
+    }
+
+    @Test
+    void typedTuningMarksPartiallyOverriddenAxesManual() {
+        TerminalTuningRequest request = SFMVoxTerminalService.requestedTuningRequest(
+                "rust-cpu-fontdue",
+                new SFMTerminalTuningSettings(1664, 0, 24, 124, 0),
+                124,
+                40,
+                1664,
+                900,
+                24
+        );
+
+        assertEquals(TerminalTuningMode.MANUAL, request.surfaceMode());
+        assertEquals(TerminalTuningMode.MANUAL, request.fontMode());
+        assertEquals(TerminalTuningMode.MANUAL, request.cellsMode());
+        assertEquals(1664, request.surfaceWidth());
+        assertEquals(900, request.surfaceHeight());
+        assertEquals(124, request.columns());
+        assertEquals(40, request.rows());
+    }
+
     @Test
     void acceptsOnlyPayloadsWithThePngSignature() {
         assertTrue(SFMVoxTerminalService.isPng(new byte[]{

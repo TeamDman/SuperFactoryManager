@@ -21,7 +21,9 @@ final class PanelActionSupport {
     }
 
     static int closePaletteAfter(int result) {
-        if (result > 0 && Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (result > 0 && minecraft != null
+                && minecraft.screen instanceof SFMCommandPaletteScreen palette) {
             palette.onClose();
         }
         return result;

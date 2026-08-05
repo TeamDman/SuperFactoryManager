@@ -153,11 +153,15 @@ public final class TitleScreenRustTerminalGamePuppet {
         // particular number that may have just scrolled out of view.
         puppet.writeTerminalContent("cancel-rpc", "line:❯", "line:10000");
         puppet.assertTerminalPushEvidence("push-delivery", true);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.capture("rust-terminal-triple-escape-chooser", Component.literal("SFM Terminal ")
+                .withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("Three Escape presses open the bounded close chooser.")));
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, 0);
         puppet.capture("rust-terminal-triple-escape-close", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
-                .append(Component.literal("Three-Escape close returns to the underlying screen.")));
+                .append(Component.literal("The chooser's focused Close panel action returns to the underlying screen.")));
     }
 }

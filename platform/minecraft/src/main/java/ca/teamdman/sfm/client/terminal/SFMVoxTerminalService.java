@@ -47,6 +47,8 @@ import org.facet.vox.generated.TerminalSubscribeRequest;
 import org.facet.vox.generated.TerminalSurfaceMetrics;
 import org.facet.vox.generated.TerminalState;
 import org.facet.vox.generated.TerminalTextInput;
+import org.facet.vox.generated.TerminalTuningMode;
+import org.facet.vox.generated.TerminalTuningRequest;
 
 import java.net.InetSocketAddress;
 import java.time.Duration;
@@ -79,6 +81,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private static final int REQUEST_WIDTH = 120;
     private static final int REQUEST_HEIGHT = 40;
     private static final int MAX_FRAME_BYTES = 64 * 1024 * 1024;
+    /** Payload ceiling plus room for the Vox/Phon message envelope. */
+    private static final int MAX_WIRE_FRAME_BYTES = MAX_FRAME_BYTES + 1024 * 1024;
     private static final int MAX_CONTENT_CHARS = 256 * 1024;
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(15);
     private static final Duration CONTENT_READINESS_TIMEOUT = Duration.ofSeconds(3);
@@ -127,16 +131,22 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private long rasterFramesAccepted;
     private long rasterFramesRejected;
     private long rasterStaleFrames;
+    private long rasterReceiverFailures;
     private long rasterFullFrames;
     private long rasterDirtyFrames;
     private long rasterFullResyncFrames;
+    private int rasterMaximumPayloadBytes;
     private TerminalPublicationTelemetry latestRasterPublication;
     private final AtomicLong clientSequence = new AtomicLong();
     private int requestedWidth = REQUEST_WIDTH;
     private int requestedHeight = REQUEST_HEIGHT;
     private int requestedPixelWidth;
     private int requestedPixelHeight;
+    private int requestedFontPixelSize;
+    private SFMTerminalTuningSettings requestedTuning = SFMTerminalTuningSettings.automatic();
+    private SFMTerminalTuningRejection tuningFailure;
     private long resizeVersion;
+    private long acceptedResizeVersion;
     private boolean resizeTaskQueued;
     private MouseOperation pendingMouseMotion;
     private boolean mouseMotionTaskQueued;
@@ -187,6 +197,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         private boolean fullResync;
         private TerminalRasterFrameKind frameKind;
         private int payloadBytes;
+        private int maximumPayloadBytes;
         private int dirtyRegions;
         private TerminalRasterRendererTelemetry rendererTelemetry;
         private boolean cleanupScheduled;
@@ -219,6 +230,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             fullResync = event.fullResync();
             frameKind = frame.kind();
             payloadBytes = frame.payload().length;
+            maximumPayloadBytes = Math.max(maximumPayloadBytes, payloadBytes);
             dirtyRegions = frame.regions().size();
             rendererTelemetry = frame.renderer();
         }
@@ -236,7 +248,18 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             int height,
             int panelWidth,
             int panelHeight,
+            int fontPixelSize,
+            SFMTerminalTuningSettings tuning,
             long version) {}
+
+    private static final class TerminalApplicationException extends IllegalStateException {
+        private final SFMTerminalError terminalError;
+
+        private TerminalApplicationException(String operation, TerminalError error) {
+            super(operation + ": " + error.message());
+            this.terminalError = SFMVoxTerminalPresentationAdapter.terminalError(error);
+        }
+    }
 
     private record MouseOperation(
             int x,
@@ -255,7 +278,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
 
     public SFMVoxTerminalService(InetSocketAddress endpoint) {
         this(endpoint, ConnectionOptions.builder()
-                .maxFrameBytes(MAX_FRAME_BYTES)
+                .maxFrameBytes(MAX_WIRE_FRAME_BYTES)
                 .maxQueuedOutboundBytes(MAX_FRAME_BYTES)
                 .handshakeTimeout(Duration.ofMillis(500))
                 .idleTimeout(DEFAULT_TIMEOUT)
@@ -267,7 +290,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     /** Retained as a source-compatible constructor; the fallback is deliberately ignored. */
     public SFMVoxTerminalService(InetSocketAddress endpoint, SFMTerminalService fallbackService) {
         this(endpoint, ConnectionOptions.builder()
-                .maxFrameBytes(MAX_FRAME_BYTES)
+                .maxFrameBytes(MAX_WIRE_FRAME_BYTES)
                 .maxQueuedOutboundBytes(MAX_FRAME_BYTES)
                 .handshakeTimeout(Duration.ofMillis(500))
                 .idleTimeout(DEFAULT_TIMEOUT)
@@ -385,6 +408,46 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         }
     }
 
+    @Override
+    public Optional<SFMTerminalTuningRejection> tuningFailure() {
+        synchronized (lock) {
+            return Optional.ofNullable(tuningFailure);
+        }
+    }
+
+    @Override
+    public boolean tuningPending() {
+        synchronized (lock) {
+            return tuningFailure == null && acceptedResizeVersion != resizeVersion;
+        }
+    }
+
+    @Override
+    public Optional<SFMTerminalPresentationDiagnostics> presentationDiagnostics() {
+        synchronized (lock) {
+            RasterStream stream = rasterHandoff.active();
+            if (stream == null || activePresentation == null || stream.lastFrameSequence < 1) {
+                return Optional.empty();
+            }
+            return Optional.of(new SFMTerminalPresentationDiagnostics(
+                    acceptedRasterPresentationGeneration,
+                    rasterLastTerminalSequence,
+                    rasterLastFrameSequence,
+                    stream.baseFrameSequence,
+                    stream.fullResync,
+                    stream.frameKind == null ? "" : stream.frameKind.name(),
+                    stream.payloadBytes,
+                    stream.maximumPayloadBytes,
+                    rasterFramesReceived,
+                    rasterFramesAccepted,
+                    rasterFramesRejected,
+                    rasterStaleFrames,
+                    rasterReceiverFailures,
+                    rasterFullResyncFrames,
+                    MAX_FRAME_BYTES));
+        }
+    }
+
     /** Returns the latest bounded frame received from Vox, if any. */
     public Optional<TerminalSnapshot> latestSnapshot() {
         synchronized (lock) {
@@ -417,6 +480,12 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                                     + " lane=" + (rasterHandoff.active() == null
                                     ? "none" : rasterHandoff.active().lane.state())
                                     + " failure=" + failure);
+                }
+                if (rasterFramesRejected != 0 || rasterReceiverFailures != 0) {
+                    throw new IllegalStateException(
+                            "Java raster delivery recorded rejected frames or receiver failures"
+                                    + " rejected=" + rasterFramesRejected
+                                    + " receiver_failures=" + rasterReceiverFailures);
                 }
                 TerminalPublicationTelemetry producer = latestRasterPublication;
                 RasterStream activeStream = rasterHandoff.active();
@@ -461,6 +530,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         "raster_frames_accepted=" + rasterFramesAccepted,
                         "raster_frames_rejected=" + rasterFramesRejected,
                         "raster_stale_frames=" + rasterStaleFrames,
+                        "raster_receiver_failures=" + rasterReceiverFailures,
                         "raster_full_frames=" + rasterFullFrames,
                         "raster_dirty_frames=" + rasterDirtyFrames,
                         "raster_full_resync_frames=" + rasterFullResyncFrames,
@@ -470,6 +540,9 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                         "latest_full_resync=" + activeStream.fullResync,
                         "latest_frame_kind=" + activeStream.frameKind,
                         "latest_payload_bytes=" + activeStream.payloadBytes,
+                        "maximum_payload_bytes=" + activeStream.maximumPayloadBytes,
+                        "service_maximum_payload_bytes=" + rasterMaximumPayloadBytes,
+                        "maximum_wire_frame_bytes=" + MAX_WIRE_FRAME_BYTES,
                         "latest_dirty_regions=" + activeStream.dirtyRegions,
                         "logical_columns=" + activeStream.logicalColumns,
                         "logical_rows=" + activeStream.logicalRows,
@@ -910,6 +983,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 snapshot.requestSequence(),
                 snapshot.logicalColumns(),
                 snapshot.logicalRows(),
+                snapshot.width(),
+                snapshot.height(),
                 snapshot.panelWidth(),
                 snapshot.panelHeight(),
                 snapshot.cellWidth(),
@@ -1077,7 +1152,40 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     private TerminalSurfaceMetrics requestedSurface() {
         return new TerminalSurfaceMetrics(
                 requestedWidth, requestedHeight, requestedPixelWidth, requestedPixelHeight,
-                0, 0, 0);
+                0, 0, requestedFontPixelSize);
+    }
+
+    static TerminalTuningRequest requestedTuningRequest(
+            String rendererId,
+            SFMTerminalTuningSettings requested,
+            int columns,
+            int rows,
+            int surfaceWidth,
+            int surfaceHeight,
+            int fontPixelSize
+    ) {
+        TerminalTuningMode surfaceMode = requested.surfaceWidth() == 0
+                && requested.surfaceHeight() == 0
+                ? TerminalTuningMode.AUTO
+                : TerminalTuningMode.MANUAL;
+        TerminalTuningMode fontMode = requested.fontPixelSize() == 0
+                ? TerminalTuningMode.AUTO
+                : TerminalTuningMode.MANUAL;
+        TerminalTuningMode cellsMode = requested.columns() == 0
+                && requested.rows() == 0
+                ? TerminalTuningMode.AUTO
+                : TerminalTuningMode.MANUAL;
+        return new TerminalTuningRequest(
+                rendererId,
+                surfaceMode,
+                surfaceWidth,
+                surfaceHeight,
+                fontMode,
+                fontPixelSize,
+                cellsMode,
+                columns,
+                rows
+        );
     }
 
     /** Clears a failed transport so the next command attempts a fresh connection. */
@@ -1599,6 +1707,9 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                 currentStream.lastTerminalSequence = event.terminalSequence();
                 currentStream.lastFrameSequence = event.frameSequence();
                 currentStream.recordAcceptedFrame(event);
+                rasterMaximumPayloadBytes = Math.max(
+                        rasterMaximumPayloadBytes,
+                        event.frame().payload().length);
                 acceptedRasterPresentationGeneration = eventPresentationGeneration;
                 rasterConnectionEpoch = event.connectionEpoch();
                 rasterSessionEpoch = event.sessionEpoch();
@@ -1766,7 +1877,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         var surface = frame.surface();
         return new SFMTerminalFrameMetadata(
                 event.frameSequence(), frame.logicalColumns(), frame.logicalRows(),
-                frame.width(), frame.height(), surface.cellWidth(), surface.cellHeight(),
+                frame.width(), frame.height(), surface.panelWidth(), surface.panelHeight(),
+                surface.cellWidth(), surface.cellHeight(),
                 surface.fontPixelSize(), event.rendererId(), event.transportId(),
                 timing.ptyDrainUs(), 0L, timing.terminalSnapshotUs(), timing.fontLoadUs(),
                 timing.rasterUs(), timing.payloadPackUs(), timing.pngEncodeUs(), timing.totalUs(),
@@ -1801,6 +1913,10 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
         synchronized (lock) {
             SFMVoxTerminalRasterHandoff.Role role = rasterHandoff.role(currentStream);
             if (role == SFMVoxTerminalRasterHandoff.Role.STALE) return;
+            if (error != null && !(error instanceof InterruptedException)) {
+                rasterReceiverFailures = incrementGeneration(
+                        rasterReceiverFailures, "raster receiver failures");
+            }
             String streamFailure = error == null
                     ? "Vox terminal raster subscription closed"
                     : "Vox terminal raster subscription unavailable: " + describe(error);
@@ -1871,7 +1987,15 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             long requestSequence = nextSequence();
             TerminalConnectRequest request = new TerminalConnectRequest(
                     "sfm-terminal", requestedWidth, requestedHeight, requestedSurface(), capabilities,
-                    requestSequence, correlationId("connect", requestSequence));
+                    requestSequence, correlationId("connect", requestSequence), true,
+                    requestedTuningRequest(
+                            requestedPresentation.rendererId().wireId(),
+                            requestedTuning,
+                            requestedWidth,
+                            requestedHeight,
+                            requestedPixelWidth,
+                            requestedPixelHeight,
+                            requestedFontPixelSize));
             TerminalConnectResult connected = requireSuccess(
                     await(newClient.connect(request), "connecting terminal"), "connecting terminal");
             newSessionId = connected.sessionId();
@@ -1906,30 +2030,113 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     public boolean resize(int width, int height) {
         int panelWidth;
         int panelHeight;
+        int fontPixelSize;
+        SFMTerminalTuningSettings tuning;
         synchronized (lock) {
             panelWidth = requestedPixelWidth;
             panelHeight = requestedPixelHeight;
+            fontPixelSize = requestedFontPixelSize;
+            tuning = requestedTuning.withCells(width, height);
         }
-        return resize(width, height, panelWidth, panelHeight);
+        return resizeInternal(width, height, panelWidth, panelHeight, fontPixelSize, tuning);
     }
 
     @Override
     public boolean resize(int width, int height, int panelWidth, int panelHeight) {
-        int boundedWidth = Math.max(1, Math.min(240, width));
-        int boundedHeight = Math.max(1, Math.min(120, height));
-        int boundedPanelWidth = Math.max(0, Math.min(4096, panelWidth));
-        int boundedPanelHeight = Math.max(0, Math.min(4096, panelHeight));
+        int fontPixelSize;
+        synchronized (lock) {
+            fontPixelSize = requestedFontPixelSize;
+        }
+        return resize(width, height, panelWidth, panelHeight, fontPixelSize);
+    }
+
+    @Override
+    public boolean resize(int width, int height, int panelWidth, int panelHeight, int fontPixelSize) {
+        SFMTerminalTuningSettings tuning = new SFMTerminalTuningSettings(
+                panelWidth,
+                panelHeight,
+                fontPixelSize,
+                width,
+                height
+        );
+        return resizeInternal(width, height, panelWidth, panelHeight, fontPixelSize, tuning);
+    }
+
+    @Override
+    public boolean resize(
+            SFMTerminalTuningSettings requested,
+            SFMTerminalTuningSettings.Effective effective
+    ) {
+        Objects.requireNonNull(requested, "requested");
+        Objects.requireNonNull(effective, "effective");
+        return resizeInternal(
+                effective.columns(),
+                effective.rows(),
+                effective.surfaceWidth(),
+                effective.surfaceHeight(),
+                effective.fontPixelSize(),
+                requested
+        );
+    }
+
+    private boolean resizeInternal(
+            int width,
+            int height,
+            int panelWidth,
+            int panelHeight,
+            int fontPixelSize,
+            SFMTerminalTuningSettings tuning
+    ) {
+        String request = describeResizeRequest(width, height, panelWidth, panelHeight, fontPixelSize);
+        String invalid = null;
+        if (width < 1 || width > SFMTerminalTuningSettings.MAX_COLUMNS) {
+            invalid = "Terminal columns must be between 1 and " + SFMTerminalTuningSettings.MAX_COLUMNS;
+        } else if (height < 1 || height > SFMTerminalTuningSettings.MAX_ROWS) {
+            invalid = "Terminal rows must be between 1 and " + SFMTerminalTuningSettings.MAX_ROWS;
+        } else if (panelWidth < 0 || panelWidth > SFMTerminalRasterLimits.RGBA8_V1_MAX_WIDTH) {
+            invalid = "Terminal surface width must be between 0 and "
+                    + SFMTerminalRasterLimits.RGBA8_V1_MAX_WIDTH;
+        } else if (panelHeight < 0 || panelHeight > SFMTerminalRasterLimits.RGBA8_V1_MAX_HEIGHT) {
+            invalid = "Terminal surface height must be between 0 and "
+                    + SFMTerminalRasterLimits.RGBA8_V1_MAX_HEIGHT;
+        } else if (fontPixelSize != 0 && (fontPixelSize < 8 || fontPixelSize > 64)) {
+            invalid = "Font pixel size must be automatic (0) or between 8 and 64";
+        }
+        if (invalid != null) {
+            synchronized (lock) {
+                tuningFailure = SFMTerminalTuningRejection.localInvalid(invalid, request);
+            }
+            return false;
+        }
+        int boundedWidth = width;
+        int boundedHeight = height;
+        int boundedPanelWidth = panelWidth;
+        int boundedPanelHeight = panelHeight;
         boolean schedule;
+        long queuedVersion;
         synchronized (lock) {
             if (closed) return false;
             requestedWidth = boundedWidth;
             requestedHeight = boundedHeight;
             requestedPixelWidth = boundedPanelWidth;
             requestedPixelHeight = boundedPanelHeight;
+            requestedFontPixelSize = fontPixelSize;
+            requestedTuning = tuning;
+            tuningFailure = null;
             resizeVersion = incrementGeneration(resizeVersion, "terminal resize version");
+            queuedVersion = resizeVersion;
             schedule = !resizeTaskQueued;
             if (schedule) resizeTaskQueued = true;
         }
+        SFM.LOGGER.info(
+                "SFM_VOX_TERMINAL_RESIZE_QUEUED version={} requested={}x{} surface={}x{} font_px={} scheduled={}",
+                queuedVersion,
+                boundedWidth,
+                boundedHeight,
+                boundedPanelWidth,
+                boundedPanelHeight,
+                fontPixelSize,
+                schedule);
         if (!schedule) return true;
         if (submitDriver(this::runLatestResize)) return true;
         synchronized (lock) {
@@ -2081,6 +2288,8 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                     requestedHeight,
                     requestedPixelWidth,
                     requestedPixelHeight,
+                    requestedFontPixelSize,
+                    requestedTuning,
                     resizeVersion);
         }
         try {
@@ -2088,7 +2297,7 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             Transport transport = requireCurrentTransport();
             try {
                 long requestSequence = nextSequence();
-                TerminalResizeResult resized = requireSuccess(
+                VoxResult<TerminalResizeResult, TerminalError> resizeResult =
                         await(transport.client().resize(new TerminalResizeRequest(
                                 transport.sessionId(),
                                 operation.width(),
@@ -2100,18 +2309,60 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
                                         operation.panelHeight(),
                                         0,
                                         0,
-                                        0),
+                                        operation.fontPixelSize()),
                                 requestSequence,
-                                correlationId("resize", requestSequence))),
-                                "resizing terminal"),
-                        "resizing terminal");
+                                correlationId("resize", requestSequence),
+                                true,
+                                requestedTuningRequest(
+                                        requestedPresentation.rendererId().wireId(),
+                                        operation.tuning(),
+                                        operation.width(),
+                                        operation.height(),
+                                        operation.panelWidth(),
+                                        operation.panelHeight(),
+                                        operation.fontPixelSize()))),
+                                "resizing terminal");
+                if (resizeResult.isApplicationError()) {
+                    throw new TerminalApplicationException(
+                            "resizing terminal",
+                            resizeResult.applicationError());
+                }
+                TerminalResizeResult resized = requireSuccess(resizeResult, "resizing terminal");
                 if (resized.width() != operation.width() || resized.height() != operation.height()) {
                     throw new IllegalStateException("resize response dimensions were "
                             + resized.width() + "x" + resized.height() + " instead of "
                             + operation.width() + "x" + operation.height());
                 }
+                synchronized (lock) {
+                    if (resizeVersion == operation.version()) {
+                        tuningFailure = null;
+                        acceptedResizeVersion = operation.version();
+                    }
+                }
+                SFM.LOGGER.info(
+                        "SFM_VOX_TERMINAL_RESIZE_ACCEPTED session={} version={} requested={}x{} surface={}x{} font_px={}",
+                        transport.sessionId(),
+                        operation.version(),
+                        operation.width(),
+                        operation.height(),
+                        operation.panelWidth(),
+                        operation.panelHeight(),
+                        operation.fontPixelSize());
             } catch (Exception error) {
-                failTransportIfCurrent(transport, "Vox terminal resize unavailable: ", error);
+                synchronized (lock) {
+                    if (isCurrentTransportLocked(transport) && resizeVersion == operation.version()) {
+                        tuningFailure = tuningRejection(operation, error);
+                    }
+                }
+                SFM.LOGGER.warn(
+                        "SFM_VOX_TERMINAL_RESIZE_REJECTED session={} requested={}x{} surface={}x{} font_px={} failure={}",
+                        transport.sessionId(),
+                        operation.width(),
+                        operation.height(),
+                        operation.panelWidth(),
+                        operation.panelHeight(),
+                        operation.fontPixelSize(),
+                        describe(error));
             }
         } catch (Exception ignored) {
             // ensureConnected records the current connection failure.
@@ -2381,6 +2632,39 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
             throw new IllegalStateException(operation + ": " + result.applicationError().message());
         }
         throw new IllegalStateException(operation + ": " + result.detail());
+    }
+
+    private static SFMTerminalTuningRejection tuningRejection(
+            ResizeOperation operation,
+            Exception failure
+    ) {
+        SFMTerminalError error = failure instanceof TerminalApplicationException application
+                ? application.terminalError
+                : new SFMTerminalError(
+                        SFMTerminalErrorCode.INTERNAL,
+                        describe(failure),
+                        true,
+                        0);
+        return new SFMTerminalTuningRejection(
+                error,
+                describeResizeRequest(
+                        operation.width(),
+                        operation.height(),
+                        operation.panelWidth(),
+                        operation.panelHeight(),
+                        operation.fontPixelSize()));
+    }
+
+    private static String describeResizeRequest(
+            int columns,
+            int rows,
+            int surfaceWidth,
+            int surfaceHeight,
+            int fontPixelSize
+    ) {
+        return "surface=" + surfaceWidth + "x" + surfaceHeight
+                + ", font=" + (fontPixelSize == 0 ? "auto" : fontPixelSize)
+                + ", cells=" + columns + "x" + rows;
     }
 
     private void closeTransportLocked() {

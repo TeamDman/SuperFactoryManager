@@ -56,7 +56,7 @@ class SFMTerminalFrameIdentityTests {
     @Test
     void compatibilityConstructorUsesCorrelationAsStreamIdentity() {
         SFMTerminalFrameMetadata metadata = new SFMTerminalFrameMetadata(
-                1, 80, 24, 640, 360, 8, 15, 15,
+                1, 80, 24, 640, 360, 640, 360, 8, 15, 15,
                 "rust.cpu.fontdue", "vox.txrx",
                 0, 0, 0, 0, 0, 0, 0, 0,
                 "subscription/42");
@@ -64,6 +64,27 @@ class SFMTerminalFrameIdentityTests {
         SFMTerminalFrame frame = new SFMTerminalFrame(1, true, true, png(), metadata);
 
         assertEquals("subscription/42", frame.streamIdentity());
+    }
+
+    @Test
+    void propertiesKeepNativePayloadAndTargetSurfaceDimensionsDistinct() {
+        SFMTerminalFrameMetadata metadata = new SFMTerminalFrameMetadata(
+                7, 32, 18, 576, 612, 583, 621, 18, 34, 29,
+                "rust.gpu.slug", "full-raw-rgba",
+                0, 0, 0, 0, 0, 0, 0, 0,
+                "subscription/target-native");
+        SFMTerminalFrame frame = new SFMTerminalFrame(
+                7, true, false, new byte[576 * 612 * 4], metadata);
+
+        SFMTerminalPropertiesSnapshot.AcceptedFrame accepted =
+                SFMTerminalPropertiesSnapshot.fromFrame(frame);
+
+        assertEquals(583, accepted.targetWidth());
+        assertEquals(621, accepted.targetHeight());
+        assertEquals(576, accepted.nativeWidth());
+        assertEquals(612, accepted.nativeHeight());
+        assertEquals(7, accepted.remainderX());
+        assertEquals(9, accepted.remainderY());
     }
 
     private static SFMTerminalFrame frame(String streamIdentity, long sequence) {

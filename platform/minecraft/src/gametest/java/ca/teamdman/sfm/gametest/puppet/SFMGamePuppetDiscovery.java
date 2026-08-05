@@ -66,10 +66,12 @@ public final class SFMGamePuppetDiscovery {
                     + methodName + "(SFMGamePuppetHelper): " + owner.getName()
             );
         }
+        SFMGamePuppet annotation = owner.getAnnotation(SFMGamePuppet.class);
         return new SFMDiscoveredGamePuppet(
                 puppetName(owner),
                 method,
-                owner.getAnnotation(SFMGamePuppet.class).viewportProfile()
+                annotation.viewportProfile(),
+                annotation.timeoutTicks()
         );
     }
 

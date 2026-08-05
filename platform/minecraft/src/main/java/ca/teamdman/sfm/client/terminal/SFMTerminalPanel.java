@@ -76,6 +76,17 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private int presentationButtonTop;
     private int presentationButtonRight;
     private int presentationButtonBottom;
+    private SFMTerminalTuningSettings tuning = SFMTerminalTuningSettings.automatic();
+    private SFMTerminalTuningSettings acceptedTuning = SFMTerminalTuningSettings.automatic();
+    private boolean tuningPending;
+    private SFMTerminalTuningRejection lastTuningRejection;
+    private int automaticSurfaceWidth = 1;
+    private int automaticSurfaceHeight = 1;
+    private int automaticColumns = 1;
+    private int automaticRows = 1;
+    private SFMScreenPanelBounds viewportLogicalBounds = new SFMScreenPanelBounds(0, 0, 1, 1);
+    private Optional<SFMWorkspacePanelMetrics> viewportMetrics = Optional.empty();
+    private SFMTerminalFrame lastAcceptedFrame;
 
     record ViewportGeometry(
             int left,
@@ -163,13 +174,20 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (remoteService != null) {
             SFMScreenPanelBounds logicalViewport = new SFMScreenPanelBounds(
                     viewport.left(), viewport.top(), viewport.width(), viewport.height());
-            SFMScreenPanelBounds rasterTarget = rasterTarget(context, logicalViewport);
-            remoteService.resize(
-                    viewport.columns(),
-                    viewport.rows(),
-                    rasterTarget.width(),
-                    rasterTarget.height()
-            );
+            Optional<SFMWorkspacePanelMetrics> measured = context == null
+                    ? Optional.empty()
+                    : context.measure(logicalViewport);
+            SFMScreenPanelBounds rasterTarget = boundedRasterTarget(measured
+                    .map(SFMWorkspacePanelMetrics::physicalPixelBounds)
+                    .orElse(logicalViewport));
+            viewportLogicalBounds = logicalViewport;
+            viewportMetrics = measured;
+            automaticSurfaceWidth = rasterTarget.width();
+            automaticSurfaceHeight = rasterTarget.height();
+            automaticColumns = viewport.columns();
+            automaticRows = viewport.rows();
+            SFMTerminalTuningSettings.Effective effective = effectiveTuning();
+            remoteService.resize(tuning, effective);
             remoteService.requestConnect();
         }
     }
@@ -240,7 +258,19 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public void tick() {
-        if (remoteService != null) remoteService.requestConnect();
+        if (remoteService == null) return;
+        remoteService.requestConnect();
+        Optional<SFMTerminalTuningRejection> rejection = remoteService.tuningFailure();
+        if (tuningPending && rejection.isPresent()) {
+            lastTuningRejection = rejection.get();
+            tuning = acceptedTuning;
+            tuningPending = false;
+            applyTuning();
+        } else if (tuningPending && !remoteService.tuningPending()) {
+            acceptedTuning = tuning;
+            tuningPending = false;
+            lastTuningRejection = null;
+        }
     }
 
     @Override
@@ -279,6 +309,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 bounds.y() + 8, TEXT, false);
         if (remoteService != null) {
             Optional<SFMTerminalFrame> frame = remoteService.latestFrame();
+            frame.ifPresent(accepted -> {
+                lastAcceptedFrame = accepted;
+            });
             boolean presented = false;
             if (frame.isPresent() || remoteService.canPresentRetainedFrame()) {
                 boolean png = frame.map(SFMTerminalFrame::png)
@@ -286,9 +319,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                                 .map("full-png"::equals).orElse(true));
                 presented = png
                         ? pngRenderer.render(poseStack, minecraft, left, contentTop, width,
-                        renderHeight, frame)
+                        renderHeight, localToPhysicalScaleX(), localToPhysicalScaleY(), frame)
                         : rgbaRenderer.render(poseStack, minecraft, left, contentTop, width,
-                        renderHeight, frame);
+                        renderHeight, localToPhysicalScaleX(), localToPhysicalScaleY(), frame);
             }
             if (presented) {
                 if (frame.isPresent() && isNewPresentation(
@@ -398,9 +431,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             return presentationControlKeyPressed(keyCode);
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-            if (focusSequence.escape(System.nanoTime()) == SFMTerminalFocusSequence.Decision.EXIT) {
-                if (context != null) context.submit(new ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent.Close());
-                return true;
+            if (focusSequence.escape(System.nanoTime()) == SFMTerminalFocusSequence.Decision.HOST_ESCAPE) {
+                // The first two presses belong to the PTY. The third is not
+                // forwarded and deliberately falls through to the workspace's
+                // bounded close chooser instead of closing a panel directly.
+                return false;
             }
             if (remoteService != null) remoteService.sendKey(keyCode, modifiers, true, false);
             return true;
@@ -739,6 +774,160 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                     "Focused panel is not a Rust terminal");
         }
         return remoteService.requestTransport(transportId);
+    }
+
+    public boolean isRustBacked() {
+        return remoteService != null;
+    }
+
+    /** Immutable diagnostics for UI controls, automation, and live evidence. */
+    public SFMTerminalPropertiesSnapshot propertiesSnapshot() {
+        SFMTerminalTuningSettings.Effective effective = effectiveTuning();
+        Optional<SFMTerminalPropertiesSnapshot.AcceptedFrame> acceptedFrame =
+                Optional.ofNullable(lastAcceptedFrame).map(SFMTerminalPropertiesSnapshot::fromFrame);
+        Optional<SFMScreenPanelBounds> javaDrawLogical = acceptedFrame.map(frame -> SFMTerminalImageLayout.fitPhysical(
+                viewportLogicalBounds.x(),
+                viewportLogicalBounds.y(),
+                viewportLogicalBounds.width(),
+                viewportLogicalBounds.height(),
+                frame.nativeWidth(),
+                frame.nativeHeight(),
+                localToPhysicalScaleX(),
+                localToPhysicalScaleY()
+        ).bounds());
+        Optional<SFMScreenPanelBounds> javaDrawPhysical = context == null
+                ? Optional.empty()
+                : javaDrawLogical.flatMap(context::measure)
+                        .map(SFMWorkspacePanelMetrics::physicalPixelBounds);
+        Optional<SFMWorkspacePanelMetrics> panelMetrics = context == null
+                ? Optional.empty()
+                : context.measure(bounds);
+        Optional<SFMTerminalTuningRejection> rejection = Optional.ofNullable(lastTuningRejection);
+        if (rejection.isEmpty() && remoteService != null) rejection = remoteService.tuningFailure();
+        return new SFMTerminalPropertiesSnapshot(
+                tuning,
+                acceptedTuning,
+                effective,
+                new SFMTerminalTuningSettings.Effective(
+                        automaticSurfaceWidth,
+                        automaticSurfaceHeight,
+                        0,
+                        automaticColumns,
+                        automaticRows
+                ),
+                tuningPending,
+                bounds,
+                viewportLogicalBounds,
+                panelMetrics,
+                viewportMetrics,
+                minecraft == null ? 0 : minecraft.options.guiScale().get(),
+                minecraft == null ? 0 : (int) Math.round(minecraft.getWindow().getGuiScale()),
+                javaDrawLogical,
+                javaDrawPhysical,
+                acceptedFrame,
+                remoteService == null ? Optional.empty() : remoteService.presentationDiagnostics(),
+                remoteService == null ? "" : remoteService.requestedRendererId(),
+                remoteService == null ? "" : remoteService.activeRendererId().orElse(""),
+                remoteService == null ? "" : remoteService.requestedTransportId(),
+                remoteService == null ? "" : remoteService.activeTransportId().orElse(""),
+                rejection
+        );
+    }
+
+    public SFMTerminalTuningChangeResult requestTuning(
+            SFMTerminalTuningOperation operation,
+            int first,
+            int second
+    ) {
+        Objects.requireNonNull(operation);
+        if (remoteService == null) {
+            return SFMTerminalTuningChangeResult.rejected(
+                    "Focused panel is not a Rust terminal");
+        }
+        SFMTerminalTuningSettings candidate;
+        try {
+            candidate = operation.apply(
+                    tuning,
+                    effectiveTuning(),
+                    acceptedFontPixelSize(),
+                    first,
+                    second
+            );
+        } catch (ArithmeticException | IllegalArgumentException error) {
+            lastTuningRejection = SFMTerminalTuningRejection.localInvalid(
+                    error.getMessage() == null
+                            ? "Terminal tuning value is out of range"
+                            : error.getMessage(),
+                    describeOperation(operation, first, second));
+            return SFMTerminalTuningChangeResult.rejected(lastTuningRejection);
+        }
+        SFMTerminalTuningSettings previous = tuning;
+        tuning = candidate;
+        tuningPending = true;
+        lastTuningRejection = null;
+        if (!applyTuning()) {
+            tuning = previous;
+            tuningPending = false;
+            lastTuningRejection = remoteService.tuningFailure().orElseGet(() ->
+                    new SFMTerminalTuningRejection(
+                            new SFMTerminalError(
+                                    SFMTerminalErrorCode.INTERNAL,
+                                    "Terminal resize request could not be queued",
+                                    true,
+                                    0),
+                            describe(candidate)));
+            return SFMTerminalTuningChangeResult.rejected(lastTuningRejection);
+        }
+        return SFMTerminalTuningChangeResult.accepted("Terminal tuning requested: " + describe(candidate));
+    }
+
+    private boolean applyTuning() {
+        if (remoteService == null) return false;
+        SFMTerminalTuningSettings.Effective effective = effectiveTuning();
+        return remoteService.resize(tuning, effective);
+    }
+
+    private SFMTerminalTuningSettings.Effective effectiveTuning() {
+        return tuning.resolve(
+                automaticSurfaceWidth,
+                automaticSurfaceHeight,
+                automaticColumns,
+                automaticRows
+        );
+    }
+
+    private int acceptedFontPixelSize() {
+        return Optional.ofNullable(lastAcceptedFrame)
+                .map(SFMTerminalFrame::metadata)
+                .map(SFMTerminalFrameMetadata::fontPixelSize)
+                .filter(value -> value > 0)
+                .orElse(SFMTerminalTuningSettings.MIN_FONT_PIXEL_SIZE);
+    }
+
+    private double localToPhysicalScaleX() {
+        return viewportMetrics.map(SFMWorkspacePanelMetrics::localToPhysicalScaleX).orElse(1.0D);
+    }
+
+    private double localToPhysicalScaleY() {
+        return viewportMetrics.map(SFMWorkspacePanelMetrics::localToPhysicalScaleY).orElse(1.0D);
+    }
+
+    private static String describe(SFMTerminalTuningSettings settings) {
+        return "surface=" + axis(settings.surfaceWidth()) + "x" + axis(settings.surfaceHeight())
+                + ", font=" + axis(settings.fontPixelSize())
+                + ", cells=" + axis(settings.columns()) + "x" + axis(settings.rows());
+    }
+
+    private static String describeOperation(
+            SFMTerminalTuningOperation operation,
+            int first,
+            int second
+    ) {
+        return operation + " first=" + first + " second=" + second;
+    }
+
+    private static String axis(int value) {
+        return value == 0 ? "auto" : Integer.toString(value);
     }
 
     private boolean containsTerminalPoint(double mouseX, double mouseY) {

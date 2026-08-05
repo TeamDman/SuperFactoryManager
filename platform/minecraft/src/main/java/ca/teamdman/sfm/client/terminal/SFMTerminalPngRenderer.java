@@ -44,6 +44,7 @@ final class SFMTerminalPngRenderer {
     }
 
     boolean render(PoseStack poseStack, Minecraft minecraft, int x, int y, int width, int height,
+                   double localToPhysicalScaleX, double localToPhysicalScaleY,
                    Optional<SFMTerminalFrame> snapshot) {
         long startedNanos = System.nanoTime();
         boolean presented = false;
@@ -85,15 +86,12 @@ final class SFMTerminalPngRenderer {
             // Never enlarge a smaller Rust frame in Java. The bridge now
             // carries the physical target so Rust can increase its font size;
             // stretching here only creates blur and hides the real metrics.
-            double scale = Math.min(1.0, Math.min(
-                    width / (double) imageWidth, height / (double) imageHeight));
-            int drawWidth = Math.max(1, (int) Math.floor(imageWidth * scale));
-            int drawHeight = Math.max(1, (int) Math.floor(imageHeight * scale));
-            int drawX = x + (width - drawWidth) / 2;
-            int drawY = y + (height - drawHeight) / 2;
+            SFMTerminalImageLayout layout = SFMTerminalImageLayout.fitPhysical(
+                    x, y, width, height, imageWidth, imageHeight,
+                    localToPhysicalScaleX, localToPhysicalScaleY);
             minecraft.getTextureManager().bindForSetup(textureLocation);
             RenderSystem.setShaderTexture(0, textureLocation);
-            GuiComponent.blit(poseStack, drawX, drawY, drawWidth, drawHeight,
+            GuiComponent.blit(poseStack, layout.x(), layout.y(), layout.width(), layout.height(),
                     0, 0, imageWidth, imageHeight, imageWidth, imageHeight);
             telemetry.recordPresented(sequence);
             presented = true;

@@ -6,6 +6,8 @@ import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 
+import java.util.List;
+
 public interface ISFMGamePuppetRuntime {
     boolean createFreshFlatWorld();
 
@@ -28,6 +30,10 @@ public interface ISFMGamePuppetRuntime {
     void executeCommandPalette(String command);
 
     void pressScreenKey(int keyCode, int modifiers);
+
+    void assertActionChoice(List<String> expectedCommands);
+
+    void clickActionChoice(String command);
 
     void assertWorkspaceState(
             int totalEntries,
@@ -57,6 +63,26 @@ public interface ISFMGamePuppetRuntime {
 
     /** Validates bounded Vox push invariants and writes their machine-readable evidence. */
     void assertTerminalPushEvidence(String artifactName, boolean reconnectExpected);
+
+    boolean assertTerminalPropertiesEvidence(
+            String artifactName,
+            String expectedRendererId,
+            String expectedTransportId,
+            String expectedSurfaceMode,
+            String expectedFontMode,
+            String expectedCellsMode,
+            Integer expectedConfiguredGuiScale,
+            Integer expectedPanelGuiScaleOverride,
+            String expectedRejectionCode,
+            boolean retainedFrameExpected
+    );
+
+    /**
+     * Scrolls toward and clicks one real +/-/auto control in the focused
+     * terminal-properties panel. Returns false while another rendered frame is
+     * needed after scrolling the control toward the viewport.
+     */
+    boolean clickTerminalPropertiesControl(String operation);
 
     /**
      * Samples one already-pushed presentation without polling and writes typed
