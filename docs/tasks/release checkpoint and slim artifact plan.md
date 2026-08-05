@@ -26,6 +26,9 @@ This plan coordinates the existing terminal-bridge, dependency-lock, and cross-v
 | I-LIST-1 | `sfm:keybindings/manage` needs a real scrollbar and complete wheel/keyboard traversal. | P-5.1 removes data truncation and uses a shared bounded list viewport. | — |
 | I-LIST-2 | Clicking the shortcuts search box or nearby non-row space must never open row zero. | P-5.1 requires widget-first dispatch and explicit half-open row hit bounds; negative division is never used as a hit test. | — |
 | I-LIST-3 | The command palette suggestion list needs a scrollbar and mouse-wheel behavior, independently from its feedback-console scrollbar. | P-5.1 routes by hovered region and proves suggestion/console scrolling cannot steal from one another. | — |
+| I-CHOICE-1 | F3 and unhandled Escape present constrained choices through the ordinary command-palette view, search, suggestion selection, scrolling, metadata, and execution path. SFM must not maintain a second button-list chooser or second keyboard-focus model. | P-5.0 replaces `SFMActionChoiceScreen` with ephemeral `sfm choose <choice-session-id> ...` command surfaces; P-5.1 proves the normal and constrained palettes share one viewport implementation. | — |
+| I-CHOICE-2 | A choice session exposes only its snapshotted valid choices as Brigadier-valid completions. It must preserve the originating action context, reject stale/unknown sessions, clean itself up, and never persist an ephemeral session id into command history. | P-5.0 defines session-scoped command trees, lifecycle and target capture; P-5.3 records only the canonical chosen action when ordinary history policy permits it. | — |
+| I-TERM-HIT-1 | Once a Rust terminal frame is presented, clicking that viewport must never activate the disconnected `Start / Retry Rust server` control that used to occupy the same coordinates. | P-5.0 makes disconnected controls explicitly state-bound and adds a disconnected-to-presented hit-routing regression test. | — |
 
 ## Interaction guidance traceability
 
@@ -36,6 +39,8 @@ This plan coordinates the existing terminal-bridge, dependency-lock, and cross-v
 | I-HIST-1 | P-5.3 and P-5.5 | Bounded storage/ranking tests and a live execute/reopen/MRU witness |
 | I-HIST-2, I-HIST-3 | P-5.4 and P-5.5 | Action completion, all placements, editor selection/read-only enforcement, and clear-remains-empty witness |
 | I-LIST-1, I-LIST-2, I-LIST-3 | P-5.1 and P-5.5 | Pure viewport geometry tests plus wheel, thumb-drag, search-hit isolation, and palette/console routing puppets |
+| I-CHOICE-1, I-CHOICE-2 | P-5.0, P-5.1, P-5.3, and P-5.5 | Exact constrained Brigadier tree, shared palette viewport/navigation, captured-target and stale-session tests, canonical-history proof, and live F3/Escape artifacts |
+| I-TERM-HIT-1 | P-5.0 and P-5.5 | A disconnected-to-presented render/input regression plus live proof that the old button rectangle delivers terminal mouse input without another start attempt |
 
 **Intent audit:** Passed 2026-08-05 against the complete 2026-08-05 user-testing message.
 
@@ -45,6 +50,22 @@ This plan coordinates the existing terminal-bridge, dependency-lock, and cross-v
 - **Pass 2 — traceability:** Mapped every active id to V-4.2e/Teamy 3.6.4f or P-5.1 through P-5.5, including protocol, persistence, UI, focused tests, and live evidence rather than treating the list as detached notes.
 - **Pass 3 — adversarial omission:** Rechecked the distinctions between base pixels and Java selection overlay, copy-versus-interrupt Ctrl+C, copy-versus-paste right click, guarded-versus-bypass paste, exact full-command MRU ordering, center as the base hierarchical open action, optional editor selection, read-only/discard semantics, and the two independent palette scroll regions.
 - **Known source limitation:** None for this follow-up message. Earlier release and panel requirements remain in their existing durable ledgers and completed work-item notes.
+
+### Constrained-choice follow-up — 2026-08-05
+
+The later F3/Escape testing supersedes the bespoke bounded button chooser, but
+not its curated choice sets. Both interactions now use the same command-palette
+surface as ordinary commands. Each opening creates an ephemeral constrained
+command surface rooted at `sfm choose <choice-session-id> `; the active
+session's exact valid choices are the only Brigadier-valid descendants and
+therefore the only suggestions. This is not a post-ranking filter over
+`sfm action invoke`, and it must not duplicate palette selection, search,
+scrolling, metadata, feedback, or keyboard behavior.
+
+The observed terminal click-through and chooser focus split are new regression
+evidence, not omissions from the preceding selection/copy/paste intent audit.
+P-5.0 records their concrete state and ownership corrections before the rest of
+the P-5 command-surface work.
 
 ## Scope
 
@@ -267,12 +288,15 @@ puppets/keybindings migrated rather than retained indefinitely as an alias.
 Rust server/connection lifecycle and do not open a panel. `sfm:repl/open`
 remains the independent Java-local REPL entry point.
 
-F3 and Escape use reduced, action-backed choice surfaces rather than bespoke
-mutations. F3 offers deduplicated applicable placements of `sfm:size_display`
-and contextual `sfm:terminal_properties` choices. An unhandled Escape offers
-panel close, screen close, and cancel; terminal Escape remains PTY input for
-the first two presses and opens that chooser on the third. These surfaces and
-the command palette share availability and execution semantics.
+F3 and Escape use constrained instances of the ordinary command palette rather
+than a bespoke chooser or bespoke mutations. F3 offers deduplicated applicable
+placements of `sfm:size_display` and contextual `sfm:terminal_properties`
+choices. An unhandled Escape offers panel close, screen close, and cancel;
+terminal Escape remains PTY input for the first two presses and opens that
+surface on the third. The palette is seeded with
+`sfm choose <choice-session-id> ` and its session-scoped Brigadier subtree
+contains only those choices, so availability, fuzzy discovery, selection,
+scrolling, metadata, focus, and execution all use the familiar palette path.
 
 ## Completed goal — Release cleanup and completion safety P-1 (2026-08-02)
 
@@ -612,6 +636,74 @@ puppet evidence.
 
 ## Command-surface reliability and history batch P-5
 
+### [ ] P-5.0 Replace the duplicate chooser and state-bind terminal controls
+
+**Work — one command-palette choice surface:** Remove
+`SFMActionChoiceScreen` as an independently rendered and navigated button list.
+Retain `SFMActionChoice` as immutable choice data and introduce a bounded
+client-side choice-session service. Opening F3 or the unhandled-Escape flow
+snapshots the currently available, deduplicated choices and the exact
+`SFMClientActionContext`/workspace target that produced them, assigns a
+non-reused process-local session id, and opens the ordinary
+`SFMCommandPaletteScreen` with this prefix:
+
+```text
+sfm choose <choice-session-id>
+```
+
+The fixed `sfm choose` route resolves the session, while that palette instance
+uses a session-scoped Brigadier subtree whose only executable descendants are
+the exact canonical choice command paths. For example, an Escape session may
+offer `sfm choose 1 sfm:panel/close`; a diagnostic session may offer
+`sfm choose 2 sfm:panel/open/right sfm:terminal_properties`. Do not mutate the
+global action registry with per-session literals, accept an arbitrary greedy
+remainder, or generate all ordinary action suggestions and filter them after
+ranking. Invalid, incomplete, unavailable, unknown-session, and stale-session
+paths remain non-executable with explicit feedback.
+
+The constrained palette uses the ordinary palette's query editor, fuzzy
+ranking, selected-suggestion model, action title/description/icon/binding
+metadata, feedback console, mouse handling, and keyboard behavior. There is no
+choice-button focus state. Arrow movement, pointer selection, Tab acceptance,
+the displayed selected command and Enter execution must all resolve through
+the same `selectedSuggestion`. P-5.1 completes the shared suggestion
+viewport/scrollbar rather than adding constrained-palette scrolling here.
+
+A session is bounded and single-use after successful execution or cancellation.
+Closing/replacing its palette or disposing its origin invalidates it; a failed
+action may leave the still-current session open with feedback. Escape while a
+constrained palette is open cancels that session directly and must not open a
+nested Escape session. Execution uses the captured context/target even if
+ambient focus changes asynchronously. A later session cannot reuse an older
+id or resolve an older target. P-5.3 never stores `sfm choose <id> ...`; after a
+successful non-maintenance choice it may record the canonical underlying
+`sfm action invoke ...` command under the same policy as direct palette
+execution. Cancel and palette-close choices are not history.
+
+**Work — disconnected control lifetime:** Replace the terminal's retained
+manual Start/Retry coordinate sentinel with an explicit interaction state.
+The Start/Retry target is active only while the disconnected presentation that
+drew it is current and only for the intended primary-button activation. Before
+presenting a retained or new terminal frame, invalidate disconnected controls;
+terminal viewport routing must then consume the click. Never infer control
+activity merely because old rectangle coordinates remain populated.
+
+**Validation:** Add session-tree tests for exact candidate containment,
+deduplication, fuzzy discovery within the constrained tree, incompleteness,
+unknown/stale ids, disposal, single use, failure retention, captured targets,
+cancel-without-recursion, and canonical-versus-ephemeral history. Exercise F3
+and Escape through the real `SFMCommandPaletteScreen`, proving that arrow,
+pointer, Tab and Enter agree on one suggestion and that no
+`SFMActionChoiceScreen` path remains. Render a disconnected terminal, retain
+the former button coordinates, transition to a presented frame, click there,
+and assert one terminal mouse event, terminal focus, and zero server-start
+attempts.
+
+**Completion criteria:** F3 and Escape are constrained command-palette
+sessions with no duplicate chooser selection mechanism; only valid session
+commands parse or execute; stale sessions cannot retarget work or pollute
+history; and connected terminal pixels cannot activate disconnected controls.
+
 ### [ ] P-5.1 Share bounded list scrolling and correct hit testing
 
 **Work:** Extract a pure reusable vertical-list viewport model covering item
@@ -621,6 +713,13 @@ scrollbar geometry. Use it for command-palette suggestions and
 `SFMKeyBindingScreen`; reuse the established `SFMConsoleWidget` interaction
 laws and `SFMScreenPanelBounds.contains` bounds convention without coupling
 ranked suggestions to `PickList` sorting.
+
+The normal `sfm action invoke ` surface and every P-5.0 constrained
+`sfm choose <choice-session-id> ` surface use the same palette suggestion
+viewport object. Search, row selection, first-visible-row state, wheel, track,
+thumb, PageUp/PageDown, Home/End, resize, and filter clamping must therefore
+behave identically; no choice-specific scrolling or focus implementation is
+permitted.
 
 Remove `SFMKeyBindingScreen.refresh()`'s `.limit(...)`; retain the complete
 filtered action list and scroll through it. Dispatch to the search `EditBox`
@@ -743,7 +842,9 @@ Run focused tests, canonical compile/full tests through
 thumb scrolling, shortcut search hit isolation, all three default panel-scale
 bindings and `[?]`, successful versus failed history recording, exact MRU
 reopen, argument-bearing history execution, every history placement,
-read-only/discard behavior, and clear-remains-empty. Update
+read-only/discard behavior, clear-remains-empty, F3/Escape constrained-palette
+search/navigation/scrolling/cancellation, stale-session rejection, and the
+disconnected-button-to-terminal click transition. Update
 `changelog.sfml`. Preserve the two current generated-resource edits and do not
 propagate or publish in this batch.
 
@@ -753,12 +854,14 @@ interpretation alone.
 
 ### P-5 parallel implementation topology
 
-V-4.2e/Teamy 3.6.4f may run in parallel with P-5.1/P-5.2 because they own
-different repositories and Java packages. Within SFM, P-5.1's keybinding-list
-work and P-5.2's storage/default work are independent. Palette scrolling and
-history ranking both touch `SFMCommandPaletteScreen`, so one integration owner
-must serialize or merge those changes deliberately. P-5.4 follows the history
-service contract; P-5.5 is the canonical join gate. No subagent edits the
+P-5.0 establishes the palette/session boundary before palette-side P-5.1 or
+P-5.3 integration. Its terminal hit-state correction can proceed in parallel
+with the choice-session service, and P-5.1's independent keybinding-list model
+may proceed in parallel as well. P-5.2's storage/default work is independent.
+The constrained palette, palette scrolling, and history ranking all touch
+`SFMCommandPaletteScreen`, so one integration owner must serialize or merge
+those changes deliberately. P-5.4 follows the history service contract; P-5.5
+is the canonical join gate. No subagent edits the
 canonical plans, generated Vox outputs, lockfile, or changelog concurrently
 with the integration owner.
 

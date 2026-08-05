@@ -84,9 +84,14 @@ frame delivery, V-4.2a's three named CPU presentation transports, and V-4.2c's
 true no-window `rust-gpu-slug` bridge are now complete. Renderer and transport
 remain independent panel-local choices under one atomic presentation
 generation, while CPU/full-PNG remains the initial default. The newly observed
-selection and clipboard regression makes V-4.2e plus Teamy Terminal 3.6.4f the
-next correctness slice. The next coherent comparison slice after that is
-V-4.3 plus Teamy Terminal 3.6.5, followed by V-4.5/V-4.6's
+selection and clipboard regression is complete in V-4.2e plus Teamy Terminal
+3.6.4f. Later user testing exposed a Java interaction correction in V-4.2d.1:
+connected terminal pixels still overlap stale disconnected-control hit bounds,
+and the bespoke F3/Escape chooser duplicates command-palette selection/focus.
+The release plan's P-5.0/P-5.1 own the shared constrained-palette command
+surface while V-4.2d.1 owns terminal/workspace routing. The next coherent
+renderer comparison slice after that is V-4.3 plus Teamy Terminal 3.6.5,
+followed by V-4.5/V-4.6's
 matched visual/temporal report and evidence-based default decision; this plan
 does not preselect that future goal. V-4.2b semantic cells remain independent
 later contract work. Teamy Terminal Phase 3.6 remains authoritative for Rust
@@ -876,6 +881,14 @@ and command-palette parity. A high-GUI-scale live artifact captures the
 properties values beside the terminal and reconciles them with Rust and Java
 telemetry for all six renderer/transport tuples.
 
+**Post-completion supersession — 2026-08-05:** V-4.2d.1 retains these bounded
+choice sets but replaces the dedicated chooser UI. “Not the unrestricted
+command palette” now means a constrained instance of the ordinary palette with
+its own `sfm choose <choice-session-id>` Brigadier surface, not a second screen
+or selection mechanism. The evidence below remains valid for choice content,
+action routing, and terminal tuning; V-4.2d.1 must replace its UI/navigation
+evidence.
+
 **Completion notes — 2026-08-05:** `sfm:terminal_properties` is a terminal-owned
 workspace scene. Focused-terminal and owner-properties routing use the same
 typed action context; absent/non-terminal focus is rejected instead of falling
@@ -905,6 +918,42 @@ aborted. Teamy Terminal's focused 29-test Vox server suite and complete
 `check-all.ps1` gate pass, as do Facet's Phon conformance, stream framing, Vox
 runtime, generated-response integration, and deterministic Java packaging
 gates. V-4.3 Java semantic-cell renderers remain explicitly out of scope.
+
+#### [ ] V-4.2d.1 Route workspace choices through constrained palettes and retire stale terminal controls
+
+This is a post-completion correction to V-4.2d's presentation mechanism, not a
+change to its curated F3/Escape choices. The dedicated
+`SFMActionChoiceScreen` is superseded. F3 and otherwise-unhandled Escape create
+ephemeral choice sessions and open the ordinary command palette at
+`sfm choose <choice-session-id> `, whose session-scoped Brigadier subtree
+contains only the exact valid choice commands. Release-plan P-5.0 is
+authoritative for session lifecycle, captured target/context, stale-id
+rejection, canonical history, and removal of the duplicate selection/focus
+model; P-5.1 is authoritative for the one shared searchable and scrollable
+suggestion viewport.
+
+Preserve V-4.2d's exact choice sets, contextual terminal-properties preference,
+availability checks, terminal triple-Escape staging, and direct cancellation
+when Escape is pressed inside the constrained palette. Do not constrain the
+ordinary `sfm action invoke ` result list after ranking: the distinct
+`sfm choose` command tree is what makes unrelated actions invalid and absent.
+
+Also state-bind the manual terminal Start/Retry target. It exists only while
+the disconnected presentation that drew it remains current. Presenting a
+retained or new Rust frame invalidates that target before mouse dispatch, so a
+click over its former coordinates focuses and reaches the terminal exactly
+once rather than launching another server attempt.
+
+**Validation:** Through focused tests and the live terminal puppet, prove the
+exact F3/Escape candidate trees, shared palette fuzzy selection and P-5.1
+scrolling, arrow/Tab/pointer/Enter agreement, no nested chooser on cancel,
+captured owner-terminal routing, stale-session rejection, and cleanup. Then
+exercise disconnected rendering followed by a live frame and click the former
+button rectangle, asserting terminal input and zero Start/Retry activation.
+
+**Completion criteria:** Workspace choices have one familiar command-palette
+selection mechanism and a genuinely constrained parse/completion surface, and
+no connected terminal interaction can reach a stale disconnected control.
 
 ### [x] V-4.2e Restore selection, copy, and guarded paste across Vox
 
