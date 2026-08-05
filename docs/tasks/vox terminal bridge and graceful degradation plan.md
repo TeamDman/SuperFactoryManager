@@ -919,7 +919,7 @@ aborted. Teamy Terminal's focused 29-test Vox server suite and complete
 runtime, generated-response integration, and deterministic Java packaging
 gates. V-4.3 Java semantic-cell renderers remain explicitly out of scope.
 
-#### [ ] V-4.2d.1 Route workspace choices through constrained palettes and retire stale terminal controls
+#### [x] V-4.2d.1 Route workspace choices through constrained palettes and retire stale terminal controls
 
 This is a post-completion correction to V-4.2d's presentation mechanism, not a
 change to its curated F3/Escape choices. The dedicated
@@ -954,6 +954,25 @@ button rectangle, asserting terminal input and zero Start/Retry activation.
 **Completion criteria:** Workspace choices have one familiar command-palette
 selection mechanism and a genuinely constrained parse/completion surface, and
 no connected terminal interaction can reach a stale disconnected control.
+
+**Completion notes — 2026-08-05:** Commits `f678d91a8`, `03b572a9b`, and
+`425a68c9b` complete this correction. F3 and triple-Escape preserve their
+curated candidate sets but now open the ordinary searchable, metadata-aware,
+scrollable command palette over exact session-local `sfm choose <id> ...`
+literal trees. Sessions capture their originating panel/terminal identity, so
+later workspace focus changes cannot retarget panel close/open or terminal
+properties actions. Escape cancels an active constrained palette directly.
+
+The terminal Start/Retry hit state is invalidated before a retained or new
+frame becomes current. Focused tests cover its state transitions and the live
+`title_screen_rust_terminal` run
+`title_screen_rus-20260805-192956-719` clicks the former button rectangle after
+presentation, asserting terminal routing and no additional start attempt. The
+focused normal-scale presentation run
+`title_screen_rus-20260805-193851-950` passes the F3 keyboard, pointer, execute,
+and cancel flow while retaining all six renderer/transport presentation
+variants. Release-plan P-5.0/P-5.1 record the shared session and viewport test
+matrix; P-5.2 and later command-surface work remains pending.
 
 ### [x] V-4.2e Restore selection, copy, and guarded paste across Vox
 

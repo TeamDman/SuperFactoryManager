@@ -636,7 +636,7 @@ puppet evidence.
 
 ## Command-surface reliability and history batch P-5
 
-### [ ] P-5.0 Replace the duplicate chooser and state-bind terminal controls
+### [x] P-5.0 Replace the duplicate chooser and state-bind terminal controls
 
 **Work — one command-palette choice surface:** Remove
 `SFMActionChoiceScreen` as an independently rendered and navigated button list.
@@ -704,7 +704,30 @@ sessions with no duplicate chooser selection mechanism; only valid session
 commands parse or execute; stale sessions cannot retarget work or pollute
 history; and connected terminal pixels cannot activate disconnected controls.
 
-### [ ] P-5.1 Share bounded list scrolling and correct hit testing
+**Completion notes — 2026-08-05:** Commits `f678d91a8` and `425a68c9b`
+state-bind the disconnected Start/Retry hit target, remove the independent
+`SFMActionChoiceScreen`, and route F3 and otherwise-unhandled Escape through
+bounded, process-local `sfm choose <id> ...` sessions in the ordinary command
+palette. Each session owns an exact literal Brigadier subtree, immutable
+choice data, and a captured action context including the originating panel id;
+successful execution is single-use, cancellation/removal invalidates the
+session, stale ids do not parse, and failed actions may retain the current
+session for feedback. The ordinary action registry and future canonical
+history surface never receive an ephemeral id.
+
+Focused `SFMChoiceSessionTests` cover exact containment, deduplication,
+incomplete and unknown paths, single use, failure retention, disposal, fuzzy
+full-row discovery, and captured-panel routing after focus changes. The live
+`title_screen_rust_terminal` run
+`title_screen_rus-20260805-192956-719` exercises the constrained triple-Escape
+surface and proves that clicking the former disconnected-button rectangle
+after frame presentation produces terminal input without another start
+attempt. The single-variant presentation run
+`title_screen_rus-20260805-193851-950` exercises the F3 constrained palette
+through Down/Up/Tab/Enter and pointer/cancel paths before completing its full
+CPU/GPU presentation matrix.
+
+### [x] P-5.1 Share bounded list scrolling and correct hit testing
 
 **Work:** Extract a pure reusable vertical-list viewport model covering item
 count, visible-row count, first visible row, selected-row visibility, wheel and
@@ -739,6 +762,23 @@ filter shrink, resize, empty list, and independent console routing.
 reachable without keyboard-only traversal; both thumb and wheel work; clicking
 the search box or any gap cannot open an action; and neither scroll region
 steals input from the other.
+
+**Completion notes — 2026-08-05:** Commits `03b572a9b` and `425a68c9b` add one
+`SFMVerticalListViewport` model and use it for the complete, untruncated SFM
+shortcut list and for both ordinary and constrained command-palette
+suggestions. The model owns first-row clamping, selected-row visibility,
+half-open hit testing, wheel/page/home/end movement, track paging, thumb drag,
+and scrollbar geometry. Palette routing uses explicit suggestion and console
+regions, so neither viewport steals wheel or drag input from the other; search
+widgets are dispatched before rows and blank space cannot activate row zero.
+
+Pure viewport, command-palette region, shortcut hit-routing, and screen tests
+pass. The live `title_screen_command_palette` run
+`title_screen_com-20260805-191954-807` drives actual wheel, PageDown, End, Home,
+track-click, and thumb-drag events and captures `command-palette-scrolled` with
+a visible nonzero scrollbar offset. The canonical compile and full test suite
+both exit zero; the only two aborted tests are the existing Windows
+symlink-privilege assumptions.
 
 ### [ ] P-5.2 Add persistent, overridable panel-scale defaults
 
