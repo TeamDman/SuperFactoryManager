@@ -67,6 +67,30 @@ evidence, not omissions from the preceding selection/copy/paste intent audit.
 P-5.0 records their concrete state and ownership corrections before the rest of
 the P-5 command-surface work.
 
+### Contextual input, action ownership, and address follow-up — 2026-08-05
+
+The authoritative atomized plan for the later keyboard-navigation and
+Action/Registry Explorer guidance is
+`docs/tasks/contextual input actions and addressable explorer plan.md`. It owns
+the panel child-widget/focus contract, registered keyboard-usage situations,
+contextual defaults, terminal/properties migration, panel resize/duplicate
+semantics, binding-management UX, action-element audit, typed addresses,
+resolvers/devices, and explorer projections.
+
+Release P-5.2 now coordinates the contextual default/action portion of that
+plan instead of seeding unscoped panel-scale keys. Its K-1 through K-7 items are
+release-correctness work under the current recommendation. Address phase A
+must at least freeze any public owner/address contracts before release; whether
+the complete Action/Registry Explorer is a release blocker remains design gate
+D-6 in the linked plan.
+
+**Follow-up intent audit:** Passed 2026-08-05. The linked plan records the full
+three-pass audit against the complete message, including the earlier move-only
+decision's explicit supersession, exact Microsoft Terminal defaults, concrete
+address examples, semantic-versus-coordinate action ownership, and the
+release-boundary gate. This coordinating summary is not the authoritative
+requirements ledger for that message.
+
 ## Scope
 
 In scope:
@@ -259,10 +283,13 @@ sfm:panel/open/above <scene> [scene arguments]
 sfm:panel/open/below <scene> [scene arguments]
 sfm:panel/close
 sfm:panel/move/left|right|above|below
+sfm:panel/resize/left|right|above|below
+sfm:panel/duplicate/left|right|above|below
 sfm:panel/scale/set <n>
 sfm:panel/scale/increase
 sfm:panel/scale/decrease
 sfm:panel/scale/clear
+sfm:panel/diagnostics/open
 sfm:panel/rotate/content/left|right
 sfm:panel/rotate/scale/left|right
 sfm:terminal/server/start [address]
@@ -780,34 +807,42 @@ a visible nonzero scrollbar offset. The canonical compile and full test suite
 both exit zero; the only two aborted tests are the existing Windows
 symlink-privilege assumptions.
 
-### [ ] P-5.2 Add persistent, overridable panel-scale defaults
+### [ ] P-5.2 Complete contextual panel bindings and keyboard navigation
 
-**Work:** Define stable built-in binding ids for:
+**Work:** Complete K-1 through K-7 of
+`docs/tasks/contextual input actions and addressable explorer plan.md`. Replace
+the current global-only binding model with registered stable keyboard-usage
+situations and SFM-owned contextual defaults. Preserve schema-1 user bindings
+through schema-2 migration, explicit global scope, and built-in
+override/tombstone state.
 
-- Ctrl+plus (`Ctrl+Shift+=`, displayed as `Ctrl++`, plus keypad-add parity) →
-  `sfm action invoke sfm:panel/scale/increase`;
-- Ctrl+minus (main minus plus keypad-subtract parity) →
-  `sfm action invoke sfm:panel/scale/decrease`; and
-- Ctrl+zero (main zero plus keypad-zero parity) →
-  `sfm action invoke sfm:panel/scale/clear`.
+The default set includes the existing Ctrl+plus/minus/zero focused-panel scale
+actions, Ctrl+Shift+W panel close, F3 focused-panel diagnostics, all four
+Alt+Shift+arrow resize actions, and Microsoft Terminal's Alt+Shift+minus/right-
+plus duplicate-below/right defaults. Main-row/keypad forms remain equivalent
+where appropriate. Do not seed Ctrl+Shift+T or browser-style Ctrl+W without a
+separately approved SFM semantic action/situation.
 
-Evolve keybinding persistence so user overrides, disablement, or removal of a
-default survives restart. Do not blindly reseed a removed default. Stable
-default ids plus persisted override/tombstone state must migrate schema 1
-without losing existing user bindings. The ordinary binding service remains
-the sole source queried by palette rows and `[?]`, so defaults need no bespoke
-display path. Prove matched global input is consumed before the focused
-terminal/editor receives the same keystroke, while an unavailable panel action
-does not bypass its contextual requirement.
+This item also requires the shared panel child-widget host and migration of the
+Rust terminal Start/Retry, Presentation, terminal viewport, and all terminal-
+properties controls. Buttons, keyboard activation, palette commands, and
+bindings converge on registered semantic actions. F3 is no longer hidden in
+the multiplexer and appears in SFM Actions & Shortcuts. The linked plan's D-1
+through D-3 gates govern duplication, situation precedence, and semantic-versus-
+parameterized input; do not improvise those contracts in UI code.
 
-**Validation:** Add schema migration/default override/tombstone, display,
-conflict, main-key/keypad, contextual availability, and event-consumption
-tests. A puppet opens `[?]`, invokes all three defaults in a multiplexer, and
-asserts no `+`, `-`, or `0` leaked into the focused terminal.
+**Validation:** Use the exact focused tests and live K-7 matrix in the linked
+plan. At minimum, prove binding migration/default/tombstone behavior,
+context/scope conflict and terminal non-leak, keyboard-only terminal/properties
+navigation, F3 discovery, close/scale/resize/duplicate actions, action-element
+audit, and a canonical compile/full test run through
+`sfm-propagate-changes.exe`.
 
-**Completion criteria:** Fresh profiles receive the documented defaults,
-existing profiles migrate safely, user choices persist, `[?]` reports the same
-active bindings, and each chord changes only the focused panel scale.
+**Completion criteria:** K-1 through K-7 are complete with local evidence;
+every shipped default is contextual and overridable; the terminal and
+properties controls are Minecraft-like keyboard-navigable action elements; and
+panel close, scale, resize, duplicate, and diagnostics are discoverable
+semantic actions rather than hard-coded key mutations.
 
 ### [ ] P-5.3 Persist successful palette commands and rank full MRU entries
 
@@ -879,8 +914,10 @@ and clear leaves no self-repopulating maintenance entry.
 
 Run focused tests, canonical compile/full tests through
 `sfm-propagate-changes.exe`, and live puppets that exercise long-list wheel and
-thumb scrolling, shortcut search hit isolation, all three default panel-scale
-bindings and `[?]`, successful versus failed history recording, exact MRU
+thumb scrolling, shortcut search hit isolation, contextual situation display,
+terminal/property widget traversal, panel close, diagnostics, all three panel-
+scale bindings, resize and duplicate defaults and `[?]`, successful versus
+failed history recording, exact MRU
 reopen, argument-bearing history execution, every history placement,
 read-only/discard behavior, clear-remains-empty, F3/Escape constrained-palette
 search/navigation/scrolling/cancellation, stale-session rejection, and the
@@ -889,19 +926,19 @@ disconnected-button-to-terminal click transition. Update
 propagate or publish in this batch.
 
 **Completion criteria:** Pure tests and live evidence prove every I-KEY,
-I-HIST, and I-LIST ledger item, and no observed UI path depends on screenshot
-interpretation alone.
+I-HIST, and I-LIST ledger item plus linked plan K-1 through K-7, and no observed
+UI path depends on screenshot interpretation alone.
 
 ### P-5 parallel implementation topology
 
-P-5.0 establishes the palette/session boundary before palette-side P-5.1 or
-P-5.3 integration. Its terminal hit-state correction can proceed in parallel
-with the choice-session service, and P-5.1's independent keybinding-list model
-may proceed in parallel as well. P-5.2's storage/default work is independent.
-The constrained palette, palette scrolling, and history ranking all touch
-`SFMCommandPaletteScreen`, so one integration owner must serialize or merge
-those changes deliberately. P-5.4 follows the history service contract; P-5.5
-is the canonical join gate. No subagent edits the
+P-5.0 and P-5.1 are complete. P-5.2 now follows the detailed K-phase topology
+in `contextual input actions and addressable explorer plan.md`: the pure
+situation/storage model, panel child-widget host, and post-D-1 layout fixtures
+may proceed in parallel, but one integration owner serializes multiplexer,
+terminal, action registration, binding service/UI, and puppet changes. P-5.3's
+history service may proceed independently until it integrates with
+`SFMCommandPaletteScreen`; P-5.4 follows that history contract. P-5.5 is the
+canonical join gate. No subagent edits the
 canonical plans, generated Vox outputs, lockfile, or changelog concurrently
 with the integration owner.
 
@@ -914,9 +951,12 @@ with the integration owner.
   lifecycle only; `sfm:terminal/open` is removed.
 - Every participating file/lane has both before and after leaves. A missing
   revision is represented by an explicit tombstone leaf.
-- Panels are moved rather than duplicated. `sfm:panel/move/<direction>`
-  transfers the visible entry intact to the neighboring slot, creating or
-  collapsing slots as needed; no duplicate panel action is provided.
+- **Superseded 2026-08-05 by contextual-input guidance KBIND-2:** the earlier
+  decision prohibited panel duplication. Existing `sfm:panel/move/<direction>`
+  still transfers the visible entry intact, but deliberate
+  `sfm:panel/duplicate/<direction>` actions are now planned after duplication
+  state/lifecycle gate D-1 closes. Do not alias one mutable panel instance into
+  two slots.
 - Content and scale rotations include only the currently visible entry in each
   slot. Hidden stacked entries remain unchanged and in their owning stacks.
 - Change explorers default to every maintained SFM worktree known to the
@@ -1026,6 +1066,8 @@ The Rust path should first gain Forge Jar-in-Jar parity in the existing artifact
 ## Source references
 
 - Repository rules: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\AGENTS.md`
+- Contextual input/action/address plan:
+  `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\tasks\contextual input actions and addressable explorer plan.md`
 - Existing release workflow: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\tasks\puppet propagation and preview matrix plan.md`
 - Terminal bridge: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\tasks\vox terminal bridge and graceful degradation plan.md`
 - Teamy Terminal integration: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\tasks\teamy terminal repository and Vulkan renderer plan.md`
