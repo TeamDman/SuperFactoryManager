@@ -9,6 +9,9 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Objects;
+import java.util.Optional;
+
 /** Opens diagnostics bound to the exact terminal focused when invoked. */
 public final class SFMTerminalPropertiesScreenType implements SFMClientScreenType {
     @Override
@@ -28,7 +31,32 @@ public final class SFMTerminalPropertiesScreenType implements SFMClientScreenTyp
                         throw new SimpleCommandExceptionType(Component.literal(
                                 "Terminal properties require a focused Rust terminal panel")).create();
                     }
-                    return opener.open(context, new SFMTerminalPropertiesPanel(owner));
+                    return opener.open(context, new Recipe(screenTypeId, owner));
                 });
+    }
+
+    public record Recipe(
+            ResourceLocation sceneTypeId,
+            SFMWorkspacePanelId ownerPanelId
+    ) implements SFMPanelReopenRecipe {
+        public Recipe {
+            Objects.requireNonNull(sceneTypeId);
+            Objects.requireNonNull(ownerPanelId);
+        }
+
+        @Override
+        public Optional<Component> unavailableReason(SFMPanelReopenContext context) {
+            if (!(context.workspace().panelInstance(ownerPanelId) instanceof SFMTerminalPanel terminal)
+                    || !terminal.isRustBacked()) {
+                return Optional.of(Component.literal(
+                        "The terminal-properties owner is no longer an available Rust terminal"));
+            }
+            return Optional.empty();
+        }
+
+        @Override
+        public SFMTerminalPropertiesPanel reopen() {
+            return new SFMTerminalPropertiesPanel(ownerPanelId);
+        }
     }
 }

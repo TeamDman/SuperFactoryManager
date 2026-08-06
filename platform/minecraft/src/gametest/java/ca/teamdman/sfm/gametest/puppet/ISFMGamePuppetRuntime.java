@@ -2,6 +2,7 @@ package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceAxis;
 import ca.teamdman.sfm.client.terminal.SFMTerminalInteractionPuppetProbe;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.core.BlockPos;
@@ -49,6 +50,15 @@ public interface ISFMGamePuppetRuntime {
             String expectedFocusedNarration,
             int expectedFocusedScale
     );
+
+    void assertWorkspacePanelExtentComparison(
+            int firstPanelIndex,
+            int secondPanelIndex,
+            SFMWorkspaceAxis axis,
+            int expectedComparison
+    );
+
+    void assertWorkspacePanelInstancesDistinct(int firstPanelIndex, int secondPanelIndex);
 
     void openTerminal();
 

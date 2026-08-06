@@ -29,12 +29,14 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
 /** Owns Minecraft's Screen lifecycle while hosting a normalized tree of SFM panels. */
 public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePanelHost {
     private static final int DIVIDER_WIDTH = 2;
+    private static final int MINIMUM_PANEL_PIXELS = 48;
     private static final int PANEL_BACKGROUND = 0xE0202020;
     private static final int FOCUSED_BORDER = 0xFF55FFFF;
     private static final int UNFOCUSED_BORDER = 0xFF606060;
@@ -52,6 +54,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private final @Nullable SFMWorkspacePanelGroup panelGroup;
     private final Set<SFMWorkspacePanelId> openedPanels = new HashSet<>();
     private final Map<SFMWorkspacePanelId, SFMScreenPanel> openedPanelInstances = new java.util.HashMap<>();
+    private final SFMPanelReopenCatalog reopenRecipes = new SFMPanelReopenCatalog();
     private Map<SFMWorkspacePanelId, SFMScreenPanelBounds> panelBounds = Map.of();
     private boolean closing;
     private @Nullable Component dropFeedback;
@@ -92,6 +95,16 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return new SFMScreenMultiplexer(previousScreen, SFMWorkspaceLayout.single(initialPanel));
     }
 
+    public static SFMScreenMultiplexer create(
+            @Nullable Screen previousScreen,
+            SFMScreenPanel initialPanel,
+            SFMPanelReopenRecipe reopenRecipe
+    ) {
+        SFMScreenMultiplexer workspace = create(previousScreen, initialPanel);
+        workspace.registerReopenRecipe(initialPanel, Objects.requireNonNull(reopenRecipe));
+        return workspace;
+    }
+
     /** Opens an already-composed panel tree without flattening it into one application-specific panel. */
     public static SFMScreenMultiplexer create(
             @Nullable Screen previousScreen,
@@ -117,11 +130,17 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMWorkspaceSide side,
             SFMScreenPanel panel
     ) {
+        openToSide(origin, side, panel, null);
+    }
+
+    public static void openToSide(
+            @Nullable Screen origin,
+            SFMWorkspaceSide side,
+            SFMScreenPanel panel,
+            @Nullable SFMPanelReopenRecipe reopenRecipe
+    ) {
         if (origin instanceof SFMScreenMultiplexer multiplexer) {
-            multiplexer.submit(
-                    multiplexer.layout.focusedPanel(),
-                    new SFMWorkspacePanelIntent.OpenToSide(side, panel)
-            );
+            multiplexer.openToSide(multiplexer.layout.focusedPanel(), side, panel, reopenRecipe);
             return;
         }
         SFMScreenPanel previous = new SFMPreviousScreenPanel(origin);
@@ -140,7 +159,9 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 .orElseThrow()
                 .id();
         layout.focus(insertedId);
-        SFMScreenChangeHelpers.setScreen(SFMScreenMultiplexer.create(origin, layout));
+        SFMScreenMultiplexer workspace = SFMScreenMultiplexer.create(origin, layout);
+        workspace.registerReopenRecipe(panel, reopenRecipe);
+        SFMScreenChangeHelpers.setScreen(workspace);
     }
 
     public static void openFocused(
@@ -148,11 +169,22 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMScreenPanel panel,
             SFMWorkspacePanelMetadata metadata
     ) {
+        openFocused(origin, panel, metadata, null);
+    }
+
+    public static void openFocused(
+            @Nullable Screen origin,
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata,
+            @Nullable SFMPanelReopenRecipe reopenRecipe
+    ) {
         if (origin instanceof SFMScreenMultiplexer multiplexer) {
-            multiplexer.openFocused(panel, metadata);
+            multiplexer.openFocused(panel, metadata, reopenRecipe);
             return;
         }
-        SFMScreenChangeHelpers.setScreen(SFMScreenMultiplexer.create(origin, panel));
+        SFMScreenMultiplexer workspace = SFMScreenMultiplexer.create(origin, panel);
+        workspace.registerReopenRecipe(panel, reopenRecipe);
+        SFMScreenChangeHelpers.setScreen(workspace);
     }
 
     public void openToSide(SFMScreenPanel panel) {
@@ -164,15 +196,39 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMWorkspaceSide side,
             SFMScreenPanel panel
     ) {
+        return openToSide(source, side, panel, null);
+    }
+
+    public SFMWorkspacePanelIntentResult openToSide(
+            SFMWorkspacePanelId source,
+            SFMWorkspaceSide side,
+            SFMScreenPanel panel,
+            @Nullable SFMPanelReopenRecipe reopenRecipe
+    ) {
         if (layout.panel(source) == null) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
-        return submit(source, new SFMWorkspacePanelIntent.OpenToSide(side, panel));
+        return submit(source, new SFMWorkspacePanelIntent.OpenToSide(
+                side,
+                panel,
+                SFMWorkspacePanelMetadata.ordinary(),
+                reopenRecipe));
     }
 
     public SFMWorkspacePanelIntentResult openFocused(
             SFMScreenPanel panel,
             SFMWorkspacePanelMetadata metadata
     ) {
-        return submit(layout.focusedPanel(), new SFMWorkspacePanelIntent.OpenAsTab(panel, metadata));
+        return openFocused(panel, metadata, null);
+    }
+
+    public SFMWorkspacePanelIntentResult openFocused(
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata,
+            @Nullable SFMPanelReopenRecipe reopenRecipe
+    ) {
+        return submit(layout.focusedPanel(), new SFMWorkspacePanelIntent.OpenAsTab(
+                panel,
+                metadata,
+                reopenRecipe));
     }
 
     public SFMWorkspacePanelIntentResult openIntoSlot(
@@ -180,8 +236,17 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMScreenPanel panel,
             SFMWorkspacePanelMetadata metadata
     ) {
+        return openIntoSlot(slot, panel, metadata, null);
+    }
+
+    public SFMWorkspacePanelIntentResult openIntoSlot(
+            SFMWorkspacePanelId slot,
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata,
+            @Nullable SFMPanelReopenRecipe reopenRecipe
+    ) {
         if (layout.panel(slot) == null) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
-        return submit(slot, new SFMWorkspacePanelIntent.OpenAsTab(panel, metadata));
+        return submit(slot, new SFMWorkspacePanelIntent.OpenAsTab(panel, metadata, reopenRecipe));
     }
 
     public boolean focusPanel(SFMWorkspacePanelId panelId) {
@@ -205,6 +270,89 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     public SFMWorkspacePanelIntentResult moveFocused(SFMWorkspaceSide side) {
         return submit(layout.focusedPanel(), new SFMWorkspacePanelIntent.Move(side));
+    }
+
+    public boolean canDuplicate(SFMWorkspacePanelId panelId) {
+        return duplicateUnavailableReason(panelId).isEmpty();
+    }
+
+    public Optional<Component> duplicateUnavailableReason(SFMWorkspacePanelId panelId) {
+        if (panelGroup != null) {
+            return Optional.of(Component.literal(
+                    "Responsive panel groups do not yet retain dynamic duplicate entries"));
+        }
+        SFMScreenPanel panel = layout.panel(panelId);
+        if (panel == null) return Optional.of(Component.literal("The source panel is no longer available"));
+        Optional<SFMPanelReopenRecipe> recipe = reopenRecipes.recipeFor(panel);
+        if (recipe.isEmpty()) {
+            return Optional.of(Component.literal(
+                    "The captured panel does not expose a typed re-open recipe"));
+        }
+        return recipe.orElseThrow().unavailableReason(new SFMPanelReopenContext(this, panelId));
+    }
+
+    public SFMWorkspacePanelIntentResult duplicatePanel(
+            SFMWorkspacePanelId panelId,
+            SFMWorkspaceSide side
+    ) {
+        SFMScreenPanel source = layout.panel(panelId);
+        if (source == null) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
+        if (duplicateUnavailableReason(panelId).isPresent()) {
+            return SFMWorkspacePanelIntentResult.UNSUPPORTED;
+        }
+        Optional<SFMPanelReopenCatalog.ReopenedPanel> reopened = reopenRecipes.reopen(source);
+        if (reopened.isEmpty()) return SFMWorkspacePanelIntentResult.UNSUPPORTED;
+        SFMScreenPanel duplicate = reopened.orElseThrow().panel();
+        SFMPanelReopenRecipe recipe = reopened.orElseThrow().recipe();
+        SFMWorkspacePanelMetadata metadata = layout.metadata(panelId);
+        return submit(panelId, new SFMWorkspacePanelIntent.OpenToSide(
+                side,
+                duplicate,
+                metadata == null ? SFMWorkspacePanelMetadata.ordinary() : metadata,
+                recipe));
+    }
+
+    public boolean canResizePanel(SFMWorkspacePanelId panelId, SFMWorkspaceSide side) {
+        if (this.width <= 0 || this.height <= 0) return false;
+        return layout.canResize(
+                panelId,
+                side,
+                new SFMScreenPanelBounds(0, 0, this.width, this.height),
+                DIVIDER_WIDTH,
+                MINIMUM_PANEL_PIXELS);
+    }
+
+    public SFMWorkspacePanelIntentResult resizePanel(
+            SFMWorkspacePanelId panelId,
+            SFMWorkspaceSide side
+    ) {
+        if (this.width <= 0 || this.height <= 0 || !layout.resize(
+                panelId,
+                side,
+                new SFMScreenPanelBounds(0, 0, this.width, this.height),
+                DIVIDER_WIDTH,
+                MINIMUM_PANEL_PIXELS)) {
+            return SFMWorkspacePanelIntentResult.UNAVAILABLE;
+        }
+        refreshLayout(true);
+        return SFMWorkspacePanelIntentResult.APPLIED;
+    }
+
+    public Optional<SFMPanelReopenRecipe> reopenRecipe(SFMWorkspacePanelId panelId) {
+        SFMScreenPanel panel = layout.panel(panelId);
+        return panel == null ? Optional.empty() : reopenRecipes.recipeFor(panel);
+    }
+
+    /** Replaces reconstruction metadata after a panel changes its typed source address. */
+    public boolean setPanelReopenRecipe(
+            SFMWorkspacePanelId panelId,
+            @Nullable SFMPanelReopenRecipe reopenRecipe
+    ) {
+        SFMScreenPanel panel = layout.panel(panelId);
+        if (panel == null) return false;
+        if (reopenRecipe == null) reopenRecipes.remove(panel);
+        else reopenRecipes.register(panel, reopenRecipe);
+        return true;
     }
 
     public boolean setFocusedGuiScale(@Nullable Integer scale) {
@@ -288,6 +436,12 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMWorkspacePanelId source,
             SFMWorkspacePanelIntent intent
     ) {
+        @Nullable SFMPanelReopenRecipe insertedRecipe = null;
+        if (intent instanceof SFMWorkspacePanelIntent.OpenToSide open) {
+            insertedRecipe = open.reopenRecipe();
+        } else if (intent instanceof SFMWorkspacePanelIntent.OpenAsTab open) {
+            insertedRecipe = open.reopenRecipe();
+        }
         SFMWorkspacePanelIntentDispatcher.Outcome outcome =
                 SFMWorkspacePanelIntentDispatcher.apply(layout, source, intent);
         if (outcome.result() != SFMWorkspacePanelIntentResult.APPLIED) return outcome.result();
@@ -296,6 +450,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             return SFMWorkspacePanelIntentResult.APPLIED;
         }
         if (outcome.inserted() != null) {
+            registerReopenRecipe(layout.panel(outcome.inserted()), insertedRecipe);
             refreshLayout(true);
             return SFMWorkspacePanelIntentResult.APPLIED;
         }
@@ -303,6 +458,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         outcome.removedPanel().closed();
         openedPanels.remove(outcome.removed());
         openedPanelInstances.remove(outcome.removed());
+        reopenRecipes.remove(outcome.removedPanel());
         if (layout.panels().isEmpty()) {
             onClose();
         } else {
@@ -388,6 +544,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         openedPanelInstances.put(id, panel);
     }
 
+    private void registerReopenRecipe(
+            @Nullable SFMScreenPanel panel,
+            @Nullable SFMPanelReopenRecipe reopenRecipe
+    ) {
+        if (panel != null && reopenRecipe != null) reopenRecipes.register(panel, reopenRecipe);
+    }
+
     @Override
     public void tick() {
         if (panelGroup != null && panelGroupRevision != panelGroup.revision()) refreshLayout(true);
@@ -428,6 +591,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         }
         openedPanels.clear();
         openedPanelInstances.clear();
+        reopenRecipes.clear();
         SFMScreenChangeHelpers.setScreen(previousScreen);
     }
 

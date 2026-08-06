@@ -16,14 +16,17 @@ public final class SFMKeyBindingDisplay {
 
     public static String format(SFMKeyStroke stroke) {
         List<String> parts = new ArrayList<>();
-        boolean mainRowPlus = stroke.keyCode() == GLFW.GLFW_KEY_EQUAL
+        boolean physicalMainRowPlus = stroke.keyCode() == GLFW.GLFW_KEY_EQUAL
                 && stroke.modifiers().contains(SFMKeyModifier.SHIFT);
+        boolean compactScalePlus = physicalMainRowPlus
+                && stroke.modifiers().contains(SFMKeyModifier.CONTROL)
+                && !stroke.modifiers().contains(SFMKeyModifier.ALT);
         if (stroke.modifiers().contains(SFMKeyModifier.CONTROL)) parts.add("Ctrl");
         if (stroke.modifiers().contains(SFMKeyModifier.ALT)) parts.add("Alt");
-        if (stroke.modifiers().contains(SFMKeyModifier.SHIFT) && !mainRowPlus) parts.add("Shift");
+        if (stroke.modifiers().contains(SFMKeyModifier.SHIFT) && !compactScalePlus) parts.add("Shift");
         if (stroke.modifiers().contains(SFMKeyModifier.SUPER)) parts.add("Super");
-        parts.add(mainRowPlus
-                ? "+"
+        parts.add(physicalMainRowPlus
+                ? compactScalePlus ? "+" : "Plus"
                 : InputConstants.Type.KEYSYM.getOrCreate(stroke.keyCode()).getDisplayName().getString());
         return String.join("+", parts);
     }

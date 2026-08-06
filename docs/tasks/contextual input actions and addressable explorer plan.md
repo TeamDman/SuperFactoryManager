@@ -232,7 +232,7 @@ Out of scope unless a later goal explicitly expands it:
 
 | Gate | Decision required | Working recommendation | Acceptance consequence |
 | --- | --- | --- | --- |
-| D-1 Duplicate state semantics | Does duplicate create an independent panel from a re-open recipe, alias the same live object, or vary by panel type? | Independent panel from a typed scene/address recipe. Terminal duplicates create a distinct session; explorers/editors share immutable source/address inputs but own independent focus/scroll/dirty state. Panels without a recipe report unavailable. | K-4 tests lifecycle independence, terminal session identity, source sharing, unsupported panels, stacks, and close behavior. This gate blocks duplicate implementation, not K-1/K-3. |
+| D-1 Duplicate state semantics | Does duplicate create an independent panel from a re-open recipe, alias the same live object, or vary by panel type? | **Closed by K-4 (2026-08-06):** independent panel from an immutable typed scene/address recipe. Terminal duplicates create distinct sessions; explorers/editors share only immutable selector/document/path inputs and own independent focus/scroll/dirty/model state. A directory drop replaces the explorer's normalized-root recipe. Panels without an exact recipe report unavailable; a recipe that aliases an attached mutable panel is rejected. | K-4 tests lifecycle independence, terminal session identity, source sharing, unsupported panels, stacks, close behavior, and live action/default dispatch. |
 | D-2 Situation ancestry and precedence | How do focused element, panel, workspace, and optional global situations compose when bindings overlap or a sequence is partial? | **Closed by K-3 (2026-08-06):** `sfm:terminal -> sfm:default -> sfm:workspace -> sfm:global`; resolve deepest to broadest, let a deeper viable partial reserve before a broader completion, let a same-depth completion win over a longer same-depth prefix, diagnose equal-depth completions without invoking either, and forward a failed/mismatched partial's current stroke exactly once. | K-3 registry/matcher tests plus the real Forge pre-screen live witness prove precedence, reset, conflict, and fallback. |
 | D-3 Semantic action boundary | Must every editor/navigation impulse be a registry entry, or only semantic operations with parameterized low-level input beneath them? | Register semantic operations and stable parameterized action kinds; do not register every character or coordinate. All visible buttons and non-text shortcuts still expose a semantic action contribution. | K-5 audit has explicit categories and exemptions instead of either thousands of actions or silent hard-coded behavior. |
 | D-4 Action Explorer naming | Rename the current surface immediately, or introduce the addressable explorer first and migrate the old title later? | Use “SFM Actions & Shortcuts” during K phases; introduce `sfm:registry_explorer`/action projection in A-4, then retire or redirect redundant presentation only with live parity. | K-6 and A-4 user-facing names, compatibility, and migration tests differ. |
@@ -536,7 +536,7 @@ Ctrl+Shift+W, and terminal presentation/input pass-through. Evidence is under
 suite passed, with only the two Windows symlink fixtures explicitly aborted by
 their existing privilege assumptions.
 
-### [ ] K-4 Add resize and independent duplicate panel actions
+### [x] K-4 Add resize and independent duplicate panel actions
 
 **Work:** Close D-1. Extend the pure layout/intents with bounded resize and
 duplicate operations. Resize adjusts the nearest split track in the requested
@@ -561,6 +561,42 @@ sfm-propagate-changes.exe puppet run title_screen_workspace --branch 1.19.2 --wa
 **Completion criteria:** Palette and contextual shortcuts can resize in four
 directions and duplicate in supported directions without aliasing state;
 existing move actions retain their distinct transfer semantics.
+
+**Completion notes (2026-08-06):** Added
+`sfm:panel/resize/left|right|above|below` and
+`sfm:panel/duplicate/left|right|above|below`. Resize changes the nearest
+matching-axis split by a named 5% step, searches outward when an inner split
+has no neighbor, stops at a 48-pixel recursive minimum, normalizes shares, and
+preserves stacks/focus. The exact pinned defaults are scoped to `sfm:default`:
+Alt+Shift+arrows resize, physical Alt+Shift+Equal displays as
+`Alt+Shift+Plus` and duplicates right, and Alt+Shift+Minus duplicates below;
+left/above duplication intentionally remain palette/user-bindable without
+built-in defaults. Existing `Ctrl++` scale display remains distinct.
+
+Duplication is host-catalogued by panel identity but recipe data is immutable
+and typed rather than an opaque supplier. Test, size-display, terminal,
+terminal-properties, text-editor/grammar, review-explorer, and default fixture
+or normalized-root file-explorer panels reconstruct fresh mutable state. Rust
+terminal recipes preserve the resolved endpoint while opening a distinct
+session; terminal-properties duplication is available only while its owner
+terminal remains live. Explorer directory drops replace the source recipe so
+future duplicates cannot reopen a stale root. Previous-screen wrappers,
+callback-bound read-only previews, custom-presentation explorers, color/item
+pickers, theme drafts, timeline panels, and any other uncatalogued panel report
+duplication unavailable. Responsive panel groups also report unavailable until
+their dynamic-entry contract is designed. Existing move actions still transfer
+one identity and do not use this reconstruction path.
+
+Focused `SFMWorkspaceLayoutTests`, `PanelActionTests`,
+`OpenPanelActionTests`, `SFMFileExplorerWorkspaceTests`, and
+`SFMKeyBindingStorageTests` passed. The canonical full 1.19.2 Java suite
+passed, with only the two existing Windows symbolic-link fixtures aborted by
+their privilege assumptions. The live `title_screen_workspace` puppet passed
+at `1280x720@auto` (`failed=0`), exercising all four resize defaults, the two
+pinned duplicate defaults, the unbound left/above duplicate actions, one-pixel
+inverse rounding tolerance, distinct panel instances, and the final six-panel
+layout. Evidence is under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_wor-20260806-170614-790/`.
 
 ### [ ] K-5 Actionize SFM-owned controls and enforce keyboard reachability
 

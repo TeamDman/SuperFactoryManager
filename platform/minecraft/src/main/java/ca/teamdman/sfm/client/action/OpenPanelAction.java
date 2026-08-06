@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.action;
 import ca.teamdman.sfm.client.registry.SFMClientScreenTypes;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMClientScreenType;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetadata;
@@ -85,12 +86,24 @@ public final class OpenPanelAction implements SFMClientAction<SFMClientActionCon
                 "Provide a panel scene and any required scene arguments")).create();
     }
 
-    private int open(CommandContext<SFMClientActionSource> commandContext, SFMScreenPanel panel) {
+    private int open(
+            CommandContext<SFMClientActionSource> commandContext,
+            SFMPanelReopenRecipe recipe
+    ) {
         SFMClientActionContext actionContext = commandContext.getSource().context();
-        return openPanel(actionContext, panel, direction);
+        return openPanel(actionContext, recipe.reopen(), direction, recipe);
     }
 
     static int openPanel(SFMClientActionContext actionContext, SFMScreenPanel panel, Direction direction) {
+        return openPanel(actionContext, panel, direction, null);
+    }
+
+    static int openPanel(
+            SFMClientActionContext actionContext,
+            SFMScreenPanel panel,
+            Direction direction,
+            @Nullable SFMPanelReopenRecipe reopenRecipe
+    ) {
         @Nullable Screen origin = actionContext.originatingHost() instanceof Screen screen ? screen : null;
         Minecraft minecraft = Minecraft.getInstance();
         boolean paletteWasOpen = minecraft.screen instanceof SFMCommandPaletteScreen;
@@ -103,8 +116,12 @@ public final class OpenPanelAction implements SFMClientAction<SFMClientActionCon
             SFMWorkspacePanelIntentResult result;
             if (direction == Direction.FOCUSED) {
                 result = capturedPanel == null
-                        ? workspace.openFocused(panel, SFMWorkspacePanelMetadata.ordinary())
-                        : workspace.openIntoSlot(capturedPanel, panel, SFMWorkspacePanelMetadata.ordinary());
+                        ? workspace.openFocused(panel, SFMWorkspacePanelMetadata.ordinary(), reopenRecipe)
+                        : workspace.openIntoSlot(
+                                capturedPanel,
+                                panel,
+                                SFMWorkspacePanelMetadata.ordinary(),
+                                reopenRecipe);
             } else {
                 SFMWorkspaceSide side = switch (direction) {
                     case LEFT -> SFMWorkspaceSide.LEFT;
@@ -114,8 +131,8 @@ public final class OpenPanelAction implements SFMClientAction<SFMClientActionCon
                     case FOCUSED -> throw new AssertionError("Focused panel opening was handled above");
                 };
                 result = capturedPanel == null
-                        ? workspace.openToSide(workspace.focusedPanelId(), side, panel)
-                        : workspace.openToSide(capturedPanel, side, panel);
+                        ? workspace.openToSide(workspace.focusedPanelId(), side, panel, reopenRecipe)
+                        : workspace.openToSide(capturedPanel, side, panel, reopenRecipe);
             }
             if (result != SFMWorkspacePanelIntentResult.APPLIED) return 0;
             if (paletteWasOpen) ((SFMCommandPaletteScreen) minecraft.screen).onClose();
@@ -124,7 +141,11 @@ public final class OpenPanelAction implements SFMClientAction<SFMClientActionCon
 
         if (paletteWasOpen) ((SFMCommandPaletteScreen) minecraft.screen).onClose();
         if (direction == Direction.FOCUSED) {
-            SFMScreenMultiplexer.openFocused(origin, panel, SFMWorkspacePanelMetadata.ordinary());
+            SFMScreenMultiplexer.openFocused(
+                    origin,
+                    panel,
+                    SFMWorkspacePanelMetadata.ordinary(),
+                    reopenRecipe);
         } else {
             SFMWorkspaceSide side = switch (direction) {
                 case LEFT -> SFMWorkspaceSide.LEFT;
@@ -133,7 +154,7 @@ public final class OpenPanelAction implements SFMClientAction<SFMClientActionCon
                 case BELOW -> SFMWorkspaceSide.BELOW;
                 case FOCUSED -> throw new AssertionError("Focused panel opening was handled above");
             };
-            SFMScreenMultiplexer.openToSide(origin, side, panel);
+            SFMScreenMultiplexer.openToSide(origin, side, panel, reopenRecipe);
         }
         return 1;
     }

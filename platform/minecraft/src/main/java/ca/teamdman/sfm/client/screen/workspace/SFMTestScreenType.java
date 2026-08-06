@@ -6,6 +6,8 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Objects;
+
 public final class SFMTestScreenType implements SFMClientScreenType {
     @Override
     public LiteralArgumentBuilder<SFMClientActionSource> createCommandNode(
@@ -17,9 +19,21 @@ public final class SFMTestScreenType implements SFMClientScreenType {
                                 "display_text",
                                 StringArgumentType.greedyString()
                         )
-                        .executes(context -> opener.open(
-                                context,
-                                new SFMTestScreenPanel(StringArgumentType.getString(context, "display_text"))
-                        )));
+                        .executes(context -> {
+                            String displayText = StringArgumentType.getString(context, "display_text");
+                            return opener.open(context, new Recipe(screenTypeId, displayText));
+                        }));
+    }
+
+    public record Recipe(ResourceLocation sceneTypeId, String displayText) implements SFMPanelReopenRecipe {
+        public Recipe {
+            Objects.requireNonNull(sceneTypeId);
+            Objects.requireNonNull(displayText);
+        }
+
+        @Override
+        public SFMScreenPanel reopen() {
+            return new SFMTestScreenPanel(displayText);
+        }
     }
 }

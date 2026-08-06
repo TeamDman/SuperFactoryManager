@@ -293,4 +293,234 @@ class SFMWorkspaceLayoutTests {
         assertNull(layout.metadata(focusedRight).guiScaleOverride());
         assertEquals(focusedRight, layout.focusedPanel());
     }
+
+    @Test
+    void directionalResizeUsesTheDeepestMatchingAxis() {
+        SFMScreenPanel topLeft = new SFMTestScreenPanel("top-left");
+        SFMScreenPanel topRight = new SFMTestScreenPanel("top-right");
+        SFMScreenPanel bottom = new SFMTestScreenPanel("bottom");
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.panel(left),
+                SFMWorkspaceLayout.vertical(
+                        SFMWorkspaceLayout.horizontal(
+                                SFMWorkspaceLayout.panel(topLeft),
+                                SFMWorkspaceLayout.panel(topRight)
+                        ),
+                        SFMWorkspaceLayout.panel(bottom)
+                )
+        ));
+        SFMWorkspacePanelId topLeftId = layout.panels().stream()
+                .filter(entry -> entry.panel() == topLeft).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId topRightId = layout.panels().stream()
+                .filter(entry -> entry.panel() == topRight).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId bottomId = layout.panels().stream()
+                .filter(entry -> entry.panel() == bottom).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId outerLeftId = layout.panels().stream()
+                .filter(entry -> entry.panel() == left).findFirst().orElseThrow().id();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(0, 0, 202, 102);
+
+        assertTrue(layout.resize(topLeftId, SFMWorkspaceSide.RIGHT, viewport, 2, 20));
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> horizontal = layout.bounds(viewport, 2);
+        assertEquals(100, horizontal.get(outerLeftId).width());
+        assertEquals(54, horizontal.get(topLeftId).width());
+        assertEquals(44, horizontal.get(topRightId).width());
+
+        assertTrue(layout.resize(topLeftId, SFMWorkspaceSide.BELOW, viewport, 2, 20));
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> vertical = layout.bounds(viewport, 2);
+        assertEquals(55, vertical.get(topLeftId).height());
+        assertEquals(45, vertical.get(bottomId).height());
+        assertEquals(54, vertical.get(topLeftId).width());
+
+        assertTrue(layout.resize(bottomId, SFMWorkspaceSide.ABOVE, viewport, 2, 20));
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> verticalRestored = layout.bounds(viewport, 2);
+        assertEquals(50, verticalRestored.get(topLeftId).height());
+        assertEquals(50, verticalRestored.get(bottomId).height());
+    }
+
+    @Test
+    void directionalResizeSearchesOutwardButIsUnavailableAtTheOuterEdge() {
+        SFMScreenPanel top = new SFMTestScreenPanel("top");
+        SFMScreenPanel bottom = new SFMTestScreenPanel("bottom");
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.panel(left),
+                SFMWorkspaceLayout.vertical(
+                        SFMWorkspaceLayout.panel(top),
+                        SFMWorkspaceLayout.panel(bottom)
+                )
+        ));
+        SFMWorkspacePanelId leftId = layout.panels().stream()
+                .filter(entry -> entry.panel() == left).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId topId = layout.panels().stream()
+                .filter(entry -> entry.panel() == top).findFirst().orElseThrow().id();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(0, 0, 202, 100);
+
+        assertTrue(layout.resize(topId, SFMWorkspaceSide.LEFT, viewport, 2, 20));
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> resized = layout.bounds(viewport, 2);
+        assertEquals(90, resized.get(leftId).width());
+        assertEquals(110, resized.get(topId).width());
+
+        assertFalse(layout.resize(leftId, SFMWorkspaceSide.LEFT, viewport, 2, 20));
+        assertEquals(resized, layout.bounds(viewport, 2));
+        assertFalse(SFMWorkspaceLayout.single(right).resize(
+                new SFMWorkspacePanelId(0),
+                SFMWorkspaceSide.RIGHT,
+                viewport,
+                2,
+                20
+        ));
+    }
+
+    @Test
+    void repeatedResizeStopsAtMinimumAndNeighborInverseRestoresTheAllocation() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.sideBySide(left, right);
+        SFMWorkspacePanelId leftId = layout.panels().get(0).id();
+        SFMWorkspacePanelId rightId = layout.panels().get(1).id();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(0, 0, 102, 40);
+
+        for (int step = 0; step < 6; step++) {
+            assertTrue(layout.resize(leftId, SFMWorkspaceSide.RIGHT, viewport, 2, 20));
+        }
+        assertFalse(layout.resize(leftId, SFMWorkspaceSide.RIGHT, viewport, 2, 20));
+        assertEquals(80, layout.bounds(viewport, 2).get(leftId).width());
+        assertEquals(20, layout.bounds(viewport, 2).get(rightId).width());
+
+        for (int step = 0; step < 6; step++) {
+            assertTrue(layout.resize(rightId, SFMWorkspaceSide.LEFT, viewport, 2, 20));
+        }
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> restored = layout.bounds(viewport, 2);
+        assertEquals(50, restored.get(leftId).width());
+        assertEquals(50, restored.get(rightId).width());
+    }
+
+    @Test
+    void threeTrackResizeChangesOnlyTheAdjacentPairAndDoesNotDrift() {
+        SFMScreenPanel middle = new SFMTestScreenPanel("middle");
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.panel(left),
+                SFMWorkspaceLayout.panel(middle),
+                SFMWorkspaceLayout.panel(right)
+        ));
+        SFMWorkspacePanelId leftId = layout.panels().stream()
+                .filter(entry -> entry.panel() == left).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId middleId = layout.panels().stream()
+                .filter(entry -> entry.panel() == middle).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId rightId = layout.panels().stream()
+                .filter(entry -> entry.panel() == right).findFirst().orElseThrow().id();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(0, 0, 300, 40);
+
+        assertTrue(layout.resize(middleId, SFMWorkspaceSide.RIGHT, viewport, 0, 20));
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> grown = layout.bounds(viewport, 0);
+        assertEquals(100, grown.get(leftId).width());
+        assertEquals(115, grown.get(middleId).width());
+        assertEquals(85, grown.get(rightId).width());
+
+        assertTrue(layout.resize(rightId, SFMWorkspaceSide.LEFT, viewport, 0, 20));
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> restored = layout.bounds(viewport, 0);
+        assertEquals(100, restored.get(leftId).width());
+        assertEquals(100, restored.get(middleId).width());
+        assertEquals(100, restored.get(rightId).width());
+    }
+
+    @Test
+    void resizingAStackPreservesItsEntriesActiveLeafAndFocus() {
+        SFMScreenPanel hidden = new SFMTestScreenPanel("hidden");
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.stack(
+                        0,
+                        SFMWorkspaceLayout.panel(left),
+                        SFMWorkspaceLayout.panel(hidden)
+                ),
+                SFMWorkspaceLayout.panel(right)
+        ));
+        SFMWorkspacePanelId leftId = layout.panels().stream()
+                .filter(entry -> entry.panel() == left).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId hiddenId = layout.panels().stream()
+                .filter(entry -> entry.panel() == hidden).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId rightId = layout.panels().stream()
+                .filter(entry -> entry.panel() == right).findFirst().orElseThrow().id();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(0, 0, 100, 40);
+
+        assertTrue(layout.resize(leftId, SFMWorkspaceSide.RIGHT, viewport, 0, 20));
+
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> resized = layout.bounds(viewport, 0);
+        assertEquals(55, resized.get(leftId).width());
+        assertEquals(45, resized.get(rightId).width());
+        assertNull(resized.get(hiddenId));
+        assertEquals(List.of(leftId, hiddenId), layout.slotEntries(leftId).stream()
+                .map(SFMWorkspaceLayout.PanelEntry::id).toList());
+        assertEquals(leftId, layout.focusedPanel());
+    }
+
+    @Test
+    void nestedDonorCannotShrinkAnyPanelBelowTheRequestedMinimum() {
+        SFMScreenPanel nestedLeft = new SFMTestScreenPanel("nested-left");
+        SFMScreenPanel nestedRight = new SFMTestScreenPanel("nested-right");
+        SFMScreenPanel nestedBottom = new SFMTestScreenPanel("nested-bottom");
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.panel(left),
+                SFMWorkspaceLayout.vertical(
+                        SFMWorkspaceLayout.horizontal(
+                                SFMWorkspaceLayout.panel(nestedLeft),
+                                SFMWorkspaceLayout.panel(nestedRight)
+                        ),
+                        SFMWorkspaceLayout.panel(nestedBottom)
+                )
+        ));
+        SFMWorkspacePanelId leftId = layout.panels().stream()
+                .filter(entry -> entry.panel() == left).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId nestedLeftId = layout.panels().stream()
+                .filter(entry -> entry.panel() == nestedLeft).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId nestedRightId = layout.panels().stream()
+                .filter(entry -> entry.panel() == nestedRight).findFirst().orElseThrow().id();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(0, 0, 102, 102);
+
+        assertTrue(layout.resize(leftId, SFMWorkspaceSide.RIGHT, viewport, 2, 20));
+        assertTrue(layout.resize(leftId, SFMWorkspaceSide.RIGHT, viewport, 2, 20));
+        assertFalse(layout.resize(leftId, SFMWorkspaceSide.RIGHT, viewport, 2, 20));
+
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> bounded = layout.bounds(viewport, 2);
+        assertEquals(20, bounded.get(nestedLeftId).width());
+        assertEquals(20, bounded.get(nestedRightId).width());
+    }
+
+    @Test
+    void canResizeUsesTheSameComputationWithoutMutatingLayoutState() {
+        SFMScreenPanel hidden = new SFMTestScreenPanel("hidden");
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.group(SFMWorkspaceLayout.horizontal(
+                SFMWorkspaceLayout.stack(
+                        0,
+                        SFMWorkspaceLayout.panel(left),
+                        SFMWorkspaceLayout.panel(hidden)
+                ),
+                SFMWorkspaceLayout.panel(right)
+        ));
+        SFMWorkspacePanelId leftId = layout.panels().stream()
+                .filter(entry -> entry.panel() == left).findFirst().orElseThrow().id();
+        SFMWorkspacePanelId rightId = layout.panels().stream()
+                .filter(entry -> entry.panel() == right).findFirst().orElseThrow().id();
+        SFMScreenPanelBounds viewport = new SFMScreenPanelBounds(0, 0, 100, 40);
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> originalBounds = layout.bounds(viewport, 0);
+        List<SFMWorkspaceLayout.PanelEntry> originalPanels = layout.panels();
+        List<SFMWorkspaceLayout.PanelEntry> originalSlot = layout.slotEntries(leftId);
+        SFMWorkspacePanelId originalFocus = layout.focusedPanel();
+
+        assertTrue(layout.canResize(leftId, SFMWorkspaceSide.RIGHT, viewport, 0, 45));
+        assertEquals(originalBounds, layout.bounds(viewport, 0));
+        assertEquals(originalPanels, layout.panels());
+        assertEquals(originalSlot, layout.slotEntries(leftId));
+        assertEquals(originalFocus, layout.focusedPanel());
+
+        assertTrue(layout.resize(leftId, SFMWorkspaceSide.RIGHT, viewport, 0, 45));
+        assertEquals(55, layout.bounds(viewport, 0).get(leftId).width());
+        assertEquals(45, layout.bounds(viewport, 0).get(rightId).width());
+
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> minimumBound = layout.bounds(viewport, 0);
+        assertFalse(layout.canResize(leftId, SFMWorkspaceSide.RIGHT, viewport, 0, 45));
+        assertFalse(layout.canResize(leftId, SFMWorkspaceSide.LEFT, viewport, 0, 45));
+        assertFalse(layout.canResize(new SFMWorkspacePanelId(999), SFMWorkspaceSide.RIGHT, viewport, 0, 45));
+        assertEquals(minimumBound, layout.bounds(viewport, 0));
+        assertEquals(originalPanels, layout.panels());
+        assertEquals(originalSlot, layout.slotEntries(leftId));
+        assertEquals(originalFocus, layout.focusedPanel());
+    }
 }

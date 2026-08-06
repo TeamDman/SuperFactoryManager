@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.client.screen.review.explorer;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
@@ -11,11 +13,15 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetadata;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceSide;
+import ca.teamdman.sfm.client.registry.SFMTextEditors;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
+import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelOpenContext;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -163,23 +169,34 @@ public final class SFMReviewExplorerPanel implements SFMScreenPanel {
             status = "Preview unavailable: explorer is not hosted";
             return;
         }
-        SFMTextEditorPanel preview = SFMTextEditorPanel.textEditorV3(new SFMTextEditorPanelOpenContext(
-                "sfm:text_editor_v3", leaf.text(), true, "Review · " + leaf.title()
-        ));
+        SFMPanelReopenRecipe reopenRecipe = new SFMTextEditorPanelRecipe(
+                new ResourceLocation(SFM.MOD_ID, "text_editor"),
+                SFMTextEditors.V3.getId().orElseThrow().location(),
+                new SFMTextDocumentSource.Literal(leaf.text()),
+                true,
+                "Review · " + leaf.title()
+        );
+        SFMScreenPanel preview = reopenRecipe.reopen();
         SFMWorkspacePanelMetadata metadata = SFMWorkspacePanelMetadata.explorerPreview(hostContext.panelId().toString());
         SFMWorkspacePanelIntentResult result;
         SFMScreenMultiplexer workspace = hostContext.host() instanceof SFMScreenMultiplexer value ? value : null;
         if (newStack) {
-            result = hostContext.submit(new SFMWorkspacePanelIntent.OpenAsTab(preview, metadata));
+            result = hostContext.submit(new SFMWorkspacePanelIntent.OpenAsTab(
+                    preview,
+                    metadata,
+                    reopenRecipe));
             if (result == SFMWorkspacePanelIntentResult.APPLIED) status = "Opened new panel: " + leaf.title();
             else status = "Open unavailable: " + result;
             return;
         }
         if (workspace != null && previewSlot != null && workspace.containsPanel(previewSlot)) {
-            result = workspace.openIntoSlot(previewSlot, preview, metadata);
+            result = workspace.openIntoSlot(previewSlot, preview, metadata, reopenRecipe);
         } else {
             result = hostContext.submit(new SFMWorkspacePanelIntent.OpenToSide(
-                    SFMWorkspaceSide.RIGHT, preview, metadata));
+                    SFMWorkspaceSide.RIGHT,
+                    preview,
+                    metadata,
+                    reopenRecipe));
             if (result == SFMWorkspacePanelIntentResult.APPLIED && workspace != null) {
                 previewSlot = workspace.focusedPanelId();
             }

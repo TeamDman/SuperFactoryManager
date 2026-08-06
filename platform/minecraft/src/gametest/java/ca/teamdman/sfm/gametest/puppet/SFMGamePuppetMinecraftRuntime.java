@@ -25,6 +25,7 @@ import ca.teamdman.sfm.client.terminal.SFMTerminalTuningOperation;
 import ca.teamdman.sfm.client.terminal.SFMTerminalServiceFactory;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceAxis;
 import ca.teamdman.sfm.client.screen.workspace.timeline.SFMFalsifiedInventoryReplayPanel;
 import ca.teamdman.sfm.client.screen.workspace.timeline.SFMTimelinePanel;
 import ca.teamdman.sfm.client.screen.color.SFMArgbColor;
@@ -379,6 +380,60 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                 && !java.util.Objects.equals(focused.metadata().guiScaleOverride(), expectedFocusedScale)) {
             throw new IllegalStateException("Focused entry scale did not equal " + expectedFocusedScale
                     + ": " + focused.metadata().guiScaleOverride());
+        }
+    }
+
+    @Override
+    public void assertWorkspacePanelExtentComparison(
+            int firstPanelIndex,
+            int secondPanelIndex,
+            SFMWorkspaceAxis axis,
+            int expectedComparison
+    ) {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected an SFM workspace");
+        }
+        if (expectedComparison < -1 || expectedComparison > 1) {
+            throw new IllegalArgumentException("Expected comparison must be -1, 0, or 1");
+        }
+        List<SFMWorkspacePanelId> ids = multiplexer.panelIds();
+        if (firstPanelIndex < 0 || firstPanelIndex >= ids.size()
+                || secondPanelIndex < 0 || secondPanelIndex >= ids.size()) {
+            throw new IllegalStateException("Workspace panel comparison index is outside " + ids.size());
+        }
+        SFMScreenPanelBounds first = multiplexer.panelBounds(ids.get(firstPanelIndex));
+        SFMScreenPanelBounds second = multiplexer.panelBounds(ids.get(secondPanelIndex));
+        if (first == null || second == null) {
+            throw new IllegalStateException("Workspace extent comparison requires two visible panels");
+        }
+        int firstExtent = axis == SFMWorkspaceAxis.HORIZONTAL ? first.width() : first.height();
+        int secondExtent = axis == SFMWorkspaceAxis.HORIZONTAL ? second.width() : second.height();
+        int actual = expectedComparison == 0 && Math.abs(firstExtent - secondExtent) <= 1
+                ? 0
+                : Integer.compare(firstExtent, secondExtent);
+        if (actual != expectedComparison) {
+            throw new IllegalStateException("Expected panel " + firstPanelIndex + " extent " + firstExtent
+                    + " to compare as " + expectedComparison + " with panel " + secondPanelIndex
+                    + " extent " + secondExtent + " on " + axis);
+        }
+    }
+
+    @Override
+    public void assertWorkspacePanelInstancesDistinct(int firstPanelIndex, int secondPanelIndex) {
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
+            throw new IllegalStateException("Expected an SFM workspace");
+        }
+        List<SFMWorkspacePanelId> ids = multiplexer.panelIds();
+        if (firstPanelIndex < 0 || firstPanelIndex >= ids.size()
+                || secondPanelIndex < 0 || secondPanelIndex >= ids.size()) {
+            throw new IllegalStateException("Workspace panel identity index is outside " + ids.size());
+        }
+        if (ids.get(firstPanelIndex).equals(ids.get(secondPanelIndex))) {
+            throw new IllegalStateException("Workspace duplicate reused a panel id");
+        }
+        if (multiplexer.panelInstance(ids.get(firstPanelIndex))
+                == multiplexer.panelInstance(ids.get(secondPanelIndex))) {
+            throw new IllegalStateException("Workspace duplicate reused a mutable panel instance");
         }
     }
 

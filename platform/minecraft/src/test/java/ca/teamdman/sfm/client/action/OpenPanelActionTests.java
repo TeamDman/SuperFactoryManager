@@ -1,8 +1,11 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.client.screen.review.explorer.SFMReviewExplorerPanel;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
 import ca.teamdman.sfm.client.screen.workspace.SFMTestScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMReviewExplorerScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMTextEditorScreenType;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -10,9 +13,13 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OpenPanelActionTests {
@@ -142,6 +149,55 @@ class OpenPanelActionTests {
 
         assertTrue(isExecutable(tree.parse(
                 "sfm action invoke sfm:panel/open sfm:text_editor sfm:text_editor_v3", source)));
+    }
+
+    @Test
+    void typedTestSceneSuppliesAReusableFreshPanelRecipe() throws Exception {
+        AtomicReference<SFMPanelReopenRecipe> captured = new AtomicReference<>();
+        CommandDispatcher<SFMClientActionSource> dispatcher = new CommandDispatcher<>();
+        dispatcher.register(new SFMTestScreenType().createCommandNode(
+                SCREEN_ID,
+                (context, recipe) -> {
+                    captured.set(recipe);
+                    return 1;
+                }));
+        SFMClientActionSource source = new SFMClientActionSource(SFMClientActionContext.create(null, () -> true));
+
+        assertEquals(1, dispatcher.execute("sfm:test_screen duplicated text", source));
+        SFMPanelReopenRecipe recipe = captured.get();
+        var first = (ca.teamdman.sfm.client.screen.workspace.SFMTestScreenPanel) recipe.reopen();
+        var second = (ca.teamdman.sfm.client.screen.workspace.SFMTestScreenPanel) recipe.reopen();
+
+        assertEquals(SCREEN_ID, recipe.sceneTypeId());
+        assertEquals("duplicated text", first.displayText());
+        assertEquals(first.displayText(), second.displayText());
+        assertNotSame(first, second);
+    }
+
+    @Test
+    void reviewRecipeSharesSelectorsButCreatesIndependentNavigationModels() throws Exception {
+        ResourceLocation sceneId = new ResourceLocation("sfm", "explorer/changes");
+        AtomicReference<SFMPanelReopenRecipe> captured = new AtomicReference<>();
+        CommandDispatcher<SFMClientActionSource> dispatcher = new CommandDispatcher<>();
+        dispatcher.register(new SFMReviewExplorerScreenType(
+                SFMReviewExplorerScreenType.Projection.CHANGES).createCommandNode(
+                sceneId,
+                (context, recipe) -> {
+                    captured.set(recipe);
+                    return 1;
+                }));
+        SFMClientActionSource source = new SFMClientActionSource(SFMClientActionContext.create(null, () -> true));
+
+        assertEquals(1, dispatcher.execute("sfm:explorer/changes \"mod 4.34.0\" \"HEAD\"", source));
+        SFMReviewExplorerPanel first = (SFMReviewExplorerPanel) captured.get().reopen();
+        SFMReviewExplorerPanel second = (SFMReviewExplorerPanel) captured.get().reopen();
+        first.model().selectNext();
+
+        assertNotSame(first, second);
+        assertNotSame(first.model(), second.model());
+        assertNotEquals(first.model().selectionIndex(), second.model().selectionIndex());
+        assertNotEquals(first.model().selected().label(), second.model().selected().label());
+        assertTrue(second.model().selected().label().contains("Changes"));
     }
 
     private static boolean isExecutable(ParseResults<SFMClientActionSource> parsed) {

@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.action;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
@@ -36,6 +37,24 @@ final class PanelActionSupport {
         return java.util.Optional.ofNullable(workspace.focusedPanelInstance());
     }
 
+    static SFMClientActionAvailability<CapturedPanel> resolveCapturedPanel(
+            SFMClientActionContext context
+    ) {
+        SFMClientActionAvailability<SFMScreenMultiplexer> workspaceAvailability = resolve(context);
+        if (!workspaceAvailability.isAvailable()) {
+            return SFMClientActionAvailability.unavailable(workspaceAvailability.unavailableReason());
+        }
+        SFMScreenMultiplexer workspace = workspaceAvailability.target();
+        SFMWorkspacePanelId panelId = context.originatingPanelId() == null
+                ? workspace.focusedPanelId()
+                : context.originatingPanelId();
+        if (!workspace.containsPanel(panelId)) {
+            return SFMClientActionAvailability.unavailable(
+                    Component.literal("The originating SFM panel is no longer available"));
+        }
+        return SFMClientActionAvailability.available(new CapturedPanel(workspace, panelId));
+    }
+
     static int closePaletteAfter(int result) {
         Minecraft minecraft = Minecraft.getInstance();
         if (result > 0 && minecraft != null
@@ -43,5 +62,8 @@ final class PanelActionSupport {
             palette.onClose();
         }
         return result;
+    }
+
+    record CapturedPanel(SFMScreenMultiplexer workspace, SFMWorkspacePanelId panelId) {
     }
 }

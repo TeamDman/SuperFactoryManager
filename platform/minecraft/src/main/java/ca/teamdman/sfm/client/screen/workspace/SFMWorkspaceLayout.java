@@ -15,6 +15,8 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class SFMWorkspaceLayout {
     public static final int DEFAULT_MINIMUM_PIXELS = 1;
+    /** Microsoft Terminal-compatible deterministic resize increment. */
+    public static final double DIRECTIONAL_RESIZE_STEP_FRACTION = 0.05;
 
     private Node root;
     private long nextPanelId;
@@ -255,6 +257,65 @@ public final class SFMWorkspaceLayout {
         Configuration configured = configure(root, panelId, share, minimumPixels);
         root = configured.node();
         return configured.changed();
+    }
+
+    /** Returns whether the corresponding resize would change the layout without mutating it. */
+    public boolean canResize(
+            SFMWorkspacePanelId panelId,
+            SFMWorkspaceSide side,
+            SFMScreenPanelBounds viewport,
+            int dividerPixels,
+            int minimumPanelPixels
+    ) {
+        return computeResize(panelId, side, viewport, dividerPixels, minimumPanelPixels).changed();
+    }
+
+    /**
+     * Grows the slot containing {@code panelId} toward {@code side} by one named
+     * resize step. Space comes from the adjacent track at the deepest matching-
+     * axis split. If that split has no neighbor on the requested side, the search
+     * continues toward the root. The nearest eligible split owns the request even
+     * when its neighbor is already at minimum, so a constrained inner split never
+     * unexpectedly resizes an outer split.
+     *
+     * @return {@code true} when the layout changed; {@code false} when the panel,
+     * direction, neighbor, or remaining capacity is unavailable
+     */
+    public boolean resize(
+            SFMWorkspacePanelId panelId,
+            SFMWorkspaceSide side,
+            SFMScreenPanelBounds viewport,
+            int dividerPixels,
+            int minimumPanelPixels
+    ) {
+        Resize resized = computeResize(panelId, side, viewport, dividerPixels, minimumPanelPixels);
+        if (!resized.changed()) return false;
+        root = resized.node();
+        return true;
+    }
+
+    private Resize computeResize(
+            SFMWorkspacePanelId panelId,
+            SFMWorkspaceSide side,
+            SFMScreenPanelBounds viewport,
+            int dividerPixels,
+            int minimumPanelPixels
+    ) {
+        Objects.requireNonNull(panelId);
+        Objects.requireNonNull(side);
+        Objects.requireNonNull(viewport);
+        if (dividerPixels < 0) throw new IllegalArgumentException("Divider width must be non-negative");
+        if (minimumPanelPixels < 0) throw new IllegalArgumentException("Panel minimum must be non-negative");
+        if (root == null || find(root, panelId) == null) return Resize.unmatched(root);
+
+        return resize(
+                root,
+                panelId,
+                side,
+                viewport,
+                dividerPixels,
+                minimumPanelPixels
+        );
     }
 
     public boolean remove(SFMWorkspacePanelId panelId) {
@@ -538,11 +599,182 @@ public final class SFMWorkspaceLayout {
         for (int i = 0; i < tracks.size(); i++) {
             int extra = i == tracks.size() - 1
                     ? remaining - distributed
-                    : (int) Math.floor(remaining * tracks.get(i).share() / shares);
+                    : (int) Math.floor(Math.nextUp(remaining * tracks.get(i).share() / shares));
             answer[i] += extra;
             distributed += extra;
         }
         return answer;
+    }
+
+    private static Resize resize(
+            Node node,
+            SFMWorkspacePanelId panelId,
+            SFMWorkspaceSide side,
+            SFMScreenPanelBounds nodeBounds,
+            int dividerPixels,
+            int minimumPanelPixels
+    ) {
+        if (node instanceof PanelNode) return Resize.unmatched(node);
+        if (node instanceof StackNode stack) {
+            for (int index = 0; index < stack.children().size(); index++) {
+                Node child = stack.children().get(index);
+                if (!contains(child, panelId)) continue;
+                Resize nested = resize(
+                        child,
+                        panelId,
+                        side,
+                        nodeBounds,
+                        dividerPixels,
+                        minimumPanelPixels
+                );
+                if (!nested.changed()) return new Resize(stack, nested.matched(), false);
+                List<Node> children = new ArrayList<>(stack.children());
+                children.set(index, nested.node());
+                return new Resize(new StackNode(children, stack.active()), true, true);
+            }
+            return Resize.unmatched(stack);
+        }
+
+        LinearNode linear = (LinearNode) node;
+        int sourceIndex = -1;
+        for (int index = 0; index < linear.children().size(); index++) {
+            if (contains(linear.children().get(index).node(), panelId)) {
+                sourceIndex = index;
+                break;
+            }
+        }
+        if (sourceIndex < 0) return Resize.unmatched(linear);
+
+        int totalLength = axisLength(nodeBounds, linear.axis());
+        int available = Math.max(0, totalLength - dividerPixels * (linear.children().size() - 1));
+        int[] lengths = allocateTracks(linear.children(), available);
+        Track sourceTrack = linear.children().get(sourceIndex);
+        Resize nested = resize(
+                sourceTrack.node(),
+                panelId,
+                side,
+                trackBounds(nodeBounds, linear.axis(), lengths, sourceIndex, dividerPixels),
+                dividerPixels,
+                minimumPanelPixels
+        );
+        if (nested.matched()) {
+            if (!nested.changed()) return new Resize(linear, true, false);
+            List<Track> children = new ArrayList<>(linear.children());
+            children.set(sourceIndex, sourceTrack.withNode(nested.node()));
+            return new Resize(new LinearNode(linear.axis(), children), true, true);
+        }
+
+        if (linear.axis() != side.axis()) return Resize.unmatched(linear);
+        int neighborIndex = side.before() ? sourceIndex - 1 : sourceIndex + 1;
+        if (neighborIndex < 0 || neighborIndex >= linear.children().size()) {
+            return Resize.unmatched(linear);
+        }
+
+        Track neighbor = linear.children().get(neighborIndex);
+        int neighborMinimum = Math.max(
+                neighbor.minimumPixels(),
+                minimumExtent(neighbor.node(), linear.axis(), dividerPixels, minimumPanelPixels)
+        );
+        int capacity = lengths[neighborIndex] - neighborMinimum;
+        if (capacity <= 0) return new Resize(linear, true, false);
+
+        int namedStep = Math.max(1, (int) Math.round(available * DIRECTIONAL_RESIZE_STEP_FRACTION));
+        int delta = Math.min(namedStep, capacity);
+        lengths[sourceIndex] += delta;
+        lengths[neighborIndex] -= delta;
+        return new Resize(
+                new LinearNode(linear.axis(), normalizedTracksForLengths(linear.children(), lengths, available)),
+                true,
+                true
+        );
+    }
+
+    private static int axisLength(SFMScreenPanelBounds bounds, SFMWorkspaceAxis axis) {
+        return axis == SFMWorkspaceAxis.HORIZONTAL ? bounds.width() : bounds.height();
+    }
+
+    private static SFMScreenPanelBounds trackBounds(
+            SFMScreenPanelBounds bounds,
+            SFMWorkspaceAxis axis,
+            int[] lengths,
+            int trackIndex,
+            int dividerPixels
+    ) {
+        int cursor = axis == SFMWorkspaceAxis.HORIZONTAL ? bounds.x() : bounds.y();
+        for (int index = 0; index < trackIndex; index++) cursor += lengths[index] + dividerPixels;
+        return axis == SFMWorkspaceAxis.HORIZONTAL
+                ? new SFMScreenPanelBounds(cursor, bounds.y(), lengths[trackIndex], bounds.height())
+                : new SFMScreenPanelBounds(bounds.x(), cursor, bounds.width(), lengths[trackIndex]);
+    }
+
+    private static int minimumExtent(
+            Node node,
+            SFMWorkspaceAxis axis,
+            int dividerPixels,
+            int minimumPanelPixels
+    ) {
+        if (node instanceof PanelNode) return minimumPanelPixels;
+        if (node instanceof StackNode stack) {
+            return stack.children().stream()
+                    .mapToInt(child -> minimumExtent(child, axis, dividerPixels, minimumPanelPixels))
+                    .max()
+                    .orElse(minimumPanelPixels);
+        }
+
+        LinearNode linear = (LinearNode) node;
+        List<Integer> childMinimums = linear.children().stream()
+                .map(track -> Math.max(
+                        track.minimumPixels(),
+                        minimumExtent(track.node(), axis, dividerPixels, minimumPanelPixels)
+                ))
+                .toList();
+        if (linear.axis() != axis) return childMinimums.stream().mapToInt(Integer::intValue).max().orElse(0);
+
+        long total = (long) dividerPixels * (linear.children().size() - 1);
+        for (int childMinimum : childMinimums) total += childMinimum;
+        return (int) Math.min(Integer.MAX_VALUE, total);
+    }
+
+    /** Re-encodes exact allocated lengths as normalized flexible shares. */
+    private static List<Track> normalizedTracksForLengths(List<Track> tracks, int[] lengths, int available) {
+        int[] bases = new int[tracks.size()];
+        int minimumTotal = tracks.stream().mapToInt(Track::minimumPixels).sum();
+        int assigned = 0;
+        if (minimumTotal <= available) {
+            for (int index = 0; index < tracks.size(); index++) {
+                bases[index] = tracks.get(index).minimumPixels();
+                assigned += bases[index];
+            }
+        } else if (available >= tracks.size()) {
+            java.util.Arrays.fill(bases, 1);
+            assigned = tracks.size();
+        }
+
+        int flexible = available - assigned;
+        if (flexible <= 0) return tracks;
+        double[] shares = new double[tracks.size()];
+        int lastPositive = -1;
+        for (int index = 0; index < tracks.size(); index++) {
+            int extra = lengths[index] - bases[index];
+            if (extra < 0) throw new IllegalStateException("Requested allocation is below its base");
+            if (extra > 0) lastPositive = index;
+            shares[index] = (double) extra / flexible;
+        }
+        if (lastPositive < 0) throw new IllegalStateException("Allocation has no flexible track");
+
+        double preceding = 0.0;
+        for (int index = 0; index < tracks.size(); index++) {
+            if (index == lastPositive) continue;
+            preceding += shares[index];
+        }
+        shares[lastPositive] = Math.max(0.0, 1.0 - preceding);
+
+        List<Track> answer = new ArrayList<>(tracks.size());
+        for (int index = 0; index < tracks.size(); index++) {
+            Track track = tracks.get(index);
+            answer.add(new Track(track.node(), shares[index], track.minimumPixels()));
+        }
+        return List.copyOf(answer);
     }
 
     private PanelNode find(SFMWorkspacePanelId panelId) {
@@ -960,8 +1192,8 @@ public final class SFMWorkspaceLayout {
     private record Track(Node node, double share, int minimumPixels) {
         private Track {
             Objects.requireNonNull(node);
-            if (!(share > 0.0) || !Double.isFinite(share)) {
-                throw new IllegalArgumentException("Track share must be finite and positive");
+            if (share < 0.0 || !Double.isFinite(share)) {
+                throw new IllegalArgumentException("Track share must be finite and non-negative");
             }
             if (minimumPixels < 0) throw new IllegalArgumentException("Track minimum must be non-negative");
         }
@@ -972,6 +1204,12 @@ public final class SFMWorkspaceLayout {
     }
 
     private record Configuration(Node node, boolean changed) {
+    }
+
+    private record Resize(Node node, boolean matched, boolean changed) {
+        private static Resize unmatched(Node node) {
+            return new Resize(node, false, false);
+        }
     }
 
     private record Rotation(Node node, SFMWorkspacePanelId focused, boolean changed) {

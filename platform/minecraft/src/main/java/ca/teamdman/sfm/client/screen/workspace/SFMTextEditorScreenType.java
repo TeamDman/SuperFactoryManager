@@ -4,7 +4,8 @@ import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
-import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelOpenContext;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
+import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
 import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -24,7 +25,7 @@ public final class SFMTextEditorScreenType implements SFMClientScreenType {
     ) {
         LiteralArgumentBuilder<SFMClientActionSource> node = LiteralArgumentBuilder
                 .<SFMClientActionSource>literal(screenTypeId.toString())
-                .executes(context -> open(context, opener, defaultEditorId()));
+                .executes(context -> open(context, opener, screenTypeId, defaultEditorId()));
         RequiredArgumentBuilder<SFMClientActionSource, String> editorId = RequiredArgumentBuilder
                 // Resource locations contain a namespace colon, which is not
                 // legal in Brigadier's unquoted word/string reader. The scene
@@ -38,7 +39,7 @@ public final class SFMTextEditorScreenType implements SFMClientScreenType {
                             .forEach(suggestions::suggest);
                     return suggestions.buildFuture();
                 })
-                .executes(context -> open(context, opener,
+                .executes(context -> open(context, opener, screenTypeId,
                         new ResourceLocation(StringArgumentType.getString(context, "editor_id"))));
         return node.then(editorId);
     }
@@ -46,15 +47,20 @@ public final class SFMTextEditorScreenType implements SFMClientScreenType {
     private int open(
             CommandContext<SFMClientActionSource> context,
             Opener opener,
+            ResourceLocation screenTypeId,
             ResourceLocation editorId
     ) throws CommandSyntaxException {
         ISFMTextEditorRegistration registration = SFMTextEditors.registry().get(editorId);
         if (registration == null) {
             throw new SimpleCommandExceptionType(Component.literal("Unknown text editor: " + editorId)).create();
         }
-        return opener.open(context, registration.createPanel(new SFMTextEditorPanelOpenContext(
-                editorId.toString(), "", false, "Text Editor v3"
-        )));
+        return opener.open(context, new SFMTextEditorPanelRecipe(
+                screenTypeId,
+                editorId,
+                new SFMTextDocumentSource.Literal(""),
+                false,
+                "Text Editor v3"
+        ));
     }
 
     private ResourceLocation defaultEditorId() {

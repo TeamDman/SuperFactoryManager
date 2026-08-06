@@ -5,15 +5,22 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceLayout;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentDispatcher;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMFileExplorerWorkspaceTests {
+    @TempDir Path temp;
+
     @Test
     void firstOpenSplitsOnceAndSecondOpenReusesSameViewerAndId() {
         SFMFileExplorerSource source = new SFMFileExplorerSource() {
@@ -60,6 +67,38 @@ class SFMFileExplorerWorkspaceTests {
         assertEquals(0, viewer.firstLine());
         assertEquals("two.txt", viewer.path());
         assertEquals("replacement", viewer.text());
+    }
+
+    @Test
+    void typedSourceRecipeSharesOnlyImmutableRootAddressAndRebuildsExplorerState() throws Exception {
+        Path root = Files.createDirectory(temp.resolve("root"));
+        Files.writeString(root.resolve("first.txt"), "first");
+        SFMFileExplorerPanelRecipe recipe = SFMFileExplorerPanelRecipe
+                .from(new SFMPathFileExplorerSource(root))
+                .orElseThrow();
+
+        SFMFileExplorerPanel first = (SFMFileExplorerPanel) recipe.reopen();
+        SFMFileExplorerPanel second = (SFMFileExplorerPanel) recipe.reopen();
+
+        assertNotSame(first, second);
+        assertNotSame(first.model(), second.model());
+        assertNotSame(first.model().source(), second.model().source());
+        assertEquals(root.toAbsolutePath().normalize(),
+                ((SFMPathFileExplorerSource) first.model().source()).root());
+        assertEquals(root.toAbsolutePath().normalize(),
+                ((SFMPathFileExplorerSource) second.model().source()).root());
+    }
+
+    @Test
+    void unsupportedCallbackSourceDoesNotAcquireAnOpaqueRecipe() {
+        SFMFileExplorerSource source = new SFMFileExplorerSource() {
+            @Override public String displayName() { return "callback"; }
+            @Override public SFMFileExplorerSnapshot snapshot() {
+                return SFMFileExplorerSnapshot.ready(List.of());
+            }
+        };
+
+        assertTrue(SFMFileExplorerPanelRecipe.from(source).isEmpty());
     }
 
 }

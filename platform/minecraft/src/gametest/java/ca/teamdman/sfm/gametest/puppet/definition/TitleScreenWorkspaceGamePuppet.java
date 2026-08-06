@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet.definition;
 
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceAxis;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppet;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
 import net.minecraft.ChatFormatting;
@@ -81,6 +82,52 @@ public final class TitleScreenWorkspaceGamePuppet {
         puppet.closeScreenNaturally();
         puppet.waitForScreen(TitleScreen.class);
         puppet.capture("workspace-closed-back", caption("Workspace close restored the originating title screen."));
+
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette(OPEN_COMMAND + "K-4 resize and duplicate source");
+        puppet.waitForScreen(SFMScreenMultiplexer.class);
+        puppet.pressScreenKey(
+                GLFW.GLFW_KEY_LEFT,
+                GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SHIFT);
+        puppet.assertWorkspacePanelExtentComparison(1, 0, SFMWorkspaceAxis.HORIZONTAL, 1);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_1, GLFW.GLFW_MOD_CONTROL);
+        puppet.pressScreenKey(
+                GLFW.GLFW_KEY_RIGHT,
+                GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SHIFT);
+        puppet.assertWorkspacePanelExtentComparison(0, 1, SFMWorkspaceAxis.HORIZONTAL, 0);
+
+        puppet.pressScreenKey(GLFW.GLFW_KEY_2, GLFW.GLFW_MOD_CONTROL);
+        puppet.pressScreenKey(
+                GLFW.GLFW_KEY_MINUS,
+                GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SHIFT);
+        puppet.assertWorkspaceState(3, 3, 1, "K-4 resize and duplicate source", -1);
+        puppet.assertWorkspacePanelInstancesDistinct(1, 2);
+        puppet.pressScreenKey(
+                GLFW.GLFW_KEY_UP,
+                GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SHIFT);
+        puppet.assertWorkspacePanelExtentComparison(2, 1, SFMWorkspaceAxis.VERTICAL, 1);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_2, GLFW.GLFW_MOD_CONTROL);
+        puppet.pressScreenKey(
+                GLFW.GLFW_KEY_DOWN,
+                GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SHIFT);
+        puppet.assertWorkspacePanelExtentComparison(1, 2, SFMWorkspaceAxis.VERTICAL, 0);
+
+        puppet.pressScreenKey(
+                GLFW.GLFW_KEY_EQUAL,
+                GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SHIFT);
+        puppet.assertWorkspaceState(4, 4, 1, "K-4 resize and duplicate source", -1);
+        puppet.assertWorkspacePanelInstancesDistinct(1, 2);
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:panel/duplicate/left");
+        puppet.assertWorkspaceState(5, 5, 1, "K-4 resize and duplicate source", -1);
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:panel/duplicate/above");
+        puppet.assertWorkspaceState(6, 6, 1, "K-4 resize and duplicate source", -1);
+        puppet.capture("workspace-k4-resize-duplicate", caption(
+                "Directional resize and independent recipe-backed duplication work through actions and defaults."
+        ));
+        puppet.closeScreenNaturally();
+        puppet.waitForScreen(TitleScreen.class);
 
         puppet.openCommandPalette();
         puppet.executeCommandPalette(OPEN_COMMAND + "second workspace opening");

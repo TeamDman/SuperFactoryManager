@@ -16,7 +16,10 @@ public final class SFMFileExplorerWorkspace {
     }
 
     public static SFMScreenMultiplexer create(@Nullable Screen previousScreen, SFMFileExplorerSource source) {
-        return create(previousScreen, source, SFMFilePresentationRegistry.createDefault());
+        SFMFileExplorerPanel explorer = createPanel(source, true);
+        return SFMFileExplorerPanelRecipe.from(source)
+                .map(recipe -> SFMScreenMultiplexer.create(previousScreen, explorer, recipe))
+                .orElseGet(() -> SFMScreenMultiplexer.create(previousScreen, explorer));
     }
 
     public static SFMScreenMultiplexer create(
@@ -24,10 +27,26 @@ public final class SFMFileExplorerWorkspace {
             SFMFileExplorerSource source,
             SFMFilePresentationRegistry presentations
     ) {
+        return SFMScreenMultiplexer.create(previousScreen, createPanel(source, presentations, false));
+    }
+
+    static SFMFileExplorerPanel createPanel(SFMFileExplorerSource source, boolean recipeBacked) {
+        return createPanel(source, SFMFilePresentationRegistry.createDefault(), recipeBacked);
+    }
+
+    private static SFMFileExplorerPanel createPanel(
+            SFMFileExplorerSource source,
+            SFMFilePresentationRegistry presentations,
+            boolean recipeBacked
+    ) {
         Controller controller = new Controller();
-        SFMFileExplorerPanel explorer = new SFMFileExplorerPanel(source, controller::open, presentations);
+        SFMFileExplorerPanel explorer = new SFMFileExplorerPanel(
+                source,
+                controller::open,
+                presentations,
+                recipeBacked);
         controller.attachExplorer(explorer);
-        return SFMScreenMultiplexer.create(previousScreen, explorer);
+        return explorer;
     }
 
     static final class Controller {

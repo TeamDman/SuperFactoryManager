@@ -56,7 +56,43 @@ public final class SFMKeyBindingDefaults {
                         "builtin/workspace/scale/clear-keypad",
                         "sfm:panel/scale/clear",
                         "sfm action invoke sfm:panel/scale/clear",
-                        SFMKeyStroke.of(GLFW.GLFW_KEY_KP_0, SFMKeyModifier.CONTROL))
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_KP_0, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/resize/left",
+                        "sfm:panel/resize/left",
+                        "sfm action invoke sfm:panel/resize/left",
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_LEFT,
+                                SFMKeyModifier.ALT, SFMKeyModifier.SHIFT)),
+                binding(
+                        "builtin/workspace/resize/right",
+                        "sfm:panel/resize/right",
+                        "sfm action invoke sfm:panel/resize/right",
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_RIGHT,
+                                SFMKeyModifier.ALT, SFMKeyModifier.SHIFT)),
+                binding(
+                        "builtin/workspace/resize/above",
+                        "sfm:panel/resize/above",
+                        "sfm action invoke sfm:panel/resize/above",
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_UP,
+                                SFMKeyModifier.ALT, SFMKeyModifier.SHIFT)),
+                binding(
+                        "builtin/workspace/resize/below",
+                        "sfm:panel/resize/below",
+                        "sfm action invoke sfm:panel/resize/below",
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_DOWN,
+                                SFMKeyModifier.ALT, SFMKeyModifier.SHIFT)),
+                binding(
+                        "builtin/workspace/duplicate/right",
+                        "sfm:panel/duplicate/right",
+                        "sfm action invoke sfm:panel/duplicate/right",
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_EQUAL,
+                                SFMKeyModifier.ALT, SFMKeyModifier.SHIFT)),
+                binding(
+                        "builtin/workspace/duplicate/below",
+                        "sfm:panel/duplicate/below",
+                        "sfm action invoke sfm:panel/duplicate/below",
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_MINUS,
+                                SFMKeyModifier.ALT, SFMKeyModifier.SHIFT))
         );
     }
 

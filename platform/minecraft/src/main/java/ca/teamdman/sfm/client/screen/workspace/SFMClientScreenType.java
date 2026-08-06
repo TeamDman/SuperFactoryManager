@@ -17,7 +17,7 @@ public interface SFMClientScreenType {
     interface Opener {
         int open(
                 CommandContext<SFMClientActionSource> context,
-                SFMScreenPanel panel
+                SFMPanelReopenRecipe recipe
         ) throws CommandSyntaxException;
     }
 }

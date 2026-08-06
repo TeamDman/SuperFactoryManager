@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceAxis;
 import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMSizeDisplayWorkspace;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
@@ -187,6 +188,23 @@ public final class SFMGamePuppetHelper {
                 expectedFocusedNarration,
                 expectedFocusedScale
         ));
+    }
+
+    public void assertWorkspacePanelExtentComparison(
+            int firstPanelIndex,
+            int secondPanelIndex,
+            SFMWorkspaceAxis axis,
+            int expectedComparison
+    ) {
+        add(new AssertWorkspacePanelExtentPuppetAction(
+                firstPanelIndex,
+                secondPanelIndex,
+                axis,
+                expectedComparison));
+    }
+
+    public void assertWorkspacePanelInstancesDistinct(int firstPanelIndex, int secondPanelIndex) {
+        add(new AssertWorkspacePanelInstancesDistinctPuppetAction(firstPanelIndex, secondPanelIndex));
     }
 
     public void openTerminal() {

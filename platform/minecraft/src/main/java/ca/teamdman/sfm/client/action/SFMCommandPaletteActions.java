@@ -97,6 +97,46 @@ public final class SFMCommandPaletteActions {
             () -> new MovePanelAction(SFMWorkspaceSide.BELOW)
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, DuplicatePanelAction> DUPLICATE_PANEL_LEFT = REGISTERER.register(
+            "panel/duplicate/left",
+            () -> new DuplicatePanelAction(SFMWorkspaceSide.LEFT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, DuplicatePanelAction> DUPLICATE_PANEL_RIGHT = REGISTERER.register(
+            "panel/duplicate/right",
+            () -> new DuplicatePanelAction(SFMWorkspaceSide.RIGHT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, DuplicatePanelAction> DUPLICATE_PANEL_ABOVE = REGISTERER.register(
+            "panel/duplicate/above",
+            () -> new DuplicatePanelAction(SFMWorkspaceSide.ABOVE)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, DuplicatePanelAction> DUPLICATE_PANEL_BELOW = REGISTERER.register(
+            "panel/duplicate/below",
+            () -> new DuplicatePanelAction(SFMWorkspaceSide.BELOW)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, ResizePanelAction> RESIZE_PANEL_LEFT = REGISTERER.register(
+            "panel/resize/left",
+            () -> new ResizePanelAction(SFMWorkspaceSide.LEFT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, ResizePanelAction> RESIZE_PANEL_RIGHT = REGISTERER.register(
+            "panel/resize/right",
+            () -> new ResizePanelAction(SFMWorkspaceSide.RIGHT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, ResizePanelAction> RESIZE_PANEL_ABOVE = REGISTERER.register(
+            "panel/resize/above",
+            () -> new ResizePanelAction(SFMWorkspaceSide.ABOVE)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, ResizePanelAction> RESIZE_PANEL_BELOW = REGISTERER.register(
+            "panel/resize/below",
+            () -> new ResizePanelAction(SFMWorkspaceSide.BELOW)
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, PanelScaleAction> SET_PANEL_SCALE = REGISTERER.register(
             "panel/scale/set",
             () -> new PanelScaleAction(PanelScaleAction.Operation.SET)

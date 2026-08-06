@@ -32,6 +32,11 @@ public final class SFMTerminalServiceFactory {
     /** Creates the Rust scene; unavailable Vox is represented as a disconnected placeholder. */
     public static SFMTerminalService createRust() {
         InetSocketAddress endpoint = configuredEndpoint().orElseThrow();
+        return createRustOrUnavailable(endpoint);
+    }
+
+    /** Recreates the Rust scene against one already-resolved endpoint, including slim fallback. */
+    public static SFMTerminalService createRustOrUnavailable(InetSocketAddress endpoint) {
         return instantiateRust(endpoint).orElseGet(() -> new SFMUnavailableTerminalService(endpoint));
     }
 

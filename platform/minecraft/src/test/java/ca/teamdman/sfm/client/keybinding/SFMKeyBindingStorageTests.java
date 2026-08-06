@@ -234,6 +234,41 @@ class SFMKeyBindingStorageTests {
     }
 
     @Test
+    void microsoftTerminalPanelDefaultsUseExactSixContextualRelationships() {
+        List<SFMKeyBinding> defaults = SFMKeyBindingDefaults.definitions();
+        List<SFMKeyBinding> resize = defaults.stream()
+                .filter(binding -> binding.actionId().startsWith("sfm:panel/resize/"))
+                .toList();
+        List<SFMKeyBinding> duplicate = defaults.stream()
+                .filter(binding -> binding.actionId().startsWith("sfm:panel/duplicate/"))
+                .toList();
+
+        assertEquals(4, resize.size());
+        assertEquals(Set.of(
+                        "sfm:panel/resize/left",
+                        "sfm:panel/resize/right",
+                        "sfm:panel/resize/above",
+                        "sfm:panel/resize/below"),
+                resize.stream().map(SFMKeyBinding::actionId).collect(java.util.stream.Collectors.toSet()));
+        assertTrue(resize.stream().allMatch(binding ->
+                binding.situationId().equals(SFMKeyboardUsageSituations.DEFAULT)
+                        && binding.sequence().strokes().get(0).modifiers().equals(
+                                Set.of(SFMKeyModifier.ALT, SFMKeyModifier.SHIFT))));
+
+        assertEquals(Set.of(
+                        "sfm:panel/duplicate/right",
+                        "sfm:panel/duplicate/below"),
+                duplicate.stream().map(SFMKeyBinding::actionId).collect(java.util.stream.Collectors.toSet()));
+        assertTrue(duplicate.stream().allMatch(binding ->
+                binding.situationId().equals(SFMKeyboardUsageSituations.DEFAULT)));
+        SFMKeyBinding duplicateRight = duplicate.stream()
+                .filter(binding -> binding.actionId().endsWith("/right"))
+                .findFirst().orElseThrow();
+        assertEquals(GLFW.GLFW_KEY_EQUAL, duplicateRight.sequence().strokes().get(0).keyCode());
+        assertEquals("Alt+Shift+Plus", SFMKeyBindingDisplay.format(duplicateRight.sequence()));
+    }
+
+    @Test
     void serializationDoesNotDiscardIdsThatHappenToStartWithPuppet() {
         SFMKeyBinding binding = binding("puppet-user-choice", GLFW.GLFW_KEY_P);
 
