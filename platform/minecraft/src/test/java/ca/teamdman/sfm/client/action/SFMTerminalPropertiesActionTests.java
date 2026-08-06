@@ -106,6 +106,9 @@ class SFMTerminalPropertiesActionTests {
         SFMScreenMultiplexer workspace = headlessWorkspace(layout);
         SFMClientActionSource source = new SFMClientActionSource(
                 SFMClientActionContext.create(workspace, () -> true));
+        SFMWorkspacePanelId unrelatedId = layout.panels().stream()
+                .filter(entry -> entry.panel() == unrelated).findFirst().orElseThrow().id();
+        layout.focus(unrelatedId);
 
         assertEquals(1, tree().execute(
                 "sfm action invoke sfm:terminal/properties/surface/set 800 600", source));

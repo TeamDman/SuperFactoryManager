@@ -3,6 +3,9 @@ package ca.teamdman.sfm.client.terminal;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelActionButton;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelActionExecution;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelWidgetHost;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetrics;
@@ -10,12 +13,17 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import ca.teamdman.sfm.SFM;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.EnumMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /** Diagnostics and direct controls for one exact terminal panel identity. */
 public final class SFMTerminalPropertiesPanel implements SFMScreenPanel {
@@ -23,31 +31,62 @@ public final class SFMTerminalPropertiesPanel implements SFMScreenPanel {
     private static final int TEXT = 0xFFE8F0F2;
     private static final int MUTED = 0xFF8AA0A8;
     private static final int ERROR = 0xFFFF7777;
-    private static final int BUTTON = 0xFF244151;
-    private static final int BUTTON_HOVER = 0xFF315F76;
+    private static final ResourceLocation DEFAULT_USAGE = new ResourceLocation(SFM.MOD_ID, "default");
     private static final int PADDING = 8;
     private final SFMWorkspacePanelId ownerPanelId;
-    private final List<Control> controls = new ArrayList<>();
+    private final SFMPanelWidgetHost widgetHost = new SFMPanelWidgetHost();
+    private final Map<SFMTerminalTuningOperation, SFMPanelActionButton> controls =
+            new EnumMap<>(SFMTerminalTuningOperation.class);
+    private final List<SFMPanelActionButton> orderedControls = new ArrayList<>();
+    private final Map<SFMTerminalTuningOperation, SFMScreenPanelBounds> controlBounds =
+            new EnumMap<>(SFMTerminalTuningOperation.class);
+    private final Consumer<String> actionOverride;
     private SFMWorkspacePanelContext context;
+    private Minecraft minecraft;
     private int scrollOffset;
     private int contentHeight;
     private int viewportHeight;
 
-    private record Control(
-            int left,
-            int top,
-            int right,
-            int bottom,
-            String label,
-            SFMTerminalTuningOperation operation
-    ) {
-        boolean contains(double x, double y) {
-            return x >= left && x < right && y >= top && y < bottom;
-        }
+    public SFMTerminalPropertiesPanel(SFMWorkspacePanelId ownerPanelId) {
+        this(ownerPanelId, null);
     }
 
-    public SFMTerminalPropertiesPanel(SFMWorkspacePanelId ownerPanelId) {
+    SFMTerminalPropertiesPanel(SFMWorkspacePanelId ownerPanelId, Consumer<String> actionOverride) {
         this.ownerPanelId = Objects.requireNonNull(ownerPanelId);
+        this.actionOverride = actionOverride;
+        for (SFMTerminalTuningOperation operation : List.of(
+                SFMTerminalTuningOperation.SURFACE_WIDTH_DECREASE,
+                SFMTerminalTuningOperation.SURFACE_WIDTH_INCREASE,
+                SFMTerminalTuningOperation.SURFACE_HEIGHT_DECREASE,
+                SFMTerminalTuningOperation.SURFACE_HEIGHT_INCREASE,
+                SFMTerminalTuningOperation.SURFACE_AUTO,
+                SFMTerminalTuningOperation.FONT_DECREASE,
+                SFMTerminalTuningOperation.FONT_INCREASE,
+                SFMTerminalTuningOperation.FONT_AUTO,
+                SFMTerminalTuningOperation.COLUMNS_DECREASE,
+                SFMTerminalTuningOperation.COLUMNS_INCREASE,
+                SFMTerminalTuningOperation.ROWS_DECREASE,
+                SFMTerminalTuningOperation.ROWS_INCREASE,
+                SFMTerminalTuningOperation.CELLS_AUTO
+        )) {
+            String draft = actionDraft(operation);
+            SFMPanelActionButton button = new SFMPanelActionButton(
+                    new ResourceLocation(SFM.MOD_ID,
+                            "terminal/properties/" + operation.name().toLowerCase(java.util.Locale.ROOT)),
+                    DEFAULT_USAGE,
+                    Component.literal(operation.name()),
+                    () -> Component.literal(actionTitle(operation)),
+                    () -> draft,
+                    () -> executePanelAction(draft),
+                    (keyCode, scanCode, modifiers) -> false,
+                    focused -> {
+                        if (focused) reveal(operation);
+                    }
+            );
+            controls.put(operation, button);
+            orderedControls.add(button);
+        }
+        widgetHost.setChildren(orderedControls);
     }
 
     public SFMWorkspacePanelId ownerPanelId() {
@@ -60,14 +99,21 @@ public final class SFMTerminalPropertiesPanel implements SFMScreenPanel {
     }
 
     @Override
+    public Optional<SFMPanelWidgetHost> widgetHost() {
+        return Optional.of(widgetHost);
+    }
+
+    @Override
     public void opened(Minecraft minecraft, SFMScreenPanelBounds bounds, SFMWorkspacePanelContext context) {
+        this.minecraft = minecraft;
         this.context = context;
     }
 
     @Override
     public void closed() {
         context = null;
-        controls.clear();
+        minecraft = null;
+        controlBounds.clear();
     }
 
     public Optional<SFMTerminalPanel> ownerTerminal() {
@@ -92,14 +138,7 @@ public final class SFMTerminalPropertiesPanel implements SFMScreenPanel {
     public Optional<SFMScreenPanelBounds> controlBoundsForAutomation(
             SFMTerminalTuningOperation operation
     ) {
-        return controls.stream()
-                .filter(control -> control.operation() == operation)
-                .findFirst()
-                .map(control -> new SFMScreenPanelBounds(
-                        control.left(),
-                        control.top(),
-                        control.right() - control.left(),
-                        control.bottom() - control.top()));
+        return Optional.ofNullable(controlBounds.get(operation));
     }
 
     @Override
@@ -114,7 +153,8 @@ public final class SFMTerminalPropertiesPanel implements SFMScreenPanel {
     ) {
         GuiComponent.fill(poseStack, bounds.x(), bounds.y(),
                 bounds.x() + bounds.width(), bounds.y() + bounds.height(), BACKGROUND);
-        controls.clear();
+        controls.values().forEach(control -> control.visible = false);
+        controlBounds.clear();
         int line = Math.max(10, minecraft.font.lineHeight + 2);
         int x = bounds.x() + PADDING;
         int y = bounds.y() + PADDING - scrollOffset;
@@ -270,12 +310,6 @@ public final class SFMTerminalPropertiesPanel implements SFMScreenPanel {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != 0) return false;
-        for (Control control : List.copyOf(controls)) {
-            if (!control.contains(mouseX, mouseY)) continue;
-            requestTuning(control.operation(), 0, 0);
-            return true;
-        }
         return false;
     }
 
@@ -366,11 +400,79 @@ public final class SFMTerminalPropertiesPanel implements SFMScreenPanel {
             String label,
             SFMTerminalTuningOperation operation
     ) {
-        Control control = new Control(left, top, right, bottom, label, operation);
-        controls.add(control);
-        GuiComponent.fill(poseStack, left, top, right, bottom,
-                control.contains(mouseX, mouseY) ? BUTTON_HOVER : BUTTON);
-        SFMFontUtils.draw(poseStack, minecraft.font, label, left + 4, top + 2, TEXT, false);
+        SFMPanelActionButton control = controls.get(operation);
+        if (control == null) throw new IllegalStateException("Missing terminal tuning control " + operation);
+        SFMScreenPanelBounds buttonBounds = new SFMScreenPanelBounds(
+                left,
+                top,
+                Math.max(1, right - left),
+                Math.max(1, bottom - top));
+        control.setMessage(Component.literal(label));
+        control.setPanelBounds(buttonBounds);
+        control.visible = true;
+        control.active = ownerTerminal().isPresent();
+        controlBounds.put(operation, buttonBounds);
+    }
+
+    private void executePanelAction(String draft) {
+        if (actionOverride != null) {
+            actionOverride.accept(draft);
+            return;
+        }
+        if (context == null || minecraft == null) return;
+        SFMPanelActionExecution.execute(context, minecraft, draft, ignored -> { });
+    }
+
+    private void reveal(SFMTerminalTuningOperation operation) {
+        SFMScreenPanelBounds control = controlBounds.get(operation);
+        if (control == null || viewportHeight <= 0) return;
+        if (control.y() < PADDING) {
+            scrollOffset = Math.max(0, scrollOffset - (PADDING - control.y()));
+        } else if (control.y() + control.height() > viewportHeight - PADDING) {
+            int maximum = Math.max(0, contentHeight - viewportHeight);
+            scrollOffset = Math.min(maximum,
+                    scrollOffset + control.y() + control.height() - (viewportHeight - PADDING));
+        }
+    }
+
+    static String actionDraft(SFMTerminalTuningOperation operation) {
+        return "sfm action invoke sfm:terminal/properties/" + switch (operation) {
+            case SURFACE_AUTO -> "surface/auto";
+            case SURFACE_WIDTH_INCREASE -> "surface/width/increase";
+            case SURFACE_WIDTH_DECREASE -> "surface/width/decrease";
+            case SURFACE_HEIGHT_INCREASE -> "surface/height/increase";
+            case SURFACE_HEIGHT_DECREASE -> "surface/height/decrease";
+            case FONT_AUTO -> "font/auto";
+            case FONT_INCREASE -> "font/increase";
+            case FONT_DECREASE -> "font/decrease";
+            case CELLS_AUTO -> "cells/auto";
+            case COLUMNS_INCREASE -> "cells/columns/increase";
+            case COLUMNS_DECREASE -> "cells/columns/decrease";
+            case ROWS_INCREASE -> "cells/rows/increase";
+            case ROWS_DECREASE -> "cells/rows/decrease";
+            case SURFACE_SET, FONT_SET, CELLS_SET -> throw new IllegalArgumentException(
+                    "Set operations require parameters and are not direct property buttons: " + operation);
+        };
+    }
+
+    private static String actionTitle(SFMTerminalTuningOperation operation) {
+        return switch (operation) {
+            case SURFACE_AUTO -> "Use allocated terminal surface";
+            case SURFACE_WIDTH_INCREASE -> "Increase terminal surface width";
+            case SURFACE_WIDTH_DECREASE -> "Decrease terminal surface width";
+            case SURFACE_HEIGHT_INCREASE -> "Increase terminal surface height";
+            case SURFACE_HEIGHT_DECREASE -> "Decrease terminal surface height";
+            case FONT_AUTO -> "Fit terminal font automatically";
+            case FONT_INCREASE -> "Increase terminal font pixels";
+            case FONT_DECREASE -> "Decrease terminal font pixels";
+            case CELLS_AUTO -> "Use allocated terminal cell grid";
+            case COLUMNS_INCREASE -> "Increase terminal columns";
+            case COLUMNS_DECREASE -> "Decrease terminal columns";
+            case ROWS_INCREASE -> "Increase terminal rows";
+            case ROWS_DECREASE -> "Decrease terminal rows";
+            case SURFACE_SET, FONT_SET, CELLS_SET -> throw new IllegalArgumentException(
+                    "Set operations require parameters and are not direct property buttons: " + operation);
+        };
     }
 
     private static int drawLine(

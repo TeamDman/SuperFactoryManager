@@ -4,6 +4,8 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
+import java.util.Optional;
+
 
 /**
  * Content hosted by {@link SFMScreenMultiplexer}.
@@ -18,6 +20,26 @@ public interface SFMScreenPanel {
 
     default Component narration() {
         return title();
+    }
+
+    /**
+     * Optional Minecraft-like child surface hosted by this panel.
+     *
+     * <p>The workspace remains the only real {@code Screen}; this host gives
+     * embedded controls one ordered focus, rendering, narration, and event
+     * path without pretending that each panel owns a full screen.</p>
+     */
+    default Optional<SFMPanelWidgetHost> widgetHost() {
+        return Optional.empty();
+    }
+
+    /**
+     * True when every panel-level input path has been represented as a child.
+     * This prevents an unhandled child event from being retried against legacy
+     * callbacks and delivered twice.
+     */
+    default boolean widgetHostOwnsInput() {
+        return false;
     }
 
     default void opened(

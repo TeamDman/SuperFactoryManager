@@ -404,7 +404,7 @@ Safe parallel work after contract review:
 
 ## Phase K — Keyboard, widgets, actions, and panel operations
 
-### [ ] K-1 Introduce the panel child-widget and focus host
+### [x] K-1 Introduce the panel child-widget and focus host
 
 **Work:** Add a reusable child host for `SFMScreenPanel` that adapts real or
 behaviorally equivalent Minecraft widgets into panel-local coordinates while
@@ -428,7 +428,16 @@ sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
 controls through one multiplexer path, and no terminal-specific code is needed
 to traverse a generic button/select control.
 
-### [ ] K-2 Migrate terminal and terminal-properties controls to action-backed widgets
+**Completion evidence — 2026-08-05:** Added `SFMPanelWidget`,
+`SFMPanelWidgetHost`, and the Vanilla-button action adapter behind
+`SFMScreenPanel`, with one multiplexer path for transformed pointer input,
+panel-scale drag deltas, Tab/Shift+Tab, key/char input, active-panel focus,
+lifecycle, and full child narration. `SFMPanelWidgetHostTests` passed via the
+canonical SFM CLI, including forward/reverse traversal, hidden/disabled
+children, click/activation, scaling, restoration, inactive focus, and wheel
+fallback. Canonical 1.19.2 compilation passed.
+
+### [x] K-2 Migrate terminal and terminal-properties controls to action-backed widgets
 
 **Work:** Convert Start/Retry, Presentation, renderer/transport choices, and
 every terminal-properties plus/minus/auto control into K-1 children. Assign
@@ -452,6 +461,22 @@ sfm-propagate-changes.exe puppet run title_screen_rust_terminal_presentation --b
 **Completion criteria:** The entire terminal control surface is discoverable and
 operable without a mouse, uses visible/narrated Minecraft-like focus, and has no
 second direct mutation path outside registered actions.
+
+**Completion evidence — 2026-08-05:** Start/Retry, Presentation and every
+renderer/transport choice, the terminal viewport, and all thirteen
+terminal-properties plus/minus/auto controls are stable panel children with
+usage-situation metadata, narration, and canonical action drafts. Registered
+actions retain the originating panel after focus changes. Focused
+`SFMTerminalPanelInteractionTests`, `SFMTerminalPropertiesPanelTests`,
+`SFMTerminalPresentationActionTests`, and `SFMTerminalPropertiesActionTests`
+all passed. The canonical `title_screen_rust_terminal_presentation` puppet
+passed at `1280x720@auto` in 348.5 seconds and exercised disconnected Space
+activation, the live Rust connection, former-button routing through the
+multiplexer, keyboard and pointer properties controls, presentation changes,
+selection/clipboard, and retained PTY focus gestures. Browsable evidence is in
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_rus-20260805-224150-156/`.
+The complete canonical 1.19.2 test suite also passed; two Windows symlink
+fixtures were explicitly aborted by their existing privilege assumptions.
 
 ### [ ] K-3 Register keyboard-usage situations and migrate binding storage/defaults
 
@@ -678,14 +703,12 @@ candidate release; no propagation or publication occurs without a later goal.
 
 ## Next recommended vertical slice
 
-The first implementation goal should complete **K-1 and K-2**. Its observable
-endpoint is narrow but end-to-end: Start/Retry, Presentation, terminal viewport,
-and all terminal-properties controls share one Minecraft-like focus tree; Tab
-and Shift+Tab work; click selects the same focus owner; Enter/Space invokes the
-same registered terminal/server/presentation/tuning actions; and triple-Tab and
-triple-Escape retain their terminal semantics. K-3 is the next complete slice;
-it introduces contextual matching/default persistence and makes F3 a
-discoverable `sfm:panel/diagnostics/open` action.
+K-1 and K-2 are complete. The next implementation goal should complete **K-3**:
+introduce contextual matching and default persistence, expose the focused
+widget's stable keyboard-usage situation to binding resolution, and make F3 and
+panel close discoverable contextual actions without stealing unmatched terminal
+input. K-4 remains a separate follow-on because its duplicate-state semantics
+and panel topology changes deserve an independent proof boundary.
 
 In parallel, an independent worker may implement the pure situation/storage
 model from K-3 without integrating global event routing, while another may

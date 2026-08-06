@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.terminal.SFMTerminalServiceFactory;
+import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -35,6 +37,20 @@ public final class StartRustServerAction implements SFMClientAction<SFMClientAct
     public int execute(SFMClientActionContext target, CommandContext<SFMClientActionSource> context)
             throws CommandSyntaxException {
         String raw = ConnectRustServerAction.optionalAddress(context);
+        SFMClientActionContext actionContext = context.getSource().context();
+        if (raw == null
+                && actionContext.originatingHost() instanceof SFMScreenMultiplexer workspace
+                && actionContext.originatingPanelId() != null) {
+            var panel = workspace.panel(actionContext.originatingPanelId());
+            if (panel.isPresent() && panel.get() instanceof SFMTerminalPanel terminal
+                    && terminal.isRustBacked()) {
+                boolean started = terminal.requestStartRustServer();
+                context.getSource().sendFeedback(Component.literal(started
+                        ? "Starting Rust terminal server"
+                        : "Rust terminal server start is already in progress"));
+                return 1;
+            }
+        }
         try {
             InetSocketAddress endpoint = SFMTerminalServiceFactory.startRustServer(raw);
             context.getSource().sendFeedback(Component.literal(

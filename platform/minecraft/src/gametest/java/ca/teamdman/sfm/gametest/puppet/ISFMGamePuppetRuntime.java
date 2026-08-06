@@ -60,6 +60,9 @@ public interface ISFMGamePuppetRuntime {
     /** Stops and restarts only the Rust server process owned by SFM, then reconnects the panel. */
     void restartRustTerminalServer();
 
+    /** Activates the disconnected panel's focused Start/Retry widget with Space. */
+    void startRustTerminalThroughUi();
+
     void typeTerminalText(String text);
 
     /** Places deterministic text in the clipboard and exercises the terminal Ctrl+V path. */

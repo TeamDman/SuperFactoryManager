@@ -41,10 +41,9 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         puppet.waitForOverlayToNotBePresent(LoadingOverlay.class);
         puppet.waitTicks(20);
         puppet.openCommandPalette();
-        puppet.executeCommandPalette("sfm action invoke sfm:terminal/server/start");
-        puppet.waitTicks(20);
-        puppet.openCommandPalette();
         puppet.executeCommandPalette("sfm action invoke sfm:panel/open sfm:terminal");
+        puppet.waitTicks(20);
+        puppet.startRustTerminalThroughUi();
         puppet.waitTicks(80);
         puppet.assertTerminalPresentationEvidence(
                 "initial-default", CPU, FULL_PNG, null,
@@ -268,6 +267,23 @@ public final class TitleScreenRustTerminalPresentationGamePuppet {
         puppet.waitTicks(30);
         puppet.assertTerminalPropertiesEvidence(
                 "properties-open-keyboard", GPU, DIRTY_RGBA,
+                "auto", "auto", "auto", null, 0, null, false);
+
+        // Traverse and activate every tuning widget through the shared child
+        // host. Each +/- pair is followed by its Auto control so this keyboard
+        // proof leaves the observable tuning state at stable defaults.
+        for (int index = 0; index < 13; index++) {
+            puppet.pressScreenKey(GLFW.GLFW_KEY_TAB, 0);
+            puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, 0);
+            puppet.waitTicks(10);
+        }
+        puppet.pressScreenKey(GLFW.GLFW_KEY_TAB, GLFW.GLFW_MOD_SHIFT);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_SPACE, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_TAB, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_SPACE, 0);
+        puppet.waitTicks(30);
+        puppet.assertTerminalPropertiesEvidence(
+                "properties-buttons-keyboard-auto", GPU, DIRTY_RGBA,
                 "auto", "auto", "auto", null, 0, null, false);
 
         // The visible +/-/auto controls use the same typed path as palette

@@ -36,7 +36,9 @@ public final class SetTerminalTransportAction implements SFMClientAction<SFMScre
             SFMClientActionAvailability<SFMScreenMultiplexer> availability =
                     PanelActionSupport.resolve(context.getSource().context());
             if (availability.isAvailable()
-                    && availability.target().focusedPanelInstance() instanceof SFMTerminalPanel terminal) {
+                    && PanelActionSupport.capturedPanel(
+                            availability.target(), context.getSource().context())
+                    .orElse(null) instanceof SFMTerminalPanel terminal) {
                 terminal.transportOptions().forEach(option -> {
                     if (option.supported()) {
                         builder.suggest(option.id().wireId());
@@ -54,7 +56,8 @@ public final class SetTerminalTransportAction implements SFMClientAction<SFMScre
     @Override
     public int execute(SFMScreenMultiplexer workspace, CommandContext<SFMClientActionSource> context)
             throws CommandSyntaxException {
-        if (!(workspace.focusedPanelInstance() instanceof SFMTerminalPanel terminal)) {
+        if (!(PanelActionSupport.capturedPanel(workspace, context.getSource().context())
+                .orElse(null) instanceof SFMTerminalPanel terminal)) {
             throw new SimpleCommandExceptionType(Component.literal(
                     "Focused panel is not a Rust terminal")).create();
         }

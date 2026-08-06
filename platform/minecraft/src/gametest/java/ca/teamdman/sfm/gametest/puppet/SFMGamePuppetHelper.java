@@ -210,6 +210,10 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    public void startRustTerminalThroughUi() {
+        add(new StartRustTerminalThroughUiPuppetAction());
+    }
+
     /** Delivers printable characters through the real terminal charTyped callback. */
     public void typeTerminalText(String text) {
         add(new TypeTerminalTextPuppetAction(Objects.requireNonNull(text, "text")));

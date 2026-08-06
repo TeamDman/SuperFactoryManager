@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
@@ -23,6 +24,16 @@ final class PanelActionSupport {
                     Component.literal("The originating SFM panel is no longer available"));
         }
         return SFMClientActionAvailability.available(workspace);
+    }
+
+    static java.util.Optional<SFMScreenPanel> capturedPanel(
+            SFMScreenMultiplexer workspace,
+            SFMClientActionContext context
+    ) {
+        if (context.originatingPanelId() != null) {
+            return workspace.panel(context.originatingPanelId());
+        }
+        return java.util.Optional.ofNullable(workspace.focusedPanelInstance());
     }
 
     static int closePaletteAfter(int result) {

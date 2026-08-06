@@ -36,7 +36,9 @@ public final class SetTerminalRendererAction implements SFMClientAction<SFMScree
             SFMClientActionAvailability<SFMScreenMultiplexer> availability =
                     PanelActionSupport.resolve(context.getSource().context());
             if (availability.isAvailable()
-                    && availability.target().focusedPanelInstance() instanceof SFMTerminalPanel terminal) {
+                    && PanelActionSupport.capturedPanel(
+                            availability.target(), context.getSource().context())
+                    .orElse(null) instanceof SFMTerminalPanel terminal) {
                 terminal.rendererOptions().forEach(option -> {
                     if (option.supported()) {
                         builder.suggest(option.id().wireId());
@@ -56,7 +58,8 @@ public final class SetTerminalRendererAction implements SFMClientAction<SFMScree
             throws CommandSyntaxException {
         // Capture the exact visible panel before its service queues work. A
         // later focus change cannot redirect this request to another panel.
-        if (!(workspace.focusedPanelInstance() instanceof SFMTerminalPanel terminal)) {
+        if (!(PanelActionSupport.capturedPanel(workspace, context.getSource().context())
+                .orElse(null) instanceof SFMTerminalPanel terminal)) {
             throw new SimpleCommandExceptionType(Component.literal(
                     "Focused panel is not a Rust terminal")).create();
         }

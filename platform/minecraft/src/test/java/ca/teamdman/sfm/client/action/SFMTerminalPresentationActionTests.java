@@ -49,6 +49,8 @@ class SFMTerminalPresentationActionTests {
         SFMScreenMultiplexer workspace = headlessWorkspace(SFMWorkspaceLayout.single(panel));
         SFMClientActionCommandTree tree = actionTree();
         SFMClientActionSource source = source(workspace);
+        int rendererReadsBefore = service.rendererOptionReads.get();
+        int transportReadsBefore = service.transportOptionReads.get();
 
         List<String> rendererSuggestions = assertTimeoutPreemptively(
                 Duration.ofMillis(250),
@@ -71,8 +73,8 @@ class SFMTerminalPresentationActionTests {
 
         assertEquals(List.of("rust-cpu-fontdue", "rust-gpu-slug"), rendererSuggestions);
         assertEquals(List.of("dirty-raw-rgba", "full-png", "full-raw-rgba"), transportSuggestions);
-        assertEquals(1, service.rendererOptionReads.get());
-        assertEquals(1, service.transportOptionReads.get());
+        assertEquals(rendererReadsBefore + 1, service.rendererOptionReads.get());
+        assertEquals(transportReadsBefore + 1, service.transportOptionReads.get());
         assertEquals(0, service.connectRequests.get(),
                 "candidate enumeration must not initiate remote discovery or connection work");
         assertEquals(0, service.presentationRequests.get());
@@ -89,6 +91,8 @@ class SFMTerminalPresentationActionTests {
         SFMScreenMultiplexer workspace = headlessWorkspace(SFMWorkspaceLayout.single(panel));
         SFMClientActionCommandTree tree = actionTree();
         SFMClientActionSource source = source(workspace);
+        int rendererReadsBefore = service.rendererOptionReads.get();
+        int transportReadsBefore = service.transportOptionReads.get();
 
         var rendererSuggestions = assertTimeoutPreemptively(
                 Duration.ofMillis(250),
@@ -114,8 +118,8 @@ class SFMTerminalPresentationActionTests {
                 suggestion.getTooltip() != null
                         && suggestion.getTooltip().getString().equals(
                         "Vulkan unavailable: no compatible compute device")));
-        assertEquals(1, service.rendererOptionReads.get());
-        assertEquals(1, service.transportOptionReads.get());
+        assertEquals(rendererReadsBefore + 1, service.rendererOptionReads.get());
+        assertEquals(transportReadsBefore + 1, service.transportOptionReads.get());
         assertEquals(0, service.connectRequests.get());
         assertEquals(0, service.presentationRequests.get());
     }
@@ -154,17 +158,15 @@ class SFMTerminalPresentationActionTests {
                 .requirement()
                 .resolve(context)
                 .target());
-        assertTrue(((SFMTerminalPanel) workspace.focusedPanelInstance())
-                .requestTransport("dirty-raw-rgba")
-                .accepted());
+        assertEquals(1, actionTree().execute(
+                "sfm action invoke sfm:terminal/transport/set dirty-raw-rgba",
+                new SFMClientActionSource(context)));
         assertEquals(new SFMTerminalPresentationSelection(
-                        SFMTerminalRendererId.RUST_CPU_FONTDUE,
+                        SFMTerminalRendererId.RUST_GPU_SLUG,
                         SFMTerminalTransportId.DIRTY_RAW_RGBA),
-                rightService.requested);
-        assertEquals(SFMTerminalRendererId.RUST_GPU_SLUG,
-                leftService.requested.rendererId());
-        assertEquals(SFMTerminalTransportId.FULL_PNG,
-                leftService.requested.transportId());
+                leftService.requested,
+                "the captured action context must not retarget after workspace focus changes");
+        assertEquals(SFMTerminalPresentationSelection.DEFAULT, rightService.requested);
 
         assertTrue(left.requestTransport("full-raw-rgba").accepted());
         assertEquals(new SFMTerminalPresentationSelection(
@@ -182,7 +184,7 @@ class SFMTerminalPresentationActionTests {
         assertEquals(3, left.transportOptions().size());
         assertEquals(new SFMTerminalPresentationSelection(
                         SFMTerminalRendererId.RUST_CPU_FONTDUE,
-                        SFMTerminalTransportId.DIRTY_RAW_RGBA),
+                        SFMTerminalTransportId.FULL_PNG),
                 rightService.requested,
                 "left-panel selector use must not mutate the right panel");
     }

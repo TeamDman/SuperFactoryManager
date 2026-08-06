@@ -5,6 +5,8 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetrics;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelWidgetHost;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import org.lwjgl.glfw.GLFW;
 
@@ -27,15 +29,16 @@ class SFMTerminalPanelInteractionTests {
         SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
         panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
         SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
 
-        assertTrue(panel.mouseClicked(700, 10, 0), "presentation button should open the menu");
+        assertTrue(widgets.mouseClicked(700, 10, 0), "presentation button should open the menu");
         service.clearInput();
 
-        assertTrue(panel.mouseClicked(viewport.left() + 2, viewport.top() + 2, 0));
+        assertTrue(widgets.mouseClicked(viewport.left() + 2, viewport.top() + 2, 0));
         assertEquals(List.of(new MouseInput(0, 0, 1, 0, true)), service.mouseInputs,
                 "the viewport click must be forwarded after leaving the Java presentation control");
 
-        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
         assertEquals(List.of(new KeyInput(GLFW.GLFW_KEY_ENTER, true)), service.keyInputs,
                 "keyboard input after a viewport click must return to the Rust terminal");
     }
@@ -61,6 +64,29 @@ class SFMTerminalPanelInteractionTests {
         assertEquals(List.of(new MouseInput(0, 1, 1, GLFW.GLFW_MOUSE_BUTTON_LEFT, true)),
                 service.mouseInputs,
                 "old Start/Retry coordinates must become ordinary terminal input");
+    }
+
+    @Test
+    void liveWidgetHostCannotRouteFormerStartButtonPixelsToAHiddenButton() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.connected = false;
+        SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> {
+            throw new AssertionError("hidden Start/Retry widget launched the Rust server");
+        });
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        SFMScreenPanelBounds oldButton = new SFMScreenPanelBounds(12, 70, 180, 22);
+        panel.recordDisconnectedStartButtonPresentation(oldButton);
+
+        service.connected = true;
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        assertTrue(panel.widgetHost().orElseThrow().mouseClicked(
+                oldButton.x() + 2,
+                oldButton.y() + 2,
+                GLFW.GLFW_MOUSE_BUTTON_LEFT));
+
+        assertFalse(panel.startRequestedForAutomation());
+        assertEquals(1, service.mouseInputs.size());
     }
 
     @Test
@@ -91,15 +117,15 @@ class SFMTerminalPanelInteractionTests {
         SFMTerminalPanel panel = new SFMTerminalPanel(service);
         SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
         panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
 
-        assertTrue(panel.mouseClicked(700, 10, 0), "presentation button should open the menu");
+        assertTrue(widgets.mouseClicked(700, 10, 0), "presentation button should open the menu");
         service.clearInput();
 
-        assertTrue(panel.mouseClicked(700, 22, 0), "renderer menu header should remain a Java control");
-        assertFalse(panel.mouseClicked(8, 20, 0), "title chrome is outside the terminal viewport");
-        assertTrue(service.mouseInputs.isEmpty(), "menu headers and panel chrome must not reach the PTY");
+        assertFalse(widgets.mouseClicked(8, 20, 0), "title chrome is outside the terminal viewport");
+        assertTrue(service.mouseInputs.isEmpty(), "panel chrome must not reach the PTY");
 
-        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
         assertTrue(service.keyInputs.isEmpty(),
                 "non-viewport clicks must not silently transfer presentation-control focus");
     }
@@ -117,6 +143,109 @@ class SFMTerminalPanelInteractionTests {
                 new KeyInput(GLFW.GLFW_KEY_ESCAPE, true),
                 new KeyInput(GLFW.GLFW_KEY_ESCAPE, true)
         ), service.keyInputs);
+    }
+
+    @Test
+    void tripleTabTransfersViewportFocusToTheMinecraftPresentationControl() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
+
+        assertEquals(new ResourceLocation("sfm", "terminal/viewport"),
+                widgets.focusedElementId().orElseThrow());
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
+
+        assertEquals(new ResourceLocation("sfm", "terminal/presentation/select"),
+                widgets.focusedElementId().orElseThrow());
+        assertEquals(List.of(
+                new KeyInput(GLFW.GLFW_KEY_TAB, true),
+                new KeyInput(GLFW.GLFW_KEY_TAB, true)
+        ), service.keyInputs);
+    }
+
+    @Test
+    void presentationKeyboardSelectionInvokesTheRegisteredActionDraft() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.rendererOptions = List.of(
+                new SFMTerminalRendererOption(
+                        SFMTerminalRendererId.RUST_CPU_FONTDUE,
+                        SFMTerminalRasterizationOwner.SERVER,
+                        true,
+                        ""),
+                new SFMTerminalRendererOption(
+                        SFMTerminalRendererId.RUST_GPU_SLUG,
+                        SFMTerminalRasterizationOwner.SERVER,
+                        true,
+                        ""));
+        List<String> actions = new ArrayList<>();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> { }, draft -> {
+            actions.add(draft);
+            return true;
+        });
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
+        assertTrue(widgets.focus(new ResourceLocation("sfm", "terminal/presentation/select")));
+
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_DOWN, 0, 0));
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+
+        assertEquals(List.of(
+                "sfm action invoke sfm:terminal/renderer/set rust-gpu-slug"), actions);
+        assertTrue(service.keyInputs.isEmpty(), "selector keys must not leak into the PTY");
+    }
+
+    @Test
+    void tabEntersOpenPresentationChoicesAndEscapeReturnsToSelector() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.rendererOptions = List.of(
+                new SFMTerminalRendererOption(
+                        SFMTerminalRendererId.RUST_CPU_FONTDUE,
+                        SFMTerminalRasterizationOwner.SERVER,
+                        true,
+                        ""),
+                new SFMTerminalRendererOption(
+                        SFMTerminalRendererId.RUST_GPU_SLUG,
+                        SFMTerminalRasterizationOwner.SERVER,
+                        true,
+                        ""));
+        SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> { }, draft -> true);
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
+        ResourceLocation selector = new ResourceLocation("sfm", "terminal/presentation/select");
+        assertTrue(widgets.focus(selector));
+
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
+        assertEquals(new ResourceLocation("sfm", "terminal/presentation/renderer/rust-cpu-fontdue"),
+                widgets.focusedElementId().orElseThrow());
+
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0));
+        assertEquals(selector, widgets.focusedElementId().orElseThrow());
+        assertTrue(service.keyInputs.isEmpty(), "choice navigation must remain Java-local");
+    }
+
+    @Test
+    void disconnectedStartControlInvokesTheRegisteredServerActionDraft() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.connected = false;
+        List<String> actions = new ArrayList<>();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> { }, draft -> {
+            actions.add(draft);
+            return true;
+        });
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
+        ResourceLocation start = new ResourceLocation("sfm", "terminal/server/start_control");
+
+        assertTrue(widgets.focus(start));
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_SPACE, 0, 0));
+
+        assertEquals(start, widgets.focusedElementId().orElseThrow());
+        assertEquals(List.of("sfm action invoke sfm:terminal/server/start"), actions);
+        assertTrue(service.keyInputs.isEmpty());
     }
 
     @Test
@@ -465,6 +594,8 @@ class SFMTerminalPanelInteractionTests {
                 SFMTerminalPasteResult.Disposition.PASTED, "", "");
         private boolean connected = true;
         private long interactionEpoch;
+        private List<SFMTerminalRendererOption> rendererOptions = List.of();
+        private List<SFMTerminalTransportOption> transportOptions = List.of();
 
         @Override
         public SFMTerminalSession openSession() {
@@ -599,6 +730,16 @@ class SFMTerminalPanelInteractionTests {
         @Override
         public Optional<SFMTerminalFrame> latestFrame() {
             return Optional.empty();
+        }
+
+        @Override
+        public List<SFMTerminalRendererOption> rendererOptions() {
+            return rendererOptions;
+        }
+
+        @Override
+        public List<SFMTerminalTransportOption> transportOptions() {
+            return transportOptions;
         }
 
         @Override

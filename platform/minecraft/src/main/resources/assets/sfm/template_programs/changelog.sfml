@@ -24,6 +24,7 @@ NAME "Changelog"
 -- Add panel-local Rust terminal transport selection for full PNG, full RGBA, and dirty RGBA while preserving the shell session
 -- Add a true no-window Vulkan Slug terminal renderer with independent panel-local renderer and transport selection
 -- Add a terminal properties panel with exact surface, font-size, and cell-grid controls shared with hierarchical command-palette actions
+-- Make Rust terminal, Presentation, Start/Retry, and terminal-properties controls share Minecraft-like keyboard focus, activation, and narration
 -- Present bounded F3 diagnostics and Escape close choices through constrained command-palette sessions while preserving the terminal's triple-Escape gesture
 -- Add wheel, keyboard, and scrollbar navigation to command-palette suggestions and the complete SFM Key Binds list
 -- Fix shortcut search-area clicks opening the first action and loaded terminal clicks activating a stale Start/Retry control

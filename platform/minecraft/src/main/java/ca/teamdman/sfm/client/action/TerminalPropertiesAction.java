@@ -60,7 +60,7 @@ public final class TerminalPropertiesAction implements SFMClientAction<SFMScreen
             if (!workspace.isAvailable()) {
                 return SFMClientActionAvailability.unavailable(workspace.unavailableReason());
             }
-            return target(workspace.target()).isPresent()
+            return target(workspace.target(), context).isPresent()
                     ? SFMClientActionAvailability.available(workspace.target())
                     : SFMClientActionAvailability.unavailable(Component.literal(
                     "Focus a Rust terminal or its attached terminal-properties panel"));
@@ -98,7 +98,7 @@ public final class TerminalPropertiesAction implements SFMClientAction<SFMScreen
     @Override
     public int execute(SFMScreenMultiplexer workspace, CommandContext<SFMClientActionSource> context)
             throws CommandSyntaxException {
-        SFMTerminalPanel terminal = target(workspace).orElseThrow(() ->
+        SFMTerminalPanel terminal = target(workspace, context.getSource().context()).orElseThrow(() ->
                 new SimpleCommandExceptionType(Component.literal(
                         "Focus a Rust terminal or its terminal-properties panel")).create());
         int first = switch (operation) {
@@ -159,14 +159,20 @@ public final class TerminalPropertiesAction implements SFMClientAction<SFMScreen
     private static Optional<SFMTerminalPanel> target(CommandContext<SFMClientActionSource> context) {
         SFMClientActionAvailability<SFMScreenMultiplexer> availability =
                 PanelActionSupport.resolve(context.getSource().context());
-        return availability.isAvailable() ? target(availability.target()) : Optional.empty();
+        return availability.isAvailable()
+                ? target(availability.target(), context.getSource().context())
+                : Optional.empty();
     }
 
-    private static Optional<SFMTerminalPanel> target(SFMScreenMultiplexer workspace) {
-        if (workspace.focusedPanelInstance() instanceof SFMTerminalPanel terminal) {
+    private static Optional<SFMTerminalPanel> target(
+            SFMScreenMultiplexer workspace,
+            SFMClientActionContext context
+    ) {
+        Object panel = PanelActionSupport.capturedPanel(workspace, context).orElse(null);
+        if (panel instanceof SFMTerminalPanel terminal) {
             return Optional.of(terminal);
         }
-        if (workspace.focusedPanelInstance() instanceof SFMTerminalPropertiesPanel properties) {
+        if (panel instanceof SFMTerminalPropertiesPanel properties) {
             return properties.ownerTerminal();
         }
         return Optional.empty();

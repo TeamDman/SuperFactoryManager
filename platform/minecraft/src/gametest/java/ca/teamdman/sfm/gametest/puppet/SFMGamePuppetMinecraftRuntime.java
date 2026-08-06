@@ -49,6 +49,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.MultipleTestTracker;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
@@ -264,7 +265,28 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 
     @Override
     public void assertFormerTerminalStartButtonRoutesToTerminal() {
-        requireTerminalPanel().assertFormerStartButtonRoutesToTerminalForAutomation();
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        SFMTerminalPanel panel = requireTerminalPanel();
+        SFMWorkspacePanelId panelId = multiplexer.focusedPanelId();
+        SFMScreenPanelBounds localFormer = panel.formerStartButtonBoundsForAutomation();
+        SFMScreenPanelBounds globalFormer = multiplexer.measure(panelId, localFormer)
+                .map(metrics -> metrics.globalGuiLogicalBounds())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Former Start/Retry bounds could not be mapped to the workspace"));
+        long attemptsBefore = panel.startButtonAttemptCountForAutomation();
+        long mouseDispatchesBefore = panel.terminalMouseDispatchCountForAutomation();
+        double x = globalFormer.x() + globalFormer.width() / 2D;
+        double y = globalFormer.y() + globalFormer.height() / 2D;
+        if (!multiplexer.mouseClicked(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
+            throw new IllegalStateException("Former Start/Retry coordinates were not routed by the workspace");
+        }
+        multiplexer.mouseReleased(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        if (panel.startButtonAttemptCountForAutomation() != attemptsBefore) {
+            throw new IllegalStateException("Former Start/Retry coordinates launched the Rust server again");
+        }
+        if (panel.terminalMouseDispatchCountForAutomation() <= mouseDispatchesBefore) {
+            throw new IllegalStateException("Former Start/Retry coordinates did not reach terminal mouse input");
+        }
     }
 
     @Override
@@ -371,6 +393,26 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             panel.reconnectForAutomation();
         } catch (Exception error) {
             throw new IllegalStateException("Rust terminal server restart failed", error);
+        }
+    }
+
+    @Override
+    public void startRustTerminalThroughUi() {
+        SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
+        SFMTerminalPanel panel = requireTerminalPanel();
+        ResourceLocation expected = new ResourceLocation("sfm", "terminal/server/start_control");
+        ResourceLocation focused = panel.widgetHost().orElseThrow()
+                .focusedElementId().orElseThrow(() -> new IllegalStateException(
+                        "Disconnected terminal has no focused Start/Retry widget"));
+        if (!expected.equals(focused)) {
+            throw new IllegalStateException("Disconnected terminal focused " + focused
+                    + " instead of " + expected);
+        }
+        if (!multiplexer.keyPressed(GLFW.GLFW_KEY_SPACE, 0, 0)) {
+            throw new IllegalStateException("Disconnected Start/Retry widget rejected Space");
+        }
+        if (!panel.startRequestedForAutomation()) {
+            throw new IllegalStateException("Start/Retry action did not begin the panel-owned server start");
         }
     }
 
@@ -770,6 +812,15 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             throw new IllegalStateException("Terminal-properties panel rejected control click: " + operation);
         }
         multiplexer.mouseReleased(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        ResourceLocation expectedFocus = new ResourceLocation(
+                "sfm", "terminal/properties/" + parsed.name().toLowerCase(java.util.Locale.ROOT));
+        ResourceLocation actualFocus = properties.widgetHost().orElseThrow()
+                .focusedElementId().orElseThrow(() -> new IllegalStateException(
+                        "Clicked terminal-properties control did not acquire focus: " + operation));
+        if (!expectedFocus.equals(actualFocus)) {
+            throw new IllegalStateException("Clicked terminal-properties control focused "
+                    + actualFocus + " instead of " + expectedFocus);
+        }
         return true;
     }
 
@@ -986,8 +1037,17 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
 
         int controlHeight = minecraft.font.lineHeight + 6;
         int controlWidth = Math.min(380, Math.max(150, bounds.width() - 12));
-        double controlX = bounds.x() + bounds.width() - 6D - controlWidth / 2D;
-        double controlY = bounds.y() + 4D + controlHeight / 2D;
+        SFMScreenPanelBounds localControl = new SFMScreenPanelBounds(
+                bounds.x() + bounds.width() - 6 - controlWidth,
+                bounds.y() + 4,
+                controlWidth,
+                controlHeight);
+        SFMScreenPanelBounds globalControl = multiplexer.measure(panelId, localControl)
+                .map(metrics -> metrics.globalGuiLogicalBounds())
+                .orElseThrow(() -> new IllegalStateException(
+                        "Presentation selector could not be mapped to the workspace"));
+        double controlX = globalControl.x() + globalControl.width() / 2D;
+        double controlY = globalControl.y() + globalControl.height() / 2D;
         multiplexer.mouseClicked(controlX, controlY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
         multiplexer.mouseReleased(controlX, controlY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
         multiplexer.keyPressed(rendererAxis ? GLFW.GLFW_KEY_LEFT : GLFW.GLFW_KEY_RIGHT, 0, 0);
@@ -996,6 +1056,14 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             multiplexer.keyPressed(GLFW.GLFW_KEY_DOWN, 0, 0);
         }
         multiplexer.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0);
+        ResourceLocation expectedFocus = new ResourceLocation("sfm", "terminal/presentation/select");
+        ResourceLocation actualFocus = panel.widgetHost().orElseThrow()
+                .focusedElementId().orElseThrow(() -> new IllegalStateException(
+                        "Presentation selector lost keyboard focus"));
+        if (!expectedFocus.equals(actualFocus)) {
+            throw new IllegalStateException("Presentation UI focused " + actualFocus
+                    + " instead of " + expectedFocus);
+        }
         active.terminalPresentationUiSelections.merge(panelId, 1, Integer::sum);
     }
 

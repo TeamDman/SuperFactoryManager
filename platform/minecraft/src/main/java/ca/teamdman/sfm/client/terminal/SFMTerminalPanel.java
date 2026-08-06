@@ -5,6 +5,10 @@ import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
 import ca.teamdman.sfm.client.screen.SFMTerminalPasteConfirmationScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelActionButton;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelActionExecution;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelWidget;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelWidgetHost;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetrics;
 import ca.teamdman.sfm.SFM;
@@ -13,11 +17,16 @@ import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.narration.NarratedElementType;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -45,12 +54,23 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private static final int MUTED = 0xFF8AA0A8;
     private static final int ERROR = 0xFFFF7777;
     private static final int INPUT = 0xFF162530;
+    private static final ResourceLocation DEFAULT_USAGE = new ResourceLocation(SFM.MOD_ID, "default");
+    private static final ResourceLocation TERMINAL_USAGE = new ResourceLocation(SFM.MOD_ID, "terminal");
+    private static final ResourceLocation VIEWPORT_ELEMENT = new ResourceLocation(SFM.MOD_ID, "terminal/viewport");
+    private static final ResourceLocation START_ELEMENT = new ResourceLocation(SFM.MOD_ID, "terminal/server/start_control");
+    private static final ResourceLocation PRESENTATION_ELEMENT = new ResourceLocation(SFM.MOD_ID, "terminal/presentation/select");
     private final SFMTerminalClient client;
     private final SFMTerminalRemoteService remoteService;
     private final SFMTerminalPngRenderer pngRenderer = new SFMTerminalPngRenderer();
     private final SFMTerminalRgbaRenderer rgbaRenderer = new SFMTerminalRgbaRenderer();
     private final SFMTerminalScrollback scrollback = new SFMTerminalScrollback();
     private final SFMTerminalFocusSequence focusSequence = new SFMTerminalFocusSequence();
+    private final SFMPanelWidgetHost widgetHost = new SFMPanelWidgetHost();
+    private final TerminalViewportWidget viewportWidget = new TerminalViewportWidget();
+    private final SFMPanelActionButton startButton;
+    private final SFMPanelActionButton presentationButton;
+    private final List<SFMPanelActionButton> presentationOptions = new ArrayList<>();
+    private String presentationOptionsSignature = "";
     private String input = "";
     private SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 1, 1);
     private SFMWorkspacePanelContext context;
@@ -67,10 +87,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private long lastLoggedPresentationSequence = Long.MIN_VALUE;
     private String connectionStatus;
     private final RustServerStarter rustServerStarter;
+    private final PanelActionInvoker actionOverride;
     private StartButtonHitState startButtonHitState = StartButtonHitState.inactive();
     private SFMScreenPanelBounds lastDisconnectedStartButtonBounds;
     private long startButtonAttemptCount;
-    private boolean presentationControlFocused;
+    private long terminalMouseDispatchCount;
     private boolean presentationMenuOpen;
     private PresentationAxis presentationAxis = PresentationAxis.RENDERER;
     private int rendererSelectionIndex;
@@ -91,6 +112,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private Optional<SFMWorkspacePanelMetrics> viewportMetrics = Optional.empty();
     private SFMTerminalFrame lastAcceptedFrame;
     private PendingPaste pendingPaste;
+    private boolean disconnectedControlsVisible;
+    private String lastPanelActionFeedback = "";
 
     private record PendingPaste(String text, String preview, String contentId, long interactionEpoch) {
     }
@@ -100,31 +123,18 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         void start() throws Exception;
     }
 
-    private record StartButtonHitState(
-            boolean current,
-            int left,
-            int top,
-            int right,
-            int bottom
-    ) {
+    @FunctionalInterface
+    interface PanelActionInvoker {
+        boolean invoke(String draft);
+    }
+
+    private record StartButtonHitState(boolean current) {
         private static StartButtonHitState inactive() {
-            return new StartButtonHitState(false, 0, 0, 0, 0);
+            return new StartButtonHitState(false);
         }
 
-        private static StartButtonHitState current(SFMScreenPanelBounds bounds) {
-            return new StartButtonHitState(
-                    true,
-                    bounds.x(),
-                    bounds.y(),
-                    bounds.x() + bounds.width(),
-                    bounds.y() + bounds.height());
-        }
-
-        private boolean accepts(double mouseX, double mouseY, int button) {
-            return current
-                    && button == GLFW.GLFW_MOUSE_BUTTON_LEFT
-                    && mouseX >= left && mouseX < right
-                    && mouseY >= top && mouseY < bottom;
+        private static StartButtonHitState active() {
+            return new StartButtonHitState(true);
         }
     }
 
@@ -150,25 +160,57 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         this(
                 new SFMTerminalClient(service),
                 service instanceof SFMTerminalRemoteService remote ? remote : null,
-                () -> SFMTerminalServiceFactory.startRustServer(null));
+                () -> SFMTerminalServiceFactory.startRustServer(null),
+                null);
     }
 
     public SFMTerminalPanel(SFMTerminalClient client) {
-        this(client, null, () -> SFMTerminalServiceFactory.startRustServer(null));
+        this(client, null, () -> SFMTerminalServiceFactory.startRustServer(null), null);
     }
 
     SFMTerminalPanel(SFMTerminalRemoteService remoteService, RustServerStarter rustServerStarter) {
-        this(new SFMTerminalClient(remoteService), remoteService, rustServerStarter);
+        this(new SFMTerminalClient(remoteService), remoteService, rustServerStarter, null);
+    }
+
+    SFMTerminalPanel(
+            SFMTerminalRemoteService remoteService,
+            RustServerStarter rustServerStarter,
+            PanelActionInvoker actionOverride
+    ) {
+        this(new SFMTerminalClient(remoteService), remoteService, rustServerStarter, actionOverride);
     }
 
     private SFMTerminalPanel(
             SFMTerminalClient client,
             SFMTerminalRemoteService remoteService,
-            RustServerStarter rustServerStarter
+            RustServerStarter rustServerStarter,
+            PanelActionInvoker actionOverride
     ) {
         this.client = client;
         this.remoteService = remoteService;
         this.rustServerStarter = Objects.requireNonNull(rustServerStarter);
+        this.actionOverride = actionOverride;
+        this.startButton = new SFMPanelActionButton(
+                START_ELEMENT,
+                DEFAULT_USAGE,
+                Component.literal("Start / Retry Rust server"),
+                () -> Component.literal(startRequested
+                        ? "Starting Rust terminal server"
+                        : "Start or retry Rust terminal server"),
+                () -> "sfm action invoke sfm:terminal/server/start",
+                () -> executePanelAction("sfm action invoke sfm:terminal/server/start")
+        );
+        this.presentationButton = new SFMPanelActionButton(
+                PRESENTATION_ELEMENT,
+                DEFAULT_USAGE,
+                Component.literal("Presentation"),
+                this::presentationNarration,
+                this::currentPresentationActionDraft,
+                this::togglePresentationMenu,
+                (keyCode, scanCode, modifiers) -> presentationControlKeyPressed(keyCode),
+                ignored -> { }
+        );
+        rebuildTerminalWidgets();
         this.connectionStatus = remoteService == null
                 ? "Java-local terminal"
                 : "Rust terminal is disconnected";
@@ -180,6 +222,194 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         }
     }
 
+    private void rebuildTerminalWidgets() {
+        presentationOptions.clear();
+        if (remoteService != null) {
+            List<SFMTerminalRendererOption> rendererOptions = remoteService.rendererOptions();
+            for (int index = 0; index < rendererOptions.size(); index++) {
+                int optionIndex = index;
+                SFMTerminalRendererOption option = rendererOptions.get(index);
+                String draft = "sfm action invoke sfm:terminal/renderer/set " + option.id().wireId();
+                SFMPanelActionButton button = new SFMPanelActionButton(
+                        new ResourceLocation(SFM.MOD_ID,
+                                "terminal/presentation/renderer/" + option.id().wireId()),
+                        DEFAULT_USAGE,
+                        Component.literal("Renderer: " + option.label()),
+                        () -> Component.literal(option.supported()
+                                ? "Use terminal renderer " + option.label()
+                                : "Terminal renderer " + option.label() + " unavailable: "
+                                + option.unavailableReason()),
+                        () -> draft,
+                        () -> selectPresentationOption(PresentationAxis.RENDERER, optionIndex, draft),
+                        this::presentationOptionKeyPressed,
+                        ignored -> { }
+                );
+                button.active = option.supported();
+                presentationOptions.add(button);
+            }
+            List<SFMTerminalTransportOption> transportOptions = remoteService.transportOptions();
+            for (int index = 0; index < transportOptions.size(); index++) {
+                int optionIndex = index;
+                SFMTerminalTransportOption option = transportOptions.get(index);
+                String draft = "sfm action invoke sfm:terminal/transport/set " + option.id().wireId();
+                SFMPanelActionButton button = new SFMPanelActionButton(
+                        new ResourceLocation(SFM.MOD_ID,
+                                "terminal/presentation/transport/" + option.id().wireId()),
+                        DEFAULT_USAGE,
+                        Component.literal("Transport: " + option.label()),
+                        () -> Component.literal(option.supported()
+                                ? "Use terminal transport " + option.label()
+                                : "Terminal transport " + option.label() + " unavailable: "
+                                + option.unavailableReason()),
+                        () -> draft,
+                        () -> selectPresentationOption(PresentationAxis.TRANSPORT, optionIndex, draft),
+                        this::presentationOptionKeyPressed,
+                        ignored -> { }
+                );
+                button.active = option.supported();
+                presentationOptions.add(button);
+            }
+        }
+        List<SFMPanelWidget> children = new ArrayList<>();
+        children.add(viewportWidget);
+        children.add(startButton);
+        children.add(presentationButton);
+        children.addAll(presentationOptions);
+        widgetHost.setChildren(children);
+        updatePresentationOptionVisibility();
+        presentationOptionsSignature = presentationOptionsSignature();
+    }
+
+    private void refreshPresentationOptions() {
+        if (!presentationOptionsSignature.equals(presentationOptionsSignature())) {
+            rebuildTerminalWidgets();
+        }
+    }
+
+    private String presentationOptionsSignature() {
+        if (remoteService == null) return "local";
+        return remoteService.rendererOptions().stream()
+                .map(option -> "r:" + option.id().wireId() + ":" + option.supported()
+                        + ":" + option.label() + ":" + option.unavailableReason())
+                .collect(java.util.stream.Collectors.joining("|"))
+                + "||"
+                + remoteService.transportOptions().stream()
+                .map(option -> "t:" + option.id().wireId() + ":" + option.supported()
+                        + ":" + option.label() + ":" + option.unavailableReason())
+                .collect(java.util.stream.Collectors.joining("|"));
+    }
+
+    private void synchronizeTerminalWidgets(boolean presented, ViewportGeometry viewport) {
+        disconnectedControlsVisible = remoteService != null && !presented;
+        viewportWidget.visible = remoteService == null || presented;
+        viewportWidget.active = viewportWidget.visible;
+        viewportWidget.setPanelBounds(new SFMScreenPanelBounds(
+                viewport.left(), viewport.top(), viewport.width(), viewport.height()));
+        startButton.visible = disconnectedControlsVisible;
+        startButton.active = disconnectedControlsVisible && !startRequested;
+        startButton.setMessage(Component.literal(startRequested
+                ? "Starting..."
+                : "Start / Retry Rust server"));
+        if (!disconnectedControlsVisible) invalidateDisconnectedStartButtonPresentation();
+        presentationButton.visible = remoteService != null;
+        presentationButton.active = remoteService != null;
+        int controlHeight = Math.max(1, viewport.lineHeight() + 4);
+        layoutPresentationControl(controlHeight);
+        presentationButton.setPanelBounds(new SFMScreenPanelBounds(
+                presentationButtonLeft,
+                presentationButtonTop,
+                Math.max(1, presentationButtonRight - presentationButtonLeft),
+                Math.max(1, presentationButtonBottom - presentationButtonTop)));
+        presentationButton.setMessage(Component.literal(presentationLabel()));
+        int rowTop = presentationButtonBottom;
+        for (SFMPanelActionButton option : presentationOptions) {
+            option.setPanelBounds(new SFMScreenPanelBounds(
+                    presentationButtonLeft,
+                    rowTop,
+                    Math.max(1, presentationButtonRight - presentationButtonLeft),
+                    controlHeight));
+            rowTop += controlHeight;
+        }
+        updatePresentationOptionVisibility();
+        if (widgetHost.focusedChild().isEmpty()) {
+            widgetHost.focus(disconnectedControlsVisible ? START_ELEMENT : VIEWPORT_ELEMENT);
+        }
+    }
+
+    private void togglePresentationMenu() {
+        presentationMenuOpen = !presentationMenuOpen;
+        synchronizePresentationSelection();
+        updatePresentationOptionVisibility();
+    }
+
+    private void updatePresentationOptionVisibility() {
+        for (SFMPanelActionButton option : presentationOptions) {
+            option.visible = remoteService != null && presentationMenuOpen;
+        }
+    }
+
+    private void selectPresentationOption(PresentationAxis axis, int index, String draft) {
+        presentationAxis = axis;
+        if (axis == PresentationAxis.RENDERER) rendererSelectionIndex = index;
+        else transportSelectionIndex = index;
+        if (executePanelAction(draft)) {
+            presentationMenuOpen = false;
+            widgetHost.focus(PRESENTATION_ELEMENT);
+        }
+        updatePresentationOptionVisibility();
+    }
+
+    private boolean presentationOptionKeyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode != GLFW.GLFW_KEY_ESCAPE) return false;
+        presentationMenuOpen = false;
+        updatePresentationOptionVisibility();
+        widgetHost.focus(PRESENTATION_ELEMENT);
+        return true;
+    }
+
+    private boolean executePanelAction(String draft) {
+        if (actionOverride != null) return actionOverride.invoke(draft);
+        if (context == null || minecraft == null) return false;
+        return SFMPanelActionExecution.execute(context, minecraft, draft, feedback ->
+                lastPanelActionFeedback = feedback.getString());
+    }
+
+    private Component presentationNarration() {
+        String feedback = lastPanelActionFeedback.isBlank() ? "" : ". " + lastPanelActionFeedback;
+        return Component.literal(presentationLabel() + feedback);
+    }
+
+    private String currentPresentationActionDraft() {
+        if (remoteService == null) return "";
+        if (presentationAxis == PresentationAxis.RENDERER) {
+            List<SFMTerminalRendererOption> options = remoteService.rendererOptions();
+            if (rendererSelectionIndex >= 0 && rendererSelectionIndex < options.size()) {
+                return "sfm action invoke sfm:terminal/renderer/set "
+                        + options.get(rendererSelectionIndex).id().wireId();
+            }
+        } else {
+            List<SFMTerminalTransportOption> options = remoteService.transportOptions();
+            if (transportSelectionIndex >= 0 && transportSelectionIndex < options.size()) {
+                return "sfm action invoke sfm:terminal/transport/set "
+                        + options.get(transportSelectionIndex).id().wireId();
+            }
+        }
+        return "";
+    }
+
+    private String presentationLabel() {
+        if (remoteService == null) return "Presentation unavailable";
+        SFMTerminalPresentationTransitionState state = remoteService.presentationState();
+        String value = state.requested().label();
+        if (state.active().isEmpty()) {
+            value += " (pending)";
+        } else if (!state.active().get().equals(state.requested())) {
+            value = state.active().get().label() + " -> " + value + " (pending)";
+        }
+        if (state.failure().isPresent()) value += " !";
+        return "Presentation: " + value + (presentationMenuOpen ? " ^" : " v");
+    }
+
     @Override
     public Component title() {
         return Component.literal("SFM Terminal");
@@ -189,6 +419,16 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     public Component narration() {
         return Component.literal((remoteService == null ? "Java-local terminal at " : "Rust/Vox terminal at ")
                 + client.workingDirectory());
+    }
+
+    @Override
+    public Optional<SFMPanelWidgetHost> widgetHost() {
+        return Optional.of(widgetHost);
+    }
+
+    @Override
+    public boolean widgetHostOwnsInput() {
+        return true;
     }
 
     @Override
@@ -224,6 +464,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         );
         applyViewport(viewport);
         layoutPresentationControl(viewport.lineHeight() + 4);
+        // Establish valid child rectangles immediately. The next render refines
+        // disconnected/presented visibility from the actual retained frame.
+        synchronizeTerminalWidgets(remoteService == null || remoteService.isConnected(), viewport);
         if (remoteService != null) {
             SFMScreenPanelBounds logicalViewport = new SFMScreenPanelBounds(
                     viewport.left(), viewport.top(), viewport.width(), viewport.height());
@@ -312,6 +555,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public void tick() {
         if (remoteService == null) return;
+        refreshPresentationOptions();
         remoteService.requestConnect();
         Optional<SFMTerminalTuningRejection> rejection = remoteService.tuningFailure();
         if (tuningPending && rejection.isPresent()) {
@@ -392,11 +636,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                     logPresentationTiming(frame.get(), pngRenderer.telemetry());
                 }
                 renderFocusHint(poseStack, minecraft, left, width, contentBottom);
-                renderPresentationControl(poseStack, minecraft);
+                synchronizeTerminalWidgets(true, viewport);
                 return;
             }
             renderDisconnected(poseStack, minecraft, left, width, contentTop, contentBottom);
-            renderPresentationControl(poseStack, minecraft);
+            synchronizeTerminalWidgets(false, viewport);
             return;
         }
         int y = contentTop;
@@ -417,6 +661,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             renderInput(poseStack, minecraft, left, width, inputY, focused);
         }
         renderFocusHint(poseStack, minecraft, left, width, contentBottom);
+        synchronizeTerminalWidgets(true, viewport);
     }
 
     private void logPresentationTiming(
@@ -486,9 +731,6 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (remoteService != null && presentationControlFocused) {
-            return presentationControlKeyPressed(keyCode);
-        }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             if (focusSequence.escape(System.nanoTime()) == SFMTerminalFocusSequence.Decision.HOST_ESCAPE) {
                 // The first two presses belong to the PTY. The third is not
@@ -502,10 +744,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (keyCode == GLFW.GLFW_KEY_TAB) {
             SFMTerminalFocusSequence.Decision decision = focusSequence.tab(System.nanoTime());
             if (decision == SFMTerminalFocusSequence.Decision.JAVA_FOCUS) {
-                presentationControlFocused = true;
                 presentationMenuOpen = false;
                 synchronizePresentationSelection();
-                return true;
+                updatePresentationOptionVisibility();
+                return false;
             }
             if (remoteService != null) remoteService.sendKey(keyCode, modifiers, true, false);
             else input += "\t";
@@ -574,7 +816,6 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
         if (remoteService == null) return false;
-        if (presentationControlFocused) return true;
         if (suppressCopyRelease && keyCode == GLFW.GLFW_KEY_C) {
             suppressCopyRelease = false;
             return true;
@@ -593,7 +834,6 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     @Override
     public boolean charTyped(char character, int modifiers) {
         if (remoteService != null) {
-            if (presentationControlFocused) return true;
             if (character >= 0x20 && character != 0x7F) {
                 remoteService.sendText(String.valueOf(character));
             }
@@ -726,8 +966,8 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (mouseX < bounds.x() || mouseX >= bounds.x() + bounds.width()
                 || mouseY < bounds.y() || mouseY >= bounds.y() + bounds.height()) return false;
         if (remoteService != null) {
-            remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, 0, false,
-                    false, 0, (int) Math.round(delta));
+            if (remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, 0, false,
+                    false, 0, (int) Math.round(delta))) terminalMouseDispatchCount++;
         } else if (delta > 0) scrollback.scrollOlder(Math.max(1, (int) Math.ceil(delta)));
         else if (delta < 0) scrollback.scrollNewer(Math.max(1, (int) Math.ceil(-delta)));
         return delta != 0;
@@ -735,54 +975,6 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (remoteService != null && button == 0
-                && mouseX >= presentationButtonLeft && mouseX < presentationButtonRight
-                && mouseY >= presentationButtonTop && mouseY < presentationButtonBottom) {
-            presentationControlFocused = true;
-            presentationMenuOpen = !presentationMenuOpen;
-            synchronizePresentationSelection();
-            return true;
-        }
-        if (remoteService != null && button == 0 && presentationMenuOpen) {
-            List<SFMTerminalRendererOption> rendererOptions = remoteService.rendererOptions();
-            List<SFMTerminalTransportOption> transportOptions = remoteService.transportOptions();
-            int rowHeight = minecraft == null ? 14 : minecraft.font.lineHeight + 6;
-            int row = (int) ((mouseY - presentationButtonBottom) / rowHeight);
-            if (mouseX >= presentationButtonLeft && mouseX < presentationButtonRight
-                    && row >= 0) {
-                if (row == 0) {
-                    presentationAxis = PresentationAxis.RENDERER;
-                    return true;
-                }
-                if (row <= rendererOptions.size()) {
-                    presentationAxis = PresentationAxis.RENDERER;
-                    rendererSelectionIndex = row - 1;
-                    selectCurrentPresentationChoice();
-                    return true;
-                }
-                int transportHeader = rendererOptions.size() + 1;
-                if (row == transportHeader) {
-                    presentationAxis = PresentationAxis.TRANSPORT;
-                    return true;
-                }
-                int transportIndex = row - transportHeader - 1;
-                if (transportIndex >= 0 && transportIndex < transportOptions.size()) {
-                    presentationAxis = PresentationAxis.TRANSPORT;
-                    transportSelectionIndex = transportIndex;
-                    selectCurrentPresentationChoice();
-                    return true;
-                }
-                return true;
-            }
-        }
-        if (remoteService != null && startButtonHitState.accepts(mouseX, mouseY, button)) {
-            focusTerminalInput();
-            startRustServer();
-            return true;
-        }
-        // Presentation controls and their menu rows return above so they keep
-        // intentional Java control focus. Panel chrome/outside clicks do not
-        // synthesize PTY input or silently change the current control focus.
         if (!containsTerminalPoint(mouseX, mouseY)) return false;
         if (remoteService == null) return false;
         // A viewport click is terminal interaction even if the selector was
@@ -794,7 +986,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         pressedMouseButtons |= mask;
         if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
             Minecraft requestMinecraft = minecraft;
-            remoteService.sendMouse(
+            if (remoteService.sendMouse(
                     logicalX(mouseX),
                     logicalY(mouseY),
                     pressedMouseButtons,
@@ -805,10 +997,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                     0,
                     disposition -> runOnMinecraftThread(requestMinecraft, () -> {
                         if (disposition != SFMTerminalInputDisposition.FORWARDED) requestCopy(true);
-                    }));
+                    }))) terminalMouseDispatchCount++;
         } else {
-            remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true,
-                    false, 0, 0);
+            if (remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, true,
+                    false, 0, 0)) terminalMouseDispatchCount++;
         }
         return true;
     }
@@ -820,24 +1012,24 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         boolean wasPressed = (pressedMouseButtons & mask) != 0;
         pressedMouseButtons &= ~mouseMask(button);
         if (!wasPressed) return false;
-        remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, false,
-                false, 0, 0);
+        if (remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons, button, false,
+                false, 0, 0)) terminalMouseDispatchCount++;
         return true;
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         if (remoteService == null || pressedMouseButtons == 0) return false;
-        remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
-                button, true, true, 0, 0);
+        if (remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
+                button, true, true, 0, 0)) terminalMouseDispatchCount++;
         return true;
     }
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
         if (remoteService != null && pressedMouseButtons != 0) {
-            remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
-                    0, true, true, 0, 0);
+            if (remoteService.sendMouse(logicalX(mouseX), logicalY(mouseY), pressedMouseButtons,
+                    0, true, true, 0, 0)) terminalMouseDispatchCount++;
         }
     }
 
@@ -1249,9 +1441,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     private void focusTerminalInput() {
-        presentationControlFocused = false;
         presentationMenuOpen = false;
+        updatePresentationOptionVisibility();
         focusSequence.reset();
+        widgetHost.focus(VIEWPORT_ELEMENT);
     }
 
     private void renderInput(PoseStack poseStack, Minecraft minecraft, int left, int width, int inputY,
@@ -1298,15 +1491,15 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 startButtonTop,
                 Math.max(0, startButtonRight - startButtonLeft),
                 Math.max(0, startButtonBottom - startButtonTop)));
-        GuiComponent.fill(poseStack, startButtonLeft, startButtonTop,
-                startButtonRight, startButtonBottom, 0xFF28506A);
-        String label = startRequested ? "Starting..." : "Start / Retry Rust server";
-        SFMFontUtils.draw(poseStack, minecraft.font, label,
-                startButtonLeft + 8, startButtonTop + 6, TEXT, false);
+        startButton.setPanelBounds(new SFMScreenPanelBounds(
+                startButtonLeft,
+                startButtonTop,
+                Math.max(0, startButtonRight - startButtonLeft),
+                Math.max(0, startButtonBottom - startButtonTop)));
     }
 
-    private void startRustServer() {
-        if (startRequested || remoteService == null) return;
+    public boolean requestStartRustServer() {
+        if (startRequested || remoteService == null) return false;
         startButtonAttemptCount++;
         startRequested = true;
         connectionStatus = "Starting the Rust terminal server...";
@@ -1329,42 +1522,35 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         }, "sfm-rust-terminal-start");
         thread.setDaemon(true);
         thread.start();
+        return true;
     }
 
     void recordDisconnectedStartButtonPresentation(SFMScreenPanelBounds buttonBounds) {
         lastDisconnectedStartButtonBounds = buttonBounds;
-        startButtonHitState = StartButtonHitState.current(buttonBounds);
+        startButtonHitState = StartButtonHitState.active();
     }
 
     void invalidateDisconnectedStartButtonPresentation() {
         startButtonHitState = StartButtonHitState.inactive();
     }
 
-    boolean startRequestedForAutomation() {
+    public boolean startRequestedForAutomation() {
         return startRequested;
     }
 
-    public void assertFormerStartButtonRoutesToTerminalForAutomation() {
-        if (lastAcceptedFrame == null) {
-            throw new IllegalStateException("Terminal has not presented a Rust frame after its disconnected state");
-        }
-        if (startButtonHitState.current()) {
-            throw new IllegalStateException("Disconnected Start/Retry target is still active over terminal pixels");
-        }
-        SFMScreenPanelBounds former = lastDisconnectedStartButtonBounds;
-        if (former == null) {
+    public SFMScreenPanelBounds formerStartButtonBoundsForAutomation() {
+        if (lastDisconnectedStartButtonBounds == null) {
             throw new IllegalStateException("Terminal never presented a disconnected Start/Retry target");
         }
-        long attemptsBefore = startButtonAttemptCount;
-        if (!mouseClicked(
-                former.x() + Math.max(0, former.width() - 1) / 2.0d,
-                former.y() + Math.max(0, former.height() - 1) / 2.0d,
-                GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
-            throw new IllegalStateException("Former Start/Retry coordinates did not reach terminal input");
-        }
-        if (startButtonAttemptCount != attemptsBefore) {
-            throw new IllegalStateException("Former Start/Retry coordinates launched the Rust server again");
-        }
+        return lastDisconnectedStartButtonBounds;
+    }
+
+    public long startButtonAttemptCountForAutomation() {
+        return startButtonAttemptCount;
+    }
+
+    public long terminalMouseDispatchCountForAutomation() {
+        return terminalMouseDispatchCount;
     }
 
     public boolean formerStartButtonRoutingReadyForAutomation() {
@@ -1389,76 +1575,6 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 minecraft.font.plainSubstrByWidth(message.getString(), width), left, y, MUTED, false);
     }
 
-    private void renderPresentationControl(PoseStack poseStack, Minecraft minecraft) {
-        if (remoteService == null) return;
-        int height = minecraft.font.lineHeight + 6;
-        layoutPresentationControl(height);
-        int width = presentationButtonRight - presentationButtonLeft;
-        int background = presentationControlFocused ? 0xFF315568 : 0xE0223038;
-        GuiComponent.fill(poseStack, presentationButtonLeft, presentationButtonTop,
-                presentationButtonRight, presentationButtonBottom, background);
-        SFMTerminalPresentationTransitionState state = remoteService.presentationState();
-        String value = state.requested().label();
-        if (state.active().isEmpty()) {
-            value += " (pending)";
-        } else if (!state.active().get().equals(state.requested())) {
-            value = state.active().get().label() + " -> " + value + " (pending)";
-        }
-        if (state.failure().isPresent()) value += " !";
-        String label = "Presentation: " + value + (presentationMenuOpen ? " ^" : " v");
-        SFMFontUtils.draw(poseStack, minecraft.font,
-                minecraft.font.plainSubstrByWidth(label, width - 8),
-                presentationButtonLeft + 4, presentationButtonTop + 3, TEXT, false);
-        if (!presentationMenuOpen) return;
-
-        List<SFMTerminalRendererOption> rendererOptions = remoteService.rendererOptions();
-        List<SFMTerminalTransportOption> transportOptions = remoteService.transportOptions();
-        int rowTop = presentationButtonBottom;
-        GuiComponent.fill(poseStack, presentationButtonLeft, rowTop,
-                presentationButtonRight, rowTop + height,
-                presentationAxis == PresentationAxis.RENDERER ? 0xFF315568 : 0xF018252D);
-        SFMFontUtils.draw(poseStack, minecraft.font, "Renderer", presentationButtonLeft + 4,
-                rowTop + 3, MUTED, false);
-        rowTop += height;
-        for (int index = 0; index < rendererOptions.size(); index++) {
-            SFMTerminalRendererOption option = rendererOptions.get(index);
-            int rowBottom = rowTop + height;
-            int rowColor = presentationAxis == PresentationAxis.RENDERER
-                    && index == rendererSelectionIndex ? 0xFF315568 : 0xF018252D;
-            GuiComponent.fill(poseStack, presentationButtonLeft, rowTop,
-                    presentationButtonRight, rowBottom, rowColor);
-            int color = option.supported() ? TEXT : ERROR;
-            SFMFontUtils.draw(poseStack, minecraft.font,
-                    minecraft.font.plainSubstrByWidth(option.label(), width - 8),
-                    presentationButtonLeft + 4, rowTop + 3, color, false);
-            rowTop = rowBottom;
-        }
-        GuiComponent.fill(poseStack, presentationButtonLeft, rowTop,
-                presentationButtonRight, rowTop + height,
-                presentationAxis == PresentationAxis.TRANSPORT ? 0xFF315568 : 0xF018252D);
-        SFMFontUtils.draw(poseStack, minecraft.font, "Transport", presentationButtonLeft + 4,
-                rowTop + 3, MUTED, false);
-        rowTop += height;
-        for (int index = 0; index < transportOptions.size(); index++) {
-            SFMTerminalTransportOption option = transportOptions.get(index);
-            int rowBottom = rowTop + height;
-            int rowColor = presentationAxis == PresentationAxis.TRANSPORT
-                    && index == transportSelectionIndex ? 0xFF315568 : 0xF018252D;
-            GuiComponent.fill(poseStack, presentationButtonLeft, rowTop,
-                    presentationButtonRight, rowBottom, rowColor);
-            int color = option.supported() ? TEXT : ERROR;
-            SFMFontUtils.draw(poseStack, minecraft.font,
-                    minecraft.font.plainSubstrByWidth(option.label(), width - 8),
-                    presentationButtonLeft + 4, rowTop + 3, color, false);
-            rowTop = rowBottom;
-        }
-        if (state.failure().isPresent()) {
-            SFMFontUtils.draw(poseStack, minecraft.font,
-                    minecraft.font.plainSubstrByWidth(state.failure().get(), width - 8),
-                    presentationButtonLeft + 4, rowTop + 3, ERROR, false);
-        }
-    }
-
     private void layoutPresentationControl(int height) {
         if (remoteService == null) return;
         int width = Math.min(380, Math.max(150, bounds.width() - 12));
@@ -1470,13 +1586,13 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     private boolean presentationControlKeyPressed(int keyCode) {
         if (keyCode == GLFW.GLFW_KEY_TAB) {
-            presentationControlFocused = false;
-            presentationMenuOpen = false;
-            focusSequence.reset();
-            return true;
+            // Leave an open list visible so the host's normal Tab traversal
+            // can move into its individually narrated action buttons.
+            return false;
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             presentationMenuOpen = false;
+            updatePresentationOptionVisibility();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT) {
@@ -1484,6 +1600,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                     ? PresentationAxis.RENDERER : PresentationAxis.TRANSPORT;
             presentationMenuOpen = true;
             synchronizePresentationSelection();
+            updatePresentationOptionVisibility();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER
@@ -1491,6 +1608,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             if (!presentationMenuOpen) {
                 presentationMenuOpen = true;
                 synchronizePresentationSelection();
+                updatePresentationOptionVisibility();
             } else {
                 selectCurrentPresentationChoice();
             }
@@ -1510,6 +1628,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (presentationAxis == PresentationAxis.RENDERER) rendererSelectionIndex = selected;
         else transportSelectionIndex = selected;
         presentationMenuOpen = true;
+        updatePresentationOptionVisibility();
         return true;
     }
 
@@ -1538,16 +1657,135 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     private void selectCurrentPresentationChoice() {
-        SFMTerminalPresentationChangeResult result;
         if (presentationAxis == PresentationAxis.RENDERER) {
             List<SFMTerminalRendererOption> options = remoteService.rendererOptions();
             if (rendererSelectionIndex < 0 || rendererSelectionIndex >= options.size()) return;
-            result = requestRenderer(options.get(rendererSelectionIndex).id().wireId());
+            String rendererId = options.get(rendererSelectionIndex).id().wireId();
+            selectPresentationOption(
+                    PresentationAxis.RENDERER,
+                    rendererSelectionIndex,
+                    "sfm action invoke sfm:terminal/renderer/set " + rendererId);
         } else {
             List<SFMTerminalTransportOption> options = remoteService.transportOptions();
             if (transportSelectionIndex < 0 || transportSelectionIndex >= options.size()) return;
-            result = requestTransport(options.get(transportSelectionIndex).id().wireId());
+            String transportId = options.get(transportSelectionIndex).id().wireId();
+            selectPresentationOption(
+                    PresentationAxis.TRANSPORT,
+                    transportSelectionIndex,
+                    "sfm action invoke sfm:terminal/transport/set " + transportId);
         }
-        if (result.accepted()) presentationMenuOpen = false;
+    }
+
+    private final class TerminalViewportWidget extends AbstractWidget implements SFMPanelWidget {
+        private TerminalViewportWidget() {
+            super(0, 0, 1, 1, Component.literal("Rust terminal viewport"));
+        }
+
+        @Override
+        public ResourceLocation elementId() {
+            return VIEWPORT_ELEMENT;
+        }
+
+        @Override
+        public ResourceLocation keyboardUsageSituationId() {
+            return TERMINAL_USAGE;
+        }
+
+        @Override
+        public Component narration() {
+            return SFMTerminalPanel.this.narration();
+        }
+
+        @Override
+        public Optional<String> actionDraft() {
+            return Optional.empty();
+        }
+
+        @Override
+        public void setPanelBounds(SFMScreenPanelBounds bounds) {
+            this.x = bounds.x();
+            this.y = bounds.y();
+            this.width = Math.max(0, bounds.width());
+            this.height = Math.max(0, bounds.height());
+        }
+
+        @Override
+        public boolean isPanelVisible() {
+            return visible;
+        }
+
+        @Override
+        public boolean isPanelEnabled() {
+            return active;
+        }
+
+        @Override
+        public boolean isPanelFocused() {
+            return isFocused();
+        }
+
+        @Override
+        public void setPanelFocused(boolean focused) {
+            setFocused(focused);
+            if (focused) focusSequence.reset();
+        }
+
+        @Override
+        public void renderButton(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+            // The Rust/Java terminal presentation is rendered by the panel;
+            // this child owns its focus, narration, and event rectangle only.
+        }
+
+        @Override
+        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+            return SFMTerminalPanel.this.keyPressed(keyCode, scanCode, modifiers);
+        }
+
+        @Override
+        public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+            return SFMTerminalPanel.this.keyReleased(keyCode, scanCode, modifiers);
+        }
+
+        @Override
+        public boolean charTyped(char character, int modifiers) {
+            return SFMTerminalPanel.this.charTyped(character, modifiers);
+        }
+
+        @Override
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            if (!isMouseOver(mouseX, mouseY)) return false;
+            if (remoteService == null) {
+                focusTerminalInput();
+                return true;
+            }
+            return SFMTerminalPanel.this.mouseClicked(mouseX, mouseY, button);
+        }
+
+        @Override
+        public boolean mouseReleased(double mouseX, double mouseY, int button) {
+            return SFMTerminalPanel.this.mouseReleased(mouseX, mouseY, button);
+        }
+
+        @Override
+        public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+            return SFMTerminalPanel.this.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+        }
+
+        @Override
+        public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+            return SFMTerminalPanel.this.mouseScrolled(mouseX, mouseY, delta);
+        }
+
+        @Override
+        public void mouseMoved(double mouseX, double mouseY) {
+            SFMTerminalPanel.this.mouseMoved(mouseX, mouseY);
+        }
+
+        @Override
+        public void updateNarration(NarrationElementOutput output) {
+            output.add(NarratedElementType.TITLE, narration());
+            output.add(NarratedElementType.USAGE,
+                    Component.literal("Terminal input. Press Tab three times to move to panel controls."));
+        }
     }
 }
