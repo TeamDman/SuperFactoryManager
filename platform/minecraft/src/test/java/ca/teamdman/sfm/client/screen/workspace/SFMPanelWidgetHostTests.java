@@ -86,6 +86,20 @@ class SFMPanelWidgetHostTests {
     }
 
     @Test
+    void reconstructingTheSameStableFocusedElementDoesNotResetContextRevision() {
+        SFMPanelWidgetHost host = new SFMPanelWidgetHost();
+        FakeWidget first = widget("stable");
+        host.setChildren(List.of(first));
+        assertTrue(host.focus(first.elementId()));
+        long focusedRevision = host.focusRevision();
+
+        host.setChildren(List.of(widget("stable")));
+
+        assertEquals(focusedRevision, host.focusRevision());
+        assertEquals(id("stable"), host.focusedElementId().orElseThrow());
+    }
+
+    @Test
     void focusedChildMayConsumeTabBeforeHostTraversal() {
         SFMPanelWidgetHost host = new SFMPanelWidgetHost();
         FakeWidget terminal = widget("terminal");

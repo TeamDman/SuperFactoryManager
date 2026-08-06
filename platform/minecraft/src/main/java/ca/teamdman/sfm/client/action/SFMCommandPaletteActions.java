@@ -62,6 +62,11 @@ public final class SFMCommandPaletteActions {
             ClosePanelAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenPanelDiagnosticsAction> OPEN_PANEL_DIAGNOSTICS = REGISTERER.register(
+            "panel/diagnostics/open",
+            OpenPanelDiagnosticsAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, CloseScreenAction> CLOSE_SCREEN = REGISTERER.register(
             "screen/close",
             CloseScreenAction::new

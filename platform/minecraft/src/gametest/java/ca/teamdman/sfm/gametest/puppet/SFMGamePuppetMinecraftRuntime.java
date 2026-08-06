@@ -247,12 +247,32 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    @MCVersionDependentBehaviour
     public void pressScreenKey(int keyCode, int modifiers) {
         Screen screen = minecraft.screen;
         if (screen == null) {
             throw new IllegalStateException("Expected a screen before injecting a key");
         }
-        screen.keyPressed(keyCode, 0, modifiers);
+        var press = new net.minecraftforge.client.event.ScreenEvent.KeyPressed.Pre(
+                screen, keyCode, 0, modifiers);
+        ca.teamdman.sfm.client.handler.SFMDynamicKeyBindingHandler.onScreenKeyPressed(press);
+        SFM.LOGGER.info("SFM_PUPPET_SCREEN_KEY key={} modifiers={} consumed={}",
+                keyCode, modifiers, press.isCanceled());
+        if (!press.isCanceled()) screen.keyPressed(keyCode, 0, modifiers);
+        ca.teamdman.sfm.client.handler.SFMDynamicKeyBindingHandler.onKey(
+                new net.minecraftforge.client.event.InputEvent.Key(
+                        keyCode, 0, GLFW.GLFW_PRESS, modifiers));
+
+        Screen releaseScreen = minecraft.screen;
+        if (releaseScreen != null) {
+            var release = new net.minecraftforge.client.event.ScreenEvent.KeyReleased.Pre(
+                    releaseScreen, keyCode, 0, modifiers);
+            ca.teamdman.sfm.client.handler.SFMDynamicKeyBindingHandler.onScreenKeyReleased(release);
+            if (!release.isCanceled()) releaseScreen.keyReleased(keyCode, 0, modifiers);
+        }
+        ca.teamdman.sfm.client.handler.SFMDynamicKeyBindingHandler.onKey(
+                new net.minecraftforge.client.event.InputEvent.Key(
+                        keyCode, 0, GLFW.GLFW_RELEASE, modifiers));
     }
 
     @Override

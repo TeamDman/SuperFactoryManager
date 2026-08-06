@@ -41,16 +41,36 @@ public final class TitleScreenWorkspaceGamePuppet {
         puppet.executeCommandPalette("sfm action invoke sfm:panel/scale/set 2");
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
         puppet.assertWorkspaceState(3, 2, 2, "stacked workspace opening", 2);
+        puppet.pressScreenKey(
+                GLFW.GLFW_KEY_EQUAL,
+                GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_SHIFT);
+        puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
+        puppet.assertWorkspaceState(3, 2, 2, "stacked workspace opening", 3);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_0, GLFW.GLFW_MOD_CONTROL);
+        puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
+        puppet.assertWorkspaceState(3, 2, 2, "stacked workspace opening", -1);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_F3, 0);
+        puppet.assertActionChoice(java.util.List.of(
+                "sfm action invoke sfm:panel/open sfm:size_display",
+                "sfm action invoke sfm:panel/open/left sfm:size_display",
+                "sfm action invoke sfm:panel/open/right sfm:size_display",
+                "sfm action invoke sfm:panel/open/above sfm:size_display",
+                "sfm action invoke sfm:panel/open/below sfm:size_display"
+        ));
+        puppet.capture("workspace-contextual-diagnostics", caption(
+                "F3 is a registered contextual action and panel scale defaults use the same input path."
+        ));
+        puppet.closeScreenNaturally();
         puppet.openCommandPalette();
         puppet.executeCommandPalette("sfm action invoke sfm:panel/move/left");
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
-        puppet.assertWorkspaceState(3, 2, 2, "stacked workspace opening", 2);
+        puppet.assertWorkspaceState(3, 2, 2, "stacked workspace opening", -1);
         puppet.capture("workspace-stack-navigation", caption(
                 "Panel stack traversal, per-entry scale, and identity-preserving move are observable in one workspace."
         ));
 
         puppet.pressScreenKey(GLFW.GLFW_KEY_1, GLFW.GLFW_MOD_CONTROL);
-        puppet.assertWorkspaceState(3, 2, 2, "stacked workspace opening", 2);
+        puppet.assertWorkspaceState(3, 2, 2, "stacked workspace opening", -1);
         puppet.pressScreenKey(GLFW.GLFW_KEY_2, GLFW.GLFW_MOD_CONTROL);
         puppet.assertWorkspaceState(3, 2, 1, "first workspace opening", -1);
 
@@ -66,6 +86,14 @@ public final class TitleScreenWorkspaceGamePuppet {
         puppet.executeCommandPalette(OPEN_COMMAND + "second workspace opening");
         puppet.waitForScreen(SFMScreenMultiplexer.class);
         puppet.capture("workspace-reopened", caption("The same registered action reopened a fresh workspace."));
+        puppet.pressScreenKey(
+                GLFW.GLFW_KEY_W,
+                GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_SHIFT);
+        puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
+        puppet.assertWorkspaceState(1, 1, 1, "Title Screen", -1);
+        puppet.capture("workspace-contextual-close", caption(
+                "Ctrl+Shift+W closes exactly the focused panel through its registered default action."
+        ));
         puppet.closeScreenNaturally();
     }
 

@@ -279,4 +279,18 @@ class SFMWorkspaceLayoutTests {
         assertEquals(4, layout.metadata(leftId).guiScaleOverride());
         assertEquals(2, layout.metadata(rightId).guiScaleOverride());
     }
+
+    @Test
+    void capturedPanelScaleDoesNotRetargetAfterFocusChanges() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.sideBySide(left, right);
+        SFMWorkspacePanelId capturedLeft = layout.panels().get(0).id();
+        SFMWorkspacePanelId focusedRight = layout.panels().get(1).id();
+        assertTrue(layout.focus(focusedRight));
+
+        assertTrue(layout.setGuiScale(capturedLeft, 4));
+
+        assertEquals(4, layout.metadata(capturedLeft).guiScaleOverride());
+        assertNull(layout.metadata(focusedRight).guiScaleOverride());
+        assertEquals(focusedRight, layout.focusedPanel());
+    }
 }

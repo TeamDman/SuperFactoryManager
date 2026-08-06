@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.keybinding;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,11 +16,15 @@ public final class SFMKeyBindingDisplay {
 
     public static String format(SFMKeyStroke stroke) {
         List<String> parts = new ArrayList<>();
+        boolean mainRowPlus = stroke.keyCode() == GLFW.GLFW_KEY_EQUAL
+                && stroke.modifiers().contains(SFMKeyModifier.SHIFT);
         if (stroke.modifiers().contains(SFMKeyModifier.CONTROL)) parts.add("Ctrl");
         if (stroke.modifiers().contains(SFMKeyModifier.ALT)) parts.add("Alt");
-        if (stroke.modifiers().contains(SFMKeyModifier.SHIFT)) parts.add("Shift");
+        if (stroke.modifiers().contains(SFMKeyModifier.SHIFT) && !mainRowPlus) parts.add("Shift");
         if (stroke.modifiers().contains(SFMKeyModifier.SUPER)) parts.add("Super");
-        parts.add(InputConstants.Type.KEYSYM.getOrCreate(stroke.keyCode()).getDisplayName().getString());
+        parts.add(mainRowPlus
+                ? "+"
+                : InputConstants.Type.KEYSYM.getOrCreate(stroke.keyCode()).getDisplayName().getString());
         return String.join("+", parts);
     }
 }

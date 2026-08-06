@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.registry.SFMClientActions;
+import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.screen.widget.SFMVerticalListViewport;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
@@ -74,6 +75,11 @@ public final class SFMKeyBindingScreen extends Screen {
         renderBackground(poseStack);
         Component heading = title.copy().withStyle(ChatFormatting.BOLD);
         SFMFontUtils.draw(poseStack, font, heading, width / 2 - font.width(heading) / 2, 14, 0xFFFFFFFF, true);
+        if (!SFMKeyBindingService.INSTANCE.persistenceWritable()) {
+            String warning = "Binding file needs recovery; edits are session-only";
+            SFMFontUtils.draw(poseStack, font, warning,
+                    width / 2 - font.width(warning) / 2, 24, 0xFFFF7777, true);
+        }
         SFMVerticalListViewport.ScrollbarGeometry scrollbar = scrollbarGeometry();
         SFMVerticalListViewport.Bounds rows = rowBounds(scrollbar.visible());
         OptionalInt hoveredRow = viewport.rowAt(mouseX, mouseY, rows, ROW_STRIDE, ROW_HEIGHT);

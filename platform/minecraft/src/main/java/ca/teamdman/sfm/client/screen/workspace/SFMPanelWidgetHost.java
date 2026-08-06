@@ -21,6 +21,7 @@ public final class SFMPanelWidgetHost {
     private @Nullable ResourceLocation rememberedFocus;
     private boolean active = true;
     private boolean dragging;
+    private long focusRevision;
 
     public List<SFMPanelWidget> children() {
         return List.copyOf(children);
@@ -29,6 +30,7 @@ public final class SFMPanelWidgetHost {
     public void setChildren(Collection<? extends SFMPanelWidget> nextChildren) {
         Objects.requireNonNull(nextChildren);
         ResourceLocation previous = focused == null ? rememberedFocus : focused.elementId();
+        long previousRevision = focusRevision;
         clearFocus(false);
         children.clear();
         for (SFMPanelWidget child : nextChildren) {
@@ -39,6 +41,8 @@ public final class SFMPanelWidgetHost {
         }
         rememberedFocus = previous;
         restoreRememberedFocus();
+        ResourceLocation restored = focused == null ? null : focused.elementId();
+        if (Objects.equals(previous, restored)) focusRevision = previousRevision;
     }
 
     public void clear() {
@@ -55,6 +59,10 @@ public final class SFMPanelWidgetHost {
 
     public Optional<ResourceLocation> focusedElementId() {
         return focusedChild().map(SFMPanelWidget::elementId);
+    }
+
+    public long focusRevision() {
+        return focusRevision;
     }
 
     public Optional<Component> focusedNarration() {
@@ -224,11 +232,15 @@ public final class SFMPanelWidgetHost {
         if (focused != null) setFocused(focused, false);
         focused = child;
         rememberedFocus = child.elementId();
+        focusRevision++;
         setFocused(child, active);
     }
 
     private void clearFocus(boolean forget) {
-        if (focused != null) setFocused(focused, false);
+        if (focused != null) {
+            setFocused(focused, false);
+            focusRevision++;
+        }
         focused = null;
         if (forget) rememberedFocus = null;
     }

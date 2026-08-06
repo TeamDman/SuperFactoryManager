@@ -3,7 +3,7 @@
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 **Intent audit:** Passed 2026-08-05 against the complete 2026-08-05 user message
 
 ## How to update this plan
@@ -49,7 +49,7 @@ problem without adding another terminal-only focus mechanism.
 | KBIND-1 | Add a default binding for `sfm action invoke sfm:panel/close`. | K-3/K-4 provide a stable overridable default; the working default is Ctrl+Shift+W in the SFM workspace context, matching Microsoft Terminal close-pane. | — |
 | KBIND-2 | Add panel-resize and panel-duplicate actions using the Microsoft Terminal hotkey defaults. | K-4 adds hierarchical actions, pure layout behavior, and defaults from the pinned local Terminal `defaults.json`: Alt+Shift+arrows resize; Alt+Shift+minus duplicates below; Alt+Shift+plus duplicates right. | — |
 | KBIND-3 | Preserve the existing generic `KeyOrChord -> SomeActionString` model; when the action string still has required arguments, open the command palette for completion rather than failing or inventing arguments. | K-3 migrates the existing dispatch behavior and tests contextual incomplete drafts. | — |
-| KBIND-4 | The terminal F3 behavior must appear in SFM Shortcuts as a real binding/action. | K-3 registers the diagnostic-choice behavior as a semantic action and seeds F3 contextually; K-5 removes the hard-coded multiplexer-only path. | — |
+| KBIND-4 | The terminal F3 behavior must appear in SFM Shortcuts as a real binding/action. | K-3 registers the diagnostic-choice behavior as a semantic action, seeds F3 contextually, and removes the hard-coded multiplexer-only path; K-5 audits the remaining SFM-owned raw handlers. | — |
 | KUI-1 | `sfm:keybindings/manage` needs sortable Name and Binding Count headers. | K-6 adds keyboard-focusable headers, ascending/descending state, stable tie breaks, and filter/scroll preservation. | — |
 | KUI-2 | Binding entry needs a focusable capture mechanism that records the entered mapping. | K-6 introduces a dedicated capture widget integrated with normal focus and dispatch suspension. | — |
 | KUI-3 | Triple Escape should back out of capture; each captured chord element is a keyboard-focusable button that removes that element when activated. | K-6 defines the time-bounded cancel sequence, removable stroke chips, Save/Cancel focus targets, and mouse/keyboard parity. | — |
@@ -233,7 +233,7 @@ Out of scope unless a later goal explicitly expands it:
 | Gate | Decision required | Working recommendation | Acceptance consequence |
 | --- | --- | --- | --- |
 | D-1 Duplicate state semantics | Does duplicate create an independent panel from a re-open recipe, alias the same live object, or vary by panel type? | Independent panel from a typed scene/address recipe. Terminal duplicates create a distinct session; explorers/editors share immutable source/address inputs but own independent focus/scroll/dirty state. Panels without a recipe report unavailable. | K-4 tests lifecycle independence, terminal session identity, source sharing, unsupported panels, stacks, and close behavior. This gate blocks duplicate implementation, not K-1/K-3. |
-| D-2 Situation ancestry and precedence | How do focused element, panel, workspace, and optional global situations compose when bindings overlap or a sequence is partial? | Ordered deepest-to-broadest ancestry; the most-specific complete binding wins, equal-specificity conflicts are diagnosed and do not double-fire, and a reserved partial sequence consumes only while it remains viable. | K-3 tests terminal pass-through, local/global conflict separation, sequence timeout/focus loss, and one invocation per event. |
+| D-2 Situation ancestry and precedence | How do focused element, panel, workspace, and optional global situations compose when bindings overlap or a sequence is partial? | **Closed by K-3 (2026-08-06):** `sfm:terminal -> sfm:default -> sfm:workspace -> sfm:global`; resolve deepest to broadest, let a deeper viable partial reserve before a broader completion, let a same-depth completion win over a longer same-depth prefix, diagnose equal-depth completions without invoking either, and forward a failed/mismatched partial's current stroke exactly once. | K-3 registry/matcher tests plus the real Forge pre-screen live witness prove precedence, reset, conflict, and fallback. |
 | D-3 Semantic action boundary | Must every editor/navigation impulse be a registry entry, or only semantic operations with parameterized low-level input beneath them? | Register semantic operations and stable parameterized action kinds; do not register every character or coordinate. All visible buttons and non-text shortcuts still expose a semantic action contribution. | K-5 audit has explicit categories and exemptions instead of either thousands of actions or silent hard-coded behavior. |
 | D-4 Action Explorer naming | Rename the current surface immediately, or introduce the addressable explorer first and migrate the old title later? | Use “SFM Actions & Shortcuts” during K phases; introduce `sfm:registry_explorer`/action projection in A-4, then retire or redirect redundant presentation only with live parity. | K-6 and A-4 user-facing names, compatibility, and migration tests differ. |
 | D-5 Address text grammar | Freeze the exact serialized spelling for resolver id, registry id, entry id, device id, path segments, escaping, and fragments. | First define typed components and fixture round trips. Preserve `sfm:registry/minecraft/item/minecraft/stick`, `sfm:registry/sfm/client_actions/sfm/developer/open_text_editor`, `sfm:path/options.txt`, and `sfm:path/c/tmp/a.txt` as proposed-intent fixtures, but do not rely on ambiguous unescaped slash concatenation. | A-1 cannot expose persistent links/history until canonical parse/print fixtures are approved. This does not block K phases. |
@@ -478,7 +478,7 @@ selection/clipboard, and retained PTY focus gestures. Browsable evidence is in
 The complete canonical 1.19.2 test suite also passed; two Windows symlink
 fixtures were explicitly aborted by their existing privilege assumptions.
 
-### [ ] K-3 Register keyboard-usage situations and migrate binding storage/defaults
+### [x] K-3 Register keyboard-usage situations and migrate binding storage/defaults
 
 **Work:** Close D-2. Add the contributor registry, active-context snapshot,
 context-aware engine, schema-1 to schema-2 migration, explicit global scope,
@@ -503,6 +503,38 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeyBindingEngineT
 defaults do not leak outside SFM-owned focus; existing global bindings migrate;
 F3 and panel close appear as ordinary action bindings; and unmatched terminal
 input still reaches Rust exactly once.
+
+**Completion evidence — 2026-08-06:** The contributor registry now exposes the
+stable ancestry `sfm:terminal -> sfm:default -> sfm:workspace -> sfm:global`,
+and one immutable host/panel/element/focus-revision snapshot drives matching at
+Forge's cancellable pre-screen boundary. Multi-parent situations resolve by
+breadth/depth so all direct parents have equal precedence. The matcher implements
+D-2, including self-overlapping chords without restarting a successfully
+continued chord as an unrelated one-stroke action; unavailable and unmatched
+terminal relationships remain unconsumed. The input bridge tracks consumed and
+held keys through canceled releases, suppresses associated AltGr/surrogate
+character events, and intercepts Vanilla's pre-Forge screenshot/fullscreen keys
+through a narrow 1.19.2 mixin so contextual bindings can reserve them.
+
+Schema 2 persists standalone user relationships, field-level built-in overrides,
+built-in tombstones, and observed-default fingerprints. Schema 1 migrates as
+explicit-global state through a backup plus atomic replacement; corrupt, future,
+or structurally incomplete files remain untouched and visibly read-only, and a
+failed save switches the session to visible read-only persistence rather than
+claiming success. Immutable contextual defaults cover panel close, F3 diagnostics,
+and main/keypad scale parity; the management UI exposes situation, origin,
+conflict, restore, and a visible storage-recovery warning. Focused
+`SFMKeyboardUsageSituationTests`, `SFMKeyBindingStorageTests`, and
+`SFMKeyBindingEngineTests` passed. The canonical
+`title_screen_dynamic_key_bindings`, `title_screen_workspace`, and
+`title_screen_rust_terminal_presentation` puppets passed, including real
+pre-screen complete/incomplete dispatch, Ctrl++/Ctrl+0, F3 choices,
+Ctrl+Shift+W, and terminal presentation/input pass-through. Evidence is under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_dyn-20260806-003236-037/`,
+`title_screen_wor-20260806-003416-703/`, and
+`title_screen_rus-20260806-004017-716/`. The complete canonical 1.19.2 test
+suite passed, with only the two Windows symlink fixtures explicitly aborted by
+their existing privilege assumptions.
 
 ### [ ] K-4 Add resize and independent duplicate panel actions
 
@@ -703,18 +735,18 @@ candidate release; no propagation or publication occurs without a later goal.
 
 ## Next recommended vertical slice
 
-K-1 and K-2 are complete. The next implementation goal should complete **K-3**:
-introduce contextual matching and default persistence, expose the focused
-widget's stable keyboard-usage situation to binding resolution, and make F3 and
-panel close discoverable contextual actions without stealing unmatched terminal
-input. K-4 remains a separate follow-on because its duplicate-state semantics
-and panel topology changes deserve an independent proof boundary.
+K-1 through K-3 are complete. The next implementation goal should complete
+**K-4**: add bounded directional panel resize plus independent, recipe-backed
+panel duplication, register the hierarchical actions, and seed the approved
+Microsoft Terminal defaults through K-3's contextual/default lifecycle. Move
+remains a distinct transfer operation, mutable panel instances are never
+aliased, and unsupported panel types report unavailable.
 
-In parallel, an independent worker may implement the pure situation/storage
-model from K-3 without integrating global event routing, while another may
-write K-4 layout fixtures after D-1 closes. The integration owner retains
-`SFMScreenMultiplexer`, terminal panels, action registration, plans, changelog,
-and puppets.
+In parallel, an independent worker may inventory and test typed panel re-open
+recipes while another builds the pure nested-layout resize fixtures. A third
+read-only worker may prepare K-5's action-element inventory without changing
+input routing. The integration owner retains `SFMScreenMultiplexer`, action and
+default registration, plans, changelog, and the live workspace puppet.
 
 ## Overall completion criteria
 

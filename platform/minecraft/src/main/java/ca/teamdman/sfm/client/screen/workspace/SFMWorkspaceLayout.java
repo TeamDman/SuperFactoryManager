@@ -234,12 +234,16 @@ public final class SFMWorkspaceLayout {
     }
 
     public boolean setFocusedGuiScale(@Nullable Integer scale) {
-        PanelNode focused = find(root, focusedPanel);
+        return setGuiScale(focusedPanel, scale);
+    }
+
+    public boolean setGuiScale(SFMWorkspacePanelId panelId, @Nullable Integer scale) {
+        PanelNode focused = find(root, panelId);
         if (focused == null) return false;
         SFMWorkspacePanelMetadata metadata = scale == null
                 ? focused.metadata().clearGuiScaleOverride()
                 : focused.metadata().withGuiScaleOverride(scale);
-        return updateMetadata(focusedPanel, metadata);
+        return updateMetadata(panelId, metadata);
     }
 
     /** Sets the allocation constraint on the track directly containing this panel. */

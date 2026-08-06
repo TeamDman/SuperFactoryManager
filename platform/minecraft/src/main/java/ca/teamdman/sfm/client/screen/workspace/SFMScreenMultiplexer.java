@@ -1,6 +1,11 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.keybinding.SFMKeyBindingEngine;
+import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
+import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextSnapshot;
+import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageSituationCatalog;
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
@@ -51,6 +56,8 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private boolean closing;
     private @Nullable Component dropFeedback;
     private long panelGroupRevision = Long.MIN_VALUE;
+    private @Nullable SFMWorkspacePanelId observedFocusedPanel;
+    private long keyboardFocusRevision;
 
     private SFMScreenMultiplexer(
             @Nullable Screen previousScreen,
@@ -206,6 +213,16 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return changed;
     }
 
+    public boolean setPanelGuiScale(SFMWorkspacePanelId panelId, @Nullable Integer scale) {
+        boolean changed = layout.setGuiScale(panelId, scale);
+        if (changed) refreshLayout(true);
+        return changed;
+    }
+
+    public List<SFMWorkspaceLayout.PanelEntry> panelSlotEntries(SFMWorkspacePanelId panelId) {
+        return layout.slotEntries(panelId);
+    }
+
     public boolean rotateVisibleContent(int direction) {
         boolean changed = layout.rotateVisibleContent(direction);
         if (changed) refreshLayout(true);
@@ -338,6 +355,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         }
         panelBounds = layout.bounds(new SFMScreenPanelBounds(0, 0, this.width, this.height), DIVIDER_WIDTH);
         synchronizeWidgetHostActivation();
+        observeWorkspaceFocus();
         if (!notifyPanels || this.minecraft == null) return;
         // A hidden stack entry remains a live panel. Closing it here destroys
         // panel-local state (notably its PTY and selected transport) merely
@@ -441,12 +459,6 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         boolean control = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0 || Screen.hasControlDown();
         boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0 || Screen.hasShiftDown();
-        if (keyCode == GLFW.GLFW_KEY_F3) {
-            SFMCommandPaletteScreen.openChoices(
-                    Component.literal("SFM diagnostics"),
-                    diagnosticChoices(layout.panel(layout.focusedPanel())));
-            return true;
-        }
         if (panelGroup != null && control && keyCode == GLFW.GLFW_KEY_M) {
             SFMScreenPanel focused = layout.panel(layout.focusedPanel());
             if (focused != null) {
@@ -488,7 +500,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return diagnosticChoices(null);
     }
 
-    static List<SFMActionChoice> diagnosticChoices(@Nullable SFMScreenPanel focused) {
+    public static List<SFMActionChoice> diagnosticChoices(@Nullable SFMScreenPanel focused) {
         String scene = "sfm:size_display";
         List<SFMActionChoice> choices = new ArrayList<>();
         if (focused instanceof SFMTerminalPanel terminal && terminal.isRustBacked()) {
@@ -679,6 +691,73 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             entry.panel().widgetHost().ifPresent(host -> host.setActive(entry.id().equals(focusedPanel)));
         }
     }
+
+    /** Captures the exact panel/widget context targeted by one key event. */
+    public SFMKeyboardUsageContextSnapshot keyboardUsageContextSnapshot() {
+        observeWorkspaceFocus();
+        SFMWorkspacePanelId panelId = layout.focusedPanel();
+        SFMScreenPanel panel = layout.panel(panelId);
+        @Nullable SFMPanelWidgetHost host = panel == null
+                ? null
+                : panel.widgetHost().orElse(null);
+        @Nullable SFMPanelWidget child = host == null
+                ? null
+                : host.focusedChild().orElse(null);
+        ResourceLocation deepest = child == null
+                ? SFMKeyboardUsageSituations.DEFAULT
+                : child.keyboardUsageSituationId();
+        SFMKeyboardUsageSituationCatalog.ActiveAncestry ancestry =
+                SFMKeyboardUsageSituations.catalog().resolve(deepest);
+        List<ResourceLocation> situations = ancestry.situations();
+        @Nullable ResourceLocation elementId = child == null ? null : child.elementId();
+        long capturedWorkspaceRevision = keyboardFocusRevision;
+        long capturedElementRevision = host == null ? 0 : host.focusRevision();
+        return new SFMKeyboardUsageContextSnapshot(
+                this,
+                () -> isKeyboardUsageContextCurrent(
+                        panelId,
+                        elementId,
+                        capturedWorkspaceRevision,
+                        capturedElementRevision),
+                panelId,
+                elementId,
+                capturedWorkspaceRevision,
+                capturedElementRevision,
+                situations,
+                ancestry.depths()
+        );
+    }
+
+    private boolean isKeyboardUsageContextCurrent(
+            SFMWorkspacePanelId panelId,
+            @Nullable ResourceLocation elementId,
+            long workspaceRevision,
+            long elementRevision
+    ) {
+        if (Minecraft.getInstance().screen != this
+                || keyboardFocusRevision != workspaceRevision
+                || !layout.focusedPanel().equals(panelId)) return false;
+        SFMScreenPanel panel = layout.panel(panelId);
+        if (panel == null) return false;
+        @Nullable SFMPanelWidgetHost host = panel.widgetHost().orElse(null);
+        if (host == null) return elementId == null && elementRevision == 0;
+        return host.focusRevision() == elementRevision
+                && java.util.Objects.equals(host.focusedElementId().orElse(null), elementId);
+    }
+
+    private void observeWorkspaceFocus() {
+        SFMWorkspacePanelId focused = layout.focusedPanel();
+        if (java.util.Objects.equals(observedFocusedPanel, focused)) return;
+        observedFocusedPanel = focused;
+        keyboardFocusRevision++;
+        // Pure layout/action tests construct a workspace without bootstrapping
+        // Minecraft. Revision identity still updates there; only the live
+        // input engine needs an eager reset.
+        if (Minecraft.getInstance() != null) {
+            SFMKeyBindingService.INSTANCE.reset(SFMKeyBindingEngine.ResetReason.CONTEXT_CHANGED);
+        }
+    }
+
 
     private void renderEntryAffordances(
             PoseStack poseStack,

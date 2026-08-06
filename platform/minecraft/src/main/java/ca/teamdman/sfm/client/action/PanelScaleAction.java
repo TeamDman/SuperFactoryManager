@@ -59,19 +59,29 @@ public final class PanelScaleAction implements SFMClientAction<SFMScreenMultiple
     public int execute(SFMScreenMultiplexer workspace, CommandContext<SFMClientActionSource> context)
             throws CommandSyntaxException {
         int maximum = maximumScale(Minecraft.getInstance());
+        var capturedPanelId = context.getSource().context().originatingPanelId();
+        var targetPanelId = capturedPanelId == null
+                ? workspace.focusedPanelId()
+                : capturedPanelId;
+        var targetEntry = workspace.panelSlotEntries(targetPanelId).stream()
+                .filter(entry -> entry.id().equals(targetPanelId))
+                .findFirst();
         Integer requested = switch (operation) {
             case SET -> IntegerArgumentType.getInteger(context, "scale");
-            case INCREASE -> workspace.focusedSlotEntries().stream()
-                    .findFirst().map(entry -> entry.metadata().guiScaleOverride()).orElse(1) + 1;
-            case DECREASE -> workspace.focusedSlotEntries().stream()
-                    .findFirst().map(entry -> entry.metadata().guiScaleOverride()).orElse(2) - 1;
+            case INCREASE -> targetEntry
+                    .map(entry -> entry.metadata().guiScaleOverride()).orElse(1) + 1;
+            case DECREASE -> targetEntry
+                    .map(entry -> entry.metadata().guiScaleOverride()).orElse(2) - 1;
             case CLEAR -> null;
         };
         if (requested != null && (requested < 1 || requested > maximum)) {
             throw new SimpleCommandExceptionType(Component.literal(
                     "Panel GUI scale must be between 1 and " + maximum)).create();
         }
-        if (!workspace.setFocusedGuiScale(requested)) return 0;
+        boolean changed = capturedPanelId == null
+                ? workspace.setFocusedGuiScale(requested)
+                : workspace.setPanelGuiScale(capturedPanelId, requested);
+        if (!changed) return 0;
         context.getSource().sendFeedback(Component.literal(
                 requested == null ? "Panel GUI scale cleared" : "Panel GUI scale set to " + requested));
         return PanelActionSupport.closePaletteAfter(1);

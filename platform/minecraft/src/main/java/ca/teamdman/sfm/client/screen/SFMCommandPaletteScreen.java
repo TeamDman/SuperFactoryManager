@@ -156,6 +156,22 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.initialQuery = choiceSession.prefix();
     }
 
+    private SFMCommandPaletteScreen(
+            SFMClientActionContext capturedContext,
+            Component title,
+            List<SFMActionChoice> choices,
+            boolean pushed
+    ) {
+        super(title);
+        this.pushed = pushed;
+        this.actionContext = new SFMClientActionContext(
+                capturedContext.originatingHost(),
+                () -> ACTIVE == this && Minecraft.getInstance().screen == this,
+                capturedContext.originatingPanelId());
+        this.choiceSession = SFMChoiceSessionService.create(choices, actionContext);
+        this.initialQuery = choiceSession.prefix();
+    }
+
     public static SFMClientActionContext createOriginContext() {
         Screen origin = SFMScreenChangeHelpers.getCurrentScreen();
         return SFMClientActionContext.create(origin, () -> isOriginStillActive(origin));
@@ -189,6 +205,25 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         boolean pushed = origin != null;
         SFMCommandPaletteScreen palette = new SFMCommandPaletteScreen(
                 origin, title, choices, pushed);
+        ACTIVE = palette;
+        try {
+            SFMScreenChangeHelpers.setOrPushScreen(palette);
+        } catch (RuntimeException exception) {
+            SFMChoiceSessionService.invalidate(palette.choiceSession);
+            if (ACTIVE == palette) ACTIVE = null;
+            throw exception;
+        }
+    }
+
+    public static void openChoices(
+            SFMClientActionContext capturedContext,
+            Component title,
+            List<SFMActionChoice> choices
+    ) {
+        Minecraft minecraft = Minecraft.getInstance();
+        boolean pushed = minecraft.screen != null;
+        SFMCommandPaletteScreen palette = new SFMCommandPaletteScreen(
+                capturedContext, title, choices, pushed);
         ACTIVE = palette;
         try {
             SFMScreenChangeHelpers.setOrPushScreen(palette);

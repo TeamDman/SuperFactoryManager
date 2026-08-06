@@ -3,6 +3,8 @@ package ca.teamdman.sfm;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.registry.SFMClientScreenTypes;
 import ca.teamdman.sfm.client.registry.SFMMenuScreens;
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituationRegistrations;
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
@@ -74,6 +76,8 @@ public class SFM {
 
         SFMClientActions.register(bus);
 
+        SFMKeyboardUsageSituations.register(bus);
+
         SFMClientScreenTypes.register(bus);
 
         SFMWorkspaceScreenTypes.register(bus);
@@ -81,6 +85,8 @@ public class SFM {
         SFMDocumentActionTarget.Actions.register(bus);
 
         SFMCommandPaletteActions.register(bus);
+
+        SFMKeyboardUsageSituationRegistrations.register(bus);
 
         SFMDeveloperActions.register(bus);
 

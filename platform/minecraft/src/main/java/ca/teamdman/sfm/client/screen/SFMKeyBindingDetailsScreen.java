@@ -8,6 +8,7 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyModifier;
 import ca.teamdman.sfm.client.keybinding.SFMKeySequence;
 import ca.teamdman.sfm.client.keybinding.SFMKeyStroke;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
@@ -29,6 +30,7 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
     private boolean recording;
     private String replacingBindingId;
     private String replacingCommandDraft;
+    private ResourceLocation selectedSituationId = SFMKeyboardUsageSituations.GLOBAL;
 
     public SFMKeyBindingDetailsScreen(Screen parent, ResourceLocation actionId) {
         super(Component.literal("Action details"));
@@ -51,6 +53,7 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                         recording = true;
                         replacingBindingId = binding.bindingId();
                         replacingCommandDraft = binding.commandDraft();
+                        selectedSituationId = binding.situationId();
                         captured.clear();
                         SFMKeyBindingService.INSTANCE.setDispatchSuspended(true);
                     })
@@ -75,6 +78,18 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                     .build());
             y += 26;
         }
+        for (SFMKeyBinding binding : SFMKeyBindingService.INSTANCE.tombstonedBuiltInsForAction(actionId)) {
+            addRenderableWidget(new SFMButtonBuilder()
+                    .setPosition(left + 304, y)
+                    .setSize(72, 20)
+                    .setText(Component.literal("Restore"))
+                    .setOnPress(button -> {
+                        SFMKeyBindingService.INSTANCE.restoreBuiltIn(binding.bindingId());
+                        reopen();
+                    })
+                    .build());
+            y += 26;
+        }
         addRenderableWidget(new SFMButtonBuilder()
                 .setPosition(left, Math.min(height - 52, y + 6))
                 .setSize(150, 20)
@@ -83,8 +98,18 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                     recording = true;
                     replacingBindingId = null;
                     replacingCommandDraft = null;
+                    selectedSituationId = SFMKeyboardUsageSituations.GLOBAL;
                     captured.clear();
                     SFMKeyBindingService.INSTANCE.setDispatchSuspended(true);
+                })
+                .build());
+        addRenderableWidget(new SFMButtonBuilder()
+                .setPosition(left + 158, Math.min(height - 52, y + 6))
+                .setSize(150, 20)
+                .setText(scopeLabel())
+                .setOnPress(button -> {
+                    cycleSituation();
+                    button.setMessage(scopeLabel());
                 })
                 .build());
         addRenderableWidget(new SFMButtonBuilder()
@@ -112,7 +137,8 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
         SFMFontUtils.draw(poseStack, font, "Key sequences", left, 94, 0xFFFFFFFF, false);
         int y = 118;
         List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId);
-        if (bindings.isEmpty()) {
+        List<SFMKeyBinding> tombstones = SFMKeyBindingService.INSTANCE.tombstonedBuiltInsForAction(actionId);
+        if (bindings.isEmpty() && tombstones.isEmpty()) {
             SFMFontUtils.draw(poseStack, font, "No bindings", left, y, 0xFF999999, false);
         } else {
             for (SFMKeyBinding binding : bindings) {
@@ -129,17 +155,29 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                         conflict ? 0xFFFF5555 : binding.enabled() ? 0xFFFFFFFF : 0xFF888888,
                         false
                 );
-                SFMFontUtils.draw(poseStack, font, font.plainSubstrByWidth(binding.commandDraft(), 168),
+                String detail = scopeDisplay(binding.situationId()) + "  |  "
+                        + originName(binding.bindingId()) + "  |  " + binding.commandDraft();
+                SFMFontUtils.draw(poseStack, font, font.plainSubstrByWidth(detail, 168),
                         left, y + 10, 0xFF777777, false);
                 y += 26;
             }
+        }
+        for (SFMKeyBinding binding : tombstones) {
+            String text = SFMKeyBindingDisplay.format(binding.sequence()) + " (removed default)";
+            SFMFontUtils.draw(poseStack, font, text, left, y, 0xFF888888, false);
+            SFMFontUtils.draw(poseStack, font,
+                    font.plainSubstrByWidth(scopeDisplay(binding.situationId()) + "  |  Built-in tombstone", 280),
+                    left, y + 10, 0xFF777777, false);
+            y += 26;
         }
         if (recording) {
             String preview = captured.isEmpty()
                     ? "Press a shortcut, then Enter to save"
                     : SFMKeyBindingDisplay.format(new SFMKeySequence(captured)) + "   [Enter to save]";
             fill(poseStack, left, height - 58, left + 376, height - 38, 0xEE303030);
-            SFMFontUtils.draw(poseStack, font, preview, left + 6, height - 52, 0xFFFFFF55, false);
+            SFMFontUtils.draw(poseStack, font,
+                    font.plainSubstrByWidth(preview + "  |  " + scopeDisplay(selectedSituationId), 364),
+                    left + 6, height - 52, 0xFFFFFF55, false);
         }
         super.render(poseStack, mouseX, mouseY, partialTick);
     }
@@ -201,10 +239,41 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                 id,
                 actionId.toString(),
                 commandDraft,
+                selectedSituationId,
                 new SFMKeySequence(captured),
                 true
         ));
         reopen();
+    }
+
+    private void cycleSituation() {
+        List<ResourceLocation> ids = SFMKeyBindingService.INSTANCE.situationIds();
+        if (ids.isEmpty()) return;
+        int current = ids.indexOf(selectedSituationId);
+        selectedSituationId = ids.get(Math.floorMod(current + 1, ids.size()));
+    }
+
+    private Component scopeLabel() {
+        return Component.literal("Scope: " + scopeName(selectedSituationId));
+    }
+
+    private String scopeName(ResourceLocation situationId) {
+        return SFMKeyBindingService.INSTANCE.situation(situationId)
+                .map(situation -> situation.title().getString())
+                .orElse(situationId.toString());
+    }
+
+    private String scopeDisplay(ResourceLocation situationId) {
+        return scopeName(situationId) + " [" + situationId + "]";
+    }
+
+    private String originName(String bindingId) {
+        return switch (SFMKeyBindingService.INSTANCE.profile().origin(bindingId)) {
+            case BUILT_IN -> "Built-in";
+            case OVERRIDDEN_DEFAULT -> "Overridden default";
+            case USER -> "User";
+            case EPHEMERAL -> "Session-only";
+        };
     }
 
     private void reopen() {
