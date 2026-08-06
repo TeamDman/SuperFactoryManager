@@ -36,6 +36,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private static final int CONTENT_HORIZONTAL_PADDING = 8;
     private static final int CONTENT_BOTTOM_PADDING = 4;
     private static final int TITLE_CONTENT_GAP = 12;
+    private static final int VANILLA_CONTROL_HEIGHT = 20;
 
     @SFMLocalizationDatagen
     public static final LocalizationEntry ESCAPE_FOCUS_HINT = new LocalizationEntry(
@@ -210,6 +211,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 (keyCode, scanCode, modifiers) -> presentationControlKeyPressed(keyCode),
                 ignored -> { }
         );
+        widgetHost.setFocusStateListener(this::terminalWidgetFocusChanged);
         rebuildTerminalWidgets();
         this.connectionStatus = remoteService == null
                 ? "Java-local terminal"
@@ -313,7 +315,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (!disconnectedControlsVisible) invalidateDisconnectedStartButtonPresentation();
         presentationButton.visible = remoteService != null;
         presentationButton.active = remoteService != null;
-        int controlHeight = Math.max(1, viewport.lineHeight() + 4);
+        int controlHeight = Math.max(VANILLA_CONTROL_HEIGHT, viewport.lineHeight() + 4);
         layoutPresentationControl(controlHeight);
         presentationButton.setPanelBounds(new SFMScreenPanelBounds(
                 presentationButtonLeft,
@@ -346,6 +348,20 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         for (SFMPanelActionButton option : presentationOptions) {
             option.visible = remoteService != null && presentationMenuOpen;
         }
+    }
+
+    private void terminalWidgetFocusChanged(SFMPanelWidgetHost.FocusState state) {
+        ResourceLocation focusedElementId = state.focusedElementId();
+        if (!presentationMenuOpen || state.active() && isPresentationElement(focusedElementId)) return;
+        presentationMenuOpen = false;
+        updatePresentationOptionVisibility();
+    }
+
+    private static boolean isPresentationElement(ResourceLocation elementId) {
+        return elementId != null
+                && elementId.getNamespace().equals(SFM.MOD_ID)
+                && (elementId.equals(PRESENTATION_ELEMENT)
+                || elementId.getPath().startsWith("terminal/presentation/"));
     }
 
     private void selectPresentationOption(PresentationAxis axis, int index, String draft) {
@@ -463,7 +479,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 remoteService != null
         );
         applyViewport(viewport);
-        layoutPresentationControl(viewport.lineHeight() + 4);
+        layoutPresentationControl(Math.max(VANILLA_CONTROL_HEIGHT, viewport.lineHeight() + 4));
         // Establish valid child rectangles immediately. The next render refines
         // disconnected/presented visibility from the actual retained frame.
         synchronizeTerminalWidgets(remoteService == null || remoteService.isConnected(), viewport);

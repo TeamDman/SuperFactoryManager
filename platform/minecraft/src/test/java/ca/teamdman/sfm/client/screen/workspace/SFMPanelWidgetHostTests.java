@@ -10,6 +10,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -142,6 +143,39 @@ class SFMPanelWidgetHostTests {
         assertFalse(host.mouseScrolled(5, 5, 1));
         child.scrollHandled = true;
         assertTrue(host.mouseScrolled(5, 5, 1));
+    }
+
+    @Test
+    void emptyClickClearsFocusAndPublishesTheExclusiveFocusState() {
+        SFMPanelWidgetHost host = new SFMPanelWidgetHost();
+        FakeWidget child = widget("focused");
+        child.setPanelBounds(new SFMScreenPanelBounds(4, 6, 20, 10));
+        host.setChildren(List.of(child));
+        List<SFMPanelWidgetHost.FocusState> states = new ArrayList<>();
+        host.setFocusStateListener(states::add);
+        assertTrue(host.focus(child.elementId()));
+
+        assertFalse(host.mouseClicked(100, 100, GLFW.GLFW_MOUSE_BUTTON_LEFT));
+
+        assertTrue(host.focusedChild().isEmpty());
+        assertFalse(child.focused);
+        assertNull(states.get(states.size() - 1).focusedElementId());
+    }
+
+    @Test
+    void deactivatingHostPublishesInactiveStateWithoutForgettingLogicalFocus() {
+        SFMPanelWidgetHost host = new SFMPanelWidgetHost();
+        FakeWidget child = widget("remembered-inactive");
+        host.setChildren(List.of(child));
+        assertTrue(host.focus(child.elementId()));
+        List<SFMPanelWidgetHost.FocusState> states = new ArrayList<>();
+        host.setFocusStateListener(states::add);
+
+        host.setActive(false);
+
+        assertEquals(child.elementId(), host.focusedElementId().orElseThrow());
+        assertFalse(states.get(states.size() - 1).active());
+        assertEquals(child.elementId(), states.get(states.size() - 1).focusedElementId());
     }
 
     private static FakeWidget widget(String path) {

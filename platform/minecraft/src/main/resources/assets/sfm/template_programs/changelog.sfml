@@ -54,6 +54,7 @@ NAME "Changelog"
 -- Add searchable runtime SFM shortcuts with action details, cycling palette badges, and typed command prompting
 -- Add contributor-defined contextual shortcuts with explicit global scope, safe migration, overridable panel defaults, and action-backed F3 diagnostics
 -- Add bounded directional panel resizing and independent recipe-backed duplication with Microsoft Terminal-compatible contextual shortcuts
+-- Fix terminal presentation menu sizing, exclusive focus, and click-away dismissal
 -- Add Minecraft ItemStack icons with accessible text to the file explorer and command palette
 -- Add reloadable TOML client themes for palette/timeline colours, SFML syntax styles, and item icons
 -- Insert the required separator when a palette action still needs Brigadier arguments

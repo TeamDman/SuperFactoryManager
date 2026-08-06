@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /** Ordered focus/event host for children embedded in one workspace panel. */
 public final class SFMPanelWidgetHost {
@@ -22,6 +23,15 @@ public final class SFMPanelWidgetHost {
     private boolean active = true;
     private boolean dragging;
     private long focusRevision;
+    private Consumer<FocusState> focusStateListener = ignored -> { };
+
+    public record FocusState(boolean active, @Nullable ResourceLocation focusedElementId) {
+    }
+
+    public void setFocusStateListener(Consumer<FocusState> listener) {
+        focusStateListener = Objects.requireNonNull(listener);
+        notifyFocusState();
+    }
 
     public List<SFMPanelWidget> children() {
         return List.copyOf(children);
@@ -82,6 +92,7 @@ public final class SFMPanelWidgetHost {
         this.active = active;
         if (focused != null) setFocused(focused, active);
         if (!active) dragging = false;
+        notifyFocusState();
     }
 
     public boolean focus(ResourceLocation elementId) {
@@ -158,6 +169,10 @@ public final class SFMPanelWidgetHost {
             // terminal viewport.
             return true;
         }
+        // Vanilla clears child focus when the user clicks empty screen space.
+        // This also lets composite controls dismiss transient popups without
+        // every panel maintaining a second outside-click routing mechanism.
+        clearFocus(true);
         return false;
     }
 
@@ -234,6 +249,7 @@ public final class SFMPanelWidgetHost {
         rememberedFocus = child.elementId();
         focusRevision++;
         setFocused(child, active);
+        notifyFocusState();
     }
 
     private void clearFocus(boolean forget) {
@@ -243,6 +259,13 @@ public final class SFMPanelWidgetHost {
         }
         focused = null;
         if (forget) rememberedFocus = null;
+        notifyFocusState();
+    }
+
+    private void notifyFocusState() {
+        focusStateListener.accept(new FocusState(
+                active,
+                focused == null ? null : focused.elementId()));
     }
 
     private static boolean focusable(SFMPanelWidget child) {

@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetrics;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelWidgetHost;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelWidget;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import org.lwjgl.glfw.GLFW;
@@ -125,9 +126,9 @@ class SFMTerminalPanelInteractionTests {
         assertFalse(widgets.mouseClicked(8, 20, 0), "title chrome is outside the terminal viewport");
         assertTrue(service.mouseInputs.isEmpty(), "panel chrome must not reach the PTY");
 
-        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertFalse(widgets.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
         assertTrue(service.keyInputs.isEmpty(),
-                "non-viewport clicks must not silently transfer presentation-control focus");
+                "non-viewport clicks must dismiss presentation focus without reaching the PTY");
     }
 
     @Test
@@ -225,6 +226,65 @@ class SFMTerminalPanelInteractionTests {
         assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_ESCAPE, 0, 0));
         assertEquals(selector, widgets.focusedElementId().orElseThrow());
         assertTrue(service.keyInputs.isEmpty(), "choice navigation must remain Java-local");
+    }
+
+    @Test
+    void presentationControlUsesVanillaHeightAndOutsideClickDismissesItsChoices() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.rendererOptions = List.of(new SFMTerminalRendererOption(
+                SFMTerminalRendererId.RUST_CPU_FONTDUE,
+                SFMTerminalRasterizationOwner.SERVER,
+                true,
+                ""));
+        SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> { }, draft -> true);
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
+        ResourceLocation selector = new ResourceLocation("sfm", "terminal/presentation/select");
+        var selectorWidget = widgets.children().stream()
+                .filter(child -> child.elementId().equals(selector))
+                .findFirst()
+                .orElseThrow();
+
+        assertTrue(selectorWidget.isMouseOver(700, 22),
+                "the selector must retain the full 20-pixel Vanilla button height");
+        assertTrue(widgets.mouseClicked(700, 10, GLFW.GLFW_MOUSE_BUTTON_LEFT));
+        assertTrue(widgets.children().stream().anyMatch(child ->
+                child.elementId().getPath().startsWith("terminal/presentation/renderer/")
+                        && child.isPanelVisible()));
+
+        assertFalse(widgets.mouseClicked(8, 20, GLFW.GLFW_MOUSE_BUTTON_LEFT));
+        assertTrue(widgets.focusedChild().isEmpty());
+        assertFalse(widgets.children().stream().anyMatch(child ->
+                child.elementId().getPath().startsWith("terminal/presentation/renderer/")
+                        && child.isPanelVisible()));
+    }
+
+    @Test
+    void presentationChoicesCloseWhenFocusLeavesTheirScope() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.connected = false;
+        service.rendererOptions = List.of(new SFMTerminalRendererOption(
+                SFMTerminalRendererId.RUST_CPU_FONTDUE,
+                SFMTerminalRasterizationOwner.SERVER,
+                true,
+                ""));
+        SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> { }, draft -> true);
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
+        ResourceLocation selector = new ResourceLocation("sfm", "terminal/presentation/select");
+        ResourceLocation start = new ResourceLocation("sfm", "terminal/server/start_control");
+        assertTrue(widgets.focus(selector));
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertEquals(1, widgets.children().stream().filter(SFMPanelWidget::isPanelFocused).count(),
+                "opening the selector must not leave Start/Retry or an option focused too");
+
+        assertTrue(widgets.focus(start));
+
+        assertEquals(start, widgets.focusedElementId().orElseThrow());
+        assertEquals(1, widgets.children().stream().filter(SFMPanelWidget::isPanelFocused).count());
+        assertFalse(widgets.children().stream().anyMatch(child ->
+                child.elementId().getPath().startsWith("terminal/presentation/renderer/")
+                        && child.isPanelVisible()));
     }
 
     @Test

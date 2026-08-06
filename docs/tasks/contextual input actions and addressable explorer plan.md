@@ -478,6 +478,16 @@ selection/clipboard, and retained PTY focus gestures. Browsable evidence is in
 The complete canonical 1.19.2 test suite also passed; two Windows symlink
 fixtures were explicitly aborted by their existing privilege assumptions.
 
+**Follow-up correction — 2026-08-06:** The Presentation selector and option
+rows now retain Vanilla's 20-pixel minimum button height. `SFMPanelWidgetHost`
+publishes one authoritative active/focused-child state and clears child focus
+on empty-area clicks; the terminal treats its selector and visible options as
+one focus scope, dismissing the menu when a click, focus traversal, or panel
+deactivation leaves that scope. Focused host/terminal tests prove click-away
+dismissal and that Start/Retry, the selector, and hidden options can never
+remain focused simultaneously. The canonical full 1.19.2 Java suite passed;
+only the two existing Windows symbolic-link assumptions aborted.
+
 ### [x] K-3 Register keyboard-usage situations and migrate binding storage/defaults
 
 **Work:** Close D-2. Add the contributor registry, active-context snapshot,
