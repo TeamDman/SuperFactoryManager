@@ -20,6 +20,8 @@ This plan coordinates the existing terminal-bridge, dependency-lock, and cross-v
 | I-PASTE-1 | Any paste containing CR or LF must stop before PTY mutation and show the exact multiline warning, bounded clipboard preview, and `Paste anyway` / `Cancel` choices. | V-4.2e specifies guard detection, exact warning copy, bounded private preview, focus restoration, and no-write-before-confirmation tests. | — |
 | I-PASTE-2 | Teamy Terminal and Java each retain their own clipboard adapter while collaborating through typed guarded and bypass paste signals, with supplied versus automatic clipboard bodies. | Teamy 3.6.4f and V-4.2e define one guard engine and Java-friendly wire records equivalent to `Paste{WithGuard,WithoutGuard}` and `PasteBody{Supplied,Auto}`. | — |
 | I-KEY-1 | Focused-panel scale increase/decrease/clear use one canonical main-row physical binding each: Ctrl+Equal, Ctrl+Minus, and Ctrl+0. The UI renders separated physical-key tokens such as `Ctrl =`, not ambiguous logical-glyph strings such as `Ctrl++`; duplicate keypad defaults are not shipped. They must appear in the palette `[?]` binding behavior. | P-5.2 corrects the defaults, migration fingerprint and exact event-consumption tests, and reuses one token model for text fallbacks plus pink read-only keycaps; K-6 makes capture keycaps focusable/removable. | Earlier Ctrl+plus/main-keypad parity wording |
+| I-KEY-2 | Clearing a panel scale selects auto/inherited rather than numeric zero. If auto resolves to N, the first increase selects N+1 and the first decrease selects explicit N; later adjustments continue numerically. Thus auto=4 gives `Ctrl+0, Ctrl+= -> 5` and `Ctrl+0, Ctrl+- -> 4`, never 1. | P-2.5 defines auto's ordered transition position; P-5.2/K-7 prove the registered actions and contextual shortcuts use it. | — |
+| I-KEY-3 | Panel scale feedback must be a transient fading toast, not a persistent panel label. Auto reports both state and effective value (`gui scale auto (4)`). A relative adjustment at a numeric boundary repeats the current scale toast with a small shake. | P-2.6 removes the persistent affordance and P-5.5/K-7 proves fade, effective-auto text, and boundary re-notification. | — |
 | I-PAL-1 | Typing a later grammar atom in the action slot, such as `sfm action invoke term`, must discover complete grammar-valid literal continuations including `sfm:panel/open sfm:terminal`, directional panel-open variants, and `sfm:terminal_properties`. | P-5.2 adds bounded literal-descendant traversal over the already-compiled Brigadier tree, returns whole continuation paths, preserves action metadata from the first token, and never invokes argument suggestion providers during the traversal. | — |
 | I-HIST-1 | The palette stores command history for ranking; at the default `sfm action invoke ` query, the exact most recently executed command is the first suggestion. | P-5.3 records successful palette executions and injects full-command MRU candidates ahead of ordinary blank-query action ids. | — |
 | I-HIST-2 | `sfm:palette/history/open` opens a read-only history document, supports center/left/right/above/below placement and an optional editor id, and discards changes. | P-5.4 uses hierarchical placement actions, with the base action meaning center/focused, and enforces read-only behavior across every selectable editor. | — |
@@ -37,6 +39,8 @@ This plan coordinates the existing terminal-bridge, dependency-lock, and cross-v
 | --- | --- | --- |
 | I-SEL-1, I-SEL-2, I-PASTE-1, I-PASTE-2 | Vox terminal plan V-4.2e; Teamy Terminal plan 3.6.4f | Facet round trips/package, Teamy core/Vox/native tests, SFM focused tests, and a live normal/high-scale selection/copy/paste puppet |
 | I-KEY-1 | P-5.2 and P-5.5 | Storage/default/conflict tests, palette `[?]` capture, and focused-terminal non-leak assertion |
+| I-KEY-2 | P-2.5, P-5.2, and P-5.5 | Pure auto/explicit transition tests plus a live clear/increase/clear/decrease artifact showing effective and stored scales |
+| I-KEY-3 | P-2.6, P-5.2, and P-5.5 | Live toast captures for auto/effective text, fade-out, and repeated boundary attempts with shake |
 | I-PAL-1 | P-5.2 and P-5.5 | Unit proof for full nested paths, unavailable-tree exclusion and executability, plus a live `term` palette capture |
 | I-HIST-1 | P-5.3 and P-5.5 | Bounded storage/ranking tests and a live execute/reopen/MRU witness |
 | I-HIST-2, I-HIST-3 | P-5.4 and P-5.5 | Action completion, all placements, editor selection/read-only enforcement, and clear-remains-empty witness |
@@ -476,13 +480,23 @@ among only the currently visible entries while preserving geometry and
 content. Hidden entries remain unchanged in their existing stacks. Binding
 both actions to one key composes the two transformations.
 
+The nullable override is a state, not numeric zero. Auto/inherited resolves to
+the current effective global GUI scale N and occupies the ordered position
+immediately above explicit N: increase from auto selects N+1; decrease from
+auto selects explicit N; subsequent operations adjust the explicit integer.
+This avoids both the old auto-to-1 jump and an unexpected visual jump on the
+first decrement. Bounds remain 1 through the runtime maximum.
+
 ### P-2.6 Stack and scale affordances
 
 When a slot contains multiple entries, show compact numbered boxes in its
-bottom-right corner and identify the visible entry. Show `gui scale N` when an
-entry overrides the global scale. Puppets and headless observations must expose
-slot order, stack order, visible entry, focus, dimensions, and scale so the
-behavior can be asserted without relying only on screenshots.
+bottom-right corner and identify the visible entry. Scale mutations use a
+transient workspace toast rather than a persistent panel label; clearing to
+auto reports `gui scale auto (N)` with the current effective inherited value.
+At a numeric boundary, the current value is shown again with a short shake.
+Puppets and headless observations must expose slot order, stack order, visible
+entry, focus, dimensions, scale, and toast state so the behavior can be
+asserted without relying only on screenshots.
 
 ### P-2 implementation evidence
 
@@ -888,6 +902,14 @@ viewport runs pass. The canonical full `Tests` run reports `650 found, 648
 passed, 0 failed, 2 aborted`; both aborts are the established Windows symlink-
 privilege assumptions. P-5.2 remains open for K-5 through K-7 and P-5.5 still
 owns the live palette/keycap evidence.
+
+I-KEY-2 subsequently corrected relative scale actions to resolve auto through
+the current effective window GUI scale. Pure tests retain the asymmetric first
+step (`auto N -> N+1` on increase, `auto N -> explicit N` on decrease) and
+ordinary numeric continuation thereafter. Focused `PanelScaleActionTests` and
+`PanelActionTests` pass; the subsequent canonical full run reports `653 found,
+651 passed, 0 failed, 2 aborted`, with only the established Windows symlink-
+privilege assumptions aborted. K-7/P-5.5 still own the live witness.
 
 ### [ ] P-5.3 Persist successful palette commands and rank full MRU entries
 

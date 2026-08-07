@@ -58,6 +58,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private Map<SFMWorkspacePanelId, SFMScreenPanelBounds> panelBounds = Map.of();
     private boolean closing;
     private @Nullable Component dropFeedback;
+    private @Nullable WorkspaceToast workspaceToast;
     private long panelGroupRevision = Long.MIN_VALUE;
     private @Nullable SFMWorkspacePanelId observedFocusedPanel;
     private long keyboardFocusRevision;
@@ -555,6 +556,15 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     public void tick() {
         if (panelGroup != null && panelGroupRevision != panelGroup.revision()) refreshLayout(true);
         for (SFMWorkspaceLayout.PanelEntry entry : layout.visiblePanels()) entry.panel().tick();
+        if (workspaceToast != null && workspaceToast.isExpired(System.nanoTime())) workspaceToast = null;
+    }
+
+    /** Shows the current panel scale without permanently occupying panel space. */
+    public void showGuiScaleToast(@Nullable Integer override, int inheritedScale, boolean shake) {
+        String label = override == null
+                ? "gui scale auto (" + inheritedScale + ")"
+                : "gui scale " + override;
+        workspaceToast = new WorkspaceToast(Component.literal(label), System.nanoTime(), shake);
     }
 
     @Override
@@ -617,6 +627,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMFontUtils.draw(poseStack, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
         super.render(poseStack, mouseX, mouseY, partialTick);
+        renderWorkspaceToast(poseStack);
     }
 
     @Override
@@ -949,11 +960,64 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                         true);
             }
         }
-        if (entry.metadata().guiScaleOverride() != null) {
-            String label = "gui scale " + entry.metadata().guiScaleOverride();
-            SFMFontUtils.draw(poseStack, this.font, label,
-                    Math.max(bounds.x() + 2, bounds.x() + bounds.width() - this.font.width(label) - 4),
-                    Math.max(bounds.y() + 2, bounds.y() + bounds.height() - 24), 0xFFFFFFFF, true);
+    }
+
+    private void renderWorkspaceToast(PoseStack poseStack) {
+        if (workspaceToast == null) return;
+        long elapsedNanos = Math.max(0L, System.nanoTime() - workspaceToast.startedNanos());
+        double elapsedMillis = elapsedNanos / 1_000_000.0D;
+        if (elapsedMillis >= WorkspaceToast.DURATION_MILLIS) return;
+
+        float opacity = workspaceToast.opacity(elapsedMillis);
+        int alpha = Math.max(0, Math.min(255, Math.round(opacity * 255.0F)));
+        String text = workspaceToast.message().getString();
+        int paddingX = 8;
+        int paddingY = 5;
+        int boxWidth = this.font.width(text) + paddingX * 2;
+        int boxHeight = this.font.lineHeight + paddingY * 2;
+        int shakeOffset = workspaceToast.shakeOffset(elapsedMillis);
+        int left = Math.max(2, (this.width - boxWidth) / 2 + shakeOffset);
+        int top = Math.max(2, this.height - boxHeight - 18);
+        int right = Math.min(this.width - 2, left + boxWidth);
+        int bottom = Math.min(this.height - 2, top + boxHeight);
+        fill(poseStack, left, top, right, bottom, withAlpha(0x20252B, alpha));
+        fill(poseStack, left, top, right, top + 1, withAlpha(0x55FFFF, alpha));
+        fill(poseStack, left, bottom - 1, right, bottom, withAlpha(0x55FFFF, alpha));
+        fill(poseStack, left, top, left + 1, bottom, withAlpha(0x55FFFF, alpha));
+        fill(poseStack, right - 1, top, right, bottom, withAlpha(0x55FFFF, alpha));
+        SFMFontUtils.draw(poseStack, this.font, text, left + paddingX, top + paddingY,
+                withAlpha(0xFFFFFF, alpha), true);
+    }
+
+    private static int withAlpha(int rgb, int alpha) {
+        return (alpha << 24) | (rgb & 0x00FFFFFF);
+    }
+
+    private record WorkspaceToast(Component message, long startedNanos, boolean shake) {
+        private static final double DURATION_MILLIS = 2_200.0D;
+        private static final double FADE_IN_MILLIS = 140.0D;
+        private static final double FADE_OUT_MILLIS = 650.0D;
+        private static final double SHAKE_MILLIS = 480.0D;
+
+        private boolean isExpired(long nowNanos) {
+            return nowNanos - startedNanos >= (long) (DURATION_MILLIS * 1_000_000.0D);
+        }
+
+        private float opacity(double elapsedMillis) {
+            if (elapsedMillis < FADE_IN_MILLIS) {
+                return (float) (elapsedMillis / FADE_IN_MILLIS);
+            }
+            double fadeOutStart = DURATION_MILLIS - FADE_OUT_MILLIS;
+            if (elapsedMillis > fadeOutStart) {
+                return (float) Math.max(0.0D, (DURATION_MILLIS - elapsedMillis) / FADE_OUT_MILLIS);
+            }
+            return 1.0F;
+        }
+
+        private int shakeOffset(double elapsedMillis) {
+            if (!shake || elapsedMillis >= SHAKE_MILLIS) return 0;
+            double strength = 1.0D - elapsedMillis / SHAKE_MILLIS;
+            return (int) Math.round(Math.sin(elapsedMillis / 24.0D * Math.PI * 2.0D) * 3.0D * strength);
         }
     }
 

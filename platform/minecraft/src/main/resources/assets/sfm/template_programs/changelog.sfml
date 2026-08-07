@@ -55,6 +55,8 @@ NAME "Changelog"
 -- Add contributor-defined contextual shortcuts with explicit global scope, safe migration, overridable panel defaults, and action-backed F3 diagnostics
 -- Discover complete nested command-palette paths such as panel-opening terminal scenes from later-literal fuzzy queries
 -- Fix panel-scale shortcuts to use one physical Ctrl+Equal default and render unambiguous pink keycaps
+-- Make the first panel-scale adjustment relative to the effective auto scale instead of the auto sentinel
+-- Show panel-scale changes as fading workspace toasts, including effective auto scale and boundary shake feedback
 -- Add bounded directional panel resizing and independent recipe-backed duplication with Microsoft Terminal-compatible contextual shortcuts
 -- Fix terminal presentation menu sizing, exclusive focus, and click-away dismissal
 -- Separate the disconnected Rust terminal landing page from the connected terminal widget tree and retain connection results without flashing
