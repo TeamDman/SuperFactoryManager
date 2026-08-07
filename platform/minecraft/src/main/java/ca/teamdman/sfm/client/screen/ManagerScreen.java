@@ -2,7 +2,11 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.client.action.SFMClientActionContext;
+import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
+import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMActionButton;
 import ca.teamdman.sfm.client.screen.widget.SFMExtendedButtonWithTooltip;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
 import ca.teamdman.sfm.common.command.ConfigCommandBehaviourInput;
@@ -319,7 +323,7 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
             return true;
         } else if (SFMKeyMappings.isKeyDown(SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY)
                    && editButton.visible) {
-            onEditButtonClicked();
+            invokeEditAction();
             return true;
         }
         return super.keyPressed(pKeyCode, pScanCode, pModifiers);
@@ -382,22 +386,18 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
                         )
                         .build()
         );
-        editButton = this.addRenderableWidget(
-                new SFMButtonBuilder()
-                        .setPosition(
-                                (this.width - this.imageWidth) / 2 - buttonWidth,
-                                (this.height - this.imageHeight) / 2 + 16 + 50
-                        )
-                        .setSize(buttonWidth, buttonHeight)
-                        .setText(MANAGER_GUI_EDIT_BUTTON)
-                        .setOnPress(button -> onEditButtonClicked())
-                        .setTooltip(
-                                this,
-                                font,
-                                MANAGER_GUI_EDIT_BUTTON_TOOLTIP.getComponent(SFMKeyMappings.getKeyDisplay(SFMKeyMappings.MANAGER_SCREEN_OPEN_TEXT_EDITOR_KEY))
-                        )
-                        .build()
-        );
+        editButton = this.addRenderableWidget(new SFMActionButton(
+                (this.width - this.imageWidth) / 2 - buttonWidth,
+                (this.height - this.imageHeight) / 2 + 16 + 50,
+                buttonWidth,
+                buttonHeight,
+                MANAGER_GUI_EDIT_BUTTON.getComponent(),
+                new ResourceLocation(SFM.MOD_ID, "manager/edit"),
+                new ResourceLocation(SFM.MOD_ID, "default"),
+                () -> MANAGER_GUI_EDIT_BUTTON_TOOLTIP.getComponent(),
+                () -> "sfm action invoke sfm:manager/edit",
+                button -> invokeEditAction()
+        ));
         examplesButton = this.addRenderableWidget(
                 new SFMButtonBuilder()
                         .setPosition(
@@ -514,13 +514,24 @@ public class ManagerScreen extends AbstractContainerScreen<ManagerContainerMenu>
         return menu.program;
     }
 
-    private void onEditButtonClicked() {
+    public void openProgramEditorFromAction() {
 
         SFMScreenChangeHelpers.showProgramEditScreen(new SFMTextEditScreenDiskOpenContext(
                 getProgram(),
                 LabelPositionHolder.from(menu.getDisk()),
                 this::sendProgram
         ));
+    }
+
+    private void invokeEditAction() {
+        try {
+            SFMClientActionExecutor.execute(
+                    "sfm action invoke sfm:manager/edit",
+                    SFMClientActionContext.create(this, () -> Minecraft.getInstance().screen == this),
+                    message -> SFM.LOGGER.warn("Manager edit action feedback: {}", message.getString()));
+        } catch (Exception exception) {
+            SFM.LOGGER.error("Manager edit action failed", exception);
+        }
     }
 
     private void onExamplesButtonClicked() {

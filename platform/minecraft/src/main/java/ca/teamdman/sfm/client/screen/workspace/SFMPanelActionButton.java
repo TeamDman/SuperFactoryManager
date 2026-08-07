@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import ca.teamdman.sfm.client.action.SFMActionElementAudit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
@@ -51,6 +52,7 @@ public final class SFMPanelActionButton extends Button implements SFMPanelWidget
         this.keyHandler = Objects.requireNonNull(keyHandler);
         this.focusListener = Objects.requireNonNull(focusListener);
         Objects.requireNonNull(activation);
+        SFMActionElementAudit.requireValid(this);
     }
 
     @Override

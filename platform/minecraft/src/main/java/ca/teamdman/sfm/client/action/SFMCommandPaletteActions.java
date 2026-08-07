@@ -207,6 +207,11 @@ public final class SFMCommandPaletteActions {
             OpenMinecraftControlsAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, ManagerEditAction> MANAGER_EDIT = REGISTERER.register(
+            "manager/edit",
+            ManagerEditAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, SFMGuiScaleAction> SET_GUI_SCALE = REGISTERER.register(
             "ui/gui_scale/set",
             () -> new SFMGuiScaleAction(SFMGuiScaleAction.Operation.SET)

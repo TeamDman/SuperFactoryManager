@@ -694,6 +694,21 @@ cached Forge renaming-tool replacement failure, but it did not block the
 current focused test run. This is progress, not K-5 completion; the remaining
 raw-handler inventory, action-element audit, and live witness stay open.
 
+**Incremental progress — 2026-08-07 (action-element proof):** Added the
+`SFMActionElement` contract and deterministic line-oriented inventory/audit.
+`SFMPanelWidgetHost.actionElements()` exposes live panel children to the audit
+without creating a second mutable registry, and `SFMPanelActionButton` now
+rejects missing situation, narration, keyboard reachability, semantic action,
+or public coordinate-click metadata at construction time. Migrated the
+Manager Edit button and its legacy key path through registered
+`sfm:manager/edit`; its requirement captures the exact active `ManagerScreen`,
+which is the bounded proof that dynamic manager position/owner context stays
+attached to the semantic action. Focused pure tests cover deterministic
+inventory, audit failures, and wrong-host unavailability. The canonical test
+run is currently blocked by unrelated in-progress K-6 compile errors in
+`SFMKeySequenceCaptureWidget` and missing `Optional` imports in
+`SFMKeyBindingScreen`; do not treat that blocker as K-5 completion.
+
 ### [ ] K-6 Upgrade binding management with sorting and composable capture
 
 **Work:** Close D-4's K-phase naming. Add focusable Name and Binding Count
@@ -843,18 +858,20 @@ candidate release; no propagation or publication occurs without a later goal.
 
 ## Next recommended vertical slice
 
-K-1 through K-3 are complete. The next implementation goal should complete
-**K-4**: add bounded directional panel resize plus independent, recipe-backed
-panel duplication, register the hierarchical actions, and seed the approved
-Microsoft Terminal defaults through K-3's contextual/default lifecycle. Move
-remains a distinct transfer operation, mutable panel instances are never
-aliased, and unsupported panel types report unavailable.
+K-1 through K-4 are complete. The active K-5 slice is the first executable
+action-element proof: shared metadata/audit for visible SFM controls, a stable
+panel-widget inventory, and the non-panel Manager Edit relationship. Manager
+Edit captures the exact `ManagerScreen` as the action target, so its dynamic
+manager position and owning screen cannot silently drift to another screen.
+Coordinate-click drafts remain explicitly rejected by the public audit. This
+is a bounded wave, not a claim that every legacy raw handler has already been
+migrated; the remaining inventory and live puppet are still K-5 completion
+work.
 
-In parallel, an independent worker may inventory and test typed panel re-open
-recipes while another builds the pure nested-layout resize fixtures. A third
-read-only worker may prepare K-5's action-element inventory without changing
-input routing. The integration owner retains `SFMScreenMultiplexer`, action and
-default registration, plans, changelog, and the live workspace puppet.
+K-6 remains independent and may proceed in parallel on sorting and composable
+key-sequence capture. Integration must preserve the K-5/K-6 file boundary,
+generated resources, and the canonical plan until both focused slices have
+their own test evidence.
 
 ## Overall completion criteria
 

@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
+import ca.teamdman.sfm.client.action.SFMActionElement;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.network.chat.Component;
@@ -34,6 +35,15 @@ public final class SFMPanelWidgetHost {
     }
 
     public List<SFMPanelWidget> children() {
+        return List.copyOf(children);
+    }
+
+    /**
+     * Stable semantic inventory for audits and action explorers. The returned
+     * elements are the live widgets, so their action drafts and visibility
+     * remain contextual rather than becoming a second registry to maintain.
+     */
+    public List<SFMActionElement> actionElements() {
         return List.copyOf(children);
     }
 
