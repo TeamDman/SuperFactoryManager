@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.registry.SFMClientActions;
+import ca.teamdman.sfm.client.keybinding.SFMKeyBindingListModel;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
+import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.widget.SFMVerticalListViewport;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
@@ -11,13 +13,12 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
+import java.util.Optional;
 import java.util.OptionalInt;
 
 public final class SFMKeyBindingScreen extends Screen {
-    static final int LIST_TOP = 64;
+    static final int LIST_TOP = 88;
     static final int LIST_BOTTOM_MARGIN = 28;
     static final int ROW_STRIDE = 24;
     static final int ROW_HEIGHT = 22;
@@ -27,6 +28,8 @@ public final class SFMKeyBindingScreen extends Screen {
     private EditBox search;
     private List<ResourceLocation> visibleActions = List.of();
     private final SFMVerticalListViewport viewport = new SFMVerticalListViewport();
+    private final SFMKeyBindingListModel listModel = new SFMKeyBindingListModel(
+            id -> SFMKeyBindingService.INSTANCE.bindingsForAction(id));
     private String query = "";
     private final boolean pushed;
 
@@ -45,21 +48,49 @@ public final class SFMKeyBindingScreen extends Screen {
             query = value;
             refresh();
         });
+        int left = Math.max(12, (width - Math.min(420, width - 24)) / 2);
+        addRenderableWidget(new SFMButtonBuilder()
+                .setPosition(left, 62)
+                .setSize(112, 20)
+                .setText(Component.literal("Name"))
+                .setOnPress(button -> {
+                    listModel.toggleSort(SFMKeyBindingListModel.SortColumn.NAME);
+                    refresh();
+                })
+                .build());
+        addRenderableWidget(new SFMButtonBuilder()
+                .setPosition(left + 116, 62)
+                .setSize(130, 20)
+                .setText(Component.literal("Binding count"))
+                .setOnPress(button -> {
+                    listModel.toggleSort(SFMKeyBindingListModel.SortColumn.BINDING_COUNT);
+                    refresh();
+                })
+                .build());
+        addRenderableWidget(new SFMButtonBuilder()
+                .setPosition(left + 250, 62)
+                .setSize(170, 20)
+                .setText(scopeLabel())
+                .setOnPress(button -> {
+                    cycleScope();
+                    button.setMessage(scopeLabel());
+                    refresh();
+                })
+                .build());
         setInitialFocus(search);
         refresh();
     }
 
     private void refresh() {
         ResourceLocation previousSelection = selectedAction();
-        String normalizedQuery = query.toLowerCase(Locale.ROOT);
-        visibleActions = SFMClientActions.registry().keys().stream()
-                .filter(id -> {
-                    var action = SFMClientActions.registry().get(id);
-                    return id.toString().toLowerCase(Locale.ROOT).contains(normalizedQuery)
-                            || action != null && action.title().getString().toLowerCase(Locale.ROOT).contains(normalizedQuery);
-                })
-                .sorted(Comparator.comparing(ResourceLocation::toString))
-                .toList();
+        int previousFirstVisible = viewport.firstVisibleRow();
+        listModel.setActions(SFMClientActions.registry().keys().stream().toList());
+        listModel.setQuery(query);
+        visibleActions = listModel.visibleActions(
+                id -> Optional.ofNullable(SFMClientActions.registry().get(id))
+                        .map(action -> action.title().getString()).orElse(id.toString()),
+                id -> Optional.ofNullable(SFMClientActions.registry().get(id))
+                        .map(action -> action.description().getString()).orElse("")).stream().toList();
         viewport.configure(visibleActions.size(), visibleRowCount(height));
         if (visibleActions.isEmpty()) {
             viewport.select(SFMVerticalListViewport.NO_SELECTION);
@@ -68,6 +99,7 @@ public final class SFMKeyBindingScreen extends Screen {
         int selectedIndex = previousSelection == null ? -1 : visibleActions.indexOf(previousSelection);
         if (selectedIndex < 0) selectedIndex = Math.max(0, viewport.selectedRow());
         viewport.select(Math.min(selectedIndex, visibleActions.size() - 1));
+        viewport.scrollRows(previousFirstVisible - viewport.firstVisibleRow());
     }
 
     @Override
@@ -94,8 +126,9 @@ public final class SFMKeyBindingScreen extends Screen {
             fill(poseStack, rows.x(), rowTop, rows.x() + rows.width(), rowTop + ROW_HEIGHT, background);
             String actionTitle = font.plainSubstrByWidth(action.title().getString(), Math.max(20, rows.width() - 145));
             SFMFontUtils.draw(poseStack, font, actionTitle, rows.x() + 6, rowTop + 6, 0xFFFFFFFF, false);
-            String count = ca.teamdman.sfm.client.keybinding.SFMKeyBindingService.INSTANCE
-                    .bindingsForAction(actionId).size() + " bindings   [?]";
+            int total = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId).size();
+            int visible = listModel.filteredBindings(actionId).size();
+            String count = visible + "/" + total + " bindings   [?]";
             SFMFontUtils.draw(poseStack, font, count, rows.x() + rows.width() - 6 - font.width(count), rowTop + 6,
                     0xFF80D8FF, false);
         }
@@ -267,6 +300,26 @@ public final class SFMKeyBindingScreen extends Screen {
                 ROW_STRIDE,
                 ROW_HEIGHT
         );
+    }
+
+    private void cycleScope() {
+        List<ResourceLocation> scopes = SFMKeyBindingService.INSTANCE.situationIds();
+        if (scopes.isEmpty()) return;
+        Optional<ResourceLocation> current = listModel.situationFilter();
+        if (current.isEmpty()) {
+            listModel.setSituationFilter(scopes.get(0));
+            return;
+        }
+        int index = scopes.indexOf(current.get());
+        if (index < 0 || index + 1 >= scopes.size()) listModel.setSituationFilter(null);
+        else listModel.setSituationFilter(scopes.get(index + 1));
+    }
+
+    private Component scopeLabel() {
+        return listModel.situationFilter()
+                .map(id -> Component.literal("Scope: " + SFMKeyBindingService.INSTANCE.situation(id)
+                        .map(situation -> situation.title().getString()).orElse(id.toString())))
+                .orElse(Component.literal("Scope: all situations"));
     }
 
     @Override

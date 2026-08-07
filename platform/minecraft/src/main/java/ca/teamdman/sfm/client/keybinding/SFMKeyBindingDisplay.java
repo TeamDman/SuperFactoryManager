@@ -38,6 +38,7 @@ public final class SFMKeyBindingDisplay {
 
     private static String keyName(int keyCode) {
         return switch (keyCode) {
+            case GLFW.GLFW_KEY_ESCAPE -> "Esc";
             case GLFW.GLFW_KEY_EQUAL -> "=";
             case GLFW.GLFW_KEY_MINUS -> "-";
             case GLFW.GLFW_KEY_0 -> "0";

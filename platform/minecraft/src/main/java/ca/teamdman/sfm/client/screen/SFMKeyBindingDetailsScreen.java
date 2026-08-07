@@ -2,15 +2,14 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBinding;
-import ca.teamdman.sfm.client.keybinding.SFMKeyBindingDisplay;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
-import ca.teamdman.sfm.client.keybinding.SFMKeyModifier;
 import ca.teamdman.sfm.client.keybinding.SFMKeySequence;
-import ca.teamdman.sfm.client.keybinding.SFMKeyStroke;
+import ca.teamdman.sfm.client.keybinding.SFMKeySequenceCapture;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.widget.SFMKeycapRenderer;
+import ca.teamdman.sfm.client.screen.widget.SFMKeySequenceCaptureWidget;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
@@ -19,15 +18,14 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 
-import java.util.ArrayList;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
 
 public final class SFMKeyBindingDetailsScreen extends Screen {
     private final Screen parent;
     private final ResourceLocation actionId;
-    private final List<SFMKeyStroke> captured = new ArrayList<>();
+    private final SFMKeySequenceCapture capture = new SFMKeySequenceCapture();
+    private SFMKeySequenceCaptureWidget captureWidget;
     private boolean recording;
     private String replacingBindingId;
     private String replacingCommandDraft;
@@ -51,12 +49,10 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                     .setSize(56, 20)
                     .setText(Component.literal("Edit"))
                     .setOnPress(button -> {
-                        recording = true;
+                        beginRecording();
                         replacingBindingId = binding.bindingId();
                         replacingCommandDraft = binding.commandDraft();
                         selectedSituationId = binding.situationId();
-                        captured.clear();
-                        SFMKeyBindingService.INSTANCE.setDispatchSuspended(true);
                     })
                     .build());
             addRenderableWidget(new SFMButtonBuilder()
@@ -96,12 +92,10 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                 .setSize(150, 20)
                 .setText(Component.literal("Add key sequence"))
                 .setOnPress(button -> {
-                    recording = true;
+                    beginRecording();
                     replacingBindingId = null;
                     replacingCommandDraft = null;
                     selectedSituationId = SFMKeyboardUsageSituations.GLOBAL;
-                    captured.clear();
-                    SFMKeyBindingService.INSTANCE.setDispatchSuspended(true);
                 })
                 .build());
         addRenderableWidget(new SFMButtonBuilder()
@@ -119,6 +113,20 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                 .setText(CommonComponents.GUI_DONE)
                 .setOnPress(button -> onClose())
                 .build());
+        captureWidget = addRenderableWidget(new SFMKeySequenceCaptureWidget(
+                font,
+                left,
+                height - 82,
+                376,
+                30,
+                capture,
+                () -> { },
+                this::cancelRecording));
+        captureWidget.visible = recording;
+        if (recording) {
+            setFocused(captureWidget);
+            captureWidget.setFocused(true);
+        }
     }
 
     @Override
@@ -174,15 +182,9 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                     left, y + 10, 0xFF777777, false);
             y += 26;
         }
-        if (recording) {
-            String preview = captured.isEmpty()
-                    ? "Press a shortcut, then Enter to save"
-                    : SFMKeyBindingDisplay.format(new SFMKeySequence(captured)) + "   [Enter to save]";
-            fill(poseStack, left, height - 58, left + 376, height - 38, 0xEE303030);
-            SFMFontUtils.draw(poseStack, font,
-                    font.plainSubstrByWidth(preview + "  |  " + scopeDisplay(selectedSituationId), 364),
-                    left + 6, height - 52, 0xFFFFFF55, false);
-        }
+        if (recording) SFMFontUtils.draw(poseStack, font,
+                "Scope: " + scopeDisplay(selectedSituationId) + "  |  Enter saves  |  Esc x3 cancels",
+                left, height - 96, 0xFFFFFF55, false);
         super.render(poseStack, mouseX, mouseY, partialTick);
     }
 
@@ -196,20 +198,16 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
             return super.keyPressed(keyCode, scanCode, modifiers);
         }
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
-            recording = false;
-            replacingBindingId = null;
-            replacingCommandDraft = null;
-            captured.clear();
-            SFMKeyBindingService.INSTANCE.setDispatchSuspended(false);
+            if (recording) return captureWidget.keyPressed(keyCode, scanCode, modifiers);
+            onClose();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
-            if (!captured.isEmpty()) saveCaptured();
+            capture.commitPendingEscapes();
+            if (!capture.strokes().isEmpty()) saveCaptured();
             return true;
         }
-        if (isModifierKey(keyCode)) return true;
-        captured.add(new SFMKeyStroke(keyCode, modifiers(modifiers)));
-        return true;
+        return captureWidget.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
@@ -219,10 +217,8 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
     }
 
     public void beginRecordingForAutomation() {
-        recording = true;
+        beginRecording();
         replacingBindingId = null;
-        captured.clear();
-        SFMKeyBindingService.INSTANCE.setDispatchSuspended(true);
     }
 
     @Override
@@ -244,10 +240,30 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                 actionId.toString(),
                 commandDraft,
                 selectedSituationId,
-                new SFMKeySequence(captured),
+                new SFMKeySequence(capture.strokes()),
                 true
         ));
         reopen();
+    }
+
+    private void beginRecording() {
+        recording = true;
+        capture.clear();
+        if (captureWidget != null) {
+            captureWidget.visible = true;
+            setFocused(captureWidget);
+            captureWidget.setFocused(true);
+        }
+        SFMKeyBindingService.INSTANCE.setDispatchSuspended(true);
+    }
+
+    private void cancelRecording() {
+        recording = false;
+        replacingBindingId = null;
+        replacingCommandDraft = null;
+        capture.clear();
+        if (captureWidget != null) captureWidget.visible = false;
+        SFMKeyBindingService.INSTANCE.setDispatchSuspended(false);
     }
 
     private void cycleSituation() {
@@ -284,19 +300,4 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
         minecraft.setScreen(new SFMKeyBindingDetailsScreen(parent, actionId));
     }
 
-    private static boolean isModifierKey(int keyCode) {
-        return keyCode == GLFW.GLFW_KEY_LEFT_CONTROL || keyCode == GLFW.GLFW_KEY_RIGHT_CONTROL
-                || keyCode == GLFW.GLFW_KEY_LEFT_ALT || keyCode == GLFW.GLFW_KEY_RIGHT_ALT
-                || keyCode == GLFW.GLFW_KEY_LEFT_SHIFT || keyCode == GLFW.GLFW_KEY_RIGHT_SHIFT
-                || keyCode == GLFW.GLFW_KEY_LEFT_SUPER || keyCode == GLFW.GLFW_KEY_RIGHT_SUPER;
-    }
-
-    private static EnumSet<SFMKeyModifier> modifiers(int mask) {
-        EnumSet<SFMKeyModifier> result = EnumSet.noneOf(SFMKeyModifier.class);
-        if ((mask & GLFW.GLFW_MOD_CONTROL) != 0) result.add(SFMKeyModifier.CONTROL);
-        if ((mask & GLFW.GLFW_MOD_ALT) != 0) result.add(SFMKeyModifier.ALT);
-        if ((mask & GLFW.GLFW_MOD_SHIFT) != 0) result.add(SFMKeyModifier.SHIFT);
-        if ((mask & GLFW.GLFW_MOD_SUPER) != 0) result.add(SFMKeyModifier.SUPER);
-        return result;
-    }
 }
