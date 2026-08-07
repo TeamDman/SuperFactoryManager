@@ -917,9 +917,11 @@ is now registered (`panel/focus/next`, `panel/focus/previous`,
 routes Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+1..9, and Ctrl+M through the action
 executor with workspace-situation defaults. K-5 remains open for the broader
 raw-handler inventory, action-element audit, Manager Edit proof, and live
-witness. Focused CLI validation needs a fresh toolchain compile; the reusable
-test artifact was stale and the forced refresh encountered a cached Forge
-renaming-tool replacement failure.
+witness. The pure action-grammar test passes `2 found, 2 passed`, the affected
+keybinding slice passes `38 found, 38 passed`, and the current main/test source
+sets compile. A separate explicit compile refresh encountered a cached Forge
+renaming-tool replacement failure; that cache issue is recorded as tooling
+follow-up, not as a product test failure.
 
 ### [ ] P-5.3 Persist successful palette commands and rank full MRU entries
 

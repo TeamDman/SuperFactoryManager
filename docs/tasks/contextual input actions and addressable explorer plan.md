@@ -687,12 +687,12 @@ navigation family: `sfm:panel/focus/next`, `sfm:panel/focus/previous`,
 `sfm:panel/focus/index <1..9>`, and `sfm:panel/maximize/toggle`. The
 multiplexer now routes Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+1..9, and Ctrl+M through
 the action executor, while the defaults expose those relationships in the
-workspace situation. The pure action-grammar test seam is in place. The live
-CLI test still needs a fresh toolchain compile: the reusable test artifact
-continued to execute an earlier version of the test, and a forced refresh was
-blocked while replacing the cached Forge renaming tool. This is progress, not
-K-5 completion; the remaining raw-handler inventory, action-element audit, and
-live witness stay open.
+workspace situation. The pure action-grammar test passes `2 found, 2 passed`,
+the affected keybinding slice passes `38 found, 38 passed`, and the current
+main/test source sets compile. An explicit compile refresh separately hit a
+cached Forge renaming-tool replacement failure, but it did not block the
+current focused test run. This is progress, not K-5 completion; the remaining
+raw-handler inventory, action-element audit, and live witness stay open.
 
 ### [ ] K-6 Upgrade binding management with sorting and composable capture
 
