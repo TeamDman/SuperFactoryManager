@@ -911,6 +911,16 @@ ordinary numeric continuation thereafter. Focused `PanelScaleActionTests` and
 651 passed, 0 failed, 2 aborted`, with only the established Windows symlink-
 privilege assumptions aborted. K-7/P-5.5 still own the live witness.
 
+**K-5 progress — 2026-08-07:** The first semantic workspace-navigation family
+is now registered (`panel/focus/next`, `panel/focus/previous`,
+`panel/focus/index <1..9>`, and `panel/maximize/toggle`), and the multiplexer
+routes Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+1..9, and Ctrl+M through the action
+executor with workspace-situation defaults. K-5 remains open for the broader
+raw-handler inventory, action-element audit, Manager Edit proof, and live
+witness. Focused CLI validation needs a fresh toolchain compile; the reusable
+test artifact was stale and the forced refresh encountered a cached Forge
+renaming-tool replacement failure.
+
 ### [ ] P-5.3 Persist successful palette commands and rank full MRU entries
 
 **Work:** Add a bounded command-palette history service that records the exact

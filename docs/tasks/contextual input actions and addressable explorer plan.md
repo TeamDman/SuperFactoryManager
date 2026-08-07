@@ -682,6 +682,18 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeyboardNavigatio
 semantic/input disposition, visible action elements are keyboard reachable,
 and the action explorer will not need to explain raw pixel-coordinate commands.
 
+**Incremental progress — 2026-08-07:** Registered the first workspace semantic
+navigation family: `sfm:panel/focus/next`, `sfm:panel/focus/previous`,
+`sfm:panel/focus/index <1..9>`, and `sfm:panel/maximize/toggle`. The
+multiplexer now routes Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+1..9, and Ctrl+M through
+the action executor, while the defaults expose those relationships in the
+workspace situation. The pure action-grammar test seam is in place. The live
+CLI test still needs a fresh toolchain compile: the reusable test artifact
+continued to execute an earlier version of the test, and a forced refresh was
+blocked while replacing the cached Forge renaming tool. This is progress, not
+K-5 completion; the remaining raw-handler inventory, action-element audit, and
+live witness stay open.
+
 ### [ ] K-6 Upgrade binding management with sorting and composable capture
 
 **Work:** Close D-4's K-phase naming. Add focusable Name and Binding Count

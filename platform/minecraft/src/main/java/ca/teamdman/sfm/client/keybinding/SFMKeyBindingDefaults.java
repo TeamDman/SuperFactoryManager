@@ -22,6 +22,79 @@ public final class SFMKeyBindingDefaults {
                         SFMKeyStroke.of(GLFW.GLFW_KEY_W,
                                 SFMKeyModifier.CONTROL, SFMKeyModifier.SHIFT)),
                 binding(
+                        "builtin/workspace/focus/next",
+                        "sfm:panel/focus/next",
+                        "sfm action invoke sfm:panel/focus/next",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_TAB, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/focus/previous",
+                        "sfm:panel/focus/previous",
+                        "sfm action invoke sfm:panel/focus/previous",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_TAB,
+                                SFMKeyModifier.CONTROL, SFMKeyModifier.SHIFT)),
+                binding(
+                        "builtin/workspace/maximize/toggle",
+                        "sfm:panel/maximize/toggle",
+                        "sfm action invoke sfm:panel/maximize/toggle",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_M, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/focus/index-1",
+                        "sfm:panel/focus/index",
+                        "sfm action invoke sfm:panel/focus/index 1",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_1, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/focus/index-2",
+                        "sfm:panel/focus/index",
+                        "sfm action invoke sfm:panel/focus/index 2",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_2, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/focus/index-3",
+                        "sfm:panel/focus/index",
+                        "sfm action invoke sfm:panel/focus/index 3",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_3, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/focus/index-4",
+                        "sfm:panel/focus/index",
+                        "sfm action invoke sfm:panel/focus/index 4",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_4, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/focus/index-5",
+                        "sfm:panel/focus/index",
+                        "sfm action invoke sfm:panel/focus/index 5",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_5, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/focus/index-6",
+                        "sfm:panel/focus/index",
+                        "sfm action invoke sfm:panel/focus/index 6",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_6, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/focus/index-7",
+                        "sfm:panel/focus/index",
+                        "sfm action invoke sfm:panel/focus/index 7",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_7, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/focus/index-8",
+                        "sfm:panel/focus/index",
+                        "sfm action invoke sfm:panel/focus/index 8",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_8, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/workspace/focus/index-9",
+                        "sfm:panel/focus/index",
+                        "sfm action invoke sfm:panel/focus/index 9",
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_9, SFMKeyModifier.CONTROL)),
+                binding(
                         "builtin/workspace/diagnostics",
                         "sfm:panel/diagnostics/open",
                         "sfm action invoke sfm:panel/diagnostics/open",
@@ -113,11 +186,21 @@ public final class SFMKeyBindingDefaults {
             String commandDraft,
             SFMKeyStroke stroke
     ) {
+        return binding(id, actionId, commandDraft, SFMKeyboardUsageSituations.DEFAULT, stroke);
+    }
+
+    private static SFMKeyBinding binding(
+            String id,
+            String actionId,
+            String commandDraft,
+            net.minecraft.resources.ResourceLocation situationId,
+            SFMKeyStroke stroke
+    ) {
         return new SFMKeyBinding(
                 id,
                 actionId,
                 commandDraft,
-                SFMKeyboardUsageSituations.DEFAULT,
+                situationId,
                 SFMKeySequence.of(stroke),
                 true);
     }

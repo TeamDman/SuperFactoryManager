@@ -62,6 +62,26 @@ public final class SFMCommandPaletteActions {
             ClosePanelAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, FocusPanelAction> FOCUS_PANEL_NEXT = REGISTERER.register(
+            "panel/focus/next",
+            () -> new FocusPanelAction(FocusPanelAction.Operation.NEXT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, FocusPanelAction> FOCUS_PANEL_PREVIOUS = REGISTERER.register(
+            "panel/focus/previous",
+            () -> new FocusPanelAction(FocusPanelAction.Operation.PREVIOUS)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, FocusPanelAction> FOCUS_PANEL_INDEX = REGISTERER.register(
+            "panel/focus/index",
+            () -> new FocusPanelAction(FocusPanelAction.Operation.INDEX)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, ToggleMaximizePanelAction> TOGGLE_MAXIMIZE_PANEL = REGISTERER.register(
+            "panel/maximize/toggle",
+            ToggleMaximizePanelAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, OpenPanelDiagnosticsAction> OPEN_PANEL_DIAGNOSTICS = REGISTERER.register(
             "panel/diagnostics/open",
             OpenPanelDiagnosticsAction::new

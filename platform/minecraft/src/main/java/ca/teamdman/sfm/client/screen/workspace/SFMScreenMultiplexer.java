@@ -6,6 +6,8 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextSnapshot;
 import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageSituationCatalog;
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
+import ca.teamdman.sfm.client.action.SFMClientActionContext;
+import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
@@ -21,6 +23,7 @@ import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -254,6 +257,37 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         boolean focused = layout.focus(panelId);
         if (focused) refreshLayout(true);
         return focused;
+    }
+
+    /** Focuses a visible panel using the one-based index exposed to users. */
+    public boolean focusVisiblePanel(int oneBasedIndex) {
+        List<SFMWorkspaceLayout.PanelEntry> panels = layout.visiblePanels();
+        int index = oneBasedIndex - 1;
+        if (index < 0 || index >= panels.size()) return false;
+        return focusPanel(panels.get(index).id());
+    }
+
+    /** Applies the same traversal used by the Ctrl+Tab workspace shortcut. */
+    public boolean traversePanelFocus(int direction) {
+        boolean changed = layout.traverse(direction);
+        if (changed) {
+            refreshLayout(true);
+            synchronizeWidgetHostActivation();
+        }
+        return changed;
+    }
+
+    public boolean canToggleMaximize() {
+        return panelGroup != null && focusedPanelInstance() != null;
+    }
+
+    /** Applies the same maximize behavior used by the Ctrl+M workspace shortcut. */
+    public boolean toggleMaximizeFocusedPanel() {
+        SFMScreenPanel focused = focusedPanelInstance();
+        if (panelGroup == null || focused == null) return false;
+        panelGroup.toggleMaximize(focused);
+        refreshLayout(true);
+        return true;
     }
 
     public boolean containsPanel(SFMWorkspacePanelId panelId) {
@@ -635,29 +669,16 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         boolean control = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0 || Screen.hasControlDown();
         boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0 || Screen.hasShiftDown();
         if (panelGroup != null && control && keyCode == GLFW.GLFW_KEY_M) {
-            SFMScreenPanel focused = layout.panel(layout.focusedPanel());
-            if (focused != null) {
-                panelGroup.toggleMaximize(focused);
-                refreshLayout(true);
-                return true;
-            }
+            return invokeWorkspaceAction("sfm:panel/maximize/toggle");
         }
         if (control && keyCode >= GLFW.GLFW_KEY_1 && keyCode <= GLFW.GLFW_KEY_9) {
             int requestedIndex = keyCode - GLFW.GLFW_KEY_1;
-            List<SFMWorkspaceLayout.PanelEntry> panels = layout.visiblePanels();
-            if (requestedIndex < panels.size()) {
-                layout.focus(panels.get(requestedIndex).id());
-                synchronizeWidgetHostActivation();
-            }
-            return requestedIndex < panels.size();
+            return invokeWorkspaceAction(
+                    "sfm:panel/focus/index " + (requestedIndex + 1));
         }
         if (control && keyCode == GLFW.GLFW_KEY_TAB) {
-            int direction = shift ? -1 : 1;
-            if (layout.traverse(direction)) {
-                refreshLayout(true);
-                synchronizeWidgetHostActivation();
-                return true;
-            }
+            return invokeWorkspaceAction(
+                    shift ? "sfm:panel/focus/previous" : "sfm:panel/focus/next");
         }
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         if (focused != null && focused.widgetHost()
@@ -669,6 +690,19 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             return true;
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private boolean invokeWorkspaceAction(String actionDraft) {
+        String command = "sfm action invoke " + actionDraft;
+        try {
+            SFMClientActionContext context = SFMClientActionContext.create(
+                    this, () -> Minecraft.getInstance() != null
+                            && Minecraft.getInstance().screen == this);
+            return SFMClientActionExecutor.execute(command, context, ignored -> { }) > 0;
+        } catch (CommandSyntaxException exception) {
+            SFM.LOGGER.warn("Workspace semantic action failed: {}", command, exception);
+            return false;
+        }
     }
 
     static List<SFMActionChoice> diagnosticChoices() {
