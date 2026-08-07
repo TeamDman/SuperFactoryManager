@@ -3,7 +3,7 @@
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Teamy implementation root:** `G:\Programming\Repos\teamy-terminal`
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 **Intent audit:** Passed 2026-08-05 for the selection/copy/paste follow-up
 
 ## How to update this plan
@@ -27,6 +27,7 @@ not propagate or publish merely because a canonical slice passes.
 | T-SEL-3 | Right click copies/clears an active selection; with none it pastes. | Route keyboard and secondary click through the same copy result and guarded paste path. | V-4.2e.2–V-4.2e.4 |
 | T-PASTE-1 | CR/LF paste requires an exact warning, bounded preview, `Paste anyway`, and `Cancel`; no command bytes may be written before confirmation. | Add guarded/bypass policy and confirmation-required result, with exact UI copy and PTY mutation tests. | V-4.2e.1–V-4.2e.4 |
 | T-PASTE-2 | Native Teamy Terminal and SFM/Java have separate clipboard adapters, while the Teamy service exposes supplied/automatic paste bodies. | Resolve `Auto` at the invoking UI adapter; Vox/SFM supplies Java clipboard text explicitly so a headless or remote server never guesses the caller's clipboard. | V-4.2e.1–V-4.2e.4 |
+| T-LIFE-1 | The disconnected terminal must be a real landing scene with stable status, not a connected widget tree with pieces hidden. A later lifecycle surface must also make stopping an SFM-owned Rust server discoverable without implying authority over an externally started server. | The 2026-08-06 scene correction gives landing and terminal disjoint child trees and retained event history. V-3.5 adds the still-open owned-server lifecycle action/surface after defining how a connected terminal reaches it. | K-2 scene correction; V-3.5 |
 
 ### Terminal interaction intent audit evidence
 
@@ -107,7 +108,14 @@ controls, presentation resources, and end-to-end proof.
   normal scale and GUI scale 7, asserting stable columns/rows, larger Rust
   font/cell pixels, native frame dimensions, and no Java bitmap upscaling; and
 - **[ ] V-3.4:** execute the evidence-driven renderer/transport comparison
-  detailed below. Rust scrollback remains a separate functionality slice.
+  detailed below. Rust scrollback remains a separate functionality slice; and
+- **[ ] V-3.5:** add a discoverable connected-terminal route to a lifecycle
+  home plus `sfm:terminal/server/stop`, visible/enabled only for a server
+  process owned by SFM. Define whether the route is a compact Home control or
+  a constrained lifecycle choice before implementation; stopping must detach
+  the current service cleanly, return the panel to its retained landing
+  history, permit Start/Retry in the same panel, and never terminate or claim
+  an externally started endpoint.
 
 ## Terminal performance and rendering comparison program — 2026-08-02, revised 2026-08-03
 
@@ -973,6 +981,29 @@ focused normal-scale presentation run
 and cancel flow while retaining all six renderer/transport presentation
 variants. Release-plan P-5.0/P-5.1 record the shared session and viewport test
 matrix; P-5.2 and later command-surface work remains pending.
+
+**Scene-ownership correction — 2026-08-06:** The interaction sentinel remains
+as automation evidence, but widget ownership no longer depends on hidden
+controls or retained rectangles. `SFMTerminalPanel` is an explicit local-REPL,
+Rust-landing, or Rust-terminal sum type. The landing host contains exactly
+Start/Retry; the connected host contains the viewport, Presentation selector,
+and current options. Switching scenes replaces the child collection and
+transfers focus. A bounded, latched connection-event history replaces direct
+rendering of the retry loop's short-lived `isConnecting()` value, so timeout
+evidence remains visible while automatic retries continue without one-frame
+headline flashes. Vox exposes one lock-consistent connection snapshot with
+connection, retry, failure, interaction epoch, and accepted-presentation
+readiness. The Java panel reads that snapshot once per UI update and remains
+on the landing tree through provisional session assignment and presentation
+discovery; only an accepted frame makes the terminal controls eligible.
+An initial/active presentation failure while the Vox session remains connected
+is a recoverable landing state, not a disabled dead end: its action resets and
+reconnects the existing terminal service without invoking the server launcher.
+Repeated activation while that reconnect is in flight is idempotent and cannot
+fall through to process launch.
+The same live proof at `title_screen_rus-20260806-190626-836` captures a clean
+20-pixel Vanilla Start/Retry control, then exercises terminal presentation,
+stale-button routing, input, owned-server restart, and reconnect.
 
 ### [x] V-4.2e Restore selection, copy, and guarded paste across Vox
 

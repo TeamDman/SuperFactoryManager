@@ -15,6 +15,7 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.widget.SFMConsoleWidget;
+import ca.teamdman.sfm.client.screen.widget.SFMKeycapRenderer;
 import ca.teamdman.sfm.client.screen.widget.SFMVerticalListViewport;
 import ca.teamdman.sfm.client.theme.SFMClientTheme;
 import ca.teamdman.sfm.client.theme.SFMClientThemeService;
@@ -585,13 +586,19 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return;
         List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get());
-        String bindingText = SFMKeyBindingCycle.displayedSequence(bindings, bindingCycleTicks);
+        SFMKeyBinding binding = SFMKeyBindingCycle.displayedBinding(bindings, bindingCycleTicks);
+        if (binding == null) return;
         int scrollbarSpace = scrollbarVisible ? SCROLLBAR_WIDTH + SCROLLBAR_GAP : 0;
         int bindingAreaLeft = right - 146 - scrollbarSpace;
         int bindingAreaWidth = 108;
-        String shown = font.plainSubstrByWidth(bindingText, bindingAreaWidth);
-        SFMFontUtils.draw(poseStack, font, shown, bindingAreaLeft, y,
-                SFMClientThemeService.active().colour(SFMColourRole.TEXT_ACCENT), false);
+        SFMKeycapRenderer.draw(
+                poseStack,
+                font,
+                binding.sequence(),
+                bindingAreaLeft,
+                y,
+                bindingAreaWidth,
+                binding.enabled());
         SFMFontUtils.draw(poseStack, font, "[?]", right - 28 - scrollbarSpace, y,
                 SFMClientThemeService.active().colour(SFMColourRole.TEXT_ACCENT), false);
     }
@@ -634,7 +641,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             if (actionId.isPresent()) return actionId;
         }
         try {
-            ResourceLocation id = new ResourceLocation(suggestion.getText());
+            String suggestionText = suggestion.getText().stripLeading();
+            int separator = 0;
+            while (separator < suggestionText.length()
+                    && !Character.isWhitespace(suggestionText.charAt(separator))) separator++;
+            ResourceLocation id = new ResourceLocation(suggestionText.substring(0, separator));
             return SFMClientActions.registry().get(id) == null ? Optional.empty() : Optional.of(id);
         } catch (RuntimeException ignored) {
             return Optional.empty();

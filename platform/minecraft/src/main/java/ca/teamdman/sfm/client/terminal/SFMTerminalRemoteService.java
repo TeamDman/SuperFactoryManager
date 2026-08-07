@@ -15,6 +15,20 @@ public interface SFMTerminalRemoteService extends SFMTerminalService, AutoClosea
 
     Optional<String> failureMessage();
 
+    /**
+     * Captures lifecycle fields as one UI observation. Implementations with a
+     * shared transport lock must override this default and read every field
+     * while holding that lock.
+     */
+    default SFMTerminalConnectionSnapshot connectionSnapshot() {
+        return new SFMTerminalConnectionSnapshot(
+                isConnected(),
+                isConnecting(),
+                canPresentRetainedFrame(),
+                interactionEpoch(),
+                failureMessage());
+    }
+
     boolean resize(int columns, int rows);
 
     /** Resize logical cells and declare the physical panel target separately. */

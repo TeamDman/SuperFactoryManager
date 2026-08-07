@@ -10,6 +10,7 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyStroke;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMKeycapRenderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
@@ -142,19 +143,21 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
             SFMFontUtils.draw(poseStack, font, "No bindings", left, y, 0xFF999999, false);
         } else {
             for (SFMKeyBinding binding : bindings) {
-                String text = SFMKeyBindingDisplay.format(binding.sequence());
-                if (!binding.enabled()) text += " (disabled)";
                 boolean conflict = !SFMKeyBindingService.INSTANCE.profile().conflictsWith(binding).isEmpty();
-                if (conflict) text += "  CONFLICT";
-                SFMFontUtils.draw(
+                int keycapsWidth = SFMKeycapRenderer.draw(
                         poseStack,
                         font,
-                        text,
+                        binding.sequence(),
                         left,
                         y,
-                        conflict ? 0xFFFF5555 : binding.enabled() ? 0xFFFFFFFF : 0xFF888888,
-                        false
+                        conflict || !binding.enabled() ? 100 : 168,
+                        binding.enabled()
                 );
+                String state = conflict ? "CONFLICT" : binding.enabled() ? "" : "disabled";
+                if (!state.isEmpty()) {
+                    SFMFontUtils.draw(poseStack, font, state, left + keycapsWidth + 5, y,
+                            conflict ? 0xFFFF5555 : 0xFF888888, false);
+                }
                 String detail = scopeDisplay(binding.situationId()) + "  |  "
                         + originName(binding.bindingId()) + "  |  " + binding.commandDraft();
                 SFMFontUtils.draw(poseStack, font, font.plainSubstrByWidth(detail, 168),
@@ -163,8 +166,9 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
             }
         }
         for (SFMKeyBinding binding : tombstones) {
-            String text = SFMKeyBindingDisplay.format(binding.sequence()) + " (removed default)";
-            SFMFontUtils.draw(poseStack, font, text, left, y, 0xFF888888, false);
+            int keycapsWidth = SFMKeycapRenderer.draw(
+                    poseStack, font, binding.sequence(), left, y, 100, false);
+            SFMFontUtils.draw(poseStack, font, "removed default", left + keycapsWidth + 5, y, 0xFF888888, false);
             SFMFontUtils.draw(poseStack, font,
                     font.plainSubstrByWidth(scopeDisplay(binding.situationId()) + "  |  Built-in tombstone", 280),
                     left, y + 10, 0xFF777777, false);

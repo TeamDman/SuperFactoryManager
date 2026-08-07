@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.action;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.network.chat.Component;
@@ -13,7 +14,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMClientActionPaletteSuggestionTests {
     private static final String QUERY = "sfm action invoke open";
@@ -75,8 +78,67 @@ class SFMClientActionPaletteSuggestionTests {
         );
     }
 
+    @Test
+    void fuzzyActionSlotQueryFindsCompleteLiteralContinuationPaths()
+            throws CommandSyntaxException {
+        AtomicInteger openedTerminal = new AtomicInteger();
+        SFMClientActionCommandTree tree = tree(
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open"),
+                        new SceneAction(openedTerminal, true)
+                ),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open/left"),
+                        new SceneAction(new AtomicInteger(), true)
+                ),
+                Map.entry(
+                        new ResourceLocation("sfm", "terminal/server/start"),
+                        new TestAction("Start terminal", new AtomicInteger(), true)
+                )
+        );
+        SFMClientActionSource source = source();
+        String query = "sfm action invoke term";
+
+        var suggestions = tree.getPaletteSuggestions(query, tree.parse(query, source))
+                .join()
+                .getList();
+        List<String> texts = suggestions.stream().map(suggestion -> suggestion.getText()).toList();
+
+        assertTrue(texts.contains("sfm:panel/open sfm:terminal"));
+        assertTrue(texts.contains("sfm:panel/open sfm:terminal_properties"));
+        assertTrue(texts.contains("sfm:panel/open/left sfm:terminal"));
+        assertTrue(texts.contains("sfm:panel/open/left sfm:terminal_properties"));
+        var terminal = suggestions.stream()
+                .filter(suggestion -> suggestion.getText().equals("sfm:panel/open sfm:terminal"))
+                .findFirst()
+                .orElseThrow();
+        String completeCommand = terminal.apply(query);
+        assertEquals("sfm action invoke sfm:panel/open sfm:terminal", completeCommand);
+        assertEquals(1, tree.execute(completeCommand, source));
+        assertEquals(1, openedTerminal.get());
+    }
+
+    @Test
+    void literalContinuationSearchDoesNotLeakUnavailableActionTrees() {
+        SFMClientActionCommandTree tree = tree(Map.entry(
+                new ResourceLocation("sfm", "panel/open"),
+                new SceneAction(new AtomicInteger(), false)
+        ));
+        SFMClientActionSource source = source();
+        String query = "sfm action invoke term";
+
+        List<String> suggestions = tree.getPaletteSuggestions(query, tree.parse(query, source))
+                .join()
+                .getList()
+                .stream()
+                .map(suggestion -> suggestion.getText())
+                .toList();
+
+        assertFalse(suggestions.stream().anyMatch(suggestion -> suggestion.contains("sfm:terminal")));
+    }
+
     private static SFMClientActionCommandTree tree(
-            Map.Entry<ResourceLocation, TestAction>... actions
+            Map.Entry<ResourceLocation, ? extends SFMClientAction<?>>... actions
     ) {
         return SFMClientActionDispatcherCompiler.compileCommandTree(List.of(actions));
     }
@@ -119,6 +181,49 @@ class SFMClientActionPaletteSuggestionTests {
         public int execute(Object target, CommandContext<SFMClientActionSource> context) {
             count.incrementAndGet();
             return Command.SINGLE_SUCCESS;
+        }
+    }
+
+    private static final class SceneAction implements SFMClientAction<Object> {
+        private final AtomicInteger openedTerminal;
+        private final boolean available;
+
+        private SceneAction(AtomicInteger openedTerminal, boolean available) {
+            this.openedTerminal = openedTerminal;
+            this.available = available;
+        }
+
+        @Override
+        public Component title() {
+            return Component.literal("Open panel");
+        }
+
+        @Override
+        public Component description() {
+            return Component.literal("Open a registered scene");
+        }
+
+        @Override
+        public SFMClientActionRequirement<Object> requirement() {
+            return ignored -> available
+                    ? SFMClientActionAvailability.available(new Object())
+                    : SFMClientActionAvailability.unavailable(Component.literal("test unavailable"));
+        }
+
+        @Override
+        public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
+            node.then(LiteralArgumentBuilder.<SFMClientActionSource>literal("sfm:terminal")
+                    .executes(context -> {
+                        openedTerminal.incrementAndGet();
+                        return Command.SINGLE_SUCCESS;
+                    }));
+            node.then(LiteralArgumentBuilder.<SFMClientActionSource>literal("sfm:terminal_properties")
+                    .executes(context -> Command.SINGLE_SUCCESS));
+        }
+
+        @Override
+        public int execute(Object target, CommandContext<SFMClientActionSource> context) {
+            throw new AssertionError("The scene argument is required");
         }
     }
 }

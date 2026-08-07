@@ -44,10 +44,15 @@ public final class StartRustServerAction implements SFMClientAction<SFMClientAct
             var panel = workspace.panel(actionContext.originatingPanelId());
             if (panel.isPresent() && panel.get() instanceof SFMTerminalPanel terminal
                     && terminal.isRustBacked()) {
-                boolean started = terminal.requestStartRustServer();
-                context.getSource().sendFeedback(Component.literal(started
-                        ? "Starting Rust terminal server"
-                        : "Rust terminal server start is already in progress"));
+                SFMTerminalPanel.RustLifecycleRequest result = terminal.requestStartOrRetryRustServer();
+                context.getSource().sendFeedback(Component.literal(switch (result) {
+                    case STARTING_SERVER -> "Starting Rust terminal server";
+                    case RETRYING_CONNECTION -> "Retrying Rust terminal connection";
+                    case ALREADY_CONNECTED -> "Rust terminal is already connected";
+                    case PRESENTATION_PENDING -> "Rust terminal presentation is still preparing";
+                    case REQUEST_IN_PROGRESS -> "Rust terminal lifecycle request is already in progress";
+                    case UNAVAILABLE -> "Rust terminal support is unavailable";
+                }));
                 return 1;
             }
         }

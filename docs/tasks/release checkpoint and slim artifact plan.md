@@ -2,7 +2,7 @@
 
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
-**Last updated:** 2026-08-05
+**Last updated:** 2026-08-06
 **Update rules:** Keep this plan executable. Record decisions and evidence beside the affected work item, keep at most one current implementation focus, and update this file after every release-scope or artifact-policy change. Do not mark a phase complete from compilation alone; attach the command and the artifact or runtime evidence that proves it.
 
 ## Purpose
@@ -19,7 +19,8 @@ This plan coordinates the existing terminal-bridge, dependency-lock, and cross-v
 | I-SEL-2 | Ctrl+C copies and clears an active selection; with no selection it remains the PTY interrupt. Right click atomically copies/clears when selection exists and otherwise initiates paste. | V-4.2e defines typed copy/no-selection results and one client decision path shared by keyboard and right-click. | — |
 | I-PASTE-1 | Any paste containing CR or LF must stop before PTY mutation and show the exact multiline warning, bounded clipboard preview, and `Paste anyway` / `Cancel` choices. | V-4.2e specifies guard detection, exact warning copy, bounded private preview, focus restoration, and no-write-before-confirmation tests. | — |
 | I-PASTE-2 | Teamy Terminal and Java each retain their own clipboard adapter while collaborating through typed guarded and bypass paste signals, with supplied versus automatic clipboard bodies. | Teamy 3.6.4f and V-4.2e define one guard engine and Java-friendly wire records equivalent to `Paste{WithGuard,WithoutGuard}` and `PasteBody{Supplied,Auto}`. | — |
-| I-KEY-1 | Default action bindings are Ctrl+plus, Ctrl+minus, and Ctrl+zero for focused-panel scale increase, decrease, and clear. They must appear in the palette `[?]` binding behavior. | P-5.2 adds stable, overridable defaults and verifies both display and event consumption. | — |
+| I-KEY-1 | Focused-panel scale increase/decrease/clear use one canonical main-row physical binding each: Ctrl+Equal, Ctrl+Minus, and Ctrl+0. The UI renders separated physical-key tokens such as `Ctrl =`, not ambiguous logical-glyph strings such as `Ctrl++`; duplicate keypad defaults are not shipped. They must appear in the palette `[?]` binding behavior. | P-5.2 corrects the defaults, migration fingerprint and exact event-consumption tests, and reuses one token model for text fallbacks plus pink read-only keycaps; K-6 makes capture keycaps focusable/removable. | Earlier Ctrl+plus/main-keypad parity wording |
+| I-PAL-1 | Typing a later grammar atom in the action slot, such as `sfm action invoke term`, must discover complete grammar-valid literal continuations including `sfm:panel/open sfm:terminal`, directional panel-open variants, and `sfm:terminal_properties`. | P-5.2 adds bounded literal-descendant traversal over the already-compiled Brigadier tree, returns whole continuation paths, preserves action metadata from the first token, and never invokes argument suggestion providers during the traversal. | — |
 | I-HIST-1 | The palette stores command history for ranking; at the default `sfm action invoke ` query, the exact most recently executed command is the first suggestion. | P-5.3 records successful palette executions and injects full-command MRU candidates ahead of ordinary blank-query action ids. | — |
 | I-HIST-2 | `sfm:palette/history/open` opens a read-only history document, supports center/left/right/above/below placement and an optional editor id, and discards changes. | P-5.4 uses hierarchical placement actions, with the base action meaning center/focused, and enforces read-only behavior across every selectable editor. | — |
 | I-HIST-3 | `sfm:palette/history/clear` empties history. | P-5.4 makes maintenance actions non-recordable so clear remains truly empty. | — |
@@ -36,6 +37,7 @@ This plan coordinates the existing terminal-bridge, dependency-lock, and cross-v
 | --- | --- | --- |
 | I-SEL-1, I-SEL-2, I-PASTE-1, I-PASTE-2 | Vox terminal plan V-4.2e; Teamy Terminal plan 3.6.4f | Facet round trips/package, Teamy core/Vox/native tests, SFM focused tests, and a live normal/high-scale selection/copy/paste puppet |
 | I-KEY-1 | P-5.2 and P-5.5 | Storage/default/conflict tests, palette `[?]` capture, and focused-terminal non-leak assertion |
+| I-PAL-1 | P-5.2 and P-5.5 | Unit proof for full nested paths, unavailable-tree exclusion and executability, plus a live `term` palette capture |
 | I-HIST-1 | P-5.3 and P-5.5 | Bounded storage/ranking tests and a live execute/reopen/MRU witness |
 | I-HIST-2, I-HIST-3 | P-5.4 and P-5.5 | Action completion, all placements, editor selection/read-only enforcement, and clear-remains-empty witness |
 | I-LIST-1, I-LIST-2, I-LIST-3 | P-5.1 and P-5.5 | Pure viewport geometry tests plus wheel, thumb-drag, search-hit isolation, and palette/console routing puppets |
@@ -334,6 +336,23 @@ scrolling, metadata, focus, and execution all use the familiar palette path.
 | P-1.3 | Audit every completion producer and candidate-construction path, including `.suggests(...)`, `configureCommandNode`, `SFMClientScreenType.createCommandNode`, action-id ranking, titles, and availability. Move any I/O or corpus work behind explicit asynchronous loading and immutable bounded snapshots. Add a regression seam proving completion does not invoke a supplied blocking loader, plus diagnostics for unexpectedly slow providers without using a flaky wall-clock assertion as the primary proof. | Complete. The audit table below records the only live providers; immutable-map/catalog regression tests and `SFMClientActionPaletteSuggestionTests` pass. Palette metadata is extracted without triggering Minecraft language loading in headless tests; slow completion is diagnostic-only. |
 | P-1.4 | Introduce the hierarchical `sfm:panel/open...` command family and fix incomplete-argument UX. A parent requiring a scene/argument is non-executable, lists available scene candidates, identifies the missing argument, and never reports “No available sub-actions” or inserts a separator when candidates exist. Register `sfm:size_display` and `sfm:terminal`; remove `workspace/open_to_side` and `terminal/open` after command/keybinding/puppet migration. | Complete. `OpenPanelActionTests`, `SFMClientCommandInsertionTests`, and `SFMClientActionPaletteSuggestionTests` pass; retired IDs are absent; `title_screen_workspace` captured directional open/close/reopen under `title_screen_wor-20260802-141102-221`. |
 | P-1.5 | Give the Rust terminal explicit disconnected/connected presentation. Disconnected shows status and Start/Retry only; connected shows the Rust PNG only; Java REPL instructions never leak into the Rust scene. Rename lifecycle commands to `terminal/server/start` and `terminal/server/connect`; neither command opens a panel. | Complete. `SFMVoxTerminalServiceTests` and `SFMUnavailableTerminalServiceTests` pass; `title_screen_rust_terminal` captured disconnected/lifecycle/guidance/input/alternate-screen/reconnect states under `title_screen_rus-20260802-141350-220`, with 16 machine-readable terminal artifacts and required/forbidden assertions. |
+
+P-1.5's phrase “connected shows the Rust PNG only” predates panel-local
+renderer/transport selection. The current boundary is stricter and more
+precise: disconnected is a landing scene whose widget tree contains only
+Start/Retry plus retained status history; connected owns the viewport,
+Presentation selector, and its option rows. The 2026-08-06 K-2 correction in
+the contextual-input plan replaces cross-scene visibility flags with disjoint
+child trees and removes transient `isConnecting()` text from rendering.
+The panel consumes one lock-consistent lifecycle snapshot per UI update and
+does not enter the connected widget scene until Vox has accepted a complete
+presentation frame; assigning a provisional session id cannot flash the
+viewport or selector.
+If an already-connected raster presentation fails, the landing scene exposes
+an explicit retry that resets the remote terminal transport; it does not start
+or duplicate the Rust server process. Live run
+`title_screen_rus-20260806-190626-836` also proves the Start/Retry control uses
+the exact Vanilla 20-pixel atlas row with no detached texture sliver.
 
 ### P-1 completion audit notes
 
@@ -816,12 +835,22 @@ situations and SFM-owned contextual defaults. Preserve schema-1 user bindings
 through schema-2 migration, explicit global scope, and built-in
 override/tombstone state.
 
-The default set includes the existing Ctrl+plus/minus/zero focused-panel scale
+The default set includes canonical Ctrl+Equal/minus/zero focused-panel scale
 actions, Ctrl+Shift+W panel close, F3 focused-panel diagnostics, all four
 Alt+Shift+arrow resize actions, and Microsoft Terminal's Alt+Shift+minus/right-
-plus duplicate-below/right defaults. Main-row/keypad forms remain equivalent
-where appropriate. Do not seed Ctrl+Shift+T or browser-style Ctrl+W without a
+plus duplicate-below/right defaults. Panel scale ships one main-row default per
+action; keypad alternatives remain user-bindable rather than appearing as
+duplicate defaults. Do not seed Ctrl+Shift+T or browser-style Ctrl+W without a
 separately approved SFM semantic action/situation.
+
+At the `sfm action invoke <query>` slot, fuzzy ranking also inspects bounded
+literal-only descendants of each available action node. A match on a later
+literal contributes the complete continuation from action id through that
+literal, so `term` exposes every grammar-valid panel-open terminal and terminal-
+properties path. The walk has a fixed depth/candidate limit, follows no dynamic
+argument values, invokes no suggestion providers, and leaves Brigadier
+authoritative for parsing/execution. Metadata for a full-path suggestion comes
+from its first action-id token.
 
 This item also requires the shared panel child-widget host and migration of the
 Rust terminal Start/Retry, Presentation, terminal viewport, and all terminal-
@@ -835,7 +864,7 @@ parameterized input; do not improvise those contracts in UI code.
 plan. At minimum, prove binding migration/default/tombstone behavior,
 context/scope conflict and terminal non-leak, keyboard-only terminal/properties
 navigation, F3 discovery, close/scale/resize/duplicate actions, action-element
-audit, and a canonical compile/full test run through
+audit, nested full-path palette discovery/execution, and a canonical compile/full test run through
 `sfm-propagate-changes.exe`.
 
 **Completion criteria:** K-1 through K-7 are complete with local evidence;
@@ -843,6 +872,22 @@ every shipped default is contextual and overridable; the terminal and
 properties controls are Minecraft-like keyboard-navigable action elements; and
 panel close, scale, resize, duplicate, and diagnostics are discoverable
 semantic actions rather than hard-coded key mutations.
+
+**Incremental correction — 2026-08-06:** I-PAL-1 now walks at most eight
+literal descendant levels and returns at most 256 ranked continuation paths
+without entering argument nodes or invoking their providers. Tests prove the
+four representative center/left terminal and terminal-properties paths,
+whole-command application/execution, and unavailable-tree exclusion. Full-path
+rows recover action metadata from their first token.
+
+I-KEY-1/KBIND-5 now ship only Ctrl+Equal, Ctrl+Minus, and Ctrl+0 for panel
+scale. One physical-token model supplies `Ctrl =` text and reusable pink
+palette/details keycaps; exact Equal+Control matching and absence of default
+keypad duplicates are tested. Focused action-palette, keybinding, and palette-
+viewport runs pass. The canonical full `Tests` run reports `650 found, 648
+passed, 0 failed, 2 aborted`; both aborts are the established Windows symlink-
+privilege assumptions. P-5.2 remains open for K-5 through K-7 and P-5.5 still
+owns the live palette/keycap evidence.
 
 ### [ ] P-5.3 Persist successful palette commands and rank full MRU entries
 

@@ -41,6 +41,7 @@ problem without adding another terminal-only focus mechanism.
 | ID | Active guidance | Required plan consequence | Superseded by |
 | --- | --- | --- | --- |
 | WNAV-1 | The disconnected Rust-terminal Start/Retry control and Presentation dropdown must behave like Vanilla Minecraft widgets and be keyboard navigable. | K-1 introduces a panel child-widget host; K-2 migrates both controls and proves click, Tab, Shift+Tab, Enter/Space, focus visibility, and narration. | — |
+| WNAV-4 | A disconnected Rust terminal is a landing scene, not a connected terminal with hidden/disabled pieces. Its widget tree contains only Start/Retry; the connected scene exclusively owns the viewport, Presentation selector, and option rows. Background connection attempts must not flash transient text, and the latest bounded connection results remain visible until a meaningful later event replaces them. | K-2's 2026-08-06 state-model correction replaces visibility-flag composition with disjoint scene-owned child trees and a retained connection-event history. | WNAV-1's implication that Presentation appears while disconnected |
 | WNAV-2 | Terminal-properties controls currently bypass normal Minecraft Tab navigation; panels/screens must either support the native mechanism or adapt/pump it seamlessly. | K-1 owns a version-adapted focus/event bridge; K-2 converts every tuning control rather than special-casing terminal properties keys. | — |
 | WNAV-3 | Prefer an automated static and/or runtime way to detect SFM screen elements that lack keyboard-navigation consideration. | K-5 defines an enforceable SFM-owned action-element inventory, runtime assertions, and a bounded static audit; unsupported detection claims must be documented honestly. | — |
 | KCTX-1 | Introduce a registry of keyboard-focus/usage situations with stable identifiers users can select when relating hotkeys to actions. | K-3 adds `Registry<SFMKeyboardUsageSituation>`, contextual binding storage, active-situation resolution, precedence, and conflict rules. | — |
@@ -50,6 +51,7 @@ problem without adding another terminal-only focus mechanism.
 | KBIND-2 | Add panel-resize and panel-duplicate actions using the Microsoft Terminal hotkey defaults. | K-4 adds hierarchical actions, pure layout behavior, and defaults from the pinned local Terminal `defaults.json`: Alt+Shift+arrows resize; Alt+Shift+minus duplicates below; Alt+Shift+plus duplicates right. | — |
 | KBIND-3 | Preserve the existing generic `KeyOrChord -> SomeActionString` model; when the action string still has required arguments, open the command palette for completion rather than failing or inventing arguments. | K-3 migrates the existing dispatch behavior and tests contextual incomplete drafts. | — |
 | KBIND-4 | The terminal F3 behavior must appear in SFM Shortcuts as a real binding/action. | K-3 registers the diagnostic-choice behavior as a semantic action, seeds F3 contextually, and removes the hard-coded multiplexer-only path; K-5 audits the remaining SFM-owned raw handlers. | — |
+| KBIND-5 | Panel-scale increase is the physical Ctrl+Equal relationship, shown as separated key tokens (`Ctrl =`) rather than the ambiguous `Ctrl++`; increase/decrease/clear each ship one main-row default rather than a visually duplicated keypad pair. | K-3's 2026-08-06 correction updates immutable defaults and fingerprints, proves the exact event match, and adds shared pink read-only keycaps; K-6 reuses them as focusable/removable capture controls. | Earlier main/keypad parity and logical-plus display wording |
 | KUI-1 | `sfm:keybindings/manage` needs sortable Name and Binding Count headers. | K-6 adds keyboard-focusable headers, ascending/descending state, stable tie breaks, and filter/scroll preservation. | — |
 | KUI-2 | Binding entry needs a focusable capture mechanism that records the entered mapping. | K-6 introduces a dedicated capture widget integrated with normal focus and dispatch suspension. | — |
 | KUI-3 | Triple Escape should back out of capture; each captured chord element is a keyboard-focusable button that removes that element when activated. | K-6 defines the time-bounded cancel sequence, removable stroke chips, Save/Cancel focus targets, and mouse/keyboard parity. | — |
@@ -71,7 +73,7 @@ problem without adding another terminal-only focus mechanism.
 | WNAV-1, WNAV-2 | K-1, K-2, K-7 | Widget-host tests, terminal/property focus-path tests, and a live keyboard-only terminal puppet |
 | WNAV-3 | K-5, K-7 | Static inventory output plus runtime actionable-element/focus audit with explicit exemptions |
 | KCTX-1, KCTX-2, KCTX-3 | K-3, K-6, K-7 | Registry/bootstrap tests, schema migration, precedence/conflict tests, UI scope display, and terminal non-leak proof |
-| KBIND-1, KBIND-2, KBIND-3, KBIND-4 | K-3, K-4, K-7 | Default/tombstone/action/layout tests, `[?]` and management captures, incomplete-draft palette proof, and live pane operations |
+| KBIND-1, KBIND-2, KBIND-3, KBIND-4, KBIND-5 | K-3, K-4, K-6, K-7 | Default/tombstone/action/layout tests, `[?]` and management captures, exact physical-key matching, incomplete-draft palette proof, and live pane operations |
 | KUI-1, KUI-2, KUI-3 | K-6, K-7 | Sort/filter/scroll tests and keyboard/mouse capture-chip puppet evidence |
 | ACT-1, ACT-2, ACT-3 | K-2, K-5, K-7 | Action-element inventory, semantic invocation parity, Manager Edit fixture, and absence of public coordinate-click actions |
 | EXPL-1, EXPL-2 | A-3, A-4, A-5 | Resolver-backed action/registry explorer, typed outlink tests, and live navigation captures |
@@ -267,14 +269,18 @@ actions remain. Default relationships are declared data with stable ids:
 | SFM workspace/default | Alt+Shift+Up | `sfm action invoke sfm:panel/resize/above` | Microsoft Terminal ResizePaneUp |
 | SFM workspace/default | Alt+Shift+- | `sfm action invoke sfm:panel/duplicate/below` | Microsoft Terminal DuplicatePaneDown |
 | SFM workspace/default | Alt+Shift++ | `sfm action invoke sfm:panel/duplicate/right` | Microsoft Terminal DuplicatePaneRight |
-| SFM workspace/default | Ctrl++ / keypad add | `sfm action invoke sfm:panel/scale/increase` | Existing release P-5.2 |
-| SFM workspace/default | Ctrl+- / keypad subtract | `sfm action invoke sfm:panel/scale/decrease` | Existing release P-5.2 |
-| SFM workspace/default | Ctrl+0 / keypad zero | `sfm action invoke sfm:panel/scale/clear` | Existing release P-5.2 |
+| SFM workspace/default | Ctrl+= (displayed `Ctrl =`) | `sfm action invoke sfm:panel/scale/increase` | I-KEY-1 / KBIND-5 correction |
+| SFM workspace/default | Ctrl+- (displayed `Ctrl -`) | `sfm action invoke sfm:panel/scale/decrease` | I-KEY-1 / KBIND-5 correction |
+| SFM workspace/default | Ctrl+0 (displayed `Ctrl 0`) | `sfm action invoke sfm:panel/scale/clear` | I-KEY-1 / KBIND-5 correction |
 | SFM workspace/default | F3 | `sfm action invoke sfm:panel/diagnostics/open` | Existing workspace behavior made discoverable |
 
-The physical plus binding must accept the platform's Shift+= representation
-without conflating it with an extra logical modifier. Storage/display tests
-must cover main-row and keypad forms.
+Binding storage records physical keys plus exact modifier sets. The increase
+default therefore matches GLFW Equal+Control (the Ctrl+= gesture), not a
+logical plus synthesized by requiring Shift and not a duplicate keypad-add
+relationship. One token model drives spaced text fallbacks and distinct pink
+keycaps, and keeps main/keypad names unambiguous when a user explicitly records
+either physical key. K-6 adds capture-time focus/removal behavior to those
+keycaps.
 
 ## Widget, focus, and action-element contract
 
@@ -488,6 +494,35 @@ dismissal and that Start/Retry, the selector, and hidden options can never
 remain focused simultaneously. The canonical full 1.19.2 Java suite passed;
 only the two existing Windows symbolic-link assumptions aborted.
 
+**State-model correction — 2026-08-06:** A remote terminal panel is now an
+explicit sum of local REPL, disconnected Rust landing, or connected Rust
+terminal scenes. The landing child tree contains exactly Start/Retry; the
+connected child tree contains exactly the viewport, Presentation selector,
+and current renderer/transport option rows. Scene transitions replace the
+host's children instead of leaving invisible controls with stale geometry or
+focus. The landing headline is stable, automatic retry no longer selects a
+one-frame `isConnecting()` message, and the three latest meaningful
+connection/start/failure events remain visible. A lock-consistent
+`SFMTerminalConnectionSnapshot` is captured once per tick/resize/render; the
+connected child tree is not installed until that snapshot reports an accepted
+presentation frame, rather than merely a provisional Vox session id. Focused
+interaction tests prove exact disconnected -> provisional transport -> failed
+discovery -> presentation-ready membership, focus transfer, retained timeout
+history, and rejection of stale Start activation after async connection.
+Connected transport/presentation failure is a distinct landing product state:
+it shows an accurate unavailable headline and an enabled `Retry terminal
+connection` control that resets the existing remote transport without
+launching another server; an immediate repeated activation observes the
+in-flight connection request and is idempotent. The button uses Vanilla's
+exact 20-pixel atlas-row height; the previous 22-pixel height sampled the next
+texture row and produced
+the focus-dependent detached sliver reported in manual testing. Focused tests
+pass 35/35, the canonical `Tests` selector passes 645/647 with no failures and
+the two expected Windows symlink assumptions aborted, and live
+puppet run `title_screen_rus-20260806-190626-836` captures the clean landing
+control before proving connection, former-button routing, input, reconnect,
+and constrained close.
+
 ### [x] K-3 Register keyboard-usage situations and migrate binding storage/defaults
 
 **Work:** Close D-2. Add the contributor registry, active-context snapshot,
@@ -500,7 +535,7 @@ action only in the approved SFM-owned context. Register
 
 **Validation:** Add situation registry, ancestry, precedence, overlap conflict,
 focus-change reset, terminal pass-through, storage migration, corrupt-file,
-default/override/tombstone, main/keypad parity, F3 discovery, close action, and
+default/override/tombstone, canonical physical-key display/matching, F3 discovery, close action, and
 incomplete-draft tests.
 
 ```pwsh
@@ -532,7 +567,7 @@ explicit-global state through a backup plus atomic replacement; corrupt, future,
 or structurally incomplete files remain untouched and visibly read-only, and a
 failed save switches the session to visible read-only persistence rather than
 claiming success. Immutable contextual defaults cover panel close, F3 diagnostics,
-and main/keypad scale parity; the management UI exposes situation, origin,
+and one canonical main-row relationship per scale action; the management UI exposes situation, origin,
 conflict, restore, and a visible storage-recovery warning. Focused
 `SFMKeyboardUsageSituationTests`, `SFMKeyBindingStorageTests`, and
 `SFMKeyBindingEngineTests` passed. The canonical
@@ -545,6 +580,17 @@ Ctrl+Shift+W, and terminal presentation/input pass-through. Evidence is under
 `title_screen_rus-20260806-004017-716/`. The complete canonical 1.19.2 test
 suite passed, with only the two Windows symlink fixtures explicitly aborted by
 their existing privilege assumptions.
+
+**Default correction — 2026-08-06:** Manual testing showed that the original
+increase default was both duplicated (main-row and keypad rows rendered the
+same) and mismatched the desired physical gesture by requiring Shift. The
+immutable catalog now keeps only Ctrl+Equal, Ctrl+Minus, and Ctrl+0 for panel
+scale. Display fallback uses separated physical tokens (`Ctrl =`) and the
+palette/details surfaces draw the same tokens as pink keycaps; K-6 owns their
+focus/removal behavior during capture. Focused storage and engine tests
+prove one increase relationship, no shipped scale keypad duplicates, exact
+Equal+Control consumption, and fingerprint migration through the existing
+built-in lifecycle.
 
 ### [x] K-4 Add resize and independent duplicate panel actions
 
@@ -578,10 +624,10 @@ existing move actions retain their distinct transfer semantics.
 matching-axis split by a named 5% step, searches outward when an inner split
 has no neighbor, stops at a 48-pixel recursive minimum, normalizes shares, and
 preserves stacks/focus. The exact pinned defaults are scoped to `sfm:default`:
-Alt+Shift+arrows resize, physical Alt+Shift+Equal displays as
-`Alt+Shift+Plus` and duplicates right, and Alt+Shift+Minus duplicates below;
+Alt+Shift+arrows resize, physical Alt+Shift+Equal displays as the separated
+tokens `Alt Shift =` and duplicates right, and Alt+Shift+Minus duplicates below;
 left/above duplication intentionally remain palette/user-bindable without
-built-in defaults. Existing `Ctrl++` scale display remains distinct.
+built-in defaults. KBIND-5 later corrects panel-scale increase to `Ctrl =`.
 
 Duplication is host-catalogued by panel identity but recipe data is immutable
 and typed rather than an opaque supplier. Test, size-display, terminal,
@@ -639,8 +685,10 @@ and the action explorer will not need to explain raw pixel-coordinate commands.
 **Work:** Close D-4's K-phase naming. Add focusable Name and Binding Count
 headers, stable ascending/descending sorting, enabled/total counts, situation
 scope display/filtering, and filter/viewport preservation. Replace the ad hoc
-recording boolean with a focusable capture widget. Each captured stroke is a
-button/chip removable by click or keyboard activation. Triple Escape within a
+recording boolean with a focusable capture widget. Each captured physical key
+and modifier is a pink, whitespace-separated button/keycap removable by click
+or keyboard activation; text-only fallbacks preserve the same `Ctrl =` token
+order without `+` as a delimiter. Triple Escape within a
 documented window cancels capture and removes its pending Escape presses;
 single/double Escape may remain recordable. Save, Cancel, add/edit/remove,
 enable/disable, conflicts, and scrolling all participate in one focus tree.

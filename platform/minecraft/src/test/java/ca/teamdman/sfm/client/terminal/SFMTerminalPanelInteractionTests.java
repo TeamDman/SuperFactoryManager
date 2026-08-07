@@ -260,9 +260,17 @@ class SFMTerminalPanelInteractionTests {
     }
 
     @Test
+    void disconnectedStartControlUsesTheExactVanillaAtlasRowHeight() {
+        SFMScreenPanelBounds bounds = SFMTerminalPanel.landingStartButtonBounds(8, 944, 70, 536);
+
+        assertEquals(20, bounds.height(),
+                "a taller button samples pixels from the next Vanilla atlas row and draws a detached sliver");
+        assertEquals(180, bounds.width());
+    }
+
+    @Test
     void presentationChoicesCloseWhenFocusLeavesTheirScope() {
         RecordingRemoteService service = new RecordingRemoteService();
-        service.connected = false;
         service.rendererOptions = List.of(new SFMTerminalRendererOption(
                 SFMTerminalRendererId.RUST_CPU_FONTDUE,
                 SFMTerminalRasterizationOwner.SERVER,
@@ -272,19 +280,177 @@ class SFMTerminalPanelInteractionTests {
         panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
         SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
         ResourceLocation selector = new ResourceLocation("sfm", "terminal/presentation/select");
-        ResourceLocation start = new ResourceLocation("sfm", "terminal/server/start_control");
+        ResourceLocation viewport = new ResourceLocation("sfm", "terminal/viewport");
         assertTrue(widgets.focus(selector));
         assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
         assertEquals(1, widgets.children().stream().filter(SFMPanelWidget::isPanelFocused).count(),
-                "opening the selector must not leave Start/Retry or an option focused too");
+                "opening the selector must not leave the viewport or an option focused too");
 
-        assertTrue(widgets.focus(start));
+        assertTrue(widgets.focus(viewport));
 
-        assertEquals(start, widgets.focusedElementId().orElseThrow());
+        assertEquals(viewport, widgets.focusedElementId().orElseThrow());
         assertEquals(1, widgets.children().stream().filter(SFMPanelWidget::isPanelFocused).count());
         assertFalse(widgets.children().stream().anyMatch(child ->
                 child.elementId().getPath().startsWith("terminal/presentation/renderer/")
                         && child.isPanelVisible()));
+    }
+
+    @Test
+    void disconnectedLandingOwnsOnlyItsStartControlAndRetainsFailureHistory() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.connected = false;
+        service.failure = "Vox terminal unavailable: TimeoutException";
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        panel.tick();
+
+        assertEquals("rust-landing", panel.sceneForAutomation());
+        assertEquals(List.of(new ResourceLocation("sfm", "terminal/server/start_control")),
+                panel.widgetHost().orElseThrow().children().stream()
+                        .map(SFMPanelWidget::elementId)
+                        .toList());
+        assertTrue(panel.connectionEventsForAutomation().stream()
+                .anyMatch(message -> message.contains("TimeoutException")));
+
+        // A short-lived background retry must not replace the landing tree or
+        // make its last useful result disappear for one frame.
+        service.failure = null;
+        service.connecting = true;
+        panel.tick();
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+
+        assertEquals("rust-landing", panel.sceneForAutomation());
+        assertEquals(List.of(new ResourceLocation("sfm", "terminal/server/start_control")),
+                panel.widgetHost().orElseThrow().children().stream()
+                        .map(SFMPanelWidget::elementId)
+                        .toList());
+        assertTrue(panel.connectionEventsForAutomation().stream()
+                .anyMatch(message -> message.contains("TimeoutException")));
+    }
+
+    @Test
+    void connectionBoundarySwapsDisjointLandingAndTerminalWidgetTrees() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.connected = false;
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
+
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        assertEquals(List.of("terminal/server/start_control"), widgetPaths(widgets));
+
+        service.connected = true;
+        panel.tick();
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        assertEquals("rust-terminal", panel.sceneForAutomation());
+        assertEquals(List.of("terminal/viewport", "terminal/presentation/select"), widgetPaths(widgets));
+        assertEquals(new ResourceLocation("sfm", "terminal/viewport"),
+                widgets.focusedElementId().orElseThrow());
+
+        service.connected = false;
+        panel.tick();
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        assertEquals("rust-landing", panel.sceneForAutomation());
+        assertEquals(List.of("terminal/server/start_control"), widgetPaths(widgets));
+        assertEquals(new ResourceLocation("sfm", "terminal/server/start_control"),
+                widgets.focusedElementId().orElseThrow());
+    }
+
+    @Test
+    void provisionalTransportConnectionNeverInstallsTerminalControlsOrLosesLandingHistory() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.connected = false;
+        service.presentationReady = false;
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
+
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        assertEquals(List.of("terminal/server/start_control"), widgetPaths(widgets));
+
+        // Vox assigns its session id before presentation discovery. That
+        // provisional state must remain the same landing scene, with Start
+        // disabled and no one-frame selector/viewport installation.
+        service.connected = true;
+        panel.tick();
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        assertEquals("rust-landing", panel.sceneForAutomation());
+        assertEquals(List.of("terminal/server/start_control"), widgetPaths(widgets));
+        assertFalse(widgets.children().get(0).isPanelEnabled());
+        assertEquals(SFMTerminalPanel.RustLifecycleRequest.PRESENTATION_PENDING,
+                panel.requestStartOrRetryRustServer());
+
+        service.connected = false;
+        service.failure = "Vox terminal unavailable: discovery failed";
+        panel.tick();
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        assertEquals("rust-landing", panel.sceneForAutomation());
+        assertEquals(List.of("terminal/server/start_control"), widgetPaths(widgets));
+        assertTrue(panel.connectionEventsForAutomation().stream()
+                .anyMatch(message -> message.contains("discovery failed")));
+
+        service.connected = true;
+        service.presentationReady = true;
+        service.failure = null;
+        panel.tick();
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        assertEquals("rust-terminal", panel.sceneForAutomation());
+        assertEquals(List.of("terminal/viewport", "terminal/presentation/select"), widgetPaths(widgets));
+    }
+
+    @Test
+    void staleLandingActivationCannotStartASecondServerAfterAsyncConnection() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.connected = false;
+        service.presentationReady = false;
+        SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> {
+            throw new AssertionError("connected terminal launched a second Rust server");
+        });
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+
+        // Deliberately do not tick/resize after the background state change;
+        // this is the stale-widget race the activation guard must close.
+        service.connected = true;
+
+        assertFalse(panel.requestStartRustServer());
+        assertEquals(0, panel.startButtonAttemptCountForAutomation());
+        assertFalse(panel.startRequestedForAutomation());
+    }
+
+    @Test
+    void connectedPresentationFailureEnablesRetryWithoutLaunchingAnotherServer() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        service.connected = true;
+        service.presentationReady = false;
+        service.failure = "Vox terminal raster subscription failed";
+        SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> {
+            throw new AssertionError("presentation retry launched another Rust server");
+        });
+        panel.resizeRemoteViewport(new SFMScreenPanelBounds(0, 0, 960, 540), CELL_WIDTH, LINE_HEIGHT);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
+
+        assertEquals("rust-landing", panel.sceneForAutomation());
+        assertEquals(List.of("terminal/server/start_control"), widgetPaths(widgets));
+        assertTrue(widgets.children().get(0).isPanelEnabled());
+
+        assertEquals(SFMTerminalPanel.RustLifecycleRequest.RETRYING_CONNECTION,
+                panel.requestStartOrRetryRustServer());
+        assertEquals(1, service.reconnectRequests);
+        assertEquals(0, panel.startButtonAttemptCountForAutomation());
+        assertFalse(service.connected);
+        assertEquals(SFMTerminalPanel.RustLifecycleRequest.REQUEST_IN_PROGRESS,
+                panel.requestStartOrRetryRustServer());
+        assertEquals(1, service.reconnectRequests);
+        assertEquals(0, panel.startButtonAttemptCountForAutomation(),
+                "an immediate second Retry activation must not fall through to server launch");
+    }
+
+    private static List<String> widgetPaths(SFMPanelWidgetHost widgets) {
+        return widgets.children().stream()
+                .map(widget -> widget.elementId().getPath())
+                .toList();
     }
 
     @Test
@@ -653,6 +819,10 @@ class SFMTerminalPanelInteractionTests {
         private SFMTerminalPasteResult pasteResult = new SFMTerminalPasteResult(
                 SFMTerminalPasteResult.Disposition.PASTED, "", "");
         private boolean connected = true;
+        private boolean connecting;
+        private boolean presentationReady = true;
+        private String failure;
+        private int reconnectRequests;
         private long interactionEpoch;
         private List<SFMTerminalRendererOption> rendererOptions = List.of();
         private List<SFMTerminalTransportOption> transportOptions = List.of();
@@ -688,12 +858,22 @@ class SFMTerminalPanelInteractionTests {
 
         @Override
         public boolean isConnecting() {
-            return false;
+            return connecting;
         }
 
         @Override
         public Optional<String> failureMessage() {
-            return Optional.empty();
+            return Optional.ofNullable(failure);
+        }
+
+        @Override
+        public SFMTerminalConnectionSnapshot connectionSnapshot() {
+            return new SFMTerminalConnectionSnapshot(
+                    connected,
+                    connecting,
+                    connected && presentationReady,
+                    interactionEpoch,
+                    Optional.ofNullable(failure));
         }
 
         @Override
@@ -824,6 +1004,12 @@ class SFMTerminalPanelInteractionTests {
 
         @Override
         public void reconnect() {
+            reconnectRequests++;
+            connected = false;
+            connecting = true;
+            presentationReady = false;
+            failure = null;
+            interactionEpoch++;
         }
 
         @Override

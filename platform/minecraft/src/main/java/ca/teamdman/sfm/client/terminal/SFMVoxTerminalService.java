@@ -418,6 +418,21 @@ public final class SFMVoxTerminalService implements SFMTerminalRemoteService {
     }
 
     @Override
+    public SFMTerminalConnectionSnapshot connectionSnapshot() {
+        synchronized (lock) {
+            RasterStream stream = rasterHandoff.active();
+            boolean presentationReady = latestSnapshot != null
+                    || stream != null && stream.lastFrameSequence >= 1;
+            return new SFMTerminalConnectionSnapshot(
+                    sessionId != null,
+                    connectionInFlight,
+                    presentationReady,
+                    transportGeneration,
+                    Optional.ofNullable(failure));
+        }
+    }
+
+    @Override
     public Optional<SFMTerminalTuningRejection> tuningFailure() {
         synchronized (lock) {
             return Optional.ofNullable(tuningFailure);

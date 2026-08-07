@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.keybinding;
 
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import org.junit.jupiter.api.Test;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,24 @@ class SFMKeyBindingEngineTests {
         assertEquals(17, intents.get(0).firstSourceEvent());
         assertEquals(17, intents.get(0).lastSourceEvent());
         assertEquals(1, intents.get(0).bindingRevision());
+    }
+
+    @Test
+    void canonicalPanelScaleIncreaseMatchesPhysicalControlEqual() {
+        SFMKeyBinding increase = SFMKeyBindingDefaults.definitions().stream()
+                .filter(binding -> binding.actionId().equals("sfm:panel/scale/increase"))
+                .findFirst()
+                .orElseThrow();
+        SFMKeyBindingEngine engine = engine(increase);
+
+        SFMKeyBindingMatchResult match = engine.accept(
+                press(1, 0, GLFW.GLFW_KEY_EQUAL, SFMKeyModifier.CONTROL),
+                SFMKeyboardUsageContextSnapshot.testing(SFMKeyboardUsageSituations.DEFAULT));
+
+        assertEquals(List.of("sfm:panel/scale/increase"), match.intents().stream()
+                .map(SFMActionInvocationIntent::actionId)
+                .toList());
+        assertTrue(match.consumed());
     }
 
     @Test

@@ -30,33 +30,17 @@ public final class SFMKeyBindingDefaults {
                         "builtin/workspace/scale/increase-main",
                         "sfm:panel/scale/increase",
                         "sfm action invoke sfm:panel/scale/increase",
-                        SFMKeyStroke.of(GLFW.GLFW_KEY_EQUAL,
-                                SFMKeyModifier.CONTROL, SFMKeyModifier.SHIFT)),
-                binding(
-                        "builtin/workspace/scale/increase-keypad",
-                        "sfm:panel/scale/increase",
-                        "sfm action invoke sfm:panel/scale/increase",
-                        SFMKeyStroke.of(GLFW.GLFW_KEY_KP_ADD, SFMKeyModifier.CONTROL)),
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_EQUAL, SFMKeyModifier.CONTROL)),
                 binding(
                         "builtin/workspace/scale/decrease-main",
                         "sfm:panel/scale/decrease",
                         "sfm action invoke sfm:panel/scale/decrease",
                         SFMKeyStroke.of(GLFW.GLFW_KEY_MINUS, SFMKeyModifier.CONTROL)),
                 binding(
-                        "builtin/workspace/scale/decrease-keypad",
-                        "sfm:panel/scale/decrease",
-                        "sfm action invoke sfm:panel/scale/decrease",
-                        SFMKeyStroke.of(GLFW.GLFW_KEY_KP_SUBTRACT, SFMKeyModifier.CONTROL)),
-                binding(
                         "builtin/workspace/scale/clear-main",
                         "sfm:panel/scale/clear",
                         "sfm action invoke sfm:panel/scale/clear",
                         SFMKeyStroke.of(GLFW.GLFW_KEY_0, SFMKeyModifier.CONTROL)),
-                binding(
-                        "builtin/workspace/scale/clear-keypad",
-                        "sfm:panel/scale/clear",
-                        "sfm action invoke sfm:panel/scale/clear",
-                        SFMKeyStroke.of(GLFW.GLFW_KEY_KP_0, SFMKeyModifier.CONTROL)),
                 binding(
                         "builtin/workspace/resize/left",
                         "sfm:panel/resize/left",

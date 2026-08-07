@@ -113,8 +113,62 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private Optional<SFMWorkspacePanelMetrics> viewportMetrics = Optional.empty();
     private SFMTerminalFrame lastAcceptedFrame;
     private PendingPaste pendingPaste;
-    private boolean disconnectedControlsVisible;
     private String lastPanelActionFeedback = "";
+    private TerminalScene terminalScene;
+    private Boolean lastObservedConnection;
+    private String lastObservedConnectionFailure = "";
+    private final List<ConnectionEvent> connectionEvents = new ArrayList<>();
+
+    /**
+     * A terminal panel is one of three disjoint scenes.  In particular, the
+     * Rust landing page does not merely hide terminal widgets: those widgets
+     * are absent from its child tree, so stale focus, hit targets, and partial
+     * rendering cannot leak across the connection boundary.
+     */
+    private sealed interface TerminalScene permits LocalReplScene, RustLandingScene, RustTerminalScene {
+    }
+
+    private record LocalReplScene() implements TerminalScene {
+    }
+
+    private record RustLandingScene(
+            List<ConnectionEvent> events,
+            boolean startPending,
+            boolean startAvailable,
+            boolean retryConnection
+    ) implements TerminalScene {
+        private RustLandingScene {
+            events = List.copyOf(events);
+        }
+    }
+
+    private record RustTerminalScene(boolean framePresented) implements TerminalScene {
+    }
+
+    private record ConnectionEvent(String message, boolean error) {
+        private ConnectionEvent {
+            message = Objects.requireNonNull(message).trim();
+        }
+    }
+
+    public enum RustLifecycleRequest {
+        STARTING_SERVER(true),
+        RETRYING_CONNECTION(true),
+        ALREADY_CONNECTED(false),
+        PRESENTATION_PENDING(false),
+        REQUEST_IN_PROGRESS(false),
+        UNAVAILABLE(false);
+
+        private final boolean accepted;
+
+        RustLifecycleRequest(boolean accepted) {
+            this.accepted = accepted;
+        }
+
+        public boolean accepted() {
+            return accepted;
+        }
+    }
 
     private record PendingPaste(String text, String preview, String contentId, long interactionEpoch) {
     }
@@ -195,9 +249,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 START_ELEMENT,
                 DEFAULT_USAGE,
                 Component.literal("Start / Retry Rust server"),
-                () -> Component.literal(startRequested
-                        ? "Starting Rust terminal server"
-                        : "Start or retry Rust terminal server"),
+                this::startControlNarration,
                 () -> "sfm action invoke sfm:terminal/server/start",
                 () -> executePanelAction("sfm action invoke sfm:terminal/server/start")
         );
@@ -212,10 +264,14 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 ignored -> { }
         );
         widgetHost.setFocusStateListener(this::terminalWidgetFocusChanged);
-        rebuildTerminalWidgets();
         this.connectionStatus = remoteService == null
                 ? "Java-local terminal"
-                : "Rust terminal is disconnected";
+                : "Looking for the configured Rust terminal server.";
+        if (remoteService != null) {
+            recordConnectionEvent(connectionStatus, false);
+        }
+        this.terminalScene = initialTerminalScene();
+        rebuildTerminalWidgets();
         if (remoteService == null) {
             scrollback.appendAll(List.of(
                     "Java-local terminal · explicit REPL mode",
@@ -272,14 +328,59 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 presentationOptions.add(button);
             }
         }
+        installSceneWidgets();
+        presentationOptionsSignature = presentationOptionsSignature();
+    }
+
+    private TerminalScene initialTerminalScene() {
+        if (remoteService == null) return new LocalReplScene();
+        return observedTerminalScene(remoteService.connectionSnapshot(), false);
+    }
+
+    private TerminalScene observedTerminalScene(
+            SFMTerminalConnectionSnapshot connection,
+            boolean framePresented
+    ) {
+        if (remoteService == null) return new LocalReplScene();
+        if (connection.connected() && connection.presentationReady()) {
+            return new RustTerminalScene(framePresented);
+        }
+        boolean retryConnection = connection.connected()
+                && !connection.presentationReady()
+                && connection.failure().isPresent();
+        return new RustLandingScene(
+                connectionEvents,
+                startRequested,
+                !connection.connected() || retryConnection,
+                retryConnection);
+    }
+
+    private void transitionTerminalScene(TerminalScene next) {
+        boolean membershipChanged = !sameSceneFamily(terminalScene, next);
+        terminalScene = Objects.requireNonNull(next);
+        if (!membershipChanged) return;
+        presentationMenuOpen = false;
+        installSceneWidgets();
+        if (next instanceof RustLandingScene) invalidateDisconnectedStartButtonPresentation();
+    }
+
+    private static boolean sameSceneFamily(TerminalScene left, TerminalScene right) {
+        return left != null && right != null && left.getClass().equals(right.getClass());
+    }
+
+    private void installSceneWidgets() {
         List<SFMPanelWidget> children = new ArrayList<>();
-        children.add(viewportWidget);
-        children.add(startButton);
-        children.add(presentationButton);
-        children.addAll(presentationOptions);
+        if (terminalScene instanceof LocalReplScene) {
+            children.add(viewportWidget);
+        } else if (terminalScene instanceof RustLandingScene) {
+            children.add(startButton);
+        } else if (terminalScene instanceof RustTerminalScene) {
+            children.add(viewportWidget);
+            children.add(presentationButton);
+            children.addAll(presentationOptions);
+        }
         widgetHost.setChildren(children);
         updatePresentationOptionVisibility();
-        presentationOptionsSignature = presentationOptionsSignature();
     }
 
     private void refreshPresentationOptions() {
@@ -301,20 +402,27 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 .collect(java.util.stream.Collectors.joining("|"));
     }
 
-    private void synchronizeTerminalWidgets(boolean presented, ViewportGeometry viewport) {
-        disconnectedControlsVisible = remoteService != null && !presented;
-        viewportWidget.visible = remoteService == null || presented;
+    private void synchronizeTerminalWidgets(TerminalScene scene, ViewportGeometry viewport) {
+        boolean landing = scene instanceof RustLandingScene;
+        boolean starting = scene instanceof RustLandingScene rustLanding && rustLanding.startPending();
+        boolean startAvailable = scene instanceof RustLandingScene rustLanding && rustLanding.startAvailable();
+        boolean retryConnection = scene instanceof RustLandingScene rustLanding && rustLanding.retryConnection();
+        boolean terminal = scene instanceof LocalReplScene || scene instanceof RustTerminalScene;
+        viewportWidget.visible = terminal;
         viewportWidget.active = viewportWidget.visible;
         viewportWidget.setPanelBounds(new SFMScreenPanelBounds(
                 viewport.left(), viewport.top(), viewport.width(), viewport.height()));
-        startButton.visible = disconnectedControlsVisible;
-        startButton.active = disconnectedControlsVisible && !startRequested;
-        startButton.setMessage(Component.literal(startRequested
+        startButton.visible = landing;
+        startButton.active = landing && startAvailable && !starting;
+        startButton.setMessage(Component.literal(starting
                 ? "Starting..."
+                : retryConnection
+                ? "Retry terminal connection"
                 : "Start / Retry Rust server"));
-        if (!disconnectedControlsVisible) invalidateDisconnectedStartButtonPresentation();
-        presentationButton.visible = remoteService != null;
-        presentationButton.active = remoteService != null;
+        if (!landing) invalidateDisconnectedStartButtonPresentation();
+        boolean remoteTerminal = scene instanceof RustTerminalScene;
+        presentationButton.visible = remoteTerminal;
+        presentationButton.active = remoteTerminal;
         int controlHeight = Math.max(VANILLA_CONTROL_HEIGHT, viewport.lineHeight() + 4);
         layoutPresentationControl(controlHeight);
         presentationButton.setPanelBounds(new SFMScreenPanelBounds(
@@ -334,7 +442,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         }
         updatePresentationOptionVisibility();
         if (widgetHost.focusedChild().isEmpty()) {
-            widgetHost.focus(disconnectedControlsVisible ? START_ELEMENT : VIEWPORT_ELEMENT);
+            widgetHost.focus(landing ? START_ELEMENT : VIEWPORT_ELEMENT);
         }
     }
 
@@ -346,7 +454,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     private void updatePresentationOptionVisibility() {
         for (SFMPanelActionButton option : presentationOptions) {
-            option.visible = remoteService != null && presentationMenuOpen;
+            option.visible = terminalScene instanceof RustTerminalScene && presentationMenuOpen;
         }
     }
 
@@ -393,6 +501,14 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     private Component presentationNarration() {
         String feedback = lastPanelActionFeedback.isBlank() ? "" : ". " + lastPanelActionFeedback;
         return Component.literal(presentationLabel() + feedback);
+    }
+
+    private Component startControlNarration() {
+        if (startRequested) return Component.literal("Starting Rust terminal server");
+        if (terminalScene instanceof RustLandingScene landing && landing.retryConnection()) {
+            return Component.literal("Retry the unavailable Rust terminal presentation");
+        }
+        return Component.literal("Start or retry Rust terminal server");
     }
 
     private String currentPresentationActionDraft() {
@@ -455,6 +571,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         this.lastLoggedPresentationStreamIdentity = null;
         this.lastLoggedPresentationSequence = Long.MIN_VALUE;
         if (remoteService != null) {
+            observeRemoteLifecycle(remoteService.connectionSnapshot());
             resized(minecraft, bounds);
             remoteService.requestConnect();
         }
@@ -480,9 +597,15 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         );
         applyViewport(viewport);
         layoutPresentationControl(Math.max(VANILLA_CONTROL_HEIGHT, viewport.lineHeight() + 4));
-        // Establish valid child rectangles immediately. The next render refines
-        // disconnected/presented visibility from the actual retained frame.
-        synchronizeTerminalWidgets(remoteService == null || remoteService.isConnected(), viewport);
+        SFMTerminalConnectionSnapshot connection = remoteService == null
+                ? null
+                : remoteService.connectionSnapshot();
+        if (connection != null) observeRemoteLifecycle(connection);
+        TerminalScene scene = connection == null
+                ? new LocalReplScene()
+                : observedTerminalScene(connection, false);
+        transitionTerminalScene(scene);
+        synchronizeTerminalWidgets(scene, viewport);
         if (remoteService != null) {
             SFMScreenPanelBounds logicalViewport = new SFMScreenPanelBounds(
                     viewport.left(), viewport.top(), viewport.width(), viewport.height());
@@ -573,6 +696,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (remoteService == null) return;
         refreshPresentationOptions();
         remoteService.requestConnect();
+        SFMTerminalConnectionSnapshot connection = remoteService.connectionSnapshot();
+        observeRemoteLifecycle(connection);
+        transitionTerminalScene(observedTerminalScene(connection, false));
         Optional<SFMTerminalTuningRejection> rejection = remoteService.tuningFailure();
         if (tuningPending && rejection.isPresent()) {
             lastTuningRejection = rejection.get();
@@ -623,9 +749,16 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
                 bounds.y() + 8, TEXT, false);
         if (remoteService != null) {
-            // The old disconnected controls stop existing before either a new
-            // frame or a retained texture can become the current presentation.
-            invalidateDisconnectedStartButtonPresentation();
+            SFMTerminalConnectionSnapshot connection = remoteService.connectionSnapshot();
+            observeRemoteLifecycle(connection);
+            if (!connection.connected() || !connection.presentationReady()) {
+                TerminalScene scene = observedTerminalScene(connection, false);
+                transitionTerminalScene(scene);
+                synchronizeTerminalWidgets(scene, viewport);
+                renderLanding(poseStack, minecraft, left, width, contentTop, contentBottom,
+                        (RustLandingScene) scene);
+                return;
+            }
             Optional<SFMTerminalFrame> frame = remoteService.latestFrame();
             frame.ifPresent(accepted -> {
                 lastAcceptedFrame = accepted;
@@ -652,11 +785,12 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                     logPresentationTiming(frame.get(), pngRenderer.telemetry());
                 }
                 renderFocusHint(poseStack, minecraft, left, width, contentBottom);
-                synchronizeTerminalWidgets(true, viewport);
-                return;
+            } else {
+                renderConnectedWaitingForFrame(poseStack, minecraft, left, contentTop);
             }
-            renderDisconnected(poseStack, minecraft, left, width, contentTop, contentBottom);
-            synchronizeTerminalWidgets(false, viewport);
+            TerminalScene scene = observedTerminalScene(connection, presented);
+            transitionTerminalScene(scene);
+            synchronizeTerminalWidgets(scene, viewport);
             return;
         }
         int y = contentTop;
@@ -677,7 +811,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             renderInput(poseStack, minecraft, left, width, inputY, focused);
         }
         renderFocusHint(poseStack, minecraft, left, width, contentBottom);
-        synchronizeTerminalWidgets(true, viewport);
+        TerminalScene scene = new LocalReplScene();
+        transitionTerminalScene(scene);
+        synchronizeTerminalWidgets(scene, viewport);
     }
 
     private void logPresentationTiming(
@@ -1358,9 +1494,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (pending == null || !pending.contentId().equals(expectedContentId)) return;
         pendingPaste = null;
         focusTerminalInput();
-        if (!approved || remoteService == null
-                || !remoteService.isConnected()
-                || remoteService.interactionEpoch() != pending.interactionEpoch()) return;
+        if (!approved || remoteService == null) return;
+        SFMTerminalConnectionSnapshot connection = remoteService.connectionSnapshot();
+        if (!connection.connected()
+                || connection.interactionEpoch() != pending.interactionEpoch()) return;
         Minecraft requestMinecraft = minecraft;
         remoteService.pasteWithoutGuard(
                 pending.text(),
@@ -1472,73 +1609,159 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 minecraft.font.plainSubstrByWidth(prompt, width), left, inputY, MUTED, false);
     }
 
-    private void renderDisconnected(
+    private void renderLanding(
             PoseStack poseStack,
             Minecraft minecraft,
             int left,
             int width,
             int contentTop,
-            int contentBottom
+            int contentBottom,
+            RustLandingScene landing
     ) {
-        String state = remoteService.isConnected()
-                ? "Rust terminal connected; waiting for its first frame"
-                : remoteService.isConnecting()
-                ? "Connecting to the Rust terminal server..."
-                : connectionStatus;
-        SFMFontUtils.draw(poseStack, minecraft.font, state, left, contentTop + 8, TEXT, false);
+        SFMFontUtils.draw(poseStack, minecraft.font,
+                landing.retryConnection()
+                        ? "Rust terminal presentation is unavailable"
+                        : "Rust terminal is disconnected",
+                left, contentTop + 8, TEXT, false);
         int nextY = contentTop + 8 + minecraft.font.lineHeight + 8;
-        Optional<String> failure = remoteService.failureMessage();
-        if (failure.isPresent()) {
-            String message = minecraft.font.plainSubstrByWidth(failure.get(), width);
-            SFMFontUtils.draw(poseStack, minecraft.font, message, left, nextY, ERROR, false);
-            nextY += minecraft.font.lineHeight + 8;
-        } else {
-            SFMFontUtils.draw(poseStack, minecraft.font,
-                    "Start teamy-terminal or retry the configured endpoint.", left, nextY, MUTED, false);
+        for (ConnectionEvent event : landing.events()) {
+            String message = minecraft.font.plainSubstrByWidth(event.message(), width);
+            SFMFontUtils.draw(poseStack, minecraft.font, message, left, nextY,
+                    event.error() ? ERROR : MUTED, false);
             nextY += minecraft.font.lineHeight + 8;
         }
-        int buttonWidth = Math.min(180, Math.max(120, width));
-        int startButtonLeft = left;
-        int startButtonTop = Math.min(nextY, contentBottom - 26);
-        int startButtonRight = startButtonLeft + buttonWidth;
-        int startButtonBottom = Math.min(contentBottom, startButtonTop + 22);
-        recordDisconnectedStartButtonPresentation(new SFMScreenPanelBounds(
-                startButtonLeft,
-                startButtonTop,
-                Math.max(0, startButtonRight - startButtonLeft),
-                Math.max(0, startButtonBottom - startButtonTop)));
-        startButton.setPanelBounds(new SFMScreenPanelBounds(
-                startButtonLeft,
-                startButtonTop,
-                Math.max(0, startButtonRight - startButtonLeft),
-                Math.max(0, startButtonBottom - startButtonTop)));
+        SFMScreenPanelBounds startBounds = landingStartButtonBounds(left, width, nextY, contentBottom);
+        recordDisconnectedStartButtonPresentation(startBounds);
+        startButton.setPanelBounds(startBounds);
     }
 
-    public boolean requestStartRustServer() {
-        if (startRequested || remoteService == null) return false;
+    static SFMScreenPanelBounds landingStartButtonBounds(
+            int left,
+            int availableWidth,
+            int requestedTop,
+            int contentBottom
+    ) {
+        int buttonWidth = Math.min(180, Math.max(120, availableWidth));
+        int top = Math.min(requestedTop, contentBottom - VANILLA_CONTROL_HEIGHT - 4);
+        int bottom = Math.min(contentBottom, top + VANILLA_CONTROL_HEIGHT);
+        return new SFMScreenPanelBounds(
+                left,
+                top,
+                buttonWidth,
+                Math.max(0, bottom - top));
+    }
+
+    private void renderConnectedWaitingForFrame(
+            PoseStack poseStack,
+            Minecraft minecraft,
+            int left,
+            int contentTop
+    ) {
+        SFMFontUtils.draw(poseStack, minecraft.font,
+                "Rust terminal is connected", left, contentTop + 8, TEXT, false);
+        SFMFontUtils.draw(poseStack, minecraft.font,
+                "Waiting for the first terminal frame...", left,
+                contentTop + 8 + minecraft.font.lineHeight + 8, MUTED, false);
+    }
+
+    private void observeRemoteLifecycle(SFMTerminalConnectionSnapshot connection) {
+        boolean connected = connection.connected();
+        if (lastObservedConnection != null && lastObservedConnection != connected) {
+            if (connected) {
+                recordConnectionEvent(connection.presentationReady()
+                        ? "Connected to the Rust terminal server."
+                        : "Transport connected; preparing the terminal presentation.", false);
+                lastObservedConnectionFailure = "";
+            } else {
+                recordConnectionEvent("Connection lost; automatic retry remains active.", true);
+            }
+        }
+        lastObservedConnection = connected;
+        connection.failure().ifPresent(failure -> {
+            String normalized = failure == null ? "" : failure.trim();
+            if (!normalized.isEmpty() && !normalized.equals(lastObservedConnectionFailure)) {
+                lastObservedConnectionFailure = normalized;
+                recordConnectionEvent(normalized, true);
+            }
+        });
+    }
+
+    private void recordConnectionEvent(String message, boolean error) {
+        String normalized = message == null ? "" : message.trim();
+        if (normalized.isEmpty()) return;
+        if (!connectionEvents.isEmpty()) {
+            ConnectionEvent latest = connectionEvents.get(connectionEvents.size() - 1);
+            if (latest.message().equals(normalized) && latest.error() == error) return;
+        }
+        connectionEvents.add(new ConnectionEvent(normalized, error));
+        while (connectionEvents.size() > 3) connectionEvents.remove(0);
+        if (terminalScene instanceof RustLandingScene landing) {
+            terminalScene = new RustLandingScene(
+                    connectionEvents,
+                    startRequested,
+                    landing.startAvailable(),
+                    landing.retryConnection());
+        }
+    }
+
+    public RustLifecycleRequest requestStartOrRetryRustServer() {
+        if (remoteService == null) return RustLifecycleRequest.UNAVAILABLE;
+        if (startRequested) return RustLifecycleRequest.REQUEST_IN_PROGRESS;
+        SFMTerminalConnectionSnapshot connection = remoteService.connectionSnapshot();
+        // requestConnect() publishes this flag synchronously before its
+        // background driver runs. Keep the landing control visually stable,
+        // but make repeated activation authoritative and idempotent.
+        if (connection.connecting()) return RustLifecycleRequest.REQUEST_IN_PROGRESS;
+        if (connection.connected()) {
+            if (connection.presentationReady()) return RustLifecycleRequest.ALREADY_CONNECTED;
+            if (connection.failure().isEmpty()) return RustLifecycleRequest.PRESENTATION_PENDING;
+            connectionStatus = "Retrying the Rust terminal connection...";
+            recordConnectionEvent(connectionStatus, false);
+            remoteService.reconnect();
+            remoteService.requestConnect();
+            transitionTerminalScene(observedTerminalScene(
+                    remoteService.connectionSnapshot(), false));
+            return RustLifecycleRequest.RETRYING_CONNECTION;
+        }
+        if (connection.presentationReady()) return RustLifecycleRequest.ALREADY_CONNECTED;
         startButtonAttemptCount++;
         startRequested = true;
         connectionStatus = "Starting the Rust terminal server...";
+        recordConnectionEvent(connectionStatus, false);
+        transitionTerminalScene(observedTerminalScene(connection, false));
         Minecraft currentMinecraft = minecraft;
         Thread thread = new Thread(() -> {
             try {
                 rustServerStarter.start();
                 remoteService.reconnect();
                 remoteService.requestConnect();
-                if (currentMinecraft != null) currentMinecraft.execute(() -> {
+                runOnMinecraftThread(currentMinecraft, () -> {
                     startRequested = false;
                     connectionStatus = "Connecting to the Rust terminal server...";
+                    recordConnectionEvent(connectionStatus, false);
+                    transitionTerminalScene(observedTerminalScene(
+                            remoteService.connectionSnapshot(), false));
                 });
             } catch (Exception error) {
-                if (currentMinecraft != null) currentMinecraft.execute(() -> {
+                runOnMinecraftThread(currentMinecraft, () -> {
                     startRequested = false;
                     connectionStatus = "Rust terminal server could not be started";
+                    String detail = error.getMessage() == null || error.getMessage().isBlank()
+                            ? connectionStatus
+                            : connectionStatus + ": " + error.getMessage();
+                    recordConnectionEvent(detail, true);
+                    transitionTerminalScene(observedTerminalScene(
+                            remoteService.connectionSnapshot(), false));
                 });
             }
         }, "sfm-rust-terminal-start");
         thread.setDaemon(true);
         thread.start();
-        return true;
+        return RustLifecycleRequest.STARTING_SERVER;
+    }
+
+    public boolean requestStartRustServer() {
+        return requestStartOrRetryRustServer().accepted();
     }
 
     void recordDisconnectedStartButtonPresentation(SFMScreenPanelBounds buttonBounds) {
@@ -1567,6 +1790,16 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
 
     public long terminalMouseDispatchCountForAutomation() {
         return terminalMouseDispatchCount;
+    }
+
+    String sceneForAutomation() {
+        if (terminalScene instanceof LocalReplScene) return "local-repl";
+        if (terminalScene instanceof RustLandingScene) return "rust-landing";
+        return "rust-terminal";
+    }
+
+    List<String> connectionEventsForAutomation() {
+        return connectionEvents.stream().map(ConnectionEvent::message).toList();
     }
 
     public boolean formerStartButtonRoutingReadyForAutomation() {

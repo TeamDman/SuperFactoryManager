@@ -199,21 +199,25 @@ class SFMKeyBindingStorageTests {
     }
 
     @Test
-    void mainAndKeypadScaleDefaultsHaveParityAndReadablePlusDisplay() {
+    void panelScaleIncreaseUsesOneCanonicalPhysicalEqualBindingAndReadableTokens() {
         List<SFMKeyBinding> increase = SFMKeyBindingDefaults.definitions().stream()
                 .filter(binding -> binding.actionId().equals("sfm:panel/scale/increase"))
                 .toList();
 
-        assertEquals(2, increase.size());
+        assertEquals(1, increase.size());
         assertTrue(increase.stream().allMatch(binding ->
                 binding.situationId().equals(SFMKeyboardUsageSituations.DEFAULT)));
-        assertTrue(increase.stream().anyMatch(binding ->
-                binding.sequence().strokes().get(0).keyCode() == GLFW.GLFW_KEY_EQUAL));
-        assertTrue(increase.stream().anyMatch(binding ->
-                binding.sequence().strokes().get(0).keyCode() == GLFW.GLFW_KEY_KP_ADD));
-        assertEquals("Ctrl++", SFMKeyBindingDisplay.format(increase.stream()
-                .filter(binding -> binding.sequence().strokes().get(0).keyCode() == GLFW.GLFW_KEY_EQUAL)
-                .findFirst().orElseThrow().sequence()));
+        SFMKeyStroke stroke = increase.get(0).sequence().strokes().get(0);
+        assertEquals(GLFW.GLFW_KEY_EQUAL, stroke.keyCode());
+        assertEquals(Set.of(SFMKeyModifier.CONTROL), stroke.modifiers());
+        assertEquals(List.of(List.of("Ctrl", "=")), SFMKeyBindingDisplay.tokens(increase.get(0).sequence()));
+        assertEquals("Ctrl =", SFMKeyBindingDisplay.format(increase.get(0).sequence()));
+        assertTrue(SFMKeyBindingDefaults.definitions().stream()
+                .filter(binding -> binding.actionId().startsWith("sfm:panel/scale/"))
+                .noneMatch(binding -> Set.of(
+                        GLFW.GLFW_KEY_KP_ADD,
+                        GLFW.GLFW_KEY_KP_SUBTRACT,
+                        GLFW.GLFW_KEY_KP_0).contains(binding.sequence().strokes().get(0).keyCode())));
     }
 
     @Test
@@ -265,7 +269,7 @@ class SFMKeyBindingStorageTests {
                 .filter(binding -> binding.actionId().endsWith("/right"))
                 .findFirst().orElseThrow();
         assertEquals(GLFW.GLFW_KEY_EQUAL, duplicateRight.sequence().strokes().get(0).keyCode());
-        assertEquals("Alt+Shift+Plus", SFMKeyBindingDisplay.format(duplicateRight.sequence()));
+        assertEquals("Alt Shift =", SFMKeyBindingDisplay.format(duplicateRight.sequence()));
     }
 
     @Test

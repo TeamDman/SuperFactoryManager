@@ -7,6 +7,7 @@ import com.mojang.brigadier.context.StringRange;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.ComponentContents;
@@ -19,15 +20,19 @@ import org.simmetrics.metrics.StringDistances;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public final class SFMClientActionCommandTree {
     private static final String PALETTE_ACTION_PREFIX = "sfm action invoke ";
     private static final long SLOW_COMPLETION_NANOS = 100_000_000L;
+    private static final int MAX_LITERAL_CONTINUATION_DEPTH = 8;
+    private static final int MAX_LITERAL_CONTINUATION_CANDIDATES = 256;
     private static final StringDistance ACTION_DISTANCE = StringDistances.damerauLevenshtein();
 
     private final CommandDispatcher<SFMClientActionSource> dispatcher;
@@ -181,26 +186,115 @@ public final class SFMClientActionCommandTree {
             String query = command.substring(actionRange.getStart(), actionRange.getEnd())
                     .toLowerCase(Locale.ROOT);
             SFMClientActionSource source = parsed.getContext().getSource();
-            List<RankedAction> ranked = new ArrayList<>();
+            List<RankedPaletteSuggestion> ranked = new ArrayList<>();
             for (Map.Entry<ResourceLocation, SFMClientAction<?>> action : actions.entrySet()) {
                 if (!isAvailable(action.getKey(), source)) continue;
                 float score = actionScore(query, searchMetadata.get(action.getKey()));
                 if (query.isBlank() || score <= 0.65f) {
-                    ranked.add(new RankedAction(
+                    ranked.add(new RankedPaletteSuggestion(
                             new Suggestion(actionRange, action.getKey().toString()),
                             score,
                             action.getKey().toString()
                     ));
                 }
             }
+            if (!query.isBlank()) {
+                ranked.addAll(literalContinuationSuggestions(
+                        actionRange,
+                        query,
+                        parsed,
+                        MAX_LITERAL_CONTINUATION_CANDIDATES));
+            }
             ranked.sort(Comparator
-                    .comparingDouble(RankedAction::score)
-                    .thenComparing(RankedAction::id));
+                    .comparingDouble(RankedPaletteSuggestion::score)
+                    .thenComparing(RankedPaletteSuggestion::command));
             return new Suggestions(
                     actionRange,
-                    ranked.stream().map(RankedAction::suggestion).toList()
+                    ranked.stream()
+                            .distinct()
+                            .limit(MAX_LITERAL_CONTINUATION_CANDIDATES)
+                            .map(RankedPaletteSuggestion::suggestion)
+                            .toList()
             );
         });
+    }
+
+    /**
+     * Searches literal descendants without invoking argument suggestion
+     * providers. This lets a query for a later grammar atom (for example
+     * {@code term}) discover an executable continuation such as
+     * {@code sfm:panel/open sfm:terminal}, while keeping completion bounded
+     * and free of synchronous filesystem/network work.
+     */
+    private static List<RankedPaletteSuggestion> literalContinuationSuggestions(
+            StringRange replacementRange,
+            String query,
+            ParseResults<SFMClientActionSource> parsed,
+            int candidateLimit
+    ) {
+        List<com.mojang.brigadier.context.ParsedCommandNode<SFMClientActionSource>> nodes =
+                parsed.getContext().getLastChild().getNodes();
+        if (nodes.isEmpty()) return List.of();
+        CommandNode<SFMClientActionSource> parent = nodes.get(nodes.size() - 1).getNode();
+        SFMClientActionSource source = parsed.getContext().getSource();
+        List<RankedPaletteSuggestion> result = new ArrayList<>();
+        for (CommandNode<SFMClientActionSource> child : parent.getChildren()) {
+            if (!(child instanceof LiteralCommandNode<SFMClientActionSource> actionLiteral)
+                    || !actionLiteral.canUse(source)) continue;
+            Set<CommandNode<SFMClientActionSource>> path = Collections.newSetFromMap(new IdentityHashMap<>());
+            path.add(actionLiteral);
+            collectMatchingLiteralContinuations(
+                    actionLiteral,
+                    actionLiteral.getLiteral(),
+                    query,
+                    replacementRange,
+                    source,
+                    0,
+                    candidateLimit,
+                    path,
+                    result);
+            if (result.size() >= candidateLimit) break;
+        }
+        return result;
+    }
+
+    private static void collectMatchingLiteralContinuations(
+            LiteralCommandNode<SFMClientActionSource> parent,
+            String commandPrefix,
+            String query,
+            StringRange replacementRange,
+            SFMClientActionSource source,
+            int depth,
+            int candidateLimit,
+            Set<CommandNode<SFMClientActionSource>> path,
+            List<RankedPaletteSuggestion> result
+    ) {
+        if (depth >= MAX_LITERAL_CONTINUATION_DEPTH || result.size() >= candidateLimit) return;
+        for (CommandNode<SFMClientActionSource> child : parent.getChildren()) {
+            if (!(child instanceof LiteralCommandNode<SFMClientActionSource> literal)
+                    || !literal.canUse(source)
+                    || !path.add(literal)) continue;
+            String continuation = commandPrefix + " " + literal.getLiteral();
+            float score = literalScore(query, literal.getLiteral());
+            if (score <= 0.65f) {
+                result.add(new RankedPaletteSuggestion(
+                        new Suggestion(replacementRange, continuation),
+                        score + (depth + 1) * 0.001f,
+                        continuation));
+            }
+            collectMatchingLiteralContinuations(
+                    literal,
+                    continuation,
+                    query,
+                    replacementRange,
+                    source,
+                    depth + 1,
+                    candidateLimit,
+                    path,
+                    result);
+            path.remove(literal);
+            if (result.size() >= candidateLimit) return;
+        }
     }
 
     /**
@@ -344,7 +438,7 @@ public final class SFMClientActionCommandTree {
         }
     }
 
-    private record RankedAction(Suggestion suggestion, float score, String id) {
+    private record RankedPaletteSuggestion(Suggestion suggestion, float score, String command) {
     }
 
     private record RankedLiteral(Suggestion suggestion, float score, String literal) {
