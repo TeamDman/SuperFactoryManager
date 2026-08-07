@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class FocusPanelActionTests {
+class SFMWorkspaceNavigationActionGrammarTests {
     @Test
     void indexedFocusIsARealHierarchicalActionWithBoundedArgument() {
         ResourceLocation actionId = new ResourceLocation("sfm", "panel/focus/index");
