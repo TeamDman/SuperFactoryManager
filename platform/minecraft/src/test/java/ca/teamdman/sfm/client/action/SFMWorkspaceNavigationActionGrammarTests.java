@@ -20,8 +20,8 @@ class SFMWorkspaceNavigationActionGrammarTests {
         IntegerArgumentType argumentType = (IntegerArgumentType) index.getType();
 
         assertEquals("index", index.getName());
-        assertEquals(1, IntegerArgumentType.getMinimum(argumentType));
-        assertEquals(9, IntegerArgumentType.getMaximum(argumentType));
+        assertEquals(1, argumentType.getMinimum());
+        assertEquals(9, argumentType.getMaximum());
     }
 
     @Test
