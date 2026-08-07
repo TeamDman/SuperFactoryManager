@@ -54,6 +54,10 @@ public final class SFMKeySequenceCaptureWidget extends AbstractWidget {
         return capture;
     }
 
+    public boolean hasFocusedToken() {
+        return capture.hasFocusedToken();
+    }
+
     @Override
     public void updateNarration(NarrationElementOutput narration) {
         narration.add(NarratedElementType.TITLE, getMessage());
@@ -72,6 +76,7 @@ public final class SFMKeySequenceCaptureWidget extends AbstractWidget {
         fill(poseStack, x + width - 1, y, x + width, y + height, outline);
 
         int cursor = x + 5;
+        int flatToken = 0;
         boolean firstStroke = true;
         List<List<String>> tokens = capture.isEmpty()
                 ? List.of()
@@ -85,12 +90,14 @@ public final class SFMKeySequenceCaptureWidget extends AbstractWidget {
                 firstToken = false;
                 int tokenWidth = font.width(token) + HORIZONTAL_PADDING * 2;
                 if (cursor + tokenWidth > x + width - 5) break;
-                fill(poseStack, cursor, y + 3, cursor + tokenWidth, y + 3 + TOKEN_HEIGHT, BORDER);
+                int border = capture.focusedToken() == flatToken ? 0xFFFFFF55 : BORDER;
+                fill(poseStack, cursor, y + 3, cursor + tokenWidth, y + 3 + TOKEN_HEIGHT, border);
                 fill(poseStack, cursor + 1, y + 4, cursor + tokenWidth - 1,
                         y + 2 + TOKEN_HEIGHT, BACKGROUND);
                 SFMFontUtils.draw(poseStack, font, token, cursor + HORIZONTAL_PADDING,
                         y + 5, TEXT, false);
                 cursor += tokenWidth;
+                flatToken++;
             }
         }
         if (capture.isEmpty()) {
@@ -105,6 +112,26 @@ public final class SFMKeySequenceCaptureWidget extends AbstractWidget {
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             if (capture.escape(now) == SFMKeySequenceCapture.EscapeResult.CANCELLED) cancelled.run();
             changed.run();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_UP) {
+            capture.moveFocusedToken(-1);
+            changed.run();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_RIGHT || keyCode == GLFW.GLFW_KEY_DOWN) {
+            capture.moveFocusedToken(1);
+            changed.run();
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_DELETE || keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+            if (!capture.hasFocusedToken()) capture.focusToken(capture.tokenCount() - 1);
+            if (capture.removeFocusedToken()) changed.run();
+            return true;
+        }
+        if (capture.hasFocusedToken() && (keyCode == GLFW.GLFW_KEY_SPACE
+                || keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)) {
+            if (capture.removeFocusedToken()) changed.run();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) return false;
@@ -129,7 +156,8 @@ public final class SFMKeySequenceCaptureWidget extends AbstractWidget {
                 int tokenWidth = font.width(stroke.get(tokenIndex)) + HORIZONTAL_PADDING * 2;
                 if (mouseX >= cursor && mouseX < cursor + tokenWidth
                         && mouseY >= y + 3 && mouseY < y + 3 + TOKEN_HEIGHT) {
-                    capture.removeToken(strokeIndex, tokenIndex);
+                    capture.focusToken(flatTokenIndex(strokeIndex, tokenIndex));
+                    capture.removeFocusedToken();
                     changed.run();
                     return true;
                 }
@@ -138,6 +166,14 @@ public final class SFMKeySequenceCaptureWidget extends AbstractWidget {
         }
         setFocused(true);
         return true;
+    }
+
+    private int flatTokenIndex(int strokeIndex, int tokenIndex) {
+        int result = 0;
+        for (int index = 0; index < strokeIndex; index++) {
+            result += capture.strokes().get(index).modifiers().size() + 1;
+        }
+        return result + tokenIndex;
     }
 
     private static boolean isModifierKey(int keyCode) {

@@ -16,6 +16,7 @@ public final class SFMKeySequenceCapture {
     private final List<SFMKeyStroke> strokes = new ArrayList<>();
     private int pendingEscapes;
     private long firstPendingEscape = Long.MIN_VALUE;
+    private int focusedToken = -1;
 
     public List<SFMKeyStroke> strokes() {
         return List.copyOf(strokes);
@@ -29,12 +30,52 @@ public final class SFMKeySequenceCapture {
         strokes.clear();
         pendingEscapes = 0;
         firstPendingEscape = Long.MIN_VALUE;
+        focusedToken = -1;
+    }
+
+    public int tokenCount() {
+        int count = pendingEscapes;
+        for (SFMKeyStroke stroke : strokes) count += stroke.modifiers().size() + 1;
+        return count;
+    }
+
+    public int focusedToken() {
+        return focusedToken;
+    }
+
+    public boolean hasFocusedToken() {
+        return focusedToken >= 0 && focusedToken < tokenCount();
+    }
+
+    public boolean focusToken(int tokenIndex) {
+        if (tokenCount() == 0) {
+            focusedToken = -1;
+            return false;
+        }
+        int next = Math.max(0, Math.min(tokenIndex, tokenCount() - 1));
+        boolean changed = focusedToken != next;
+        focusedToken = next;
+        return changed;
+    }
+
+    public boolean moveFocusedToken(int delta) {
+        if (tokenCount() == 0) return false;
+        return focusToken(focusedToken < 0 ? (delta < 0 ? tokenCount() - 1 : 0) : focusedToken + delta);
+    }
+
+    public boolean removeFocusedToken() {
+        if (!hasFocusedToken()) return false;
+        Token token = tokenAt(focusedToken);
+        boolean removed = removeToken(token.strokeIndex(), token.tokenIndex());
+        if (removed) focusToken(Math.min(focusedToken, tokenCount() - 1));
+        return removed;
     }
 
     public void capture(int keyCode, Set<SFMKeyModifier> modifiers, long nowMillis) {
         flushExpired(nowMillis);
         commitPendingEscapes();
         strokes.add(new SFMKeyStroke(keyCode, modifiers));
+        focusedToken = -1;
     }
 
     public EscapeResult escape(long nowMillis) {
@@ -79,6 +120,22 @@ public final class SFMKeySequenceCapture {
             return false;
         }
         return true;
+    }
+
+    private Token tokenAt(int flatIndex) {
+        int cursor = 0;
+        for (int strokeIndex = 0; strokeIndex < strokes.size(); strokeIndex++) {
+            SFMKeyStroke stroke = strokes.get(strokeIndex);
+            int count = stroke.modifiers().size() + 1;
+            if (flatIndex < cursor + count) {
+                return new Token(strokeIndex, flatIndex - cursor);
+            }
+            cursor += count;
+        }
+        throw new IllegalArgumentException("Token index is outside the capture");
+    }
+
+    private record Token(int strokeIndex, int tokenIndex) {
     }
 
     private static int orderedModifierCount(SFMKeyStroke stroke) {

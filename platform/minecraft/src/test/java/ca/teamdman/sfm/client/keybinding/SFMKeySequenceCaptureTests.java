@@ -49,4 +49,17 @@ class SFMKeySequenceCaptureTests {
         assertEquals(List.of(GLFW.GLFW_KEY_ESCAPE, GLFW.GLFW_KEY_A),
                 capture.strokes().stream().map(SFMKeyStroke::keyCode).toList());
     }
+
+    @Test
+    void focusedTokenCanBeRemovedWithKeyboardSemantics() {
+        SFMKeySequenceCapture capture = new SFMKeySequenceCapture();
+        capture.capture(GLFW.GLFW_KEY_EQUAL,
+                Set.of(SFMKeyModifier.CONTROL, SFMKeyModifier.SHIFT), 100);
+        capture.capture(GLFW.GLFW_KEY_A, Set.of(), 101);
+        capture.focusToken(1);
+        assertTrue(capture.removeFocusedToken());
+        assertEquals(List.of(SFMKeyModifier.CONTROL),
+                capture.strokes().get(0).modifiers().stream().toList());
+        assertEquals(GLFW.GLFW_KEY_A, capture.strokes().get(1).keyCode());
+    }
 }

@@ -900,8 +900,8 @@ palette/details keycaps; exact Equal+Control matching and absence of default
 keypad duplicates are tested. Focused action-palette, keybinding, and palette-
 viewport runs pass. The canonical full `Tests` run reports `650 found, 648
 passed, 0 failed, 2 aborted`; both aborts are the established Windows symlink-
-privilege assumptions. P-5.2 remains open for K-5 through K-7 and P-5.5 still
-owns the live palette/keycap evidence.
+privilege assumptions. P-5.2 remains open for K-7 and P-5.5 still owns the
+live palette/keycap evidence.
 
 I-KEY-2 subsequently corrected relative scale actions to resolve auto through
 the current effective window GUI scale. Pure tests retain the asymmetric first
@@ -922,6 +922,18 @@ keybinding slice passes `38 found, 38 passed`, and the current main/test source
 sets compile. A separate explicit compile refresh encountered a cached Forge
 renaming-tool replacement failure; that cache issue is recorded as tooling
 follow-up, not as a product test failure.
+
+**K-5/K-6 completion — 2026-08-07:** K-5 now has the bounded raw-handler
+disposition inventory, deterministic action-element inventory/audit, public
+coordinate-draft rejection, and the contextual `sfm:manager/edit` proof. K-6
+now has sortable/scoped binding management plus focusable composable capture:
+physical key/modifier keycaps use the shared pink token contract, can be
+removed by mouse or keyboard, and support explicit Save/Cancel and
+triple-Escape cancellation. `SFMActionElementTests`,
+`SFMKeyboardNavigationAuditTests`, `SFMKeyBindingListModelTests`, and
+`SFMKeySequenceCaptureTests` pass through the SFM toolchain. K-5 and K-6 are
+complete; the remaining gate is K-7's live proof and the broader P-5.5 release
+evidence.
 
 ### [ ] P-5.3 Persist successful palette commands and rank full MRU entries
 

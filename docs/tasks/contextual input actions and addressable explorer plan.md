@@ -656,7 +656,7 @@ inverse rounding tolerance, distinct panel instances, and the final six-panel
 layout. Evidence is under
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/title_screen_wor-20260806-170614-790/`.
 
-### [ ] K-5 Actionize SFM-owned controls and enforce keyboard reachability
+### [x] K-5 Actionize SFM-owned controls and enforce keyboard reachability
 
 **Work:** Close D-3. Produce a machine-readable inventory of SFM-owned raw key
 handlers, control callbacks, and hand-rendered hit regions. Convert semantic
@@ -691,10 +691,11 @@ workspace situation. The pure action-grammar test passes `2 found, 2 passed`,
 the affected keybinding slice passes `38 found, 38 passed`, and the current
 main/test source sets compile. An explicit compile refresh separately hit a
 cached Forge renaming-tool replacement failure, but it did not block the
-current focused test run. This is progress, not K-5 completion; the remaining
-raw-handler inventory, action-element audit, and live witness stay open.
+current focused test run. The subsequent completion note below records the
+bounded inventory, action-element audit, and Manager Edit proof that closed
+K-5; the live witness is intentionally deferred to K-7.
 
-**Incremental progress — 2026-08-07 (action-element proof):** Added the
+**Completed — 2026-08-07 (action-element proof and bounded inventory):** Added the
 `SFMActionElement` contract and deterministic line-oriented inventory/audit.
 `SFMPanelWidgetHost.actionElements()` exposes live panel children to the audit
 without creating a second mutable registry, and `SFMPanelActionButton` now
@@ -704,12 +705,15 @@ Manager Edit button and its legacy key path through registered
 `sfm:manager/edit`; its requirement captures the exact active `ManagerScreen`,
 which is the bounded proof that dynamic manager position/owner context stays
 attached to the semantic action. Focused pure tests cover deterministic
-inventory, audit failures, and wrong-host unavailability. The canonical test
-run is currently blocked by unrelated in-progress K-6 compile errors in
-`SFMKeySequenceCaptureWidget` and missing `Optional` imports in
-`SFMKeyBindingScreen`; do not treat that blocker as K-5 completion.
+inventory, audit failures, and wrong-host unavailability. The explicit
+`SFMKeyboardNavigationInventory` records every currently reviewed raw handler
+with a semantic-action, parameterized-input, vanilla-widget, or bounded legacy
+exemption disposition; `SFMKeyboardNavigationAuditTests` emits deterministic
+machine-readable lines. `SFMActionElementAudit` rejects public coordinate-click
+drafts and missing focus/situation/narration/action metadata. K-5 is complete;
+the live cross-screen witness remains owned by K-7.
 
-### [ ] K-6 Upgrade binding management with sorting and composable capture
+### [x] K-6 Upgrade binding management with sorting and composable capture
 
 **Work:** Close D-4's K-phase naming. Add focusable Name and Binding Count
 headers, stable ascending/descending sorting, enabled/total counts, situation
@@ -735,6 +739,17 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeyBindingCapture
 **Completion criteria:** The complete binding collection is sortable,
 searchable, scoped, and editable without a mouse; users can understand and
 modify every recorded chord element without trapping keyboard focus.
+
+**Completed — 2026-08-07:** `SFMKeyBindingListModel` supplies stable name and
+binding-count ordering, situation filtering, enabled/total row counts, and
+selection/viewport preservation. `SFMKeySequenceCapture` and
+`SFMKeySequenceCaptureWidget` replace the old recording-only path with a
+focusable capture surface, separated physical tokens such as `Ctrl =`, pink
+removable keycaps, keyboard and mouse token removal, explicit Save/Cancel
+targets, dispatch suspension restoration, and bounded triple-Escape cancel
+behavior. The focused tests pass for list sorting/filtering, timeout and
+triple-Escape behavior, modifier/key removal, and post-capture keyboard-token
+focus semantics. The live keyboard-management witness remains part of K-7.
 
 ### [ ] K-7 Prove the contextual input vertical slice live
 

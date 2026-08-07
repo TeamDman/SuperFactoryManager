@@ -26,6 +26,8 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
     private final ResourceLocation actionId;
     private final SFMKeySequenceCapture capture = new SFMKeySequenceCapture();
     private SFMKeySequenceCaptureWidget captureWidget;
+    private net.minecraft.client.gui.components.Button saveCaptureButton;
+    private net.minecraft.client.gui.components.Button cancelCaptureButton;
     private boolean recording;
     private String replacingBindingId;
     private String replacingCommandDraft;
@@ -123,6 +125,23 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                 () -> { },
                 this::cancelRecording));
         captureWidget.visible = recording;
+        saveCaptureButton = addRenderableWidget(new SFMButtonBuilder()
+                .setPosition(left, height - 30)
+                .setSize(70, 20)
+                .setText(Component.literal("Save"))
+                .setOnPress(button -> {
+                    capture.commitPendingEscapes();
+                    if (!capture.strokes().isEmpty()) saveCaptured();
+                })
+                .build());
+        cancelCaptureButton = addRenderableWidget(new SFMButtonBuilder()
+                .setPosition(left + 76, height - 30)
+                .setSize(70, 20)
+                .setText(CommonComponents.GUI_CANCEL)
+                .setOnPress(button -> cancelRecording())
+                .build());
+        saveCaptureButton.visible = recording;
+        cancelCaptureButton.visible = recording;
         if (recording) {
             setFocused(captureWidget);
             captureWidget.setFocused(true);
@@ -203,6 +222,7 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            if (captureWidget.hasFocusedToken()) return captureWidget.keyPressed(keyCode, scanCode, modifiers);
             capture.commitPendingEscapes();
             if (!capture.strokes().isEmpty()) saveCaptured();
             return true;
@@ -263,6 +283,9 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
         replacingCommandDraft = null;
         capture.clear();
         if (captureWidget != null) captureWidget.visible = false;
+        if (saveCaptureButton != null) saveCaptureButton.visible = false;
+        if (cancelCaptureButton != null) cancelCaptureButton.visible = false;
+        setFocused(null);
         SFMKeyBindingService.INSTANCE.setDispatchSuspended(false);
     }
 
