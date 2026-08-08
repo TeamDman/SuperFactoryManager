@@ -54,6 +54,17 @@ public class SFMConfigTracker {
         return null;
     }
 
+    /** Persist a client-config mutation made by an in-game action. */
+    public static boolean saveClientConfig() {
+        ModConfig modConfig = getClientModConfig();
+        if (modConfig == null) {
+            SFM.LOGGER.warn("Unable to save SFM client config because it is not registered");
+            return false;
+        }
+        modConfig.save();
+        return true;
+    }
+
         public static class ModConfigEventListeners {
         /**
          * Tracks when configs are loaded

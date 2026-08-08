@@ -1,7 +1,13 @@
 package ca.teamdman.sfm.client.command;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -11,6 +17,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMCommandHistoryTests {
+    @TempDir
+    Path tempDir;
+
+    @AfterEach
+    void resetService() {
+        SFMCommandHistoryService.resetForTests();
+    }
+
     @Test
     void preservesRepeatsForTheDocumentButDeduplicatesMruSuggestions() {
         var history = SFMCommandHistory.inMemory();
@@ -76,5 +90,39 @@ class SFMCommandHistoryTests {
         history.clear();
         assertEquals(List.of(), history.entriesOldestFirst());
         assertEquals(List.of(List.of()), writes);
+    }
+
+    @Test
+    void disabledStartupDoesNotReadOrRecordAndReenableReloadsRetainedFile() throws IOException {
+        Path path = tempDir.resolve("sfm-command-history.v1");
+        String persisted = SFMCommandHistoryCodec.serialize(List.of("sfm action invoke sfm:echo retained"));
+        Files.writeString(path, persisted, StandardCharsets.UTF_8);
+
+        SFMCommandHistoryService.initialize(path, false);
+
+        assertFalse(SFMCommandHistoryService.isPersistenceEnabled());
+        assertEquals(List.of(), SFMCommandHistoryService.suggestionsNewestFirst());
+        SFMCommandHistoryService.recordSuccessful("sfm action invoke sfm:echo ignored");
+        assertEquals(persisted, Files.readString(path, StandardCharsets.UTF_8));
+
+        SFMCommandHistoryService.setPersistenceEnabled(true);
+
+        assertTrue(SFMCommandHistoryService.isPersistenceEnabled());
+        assertEquals(List.of("sfm action invoke sfm:echo retained"),
+                SFMCommandHistoryService.suggestionsNewestFirst());
+    }
+
+    @Test
+    void clearWhileDisabledExplicitlyErasesRetainedFile() throws IOException {
+        Path path = tempDir.resolve("sfm-command-history.v1");
+        Files.writeString(path, SFMCommandHistoryCodec.serialize(
+                List.of("sfm action invoke sfm:echo retained")), StandardCharsets.UTF_8);
+
+        SFMCommandHistoryService.initialize(path, false);
+        SFMCommandHistoryService.clear();
+
+        assertFalse(Files.exists(path));
+        SFMCommandHistoryService.setPersistenceEnabled(true);
+        assertEquals(List.of(), SFMCommandHistoryService.suggestionsNewestFirst());
     }
 }

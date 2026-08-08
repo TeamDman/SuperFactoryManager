@@ -310,6 +310,8 @@ sfm:palette/close
 sfm:palette/history/open [editor-id]
 sfm:palette/history/open/left|right|above|below [editor-id]
 sfm:palette/history/clear
+sfm:palette/history/persistence/enable
+sfm:palette/history/persistence/disable
 ```
 
 Examples include `sfm:panel/open sfm:terminal` and
@@ -1032,7 +1034,7 @@ clear persistence, and non-recordability.
 the chosen panel/editor, all selectable editors remain genuinely read-only,
 and clear leaves no self-repopulating maintenance entry.
 
-### [ ] P-5.4a Make command-history persistence user-configurable
+### [x] P-5.4a Make command-history persistence user-configurable
 
 **Work:** Add a persistent client configuration value, enabled by default, and
 register the hierarchical maintenance actions:
@@ -1066,6 +1068,16 @@ disabled.
 palette, restart the client, and observe no historical suggestions or document;
 enabling it again restores the retained history, while explicit clear remains
 the reliable way to erase it.
+
+**Completion notes — 2026-08-08:** Added the persisted Forge client setting
+`commandPaletteHistoryEnabled`, hierarchical enable/disable actions, immediate
+service snapshot replacement, disabled-mode file protection, and explicit
+clear-while-disabled erasure. The focused History suite completed with exit
+code 0. The live
+`sfm:title_screen_command_palette_history` puppet completed with exit code 0
+and produced five captures, including disabled, re-enabled, and cleared
+states, in run `sfm-title_screen-20260808-113435-745`. P-5.4a is complete;
+P-5.5 remains the broader release join gate.
 
 ### [ ] P-5.5 Prove the command-surface slice live and update release notes
 

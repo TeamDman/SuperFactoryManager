@@ -7,7 +7,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.network.chat.Component;
 
-/** Live witness for MRU ordering, read-only history opening, and true clear. */
+/** Live witness for MRU ordering, read-only history opening, clear, and opt-out. */
 @SFMGamePuppet
 public final class TitleScreenCommandPaletteHistoryGamePuppet {
     private TitleScreenCommandPaletteHistoryGamePuppet() {
@@ -39,6 +39,22 @@ public final class TitleScreenCommandPaletteHistoryGamePuppet {
         puppet.closeScreenNaturally();
 
         puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:palette/history/persistence/disable");
+        puppet.executeCommandPalette("sfm action invoke sfm:echo disabled-ignored");
+        puppet.openCommandPalette();
+        puppet.setCommandPaletteInput("sfm action invoke ");
+        puppet.capture("command-palette-history-disabled", caption(
+                "Disabled history is neither suggested nor recorded, while ordinary actions remain available."
+        ));
+
+        puppet.executeCommandPalette("sfm action invoke sfm:palette/history/clear");
+        puppet.executeCommandPalette("sfm action invoke sfm:palette/history/persistence/enable");
+        puppet.executeCommandPalette("sfm action invoke sfm:echo history-reenabled");
+        puppet.openCommandPalette();
+        puppet.setCommandPaletteInput("sfm action invoke ");
+        puppet.capture("command-palette-history-reenabled", caption(
+                "Re-enabling resumes recording after the explicit clear operation."
+        ));
         puppet.executeCommandPalette("sfm action invoke sfm:palette/history/clear");
         puppet.openCommandPalette();
         puppet.capture("command-palette-history-cleared", caption(

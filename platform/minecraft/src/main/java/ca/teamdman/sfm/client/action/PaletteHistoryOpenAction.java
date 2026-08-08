@@ -47,9 +47,13 @@ public final class PaletteHistoryOpenAction implements SFMClientAction<SFMClient
 
     @Override
     public SFMClientActionRequirement<SFMClientActionContext> requirement() {
-        return context -> context.originatingHostIsCurrent().getAsBoolean()
+        return context -> SFMCommandHistoryService.isPersistenceEnabled()
+                && context.originatingHostIsCurrent().getAsBoolean()
                 ? SFMClientActionAvailability.available(context)
-                : SFMClientActionAvailability.unavailable(SFMClientActionContext.ORIGINATING_HOST_CHANGED.getComponent());
+                : SFMClientActionAvailability.unavailable(Component.literal(
+                        SFMCommandHistoryService.isPersistenceEnabled()
+                                ? SFMClientActionContext.ORIGINATING_HOST_CHANGED.getComponent().getString()
+                                : "Command history is disabled"));
     }
 
     @Override
@@ -82,6 +86,9 @@ public final class PaletteHistoryOpenAction implements SFMClientAction<SFMClient
 
     private int open(CommandContext<SFMClientActionSource> context, ResourceLocation editorId)
             throws CommandSyntaxException {
+        if (!SFMCommandHistoryService.isPersistenceEnabled()) {
+            throw new SimpleCommandExceptionType(Component.literal("Command history is disabled")).create();
+        }
         ISFMTextEditorRegistration registration = SFMTextEditors.registry().get(editorId);
         if (registration == null) {
             throw new SimpleCommandExceptionType(Component.literal("Unknown text editor: " + editorId)).create();

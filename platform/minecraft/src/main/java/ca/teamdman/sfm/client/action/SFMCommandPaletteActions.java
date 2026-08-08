@@ -127,6 +127,16 @@ public final class SFMCommandPaletteActions {
             PaletteHistoryClearAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, PaletteHistoryPersistenceAction> ENABLE_PALETTE_HISTORY = REGISTERER.register(
+            "palette/history/persistence/enable",
+            () -> new PaletteHistoryPersistenceAction(PaletteHistoryPersistenceAction.Operation.ENABLE)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, PaletteHistoryPersistenceAction> DISABLE_PALETTE_HISTORY = REGISTERER.register(
+            "palette/history/persistence/disable",
+            () -> new PaletteHistoryPersistenceAction(PaletteHistoryPersistenceAction.Operation.DISABLE)
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, MovePanelAction> MOVE_PANEL_LEFT = REGISTERER.register(
             "panel/move/left",
             () -> new MovePanelAction(SFMWorkspaceSide.LEFT)

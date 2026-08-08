@@ -43,6 +43,7 @@ NAME "Changelog"
 -- Retire the superseded managed-bundle review surface while preserving comment and review-session behavior
 -- Keep command-palette completion bounded to in-memory candidates and improve incomplete-argument guidance
 -- Persist successful command-palette commands as bounded MRU history with read-only history open and clear actions
+-- Allow command-palette history to be enabled or disabled persistently, with explicit clear remaining available
 -- Add bounded Java-local terminal scrollback with wheel, page, Home, End, and follow-output navigation
 -- Fix Java-local terminal scrollback preserving the viewed output while new lines arrive
 -- Add a composable size-display panel that makes solid-colour panel bounds and logical dimensions visible in nested layouts
