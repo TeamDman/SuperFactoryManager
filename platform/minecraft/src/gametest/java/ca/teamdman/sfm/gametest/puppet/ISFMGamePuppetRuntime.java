@@ -29,6 +29,12 @@ public interface ISFMGamePuppetRuntime {
 
     boolean openCommandPalette();
 
+    /** Places command text in the real palette input without submitting it. */
+    void setCommandPaletteInput(String command);
+
+    /** Submits the real palette input through the same path as Enter. */
+    void submitCommandPalette();
+
     void executeCommandPalette(String command);
 
     void pressScreenKey(int keyCode, int modifiers);

@@ -452,6 +452,13 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         updatePresentationOptionVisibility();
     }
 
+    /** Invoked by the semantic command action for the visible selector control. */
+    public boolean togglePresentationMenuForAction() {
+        if (!(terminalScene instanceof RustTerminalScene)) return false;
+        togglePresentationMenu();
+        return true;
+    }
+
     private void updatePresentationOptionVisibility() {
         for (SFMPanelActionButton option : presentationOptions) {
             option.visible = terminalScene instanceof RustTerminalScene && presentationMenuOpen;
@@ -512,7 +519,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     private String currentPresentationActionDraft() {
-        if (remoteService == null) return "";
+        if (remoteService == null) {
+            return "sfm action invoke sfm:terminal/presentation/toggle";
+        }
         if (presentationAxis == PresentationAxis.RENDERER) {
             List<SFMTerminalRendererOption> options = remoteService.rendererOptions();
             if (rendererSelectionIndex >= 0 && rendererSelectionIndex < options.size()) {
@@ -526,7 +535,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                         + options.get(transportSelectionIndex).id().wireId();
             }
         }
-        return "";
+        return "sfm action invoke sfm:terminal/presentation/toggle";
     }
 
     private String presentationLabel() {

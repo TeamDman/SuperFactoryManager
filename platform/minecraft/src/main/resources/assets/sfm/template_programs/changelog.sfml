@@ -53,6 +53,7 @@ NAME "Changelog"
 -- Add a read-only file explorer workspace with safe directory drops and reusable side-by-side text previews
 -- Add searchable runtime SFM shortcuts with action details, cycling palette badges, and typed command prompting
 -- Add contributor-defined contextual shortcuts with explicit global scope, safe migration, overridable panel defaults, and action-backed F3 diagnostics
+-- Make puppet command-palette submissions observable for 500 ms and add live key-sequence capture/cancellation evidence
 -- Discover complete nested command-palette paths such as panel-opening terminal scenes from later-literal fuzzy queries
 -- Fix panel-scale shortcuts to use one physical Ctrl+Equal default and render unambiguous pink keycaps
 -- Make the first panel-scale adjustment relative to the effective auto scale instead of the auto sentinel

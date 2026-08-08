@@ -840,7 +840,7 @@ a visible nonzero scrollbar offset. The canonical compile and full test suite
 both exit zero; the only two aborted tests are the existing Windows
 symlink-privilege assumptions.
 
-### [ ] P-5.2 Complete contextual panel bindings and keyboard navigation
+### [x] P-5.2 Complete contextual panel bindings and keyboard navigation
 
 **Work:** Complete K-1 through K-7 of
 `docs/tasks/contextual input actions and addressable explorer plan.md`. Replace
@@ -900,8 +900,9 @@ palette/details keycaps; exact Equal+Control matching and absence of default
 keypad duplicates are tested. Focused action-palette, keybinding, and palette-
 viewport runs pass. The canonical full `Tests` run reports `650 found, 648
 passed, 0 failed, 2 aborted`; both aborts are the established Windows symlink-
-privilege assumptions. P-5.2 remains open for K-7 and P-5.5 still owns the
-live palette/keycap evidence.
+privilege assumptions. At that point P-5.2 remained open for K-7; the final
+K-7/P-5.2 closure is recorded below, while P-5.5 still owns the broader
+release join gate.
 
 I-KEY-2 subsequently corrected relative scale actions to resolve auto through
 the current effective window GUI scale. Pure tests retain the asymmetric first
@@ -909,15 +910,16 @@ step (`auto N -> N+1` on increase, `auto N -> explicit N` on decrease) and
 ordinary numeric continuation thereafter. Focused `PanelScaleActionTests` and
 `PanelActionTests` pass; the subsequent canonical full run reports `653 found,
 651 passed, 0 failed, 2 aborted`, with only the established Windows symlink-
-privilege assumptions aborted. K-7/P-5.5 still own the live witness.
+privilege assumptions aborted. At that point K-7/P-5.5 still owned the live
+witness; the K-7 witness is recorded below.
 
-**K-5 progress — 2026-08-07:** The first semantic workspace-navigation family
+**Initial K-5 progress — 2026-08-07:** The first semantic workspace-navigation family
 is now registered (`panel/focus/next`, `panel/focus/previous`,
 `panel/focus/index <1..9>`, and `panel/maximize/toggle`), and the multiplexer
 routes Ctrl+Tab, Ctrl+Shift+Tab, Ctrl+1..9, and Ctrl+M through the action
-executor with workspace-situation defaults. K-5 remains open for the broader
-raw-handler inventory, action-element audit, Manager Edit proof, and live
-witness. The pure action-grammar test passes `2 found, 2 passed`, the affected
+executor with workspace-situation defaults. At that point K-5 remained open
+for the broader raw-handler inventory, action-element audit, Manager Edit
+proof, and live witness. The pure action-grammar test passes `2 found, 2 passed`, the affected
 keybinding slice passes `38 found, 38 passed`, and the current main/test source
 sets compile. A separate explicit compile refresh encountered a cached Forge
 renaming-tool replacement failure; that cache issue is recorded as tooling
@@ -932,8 +934,23 @@ removed by mouse or keyboard, and support explicit Save/Cancel and
 triple-Escape cancellation. `SFMActionElementTests`,
 `SFMKeyboardNavigationAuditTests`, `SFMKeyBindingListModelTests`, and
 `SFMKeySequenceCaptureTests` pass through the SFM toolchain. K-5 and K-6 are
-complete; the remaining gate is K-7's live proof and the broader P-5.5 release
-evidence.
+complete; at that point the remaining gate was K-7's live proof and the broader
+P-5.5 release evidence.
+
+**K-7/P-5.2 completion — 2026-08-08:** The linked contextual-input plan's
+live vertical slice is complete. The final compile passed and the canonical
+suite reports `669 found, 667 passed, 0 failed, 0 skipped, 2 aborted`; the two
+aborts are only the Windows symlink-privilege assumptions. The final dynamic,
+workspace, and Rust-terminal manifests are
+`title_screen_dyn-20260808-103044-061`,
+`title_screen_wor-20260808-103446-639`, and
+`title_screen_rus-20260808-104057-247`. They provide respectively 12, 8, and
+33 user-visible captures, with terminal text/selection/paste/properties and
+push-telemetry artifacts in the terminal run. Puppet command-palette actions
+now leave entered text visible for a 500 ms observation window before real
+submission. The semantic Presentation selector toggle and corrected
+post-header keybinding viewport geometry are included in this closure.
+P-5.2 is complete; P-5.5 remains the broader release join gate.
 
 ### [ ] P-5.3 Persist successful palette commands and rank full MRU entries
 

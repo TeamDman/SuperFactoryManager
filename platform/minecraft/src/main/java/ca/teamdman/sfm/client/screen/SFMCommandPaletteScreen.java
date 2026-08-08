@@ -1023,6 +1023,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.input.moveCursorToEnd();
     }
 
+    /** Submits the current automation input through the same path as Enter. */
+    public void submitInputForAutomation() {
+        executeInput();
+    }
+
     /** Displays deterministic theme reload feedback for the visual puppet. */
     public void showThemeFeedbackForAutomation(List<String> messages) {
         this.feedback.clear();

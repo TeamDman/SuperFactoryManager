@@ -252,6 +252,11 @@ public final class SFMCommandPaletteActions {
             SetTerminalRendererAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, ToggleTerminalPresentationAction> TOGGLE_TERMINAL_PRESENTATION = REGISTERER.register(
+            "terminal/presentation/toggle",
+            ToggleTerminalPresentationAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, TerminalPropertiesAction> TERMINAL_SURFACE_AUTO = REGISTERER.register(
             "terminal/properties/surface/auto",
             () -> new TerminalPropertiesAction(SFMTerminalTuningOperation.SURFACE_AUTO)

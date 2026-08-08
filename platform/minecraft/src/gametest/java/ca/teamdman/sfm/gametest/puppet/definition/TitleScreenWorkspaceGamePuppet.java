@@ -44,7 +44,7 @@ public final class TitleScreenWorkspaceGamePuppet {
         puppet.assertWorkspaceState(3, 2, 2, "stacked workspace opening", 2);
         puppet.pressScreenKey(
                 GLFW.GLFW_KEY_EQUAL,
-                GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_SHIFT);
+                GLFW.GLFW_MOD_CONTROL);
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
         puppet.assertWorkspaceState(3, 2, 2, "stacked workspace opening", 3);
         puppet.pressScreenKey(GLFW.GLFW_KEY_0, GLFW.GLFW_MOD_CONTROL);

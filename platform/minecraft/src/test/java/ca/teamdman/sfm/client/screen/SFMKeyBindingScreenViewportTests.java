@@ -13,9 +13,9 @@ class SFMKeyBindingScreenViewportTests {
         SFMVerticalListViewport viewport = viewport(20, 240);
         int centerX = 160;
 
-        assertEquals(OptionalInt.empty(), rowAt(viewport, centerX, 40, 320, 240, true));
-        assertEquals(OptionalInt.empty(), rowAt(viewport, centerX, 63.99, 320, 240, true));
-        assertEquals(OptionalInt.of(0), rowAt(viewport, centerX, 64, 320, 240, true));
+        assertEquals(OptionalInt.empty(), rowAt(viewport, centerX, 87, 320, 240, true));
+        assertEquals(OptionalInt.empty(), rowAt(viewport, centerX, 110, 320, 240, true));
+        assertEquals(OptionalInt.of(0), rowAt(viewport, centerX, 88, 320, 240, true));
     }
 
     @Test
@@ -23,9 +23,9 @@ class SFMKeyBindingScreenViewportTests {
         SFMVerticalListViewport viewport = viewport(20, 240);
         SFMVerticalListViewport.Bounds rows = SFMKeyBindingScreen.rowBounds(320, 240, true);
 
-        assertEquals(OptionalInt.empty(), rowAt(viewport, rows.x() + 10, 86, 320, 240, true));
-        assertEquals(OptionalInt.of(1), rowAt(viewport, rows.x() + 10, 88, 320, 240, true));
-        assertEquals(OptionalInt.empty(), rowAt(viewport, rows.x() + rows.width(), 64, 320, 240, true));
+        assertEquals(OptionalInt.empty(), rowAt(viewport, rows.x() + 10, 110, 320, 240, true));
+        assertEquals(OptionalInt.of(1), rowAt(viewport, rows.x() + 10, 112, 320, 240, true));
+        assertEquals(OptionalInt.empty(), rowAt(viewport, rows.x() + rows.width(), 88, 320, 240, true));
     }
 
     @Test
@@ -34,13 +34,13 @@ class SFMKeyBindingScreenViewportTests {
         viewport.scrollRows(4);
         SFMVerticalListViewport.Bounds rows = SFMKeyBindingScreen.rowBounds(320, 240, true);
 
-        assertEquals(OptionalInt.of(4), rowAt(viewport, rows.x(), 64, 320, 240, true));
+        assertEquals(OptionalInt.of(4), rowAt(viewport, rows.x(), 88, 320, 240, true));
     }
 
     @Test
     void visibleRowsClampAtZeroForTinyScreens() {
         assertEquals(0, SFMKeyBindingScreen.visibleRowCount(80));
-        assertEquals(6, SFMKeyBindingScreen.visibleRowCount(240));
+        assertEquals(5, SFMKeyBindingScreen.visibleRowCount(240));
     }
 
     private static SFMVerticalListViewport viewport(int items, int screenHeight) {

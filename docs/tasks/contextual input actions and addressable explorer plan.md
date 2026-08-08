@@ -749,17 +749,20 @@ removable keycaps, keyboard and mouse token removal, explicit Save/Cancel
 targets, dispatch suspension restoration, and bounded triple-Escape cancel
 behavior. The focused tests pass for list sorting/filtering, timeout and
 triple-Escape behavior, modifier/key removal, and post-capture keyboard-token
-focus semantics. The live keyboard-management witness remains part of K-7.
+focus semantics. K-7 supplies the live keyboard-management witness.
 
-### [ ] K-7 Prove the contextual input vertical slice live
+### [x] K-7 Prove the contextual input vertical slice live
 
 **Work:** Extend `title_screen_dynamic_key_bindings`, `title_screen_workspace`,
 and the Rust terminal presentation puppet with machine assertions and text
 artifacts. Cover keyboard-only disconnected terminal controls, properties,
 F3 discoverability, close, scale, resize, duplicate, situation display,
 incomplete command completion, sorting, capture chips, triple-Escape cancel,
-Manager semantic action ownership, and terminal non-leak. Update
-`changelog.sfml` and both coordinating plans.
+Manager semantic action ownership, and terminal non-leak. Every puppet command
+palette submission leaves the entered command visible for ten 20-Hz client
+ticks (500 ms) before submitting through the real Enter path, so a human can
+observe the action and the evidence capture is not an instantaneous state jump.
+Update `changelog.sfml` and both coordinating plans.
 
 **Validation:** Run focused tests, canonical compile/full tests, and the named
 puppets only through the SFM CLI. Record manifests and inspect representative
@@ -777,6 +780,23 @@ sfm-propagate-changes.exe puppet run title_screen_rust_terminal_presentation --b
 live user-visible witness; no result depends solely on OCR or screenshot
 interpretation; generated-resource edits unrelated to the slice remain
 untouched.
+
+**Completed — 2026-08-08:** The final toolchain evidence is complete. The
+canonical compile passed, and the full suite reports `669 found, 667 passed,
+0 failed, 0 skipped, 2 aborted`; both aborts are the established Windows
+symlink-privilege assumptions. The live manifests are
+`title_screen_dyn-20260808-103044-061` (12 captures, including the pink
+Ctrl+H capture and three-Escape cancellation),
+`title_screen_wor-20260808-103446-639` (8 workspace focus/scale/resize/move/
+duplicate/diagnostic captures), and
+`title_screen_rus-20260808-104057-247` (33 renderer/transport/focus captures
+plus terminal text, selection, paste, properties, and push-telemetry artifacts).
+The presentation selector is now itself backed by the semantic
+`sfm:terminal/presentation/toggle` action, and the viewport tests use the
+post-sort-header geometry. The shared puppet palette actions set the real
+input, hold it for the documented 500 ms observation window, and then submit
+through the real command path. The two unrelated generated-resource edits
+remain unmodified by this slice.
 
 ## Phase A — Typed addresses and explorer projections
 

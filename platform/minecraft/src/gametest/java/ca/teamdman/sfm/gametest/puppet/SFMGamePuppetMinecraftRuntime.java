@@ -240,11 +240,25 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
-    public void executeCommandPalette(String command) {
+    public void setCommandPaletteInput(String command) {
         if (!(minecraft.screen instanceof SFMCommandPaletteScreen palette)) {
-            throw new IllegalStateException("Expected command palette before executing a command");
+            throw new IllegalStateException("Expected command palette before setting automation input");
         }
-        palette.executeCommandForAutomation(command);
+        palette.setInputForAutomation(command);
+    }
+
+    @Override
+    public void submitCommandPalette() {
+        if (!(minecraft.screen instanceof SFMCommandPaletteScreen palette)) {
+            throw new IllegalStateException("Expected command palette before submitting automation input");
+        }
+        palette.submitInputForAutomation();
+    }
+
+    @Override
+    public void executeCommandPalette(String command) {
+        setCommandPaletteInput(command);
+        submitCommandPalette();
     }
 
     @Override

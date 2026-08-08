@@ -23,6 +23,8 @@ import java.util.Objects;
 public final class SFMGamePuppetHelper {
     public static final int SCREEN_TIMEOUT_TICKS = 200;
     public static final int RENDER_SETTLE_TICKS = 6;
+    /** Ten 20 Hz client ticks make palette automation observable for 500 ms. */
+    public static final int COMMAND_PALETTE_OBSERVATION_TICKS = 10;
     private final List<SFMPuppetAction> actions = new ArrayList<>();
     private int currentAction = 0;
 

@@ -8,6 +8,7 @@ import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
 public final class ExecuteCommandPalettePuppetAction implements SFMPuppetAction {
     private final String command;
     private int ticks;
+    private boolean inputSet;
     private boolean requested;
 
     public ExecuteCommandPalettePuppetAction(String command) {
@@ -37,9 +38,15 @@ public final class ExecuteCommandPalettePuppetAction implements SFMPuppetAction 
             }
             return false;
         }
+        if (!inputSet) {
+            inputSet = true;
+            runtime.setCommandPaletteInput(this.command);
+            return false;
+        }
         if (!requested) {
+            if (++ticks <= SFMGamePuppetHelper.COMMAND_PALETTE_OBSERVATION_TICKS) return false;
             requested = true;
-            runtime.executeCommandPalette(this.command);
+            runtime.submitCommandPalette();
             return false;
         }
         throw new IllegalStateException("Unreachable command palette automation state");
