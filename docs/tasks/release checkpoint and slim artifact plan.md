@@ -2,7 +2,7 @@
 
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
-**Last updated:** 2026-08-06
+**Last updated:** 2026-08-08
 **Update rules:** Keep this plan executable. Record decisions and evidence beside the affected work item, keep at most one current implementation focus, and update this file after every release-scope or artifact-policy change. Do not mark a phase complete from compilation alone; attach the command and the artifact or runtime evidence that proves it.
 
 ## Purpose
@@ -26,6 +26,7 @@ This plan coordinates the existing terminal-bridge, dependency-lock, and cross-v
 | I-HIST-1 | The palette stores command history for ranking; at the default `sfm action invoke ` query, the exact most recently executed command is the first suggestion. | P-5.3 records successful palette executions and injects full-command MRU candidates ahead of ordinary blank-query action ids. | — |
 | I-HIST-2 | `sfm:palette/history/open` opens a read-only history document, supports center/left/right/above/below placement and an optional editor id, and discards changes. | P-5.4 uses hierarchical placement actions, with the base action meaning center/focused, and enforces read-only behavior across every selectable editor. | — |
 | I-HIST-3 | `sfm:palette/history/clear` empties history. | P-5.4 makes maintenance actions non-recordable so clear remains truly empty. | — |
+| I-HIST-4 | Command-history persistence must be user-disableable, and that choice must survive client restarts. Disabling history must not load, suggest, record, or write commands; re-enabling should restore the persisted history unless the user explicitly clears it. | P-5.4a adds a persisted client setting plus hierarchical enable/disable actions, separates disabled in-memory behavior from the retained file, and proves restart/toggle/clear semantics. | — |
 | I-LIST-1 | `sfm:keybindings/manage` needs a real scrollbar and complete wheel/keyboard traversal. | P-5.1 removes data truncation and uses a shared bounded list viewport. | — |
 | I-LIST-2 | Clicking the shortcuts search box or nearby non-row space must never open row zero. | P-5.1 requires widget-first dispatch and explicit half-open row hit bounds; negative division is never used as a hit test. | — |
 | I-LIST-3 | The command palette suggestion list needs a scrollbar and mouse-wheel behavior, independently from its feedback-console scrollbar. | P-5.1 routes by hovered region and proves suggestion/console scrolling cannot steal from one another. | — |
@@ -44,6 +45,7 @@ This plan coordinates the existing terminal-bridge, dependency-lock, and cross-v
 | I-PAL-1 | P-5.2 and P-5.5 | Unit proof for full nested paths, unavailable-tree exclusion and executability, plus a live `term` palette capture |
 | I-HIST-1 | P-5.3 and P-5.5 | Bounded storage/ranking tests and a live execute/reopen/MRU witness |
 | I-HIST-2, I-HIST-3 | P-5.4 and P-5.5 | Action completion, all placements, editor selection/read-only enforcement, and clear-remains-empty witness |
+| I-HIST-4 | P-5.4a and P-5.5 | Persisted opt-out, disabled startup/runtime behavior, re-enable reload, and explicit clear/erasure tests |
 | I-LIST-1, I-LIST-2, I-LIST-3 | P-5.1 and P-5.5 | Pure viewport geometry tests plus wheel, thumb-drag, search-hit isolation, and palette/console routing puppets |
 | I-CHOICE-1, I-CHOICE-2 | P-5.0, P-5.1, P-5.3, and P-5.5 | Exact constrained Brigadier tree, shared palette viewport/navigation, captured-target and stale-session tests, canonical-history proof, and live F3/Escape artifacts |
 | I-TERM-HIT-1 | P-5.0 and P-5.5 | A disconnected-to-presented render/input regression plus live proof that the old button rectangle delivers terminal mouse input without another start attempt |
@@ -1030,6 +1032,41 @@ clear persistence, and non-recordability.
 the chosen panel/editor, all selectable editors remain genuinely read-only,
 and clear leaves no self-repopulating maintenance entry.
 
+### [ ] P-5.4a Make command-history persistence user-configurable
+
+**Work:** Add a persistent client configuration value, enabled by default, and
+register the hierarchical maintenance actions:
+
+```text
+sfm:palette/history/persistence/enable
+sfm:palette/history/persistence/disable
+```
+
+Disabling must take effect immediately and must mean that command history is
+not loaded, suggested, opened, recorded, or written for the rest of the
+session. The preference itself is saved through the client configuration and
+therefore remains disabled on the next client session. Re-enabling reloads the
+versioned history file into the normal in-memory snapshot and resumes bounded
+asynchronous persistence. Disabling does not silently erase the history file;
+the existing `sfm:palette/history/clear` action remains the explicit erasure
+operation, and re-enabling can recover the retained file unless it was cleared.
+The enable/disable actions are maintenance commands and are never recorded in
+history themselves.
+
+The service must make the enabled/disabled state explicit rather than using a
+null path or a stale in-memory snapshot. Completion, history open, recording,
+and persistence must all consult the same state. Test default-enabled startup,
+disabled startup without file reads, runtime disable, persisted preference,
+re-enable reload, no writes while disabled, action non-recordability, and
+clear-after-disable/enable behavior. Add a live puppet or equivalent artifact
+showing the state transition and feedback without exposing old history while
+disabled.
+
+**Completion criteria:** A user can disable command history from the command
+palette, restart the client, and observe no historical suggestions or document;
+enabling it again restores the retained history, while explicit clear remains
+the reliable way to erase it.
+
 ### [ ] P-5.5 Prove the command-surface slice live and update release notes
 
 Run focused tests, canonical compile/full tests through
@@ -1039,7 +1076,8 @@ terminal/property widget traversal, panel close, diagnostics, all three panel-
 scale bindings, resize and duplicate defaults and `[?]`, successful versus
 failed history recording, exact MRU
 reopen, argument-bearing history execution, every history placement,
-read-only/discard behavior, clear-remains-empty, F3/Escape constrained-palette
+read-only/discard behavior, clear-remains-empty, disabled/re-enabled history,
+F3/Escape constrained-palette
 search/navigation/scrolling/cancellation, stale-session rejection, and the
 disconnected-button-to-terminal click transition. Update
 `changelog.sfml`. Preserve the two current generated-resource edits and do not
@@ -1057,8 +1095,9 @@ situation/storage model, panel child-widget host, and post-D-1 layout fixtures
 may proceed in parallel, but one integration owner serializes multiplexer,
 terminal, action registration, binding service/UI, and puppet changes. P-5.3's
 history service may proceed independently until it integrates with
-`SFMCommandPaletteScreen`; P-5.4 follows that history contract. P-5.5 is the
-canonical join gate. No subagent edits the
+`SFMCommandPaletteScreen`; P-5.4 follows that history contract, and P-5.4a
+extends it with the persisted privacy toggle. P-5.5 is the canonical join
+gate. No subagent edits the
 canonical plans, generated Vox outputs, lockfile, or changelog concurrently
 with the integration owner.
 
