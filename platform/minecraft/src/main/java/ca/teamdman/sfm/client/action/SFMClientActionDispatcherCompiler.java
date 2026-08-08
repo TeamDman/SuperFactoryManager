@@ -15,6 +15,8 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.List;
+import java.util.function.Supplier;
 
 public final class SFMClientActionDispatcherCompiler {
     private SFMClientActionDispatcherCompiler() {
@@ -28,6 +30,13 @@ public final class SFMClientActionDispatcherCompiler {
 
     public static SFMClientActionCommandTree compileCommandTree(
             Iterable<? extends Map.Entry<ResourceLocation, ? extends SFMClientAction<?>>> registrations
+    ) {
+        return compileCommandTree(registrations, ca.teamdman.sfm.client.command.SFMCommandHistoryService::suggestionsNewestFirst);
+    }
+
+    static SFMClientActionCommandTree compileCommandTree(
+            Iterable<? extends Map.Entry<ResourceLocation, ? extends SFMClientAction<?>>> registrations,
+            Supplier<List<String>> historySuggestions
     ) {
         TreeMap<ResourceLocation, SFMClientAction<?>> actions = new TreeMap<>(Comparator.comparing(ResourceLocation::toString));
         for (Map.Entry<ResourceLocation, ? extends SFMClientAction<?>> registration : registrations) {
@@ -72,7 +81,12 @@ public final class SFMClientActionDispatcherCompiler {
                                                   .then(list)
                                                   .then(help)
                                                   .then(invoke)));
-        return new SFMClientActionCommandTree(dispatcher, actions);
+        return new SFMClientActionCommandTree(
+                dispatcher,
+                actions,
+                List.of("sfm action invoke "),
+                Map.of(),
+                historySuggestions);
     }
 
     private static int listActions(

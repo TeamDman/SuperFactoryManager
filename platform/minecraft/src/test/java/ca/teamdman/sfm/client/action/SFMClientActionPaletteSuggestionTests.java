@@ -4,6 +4,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.suggestion.Suggestion;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -137,10 +139,63 @@ class SFMClientActionPaletteSuggestionTests {
         assertFalse(suggestions.stream().anyMatch(suggestion -> suggestion.contains("sfm:terminal")));
     }
 
+    @Test
+    void blankPalettePlacesNewestAvailableHistoryBeforeNormalActions() {
+        SFMClientActionCommandTree tree = treeWithHistory(
+                List.of(
+                        "sfm action invoke sfm:echo old",
+                        "sfm action invoke sfm:echo newest",
+                        "sfm action invoke sfm:echo old"),
+                Map.entry(
+                        new ResourceLocation("sfm", "echo"),
+                        new TestAction("Echo", new AtomicInteger(), true)),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open"),
+                        new TestAction("Open", new AtomicInteger(), true)));
+        String query = "sfm action invoke ";
+
+        List<String> suggestions = tree.getPaletteSuggestions(query, tree.parse(query, source()))
+                .join().getList().stream().map(Suggestion::getText).toList();
+
+        assertEquals(List.of("sfm:echo old", "sfm:echo newest", "sfm:echo", "sfm:panel/open"), suggestions);
+    }
+
+    @Test
+    void typedHistoryUsesActionFuzzyRelevanceAndDoesNotPromoteUnrelatedCommands() {
+        SFMClientActionCommandTree tree = treeWithHistory(
+                List.of(
+                        "sfm action invoke sfm:echo newest",
+                        "sfm action invoke sfm:panel/open right"),
+                Map.entry(
+                        new ResourceLocation("sfm", "echo"),
+                        new TestAction("Echo", new AtomicInteger(), true)),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open"),
+                        new TestAction("Open", new AtomicInteger(), true)),
+                Map.entry(
+                        new ResourceLocation("sfm", "terminal/close"),
+                        new TestAction("Close terminal", new AtomicInteger(), true)));
+        String query = "sfm action invoke open";
+
+        List<String> suggestions = tree.getPaletteSuggestions(query, tree.parse(query, source()))
+                .join().getList().stream().map(Suggestion::getText).toList();
+
+        assertTrue(suggestions.contains("sfm:panel/open right"));
+        assertFalse(suggestions.contains("sfm:echo newest"));
+    }
+
     private static SFMClientActionCommandTree tree(
             Map.Entry<ResourceLocation, ? extends SFMClientAction<?>>... actions
     ) {
         return SFMClientActionDispatcherCompiler.compileCommandTree(List.of(actions));
+    }
+
+    private static SFMClientActionCommandTree treeWithHistory(
+            List<String> history,
+            Map.Entry<ResourceLocation, ? extends SFMClientAction<?>>... actions
+    ) {
+        Supplier<List<String>> supplier = () -> history;
+        return SFMClientActionDispatcherCompiler.compileCommandTree(List.of(actions), supplier);
     }
 
     private static SFMClientActionSource source() {
@@ -175,6 +230,15 @@ class SFMClientActionPaletteSuggestionTests {
             return ignored -> available
                     ? SFMClientActionAvailability.available(new Object())
                     : SFMClientActionAvailability.unavailable(Component.literal("test unavailable"));
+        }
+
+        @Override
+        public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
+            node.executes(this::invoke);
+            node.then(com.mojang.brigadier.builder.RequiredArgumentBuilder
+                    .<SFMClientActionSource, String>argument(
+                            "text", com.mojang.brigadier.arguments.StringArgumentType.greedyString())
+                    .executes(this::invoke));
         }
 
         @Override

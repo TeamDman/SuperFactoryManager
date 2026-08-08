@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.context.StringRange;
@@ -27,6 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 public final class SFMClientActionCommandTree {
     private static final String PALETTE_ACTION_PREFIX = "sfm action invoke ";
@@ -40,12 +42,14 @@ public final class SFMClientActionCommandTree {
     private final Map<ResourceLocation, ActionSearchMetadata> searchMetadata;
     private final List<String> paletteActionPrefixes;
     private final Map<String, ResourceLocation> paletteChoiceActions;
+    private final Supplier<List<String>> historySuggestions;
 
     SFMClientActionCommandTree(
             CommandDispatcher<SFMClientActionSource> dispatcher,
             Map<ResourceLocation, SFMClientAction<?>> actions
     ) {
-        this(dispatcher, actions, List.of(PALETTE_ACTION_PREFIX));
+        this(dispatcher, actions, List.of(PALETTE_ACTION_PREFIX), Map.of(),
+                SFMCommandHistoryService::suggestionsNewestFirst);
     }
 
     private SFMClientActionCommandTree(
@@ -53,7 +57,8 @@ public final class SFMClientActionCommandTree {
             Map<ResourceLocation, SFMClientAction<?>> actions,
             List<String> paletteActionPrefixes
     ) {
-        this(dispatcher, actions, paletteActionPrefixes, Map.of());
+        this(dispatcher, actions, paletteActionPrefixes, Map.of(),
+                SFMCommandHistoryService::suggestionsNewestFirst);
     }
 
     private SFMClientActionCommandTree(
@@ -62,10 +67,22 @@ public final class SFMClientActionCommandTree {
             List<String> paletteActionPrefixes,
             Map<String, ResourceLocation> paletteChoiceActions
     ) {
+        this(dispatcher, actions, paletteActionPrefixes, paletteChoiceActions,
+                SFMCommandHistoryService::suggestionsNewestFirst);
+    }
+
+    SFMClientActionCommandTree(
+            CommandDispatcher<SFMClientActionSource> dispatcher,
+            Map<ResourceLocation, SFMClientAction<?>> actions,
+            List<String> paletteActionPrefixes,
+            Map<String, ResourceLocation> paletteChoiceActions,
+            Supplier<List<String>> historySuggestions
+    ) {
         this.dispatcher = dispatcher;
         this.actions = Map.copyOf(actions);
         this.paletteActionPrefixes = List.copyOf(paletteActionPrefixes);
         this.paletteChoiceActions = Collections.unmodifiableMap(new LinkedHashMap<>(paletteChoiceActions));
+        this.historySuggestions = historySuggestions;
         this.searchMetadata = this.actions.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
                 Map.Entry::getKey,
                 entry -> new ActionSearchMetadata(
@@ -187,6 +204,30 @@ public final class SFMClientActionCommandTree {
                     .toLowerCase(Locale.ROOT);
             SFMClientActionSource source = parsed.getContext().getSource();
             List<RankedPaletteSuggestion> ranked = new ArrayList<>();
+            List<String> recentHistory = availableHistory(source);
+            if (query.isBlank()) {
+                for (int index = 0; index < recentHistory.size(); index++) {
+                    String historyCommand = recentHistory.get(index);
+                    ranked.add(new RankedPaletteSuggestion(
+                            new Suggestion(actionRange, historySuffix(historyCommand)),
+                            -1.0f + index * 0.0001f,
+                            historyCommand));
+                }
+            } else {
+                for (int index = 0; index < recentHistory.size(); index++) {
+                    String historyCommand = recentHistory.get(index);
+                    ResourceLocation actionId = historyActionId(historyCommand);
+                    ActionSearchMetadata metadata = searchMetadata.get(actionId);
+                    if (metadata == null) continue;
+                    float score = actionScore(query, metadata);
+                    if (score <= 0.65f) {
+                        ranked.add(new RankedPaletteSuggestion(
+                                new Suggestion(actionRange, historySuffix(historyCommand)),
+                                score + Math.min(0.01f, index * 0.0001f),
+                                historyCommand));
+                    }
+                }
+            }
             for (Map.Entry<ResourceLocation, SFMClientAction<?>> action : actions.entrySet()) {
                 if (!isAvailable(action.getKey(), source)) continue;
                 float score = actionScore(query, searchMetadata.get(action.getKey()));
@@ -211,6 +252,7 @@ public final class SFMClientActionCommandTree {
             return new Suggestions(
                     actionRange,
                     ranked.stream()
+                            .filter(suggestion -> !query.isBlank() || !isDuplicateBareAction(suggestion, ranked))
                             .distinct()
                             .limit(MAX_LITERAL_CONTINUATION_CANDIDATES)
                             .map(RankedPaletteSuggestion::suggestion)
@@ -456,5 +498,43 @@ public final class SFMClientActionCommandTree {
     ) {
         SFMClientAction<?> action = actions.get(id);
         return action != null && action.requirement().resolve(source.context()).isAvailable();
+    }
+
+    private List<String> availableHistory(SFMClientActionSource source) {
+        List<String> result = new ArrayList<>();
+        Set<String> seen = new java.util.LinkedHashSet<>();
+        for (String command : historySuggestions.get()) {
+            if (!seen.add(command)) continue;
+            ResourceLocation actionId = historyActionId(command);
+            if (actionId == null || !isAvailable(actionId, source)) continue;
+            ParseResults<SFMClientActionSource> parsed = parse(command, source);
+            if (SFMClientActionExecutor.isExecutable(parsed)) result.add(command);
+        }
+        return result;
+    }
+
+    private static String historySuffix(String command) {
+        int prefixEnd = command.indexOf("sfm action invoke ");
+        return prefixEnd < 0 ? command : command.substring(prefixEnd + "sfm action invoke ".length());
+    }
+
+    private static ResourceLocation historyActionId(String command) {
+        String suffix = historySuffix(command).stripLeading();
+        int end = 0;
+        while (end < suffix.length() && !Character.isWhitespace(suffix.charAt(end))) end++;
+        if (end == 0) return null;
+        return ResourceLocation.tryParse(suffix.substring(0, end));
+    }
+
+    private static boolean isDuplicateBareAction(
+            RankedPaletteSuggestion candidate,
+            List<RankedPaletteSuggestion> all
+    ) {
+        String command = candidate.command();
+        if (!command.startsWith("sfm action invoke ")) return false;
+        String suffix = historySuffix(command);
+        if (suffix.indexOf(' ') >= 0) return false;
+        return all.stream().anyMatch(other -> other != candidate
+                && other.command().equals(suffix));
     }
 }

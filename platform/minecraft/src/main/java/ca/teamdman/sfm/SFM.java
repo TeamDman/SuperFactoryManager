@@ -9,6 +9,7 @@ import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
 import ca.teamdman.sfm.client.action.SFMDeveloperActions;
+import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceScreenTypes;
 import ca.teamdman.sfm.common.config.SFMConfig;
@@ -100,6 +101,7 @@ public class SFM {
 
         bus.addListener((FMLClientSetupEvent e) -> {
             SFMMenuScreens.register();
+            SFMCommandHistoryService.initializeDefault();
             SFMClientActions.commandTree();
         });
 

@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.gametest;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.command.SFMCommandHistory;
+import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHarness;
@@ -67,6 +69,14 @@ public class SFMClientRunHarness {
 
         if (preventPuppetPauseScreen(event, mode)) {
             return;
+        }
+
+        if (mode == SFMProperties.ClientRunMode.PUPPET
+                || mode == SFMProperties.ClientRunMode.GAME_PUPPET) {
+            // Automation must not read or mutate a developer's persistent
+            // command history. Individual puppets can explicitly exercise
+            // persistence through the service's injected store if needed.
+            SFMCommandHistoryService.installForTests(SFMCommandHistory.inMemory());
         }
 
         if (mode == SFMProperties.ClientRunMode.GAME_PUPPET && event.getNewScreen() instanceof TitleScreen) {

@@ -97,6 +97,36 @@ public final class SFMCommandPaletteActions {
             ClosePaletteAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, PaletteHistoryOpenAction> OPEN_PALETTE_HISTORY = REGISTERER.register(
+            "palette/history/open",
+            () -> new PaletteHistoryOpenAction(PaletteHistoryOpenAction.Direction.CENTER)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, PaletteHistoryOpenAction> OPEN_PALETTE_HISTORY_LEFT = REGISTERER.register(
+            "palette/history/open/left",
+            () -> new PaletteHistoryOpenAction(PaletteHistoryOpenAction.Direction.LEFT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, PaletteHistoryOpenAction> OPEN_PALETTE_HISTORY_RIGHT = REGISTERER.register(
+            "palette/history/open/right",
+            () -> new PaletteHistoryOpenAction(PaletteHistoryOpenAction.Direction.RIGHT)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, PaletteHistoryOpenAction> OPEN_PALETTE_HISTORY_ABOVE = REGISTERER.register(
+            "palette/history/open/above",
+            () -> new PaletteHistoryOpenAction(PaletteHistoryOpenAction.Direction.ABOVE)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, PaletteHistoryOpenAction> OPEN_PALETTE_HISTORY_BELOW = REGISTERER.register(
+            "palette/history/open/below",
+            () -> new PaletteHistoryOpenAction(PaletteHistoryOpenAction.Direction.BELOW)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, PaletteHistoryClearAction> CLEAR_PALETTE_HISTORY = REGISTERER.register(
+            "palette/history/clear",
+            PaletteHistoryClearAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, MovePanelAction> MOVE_PANEL_LEFT = REGISTERER.register(
             "panel/move/left",
             () -> new MovePanelAction(SFMWorkspaceSide.LEFT)

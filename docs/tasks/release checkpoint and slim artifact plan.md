@@ -952,7 +952,19 @@ submission. The semantic Presentation selector toggle and corrected
 post-header keybinding viewport geometry are included in this closure.
 P-5.2 is complete; P-5.5 remains the broader release join gate.
 
-### [ ] P-5.3 Persist successful palette commands and rank full MRU entries
+**P-5.3/P-5.4 completion — 2026-08-08:** The bounded successful-command
+history service, exact MRU ranking, versioned atomic persistence, in-memory
+automation store, hierarchical open actions, and true clear action are now
+implemented. The history editor opens a point-in-time newest-last document
+through the shared read-only panel contract; only registrations that declare
+read-only support are advertised, so v1/v2 remain excluded until their shared
+contract is complete. Focused history tests pass, and the live
+`sfm:title_screen_command_palette_history` puppet exited successfully with
+MRU, read-only-editor, and cleared-history captures in
+`sfm-title_screen-20260808-111038-864`. P-5.3 and P-5.4 are complete;
+P-5.5 remains the broader release join gate.
+
+### [x] P-5.3 Persist successful palette commands and rank full MRU entries
 
 **Work:** Add a bounded command-palette history service that records the exact
 normalized command only after successful user-initiated palette execution.
@@ -983,7 +995,7 @@ and action metadata on historical rows.
 successful palette command first without synchronous I/O or loss of existing
 fuzzy/Brigadier correctness.
 
-### [ ] P-5.4 Expose read-only history open and true clear actions
+### [x] P-5.4 Expose read-only history open and true clear actions
 
 **Work:** Register the hierarchical family:
 
@@ -1000,10 +1012,10 @@ The base open action is the requested center/focused placement. Omitted editor
 id uses the configured default; an explicit id uses registry-backed in-memory
 completion. Open a point-in-time, newest-last one-command-per-line history
 document through `SFMTextEditorPanelOpenContext` with `readOnly=true`, a no-op
-save boundary, no dirty-close prompt, and discarded edits. Because v1/v2 do not
-currently enforce the record's read-only flag, either complete that shared
-contract for every advertised editor or exclude a nonconforming editor from
-this action; never claim arbitrary editor support while allowing mutation.
+save boundary, no dirty-close prompt, and discarded edits. The action advertises
+only registrations that explicitly declare read-only panel support; v1/v2
+remain excluded until their shared contract is completed, so arbitrary editor
+selection never silently permits mutation.
 
 `history/open*` and `history/clear` are maintenance commands and are not added
 to history. Clear atomically empties memory and persistence before reporting

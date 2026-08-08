@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.action.SFMClientCommandInsertion;
+import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
 import ca.teamdman.sfm.client.presentation.SFMItemIconRenderer;
 import ca.teamdman.sfm.client.presentation.SFMItemIconResolver;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBinding;
@@ -894,17 +895,21 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         }
     }
 
-    private void executeCommand(String command) throws CommandSyntaxException {
+    private int executeCommand(String command) throws CommandSyntaxException {
         this.feedback.clear();
         int result = commandTree.execute(
                 command,
                 new SFMClientActionSource(this.actionContext, this.feedback::add));
         this.error = "";
+        if (result > 0 && SFMCommandHistoryService.isRecordable(command)) {
+            SFMCommandHistoryService.recordSuccessful(command);
+        }
         if (choiceSession != null && result > 0) {
             if (Minecraft.getInstance().screen == this) onClose();
-            return;
+            return result;
         }
         resetToDefaultQuery();
+        return result;
     }
 
     /**

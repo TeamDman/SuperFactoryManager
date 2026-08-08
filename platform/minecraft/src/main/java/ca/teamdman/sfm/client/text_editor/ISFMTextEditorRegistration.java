@@ -6,6 +6,11 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 
 public interface ISFMTextEditorRegistration {
 
+    /** Whether this editor enforces {@code readOnly=true} throughout its UI. */
+    default boolean supportsReadOnlyPanel() {
+        return false;
+    }
+
     /**
      * Create, but do not display, an editor screen for the given context.
      */
