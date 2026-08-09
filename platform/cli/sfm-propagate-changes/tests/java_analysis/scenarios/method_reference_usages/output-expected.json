@@ -1,0 +1,86 @@
+{
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:661f2d9b09508a8e632940356717259ef79113f9b8a5d1d7523c5bf5d2f64cfe",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "diagnostics": [],
+  "outcome": "success",
+  "schema": "sfm.symbol-usage-list/1",
+  "selector": {
+    "canonical": "p.A ping()V",
+    "descriptor": "()V",
+    "kind": "method",
+    "member": "ping",
+    "owner": "p.A"
+  },
+  "usages": [
+    {
+      "confidence": "resolved",
+      "kind": "declaration",
+      "span": {
+        "end_byte": 49,
+        "end_column": 21,
+        "end_line": 4,
+        "path": "source/p/A.java",
+        "source_hash": "blake3:3b1c8f2c39c5a06e0758b8f7f48b2819179f2905bc96a16934b4b32fe1d35383",
+        "source_set": "custom",
+        "start_byte": 45,
+        "start_column": 17,
+        "start_line": 4
+      },
+      "target": {
+        "descriptor": "()V",
+        "kind": "method",
+        "name": "ping",
+        "owner": "p.A",
+        "qualified_name": "p.A.ping()V"
+      }
+    },
+    {
+      "confidence": "resolved",
+      "kind": "method-reference",
+      "span": {
+        "end_byte": 96,
+        "end_column": 28,
+        "end_line": 7,
+        "path": "source/q/B.java",
+        "source_hash": "blake3:95fe2ea0d117a853b625772edb22aa8880b9a58304532192d8a31c0dbaa2729d",
+        "source_set": "custom",
+        "start_byte": 92,
+        "start_column": 24,
+        "start_line": 7
+      },
+      "target": {
+        "descriptor": "()V",
+        "kind": "method",
+        "name": "ping",
+        "owner": "p.A",
+        "qualified_name": "p.A.ping()V"
+      }
+    }
+  ]
+}

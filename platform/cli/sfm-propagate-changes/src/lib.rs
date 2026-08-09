@@ -6,6 +6,8 @@ pub mod colour;
 pub mod curseforge;
 pub(crate) mod dependency_inventory;
 pub mod jar_build;
+pub mod java_analysis;
+pub(crate) mod java_source_catalog;
 pub mod jdk;
 pub mod logging;
 pub mod modrinth;
@@ -72,7 +74,7 @@ fn version() -> String {
 /// # Panics
 ///
 /// Panics if the CLI schema is invalid (should never happen with correct code).
-pub fn main() -> eyre::Result<()> {
+pub fn main() -> eyre::Result<std::process::ExitCode> {
     // Install color_eyre for better error reports
     color_eyre::install()?;
     let cancellation_token = cancellation::install_ctrlc_handler()?;
@@ -105,6 +107,10 @@ pub fn main() -> eyre::Result<()> {
         teamy_windows::string::warn_if_utf8_not_enabled();
     };
 
-    // Invoke whatever command was requested
-    cli.invoke(cancellation_token)
+    // Invoke whatever command was requested and render typed output once.
+    let requested_output_format = cli.global_args.output_format;
+    let output = cli.invoke(cancellation_token)?;
+    let exit_code = output.exit_code();
+    output.emit(requested_output_format)?;
+    Ok(std::process::ExitCode::from(exit_code))
 }

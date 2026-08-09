@@ -1,0 +1,9 @@
+{
+  "destination": "RenamedA",
+  "message": "symbol mutation is intentionally unavailable in Phase 0",
+  "operation": "rename",
+  "outcome": "unsupported",
+  "schema": "sfm.symbol-mutation/1",
+  "selector": "example.A",
+  "status": 4
+}

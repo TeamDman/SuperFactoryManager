@@ -16,12 +16,14 @@ pub mod jar;
 pub mod jdk;
 pub mod loader;
 pub mod modrinth;
+pub mod output;
 pub mod puppet;
 mod puppet_artifacts;
 mod puppet_matrix;
 pub mod repo_root;
 pub mod run;
 pub mod server;
+pub mod symbol;
 pub mod test;
 
 pub use cli::*;

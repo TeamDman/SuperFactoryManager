@@ -21,6 +21,7 @@ directories-next = "2.0.0"
 dunce = "1.0.5"
 eyre = "0.6.12"
 facet = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet" }
+facet-csv = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-csv" }
 facet-json = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-json" }
 facet-pretty = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-pretty" }
 facet-styx = { git = "https://github.com/TeamDman/facet.git", rev = "f1e1eed9a7d91c6bbb4dcb54c985617d6c914fad", package = "facet-styx" }
@@ -62,6 +63,10 @@ tracy_memory = ["tracy"]
 
 [build-dependencies]
 embed-resource = "3.0.6"
+
+[[test]]
+name = "java_analysis_scenarios"
+path = "tests/java_analysis/java_analysis_scenario_test.rs"
 
 [lints.rust]
 ambiguous_negative_literals = "warn"

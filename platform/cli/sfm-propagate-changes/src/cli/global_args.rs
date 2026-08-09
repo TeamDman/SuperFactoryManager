@@ -1,3 +1,4 @@
+use crate::cli::output::OutputFormat;
 use crate::logging::LoggingConfig;
 use chrono::Local;
 use facet::Facet;
@@ -25,6 +26,13 @@ pub struct GlobalArgs {
     /// Request graceful cancellation after the named tracing/Tracy zone closes.
     #[facet(default, args::named)]
     pub stop_after: Option<String>,
+
+    /// Render typed command output as text, JSON, or CSV.
+    ///
+    /// When omitted, typed output is text for an interactive terminal and JSON
+    /// when stdout is redirected.
+    #[facet(default, args::named)]
+    pub output_format: Option<OutputFormat>,
 }
 
 impl GlobalArgs {

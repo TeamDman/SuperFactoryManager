@@ -1,0 +1,96 @@
+{
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:23358d57878ad32702454dea5b02b5a93b399b5116c2d0d0ce432aa8f14a1559",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "diagnostics": [
+    {
+      "code": "java.unresolved-type",
+      "message": "Could not resolve field type `ca.teamdman.sfm.SFM` without guessing",
+      "severity": "warning",
+      "span": {
+        "end_byte": 113,
+        "end_column": 12,
+        "end_line": 7,
+        "path": "source/example/Consumer.java",
+        "source_hash": "blake3:137e88ceb4b172c1d63b1e25375eac00ce944479e2a687383faad33e3e9dd1b3",
+        "source_set": "custom",
+        "start_byte": 110,
+        "start_column": 9,
+        "start_line": 7
+      }
+    },
+    {
+      "code": "java.unresolved-type",
+      "message": "Could not resolve imported type `ca.teamdman.sfm.SFM` without guessing",
+      "severity": "warning",
+      "span": {
+        "end_byte": 44,
+        "end_column": 27,
+        "end_line": 3,
+        "path": "source/example/Consumer.java",
+        "source_hash": "blake3:137e88ceb4b172c1d63b1e25375eac00ce944479e2a687383faad33e3e9dd1b3",
+        "source_set": "custom",
+        "start_byte": 25,
+        "start_column": 8,
+        "start_line": 3
+      }
+    },
+    {
+      "code": "java.unresolved-type",
+      "message": "Could not resolve type reference `ca.teamdman.sfm.SFM` without guessing",
+      "severity": "warning",
+      "span": {
+        "end_byte": 109,
+        "end_column": 8,
+        "end_line": 7,
+        "path": "source/example/Consumer.java",
+        "source_hash": "blake3:137e88ceb4b172c1d63b1e25375eac00ce944479e2a687383faad33e3e9dd1b3",
+        "source_set": "custom",
+        "start_byte": 106,
+        "start_column": 5,
+        "start_line": 7
+      }
+    },
+    {
+      "code": "java.unrelated-workspace-diagnostics-suppressed",
+      "message": "Suppressed 3 diagnostics unrelated to selector `ca.teamdman.sfm.SFM`",
+      "severity": "info",
+      "span": null
+    }
+  ],
+  "outcome": "no-match",
+  "schema": "sfm.symbol-usage-list/1",
+  "selector": {
+    "canonical": "ca.teamdman.sfm.SFM",
+    "descriptor": null,
+    "kind": "type",
+    "member": null,
+    "owner": "ca.teamdman.sfm.SFM"
+  },
+  "usages": []
+}

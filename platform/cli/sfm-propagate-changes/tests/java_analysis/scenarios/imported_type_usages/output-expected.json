@@ -1,0 +1,108 @@
+{
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:02475dc7d4f8b53a9e5088ae18e4b9df734f15c1f261db4040c48264e17f2403",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "diagnostics": [],
+  "outcome": "success",
+  "schema": "sfm.symbol-usage-list/1",
+  "selector": {
+    "canonical": "p.A",
+    "descriptor": null,
+    "kind": "type",
+    "member": null,
+    "owner": "p.A"
+  },
+  "usages": [
+    {
+      "confidence": "resolved",
+      "kind": "declaration",
+      "span": {
+        "end_byte": 26,
+        "end_column": 15,
+        "end_line": 3,
+        "path": "source/p/A.java",
+        "source_hash": "blake3:7a7c91364eafa6cd59d229f5d92991762870bdad4fe38eeb137e52b21bc5ccb3",
+        "source_set": "custom",
+        "start_byte": 25,
+        "start_column": 14,
+        "start_line": 3
+      },
+      "target": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "A",
+        "owner": "p",
+        "qualified_name": "p.A"
+      }
+    },
+    {
+      "confidence": "resolved",
+      "kind": "import",
+      "span": {
+        "end_byte": 22,
+        "end_column": 11,
+        "end_line": 3,
+        "path": "source/q/B.java",
+        "source_hash": "blake3:2317d1aef4b86de47bd76560e46811116c1e1228b3e04e95418fb69481549423",
+        "source_set": "custom",
+        "start_byte": 19,
+        "start_column": 8,
+        "start_line": 3
+      },
+      "target": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "A",
+        "owner": "p",
+        "qualified_name": "p.A"
+      }
+    },
+    {
+      "confidence": "resolved",
+      "kind": "type-reference",
+      "span": {
+        "end_byte": 40,
+        "end_column": 6,
+        "end_line": 6,
+        "path": "source/q/B.java",
+        "source_hash": "blake3:2317d1aef4b86de47bd76560e46811116c1e1228b3e04e95418fb69481549423",
+        "source_set": "custom",
+        "start_byte": 39,
+        "start_column": 5,
+        "start_line": 6
+      },
+      "target": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "A",
+        "owner": "p",
+        "qualified_name": "p.A"
+      }
+    }
+  ]
+}

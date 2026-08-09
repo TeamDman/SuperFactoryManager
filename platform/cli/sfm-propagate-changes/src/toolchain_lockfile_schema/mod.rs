@@ -8,4 +8,5 @@ pub(crate) use api::ToolchainLockfileDocument;
 pub(crate) use api::analyze_migration;
 pub(crate) use api::parse_document;
 pub(crate) use api::read_current;
+pub(crate) use api::read_profile_source_excludes;
 pub(crate) use api::upgrade_to_latest;

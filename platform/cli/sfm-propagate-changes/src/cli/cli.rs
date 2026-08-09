@@ -1,9 +1,11 @@
 use crate::cancellation::CancellationToken;
 use crate::cli::global_args::GlobalArgs;
+use crate::cli::output::CliOutput;
 use crate::logging::LoggingConfig;
 use facet::Facet;
 use figue::FigueBuiltins;
 use figue::{self as args};
+use std::path::Path;
 
 /// A tool for propagating git changes across Minecraft version worktrees.
 ///
@@ -35,8 +37,25 @@ impl Cli {
     /// # Errors
     ///
     /// This function will return an error if the command fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
-        self.command.invoke(cancellation_token)
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<CliOutput> {
+        let invocation_dir = std::env::current_dir()?;
+        self.invoke_in(cancellation_token, &invocation_dir)
+    }
+
+    /// Invoke with an explicit base directory for relative command arguments.
+    /// This is the production seam used by scenario tests; it does not mutate
+    /// process-wide current-directory state.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the selected command or invocation-directory
+    /// resolution fails.
+    pub fn invoke_in(
+        self,
+        cancellation_token: CancellationToken,
+        invocation_dir: &Path,
+    ) -> eyre::Result<CliOutput> {
+        self.command.invoke_in(cancellation_token, invocation_dir)
     }
 }
 
@@ -80,6 +99,8 @@ pub enum Command {
     Puppet(super::puppet::PuppetArgs),
     /// Discover and run Java `JUnit` tests
     Test(super::test::TestArgs),
+    /// Navigate and refactor Java symbols.
+    Symbol(super::symbol::SymbolArgs),
     /// Repo root related commands
     RepoRoot(super::repo_root::RepoRootArgs),
 }
@@ -88,29 +109,49 @@ impl Command {
     /// # Errors
     ///
     /// This function will return an error if the subcommand fails.
-    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
+    pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<CliOutput> {
+        let invocation_dir = std::env::current_dir()?;
+        self.invoke_in(cancellation_token, &invocation_dir)
+    }
+
+    /// Invoke with an explicit base directory for relative command arguments.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the selected command fails.
+    pub fn invoke_in(
+        self,
+        cancellation_token: CancellationToken,
+        invocation_dir: &Path,
+    ) -> eyre::Result<CliOutput> {
         match self {
-            Command::Audit(args) => args.invoke(),
-            Command::Gradle(args) => args.invoke(),
-            Command::Client(args) => args.invoke(),
-            Command::Server(args) => args.invoke(),
-            Command::Git(args) => args.invoke(),
-            Command::Github(args) => args.invoke(),
-            Command::Home(args) => args.invoke(),
-            Command::Cache(args) => args.invoke(),
-            Command::Curseforge(args) => args.invoke(),
-            Command::Dependency(args) => args.invoke(cancellation_token),
-            Command::Jdk(args) => args.invoke(),
-            Command::Loader(args) => args.invoke(),
-            Command::Modrinth(args) => args.invoke(),
-            Command::Jar(args) => args.invoke(cancellation_token),
-            Command::Run(args) => args.invoke(cancellation_token),
-            Command::GameTest(args) => args.invoke(cancellation_token),
-            Command::Puppet(args) => args.invoke(cancellation_token),
-            Command::Test(args) => args.invoke(cancellation_token),
-            Command::RepoRoot(args) => args.invoke(),
+            Command::Audit(args) => legacy_output(args.invoke()),
+            Command::Gradle(args) => legacy_output(args.invoke()),
+            Command::Client(args) => legacy_output(args.invoke()),
+            Command::Server(args) => legacy_output(args.invoke()),
+            Command::Git(args) => legacy_output(args.invoke()),
+            Command::Github(args) => legacy_output(args.invoke()),
+            Command::Home(args) => legacy_output(args.invoke()),
+            Command::Cache(args) => legacy_output(args.invoke()),
+            Command::Curseforge(args) => legacy_output(args.invoke()),
+            Command::Dependency(args) => legacy_output(args.invoke(cancellation_token)),
+            Command::Jdk(args) => legacy_output(args.invoke()),
+            Command::Loader(args) => legacy_output(args.invoke()),
+            Command::Modrinth(args) => legacy_output(args.invoke()),
+            Command::Jar(args) => legacy_output(args.invoke(cancellation_token)),
+            Command::Run(args) => legacy_output(args.invoke(cancellation_token)),
+            Command::GameTest(args) => legacy_output(args.invoke(cancellation_token)),
+            Command::Puppet(args) => legacy_output(args.invoke(cancellation_token)),
+            Command::Test(args) => legacy_output(args.invoke(cancellation_token)),
+            Command::Symbol(args) => args.invoke_in(invocation_dir),
+            Command::RepoRoot(args) => legacy_output(args.invoke()),
         }
     }
+}
+
+fn legacy_output(result: eyre::Result<()>) -> eyre::Result<CliOutput> {
+    result?;
+    Ok(CliOutput::none())
 }
 
 #[cfg(test)] // todo(2026-06-16) these tests have gotten long, can we create a cli_test.rs or something so they are still close to this file
@@ -123,6 +164,7 @@ mod tests {
     use crate::cli::git::GitCommand;
     use crate::cli::gradle::GradleCommand;
     use crate::cli::jar::JarCommand;
+    use crate::cli::output::OutputFormat;
     use crate::cli::run::RunCommand;
     use crate::cli::run::RunGameTestServerCliCommand;
     use crate::jar_build::BuildMode;
@@ -133,6 +175,15 @@ mod tests {
     use facet::Facet;
     use figue as args;
     use tracing::level_filters::LevelFilter;
+
+    #[test]
+    fn parses_global_output_format() {
+        let cli = figue::from_slice::<Cli>(&["--output-format", "json", "repo-root", "show"])
+            .into_result()
+            .expect("global output format should parse")
+            .get_silent();
+        assert_eq!(cli.global_args.output_format, Some(OutputFormat::Json));
+    }
 
     #[test]
     fn parses_top_level_run_clis() {

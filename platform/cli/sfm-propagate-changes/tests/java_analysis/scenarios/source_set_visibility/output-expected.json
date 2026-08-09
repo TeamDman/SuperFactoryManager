@@ -1,0 +1,127 @@
+{
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:a7b469ad0742d51bb3905a751a916cffe53196fb5bf77c8e0184b18b38bf478f",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source/main/java",
+        "source_set": "main"
+      },
+      {
+        "exists": true,
+        "id": "custom-1",
+        "kind": "custom",
+        "path": "source/test/java",
+        "source_set": "test"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "main",
+        "visible_source_sets": [
+          "main"
+        ]
+      },
+      {
+        "id": "test",
+        "visible_source_sets": [
+          "main",
+          "test"
+        ]
+      }
+    ]
+  },
+  "diagnostics": [
+    {
+      "code": "java.inaccessible-source-set-reference",
+      "message": "field type `hidden.Hidden` exists only in a source set that is not visible here",
+      "severity": "warning",
+      "span": {
+        "end_byte": 71,
+        "end_column": 17,
+        "end_line": 6,
+        "path": "source/main/java/main/Consumer.java",
+        "source_hash": "blake3:38d39ed4bcbe8413757df0edb5374be6fb7e0f92a86ecf976b7ca77c620df06d",
+        "source_set": "main",
+        "start_byte": 66,
+        "start_column": 12,
+        "start_line": 6
+      }
+    },
+    {
+      "code": "java.inaccessible-source-set-reference",
+      "message": "imported type `hidden.Hidden` exists only in a source set that is not visible here",
+      "severity": "warning",
+      "span": {
+        "end_byte": 35,
+        "end_column": 21,
+        "end_line": 3,
+        "path": "source/main/java/main/Consumer.java",
+        "source_hash": "blake3:38d39ed4bcbe8413757df0edb5374be6fb7e0f92a86ecf976b7ca77c620df06d",
+        "source_set": "main",
+        "start_byte": 22,
+        "start_column": 8,
+        "start_line": 3
+      }
+    },
+    {
+      "code": "java.inaccessible-source-set-reference",
+      "message": "type reference `hidden.Hidden` exists only in a source set that is not visible here",
+      "severity": "warning",
+      "span": {
+        "end_byte": 65,
+        "end_column": 11,
+        "end_line": 6,
+        "path": "source/main/java/main/Consumer.java",
+        "source_hash": "blake3:38d39ed4bcbe8413757df0edb5374be6fb7e0f92a86ecf976b7ca77c620df06d",
+        "source_set": "main",
+        "start_byte": 59,
+        "start_column": 5,
+        "start_line": 6
+      }
+    }
+  ],
+  "outcome": "success",
+  "schema": "sfm.symbol-usage-list/1",
+  "selector": {
+    "canonical": "hidden.Hidden",
+    "descriptor": null,
+    "kind": "type",
+    "member": null,
+    "owner": "hidden.Hidden"
+  },
+  "usages": [
+    {
+      "confidence": "resolved",
+      "kind": "declaration",
+      "span": {
+        "end_byte": 36,
+        "end_column": 20,
+        "end_line": 3,
+        "path": "source/test/java/hidden/Hidden.java",
+        "source_hash": "blake3:931202da12378d016fda7dbea7a5c8c868b5df1e0bccaf4452e502c5430a18c0",
+        "source_set": "test",
+        "start_byte": 30,
+        "start_column": 14,
+        "start_line": 3
+      },
+      "target": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "Hidden",
+        "owner": "hidden",
+        "qualified_name": "hidden.Hidden"
+      }
+    }
+  ]
+}

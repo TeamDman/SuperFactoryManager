@@ -296,6 +296,31 @@ impl ArtifactLockfileV4 {
         Ok(active)
     }
 
+    /// Return source exclusions owned by features that are inactive for a
+    /// profile. These are the source-side counterpart of filtering feature-
+    /// owned dependency components in [`Self::effective_lockfile`].
+    pub(crate) fn effective_source_excludes(
+        &self,
+        profile_id: &str,
+    ) -> eyre::Result<Vec<SourceExcludeV4>> {
+        self.validate()?;
+        let active = self.active_features(profile_id)?;
+        let mut excludes = self
+            .features
+            .iter()
+            .filter(|feature| !active.contains(feature.id.as_str()))
+            .flat_map(|feature| feature.source_excludes.iter().cloned())
+            .collect::<Vec<_>>();
+        excludes.sort_by(|left, right| {
+            left.source_set
+                .cmp(&right.source_set)
+                .then(left.path.cmp(&right.path))
+        });
+        excludes
+            .dedup_by(|left, right| left.source_set == right.source_set && left.path == right.path);
+        Ok(excludes)
+    }
+
     fn as_v3(
         &self,
         dependencies: Vec<DependencyV3>,
@@ -489,6 +514,29 @@ mod tests {
                 .dependencies
                 .iter()
                 .any(|dependency| dependency.id == "vox-java")
+        );
+    }
+
+    #[test]
+    fn inactive_features_contribute_source_excludes() {
+        let lockfile: ArtifactLockfileV4 =
+            facet_json::from_str(CHECKED_IN_LOCKFILE).expect("fixture should parse");
+
+        let gradle = lockfile
+            .effective_source_excludes("gradle")
+            .expect("Gradle exclusions should project");
+        assert!(gradle.iter().any(|exclude| {
+            exclude.source_set == "main-java"
+                && exclude
+                    .path
+                    .ends_with("client/terminal/SFMVoxTerminalService.java")
+        }));
+
+        assert!(
+            lockfile
+                .effective_source_excludes("rust-toolchain")
+                .expect("Rust exclusions should project")
+                .is_empty()
         );
     }
 }

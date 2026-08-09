@@ -143,6 +143,23 @@ pub(crate) fn read_current(input: &str) -> eyre::Result<ArtifactLockfileV3> {
     }
 }
 
+pub(crate) fn read_profile_source_excludes(
+    input: &str,
+    profile_id: &str,
+) -> eyre::Result<Vec<(String, String)>> {
+    match parse_document(input)? {
+        ToolchainLockfileDocument::V4(lockfile) => Ok(lockfile
+            .effective_source_excludes(profile_id)?
+            .into_iter()
+            .map(|exclude| (exclude.source_set, exclude.path))
+            .collect()),
+        ToolchainLockfileDocument::V3(_) => Ok(Vec::new()),
+        ToolchainLockfileDocument::V1(_) | ToolchainLockfileDocument::V2 { .. } => eyre::bail!(
+            "source feature projection requires schema version 3 or 4; run dependency migrate --branch <branch> first"
+        ),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

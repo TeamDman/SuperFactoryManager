@@ -438,13 +438,15 @@ fn resolve_compile_dependencies(
 
 fn collect_project_java_sources(
     context: &ExecutionContext<'_>,
-    generated_sources: &Path,
+    _generated_sources: &Path,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
-    let mut sources = collect_source_set_java_sources(context, "main")?;
-    context.bail_if_cancelled()?;
-    sources.extend(collect_java_sources_under(context, generated_sources)?);
+    let mut sources = Vec::new();
+    for root in JAVA_SOURCE_CATALOG.build_roots(JavaBuildSourceGroup::Main) {
+        sources.extend(collect_catalog_root_java_sources(context, root)?);
+    }
     sources.sort();
+    sources.dedup();
     Ok(sources)
 }
 
@@ -453,13 +455,26 @@ fn collect_source_set_java_sources(
     source_set: &str,
 ) -> eyre::Result<Vec<PathBuf>> {
     context.bail_if_cancelled()?;
-    let source_root = context
-        .plan
-        .minecraft_dir
-        .join("src")
-        .join(source_set)
-        .join("java");
-    let excludes = read_source_excludes(context, source_set)?;
+    let mut sources = Vec::new();
+    for root in JAVA_SOURCE_CATALOG.roots_for_source_set(source_set) {
+        sources.extend(collect_catalog_root_java_sources(context, root)?);
+    }
+    sources.sort();
+    sources.dedup();
+    Ok(sources)
+}
+
+fn collect_catalog_root_java_sources(
+    context: &ExecutionContext<'_>,
+    declaration: crate::java_source_catalog::JavaSourceRootDeclaration,
+) -> eyre::Result<Vec<PathBuf>> {
+    context.bail_if_cancelled()?;
+    let source_root = declaration.resolve(&context.plan.minecraft_dir);
+    let excludes = if declaration.honors_source_excludes {
+        read_source_excludes(context, declaration.source_set)?
+    } else {
+        Vec::new()
+    };
     let mut sources = Vec::new();
     for path in collect_java_sources_under(context, &source_root)? {
         context.bail_if_cancelled()?;
@@ -468,7 +483,6 @@ fn collect_source_set_java_sources(
             sources.push(path);
         }
     }
-    sources.sort();
     Ok(sources)
 }
 
@@ -486,29 +500,6 @@ fn read_source_excludes(
     Ok(excludes)
 }
 
-fn read_source_excludes_for_minecraft_dir(
-    minecraft_dir: &Path,
-    minecraft_version: &str,
-    source_set: &str,
-) -> eyre::Result<Vec<String>> {
-    let path = minecraft_dir
-        .join("gradle")
-        .join("source-excludes")
-        .join(minecraft_version)
-        .join(format!("{source_set}-java.txt"));
-    if !path.exists() {
-        return Ok(Vec::new());
-    }
-    let excludes_text =
-        fs::read_to_string(&path).wrap_err_with(|| format!("Failed to read {}", path.display()))?;
-    Ok(excludes_text
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty() && !line.starts_with('#'))
-        .map(|line| line.replace('\\', "/"))
-        .collect())
-}
-
 fn source_exclude_file_path(context: &ExecutionContext<'_>, source_set: &str) -> PathBuf {
     context
         .plan
@@ -517,21 +508,6 @@ fn source_exclude_file_path(context: &ExecutionContext<'_>, source_set: &str) ->
         .join("source-excludes")
         .join(context.plan.minecraft_version.as_str())
         .join(format!("{source_set}-java.txt"))
-}
-
-fn is_excluded_source(relative: &str, excludes: &[String]) -> bool {
-    excludes.iter().any(|exclude| {
-        if let Some(prefix) = exclude.strip_suffix("/**") {
-            relative.starts_with(prefix)
-        } else if Path::new(exclude)
-            .extension()
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("java"))
-        {
-            relative == exclude
-        } else {
-            relative == exclude || relative.starts_with(&format!("{exclude}/"))
-        }
-    })
 }
 
 fn collect_java_sources_under(

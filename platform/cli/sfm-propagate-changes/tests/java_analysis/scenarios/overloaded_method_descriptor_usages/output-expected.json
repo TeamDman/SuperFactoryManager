@@ -1,0 +1,86 @@
+{
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:40373efe2ad86d29e027de2043575883cc16f5a5c721e315418d21531f47711e",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "diagnostics": [],
+  "outcome": "success",
+  "schema": "sfm.symbol-usage-list/1",
+  "selector": {
+    "canonical": "p.A run(I)V",
+    "descriptor": "(I)V",
+    "kind": "method",
+    "member": "run",
+    "owner": "p.A"
+  },
+  "usages": [
+    {
+      "confidence": "resolved",
+      "kind": "declaration",
+      "span": {
+        "end_byte": 48,
+        "end_column": 20,
+        "end_line": 4,
+        "path": "source/p/A.java",
+        "source_hash": "blake3:ae92edaa133a217a43418f2e649fd78f400593614cb6fb69d962984616f5a920",
+        "source_set": "custom",
+        "start_byte": 45,
+        "start_column": 17,
+        "start_line": 4
+      },
+      "target": {
+        "descriptor": "(I)V",
+        "kind": "method",
+        "name": "run",
+        "owner": "p.A",
+        "qualified_name": "p.A.run(I)V"
+      }
+    },
+    {
+      "confidence": "resolved",
+      "kind": "invocation",
+      "span": {
+        "end_byte": 78,
+        "end_column": 19,
+        "end_line": 7,
+        "path": "source/q/B.java",
+        "source_hash": "blake3:469db95f4165b6794b6cbed171736c2d8bc2ff546671976ee09dd9fae03b9eb6",
+        "source_set": "custom",
+        "start_byte": 75,
+        "start_column": 16,
+        "start_line": 7
+      },
+      "target": {
+        "descriptor": "(I)V",
+        "kind": "method",
+        "name": "run",
+        "owner": "p.A",
+        "qualified_name": "p.A.run(I)V"
+      }
+    }
+  ]
+}

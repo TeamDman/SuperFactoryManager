@@ -1,3 +1,3 @@
-fn main() -> eyre::Result<()> {
+fn main() -> eyre::Result<std::process::ExitCode> {
     sfm_propagate_changes::main()
 }

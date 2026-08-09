@@ -1,0 +1,106 @@
+{
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:e3db52c8db5c8a7e86974d97b621638d622d5a31223e1831130316846ac3d42d",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "end_byte": 37,
+        "end_column": 18,
+        "end_line": 3,
+        "path": "source/first/A.java",
+        "source_hash": "blake3:7748c57271c0929ab235fe60ee3aeb899297bb90382441dc2781b09d08b0762d",
+        "source_set": "custom",
+        "start_byte": 20,
+        "start_column": 1,
+        "start_line": 3
+      },
+      "identifier_span": {
+        "end_byte": 34,
+        "end_column": 15,
+        "end_line": 3,
+        "path": "source/first/A.java",
+        "source_hash": "blake3:7748c57271c0929ab235fe60ee3aeb899297bb90382441dc2781b09d08b0762d",
+        "source_set": "custom",
+        "start_byte": 33,
+        "start_column": 14,
+        "start_line": 3
+      },
+      "symbol": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "A",
+        "owner": "duplicate",
+        "qualified_name": "duplicate.A"
+      }
+    },
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "end_byte": 37,
+        "end_column": 18,
+        "end_line": 3,
+        "path": "source/second/A.java",
+        "source_hash": "blake3:7748c57271c0929ab235fe60ee3aeb899297bb90382441dc2781b09d08b0762d",
+        "source_set": "custom",
+        "start_byte": 20,
+        "start_column": 1,
+        "start_line": 3
+      },
+      "identifier_span": {
+        "end_byte": 34,
+        "end_column": 15,
+        "end_line": 3,
+        "path": "source/second/A.java",
+        "source_hash": "blake3:7748c57271c0929ab235fe60ee3aeb899297bb90382441dc2781b09d08b0762d",
+        "source_set": "custom",
+        "start_byte": 33,
+        "start_column": 14,
+        "start_line": 3
+      },
+      "symbol": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "A",
+        "owner": "duplicate",
+        "qualified_name": "duplicate.A"
+      }
+    }
+  ],
+  "diagnostics": [],
+  "outcome": "ambiguous",
+  "schema": "sfm.symbol-definition/1",
+  "selector": {
+    "canonical": "duplicate.A",
+    "descriptor": null,
+    "kind": "type",
+    "member": null,
+    "owner": "duplicate.A"
+  }
+}

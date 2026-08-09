@@ -1,0 +1,74 @@
+{
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:9f5030ebcf301199c670e39d3d03f70e112edeeb37a6351e9859a4453d5da3ba",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "end_byte": 51,
+        "end_column": 26,
+        "end_line": 4,
+        "path": "source/p/Outer.java",
+        "source_hash": "blake3:1584a40769c7ec8120dc9f393ba3d1887c1afed03c0cd849ad7f3d204af23f61",
+        "source_set": "custom",
+        "start_byte": 30,
+        "start_column": 5,
+        "start_line": 4
+      },
+      "identifier_span": {
+        "end_byte": 48,
+        "end_column": 23,
+        "end_line": 4,
+        "path": "source/p/Outer.java",
+        "source_hash": "blake3:1584a40769c7ec8120dc9f393ba3d1887c1afed03c0cd849ad7f3d204af23f61",
+        "source_set": "custom",
+        "start_byte": 43,
+        "start_column": 18,
+        "start_line": 4
+      },
+      "symbol": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "Inner",
+        "owner": "p.Outer",
+        "qualified_name": "p.Outer$Inner"
+      }
+    }
+  ],
+  "diagnostics": [],
+  "outcome": "success",
+  "schema": "sfm.symbol-definition/1",
+  "selector": {
+    "canonical": "p.Outer$Inner",
+    "descriptor": null,
+    "kind": "type",
+    "member": null,
+    "owner": "p.Outer$Inner"
+  }
+}
