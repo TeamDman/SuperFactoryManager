@@ -1,0 +1,13 @@
+if (project.ext.has('sfmJavaCompileEncodingConfigured')) {
+    throw new GradleException("java-compile-encoding.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("java-compile-encoding.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+ext.sfmJavaCompileEncodingConfigured = true
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8' // Use the UTF-8 charset for Java compilation
+}

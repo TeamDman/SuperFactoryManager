@@ -1,0 +1,92 @@
+package ca.teamdman.sfm.common.label;
+
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
+import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
+import ca.teamdman.sfm.common.util.ConfirmationParams;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import org.apache.commons.lang3.mutable.MutableInt;
+import org.jetbrains.annotations.Nullable;
+
+public record LabelGunUnsetBlockLabelsAction(
+        Player player,
+
+        Level level,
+
+        ServerboundLabelGunUsePacket msg,
+
+        ItemStack gunStack,
+
+        LabelPositionHolder gunLabels,
+
+        LabelGunPlanTargets targets,
+
+        String activeLabel
+) implements LabelGunPlan {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry REMOVE_ACTIVE_LABEL_CONFIRM_SCREEN_TITLE = new LocalizationEntry(
+            "gui.sfm.remove_active_label_confirm.title",
+            "Remove label: %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry REMOVE_ACTIVE_LABEL_CONFIRM_SCREEN_MESSAGE = new LocalizationEntry(
+            "gui.sfm.remove_active_label_confirm.message",
+            "Are you sure you want to remove the label \"%s\" from %d blocks?"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry REMOVE_ALL_LABELS_CONFIRM_SCREEN_TITLE = new LocalizationEntry(
+            "gui.sfm.remove_all_labels_confirm.title",
+            "Remove ALL labels"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry REMOVE_ALL_LABELS_CONFIRM_SCREEN_MESSAGE = new LocalizationEntry(
+            "gui.sfm.remove_all_labels_confirm.message",
+            "Are you sure you want to remove %d labels from %d blocks?"
+    );
+
+    @Override
+    public void run() {
+        if (msg.isPickBlockModifierActive()) {
+            LabelGunActions.clearActive(level, gunStack, msg.pos(), msg.isContiguousModifierActive());
+        } else {
+            LabelGunActions.clearAll(level, gunStack, msg.pos(), msg.isContiguousModifierActive());
+        }
+    }
+
+    @Override
+    public @Nullable ConfirmationParams getConfirmation() {
+
+        if (targets.positions().size() <= 1) { // TODO: make this a client config
+            return null;
+        }
+        if (msg.isPickBlockModifierActive()) {
+            return ConfirmationParams.of(
+                    REMOVE_ACTIVE_LABEL_CONFIRM_SCREEN_TITLE.getComponent(activeLabel),
+                    REMOVE_ACTIVE_LABEL_CONFIRM_SCREEN_MESSAGE.getComponent(
+                            activeLabel,
+                            targets.positions().size()
+                    )
+            );
+        } else {
+            MutableInt totalLabels = new MutableInt(0);
+            gunLabels.forEach((label, pos) -> {
+                if (targets.positions().contains(pos)) {
+                    totalLabels.increment();
+                }
+            });
+            return ConfirmationParams.of(
+                    REMOVE_ALL_LABELS_CONFIRM_SCREEN_TITLE.getComponent(),
+                    REMOVE_ALL_LABELS_CONFIRM_SCREEN_MESSAGE.getComponent(
+                            totalLabels,
+                            targets.positions().size()
+                    )
+            );
+        }
+    }
+
+}

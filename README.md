@@ -5,11 +5,11 @@
 
 [![](https://cf.way2muchnoise.eu/full_306935_downloads.svg)](https://www.curseforge.com/minecraft/mc-mods/super-factory-manager) [![Discord](https://img.shields.io/discord/967118679370264627.svg?colorB=7289DA&logo=data:image/png)](https://discord.gg/5mbUY3mu6m) [![GitHub Sponsors](https://img.shields.io/github/sponsors/TeamDman)](https://github.com/sponsors/TeamDman) [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/TeamDman/SuperFactoryManager) ![Visitors](https://api.visitorbadge.io/api/visitors?path=https%3A%2F%2Fgithub.com%2FTeamDman%2FSuperFactoryManager&countColor=%23263759&style=flat)
 
-[![image](media/banner.png)](https://www.youtube.com/watch?v=W5wY23VxZAc)
+[![image](./docs/media/banner.png)](https://www.youtube.com/watch?v=W5wY23VxZAc)
 
 Check out [the examples folder](./examples) for sample scripts.
 
-There are also [in-game examples](src/main/resources/assets/sfm/template_programs).
+There are also [in-game examples](platform/minecraft/src/main/resources/assets/sfm/template_programs).
 
 If you like this mod, consider [donating](https://github.com/sponsors/TeamDman) 💝
 
@@ -30,4 +30,4 @@ To get started, you will need a factory manager, a label gun, and a disk.
 Get the [VSCode extension](https://marketplace.visualstudio.com/items?itemName=TeamDman.super-factory-manager-language)
 for syntax highlighting 🌈
 
-![](media/vscode%20syntax.png)
+![](./docs/media/vscode%20syntax.png)

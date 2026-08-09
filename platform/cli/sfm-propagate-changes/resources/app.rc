@@ -1,0 +1,5 @@
+// https://learn.microsoft.com/en-us/windows/win32/menurc/about-resource-files
+
+#define RT_MANIFEST 24
+1 RT_MANIFEST "app.manifest"
+main_icon ICON "main.ico"

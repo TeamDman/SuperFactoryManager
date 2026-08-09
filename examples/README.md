@@ -22,7 +22,7 @@ https://user-images.githubusercontent.com/9356891/171307447-5895b809-9685-4e1c-a
 
 Keywords are case-insensitive.
 
-Super-nerds can read the grammar file [here](https://github.com/TeamDman/SuperFactoryManager/blob/1.18/src/main/antlr/SFML.g)
+Super-nerds can read the grammar file [here](../platform/minecraft/src/main/antlr/sfml/SFML.g4)
 
 ### Triggers
 
