@@ -1,0 +1,1 @@
+cargo install --path . --locked --offline

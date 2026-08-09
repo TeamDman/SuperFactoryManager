@@ -2,6 +2,8 @@
 # eclipse
 bin
 logs/
+*.log
+log*.ndjson
 *.launch
 .settings
 .metadata
@@ -19,7 +21,7 @@ out
 *.ipr
 *.iws
 *.iml
-.idea
+**/.idea/**
 .idea.bak
 .idea.bak.*
 
@@ -27,16 +29,25 @@ out
 build
 .gradle
 
+# Rust
+
+target/
+platform/cli/sfm-propagate-changes/tracy/
+
 # other
 eclipse
-run
+platform/minecraft/run/
 runClient
+runClientSmoke
 runData
 runTest
 runGameTest
+ignore/
 
 # Files from Forge MDK
 forge*changelog.txt
 
 runServer
 runs
+runClientPuppet
+run_client_puppet

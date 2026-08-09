@@ -1,0 +1,3586 @@
+{
+  "schema_version": 3,
+  "platform": {
+    "minecraft_dependency": "minecraft",
+    "loader_dependency": "forge"
+  },
+  "policy": {
+    "allow_local_artifact_cache": false
+  },
+  "repositories": [
+    {
+      "id": "blamejared",
+      "url": "https://maven.blamejared.com"
+    },
+    {
+      "id": "cursemaven",
+      "url": "https://www.cursemaven.com"
+    },
+    {
+      "id": "forge",
+      "url": "https://maven.minecraftforge.net"
+    },
+    {
+      "id": "jei",
+      "url": "https://dvs1.progwml6.com/files/maven"
+    },
+    {
+      "id": "maven-central",
+      "url": "https://repo1.maven.org/maven2"
+    },
+    {
+      "id": "modmaven",
+      "url": "https://modmaven.dev"
+    },
+    {
+      "id": "neoforged",
+      "url": "https://maven.neoforged.net/releases"
+    },
+    {
+      "id": "parchment",
+      "url": "https://maven.parchmentmc.org"
+    },
+    {
+      "id": "sponge",
+      "url": "https://repo.spongepowered.org/repository/maven-public"
+    },
+    {
+      "id": "squiddev",
+      "url": "https://squiddev.cc/maven"
+    },
+    {
+      "id": "thermal",
+      "url": "https://maven.covers1624.net"
+    }
+  ],
+  "dependencies": [
+    {
+      "id": "antlr",
+      "kind": "tool",
+      "role": "build",
+      "display_name": "ANTLR",
+      "project_url": "https://www.antlr.org",
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.antlr:antlr4:4.9.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "codegen"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "org-antlr-antlr4-4-9-1-205027ff",
+            "resolved_coordinate": "org.antlr:antlr4:4.9.1",
+            "expected_hash": "blake3:205027ffc02f2c0d7332957510c6d03e26d6fc59",
+            "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.9.1\\antlr4-4.9.1.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "applied-energistics-2",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "applied-energistics-2",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "api",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "appeng:appliedenergistics2-forge:12.9.9:api",
+                "repository_id": "modmaven"
+              }
+            },
+            "scopes": [
+              "compile"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "appeng-appliedenergistics2-forge-12-9-9-api-19100d11",
+            "resolved_coordinate": "appeng:appliedenergistics2-forge:12.9.9:api",
+            "expected_hash": "blake3:19100d113e6f378158c821dd4c3b8f474a0e39aa",
+            "cache_path": "$sfm-cache\\maven\\appeng\\appliedenergistics2-forge\\12.9.9\\appliedenergistics2-forge-12.9.9-api.jar"
+          },
+          "source_providers": []
+        },
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "appeng:appliedenergistics2-forge:12.9.9",
+                "repository_id": "modmaven"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "appeng-appliedenergistics2-forge-12-9-9-bc1f50c8",
+            "resolved_coordinate": "appeng:appliedenergistics2-forge:12.9.9",
+            "expected_hash": "blake3:bc1f50c87ba5bb4279f457cf4e480fb546b97dce",
+            "cache_path": "$sfm-cache\\maven\\appeng\\appliedenergistics2-forge\\12.9.9\\appliedenergistics2-forge-12.9.9.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "architectury-api",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "architectury-api",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 419699,
+                "file_id": 5137942,
+                "slug": "architectury-api",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-architectury-api-419699-5137942-156c96bb",
+            "resolved_coordinate": "curse.maven:architectury-api-419699:5137942",
+            "expected_hash": "blake3:156c96bb774c33f0aa155618a1b147b1cfe22bf7",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\architectury-api-419699\\5137942\\architectury-api-419699-5137942.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "ars-nouveau",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "ars-nouveau",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 401955,
+                "file_id": 5171729,
+                "slug": "ars-nouveau",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-ars-nouveau-401955-5171729-6f4fee59",
+            "resolved_coordinate": "curse.maven:ars-nouveau-401955:5171729",
+            "expected_hash": "blake3:6f4fee5987f530d69980fbbcb0b45f9a696ca255",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\ars-nouveau-401955\\5171729\\ars-nouveau-401955-5171729.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "ato",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "ato",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 405593,
+                "file_id": 4046926,
+                "slug": "ato",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-ato-405593-4046926-152b686a",
+            "resolved_coordinate": "curse.maven:ato-405593:4046926",
+            "expected_hash": "blake3:152b686a84a34e2390f765d135d17eac44af4839",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\ato-405593\\4046926\\ato-405593-4046926.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "autoreglib",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "autoreglib",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 250363,
+                "file_id": 4100299,
+                "slug": "AutoRegLib",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-autoreglib-250363-4100299-8d24356d",
+            "resolved_coordinate": "curse.maven:AutoRegLib-250363:4100299",
+            "expected_hash": "blake3:8d24356d2495eb0467ba12e435614fa60c7a3732",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\AutoRegLib-250363\\4100299\\AutoRegLib-250363-4100299.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "balm",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "balm",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 531761,
+                "file_id": 4751735,
+                "slug": "balm",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-balm-531761-4751735-412c6c65",
+            "resolved_coordinate": "curse.maven:balm-531761:4751735",
+            "expected_hash": "blake3:412c6c6533746e267c0920405490bc6210e2df66",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\balm-531761\\4751735\\balm-531761-4751735.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "botania",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "botania",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 225643,
+                "file_id": 5608807,
+                "slug": "botania",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-botania-225643-5608807-d5641845",
+            "resolved_coordinate": "curse.maven:botania-225643:5608807",
+            "expected_hash": "blake3:d5641845f07f21f1ed3f47924672d26004a144a9",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\botania-225643\\5608807\\botania-225643-5608807.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "cc-tweaked",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "cc-tweaked",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.squiddev:cc-tweaked-1.19.2:1.101.3",
+                "repository_id": "squiddev"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime",
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-squiddev-cc-tweaked-1-19-2-1-101-3-e0e69206",
+            "resolved_coordinate": "org.squiddev:cc-tweaked-1.19.2:1.101.3",
+            "expected_hash": "blake3:e0e6920675c793817b9e063db3854b3c68ed29fd",
+            "cache_path": "$sfm-cache\\maven\\org\\squiddev\\cc-tweaked-1.19.2\\1.101.3\\cc-tweaked-1.19.2-1.101.3.jar"
+          },
+          "source_providers": [
+            {
+              "git": {
+                "id": "git",
+                "declaration": {
+                  "remote_url": "https://github.com/cc-tweaked/CC-Tweaked",
+                  "requested_revision": "refs/tags/v1.19.2-1.101.3",
+                  "roots": [
+                    "src/main/java",
+                    "src/main/resources"
+                  ]
+                },
+                "derived_checks": {
+                  "commit": "f9bb1b497964cccab6cde34e8948333210275f93",
+                  "repository_cache_path": "$sfm-cache/sources\\git/repositories\\https---github.com-cc-tweaked-cc-tweaked-fe1d9fad5f40253f.git",
+                  "tree_cache_path": "$sfm-cache/sources\\git/trees\\https---github.com-cc-tweaked-cc-tweaked-fe1d9fad5f40253f\\f9bb1b497964cccab6cde34e8948333210275f93-027be8179a8835fd"
+                }
+              }
+            },
+            {
+              "maven-sources": {
+                "id": "maven-sources",
+                "declaration": {
+                  "requested_coordinate": "org.squiddev:cc-tweaked-1.19.2:1.101.3:sources",
+                  "repository_id": "squiddev",
+                  "roots": [
+                    "dan200/computercraft"
+                  ]
+                },
+                "derived_checks": {
+                  "resolved_coordinate": "org.squiddev:cc-tweaked-1.19.2:1.101.3:sources",
+                  "url": "https://squiddev.cc/maven/org/squiddev/cc-tweaked-1.19.2/1.101.3/cc-tweaked-1.19.2-1.101.3-sources.jar",
+                  "hash": "blake3:a72c68f5a37bf67fa8965fc8a1bbf33416223684",
+                  "archive_cache_path": "$sfm-cache/sources\\maven\\org.squiddev-cc-tweaked-1.19.2-1.101.3-sources-fabc8cf87efaf6e3\\a72c68f5a37bf67fa8965fc8a1bbf33416223684\\sources.jar",
+                  "tree_cache_path": "$sfm-cache/sources\\maven\\org.squiddev-cc-tweaked-1.19.2-1.101.3-sources-fabc8cf87efaf6e3\\a72c68f5a37bf67fa8965fc8a1bbf33416223684\\tree"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cloth-config",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "cloth-config",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 348521,
+                "file_id": 4973444,
+                "slug": "cloth-config",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-cloth-config-348521-4973444-dd070d91",
+            "resolved_coordinate": "curse.maven:cloth-config-348521:4973444",
+            "expected_hash": "blake3:dd070d910ea8816606fd313e90eb3970d48e7d34",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\cloth-config-348521\\4973444\\cloth-config-348521-4973444.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "cofh-core",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "cofh-core",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "com.teamcofh:cofh_core:1.19.2-10.2.0.+",
+                "repository_id": "thermal"
+              }
+            },
+            "scopes": [
+              "runtime",
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "com-teamcofh-cofh-core-1-19-2-10-2-0-38-05cf3c44",
+            "resolved_coordinate": "com.teamcofh:cofh_core:1.19.2-10.2.0.38",
+            "expected_hash": "blake3:05cf3c4402bb6125c4bea7eba0f4732aee9da57a",
+            "cache_path": "$sfm-cache\\maven\\com\\teamcofh\\cofh_core\\1.19.2-10.2.0.38\\cofh_core-1.19.2-10.2.0.38.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "construction-wand",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "construction-wand",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 399558,
+                "file_id": 4455719,
+                "slug": "construction-wand",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-construction-wand-399558-4455719-8a40b4ff",
+            "resolved_coordinate": "curse.maven:construction-wand-399558:4455719",
+            "expected_hash": "blake3:8a40b4ffa44b6d1719680a278ad2bc9a7040607c",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\construction-wand-399558\\4455719\\construction-wand-399558-4455719.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "curios",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "curios",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 309927,
+                "file_id": 5494603,
+                "slug": "curios",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-curios-309927-5494603-cab28e86",
+            "resolved_coordinate": "curse.maven:curios-309927:5494603",
+            "expected_hash": "blake3:cab28e86f4d1cb0ac48776bf25652d48c734fc48",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\curios-309927\\5494603\\curios-309927-5494603.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "dank-storage",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "dank-storage",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 335673,
+                "file_id": 4395369,
+                "slug": "dank-storage",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-dank-storage-335673-4395369-e247bddf",
+            "resolved_coordinate": "curse.maven:dank-storage-335673:4395369",
+            "expected_hash": "blake3:e247bddf3c34615f6858189f23535d93b4a024b7",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\dank-storage-335673\\4395369\\dank-storage-335673-4395369.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "ex-pattern-provider",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "ex-pattern-provider",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 892005,
+                "file_id": 5250574,
+                "slug": "ex-pattern-provider",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-ex-pattern-provider-892005-5250574-1fcdc2d8",
+            "resolved_coordinate": "curse.maven:ex-pattern-provider-892005:5250574",
+            "expected_hash": "blake3:1fcdc2d8325f896a9f04789837db0958f8df7262",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\ex-pattern-provider-892005\\5250574\\ex-pattern-provider-892005-5250574.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "extreme-sound-muffler",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "extreme-sound-muffler",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 363363,
+                "file_id": 4821189,
+                "slug": "extreme-sound-muffler",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-extreme-sound-muffler-363363-4821189-83c3de2e",
+            "resolved_coordinate": "curse.maven:extreme-sound-muffler-363363:4821189",
+            "expected_hash": "blake3:83c3de2e8a8be54ac3b83b49811eb6184561d34a",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\extreme-sound-muffler-363363\\4821189\\extreme-sound-muffler-363363-4821189.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "flux-networks",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "flux-networks",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 248020,
+                "file_id": 4620438,
+                "slug": "flux-networks",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-flux-networks-248020-4620438-02fe37ed",
+            "resolved_coordinate": "curse.maven:flux-networks-248020:4620438",
+            "expected_hash": "blake3:02fe37ed7e2826b9b33e2bf90d6c2a35ef5ba6e3",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\flux-networks-248020\\4620438\\flux-networks-248020-4620438.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "forge",
+      "kind": "loader",
+      "role": "platform",
+      "display_name": "Minecraft Forge",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "userdev",
+          "declaration": {
+            "acquisition": {
+              "toolchain": {
+                "kind": "loader",
+                "requested_version": "1.19.2-43.4.0"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "net-minecraftforge-forge-1-19-2-43-4-0-userdev-ec28e8a8",
+            "resolved_coordinate": "net.minecraftforge:forge:1.19.2-43.4.0:userdev",
+            "expected_hash": "blake3:ec28e8a8511ee220aa722739c172dea1a945c761",
+            "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.2-43.4.0\\forge-1.19.2-43.4.0-userdev.jar"
+          },
+          "source_providers": [
+            {
+              "platform-pipeline": {
+                "id": "loader-pipeline",
+                "declaration": {
+                  "kind": "loader",
+                  "roots": []
+                },
+                "derived_checks": {
+                  "fingerprint": "forgegradle-1.19.2-43.4.0",
+                  "tree_cache_path": "build\\sfm-toolchain\\forge\\1.19.2\\sources\\combined-deobfuscated.filetree"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ftb-library",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "ftb-library",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 404465,
+                "file_id": 4661834,
+                "slug": "ftb-library",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-ftb-library-404465-4661834-38f25b0d",
+            "resolved_coordinate": "curse.maven:ftb-library-404465:4661834",
+            "expected_hash": "blake3:38f25b0d9fd68164c93a72a31c69236c6231ad51",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\ftb-library-404465\\4661834\\ftb-library-404465-4661834.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "industrial-foregoing",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "industrial-foregoing",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 266515,
+                "file_id": 4459182,
+                "slug": "industrial-foregoing",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime",
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-industrial-foregoing-266515-4459182-e4e29239",
+            "resolved_coordinate": "curse.maven:industrial-foregoing-266515:4459182",
+            "expected_hash": "blake3:e4e29239432a53a47a2032e4479dd7a779a54c7f",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\industrial-foregoing-266515\\4459182\\industrial-foregoing-266515-4459182.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "inventory-essentials",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "inventory-essentials",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 368825,
+                "file_id": 4751198,
+                "slug": "inventory-essentials",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-inventory-essentials-368825-4751198-0f224e72",
+            "resolved_coordinate": "curse.maven:inventory-essentials-368825:4751198",
+            "expected_hash": "blake3:0f224e72a6c0851fb68a73076cca4145852b0ec1",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\inventory-essentials-368825\\4751198\\inventory-essentials-368825-4751198.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "javaparser",
+      "kind": "library",
+      "role": "test",
+      "display_name": "JavaParser Symbol Solver",
+      "project_url": "https://javaparser.org",
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "com-github-javaparser-javaparser-symbol-solver-core-3-26-4-49a73863",
+            "resolved_coordinate": "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
+            "expected_hash": "blake3:49a738638fe79e947d27d2a39aeb5caf15093a2c",
+            "cache_path": "$sfm-cache\\maven\\com\\github\\javaparser\\javaparser-symbol-solver-core\\3.26.4\\javaparser-symbol-solver-core-3.26.4.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "jei",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "jei",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "mezz.jei:jei-1.19.2-forge:11.6.0.1018",
+                "repository_id": "blamejared"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "mezz-jei-jei-1-19-2-forge-11-6-0-1018-892ba01c",
+            "resolved_coordinate": "mezz.jei:jei-1.19.2-forge:11.6.0.1018",
+            "expected_hash": "blake3:892ba01c5a115716fff8ab08784c4d0fbfda089d",
+            "cache_path": "$sfm-cache\\maven\\mezz\\jei\\jei-1.19.2-forge\\11.6.0.1018\\jei-1.19.2-forge-11.6.0.1018.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "jmh",
+      "kind": "library",
+      "role": "test",
+      "display_name": "Java Microbenchmark Harness",
+      "project_url": "https://openjdk.org/projects/code-tools/jmh/",
+      "notes": null,
+      "components": [
+        {
+          "id": "core",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.openjdk.jmh:jmh-core:1.37",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "org-openjdk-jmh-jmh-core-1-37-43f8ac51",
+            "resolved_coordinate": "org.openjdk.jmh:jmh-core:1.37",
+            "expected_hash": "blake3:43f8ac514b4c75554abdc9f76fadfa1f0249ec15",
+            "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-core\\1.37\\jmh-core-1.37.jar"
+          },
+          "source_providers": []
+        },
+        {
+          "id": "generator-annprocess",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-annotation-processor",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "org-openjdk-jmh-jmh-generator-annprocess-1-37-74920027",
+            "resolved_coordinate": "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+            "expected_hash": "blake3:74920027bb3f569af240fc283876568793baa2e8",
+            "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-annprocess\\1.37\\jmh-generator-annprocess-1.37.jar"
+          },
+          "source_providers": []
+        },
+        {
+          "id": "generator-bytecode",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.openjdk.jmh:jmh-generator-bytecode:1.37",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "org-openjdk-jmh-jmh-generator-bytecode-1-37-c8a36f0c",
+            "resolved_coordinate": "org.openjdk.jmh:jmh-generator-bytecode:1.37",
+            "expected_hash": "blake3:c8a36f0c8375079fa50f2ce5b66fe9c82bd5dc20",
+            "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-bytecode\\1.37\\jmh-generator-bytecode-1.37.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "junit-jupiter",
+      "kind": "library",
+      "role": "test",
+      "display_name": "JUnit Jupiter",
+      "project_url": "https://junit.org/junit5/",
+      "notes": "The standalone JUnit Platform launcher supplies runtime engines.",
+      "components": [
+        {
+          "id": "api",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.junit.jupiter:junit-jupiter-api:5.8.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-compile",
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "org-junit-jupiter-junit-jupiter-api-5-8-1-9f0864e5",
+            "resolved_coordinate": "org.junit.jupiter:junit-jupiter-api:5.8.1",
+            "expected_hash": "blake3:9f0864e5a792fa8a5a386e326dcaedabb2cb4daa",
+            "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-api\\5.8.1\\junit-jupiter-api-5.8.1.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "junit-jupiter-engine",
+      "kind": "library",
+      "role": "test",
+      "display_name": "JUnit Jupiter Engine",
+      "project_url": "https://junit.org/junit5/",
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "test-runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "org-junit-jupiter-junit-jupiter-engine-5-8-1-d59cd0ab",
+            "resolved_coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1",
+            "expected_hash": "blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce",
+            "cache_path": "$sfm-cache\\maven\\org/junit/jupiter\\junit-jupiter-engine\\5.8.1\\junit-jupiter-engine-5.8.1.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "mantle",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "mantle",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 74924,
+                "file_id": 6044700,
+                "slug": "mantle",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-mantle-74924-6044700-af93ca1d",
+            "resolved_coordinate": "curse.maven:mantle-74924:6044700",
+            "expected_hash": "blake3:af93ca1d438fc89e13ae07ac54ea78bf85ffdb74",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\mantle-74924\\6044700\\mantle-74924-6044700.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "mekanism",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "mekanism",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "api",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "mekanism:Mekanism:1.19.2-10.3.8.477:api",
+                "repository_id": "modmaven"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "mekanism-mekanism-1-19-2-10-3-8-477-api-ff405d14",
+            "resolved_coordinate": "mekanism:Mekanism:1.19.2-10.3.8.477:api",
+            "expected_hash": "blake3:ff405d145a5d293f7dfd08f9823022512a770109",
+            "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\1.19.2-10.3.8.477\\Mekanism-1.19.2-10.3.8.477-api.jar"
+          },
+          "source_providers": [
+            {
+              "decompile": {
+                "id": "vineflower",
+                "declaration": {
+                  "roots": []
+                },
+                "derived_checks": {
+                  "binary_artifact_id": "mekanism-mekanism-1-19-2-10-3-8-477-api-ff405d14",
+                  "decompiler_artifact_id": "org-vineflower-vineflower-1-12-0-865bc756",
+                  "fingerprint": "blake3:6e56247f0f40ce41b457c440130cde6d9c2b43da",
+                  "tree_cache_path": "$sfm-cache/sources\\decompiled\\ff405d145a5d293f7dfd08f9823022512a770109\\blake3-6e56247f0f40ce41b457c440130cde6d9c2b43da-ec253f5672ff82f8\\tree"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 268560,
+                "file_id": 4644795,
+                "slug": "mekanism",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-mekanism-268560-4644795-76928376",
+            "resolved_coordinate": "curse.maven:mekanism-268560:4644795",
+            "expected_hash": "blake3:76928376e435f374f99f724a1261b1964f582914",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\mekanism-268560\\4644795\\mekanism-268560-4644795.jar"
+          },
+          "source_providers": [
+            {
+              "git": {
+                "id": "git",
+                "declaration": {
+                  "remote_url": "https://github.com/mekanism/Mekanism",
+                  "requested_revision": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
+                  "roots": [
+                    "src/main/java"
+                  ]
+                },
+                "derived_checks": {
+                  "commit": "f33ff1f438caa55d58ef1f0a08091997353afcb8",
+                  "repository_cache_path": "$sfm-cache/sources\\git/repositories\\https---github.com-mekanism-mekanism-059d54171b6f7fd7.git",
+                  "tree_cache_path": "$sfm-cache/sources\\git/trees\\https---github.com-mekanism-mekanism-059d54171b6f7fd7\\f33ff1f438caa55d58ef1f0a08091997353afcb8-6d682e53b7bfeee7"
+                }
+              }
+            },
+            {
+              "decompile": {
+                "id": "vineflower",
+                "declaration": {
+                  "roots": []
+                },
+                "derived_checks": {
+                  "binary_artifact_id": "curse-maven-mekanism-268560-4644795-76928376",
+                  "decompiler_artifact_id": "org-vineflower-vineflower-1-12-0-865bc756",
+                  "fingerprint": "blake3:2a12697261d5ced051f4154839447afbe1ca3f3a",
+                  "tree_cache_path": "$sfm-cache/sources\\decompiled\\76928376e435f374f99f724a1261b1964f582914\\blake3-2a12697261d5ced051f4154839447afbe1ca3f3a-60a38ebb54b4127e\\tree"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "minecraft",
+      "kind": "minecraft",
+      "role": "platform",
+      "display_name": "Minecraft",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "toolchain": {
+                "kind": "minecraft",
+                "requested_version": "1.19.2"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "version-a428e23c",
+            "resolved_coordinate": null,
+            "expected_hash": "blake3:a428e23c637cc159c34a358acc3d1e7b270da1a3",
+            "cache_path": "$sfm-cache\\minecraft\\versions\\1.19.2\\version.json"
+          },
+          "source_providers": [
+            {
+              "platform-pipeline": {
+                "id": "minecraft-pipeline",
+                "declaration": {
+                  "kind": "minecraft",
+                  "roots": []
+                },
+                "derived_checks": {
+                  "fingerprint": "forgegradle-1.19.2-43.4.0",
+                  "tree_cache_path": "build\\sfm-toolchain\\forge\\1.19.2\\sources\\combined-deobfuscated.filetree"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mixin",
+      "kind": "tool",
+      "role": "build",
+      "display_name": "mixin",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.spongepowered:mixin:0.8.5:processor",
+                "repository_id": "sponge"
+              }
+            },
+            "scopes": [
+              "annotation-processor"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "include"
+          },
+          "derived_checks": {
+            "artifact_id": "org-spongepowered-mixin-0-8-5-processor-b4839b34",
+            "resolved_coordinate": "org.spongepowered:mixin:0.8.5:processor",
+            "expected_hash": "blake3:b4839b346ffef67432425608e4363435dd9acbc6",
+            "cache_path": "$sfm-cache\\maven\\org\\spongepowered\\mixin\\0.8.5\\mixin-0.8.5-processor.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "mouse-tweaks",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "mouse-tweaks",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 60089,
+                "file_id": 3871353,
+                "slug": "mouse-tweaks",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-mouse-tweaks-60089-3871353-bb0c6a9d",
+            "resolved_coordinate": "curse.maven:mouse-tweaks-60089:3871353",
+            "expected_hash": "blake3:bb0c6a9d580f3fa6e183206175c20465c51582c8",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\mouse-tweaks-60089\\3871353\\mouse-tweaks-60089-3871353.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "ok-zoomer",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "ok-zoomer",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 631278,
+                "file_id": 4081277,
+                "slug": "ok-zoomer",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-ok-zoomer-631278-4081277-197c8346",
+            "resolved_coordinate": "curse.maven:ok-zoomer-631278:4081277",
+            "expected_hash": "blake3:197c834624b42b2d452685ab7aff5bdbfa6c6815",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\ok-zoomer-631278\\4081277\\ok-zoomer-631278-4081277.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "patchouli",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "patchouli",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 306770,
+                "file_id": 4031402,
+                "slug": "patchouli",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime",
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-patchouli-306770-4031402-d845e7e2",
+            "resolved_coordinate": "curse.maven:patchouli-306770:4031402",
+            "expected_hash": "blake3:d845e7e2c434816cab6e8920610bd81f98519eb0",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\patchouli-306770\\4031402\\patchouli-306770-4031402.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "powah",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "powah",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 633483,
+                "file_id": 4729361,
+                "slug": "powah",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-powah-633483-4729361-78a0c4e5",
+            "resolved_coordinate": "curse.maven:powah-633483:4729361",
+            "expected_hash": "blake3:78a0c4e5f5fb3cd984c16716311952cfe04bee3d",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\powah-633483\\4729361\\powah-633483-4729361.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "project-e",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "project-e",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 226410,
+                "file_id": 4860858,
+                "slug": "project-e",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "compile",
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-project-e-226410-4860858-4d0e76d2",
+            "resolved_coordinate": "curse.maven:project-e-226410:4860858",
+            "expected_hash": "blake3:4d0e76d2510f06419a74ef9164a38a059a0830e5",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\project-e-226410\\4860858\\project-e-226410-4860858.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "quark",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "quark",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 243121,
+                "file_id": 4812006,
+                "slug": "quark",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-quark-243121-4812006-552e4b01",
+            "resolved_coordinate": "curse.maven:quark-243121:4812006",
+            "expected_hash": "blake3:552e4b017307bdd9851230ba1ec040ae93e09a1f",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\quark-243121\\4812006\\quark-243121-4812006.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "sodium",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "sodium",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 394468,
+                "file_id": 3957319,
+                "slug": "sodium",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-sodium-394468-3957319-f5490c16",
+            "resolved_coordinate": "curse.maven:sodium-394468:3957319",
+            "expected_hash": "blake3:f5490c167bad1d74fc756a79928da474a327c560",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\sodium-394468\\3957319\\sodium-394468-3957319.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "sophisticated-core",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "sophisticated-core",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 618298,
+                "file_id": 4503931,
+                "slug": "sophisticated-core",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime",
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-sophisticated-core-618298-4503931-8fb8e277",
+            "resolved_coordinate": "curse.maven:sophisticated-core-618298:4503931",
+            "expected_hash": "blake3:8fb8e277714715c79051cea92aeaf3295208a6bf",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\sophisticated-core-618298\\4503931\\sophisticated-core-618298-4503931.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "sophisticated-storage",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "sophisticated-storage",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 619320,
+                "file_id": 4503929,
+                "slug": "sophisticated-storage",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime",
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-sophisticated-storage-619320-4503929-2073ce18",
+            "resolved_coordinate": "curse.maven:sophisticated-storage-619320:4503929",
+            "expected_hash": "blake3:2073ce18e3d747f42f9d3688d07f6b4c21cc4cec",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\sophisticated-storage-619320\\4503929\\sophisticated-storage-619320-4503929.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "the-one-probe",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "the-one-probe",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 245211,
+                "file_id": 3927520,
+                "slug": "the-one-probe",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-the-one-probe-245211-3927520-88ed0902",
+            "resolved_coordinate": "curse.maven:the-one-probe-245211:3927520",
+            "expected_hash": "blake3:88ed0902ca6332c874d08f1bb12cbc45a9ff43cc",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\the-one-probe-245211\\3927520\\the-one-probe-245211-3927520.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "thermal-core",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "thermal-core",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "com.teamcofh:thermal_core:1.19.2-10.2.0.+",
+                "repository_id": "thermal"
+              }
+            },
+            "scopes": [
+              "runtime",
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "com-teamcofh-thermal-core-1-19-2-10-2-0-5-4a0e344e",
+            "resolved_coordinate": "com.teamcofh:thermal_core:1.19.2-10.2.0.5",
+            "expected_hash": "blake3:4a0e344e491bc5c0f6c4c3acbfe80312d3678649",
+            "cache_path": "$sfm-cache\\maven\\com\\teamcofh\\thermal_core\\1.19.2-10.2.0.5\\thermal_core-1.19.2-10.2.0.5.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "thermal-expansion",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "thermal-expansion",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "com.teamcofh:thermal_expansion:1.19.2-10.2.0.+",
+                "repository_id": "thermal"
+              }
+            },
+            "scopes": [
+              "runtime",
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "com-teamcofh-thermal-expansion-1-19-2-10-2-0-21-ef2dad0c",
+            "resolved_coordinate": "com.teamcofh:thermal_expansion:1.19.2-10.2.0.21",
+            "expected_hash": "blake3:ef2dad0cad29e4e89c36c3cd314ee3356375e9c6",
+            "cache_path": "$sfm-cache\\maven\\com\\teamcofh\\thermal_expansion\\1.19.2-10.2.0.21\\thermal_expansion-1.19.2-10.2.0.21.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "tinkers-construct",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "tinkers-construct",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 74072,
+                "file_id": 6044827,
+                "slug": "tinkers-construct",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-tinkers-construct-74072-6044827-94e4ce68",
+            "resolved_coordinate": "curse.maven:tinkers-construct-74072:6044827",
+            "expected_hash": "blake3:94e4ce6840abefe2d70211d4a680f4f9412a5d64",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\tinkers-construct-74072\\6044827\\tinkers-construct-74072-6044827.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "titanium",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "titanium",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 287342,
+                "file_id": 4152837,
+                "slug": "titanium",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime",
+              "gametest-compile",
+              "gametest-runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-titanium-287342-4152837-3a6dfafa",
+            "resolved_coordinate": "curse.maven:titanium-287342:4152837",
+            "expected_hash": "blake3:3a6dfafa96f6ee2dddf0cb3e4f2cce40a1b5b750",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\titanium-287342\\4152837\\titanium-287342-4152837.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "tool-kit",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "tool-kit",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 324888,
+                "file_id": 3933949,
+                "slug": "tool-kit",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-tool-kit-324888-3933949-36b5f905",
+            "resolved_coordinate": "curse.maven:tool-kit-324888:3933949",
+            "expected_hash": "blake3:36b5f9052d5afb75bc270e3889e34442c6571e43",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\tool-kit-324888\\3933949\\tool-kit-324888-3933949.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "vineflower",
+      "kind": "tool",
+      "role": "build",
+      "display_name": "Vineflower",
+      "project_url": "https://vineflower.org",
+      "notes": "Standalone fallback decompiler; Java 17; no external library inputs.",
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "maven": {
+                "requested_coordinate": "org.vineflower:vineflower:1.12.0",
+                "repository_id": "maven-central"
+              }
+            },
+            "scopes": [
+              "codegen"
+            ],
+            "artifact_treatment": "plain",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "org-vineflower-vineflower-1-12-0-865bc756",
+            "resolved_coordinate": "org.vineflower:vineflower:1.12.0",
+            "expected_hash": "blake3:865bc756e48b1c6bae2fa0adb4be10b7cd7c5a46",
+            "cache_path": "$sfm-cache\\maven\\org/vineflower\\vineflower\\1.12.0\\vineflower-1.12.0.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    },
+    {
+      "id": "worldedit",
+      "kind": "mod",
+      "role": "integration",
+      "display_name": "worldedit",
+      "project_url": null,
+      "notes": null,
+      "components": [
+        {
+          "id": "main",
+          "declaration": {
+            "acquisition": {
+              "curse-forge": {
+                "project_id": 225608,
+                "file_id": 3922622,
+                "slug": "worldedit",
+                "repository_id": "cursemaven"
+              }
+            },
+            "scopes": [
+              "runtime"
+            ],
+            "artifact_treatment": "loader-managed-mod",
+            "data_run_policy": "exclude"
+          },
+          "derived_checks": {
+            "artifact_id": "curse-maven-worldedit-225608-3922622-d20c1e66",
+            "resolved_coordinate": "curse.maven:worldedit-225608:3922622",
+            "expected_hash": "blake3:d20c1e66c569d09630b343f5e97ba6b2a2c2c70a",
+            "cache_path": "$sfm-cache\\maven\\curse\\maven\\worldedit-225608\\3922622\\worldedit-225608-3922622.jar"
+          },
+          "source_providers": []
+        }
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "appeng-appliedenergistics2-forge-12-9-9-api-19100d11",
+      "owner": {
+        "dependency_id": "applied-energistics-2",
+        "component_id": "api"
+      },
+      "purposes": [
+        "build"
+      ],
+      "coordinate": "appeng:appliedenergistics2-forge:12.9.9:api",
+      "repository_id": "modmaven",
+      "url": "https://modmaven.dev/appeng/appliedenergistics2-forge/12.9.9/appliedenergistics2-forge-12.9.9-api.jar",
+      "hash": "blake3:19100d113e6f378158c821dd4c3b8f474a0e39aa",
+      "cache_path": "$sfm-cache\\maven\\appeng\\appliedenergistics2-forge\\12.9.9\\appliedenergistics2-forge-12.9.9-api.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "appeng-appliedenergistics2-forge-12-9-9-bc1f50c8",
+      "owner": {
+        "dependency_id": "applied-energistics-2",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "appeng:appliedenergistics2-forge:12.9.9",
+      "repository_id": "modmaven",
+      "url": "https://modmaven.dev/appeng/appliedenergistics2-forge/12.9.9/appliedenergistics2-forge-12.9.9.jar",
+      "hash": "blake3:bc1f50c87ba5bb4279f457cf4e480fb546b97dce",
+      "cache_path": "$sfm-cache\\maven\\appeng\\appliedenergistics2-forge\\12.9.9\\appliedenergistics2-forge-12.9.9.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "com-electronwill-night-config-core-3-6-4-48fc6bae",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "com.electronwill.night-config:core:3.6.4",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/com/electronwill/night-config/core/3.6.4/core-3.6.4.jar",
+      "hash": "blake3:48fc6bae43e80bbaf9c7ee7cb627bf56bc1c5f52",
+      "cache_path": "$sfm-cache\\maven\\com\\electronwill\\night-config\\core\\3.6.4\\core-3.6.4.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "com-electronwill-night-config-toml-3-6-4-0ecbb5e8",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "com.electronwill.night-config:toml:3.6.4",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/com/electronwill/night-config/toml/3.6.4/toml-3.6.4.jar",
+      "hash": "blake3:0ecbb5e8d8d3f8cdc7a7ad4c4bfad3ae8366a166",
+      "cache_path": "$sfm-cache\\maven\\com\\electronwill\\night-config\\toml\\3.6.4\\toml-3.6.4.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "com-github-javaparser-javaparser-core-3-26-4-1055b7a2",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "com.github.javaparser:javaparser-core:3.26.4",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/com/github/javaparser/javaparser-core/3.26.4/javaparser-core-3.26.4.jar",
+      "hash": "blake3:1055b7a25b9cf1274901059912a1b7d455197a9b",
+      "cache_path": "$sfm-cache\\maven\\com\\github\\javaparser\\javaparser-core\\3.26.4\\javaparser-core-3.26.4.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "com-github-javaparser-javaparser-symbol-solver-core-3-26-4-49a73863",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "com.github.javaparser:javaparser-symbol-solver-core:3.26.4",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/com/github/javaparser/javaparser-symbol-solver-core/3.26.4/javaparser-symbol-solver-core-3.26.4.jar",
+      "hash": "blake3:49a738638fe79e947d27d2a39aeb5caf15093a2c",
+      "cache_path": "$sfm-cache\\maven\\com\\github\\javaparser\\javaparser-symbol-solver-core\\3.26.4\\javaparser-symbol-solver-core-3.26.4.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "com-google-code-findbugs-jsr305-3-0-2-bd3e148a",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "com.google.code.findbugs:jsr305:3.0.2",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/com/google/code/findbugs/jsr305/3.0.2/jsr305-3.0.2.jar",
+      "hash": "blake3:bd3e148a3f405a3a5b7a217b401b494feb8acc81",
+      "cache_path": "$sfm-cache\\maven\\com\\google\\code\\findbugs\\jsr305\\3.0.2\\jsr305-3.0.2.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "com-teamcofh-cofh-core-1-19-2-10-2-0-38-05cf3c44",
+      "owner": {
+        "dependency_id": "cofh-core",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime",
+        "gametest"
+      ],
+      "coordinate": "com.teamcofh:cofh_core:1.19.2-10.2.0.38",
+      "repository_id": "thermal",
+      "url": "https://maven.covers1624.net/com/teamcofh/cofh_core/1.19.2-10.2.0.38/cofh_core-1.19.2-10.2.0.38.jar",
+      "hash": "blake3:05cf3c4402bb6125c4bea7eba0f4732aee9da57a",
+      "cache_path": "$sfm-cache\\maven\\com\\teamcofh\\cofh_core\\1.19.2-10.2.0.38\\cofh_core-1.19.2-10.2.0.38.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "com-teamcofh-thermal-core-1-19-2-10-2-0-5-4a0e344e",
+      "owner": {
+        "dependency_id": "thermal-core",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime",
+        "gametest"
+      ],
+      "coordinate": "com.teamcofh:thermal_core:1.19.2-10.2.0.5",
+      "repository_id": "thermal",
+      "url": "https://maven.covers1624.net/com/teamcofh/thermal_core/1.19.2-10.2.0.5/thermal_core-1.19.2-10.2.0.5.jar",
+      "hash": "blake3:4a0e344e491bc5c0f6c4c3acbfe80312d3678649",
+      "cache_path": "$sfm-cache\\maven\\com\\teamcofh\\thermal_core\\1.19.2-10.2.0.5\\thermal_core-1.19.2-10.2.0.5.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "com-teamcofh-thermal-expansion-1-19-2-10-2-0-21-ef2dad0c",
+      "owner": {
+        "dependency_id": "thermal-expansion",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime",
+        "gametest"
+      ],
+      "coordinate": "com.teamcofh:thermal_expansion:1.19.2-10.2.0.21",
+      "repository_id": "thermal",
+      "url": "https://maven.covers1624.net/com/teamcofh/thermal_expansion/1.19.2-10.2.0.21/thermal_expansion-1.19.2-10.2.0.21.jar",
+      "hash": "blake3:ef2dad0cad29e4e89c36c3cd314ee3356375e9c6",
+      "cache_path": "$sfm-cache\\maven\\com\\teamcofh\\thermal_expansion\\1.19.2-10.2.0.21\\thermal_expansion-1.19.2-10.2.0.21.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "cpw-mods-bootstraplauncher-1-1-2-f8767a36",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "cpw.mods:bootstraplauncher:1.1.2",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/cpw/mods/bootstraplauncher/1.1.2/bootstraplauncher-1.1.2.jar",
+      "hash": "blake3:f8767a36e474ef7a5680b4b6c2805a7bbb26527a",
+      "cache_path": "$sfm-cache\\maven\\cpw\\mods\\bootstraplauncher\\1.1.2\\bootstraplauncher-1.1.2.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "cpw-mods-modlauncher-10-0-8-32ec81da",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "cpw.mods:modlauncher:10.0.8",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/cpw/mods/modlauncher/10.0.8/modlauncher-10.0.8.jar",
+      "hash": "blake3:32ec81da98741f286c7e57a90717037d19226029",
+      "cache_path": "$sfm-cache\\maven\\cpw\\mods\\modlauncher\\10.0.8\\modlauncher-10.0.8.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "cpw-mods-securejarhandler-2-1-4-5e81ea26",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "cpw.mods:securejarhandler:2.1.4",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/cpw/mods/securejarhandler/2.1.4/securejarhandler-2.1.4.jar",
+      "hash": "blake3:5e81ea26d4768b760525e094b73237494bead222",
+      "cache_path": "$sfm-cache\\maven\\cpw\\mods\\securejarhandler\\2.1.4\\securejarhandler-2.1.4.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-architectury-api-419699-5137942-156c96bb",
+      "owner": {
+        "dependency_id": "architectury-api",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:architectury-api-419699:5137942",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/architectury-api-419699/5137942/architectury-api-419699-5137942.jar",
+      "hash": "blake3:156c96bb774c33f0aa155618a1b147b1cfe22bf7",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\architectury-api-419699\\5137942\\architectury-api-419699-5137942.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-ars-nouveau-401955-5171729-6f4fee59",
+      "owner": {
+        "dependency_id": "ars-nouveau",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "curse.maven:ars-nouveau-401955:5171729",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/ars-nouveau-401955/5171729/ars-nouveau-401955-5171729.jar",
+      "hash": "blake3:6f4fee5987f530d69980fbbcb0b45f9a696ca255",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\ars-nouveau-401955\\5171729\\ars-nouveau-401955-5171729.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-ato-405593-4046926-152b686a",
+      "owner": {
+        "dependency_id": "ato",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:ato-405593:4046926",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/ato-405593/4046926/ato-405593-4046926.jar",
+      "hash": "blake3:152b686a84a34e2390f765d135d17eac44af4839",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\ato-405593\\4046926\\ato-405593-4046926.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-autoreglib-250363-4100299-8d24356d",
+      "owner": {
+        "dependency_id": "autoreglib",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:AutoRegLib-250363:4100299",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/AutoRegLib-250363/4100299/AutoRegLib-250363-4100299.jar",
+      "hash": "blake3:8d24356d2495eb0467ba12e435614fa60c7a3732",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\AutoRegLib-250363\\4100299\\AutoRegLib-250363-4100299.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-balm-531761-4751735-412c6c65",
+      "owner": {
+        "dependency_id": "balm",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:balm-531761:4751735",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/balm-531761/4751735/balm-531761-4751735.jar",
+      "hash": "blake3:412c6c6533746e267c0920405490bc6210e2df66",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\balm-531761\\4751735\\balm-531761-4751735.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-botania-225643-5608807-d5641845",
+      "owner": {
+        "dependency_id": "botania",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "curse.maven:botania-225643:5608807",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/botania-225643/5608807/botania-225643-5608807.jar",
+      "hash": "blake3:d5641845f07f21f1ed3f47924672d26004a144a9",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\botania-225643\\5608807\\botania-225643-5608807.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-cloth-config-348521-4973444-dd070d91",
+      "owner": {
+        "dependency_id": "cloth-config",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:cloth-config-348521:4973444",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/cloth-config-348521/4973444/cloth-config-348521-4973444.jar",
+      "hash": "blake3:dd070d910ea8816606fd313e90eb3970d48e7d34",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\cloth-config-348521\\4973444\\cloth-config-348521-4973444.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-construction-wand-399558-4455719-8a40b4ff",
+      "owner": {
+        "dependency_id": "construction-wand",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:construction-wand-399558:4455719",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/construction-wand-399558/4455719/construction-wand-399558-4455719.jar",
+      "hash": "blake3:8a40b4ffa44b6d1719680a278ad2bc9a7040607c",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\construction-wand-399558\\4455719\\construction-wand-399558-4455719.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-curios-309927-5494603-cab28e86",
+      "owner": {
+        "dependency_id": "curios",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "curse.maven:curios-309927:5494603",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/curios-309927/5494603/curios-309927-5494603.jar",
+      "hash": "blake3:cab28e86f4d1cb0ac48776bf25652d48c734fc48",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\curios-309927\\5494603\\curios-309927-5494603.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-dank-storage-335673-4395369-e247bddf",
+      "owner": {
+        "dependency_id": "dank-storage",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "curse.maven:dank-storage-335673:4395369",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/dank-storage-335673/4395369/dank-storage-335673-4395369.jar",
+      "hash": "blake3:e247bddf3c34615f6858189f23535d93b4a024b7",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\dank-storage-335673\\4395369\\dank-storage-335673-4395369.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-ex-pattern-provider-892005-5250574-1fcdc2d8",
+      "owner": {
+        "dependency_id": "ex-pattern-provider",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:ex-pattern-provider-892005:5250574",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/ex-pattern-provider-892005/5250574/ex-pattern-provider-892005-5250574.jar",
+      "hash": "blake3:1fcdc2d8325f896a9f04789837db0958f8df7262",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\ex-pattern-provider-892005\\5250574\\ex-pattern-provider-892005-5250574.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-extreme-sound-muffler-363363-4821189-83c3de2e",
+      "owner": {
+        "dependency_id": "extreme-sound-muffler",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:extreme-sound-muffler-363363:4821189",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/extreme-sound-muffler-363363/4821189/extreme-sound-muffler-363363-4821189.jar",
+      "hash": "blake3:83c3de2e8a8be54ac3b83b49811eb6184561d34a",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\extreme-sound-muffler-363363\\4821189\\extreme-sound-muffler-363363-4821189.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-flux-networks-248020-4620438-02fe37ed",
+      "owner": {
+        "dependency_id": "flux-networks",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "curse.maven:flux-networks-248020:4620438",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/flux-networks-248020/4620438/flux-networks-248020-4620438.jar",
+      "hash": "blake3:02fe37ed7e2826b9b33e2bf90d6c2a35ef5ba6e3",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\flux-networks-248020\\4620438\\flux-networks-248020-4620438.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-ftb-library-404465-4661834-38f25b0d",
+      "owner": {
+        "dependency_id": "ftb-library",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:ftb-library-404465:4661834",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/ftb-library-404465/4661834/ftb-library-404465-4661834.jar",
+      "hash": "blake3:38f25b0d9fd68164c93a72a31c69236c6231ad51",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\ftb-library-404465\\4661834\\ftb-library-404465-4661834.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-industrial-foregoing-266515-4459182-e4e29239",
+      "owner": {
+        "dependency_id": "industrial-foregoing",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime",
+        "gametest"
+      ],
+      "coordinate": "curse.maven:industrial-foregoing-266515:4459182",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/industrial-foregoing-266515/4459182/industrial-foregoing-266515-4459182.jar",
+      "hash": "blake3:e4e29239432a53a47a2032e4479dd7a779a54c7f",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\industrial-foregoing-266515\\4459182\\industrial-foregoing-266515-4459182.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-inventory-essentials-368825-4751198-0f224e72",
+      "owner": {
+        "dependency_id": "inventory-essentials",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:inventory-essentials-368825:4751198",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/inventory-essentials-368825/4751198/inventory-essentials-368825-4751198.jar",
+      "hash": "blake3:0f224e72a6c0851fb68a73076cca4145852b0ec1",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\inventory-essentials-368825\\4751198\\inventory-essentials-368825-4751198.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-mantle-74924-6044700-af93ca1d",
+      "owner": {
+        "dependency_id": "mantle",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:mantle-74924:6044700",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/mantle-74924/6044700/mantle-74924-6044700.jar",
+      "hash": "blake3:af93ca1d438fc89e13ae07ac54ea78bf85ffdb74",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\mantle-74924\\6044700\\mantle-74924-6044700.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-mekanism-268560-4644795-76928376",
+      "owner": {
+        "dependency_id": "mekanism",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "curse.maven:mekanism-268560:4644795",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/mekanism-268560/4644795/mekanism-268560-4644795.jar",
+      "hash": "blake3:76928376e435f374f99f724a1261b1964f582914",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\mekanism-268560\\4644795\\mekanism-268560-4644795.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-mouse-tweaks-60089-3871353-bb0c6a9d",
+      "owner": {
+        "dependency_id": "mouse-tweaks",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:mouse-tweaks-60089:3871353",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/mouse-tweaks-60089/3871353/mouse-tweaks-60089-3871353.jar",
+      "hash": "blake3:bb0c6a9d580f3fa6e183206175c20465c51582c8",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\mouse-tweaks-60089\\3871353\\mouse-tweaks-60089-3871353.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-ok-zoomer-631278-4081277-197c8346",
+      "owner": {
+        "dependency_id": "ok-zoomer",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:ok-zoomer-631278:4081277",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/ok-zoomer-631278/4081277/ok-zoomer-631278-4081277.jar",
+      "hash": "blake3:197c834624b42b2d452685ab7aff5bdbfa6c6815",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\ok-zoomer-631278\\4081277\\ok-zoomer-631278-4081277.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-patchouli-306770-4031402-d845e7e2",
+      "owner": {
+        "dependency_id": "patchouli",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime",
+        "gametest"
+      ],
+      "coordinate": "curse.maven:patchouli-306770:4031402",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/patchouli-306770/4031402/patchouli-306770-4031402.jar",
+      "hash": "blake3:d845e7e2c434816cab6e8920610bd81f98519eb0",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\patchouli-306770\\4031402\\patchouli-306770-4031402.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-powah-633483-4729361-78a0c4e5",
+      "owner": {
+        "dependency_id": "powah",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:powah-633483:4729361",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/powah-633483/4729361/powah-633483-4729361.jar",
+      "hash": "blake3:78a0c4e5f5fb3cd984c16716311952cfe04bee3d",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\powah-633483\\4729361\\powah-633483-4729361.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-project-e-226410-4860858-4d0e76d2",
+      "owner": {
+        "dependency_id": "project-e",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "curse.maven:project-e-226410:4860858",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/project-e-226410/4860858/project-e-226410-4860858.jar",
+      "hash": "blake3:4d0e76d2510f06419a74ef9164a38a059a0830e5",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\project-e-226410\\4860858\\project-e-226410-4860858.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-quark-243121-4812006-552e4b01",
+      "owner": {
+        "dependency_id": "quark",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:quark-243121:4812006",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/quark-243121/4812006/quark-243121-4812006.jar",
+      "hash": "blake3:552e4b017307bdd9851230ba1ec040ae93e09a1f",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\quark-243121\\4812006\\quark-243121-4812006.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-sodium-394468-3957319-f5490c16",
+      "owner": {
+        "dependency_id": "sodium",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:sodium-394468:3957319",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/sodium-394468/3957319/sodium-394468-3957319.jar",
+      "hash": "blake3:f5490c167bad1d74fc756a79928da474a327c560",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\sodium-394468\\3957319\\sodium-394468-3957319.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-sophisticated-core-618298-4503931-8fb8e277",
+      "owner": {
+        "dependency_id": "sophisticated-core",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime",
+        "gametest"
+      ],
+      "coordinate": "curse.maven:sophisticated-core-618298:4503931",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/sophisticated-core-618298/4503931/sophisticated-core-618298-4503931.jar",
+      "hash": "blake3:8fb8e277714715c79051cea92aeaf3295208a6bf",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\sophisticated-core-618298\\4503931\\sophisticated-core-618298-4503931.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-sophisticated-storage-619320-4503929-2073ce18",
+      "owner": {
+        "dependency_id": "sophisticated-storage",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime",
+        "gametest"
+      ],
+      "coordinate": "curse.maven:sophisticated-storage-619320:4503929",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/sophisticated-storage-619320/4503929/sophisticated-storage-619320-4503929.jar",
+      "hash": "blake3:2073ce18e3d747f42f9d3688d07f6b4c21cc4cec",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\sophisticated-storage-619320\\4503929\\sophisticated-storage-619320-4503929.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-the-one-probe-245211-3927520-88ed0902",
+      "owner": {
+        "dependency_id": "the-one-probe",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:the-one-probe-245211:3927520",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/the-one-probe-245211/3927520/the-one-probe-245211-3927520.jar",
+      "hash": "blake3:88ed0902ca6332c874d08f1bb12cbc45a9ff43cc",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\the-one-probe-245211\\3927520\\the-one-probe-245211-3927520.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-tinkers-construct-74072-6044827-94e4ce68",
+      "owner": {
+        "dependency_id": "tinkers-construct",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:tinkers-construct-74072:6044827",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/tinkers-construct-74072/6044827/tinkers-construct-74072-6044827.jar",
+      "hash": "blake3:94e4ce6840abefe2d70211d4a680f4f9412a5d64",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\tinkers-construct-74072\\6044827\\tinkers-construct-74072-6044827.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-titanium-287342-4152837-3a6dfafa",
+      "owner": {
+        "dependency_id": "titanium",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime",
+        "gametest"
+      ],
+      "coordinate": "curse.maven:titanium-287342:4152837",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/titanium-287342/4152837/titanium-287342-4152837.jar",
+      "hash": "blake3:3a6dfafa96f6ee2dddf0cb3e4f2cce40a1b5b750",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\titanium-287342\\4152837\\titanium-287342-4152837.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-tool-kit-324888-3933949-36b5f905",
+      "owner": {
+        "dependency_id": "tool-kit",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:tool-kit-324888:3933949",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/tool-kit-324888/3933949/tool-kit-324888-3933949.jar",
+      "hash": "blake3:36b5f9052d5afb75bc270e3889e34442c6571e43",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\tool-kit-324888\\3933949\\tool-kit-324888-3933949.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "curse-maven-worldedit-225608-3922622-d20c1e66",
+      "owner": {
+        "dependency_id": "worldedit",
+        "component_id": "main"
+      },
+      "purposes": [
+        "runtime"
+      ],
+      "coordinate": "curse.maven:worldedit-225608:3922622",
+      "repository_id": "cursemaven",
+      "url": "https://www.cursemaven.com/curse/maven/worldedit-225608/3922622/worldedit-225608-3922622.jar",
+      "hash": "blake3:d20c1e66c569d09630b343f5e97ba6b2a2c2c70a",
+      "cache_path": "$sfm-cache\\maven\\curse\\maven\\worldedit-225608\\3922622\\worldedit-225608-3922622.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "de-oceanlabs-mcp-mcp-config-1-19-2-20220805-130853-zip-eaf30bed",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "de.oceanlabs.mcp:mcp_config:1.19.2-20220805.130853@zip",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/de/oceanlabs/mcp/mcp_config/1.19.2-20220805.130853/mcp_config-1.19.2-20220805.130853.zip",
+      "hash": "blake3:eaf30bed958f2e084d0114574feb0b822fef7708",
+      "cache_path": "$sfm-cache\\maven\\de\\oceanlabs\\mcp\\mcp_config\\1.19.2-20220805.130853\\mcp_config-1.19.2-20220805.130853.zip",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "mekanism-mekanism-1-19-2-10-3-8-477-api-ff405d14",
+      "owner": {
+        "dependency_id": "mekanism",
+        "component_id": "api"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "mekanism:Mekanism:1.19.2-10.3.8.477:api",
+      "repository_id": "modmaven",
+      "url": "https://modmaven.dev/mekanism/Mekanism/1.19.2-10.3.8.477/Mekanism-1.19.2-10.3.8.477-api.jar",
+      "hash": "blake3:ff405d145a5d293f7dfd08f9823022512a770109",
+      "cache_path": "$sfm-cache\\maven\\mekanism\\Mekanism\\1.19.2-10.3.8.477\\Mekanism-1.19.2-10.3.8.477-api.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "mezz-jei-jei-1-19-2-forge-11-6-0-1018-892ba01c",
+      "owner": {
+        "dependency_id": "jei",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "mezz.jei:jei-1.19.2-forge:11.6.0.1018",
+      "repository_id": "blamejared",
+      "url": "https://maven.blamejared.com/mezz/jei/jei-1.19.2-forge/11.6.0.1018/jei-1.19.2-forge-11.6.0.1018.jar",
+      "hash": "blake3:892ba01c5a115716fff8ab08784c4d0fbfda089d",
+      "cache_path": "$sfm-cache\\maven\\mezz\\jei\\jei-1.19.2-forge\\11.6.0.1018\\jei-1.19.2-forge-11.6.0.1018.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-jodah-typetools-0-8-3-0d2b581e",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.jodah:typetools:0.8.3",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/jodah/typetools/0.8.3/typetools-0.8.3.jar",
+      "hash": "blake3:0d2b581e50182fee0383175a7c77c28553674569",
+      "cache_path": "$sfm-cache\\maven\\net\\jodah\\typetools\\0.8.3\\typetools-0.8.3.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-md-5-specialsource-1-11-0-shaded-f9134682",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.md-5:SpecialSource:1.11.0:shaded",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/md-5/SpecialSource/1.11.0/SpecialSource-1.11.0-shaded.jar",
+      "hash": "blake3:f9134682aaae921bcef5a98a75f058145b0bf113",
+      "cache_path": "$sfm-cache\\maven\\net\\md-5\\SpecialSource\\1.11.0\\SpecialSource-1.11.0-shaded.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-accesstransformers-8-0-4-4585a5f8",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:accesstransformers:8.0.4",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/accesstransformers/8.0.4/accesstransformers-8.0.4.jar",
+      "hash": "blake3:4585a5f8ed08b450b1d71f44676710c6d7e60fa0",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\accesstransformers\\8.0.4\\accesstransformers-8.0.4.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-accesstransformers-8-0-4-fatjar-f4aa9ab1",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:accesstransformers:8.0.4:fatjar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/accesstransformers/8.0.4/accesstransformers-8.0.4-fatjar.jar",
+      "hash": "blake3:f4aa9ab16713d07df73ed4afc079f926a52803cf",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\accesstransformers\\8.0.4\\accesstransformers-8.0.4-fatjar.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-binarypatcher-1-1-1-fatjar-84760686",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:binarypatcher:1.1.1:fatjar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/binarypatcher/1.1.1/binarypatcher-1.1.1-fatjar.jar",
+      "hash": "blake3:847606860e4e1c709c0185181d23f7ca4fa18c3e",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\binarypatcher\\1.1.1\\binarypatcher-1.1.1-fatjar.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-coremods-5-0-1-cb774ef4",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:coremods:5.0.1",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/coremods/5.0.1/coremods-5.0.1.jar",
+      "hash": "blake3:cb774ef499244a7780bce3d5aee4bff40cb80de0",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\coremods\\5.0.1\\coremods-5.0.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-diffpatch-2-0-12-all-b7e77e00",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:DiffPatch:2.0.12:all",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/DiffPatch/2.0.12/DiffPatch-2.0.12-all.jar",
+      "hash": "blake3:b7e77e00ae83be9b393940915132a021a603ae2a",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\DiffPatch\\2.0.12\\DiffPatch-2.0.12-all.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-eventbus-6-0-3-88b5c052",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:eventbus:6.0.3",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/eventbus/6.0.3/eventbus-6.0.3.jar",
+      "hash": "blake3:88b5c0520c44078ebb8c1e23bf16a4be822c68e6",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\eventbus\\6.0.3\\eventbus-6.0.3.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-fmlcore-1-19-2-43-4-0-3b891ea1",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:fmlcore:1.19.2-43.4.0",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/fmlcore/1.19.2-43.4.0/fmlcore-1.19.2-43.4.0.jar",
+      "hash": "blake3:3b891ea1c2b9796c793d8e8905c4d761431268ae",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\fmlcore\\1.19.2-43.4.0\\fmlcore-1.19.2-43.4.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-fmlloader-1-19-2-43-4-0-c0d9fb07",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:fmlloader:1.19.2-43.4.0",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/fmlloader/1.19.2-43.4.0/fmlloader-1.19.2-43.4.0.jar",
+      "hash": "blake3:c0d9fb07ae75584708bf8c652921382faac4f1d1",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\fmlloader\\1.19.2-43.4.0\\fmlloader-1.19.2-43.4.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-forge-1-19-2-43-4-0-sources-94207d0e",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:forge:1.19.2-43.4.0:sources",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.19.2-43.4.0/forge-1.19.2-43.4.0-sources.jar",
+      "hash": "blake3:94207d0ea7cdd4275fc1964c8a4093601b68a150",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.2-43.4.0\\forge-1.19.2-43.4.0-sources.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-forge-1-19-2-43-4-0-universal-c003336f",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:forge:1.19.2-43.4.0:universal",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.19.2-43.4.0/forge-1.19.2-43.4.0-universal.jar",
+      "hash": "blake3:c003336f142db87f88e07a94e461056b7e3757dc",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.2-43.4.0\\forge-1.19.2-43.4.0-universal.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-forge-1-19-2-43-4-0-userdev-ec28e8a8",
+      "owner": {
+        "dependency_id": "forge",
+        "component_id": "userdev"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": "net.minecraftforge:forge:1.19.2-43.4.0:userdev",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/forge/1.19.2-43.4.0/forge-1.19.2-43.4.0-userdev.jar",
+      "hash": "blake3:ec28e8a8511ee220aa722739c172dea1a945c761",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forge\\1.19.2-43.4.0\\forge-1.19.2-43.4.0-userdev.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-forgeautorenamingtool-0-1-22-all-b1b537cb",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:ForgeAutoRenamingTool:0.1.22:all",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/ForgeAutoRenamingTool/0.1.22/ForgeAutoRenamingTool-0.1.22-all.jar",
+      "hash": "blake3:b1b537cb1bbda3f902e2c5a2b08160eeb6d93fed",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\ForgeAutoRenamingTool\\0.1.22\\ForgeAutoRenamingTool-0.1.22-all.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-forgeflower-1-5-605-9-261756ba",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:forgeflower:1.5.605.9",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/forgeflower/1.5.605.9/forgeflower-1.5.605.9.jar",
+      "hash": "blake3:261756ba911f177ebac7bcadec2b3cf69db2a4a7",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forgeflower\\1.5.605.9\\forgeflower-1.5.605.9.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-forgespi-6-0-0-567e4253",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:forgespi:6.0.0",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/forgespi/6.0.0/forgespi-6.0.0.jar",
+      "hash": "blake3:567e425346b1830efe712ea4632433f7bd37908f",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\forgespi\\6.0.0\\forgespi-6.0.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-installertools-1-2-0-fatjar-72fa2fcd",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:installertools:1.2.0:fatjar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/installertools/1.2.0/installertools-1.2.0-fatjar.jar",
+      "hash": "blake3:72fa2fcdf36990cfa09c9adf7d0ae8d36a31c6fc",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\installertools\\1.2.0\\installertools-1.2.0-fatjar.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-installertools-1-3-0-fatjar-61fab617",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:installertools:1.3.0:fatjar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/installertools/1.3.0/installertools-1.3.0-fatjar.jar",
+      "hash": "blake3:61fab6176058f644729b0594204fdc03e0d733f1",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\installertools\\1.3.0\\installertools-1.3.0-fatjar.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-jarjarfilesystems-0-3-16-03a3c30b",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:JarJarFileSystems:0.3.16",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/JarJarFileSystems/0.3.16/JarJarFileSystems-0.3.16.jar",
+      "hash": "blake3:03a3c30b933feb2c25fd2e0bed3f1bde43bb2bd2",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\JarJarFileSystems\\0.3.16\\JarJarFileSystems-0.3.16.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-jarjarmetadata-0-3-16-1efafa28",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:JarJarMetadata:0.3.16",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/JarJarMetadata/0.3.16/JarJarMetadata-0.3.16.jar",
+      "hash": "blake3:1efafa28f9d68e2b2b1a405b79dcc61ed5172f42",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\JarJarMetadata\\0.3.16\\JarJarMetadata-0.3.16.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-jarjarselector-0-3-16-a53149a0",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:JarJarSelector:0.3.16",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/JarJarSelector/0.3.16/JarJarSelector-0.3.16.jar",
+      "hash": "blake3:a53149a053bee4d0258ce9d922e1f78ad9bbeafd",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\JarJarSelector\\0.3.16\\JarJarSelector-0.3.16.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-javafmllanguage-1-19-2-43-4-0-84a169e7",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:javafmllanguage:1.19.2-43.4.0",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/javafmllanguage/1.19.2-43.4.0/javafmllanguage-1.19.2-43.4.0.jar",
+      "hash": "blake3:84a169e7cb2f76d914ac3b5432055cdd5b0e34c0",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\javafmllanguage\\1.19.2-43.4.0\\javafmllanguage-1.19.2-43.4.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-lowcodelanguage-1-19-2-43-4-0-506f6672",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:lowcodelanguage:1.19.2-43.4.0",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/lowcodelanguage/1.19.2-43.4.0/lowcodelanguage-1.19.2-43.4.0.jar",
+      "hash": "blake3:506f6672beb302d1664229c038756da332897d5b",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\lowcodelanguage\\1.19.2-43.4.0\\lowcodelanguage-1.19.2-43.4.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-mclanguage-1-19-2-43-4-0-010eaa4f",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:mclanguage:1.19.2-43.4.0",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/mclanguage/1.19.2-43.4.0/mclanguage-1.19.2-43.4.0.jar",
+      "hash": "blake3:010eaa4f1cc110f17fbd648c1caf5777b6a12a7f",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\mclanguage\\1.19.2-43.4.0\\mclanguage-1.19.2-43.4.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-mergetool-1-1-5-fatjar-5b4de461",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:mergetool:1.1.5:fatjar",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/mergetool/1.1.5/mergetool-1.1.5-fatjar.jar",
+      "hash": "blake3:5b4de461d9c8e0e7c9964645cd3d50b6e7ffa7bb",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\mergetool\\1.1.5\\mergetool-1.1.5-fatjar.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecraftforge-unsafe-0-2-0-53cc83cf",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecraftforge:unsafe:0.2.0",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecraftforge/unsafe/0.2.0/unsafe-0.2.0.jar",
+      "hash": "blake3:53cc83cfe5ad1e830ca024b142d85396fb06530c",
+      "cache_path": "$sfm-cache\\maven\\net\\minecraftforge\\unsafe\\0.2.0\\unsafe-0.2.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "net-minecrell-terminalconsoleappender-1-2-0-4d40de2d",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "net.minecrell:terminalconsoleappender:1.2.0",
+      "repository_id": "forge",
+      "url": "https://maven.minecraftforge.net/net/minecrell/terminalconsoleappender/1.2.0/terminalconsoleappender-1.2.0.jar",
+      "hash": "blake3:4d40de2defbf016c8f9d380575792d5d77e0be8e",
+      "cache_path": "$sfm-cache\\maven\\net\\minecrell\\terminalconsoleappender\\1.2.0\\terminalconsoleappender-1.2.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-abego-treelayout-org-abego-treelayout-core-1-0-3-e96ca1bd",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.abego.treelayout:org.abego.treelayout.core:1.0.3",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/abego/treelayout/org.abego.treelayout.core/1.0.3/org.abego.treelayout.core-1.0.3.jar",
+      "hash": "blake3:e96ca1bd1082196334ee04bed3f98b4bd6c086f8",
+      "cache_path": "$sfm-cache\\maven\\org\\abego\\treelayout\\org.abego.treelayout.core\\1.0.3\\org.abego.treelayout.core-1.0.3.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-antlr-antlr-runtime-3-5-2-487347db",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.antlr:antlr-runtime:3.5.2",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/antlr/antlr-runtime/3.5.2/antlr-runtime-3.5.2.jar",
+      "hash": "blake3:487347db20582bd5c774bdd4ca90f158428d0804",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr-runtime\\3.5.2\\antlr-runtime-3.5.2.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-antlr-antlr4-4-9-1-205027ff",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.antlr:antlr4:4.9.1",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/antlr/antlr4/4.9.1/antlr4-4.9.1.jar",
+      "hash": "blake3:205027ffc02f2c0d7332957510c6d03e26d6fc59",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4\\4.9.1\\antlr4-4.9.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-antlr-antlr4-runtime-4-9-1-d7feebdd",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.antlr:antlr4-runtime:4.9.1",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/antlr/antlr4-runtime/4.9.1/antlr4-runtime-4.9.1.jar",
+      "hash": "blake3:d7feebdd794d8bca83d142729ec0a8c141ccad95",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\antlr4-runtime\\4.9.1\\antlr4-runtime-4.9.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-antlr-st4-4-3-596011ad",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.antlr:ST4:4.3",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/antlr/ST4/4.3/ST4-4.3.jar",
+      "hash": "blake3:596011ad08bfb7561047aef7a29e911ab058bf8f",
+      "cache_path": "$sfm-cache\\maven\\org\\antlr\\ST4\\4.3\\ST4-4.3.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-apache-maven-maven-artifact-3-8-5-492cc125",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.apache.maven:maven-artifact:3.8.5",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/apache/maven/maven-artifact/3.8.5/maven-artifact-3.8.5.jar",
+      "hash": "blake3:492cc125aaaeb811c3938dc741e5d215a77b593a",
+      "cache_path": "$sfm-cache\\maven\\org\\apache\\maven\\maven-artifact\\3.8.5\\maven-artifact-3.8.5.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-apiguardian-apiguardian-api-1-1-2-441ed3e1",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.apiguardian:apiguardian-api:1.1.2",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar",
+      "hash": "blake3:441ed3e16cf38b69d79c7511a6f4422b12da102e",
+      "cache_path": "$sfm-cache\\maven\\org\\apiguardian\\apiguardian-api\\1.1.2\\apiguardian-api-1.1.2.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-glassfish-javax-json-1-0-4-de00c673",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.glassfish:javax.json:1.0.4",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/glassfish/javax.json/1.0.4/javax.json-1.0.4.jar",
+      "hash": "blake3:de00c6730d794bee5122234b5b101ce510ffc6be",
+      "cache_path": "$sfm-cache\\maven\\org\\glassfish\\javax.json\\1.0.4\\javax.json-1.0.4.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-jetbrains-annotations-24-0-1-9a3d2fae",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.jetbrains:annotations:24.0.1",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/jetbrains/annotations/24.0.1/annotations-24.0.1.jar",
+      "hash": "blake3:9a3d2fae94bf334d4dc72f71112c47755d37f533",
+      "cache_path": "$sfm-cache\\maven\\org\\jetbrains\\annotations\\24.0.1\\annotations-24.0.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-jline-jline-reader-3-12-1-52015aa7",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.jline:jline-reader:3.12.1",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/jline/jline-reader/3.12.1/jline-reader-3.12.1.jar",
+      "hash": "blake3:52015aa763c5303696b4c512cfb155710276bdeb",
+      "cache_path": "$sfm-cache\\maven\\org\\jline\\jline-reader\\3.12.1\\jline-reader-3.12.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-jline-jline-terminal-3-12-1-d6b24890",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.jline:jline-terminal:3.12.1",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/jline/jline-terminal/3.12.1/jline-terminal-3.12.1.jar",
+      "hash": "blake3:d6b248905e367f187ed6d41e7a22ba07a39d1a81",
+      "cache_path": "$sfm-cache\\maven\\org\\jline\\jline-terminal\\3.12.1\\jline-terminal-3.12.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-junit-jupiter-junit-jupiter-api-5-8-1-9f0864e5",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.junit.jupiter:junit-jupiter-api:5.8.1",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-api/5.8.1/junit-jupiter-api-5.8.1.jar",
+      "hash": "blake3:9f0864e5a792fa8a5a386e326dcaedabb2cb4daa",
+      "cache_path": "$sfm-cache\\maven\\org\\junit\\jupiter\\junit-jupiter-api\\5.8.1\\junit-jupiter-api-5.8.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-junit-jupiter-junit-jupiter-engine-5-8-1-d59cd0ab",
+      "owner": {
+        "dependency_id": "junit-jupiter-engine",
+        "component_id": "main"
+      },
+      "purposes": [
+        "test"
+      ],
+      "coordinate": "org.junit.jupiter:junit-jupiter-engine:5.8.1",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/junit/jupiter/junit-jupiter-engine/5.8.1/junit-jupiter-engine-5.8.1.jar",
+      "hash": "blake3:d59cd0ab8f831d98e064c731afdf6a3a08574bce",
+      "cache_path": "$sfm-cache\\maven\\org/junit/jupiter\\junit-jupiter-engine\\5.8.1\\junit-jupiter-engine-5.8.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-junit-platform-junit-platform-commons-1-8-1-43f785f9",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.junit.platform:junit-platform-commons:1.8.1",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/junit/platform/junit-platform-commons/1.8.1/junit-platform-commons-1.8.1.jar",
+      "hash": "blake3:43f785f96ceecfab14da65957cf6fa1a0cd26ee4",
+      "cache_path": "$sfm-cache\\maven\\org\\junit\\platform\\junit-platform-commons\\1.8.1\\junit-platform-commons-1.8.1.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-openjdk-jmh-jmh-core-1-37-43f8ac51",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.openjdk.jmh:jmh-core:1.37",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-core/1.37/jmh-core-1.37.jar",
+      "hash": "blake3:43f8ac514b4c75554abdc9f76fadfa1f0249ec15",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-core\\1.37\\jmh-core-1.37.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-openjdk-jmh-jmh-generator-annprocess-1-37-74920027",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.openjdk.jmh:jmh-generator-annprocess:1.37",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-annprocess/1.37/jmh-generator-annprocess-1.37.jar",
+      "hash": "blake3:74920027bb3f569af240fc283876568793baa2e8",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-annprocess\\1.37\\jmh-generator-annprocess-1.37.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-openjdk-jmh-jmh-generator-asm-1-37-7d990641",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.openjdk.jmh:jmh-generator-asm:1.37",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-asm/1.37/jmh-generator-asm-1.37.jar",
+      "hash": "blake3:7d990641e58ba333d6533e1575c625105f9114e4",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-asm\\1.37\\jmh-generator-asm-1.37.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-openjdk-jmh-jmh-generator-bytecode-1-37-c8a36f0c",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.openjdk.jmh:jmh-generator-bytecode:1.37",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-bytecode/1.37/jmh-generator-bytecode-1.37.jar",
+      "hash": "blake3:c8a36f0c8375079fa50f2ce5b66fe9c82bd5dc20",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-bytecode\\1.37\\jmh-generator-bytecode-1.37.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-openjdk-jmh-jmh-generator-reflection-1-37-080c98f2",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.openjdk.jmh:jmh-generator-reflection:1.37",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/jmh/jmh-generator-reflection/1.37/jmh-generator-reflection-1.37.jar",
+      "hash": "blake3:080c98f2b44dc69f4112da9a89dca9762f309948",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\jmh\\jmh-generator-reflection\\1.37\\jmh-generator-reflection-1.37.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-openjdk-nashorn-nashorn-core-15-3-806783cb",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.openjdk.nashorn:nashorn-core:15.3",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/openjdk/nashorn/nashorn-core/15.3/nashorn-core-15.3.jar",
+      "hash": "blake3:806783cb808db3ece5325d74a884190030291c06",
+      "cache_path": "$sfm-cache\\maven\\org\\openjdk\\nashorn\\nashorn-core\\15.3\\nashorn-core-15.3.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-opentest4j-opentest4j-1-2-0-75de231b",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.opentest4j:opentest4j:1.2.0",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/opentest4j/opentest4j/1.2.0/opentest4j-1.2.0.jar",
+      "hash": "blake3:75de231b7d449ae3feb8ffafac8e8f7dc68d319b",
+      "cache_path": "$sfm-cache\\maven\\org\\opentest4j\\opentest4j\\1.2.0\\opentest4j-1.2.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-ow2-asm-asm-9-7-ccd0e714",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.ow2.asm:asm:9.7",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm/9.7/asm-9.7.jar",
+      "hash": "blake3:ccd0e7149a2fc4bd7b44858d94e37fbcd612a201",
+      "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm\\9.7\\asm-9.7.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-ow2-asm-asm-analysis-9-7-3adcf9d0",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.ow2.asm:asm-analysis:9.7",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-analysis/9.7/asm-analysis-9.7.jar",
+      "hash": "blake3:3adcf9d05c3bad5dee5b5adda21a28b0a547c0a4",
+      "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-analysis\\9.7\\asm-analysis-9.7.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-ow2-asm-asm-commons-9-7-8e6b1297",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.ow2.asm:asm-commons:9.7",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-commons/9.7/asm-commons-9.7.jar",
+      "hash": "blake3:8e6b12976fe6b382f12620ea4a828cbab7984d2f",
+      "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-commons\\9.7\\asm-commons-9.7.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-ow2-asm-asm-tree-9-7-b19079bc",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.ow2.asm:asm-tree:9.7",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-tree/9.7/asm-tree-9.7.jar",
+      "hash": "blake3:b19079bc5241f3fd6a25c657b52a8fbfbc3e6da7",
+      "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-tree\\9.7\\asm-tree-9.7.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-ow2-asm-asm-util-9-7-d9d7fcbc",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.ow2.asm:asm-util:9.7",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/ow2/asm/asm-util/9.7/asm-util-9.7.jar",
+      "hash": "blake3:d9d7fcbc06fdcc7d9793d64bdae437f85dd74574",
+      "cache_path": "$sfm-cache\\maven\\org\\ow2\\asm\\asm-util\\9.7\\asm-util-9.7.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-parchmentmc-data-parchment-1-19-2-2022-11-27-zip-75697f5f",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.parchmentmc.data:parchment-1.19.2:2022.11.27@zip",
+      "repository_id": "parchment",
+      "url": "https://maven.parchmentmc.org/org/parchmentmc/data/parchment-1.19.2/2022.11.27/parchment-1.19.2-2022.11.27.zip",
+      "hash": "blake3:75697f5f30848c78fed5ade00ca26f3acc19e7d6",
+      "cache_path": "$sfm-cache\\maven\\org\\parchmentmc\\data\\parchment-1.19.2\\2022.11.27\\parchment-1.19.2-2022.11.27.zip",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-spongepowered-mixin-0-8-5-b19939bb",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": "org.spongepowered:mixin:0.8.5",
+      "repository_id": "sponge",
+      "url": "https://repo.spongepowered.org/repository/maven-public/org/spongepowered/mixin/0.8.5/mixin-0.8.5.jar",
+      "hash": "blake3:b19939bbe896a860e0c6785ac6c7c1b5a547defd",
+      "cache_path": "$sfm-cache\\maven\\org\\spongepowered\\mixin\\0.8.5\\mixin-0.8.5.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-spongepowered-mixin-0-8-5-processor-b4839b34",
+      "owner": {
+        "dependency_id": "mixin",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build"
+      ],
+      "coordinate": "org.spongepowered:mixin:0.8.5:processor",
+      "repository_id": "sponge",
+      "url": "https://repo.spongepowered.org/repository/maven-public/org/spongepowered/mixin/0.8.5/mixin-0.8.5-processor.jar",
+      "hash": "blake3:b4839b346ffef67432425608e4363435dd9acbc6",
+      "cache_path": "$sfm-cache\\maven\\org\\spongepowered\\mixin\\0.8.5\\mixin-0.8.5-processor.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-squiddev-cc-tweaked-1-19-2-1-101-3-e0e69206",
+      "owner": {
+        "dependency_id": "cc-tweaked",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime",
+        "gametest"
+      ],
+      "coordinate": "org.squiddev:cc-tweaked-1.19.2:1.101.3",
+      "repository_id": "squiddev",
+      "url": "https://squiddev.cc/maven/org/squiddev/cc-tweaked-1.19.2/1.101.3/cc-tweaked-1.19.2-1.101.3.jar",
+      "hash": "blake3:e0e6920675c793817b9e063db3854b3c68ed29fd",
+      "cache_path": "$sfm-cache\\maven\\org\\squiddev\\cc-tweaked-1.19.2\\1.101.3\\cc-tweaked-1.19.2-1.101.3.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "org-vineflower-vineflower-1-12-0-865bc756",
+      "owner": {
+        "dependency_id": "vineflower",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build"
+      ],
+      "coordinate": "org.vineflower:vineflower:1.12.0",
+      "repository_id": "maven-central",
+      "url": "https://repo1.maven.org/maven2/org/vineflower/vineflower/1.12.0/vineflower-1.12.0.jar",
+      "hash": "blake3:865bc756e48b1c6bae2fa0adb4be10b7cd7c5a46",
+      "cache_path": "$sfm-cache\\maven\\org/vineflower\\vineflower\\1.12.0\\vineflower-1.12.0.jar",
+      "provenance": "remote-maven",
+      "weak": null
+    },
+    {
+      "id": "version-a428e23c",
+      "owner": {
+        "dependency_id": "minecraft",
+        "component_id": "main"
+      },
+      "purposes": [
+        "build",
+        "runtime"
+      ],
+      "coordinate": null,
+      "repository_id": null,
+      "url": "https://piston-meta.mojang.com/v1/packages/ed548106acf3ac7e8205a6ee8fd2710facfa164f/1.19.2.json",
+      "hash": "blake3:a428e23c637cc159c34a358acc3d1e7b270da1a3",
+      "cache_path": "$sfm-cache\\minecraft\\versions\\1.19.2\\version.json",
+      "provenance": "remote-http",
+      "weak": null
+    },
+    {
+      "id": "version-manifest-v2-13fc8058",
+      "owner": null,
+      "purposes": [
+        "toolchain"
+      ],
+      "coordinate": null,
+      "repository_id": null,
+      "url": "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json",
+      "hash": "blake3:13fc8058e084e22e01c9fef08a61f4cb9cbb7d4f",
+      "cache_path": "$sfm-cache\\minecraft\\metadata\\version_manifest_v2.json",
+      "provenance": "remote-http",
+      "weak": null
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.parchmentmc.org' }
+    }
+}
+
+// IDEA uses the Gradle root project name when importing this project.
+rootProject.name = "sfm-${settingsDir.parentFile.parentFile.name}"
