@@ -1,7 +1,7 @@
 # Global comment selection and review sessions plan
 
 **Plan status:** Active
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-08
 
 ## Purpose
 
@@ -23,14 +23,75 @@ comment evaluation/migration, review coverage, and comment-driven source
 colourization. Related plans own snapshot bytes, comparison/refactoring
 production, general application theming, window management, and replay.
 
+## Release code-review profile — 2026-08-08
+
+A release review is a required human gate on the prospective Git tag, not a
+side effect of committing or passing tests. For every supported Minecraft
+version, create a review lane from that lane's `previous_release` selector to
+the candidate `HEAD`. The review session records the lane, baseline/candidate
+snapshot identities and hashes, parser/index fingerprints, generated review
+units, equivalence evidence, unresolved boundaries, and maintainer approval.
+It must remain separate from Git's index, commit status, automated test
+results, and release authorization.
+
+The primary review unit is a changed function/method when the comparison can
+identify one safely. Its selectable review surface is not only the method body:
+it includes the declaration/signature, annotations, imports and static imports,
+superclass/interface contracts, referenced fields/types/methods, callers or
+method references when affected, and the statically resolved environment that
+can change its meaning. Type, field, import, file, and diff-operation units are
+used when a change is not safely reducible to a function.
+
+Cross-lane deduplication is an evidence-producing operation. An unannotated
+function whose body is identical across lanes is a candidate for one shared
+review, but the system must re-open it when its dependency/import closure,
+inheritance, mappings, annotations, configuration, feature profile, classpath,
+or other relevant environment changed. `@MCVersionDependentBehaviour` marks a
+deliberate version seam and prevents silent shared approval across that seam;
+absence of the annotation is not itself proof of semantic equivalence.
+
+Accepted source morphisms, such as a scoped Forge-to-NeoForge import/package
+adaptation, are versioned policy rules with exact scope, tests, witnesses, and
+an equivalence level. They may collapse only the declared transformation and
+must leave the transformed import and its affected resolution closure visible
+in the report. Unknown, ambiguous, content-changed, dependency-changed, or
+out-of-scope morphisms suspend approval rather than guessing.
+
+Comparison derives selectors after the before/after snapshots exist. A field
+rename therefore narrows the changed surface to the definition and expands it
+to old/new usages; a signature change expands to callers and method references;
+an import change expands to affected type-resolution dependencies. The source
+author does not need to annotate a change while making it. The comparison and
+refactoring tools emit ordinary comments with provenance and selection rules,
+including `#added`, `#removed`, `#modified`, `#renamed`, `#problem`, and
+`#approved`, through this existing kernel.
+
+The review artifact must be inspectable both in-game and outside the game. A
+human-readable/HTML or equivalent structured report must support drill-down
+from lane → review unit → before/after span → dependency/usages → equivalence
+or morphism witness. A CLI-first workflow must provide the same information to
+agents without an IDE plugin and must be able to preview a safe symbol rename
+or similar transformation before explicit apply. No release tag is ready
+until the maintainer has visually inspected and approved the generated review
+artifacts and the prospective release JAR through the Prism harness.
+
+This profile is the integration contract between this plan,
+`release checkpoint and slim artifact plan.md`, and
+`cli ast refactoring suite plan.md`; none may introduce a second snapshot,
+comment, selector, approval, or equivalence model.
+
 ## Status and relationship to the existing prototype
 
 Canonical `1.19.2` currently contains a fixture-driven source comparison panel
 and `SFMReviewLedger` proof. It demonstrates separate reviewed, approved, and
 audit presentation, local persistence, SHA-256 witnesses, restoration, and
-stale invalidation. That implementation remains valuable visual evidence, but
-its fixed decision fields are provisional. New review behavior must target the
-comment substrate described here rather than expanding the boolean ledger.
+stale invalidation. The newer explorer/panel vertical slice also proves the
+changes, comments, and hashtag tree shapes, tombstones, stacked source leaves,
+and Text Editor v3 presentation. These are valuable visual witnesses, but the
+explorer still uses fixture source/comment data rather than a real
+`previous_release..HEAD` multi-lane provider. The fixed decision fields remain
+provisional. New review behavior must target the comment substrate described
+here rather than expanding the boolean ledger.
 
 The first migration should preserve the existing puppet as a compatibility
 fixture by projecting a legacy decision into comments such as `#reviewed`,
@@ -853,6 +914,31 @@ Both Java and Rust now consume and deterministically round-trip the fixture.
 - Resolve independent before/after selectors per lane. The initial typed forms
   are `mod <version>` (the per-lane `<version>-<minecraft-version>` tag) and
   `git head` (that lane's current HEAD).
+- Treat each lane's `previous_release..HEAD` comparison as a required human
+  code-review surface. Record lane, snapshot/source hashes, parser/index/
+  classpath/configuration fingerprints, review-unit identities, diagnostics,
+  equivalence proofs, accepted morphism witnesses, and explicit maintainer
+  approval separately from Git state and automated test results.
+- Use changed function/method definitions as primary units when safely
+  identifiable, with declaration/signature, annotations, imports/static
+  imports, inheritance, referenced symbols, callers/method references, and
+  resolved environment in the selectable review surface. Fall back to type,
+  field, import, file, or diff-operation units when required.
+- Deduplicate across lanes only with evidence: an identical unannotated body is
+  merely a candidate until dependency/import/inheritance/mapping/annotation/
+  configuration/feature/classpath closure is equivalent. Re-open review for a
+  changed closure, and treat `@MCVersionDependentBehaviour` as an explicit
+  version seam that blocks silent shared approval.
+- Model accepted morphisms as versioned, scoped, tested rules with witnesses;
+  initially this may include a Forge-to-NeoForge import/package adaptation.
+  Keep the transformed source and affected resolution closure visible. Unknown,
+  ambiguous, content-changed, dependency-changed, or out-of-scope cases remain
+  separate or suspend approval rather than being guessed equivalent.
+- Derive selectors after comparison: field renames select the definition and
+  old/new usages, signature changes select callers and method references, and
+  import changes select the affected type-resolution closure. Project these
+  into ordinary comments with provenance and tags such as `#added`, `#removed`,
+  `#modified`, `#renamed`, `#problem`, and `#approved`.
 - Project one unified changes explorer as
   `file → lane/branch → before|after`; two lanes with both sides produce four
   leaves. Always retain both side leaves; use an explicit tombstone when an
@@ -873,6 +959,15 @@ Both Java and Rust now consume and deterministically round-trip the fixture.
 - Implement change-review and whole-after certification coverage modes.
 - Make blockers and informational tags configurable queries.
 - Add uncovered/problem/suspended/ambiguous jump lists and summary counts.
+- Export a human-readable HTML/equivalent structured review artifact and expose
+  the same lane → unit → before/after span → dependency/usage → proof drill-down
+  in the in-game explorer. The CLI must provide this workflow to agents without
+  an IDE plugin and must support preview-first, hash-checked symbol operations
+  such as renaming a field and its statically resolved usages.
+- Require explicit maintainer approval of the generated code-review artifact
+  before release authorization; passing tests, audit, or propagation does not
+  substitute for code review. Keep prospective release-JAR Prism experiential
+  review as a separate release gate.
 - Puppet a real SFM release pair across at least two version lanes, including an
   added after region, removed before method, overlapping human/audit comments,
   four-leaf changes tree, comment/hashtag explorers, explorer-owned stacked

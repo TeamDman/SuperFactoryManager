@@ -11,6 +11,89 @@ Checkpoint the unpublished 1.19.2 work into a releasable product scope and gradu
 
 This plan coordinates the existing terminal-bridge, dependency-lock, and cross-version propagation plans. It does not replace them and does not authorize publishing or pushing by itself.
 
+## Release identity and human guardrails — 2026-08-08
+
+A release is a Git tag naming a prospective mod state that has satisfied the
+approved guardrails. Building an artifact or passing compilation is not itself
+a release. The release tag is permitted only after all three independent
+acceptance dimensions below have passed for every supported Minecraft-version
+lane:
+
+1. **Automated verification:** the agreed JUnit suite, GameTest suite, puppet
+   suite, JMH benchmarks, and `sfm-propagate-changes.exe audit` checks pass.
+   The exact command, branch, toolchain revision, artifact, and known
+   environment-only aborts are recorded; a passing compile cannot substitute
+   for any omitted gate.
+2. **Human code review:** the changes from that lane's
+   `previous_release` baseline through `HEAD` are represented in the review
+   system and inspected by the maintainer. The review unit is AST-aware rather
+   than only a line hunk: function/type/field/import changes retain the
+   changed declaration and the dependency surface required to understand it.
+   Cross-lane duplication may be collapsed only after an explicit equivalence
+   proof; it is never collapsed merely because two printed bodies look alike.
+3. **Experiential review:** the prospective release JAR is installed and run
+   through the Prism harness workflow, with the user-visible behavior and
+   release artifacts visually inspected. This is separate from GameTest and
+   puppet automation.
+
+The review system must keep Git state, automated evidence, human approval, and
+release authorization separate. A commit, a clean worktree, or a passing
+puppet never implies that the user has approved the code. Publishing or
+creating the release tag remains a separate explicit action after the guardrail
+record is complete.
+
+### Code-review guardrail contract
+
+The multi-version review workflow owns these explicit concepts:
+
+- **Lane baseline:** each supported Minecraft version has its own
+  `previous_release` selector and its own `previous_release..HEAD` comparison.
+  The review report must identify the lane, source snapshot hashes, parser and
+  index fingerprints, and the exact release candidate commit.
+- **Review unit:** a function/method is the primary approval unit when the
+  changed surface is function-shaped. Its review surface includes the
+  declaration, relevant annotations, signature, imports and static imports,
+  superclass/interface contracts, referenced fields/types/methods, and other
+  statically resolved dependencies needed to explain its behavior. Type, field,
+  import, file, and comparison-operation units remain available when a change
+  is not safely reducible to a function.
+- **Cross-lane deduplication:** an unannotated function is a candidate for
+  shared review across lanes, not an automatic exemption. The system compares
+  its body and review surface plus the surrounding semantic environment. A
+  body that is textually unchanged can still require renewed approval when its
+  imports, referenced declarations, superclass/interfaces, mappings,
+  annotations, configuration, feature profile, classpath, or other relevant
+  environment changed. `@MCVersionDependentBehaviour` marks an intentional
+  version seam and therefore prevents the affected behavior from being
+  silently collapsed into a shared approval; it is not a blanket proof that
+  every unannotated function is equivalent.
+- **Accepted morphisms:** safe source differences such as an approved
+  Forge-to-NeoForge import/package adaptation are represented by a versioned,
+  scoped morphism rule with tests and witnesses. A morphism proves the allowed
+  transformation under a named policy; it does not erase the changed import
+  from the review record or authorize unrelated body/dependency changes.
+- **Derived impact:** the comparison engine narrows a changed file to changed
+  declarations/operations, then expands the review surface to resolved
+  references and dependent imports. A field rename therefore yields the field
+  definition plus old/new usages; a signature change yields callers and method
+  references; an import morphism yields its affected type-resolution closure.
+  These selectors and ordinary `#added`, `#removed`, `#modified`, `#renamed`,
+  `#problem`, and `#approved` comments are derived after the before/after
+  snapshots exist; authors do not need to annotate the source while making a
+  change.
+- **Agentic tooling:** the same AST/index/equivalence model must power a
+  CLI-first, previewable, structured-report workflow for navigation and
+  mutation. In particular, symbol definition/usage queries and safe rename
+  of a field or method plus all statically resolved usages must be usable by
+  agents without a graphical IDE or plugin. Mutation remains explicit,
+  transactional, hash-checked, auditable, and subject to compile/test/audit
+  postconditions.
+
+The authoritative implementation contracts are shared with
+`docs/tasks/global comment selection and review sessions plan.md` and
+`docs/tasks/cli ast refactoring suite plan.md`; neither plan may introduce a
+second comment, snapshot, selector, or equivalence model.
+
 ## Interaction follow-up guidance ledger — 2026-08-05
 
 | ID | Active user guidance | Required plan consequence | Superseded by |
@@ -115,6 +198,8 @@ In scope:
 - Keep the full Rust-toolchain feature set as the release target while preserving a Java-only Gradle contributor profile by default.
 - Add declarative lockfile feature membership and entry-point defaults; do not encode Rust/Vox or project-specific dependency names in Gradle scripts.
 - Produce release artifacts, clean-install evidence, release notes, and a PR/issue disposition matrix.
+- Build the AST-aware, cross-version code-review report and CLI-first refactoring
+  substrate required for maintainer inspection before the release tag.
 - Propagate only the approved baseline changes oldest-first according to `docs/AGENTS.md`.
 
 Out of scope for this checkpoint:
@@ -1174,6 +1259,8 @@ These decisions are required before implementation is considered release-directe
 | Artifact names | Which artifact is published as the release artifact? | Publish the full Rust-toolchain artifact with Vox nested. Gradle’s default Java-only output is a contributor compatibility artifact, not a replacement release artifact. | Artifact inventory, nested-JAR metadata, publication task output, profile-specific manifests. |
 | Version surface | Which maintained Minecraft worktrees receive the shared release changes? | Implement and prove on 1.19.2, then propagate the proven baseline oldest-first. | Propagation log and per-version validation matrix. |
 | Change intake | Which open PRs/issues are included in this release? | Require explicit triage; do not absorb old or non-mergeable work by default. | PR/issue matrix with include, defer, fix, or close decision. |
+| Human code review | Has every supported lane's `previous_release..HEAD` surface been inspected through the AST-aware review workflow? | No release tag until deduplicated review units, dependencies, accepted morphisms, unresolved boundaries, and explicit maintainer approval are recorded. | Versioned review report, comment/session approval coverage, and user-inspected HTML/structured artifacts. |
+| Experiential review | Has the prospective release JAR been run and visually inspected through the Prism harness? | Automated GameTest/puppet evidence does not substitute for the user-facing install/run review. | Prism run identity, captures, observations, and explicit maintainer approval. |
 
 ## Feature profiles and legacy Gradle compatibility
 
@@ -1242,6 +1329,8 @@ The Rust path should first gain Forge Jar-in-Jar parity in the existing artifact
 - Existing release workflow: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\tasks\puppet propagation and preview matrix plan.md`
 - Terminal bridge: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\tasks\vox terminal bridge and graceful degradation plan.md`
 - Teamy Terminal integration: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\tasks\teamy terminal repository and Vulkan renderer plan.md`
+- Global comment/review authority: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\tasks\global comment selection and review sessions plan.md`
+- CLI AST/refactoring authority: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\tasks\cli ast refactoring suite plan.md`
 - Dependency projection: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\tasks\dependency source management v3 plan.md`
 - Jar-in-Jar research: `D:\Repos\Minecraft\SFM\repos2\1.19.2\docs\architecture\vox-java-jar-in-jar-packaging-research.md`
 - Version metadata: `D:\Repos\Minecraft\SFM\repos2\1.19.2\platform\minecraft\gradle.properties`
@@ -1687,6 +1776,63 @@ acceptance workload, or explicitly deferred by a recorded decision.
 
 The user-testing fixes above are prerequisites for calling the Rust terminal or command palette release-ready; the current direction is to finish the remaining gates and promote them, not to exclude them from the artifact.
 
+### Phase 5.5 — AST-aware multi-version code review [ ]
+
+**Work:** Build the code-review slice that turns each supported lane's
+`previous_release..HEAD` change set into inspectable review units and ordinary
+comment/session projections. Start with one canonical lane, then compare the
+same review units across all supported lanes. Use lossless Java AST spans and a
+snapshot-scoped symbol/index graph to identify changed functions, types,
+fields, imports, and comparison operations. Expand each changed unit to its
+resolved dependency/import/reference closure, preserving exact before/after
+spans, hashes, source excerpts, provenance, and diagnostics.
+
+Implement conservative cross-lane correspondence and equivalence levels:
+textual, syntax-normalized, body-plus-environment, approved morphism,
+symbolically bounded, and unknown. An unchanged function body is not enough
+when its imports, referenced declarations, inheritance, annotations, mappings,
+configuration, feature profile, classpath, or other semantic environment has
+changed. Treat `@MCVersionDependentBehaviour` as an explicit seam that blocks
+silent shared approval, while allowing an unannotated function to be collapsed
+only after its full review surface and equivalence evidence agree.
+
+Represent accepted Forge/NeoForge-style import/package changes as versioned,
+scoped morphism rules with witnesses and tests. Derive changed-surface
+selectors after comparison: a field rename includes its definition and old/new
+usages; a signature change includes callers and method references; a changed
+import includes the type-resolution closure. Project these derived selectors
+and operations into the existing comment kernel and explorers rather than
+adding review-only tags or a second approval store.
+
+In parallel, advance the CLI AST refactoring suite enough to support agentic
+inspection and safe mutation: source/symbol definition and usage queries,
+previewable structured comparison/review reports, and explicit transactional
+rename of a field or method plus all statically resolved usages. GUI-free
+commands must emit human-readable and Facet/Figue reports, reject ambiguity or
+stale hashes, preserve formatting/comments, and run compile/test/audit
+postconditions. The same index and correspondence data must feed review and
+refactoring; a graphical IDE is not a required participant.
+
+**Validation:** For every supported lane, record the baseline selector,
+candidate commit, source/index/parser fingerprints, review-unit counts, dedupe
+groups, equivalence/morphism proofs, unresolved/ambiguous dependencies, and
+the generated comment selectors. Prove that an unchanged function with a
+changed dependency is re-opened, an approved morphism is collapsed only inside
+its declared scope, and a version-dependent annotation prevents silent
+collapse. Prove field rename and usage expansion on a small fixture through
+CLI preview and apply, then compile/test/audit the result. Capture a user-
+inspectable HTML/structured report and an in-game explorer/panel witness; the
+maintainer must explicitly approve the review artifacts before the release tag
+can proceed.
+
+**Completion criteria:** The maintainer can inspect one deduplicated,
+AST-aware review surface for all supported release lanes, drill from a changed
+operation to its definition/dependencies/usages, understand every accepted
+morphism or unresolved boundary, and persist approval through the existing
+comment/session system. The same state is reproducible from the release
+baseline and candidate commit without an IDE plugin, and no release-tag gate
+can be marked complete without the recorded human code-review approval.
+
 ### Phase 6 — Propagate deliberately [ ]
 
 **Work:** Implement and validate on 1.19.2 first, then propagate the shared CLI/build changes oldest-first with `sfm-propagate-changes.exe`. Resolve version-specific dependency and packaging differences explicitly; do not overwrite newer worktree changes.
@@ -1727,4 +1873,12 @@ This plan is complete only when:
 5. The companion Rust server has a documented distribution path and graceful absence behavior.
 6. The release candidate passes clean-install, external-style launch, gameplay/puppet, and cross-version checks required by the approved matrix.
 7. PRs/issues have explicit disposition, release notes are ready, and a checkpoint ref is recorded.
-8. Publishing or pushing has been separately approved and is not implied by completing the plan.
+8. Every supported lane has an AST-aware `previous_release..HEAD` code-review
+   report with deduplicated review units, dependency/import closure, explicit
+   equivalence or morphism evidence, unresolved-boundary diagnostics, and
+   recorded maintainer approval through the comment/session system.
+9. The prospective release JAR has passed the Prism harness experiential
+   review and the maintainer has visually approved the user-facing behavior and
+   the inspection artifacts.
+10. Publishing, pushing, or creating the release tag has been separately
+    approved and is not implied by completing the plan.
