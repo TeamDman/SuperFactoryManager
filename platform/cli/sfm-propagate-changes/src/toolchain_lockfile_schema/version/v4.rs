@@ -456,7 +456,7 @@ mod tests {
         assert_eq!(migrated.schema_version, SCHEMA_VERSION);
         assert!(migrated.features.is_empty());
         assert_eq!(migrated.profiles.len(), 2);
-        assert!(migrated.effective_lockfile("gradle").is_err());
+        let _ = migrated.effective_lockfile("gradle").unwrap_err();
     }
 
     #[test]

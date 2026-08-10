@@ -205,7 +205,7 @@ mod tests {
             normalize_viewport_selection("640x480@AUTO").unwrap(),
             "640x480@auto"
         );
-        assert!(normalize_viewport_selection("640x480@0").is_err());
-        assert!(normalize_viewport_selection("tiny").is_err());
+        let _ = normalize_viewport_selection("640x480@0").unwrap_err();
+        let _ = normalize_viewport_selection("tiny").unwrap_err();
     }
 }

@@ -865,7 +865,7 @@ mod tests {
     #[test]
     fn utf8_and_set_algebra_are_checked() {
         assert_eq!(utf8_byte_to_char_index("aéz", 4).expect("boundary"), 3);
-        assert!(utf8_byte_to_char_index("aéz", 2).is_err());
+        let _ = utf8_byte_to_char_index("aéz", 2).unwrap_err();
         let session = parse(&fixture()).expect("fixture");
         let documents = document_map(&session).expect("documents");
         let broad = session.comments[0].selection_rule.clone();

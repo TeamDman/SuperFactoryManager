@@ -1,11 +1,35 @@
+#[cfg(test)]
+mod definition_equivalence;
+mod definition_linker;
+mod dependency_index_body;
+mod dependency_index_identity;
+mod dependency_index_projection;
+mod dependency_index_store;
+mod dependency_index_worker;
+mod glob;
 mod index;
+mod java_file_facts;
+mod live_definition_worker;
+mod live_query_timing;
+mod live_worker_supervisor;
 mod report;
 mod selector;
 mod source_excludes;
 mod syntax;
 mod workspace;
 
+pub(crate) use definition_linker::*;
+pub use dependency_index_body::*;
+pub use dependency_index_identity::*;
+pub(crate) use dependency_index_projection::*;
+pub use dependency_index_store::*;
+pub(crate) use dependency_index_worker::*;
+pub use glob::*;
 pub use index::*;
+pub(crate) use java_file_facts::*;
+pub(crate) use live_definition_worker::*;
+pub(crate) use live_query_timing::*;
+pub(crate) use live_worker_supervisor::*;
 pub use report::*;
 pub use selector::*;
 pub(crate) use source_excludes::*;

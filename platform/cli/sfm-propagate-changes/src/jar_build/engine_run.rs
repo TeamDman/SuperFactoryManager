@@ -4332,8 +4332,8 @@ mod game_puppet_preview_tests {
         assert_eq!(crop.y, 266);
         assert_eq!((crop.width, crop.height), (3840, 2130));
 
-        assert!(captioned_viewport_geometry(1279, 834, &normal).is_err());
-        assert!(captioned_viewport_geometry(1280, 1745, &normal).is_err());
+        let _ = captioned_viewport_geometry(1279, 834, &normal).unwrap_err();
+        let _ = captioned_viewport_geometry(1280, 1745, &normal).unwrap_err();
     }
 
     #[test]

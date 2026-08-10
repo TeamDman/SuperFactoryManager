@@ -17,6 +17,13 @@ const ACTUAL_FILE: &str = "output-actual.json";
 const COMMAND_FILE: &str = "command.ps1";
 const REQUIRED_EXECUTABLE: &str = "sfm-propagate-changes.exe";
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum Quote {
+    None,
+    Single,
+    Double,
+}
+
 #[test]
 fn java_analysis_scenarios() -> eyre::Result<()> {
     let scenarios = scenario_directories()?;
@@ -144,13 +151,6 @@ fn tokenize_restricted_powershell_command(command: &str) -> eyre::Result<Vec<Str
         bail!("exactly one command line is allowed");
     }
 
-    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-    enum Quote {
-        None,
-        Single,
-        Double,
-    }
-
     let mut quote = Quote::None;
     let mut token = String::new();
     let mut token_started = false;
@@ -267,7 +267,7 @@ fn git_repository_root(cwd: &Path) -> eyre::Result<PathBuf> {
         .current_dir(cwd)
         .output()
         .wrap_err("failed to run git rev-parse without a shell")?;
-    require_git_success(&output.status, &output.stderr, "git rev-parse")?;
+    require_git_success(output.status, &output.stderr, "git rev-parse")?;
     let root = String::from_utf8(output.stdout).wrap_err("git root was not UTF-8")?;
     Ok(PathBuf::from(root.trim()))
 }
@@ -296,11 +296,11 @@ fn git_predicate(cwd: &Path, arguments: &[&str], path: &str) -> eyre::Result<boo
     if output.status.code() == Some(1) {
         return Ok(false);
     }
-    require_git_success(&output.status, &output.stderr, "Git snapshot policy query")?;
+    require_git_success(output.status, &output.stderr, "Git snapshot policy query")?;
     unreachable!("non-success Git predicate status should have returned an error")
 }
 
-fn require_git_success(status: &ExitStatus, stderr: &[u8], operation: &str) -> eyre::Result<()> {
+fn require_git_success(status: ExitStatus, stderr: &[u8], operation: &str) -> eyre::Result<()> {
     if status.success() {
         return Ok(());
     }
@@ -727,7 +727,7 @@ impl<'a> JsonParser<'a> {
 #[test]
 fn restricted_tokenizer_preserves_quoted_descriptors_and_windows_paths() -> eyre::Result<()> {
     let tokens = tokenize_restricted_powershell_command(
-        "sfm-propagate-changes.exe --output-format json symbol usage list example.A 'run(Ljava/lang/String;)V' --branch 1.19.2 --source-root \"C:\\Java Source\" --classpath-mode isolated",
+        "sfm-propagate-changes.exe --output-format json symbol list-usages example.A 'run(Ljava/lang/String;)V' --branch 1.19.2 --source-root \"C:\\Java Source\" --classpath-mode isolated",
     )?;
     assert_eq!(tokens[0], REQUIRED_EXECUTABLE);
     assert!(tokens.contains(&"run(Ljava/lang/String;)V".to_owned()));
@@ -739,15 +739,15 @@ fn restricted_tokenizer_preserves_quoted_descriptors_and_windows_paths() -> eyre
 fn restricted_tokenizer_rejects_malformed_and_multiple_commands() {
     let invalid = [
         "",
-        "other.exe symbol definition example.A --branch 1.19.2",
+        "other.exe symbol show-definition example.A --branch 1.19.2",
         "sfm-propagate-changes.exe",
-        "sfm-propagate-changes.exe symbol definition 'example.A --branch 1.19.2",
-        "sfm-propagate-changes.exe symbol definition $target --branch 1.19.2",
-        "sfm-propagate-changes.exe symbol definition $(Get-Content target) --branch 1.19.2",
-        "sfm-propagate-changes.exe symbol definition example.A --branch 1.19.2; whoami",
-        "sfm-propagate-changes.exe symbol definition example.A --branch 1.19.2 | Out-File result",
-        "sfm-propagate-changes.exe symbol definition example.A --branch 1.19.2 > result",
-        "sfm-propagate-changes.exe symbol definition example.A --branch 1.19.2\nwhoami",
+        "sfm-propagate-changes.exe symbol show-definition 'example.A --branch 1.19.2",
+        "sfm-propagate-changes.exe symbol show-definition $target --branch 1.19.2",
+        "sfm-propagate-changes.exe symbol show-definition $(Get-Content target) --branch 1.19.2",
+        "sfm-propagate-changes.exe symbol show-definition example.A --branch 1.19.2; whoami",
+        "sfm-propagate-changes.exe symbol show-definition example.A --branch 1.19.2 | Out-File result",
+        "sfm-propagate-changes.exe symbol show-definition example.A --branch 1.19.2 > result",
+        "sfm-propagate-changes.exe symbol show-definition example.A --branch 1.19.2\nwhoami",
     ];
     for command in invalid {
         assert!(
@@ -778,8 +778,8 @@ fn expected_snapshot_outcome_determines_public_exit_status() -> eyre::Result<()>
         let snapshot = format!(r#"{{"outcome":"{outcome}"}}"#);
         assert_eq!(expected_public_status(&snapshot)?, expected_status);
     }
-    assert!(expected_public_status(r#"{"schema":"missing-outcome"}"#).is_err());
-    assert!(expected_public_status(r#"{"outcome":"invented"}"#).is_err());
+    let _ = expected_public_status(r#"{"schema":"missing-outcome"}"#).unwrap_err();
+    let _ = expected_public_status(r#"{"outcome":"invented"}"#).unwrap_err();
     Ok(())
 }
 
@@ -791,7 +791,7 @@ fn acceptance_guidance_is_scenario_local_and_explicit() {
 }
 
 #[test]
-fn snapshot_policy_rejects_unsafe_actual_and_expected_paths() -> eyre::Result<()> {
+fn snapshot_policy_rejects_unsafe_actual_and_expected_paths() {
     let manifest = Path::new(env!("CARGO_MANIFEST_DIR"));
     let scenario = manifest
         .join("tests")
@@ -821,5 +821,4 @@ fn snapshot_policy_rejects_unsafe_actual_and_expected_paths() -> eyre::Result<()
             .to_string()
             .contains("expected snapshot must not be ignored")
     );
-    Ok(())
 }

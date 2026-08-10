@@ -10,6 +10,11 @@ use tree_sitter_patched_arborium::Node;
 use tree_sitter_patched_arborium::Parser;
 use tree_sitter_patched_arborium::Tree;
 
+#[cfg(test)]
+thread_local! {
+    static JAVA_PARSE_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 pub(crate) const JAVA_PARSER_FINGERPRINT: &str = "arborium-java/2.18.1";
 
 pub(crate) struct JavaSyntaxFile {
@@ -45,21 +50,42 @@ pub(crate) struct JavaStaticImport {
 }
 
 impl JavaSyntaxFile {
-    pub(crate) fn parse(file: &JavaSourceFile) -> eyre::Result<Self> {
+    pub(crate) fn parse_with_diagnostic_limit(
+        file: &JavaSourceFile,
+        diagnostic_limit: Option<usize>,
+    ) -> eyre::Result<Self> {
         let source = std::fs::read_to_string(&file.absolute_path).map_err(|error| {
             eyre::eyre!(
                 "Failed to read Java source {}: {error}",
                 file.absolute_path.display()
             )
         })?;
-        Self::parse_text(&file.report_path, &file.source_set, source)
+        Self::parse_text_with_diagnostic_limit(
+            &file.report_path,
+            &file.source_set,
+            source,
+            diagnostic_limit,
+        )
     }
 
+    #[cfg(test)]
     pub(crate) fn parse_text(
         report_path: &str,
         source_set: &str,
         source: String,
     ) -> eyre::Result<Self> {
+        Self::parse_text_with_diagnostic_limit(report_path, source_set, source, None)
+    }
+
+    pub(crate) fn parse_text_with_diagnostic_limit(
+        report_path: &str,
+        source_set: &str,
+        source: String,
+        diagnostic_limit: Option<usize>,
+    ) -> eyre::Result<Self> {
+        #[cfg(test)]
+        JAVA_PARSE_COUNT.with(|count| count.set(count.get() + 1));
+
         let mut parser = Parser::new();
         let language = java_language().into();
         parser
@@ -82,7 +108,26 @@ impl JavaSyntaxFile {
         };
         file.imports = find_imports(&file);
         let mut diagnostics = Vec::new();
-        collect_parse_gaps(file.tree.root_node(), &file, &mut diagnostics);
+        let mut parse_gap_count = 0_usize;
+        collect_parse_gaps(
+            file.tree.root_node(),
+            &file,
+            &mut diagnostics,
+            &mut parse_gap_count,
+            diagnostic_limit,
+        );
+        if parse_gap_count > diagnostics.len() {
+            diagnostics.push(JavaAnalysisDiagnosticOutput {
+                code: "java.parse-gaps-suppressed".to_owned(),
+                severity: DiagnosticSeverity::Warning,
+                message: format!(
+                    "Suppressed {} additional Java parse-gap diagnostics in {}",
+                    parse_gap_count - diagnostics.len(),
+                    file.report_path
+                ),
+                span: None,
+            });
+        }
         diagnostics.sort();
         diagnostics.dedup();
         file.diagnostics = diagnostics;
@@ -112,6 +157,16 @@ impl JavaSyntaxFile {
     pub(crate) fn text(&self, node: Node<'_>) -> Option<&str> {
         self.source.get(node.byte_range())
     }
+}
+
+#[cfg(test)]
+pub(crate) fn reset_java_parse_count() {
+    JAVA_PARSE_COUNT.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+pub(crate) fn java_parse_count() -> usize {
+    JAVA_PARSE_COUNT.with(std::cell::Cell::get)
 }
 
 pub(crate) fn is_type_declaration(kind: &str) -> bool {
@@ -150,24 +205,29 @@ fn collect_parse_gaps(
     node: Node<'_>,
     file: &JavaSyntaxFile,
     diagnostics: &mut Vec<JavaAnalysisDiagnosticOutput>,
+    parse_gap_count: &mut usize,
+    diagnostic_limit: Option<usize>,
 ) {
     if node.kind() == "ERROR" || node.is_missing() {
-        diagnostics.push(JavaAnalysisDiagnosticOutput {
-            code: "java.parse-gap".to_owned(),
-            severity: DiagnosticSeverity::Warning,
-            message: if node.is_missing() {
-                format!(
-                    "Arborium inserted missing Java syntax node `{}`",
-                    node.kind()
-                )
-            } else {
-                "Arborium encountered unparsed Java syntax".to_owned()
-            },
-            span: Some(file.span(node)),
-        });
+        *parse_gap_count += 1;
+        if diagnostic_limit.is_none_or(|limit| diagnostics.len() < limit) {
+            diagnostics.push(JavaAnalysisDiagnosticOutput {
+                code: "java.parse-gap".to_owned(),
+                severity: DiagnosticSeverity::Warning,
+                message: if node.is_missing() {
+                    format!(
+                        "Arborium inserted missing Java syntax node `{}`",
+                        node.kind()
+                    )
+                } else {
+                    "Arborium encountered unparsed Java syntax".to_owned()
+                },
+                span: Some(file.span(node)),
+            });
+        }
     }
     for child in named_children(node) {
-        collect_parse_gaps(child, file, diagnostics);
+        collect_parse_gaps(child, file, diagnostics, parse_gap_count, diagnostic_limit);
     }
 }
 

@@ -29,7 +29,7 @@
   },
   "diagnostics": [],
   "outcome": "success",
-  "schema": "sfm.symbol-usage-list/1",
+  "schema": "sfm.symbol-usage-list/2",
   "selector": {
     "canonical": "p.A value",
     "descriptor": null,

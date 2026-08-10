@@ -1,0 +1,100 @@
+{
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:4dcc7ce7657d521f9c5b2114e7c6f56e2599cea65ab78a8f8db2321d86c331ec",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "end_byte": 82,
+        "end_column": 25,
+        "end_line": 6,
+        "path": "source/example/A.java",
+        "source_hash": "blake3:e4295069b642da45058710528de5b60ea0eb738896d26d9bc4b702074d43d736",
+        "source_set": "custom",
+        "start_byte": 62,
+        "start_column": 5,
+        "start_line": 6
+      },
+      "identifier_span": {
+        "end_byte": 77,
+        "end_column": 20,
+        "end_line": 6,
+        "path": "source/example/A.java",
+        "source_hash": "blake3:e4295069b642da45058710528de5b60ea0eb738896d26d9bc4b702074d43d736",
+        "source_set": "custom",
+        "start_byte": 74,
+        "start_column": 17,
+        "start_line": 6
+      },
+      "symbol": {
+        "descriptor": "()V",
+        "kind": "method",
+        "name": "run",
+        "owner": "example.A",
+        "qualified_name": "example.A.run()V"
+      }
+    },
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "end_byte": 120,
+        "end_column": 37,
+        "end_line": 8,
+        "path": "source/example/A.java",
+        "source_hash": "blake3:e4295069b642da45058710528de5b60ea0eb738896d26d9bc4b702074d43d736",
+        "source_set": "custom",
+        "start_byte": 88,
+        "start_column": 5,
+        "start_line": 8
+      },
+      "identifier_span": {
+        "end_byte": 103,
+        "end_column": 20,
+        "end_line": 8,
+        "path": "source/example/A.java",
+        "source_hash": "blake3:e4295069b642da45058710528de5b60ea0eb738896d26d9bc4b702074d43d736",
+        "source_set": "custom",
+        "start_byte": 100,
+        "start_column": 17,
+        "start_line": 8
+      },
+      "symbol": {
+        "descriptor": "(Ljava/lang/String;)V",
+        "kind": "method",
+        "name": "run",
+        "owner": "example.A",
+        "qualified_name": "example.A.run(Ljava/lang/String;)V"
+      }
+    }
+  ],
+  "diagnostics": [],
+  "outcome": "success",
+  "pattern": "example.* run*",
+  "schema": "sfm.symbol-list/1"
+}

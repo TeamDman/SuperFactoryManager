@@ -1,9 +1,9 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0 is the approved next implementation phase
+**Plan status:** Active; Phase 0, Phase 0.8, and Phase 0.9 are complete; Phase 1 is next
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-09
-**Intent audit:** Passed 2026-08-09 for Phase 0
+**Last updated:** 2026-08-10
+**Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8 and 2026-08-10 for Phase 0.9
 
 ## How to update this plan
 
@@ -25,8 +25,8 @@ authorize source rewrites.
 | JAVA-02 | Prove analysis/refactoring behavior with tiny Java scenarios independent of Minecraft compilation. | Add dedicated scenario integration tests under the CLI crate; isolated scenarios use ordinary `A.java`/`B.java` sources and never launch Gradle or Minecraft. | — |
 | JAVA-03 | Keep each descriptive Rust scenario test next to its scenarios; avoid generic `test.rs` names that harm fuzzy finding. | Use `tests/java_analysis/java_analysis_scenario_test.rs` beside `tests/java_analysis/scenarios/`, registered as the explicit Cargo target `java_analysis_scenarios`. | — |
 | JAVA-04 | A scenario is described by a manually runnable `command.ps1` that exercises the real public CLI contract. | The harness reads one restricted command from `command.ps1`, tokenizes it without launching PowerShell, parses the argv through Figue, and invokes the same typed command path as production. | — |
-| JAVA-05 | Read-only analysis comes before mutation. | Phase 0 implements `symbol definition` and `symbol usage list`; `symbol rename` and `symbol move` have frozen contracts but remain in later phases. | — |
-| JAVA-06 | Use the object–verb symbol namespace rather than splitting navigation and refactoring across `java`, `symbol`, and `refactor`. | The authoritative surface is `symbol definition`, `symbol usage list`, `symbol rename`, and `symbol move`; no compatibility alias is introduced. | — |
+| JAVA-05 | Read-only analysis comes before mutation. | Phase 0 implemented definition/usage navigation; Phase 0.8 improves discovery and external dependency coverage before `symbol rename` and `symbol move` become mutating. | — |
+| JAVA-06 | Keep navigation and symbol refactoring under `symbol`, but make each child command plainly verb-like. | Phase 0.8 replaces the experimental noun-shaped navigation commands with `symbol show-definition`, `symbol list-usages`, and `symbol list`; `symbol rename` and `symbol move` remain authoritative. | JAVA-17 |
 | JAVA-07 | Borrow symbol-selector grammar from Forge Access Transformers. | A typed selector accepts a class name alone, class plus field name, or class plus method name/JVM descriptor; parentheses distinguish methods and `$` identifies nested classes. | — |
 | JAVA-08 | `--branch` remains mandatory, including isolated scenarios and custom source roots. | Every symbol command resolves branch context first; a custom root changes source discovery, not the Java/toolchain version context. | — |
 | JAVA-09 | Normal branch analysis indexes all Java source sets, not only `main`. | Discover every branch-declared source set/root, retain its identity and exclusions, and enforce its visibility graph instead of flattening all sources together. | — |
@@ -37,19 +37,44 @@ authorize source rewrites.
 | JAVA-14 | Snapshot acceptance must be explicit and safe. | Never rewrite expected output automatically. Refuse tracked/non-ignored actual destinations, write actual atomically, compare canonical bytes, and print an exact `Copy-Item` acceptance command on missing/different expectations. | — |
 | JAVA-15 | Mutation must never rely on an implicit preview default. | Future `symbol rename`/`symbol move` require exactly one of `--dry-run` or `--apply`; `--apply --output-root` copies then edits, `--apply` without it edits in place, and `--dry-run --output-root` is invalid. | — |
 | JAVA-16 | Mutation scenario equality is about source contents, not filesystem metadata. | Later mutation tests compare normalized relative paths and exact file bytes; timestamps, ACLs, directory enumeration order, and build outputs are excluded. | — |
+| JAVA-17 | The public symbol surface should be immediately understandable in `help list --short`. | Canonical commands are `show-definition`, `list-usages`, `list`, `rename`, `move`, and `index`; `list-usage` is a Figue subcommand alias for `list-usages`, while the Phase 0 `definition` and `usage list` spellings are retired before release. | — |
+| JAVA-18 | Users need to discover selectors rather than already knowing an exact fully qualified name and descriptor. | Add `symbol list [pattern]`; no pattern means all symbols, and a case-sensitive canonical-selector glob supports only `*` for zero-or-more characters and `?` for one character. Exact navigation/mutation commands continue using `JavaSymbolSelector`, never the glob parser. | — |
+| JAVA-19 | Dependency symbols such as `net.minecraft.client.gui.components.MultiLineEditBox` must be discoverable and navigable. | Build a dependency-source symbol index from the existing lockfile-declared source providers, including the Minecraft platform-pipeline source tree, and compose it with live SFM sources for list/definition/usage queries. | — |
+| JAVA-20 | Dependencies change rarely, while SFM sources change continuously during development. | Persist only dependency indexes; index branch/custom SFM sources live at query time. A query report records both the live workspace fingerprint and immutable dependency-index identity. | — |
+| JAVA-21 | A dependency index must never be silently reused after its toolchain inputs change. | Key and validate the cache using a semantic effective-lockfile/source-provider projection plus parser/index-format fingerprints. Missing/stale indexes produce an explicit incomplete outcome and a typed Figue `ToArgs` recommendation for `symbol index refresh`, not a false no-match. | — |
+| JAVA-22 | Source acquisition already exists and must not be reimplemented. | `symbol index refresh` reuses `DependencyInventory`, provider priority/status, `SourceProviderView::searchable_roots`, and existing Maven/Git/decompile/platform-pipeline acquisition machinery. It acquires the preferred declared source provider where needed and reports unavailable components. | — |
+| JAVA-23 | Index lifecycle and location must be inspectable and automatable. | Add `symbol index refresh --branch <branch>` and `symbol index show --branch <branch>`; `show` emits typed ready/missing/stale/partial status and prints the concrete cache/manifest path in text output. Refresh uses a cache lock and atomic publication so cancellation/failure cannot expose a partial index. | — |
+| JAVA-24 | Incomplete dependency coverage must remain visible in every query. | Workspace-only matches may still be returned, but reports distinguish complete success from incomplete results, enumerate missing/stale dependency inputs, and include exact typed refresh/acquisition recommendations. | — |
+| JAVA-25 | A live `symbol show-definition DiskItem --branch 1.19.2` query taking about 10–11 seconds is too slow; measure the current work and parallelize it safely. | Phase 0.9 retains a reproducible baseline, adds per-stage/worker evidence, and delivers a materially faster real command rather than claiming improvement from synthetic microbenchmarks alone. | — |
+| JAVA-26 | Do not optimize the current pipeline by preserving an `all Types -> barrier -> all Members -> barrier -> all Usages` shape. Work that finishes parsing one file/shard must be able to proceed to linking while other files are still being parsed. | Replace the live definition path with one parse-to-facts operation per source and a streaming linker; only a final snapshot seal may wait for every source, and only for completeness-dependent conclusions such as uniqueness, ambiguity, and unresolved diagnostics. | — |
+| JAVA-27 | Avoid per-item two-phase work where every item must finish phase one before any item may begin phase two or later. | A worker emits package/import declarations, type declarations, raw member signatures, raw references, diagnostics, and source identity together as one `JavaFileFacts` result. The linker admits each result immediately, retains forward references as pending work, and wakes affected candidates as declarations arrive without reparsing the source. | — |
+| JAVA-28 | A `JoinSet`-style fan-out machine is welcome, but parallelism must remain bounded and robust. | The coordinator has an explicit worker limit, aggregate and per-worker memory ceilings, cancellation/failure cleanup that kills and waits for every child, deterministic shard bisection, and deterministic result ordering independent of completion order. A concurrency primitive is an implementation detail, not permission for unbounded tasks or orphan processes. | — |
+| JAVA-29 | Cached/reusable analysis objects and source facts should not be discarded between phases of one query. | The Phase 0.9 live path parses each selected source no more than once, owns each fact bundle until linking/sealing is complete, and does not serialize/re-read type/member TSV phase files. This does not introduce a persistent live-source cache, watcher, or daemon between separate CLI invocations. | — |
+| JAVA-30 | Optimize from evidence without silently changing symbol-query correctness. | Retain the Phase 0.8 implementation as a test-only/diagnostic equivalence oracle during migration; canonical typed output, ambiguity, source-set visibility, dependency resolution, diagnostics, hashes, and deterministic ordering must agree before the production path switches. | — |
+| JAVA-31 | Parallelizable implementation work should be identified so agents or multiple threads can work concurrently without conflicting edits. | Phase 0.9 names disjoint fact-extraction, worker-supervision, linker/equivalence, and integration tracks, with one owner for shared module wiring and production-path selection. | — |
 
-## Guidance traceability for Phase 0
+## Guidance traceability for completed Phase 0 and next Phase 0.8
 
 | Guidance | Plan coverage | Evidence when complete |
 | --- | --- | --- |
 | JAVA-01, JAVA-02 | Phase 0 scope/non-goals; 0.3; 0.7 | Scenario sources run without Minecraft, Gradle, or generic project initialization. |
 | JAVA-03, JAVA-04 | 0.3 | Explicit Cargo target invokes restricted `command.ps1` through Figue and the production command path. |
-| JAVA-05, JAVA-06 | Source-aware CLI surface; 0.4; 0.6 | CLI parsing and end-to-end tests prove both read-only commands; mutation commands remain non-mutating/deferred. |
+| JAVA-05, JAVA-06, JAVA-17 | Source-aware CLI surface; 0.4; 0.8.1 | CLI/help tests prove the verb-first canonical commands and `list-usage` alias; mutation commands remain non-mutating/deferred. |
 | JAVA-07 | Selector contract; 0.4 | Parser fixtures cover class, field, method descriptor, nested class, malformed, zero-match, and ambiguous selectors. |
 | JAVA-08, JAVA-09, JAVA-10 | Source/classpath contract; 0.5 | Reports enumerate selected source sets/visibility and prove branch versus isolated behavior. |
 | JAVA-11, JAVA-12 | 0.1; 0.2 | Text/JSON/CSV rendering tests and versioned JSON snapshots pass with logs separated from stdout. |
 | JAVA-13, JAVA-14 | 0.3 | Harness safety tests and adjacent expected/actual artifacts pass. |
 | JAVA-15, JAVA-16 | Confirmed mutation contract; later Phase 3 scenario work | CLI parser rejects invalid mutation modes; mutation application remains outside Phase 0. |
+| JAVA-18 | 0.8.2 | Typed list scenarios prove no-pattern enumeration, canonical-selector glob filtering, stable ordering, and exact-selector separation. |
+| JAVA-19, JAVA-20 | 0.8.3; 0.8.5; 0.8.6 | A cached dependency-source index plus live SFM index resolves and displays `MultiLineEditBox` without Gradle or a game launch. |
+| JAVA-21, JAVA-23 | 0.8.3; 0.8.4 | Identity/status tests reject stale manifests; `index show` exposes paths; Figue round-trips the recommended refresh command; refresh publishes atomically. |
+| JAVA-22 | 0.8.4 | Source acquisition integration tests use the existing provider selection and cache layouts rather than a second downloader. |
+| JAVA-24 | 0.8.5 | Missing/stale dependency-index scenarios produce typed incomplete reports and recommendations rather than authoritative no-match results. |
+| JAVA-25 | 0.9.1; 0.9.6 | A checked-in benchmark note records the 9.573-second baseline and warm-run distribution; the same real command meets the Phase 0.9 latency threshold after integration. |
+| JAVA-26, JAVA-27, JAVA-29 | 0.9.2; 0.9.3; 0.9.5 | Instrumented tests prove one parse per live source, linker admission before producer completion, no live type/member phase files, and seal-only completeness decisions. |
+| JAVA-28 | 0.9.4; 0.9.6 | Supervisor tests prove bounded peak workers, aggregate/per-process limits, cancellation and fail-fast child cleanup, deterministic bisection, and stable output under reversed completion order. |
+| JAVA-30 | 0.9.1; 0.9.5; 0.9.6 | Scenario and generated-corpus equivalence tests compare the new path with the Phase 0.8 oracle before the production route is selected. |
+| JAVA-31 | Phase 0.9 parallel work map | Disjoint ownership is recorded before parallel edits; integration remains with one owner. |
 
 ## Intent audit evidence
 
@@ -67,6 +92,34 @@ authorize source rewrites.
   scenarios and actual output, no PowerShell process execution, mandatory
   branch context in isolated mode, source-set visibility rather than flattening,
   Access Transformer method descriptors, and explicit `--dry-run|--apply`.
+- **Pass 4 — Phase 0.8 extension:** Captured the observed noun/verb CLI
+  confusion, both required usage-command spellings, optional glob discovery,
+  real Minecraft dependency navigation, existing source acquisition reuse,
+  offline dependency versus live SFM indexing, semantic lockfile pinning,
+  inspectable cache paths, atomic refresh, stale-index recommendations rendered
+  from typed Figue values, and the rule that incomplete coverage cannot become
+  a false no-match.
+- **Pass 5 — Phase 0.9 extraction:** Reread the 2026-08-10 performance
+  discussion and retained both the observed 10–11 second `DiskItem` latency
+  and the architectural correction that parallelizing the existing global
+  Types/Members barriers would be insufficient. Added `JAVA-25` through
+  `JAVA-31` for measurement, one-parse fact bundles, streaming forward-reference
+  linking, bounded child supervision, within-query reuse, equivalence, and
+  explicitly parallel work ownership.
+- **Pass 6 — Phase 0.9 traceability:** Mapped every new guidance ID to a
+  numbered work item, focused proof, and closeout criterion. Checked the
+  inverse mapping: the initial four-worker bound, 6 GiB aggregate Windows
+  worker budget, live-definition-only production switch, and retained oracle
+  are reversible implementation decisions grounded in the measured 64 GiB,
+  32-logical-CPU development machine and existing 1.5 GiB per-worker ceiling.
+- **Pass 7 — Phase 0.9 adversarial omission:** Rechecked that “parallel” did
+  not collapse into a faster global phase barrier; that a completed shard can
+  enter the linker while producers remain active; that forward references and
+  ambiguity wait for a seal without reparsing; and that process handles, Job
+  Objects, cancellation, failure, memory, output order, and deterministic
+  bisection remain explicit. Also retained the no-persistent-live-cache rule
+  and deferred usage/dependency-refresh migration instead of silently widening
+  this latency slice.
 - **Known source limitation:** None for the Phase 0 discussion; the original
   user messages were available in this conversation. Earlier broad plan history
   remains represented by the pre-existing sections and linked plans.
@@ -87,19 +140,24 @@ Minecraft branches. It must never silently perform a textual global replace.
 
 ## Source-aware CLI surface
 
-The shared symbol index should power both navigation and mutation. Use an
-object–verb namespace:
+The shared symbol index should power both navigation and mutation. Use one
+`symbol` object namespace with plainly verb-like children:
 
 ```text
-sfm-propagate-changes.exe symbol definition <at-selector> --branch <branch>
-sfm-propagate-changes.exe symbol usage list <at-selector> --branch <branch>
+sfm-propagate-changes.exe symbol show-definition <at-selector> --branch <branch>
+sfm-propagate-changes.exe symbol list-usages <at-selector> --branch <branch>
+sfm-propagate-changes.exe symbol list-usage <at-selector> --branch <branch>  # alias
+sfm-propagate-changes.exe symbol list [canonical-selector-glob] --branch <branch>
+sfm-propagate-changes.exe symbol index refresh --branch <branch>
+sfm-propagate-changes.exe symbol index show --branch <branch>
 sfm-propagate-changes.exe symbol rename <at-selector> <new-name> --branch <branch> (--dry-run|--apply)
 sfm-propagate-changes.exe symbol move <at-selector> <qualified-destination> --branch <branch> (--dry-run|--apply)
 ```
 
-`definition` and `usage list` are read-only and must work without a build or
-game launch. They return repository-relative paths, line/column and byte span,
-qualified identity, kind, descriptor, source set, and resolution confidence.
+`show-definition`, `list-usages`/`list-usage`, and `list` are read-only and
+must work without a Gradle build or game launch. They return stable
+source-origin-relative paths, line/column and byte span, qualified identity,
+kind, descriptor, source set, and resolution confidence.
 Zero matches and ambiguous matches have distinct nonzero statuses. Output has
 human-readable and Facet/Figue-rendered forms and includes source hash, branch,
 source-set identity, parser version, and classpath/index fingerprints. A global
@@ -121,14 +179,16 @@ Parentheses after the member name distinguish a method from a field, JVM
 descriptors disambiguate overloads, and `$` names nested classes. Examples:
 
 ```powershell
-sfm-propagate-changes.exe symbol definition ca.teamdman.sfm.SomeType --branch 1.19.2
-sfm-propagate-changes.exe symbol usage list ca.teamdman.sfm.SomeType MY_FIELD --branch 1.19.2
-sfm-propagate-changes.exe --output-format json symbol usage list ca.teamdman.sfm.SomeType 'between(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;)Ljava/util/stream/Stream;' --branch 1.19.2
+sfm-propagate-changes.exe symbol show-definition ca.teamdman.sfm.SomeType --branch 1.19.2
+sfm-propagate-changes.exe symbol list-usages ca.teamdman.sfm.SomeType MY_FIELD --branch 1.19.2
+sfm-propagate-changes.exe --output-format json symbol list-usage ca.teamdman.sfm.SomeType 'between(Lnet/minecraft/core/BlockPos;Lnet/minecraft/core/BlockPos;)Ljava/util/stream/Stream;' --branch 1.19.2
+sfm-propagate-changes.exe symbol list 'ca.teamdman.sfm.*clientRun*' --branch 1.19.2
 ```
 
 The CLI owns one typed `JavaSymbolSelector`; definition, usage, rename, move,
 scenario parsing, reports, and later review selectors must not each reinterpret
-the raw tokens. Rename changes only the selected identifier (and a top-level
+the raw tokens. `symbol list` alone accepts a separate typed canonical-selector
+glob; it never weakens exact selector parsing. Rename changes only the selected identifier (and a top-level
 type's filename where required). Move accepts a qualified destination and may
 change owner/package/name. Source-selector arity is parsed before the trailing
 rename/move destination, and malformed or ambiguous selectors fail without
@@ -156,7 +216,8 @@ falling back to text search.
 
 ### Explicit mutation mode contract
 
-Read-only `definition` and `usage list` accept neither `--dry-run` nor
+Read-only `show-definition`, `list-usages`/`list-usage`, and `list` accept
+neither `--dry-run` nor
 `--apply`. Every future mutating command requires exactly one of those flags:
 
 | Mode | Filesystem behavior |
@@ -171,7 +232,7 @@ operations.
 
 There is no `refactor` compatibility alias for this symbol surface: it has not
 been implemented or released, so `symbol` is authoritative for definition,
-usage, rename, and move. The separate `refactor` namespace may host
+usage discovery, listing, rename, and move. The separate `refactor` namespace may host
 expression/statement operations and typed plan application, but it must not
 silently alias or duplicate the `symbol` commands. Help, completions, and
 documentation must keep those namespaces distinct.
@@ -287,7 +348,7 @@ operation is unsupported rather than silently falling back to text replacement.
 
 | Area | Confirmed decision | Acceptance consequence |
 | --- | --- | --- |
-| Command shape | `symbol definition`, `symbol usage list`, `symbol rename`, and `symbol move`; no `java`/`refactor` alias for these operations. | `--help` documents navigation, exact selector syntax, explicit mutation mode, branch/source selection, and failure policy. |
+| Command shape | `symbol show-definition`, canonical `symbol list-usages` with Figue alias `symbol list-usage`, `symbol list`, `symbol index refresh|show`, `symbol rename`, and `symbol move`; no `java`/`refactor` alias. | `help list --short` is verb-like; both usage spellings parse identically; exact selectors and list globs remain separate typed grammars. |
 | Target syntax | Access-Transformer-derived class/field/method targets with JVM descriptors and `$` nested classes, parsed once by `JavaSymbolSelector`. | Ambiguous targets fail and list candidates; no dotted-member or textual-search fallback. |
 | Safety mode | Read-only commands have no mode; mutation requires exactly one of `--dry-run` or `--apply`. | Neither, both, and `--dry-run --output-root` fail before source discovery or writes. |
 | Rewrite model | Parse once, resolve symbols, create edits against byte ranges, validate edits, then write atomically. | No overlapping edits or partial files. |
@@ -469,13 +530,17 @@ invocation. This keeps the tokenizer and failure attribution small without
 changing the public CLI; a later scenario can add an explicitly modeled command
 sequence if a real test needs one.
 
-## Phase 0 — Read-only symbol navigation and scenario harness (next phase)
+## Phase 0 — Read-only symbol navigation and scenario harness (complete)
 
-This is the next implementation goal. Complete `0.1` through `0.7` before
-starting mutation, broad refactoring catalogs, cross-lane equivalence, or the
-in-game review provider. The phase deliberately delivers a useful vertical
+This was the initial implementation goal. Items `0.1` through `0.7` completed
+the source-only foundation before mutation, broad refactoring catalogs,
+cross-lane equivalence, or the in-game review provider. The phase deliberately delivered a useful vertical
 slice: a real user/agent can ask where a Java symbol is defined and used in an
 SFM branch, while tiny isolated scenarios prove the same public contract.
+
+The command spellings recorded in Phase 0 completion notes are historical
+evidence. Phase 0.8 owns and replaces the unreleased public navigation
+spellings without changing the completed source-only implementation evidence.
 
 **Final-audit follow-up (2026-08-09):** Reopened the affected items after the
 first green full-suite run. The closeout rerun additionally proves that
@@ -853,8 +918,9 @@ cargo test --all-features --test java_analysis_scenarios
 **Completion criteria:** all `0.1`–`0.7` evidence is recorded in-place; a user
 or agent can execute the documented definition/usage commands against both an
 SFM branch and an isolated tiny scenario; outputs are deterministic and
-machine-readable; no source file is changed; and the next safe phase is symbol
-rename dry-run/apply rather than more foundational redesign.
+machine-readable; and no source file is changed. Phase 0.8 supersedes the
+experimental navigation spellings and adds discovery/dependency coverage before
+symbol rename dry-run/apply.
 
 ### Phase 0 risk register
 
@@ -867,6 +933,620 @@ rename dry-run/apply rather than more foundational redesign.
 | Snapshot updates overwrite trusted expectations. | Actual must be ignored/untracked, expected must be tracked-capable/non-ignored, writes are atomic, and acceptance is a printed manual `Copy-Item`. |
 | A spelling match is presented as a resolved usage. | Reports retain confidence and unresolved diagnostics; semantic usages require declaration identity, and ambiguous/unknown cases never mutate. |
 | The slice expands into package-manager or Gradle tooling. | `JAVA-01` and Phase 0 non-goals prohibit init/manifest/Gradle generation; tiny scenarios need only custom roots plus branch/isolated mode. |
+
+## Phase 0.8 — Verb-first discovery and lockfile-pinned dependency indexes (complete)
+
+This is the next implementation goal. Complete `0.8.1` through `0.8.6` as one
+read-only vertical slice before beginning mutation or the broader Phase 1
+architecture inventory. It closes the usability gap observed immediately after
+Phase 0: users can discover an exact selector, query dependency classes such as
+Minecraft's `MultiLineEditBox`, and understand how to prepare or refresh the
+offline dependency index without already knowing internal command grammar.
+
+### Phase 0.8 confirmed design
+
+| Area | Decision |
+| --- | --- |
+| Canonical navigation commands | `symbol show-definition`, `symbol list-usages`, and `symbol list`; `list-usage` is a Figue alias on the `list-usages` enum variant. The unreleased `symbol definition` and `symbol usage list` spellings are removed rather than retained as hidden compatibility paths. |
+| Discovery pattern | `symbol list [pattern]` matches the complete canonical selector case-sensitively. Omitted means `*`; `*` matches zero or more characters and `?` exactly one character. No character classes, recursive-glob special case, regex mode, or fuzzy scoring is introduced in this slice. |
+| Exact versus discovery grammar | `show-definition`, `list-usages`/`list-usage`, `rename`, and `move` continue to use exact `JavaSymbolSelector`. Only `symbol list` accepts `JavaSymbolGlob`; wildcard input never falls back from an exact query. |
+| Cached/live split | Dependency source symbols are prepared offline and persisted; SFM branch/custom-root sources are parsed and indexed live on every query. No SFM source index cache, file watcher, or background daemon is introduced. |
+| Dependency source authority | Reuse lockfile-declared source providers and their priority. Refresh materializes the preferred provider through the existing Maven/Git/decompile/platform-pipeline machinery and indexes its `SourceProviderView::searchable_roots`; it never invents a second download/cache system. |
+| Cache identity | A semantic, path-portable projection of the effective dependency lock, selected provider declarations/derived checks, Minecraft/Java context, parser fingerprint, and dependency-index format version is hashed. Whitespace-only lockfile changes and absolute worktree/cache paths do not affect identity; any semantic dependency/provider/index-format change does. |
+| Cache layout and publication | Store a versioned typed `manifest.json` and authenticated `payload.ndjson` stream beneath `$sfm-cache/symbol-index/v3/<identity>/`. Resolve the portable path through `CacheHome`, acquire a scoped cache lock, stream/hash/validate a sibling prepared payload, publish through a sibling temporary directory, then atomically replace the current artifact. Failed or cancelled refreshes leave the previous valid index untouched. |
+| Query completeness | Reports have independent `outcome` and `completeness`. A missing/stale/partial dependency index may return live SFM matches but uses `completeness: incomplete` and process status `5`; it may never claim authoritative no-match. Existing success/no-match/ambiguous statuses remain `0/2/3` only when coverage is complete. |
+| Source precedence/provenance | Live SFM declarations take precedence over dependency declarations for the same source identity; distinct competing definitions remain ambiguous. Every span records workspace or dependency origin. Dependency report paths use `dependency/<dependency>/<component>/<provider>/<relative-path>`, never machine-local absolute paths. |
+| Lifecycle UX | `symbol index show --branch <branch>` is read-only and prints typed ready/missing/stale/partial state plus expected identity, concrete manifest/payload paths, counts, and missing inputs. `symbol index refresh --branch <branch>` acquires required preferred sources and rebuilds. Missing/stale query diagnostics render an exact typed refresh command with Figue `ToArgs`; source-acquisition failures also reuse typed acquisition recommendations. |
+| Storage implementation | Phase 0.8 uses versioned Facet record models behind `DependencySymbolIndexStore`, but the v3 payload is an authenticated routed NDJSON stream (`sfm.dependency-java-symbol-index-stream/2`) rather than one retained Facet collection. Each definition/usage line prefixes its JSON body with kind, owner, name, descriptor, qualified name, and source-set routing fields. The store hashes, copies, probes, and validates the prepared payload incrementally; query loading scans routes with one reusable byte buffer and Facet-decodes only matching full definitions/usages while retaining only the compact resolution vocabulary required by live SFM sources. A regression places invalid JSON behind unmatched routes to prove unrelated bodies are not decoded. Format changes remain behind manifest/index fingerprint bumps without changing command/report contracts. |
+| Parser memory boundary | Dependency refresh and live branch queries run type, member, and usage passes in at-most-32-source shards through short-lived instances of the current executable and a private line-based request/output protocol. Shared analysis context is written once; requests carry only pass, paths, and file records. Workers emit tagged definition/paired-resolution/usage/diagnostic records. The parent copies records with one reusable byte buffer and performs no Facet decode during refresh. A compact versioned six-column TSV carries only Java identity and source-set visibility between passes; workers stream it with a reusable buffer and retain only types named in the source plus fields/methods with both owner-type and dot-qualified member evidence (constructors use owner-name evidence). Failed aggregate shards bisect deterministically to one source. On Windows both coordinator and each child have independent 1.5 GiB Job Object process-memory ceilings; children are kill-on-close, and worker/pass output also has explicit byte ceilings. Because per-process Job Objects do not impose a combined machine budget, all memory-intensive live branch queries acquire one cancellable cache-scoped lock before scanning/indexing; concurrent top-level CLI invocations serialize instead of running native parsers simultaneously. Isolated tiny-root scenarios do not take that lock. The bound is evidence-based: `LevelRenderer.java` peaks near 546 MiB and `BlockModelGenerators.java` near 1.106 GiB with combined dependency resolution. Each shard retains at most eight deterministic representative diagnostics plus a suppressed count. Full spans/hashes live only in `payload.ndjson`; the parent calls no shell, Gradle task, public worker command, or external downloader. |
+
+**In scope:** command migration and alias; typed symbol enumeration/glob;
+dependency source acquisition integration; lockfile-pinned index identity,
+manifest, storage, locking and atomic publication; index status/refresh commands;
+live-workspace plus cached-dependency query composition; report completeness and
+source provenance; scenarios, docs, help, and a real `MultiLineEditBox` smoke.
+
+**Out of scope:** source mutation; SFM-source persistence/incremental watching;
+JDK source indexing; a general bytecode parser for components lacking declared
+source/decompile providers; inheritance/dispatch completeness beyond what the
+combined source index proves; Gradle; propagation; Minecraft UI; and release
+review equivalence. Missing capabilities remain explicit diagnostics.
+
+### Parallel work map
+
+- **Track A — command/discovery:** `0.8.1` and the live-source portion of
+  `0.8.2` can proceed together in the symbol CLI/report/scenario surface.
+- **Track B — immutable index store:** `0.8.3` can proceed independently in new
+  identity/layout/manifest/store modules with synthetic source trees.
+- **Track C — source-provider adapter:** the reusable acquisition/preflight and
+  typed-recommendation extraction in `0.8.4` can proceed beside Track B without
+  changing semantic index code.
+- **Integration gate:** `0.8.5` begins only after A/B/C contracts compile. One
+  owner integrates precedence, provenance, completeness, and schema migration;
+  `0.8.6` is the shared closeout rather than a parallel write surface.
+
+### [x] 0.8.1 Migrate to the verb-first command surface
+
+**Work:**
+
+- Replace the Figue `Definition` variant with canonical `ShowDefinition` and
+  replace the nested `Usage(List(...))` tree with canonical `ListUsages`.
+- Add `#[facet(args::alias = "list-usage")]` to the `ListUsages` variant so
+  both spellings parse to the same typed value, invocation path, help model,
+  and output. Do not implement the alias with duplicate match arms.
+- Add `List` and nested `Index { Refresh, Show }` command shapes now so
+  `symbol help list --short` exposes the final verb-like surface.
+- Remove the Phase 0 `definition` and `usage list` forms; update all scenario
+  commands, docs, parser/help snapshots, examples, and error suggestions.
+- Preserve `rename` and `move` argument/mutation-mode contracts unchanged.
+
+**Validation:** Figue parser tests prove canonical and alias argv produce the
+same `SymbolCommand::ListUsages`; `ToArgs` renders the canonical spelling;
+`symbol help list --short` lists `show-definition`, `list-usages`, `list`,
+`index refresh`, `index show`, `rename`, and `move`; retired forms fail with a
+useful nearby-command suggestion.
+
+### [x] 0.8.2 Add typed symbol enumeration and canonical-selector globs
+
+**Work:**
+
+- Add a small typed `JavaSymbolGlob` parser/matcher with only the confirmed
+  `*` and `?` behavior. Match against `JavaSymbolIdentityOutput`'s canonical
+  exact-selector spelling, not source text, paths, display labels, or
+  descriptors interpreted separately.
+- Add versioned `sfm.symbol-list/1` output carrying context, dependency-index
+  status/identity, optional original pattern, stable symbol summaries,
+  definition spans/origins, confidence, diagnostics, outcome, and
+  completeness. Text, JSON, and CSV preserve the same report identity.
+- No pattern enumerates all known symbols. Sort by canonical selector, kind,
+  source origin, path, and span; deduplicate only identical definitions.
+- Build the first scenario against isolated tiny sources so list semantics do
+  not depend on a machine cache. Cover all, prefix/suffix/infix `*`, `?`, zero
+  match, nested `$` (PowerShell-quoted), fields, overloaded methods, and stable
+  bytes under reversed input order.
+
+**Validation:** focused glob/report tests plus public `command.ps1` scenarios
+prove that discovery returns selectors accepted unchanged by
+`show-definition` and `list-usages`.
+
+### [x] 0.8.3 Build the immutable dependency-index identity and store
+
+**Work:**
+
+- Extract a `DependencySymbolIndexIdentity` from the same effective lockfile
+  and selected branch/toolchain context used by analysis. Include dependency,
+  component and preferred-provider identity; provider-derived source checks;
+  Java/Minecraft context; parser fingerprint; and an explicit store/index
+  format version. Exclude formatting and absolute local paths.
+- Add `DependencySymbolIndexManifest` with schema, identity, creation metadata,
+  source inputs and statuses, portable origins, definition/usage/diagnostic
+  counts, payload hash/size, completeness, and format fingerprint.
+- Add a `DependencySymbolIndexStore` that computes portable/concrete paths,
+  probes ready/missing/stale/partial status without writing, validates manifest
+  identity and payload hash before load, and atomically publishes under a
+  scoped artifact lock. Never deserialize or use a stale payload.
+- Serialize dependency index data through typed Facet models; keep store format
+  behind the manifest version. Record refresh duration, payload size, warm load
+  duration, and representative query duration in completion notes.
+
+**Validation:** synthetic tests prove semantic lock/provider/index changes
+invalidate identity; whitespace and relocated cache/worktree paths do not;
+corrupt/truncated payloads are rejected; cancellation/failure preserves the
+last valid index; concurrent refresh cannot publish mixed files.
+
+### [x] 0.8.4 Implement `symbol index refresh|show` by reusing source acquisition
+
+**Completion notes (2026-08-09):** Extracted the existing provider preflight,
+selection, acquisition, and typed recommendation paths and reused them from the
+new index lifecycle commands. The production 1.19.2 refresh acquired/indexed
+7,613 source files through the declared providers, then atomically published a
+613,428,113-byte routed payload with 117,694 definitions, 632,052 usages, and
+5,361 retained diagnostics. The manifest records semantic identity
+`blake3:7f259c18738075c2a9e7f034b48e0bcacb37c2a9147c39b9dc6f3e2aaa940d17`,
+payload hash
+`blake3:5d34e2ade2a537b6b7a2f0f108625a04133697d4b228902afc21c09c185454f9`,
+and 628,606 ms refresh duration. Coverage is deliberately `partial` because
+lockfile components without usable source providers remain visible; warm
+`index show` validated and reported the artifact in 1.425 seconds with status
+5 rather than hiding those missing inputs. Before refresh, the same command
+reported `missing`, process status 5, the expected identity/path, and an exact
+Figue-rendered `symbol index refresh --branch 1.19.2` recommendation.
+
+The final v3 implementation uses an authenticated routed NDJSON stream and
+short-lived private worker passes with deterministic shard bisection. The
+parent streams/copies worker records without retaining the complete dependency
+AST or decoded payload. Synthetic identity/store/publication/provider tests,
+private-worker schema tests, and the full library suite pass; no shell, Gradle,
+or recursive public CLI acquisition path was introduced.
+
+**Work:**
+
+- Extract reusable source preflight, preferred-provider selection,
+  acquisition coordination, and typed recommendation rendering from
+  `dependency source acquire/search`; keep those public commands' behavior and
+  tests unchanged.
+- `symbol index refresh --branch` resolves the branch's active dependency
+  components, acquires each preferred declared provider when missing/stale,
+  indexes its searchable roots, and publishes one immutable dependency index.
+  Components with no usable source/decompile provider remain explicit
+  unavailable inputs and make the manifest partial rather than disappearing.
+- Refresh never invokes a shell, Gradle, ripgrep, or a public recursive CLI
+  command. The parent calls shared Rust acquisition APIs with cancellation and
+  normal cache locking. For bounded parser memory only, it starts the current
+  executable with a private versioned typed worker request for fixed-size
+  source shards; this protocol is not user-facing and cannot acquire sources
+  or publish the cache. Platform-pipeline acquisition runs once even when
+  Minecraft and loader components share it.
+- `symbol index show --branch` performs no acquisition or writes. Its typed
+  report includes expected identity, readiness/completeness, concrete index
+  directory/manifest/payload paths, counts, source-provider statuses, and
+  generated refresh/acquisition command strings.
+- Construct recommendations as typed `Cli` values and use Figue
+  `ToArgs::to_args_string_with_current_exe`; tests round-trip the produced argv.
+
+**Validation:** fixture inventories cover acquired, missing, stale, partial,
+provider priority, shared platform pipeline, unavailable provider, cancellation,
+exact command recommendations, private-worker schema rejection, deterministic
+shard merging, and bounded per-worker source counts. Existing dependency-source
+tests remain green.
+
+### [x] 0.8.5 Compose live SFM and cached dependency symbols for every query
+
+**Completion notes (2026-08-09):** Branch queries now route-scan only relevant
+dependency records, pass a compact external-resolution TSV to short-lived live
+SFM parser workers, and merge the two typed bodies with live-definition
+precedence. Definition and list queries run type/member passes; usage queries
+add the usage pass. Resolution filtering retains dependency types named in live
+source, constructors whose owner is named, and fields/methods only when both
+the owner and dot-qualified member are evidenced. Exact imports/descriptors,
+source-set visibility, dependency provenance, incomplete status 5, and stale or
+missing recommendations survive composition.
+
+The production `*MultiLineEditBox*` list query completed in 54.0 seconds with a
+measured 664 MiB parent peak, 808 MiB largest worker, and about 1,405 MiB
+combined peak; allocation-free routed glob matching reduced the dependency-only
+glob path from about 3.9 GiB/8.9 seconds to 288 MiB/1.9 seconds. An exact
+definition query returned the one Minecraft declaration at
+`dependency/forge/userdev/loader-pipeline/net/minecraft/client/gui/components/MultiLineEditBox.java`.
+Canonical `list-usages` and aliased `list-usage` each completed in about 109
+seconds, returned 8 usages, and produced byte-identical 11,016-byte JSON with
+SHA-256 `2AA53D2EA05BAF15BE39980DC9E48BA16D7DAEF6E6C025120AEF94F9796C7626`.
+
+A temporary unique field added to `SFMPerformanceTweaks.java` appeared as one
+resolved live definition on the next 53.0-second list query without refreshing
+the dependency index; the exact line was then removed and the Java file had no
+remaining diff. Two accidentally concurrent real usage proofs exposed that
+independent per-process Job Object ceilings did not bound aggregate machine
+memory and produced a native Windows access violation. Branch queries now
+acquire one cancellable cache-scoped live-query lock before scanner/worker work;
+a regression proves the second query waits and proceeds after release while
+isolated scenarios remain uncoordinated.
+
+**Work:**
+
+- Introduce a query-time symbol universe that builds the selected SFM/custom
+  workspace index live, probes/loads only the exact current dependency index,
+  and combines definitions/usages without copying dependency sources into the
+  workspace or persisting SFM data.
+- Serialize memory-intensive branch-mode query indexing across top-level CLI
+  processes with one cancellable cache-scoped lock. Per-worker and parent Job
+  Object limits are necessary but insufficient because Windows enforces them
+  per process; two simultaneous real usage queries must wait rather than run
+  native parser workers concurrently. Keep isolated tiny-root scenarios free
+  of this machine-wide coordination.
+- Extend type lookup so explicit imports such as Minecraft `BlockPos` resolve
+  against cached dependency declarations. This must allow SFM methods with
+  dependency types to retain exact JVM descriptors while preserving confidence
+  and diagnostics; spelling alone is still not `Resolved`.
+- Define workspace-versus-dependency precedence and ambiguity exactly as in the
+  confirmed design. Attach typed source origin to definitions, usages, and
+  diagnostics and emit stable dependency-relative paths.
+- Add `complete|incomplete` independently from command outcome and bump changed
+  definition/usage schemas to `/2`. Status `5` means incomplete coverage;
+  success/no-match/ambiguous statuses `0/2/3` apply only to complete reports.
+- Apply the same universe/completeness contract to `show-definition`, both
+  usage spellings, and `list`. If the index is missing/stale, return live SFM
+  rows plus diagnostics and the typed refresh command; never load the stale
+  bytes or report an authoritative no-match.
+
+**Validation:** deterministic synthetic integration tests cover a dependency
+type referenced by live SFM-like source, external method descriptors, duplicate
+source/dependency definitions, dependency-only usages, missing/stale index,
+complete no-match, and identical canonical/alias output.
+
+### [x] 0.8.6 Prove the dependency-backed vertical slice and update guidance
+
+**Completion notes (2026-08-09):** Canonical help, dependency lifecycle, real
+list/definition/usage/alias queries, live-edit freshness, measured
+memory/timing, and durable user guidance are complete. Focused and synthetic
+tests cover glob routing, exact selector separation, lockfile identity/store
+validation, provider acquisition recommendations, routed stream filtering,
+live/dependency composition and precedence, incomplete status, alias parsing,
+worker bisection, and top-level live-query serialization.
+
+The required `check-all.ps1` passed dependency policy, formatting, Clippy with
+warnings denied, build, 450 library tests (3 intentionally ignored), and all 7
+scenario-harness tests. The first sandboxed run reached 449 passing tests before
+the documented Codex `os_error=5` denied the ripgrep temporary-directory
+subprocess; the identical script passed with ordinary Windows temp/process
+access. `git diff --check` and format checks are clean. No Gradle, propagation,
+game launch, or persistent Java-source mutation occurred.
+
+**Work and evidence:**
+
+- Update `docs/java symbol analysis.md`, command help/examples, and every
+  existing scenario to the canonical names; document `list-usage`, glob rules,
+  cache lifecycle, source acquisition, status `5`, stable origins, and the
+  cached-dependency/live-workspace split.
+- Run `symbol index show --branch 1.19.2` before refresh and preserve the typed
+  missing/stale evidence and generated recommendation.
+- Run `symbol index refresh --branch 1.19.2`. For the current missing Minecraft
+  source tree, verify refresh reuses the existing `minecraft-pipeline`
+  acquisition equivalent to `dependency source acquire minecraft/main
+  --provider any --branch 1.19.2`; do not add a second platform pipeline.
+- Run `symbol index show --branch 1.19.2` after refresh and record the concrete
+  path, semantic identity, source counts, payload size, refresh time, warm-load
+  time, and completeness.
+- Prove all of these real commands in text and JSON without Gradle or a game:
+
+  ```powershell
+  sfm-propagate-changes.exe symbol list '*MultiLineEditBox*' --branch 1.19.2
+  sfm-propagate-changes.exe symbol show-definition net.minecraft.client.gui.components.MultiLineEditBox --branch 1.19.2
+  sfm-propagate-changes.exe symbol list-usages net.minecraft.client.gui.components.MultiLineEditBox --branch 1.19.2
+  sfm-propagate-changes.exe symbol list-usage net.minecraft.client.gui.components.MultiLineEditBox --branch 1.19.2
+  ```
+
+- Prove a live SFM edit is visible on the next query without refreshing the
+  dependency index, then restore the fixture/edit safely. Prove a semantic
+  lockfile identity change makes the prior index stale in a synthetic test and
+  generates a round-trippable refresh recommendation.
+- Run focused tests, `cargo test --all-features --test java_analysis_scenarios`,
+  the existing source-audit regressions, and required `check-all.ps1`. Do not
+  run Gradle or propagation.
+
+**Completion criteria:** `help list --short` is verb-like; both usage spellings
+are equivalent; exact selectors are discoverable through typed glob listing;
+`MultiLineEditBox` lists and resolves from the cached Minecraft source index;
+queries always use live SFM sources plus only an identity-valid dependency
+index; stale/missing coverage is explicit with typed recommendations; cache
+location/lifecycle is inspectable; all validation passes; no Java source is
+mutated.
+
+### Phase 0.8 risk register
+
+| Risk | Guardrail and proof |
+| --- | --- |
+| A wildcard silently weakens exact navigation/refactoring safety. | `JavaSymbolGlob` exists only in `symbol list`; exact commands continue to reject wildcard selectors. |
+| A stale dependency index returns convincing but wrong answers. | Exact semantic identity and payload-hash validation precede load; incomplete status `5` replaces false success/no-match and includes a typed refresh command. |
+| Refresh duplicates source downloading/build logic. | Shared provider selection/acquisition is extracted from existing dependency-source commands and regression-tested through both entry points. |
+| Refresh corrupts a previously useful cache. | Scoped lock, sibling temporary publication, manifest/payload validation, and atomic replacement preserve the previous index on failure/cancellation. |
+| Machine paths make indexes unreproducible or unshareable. | Identity and persisted origins are portable; absolute paths appear only in local `index show` presentation, never identity or payload provenance. |
+| Caching SFM sources creates difficult invalidation bugs. | SFM/custom roots are always read and indexed live; only immutable dependency-source inputs are persisted. |
+| Indexing all dependency sources is too slow or large. | Store/load/query timing and payload size are mandatory evidence; versioned storage abstraction permits later format/sharding changes without CLI/schema drift. |
+| Concurrent real queries exceed memory despite per-process Job Object limits. | One cancellable cache-scoped live-query lock serializes branch-mode scanner/worker pipelines across CLI processes; a regression proves a second invocation waits and proceeds after release, while isolated tiny-root scenarios remain unblocked. |
+| Missing provider sources disappear from results. | Manifest and every query report enumerate unavailable inputs and mark completeness incomplete. |
+
+## Phase 0.9 — Single-parse streaming live-definition index (complete)
+
+Complete `0.9.1` through `0.9.6` as one vertical slice before beginning Phase
+1. This phase addresses the measured latency of live branch definition queries
+without introducing a persistent SFM-source index. It replaces the production
+live `show-definition` path only after the new single-parse fact/link pipeline
+has proved equivalent to the completed Phase 0.8 implementation.
+
+The motivating evidence is the installed command:
+
+```powershell
+sfm-propagate-changes.exe symbol show-definition DiskItem --branch 1.19.2
+```
+
+On the 2026-08-10 development machine (32 logical CPUs, approximately 64 GiB
+RAM), one measured run took 9,573 ms; user-observed runs took about 11 seconds.
+The selected workspace contained 1,318 Java files, split into 42 shards of at
+most 32 files. A type query still launched 42 `Types` workers followed by a
+global barrier and 42 `Members` workers. The first pass occupied about 5.1
+seconds from query start and the member pass ended about 9.4 seconds after
+start. `show-definition` does not request usages, so those 84 serial child
+processes and the second parse of every live source are the immediate target.
+
+### Phase 0.9 confirmed design
+
+| Area | Decision |
+| --- | --- |
+| Production scope | Optimize every selector accepted by `symbol show-definition` against live branch/custom sources. Keep `symbol list-usages`, dependency-index refresh, and persistent dependency payload construction on the Phase 0.8 implementation in this slice; record their migration as follow-up rather than coupling it to the `DiskItem` latency proof. |
+| Parse unit | A selected Java source is read and parsed no more than once per query. One worker invocation emits a complete, versioned `JavaFileFacts` bundle for each file: source identity/hash/set, package/import context, type declarations, raw field/method/constructor signatures, raw references required by declaration linking, and parse diagnostics. It does not emit an already-resolved Phase 0.8 index fragment that requires a second pass. |
+| Streaming topology | The coordinator starts a bounded producer set and a linker consumer together. As soon as one shard completes, its file-fact bundles are validated and admitted to the linker while other workers remain active. There is no all-types, all-members, or all-files barrier between parsing and linking. |
+| Link and seal semantics | The linker interns declarations immediately, attempts resolution against live facts already seen plus the immutable dependency-resolution vocabulary, and retains unresolved/ambiguous candidates keyed by the names that can wake them. New declarations retry only affected candidates. End-of-snapshot `seal()` performs completeness-dependent decisions once: stable ambiguity/uniqueness, final unresolved diagnostics, source-set visibility enforcement, canonical ordering, and index fingerprint. It never reparses a source. |
+| Query semantics | A class-only query may collect a matching type early but still waits for `seal()` before claiming uniqueness. Field/method/constructor selectors resolve their raw signatures as declarations arrive and likewise wait for seal. The typed output schema, status, completeness, provenance, source hashes, short-name ambiguity rules, exact-selector precedence, and dependency behavior remain unchanged. Definition fingerprints cover the canonical query-visible definitions and diagnostics; the unrelated-diagnostic notice does not embed an implementation-dependent suppressed count. This stabilization was required for byte equivalence after the old bounded sharding and new linker legitimately collected different quantities of diagnostics that neither report exposed. |
+| Worker supervision | Use a bounded asynchronous/scoped fan-out abstraction (a Tokio `JoinSet` plus channel is acceptable, but not required) with an initial default of four active child workers. Begin with one balanced shard per worker so process startup is not again the dominant cost; hard limits and deterministic bisection are the resource boundary. The supervisor owns every child handle and memory guard until exit, stops scheduling on first infrastructure failure/cancellation, kills and waits for all active children, then returns the first error with cleanup context. No detached tasks or child processes are allowed. |
+| Memory boundary | Retain the 1.5 GiB per-worker ceiling and output caps. Concurrent Windows children share a kill-on-close Job Object with both process-memory and 6 GiB aggregate-job ceilings for the initial four-worker bound. A test queries Win32 to verify all flags and values. Empirical implementation evidence rejected retroactively assigning the already-running coordinator to the refresh-only 1.5 GiB parent job: the real query then terminated with Windows `0xC0000005`. The live coordinator therefore remains outside that job, retains bounded worker outputs plus the machine-wide live-query lock, and records a safely-at-process-creation parent cap as follow-up. Platforms without an enforceable aggregate child limit run one worker. |
+| Failure bisection | A failed multi-file shard is deterministically bisected and its halves are requeued through the same bounded supervisor. Successful siblings are retained; no source is reparsed merely because another shard failed. A one-file failure terminates the query after active children have been cleaned up. |
+| Determinism | Worker completion order is deliberately nondeterministic; published definitions and diagnostics are not. Fact bundles carry stable shard/file sequence identities. Linker output is canonicalized by semantic identity, source set, report path, and span at seal. Reversed/delayed completion tests must produce byte-identical typed reports and fingerprints. |
+| Equivalence oracle | Keep the Phase 0.8 multi-pass builder callable only from tests or an explicit developer diagnostic during this phase. Compare canonical reports on the existing scenarios plus generated import, forward-reference, overload, nested-type, source-set, and ambiguity cases. Do not silently fall back to the old path in production when the new path disagrees. |
+| Persistence boundary | Reuse immutable dependency resolution data within the query, but do not persist `JavaFileFacts`, add a live source cache, watch files, or start a daemon. A subsequent CLI invocation rereads current SFM sources by design. |
+| Latency acceptance | Preserve raw timing evidence and compare installed release builds. Over five warm real `DiskItem` runs on the same machine and unchanged source/index state, Phase 0.9 targets median wall time at or below 4.0 seconds and no run above 6.0 seconds. If the target is missed, do not call the phase complete: record worker/link/dependency-scan timing and continue against the measured dominant stage. |
+
+**In scope:** fact schema and extraction; streaming forward-reference linker;
+bounded parallel child supervisor; aggregate memory/cancellation/failure
+lifecycle; deterministic bisection/fan-in; production integration for
+`show-definition`; equivalence, instrumentation, real latency evidence,
+documentation, full CLI checks, and installed-binary verification.
+
+**Out of scope:** persistent live SFM indexes, file watching, a daemon,
+incremental reuse between CLI invocations, usage collection, dependency-index
+refresh migration, Gradle, Minecraft/game launch, Java mutation, propagation,
+and changing any public symbol report schema or selector semantics.
+
+### Phase 0.9 parallel work map
+
+- **Track A — file facts:** owns new fact-model/extraction modules and focused
+  parser tests. It does not edit the worker supervisor or production CLI route.
+- **Track B — bounded supervisor:** owns a new generic/private live-worker
+  supervisor module and lifecycle tests using synthetic child commands. It does
+  not edit Java extraction, linker logic, or symbol CLI routing.
+- **Track C — linker and oracle:** one owner builds the streaming linker,
+  generated-corpus equivalence harness, and seal semantics after the fact
+  contract is frozen. This track owns semantic integration decisions.
+- **Integration owner:** alone edits shared module exports, the private worker
+  entry point, `build_java_index_sharded` routing, and `symbol_index_cli.rs`.
+  It can proceed on instrumentation and contract tests while A/B run, then
+  reviews and integrates both tracks. No two agents edit the same file.
+
+### [x] 0.9.1 Freeze evidence, contracts, and equivalence fixtures
+
+**Work:**
+
+- Preserve the 2026-08-10 baseline in a repository-adjacent benchmark note or
+  test artifact, including exact command, source-file/shard counts, installed
+  executable identity/build mode, wall time, and observed pass timing.
+- Add query instrumentation for source discovery, dependency-route scan, worker
+  startup/parse, fact transfer, linker admission, seal, and report rendering.
+  Logs remain on stderr and do not change typed stdout.
+- Define the versioned `JavaFileFacts` and linker input/output contracts in Rust
+  types before parallel implementation. Include source hash, stable file/shard
+  identity, source-set visibility context, raw type/member/reference data, and
+  bounded diagnostics.
+- Add an equivalence harness capable of invoking the old and new builders over
+  the same in-memory or tiny-root workspace and canonicalizing only explicitly
+  volatile timing fields. The old builder is an oracle, not a production
+  fallback.
+
+**Validation:** focused tests reject wrong fact schemas, missing/duplicate file
+identities, mismatched hashes, and out-of-snapshot records; instrumentation
+tests prove every named stage appears while JSON stdout remains unchanged.
+
+**Completion criteria:** the baseline and typed contracts are durable; Track A,
+Track B, and Track C have disjoint write surfaces; and equivalence can report a
+field-level mismatch before the new path is selected in production.
+
+**Evidence (2026-08-10):** `docs/java symbol analysis.md` records the 9,573 ms
+baseline, 1,318 sources, 42 shards/pass, and 84 old child invocations.
+`live_query_timing.rs` emits stable stage events. `JavaFileFacts` is schema
+`sfm.java-file-facts/1`, and `definition_equivalence.rs` reports the first
+typed field mismatch while the legacy route is available only through the
+developer environment switch.
+
+### [x] 0.9.2 Parse each live source once into reusable facts
+
+**Work:**
+
+- Extract a `JavaFileFacts` builder from `JavaSyntaxFile`/`JavaSymbolIndex`
+  internals. Traverse one retained syntax tree to collect package/import/type
+  declarations, raw member signatures, declaration-reference evidence, and
+  parse diagnostics needed by definition queries.
+- Keep raw type syntax and lookup context until the linker can resolve it;
+  missing declarations in an early bundle are pending references, not guessed
+  unresolved diagnostics.
+- Change the private live worker protocol to return one fact bundle per source
+  in the shard. Validate that every requested source has exactly one result and
+  that no unrequested source appears. Keep request/output byte ceilings.
+- Add a test-only parse counter around the extraction boundary. The count for a
+  successful definition snapshot equals the selected source count even for
+  field/method selectors and forward references.
+
+**Validation:** parser tests cover top-level/nested types, fields, constructors,
+overloaded methods/descriptors, imports, same-package names, cross-source-set
+visibility, parse gaps, hashes, and reversed file order. A multi-file test
+proves one parse per file and no type/member TSV intermediate.
+
+**Completion criteria:** a worker produces complete reusable facts for every
+requested live source after exactly one parse, without requiring declarations
+from shards that have not completed.
+
+**Evidence (2026-08-10):** `java_file_facts.rs` performs one Arborium parse and
+one declaration walk for owned type/member/import/reference facts; parser
+counter, schema/hash/span, nested-type, import, visibility, diagnostic, and
+Facet round-trip tests pass. The private NDJSON worker emits one validated
+record per stable source sequence and rejects missing/duplicate protocol data.
+
+### [x] 0.9.3 Link facts incrementally and seal deterministically
+
+**Work:**
+
+- Add a query-local streaming linker that admits complete file bundles one at a
+  time, indexes declarations immediately, and resolves raw signatures against
+  admitted live declarations plus filtered immutable dependency definitions.
+- Key pending candidates by package/import/simple/qualified names so only
+  candidates affected by a newly admitted declaration are retried. Preserve
+  source-set visibility and never resolve by spelling alone when ambiguity
+  remains.
+- Implement an explicit `seal(expected_files)` transition. It rejects missing
+  or duplicate files, resolves remaining candidates once, emits final bounded
+  unresolved diagnostics, decides exact/short-name uniqueness or ambiguity,
+  canonicalizes output, and computes the same semantic fingerprint without
+  reading or parsing source files.
+- Prove the consumer observes at least one admitted bundle while producers are
+  still active; a test that only sees data after all workers finish is a global
+  barrier and fails.
+
+**Validation:** incremental-order tests cover declaration-before-reference,
+reference-before-declaration, ambiguous short names, dependency types, member
+descriptors, nested classes, visibility rejection, duplicate/missing facts,
+and randomized/delayed arrival. Every order produces canonical equivalent
+output after seal.
+
+**Completion criteria:** linking overlaps fact production, forward references
+resolve without reparsing, and only seal waits for snapshot completeness.
+
+**Evidence (2026-08-10):** `definition_linker.rs` retains name-keyed watchers,
+revises early candidates after late declarations, enforces visibility, and
+seals an exact contiguous sequence. Reordered-arrival, late ambiguity,
+dependency type, descriptor, and missing-sequence tests pass. The installed
+trace admitted shard `660..990` at 545 ms while three producers were active;
+fan-out/link/seal completed at 934 ms.
+
+### [x] 0.9.4 Supervise bounded parallel workers without exceeding lifecycle limits
+
+**Work:**
+
+- Replace serial shard launching on the new live-definition route with a
+  bounded supervisor. Start with four active workers and make the bound visible
+  in tracing/test observations; do not derive it implicitly from task count.
+- Own child handles and Job Object guards in the supervisor. On cancellation,
+  channel/decoder failure, spawn failure, output overflow, or a one-file worker
+  failure, stop scheduling, kill all active children, wait for each, close the
+  channel, and return the first failure plus cleanup diagnostics.
+- Put concurrent Windows workers in one shared kill-on-close job with 1.5 GiB
+  per-process and 6 GiB aggregate worker-memory limits. Preserve the parent
+  ceiling and machine-wide live-query lock. Add a documented conservative
+  non-Windows/unsupported-platform policy.
+- Requeue deterministic halves after a multi-file worker failure without
+  exceeding the active bound. Preserve successful outputs and stable shard
+  identities; bisection order must not define final output order.
+
+**Validation:** synthetic supervisor tests record peak active workers, delayed
+completion, reversed completion, cancellation, spawn/decode/output failures,
+multi-file bisection, one-file terminal failure, and process cleanup. On
+Windows, query Job Object configuration to prove both process and aggregate
+limits are active; after every failure no test child remains running.
+
+**Completion criteria:** useful worker concurrency occurs with a hard bound,
+all process/memory guards outlive their children, and every exit path joins or
+kills-and-waits all active work.
+
+**Evidence (2026-08-10):** scheduler tests prove a peak of four, deterministic
+bisection, terminal one-file failure, reversed completion, duplicate/unknown
+completion rejection, and exact partition seal. A real long-running child test
+proves cleanup kills, waits, and empties ownership. Windows queries the shared
+Job Object and verifies kill-on-close, active-process four, 1.5 GiB process,
+and 6 GiB aggregate flags/values. Unsupported platforms select one worker.
+
+### [x] 0.9.5 Integrate the new path for every `show-definition` selector
+
+**Work:**
+
+- Route live branch/custom-root definition queries through the parallel
+  fact/link pipeline. Continue composing only the current identity-valid
+  dependency index and retain status `5` for incomplete dependency coverage.
+- Support class, nested class, field, constructor, and method descriptor
+  selectors, including unqualified/suffix lookup and exact-match precedence.
+  Do not special-case `DiskItem` or class-only selectors.
+- Run the old and new builders through the equivalence harness across existing
+  scenarios and generated cases. Compare canonical typed output, source-set
+  context, definitions, spans/hashes, diagnostics, provenance, ambiguity,
+  completeness, and fingerprints. Resolve every mismatch explicitly.
+- Keep the old multi-pass builder available only to tests/developer diagnostics
+  needed by the equivalence proof. Production disagreement is an error during
+  development, never a silent fallback.
+
+**Validation:** all definition scenarios pass on the new production route;
+the equivalence matrix is byte-identical after permitted timing normalization;
+tests prove one parse per live source, linker activity before producer finish,
+and deterministic output with worker concurrency greater than one.
+
+**Completion criteria:** every public `show-definition` selector uses the new
+single-parse streaming path with Phase 0.8 behavior preserved.
+
+**Evidence (2026-08-10):** branch queries with ready/partial or unavailable
+dependency indexes and isolated custom roots select the fact/link path for
+every definition selector. The ready/partial route retains all compact
+dependency types as resolution vocabulary without rereading live sources.
+Real release-build class and method reports were byte-identical to the Phase
+0.8 oracle, including status 5, spans, hashes, completeness, diagnostics, and
+fingerprints. SHA-256 values are recorded in `docs/java symbol analysis.md`.
+
+### [x] 0.9.6 Prove latency, correctness, and operational closeout
+
+**Work:**
+
+- Build an optimized executable from the current source, install it with
+  `platform/cli/sfm-propagate-changes/install.ps1`, and run five warm
+  `DiskItem` definition queries against unchanged 1.19.2 sources/index state.
+  Record every wall time plus source, worker, peak-concurrency, linker, seal,
+  dependency-scan, and render timing.
+- Require median wall time at or below 4.0 seconds and every run at or below
+  6.0 seconds on the baseline machine. If missed, use stage evidence to improve
+  the dominant work before completion; do not lower the target retroactively
+  without recording a new user decision.
+- Run focused fact/link/supervisor/oracle tests, all Java-analysis scenarios,
+  and `check-all.ps1`. Verify cancellation/failure leaves no worker process or
+  temporary live-query artifact and does not alter the immutable dependency
+  index.
+- Update `docs/java symbol analysis.md` with the live-query topology, bounds,
+  persistence boundary, diagnostics, and measured performance. Record follow-up
+  work for applying the same architecture to `list-usages` and dependency
+  refresh, without marking those deferred routes complete.
+
+**Validation:**
+
+```powershell
+cargo test --all-features java_analysis
+cargo test --all-features --test java_analysis_scenarios
+.\check-all.ps1
+.\install.ps1
+sfm-propagate-changes.exe symbol show-definition DiskItem --branch 1.19.2
+```
+
+**Completion criteria:** `0.9.1`–`0.9.5` have durable evidence; the real command
+meets the latency distribution; each live source is parsed at most once;
+linking overlaps production; worker count/memory are bounded; failure and
+cancellation clean up; reports remain deterministic/equivalent; full checks
+pass; documentation and installed executable match the implementation; and no
+Java source, Gradle flow, dependency payload, or other Minecraft branch is
+changed.
+
+**Evidence (2026-08-10):** `check-all.ps1` passed 481 unit tests with three
+documented opt-in ignores plus all seven scenario-harness tests; focused Java
+analysis passed 98 tests with two opt-in ignores; strict all-feature/all-target
+Clippy, formatting, build, scenario snapshots, and `git diff --check` passed.
+`install.ps1` installed the checked release executable. After one warm-up, five
+installed `DiskItem` runs took 2,237, 2,163, 2,128, 2,101, and 2,088 ms
+(median 2,128 ms; maximum 2,237 ms), all with expected status 5. Installed
+class and method reports remained byte-identical to the legacy oracle, and the
+post-query process audit found zero surviving `sfm-propagate-changes` workers.
+
+### Phase 0.9 risk register
+
+| Risk | Guardrail and proof |
+| --- | --- |
+| Parallel execution hides the same two global barriers behind concurrent loops. | `0.9.3` requires linker admission while producers are active and tests fail if all facts arrive only after producer completion. |
+| Forward references become order-dependent. | Pending candidates wake on declaration admission; randomized/delayed arrival must produce byte-identical sealed output. |
+| Four 1.5 GiB workers plus parent exceed a safe machine budget. | Shared Windows Job Object applies a 6 GiB aggregate worker cap as well as per-process caps; the existing global query lock remains, and unsupported enforcement reduces concurrency explicitly. |
+| Cancellation or one worker error leaks children. | The supervisor owns every handle/guard, stops scheduling, kills, waits, and is tested with process-liveness assertions on each failure path. |
+| A one-parse counter passes while internal code reparses source text. | Extraction owns one `JavaSyntaxFile`; tests instrument the actual parser boundary and prohibit the old type/member worker protocols on the production route. |
+| Early match return reports false uniqueness. | Even class-only queries wait for snapshot seal; ambiguity and complete no-match are decided only after every expected file is admitted. |
+| The optimized report subtly differs from the current implementation. | The Phase 0.8 builder remains a test oracle over scenarios and generated corpora; production has no silent compatibility fallback. |
+| The slice grows into persistent indexing or usage migration. | Scope explicitly limits the production switch to `show-definition`; live facts die with the query and follow-ups remain incomplete. |
 
 ## Phase 1 — Inventory and architecture
 
@@ -913,18 +1593,21 @@ stale-plan test refuses to apply after the source changes.
 **Validation:** existing audit tests pass unchanged; a parser fixture can locate
 the same method invocation and declaration spans used by the audit.
 
-### [ ] 1.4 Decide the classpath/type-index strategy
+### [ ] 1.4 Extend the external type strategy beyond the Phase 0.8 source index
 
-- Prototype source-only indexing first, then add classpath stubs/signatures from
-  the existing compile classpath resolver.
-- Define how Minecraft/Forge mappings, missing optional-mod classes, generated
-  sources, and multiple source roots are represented.
+- Treat the lockfile-pinned dependency-source index from Phase 0.8 as the
+  authoritative external source layer when providers are available. Evaluate
+  bytecode stubs/signatures only for JDK or dependency components with no usable
+  source/decompile provider; do not replace the source index.
+- Extend how Minecraft/Forge mappings, missing optional-mod classes, generated
+  sources, inheritance, and multiple source roots are represented.
 - Establish a hard distinction between `Resolved`, `PartiallyResolved`, and
   `Unresolved`; only operations with a proven safety rule may proceed with the
   latter two states.
 
-**Validation:** index SFMBlockPosUtils and one Minecraft/Forge external type;
-report overloads and inheritance without launching Gradle or the game.
+**Validation:** retain the Phase 0.8 `MultiLineEditBox` source-backed proof,
+then report overloads and inheritance for one source-unavailable external type
+without launching Gradle or the game.
 
 ## Phase 2 — Parser, resolver, and edit engine
 

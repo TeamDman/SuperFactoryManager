@@ -1,9 +1,13 @@
+use super::DependencyJavaSourceOrigin;
+use super::DependencyJavaSymbolIndexBody;
 use super::DiagnosticSeverity;
 use super::JavaAnalysisContextOutput;
 use super::JavaAnalysisDiagnosticOutput;
+use super::JavaFileFactIdentity;
 use super::JavaSourceSpanOutput;
 use super::JavaSourceWorkspace;
 use super::JavaSymbolDefinitionOutput;
+use super::JavaSymbolGlob;
 use super::JavaSymbolIdentityOutput;
 use super::JavaSymbolKind;
 use super::JavaSymbolSelector;
@@ -12,6 +16,7 @@ use super::JavaUsageKind;
 use super::ResolutionConfidence;
 use super::SymbolCommandOutcome;
 use super::SymbolDefinitionOutput;
+use super::SymbolListOutput;
 use super::SymbolUsageListOutput;
 use super::syntax::JAVA_PARSER_FINGERPRINT;
 use super::syntax::JavaSyntaxFile;
@@ -32,14 +37,54 @@ pub struct JavaSymbolIndex {
     diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
 }
 
+/// A dependency declaration used only while resolving another source shard.
+///
+/// Unlike [`JavaSymbolDefinitionOutput`], this deliberately carries no source
+/// spans or report confidence. Private dependency-index workers can therefore
+/// load the global resolution surface without expanding every compact record
+/// into a synthetic report declaration.
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub(crate) struct JavaDependencyResolutionDefinition {
+    pub(crate) symbol: JavaSymbolIdentityOutput,
+    pub(crate) source_set: String,
+}
+
 impl JavaSymbolIndex {
+    pub(crate) fn from_linked_definitions(
+        mut context: JavaAnalysisContextOutput,
+        files: &[JavaFileFactIdentity],
+        mut definitions: Vec<JavaSymbolDefinitionOutput>,
+        mut diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+    ) -> Self {
+        definitions.sort();
+        definitions.dedup();
+        diagnostics.sort();
+        diagnostics.dedup();
+        JAVA_PARSER_FINGERPRINT.clone_into(&mut context.parser_fingerprint);
+        let evidence = files
+            .iter()
+            .map(|file| IndexSourceEvidence {
+                report_path: file.report_path.clone(),
+                source_set: file.source_set.clone(),
+                source_hash: file.source_hash.clone(),
+            })
+            .collect::<Vec<_>>();
+        context.index_fingerprint = index_fingerprint(&evidence, &definitions, &[], &diagnostics);
+        Self {
+            context,
+            definitions,
+            usages: Vec::new(),
+            diagnostics,
+        }
+    }
+
     /// Build a deterministic, read-only source index for every file in the workspace.
     ///
     /// # Errors
     ///
     /// Returns an error when a source cannot be read or Arborium cannot create a parse tree.
     pub fn build(workspace: &JavaSourceWorkspace) -> eyre::Result<Self> {
-        Self::build_workspace(workspace, true)
+        Self::build_workspace(workspace, true, None, None, None)
     }
 
     /// Build only declarations and declaration-time diagnostics. Definition
@@ -49,12 +94,79 @@ impl JavaSymbolIndex {
     ///
     /// Returns an error when a source cannot be read or parsed.
     pub fn build_definitions(workspace: &JavaSourceWorkspace) -> eyre::Result<Self> {
-        Self::build_workspace(workspace, false)
+        Self::build_workspace(workspace, false, None, None, None)
+    }
+
+    /// Live-index SFM sources while allowing an immutable dependency payload
+    /// to participate in type and member resolution.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a live source cannot be read or parsed.
+    pub fn build_with_dependencies(
+        workspace: &JavaSourceWorkspace,
+        dependencies: &DependencyJavaSymbolIndexBody,
+        include_usages: bool,
+    ) -> eyre::Result<Self> {
+        Self::build_workspace(workspace, include_usages, Some(dependencies), None, None)
+    }
+
+    pub(crate) fn build_dependency_worker(
+        workspace: &JavaSourceWorkspace,
+        resolution_dependencies: Option<&[JavaDependencyResolutionDefinition]>,
+        include_usages: bool,
+        diagnostic_limit: usize,
+    ) -> eyre::Result<Self> {
+        Self::build_workspace(
+            workspace,
+            include_usages,
+            None,
+            resolution_dependencies,
+            Some(diagnostic_limit),
+        )
+    }
+
+    pub(crate) fn from_sharded_query_bodies(
+        mut context: JavaAnalysisContextOutput,
+        mut live: DependencyJavaSymbolIndexBody,
+        mut dependencies: DependencyJavaSymbolIndexBody,
+    ) -> Self {
+        add_dependency_source_sets(&mut context, &dependencies);
+        let live_symbols = live
+            .definitions
+            .iter()
+            .map(|definition| definition.symbol.clone())
+            .collect::<BTreeSet<_>>();
+        dependencies
+            .definitions
+            .retain(|definition| !live_symbols.contains(&definition.symbol));
+
+        live.definitions.append(&mut dependencies.definitions);
+        live.usages.append(&mut dependencies.usages);
+        live.diagnostics.append(&mut dependencies.diagnostics);
+        live.definitions.sort();
+        live.definitions.dedup();
+        live.usages.sort();
+        live.usages.dedup();
+        live.diagnostics.sort();
+        live.diagnostics.dedup();
+        context.index_fingerprint =
+            index_fingerprint(&[], &live.definitions, &live.usages, &live.diagnostics);
+
+        Self {
+            context,
+            definitions: live.definitions,
+            usages: live.usages,
+            diagnostics: live.diagnostics,
+        }
     }
 
     fn build_workspace(
         workspace: &JavaSourceWorkspace,
         include_usages: bool,
+        dependencies: Option<&DependencyJavaSymbolIndexBody>,
+        resolution_dependencies: Option<&[JavaDependencyResolutionDefinition]>,
+        diagnostic_limit: Option<usize>,
     ) -> eyre::Result<Self> {
         let mut files = workspace.files.iter().collect::<Vec<_>>();
         files.sort_by(|left, right| {
@@ -66,7 +178,7 @@ impl JavaSymbolIndex {
         });
         let parsed = files
             .into_iter()
-            .map(JavaSyntaxFile::parse)
+            .map(|file| JavaSyntaxFile::parse_with_diagnostic_limit(file, diagnostic_limit))
             .collect::<eyre::Result<Vec<_>>>()?;
 
         let source_sets = parsed
@@ -81,26 +193,49 @@ impl JavaSymbolIndex {
                 }
             }
         }
+        let mut dependency_sets = dependencies.map_or_else(BTreeSet::new, dependency_source_sets);
+        if let Some(resolution_dependencies) = resolution_dependencies {
+            dependency_sets.extend(resolution_dependency_source_sets(resolution_dependencies));
+        }
+        if !dependency_sets.is_empty() {
+            for from in &source_sets {
+                for target in &dependency_sets {
+                    visibility.insert((from.clone(), target.clone()));
+                }
+            }
+            for from in &dependency_sets {
+                for target in &dependency_sets {
+                    visibility.insert((from.clone(), target.clone()));
+                }
+            }
+        }
         Ok(Self::build_from_parsed_mode(
             workspace.context.clone(),
             parsed,
             visibility,
             include_usages,
+            dependencies,
+            resolution_dependencies,
         ))
     }
 
     #[must_use]
     pub fn definition(&self, selector: &JavaSymbolSelector) -> SymbolDefinitionOutput {
         let definitions = self
-            .definitions
-            .iter()
-            .filter(|definition| selector_matches(selector, &definition.symbol))
+            .matching_definitions(selector)
+            .into_iter()
             .cloned()
             .collect::<Vec<_>>();
         let diagnostics = relevant_diagnostics(selector, &definitions, &[], &self.diagnostics);
+        let mut context = self.context.clone();
+        // A definition report fingerprint describes the canonical surface the
+        // query actually exposes. Unrelated declarations and diagnostics may
+        // be collected by different bounded implementations without making an
+        // otherwise byte-identical definition unstable.
+        context.index_fingerprint = index_fingerprint(&[], &definitions, &[], &diagnostics);
         SymbolDefinitionOutput::new(
             outcome_for_match_count(definitions.len()),
-            self.context.clone(),
+            context,
             selector.to_output(),
             definitions,
             diagnostics,
@@ -108,12 +243,56 @@ impl JavaSymbolIndex {
     }
 
     #[must_use]
-    pub fn usages(&self, selector: &JavaSymbolSelector) -> SymbolUsageListOutput {
-        let definitions = self
+    pub fn list(&self, pattern: &JavaSymbolGlob) -> SymbolListOutput {
+        let mut definitions = self
             .definitions
             .iter()
-            .filter(|definition| selector_matches(selector, &definition.symbol))
+            .filter(|definition| pattern.matches(&definition.symbol.canonical_selector()))
+            .cloned()
             .collect::<Vec<_>>();
+        definitions.sort_by(|left, right| {
+            left.symbol
+                .canonical_selector()
+                .cmp(&right.symbol.canonical_selector())
+                .then_with(|| left.symbol.kind.cmp(&right.symbol.kind))
+                .then_with(|| {
+                    left.identifier_span
+                        .source_set
+                        .cmp(&right.identifier_span.source_set)
+                })
+                .then_with(|| left.identifier_span.path.cmp(&right.identifier_span.path))
+                .then_with(|| left.identifier_span.cmp(&right.identifier_span))
+        });
+        let diagnostics = relevant_list_diagnostics(pattern, &definitions, &self.diagnostics);
+        SymbolListOutput::new(
+            if definitions.is_empty() {
+                SymbolCommandOutcome::NoMatch
+            } else {
+                SymbolCommandOutcome::Success
+            },
+            self.context.clone(),
+            pattern.pattern().to_owned(),
+            definitions,
+            diagnostics,
+        )
+    }
+
+    #[must_use]
+    pub fn dependency_body(
+        &self,
+        origins: &[DependencyJavaSourceOrigin],
+    ) -> DependencyJavaSymbolIndexBody {
+        DependencyJavaSymbolIndexBody::new(
+            self.definitions.clone(),
+            self.usages.clone(),
+            self.diagnostics.clone(),
+        )
+        .with_portable_origins(origins)
+    }
+
+    #[must_use]
+    pub fn usages(&self, selector: &JavaSymbolSelector) -> SymbolUsageListOutput {
+        let definitions = self.matching_definitions(selector);
         let identities = definitions
             .iter()
             .map(|definition| definition.symbol.clone())
@@ -137,13 +316,32 @@ impl JavaSymbolIndex {
         )
     }
 
+    fn matching_definitions(
+        &self,
+        selector: &JavaSymbolSelector,
+    ) -> Vec<&JavaSymbolDefinitionOutput> {
+        let exact = self
+            .definitions
+            .iter()
+            .filter(|definition| selector.matches_exact(&definition.symbol))
+            .collect::<Vec<_>>();
+        if exact.is_empty() {
+            self.definitions
+                .iter()
+                .filter(|definition| selector.matches(&definition.symbol))
+                .collect()
+        } else {
+            exact
+        }
+    }
+
     #[cfg(test)]
     fn build_from_parsed(
         context: JavaAnalysisContextOutput,
         files: Vec<JavaSyntaxFile>,
         visibility: BTreeSet<(String, String)>,
     ) -> Self {
-        Self::build_from_parsed_mode(context, files, visibility, true)
+        Self::build_from_parsed_mode(context, files, visibility, true, None, None)
     }
 
     fn build_from_parsed_mode(
@@ -151,6 +349,8 @@ impl JavaSymbolIndex {
         mut files: Vec<JavaSyntaxFile>,
         visibility: BTreeSet<(String, String)>,
         include_usages: bool,
+        dependencies: Option<&DependencyJavaSymbolIndexBody>,
+        resolution_dependencies: Option<&[JavaDependencyResolutionDefinition]>,
     ) -> Self {
         files.sort_by(|left, right| {
             (&left.report_path, &left.source_set).cmp(&(&right.report_path, &right.source_set))
@@ -161,14 +361,34 @@ impl JavaSymbolIndex {
             .iter()
             .flat_map(|file| file.diagnostics.clone())
             .collect::<Vec<_>>();
-        let types = collect_type_declarations(&files);
+        if let Some(dependencies) = dependencies {
+            diagnostics.extend(dependencies.diagnostics.iter().cloned());
+            add_dependency_source_sets(&mut context, dependencies);
+        }
+        let mut types = collect_type_declarations(&files);
+        if let Some(dependencies) = dependencies {
+            append_dependency_types(dependencies, &mut types);
+        }
+        if let Some(resolution_dependencies) = resolution_dependencies {
+            append_resolution_types(resolution_dependencies, &mut types);
+        }
         let type_lookup = TypeLookup::new(&types, visibility);
-        let (fields, methods, mut member_diagnostics) =
+        let (mut fields, mut methods, mut member_diagnostics) =
             collect_member_declarations(&files, &type_lookup);
+        if let Some(dependencies) = dependencies {
+            append_dependency_members(dependencies, &mut fields, &mut methods);
+        }
+        if let Some(resolution_dependencies) = resolution_dependencies {
+            append_resolution_members(resolution_dependencies, &mut fields, &mut methods);
+        }
+        fields.sort();
+        fields.dedup();
+        methods.sort();
+        methods.dedup();
         diagnostics.append(&mut member_diagnostics);
 
-        let field_lookup = member_lookup(fields.iter().map(|field| &field.output.symbol));
-        let method_lookup = member_lookup(methods.iter().map(|method| &method.output.symbol));
+        let field_lookup = member_lookup(fields.iter().map(FieldDeclaration::symbol));
+        let method_lookup = member_lookup(methods.iter().map(MethodDeclaration::symbol));
         let model = JavaIndexModel {
             files,
             types,
@@ -178,9 +398,11 @@ impl JavaSymbolIndex {
             field_lookup,
             method_lookup,
         };
-        let mut usages = Vec::new();
+        let mut usages = dependencies
+            .filter(|_| include_usages)
+            .map_or_else(Vec::new, |dependencies| dependencies.usages.clone());
         if include_usages {
-            usages = declaration_usages(&model);
+            usages.extend(declaration_usages(&model));
             for file_index in 0..model.files.len() {
                 let (mut file_usages, mut file_diagnostics) =
                     collect_file_usages(&model, file_index);
@@ -192,18 +414,21 @@ impl JavaSymbolIndex {
         let mut definitions = model
             .types
             .iter()
-            .map(|definition| definition.output.clone())
+            .filter_map(TypeDeclaration::output)
+            .cloned()
             .chain(
                 model
                     .fields
                     .iter()
-                    .map(|definition| definition.output.clone()),
+                    .filter_map(FieldDeclaration::output)
+                    .cloned(),
             )
             .chain(
                 model
                     .methods
                     .iter()
-                    .map(|definition| definition.output.clone()),
+                    .filter_map(MethodDeclaration::output)
+                    .cloned(),
             )
             .collect::<Vec<_>>();
         definitions.sort();
@@ -212,7 +437,13 @@ impl JavaSymbolIndex {
         usages.dedup();
         diagnostics.sort();
         diagnostics.dedup();
-        context.index_fingerprint = index_fingerprint(&model, &definitions, &usages, &diagnostics);
+        let evidence = model
+            .files
+            .iter()
+            .map(IndexSourceEvidence::from_file)
+            .collect::<Vec<_>>();
+        context.index_fingerprint =
+            index_fingerprint(&evidence, &definitions, &usages, &diagnostics);
 
         Self {
             context,
@@ -223,22 +454,382 @@ impl JavaSymbolIndex {
     }
 }
 
-#[derive(Clone, Debug)]
-struct TypeDeclaration {
-    output: JavaSymbolDefinitionOutput,
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+enum IndexedDeclaration {
+    Report(Box<JavaSymbolDefinitionOutput>),
+    Resolution(JavaDependencyResolutionDefinition),
 }
 
-#[derive(Clone, Debug)]
+impl IndexedDeclaration {
+    fn symbol(&self) -> &JavaSymbolIdentityOutput {
+        match self {
+            Self::Report(output) => &output.symbol,
+            Self::Resolution(definition) => &definition.symbol,
+        }
+    }
+
+    fn source_set(&self) -> &str {
+        match self {
+            Self::Report(output) => &output.identifier_span.source_set,
+            Self::Resolution(definition) => &definition.source_set,
+        }
+    }
+
+    fn output(&self) -> Option<&JavaSymbolDefinitionOutput> {
+        match self {
+            Self::Report(output) => Some(output.as_ref()),
+            Self::Resolution(_) => None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+struct TypeDeclaration {
+    declaration: IndexedDeclaration,
+}
+
+impl TypeDeclaration {
+    fn symbol(&self) -> &JavaSymbolIdentityOutput {
+        self.declaration.symbol()
+    }
+
+    fn source_set(&self) -> &str {
+        self.declaration.source_set()
+    }
+
+    fn output(&self) -> Option<&JavaSymbolDefinitionOutput> {
+        self.declaration.output()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct FieldDeclaration {
-    output: JavaSymbolDefinitionOutput,
+    declaration: IndexedDeclaration,
     value_type: Option<String>,
 }
 
-#[derive(Clone, Debug)]
+impl FieldDeclaration {
+    fn symbol(&self) -> &JavaSymbolIdentityOutput {
+        self.declaration.symbol()
+    }
+
+    fn source_set(&self) -> &str {
+        self.declaration.source_set()
+    }
+
+    fn output(&self) -> Option<&JavaSymbolDefinitionOutput> {
+        self.declaration.output()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
 struct MethodDeclaration {
-    output: JavaSymbolDefinitionOutput,
+    declaration: IndexedDeclaration,
     parameter_types: Vec<String>,
     return_type: Option<String>,
+}
+
+impl MethodDeclaration {
+    fn symbol(&self) -> &JavaSymbolIdentityOutput {
+        self.declaration.symbol()
+    }
+
+    fn source_set(&self) -> &str {
+        self.declaration.source_set()
+    }
+
+    fn output(&self) -> Option<&JavaSymbolDefinitionOutput> {
+        self.declaration.output()
+    }
+}
+
+#[derive(Clone, Debug)]
+struct IndexSourceEvidence {
+    report_path: String,
+    source_set: String,
+    source_hash: String,
+}
+
+impl IndexSourceEvidence {
+    fn from_file(file: &JavaSyntaxFile) -> Self {
+        Self {
+            report_path: file.report_path.clone(),
+            source_set: file.source_set.clone(),
+            source_hash: file.source_hash.clone(),
+        }
+    }
+}
+
+fn dependency_source_sets(dependencies: &DependencyJavaSymbolIndexBody) -> BTreeSet<String> {
+    dependencies
+        .definitions
+        .iter()
+        .flat_map(|definition| {
+            [
+                definition.identifier_span.source_set.clone(),
+                definition.declaration_span.source_set.clone(),
+            ]
+        })
+        .chain(
+            dependencies
+                .usages
+                .iter()
+                .map(|usage| usage.span.source_set.clone()),
+        )
+        .chain(
+            dependencies
+                .diagnostics
+                .iter()
+                .filter_map(|diagnostic| diagnostic.span.as_ref())
+                .map(|span| span.source_set.clone()),
+        )
+        .collect()
+}
+
+fn resolution_dependency_source_sets(
+    dependencies: &[JavaDependencyResolutionDefinition],
+) -> BTreeSet<String> {
+    dependencies
+        .iter()
+        .map(|definition| definition.source_set.clone())
+        .collect()
+}
+
+fn add_dependency_source_sets(
+    context: &mut JavaAnalysisContextOutput,
+    dependencies: &DependencyJavaSymbolIndexBody,
+) {
+    let dependency_sets = dependency_source_sets(dependencies);
+    for source_set in &mut context.source_sets {
+        source_set
+            .visible_source_sets
+            .extend(dependency_sets.iter().cloned());
+        source_set.visible_source_sets.sort();
+        source_set.visible_source_sets.dedup();
+    }
+    for source_set in &dependency_sets {
+        if context
+            .source_sets
+            .iter()
+            .any(|existing| existing.id == *source_set)
+        {
+            continue;
+        }
+        context.source_sets.push(super::JavaSourceSetOutput {
+            id: source_set.clone(),
+            visible_source_sets: dependency_sets.iter().cloned().collect(),
+        });
+    }
+    context
+        .source_sets
+        .sort_by(|left, right| left.id.cmp(&right.id));
+}
+
+fn append_dependency_types(
+    dependencies: &DependencyJavaSymbolIndexBody,
+    types: &mut Vec<TypeDeclaration>,
+) {
+    let local_symbols = types
+        .iter()
+        .map(TypeDeclaration::symbol)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    for definition in &dependencies.definitions {
+        match definition.symbol.kind {
+            JavaSymbolKind::Class
+            | JavaSymbolKind::Interface
+            | JavaSymbolKind::Enum
+            | JavaSymbolKind::Record
+            | JavaSymbolKind::Annotation
+                if !local_symbols.contains(&definition.symbol) =>
+            {
+                types.push(TypeDeclaration {
+                    declaration: IndexedDeclaration::Report(Box::new(definition.clone())),
+                });
+            }
+            _ => {}
+        }
+    }
+    types.sort();
+    types.dedup();
+}
+
+fn append_resolution_types(
+    dependencies: &[JavaDependencyResolutionDefinition],
+    types: &mut Vec<TypeDeclaration>,
+) {
+    let local_symbols = types
+        .iter()
+        .map(TypeDeclaration::symbol)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    types.extend(
+        dependencies
+            .iter()
+            .filter(|definition| {
+                is_type_kind(definition.symbol.kind) && !local_symbols.contains(&definition.symbol)
+            })
+            .cloned()
+            .map(|definition| TypeDeclaration {
+                declaration: IndexedDeclaration::Resolution(definition),
+            }),
+    );
+    types.sort();
+    types.dedup();
+}
+
+const fn is_type_kind(kind: JavaSymbolKind) -> bool {
+    matches!(
+        kind,
+        JavaSymbolKind::Class
+            | JavaSymbolKind::Interface
+            | JavaSymbolKind::Enum
+            | JavaSymbolKind::Record
+            | JavaSymbolKind::Annotation
+    )
+}
+
+fn append_dependency_members(
+    dependencies: &DependencyJavaSymbolIndexBody,
+    fields: &mut Vec<FieldDeclaration>,
+    methods: &mut Vec<MethodDeclaration>,
+) {
+    let local_fields = fields
+        .iter()
+        .map(FieldDeclaration::symbol)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let local_methods = methods
+        .iter()
+        .map(MethodDeclaration::symbol)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    for definition in &dependencies.definitions {
+        match definition.symbol.kind {
+            JavaSymbolKind::Field if !local_fields.contains(&definition.symbol) => {
+                fields.push(FieldDeclaration {
+                    declaration: IndexedDeclaration::Report(Box::new(definition.clone())),
+                    value_type: None,
+                });
+            }
+            JavaSymbolKind::Method | JavaSymbolKind::Constructor
+                if !local_methods.contains(&definition.symbol) =>
+            {
+                let (parameter_types, return_type) = definition
+                    .symbol
+                    .descriptor
+                    .as_deref()
+                    .and_then(decode_method_descriptor)
+                    .unwrap_or_default();
+                methods.push(MethodDeclaration {
+                    declaration: IndexedDeclaration::Report(Box::new(definition.clone())),
+                    parameter_types,
+                    return_type,
+                });
+            }
+            _ => {}
+        }
+    }
+    fields.sort();
+    fields.dedup();
+    methods.sort();
+    methods.dedup();
+}
+
+fn append_resolution_members(
+    dependencies: &[JavaDependencyResolutionDefinition],
+    fields: &mut Vec<FieldDeclaration>,
+    methods: &mut Vec<MethodDeclaration>,
+) {
+    let local_fields = fields
+        .iter()
+        .map(FieldDeclaration::symbol)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    let local_methods = methods
+        .iter()
+        .map(MethodDeclaration::symbol)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    for definition in dependencies {
+        match definition.symbol.kind {
+            JavaSymbolKind::Field if !local_fields.contains(&definition.symbol) => {
+                fields.push(FieldDeclaration {
+                    declaration: IndexedDeclaration::Resolution(definition.clone()),
+                    value_type: None,
+                });
+            }
+            JavaSymbolKind::Method | JavaSymbolKind::Constructor
+                if !local_methods.contains(&definition.symbol) =>
+            {
+                let (parameter_types, return_type) = definition
+                    .symbol
+                    .descriptor
+                    .as_deref()
+                    .and_then(decode_method_descriptor)
+                    .unwrap_or_default();
+                methods.push(MethodDeclaration {
+                    declaration: IndexedDeclaration::Resolution(definition.clone()),
+                    parameter_types,
+                    return_type,
+                });
+            }
+            _ => {}
+        }
+    }
+    fields.sort();
+    fields.dedup();
+    methods.sort();
+    methods.dedup();
+}
+
+fn decode_method_descriptor(descriptor: &str) -> Option<(Vec<String>, Option<String>)> {
+    let bytes = descriptor.as_bytes();
+    if bytes.first() != Some(&b'(') {
+        return None;
+    }
+    let mut cursor = 1;
+    let mut parameters = Vec::new();
+    while bytes.get(cursor) != Some(&b')') {
+        parameters.push(decode_descriptor_type(bytes, &mut cursor, false)?);
+    }
+    cursor += 1;
+    let return_type = decode_descriptor_type(bytes, &mut cursor, true)?;
+    (cursor == bytes.len()).then_some((parameters, (return_type != "void").then_some(return_type)))
+}
+
+fn decode_descriptor_type(bytes: &[u8], cursor: &mut usize, allow_void: bool) -> Option<String> {
+    let kind = *bytes.get(*cursor)?;
+    *cursor += 1;
+    let primitive = match kind {
+        b'B' => Some("byte"),
+        b'C' => Some("char"),
+        b'D' => Some("double"),
+        b'F' => Some("float"),
+        b'I' => Some("int"),
+        b'J' => Some("long"),
+        b'S' => Some("short"),
+        b'Z' => Some("boolean"),
+        b'V' if allow_void => Some("void"),
+        _ => None,
+    };
+    if let Some(primitive) = primitive {
+        return Some(primitive.to_owned());
+    }
+    match kind {
+        b'L' => {
+            let relative_end = bytes
+                .get(*cursor..)?
+                .iter()
+                .position(|byte| *byte == b';')?;
+            let end = *cursor + relative_end;
+            let name = std::str::from_utf8(bytes.get(*cursor..end)?).ok()?;
+            *cursor = end + 1;
+            Some(name.replace('/', "."))
+        }
+        b'[' => decode_descriptor_type(bytes, cursor, false).map(|inner| format!("{inner}[]")),
+        _ => None,
+    }
 }
 
 struct JavaIndexModel {
@@ -267,15 +858,21 @@ fn member_lookup<'a>(
 #[derive(Clone, Debug)]
 struct TypeLookup {
     by_name: BTreeMap<String, Vec<usize>>,
-    visibility: BTreeSet<(String, String)>,
-    types: Vec<TypeDeclaration>,
+    visibility: BTreeMap<String, BTreeSet<String>>,
+    types: Vec<LookupTypeDeclaration>,
+}
+
+#[derive(Clone, Debug)]
+struct LookupTypeDeclaration {
+    qualified_name: String,
+    source_set: String,
 }
 
 impl TypeLookup {
     fn new(types: &[TypeDeclaration], visibility: BTreeSet<(String, String)>) -> Self {
         let mut by_name = BTreeMap::<String, Vec<usize>>::new();
         for (index, declaration) in types.iter().enumerate() {
-            let qualified = &declaration.output.symbol.qualified_name;
+            let qualified = &declaration.symbol().qualified_name;
             by_name.entry(qualified.clone()).or_default().push(index);
             if qualified.contains('$') {
                 by_name
@@ -288,15 +885,29 @@ impl TypeLookup {
             indices.sort_unstable();
             indices.dedup();
         }
+        let mut visibility_by_source = BTreeMap::<String, BTreeSet<String>>::new();
+        for (from, to) in visibility {
+            visibility_by_source.entry(from).or_default().insert(to);
+        }
         Self {
             by_name,
-            visibility,
-            types: types.to_vec(),
+            visibility: visibility_by_source,
+            types: types
+                .iter()
+                .map(|declaration| LookupTypeDeclaration {
+                    qualified_name: declaration.symbol().qualified_name.clone(),
+                    source_set: declaration.source_set().to_owned(),
+                })
+                .collect(),
         }
     }
 
     fn is_visible(&self, from: &str, to: &str) -> bool {
-        from == to || self.visibility.contains(&(from.to_owned(), to.to_owned()))
+        from == to
+            || self
+                .visibility
+                .get(from)
+                .is_some_and(|targets| targets.contains(to))
     }
 
     fn visible_indices(&self, qualified_name: &str, from: &str) -> Vec<usize> {
@@ -305,9 +916,7 @@ impl TypeLookup {
             .into_iter()
             .flatten()
             .copied()
-            .filter(|index| {
-                self.is_visible(from, &self.types[*index].output.identifier_span.source_set)
-            })
+            .filter(|index| self.is_visible(from, &self.types[*index].source_set))
             .collect()
     }
 
@@ -353,37 +962,6 @@ enum TypeResolutionFailure {
     Inaccessible(String),
 }
 
-fn selector_matches(selector: &JavaSymbolSelector, symbol: &JavaSymbolIdentityOutput) -> bool {
-    match selector {
-        JavaSymbolSelector::Type { owner } => {
-            symbol.qualified_name == *owner
-                && matches!(
-                    symbol.kind,
-                    JavaSymbolKind::Class
-                        | JavaSymbolKind::Interface
-                        | JavaSymbolKind::Enum
-                        | JavaSymbolKind::Record
-                        | JavaSymbolKind::Annotation
-                )
-        }
-        JavaSymbolSelector::Field { owner, name } => {
-            symbol.kind == JavaSymbolKind::Field && symbol.owner == *owner && symbol.name == *name
-        }
-        JavaSymbolSelector::Method {
-            owner,
-            name,
-            descriptor,
-        } => {
-            matches!(
-                symbol.kind,
-                JavaSymbolKind::Method | JavaSymbolKind::Constructor
-            ) && symbol.owner == *owner
-                && symbol.name == *name
-                && symbol.descriptor.as_deref() == Some(descriptor)
-        }
-    }
-}
-
 fn outcome_for_match_count(count: usize) -> SymbolCommandOutcome {
     match count {
         0 => SymbolCommandOutcome::NoMatch,
@@ -397,7 +975,7 @@ fn collect_type_declarations(files: &[JavaSyntaxFile]) -> Vec<TypeDeclaration> {
     for file in files {
         collect_type_declarations_from_node(file, file.tree.root_node(), None, &mut declarations);
     }
-    declarations.sort_by(|left, right| left.output.cmp(&right.output));
+    declarations.sort();
     declarations
 }
 
@@ -423,7 +1001,7 @@ fn collect_type_declarations_from_node(
         );
         let owner = enclosing_owner.map_or_else(|| file.package_name.clone(), ToOwned::to_owned);
         declarations.push(TypeDeclaration {
-            output: JavaSymbolDefinitionOutput {
+            declaration: IndexedDeclaration::Report(Box::new(JavaSymbolDefinitionOutput {
                 symbol: JavaSymbolIdentityOutput {
                     kind: java_type_kind(node.kind()),
                     owner,
@@ -434,7 +1012,7 @@ fn collect_type_declarations_from_node(
                 identifier_span: file.span(name_node),
                 declaration_span: file.span(node),
                 confidence: ResolutionConfidence::Resolved,
-            },
+            })),
         });
         for child in named_children(node) {
             collect_type_declarations_from_node(file, child, Some(&qualified_name), declarations);
@@ -538,7 +1116,7 @@ fn collect_member_declarations(
             ResolutionConfidence::PartiallyResolved
         };
         fields.push(FieldDeclaration {
-            output: JavaSymbolDefinitionOutput {
+            declaration: IndexedDeclaration::Report(Box::new(JavaSymbolDefinitionOutput {
                 symbol: JavaSymbolIdentityOutput {
                     kind: JavaSymbolKind::Field,
                     owner: raw.owner.clone(),
@@ -549,7 +1127,7 @@ fn collect_member_declarations(
                 identifier_span: file.span_for_range(raw.name_node_range),
                 declaration_span: file.span_for_range(raw.declaration_range),
                 confidence,
-            },
+            })),
             value_type,
         });
     }
@@ -614,7 +1192,7 @@ fn collect_member_declarations(
             |descriptor| format!("{}.{}{descriptor}", raw.owner, raw.name),
         );
         methods.push(MethodDeclaration {
-            output: JavaSymbolDefinitionOutput {
+            declaration: IndexedDeclaration::Report(Box::new(JavaSymbolDefinitionOutput {
                 symbol: JavaSymbolIdentityOutput {
                     kind: raw.kind,
                     owner: raw.owner,
@@ -629,14 +1207,14 @@ fn collect_member_declarations(
                 } else {
                     ResolutionConfidence::Unresolved
                 },
-            },
+            })),
             parameter_types,
             return_type,
         });
     }
 
-    fields.sort_by(|left, right| left.output.cmp(&right.output));
-    methods.sort_by(|left, right| left.output.cmp(&right.output));
+    fields.sort();
+    methods.sort();
     (fields, methods, diagnostics)
 }
 
@@ -878,7 +1456,7 @@ fn resolve_reference_type_name(
     visible.dedup();
     match visible.as_slice() {
         [index] => Ok(ResolvedType {
-            qualified_name: lookup.types[*index].output.symbol.qualified_name.clone(),
+            qualified_name: lookup.types[*index].qualified_name.clone(),
             source_indices: visible,
         }),
         [] if inaccessible => Err(TypeResolutionFailure::Inaccessible(raw_name.to_owned())),
@@ -900,7 +1478,7 @@ fn resolve_qualified_candidate(
     let visible = lookup.visible_indices(candidate, &file.source_set);
     match visible.as_slice() {
         [index] => Ok(ResolvedType {
-            qualified_name: lookup.types[*index].output.symbol.qualified_name.clone(),
+            qualified_name: lookup.types[*index].qualified_name.clone(),
             source_indices: visible,
         }),
         [] if !all.is_empty() => Err(TypeResolutionFailure::Inaccessible(candidate.to_owned())),
@@ -1043,9 +1621,9 @@ fn declaration_usages(model: &JavaIndexModel) -> Vec<JavaSymbolUsageOutput> {
     model
         .types
         .iter()
-        .map(|definition| &definition.output)
-        .chain(model.fields.iter().map(|definition| &definition.output))
-        .chain(model.methods.iter().map(|definition| &definition.output))
+        .filter_map(TypeDeclaration::output)
+        .chain(model.fields.iter().filter_map(FieldDeclaration::output))
+        .chain(model.methods.iter().filter_map(MethodDeclaration::output))
         .map(|definition| JavaSymbolUsageOutput {
             target: definition.symbol.clone(),
             kind: JavaUsageKind::Declaration,
@@ -1143,7 +1721,7 @@ impl UsageCollector<'_> {
             let fields = self
                 .visible_fields(&import.owner, &import.member)
                 .into_iter()
-                .map(|field| field.output.symbol.clone())
+                .map(|field| field.symbol().clone())
                 .collect::<Vec<_>>();
             for target in fields {
                 self.usages.push(JavaSymbolUsageOutput {
@@ -1156,7 +1734,7 @@ impl UsageCollector<'_> {
             let methods = self
                 .visible_methods(&import.owner, &import.member)
                 .into_iter()
-                .map(|method| method.output.symbol.clone())
+                .map(|method| method.symbol().clone())
                 .collect::<Vec<_>>();
             let confidence = if methods.len() == 1 {
                 ResolutionConfidence::Resolved
@@ -1391,7 +1969,7 @@ impl UsageCollector<'_> {
             .collect::<Vec<_>>();
         if let [field] = candidates.as_slice() {
             self.usages.push(JavaSymbolUsageOutput {
-                target: field.output.symbol.clone(),
+                target: field.symbol().clone(),
                 kind: JavaUsageKind::FieldReference,
                 span: self.file().span(node),
                 confidence: ResolutionConfidence::Resolved,
@@ -1412,7 +1990,7 @@ impl UsageCollector<'_> {
         let span = self.file().span(name_node);
         match self.resolve_invocation(node) {
             Ok(Some((method, confidence))) => self.usages.push(JavaSymbolUsageOutput {
-                target: method.output.symbol.clone(),
+                target: method.symbol().clone(),
                 kind: JavaUsageKind::Invocation,
                 span: span.clone(),
                 confidence,
@@ -1470,7 +2048,7 @@ impl UsageCollector<'_> {
         let candidates = self.visible_methods(&owner, &name);
         match candidates.as_slice() {
             [method] => self.usages.push(JavaSymbolUsageOutput {
-                target: method.output.symbol.clone(),
+                target: method.symbol().clone(),
                 kind: JavaUsageKind::MethodReference,
                 span: span.clone(),
                 confidence: ResolutionConfidence::Resolved,
@@ -1517,7 +2095,7 @@ impl UsageCollector<'_> {
     ) {
         for index in indices {
             self.usages.push(JavaSymbolUsageOutput {
-                target: self.model.types[*index].output.symbol.clone(),
+                target: self.model.types[*index].symbol().clone(),
                 kind,
                 span: span.clone(),
                 confidence,
@@ -1535,7 +2113,7 @@ impl UsageCollector<'_> {
         let candidates = self.visible_fields(owner, name);
         match candidates.as_slice() {
             [field] => self.usages.push(JavaSymbolUsageOutput {
-                target: field.output.symbol.clone(),
+                target: field.symbol().clone(),
                 kind: JavaUsageKind::FieldReference,
                 span: self.file().span(location),
                 confidence: if partially_resolved {
@@ -1566,10 +2144,9 @@ impl UsageCollector<'_> {
             .flatten()
             .filter_map(|index| self.model.fields.get(*index))
             .filter(|field| {
-                self.model.type_lookup.is_visible(
-                    &self.file().source_set,
-                    &field.output.identifier_span.source_set,
-                )
+                self.model
+                    .type_lookup
+                    .is_visible(&self.file().source_set, field.source_set())
             })
             .collect()
     }
@@ -1582,10 +2159,9 @@ impl UsageCollector<'_> {
             .flatten()
             .filter_map(|index| self.model.methods.get(*index))
             .filter(|method| {
-                self.model.type_lookup.is_visible(
-                    &self.file().source_set,
-                    &method.output.identifier_span.source_set,
-                )
+                self.model
+                    .type_lookup
+                    .is_visible(&self.file().source_set, method.source_set())
             })
             .collect()
     }
@@ -1720,8 +2296,8 @@ impl UsageCollector<'_> {
                     })
             });
         }
-        candidates.sort_by(|left, right| left.output.cmp(&right.output));
-        candidates.dedup_by(|left, right| left.output == right.output);
+        candidates.sort_by(|left, right| left.declaration.cmp(&right.declaration));
+        candidates.dedup_by(|left, right| left.declaration == right.declaration);
         match candidates.as_slice() {
             [method] => Ok(Some((
                 *method,
@@ -1741,10 +2317,10 @@ impl UsageCollector<'_> {
                         .flatten()
                         .filter_map(|index| self.model.methods.get(*index))
                         .any(|method| {
-                            !self.model.type_lookup.is_visible(
-                                &self.file().source_set,
-                                &method.output.identifier_span.source_set,
-                            )
+                            !self
+                                .model
+                                .type_lookup
+                                .is_visible(&self.file().source_set, method.source_set())
                         })
                 });
                 if any_hidden_member {
@@ -1881,14 +2457,14 @@ fn java_types_match(parameter: &str, argument: &str) -> bool {
 }
 
 fn index_fingerprint(
-    model: &JavaIndexModel,
+    evidence: &[IndexSourceEvidence],
     definitions: &[JavaSymbolDefinitionOutput],
     usages: &[JavaSymbolUsageOutput],
     diagnostics: &[JavaAnalysisDiagnosticOutput],
 ) -> String {
     let mut hasher = blake3::Hasher::new();
     hasher.update(b"sfm-java-symbol-index/1\0");
-    for file in &model.files {
+    for file in evidence {
         hash_string(&mut hasher, &file.report_path);
         hash_string(&mut hasher, &file.source_set);
         hash_string(&mut hasher, &file.source_hash);
@@ -1970,14 +2546,54 @@ fn relevant_diagnostics(
         .collect::<Vec<_>>();
     selected.sort();
     selected.dedup();
-    let suppressed = diagnostics.len().saturating_sub(selected.len());
-    if suppressed > 0 {
+    if diagnostics.len() > selected.len() {
         selected.push(JavaAnalysisDiagnosticOutput {
             code: "java.unrelated-workspace-diagnostics-suppressed".to_owned(),
             severity: DiagnosticSeverity::Info,
             message: format!(
-                "Suppressed {suppressed} diagnostics unrelated to selector `{}`",
+                "Additional diagnostics unrelated to selector `{}` were suppressed",
                 selector.canonical()
+            ),
+            span: None,
+        });
+    }
+    selected
+}
+
+fn relevant_list_diagnostics(
+    pattern: &JavaSymbolGlob,
+    definitions: &[JavaSymbolDefinitionOutput],
+    diagnostics: &[JavaAnalysisDiagnosticOutput],
+) -> Vec<JavaAnalysisDiagnosticOutput> {
+    let selected_paths = definitions
+        .iter()
+        .flat_map(|definition| {
+            [
+                definition.identifier_span.path.as_str(),
+                definition.declaration_span.path.as_str(),
+            ]
+        })
+        .collect::<BTreeSet<_>>();
+    let mut selected = diagnostics
+        .iter()
+        .filter(|diagnostic| {
+            diagnostic
+                .span
+                .as_ref()
+                .is_some_and(|span| selected_paths.contains(span.path.as_str()))
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    selected.sort();
+    selected.dedup();
+    let suppressed = diagnostics.len().saturating_sub(selected.len());
+    if suppressed > 0 {
+        selected.push(JavaAnalysisDiagnosticOutput {
+            code: "java.unrelated-list-diagnostics-suppressed".to_owned(),
+            severity: DiagnosticSeverity::Info,
+            message: format!(
+                "Suppressed {suppressed} diagnostics outside files matched by symbol glob `{}`",
+                pattern.pattern()
             ),
             span: None,
         });
@@ -2042,6 +2658,260 @@ mod tests {
                 .collect::<Vec<_>>(),
         )
         .expect("selector should parse")
+    }
+
+    fn dependency_type(qualified_name: &str) -> DependencyJavaSymbolIndexBody {
+        let (owner, name) = qualified_name
+            .rsplit_once('.')
+            .expect("dependency type has a package");
+        let span = JavaSourceSpanOutput {
+            path: format!(
+                "dependency/minecraft/main/pipeline/{}.java",
+                qualified_name.replace('.', "/")
+            ),
+            source_set: "dependency:minecraft:main".to_owned(),
+            source_hash: "blake3:dependency-source".to_owned(),
+            start_byte: 0,
+            end_byte: 1,
+            start_line: 1,
+            start_column: 1,
+            end_line: 1,
+            end_column: 2,
+        };
+        DependencyJavaSymbolIndexBody::new(
+            vec![JavaSymbolDefinitionOutput {
+                symbol: JavaSymbolIdentityOutput {
+                    kind: JavaSymbolKind::Class,
+                    owner: owner.to_owned(),
+                    name: name.to_owned(),
+                    descriptor: None,
+                    qualified_name: qualified_name.to_owned(),
+                },
+                identifier_span: span.clone(),
+                declaration_span: span,
+                confidence: ResolutionConfidence::Resolved,
+            }],
+            Vec::new(),
+            Vec::new(),
+        )
+    }
+
+    #[test]
+    fn cached_dependency_types_resolve_live_source_imports_without_reparsing_dependencies() {
+        let dependency = dependency_type("net.minecraft.client.gui.components.MultiLineEditBox");
+        let index = JavaSymbolIndex::build_from_parsed_mode(
+            context(&[("main", &["main"])]),
+            vec![parsed(
+                "source/main/Editor.java",
+                "main",
+                r"
+                    package example;
+                    import net.minecraft.client.gui.components.MultiLineEditBox;
+                    class Editor { MultiLineEditBox value; }
+                ",
+            )],
+            BTreeSet::from([
+                ("main".to_owned(), "main".to_owned()),
+                ("main".to_owned(), "dependency:minecraft:main".to_owned()),
+            ]),
+            true,
+            Some(&dependency),
+            None,
+        );
+
+        let report = index.usages(&selector(&[
+            "net.minecraft.client.gui.components.MultiLineEditBox",
+        ]));
+        assert_eq!(report.outcome, SymbolCommandOutcome::Success);
+        assert!(report.usages.iter().any(|usage| {
+            usage.kind == JavaUsageKind::Import && usage.span.path.ends_with("Editor.java")
+        }));
+        assert!(report.usages.iter().any(|usage| {
+            usage.kind == JavaUsageKind::TypeReference && usage.span.path.ends_with("Editor.java")
+        }));
+    }
+
+    #[test]
+    fn resolution_only_dependencies_resolve_usages_without_becoming_report_definitions() {
+        let qualified_name = "net.minecraft.client.gui.components.MultiLineEditBox";
+        let resolution = vec![JavaDependencyResolutionDefinition {
+            symbol: JavaSymbolIdentityOutput {
+                kind: JavaSymbolKind::Class,
+                owner: "net.minecraft.client.gui.components".to_owned(),
+                name: "MultiLineEditBox".to_owned(),
+                descriptor: None,
+                qualified_name: qualified_name.to_owned(),
+            },
+            source_set: "dependency:minecraft:main".to_owned(),
+        }];
+        let index = JavaSymbolIndex::build_from_parsed_mode(
+            context(&[("main", &["main"])]),
+            vec![parsed(
+                "source/main/Editor.java",
+                "main",
+                r"
+                    package example;
+                    import net.minecraft.client.gui.components.MultiLineEditBox;
+                    class Editor { MultiLineEditBox value; }
+                ",
+            )],
+            BTreeSet::from([
+                ("main".to_owned(), "main".to_owned()),
+                ("main".to_owned(), "dependency:minecraft:main".to_owned()),
+            ]),
+            true,
+            None,
+            Some(&resolution),
+        );
+
+        let body = index.dependency_body(&[]);
+        assert!(
+            body.definitions
+                .iter()
+                .all(|definition| definition.symbol.qualified_name != qualified_name)
+        );
+        assert!(body.usages.iter().any(|usage| {
+            usage.target == resolution[0].symbol
+                && usage.kind == JavaUsageKind::Import
+                && usage.span.path.ends_with("Editor.java")
+        }));
+        assert!(body.usages.iter().any(|usage| {
+            usage.target == resolution[0].symbol
+                && usage.kind == JavaUsageKind::TypeReference
+                && usage.span.path.ends_with("Editor.java")
+        }));
+    }
+
+    #[test]
+    fn live_declaration_takes_precedence_over_same_dependency_identity() {
+        let dependency = dependency_type("example.Shared");
+        let index = JavaSymbolIndex::build_from_parsed_mode(
+            context(&[("main", &["main"])]),
+            vec![parsed(
+                "source/main/example/Shared.java",
+                "main",
+                "package example; public class Shared {}",
+            )],
+            BTreeSet::from([
+                ("main".to_owned(), "main".to_owned()),
+                ("main".to_owned(), "dependency:minecraft:main".to_owned()),
+            ]),
+            true,
+            Some(&dependency),
+            None,
+        );
+
+        let report = index.definition(&selector(&["example.Shared"]));
+        assert_eq!(report.outcome, SymbolCommandOutcome::Success);
+        assert_eq!(report.definitions.len(), 1);
+        assert_eq!(
+            report.definitions[0].identifier_span.path,
+            "source/main/example/Shared.java"
+        );
+    }
+
+    #[test]
+    fn unqualified_selectors_resolve_unique_types_and_member_owners() {
+        let index = index(vec![parsed(
+            "source/example/DiskItem.java",
+            "scenario",
+            "package example; public class DiskItem { int color; void open() {} }",
+        )]);
+
+        let type_report = index.definition(&selector(&["DiskItem"]));
+        assert_eq!(type_report.outcome, SymbolCommandOutcome::Success);
+        assert_eq!(
+            type_report.definitions[0].symbol.qualified_name,
+            "example.DiskItem"
+        );
+
+        let field_report = index.definition(&selector(&["DiskItem", "color"]));
+        assert_eq!(field_report.outcome, SymbolCommandOutcome::Success);
+        assert_eq!(field_report.definitions[0].symbol.owner, "example.DiskItem");
+
+        let method_report = index.definition(&selector(&["DiskItem", "open()V"]));
+        assert_eq!(method_report.outcome, SymbolCommandOutcome::Success);
+        assert_eq!(
+            method_report.definitions[0].symbol.owner,
+            "example.DiskItem"
+        );
+    }
+
+    #[test]
+    fn unqualified_selectors_report_ambiguity_but_exact_owners_take_precedence() {
+        let index = index(vec![
+            parsed(
+                "source/example/DiskItem.java",
+                "scenario",
+                "package example; public class DiskItem {}",
+            ),
+            parsed(
+                "source/other/DiskItem.java",
+                "scenario",
+                "package other; public class DiskItem {}",
+            ),
+            parsed(
+                "source/prefix/example/DiskItem.java",
+                "scenario",
+                "package prefix.example; public class DiskItem {}",
+            ),
+        ]);
+
+        let short_report = index.definition(&selector(&["DiskItem"]));
+        assert_eq!(short_report.outcome, SymbolCommandOutcome::Ambiguous);
+        assert_eq!(short_report.definitions.len(), 3);
+
+        let exact_report = index.definition(&selector(&["example.DiskItem"]));
+        assert_eq!(exact_report.outcome, SymbolCommandOutcome::Success);
+        assert_eq!(exact_report.definitions.len(), 1);
+        assert_eq!(
+            exact_report.definitions[0].symbol.qualified_name,
+            "example.DiskItem"
+        );
+    }
+
+    #[test]
+    fn symbol_list_orders_by_canonical_selector_and_preserves_overloads() {
+        let index = index(vec![
+            parsed(
+                "source/example/Z.java",
+                "scenario",
+                "package example; class Z { void run(String value) {} void run() {} }",
+            ),
+            parsed(
+                "source/example/A.java",
+                "scenario",
+                "package example; class A { int field; }",
+            ),
+        ]);
+        let report = index.list(&JavaSymbolGlob::default());
+        let selectors = report
+            .definitions
+            .iter()
+            .map(|definition| definition.symbol.canonical_selector())
+            .collect::<Vec<_>>();
+        let mut expected = selectors.clone();
+        expected.sort();
+        assert_eq!(selectors, expected);
+        assert!(selectors.contains(&"example.A field".to_owned()));
+        assert!(selectors.contains(&"example.Z run()V".to_owned()));
+        assert!(selectors.contains(&"example.Z run(Ljava/lang/String;)V".to_owned()));
+    }
+
+    #[test]
+    fn cached_method_descriptors_restore_parameter_and_return_types() {
+        assert_eq!(
+            decode_method_descriptor("(ILjava/lang/String;[I)Ljava/lang/Object;"),
+            Some((
+                vec![
+                    "int".to_owned(),
+                    "java.lang.String".to_owned(),
+                    "int[]".to_owned(),
+                ],
+                Some("java.lang.Object".to_owned()),
+            ))
+        );
+        assert_eq!(decode_method_descriptor("()V"), Some((Vec::new(), None)));
     }
 
     #[test]
@@ -2273,6 +3143,41 @@ mod tests {
         assert!(missing.diagnostics.iter().any(|diagnostic| {
             diagnostic.code == "java.unresolved-type" && diagnostic.message.contains("Missing")
         }));
+    }
+
+    #[test]
+    fn symbol_list_reports_only_diagnostics_from_matched_files() {
+        let index = index(vec![
+            parsed(
+                "source/p/Match.java",
+                "scenario",
+                "package p; class Match { MissingOne value; }",
+            ),
+            parsed(
+                "source/q/Unrelated.java",
+                "scenario",
+                "package q; class Unrelated { MissingTwo value; }",
+            ),
+        ]);
+
+        let report = index.list(&JavaSymbolGlob::new(Some("p.Match*".to_owned())));
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.message.contains("MissingOne"))
+        );
+        assert!(
+            report
+                .diagnostics
+                .iter()
+                .all(|diagnostic| !diagnostic.message.contains("MissingTwo"))
+        );
+        assert!(
+            report.diagnostics.iter().any(|diagnostic| {
+                diagnostic.code == "java.unrelated-list-diagnostics-suppressed"
+            })
+        );
     }
 
     #[test]

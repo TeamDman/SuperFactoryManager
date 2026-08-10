@@ -5,6 +5,7 @@ pub mod cli;
 pub mod colour;
 pub mod curseforge;
 pub(crate) mod dependency_inventory;
+pub(crate) mod dependency_sources;
 pub mod jar_build;
 pub mod java_analysis;
 pub(crate) mod java_source_catalog;
@@ -75,6 +76,12 @@ fn version() -> String {
 ///
 /// Panics if the CLI schema is invalid (should never happen with correct code).
 pub fn main() -> eyre::Result<std::process::ExitCode> {
+    if java_analysis::run_live_definition_worker_from_env()? {
+        return Ok(std::process::ExitCode::SUCCESS);
+    }
+    if java_analysis::run_dependency_index_worker_from_env()? {
+        return Ok(std::process::ExitCode::SUCCESS);
+    }
     // Install color_eyre for better error reports
     color_eyre::install()?;
     let cancellation_token = cancellation::install_ctrlc_handler()?;

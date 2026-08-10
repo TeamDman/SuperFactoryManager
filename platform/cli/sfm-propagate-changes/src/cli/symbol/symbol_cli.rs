@@ -1,9 +1,12 @@
-use super::SymbolDefinitionArgs;
+use super::SymbolIndexArgs;
+#[cfg(test)]
+use super::SymbolIndexCommand;
+use super::SymbolListArgs;
+use super::SymbolListUsagesArgs;
 use super::SymbolMoveArgs;
 use super::SymbolRenameArgs;
-use super::SymbolUsageArgs;
-#[cfg(test)]
-use super::SymbolUsageCommand;
+use super::SymbolShowDefinitionArgs;
+use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
 use crate::cli::output::CliOutput;
 use crate::java_analysis::JavaClasspathMode;
@@ -24,9 +27,9 @@ impl SymbolArgs {
     /// # Errors
     ///
     /// Returns an error when symbol arguments or analysis fail.
-    pub fn invoke(self) -> eyre::Result<CliOutput> {
+    pub fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<CliOutput> {
         let invocation_dir = std::env::current_dir()?;
-        self.invoke_in(&invocation_dir)
+        self.invoke_in(cancellation_token, &invocation_dir)
     }
 
     /// Invoke relative-path arguments against an explicit directory.
@@ -35,8 +38,12 @@ impl SymbolArgs {
     ///
     /// Returns an error when validation, workspace resolution, or analysis
     /// fails.
-    pub fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
-        self.command.invoke_in(invocation_dir)
+    pub fn invoke_in(
+        self,
+        cancellation_token: &CancellationToken,
+        invocation_dir: &Path,
+    ) -> eyre::Result<CliOutput> {
+        self.command.invoke_in(cancellation_token, invocation_dir)
     }
 }
 
@@ -44,9 +51,14 @@ impl SymbolArgs {
 #[repr(u8)]
 pub enum SymbolCommand {
     /// Find the declaration selected by an Access Transformer style target.
-    Definition(SymbolDefinitionArgs),
+    ShowDefinition(SymbolShowDefinitionArgs),
     /// Find references to a selected Java symbol.
-    Usage(SymbolUsageArgs),
+    #[facet(args::alias = "list-usage")]
+    ListUsages(SymbolListUsagesArgs),
+    /// Enumerate symbols, optionally filtering exact selectors with `*` and `?`.
+    List(SymbolListArgs),
+    /// Inspect or refresh the immutable dependency symbol index.
+    Index(SymbolIndexArgs),
     /// Rename a selected Java symbol.
     Rename(SymbolRenameArgs),
     /// Move a selected Java symbol.
@@ -57,9 +69,9 @@ impl SymbolCommand {
     /// # Errors
     ///
     /// Returns an error when the selected command fails.
-    pub fn invoke(self) -> eyre::Result<CliOutput> {
+    pub fn invoke(self, cancellation_token: &CancellationToken) -> eyre::Result<CliOutput> {
         let invocation_dir = std::env::current_dir()?;
-        self.invoke_in(&invocation_dir)
+        self.invoke_in(cancellation_token, &invocation_dir)
     }
 
     /// Invoke the selected symbol command against an explicit directory.
@@ -67,10 +79,16 @@ impl SymbolCommand {
     /// # Errors
     ///
     /// Returns an error when the selected command fails.
-    pub fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
+    pub fn invoke_in(
+        self,
+        cancellation_token: &CancellationToken,
+        invocation_dir: &Path,
+    ) -> eyre::Result<CliOutput> {
         match self {
-            Self::Definition(args) => args.invoke_in(invocation_dir),
-            Self::Usage(args) => args.invoke_in(invocation_dir),
+            Self::ShowDefinition(args) => args.invoke_in(cancellation_token, invocation_dir),
+            Self::ListUsages(args) => args.invoke_in(cancellation_token, invocation_dir),
+            Self::List(args) => args.invoke_in(cancellation_token, invocation_dir),
+            Self::Index(args) => args.invoke_in(cancellation_token, invocation_dir),
             Self::Rename(args) => args.invoke(),
             Self::Move(args) => args.invoke(),
         }
@@ -159,6 +177,7 @@ mod tests {
     use crate::cli::Cli;
     use crate::cli::Command as CliCommand;
     use crate::cli::output::OutputFormat;
+    use figue::ToArgs;
 
     fn parse(arguments: &[&str]) -> Cli {
         figue::from_slice::<Cli>(arguments)
@@ -168,48 +187,129 @@ mod tests {
     }
 
     #[test]
-    fn parses_symbol_cli_definition_usage_and_descriptors() {
-        let definition = parse(&["symbol", "definition", "example.A", "--branch", "1.19.2"]);
+    fn parses_symbol_cli_show_definition_and_usage_aliases() {
+        let definition = parse(&[
+            "symbol",
+            "show-definition",
+            "example.A",
+            "--branch",
+            "1.19.2",
+        ]);
         let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::Definition(definition),
+            command: SymbolCommand::ShowDefinition(definition),
         }) = definition.command
         else {
-            panic!("expected symbol definition command");
+            panic!("expected symbol show-definition command");
         };
         assert_eq!(definition.selector, ["example.A"]);
 
-        let usage = parse(&[
+        let canonical = parse(&[
             "--output-format",
             "json",
             "symbol",
-            "usage",
-            "list",
+            "list-usages",
             "example.A",
             "run(Ljava/lang/String;)V",
             "--branch",
             "1.19.2",
         ]);
-        assert_eq!(usage.global_args.output_format, Some(OutputFormat::Json));
+        assert_eq!(
+            canonical.global_args.output_format,
+            Some(OutputFormat::Json)
+        );
         let CliCommand::Symbol(SymbolArgs {
-            command:
-                SymbolCommand::Usage(SymbolUsageArgs {
-                    command: SymbolUsageCommand::List(usage),
-                }),
-        }) = usage.command
+            command: SymbolCommand::ListUsages(canonical_args),
+        }) = canonical.command
         else {
-            panic!("expected symbol usage list command");
+            panic!("expected symbol list-usages command");
         };
         assert!(matches!(
-            JavaSymbolSelector::parse_terms(&usage.selector).expect("method selector"),
+            JavaSymbolSelector::parse_terms(&canonical_args.selector).expect("method selector"),
             JavaSymbolSelector::Method { .. }
         ));
+
+        let alias = parse(&[
+            "symbol",
+            "list-usage",
+            "example.A",
+            "run(Ljava/lang/String;)V",
+            "--branch",
+            "1.19.2",
+        ]);
+        let rendered = alias.to_args().expect("alias should serialize canonically");
+        let rendered = rendered
+            .iter()
+            .map(|argument| argument.to_string_lossy())
+            .collect::<Vec<_>>();
+        assert!(rendered.iter().any(|argument| argument == "list-usages"));
+        assert!(!rendered.iter().any(|argument| argument == "list-usage"));
+    }
+
+    #[test]
+    fn parses_symbol_list_with_optional_canonical_selector_glob() {
+        let all = parse(&["symbol", "list", "--branch", "1.19.2"]);
+        let CliCommand::Symbol(SymbolArgs {
+            command: SymbolCommand::List(all),
+        }) = all.command
+        else {
+            panic!("expected symbol list command");
+        };
+        assert_eq!(all.pattern, None);
+
+        let filtered = parse(&["symbol", "list", "example.* run*", "--branch", "1.19.2"]);
+        let CliCommand::Symbol(SymbolArgs {
+            command: SymbolCommand::List(filtered),
+        }) = filtered.command
+        else {
+            panic!("expected filtered symbol list command");
+        };
+        assert_eq!(filtered.pattern.as_deref(), Some("example.* run*"));
+    }
+
+    #[test]
+    fn removed_pre_phase_command_shapes_do_not_parse() {
+        for arguments in [
+            vec!["symbol", "definition", "example.A", "--branch", "1.19.2"],
+            vec!["symbol", "usage", "list", "example.A", "--branch", "1.19.2"],
+        ] {
+            figue::from_slice::<Cli>(&arguments)
+                .into_result()
+                .unwrap_err();
+        }
+    }
+
+    #[test]
+    fn parses_symbol_index_refresh_and_show() {
+        let refresh = parse(&["symbol", "index", "refresh", "--branch", "1.19.2"]);
+        let CliCommand::Symbol(SymbolArgs {
+            command:
+                SymbolCommand::Index(SymbolIndexArgs {
+                    command: SymbolIndexCommand::Refresh(refresh),
+                }),
+        }) = refresh.command
+        else {
+            panic!("expected symbol index refresh command");
+        };
+        assert_eq!(refresh.branch.0, "1.19.2");
+
+        let show = parse(&["symbol", "index", "show", "--branch", "1.19.2"]);
+        let CliCommand::Symbol(SymbolArgs {
+            command:
+                SymbolCommand::Index(SymbolIndexArgs {
+                    command: SymbolIndexCommand::Show(show),
+                }),
+        }) = show.command
+        else {
+            panic!("expected symbol index show command");
+        };
+        assert_eq!(show.branch.0, "1.19.2");
     }
 
     #[test]
     fn parses_symbol_cli_custom_roots_and_requires_explicit_mode() {
         let cli = parse(&[
             "symbol",
-            "definition",
+            "show-definition",
             "example.A",
             "--branch",
             "1.19.2",
@@ -217,16 +317,16 @@ mod tests {
             "source",
         ]);
         let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::Definition(args),
+            command: SymbolCommand::ShowDefinition(args),
         }) = cli.command
         else {
-            panic!("expected symbol definition command");
+            panic!("expected symbol show-definition command");
         };
         assert!(args.workspace.validate().is_err());
 
         let cli = parse(&[
             "symbol",
-            "definition",
+            "show-definition",
             "example.A",
             "--branch",
             "1.19.2",
@@ -236,10 +336,10 @@ mod tests {
             "isolated",
         ]);
         let CliCommand::Symbol(SymbolArgs {
-            command: SymbolCommand::Definition(args),
+            command: SymbolCommand::ShowDefinition(args),
         }) = cli.command
         else {
-            panic!("expected symbol definition command");
+            panic!("expected symbol show-definition command");
         };
         args.workspace.validate().expect("explicit isolated mode");
     }
@@ -284,7 +384,7 @@ mod tests {
         else {
             panic!("expected symbol move command");
         };
-        assert!(args.invoke().is_err());
+        let _ = args.invoke().unwrap_err();
 
         let both = parse(&[
             "symbol",
@@ -302,7 +402,7 @@ mod tests {
         else {
             panic!("expected symbol rename command");
         };
-        assert!(args.invoke().is_err());
+        let _ = args.invoke().unwrap_err();
 
         let preview_copy = parse(&[
             "symbol",
@@ -321,7 +421,7 @@ mod tests {
         else {
             panic!("expected symbol rename command");
         };
-        assert!(args.invoke().is_err());
+        let _ = args.invoke().unwrap_err();
 
         let apply_copy = parse(&[
             "symbol",
@@ -340,15 +440,13 @@ mod tests {
         else {
             panic!("expected symbol move command");
         };
-        assert!(args.invoke().is_ok());
+        args.invoke().unwrap();
     }
 
     #[test]
     fn symbol_cli_requires_branch() {
-        assert!(
-            figue::from_slice::<Cli>(&["symbol", "definition", "example.A"])
-                .into_result()
-                .is_err()
-        );
+        figue::from_slice::<Cli>(&["symbol", "show-definition", "example.A"])
+            .into_result()
+            .unwrap_err();
     }
 }

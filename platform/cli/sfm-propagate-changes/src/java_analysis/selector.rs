@@ -1,3 +1,5 @@
+use super::JavaSymbolIdentityOutput;
+use super::JavaSymbolKind;
 use super::JavaSymbolSelectorKind;
 use super::JavaSymbolSelectorOutput;
 use eyre::bail;
@@ -20,6 +22,7 @@ pub enum JavaSymbolSelector {
 
 impl JavaSymbolSelector {
     /// Parse the target portion of a Forge Access Transformer style selector.
+    /// Class owners may be fully qualified or an unambiguous qualified suffix.
     ///
     /// # Errors
     ///
@@ -52,7 +55,7 @@ impl JavaSymbolSelector {
                     })
                 }
             }
-            [] => bail!("symbol selector requires a fully qualified class name"),
+            [] => bail!("symbol selector requires a class name"),
             _ => bail!("symbol selector accepts '<class>' or '<class> <field|method(descriptor)>'"),
         }
     }
@@ -61,6 +64,105 @@ impl JavaSymbolSelector {
     pub fn owner(&self) -> &str {
         match self {
             Self::Type { owner } | Self::Field { owner, .. } | Self::Method { owner, .. } => owner,
+        }
+    }
+
+    #[must_use]
+    pub fn matches(&self, symbol: &JavaSymbolIdentityOutput) -> bool {
+        self.matches_parts(
+            symbol.kind,
+            &symbol.owner,
+            &symbol.name,
+            symbol.descriptor.as_deref(),
+            &symbol.qualified_name,
+        )
+    }
+
+    #[must_use]
+    pub(crate) fn matches_exact(&self, symbol: &JavaSymbolIdentityOutput) -> bool {
+        self.matches_parts_exact(
+            symbol.kind,
+            &symbol.owner,
+            &symbol.name,
+            symbol.descriptor.as_deref(),
+            &symbol.qualified_name,
+        )
+    }
+
+    #[must_use]
+    pub(crate) fn matches_parts(
+        &self,
+        kind: JavaSymbolKind,
+        route_owner: &str,
+        route_name: &str,
+        route_descriptor: Option<&str>,
+        qualified_name: &str,
+    ) -> bool {
+        self.matches_parts_with_owner_mode(
+            kind,
+            route_owner,
+            route_name,
+            route_descriptor,
+            qualified_name,
+            true,
+        )
+    }
+
+    #[must_use]
+    pub(crate) fn matches_parts_exact(
+        &self,
+        kind: JavaSymbolKind,
+        route_owner: &str,
+        route_name: &str,
+        route_descriptor: Option<&str>,
+        qualified_name: &str,
+    ) -> bool {
+        self.matches_parts_with_owner_mode(
+            kind,
+            route_owner,
+            route_name,
+            route_descriptor,
+            qualified_name,
+            false,
+        )
+    }
+
+    fn matches_parts_with_owner_mode(
+        &self,
+        kind: JavaSymbolKind,
+        route_owner: &str,
+        route_name: &str,
+        route_descriptor: Option<&str>,
+        qualified_name: &str,
+        allow_qualified_suffix: bool,
+    ) -> bool {
+        match self {
+            Self::Type { owner } => {
+                owner_matches(owner, qualified_name, allow_qualified_suffix)
+                    && matches!(
+                        kind,
+                        JavaSymbolKind::Class
+                            | JavaSymbolKind::Interface
+                            | JavaSymbolKind::Enum
+                            | JavaSymbolKind::Record
+                            | JavaSymbolKind::Annotation
+                    )
+            }
+            Self::Field { owner, name } => {
+                kind == JavaSymbolKind::Field
+                    && owner_matches(owner, route_owner, allow_qualified_suffix)
+                    && route_name == name
+            }
+            Self::Method {
+                owner,
+                name,
+                descriptor,
+            } => {
+                matches!(kind, JavaSymbolKind::Method | JavaSymbolKind::Constructor)
+                    && owner_matches(owner, route_owner, allow_qualified_suffix)
+                    && route_name == name
+                    && route_descriptor == Some(descriptor)
+            }
         }
     }
 
@@ -109,9 +211,17 @@ impl JavaSymbolSelector {
     }
 }
 
+fn owner_matches(selector: &str, candidate: &str, allow_qualified_suffix: bool) -> bool {
+    candidate == selector
+        || (allow_qualified_suffix
+            && candidate
+                .strip_suffix(selector)
+                .is_some_and(|prefix| prefix.ends_with('.') || prefix.ends_with('$')))
+}
+
 fn validate_owner(owner: &str) -> eyre::Result<()> {
     if owner.is_empty() || owner.starts_with('.') || owner.ends_with('.') || owner.contains("..") {
-        bail!("invalid fully qualified class name '{owner}'");
+        bail!("invalid class name '{owner}'");
     }
     for package_or_type in owner.split('.') {
         for nested in package_or_type.split('$') {
@@ -242,6 +352,44 @@ mod tests {
                 .expect_err("invalid descriptor must fail");
             assert!(!error.to_string().is_empty());
         }
+    }
+
+    #[test]
+    fn selector_matches_routed_symbol_parts_without_an_owned_identity() {
+        let selector =
+            JavaSymbolSelector::parse_terms(&strings(&["example.A", "run(Ljava/lang/String;)V"]))
+                .expect("method selector");
+
+        assert!(selector.matches_parts(
+            JavaSymbolKind::Method,
+            "example.A",
+            "run",
+            Some("(Ljava/lang/String;)V"),
+            "example.A.run(Ljava/lang/String;)V",
+        ));
+        assert!(!selector.matches_parts(
+            JavaSymbolKind::Method,
+            "example.B",
+            "run",
+            Some("(Ljava/lang/String;)V"),
+            "example.B.run(Ljava/lang/String;)V",
+        ));
+    }
+
+    #[test]
+    fn selector_matches_unambiguous_owner_suffixes_but_exposes_exact_matching() {
+        let selector =
+            JavaSymbolSelector::parse_terms(&strings(&["DiskItem"])).expect("short type selector");
+        let symbol = JavaSymbolIdentityOutput {
+            kind: JavaSymbolKind::Class,
+            owner: "ca.teamdman.sfm.common.item".to_owned(),
+            name: "DiskItem".to_owned(),
+            descriptor: None,
+            qualified_name: "ca.teamdman.sfm.common.item.DiskItem".to_owned(),
+        };
+
+        assert!(selector.matches(&symbol));
+        assert!(!selector.matches_exact(&symbol));
     }
 
     #[test]

@@ -787,9 +787,9 @@ mod tests {
 
     #[test]
     fn preview_paths_reject_parent_traversal_and_non_png_files() {
-        assert!(safe_preview_relative_path("puppet/figure_01_overview.png").is_ok());
-        assert!(safe_preview_relative_path("../outside.png").is_err());
-        assert!(safe_preview_relative_path("puppet/figure_01.txt").is_err());
+        safe_preview_relative_path("puppet/figure_01_overview.png").unwrap();
+        let _ = safe_preview_relative_path("../outside.png").unwrap_err();
+        let _ = safe_preview_relative_path("puppet/figure_01.txt").unwrap_err();
     }
 
     #[test]

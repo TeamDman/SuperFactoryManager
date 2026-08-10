@@ -1306,7 +1306,7 @@ mod tests {
         report
             .problems
             .iter()
-            .map(|problem| problem.audit_warning())
+            .map(super::super::source_problem::SourceProblem::audit_warning)
             .collect()
     }
 
@@ -1330,7 +1330,7 @@ mod tests {
         assert!(rules.suspicious_member("draw"));
         assert!(rules.suspicious_member("drawString"));
         assert!(!rules.suspicious_member("unrelated"));
-        assert!(AuditRules::parse("DENY public Foo x y").is_err());
+        AuditRules::parse("DENY public Foo x y").unwrap_err();
     }
 
     #[test]
@@ -1548,7 +1548,7 @@ mod tests {
 
     #[test]
     fn resolves_cross_source_method_return_types_before_matching_a_rule_member_name() {
-        let helper_source = r#"
+        let helper_source = r"
             package example;
             final class SyntaxHelper {
                 static CanvasDocumentProjection projectCanvasDocument() {
@@ -1556,15 +1556,15 @@ mod tests {
                 }
                 record CanvasDocumentProjection(String text) {}
             }
-            "#;
-        let consumer_source = r#"
+            ";
+        let consumer_source = r"
             package example;
             final class Consumer {
                 String copyableText() {
                     return SyntaxHelper.projectCanvasDocument().text();
                 }
             }
-            "#;
+            ";
         let rules =
             AuditRules::parse("DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *")
                 .expect("rules should parse");
@@ -1592,7 +1592,7 @@ mod tests {
 
     #[test]
     fn resolves_list_get_to_the_source_declared_element_type() {
-        let canvas_source = r#"
+        let canvas_source = r"
             package example;
             import java.util.List;
             final class Canvas {
@@ -1601,15 +1601,15 @@ mod tests {
                 }
                 record Glyph(String text) {}
             }
-            "#;
-        let consumer_source = r#"
+            ";
+        let consumer_source = r"
             package example;
             final class Consumer {
                 String copyableText(Canvas canvas) {
                     return canvas.glyphs().get(0).text();
                 }
             }
-            "#;
+            ";
         let rules =
             AuditRules::parse("DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *")
                 .expect("rules should parse");
@@ -1637,7 +1637,7 @@ mod tests {
 
     #[test]
     fn resolves_an_indexed_method_return_to_a_denied_imported_type() {
-        let helper_source = r#"
+        let helper_source = r"
             package example;
             import net.minecraft.client.gui.GuiGraphicsExtractor;
             final class Helper {
@@ -1645,15 +1645,15 @@ mod tests {
                     return null;
                 }
             }
-            "#;
-        let consumer_source = r#"
+            ";
+        let consumer_source = r"
             package example;
             final class Consumer {
                 void render() {
                     Helper.extractor().text();
                 }
             }
-            "#;
+            ";
         let rules =
             AuditRules::parse("DENY CALL net.minecraft.client.gui.GuiGraphicsExtractor text *")
                 .expect("rules should parse");
@@ -1675,7 +1675,7 @@ mod tests {
         let warnings = report
             .problems
             .iter()
-            .map(|problem| problem.audit_warning())
+            .map(super::super::source_problem::SourceProblem::audit_warning)
             .collect::<Vec<_>>();
         assert_eq!(warnings.len(), 1);
         assert!(is_violation(&warnings[0]));

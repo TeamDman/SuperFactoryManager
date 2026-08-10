@@ -1,7 +1,8 @@
 use facet::Facet;
 
-pub const SYMBOL_DEFINITION_SCHEMA: &str = "sfm.symbol-definition/1";
-pub const SYMBOL_USAGE_LIST_SCHEMA: &str = "sfm.symbol-usage-list/1";
+pub const SYMBOL_DEFINITION_SCHEMA: &str = "sfm.symbol-definition/2";
+pub const SYMBOL_LIST_SCHEMA: &str = "sfm.symbol-list/1";
+pub const SYMBOL_USAGE_LIST_SCHEMA: &str = "sfm.symbol-usage-list/2";
 pub const SYMBOL_MUTATION_SCHEMA: &str = "sfm.symbol-mutation/1";
 
 #[derive(Facet, Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -65,6 +66,26 @@ pub enum SymbolCommandOutcome {
     NoMatch,
     Ambiguous,
     Unsupported,
+}
+
+#[derive(Facet, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[facet(rename_all = "kebab-case")]
+#[repr(u8)]
+pub enum SymbolQueryCompleteness {
+    Complete,
+    Incomplete,
+}
+
+#[derive(Facet, Clone, Debug, PartialEq, Eq)]
+pub struct DependencySymbolIndexQueryOutput {
+    pub status: super::DependencySymbolIndexProbeStatus,
+    pub completeness: SymbolQueryCompleteness,
+    pub expected_identity: String,
+    pub portable_path: String,
+    pub path: String,
+    pub reason: String,
+    pub refresh_command: String,
+    pub acquisition_commands: Vec<String>,
 }
 
 impl SymbolCommandOutcome {
@@ -165,6 +186,28 @@ pub struct JavaSymbolIdentityOutput {
     pub qualified_name: String,
 }
 
+impl JavaSymbolIdentityOutput {
+    /// Return the exact Access Transformer style selector accepted by the
+    /// definition, usage, and mutation commands.
+    #[must_use]
+    pub fn canonical_selector(&self) -> String {
+        match self.kind {
+            JavaSymbolKind::Class
+            | JavaSymbolKind::Interface
+            | JavaSymbolKind::Enum
+            | JavaSymbolKind::Record
+            | JavaSymbolKind::Annotation => self.qualified_name.clone(),
+            JavaSymbolKind::Field => format!("{} {}", self.owner, self.name),
+            JavaSymbolKind::Method | JavaSymbolKind::Constructor => format!(
+                "{} {}{}",
+                self.owner,
+                self.name,
+                self.descriptor.as_deref().unwrap_or_default()
+            ),
+        }
+    }
+}
+
 #[derive(Facet, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct JavaSymbolDefinitionOutput {
     pub symbol: JavaSymbolIdentityOutput,
@@ -197,6 +240,8 @@ pub struct SymbolDefinitionOutput {
     pub selector: JavaSymbolSelectorOutput,
     pub definitions: Vec<JavaSymbolDefinitionOutput>,
     pub diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub dependency_index: Option<DependencySymbolIndexQueryOutput>,
 }
 
 impl SymbolDefinitionOutput {
@@ -215,12 +260,73 @@ impl SymbolDefinitionOutput {
             selector,
             definitions,
             diagnostics,
+            dependency_index: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_dependency_index(mut self, index: DependencySymbolIndexQueryOutput) -> Self {
+        self.dependency_index = Some(index);
+        self
+    }
+
+    #[must_use]
+    pub fn status(&self) -> u8 {
+        query_status(self.outcome, self.dependency_index.as_ref())
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         csv_for_definitions(self)
+    }
+}
+
+#[derive(Facet, Clone, Debug, PartialEq, Eq)]
+pub struct SymbolListOutput {
+    pub schema: String,
+    pub outcome: SymbolCommandOutcome,
+    pub context: JavaAnalysisContextOutput,
+    pub pattern: String,
+    pub definitions: Vec<JavaSymbolDefinitionOutput>,
+    pub diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub dependency_index: Option<DependencySymbolIndexQueryOutput>,
+}
+
+impl SymbolListOutput {
+    #[must_use]
+    pub fn new(
+        outcome: SymbolCommandOutcome,
+        context: JavaAnalysisContextOutput,
+        pattern: String,
+        definitions: Vec<JavaSymbolDefinitionOutput>,
+        diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+    ) -> Self {
+        Self {
+            schema: SYMBOL_LIST_SCHEMA.to_owned(),
+            outcome,
+            context,
+            pattern,
+            definitions,
+            diagnostics,
+            dependency_index: None,
+        }
+    }
+
+    #[must_use]
+    pub fn with_dependency_index(mut self, index: DependencySymbolIndexQueryOutput) -> Self {
+        self.dependency_index = Some(index);
+        self
+    }
+
+    #[must_use]
+    pub fn status(&self) -> u8 {
+        query_status(self.outcome, self.dependency_index.as_ref())
+    }
+
+    #[must_use]
+    pub fn to_csv(&self) -> String {
+        csv_for_symbol_list(self)
     }
 }
 
@@ -232,6 +338,8 @@ pub struct SymbolUsageListOutput {
     pub selector: JavaSymbolSelectorOutput,
     pub usages: Vec<JavaSymbolUsageOutput>,
     pub diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub dependency_index: Option<DependencySymbolIndexQueryOutput>,
 }
 
 impl SymbolUsageListOutput {
@@ -250,12 +358,37 @@ impl SymbolUsageListOutput {
             selector,
             usages,
             diagnostics,
+            dependency_index: None,
         }
+    }
+
+    #[must_use]
+    pub fn with_dependency_index(mut self, index: DependencySymbolIndexQueryOutput) -> Self {
+        self.dependency_index = Some(index);
+        self
+    }
+
+    #[must_use]
+    pub fn status(&self) -> u8 {
+        query_status(self.outcome, self.dependency_index.as_ref())
     }
 
     #[must_use]
     pub fn to_csv(&self) -> String {
         csv_for_usages(self)
+    }
+}
+
+fn query_status(
+    outcome: SymbolCommandOutcome,
+    dependency_index: Option<&DependencySymbolIndexQueryOutput>,
+) -> u8 {
+    if dependency_index
+        .is_some_and(|index| index.completeness == SymbolQueryCompleteness::Incomplete)
+    {
+        5
+    } else {
+        outcome.exit_code()
     }
 }
 
@@ -286,12 +419,40 @@ impl SymbolMutationUnsupportedOutput {
 }
 
 fn csv_for_definitions(report: &SymbolDefinitionOutput) -> String {
-    let report_row = SymbolCsvRow::report(
+    let mut report_row = SymbolCsvRow::report(
         &report.schema,
         report.outcome,
         &report.context,
         &report.selector,
     );
+    report_row.status = report.status();
+    let mut output = csv_header();
+    append_csv_row(&mut output, &report_row);
+    for definition in &report.definitions {
+        let mut row = report_row.clone();
+        "definition".clone_into(&mut row.record_kind);
+        confidence_name(definition.confidence).clone_into(&mut row.confidence);
+        row.set_symbol(&definition.symbol);
+        row.set_span(&definition.identifier_span);
+        row.set_declaration_span(&definition.declaration_span);
+        append_csv_row(&mut output, &row);
+    }
+    append_diagnostics(&mut output, &report_row, &report.diagnostics);
+    output
+}
+
+fn csv_for_symbol_list(report: &SymbolListOutput) -> String {
+    let selector = JavaSymbolSelectorOutput {
+        canonical: report.pattern.clone(),
+        owner: String::new(),
+        member: None,
+        descriptor: None,
+        kind: JavaSymbolSelectorKind::Type,
+    };
+    let mut report_row =
+        SymbolCsvRow::report(&report.schema, report.outcome, &report.context, &selector);
+    report_row.status = report.status();
+    "glob".clone_into(&mut report_row.selector_kind);
     let mut output = csv_header();
     append_csv_row(&mut output, &report_row);
     for definition in &report.definitions {
@@ -308,12 +469,13 @@ fn csv_for_definitions(report: &SymbolDefinitionOutput) -> String {
 }
 
 fn csv_for_usages(report: &SymbolUsageListOutput) -> String {
-    let report_row = SymbolCsvRow::report(
+    let mut report_row = SymbolCsvRow::report(
         &report.schema,
         report.outcome,
         &report.context,
         &report.selector,
     );
+    report_row.status = report.status();
     let mut output = csv_header();
     append_csv_row(&mut output, &report_row);
     for usage in &report.usages {

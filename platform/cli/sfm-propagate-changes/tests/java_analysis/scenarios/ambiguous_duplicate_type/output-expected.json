@@ -3,7 +3,7 @@
     "branch": "1.19.2",
     "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
     "classpath_mode": "isolated",
-    "index_fingerprint": "blake3:e3db52c8db5c8a7e86974d97b621638d622d5a31223e1831130316846ac3d42d",
+    "index_fingerprint": "blake3:b9149cf71ff93a0a12a65eb058a8d89e710a5964a79a8c9c5b800c998d3d0ac2",
     "java_release": "17",
     "jdk": "java-17",
     "minecraft_version": "1.19.2",
@@ -95,7 +95,7 @@
   ],
   "diagnostics": [],
   "outcome": "ambiguous",
-  "schema": "sfm.symbol-definition/1",
+  "schema": "sfm.symbol-definition/2",
   "selector": {
     "canonical": "duplicate.A",
     "descriptor": null,

@@ -540,7 +540,7 @@ mod tests {
             if characters.next() != Some('[') {
                 continue;
             }
-            while let Some(character) = characters.next() {
+            for character in characters.by_ref() {
                 if character == 'm' {
                     break;
                 }
@@ -697,7 +697,7 @@ mod tests {
         let warnings = report
             .problems
             .iter()
-            .map(|problem| problem.audit_warning())
+            .map(super::super::source_problem::SourceProblem::audit_warning)
             .collect::<Vec<_>>();
         assert!(warnings.iter().any(|warning| matches!(
             &warning.detail,

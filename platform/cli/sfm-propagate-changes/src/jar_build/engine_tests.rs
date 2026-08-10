@@ -2151,6 +2151,10 @@ fn source_build_root_is_not_nested_in_the_managed_cache() {
 }
 
 #[test]
+#[expect(
+    clippy::too_many_lines,
+    reason = "source-build materialization is one end-to-end artifact resolver regression"
+)]
 fn resolver_materializes_locked_artifact_from_source_build() {
     let test_dir = TestDir::new("resolver-source-build-fallback");
     let source_root = test_dir.path.join("source-project");

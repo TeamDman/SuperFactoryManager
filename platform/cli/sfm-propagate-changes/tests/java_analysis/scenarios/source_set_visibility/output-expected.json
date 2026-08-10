@@ -92,7 +92,7 @@
     }
   ],
   "outcome": "success",
-  "schema": "sfm.symbol-usage-list/1",
+  "schema": "sfm.symbol-usage-list/2",
   "selector": {
     "canonical": "hidden.Hidden",
     "descriptor": null,

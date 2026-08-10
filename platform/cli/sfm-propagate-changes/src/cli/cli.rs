@@ -143,7 +143,7 @@ impl Command {
             Command::GameTest(args) => legacy_output(args.invoke(cancellation_token)),
             Command::Puppet(args) => legacy_output(args.invoke(cancellation_token)),
             Command::Test(args) => legacy_output(args.invoke(cancellation_token)),
-            Command::Symbol(args) => args.invoke_in(invocation_dir),
+            Command::Symbol(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::RepoRoot(args) => legacy_output(args.invoke()),
         }
     }
@@ -283,6 +283,10 @@ mod tests {
     }
 
     #[test]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one parser regression covers the related game-test filter argument family"
+    )]
     fn parses_game_test_run_filters() {
         let game_test_server = figue::from_slice::<Cli>(&[
             "game-test",

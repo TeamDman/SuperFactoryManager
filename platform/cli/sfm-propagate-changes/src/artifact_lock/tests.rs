@@ -251,6 +251,10 @@ fn terminal_open_error_reports_path_and_os_error() {
 
 #[cfg(windows)]
 #[test]
+#[expect(
+    clippy::permissions_set_readonly_false,
+    reason = "Windows-only test restores the exact readonly fixture it created"
+)]
 fn open_failure_classification_distinguishes_access_races_from_terminal_paths() {
     let dir = temp_test_dir("windows-open-retry-classification");
     let lock_path = dir.path().join("artifact.jar.lock");
@@ -343,6 +347,10 @@ fn transient_access_denied_open_is_retried_until_success() {
 
 #[cfg(windows)]
 #[test]
+#[expect(
+    clippy::permissions_set_readonly_false,
+    reason = "Windows-only test restores the exact readonly fixture it created"
+)]
 fn persistent_readonly_access_denied_is_immediate_and_preserves_diagnostics() {
     let dir = temp_test_dir("windows-access-denied-terminal");
     let lock_path = dir.path().join("artifact.jar.lock");

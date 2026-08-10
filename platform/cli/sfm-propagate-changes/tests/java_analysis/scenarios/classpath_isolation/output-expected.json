@@ -78,13 +78,13 @@
     },
     {
       "code": "java.unrelated-workspace-diagnostics-suppressed",
-      "message": "Suppressed 3 diagnostics unrelated to selector `ca.teamdman.sfm.SFM`",
+      "message": "Additional diagnostics unrelated to selector `ca.teamdman.sfm.SFM` were suppressed",
       "severity": "info",
       "span": null
     }
   ],
   "outcome": "no-match",
-  "schema": "sfm.symbol-usage-list/1",
+  "schema": "sfm.symbol-usage-list/2",
   "selector": {
     "canonical": "ca.teamdman.sfm.SFM",
     "descriptor": null,

@@ -18,6 +18,7 @@ mod dependency_source_provider_cli;
 mod dependency_source_provider_list_cli;
 mod dependency_source_search_cli;
 
+pub use crate::dependency_sources::DependencySourceProviderSelector;
 pub use dependency_add_cli::DependencyAddArgs;
 pub use dependency_artifact_accept_cli::DependencyArtifactAcceptArgs;
 pub use dependency_artifact_cli::DependencyArtifactArgs;
@@ -33,7 +34,6 @@ pub use dependency_refresh_cli::DependencyRefreshArgs;
 pub use dependency_remove_cli::DependencyRemoveArgs;
 pub use dependency_show_cli::DependencyShowArgs;
 pub use dependency_source_acquire_cli::DependencySourceAcquireArgs;
-pub use dependency_source_acquire_cli::DependencySourceProviderSelector;
 pub use dependency_source_cache_cli::DependencySourceCacheArgs;
 pub use dependency_source_cli::DependencySourceArgs;
 pub use dependency_source_cli::DependencySourceCommand;

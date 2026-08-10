@@ -1,26 +1,20 @@
-use super::DependencyArgs;
-use super::DependencyCommand;
-use super::DependencySourceAcquireArgs;
-use super::DependencySourceArgs;
-use super::DependencySourceCommand;
 use super::DependencySourceProviderSelector;
 use super::dependency_context::load_inventory;
-use super::dependency_source_acquire_cli::provider_id;
-use super::dependency_source_acquire_cli::provider_matches;
 use crate::cancellation::CancellationToken;
-use crate::cli::cli::Cli;
-use crate::cli::cli::Command as CliCommand;
-use crate::cli::global_args::GlobalArgs;
 use crate::cli::jar::BranchSelector;
 use crate::dependency_inventory::DependencyInventory;
-use crate::dependency_inventory::SourceStatus;
+use crate::dependency_sources::SearchableSourceRoot;
+use crate::dependency_sources::SourceAcquisitionRecommendation;
+use crate::dependency_sources::SourcePreflight;
+use crate::dependency_sources::SourceProviderFilter;
+use crate::dependency_sources::SourceProviderSelection;
+use crate::dependency_sources::UnavailableSource;
+use crate::dependency_sources::preflight_sources;
 use crate::paths::CacheHome;
 use crate::terminal_output::stderr_line;
 use crate::terminal_output::stdout_line;
 use facet::Facet;
 use figue as args;
-use figue::ToArgs;
-use std::path::PathBuf;
 use std::process::Command;
 
 #[derive(Facet, Debug)]
@@ -130,12 +124,12 @@ fn acquisition_recommendation(
     provider: Option<DependencySourceProviderSelector>,
     provider_id: Option<&str>,
 ) -> eyre::Result<String> {
-    render_typed_acquire_command(&typed_acquire_command(
-        missing,
-        branch,
-        provider,
-        provider_id,
-    ))
+    SourceAcquisitionRecommendation::target(
+        &missing.target,
+        branch.clone(),
+        SourceProviderFilter::new(provider, provider_id.map(ToOwned::to_owned))?,
+    )
+    .render()
 }
 
 fn all_acquisition_recommendation(
@@ -143,61 +137,11 @@ fn all_acquisition_recommendation(
     provider: Option<DependencySourceProviderSelector>,
     provider_id: Option<&str>,
 ) -> eyre::Result<String> {
-    render_typed_acquire_command(&typed_acquire_all_command(branch, provider, provider_id))
-}
-
-fn render_typed_acquire_command(command: &Cli) -> eyre::Result<String> {
-    command
-        .to_args_string_with_current_exe()
-        .map(|command| command.to_string_lossy().into_owned())
-        .map_err(eyre::Report::from)
-}
-
-fn typed_acquire_command(
-    missing: &MissingSource,
-    branch: &BranchSelector,
-    provider: Option<DependencySourceProviderSelector>,
-    provider_id: Option<&str>,
-) -> Cli {
-    Cli {
-        global_args: GlobalArgs::default(),
-        command: CliCommand::Dependency(DependencyArgs {
-            command: DependencyCommand::Source(DependencySourceArgs {
-                command: DependencySourceCommand::Acquire(DependencySourceAcquireArgs {
-                    target: Some(missing.target.clone()),
-                    all: false,
-                    provider: Some(provider.unwrap_or(DependencySourceProviderSelector::Any)),
-                    provider_id: provider_id.map(ToOwned::to_owned),
-                    parallel: None,
-                    branch: branch.clone(),
-                }),
-            }),
-        }),
-        builtins: figue::FigueBuiltins::default(),
-    }
-}
-
-fn typed_acquire_all_command(
-    branch: &BranchSelector,
-    provider: Option<DependencySourceProviderSelector>,
-    provider_id: Option<&str>,
-) -> Cli {
-    Cli {
-        global_args: GlobalArgs::default(),
-        command: CliCommand::Dependency(DependencyArgs {
-            command: DependencyCommand::Source(DependencySourceArgs {
-                command: DependencySourceCommand::Acquire(DependencySourceAcquireArgs {
-                    target: None,
-                    all: true,
-                    provider: Some(provider.unwrap_or(DependencySourceProviderSelector::Any)),
-                    provider_id: provider_id.map(ToOwned::to_owned),
-                    parallel: None,
-                    branch: branch.clone(),
-                }),
-            }),
-        }),
-        builtins: figue::FigueBuiltins::default(),
-    }
+    SourceAcquisitionRecommendation::all(
+        branch.clone(),
+        SourceProviderFilter::new(provider, provider_id.map(ToOwned::to_owned))?,
+    )
+    .render()
 }
 
 fn require_complete_sources(
@@ -212,27 +156,9 @@ fn require_complete_sources(
     Ok(())
 }
 
-#[derive(Debug, Default, Eq, PartialEq)]
-struct SearchPreflight {
-    all_dependencies_selected: bool,
-    roots: Vec<SearchRoot>,
-    missing: Vec<MissingSource>,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-struct SearchRoot {
-    identity: String,
-    provider_id: String,
-    root: PathBuf,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-struct MissingSource {
-    target: String,
-    identity: String,
-    reason: String,
-    acquirable: bool,
-}
+type SearchPreflight = SourcePreflight;
+type SearchRoot = SearchableSourceRoot;
+type MissingSource = UnavailableSource;
 
 fn preflight(
     inventory: &DependencyInventory,
@@ -240,69 +166,12 @@ fn preflight(
     provider: Option<DependencySourceProviderSelector>,
     provider_id_filter: Option<&str>,
 ) -> eyre::Result<SearchPreflight> {
-    for dependency_id in dependency_filters {
-        inventory.dependency(dependency_id)?;
-    }
-
-    let mut result = SearchPreflight {
-        all_dependencies_selected: dependency_filters.is_empty(),
-        ..SearchPreflight::default()
-    };
-    for dependency in inventory.dependencies() {
-        if !dependency_filters.is_empty() && !dependency_filters.contains(&dependency.id) {
-            continue;
-        }
-        for component in &dependency.components {
-            let identity = format!("{}/{}", dependency.id, component.id);
-            let mut matched_provider = false;
-            for view in inventory.source_providers(component) {
-                let selected = provider_id_filter.map_or_else(
-                    || {
-                        provider
-                            .is_none_or(|selector| provider_matches(view.definition(), selector))
-                    },
-                    |id| view.id() == id,
-                );
-                if !selected {
-                    continue;
-                }
-                matched_provider = true;
-                if view.status() == SourceStatus::Acquired {
-                    result
-                        .roots
-                        .extend(view.searchable_roots().into_iter().map(|root| SearchRoot {
-                            identity: identity.clone(),
-                            provider_id: provider_id(view.definition()).to_owned(),
-                            root,
-                        }));
-                } else {
-                    result.missing.push(MissingSource {
-                        target: identity.clone(),
-                        identity: format!("{identity}/{}", view.id()),
-                        reason: view.status().label().to_owned(),
-                        acquirable: true,
-                    });
-                }
-            }
-            if !matched_provider {
-                if provider.is_some() || provider_id_filter.is_some() {
-                    continue;
-                }
-                let reason = if component.source_providers.is_empty() {
-                    "no source providers are configured".to_owned()
-                } else {
-                    unreachable!("an unfiltered component always has matching providers")
-                };
-                result.missing.push(MissingSource {
-                    target: identity.clone(),
-                    identity,
-                    reason,
-                    acquirable: false,
-                });
-            }
-        }
-    }
-    Ok(result)
+    preflight_sources(
+        inventory,
+        dependency_filters,
+        &SourceProviderFilter::new(provider, provider_id_filter.map(ToOwned::to_owned))?,
+        SourceProviderSelection::AllMatching,
+    )
 }
 
 fn run_ripgrep(pattern: &str, root: &SearchRoot) -> eyre::Result<()> {
@@ -356,6 +225,7 @@ mod tests {
     use crate::toolchain_lockfile_schema::version::v3::GitSourceProviderV3;
     use crate::toolchain_lockfile_schema::version::v3::SourceProviderV3;
     use std::path::Path;
+    use std::path::PathBuf;
 
     #[test]
     fn preflight_uses_only_acquired_matching_roots_without_writing_cache() {
@@ -455,6 +325,7 @@ mod tests {
     fn incomplete_warning_recommends_all_when_every_selected_root_is_missing() {
         let preflight = SearchPreflight {
             all_dependencies_selected: true,
+            components: Vec::new(),
             roots: Vec::new(),
             missing: vec![
                 MissingSource {
@@ -494,6 +365,7 @@ mod tests {
     fn filtered_warning_recommends_only_the_selected_target() {
         let preflight = SearchPreflight {
             all_dependencies_selected: false,
+            components: Vec::new(),
             roots: Vec::new(),
             missing: vec![MissingSource {
                 target: "cc-tweaked/main".to_owned(),
@@ -523,6 +395,7 @@ mod tests {
     fn require_complete_fails_before_ripgrep_when_sources_are_missing() {
         let preflight = SearchPreflight {
             all_dependencies_selected: false,
+            components: Vec::new(),
             roots: vec![SearchRoot {
                 identity: "cc-tweaked/main".to_owned(),
                 provider_id: "maven-sources".to_owned(),
@@ -558,115 +431,6 @@ mod tests {
         assert!(matches.contains("Example.java:1:"));
         assert_eq!(no_match, None);
         assert_eq!(directory_entries(directory.path()), before);
-    }
-
-    #[test]
-    fn typed_missing_source_recommendation_roundtrips_through_figue() {
-        let missing = MissingSource {
-            target: "cc-tweaked/main".to_owned(),
-            identity: "cc-tweaked/main/maven-sources".to_owned(),
-            reason: "missing".to_owned(),
-            acquirable: true,
-        };
-        let command =
-            typed_acquire_command(&missing, &BranchSelector("1.19.2".to_owned()), None, None);
-        let arguments = command
-            .to_args()
-            .expect("typed recommendation should render");
-        let arguments = arguments
-            .iter()
-            .map(|argument| argument.to_string_lossy().into_owned())
-            .collect::<Vec<_>>();
-        let argument_refs = arguments.iter().map(String::as_str).collect::<Vec<_>>();
-        let parsed = figue::from_slice::<Cli>(&argument_refs)
-            .into_result()
-            .expect("rendered recommendation should parse")
-            .get_silent();
-
-        let CliCommand::Dependency(DependencyArgs {
-            command:
-                DependencyCommand::Source(DependencySourceArgs {
-                    command: DependencySourceCommand::Acquire(acquire),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected rendered acquire command");
-        };
-        assert_eq!(acquire.target.as_deref(), Some("cc-tweaked/main"));
-        assert_eq!(
-            acquire.provider,
-            Some(DependencySourceProviderSelector::Any)
-        );
-        assert_eq!(acquire.branch.as_ref(), "1.19.2");
-
-        let rendered =
-            acquisition_recommendation(&missing, &BranchSelector("1.19.2".to_owned()), None, None)
-                .expect("recommendation should render");
-        assert!(rendered.contains("--provider any"));
-    }
-
-    #[test]
-    fn typed_all_missing_source_recommendation_roundtrips_through_figue() {
-        let command = typed_acquire_all_command(&BranchSelector("1.19.2".to_owned()), None, None);
-        let arguments = command
-            .to_args()
-            .expect("typed all recommendation should render");
-        let arguments = arguments
-            .iter()
-            .map(|argument| argument.to_string_lossy().into_owned())
-            .collect::<Vec<_>>();
-        let argument_refs = arguments.iter().map(String::as_str).collect::<Vec<_>>();
-        let parsed = figue::from_slice::<Cli>(&argument_refs)
-            .into_result()
-            .expect("rendered all recommendation should parse")
-            .get_silent();
-
-        let CliCommand::Dependency(DependencyArgs {
-            command:
-                DependencyCommand::Source(DependencySourceArgs {
-                    command: DependencySourceCommand::Acquire(acquire),
-                }),
-        }) = parsed.command
-        else {
-            panic!("expected rendered all acquire command");
-        };
-        assert_eq!(acquire.target, None);
-        assert!(acquire.all);
-        assert_eq!(
-            acquire.provider,
-            Some(DependencySourceProviderSelector::Any)
-        );
-        assert_eq!(acquire.branch.as_ref(), "1.19.2");
-    }
-
-    #[test]
-    fn typed_provider_selector_renders_through_figue() {
-        let mut command =
-            typed_acquire_all_command(&BranchSelector("1.19.2".to_owned()), None, None);
-        let CliCommand::Dependency(DependencyArgs {
-            command:
-                DependencyCommand::Source(DependencySourceArgs {
-                    command: DependencySourceCommand::Acquire(acquire),
-                }),
-        }) = &mut command.command
-        else {
-            panic!("expected typed acquire command");
-        };
-        acquire.provider = Some(DependencySourceProviderSelector::Any);
-
-        let arguments = command
-            .to_args()
-            .expect("typed provider selector should render");
-        let arguments = arguments
-            .iter()
-            .map(|argument| argument.to_string_lossy().into_owned())
-            .collect::<Vec<_>>();
-
-        assert!(
-            arguments
-                .windows(2)
-                .any(|window| window == ["--provider", "any"])
-        );
     }
 
     fn add_git_provider(inventory: &mut DependencyInventory) -> GitSourceProviderV3 {

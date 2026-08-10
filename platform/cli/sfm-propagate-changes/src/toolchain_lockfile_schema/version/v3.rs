@@ -1091,41 +1091,35 @@ mod tests {
     #[test]
     fn bundle_policy_rejects_mismatch_obfuscation_and_out_of_range_version() {
         let mut lockfile = fixture();
-        {
-            let declaration = &mut lockfile.dependencies[0].components[0].declaration;
-            declaration.scopes.push(DependencyScopeV3::Bundle);
-            declaration.bundle = Some(BundlePolicyV3 {
-                accepted_version_range: "[1,2)".to_string(),
-                artifact_version: "9".to_string(),
-                is_obfuscated: false,
-            });
-        }
+        let declaration = &mut lockfile.dependencies[0].components[0].declaration;
+        declaration.scopes.push(DependencyScopeV3::Bundle);
+        declaration.bundle = Some(BundlePolicyV3 {
+            accepted_version_range: "[1,2)".to_string(),
+            artifact_version: "9".to_string(),
+            is_obfuscated: false,
+        });
         let error = lockfile
             .validate()
             .expect_err("artifact mismatch should fail");
         assert!(error.to_string().contains("does not match"));
 
-        {
-            let bundle = lockfile.dependencies[0].components[0]
-                .declaration
-                .bundle
-                .as_mut()
-                .expect("bundle");
-            bundle.artifact_version = "1".to_string();
-            bundle.accepted_version_range = "[2,3)".to_string();
-        }
+        let bundle = lockfile.dependencies[0].components[0]
+            .declaration
+            .bundle
+            .as_mut()
+            .expect("bundle");
+        bundle.artifact_version = "1".to_string();
+        bundle.accepted_version_range = "[2,3)".to_string();
         let error = lockfile.validate().expect_err("range mismatch should fail");
         assert!(error.to_string().contains("outside") || error.to_string().contains("below"));
 
-        {
-            let bundle = lockfile.dependencies[0].components[0]
-                .declaration
-                .bundle
-                .as_mut()
-                .expect("bundle");
-            bundle.accepted_version_range = "[1,2)".to_string();
-            bundle.is_obfuscated = true;
-        }
+        let bundle = lockfile.dependencies[0].components[0]
+            .declaration
+            .bundle
+            .as_mut()
+            .expect("bundle");
+        bundle.accepted_version_range = "[1,2)".to_string();
+        bundle.is_obfuscated = true;
         let error = lockfile
             .validate()
             .expect_err("obfuscated plain bundle should fail");
