@@ -47,6 +47,7 @@ NAME "Changelog"
 -- Add bounded Java-local terminal scrollback with wheel, page, Home, End, and follow-output navigation
 -- Fix Java-local terminal scrollback preserving the viewed output while new lines arrive
 -- Add a composable size-display panel that makes solid-colour panel bounds and logical dimensions visible in nested layouts
+-- Add an independently installable sfm.exe with authenticated live-instance discovery and registered in-game action invocation
 -- Add single-client responsive viewport sweeps and browsable puppet evidence reports
 -- Make literal punctuation in unquoted SFML wildcard matchers match only itself
 -- Add a comment-driven before/after review workspace with overlap, hashtag styles, migration, and legacy projection

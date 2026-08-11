@@ -1,0 +1,62 @@
+[package]
+name = "sfm"
+version = "0.1.0"
+edition = "2024"
+authors = ["TeamDman"]
+description = "Control live Super Factory Manager Minecraft clients"
+license = "MPL-2.0"
+repository = "https://github.com/TeamDman/SuperFactoryManager"
+readme = "README.md"
+keywords = ["minecraft", "super-factory-manager", "cli", "vox"]
+categories = ["command-line-utilities", "development-tools"]
+autobins = false
+
+[dependencies]
+color-eyre = "0.6.5"
+directories-next = "2.0.0"
+eyre = "0.6.12"
+facet = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "facet" }
+facet-csv = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "facet-csv" }
+facet-json = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "facet-json" }
+facet-pretty = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "facet-pretty" }
+figue = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "figue" }
+tokio = { version = "1.49.0", features = ["macros", "net", "rt-multi-thread", "time"] }
+vox = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "vox", default-features = false, features = ["runtime", "transport-tcp"] }
+vox-codegen = { git = "https://github.com/TeamDman/facet.git", rev = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54", package = "vox-codegen", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+teamy-windows = "0.9.0"
+windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_System_Threading"] }
+
+[dev-dependencies]
+tempfile = "3.27.0"
+
+[features]
+default = []
+codegen = ["dep:vox-codegen"]
+
+[[bin]]
+name = "sfm"
+path = "src/main.rs"
+
+[[bin]]
+name = "sfm-codegen"
+path = "src/bin/sfm_codegen.rs"
+required-features = ["codegen"]
+
+[lints.rust]
+ambiguous_negative_literals = "warn"
+redundant_imports = "warn"
+trivial_numeric_casts = "warn"
+unsafe_op_in_unsafe_fn = "warn"
+unused_lifetimes = "warn"
+
+[lints.clippy]
+cargo = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+correctness = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+multiple_crate_versions = "allow"

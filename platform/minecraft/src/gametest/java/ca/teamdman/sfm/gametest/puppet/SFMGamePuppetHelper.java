@@ -116,6 +116,11 @@ public final class SFMGamePuppetHelper {
         }
     }
 
+    /** Waits for an external {@code sfm.exe invoke} witness to open the size-display panel. */
+    public void waitForExternalSizeDisplay() {
+        add(new WaitForExternalSizeDisplayPuppetAction());
+    }
+
     /**
      * Opens the contextual client command palette from the current screen.
      */
