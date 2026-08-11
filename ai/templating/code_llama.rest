@@ -1,8 +1,0 @@
-POST http://127.0.0.1:5000
-Content-Type: application/json
-
-{
-  "prompts": [
-    "[INST] Solve the provided equations, explain your thoughts then provide each equation including the answer inside a ``` block:\n2+2=\n25*5=[/INST]"
-  ]
-}

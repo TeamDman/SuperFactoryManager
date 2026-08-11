@@ -1,0 +1,273 @@
+package ca.teamdman.sfm.client.screen.widget;
+
+import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.screen.SFMScreenRenderUtils;
+import ca.teamdman.sfm.client.screen.SFMWidgetUtils;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractScrollWidget;
+import net.minecraft.client.gui.narration.NarratedElementType;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
+import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.Mth;
+import org.jetbrains.annotations.Nullable;
+import org.joml.Matrix4f;
+import org.simmetrics.StringDistance;
+import org.simmetrics.builders.StringDistanceBuilder;
+import org.simmetrics.metrics.StringDistances;
+import org.simmetrics.simplifiers.Simplifiers;
+
+import java.util.Comparator;
+import java.util.List;
+
+public class PickList<T extends PickListItem> extends AbstractScrollWidget {
+    protected final Font font;
+    protected List<T> items;
+    protected int selectionIndex = -1;
+    protected Component query = Component.empty();
+
+    public PickList(
+            Font font,
+            int pX,
+            int pY,
+            int pWidth,
+            int pHeight,
+            Component title,
+            List<T> items
+    ) {
+        super(pX, pY, pWidth, pHeight, title);
+        this.font = font;
+        this.items = items;
+        this.clampOrUnsetSelectionIndex();
+    }
+
+    public List<T> getItems() {
+        return items;
+    }
+
+    public void setItems(List<T> items) {
+        this.items = items;
+        sortItems();
+        selectionIndex = 0;
+        clampOrUnsetSelectionIndex();
+        scrollSelectedIntoView();
+    }
+
+    public int getItemHeight() {
+        return font.lineHeight;
+    }
+
+    public @Nullable T getSelected() {
+        if (items.isEmpty()) return null;
+        if (selectionIndex < 0) return null;
+        if (selectionIndex >= items.size()) return null;
+        return getItems().get(selectionIndex);
+    }
+
+    public void setQuery(Component query) {
+        this.query = query;
+        sortItems();
+        selectionIndex = 0;
+        clampOrUnsetSelectionIndex();
+        scrollSelectedIntoView();
+    }
+
+    @MCVersionDependentBehaviour
+    public void setXY(
+            int x,
+            int y
+    ) {
+        this.setX(x);
+        this.setY(y);
+    }
+
+    @Override
+    @MCVersionDependentBehaviour
+    protected void updateWidgetNarration(NarrationElementOutput narration) {
+        narration.add(NarratedElementType.TITLE, getMessage());
+    }
+    
+    @Override
+    @MCVersionDependentBehaviour
+    public void renderWidget(
+            GuiGraphics graphics,
+            int pMouseX,
+            int pMouseY,
+            float pPartialTick
+    ) {
+        if (items.isEmpty()) return;
+
+        graphics.pose().pushPose();
+        // Fixes https://github.com/TeamDman/SuperFactoryManager/issues/518
+        // Adjust the Z-index such that the popup renders on top of the editor text
+        graphics.pose().translate(0.0F, 0.0F, 400.0F);
+
+        super.renderWidget(graphics, pMouseX, pMouseY, pPartialTick);
+
+        graphics.pose().popPose();
+    }
+
+    public void selectPreviousWrapping() {
+        if (this.selectionIndex == -1) {
+            this.selectionIndex = this.items.size() - 1;
+            return;
+        }
+        this.selectionIndex = (this.selectionIndex - 1 + this.items.size()) % this.items.size();
+        scrollSelectedIntoView();
+    }
+
+    public void selectNextWrapping() {
+        if (this.selectionIndex == -1) {
+            this.selectionIndex = 0;
+            return;
+        }
+        this.selectionIndex = (this.selectionIndex + 1) % this.items.size();
+        scrollSelectedIntoView();
+    }
+
+    public boolean isEmpty() {
+        return this.items.isEmpty();
+    }
+
+    public void clear() {
+        this.items.clear();
+        this.selectionIndex = -1;
+    }
+
+    private void clampOrUnsetSelectionIndex() {
+        if (this.items.isEmpty()) {
+            this.selectionIndex = -1;
+        } else {
+            this.selectionIndex = Mth.clamp(this.selectionIndex, 0, this.items.size() - 1);
+        }
+    }
+
+    private void scrollSelectedIntoView() {
+        if (this.isEmpty()) {
+            this.setScrollAmount(0);
+        } else {
+            this.setScrollAmount(
+                    this.selectionIndex * this.getItemHeight()
+                    - this.height / 2.0f + this.getItemHeight()
+            );
+        }
+    }
+
+    private void sortItems() {
+        StringDistance distance = StringDistanceBuilder
+                .with(StringDistances.jaroWinkler())
+                .simplify(Simplifiers.toLowerCase())
+                .build();
+        String queryString = query.getString();
+        if (queryString.isBlank()) {
+            var preferredOrder = new String[]{
+                    "TICKS",
+                    "INPUT",
+                    "OUTPUT",
+                    "FORGET",
+                    "FROM",
+                    "TO"
+            };
+            items.sort(Comparator.comparing(item -> {
+                String itemString = item.getComponent().getString();
+                for (int i = 0; i < preferredOrder.length; i++) {
+                    if (itemString.contains(preferredOrder[i])) {
+                        return i;
+                    }
+                }
+                return preferredOrder.length;
+            }));
+        } else {
+//            SFM.LOGGER.debug("Sorting by distance using query: {}", queryString);
+            items.sort(Comparator.comparing(item -> distance.distance(
+                    item.getComponent().getString(),
+                    queryString
+            )));
+        }
+    }
+
+    @Override
+    protected int getInnerHeight() {
+        return getItemHeight() * items.size();
+    }
+
+    @Override
+    protected boolean scrollbarVisible() {
+        return this.items.size() > this.getDisplayableItemCount();
+    }
+
+    private double getDisplayableItemCount() {
+        return (double) (this.height - this.totalInnerPadding()) / (double) getItemHeight();
+    }
+
+
+    @Override
+    protected double scrollRate() {
+        return this.getItemHeight() / 2.0d;
+    }
+
+
+    @Override
+    protected void renderContents(
+            GuiGraphics graphics,
+            int mx,
+            int my,
+            float partialTick
+    ) {
+        if (items.isEmpty()) return;
+
+        // Calculate which items are visible in the current viewport
+        int itemHeight = getItemHeight();
+        int startIndex = (int)(scrollAmount() / itemHeight);
+        int visibleCount = (int)Math.ceil((double)height / itemHeight) + 1;
+        int endIndex = Math.min(items.size(), startIndex + visibleCount);
+
+        // Only render the visible items
+        Matrix4f matrix4f = graphics.pose().last().pose();
+        var buffer = graphics.bufferSource();
+        int lineX = SFMWidgetUtils.getX(this) + this.innerPadding();
+        Rect2i highlight = null;
+
+        // Render only the visible subset of items
+        for (int i = startIndex; i < endIndex; i++) {
+            PickListItem item = items.get(i);
+            // Calculate the y position based on the item's position in the full list
+            int lineY = SFMWidgetUtils.getY(this) + this.innerPadding() + (i * itemHeight);
+
+            SFMFontUtils.drawInBatch(
+                    item.getComponent(),
+                    this.font,
+                    lineX,
+                    lineY,
+                    true,
+                    false,
+                    matrix4f,
+                    buffer
+            );
+
+            if (i == this.selectionIndex) {
+                highlight = new Rect2i(
+                        lineX,
+                        lineY,
+                        this.width,
+                        itemHeight
+                );
+            }
+        }
+
+        buffer.endBatch();
+
+        if (highlight != null) {
+            SFMScreenRenderUtils.renderHighlight(
+                    graphics,
+                    highlight.getX(),
+                    highlight.getY(),
+                    highlight.getX() + highlight.getWidth(),
+                    highlight.getY() + highlight.getHeight()
+            );
+        }
+    }
+
+}

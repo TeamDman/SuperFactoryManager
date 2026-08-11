@@ -1,0 +1,115 @@
+package ca.teamdman.sfm.gametest.tests.migrated;
+
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.item.DiskItem;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.gametest.SFMGameTest;
+import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
+import ca.teamdman.sfm.gametest.SFMGameTestHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.level.block.entity.BarrelBlockEntity;
+
+import java.util.ArrayList;
+
+
+
+
+/**
+ * Migrated from SFMPerformanceGameTests.move_many_full
+ */
+@SuppressWarnings({
+        "RedundantSuppression",
+        "DataFlowIssue",
+        "OptionalGetWithoutIsPresent",
+        "DuplicatedCode",
+        "ArraysAsListWithZeroOrOneArgument"
+})
+@SFMGameTest
+public class MoveManyFullGameTest extends SFMGameTestDefinition {
+
+    @Override
+    public String template() {
+        return "25x3x25";
+    }
+
+    @Override
+    public String batchName() {
+        return "laggy";
+    }
+
+    @Override
+    public void run(SFMGameTestHelper helper) {
+        // fill the platform with cables and barrels
+        var sourceBlocks = new ArrayList<BlockPos>();
+        var destBlocks = new ArrayList<BlockPos>();
+        for (int x = 0; x < 25; x++) {
+//            for (int z = 0; z < 25; z++) {
+            for (int z = 0; z < 24; z++) {
+                helper.setBlock(new BlockPos(x, 2, z), SFMBlocks.CABLE.get());
+                helper.setBlock(new BlockPos(x, 3, z), SFMBlocks.TEST_BARREL.get());
+                if (z % 2 == 0) {
+                    sourceBlocks.add(new BlockPos(x, 3, z));
+                } else {
+                    destBlocks.add(new BlockPos(x, 3, z));
+                }
+
+                // fill the source chests with ingots
+                BarrelBlockEntity barrel = helper.getBlockEntity(new BlockPos(x, 3, z), BarrelBlockEntity.class);
+                for (int i = 0; i < barrel.getContainerSize(); i++) {
+                    barrel.setItem(i, new ItemStack(Items.IRON_INGOT, 64));
+                }
+            }
+        }
+
+        // fill in the blocks needed for the test
+        helper.setBlock(new BlockPos(0, 2, 0), SFMBlocks.MANAGER.get());
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(0, 2, 0), ManagerBlockEntity.class);
+        manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
+
+        // create the program
+        var program = """
+                    NAME "move many full"
+                                
+                    EVERY 20 TICKS DO
+                        INPUT FROM a
+                        OUTPUT TO b
+                    END
+                """.stripTrailing().stripIndent();
+
+        // set the labels
+        LabelPositionHolder.empty()
+                .addAll("a", sourceBlocks.stream().map(helper::absolutePos).toList())
+                .addAll("b", destBlocks.stream().map(helper::absolutePos).toList())
+                .save(manager.getDisk());
+
+        // load the program
+        manager.setProgram(program);
+        helper.assertTrue(
+                manager.getState() == ManagerBlockEntity.State.RUNNING,
+                "Program did not start running " + DiskItem.getErrors(manager.getDisk())
+        );
+
+        helper.succeedIfManagerDidThingWithoutLagging(manager, () -> {
+            // ensure all the source chests are full
+            sourceBlocks.forEach(pos -> {
+                BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
+                for (int i = 0; i < barrel.getContainerSize(); i++) {
+                    helper.assertTrue(barrel.getItem(i).getCount() == 64, "Items did not stay");
+                }
+            });
+            // ensure all the dest chests are full
+            destBlocks.forEach(pos -> {
+                BarrelBlockEntity barrel = helper.getBlockEntity(pos, BarrelBlockEntity.class);
+                for (int i = 0; i < barrel.getContainerSize(); i++) {
+                    helper.assertTrue(barrel.getItem(i).getCount() == 64, "Items did not arrive");
+                }
+            });
+
+
+        });
+    }
+}

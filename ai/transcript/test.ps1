@@ -1,1 +1,0 @@
-whisper --output_format txt untitled.wav

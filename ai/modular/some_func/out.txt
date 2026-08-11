@@ -1,3 +1,0 @@
-CALL "param 1"
--- needs to be timestamped, but sanitized
-param 1 world

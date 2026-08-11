@@ -62,3 +62,20 @@ every 20 ticks do
 
     output to b
 end
+
+--------------------
+
+-- Complex conditionals, AND and OR
+
+every 20 ticks do
+    if a has >= 10 iron_ingot and a has >= 5 coal then
+        input 1 redstone_block from a
+        output to b
+        forget
+    end
+
+    if a has >= 1 sand or a has > 1 red_sand then
+        input 1 glass from a
+        output to b
+    end
+end

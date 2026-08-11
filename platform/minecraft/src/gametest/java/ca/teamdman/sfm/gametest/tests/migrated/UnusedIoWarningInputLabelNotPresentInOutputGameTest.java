@@ -1,0 +1,88 @@
+package ca.teamdman.sfm.gametest.tests.migrated;
+
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.item.DiskItem;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.program.linting.GatherWarningsProgramBehaviour;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.gametest.SFMGameTest;
+import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
+import ca.teamdman.sfm.gametest.SFMGameTestHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.network.chat.contents.TranslatableContents;
+import net.minecraft.world.item.ItemStack;
+
+import java.util.Objects;
+
+
+/**
+ * Migrated from SFMCorrectnessGameTests.unused_io_warning_input_label_not_present_in_output
+ */
+@SuppressWarnings({
+        "RedundantSuppression",
+        "DataFlowIssue",
+        "OptionalGetWithoutIsPresent",
+        "DuplicatedCode",
+        "ArraysAsListWithZeroOrOneArgument"
+})
+@SFMGameTest
+public class UnusedIoWarningInputLabelNotPresentInOutputGameTest extends SFMGameTestDefinition {
+
+    @Override
+    public String template() {
+
+        return "3x2x1";
+    }
+
+    @Override
+    public String batchName() {
+
+        return "linting";
+    }
+
+    @Override
+    public void run(SFMGameTestHelper helper) {
+        // place inventories
+        helper.setBlock(new BlockPos(1, 2, 0), SFMBlocks.MANAGER.get());
+        BlockPos rightPos = new BlockPos(0, 2, 0);
+        helper.setBlock(rightPos, SFMBlocks.TEST_BARREL.get());
+        BlockPos leftPos = new BlockPos(2, 2, 0);
+        helper.setBlock(leftPos, SFMBlocks.TEST_BARREL.get());
+
+        // place manager
+        ManagerBlockEntity manager = helper.getBlockEntity(new BlockPos(1, 2, 0), ManagerBlockEntity.class);
+        manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
+        LabelPositionHolder.empty()
+                .add("left", helper.absolutePos(leftPos))
+                .save(Objects.requireNonNull(manager.getDisk()));
+        manager.setProgram("""
+                                       EVERY 20 TICKS DO
+                                           INPUT FROM left
+                                       END
+                                   """.stripTrailing().stripIndent());
+        helper.assertManagerRunning(manager);
+
+        // assert expected warnings
+        var warnings = DiskItem.getWarnings(Objects.requireNonNull(manager.getDisk()));
+        helper.assertTrue(warnings.size() == 1, "expected 1 warning, got " + warnings.size());
+
+        TranslatableContents firstWarning = (TranslatableContents) warnings.getFirst().getContents();
+        String expectedKey = GatherWarningsProgramBehaviour.PROGRAM_WARNING_UNUSED_INPUT_LABEL.key().get();
+        helper.assertTrue(firstWarning.getKey().equals(expectedKey), "expected output without matching input warning");
+        helper.assertTrue(firstWarning.getArgs().length == 5, "expected 5 arguments in warning");
+        helper.assertTrue(
+                firstWarning.getArgs()[0].equals("INPUT FROM left"),
+                "expected arg 0 to be \"INPUT FROM left\""
+        );
+        helper.assertTrue(
+                firstWarning.getArgs()[1].equals("Line 2, Column 4"),
+                "expected arg 1 to be \"Line 2, Column 4\""
+        );
+        helper.assertTrue(firstWarning.getArgs()[2].equals("sfm:item"), "expected arg 2 to be \"sfm:item\"");
+        helper.assertTrue(firstWarning.getArgs()[3].equals("left"), "expected arg 3 to be \"left\"");
+        helper.assertTrue(firstWarning.getArgs()[4].equals("sfm:item"), "expected arg 4 to be \"sfm:item\"");
+        helper.succeed();
+    }
+
+}

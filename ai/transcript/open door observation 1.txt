@@ -1,2 +1,0 @@
-A diamond spawns in the sky and falls at the location of the door, then the test times
-out.

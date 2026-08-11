@@ -1,5 +1,0 @@
-Is it a good d:\Repos\Minecraft\Forge\SuperFactoryManager\ai\templating\questioning\questions\2023-09-14-00-31-28.txt
-idea to train AI to kill cows in Minecraft
-1. Yes
-2. No
-    

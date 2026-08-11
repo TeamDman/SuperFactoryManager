@@ -1,0 +1,22 @@
+# Disallow specific standard library methods across the crate.
+# See: https://doc.rust-lang.org/nightly/clippy/lint_configuration.html#disallowed_methods
+
+disallowed-methods = [
+  { path = "std::env::set_var", reason = "Avoid setting global environment variables; use helpers (tempfile/TempEnv) or design APIs that accept configuration explicitly" },
+  { path = "serde_json::from_str", reason = "Use facet_json::from_str instead.", allow-invalid = true },
+  { path = "serde_json::from_slice", reason = "Use facet_json::from_slice instead.", allow-invalid = true },
+  { path = "serde_json::to_string", reason = "Use facet_json::to_string instead.", allow-invalid = true },
+  { path = "serde_json::to_string_pretty", reason = "Use facet_json::to_string_pretty instead.", allow-invalid = true },
+  { path = "serde_json::to_writer", reason = "Use facet_json::to_writer_std instead.", allow-invalid = true },
+  { path = "serde_json::to_writer_pretty", reason = "Use facet_json::to_writer_std_pretty instead.", allow-invalid = true },
+]
+
+disallowed-types = [
+  { path = "serde::Serialize", reason = "Use facet::Facet instead of Serde traits or derives.", allow-invalid = true },
+  { path = "serde::Deserialize", reason = "Use facet::Facet instead of Serde traits or derives.", allow-invalid = true },
+]
+
+disallowed-macros = [
+  { path = "std::ptr::addr_of_mut", reason = "Use `&raw mut` or `&const` instead." },
+  { path = "serde_json::json", reason = "Use facet_json value construction or typed Facet models instead.", allow-invalid = true },
+]

@@ -1,0 +1,94 @@
+package ca.teamdman.sfm.common.label;
+
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.item.LabelGunItem;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
+import ca.teamdman.sfm.common.net.ServerboundLabelGunUsePacket;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.util.SFMEntityUtils;
+import net.minecraft.world.entity.player.Player;
+import org.jetbrains.annotations.Nullable;
+
+public class LabelGunPlanner {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LABEL_GUN_CHAT_SKIPPED_BLOCKS = new LocalizationEntry(
+            () -> SFMItems.LABEL_GUN.get().getDescriptionId() + ".chat.skipped_blocks",
+            () -> "Skipped %d blocks not touching cables"
+    );
+
+    public static @Nullable LabelGunPlan getLabelGunPlan(
+            Player player,
+            ServerboundLabelGunUsePacket msg,
+            boolean doWarning
+    ) {
+
+        var gunStack = player.getItemInHand(msg.hand());
+        var level = SFMEntityUtils.getLevel(player);
+        if (!(gunStack.getItem() instanceof LabelGunItem)) {
+            return null;
+        }
+
+        var gunLabels = LabelPositionHolder.from(gunStack).toOwned();
+
+        if (
+                !msg.isTargetManagerModifierActive()
+                && level.getBlockEntity(msg.pos()) instanceof ManagerBlockEntity manager
+        ) {
+            return new LabelGunManagerPushOrPullAction(
+                    player,
+                    level,
+                    msg,
+                    gunStack,
+                    gunLabels,
+                    manager
+            );
+        }
+
+        var activeLabel = LabelGunItem.getActiveLabel(gunStack);
+        LabelGunPlanTargets targets = LabelGunPlanTargets.getTargets(level, msg);
+
+        // Notify user if any blocks were skipped because they aren't touching cables
+        // TODO: highlight skipped blocks in the world
+        if (doWarning && !targets.warnBecauseNoCableNeighbour().isEmpty()) {
+            player.sendSystemMessage(LABEL_GUN_CHAT_SKIPPED_BLOCKS.getComponent(
+                    targets.warnBecauseNoCableNeighbour().size()
+            ));
+        }
+
+        if (msg.isClearModifierActive()) {
+            return new LabelGunUnsetBlockLabelsAction(
+                    player,
+                    level,
+                    msg,
+                    gunStack,
+                    gunLabels,
+                    targets,
+                    activeLabel
+            );
+        } else {
+            if (msg.isPickBlockModifierActive()) {
+                return new LabelGunPickLabelAction(
+                        player,
+                        level,
+                        msg,
+                        gunStack,
+                        gunLabels,
+                        targets,
+                        activeLabel
+                );
+            } else {
+                return new LabelGunToggleLabelAction(
+                        player,
+                        level,
+                        msg,
+                        gunStack,
+                        gunLabels,
+                        targets,
+                        activeLabel
+                );
+            }
+        }
+    }
+
+}

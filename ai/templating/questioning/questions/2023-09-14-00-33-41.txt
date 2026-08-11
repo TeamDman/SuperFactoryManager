@@ -1,4 +1,0 @@
-Is it a good idea to train AI to kill cows in Minecraft? Press enter to confirm.
-1. Yes
-2. No
-    
