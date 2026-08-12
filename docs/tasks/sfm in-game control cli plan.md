@@ -502,9 +502,15 @@ response correlated instance `5525e708-9aee-404c-86ab-a018252ce756`, PID
 `36324`, request id, canonical action
 `sfm action invoke sfm:panel/open sfm:size_display`, result code `1`, resulting
 `SFMScreenMultiplexer`, and one workspace panel. The dedicated
-`sfm:title_screen_external_cli_size_display` puppet waited for that independent
-process, asserted one `SFMSizeDisplayPanel`, and captured
-`runs/sfm-title_screen-20260811-190258-724/title_screen_external_cli_size_display/1280x720_auto/figure_01_external-cli-size-display.png`.
+`sfm:title_screen_external_cli_size_display` puppet launches that independent
+process itself with Java `ProcessBuilder`, polls it without blocking the
+Minecraft client thread, validates exit code and resulting panel, and requires
+no operator or Teamy Terminal companion action. It asserted one
+`SFMSizeDisplayPanel` and captured
+`runs/sfm-title_screen-20260812-003711-522/title_screen_external_cli_size_display/1280x720_auto/figure_01_external-cli-size-display.png`.
+The corresponding launcher console records child PID `58124`, the exact six
+arguments, successful `sfm.invoke/1` JSON, canonical registered action, and
+`workspace_panel_count: 1` before capture.
 The first live attempt also caught and fixed generic Brigadier token escaping:
 literal action ids containing `:` and `/` stay raw, while whitespace/quotes are
 escaped, with focused Java regression tests.

@@ -116,9 +116,9 @@ public final class SFMGamePuppetHelper {
         }
     }
 
-    /** Waits for an external {@code sfm.exe invoke} witness to open the size-display panel. */
-    public void waitForExternalSizeDisplay() {
-        add(new WaitForExternalSizeDisplayPuppetAction());
+    /** Launches {@code sfm.exe invoke} and observes its size-display panel result. */
+    public void invokeExternalCliSizeDisplay() {
+        add(new InvokeExternalCliSizeDisplayPuppetAction());
     }
 
     /**
