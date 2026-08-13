@@ -1,12 +1,10 @@
 package ca.teamdman.sfm.client.screen.widget;
 
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
-import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import com.mojang.blaze3d.systems.RenderSystem;
+import ca.teamdman.sfm.client.screen.SFMScissorStack;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.math.Matrix4f;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -159,9 +157,18 @@ public final class SFMConsoleWidget {
         );
 
         if (contentWidth > 0 && contentHeight > 0 && !this.lines.isEmpty()) {
-            enableScissor(contentLeft, contentTop, contentWidth, contentHeight);
-            renderLines(poseStack, contentLeft, contentTop);
-            RenderSystem.disableScissor();
+            SFMScissorStack.pushGui(
+                    poseStack,
+                    contentLeft,
+                    contentTop,
+                    contentLeft + contentWidth,
+                    contentTop + contentHeight
+            );
+            try {
+                renderLines(poseStack, contentLeft, contentTop);
+            } finally {
+                SFMScissorStack.pop();
+            }
         }
 
         renderScrollbar(poseStack, mouseX, mouseY);
@@ -386,19 +393,4 @@ public final class SFMConsoleWidget {
         return mouseX >= x && mouseX < x + width && mouseY >= y && mouseY < y + height;
     }
 
-    @MCVersionDependentBehaviour
-    private static void enableScissor(int x, int y, int width, int height) {
-        var window = Minecraft.getInstance().getWindow();
-        double scale = window.getGuiScale();
-        int left = (int) Math.floor(x * scale);
-        int right = (int) Math.ceil((x + width) * scale);
-        int top = (int) Math.floor(y * scale);
-        int bottom = (int) Math.ceil((y + height) * scale);
-        RenderSystem.enableScissor(
-                left,
-                window.getHeight() - bottom,
-                Math.max(0, right - left),
-                Math.max(0, bottom - top)
-        );
-    }
 }

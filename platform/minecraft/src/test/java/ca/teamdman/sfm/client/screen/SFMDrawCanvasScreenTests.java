@@ -10,6 +10,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SFMDrawCanvasScreenTests {
     @Test
+    public void resizingViewportKeepsCanvasOriginAtSameScreenOffset() {
+        double initialCamera = 427.0D / 2.0D - 32.0D;
+        double resizedCamera = SFMDrawCanvasScreen.resizeCameraAxis(
+                initialCamera,
+                1.0D,
+                427,
+                103
+        );
+
+        assertEquals(32.0D, -initialCamera + 427.0D / 2.0D);
+        assertEquals(32.0D, -resizedCamera + 103.0D / 2.0D);
+    }
+
+    @Test
     public void unionRectsMergesOverlappingRectangles() {
         assertEquals(
                 Set.of(new SFMDrawCanvasScreen.CanvasRect(0, 0, 15, 10)),

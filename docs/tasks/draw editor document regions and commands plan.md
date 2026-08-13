@@ -3,7 +3,7 @@
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Reference-only worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-12
 
 ## How to update this plan
 
@@ -58,6 +58,24 @@ contract. Review source leaves use the same read-only panel path. The former
 `SFMDrawCanvasScreen` remains as the internal compatibility implementation
 base for the public `SFMTextEditorV3Screen` identity; no Draw registration or
 player-facing Draw title remains.
+
+## Shared selection substrate relationship — 2026-08-12
+
+`typed selections relations and lazy explorers plan.md` is authoritative for
+typed content paths, live named selections, immutable selection revisions,
+set algebra, and explorer-backed selection destinations. Text Editor v3 remains
+authoritative for ordered operational cursors: primary cursor identity,
+anchor/head direction, insertion order, caret affinity, and editor undo/redo.
+
+Plan item X-9 adds an adapter rather than replacing either model. A set of
+editor cursor ranges can be projected into a shared selection for pickers,
+comments, explorers, and cross-document actions; a compatible shared selection
+can be imported as editor ranges. Projection records document identity and
+revision. It never reorders cursors, invents a primary cursor, collapses
+overlapping operational ranges without an explicit editor rule, or makes
+navigation row focus clobber semantic selection. Review/comment conversion
+also preserves pinned snapshot/hash semantics owned by the global-comment
+plan. X-1 through X-7 therefore introduce no editor persistence migration.
 
 ## Purpose
 

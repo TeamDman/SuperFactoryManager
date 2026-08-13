@@ -635,6 +635,12 @@ fn execute_run(
     }
     let automation_options_path =
         prepare_client_automation_options(&plan.minecraft_dir, &working_dir, kind, run_options)?;
+    let game_puppet_control_cli = prepare_game_puppet_control_cli(
+        plan,
+        kind,
+        dry_run,
+        &context.cancellation_token,
+    )?;
 
     let run_lockfile = if plan.refresh {
         None
@@ -725,6 +731,11 @@ fn execute_run(
     apply_game_puppet_filter_property(&mut properties, kind, run_options);
     apply_game_puppet_game_test_property(&mut properties, kind, run_options);
     apply_game_puppet_viewport_selection_property(&mut properties, kind, run_options);
+    apply_game_puppet_control_cli_property(
+        &mut properties,
+        kind,
+        game_puppet_control_cli.as_deref(),
+    );
     if let Some(automation_mode) = kind.automation_mode() {
         properties.insert(
             "sfm.clientRun.mode".to_string(),
@@ -2239,6 +2250,87 @@ fn apply_game_puppet_viewport_selection_property(
     }
 }
 
+fn game_puppet_control_cli_paths(worktree_path: &Path) -> (PathBuf, PathBuf, PathBuf) {
+    let crate_dir = worktree_path.join("platform").join("cli").join("sfm");
+    let manifest = crate_dir.join("Cargo.toml");
+    let target_dir = crate_dir.join("target");
+    let executable = target_dir
+        .join("debug")
+        .join(format!("sfm{}", std::env::consts::EXE_SUFFIX));
+    (manifest, target_dir, executable)
+}
+
+fn prepare_game_puppet_control_cli(
+    plan: &BuildPlan,
+    kind: RunKind,
+    dry_run: bool,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<Option<PathBuf>> {
+    if !matches!(kind, RunKind::GameTestPreview) {
+        return Ok(None);
+    }
+    let (manifest, target_dir, executable) = game_puppet_control_cli_paths(&plan.worktree_path);
+    if !manifest.is_file() {
+        eyre::bail!(
+            "Game-puppet runs require the checkout-local SFM control CLI manifest at {}",
+            manifest.display()
+        );
+    }
+    if dry_run {
+        return Ok(Some(executable));
+    }
+
+    tracing::info!(
+        manifest = %manifest.display(),
+        executable = %executable.display(),
+        "Building checkout-local SFM control CLI for game-puppet automation"
+    );
+    let mut command = Command::new("cargo");
+    command
+        .arg("build")
+        .arg("--locked")
+        .arg("--manifest-path")
+        .arg(&manifest)
+        .arg("--bin")
+        .arg("sfm")
+        .arg("--target-dir")
+        .arg(&target_dir)
+        .current_dir(&plan.worktree_path);
+    let output = run_command_capture_output(cancellation_token, &mut command, "sfm-control-cli")?;
+    cancellation_token.bail_if_cancelled()?;
+    if !output.status.success() {
+        eyre::bail!(
+            "Failed to build checkout-local SFM control CLI at {}: {}{}",
+            manifest.display(),
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    let executable = executable.canonicalize().wrap_err_with(|| {
+        format!(
+            "Checkout-local SFM control CLI build did not produce {}",
+            executable.display()
+        )
+    })?;
+    Ok(Some(executable))
+}
+
+fn apply_game_puppet_control_cli_property(
+    properties: &mut BTreeMap<String, String>,
+    kind: RunKind,
+    executable: Option<&Path>,
+) {
+    if !matches!(kind, RunKind::GameTestPreview) {
+        return;
+    }
+    if let Some(executable) = executable {
+        properties.insert(
+            "sfm.controlCliExecutable".to_string(),
+            executable.display().to_string(),
+        );
+    }
+}
+
 fn apply_client_title_screen_property(
     properties: &mut BTreeMap<String, String>,
     kind: RunKind,
@@ -2603,6 +2695,11 @@ fn clean_client_automation_world(
     if matches!(kind, RunKind::GameTestPreview) && screenshots_dir.exists() {
         fs::remove_dir_all(&screenshots_dir)
             .wrap_err_with(|| format!("Failed to remove {}", screenshots_dir.display()))?;
+    }
+    let puppet_artifacts_dir = working_dir.join("puppet-artifacts");
+    if matches!(kind, RunKind::GameTestPreview) && puppet_artifacts_dir.exists() {
+        fs::remove_dir_all(&puppet_artifacts_dir)
+            .wrap_err_with(|| format!("Failed to remove {}", puppet_artifacts_dir.display()))?;
     }
     Ok(())
 }
@@ -3440,6 +3537,18 @@ struct GamePuppetPreviewTerminalArtifact {
     hash: ContentHash,
 }
 
+#[derive(Debug)]
+struct GamePuppetPreviewDataArtifact {
+    puppet_name: String,
+    variant: String,
+    artifact_name: String,
+    format: String,
+    content_type: String,
+    relative_path: PathBuf,
+    bytes: u64,
+    hash: ContentHash,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct GamePuppetPreviewTerminalArtifactMetadata {
     puppet_name: String,
@@ -3447,6 +3556,16 @@ struct GamePuppetPreviewTerminalArtifactMetadata {
     artifact_name: String,
     file_name: String,
     kind: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct GamePuppetPreviewDataArtifactMetadata {
+    puppet_name: String,
+    variant: String,
+    artifact_name: String,
+    format: String,
+    file_name: String,
+    reported_bytes: u64,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -3479,6 +3598,9 @@ pub(crate) struct GamePuppetPreviewManifest {
     pub(crate) puppet_selection: String,
     #[facet(rename = "gameTest")]
     pub(crate) game_test: Option<String>,
+    #[facet(rename = "sourceIdentity")]
+    #[facet(default)]
+    pub(crate) source_identity: Option<GamePuppetPreviewSourceIdentity>,
     pub(crate) viewport: GamePuppetPreviewViewport,
     #[facet(rename = "viewportSelection")]
     #[facet(default)]
@@ -3489,6 +3611,18 @@ pub(crate) struct GamePuppetPreviewManifest {
     #[facet(rename = "terminalArtifacts")]
     #[facet(default)]
     pub(crate) terminal_artifacts: Vec<GamePuppetPreviewManifestTerminalArtifact>,
+    #[facet(default)]
+    pub(crate) artifacts: Vec<GamePuppetPreviewManifestArtifact>,
+}
+
+#[derive(Debug, Facet)]
+pub(crate) struct GamePuppetPreviewSourceIdentity {
+    #[facet(rename = "gitRevision")]
+    pub(crate) git_revision: String,
+    #[facet(rename = "workingTreeDirty")]
+    pub(crate) working_tree_dirty: bool,
+    #[facet(rename = "sourceFingerprint")]
+    pub(crate) source_fingerprint: ContentHash,
 }
 
 #[derive(Debug, Facet)]
@@ -3548,6 +3682,19 @@ pub(crate) struct GamePuppetPreviewManifestTerminalArtifact {
     pub(crate) artifact: String,
     pub(crate) variant: String,
     pub(crate) kind: String,
+    pub(crate) path: String,
+    pub(crate) bytes: u64,
+    pub(crate) hash: ContentHash,
+}
+
+#[derive(Debug, Facet)]
+pub(crate) struct GamePuppetPreviewManifestArtifact {
+    pub(crate) puppet: String,
+    pub(crate) artifact: String,
+    pub(crate) variant: String,
+    pub(crate) format: String,
+    #[facet(rename = "contentType")]
+    pub(crate) content_type: String,
     pub(crate) path: String,
     pub(crate) bytes: u64,
     pub(crate) hash: ContentHash,
@@ -3759,12 +3906,20 @@ fn publish_game_puppet_preview_artifacts(
             .cmp(&(&right.puppet_name, &right.variant, &right.artifact_name, &right.kind))
     });
 
+    let data_artifacts = publish_game_puppet_data_artifacts(
+        launch_output,
+        working_dir,
+        &artifact_root,
+        &preview_run_relative_root,
+    )?;
+
     let manifest_path = artifact_root.join("preview-manifest.json");
     let manifest = render_game_puppet_preview_manifest(
         plan,
         run_options,
         &artifacts,
         &terminal_artifacts,
+        &data_artifacts,
     )?;
     let run_manifest_path = preview_run_root.join("preview-manifest.json");
     fs::write(&run_manifest_path, manifest.as_bytes())
@@ -3931,6 +4086,197 @@ fn parse_game_puppet_terminal_artifact_metadata(
     Ok(artifacts)
 }
 
+const MAX_GAME_PUPPET_ARTIFACT_BYTES: usize = 1_048_576;
+
+fn parse_game_puppet_data_artifact_metadata(
+    launch_output: &str,
+) -> eyre::Result<Vec<GamePuppetPreviewDataArtifactMetadata>> {
+    const ARTIFACT_MARKER: &str = "SFM_GAME_PUPPET_ARTIFACT_WRITTEN";
+    let mut artifacts = Vec::new();
+    let mut reported_files = BTreeSet::new();
+    for line in launch_output
+        .lines()
+        .filter(|line| line.contains(ARTIFACT_MARKER))
+    {
+        let fields = line
+            .split_whitespace()
+            .filter_map(|field| field.split_once('='))
+            .collect::<BTreeMap<_, _>>();
+        let field = |name: &str| {
+            fields
+                .get(name)
+                .copied()
+                .filter(|value| !value.is_empty())
+                .ok_or_else(|| eyre::eyre!("Game puppet artifact marker omitted {name}: {line}"))
+        };
+        let file_name = field("file")?.to_string();
+        if !reported_files.insert(file_name.clone()) {
+            eyre::bail!("Game puppet artifact file was reported more than once: {file_name}");
+        }
+        let reported_bytes = field("bytes")?.parse::<u64>().wrap_err_with(|| {
+            format!("Game puppet artifact marker reported invalid bytes: {line}")
+        })?;
+        artifacts.push(GamePuppetPreviewDataArtifactMetadata {
+            puppet_name: field("puppet")?.to_string(),
+            variant: field("variant")?.to_string(),
+            artifact_name: field("artifact")?.to_string(),
+            format: field("format")?.to_string(),
+            file_name,
+            reported_bytes,
+        });
+    }
+    Ok(artifacts)
+}
+
+fn publish_game_puppet_data_artifacts(
+    launch_output: &str,
+    working_dir: &Path,
+    artifact_root: &Path,
+    preview_run_relative_root: &Path,
+) -> eyre::Result<Vec<GamePuppetPreviewDataArtifact>> {
+    let metadata = parse_game_puppet_data_artifact_metadata(launch_output)?;
+    let staging_dir = working_dir.join("puppet-artifacts");
+    let mut artifacts = Vec::with_capacity(metadata.len());
+    let mut destinations = BTreeSet::new();
+    for metadata in metadata {
+        let (extension, content_type) = game_puppet_data_artifact_format(&metadata.format)?;
+        let expected_file_name = format!(
+            "{}__{}__{}.{}",
+            metadata.puppet_name,
+            metadata.artifact_name,
+            metadata.variant.replace('@', "_"),
+            extension
+        );
+        if !is_safe_preview_name(&metadata.puppet_name)
+            || !is_safe_preview_name(&metadata.artifact_name)
+            || metadata.artifact_name.len() > 64
+            || !is_safe_variant_id(&metadata.variant)
+            || !is_safe_game_puppet_data_artifact_file_name(
+                &metadata.file_name,
+                &metadata.format,
+            )
+            || metadata.file_name != expected_file_name
+        {
+            eyre::bail!(
+                "Game puppet artifact marker was not safely namespaced: {}",
+                metadata.file_name
+            );
+        }
+        let staging_path = staging_dir.join(&metadata.file_name);
+        let bytes = fs::read(&staging_path).wrap_err_with(|| {
+            format!(
+                "Game puppet artifact marker reported a missing or unreadable file: {}",
+                staging_path.display()
+            )
+        })?;
+        validate_game_puppet_data_artifact_payload(&metadata, &bytes)?;
+        let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
+        let relative_path = preview_run_relative_root
+            .join(&metadata.puppet_name)
+            .join(metadata.variant.replace('@', "_"))
+            .join(format!("artifact_{}.{}", metadata.artifact_name, extension));
+        if !destinations.insert(relative_path.clone()) {
+            eyre::bail!(
+                "Game puppet artifact markers produced duplicate destination {}",
+                relative_path.display()
+            );
+        }
+        let destination = artifact_root.join(&relative_path);
+        if let Some(parent) = destination.parent() {
+            fs::create_dir_all(parent)
+                .wrap_err_with(|| format!("Failed to create {}", parent.display()))?;
+        }
+        fs::write(&destination, &bytes).wrap_err_with(|| {
+            format!(
+                "Failed to publish game puppet artifact {} to {}",
+                staging_path.display(),
+                destination.display()
+            )
+        })?;
+        tracing::info!(
+            preview_data_artifact = %destination.display(),
+            format = %metadata.format,
+            "Game puppet data artifact"
+        );
+        artifacts.push(GamePuppetPreviewDataArtifact {
+            puppet_name: metadata.puppet_name,
+            variant: metadata.variant,
+            artifact_name: metadata.artifact_name,
+            format: metadata.format,
+            content_type: content_type.to_string(),
+            relative_path,
+            bytes: u64::try_from(bytes.len()).wrap_err("Game puppet artifact exceeded u64")?,
+            hash,
+        });
+    }
+    artifacts.sort_by(|left, right| {
+        (&left.puppet_name, &left.variant, &left.artifact_name, &left.format)
+            .cmp(&(&right.puppet_name, &right.variant, &right.artifact_name, &right.format))
+    });
+    Ok(artifacts)
+}
+
+fn validate_game_puppet_data_artifact_payload(
+    metadata: &GamePuppetPreviewDataArtifactMetadata,
+    bytes: &[u8],
+) -> eyre::Result<()> {
+    if bytes.len() > MAX_GAME_PUPPET_ARTIFACT_BYTES {
+        eyre::bail!(
+            "Game puppet artifact {} exceeds the {} byte limit: {}",
+            metadata.file_name,
+            MAX_GAME_PUPPET_ARTIFACT_BYTES,
+            bytes.len()
+        );
+    }
+    let actual_bytes = u64::try_from(bytes.len()).wrap_err("Game puppet artifact exceeded u64")?;
+    if metadata.reported_bytes != actual_bytes {
+        eyre::bail!(
+            "Game puppet artifact {} byte count disagrees with its marker: file has {}, marker reports {}",
+            metadata.file_name,
+            actual_bytes,
+            metadata.reported_bytes
+        );
+    }
+    let text = std::str::from_utf8(bytes).wrap_err_with(|| {
+        format!(
+            "Game puppet artifact was not valid UTF-8: {}",
+            metadata.file_name
+        )
+    })?;
+    if metadata.format == "json" {
+        let _: facet_json::RawJson<'_> = facet_json::from_str_borrowed(text).wrap_err_with(|| {
+            format!(
+                "Game puppet JSON artifact was not valid JSON: {}",
+                metadata.file_name
+            )
+        })?;
+    }
+    Ok(())
+}
+
+fn game_puppet_data_artifact_format(format: &str) -> eyre::Result<(&'static str, &'static str)> {
+    match format {
+        "utf8" => Ok(("txt", "text/plain; charset=utf-8")),
+        "json" => Ok(("json", "application/json")),
+        _ => eyre::bail!("Unsupported game puppet artifact format {format}"),
+    }
+}
+
+fn is_safe_game_puppet_data_artifact_file_name(value: &str, format: &str) -> bool {
+    let Ok((extension, _)) = game_puppet_data_artifact_format(format) else {
+        return false;
+    };
+    Path::new(value).file_name().and_then(|name| name.to_str()) == Some(value)
+        && Path::new(value)
+            .extension()
+            .is_some_and(|actual| actual.eq_ignore_ascii_case(extension))
+        && value.bytes().all(|byte| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit()
+                || matches!(byte, b'_' | b'-' | b'.')
+        })
+}
+
 fn parse_game_puppet_preview_viewport(fields: &BTreeMap<&str, &str>) -> Option<GamePuppetPreviewVariantObservation> {
     let number = |name| fields.get(name)?.parse::<u16>().ok();
     Some(GamePuppetPreviewVariantObservation {
@@ -4047,12 +4393,14 @@ fn render_game_puppet_preview_manifest(
     run_options: &RunOptions,
     artifacts: &[GamePuppetPreviewArtifact],
     terminal_artifacts: &[GamePuppetPreviewTerminalArtifact],
+    data_artifacts: &[GamePuppetPreviewDataArtifact],
 ) -> eyre::Result<String> {
     let manifest = GamePuppetPreviewManifest {
         branch: plan.branch_name.as_ref().to_string(),
         minecraft_version: plan.minecraft_version.as_ref().to_string(),
         puppet_selection: run_options.game_puppet_filter.clone().unwrap_or_default(),
         game_test: run_options.game_puppet_game_test.clone(),
+        source_identity: Some(game_puppet_preview_source_identity(plan)?),
         viewport: GamePuppetPreviewViewport {
             width: run_options.preview_width,
             height: run_options.preview_height,
@@ -4095,8 +4443,91 @@ fn render_game_puppet_preview_manifest(
                 hash: artifact.hash,
             })
             .collect(),
+        artifacts: data_artifacts
+            .iter()
+            .map(|artifact| GamePuppetPreviewManifestArtifact {
+                puppet: artifact.puppet_name.clone(),
+                artifact: artifact.artifact_name.clone(),
+                variant: artifact.variant.clone(),
+                format: artifact.format.clone(),
+                content_type: artifact.content_type.clone(),
+                path: artifact.relative_path.to_string_lossy().replace('\\', "/"),
+                bytes: artifact.bytes,
+                hash: artifact.hash,
+            })
+            .collect(),
     };
     Ok(facet_json::to_string_pretty(&manifest)?)
+}
+
+fn game_puppet_preview_source_identity(
+    plan: &BuildPlan,
+) -> eyre::Result<GamePuppetPreviewSourceIdentity> {
+    let worktree = plan.worktree_path.display().to_string();
+    let git_revision = Command::new("git")
+        .args(["-C", worktree.as_str(), "rev-parse", "HEAD"])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "unavailable".to_string());
+    let working_tree_dirty = Command::new("git")
+        .args([
+            "-C",
+            worktree.as_str(),
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+        ])
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .is_none_or(|output| !output.stdout.is_empty());
+
+    let source_inputs = [
+        plan.worktree_path.join("platform/minecraft/src"),
+        plan.worktree_path.join("platform/cli/sfm/src"),
+        plan.worktree_path.join("platform/cli/sfm/Cargo.toml"),
+        plan.worktree_path.join("platform/cli/sfm/Cargo.lock"),
+        plan.worktree_path.join("platform/cli/sfm-propagate-changes/src"),
+        plan.worktree_path.join("platform/cli/sfm-propagate-changes/Cargo.toml"),
+        plan.worktree_path.join("platform/cli/sfm-propagate-changes/Cargo.lock"),
+        plan.lockfile_path.clone(),
+    ];
+    let mut files = Vec::new();
+    for input in source_inputs {
+        if input.is_file() {
+            files.push(input);
+        } else if input.is_dir() {
+            files.extend(collect_files_under(&input)?);
+        }
+    }
+    files.sort();
+    files.dedup();
+    let mut fingerprint_input = b"sfm-game-puppet-source-identity-v1\n".to_vec();
+    for file in files {
+        let relative = file.strip_prefix(&plan.worktree_path).wrap_err_with(|| {
+            format!("Preview source escaped worktree: {}", file.display())
+        })?;
+        fingerprint_input.extend_from_slice(relative.to_string_lossy().replace('\\', "/").as_bytes());
+        fingerprint_input.push(b'\n');
+        fingerprint_input.extend_from_slice(
+            ContentHash::from_path(&file, ContentHashAlgorithm::Blake3)?
+                .to_string()
+                .as_bytes(),
+        );
+        fingerprint_input.push(b'\n');
+    }
+    Ok(GamePuppetPreviewSourceIdentity {
+        git_revision,
+        working_tree_dirty,
+        source_fingerprint: ContentHash::from_bytes(
+            &fingerprint_input,
+            ContentHashAlgorithm::Blake3,
+        ),
+    })
 }
 
 fn render_game_puppet_preview_contact_sheet(artifacts: &[GamePuppetPreviewArtifact], from_run_root: bool) -> String {
@@ -4154,25 +4585,38 @@ fn escape_html(value: &str) -> String {
 
 #[cfg(test)]
 mod game_puppet_preview_tests {
+    use super::RunKind;
+    use super::apply_game_puppet_control_cli_property;
     use super::ContentHash;
     use super::ContentHashAlgorithm;
     use super::GamePuppetPreviewArtifact;
     use super::GamePuppetPreviewCaptureMetadata;
     use super::GamePuppetPreviewCaptureProfile;
     use super::GamePuppetPreviewManifest;
+    use super::GamePuppetPreviewManifestArtifact;
     use super::GamePuppetPreviewManifestCapture;
     use super::GamePuppetPreviewManifestTerminalArtifact;
+    use super::GamePuppetPreviewSourceIdentity;
     use super::GamePuppetPreviewVariantObservation;
     use super::GamePuppetPreviewViewportCrop;
     use super::GamePuppetPreviewViewport;
     use super::captioned_viewport_geometry;
     use super::create_game_puppet_preview_run_root;
     use super::game_puppet_preview_artifact_file_name;
+    use super::game_puppet_control_cli_paths;
     use super::is_safe_preview_name;
     use super::parse_game_puppet_capture_metadata;
+    use super::parse_game_puppet_data_artifact_metadata;
     use super::parse_game_puppet_terminal_artifact_metadata;
+    use super::publish_game_puppet_data_artifacts;
     use super::render_game_puppet_preview_contact_sheet;
+    use super::validate_game_puppet_data_artifact_payload;
+    use super::GamePuppetPreviewDataArtifactMetadata;
+    use super::MAX_GAME_PUPPET_ARTIFACT_BYTES;
     use super::png_dimensions;
+    use std::fs;
+    use std::collections::BTreeMap;
+    use std::path::Path;
     use tempfile::tempdir;
 
     #[test]
@@ -4183,6 +4627,39 @@ mod game_puppet_preview_tests {
         assert!(!is_safe_preview_name("../escape"));
         assert!(!is_safe_preview_name("not a capture"));
         assert!(!is_safe_preview_name("UPPERCASE"));
+    }
+
+    #[test]
+    fn game_puppet_control_cli_is_checkout_scoped_and_explicitly_published() {
+        let checkout = Path::new("D:/example/sfm/1.19.2");
+        let (manifest, target_dir, executable) = game_puppet_control_cli_paths(checkout);
+        assert_eq!(manifest, checkout.join("platform/cli/sfm/Cargo.toml"));
+        assert_eq!(target_dir, checkout.join("platform/cli/sfm/target"));
+        assert_eq!(
+            executable,
+            target_dir
+                .join("debug")
+                .join(format!("sfm{}", std::env::consts::EXE_SUFFIX))
+        );
+
+        let mut properties = BTreeMap::new();
+        apply_game_puppet_control_cli_property(
+            &mut properties,
+            RunKind::GameTestPreview,
+            Some(&executable),
+        );
+        assert_eq!(
+            properties.get("sfm.controlCliExecutable"),
+            Some(&executable.display().to_string())
+        );
+
+        let mut ordinary_client_properties = BTreeMap::new();
+        apply_game_puppet_control_cli_property(
+            &mut ordinary_client_properties,
+            RunKind::Client,
+            Some(&executable),
+        );
+        assert!(ordinary_client_properties.is_empty());
     }
 
     #[test]
@@ -4344,6 +4821,11 @@ mod game_puppet_preview_tests {
             minecraft_version: "1.19.2".to_string(),
             puppet_selection: "move_1_stack_direct_walkthrough".to_string(),
             game_test: None,
+            source_identity: Some(GamePuppetPreviewSourceIdentity {
+                git_revision: "0123456789abcdef".to_string(),
+                working_tree_dirty: true,
+                source_fingerprint: hash,
+            }),
             viewport: GamePuppetPreviewViewport {
                 width: 1280,
                 height: 720,
@@ -4385,11 +4867,24 @@ mod game_puppet_preview_tests {
                 bytes: 42,
                 hash,
             }],
+            artifacts: vec![GamePuppetPreviewManifestArtifact {
+                puppet: "move_1_stack_direct_walkthrough".to_string(),
+                artifact: "query-counts".to_string(),
+                variant: "1280x720@auto".to_string(),
+                format: "json".to_string(),
+                content_type: "application/json".to_string(),
+                path: "runs/example/artifact_query-counts.json".to_string(),
+                bytes: 24,
+                hash,
+            }],
         };
 
         let json = facet_json::to_string_pretty(&manifest).expect("preview manifest should serialize");
         assert!(json.contains("\"minecraftVersion\": \"1.19.2\""));
         assert!(json.contains("\"puppetSelection\": \"move_1_stack_direct_walkthrough\""));
+        assert!(json.contains("\"gitRevision\": \"0123456789abcdef\""));
+        assert!(json.contains("\"workingTreeDirty\": true"));
+        assert!(json.contains("\"sourceFingerprint\""));
         assert!(json.contains("\"nativeMainRenderTarget\": false"));
         assert!(json.contains("\"composition\": \"captioned-native-main-render-target\""));
         assert!(json.contains("\"captionPixelHeight\": 87"));
@@ -4400,7 +4895,127 @@ mod game_puppet_preview_tests {
         assert!(json.contains("\"screen\": \"SFM \\\"editor\\\"\""));
         assert!(json.contains("\"terminalArtifacts\""));
         assert!(json.contains("\"kind\": \"terminal-content\""));
+        assert!(json.contains("\"artifacts\""));
+        assert!(json.contains("\"contentType\": \"application/json\""));
+        assert!(json.contains("\"artifact\": \"query-counts\""));
         assert!(!json.contains("minecraft_version"));
+    }
+
+    #[test]
+    fn generic_artifact_marker_publishes_validated_utf8_and_hash_beside_captures() {
+        let temporary = tempdir().expect("temporary preview roots");
+        let working_dir = temporary.path().join("working");
+        let staging_dir = working_dir.join("puppet-artifacts");
+        let artifact_root = temporary.path().join("published");
+        fs::create_dir_all(&staging_dir).expect("create staging directory");
+        let file_name = "artifact-probe__machine-state__1280x720_auto.json";
+        let payload = "{\"schema\":\"sfm.puppet-evidence/1\",\"label\":\"\u{96ea}\"}";
+        fs::write(staging_dir.join(file_name), payload.as_bytes()).expect("write staged artifact");
+        let marker = format!(
+            "SFM_GAME_PUPPET_ARTIFACT_WRITTEN puppet=artifact-probe variant=1280x720@auto artifact=machine-state format=json file={file_name} bytes={}",
+            payload.len()
+        );
+
+        let published = publish_game_puppet_data_artifacts(
+            &marker,
+            &working_dir,
+            &artifact_root,
+            Path::new("runs/probe"),
+        )
+        .expect("publish data artifact");
+
+        assert_eq!(published.len(), 1);
+        assert_eq!(published[0].content_type, "application/json");
+        assert_eq!(published[0].bytes, u64::try_from(payload.len()).unwrap());
+        let relative = Path::new(
+            "runs/probe/artifact-probe/1280x720_auto/artifact_machine-state.json",
+        );
+        assert_eq!(published[0].relative_path, relative);
+        assert_eq!(
+            fs::read_to_string(artifact_root.join(relative)).expect("read published artifact"),
+            payload
+        );
+        assert_eq!(
+            published[0].hash,
+            ContentHash::from_bytes(payload.as_bytes(), ContentHashAlgorithm::Blake3)
+        );
+    }
+
+    #[test]
+    fn generic_artifact_validation_rejects_duplicates_size_mismatch_and_invalid_json() {
+        let duplicate = "SFM_GAME_PUPPET_ARTIFACT_WRITTEN puppet=p variant=1280x720@auto artifact=a format=utf8 file=p__a__1280x720_auto.txt bytes=1\n\
+                         SFM_GAME_PUPPET_ARTIFACT_WRITTEN puppet=p variant=1280x720@auto artifact=b format=utf8 file=p__a__1280x720_auto.txt bytes=1";
+        assert!(
+            parse_game_puppet_data_artifact_metadata(duplicate)
+                .expect_err("duplicate source files must fail")
+                .to_string()
+                .contains("reported more than once")
+        );
+
+        let temporary = tempdir().expect("temporary preview roots");
+        let mismatched_marker =
+            "SFM_GAME_PUPPET_ARTIFACT_WRITTEN puppet=p variant=1280x720@auto artifact=a format=utf8 file=p__other__1280x720_auto.txt bytes=1";
+        assert!(
+            publish_game_puppet_data_artifacts(
+                mismatched_marker,
+                temporary.path(),
+                &temporary.path().join("published"),
+                Path::new("runs/probe"),
+            )
+            .expect_err("marker identity must match the deterministic staging filename")
+            .to_string()
+            .contains("not safely namespaced")
+        );
+
+        let metadata = GamePuppetPreviewDataArtifactMetadata {
+            puppet_name: "p".to_string(),
+            variant: "1280x720@auto".to_string(),
+            artifact_name: "a".to_string(),
+            format: "json".to_string(),
+            file_name: "p__a__1280x720_auto.json".to_string(),
+            reported_bytes: 2,
+        };
+        assert!(
+            validate_game_puppet_data_artifact_payload(&metadata, b"{}\n")
+                .expect_err("reported byte mismatch must fail")
+                .to_string()
+                .contains("byte count disagrees")
+        );
+        let invalid_json = GamePuppetPreviewDataArtifactMetadata {
+            reported_bytes: 1,
+            ..metadata.clone()
+        };
+        assert!(
+            validate_game_puppet_data_artifact_payload(&invalid_json, b"{")
+                .expect_err("invalid JSON must fail")
+                .to_string()
+                .contains("not valid JSON")
+        );
+        let invalid_utf8 = GamePuppetPreviewDataArtifactMetadata {
+            format: "utf8".to_string(),
+            reported_bytes: 1,
+            ..metadata.clone()
+        };
+        assert!(
+            validate_game_puppet_data_artifact_payload(&invalid_utf8, &[0xff])
+                .expect_err("invalid UTF-8 must fail")
+                .to_string()
+                .contains("not valid UTF-8")
+        );
+        let oversized = GamePuppetPreviewDataArtifactMetadata {
+            format: "utf8".to_string(),
+            reported_bytes: u64::try_from(MAX_GAME_PUPPET_ARTIFACT_BYTES + 1).unwrap(),
+            ..metadata
+        };
+        assert!(
+            validate_game_puppet_data_artifact_payload(
+                &oversized,
+                &vec![b'x'; MAX_GAME_PUPPET_ARTIFACT_BYTES + 1],
+            )
+            .expect_err("oversized data must fail")
+            .to_string()
+            .contains("exceeds")
+        );
     }
 
     #[test]

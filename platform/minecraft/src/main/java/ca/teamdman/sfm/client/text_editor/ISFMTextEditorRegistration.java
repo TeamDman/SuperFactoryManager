@@ -18,13 +18,6 @@ public interface ISFMTextEditorRegistration {
 
     /** Create a panel-capable projection of this editor implementation. */
     default SFMScreenPanel createPanel(SFMTextEditorPanelOpenContext context) {
-        return SFMTextEditorPanel.legacy(context, createScreen(new ISFMTextEditScreenOpenContext() {
-            @Override public String initialValue() { return context.initialValue(); }
-            @Override public boolean readOnly() { return context.readOnly(); }
-            @Override public java.util.function.Consumer<String> saveWriter() { return ignored -> { }; }
-            @Override public ca.teamdman.sfm.common.label.LabelPositionHolder labelPositionHolder() {
-                return ca.teamdman.sfm.common.label.LabelPositionHolder.empty();
-            }
-        }).asScreen());
+        return SFMTextEditorPanel.legacy(context, this::createScreen);
     }
 }

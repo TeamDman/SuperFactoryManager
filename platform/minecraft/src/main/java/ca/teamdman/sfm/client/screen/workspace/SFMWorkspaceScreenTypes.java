@@ -41,6 +41,11 @@ public final class SFMWorkspaceScreenTypes {
             SFMGrammarScreenType::new
     );
 
+    public static final SFMRegistryObject<SFMClientScreenType, SFMExplorerScreenType> EXPLORER = REGISTERER.register(
+            "explorer",
+            SFMExplorerScreenType::new
+    );
+
     public static final SFMRegistryObject<SFMClientScreenType, SFMReviewExplorerScreenType> REVIEW_CHANGES = REGISTERER.register(
             "explorer/changes",
             () -> new SFMReviewExplorerScreenType(SFMReviewExplorerScreenType.Projection.CHANGES)

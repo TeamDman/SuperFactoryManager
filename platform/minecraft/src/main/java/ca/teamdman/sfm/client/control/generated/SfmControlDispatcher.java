@@ -44,6 +44,16 @@ public final class SfmControlDispatcher implements ServiceDispatcher {
           }
         });
       }
+      if (call.method().id() == SfmControlServiceDescriptor.EXPLORER_OPERATION.id()) {
+        SfmControlExplorerOperationArgs args = call.decodeArguments(SfmControlExplorerOperationArgs.ADAPTER);
+        return handler.explorerOperation(call.context(), args.request()).thenAccept(value -> {
+          try {
+            call.respond(PhonCodec.encode(SfmControlExplorerOperationResponse.ADAPTER, value, PhonLimits.defaults()));
+          } catch (PhonException error) {
+            throw new CompletionException(error);
+          }
+        });
+      }
       return CompletableFuture.failedFuture(new VoxException("unknown method " + call.method().id()));
     } catch (Exception error) {
       return CompletableFuture.failedFuture(error);

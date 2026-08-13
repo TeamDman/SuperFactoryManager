@@ -94,7 +94,8 @@ public final class OpenPanelAction implements SFMClientAction<SFMClientActionCon
         return openPanel(actionContext, recipe.reopen(), direction, recipe);
     }
 
-    static int openPanel(SFMClientActionContext actionContext, SFMScreenPanel panel, Direction direction) {
+    /** Shared registered-action panel-opening seam used by typed scene authorities. */
+    public static int openPanel(SFMClientActionContext actionContext, SFMScreenPanel panel, Direction direction) {
         return openPanel(actionContext, panel, direction, null);
     }
 

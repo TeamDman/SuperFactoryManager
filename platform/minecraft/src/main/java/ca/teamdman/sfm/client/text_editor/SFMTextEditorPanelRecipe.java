@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 
 /** Typed editor recipe that retains a registry id and immutable document source. */
 public record SFMTextEditorPanelRecipe(
@@ -13,13 +14,32 @@ public record SFMTextEditorPanelRecipe(
         ResourceLocation editorId,
         SFMTextDocumentSource documentSource,
         boolean readOnly,
-        String title
+        String title,
+        Supplier<SFMTextDocumentSaveHandler> saveHandlerFactory
 ) implements SFMPanelReopenRecipe {
     public SFMTextEditorPanelRecipe {
         Objects.requireNonNull(sceneTypeId);
         Objects.requireNonNull(editorId);
         Objects.requireNonNull(documentSource);
         if (title == null || title.isBlank()) throw new IllegalArgumentException("title must not be blank");
+        Objects.requireNonNull(saveHandlerFactory);
+    }
+
+    public SFMTextEditorPanelRecipe(
+            ResourceLocation sceneTypeId,
+            ResourceLocation editorId,
+            SFMTextDocumentSource documentSource,
+            boolean readOnly,
+            String title
+    ) {
+        this(
+                sceneTypeId,
+                editorId,
+                documentSource,
+                readOnly,
+                title,
+                SFMTextDocumentSaveHandler::discard
+        );
     }
 
     @Override
@@ -32,7 +52,8 @@ public record SFMTextEditorPanelRecipe(
                 editorId.toString(),
                 documentSource.load(),
                 readOnly,
-                title
+                title,
+                Objects.requireNonNull(saveHandlerFactory.get(), "save handler factory result")
         ));
     }
 }

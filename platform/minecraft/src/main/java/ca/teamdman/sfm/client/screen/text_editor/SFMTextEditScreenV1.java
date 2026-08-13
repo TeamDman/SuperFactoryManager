@@ -8,6 +8,7 @@ import ca.teamdman.sfm.client.screen.widget.PickList;
 import ca.teamdman.sfm.client.screen.widget.PickListItem;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
 import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
@@ -43,6 +44,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("NotNullFieldNotInitialized")
@@ -84,6 +86,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
     private boolean scrolledOnFirstInit = false;
 
     private boolean suppressNextCharTypedForIntellisenseAccept = false;
+    private Optional<Component> saveDiagnostic = Optional.empty();
 
     public SFMTextEditScreenV1(
             ISFMTextEditScreenOpenContext openContext
@@ -108,8 +111,8 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
      * The user has indicated to save by hitting Shift+Enter or by pressing the Done button
      */
     public void saveAndClose() {
-
-        openContext.onSaveAndClose(textarea.getValue());
+        SFMTextDocumentSaveResult result = openContext.trySaveAndClose(textarea.getValue());
+        saveDiagnostic = result.diagnostic();
     }
 
     /**
@@ -285,6 +288,20 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         // render widgets
         super.render(poseStack, mx, my, partialTicks);
 
+        if (saveDiagnostic.isPresent()) {
+            String message = saveDiagnostic.orElseThrow().getString();
+            String rendered = font.plainSubstrByWidth(message, Math.max(0, width - 8));
+            SFMFontUtils.draw(
+                    poseStack,
+                    font,
+                    rendered,
+                    4,
+                    Math.max(1, height - 34),
+                    0xFFFF7777,
+                    true
+            );
+        }
+
         // render tooltips
         SFMWidgetUtils.hideTooltipsWhenNotFocused(this, this.renderables);
         SFMWidgetUtils.renderChildTooltips(poseStack, mx, my, this.renderables);
@@ -336,12 +353,14 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         super.init();
         SFMScreenRenderUtils.enableKeyRepeating();
 
+        EditorLayout layout = editorLayout(this.width, this.height, this.font.lineHeight);
+
         this.textarea = this.addRenderableWidget(new MyMultiLineEditBox(
                 SFMTextEditScreenV1.this.font,
-                SFMTextEditScreenV1.this.width / 2 - 200,
-                SFMTextEditScreenV1.this.height / 2 - 110,
-                400,
-                200,
+                layout.textareaX(),
+                layout.textareaY(),
+                layout.textareaWidth(),
+                layout.textareaHeight(),
                 Component.literal(""),
                 Component.literal("")
         ));
@@ -350,15 +369,15 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 this.font,
                 0,
                 0,
-                180,
-                this.font.lineHeight * 6,
+                layout.suggestionWidth(),
+                layout.suggestionHeight(),
                 INTELLISENSE_PICK_LIST_GUI_TITLE.getComponent(),
                 new ArrayList<>()
         ));
 
         this.addRenderableWidget(
                 new SFMButtonBuilder()
-                        .setPosition(this.width / 2 - 200, this.height / 2 - 100 + 195)
+                        .setPosition(layout.configX(), layout.footerY())
                         .setSize(16, 20)
                         .setText(Component.literal("#"))
                         .setOnPress((button) -> {
@@ -381,11 +400,8 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         );
         this.addRenderableWidget(
                 new SFMButtonBuilder()
-                        .setPosition(
-                                this.width / 2 - 2 - 150,
-                                this.height / 2 - 100 + 195
-                        )
-                        .setSize(200, 20)
+                        .setPosition(layout.doneX(), layout.footerY())
+                        .setSize(layout.doneWidth(), 20)
                         .setText(CommonComponents.GUI_DONE)
                         .setOnPress((button) -> this.saveAndClose())
                         .setTooltip(this, font, PROGRAM_EDIT_SCREEN_DONE_BUTTON_TOOLTIP)
@@ -393,11 +409,8 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         );
         this.addRenderableWidget(
                 new SFMButtonBuilder()
-                        .setPosition(
-                                this.width / 2 - 2 + 100,
-                                this.height / 2 - 100 + 195
-                        )
-                        .setSize(100, 20)
+                        .setPosition(layout.cancelX(), layout.footerY())
+                        .setSize(layout.cancelWidth(), 20)
                         .setText(CommonComponents.GUI_CANCEL)
                         .setOnPress((button) -> this.onClose())
                         .build()
@@ -412,6 +425,73 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
 
         this.setInitialFocus(textarea);
+    }
+
+    static EditorLayout editorLayout(int width, int height, int lineHeight) {
+        int safeWidth = Math.max(1, width);
+        int safeHeight = Math.max(1, height);
+        int margin = Math.min(4, Math.max(0, (safeWidth - 1) / 2));
+        int footerY = Math.max(0, Math.min(safeHeight - 20, safeHeight / 2 + 95));
+        int textareaY = Math.max(0, Math.min(safeHeight / 2 - 110, Math.max(0, footerY - 1)));
+        int textareaWidth = Math.max(1, Math.min(400, safeWidth - margin * 2));
+        int textareaX = Math.max(0, (safeWidth - textareaWidth) / 2);
+        int textareaHeight = Math.max(1, Math.min(200, footerY - textareaY - 5));
+        int suggestionWidth = Math.max(1, Math.min(180, safeWidth));
+        int suggestionHeight = Math.max(1, Math.min(Math.max(1, lineHeight) * 6, safeHeight));
+
+        if (safeWidth >= 408) {
+            return new EditorLayout(
+                    textareaX,
+                    textareaY,
+                    textareaWidth,
+                    textareaHeight,
+                    suggestionWidth,
+                    suggestionHeight,
+                    safeWidth / 2 - 200,
+                    safeWidth / 2 - 152,
+                    200,
+                    safeWidth / 2 + 98,
+                    100,
+                    footerY
+            );
+        }
+
+        int configX = margin;
+        int doneX = Math.min(safeWidth, configX + 18);
+        int available = Math.max(2, safeWidth - margin - doneX - 2);
+        int doneWidth = Math.max(1, available / 2);
+        int cancelX = Math.min(safeWidth, doneX + doneWidth + 2);
+        int cancelWidth = Math.max(1, safeWidth - margin - cancelX);
+        return new EditorLayout(
+                textareaX,
+                textareaY,
+                textareaWidth,
+                textareaHeight,
+                suggestionWidth,
+                suggestionHeight,
+                configX,
+                doneX,
+                doneWidth,
+                cancelX,
+                cancelWidth,
+                footerY
+        );
+    }
+
+    record EditorLayout(
+            int textareaX,
+            int textareaY,
+            int textareaWidth,
+            int textareaHeight,
+            int suggestionWidth,
+            int suggestionHeight,
+            int configX,
+            int doneX,
+            int doneWidth,
+            int cancelX,
+            int cancelWidth,
+            int footerY
+    ) {
     }
 
     // TODO: enable scrolling without focus; respond to wheel events
@@ -453,6 +533,58 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
             this.textField.setValueListener(this::onValueOrCursorChanged);
             this.textField.setCursorListener(() -> this.onValueOrCursorChanged(this.textField.value()));
             this.rebuild(false);
+        }
+
+        /**
+         * Vanilla's implementation uses screen-global scissor coordinates and
+         * disables any parent scissor.  This editor can live in a transformed
+         * workspace panel, so clip through the shared nested stack instead.
+         */
+        @Override
+        @MCVersionDependentBehaviour
+        public void renderButton(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
+            if (!this.visible) return;
+            int border = this.isFocused() ? -1 : -6250336;
+            fill(poseStack, this.x, this.y, this.x + this.width, this.y + this.height, border);
+            fill(
+                    poseStack,
+                    this.x + 1,
+                    this.y + 1,
+                    this.x + this.width - 1,
+                    this.y + this.height - 1,
+                    -16777216
+            );
+            SFMScissorStack.pushGui(
+                    poseStack,
+                    this.x + 1,
+                    this.y + 1,
+                    this.x + this.width - 1,
+                    this.y + this.height - 1
+            );
+            poseStack.pushPose();
+            try {
+                poseStack.translate(0.0D, -this.scrollAmount(), 0.0D);
+                this.renderContents(poseStack, mouseX, mouseY, partialTick);
+            } finally {
+                poseStack.popPose();
+                SFMScissorStack.pop();
+            }
+            renderPanelAwareScrollbar(poseStack);
+        }
+
+        private void renderPanelAwareScrollbar(PoseStack poseStack) {
+            if (!this.scrollbarVisible()) return;
+            int thumbHeight = this.getScrollBarHeight();
+            int left = this.x + this.width;
+            int right = left + 8;
+            int top = Math.max(
+                    this.y,
+                    (int) this.scrollAmount() * (this.height - thumbHeight)
+                    / Math.max(1, this.getMaxScrollAmount()) + this.y
+            );
+            int bottom = top + thumbHeight;
+            fill(poseStack, left, top, right, bottom, 0xFF808080);
+            fill(poseStack, left, top, right - 1, bottom - 1, 0xFFC0C0C0);
         }
 
         public void scrollToTop() {

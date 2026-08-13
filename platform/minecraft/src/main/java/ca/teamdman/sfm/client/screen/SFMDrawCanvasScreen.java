@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
@@ -25,6 +26,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.stream.Collectors;
@@ -92,6 +94,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private double cameraY;
     private double zoom = 1.0D;
     private boolean cameraInitialized;
+    private int cameraViewportWidth;
+    private int cameraViewportHeight;
     private boolean diagnosticControlsVisible = false;
     private boolean showGrid = false;
     private boolean showCrosshairCoordinates = false;
@@ -119,6 +123,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private double grammarPanAnchorCameraX;
     private double grammarPanAnchorCameraY;
     private boolean draggingGrammarInsert;
+    private Optional<Component> saveDiagnostic = Optional.empty();
     private double grammarInsertStartX;
     private double grammarInsertStartY;
     private EmbeddedDocument resizingEmbeddedDocument;
@@ -251,6 +256,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (diagnosticControlsVisible) {
             renderInputDiagnostics(poseStack);
         }
+        renderSaveDiagnostic(poseStack);
         super.render(poseStack, mouseX, mouseY, partialTick);
     }
 
@@ -785,15 +791,39 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             finishClose();
             return;
         }
-        saveDocument();
-        finishClose();
+        if (saveDocumentInternal().saved()) finishClose();
     }
 
     @Override
     public void saveDocument() {
-        if (openContext != null && !openContext.readOnly()) {
-            openContext.saveWriter().accept(getCurrentText());
+        saveDocumentInternal();
+    }
+
+    private SFMTextDocumentSaveResult saveDocumentInternal() {
+        if (openContext == null || openContext.readOnly()) {
+            saveDiagnostic = Optional.empty();
+            return SFMTextDocumentSaveResult.success();
         }
+        SFMTextDocumentSaveResult result = openContext.saveDocument(getCurrentText());
+        saveDiagnostic = result.diagnostic();
+        return result;
+    }
+
+    private void renderSaveDiagnostic(PoseStack poseStack) {
+        if (saveDiagnostic.isEmpty()) return;
+        String text = saveDiagnostic.orElseThrow().getString();
+        int maximumWidth = Math.max(0, width - 124);
+        if (maximumWidth <= 0) return;
+        String rendered = font.plainSubstrByWidth(text, maximumWidth);
+        SFMFontUtils.draw(
+                poseStack,
+                font,
+                rendered,
+                24,
+                Math.max(2, height - 18),
+                0xFFFF7777,
+                true
+        );
     }
 
     @Override
@@ -837,12 +867,26 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private void initializeCamera() {
-        if (cameraInitialized) {
-            return;
+        if (!cameraInitialized) {
+            cameraX = (this.width / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
+            cameraY = (this.height / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
+            cameraInitialized = true;
+        } else {
+            cameraX = resizeCameraAxis(cameraX, zoom, cameraViewportWidth, this.width);
+            cameraY = resizeCameraAxis(cameraY, zoom, cameraViewportHeight, this.height);
         }
-        cameraX = (this.width / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
-        cameraY = (this.height / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
-        cameraInitialized = true;
+        cameraViewportWidth = this.width;
+        cameraViewportHeight = this.height;
+    }
+
+    static double resizeCameraAxis(
+            double camera,
+            double zoom,
+            int previousViewportExtent,
+            int nextViewportExtent
+    ) {
+        if (previousViewportExtent <= 0 || previousViewportExtent == nextViewportExtent) return camera;
+        return camera + (nextViewportExtent - previousViewportExtent) / (2.0D * zoom);
     }
 
     private void beginPan(

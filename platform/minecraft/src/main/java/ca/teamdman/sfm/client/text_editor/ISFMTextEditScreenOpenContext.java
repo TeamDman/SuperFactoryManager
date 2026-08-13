@@ -80,9 +80,31 @@ public interface ISFMTextEditScreenOpenContext {
     }
 
     default void onSaveAndClose(String latestContent) {
+        if (saveDocument(latestContent).saved()) SFMScreenChangeHelpers.popScreen();
+    }
 
-        saveWriter().accept(latestContent);
-        SFMScreenChangeHelpers.popScreen();
+    /**
+     * Typed save-and-close seam used by editors that need to render a rejected
+     * save diagnostic. Full-screen contexts retain their historical callback
+     * behavior; panel contexts override this to close only their own entry.
+     */
+    default SFMTextDocumentSaveResult trySaveAndClose(String latestContent) {
+        onSaveAndClose(latestContent);
+        return SFMTextDocumentSaveResult.success();
+    }
+
+    default SFMTextDocumentSaveResult saveDocument(String latestContent) {
+        try {
+            saveWriter().accept(latestContent);
+            return SFMTextDocumentSaveResult.success();
+        } catch (RuntimeException failure) {
+            String detail = failure.getMessage() == null
+                    ? failure.getClass().getSimpleName()
+                    : failure.getMessage();
+            return SFMTextDocumentSaveResult.rejected(
+                    net.minecraft.network.chat.Component.literal(detail)
+            );
+        }
     }
 
     Consumer<String> saveWriter();

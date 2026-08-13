@@ -1,6 +1,7 @@
 pub mod cli;
 pub mod client;
 pub mod discovery;
+pub mod explorer;
 pub mod output;
 pub mod protocol;
 

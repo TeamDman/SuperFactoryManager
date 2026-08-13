@@ -1,7 +1,7 @@
 # Global comment selection and review sessions plan
 
 **Plan status:** Active
-**Last updated:** 2026-08-08
+**Last updated:** 2026-08-12
 
 ## Purpose
 
@@ -22,6 +22,39 @@ This document is authoritative for review sessions, comments, selection rules,
 comment evaluation/migration, review coverage, and comment-driven source
 colourization. Related plans own snapshot bytes, comparison/refactoring
 production, general application theming, window management, and replay.
+
+## Shared selection substrate relationship — 2026-08-12
+
+`typed selections relations and lazy explorers plan.md` is authoritative for
+general typed paths/path expressions, live named selections, immutable
+selection revisions, set-valued selectors, parent/child relations, and lazy
+explorer projection. This review plan remains authoritative for comments,
+review-session scope, immutable source snapshots/hashes, review coverage, and
+the rules that select glyph ranges within pinned document revisions.
+
+The two models must converge through plan item X-9, not through a second
+selection engine:
+
+- the existing `SFMReviewSessionV1.SelectionRule` remains a pinned,
+  reproducible review rule until an explicit adapter can translate it to the
+  shared algebra without weakening snapshot/hash checks;
+- a live explorer/editor selection may be projected into a pinned review
+  selector only by recording the resolved document identity, revision/hash,
+  ranges, source expression, and selection revision as provenance;
+- a review selector may be viewed through `selection://...`, but viewing it
+  must not silently turn a pinned review decision into a moving live head;
+- comments keep their current union/intersection/difference semantics while
+  shared operations supply the common typed path and set-operation machinery;
+  and
+- editor cursor ranges remain operational editor state. They may project into
+  a selection, but the review model does not own cursor order, primary cursor,
+  anchor/head direction, or insertion behavior.
+
+This relationship deliberately defers the adapter until X-9. X-1 through X-7
+must not migrate or rewrite persisted review sessions. The adapter requires
+round-trip, stale-revision, hash-mismatch, live-head-versus-pinned, and
+multi-document tests before either representation can replace existing review
+storage.
 
 ## Release code-review profile — 2026-08-08
 

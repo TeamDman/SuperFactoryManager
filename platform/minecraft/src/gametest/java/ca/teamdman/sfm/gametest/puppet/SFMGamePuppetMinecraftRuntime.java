@@ -1492,6 +1492,37 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         return false;
     }
 
+    @Override
+    public void writeArtifact(
+            String artifactName,
+            SFMGamePuppetArtifactFormat format,
+            String contents
+    ) {
+        Path stagingDirectory = minecraft.gameDirectory.toPath().resolve("puppet-artifacts");
+        SFMGamePuppetArtifactWriter.WrittenArtifact artifact;
+        try {
+            artifact = SFMGamePuppetArtifactWriter.write(
+                    stagingDirectory,
+                    active.definition.puppetName(),
+                    active.viewportVariant.id(),
+                    artifactName,
+                    format,
+                    contents
+            );
+        } catch (IOException error) {
+            throw new IllegalStateException("Could not write game puppet artifact " + artifactName, error);
+        }
+        SFM.LOGGER.info(
+                "SFM_GAME_PUPPET_ARTIFACT_WRITTEN puppet={} variant={} artifact={} format={} file={} bytes={}",
+                active.definition.puppetName(),
+                active.viewportVariant.id(),
+                artifact.artifactName(),
+                artifact.format().id(),
+                artifact.path().getFileName(),
+                artifact.bytes()
+        );
+    }
+
     private void queueCaptionedScreenshot(PuppetCaptureState state) {
 
         if (RenderSystem.isOnRenderThread()) {

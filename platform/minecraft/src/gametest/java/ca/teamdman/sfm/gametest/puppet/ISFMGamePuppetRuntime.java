@@ -196,6 +196,13 @@ public interface ISFMGamePuppetRuntime {
 
     boolean capture(String captureName, Component caption);
 
+    /** Stages one bounded, portable evidence artifact for durable preview publication. */
+    void writeArtifact(
+            String artifactName,
+            SFMGamePuppetArtifactFormat format,
+            String contents
+    );
+
     void closeScreen();
 
     void closeScreenNaturally();

@@ -122,6 +122,14 @@ public final class SFMGamePuppetHelper {
     }
 
     /**
+     * Runs the complete real-process lazy-explorer control journey without
+     * requiring an operator or a visible companion terminal.
+     */
+    public void invokeExternalCliLazyExplorer() {
+        add(new InvokeExternalCliLazyExplorerPuppetAction());
+    }
+
+    /**
      * Opens the contextual client command palette from the current screen.
      */
     public void openCommandPalette() {
@@ -599,6 +607,28 @@ public final class SFMGamePuppetHelper {
      */
     public void capture(String captureName, Component caption) {
         add(new CapturePuppetAction(captureName, Objects.requireNonNull(caption, "caption").copy()));
+    }
+
+    /** Stages a bounded UTF-8 text artifact for publication beside this puppet's screenshots. */
+    public void writeUtf8Artifact(String artifactName, String contents) {
+        writeArtifact(artifactName, SFMGamePuppetArtifactFormat.UTF8, contents);
+    }
+
+    /** Stages a bounded, syntactically validated JSON artifact beside this puppet's screenshots. */
+    public void writeJsonArtifact(String artifactName, String contents) {
+        writeArtifact(artifactName, SFMGamePuppetArtifactFormat.JSON, contents);
+    }
+
+    public void writeArtifact(
+            String artifactName,
+            SFMGamePuppetArtifactFormat format,
+            String contents
+    ) {
+        add(new WriteGamePuppetArtifactPuppetAction(
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(format, "format"),
+                Objects.requireNonNull(contents, "contents")
+        ));
     }
 
     public boolean isComplete() {

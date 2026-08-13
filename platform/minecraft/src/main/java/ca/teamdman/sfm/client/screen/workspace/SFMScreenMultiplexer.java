@@ -12,10 +12,10 @@ import ca.teamdman.sfm.client.screen.SFMActionChoice;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.screen.SFMScissorStack;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPropertiesPanel;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -652,9 +652,18 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             fill(poseStack, bounds.x(), bounds.y() + bounds.height() - 1, bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
             fill(poseStack, bounds.x(), bounds.y(), bounds.x() + 1, bounds.y() + bounds.height(), border);
             fill(poseStack, bounds.x() + bounds.width() - 1, bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
-            enableScissor(bounds.inset(1));
-            renderPanelEntry(poseStack, entry, bounds.inset(1), mouseX, mouseY, partialTick);
-            RenderSystem.disableScissor();
+            SFMScreenPanelBounds contentBounds = bounds.inset(1);
+            SFMScissorStack.pushGui(
+                    contentBounds.x(),
+                    contentBounds.y(),
+                    contentBounds.x() + contentBounds.width(),
+                    contentBounds.y() + contentBounds.height()
+            );
+            try {
+                renderPanelEntry(poseStack, entry, contentBounds, mouseX, mouseY, partialTick);
+            } finally {
+                SFMScissorStack.pop();
+            }
             renderEntryAffordances(poseStack, entry, bounds);
         }
         if (dropFeedback != null) {
@@ -1055,19 +1064,4 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         }
     }
 
-    @MCVersionDependentBehaviour
-    private static void enableScissor(SFMScreenPanelBounds bounds) {
-        var window = Minecraft.getInstance().getWindow();
-        double scale = window.getGuiScale();
-        int left = (int) Math.floor(bounds.x() * scale);
-        int right = (int) Math.ceil((bounds.x() + bounds.width()) * scale);
-        int top = (int) Math.floor(bounds.y() * scale);
-        int bottom = (int) Math.ceil((bounds.y() + bounds.height()) * scale);
-        RenderSystem.enableScissor(
-                left,
-                window.getHeight() - bottom,
-                Math.max(0, right - left),
-                Math.max(0, bottom - top)
-        );
-    }
 }

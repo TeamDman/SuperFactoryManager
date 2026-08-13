@@ -13,7 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * Panel adapter for text editors.  Text Editor v3 uses the specialised
@@ -23,35 +23,45 @@ import java.util.function.Consumer;
 public final class SFMTextEditorPanel implements SFMScreenPanel {
     private final SFMTextEditorPanelOpenContext openContext;
     private final Screen screen;
-    private final Consumer<String> savedContent;
     private SFMWorkspacePanelContext panelContext;
 
     private SFMTextEditorPanel(
             SFMTextEditorPanelOpenContext openContext,
-            Screen screen,
-            Consumer<String> savedContent
+            Screen screen
     ) {
         this.openContext = openContext;
         this.screen = screen;
-        this.savedContent = savedContent;
     }
 
     public static SFMTextEditorPanel textEditorV3(SFMTextEditorPanelOpenContext context) {
-        final String[] saved = {context.initialValue()};
-        ISFMTextEditScreenOpenContext screenContext = screenContext(context, value -> saved[0] = value);
         SFMTextEditorPanel[] holder = new SFMTextEditorPanel[1];
+        ISFMTextEditScreenOpenContext screenContext = screenContext(
+                context,
+                () -> {
+                    if (holder[0] != null) holder[0].requestClose();
+                }
+        );
         PanelTextEditorScreen editor = new PanelTextEditorScreen(screenContext, () -> {
             if (holder[0] != null) holder[0].requestClose();
         });
-        holder[0] = new SFMTextEditorPanel(context, editor, value -> saved[0] = value);
+        holder[0] = new SFMTextEditorPanel(context, editor);
         return holder[0];
     }
 
     public static SFMTextEditorPanel legacy(
             SFMTextEditorPanelOpenContext context,
-            Screen screen
+            Function<ISFMTextEditScreenOpenContext, ISFMTextEditScreen> screenFactory
     ) {
-        return new SFMTextEditorPanel(context, screen, ignored -> { });
+        SFMTextEditorPanel[] holder = new SFMTextEditorPanel[1];
+        ISFMTextEditScreenOpenContext screenContext = screenContext(
+                context,
+                () -> {
+                    if (holder[0] != null) holder[0].requestClose();
+                }
+        );
+        Screen screen = screenFactory.apply(screenContext).asScreen();
+        holder[0] = new SFMTextEditorPanel(context, screen);
+        return holder[0];
     }
 
     public String editorId() {
@@ -76,7 +86,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel {
 
     @Override
     public void resized(Minecraft minecraft, SFMScreenPanelBounds bounds) {
-        init(minecraft, bounds);
+        screen.resize(minecraft, Math.max(1, bounds.width()), Math.max(1, bounds.height()));
     }
 
     private void init(Minecraft minecraft, SFMScreenPanelBounds bounds) {
@@ -149,14 +159,31 @@ public final class SFMTextEditorPanel implements SFMScreenPanel {
         }
     }
 
-    private static ISFMTextEditScreenOpenContext screenContext(
+    static ISFMTextEditScreenOpenContext screenContext(
             SFMTextEditorPanelOpenContext context,
-            Consumer<String> saveWriter
+            Runnable closePanel
     ) {
         return new ISFMTextEditScreenOpenContext() {
             @Override public String initialValue() { return context.initialValue(); }
             @Override public boolean readOnly() { return context.readOnly(); }
-            @Override public Consumer<String> saveWriter() { return saveWriter; }
+            @Override public java.util.function.Consumer<String> saveWriter() {
+                return value -> context.saveHandler().save(value);
+            }
+            @Override public ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult saveDocument(
+                    String value
+            ) {
+                return context.saveHandler().save(value);
+            }
+            @Override public ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult trySaveAndClose(
+                    String value
+            ) {
+                ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult result = saveDocument(value);
+                if (result.saved()) closePanel.run();
+                return result;
+            }
+            @Override public void onTryClose(String latestContent, Runnable ignoredFullScreenClose) {
+                ISFMTextEditScreenOpenContext.super.onTryClose(latestContent, closePanel);
+            }
             @Override public LabelPositionHolder labelPositionHolder() { return LabelPositionHolder.empty(); }
         };
     }

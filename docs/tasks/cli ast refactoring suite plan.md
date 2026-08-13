@@ -1,9 +1,9 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0, Phase 0.8, and Phase 0.9 are complete; Phase 1 is next
+**Plan status:** Active; Phase 0, Phase 0.8, and Phase 0.9 are complete; Phase 0.10 is the planned in-game navigation bridge before Phase 1
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-10
-**Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8 and 2026-08-10 for Phase 0.9
+**Last updated:** 2026-08-11
+**Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, and 2026-08-11 for the in-game definition-at-location bridge
 
 ## How to update this plan
 
@@ -52,6 +52,12 @@ authorize source rewrites.
 | JAVA-29 | Cached/reusable analysis objects and source facts should not be discarded between phases of one query. | The Phase 0.9 live path parses each selected source no more than once, owns each fact bundle until linking/sealing is complete, and does not serialize/re-read type/member TSV phase files. This does not introduce a persistent live-source cache, watcher, or daemon between separate CLI invocations. | — |
 | JAVA-30 | Optimize from evidence without silently changing symbol-query correctness. | Retain the Phase 0.8 implementation as a test-only/diagnostic equivalence oracle during migration; canonical typed output, ambiguity, source-set visibility, dependency resolution, diagnostics, hashes, and deterministic ordering must agree before the production path switches. | — |
 | JAVA-31 | Parallelizable implementation work should be identified so agents or multiple threads can work concurrently without conflicting edits. | Phase 0.9 names disjoint fact-extraction, worker-supervision, linker/equivalence, and integration tracks, with one owner for shared module wiring and production-path selection. | — |
+| JAVA-32 | The in-game SFM editor must be able to jump from the symbol at its current cursor to the exact definition. | Phase 0.10 adds a definition-at-document-location request; callers supply document/source-set/workspace identity, exact current source snapshot/hash, and UTF-aware cursor location rather than only a guessed simple-name selector. | — |
+| JAVA-33 | The Minecraft UI must reuse this Java-analysis/index engine rather than implement another resolver or synchronously parse Java itself. | Phase 0.10 extracts a typed reusable engine entry point consumed by both direct CLI and worker modes; the linked explorer plan owns only provider/process/UI adaptation. | — |
+| JAVA-34 | Interactive use must not pay fresh process and full immutable setup cost for every F12 press. | Phase 0.10 adds a supervised long-lived `symbol serve` mode with framed versioned Facet requests/responses, bounded reusable state, cancellation, stale-request identity, and clean child/process shutdown. | — |
+| JAVA-35 | Unsaved/current editor text must participate without being written to the source tree. | The location request may overlay the addressed document snapshot for that request; results record overlay/disk hashes and never mutate workspace files. | — |
+| JAVA-36 | Zero, one, and multiple definition candidates plus incomplete dependency-index state must remain distinguishable. | The typed result returns canonical symbol ids, concrete source spans/root-relative paths, confidence/completeness, diagnostics, fingerprints, and typed recovery recommendations; no first-match fallback or false authoritative no-match is allowed. | — |
+| JAVA-37 | The worker transport must remain replaceable by a later Vox adapter and safe to consume from Minecraft. | Protocol/process details stay behind the provider-neutral contract in the contextual explorer plan; stdout is framed protocol only, stderr is diagnostics, schemas handshake explicitly, paths/content stay out of default telemetry, and direct/worker results are equivalent. | — |
 
 ## Guidance traceability for completed Phase 0 and next Phase 0.8
 
@@ -75,6 +81,9 @@ authorize source rewrites.
 | JAVA-28 | 0.9.4; 0.9.6 | Supervisor tests prove bounded peak workers, aggregate/per-process limits, cancellation and fail-fast child cleanup, deterministic bisection, and stable output under reversed completion order. |
 | JAVA-30 | 0.9.1; 0.9.5; 0.9.6 | Scenario and generated-corpus equivalence tests compare the new path with the Phase 0.8 oracle before the production route is selected. |
 | JAVA-31 | Phase 0.9 parallel work map | Disjoint ownership is recorded before parallel edits; integration remains with one owner. |
+| JAVA-32, JAVA-35 | 0.10.1; 0.10.2 | Scenario fixtures prove context-aware resolution at exact cursor locations, including supplied snapshot overlays, Unicode/CRLF, ambiguity, fields/methods/types, and no file mutation. |
+| JAVA-33, JAVA-36 | 0.10.2; 0.10.4 | Direct CLI and reusable engine return identical versioned results with spans, completeness, diagnostics, and recovery actions over workspace plus dependency sources. |
+| JAVA-34, JAVA-37 | 0.10.3; 0.10.4 | Worker handshake/framing/cancellation/crash cleanup tests, warm latency evidence, privacy-safe telemetry, and byte-equivalence with direct invocation pass before the in-game provider integrates. |
 
 ## Intent audit evidence
 
@@ -120,6 +129,16 @@ authorize source rewrites.
   bisection remain explicit. Also retained the no-persistent-live-cache rule
   and deferred usage/dependency-refresh migration instead of silently widening
   this latency slice.
+- **Pass 8 — Phase 0.10 in-game navigation extension:** Preserved the complete
+  handoff from a path-addressed in-game editor and exact cursor/source snapshot
+  to the existing live/dependency symbol engine and back to one/many/no typed
+  source spans. Explicitly retained unsaved overlays, source-set/classpath/index
+  identity, render-thread isolation, warm reuse, cancellation/stale rejection,
+  framed stdout versus stderr logs, process cleanup, privacy-safe telemetry,
+  direct/worker equivalence, and provider/transport replaceability. The linked
+  contextual explorer plan owns workspace authority, editor panels, actions,
+  palette choice, and live Minecraft proof; this plan owns analysis and worker
+  correctness so neither reimplements the other.
 - **Known source limitation:** None for the Phase 0 discussion; the original
   user messages were available in this conversation. Earlier broad plan history
   remains represented by the pre-existing sections and linked plans.
@@ -1547,6 +1566,129 @@ post-query process audit found zero surviving `sfm-propagate-changes` workers.
 | Early match return reports false uniqueness. | Even class-only queries wait for snapshot seal; ambiguity and complete no-match are decided only after every expected file is admitted. |
 | The optimized report subtly differs from the current implementation. | The Phase 0.8 builder remains a test oracle over scenarios and generated corpora; production has no silent compatibility fallback. |
 | The slice grows into persistent indexing or usage migration. | Scope explicitly limits the production switch to `show-definition`; live facts die with the query and follow-ups remain incomplete. |
+
+## Phase 0.10 — Definition at an editor location and supervised worker bridge
+
+This phase is the CLI-side dependency of C-4 through C-6 in
+`docs/tasks/contextual input actions and addressable explorer plan.md`. It does
+not implement Minecraft panels, workspace persistence, keybindings, or result
+presentation. It makes the existing symbol engine safely reusable by those
+features and keeps direct/manual invocation as an independently testable
+contract.
+
+### [ ] 0.10.1 Freeze the definition-at-location request/result and direct CLI form
+
+**Work:** Add versioned Facet `DefinitionAtPositionRequest` and
+`DefinitionAtPositionResult` values. A request identifies branch/classpath,
+ordered source roots/source-set context, one root-relative document path,
+current source text/hash, UTF-aware one-based line/column plus derived byte
+offset, dependency-index identity, and request generation. A result identifies
+zero/one/many canonical symbols and root-relative definition spans, confidence,
+completeness, fingerprints, diagnostics, and typed recovery actions. Extend
+`symbol show-definition` with a mutually exclusive location form:
+
+```powershell
+sfm-propagate-changes.exe symbol show-definition --source-path <root-relative-java-path> --line <n> --column <n> --branch <branch> [--source-root <path> ...] [--classpath-mode branch|isolated]
+```
+
+The existing exact-selector positional form remains unchanged. Location mode
+requires source text to be read from its declared root for ordinary manual use;
+the typed engine/worker request additionally supports an in-memory overlay.
+Invalid mixed selector/location arguments fail in Figue before analysis.
+
+**Validation:** Parser/output tests and scenarios cover both forms, required
+flags, Windows/Unicode paths, line/column bounds, UTF-8 byte derivation, CRLF,
+unknown root/source set, schema round trips, and stable text/JSON/CSV output.
+
+**Completion criteria:** A human/agent can query an exact source location with
+the normal CLI, while the same versioned typed request/result can be carried by
+the worker; selector and location modes are unambiguous and no raw token guess
+is part of the contract.
+
+### [ ] 0.10.2 Resolve the symbol at the location through the existing engine
+
+**Work:** Add a reusable engine entry point over the Phase 0.9 fact/link path
+and Phase 0.8 dependency index. Resolve the syntax/reference at the exact
+location using package/import/owner/source-set/classpath context; support types,
+fields, methods/overloads, constructors, nested types, and dependency symbols
+to the degree the current index represents them, with explicit unsupported or
+ambiguous diagnostics otherwise. Overlay supplied current-document text in
+memory for one request and retain disk/overlay hashes; never write it. Preserve
+all-source-set visibility and incomplete-index semantics.
+
+**Validation:** Adjacent scenario directories cover imported SFM and Minecraft
+types, same simple name in two packages, qualified and member references,
+overloads, nested names, declaration self-navigation, whitespace/comments/
+strings/no-symbol, invalid positions, source-set visibility, dependency index
+ready/missing/stale, current overlay differing from disk, Unicode/CRLF, and
+zero/one/many outcomes. Direct location results are deterministic and agree
+with exact-selector results when both identify the same symbol.
+
+**Completion criteria:** Definition-at-location is a thin contextual entry to
+the existing symbol universe, not a second parser/resolver; exact current text
+can be analyzed without mutation; ambiguity/completeness remain truthful.
+
+### [ ] 0.10.3 Add `symbol serve` with framed requests, reuse, and cancellation
+
+**Work:** Add `sfm-propagate-changes.exe symbol serve --branch <branch>` as a
+long-lived worker mode. Reserve stdout for `[u32 little-endian byte length][UTF-8
+JSON payload]` frames and stderr for logs. Handshake schemas/capabilities before
+queries. Support definition requests, cancellation by request id/generation,
+workspace-generation updates, ping/clean shutdown, and typed fatal/nonfatal
+errors. Reuse immutable dependency indexes and live source facts by exact
+branch/root/content identity within the worker lifetime; invalidate changed
+roots/files precisely, bound entries/bytes/workers, and never persist the live
+cache after exit. Own and reap all Phase 0.9 child workers on cancellation,
+client disconnect, crash, and shutdown.
+
+**Validation:** Protocol tests cover fragmented/coalesced frames, embedded
+newlines/NUL/Unicode source text, oversized/malformed frames, schema mismatch,
+out-of-order request completion, cancel before/during/after completion,
+workspace-generation replacement, stale response ids, cache hit/invalidation,
+memory/entry limits, client EOF, child failure, clean shutdown, and no orphan
+processes/temp artifacts. Worker and direct engine results are canonical-byte
+equivalent after removing transport telemetry.
+
+**Completion criteria:** One supervised process serves many independent
+definition requests safely, amortizes reusable setup, never mixes logs with
+protocol bytes, invalidates by identity rather than hope, and exits without
+leaked children or persistent live-source state.
+
+### [ ] 0.10.4 Prove interactive latency, cancellation, and handoff documentation
+
+**Work:** Build/install the release CLI, start one worker against 1.19.2, and
+measure cold first query plus at least twenty warm definition-at-location
+queries spanning same file, another SFM source set, and a dependency source.
+Record parse/fact/link/dependency/lookup/render/cache timing, peak workers and
+memory, cancellations, and cache identities without raw source/path telemetry.
+Target a warm median at or below 250 ms, warm p95 at or below 750 ms, and no
+warm run above 1 second on the baseline machine. If missed, profile and improve
+the measured dominant stage rather than weakening the target silently. Update
+`docs/java symbol analysis.md` and the contextual explorer plan with protocol,
+discovery/configuration, lifecycle, privacy, and direct/manual examples.
+
+**Validation:** Run all Java-analysis/scenario tests, strict CLI checks, direct
+and worker equivalence, the installed live benchmark, cancellation/process
+liveness audit, and `git diff --check`. Do not launch Minecraft or propagate in
+this CLI phase; C-4/C-6 own consumer/live-game proof.
+
+**Completion criteria:** The installed worker meets recorded interactive warm
+latency and cleanup bounds, documentation is sufficient for the Minecraft
+provider to integrate without reading implementation details, all JAVA-32
+through JAVA-37 evidence is durable, and Phase 1 remains untouched.
+
+### Phase 0.10 risk register
+
+| Risk | Guardrail and proof |
+| --- | --- |
+| Location mode weakens exact selector grammar or guesses from a token. | Mutually exclusive Figue input forms and an engine request containing source path/snapshot/position/context; no fallback from one grammar to the other. |
+| Overlay text contaminates disk/index state. | Request-scoped immutable overlay keyed by explicit disk/overlay hashes; no writes and post-query disk equality scenarios. |
+| Long-lived reuse serves stale facts after edits/root changes. | Workspace generation plus per-file content identities, precise invalidation tests, stale-response rejection, and bounded cache introspection. |
+| Framed stdout is corrupted by logs or panics. | Protocol-only stdout writer, stderr tracing, length/schema limits, malformed-frame tests, and typed fatal shutdown frame where possible. |
+| Worker mode leaks Phase 0.9 child processes. | One supervisor owns job/process handles and kills/waits on request cancellation, client EOF, panic/failure, and shutdown; process-liveness tests cover every path. |
+| “Interactive” remains a multi-second fresh analysis behind a daemon. | Cold/warm stage telemetry and explicit warm median/p95/max acceptance; optimize measured cache/link bottleneck before completion. |
+| Transport details become Minecraft action API. | Provider-neutral request/result in the contextual plan; direct engine, CLI, and worker share typed values; Vox remains a replaceable future adapter. |
+| Protocol/telemetry leaks source text or absolute workspace paths. | Source content exists only in explicit request frames; default logs/telemetry use request/provider/root ids, hashes, counts, and durations. |
 
 ## Phase 1 — Inventory and architecture
 

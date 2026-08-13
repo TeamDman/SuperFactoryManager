@@ -48,6 +48,10 @@ NAME "Changelog"
 -- Fix Java-local terminal scrollback preserving the viewed output while new lines arrive
 -- Add a composable size-display panel that makes solid-colour panel bounds and logical dimensions visible in nested layouts
 -- Add an independently installable sfm.exe with authenticated live-instance discovery and registered in-game action invocation
+-- Add typed versioned selections and child relations behind a heterogeneous lazy explorer with bounded filesystem and item-registry roots
+-- Add direct sfm.exe explorer commands with explicit set-valued targets, all-or-none actions, and self-orchestrating visual evidence
+-- Replace redundant explorer headers with the exact canonical location and open revision-safe location editing in the preferred text editor
+-- Keep preferred text editors responsive, clipped, and panel-local when explorer locations are opened beside narrow panels
 -- Add single-client responsive viewport sweeps and browsable puppet evidence reports
 -- Make literal punctuation in unquoted SFML wildcard matchers match only itself
 -- Add a comment-driven before/after review workspace with overlap, hashtag styles, migration, and legacy projection

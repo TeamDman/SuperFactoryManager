@@ -9,6 +9,7 @@ public final class SfmControlServiceDescriptor {
   public static final MethodDescriptor PING = new MethodDescriptor(0xd8b86e4859621608L, "ping", SfmControlPingArgs.ADAPTER, SfmControlPingResult.ADAPTER, SfmControlError.ADAPTER, SfmControlPingResponse.ADAPTER, List.of());
   public static final MethodDescriptor DESCRIBE = new MethodDescriptor(0xd1ec3ed2ebc33a80L, "describe", SfmControlDescribeArgs.ADAPTER, SfmControlDescribeResult.ADAPTER, SfmControlError.ADAPTER, SfmControlDescribeResponse.ADAPTER, List.of());
   public static final MethodDescriptor INVOKE_CLIENT_ACTION = new MethodDescriptor(0xa5f7cff6e8bc01eeL, "invoke_client_action", SfmControlInvokeClientActionArgs.ADAPTER, SfmControlInvokeClientActionResult.ADAPTER, SfmControlError.ADAPTER, SfmControlInvokeClientActionResponse.ADAPTER, List.of());
-  public static final ServiceDescriptor INSTANCE = new ServiceDescriptor("SfmControl", List.of(PING, DESCRIBE, INVOKE_CLIENT_ACTION));
+  public static final MethodDescriptor EXPLORER_OPERATION = new MethodDescriptor(0x111196c400def93cL, "explorer_operation", SfmControlExplorerOperationArgs.ADAPTER, SfmControlExplorerOperationResult.ADAPTER, SfmControlError.ADAPTER, SfmControlExplorerOperationResponse.ADAPTER, List.of());
+  public static final ServiceDescriptor INSTANCE = new ServiceDescriptor("SfmControl", List.of(PING, DESCRIBE, INVOKE_CLIENT_ACTION, EXPLORER_OPERATION));
   private SfmControlServiceDescriptor() {}
 }

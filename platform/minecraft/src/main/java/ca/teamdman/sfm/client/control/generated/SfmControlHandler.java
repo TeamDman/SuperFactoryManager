@@ -9,4 +9,5 @@ public interface SfmControlHandler {
   CompletableFuture<VoxResult<SfmControlPingResult, SfmControlError>> ping(CallContext context, SfmControlPingRequest request);
   CompletableFuture<VoxResult<SfmControlDescribeResult, SfmControlError>> describe(CallContext context, SfmControlDescribeRequest request);
   CompletableFuture<VoxResult<SfmControlInvokeClientActionResult, SfmControlError>> invokeClientAction(CallContext context, SfmControlInvokeClientActionRequest request);
+  CompletableFuture<VoxResult<SfmControlExplorerOperationResult, SfmControlError>> explorerOperation(CallContext context, SfmControlExplorerOperationRequest request);
 }

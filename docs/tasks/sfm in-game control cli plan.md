@@ -1,13 +1,14 @@
 # SFM in-game control CLI plan
 
-**Plan status:** Active; I-1/I-2/I-3/I-3a foundation complete, workspace mutation is next
+**Plan status:** Active; I-1 through I-4 complete, I-5 retained as the next multi-game/Teamy-Terminal hardening slice
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **New Rust CLI root:** `platform/cli/sfm`
-**Linked workspace plan:** `docs/tasks/contextual input actions and addressable explorer plan.md`
+**Linked selection/explorer plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
+**Linked contextual UI plan:** `docs/tasks/contextual input actions and addressable explorer plan.md`
 **Reference template:** `G:\Programming\Repos\teamy-rust-windows-utils`
-**Last updated:** 2026-08-11
+**Last updated:** 2026-08-12
 **Foundation implementation commit:** `8e202d915` (`Add live game control CLI`)
-**Intent audit:** Passed 2026-08-11 against the complete dedicated-CLI, multi-instance, focus-recency, workspace-add, and future-control proposal
+**Intent audit:** Passed 2026-08-12 including the direct typed explorer-control supersession recorded below
 
 ## How to update this plan
 
@@ -24,8 +25,8 @@ Gradle directly, propagate, publish, or push merely because a phase is complete.
 ## Purpose
 
 Create a dedicated `sfm.exe` for controlling live SFM Minecraft clients from a
-shell, including the Teamy Terminal running inside the game. The first useful
-journey is:
+shell, including the Teamy Terminal running inside the game. The first proposed
+post-discovery journey was:
 
 ```powershell
 cd D:\Repos\Minecraft\SFM\repos2\1.19.2
@@ -33,11 +34,21 @@ sfm instance list
 sfm workspace add .
 ```
 
-`sfm workspace add .` resolves `.` in the CLI process, discovers live SFM game
-instances, and sends a typed request to the most recently focused compatible
-instance. `--instance-pid <pid>` targets one exact live process. The game—not
-the CLI—owns validation, workspace persistence, UI-model notification, and the
-response saying what changed.
+That spelling and global persisted-workspace model were superseded on
+2026-08-12. The active journey is a direct typed game operation with an
+explicit explorer selector and empty-target policy:
+
+```powershell
+sfm explorer root add focused . --if-no-match open-new
+```
+
+The CLI resolves `.` to a strict UTF-8 canonical file path, selects one exact
+game through the existing safe instance logic, and sends a typed explorer
+request. The game revalidates the path, resolves the explicit set-valued
+explorer selector, and mutates the selected explorer session(s) through the
+shared action/client-thread path. It does not edit a workspace file or invent a
+global catalog. Exact missing explorer ids fail; an explicitly non-exact
+request may open one generic explorer only when `open-new` was requested.
 
 The first completed control journey is intentionally more concrete than
 listing instances:
@@ -65,16 +76,20 @@ files behind its back, or guesses a process from a window title.
 | ICLI-1 | Create a new CLI at `platform/cli/sfm`. | I-1 scaffolds an independently installable `sfm.exe`; it does not rename or overload `sfm-propagate-changes.exe`. | — |
 | ICLI-2 | Base it on `G:\Programming\Repos\teamy-rust-windows-utils`, as the existing SFM propagation CLI was. | I-1 reuses the template's Windows/process/console/logging conventions and the repository's current Facet/Figue CLI/output conventions rather than copying stale boilerplate blindly. | — |
 | ICLI-3 | The CLI must work from the in-game terminal. | All commands are ordinary noninteractive shell commands over local Vox IPC; no dependency on an external GUI terminal, inherited HWND, or Minecraft chat exists. I-5 proves invocation through Teamy Terminal. | — |
-| ICLI-4 | `sfm workspace add .` adds the caller's current directory to an open game's explorer workspace. | I-4 resolves and normalizes the CLI path, transmits it as a typed request, and lets the selected game validate/persist it through the same workspace add-root executor as UI picker/drop/actions. | — |
+| ICLI-4 | Historical proposal: `sfm workspace add .` adds the caller's current directory to a global explorer workspace. | Preserve as provenance only. I-4 now targets generic explorer sessions through direct typed commands and introduces no global persistence. | ICLI-14 through ICLI-17 |
 | ICLI-5 | Multiple Minecraft instances must be supported carefully. | I-2 gives every process a unique instance id/local endpoint and published descriptor; I-3 never assumes only one game exists. | — |
 | ICLI-6 | `sfm instance list` enumerates open game instances. | I-3 emits a typed list containing identity, PID, compatibility, focus recency, lifecycle metadata, endpoint health, and which instance would be selected by default. | — |
 | ICLI-7 | Each game tracks when it was focused; an unqualified command targets the most recently focused instance. | I-2 records focus-gained transitions from Minecraft's real window-active state; I-3 snapshots all live descriptors and chooses the uniquely newest compatible instance with explicit ambiguity/error behavior. | — |
-| ICLI-8 | `sfm workspace add . --instance-pid 1234` targets a specific game. | I-3/I-4 support the exact trailing named option, verify the endpoint's live identity/PID before mutation, and fail rather than falling back to another process. | — |
+| ICLI-8 | Historical exact-game example: `sfm workspace add . --instance-pid 1234`. | Preserve exact-game targeting semantics, but use the active `sfm explorer root add ... --instance-pid 1234` grammar. | ICLI-14 through ICLI-17 |
 | ICLI-9 | There is currently no CLI control surface for in-game SFM behavior. | The plan adds a game-hosted SFM control service instead of extending the terminal-rendering service or pretending the existing Java terminal client is a server. | — |
 | ICLI-10 | Future commands may include `sfm manager list`, `sfm inventory show`, and other in-game inspection/control. | The protocol and dispatch use versioned typed operations/results, capability discovery, client-thread handoff, and bounded structured output; no workspace-specific wire shortcut becomes the whole architecture. | — |
-| ICLI-11 | Users should not need to assign an internal `sfm_source` role when adding a workspace root. | Remove `sfm:explorer/workspace/root/role/set ... sfm_source` from the public plan. A root is added as itself; project/source discovery is derived metadata and `sfm_source` remains only a toolchain-contributed source id where the older panel scene still needs it. | — |
+| ICLI-11 | Users should not need to assign an internal `sfm_source` role when adding an explorer root. | No public role-setting action exists. A typed path is added as itself; project/source discovery is derived metadata and `sfm_source` remains only a toolchain-contributed source id where the older panel scene still needs it. | — |
 | ICLI-12 | Preserve the proposal in a resumable, verifiable plan before implementation. | This ledger, contracts, gates, phases I-1 through I-5, topology, risks, and exact next-goal statement are authoritative. | — |
 | ICLI-13 | The first goal must end with a concrete in-game operation, specifically opening the panel that displays its allocated size, rather than only `sfm instance list`. | I-3a adds the exact `sfm invoke sfm:panel/open sfm:size_display` command, registered-action-only Java dispatch, structured feedback, and a visible witness. The active goal is not complete until the panel is visibly opened through the external CLI. | — |
+| ICLI-14 | Canonical SFM commands are explicit, hierarchical, long-form commands; short aliases belong in the user's shell profile. Ordinary running-game operations should not sit beneath `sfm invoke`. | I-4 adds direct `sfm explorer ...` Figue commands, keeps generic `invoke` as a diagnostic escape hatch, and asserts no built-in explorer aliases. | — |
+| ICLI-15 | Every explorer operation carries an explicit set-valued explorer selector such as `focused`, exact id, or `all`; no action silently depends on ambient focus or first-matches. | I-4 transports the typed selector AST and returns captured target ids/per-target outcomes. | — |
+| ICLI-16 | A non-exact request may explicitly open a generic explorer when none matches, while a missing exact explorer id must fail without replacement. Explorer locations are panel-local/session-local rather than one persisted workspace. | I-4 uses `--if-no-match fail|open-new`, rejects exact-id plus open-new, and introduces no workspace persistence schema. | — |
+| ICLI-17 | Native filesystem paths are strict UTF-8 typed content paths, not Minecraft resource locations; explorer roots may be heterogeneous and lazily resolved. | The shared selection/explorer X-1 through X-7 foundation owns path/expression/relation semantics; I-4 reuses its generated DTOs and game-side authority checks. | — |
 
 ## Guidance traceability
 
@@ -82,12 +97,13 @@ files behind its back, or guesses a process from a window title.
 | --- | --- | --- |
 | ICLI-1, ICLI-2 | I-1 | Crate/install/help/output tests and template/current-SFM dependency decisions |
 | ICLI-3 | I-1, I-3, I-5 | Console-safe CLI plus a live command entered in Teamy Terminal |
-| ICLI-4 | I-4, I-5 | Path-resolution tests, game-side add-root parity, restart persistence, and live explorer evidence |
-| ICLI-5, ICLI-6, ICLI-7, ICLI-8 | I-2, I-3, I-5 | Two-game discovery fixtures/live proof, focus-recency ordering, exact PID targeting, stale/PID-reuse rejection, and default marker |
-| ICLI-9, ICLI-10 | Protocol/control contracts; I-2; I-4 | Game-hosted Vox service, capabilities/typed dispatch, workspace operation, and future-operation fixtures |
-| ICLI-11 | Linked workspace-plan remediation; I-4 | Public help/action absence proof plus root classification metadata without manual role assignment |
+| ICLI-4 | Superseded by ICLI-14 through ICLI-17 | Historical command remains documented; no implementation evidence is required for the rejected global workspace model |
+| ICLI-5, ICLI-6, ICLI-7, ICLI-8 | I-2, I-3, I-5 | Two-game discovery fixtures/live proof, focus-recency ordering, exact PID targeting using active explorer grammar, stale/PID-reuse rejection, and default marker |
+| ICLI-9, ICLI-10 | Protocol/control contracts; I-2; I-4 | Game-hosted Vox service, capabilities/typed dispatch, explorer operation, and future-operation fixtures |
+| ICLI-11 | Selection/explorer foundation; I-4 | Public help/action absence proof plus derived classification with no manual role assignment |
 | ICLI-12 | Entire plan | Three-pass audit and fresh-agent resumption review |
 | ICLI-13 | I-1, I-2, I-3, I-3a | Exact CLI grammar/round trip, Minecraft-thread assertion, registered action execution result, size-display panel state, and screenshot/puppet witness |
+| ICLI-14, ICLI-15, ICLI-16, ICLI-17 | Selection/explorer X-1 through X-7; I-4/I-5 | Direct help/`ToArgs`, selector/path round trips, exact/focused/all/empty-target tests, heterogeneous lazy explorer artifacts, and absence of built-in aliases/global persistence |
 
 ## Intent audit evidence
 
@@ -112,6 +128,24 @@ files behind its back, or guesses a process from a window title.
   extensibility. Each has a contract, proof, risk, or explicit non-goal.
 - **Known source limitation:** None. The complete proposal and referenced local
   repositories/runtime sources were available.
+
+### Intent-audit extension — 2026-08-12 explorer-control supersession
+
+- **Pass 1 — extraction:** Reread the complete canonical-command,
+  explorer-target, heterogeneous-root, UTF-8 path, selection, relation, and
+  open-if-none discussion. Added ICLI-14 through ICLI-17 and marked the exact
+  older `workspace add` requirements as superseded rather than deleting them.
+- **Pass 2 — traceability:** Mapped every new control requirement to the shared
+  X-1 through X-7 foundation and I-4/I-5 direct CLI integration. Verified that
+  game discovery/authentication/thread handoff remain established rather than
+  being replanned.
+- **Pass 3 — adversarial omission:** Checked that the revised plan does not hide
+  ordinary operations under `invoke`, add short aliases, implicitly target a
+  focused explorer, first-match a set selector, create a replacement for a
+  missing exact id, coerce Windows paths to resource locations, or reintroduce
+  a global persisted workspace.
+- **Known source limitation:** None for the supersession; the original messages
+  were available in the active conversation.
 
 ## Established foundation and source evidence
 
@@ -178,14 +212,14 @@ files behind its back, or guesses a process from a window title.
    a command already dispatched; responses name the exact instance that
    executed it.
 9. Game mutations enter a bounded queue and run on the Minecraft client thread.
-   Vox threads never mutate screen/workspace/world state directly.
-10. `workspace add` resolves the CLI argument to a normalized absolute
-    directory before sending. The game revalidates directory/root policy and
-    persists through the same semantic workspace operation as native picker,
-    typed in-game action, and folder drop.
-11. The CLI never edits the game's workspace file directly. Success is returned
-    only after the game applies and durably persists the new root, or reports
-    an idempotent already-present outcome.
+   Vox threads never mutate screen/explorer/world state directly.
+10. Direct explorer commands carry an explicit game target plus a typed,
+    set-valued explorer selector. Native path expressions are normalized by the
+    CLI and revalidated by the game; registry/selection schemes remain typed
+    expressions rather than being coerced into filesystem paths.
+11. The CLI never edits game or explorer state files directly. The game captures
+    matching explorers once, stages and preflights the entire operation, and
+    publishes an all-or-none logical mutation with explicit per-target results.
 12. Operations/results and CLI output are typed, versioned Facet values. Figue
     owns grammar and `ToArgs`; logs stay on stderr; text/JSON/CSV rendering is
     centralized where the shape supports it.
@@ -222,9 +256,11 @@ files behind its back, or guesses a process from a window title.
 - Support a global/trailing `--instance-pid <u32>` on commands that target a
   game. Also model opaque `--instance-id <id>` internally and consider exposing
   it in the same phase because it survives PID-reuse ambiguity more safely.
-- `sfm workspace add` defaults its path argument to `.` only if Figue help and
-  `ToArgs` make that behavior obvious. The exact user example with explicit
-  `.` remains a required fixture regardless.
+- Canonical explorer mutations are direct, hierarchical commands such as
+  `sfm explorer root add focused . --if-no-match open-new`. The path is
+  explicit, the explorer selector is explicit, and Figue `ToArgs` round trips
+  the long form. `sfm invoke` remains a diagnostic escape hatch rather than a
+  parent for ordinary operations; the executable ships no short aliases.
 - Adding a repository root stores that root as itself. Project/source-set
   classification is derived asynchronously and displayed as metadata; users do
   not assign an `sfm_source` role.
@@ -237,16 +273,15 @@ files behind its back, or guesses a process from a window title.
 | IC-D2 Discovery and initial transport | Where are records published, and how does Java accept the short-lived CLI? | Use per-user app data for predictable ownership/inspection and direct loopback TCP because the pinned Vox Java runtime already accepts `java.net.Socket`. Treat records as ephemeral leases; bind before atomic publication; authenticate every connection with the descriptor's random launch token; and prove stale cleanup, PID/port reuse rejection, and loopback-only binding. A long-lived Rust broker and named-pipe dependency are explicitly excluded from the first slice. | I-2 path/security/cleanup/transport tests and user documentation depend on this decision. |
 | IC-D3 Default target ambiguity | What if no game has focus history or two report the same latest time? | If exactly one live instance exists, it may be selected even before a focus transition; with multiple instances, require a unique latest focus time or explicit selector. Ties/unknown fail with `sfm instance list` and PID-qualified examples. | I-3 selection fixtures and live two-instance proof depend on this safety rule. |
 | IC-D4 Public stable selector | Is `--instance-pid` enough? | Preserve the requested PID option and add `--instance-id` as the exact identity selector; list prints both. PID remains ergonomic, opaque id handles PID reuse and diagnostics. | I-3 grammar/help/output either includes both or records explicit deferral of `--instance-id`. |
-| IC-D5 First vertical operation | Should instance discovery land separately from workspace mutation? | Yes. First goal ends with scaffold + game ping/describe + `instance list` + safe selection. The next goal joins the workspace model and `workspace add`. | This keeps protocol/discovery uncertainty out of workspace persistence and produces an independently testable foundation. |
+| IC-D5 First vertical operation | Should instance discovery land separately from explorer mutation? | Yes. The completed first goal ended with scaffold + game ping/describe + `instance list` + safe selection. The next goal joins the typed path/selection/relation/lazy-explorer foundation to direct `sfm explorer ...` operations. | This keeps protocol/discovery uncertainty out of explorer semantics and reuses one action model across UI, palette, and CLI. |
 
 ## Target command and output contract
 
-Required first command surface:
+Completed foundation command surface:
 
 ```text
 sfm instance list
 sfm invoke <registered-sfm-client-action> [--instance-pid <pid>] [--instance-id <id>]
-sfm workspace add <path> [--instance-pid <pid>] [--instance-id <id>]
 ```
 
 The exact first-goal user fixtures are:
@@ -256,11 +291,13 @@ sfm instance list
 sfm invoke sfm:panel/open sfm:size_display
 ```
 
-The exact later workspace fixtures are:
+The canonical next explorer fixtures are:
 
 ```powershell
-sfm workspace add .
-sfm workspace add . --instance-pid 1234
+sfm explorer list
+sfm explorer root add focused . --if-no-match open-new
+sfm explorer root add id:explorer-7 registry://minecraft/item/ --if-no-match fail --instance-pid 1234
+sfm explorer view set all list
 ```
 
 `sfm instance list` is read-only. Text output marks the unique default target,
@@ -281,11 +318,22 @@ available. Unknown, incomplete, unavailable, timed-out, cancelled, or
 overloaded invocations are typed failures and never fall through to chat,
 Minecraft commands, reflection, or shell execution.
 
-`sfm workspace add` returns a typed outcome containing the exact executing
-instance identity, requested/canonical path, root id, added/already-present
-disposition, workspace generation, persistence state, project classification
-if currently known, and a user-facing diagnostic/recovery command on failure.
-The CLI working directory matters only when resolving the path before the call.
+Direct `sfm explorer ...` commands carry a typed explorer selector and typed
+path expression. The game captures the complete target set once, preflights
+and stages every target, then either publishes the logical mutation to all
+captured explorers or none. Results include the exact game identity, captured
+explorer ids, requested/canonical path expression, per-target disposition,
+selection/relation/explorer revisions, and an actionable diagnostic. A missing
+exact id fails and never creates a replacement. `--if-no-match open-new` is
+valid only for a non-exact selector and creates a generic explorer through the
+ordinary panel-open action. The CLI working directory matters only while
+canonicalizing a native path; the game revalidates it before mutation.
+
+The direct surface includes `explorer list`, `explorer root list/add/remove`,
+`explorer view set`, `explorer sort set`, `explorer group set`, and
+`explorer root hoist set`. It introduces neither a global workspace nor an
+explorer-specific persistence file. UI controls, palette actions, drag/drop,
+and the CLI all converge on the same registered semantic actions.
 
 Future namespaces such as `manager`, `inventory`, `panel`, `action`, and
 `screen` reuse instance selection, capability negotiation, output, and local
@@ -317,20 +365,22 @@ removed after bounded probes prove them stale.
 The game service hands each typed operation to a bounded client-thread queue and
 awaits a typed response. Overload, shutdown, timeout, unsupported capability,
 and screen/world unavailability are ordinary outcomes. IPC workers do not hold
-workspace/world locks while waiting for the client thread and cancellation does
+explorer/world locks while waiting for the client thread and cancellation does
 not leave a later mutation detached from its original response semantics.
 
 ## Execution order and parallel topology
 
 ```text
-I-1 CLI/protocol scaffold ----------------------+--> I-3 instance list/selection --> I-5 live join
+I-1 CLI/protocol scaffold ----------------------+--> I-3 instance list/selection
                                                 |
 I-2 game discovery/focus/service ---------------+
                                                 |
 Registered client-action adapter ---------------+--> I-3a visible invoke witness
 
-Contextual explorer A-1/A-2a/C-1 workspace model
-                              + I-1/I-2/I-3 --> I-4 workspace add --> I-5 live join
+Selection/explorer X-1..X-5 + I-1/I-2/I-3
+                         --> I-4 / X-6 direct explorer CLI --> X-7 one-game live proof
+
+I-4 + proven multi-instance discovery ----------> I-5 two-game/multi-explorer proof
 ```
 
 Safe parallel lanes after IC-D1 freezes the smallest ping/describe schema:
@@ -343,8 +393,9 @@ Safe parallel lanes after IC-D1 freezes the smallest ping/describe schema:
 - **Protocol/codegen lane:** authoritative spec, generated Rust/Java bindings,
   schema fingerprint, deterministic regeneration, and Gradle-without-Rust proof;
   one owner integrates generated files.
-- **Workspace lane:** I-4 adapter begins only after C-1 exposes the semantic
-  add-root repository operation; it must not invent temporary persistence.
+- **Explorer-model lane:** X-1 through X-5 own typed paths, selectors,
+  selections, relations, lazy resolution, and registered actions. I-4 consumes
+  those contracts and must not invent a second DTO or persistence model.
 - **Integration lane:** one coordinator owns dependency pins, central Java
   registration/lifecycle, install scripts, plans/changelog, and live puppets.
 
@@ -354,7 +405,7 @@ Safe parallel lanes after IC-D1 freezes the smallest ping/describe schema:
 
 **Work:** Close IC-D1. Create the independent Rust crate, install/check scripts,
 embedded Windows metadata/icon where appropriate, current Facet/Figue global
-args and `CliOutput`, typed error/exit conventions, and `instance`/`workspace`
+args and `CliOutput`, typed error/exit conventions, and `instance`/`invoke`
 command grammar fixtures. Add the smallest versioned SFM control spec with
 `ping`, `describe`, capability values, and a future-extensible typed operation
 envelope without exposing arbitrary execution. Generate and parity-check Rust
@@ -429,6 +480,33 @@ Minecraft `1.19.2`, SFM `4.34.0`, title-screen state, and both capabilities;
 after the puppet exited, `sfm instance list --output-format json` returned zero
 instances, proving normal cleanup. No terminal server or Rust relay was
 started. Canonical `run compile` and focused Java tests passed.
+
+**Thread-handoff refinement evidence (2026-08-12):** Replaced the original
+whole-handler client-thread executor with a bounded control-worker pool and a
+narrow `SFMClientThreadGate`. Socket framing, authentication, protocol
+validation, `ping`, and `describe` now remain off the Minecraft render thread;
+`describe` reads one immutable snapshot captured at client-tick boundaries.
+Only the registered action mutation enters `Minecraft.execute`, with a bounded
+32-request capacity and typed capacity, client-unavailable, shutdown, and
+cancellation failures. Cancelling a Vox request while its action is still
+queued prevents the later mutation, each accepted mutation executes at most
+once, and result completion normally returns to the control worker instead of
+continuing protocol work on the render thread. Closing the service rejects new
+work and resolves queued work without leaving detached mutations.
+
+Focused `SFMClientThreadGateTests` cover thread affinity, exactly-once
+execution, capacity release, cancellation-before-execution, executor
+rejection, and shutdown. The full Java test suite and canonical 1.19.2 compile
+passed. The self-orchestrating external-CLI puppet also passed after the
+refinement, proving that the worker-to-client-thread gate still opens the real
+size-display panel through the registered action path.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMClientThreadGateTests --wait-for-build-lock --no-capture
+sfm-propagate-changes.exe test run --branch 1.19.2 --wait-for-build-lock
+sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
+sfm-propagate-changes.exe puppet run sfm:title_screen_external_cli_size_display --branch 1.19.2 --wait-for-build-lock
+```
 
 ### [x] I-3 Implement `sfm instance list` and safe explicit/default selection
 
@@ -515,81 +593,108 @@ The first live attempt also caught and fixed generic Brigadier token escaping:
 literal action ids containing `:` and `/` stay raw, while whitespace/quotes are
 escaped, with focused Java regression tests.
 
-### [ ] I-4 Deliver `sfm workspace add` through the authoritative workspace model
+**Latest regression witness (2026-08-12):** After moving Vox handlers off the
+render thread and narrowing Minecraft access to `SFMClientThreadGate`,
+`sfm:title_screen_external_cli_size_display` passed again. Its latest report is
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`sfm-title_screen-20260812-115021-792/index.html`; the captured figure shows the
+externally selected game displaying the `sfm:size_display` panel. This closes
+the implementation follow-up without changing I-3a's public command contract.
 
-**Work:** Begin only after contextual-plan C-1 exposes the shared workspace
-repository/add-root operation. Add the typed Vox request/result and capability,
-Figue path argument/default, canonical CLI path resolution, explicit/default
-instance targeting, Java client-thread adapter, idempotency, persistence, and
-workspace panel/model notification. Remove the proposed public
-`root/role/set ... sfm_source` action and model project/source classification as
-derived metadata. UI native picker, in-game typed action, folder drop, and CLI
-all invoke one semantic add-root executor.
+### [x] I-4 Deliver direct typed explorer control through the shared lazy-explorer model
 
-**Validation:** Cover relative/absolute/dot/Unicode/space/UNC/drive paths,
-nonexistent/file/not-directory, canonical duplicate, symlink policy, game-side
-rejection after CLI resolution, selected instance mismatch, add/already-present,
-persistence failure rollback, restart, two open workspace panels, project
-classification, no manual source role, output schemas, and no direct CLI write
-to game config. Exact fixtures include both required command strings.
+**Work:** Begin after X-1 through X-5 in the typed-selection/lazy-explorer plan
+freeze the shared DTOs and registered semantic actions. Implement direct Figue
+commands for `sfm explorer list`, `root list/add/remove`, `view set`,
+`sort set`, `group set`, and `root hoist set`; do not put them beneath
+`invoke` and do not add built-in aliases. Carry explicit set-valued explorer
+selectors (`focused`, exact id, `all`) and typed canonical concrete paths—the
+`Literal(SFMPath)` subset of the shared path-expression model—across Vox.
+Resolve targets once, preflight/stage the full set, and publish all-or-none with
+per-target results. A missing exact id fails; an explicitly requested
+`--if-no-match open-new` on a non-exact selector opens a normal generic explorer.
+Resolve relative native paths in the CLI, reject non-UTF-8 paths cleanly, and
+revalidate authority on the Minecraft client thread. Introduce no global
+workspace or explorer persistence file. This item is the control-plane portion
+of selection/explorer item X-6.
 
-```pwsh
-sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMControlWorkspaceTests --wait-for-build-lock
-sfm workspace add .
-sfm workspace add . --instance-pid 1234
-```
+**Validation:** Cover help and Figue `ToArgs`; no alias and no nested-invoke
+surface; exact/focused/all/empty selectors; 0/1/many explorers; exact-missing
+and explicit-open-new behavior; relative/absolute/dot/Unicode/space/UNC/drive
+paths; `file`, `registry`, and `selection` schemes; canonical duplicate;
+game-side rejection after CLI resolution; selected-instance mismatch;
+all-or-none rollback; per-target output; capability negotiation; and no direct
+CLI write to game state. Run focused `SFMControlExplorerTests`, CLI tests, the
+canonical Java suite, and compile through `sfm-propagate-changes.exe`.
 
-**Completion criteria:** A shell in any directory can add that directory to one
-exact game through its authoritative persisted workspace operation, with safe
-multi-instance selection and immediate explorer-model visibility.
+**Completion criteria:** From a shell in the repository root,
+`sfm explorer root add focused . --if-no-match open-new` opens a generic
+explorer if needed and visibly adds the canonical repository path to the exact
+selected game. A second heterogeneous root can be added to that explorer;
+`sfm explorer view set all list` changes every captured explorer; and a missing
+exact explorer id fails without creating or mutating anything. Structured
+output identifies the game, target set, operation, and resulting revisions.
 
-### [ ] I-5 Prove two-game targeting from Teamy Terminal and close the foundation
+**Completion evidence (2026-08-12):** X-6/X-7 in the linked typed-selection
+plan delivered the direct long-form Figue grammar, bounded Facet/Vox DTOs,
+checked-in generated Java, authenticated game selection, client-thread action
+dispatch, exact/focused/all targeting, all-or-none preflight and rollback,
+explicit open-if-none, per-target revision evidence, and no global persistence
+or built-in aliases. `platform/cli/sfm/check-all.ps1` passed format, strict
+Clippy, 41/41 tests, and generated-Java parity; the canonical Java suite passed
+794/794 and canonical compile passed. The self-orchestrating live run
+`sfm-title_screen-20260812-182322-010` used the real external CLI to open one
+explorer, add filesystem and item-registry roots, exercise lazy expansion and
+atomic refresh, update two explorers with `all`, and prove an exact miss creates
+no replacement.
+
+### [ ] I-5 Prove two-game and multi-explorer targeting from Teamy Terminal
 
 **Work:** Add deterministic harness support for two independently registered
-game-client service fixtures and, where practical, two live clients. Prove
-`instance list`, focus A then B, unqualified add targets B, PID-qualified add
-targets A, ambiguity/incompatibility fails safely, roots persist, and a command
-typed inside the in-game Teamy Terminal reaches the game without going through
-the terminal rendering server. Capture typed instance/workspace artifacts and
-screenshots; update docs/changelog and linked-plan completion notes.
+game-client service fixtures and, where practical, two live clients, each with
+several explorers. Prove `instance list`, focus A then B, an unqualified direct
+explorer operation targets B, PID/id-qualified operation targets A, set-valued
+explorer selectors update exactly their captured targets, and ambiguity or
+incompatibility fails safely. Type a canonical `sfm explorer ...` command in
+the in-game Teamy Terminal and prove that it reaches Java through the separate
+game-control service rather than through terminal rendering. Capture typed
+instance/explorer/selection/relation artifacts and screenshots; update linked
+plans and changelog only for behavior actually delivered.
 
-**Validation:** Run new CLI checks, focused Java tests, canonical compile/full
+**Validation:** Run CLI checks, focused Java tests, canonical compile/full
 suite, deterministic multi-instance integration, and a live/manual focus
-witness through the SFM CLI. Do not propagate or publish in this phase.
+witness. Include stale descriptor, wrong-instance, empty selector, and partial
+preflight-failure cases. Do not propagate or publish in this phase.
 
-**Completion criteria:** Machine evidence identifies every process/instance/
-focus/selection/request/root generation in the journey; the visual witness
-shows the resulting workspace; stale/wrong-instance cases are proven; all
-ICLI guidance has evidence; and the foundation is ready for typed manager and
-inventory operations without redesigning discovery or dispatch.
+**Completion criteria:** Machine evidence identifies every process, instance,
+focus event, captured explorer target, request, and resulting revision. Visual
+evidence shows only the intended game and explorer(s) changing; stale, wrong,
+ambiguous, and partially invalid target sets produce no mutation. The shared
+control foundation can accept future typed manager/inventory operations without
+redesigning discovery or dispatch.
 
 ## Next recommended vertical slices
 
-The first goal completed **I-1, I-2, I-3, and I-3a** on 2026-08-11. It ended with an
-installed `sfm.exe`, a game-hosted local control service, truthful focus-aware
-discovery, safe `sfm instance list`/target selection, and the visible
-`sfm invoke sfm:panel/open sfm:size_display` journey. It deliberately stops
-before workspace-root mutation so the control plane can be verified
-independently of the still-unimplemented C-1 workspace repository.
+The first goal completed **I-1, I-2, I-3, and I-3a** on 2026-08-11. It ended
+with an installed `sfm.exe`, a game-hosted local control service, truthful
+focus-aware discovery, safe `sfm instance list`/target selection, and the
+visible `sfm invoke sfm:panel/open sfm:size_display` journey. The generic
+`invoke` operation remains a diagnostic escape hatch, but the completed slice
+deliberately stopped before adding ordinary typed explorer commands.
 
-After IC-D1 through IC-D4 are accepted or amended, the exact goal is:
+The second goal completed **X-1 through X-7** in
+`typed selections relations and lazy explorers plan.md`, including I-4 as its
+control-plane portion, on 2026-08-12. It ended with a self-orchestrating one-game
+journey for `sfm explorer root add focused . --if-no-match open-new`, a lazy
+heterogeneous explorer, and machine-checkable selection/relation revisions.
 
-> Complete I-1, I-2, I-3, and I-3a in
-> `docs/tasks/sfm in-game control cli plan.md`,
-> including protocol/codegen parity, independent CLI install/help, game
-> loopback-TCP listener and authenticated ping/describe lifecycle, atomic
-> per-user instance descriptors, focus-recency tracking, stale/PID/port-reuse
-> handling, exact PID/id/default selection, bounded registered client-action
-> invocation, and a visible successful
-> `sfm invoke sfm:panel/open sfm:size_display` witness, plus focused tests,
-> canonical compile/full-suite evidence, and completion notes; do not implement
-> workspace-root mutation, add a long-lived Rust broker, propagate, publish, or
-> begin manager/inventory commands.
-
-The next goal joins **contextual-plan A-1/A-2a/C-1 plus I-4/I-5** and ends with
-the exact `sfm workspace add .` journey against one and two game instances.
-Native folder selection and addressed file opening remain C-2/C-3 work but use
-the same workspace repository.
+I-5 is the next slice within this plan: prove two-game selection and run the
+canonical explorer CLI from Teamy Terminal without coupling terminal rendering
+to game control. X-8 in the linked selection/explorer plan is independently
+available when picker destinations and expression-valued selection actions are
+the higher-priority product slice. Addressed file opening remains contextual-plan
+C-3 work and consumes the same typed paths without introducing a workspace
+abstraction.
 
 ## Overall completion criteria
 
@@ -604,14 +709,17 @@ the same workspace repository.
 - [x] `sfm invoke sfm:panel/open sfm:size_display` executes only through the
   registered Java client-action dispatcher on the Minecraft thread and visibly
   opens the size-display panel in the selected game.
-- [ ] `workspace add` changes only the exact selected game's authoritative
-  persisted workspace and converges with UI/drop/in-game action semantics.
-- [ ] The public surface contains no manual `sfm_source` role-assignment step.
+- [x] Direct `sfm explorer ...` commands change only their captured game and
+  explorer target sets and converge with UI/drop/palette action semantics.
+- [x] Missing exact explorer ids fail; explicit non-exact `open-new` creates a
+  generic explorer through the normal panel-open path.
+- [x] Explorer control introduces no global workspace or hidden persistence.
+- [x] The public surface contains no manual `sfm_source` role-assignment step.
 - [ ] Teamy Terminal can invoke the CLI but is not an IPC dependency or target
   selector.
-- [ ] The protocol can add typed manager/inventory operations without breaking
+- [x] The protocol can add typed manager/inventory operations without breaking
   instance discovery, output, client-thread dispatch, or capability negotiation.
-- [ ] Focused/full tests, protocol parity, live artifacts, docs/changelog, and
+- [x] Focused/full tests, protocol parity, live artifacts, docs/changelog, and
   plan completion notes agree before propagation or release.
 
 ## Risk register
@@ -619,25 +727,29 @@ the same workspace repository.
 | Risk | Guardrail |
 | --- | --- |
 | A stale descriptor targets a new process that reused a PID | Opaque start-scoped instance id/nonce, unique endpoint, live describe handshake, explicit identity match, and PID-reuse fixtures |
-| `sfm workspace add .` mutates the wrong of several games | Fresh concurrent describe snapshot, unique latest-focus rule, visible default marker, ambiguity failure, exact PID/id options, and response identity |
+| A direct explorer mutation targets the wrong game or silently chooses one explorer | Fresh concurrent describe snapshot, explicit game selector, explicit set-valued explorer selector, captured target ids, visible default marker, ambiguity failure, and response identity |
 | Clock ties/skew make recency unsafe | Multiple-game ties/unknown fail; no PID/title/enumeration tie-break for mutation; explicit selector recommendation |
 | Polling focus changes recency repeatedly while a window stays focused | Record only false-to-true `Minecraft.isWindowActive()` transitions and test repeated ticks |
-| CLI writes config while game owns stale in-memory state | Game-hosted semantic operation and persistence; CLI never edits workspace files |
+| CLI writes config while game owns stale in-memory state | Game-hosted semantic action; CLI never edits explorer or game files directly, and this slice introduces no explorer persistence |
 | Vox worker mutates Minecraft from the wrong thread | Bounded request queue/client-executor handoff, timeout/overload/shutdown outcomes, and thread assertions |
 | Terminal bridge availability becomes required for all CLI control | Separate per-game local service; live proof works from external shell and Teamy Terminal with terminal server identity absent from selection |
 | Protocol generation breaks Gradle-only contributors | Checked/generated Java or locked Java artifact, deterministic parity check in Rust tooling, and no Cargo invocation during Gradle/IDE sync |
 | Registered action invocation accidentally becomes arbitrary remote execution | Accept only the existing SFM client-action Brigadier tree through `SFMClientActionExecutor`; canonical token and size bounds; typed availability/parse failures; no chat, Minecraft command, reflection, filesystem, shell, or coordinate fallback |
-| Absolute workspace paths leak in normal logs/list output | Human output may show user-requested paths only for the operation; default discovery telemetry uses ids/hashes/labels and structured output documents sensitive fields |
+| Absolute explorer paths leak in normal logs/list output | Human output may show user-requested paths only for the operation; default discovery telemetry uses ids/hashes/labels and structured output documents sensitive fields |
 | Incompatible focused game silently redirects command to older game | Select newest live instance first and fail capability/protocol negotiation; never fallback to another instance |
 | Future manager/inventory commands force discovery redesign | Shared typed describe/capabilities/selection/dispatch/output foundation plus operation-specific request/result types |
 
 ## Source and implementation references
 
 - `docs/AGENTS.md`
+- `docs/tasks/typed selections relations and lazy explorers plan.md`
 - `docs/tasks/contextual input actions and addressable explorer plan.md`
 - `docs/tasks/cli ast refactoring suite plan.md`
 - `platform/cli/sfm-propagate-changes/Cargo.toml`
 - `platform/cli/sfm-propagate-changes/src/cli/`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/control/SFMClientControlServer.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/control/SFMClientThreadGate.java`
+- `platform/minecraft/src/test/java/ca/teamdman/sfm/client/control/SFMClientThreadGateTests.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/SFMVoxTerminalService.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/workspace/`
 - `platform/minecraft/build/sfm-toolchain/forge/1.19.2/sources/combined-deobfuscated.filetree/com/mojang/blaze3d/platform/Window.java`

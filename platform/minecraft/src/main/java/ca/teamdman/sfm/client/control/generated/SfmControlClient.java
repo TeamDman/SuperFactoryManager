@@ -62,6 +62,23 @@ public final class SfmControlClient {
       return CompletableFuture.failedFuture(error);
     }
   }
+  public CompletableFuture<VoxResult<SfmControlExplorerOperationResult, SfmControlError>> explorerOperation(SfmControlExplorerOperationRequest request) { return explorerOperation(request, CallOptions.defaults()); }
+  public CompletableFuture<VoxResult<SfmControlExplorerOperationResult, SfmControlError>> explorerOperation(SfmControlExplorerOperationRequest request, CallOptions options) {
+    try {
+      byte[] encoded = PhonCodec.encode(SfmControlExplorerOperationArgs.ADAPTER, new SfmControlExplorerOperationArgs(request), PhonLimits.defaults());
+      return VoxFutures.mapCancellable(lane.call(SfmControlServiceDescriptor.EXPLORER_OPERATION, encoded, options, List.of()), bytes -> {
+        try {
+          VoxResult<SfmControlExplorerOperationResult, SfmControlError> result = PhonCodec.decode(SfmControlExplorerOperationResponse.ADAPTER, bytes, PhonLimits.defaults());
+          if (result.isInfrastructureError()) throw remoteFailure(result);
+          return result;
+        } catch (PhonException error) {
+          throw new CompletionException(error);
+        }
+      });
+    } catch (PhonException error) {
+      return CompletableFuture.failedFuture(error);
+    }
+  }
   private static CompletionException remoteFailure(VoxResult<?, ?> result) {
 String detail = result.detail() == null ? "" : ": " + result.detail();
 return new CompletionException(new VoxException("remote Vox error " + result.kind() + detail));
