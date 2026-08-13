@@ -8,23 +8,27 @@ public enum SFMGamePuppetViewportProfile {
     /** Stable responsive evidence profile. Explicit scales are expanded after framebuffer measurement. */
     COMMON_RESPONSIVE,
     /**
+     * One large physical viewport whose declared run expands from Auto to
+     * every numeric GUI scale supported by that viewport.
+     */
+    GUI_SCALE_MATRIX,
+    /**
      * Terminal presentation acceptance keeps its declared matrix bounded while
      * also authorizing the exact 3840x2130 physical-resolution witness.
      */
     TERMINAL_PRESENTATION;
 
     public SFMGamePuppetViewportVariant preferred() {
-        return this == CURRENT
-                ? null
-                : new SFMGamePuppetViewportVariant(1280, 720, 0);
+        if (this == CURRENT) return null;
+        if (this == GUI_SCALE_MATRIX) return new SFMGamePuppetViewportVariant(3840, 2130, 0);
+        return new SFMGamePuppetViewportVariant(1280, 720, 0);
     }
 
     public List<int[]> requestedSizes() {
-        return this == CURRENT
-                ? List.of()
-                : this == TERMINAL_PRESENTATION
-                        ? List.of(new int[]{1280, 720})
-                        : List.of(new int[]{640, 480}, new int[]{854, 480}, new int[]{1280, 720}, new int[]{1920, 1080});
+        if (this == CURRENT) return List.of();
+        if (this == TERMINAL_PRESENTATION) return List.of(new int[]{1280, 720});
+        if (this == GUI_SCALE_MATRIX) return List.of(new int[]{3840, 2130});
+        return List.of(new int[]{640, 480}, new int[]{854, 480}, new int[]{1280, 720}, new int[]{1920, 1080});
     }
 
     public List<int[]> acceptedExactSizes() {

@@ -248,17 +248,31 @@ public final class SFMExplorerRuntime implements AutoCloseable {
         );
     }
 
+    /**
+     * Disposes every live explorer while keeping the process-wide resolver
+     * authority available for a subsequent workspace or viewport journey.
+     */
+    public synchronized void closeAllExplorers() {
+        ensureOpen();
+        closeAllExplorersLocked();
+    }
+
     @Override
     public synchronized void close() {
         if (closed) return;
+        closeAllExplorersLocked();
         closed = true;
-        List<SFMExplorerRepository.Explorer> current = explorers.explorersInStableOrder();
-        panels.clear();
-        current.forEach(explorer -> {
+        resolverExecutor.shutdownNow();
+    }
+
+    private void closeAllExplorersLocked() {
+        for (SFMExplorerRepository.Explorer explorer : explorers.explorersInStableOrder()) {
+            SFMExplorerPanel panel = panels.remove(explorer.id());
+            if (panel != null) panel.closed();
             explorer.session().close();
             explorers.unregister(explorer.id());
-        });
-        resolverExecutor.shutdownNow();
+        }
+        panels.clear();
     }
 
     private SFMExplorerRepository.Explorer createExplorer(SFMPath initialRoot) {

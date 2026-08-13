@@ -2,6 +2,7 @@ package ca.teamdman.sfm.gametest.puppet.definition;
 
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppet;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetViewportProfile;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 
 /**
@@ -9,7 +10,7 @@ import net.minecraft.client.gui.screens.LoadingOverlay;
  * heterogeneous lazy explorer, and the direct external {@code sfm explorer}
  * control surface.
  */
-@SFMGamePuppet
+@SFMGamePuppet(viewportProfile = SFMGamePuppetViewportProfile.GUI_SCALE_MATRIX)
 public final class TitleScreenExternalCliLazyExplorerGamePuppet {
     private TitleScreenExternalCliLazyExplorerGamePuppet() {
     }
@@ -20,7 +21,7 @@ public final class TitleScreenExternalCliLazyExplorerGamePuppet {
         puppet.invokeExternalCliLazyExplorer();
         puppet.openCommandPalette();
         puppet.executeCommandPalette(
-                "sfm action invoke sfm:explorer/location/edit id(explorer-1) right"
+                "sfm action invoke sfm:explorer/location/edit focused right"
         );
         puppet.waitTicks(SFMGamePuppetHelper.RENDER_SETTLE_TICKS);
         puppet.capture(

@@ -87,6 +87,7 @@ public final class InvokeExternalCliLazyExplorerPuppetAction implements SFMPuppe
     private final JsonArray ioPhaseEvidence = new JsonArray();
     private long ioPhaseCursor;
     private long ioDroppedAtCursor;
+    private long directoryEnumerationBaseline;
     private SFMGatedExplorerResolver.Gate refreshGate;
     private long refreshBeforeRevision;
     private long refreshDuringRevision;
@@ -142,6 +143,9 @@ public final class InvokeExternalCliLazyExplorerPuppetAction implements SFMPuppe
 
     private void prepareFixture() {
         if (fixtureFuture == null) {
+            // A declared viewport matrix repeats this journey in one client.
+            // Each variant must own an isolated set of live explorer panels.
+            SFMExplorerRuntime.get().closeAllExplorers();
             Path gameDirectory = Minecraft.getInstance().gameDirectory.toPath().toAbsolutePath().normalize();
             Path root = gameDirectory.resolve("puppet-fixtures")
                     .resolve("external-cli-lazy-explorer-" + ProcessHandle.current().pid())
@@ -157,6 +161,7 @@ public final class InvokeExternalCliLazyExplorerPuppetAction implements SFMPuppe
         SFMExplorerIoCounter.Snapshot io = SFMExplorerRuntime.get().filesystemIo().snapshot();
         ioPhaseCursor = io.latestSequence();
         ioDroppedAtCursor = io.eventsDropped();
+        directoryEnumerationBaseline = io.directoryEnumerations();
         phase = Phase.LIST_EMPTY;
     }
 
@@ -257,7 +262,8 @@ public final class InvokeExternalCliLazyExplorerPuppetAction implements SFMPuppe
         if (visible.stream().noneMatch(path -> path.endsWith("/before.txt"))) return;
         require(visible.stream().noneMatch(path -> path.endsWith("/must-not-be-observed.txt")),
                 "Expanding one directory must not prefetch nested descendants");
-        require(SFMExplorerRuntime.get().filesystemIo().snapshot().directoryEnumerations() == 2,
+        require(SFMExplorerRuntime.get().filesystemIo().snapshot().directoryEnumerations()
+                        - directoryEnumerationBaseline == 2,
                 "Only the primary root and selected directory should have been enumerated");
         SFMExplorerIoCounter.Snapshot io = SFMExplorerRuntime.get().filesystemIo().snapshot();
         requireEnumeratedOnly(io.eventsAfter(ioPhaseCursor), directoryPath,
