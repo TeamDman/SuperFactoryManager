@@ -1,14 +1,14 @@
 # Typed selections, relations, and lazy explorers plan
 
-**Plan status:** Active; X-1 through X-7 complete, X-8 through X-11 retained for later goals
+**Plan status:** Active; X-1 through X-7 and X-8a complete, X-8 through X-11 retained for later goals
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Primary implementation target:** Minecraft 1.19.2
 **Related control plan:** `docs/tasks/sfm in-game control cli plan.md`
 **Related UI plan:** `docs/tasks/contextual input actions and addressable explorer plan.md`
 **Related comment plan:** `docs/tasks/global comment selection and review sessions plan.md`
 **Related editor plan:** `docs/tasks/draw editor document regions and commands plan.md`
-**Last updated:** 2026-08-12
-**Intent audit:** Passed 2026-08-12 against the complete 2026-08-12
+**Last updated:** 2026-08-13
+**Intent audit:** Passed 2026-08-13 against the complete 2026-08-12 through 2026-08-13
 CLI/explorer/path/selection/relation/picker/layout design discussion and the
 linked plans' existing ledgers; implementation closure audit passed against the
 final X-1 through X-7 code, tests, protocol, and live artifacts
@@ -208,6 +208,26 @@ existing use of “workspace” for the complete split/stack panel host.
   messages summarized above were available in the active conversation. Older
   related intent is retained by the linked plans' existing ledgers rather than
   silently re-summarized here.
+
+### Intent-audit extension — 2026-08-13 checkpoint and matrix reconciliation
+
+- **Pass 1 — extraction:** Rechecked the recent request to expose the truthful
+  explorer location, the explicit preference not to hide internal selection
+  ids, the request to inspect recent work at every GUI scale, and the prior
+  requirement that Ctrl+Enter open a new panel. No new selection/picker/layout
+  requirement was inferred from the screenshot sweep.
+- **Pass 2 — traceability:** Attached clean commit and nine-variant evidence to
+  X-8a, retained picker composition under X-8, pane identity under X-10, and
+  routed real-file/Text-Editor-v3 activation to contextual-plan C-3 rather than
+  broadening the completed location-document item.
+- **Pass 3 — adversarial omission:** Checked that bookkeeping did not claim X-8
+  complete, confuse Auto with a ninth numeric scale, hide the low-scale v1
+  editor geometry, or reinterpret visual truncation as loss of canonical
+  content. The exact internal expression remains available through the editor,
+  copy, narration, and tooltip contracts.
+- **Known source limitation:** None. The relevant original messages, plans,
+  commits, console completion record, manifest, and all nine figures were
+  available.
 
 ## Established foundation
 
@@ -1046,6 +1066,32 @@ Its manifest records dirty-source fingerprint
 `blake3:29bcdb590792d0e4843c46820be09de9acb80e62`; figure 7 visibly contains
 both explorer panels and the exact internal selection-backed location in the
 preferred editor without drawing or widget leakage across panel boundaries.
+
+**Clean checkpoint and scale-matrix evidence (2026-08-13):** Commit
+`7cfd4b138` (`Add typed lazy explorers and external control CLI`) checkpoints
+X-1 through X-8a after canonical compile, the full Java suite, Rust checks, and
+the focused live journey had passed. Commit `dbf6bf344` (`Add explorer GUI
+scale matrix coverage`) gives the explorer journey a reusable 3840x2130
+declared viewport profile and makes each repeated variant dispose its live
+explorer sessions while retaining process-wide resolver authority. Its I/O
+assertions are relative to the variant baseline, so retained counters cannot
+produce false failures.
+
+```text
+sfm-propagate-changes.exe puppet run title_screen_external_cli_lazy_explorer --branch 1.19.2 --variant declared --wait-for-build-lock
+SFM_GAME_PUPPET_COMPLETE failed=0 total=9
+```
+
+The inspected run is rooted at
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`title_screen_ext-20260813-162233-680`. It contains figure 7 at numeric GUI
+scales 1 through 8 plus Auto (effective scale 8), always showing the primary
+explorer, secondary explorer, and exact location document in the configured
+preferred editor. Panel boundaries remain stable. The matrix also makes a
+later C-3 acceptance concern explicit: the current preferred-v1 editor keeps a
+centered bounded form at low GUI scales and therefore leaves substantial panel
+space unused. C-3's Text Editor v3 file-opening proof must demonstrate a
+panel-native layout rather than inherit that modal-style geometry.
 
 ### [ ] X-8 Compose pickers as selection destinations
 

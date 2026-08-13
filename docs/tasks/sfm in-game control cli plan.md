@@ -1,14 +1,14 @@
 # SFM in-game control CLI plan
 
-**Plan status:** Active; I-1 through I-4 complete, I-5 retained as the next multi-game/Teamy-Terminal hardening slice
+**Plan status:** Active; I-1 through I-4 complete, I-5 retained as an independent later multi-game/Teamy-Terminal hardening slice
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **New Rust CLI root:** `platform/cli/sfm`
 **Linked selection/explorer plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
 **Linked contextual UI plan:** `docs/tasks/contextual input actions and addressable explorer plan.md`
 **Reference template:** `G:\Programming\Repos\teamy-rust-windows-utils`
-**Last updated:** 2026-08-12
+**Last updated:** 2026-08-13
 **Foundation implementation commit:** `8e202d915` (`Add live game control CLI`)
-**Intent audit:** Passed 2026-08-12 including the direct typed explorer-control supersession recorded below
+**Intent audit:** Passed 2026-08-13 including the cross-plan trajectory reconciliation recorded below
 
 ## How to update this plan
 
@@ -83,7 +83,7 @@ files behind its back, or guesses a process from a window title.
 | ICLI-8 | Historical exact-game example: `sfm workspace add . --instance-pid 1234`. | Preserve exact-game targeting semantics, but use the active `sfm explorer root add ... --instance-pid 1234` grammar. | ICLI-14 through ICLI-17 |
 | ICLI-9 | There is currently no CLI control surface for in-game SFM behavior. | The plan adds a game-hosted SFM control service instead of extending the terminal-rendering service or pretending the existing Java terminal client is a server. | — |
 | ICLI-10 | Future commands may include `sfm manager list`, `sfm inventory show`, and other in-game inspection/control. | The protocol and dispatch use versioned typed operations/results, capability discovery, client-thread handoff, and bounded structured output; no workspace-specific wire shortcut becomes the whole architecture. | — |
-| ICLI-11 | Users should not need to assign an internal `sfm_source` role when adding an explorer root. | No public role-setting action exists. A typed path is added as itself; project/source discovery is derived metadata and `sfm_source` remains only a toolchain-contributed source id where the older panel scene still needs it. | — |
+| ICLI-11 | Users should not need to assign an internal `sfm_source` role when adding an explorer root. | No public role-setting action or `sfm_source` scene/device exists. A typed path is added as itself; project/source discovery is derived metadata. A development launcher may contribute its exact source root only as an ordinary resolver-authorized path expression. | — |
 | ICLI-12 | Preserve the proposal in a resumable, verifiable plan before implementation. | This ledger, contracts, gates, phases I-1 through I-5, topology, risks, and exact next-goal statement are authoritative. | — |
 | ICLI-13 | The first goal must end with a concrete in-game operation, specifically opening the panel that displays its allocated size, rather than only `sfm instance list`. | I-3a adds the exact `sfm invoke sfm:panel/open sfm:size_display` command, registered-action-only Java dispatch, structured feedback, and a visible witness. The active goal is not complete until the panel is visibly opened through the external CLI. | — |
 | ICLI-14 | Canonical SFM commands are explicit, hierarchical, long-form commands; short aliases belong in the user's shell profile. Ordinary running-game operations should not sit beneath `sfm invoke`. | I-4 adds direct `sfm explorer ...` Figue commands, keeps generic `invoke` as a diagnostic escape hatch, and asserts no built-in explorer aliases. | — |
@@ -146,6 +146,22 @@ files behind its back, or guesses a process from a window title.
   a global persisted workspace.
 - **Known source limitation:** None for the supersession; the original messages
   were available in the active conversation.
+
+### Intent-audit extension — 2026-08-13 checkpoint and trajectory reconciliation
+
+- **Pass 1 — extraction:** Rechecked that ordinary game commands remain direct
+  top-level typed commands, explorer targeting remains explicit and set-valued,
+  Teamy Terminal is a caller rather than an IPC dependency, and multi-instance
+  proof is desired but was not ordered ahead of opening real SFM source.
+- **Pass 2 — traceability:** Recorded the clean I-4 checkpoint and repeated
+  real-CLI matrix evidence. Kept I-5 intact as this plan's next internal item
+  while pointing the cross-plan trajectory to contextual A-2c/C-3.
+- **Pass 3 — adversarial omission:** Checked that the priority note does not
+  mark I-5 complete, weaken wrong-instance/ambiguity safeguards, couple game
+  control to terminal rendering, or make two-game proof a hidden prerequisite
+  for addressed file opening.
+- **Known source limitation:** None. The relevant original messages, linked
+  plans, commits, and live artifact were available.
 
 ## Established foundation and source evidence
 
@@ -648,6 +664,15 @@ explorer, add filesystem and item-registry roots, exercise lazy expansion and
 atomic refresh, update two explorers with `all`, and prove an exact miss creates
 no replacement.
 
+**Clean checkpoint follow-up (2026-08-13):** Commit `7cfd4b138` contains the
+completed I-4 control surface together with its shared typed explorer model.
+Commit `dbf6bf344` makes the same real external-CLI journey repeat safely in one
+client at 3840x2130 Auto and numeric GUI scales 1 through 8. The run
+`title_screen_ext-20260813-162233-680` completed `failed=0 total=9`; per-variant
+explorer disposal and relative I/O baselines prevent retained process authority
+from being mistaken for cross-variant mutation. The 1.19.2 working tree was
+clean after both commits.
+
 ### [ ] I-5 Prove two-game and multi-explorer targeting from Teamy Terminal
 
 **Work:** Add deterministic harness support for two independently registered
@@ -688,13 +713,14 @@ control-plane portion, on 2026-08-12. It ended with a self-orchestrating one-gam
 journey for `sfm explorer root add focused . --if-no-match open-new`, a lazy
 heterogeneous explorer, and machine-checkable selection/relation revisions.
 
-I-5 is the next slice within this plan: prove two-game selection and run the
-canonical explorer CLI from Teamy Terminal without coupling terminal rendering
-to game control. X-8 in the linked selection/explorer plan is independently
-available when picker destinations and expression-valued selection actions are
-the higher-priority product slice. Addressed file opening remains contextual-plan
-C-3 work and consumes the same typed paths without introducing a workspace
-abstraction.
+I-5 remains the next slice within this control-specific plan: prove two-game
+selection and run the canonical explorer CLI from Teamy Terminal without
+coupling terminal rendering to game control. It is not the next recommended
+cross-plan product goal. The immediate trajectory is contextual-plan A-2c plus
+C-3: finish the generic explorer cutover and open real resolver-authorized SFM
+source files read-only in Text Editor v3. I-5 can follow independently when
+multi-game hardening is more valuable; it is not a prerequisite for addressed
+file opening or later jump-to-definition work.
 
 ## Overall completion criteria
 
