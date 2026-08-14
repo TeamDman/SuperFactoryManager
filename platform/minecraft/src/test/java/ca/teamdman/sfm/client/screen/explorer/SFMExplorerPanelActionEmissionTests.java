@@ -6,6 +6,8 @@ import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMSelectionRepository;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerEntry;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolverRegistry;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
 import ca.teamdman.sfm.client.explorer.lazy.SFMInMemoryRegistryExplorerResolver;
@@ -18,6 +20,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -27,6 +31,37 @@ public class SFMExplorerPanelActionEmissionTests {
     private static final SFMPath ROOT = SFMPath.parse("registry://minecraft/item/");
     private static final SFMPath CHILD = SFMPath.parse("registry://minecraft/item/minecraft/stone");
     private static final SFMScreenPanelBounds BOUNDS = new SFMScreenPanelBounds(0, 0, 320, 180);
+    private static final SFMPath FILE_ROOT = SFMPath.parse("file:///D:/fixture");
+    private static final SFMPath DIRECTORY = SFMPath.parse("file:///D:/fixture/src");
+    private static final SFMPath FILE = SFMPath.parse("file:///D:/fixture/SFM.java");
+
+    @Test
+    public void spaceEnterAndControlEnterEmitPreviewFocusAndAdjacentWhileDirectoriesStillToggle() {
+        Fixture fixture = fileFixture();
+        SFMExplorerPanel panel = fixture.panel();
+        panel.model().select(FILE, BOUNDS);
+
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_SPACE, 0, 0));
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, GLFW.GLFW_MOD_CONTROL));
+
+        panel.model().select(DIRECTORY, BOUNDS);
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_SPACE, 0, 0));
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, GLFW.GLFW_MOD_CONTROL));
+
+        String selector = "id(file-explorer)";
+        assertEquals(List.of(
+                "sfm action invoke sfm:path/open " + FILE.canonical() + " preview",
+                "sfm action invoke sfm:path/open " + FILE.canonical() + " focus",
+                "sfm action invoke sfm:path/open " + FILE.canonical() + " adjacent",
+                "sfm action invoke sfm:explorer/node/toggle " + selector + " " + DIRECTORY.canonical(),
+                "sfm action invoke sfm:explorer/node/toggle " + selector + " " + DIRECTORY.canonical(),
+                "sfm action invoke sfm:explorer/node/toggle " + selector + " " + DIRECTORY.canonical()
+        ), fixture.actions());
+        assertFalse(fixture.session().snapshot().expanded().contains(DIRECTORY),
+                "emission must not mutate explorer state before the registered action executes");
+    }
 
     @Test
     public void chevronKeyboardLocationViewAndDropEmitExactCanonicalActionsWithoutApplyingMutations() {
@@ -182,6 +217,66 @@ public class SFMExplorerPanelActionEmissionTests {
         SFMExplorerSession session = new SFMExplorerSession(
                 new SFMExplorerId("explorer one"),
                 ROOT,
+                new SFMSelectionRepository()
+        );
+        ArrayList<String> actions = new ArrayList<>();
+        ArrayList<String> clipboard = new ArrayList<>();
+        SFMExplorerPanel panel = new SFMExplorerPanel(
+                session,
+                loader,
+                actions::add,
+                () -> {},
+                () -> {},
+                SFMExplorerPresentationRegistry.minecraftDefaults(),
+                clipboard::add
+        );
+        panel.resized(null, BOUNDS);
+        return new Fixture(session, panel, actions, clipboard);
+    }
+
+    private static Fixture fileFixture() {
+        SFMExplorerEntry root = SFMExplorerEntry.simple(FILE_ROOT, "fixture", true, Optional.empty());
+        SFMExplorerEntry directory = SFMExplorerEntry.simple(DIRECTORY, "src", true, Optional.empty());
+        SFMExplorerEntry file = SFMExplorerEntry.simple(FILE, "SFM.java", false, Optional.empty());
+        Map<SFMPath, SFMExplorerEntry> entries = Map.of(
+                FILE_ROOT, root,
+                DIRECTORY, directory,
+                FILE, file
+        );
+        SFMExplorerResolver resolver = new SFMExplorerResolver() {
+            @Override public String scheme() { return "file"; }
+            @Override public long generation() { return 1; }
+            @Override
+            public CompletableFuture<SFMExplorerEntry> describe(
+                    SFMPath path,
+                    SFMExplorerCancellationToken cancellation
+            ) {
+                return CompletableFuture.completedFuture(entries.get(path));
+            }
+            @Override
+            public CompletableFuture<ChildPage> resolveChildren(ChildRequest request) {
+                List<SFMExplorerEntry> children = request.parent().equals(FILE_ROOT)
+                        ? List.of(directory, file)
+                        : List.of();
+                return CompletableFuture.completedFuture(new ChildPage(
+                        request.parent(),
+                        children,
+                        Optional.empty(),
+                        generation(),
+                        List.of(),
+                        children.size()
+                ));
+            }
+        };
+        SFMExplorerResolverRegistry resolvers = new SFMExplorerResolverRegistry();
+        resolvers.register(resolver);
+        SFMChildRelationRepository relations = new SFMChildRelationRepository();
+        SFMLazyExplorerLoader loader = new SFMLazyExplorerLoader(resolvers, relations);
+        loader.openRoot(FILE_ROOT).join();
+        loader.refresh(FILE_ROOT, 8).completion().join();
+        SFMExplorerSession session = new SFMExplorerSession(
+                new SFMExplorerId("file-explorer"),
+                FILE_ROOT,
                 new SFMSelectionRepository()
         );
         ArrayList<String> actions = new ArrayList<>();

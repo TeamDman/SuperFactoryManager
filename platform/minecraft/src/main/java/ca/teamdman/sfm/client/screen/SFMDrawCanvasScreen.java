@@ -6,11 +6,14 @@ import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentPosition;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -26,6 +29,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -124,6 +128,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private double grammarPanAnchorCameraY;
     private boolean draggingGrammarInsert;
     private Optional<Component> saveDiagnostic = Optional.empty();
+    private Optional<SFMTextDocumentRange> openTargetRange = Optional.empty();
     private double grammarInsertStartX;
     private double grammarInsertStartY;
     private EmbeddedDocument resizingEmbeddedDocument;
@@ -242,6 +247,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (showCursorTrail) {
             renderCursorTrail(poseStack);
         }
+        renderOpenTargetRange(poseStack);
         renderGlyphs(poseStack);
         if (!hideSelection) {
             renderGlyphSelectionHighlights(poseStack);
@@ -778,6 +784,74 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         model = new SFMDrawCanvasModel();
         model.typeText(openContext.initialValue(), this.font::width, this.font.lineHeight);
         model.moveCursorToDocumentStart();
+    }
+
+    /** Positions and visibly marks an exact UTF-8 witnessed source range. */
+    public void openAtTextRange(SFMTextDocumentRange range) {
+        Objects.requireNonNull(range, "range");
+        if (openContext == null) throw new IllegalStateException("A standalone canvas has no text document");
+        loadInitialContent();
+        range.validateAgainst(openContext.initialValue());
+        openTargetRange = Optional.of(range);
+        CanvasTextPoint point = canvasPoint(openContext.initialValue(), range.start());
+        model().setCursor(point.x(), point.y());
+        cameraX = point.x() + (this.width / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
+        cameraY = point.y() + (this.height / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
+        cameraInitialized = true;
+        cameraViewportWidth = this.width;
+        cameraViewportHeight = this.height;
+        rememberCursorPosition();
+    }
+
+    private void renderOpenTargetRange(PoseStack poseStack) {
+        if (openTargetRange.isEmpty() || openContext == null) return;
+        SFMTextDocumentRange range = openTargetRange.orElseThrow();
+        String text = openContext.initialValue();
+        for (int line = range.start().line(); line <= range.end().line(); line++) {
+            String lineText = lineText(text, line);
+            int lineCodePoints = lineText.codePointCount(0, lineText.length());
+            int startColumn = line == range.start().line() ? range.start().column() : 0;
+            int endColumn = line == range.end().line() ? range.end().column() : lineCodePoints;
+            if (startColumn >= endColumn) continue;
+            int startIndex = lineText.offsetByCodePoints(0, Math.min(startColumn, lineCodePoints));
+            int endIndex = lineText.offsetByCodePoints(0, Math.min(endColumn, lineCodePoints));
+            double canvasX = font.width(lineText.substring(0, startIndex));
+            double canvasY = (double) line * font.lineHeight;
+            double canvasWidth = Math.max(1, font.width(lineText.substring(startIndex, endIndex)));
+            int left = (int) Math.floor(canvasToScreenX(canvasX));
+            int top = (int) Math.floor(canvasToScreenY(canvasY));
+            int right = (int) Math.ceil(canvasToScreenX(canvasX + canvasWidth));
+            int bottom = (int) Math.ceil(canvasToScreenY(canvasY + font.lineHeight));
+            GuiComponent.fill(poseStack, left, top, right, bottom, 0x8042647A);
+        }
+    }
+
+    private CanvasTextPoint canvasPoint(String text, SFMTextDocumentPosition position) {
+        String line = lineText(text, position.line());
+        int codePoints = line.codePointCount(0, line.length());
+        if (position.column() > codePoints) {
+            throw new IllegalArgumentException("Text column lies beyond line " + position.line());
+        }
+        int end = line.offsetByCodePoints(0, position.column());
+        return new CanvasTextPoint(font.width(line.substring(0, end)), (double) position.line() * font.lineHeight);
+    }
+
+    private static String lineText(String text, int requestedLine) {
+        int line = 0;
+        int start = 0;
+        for (int index = 0; index < text.length(); index++) {
+            char value = text.charAt(index);
+            if (value != '\r' && value != '\n') continue;
+            if (line == requestedLine) return text.substring(start, index);
+            if (value == '\r' && index + 1 < text.length() && text.charAt(index + 1) == '\n') index++;
+            line++;
+            start = index + 1;
+        }
+        if (line == requestedLine) return text.substring(start);
+        throw new IllegalArgumentException("Text line lies beyond the document: " + requestedLine);
+    }
+
+    private record CanvasTextPoint(double x, double y) {
     }
 
     @Override

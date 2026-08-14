@@ -44,16 +44,38 @@ public record SFMTextEditorPanelRecipe(
 
     @Override
     public SFMScreenPanel reopen() {
+        if (documentSource instanceof SFMTextDocumentSource.PathAddress) {
+            return new ca.teamdman.sfm.client.screen.text_editor.SFMDeferredTextEditorPanel(this);
+        }
+        SFMTextDocumentSnapshot snapshot = documentSource
+                .load(new ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken())
+                .join();
+        return createResolvedPanel(snapshot);
+    }
+
+    public SFMScreenPanel createResolvedPanel(SFMTextDocumentSnapshot snapshot) {
+        Objects.requireNonNull(snapshot, "snapshot");
         ISFMTextEditorRegistration registration = SFMTextEditors.registry().get(editorId);
         if (registration == null) {
             throw new IllegalStateException("Text editor recipe references an unknown editor: " + editorId);
         }
         return registration.createPanel(new SFMTextEditorPanelOpenContext(
                 editorId.toString(),
-                documentSource.load(),
+                snapshot,
                 readOnly,
                 title,
                 Objects.requireNonNull(saveHandlerFactory.get(), "save handler factory result")
         ));
+    }
+
+    public SFMTextEditorPanelRecipe withDocumentSource(SFMTextDocumentSource source) {
+        return new SFMTextEditorPanelRecipe(
+                sceneTypeId,
+                editorId,
+                Objects.requireNonNull(source, "source"),
+                readOnly,
+                title,
+                saveHandlerFactory
+        );
     }
 }

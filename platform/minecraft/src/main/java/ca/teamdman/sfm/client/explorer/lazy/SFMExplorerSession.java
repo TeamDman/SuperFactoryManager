@@ -143,12 +143,35 @@ public final class SFMExplorerSession implements AutoCloseable {
             SFMPath initialRoot,
             SFMSelectionRepository selections
     ) {
+        this(
+                id,
+                new SFMPathExpression.Literal(Objects.requireNonNull(initialRoot, "initialRoot")),
+                Set.of(initialRoot),
+                selections
+        );
+    }
+
+    /** Creates one independent session from an already-resolved immutable location capture. */
+    public SFMExplorerSession(
+            SFMExplorerId id,
+            SFMPathExpression initialLocation,
+            Set<SFMPath> initialRoots,
+            SFMSelectionRepository selections
+    ) {
         this.id = Objects.requireNonNull(id, "id");
         this.selections = Objects.requireNonNull(selections, "selections");
-        Objects.requireNonNull(initialRoot, "initialRoot");
-        roots.add(initialRoot);
-        manualRootOrder.add(initialRoot);
-        location = new SFMPathExpression.Literal(initialRoot);
+        location = Objects.requireNonNull(initialLocation, "initialLocation");
+        TreeSet<SFMPath> normalizedRoots = new TreeSet<>(Objects.requireNonNull(initialRoots, "initialRoots"));
+        if (normalizedRoots.isEmpty()) {
+            throw new IllegalArgumentException("An explorer location must resolve to at least one root");
+        }
+        if (normalizedRoots.size() > MAXIMUM_ROOTS) {
+            throw new IllegalArgumentException(
+                    "An explorer location cannot resolve to more than " + MAXIMUM_ROOTS + " roots"
+            );
+        }
+        roots.addAll(normalizedRoots);
+        manualRootOrder.addAll(normalizedRoots);
     }
 
     public synchronized Snapshot snapshot() {

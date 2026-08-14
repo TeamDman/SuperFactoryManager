@@ -51,6 +51,7 @@ NAME "Changelog"
 -- Add typed versioned selections and child relations behind a heterogeneous lazy explorer with bounded filesystem and item-registry roots
 -- Add direct sfm.exe explorer commands with explicit set-valued targets, all-or-none actions, and self-orchestrating visual evidence
 -- Replace redundant explorer headers with the exact canonical location and open revision-safe location editing in the preferred text editor
+-- Replace one-off developer explorer actions with the generic path-expression explorer and open resolver-authorized source files read-only in Text Editor v3
 -- Keep preferred text editors responsive, clipped, and panel-local when explorer locations are opened beside narrow panels
 -- Add single-client responsive viewport sweeps and browsable puppet evidence reports
 -- Make literal punctuation in unquoted SFML wildcard matchers match only itself

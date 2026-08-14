@@ -1,9 +1,10 @@
 package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.screen.review.explorer.SFMReviewExplorerPanel;
+import ca.teamdman.sfm.client.screen.workspace.SFMExplorerScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
-import ca.teamdman.sfm.client.screen.workspace.SFMTestScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMReviewExplorerScreenType;
+import ca.teamdman.sfm.client.screen.workspace.SFMTestScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMTextEditorScreenType;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
@@ -65,6 +66,39 @@ class OpenPanelActionTests {
 
         assertTrue(suggestions.getList().stream()
                 .anyMatch(suggestion -> suggestion.getText().equals(SCREEN_ID.toString())));
+    }
+
+    @Test
+    void everyDirectionalPanelActionAcceptsTheGenericExplorerPathExpressionGrammar() {
+        ResourceLocation explorer = new ResourceLocation("sfm", "explorer");
+        String location = "union(file:///D:/Repos/Minecraft/SFM,members(id(selection-1)))";
+        SFMClientActionSource source = new SFMClientActionSource(SFMClientActionContext.create(null, () -> true));
+
+        for (OpenPanelAction.Direction direction : OpenPanelAction.Direction.values()) {
+            ResourceLocation actionId = switch (direction) {
+                case FOCUSED -> new ResourceLocation("sfm", "panel/open");
+                case LEFT -> new ResourceLocation("sfm", "panel/open/left");
+                case RIGHT -> new ResourceLocation("sfm", "panel/open/right");
+                case ABOVE -> new ResourceLocation("sfm", "panel/open/above");
+                case BELOW -> new ResourceLocation("sfm", "panel/open/below");
+            };
+            OpenPanelAction action = new OpenPanelAction(
+                    direction,
+                    () -> List.of(Map.entry(explorer, new SFMExplorerScreenType()))
+            );
+            SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(List.of(
+                    Map.entry(actionId, action)
+            ));
+
+            assertTrue(isExecutable(tree.parse(
+                    "sfm action invoke " + actionId + " " + explorer,
+                    source
+            )), direction + " should accept the omitted default location");
+            assertTrue(isExecutable(tree.parse(
+                    "sfm action invoke " + actionId + " " + explorer + " " + location,
+                    source
+            )), direction + " should accept the full path expression");
+        }
     }
 
     @Test

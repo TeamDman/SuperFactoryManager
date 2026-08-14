@@ -15,9 +15,9 @@ public final class TitleScreenItemIconCommandPaletteGamePuppet {
         puppet.waitForOverlayToNotBePresent(LoadingOverlay.class);
         puppet.waitTicks(20);
         puppet.openCommandPalette();
-        puppet.setCommandPaletteInput("sfm action invoke sfm:developer/open_");
-        puppet.capture("file-action-item", caption(
-                "File-explorer actions reuse directory ItemStacks while all suggestion rows remain stable and legible."
+        puppet.setCommandPaletteInput("sfm action invoke sfm:panel/open sfm:explorer");
+        puppet.capture("generic-explorer-action", caption(
+                "The generic explorer scene is the sole palette entry point while suggestion rows remain stable and legible."
         ));
         puppet.prepareIncompleteCommandPaletteInput(
                 "sfm action invoke sfm:echo",

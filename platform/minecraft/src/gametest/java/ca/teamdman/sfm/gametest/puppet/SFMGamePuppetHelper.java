@@ -2,7 +2,6 @@ package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
-import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceAxis;
 import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMSizeDisplayWorkspace;
@@ -16,6 +15,8 @@ import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import ca.teamdman.sfm.client.explorer.SFMPath;
+import java.nio.file.Path;
 
 /**
  * Declarative action builder for one annotated game puppet definition.
@@ -127,6 +128,19 @@ public final class SFMGamePuppetHelper {
      */
     public void invokeExternalCliLazyExplorer() {
         add(new InvokeExternalCliLazyExplorerPuppetAction());
+    }
+
+    /** Waits until one resolver row is materialized and optionally selects/focuses it. */
+    public void waitForExplorerPath(SFMPath path, boolean select) {
+        add(new WaitForExplorerPathPuppetAction(Objects.requireNonNull(path, "path"), select));
+    }
+
+    /** Records the final real-source identity, layout, focus, and no-write witness. */
+    public void assertAddressedSfmJava(Path root, Path file) {
+        add(new AssertAddressedSfmJavaPuppetAction(
+                Objects.requireNonNull(root, "root"),
+                Objects.requireNonNull(file, "file")
+        ));
     }
 
     /**
@@ -548,10 +562,6 @@ public final class SFMGamePuppetHelper {
 
     public void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot) {
         add(new SetFileExplorerSnapshotPuppetAction(snapshot));
-    }
-
-    public void openFileExplorer(SFMFileExplorerSource source) {
-        add(new OpenFileExplorerPuppetAction(source));
     }
 
     public void openItemIconGallery() {

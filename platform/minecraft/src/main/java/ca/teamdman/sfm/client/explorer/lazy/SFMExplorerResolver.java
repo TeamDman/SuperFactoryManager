@@ -73,4 +73,44 @@ public interface SFMExplorerResolver {
     );
 
     CompletableFuture<ChildPage> resolveChildren(ChildRequest request);
+
+    /** Whether this resolver can satisfy bounded text reads for its paths. */
+    default boolean supportsTextRead() {
+        return false;
+    }
+
+    /**
+     * Reads one concrete path as text without requiring callers to interpret
+     * resolver-specific exceptions. Implementations that do not own textual
+     * content report that capability truthfully through a typed result.
+     */
+    default CompletableFuture<SFMResolverTextResult> readText(SFMResolverTextRequest request) {
+        Objects.requireNonNull(request, "request");
+        long actualGeneration = generation();
+        SFMResolverTextResult result;
+        if (request.cancellation().isCancelled()) {
+            result = SFMResolverTextResult.failure(
+                    request,
+                    SFMResolverTextResult.Status.CANCELLED,
+                    actualGeneration,
+                    "Resolver text request was cancelled"
+            );
+        } else if (request.expectedResolverGeneration() != actualGeneration) {
+            result = SFMResolverTextResult.failure(
+                    request,
+                    SFMResolverTextResult.Status.STALE_GENERATION,
+                    actualGeneration,
+                    "Resolver generation changed from "
+                            + request.expectedResolverGeneration() + " to " + actualGeneration
+            );
+        } else {
+            result = SFMResolverTextResult.failure(
+                    request,
+                    SFMResolverTextResult.Status.UNSUPPORTED_RESOLVER,
+                    actualGeneration,
+                    "Resolver " + scheme() + " does not support text reads"
+            );
+        }
+        return CompletableFuture.completedFuture(result);
+    }
 }

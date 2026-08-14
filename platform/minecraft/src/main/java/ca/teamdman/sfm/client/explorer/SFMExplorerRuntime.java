@@ -17,6 +17,8 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMFilesystemExplorerResolver;
 import ca.teamdman.sfm.client.explorer.lazy.SFMGatedExplorerResolver;
 import ca.teamdman.sfm.client.explorer.lazy.SFMItemRegistryExplorerResolver;
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
+import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextRequest;
+import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextResult;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
@@ -35,6 +37,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -182,12 +185,38 @@ public final class SFMExplorerRuntime implements AutoCloseable {
 
     /** Creates a registered explorer for the explicit panel scene action. */
     public synchronized SFMScreenPanel openScene(SFMPath initialRoot) {
+        return openScene(new SFMPathExpression.Literal(Objects.requireNonNull(initialRoot, "initialRoot")));
+    }
+
+    /** Creates a registered explorer from one complete, authority-preflighted location capture. */
+    public synchronized SFMScreenPanel openScene(SFMPathExpression initialLocation) {
         ensureOpen();
-        Objects.requireNonNull(initialRoot, "initialRoot");
-        authorizeRoot(initialRoot);
-        SFMExplorerRepository.Explorer explorer = createExplorer(initialRoot);
+        Objects.requireNonNull(initialLocation, "initialLocation");
+        SFMPathExpressionResolution resolution = SFMPathExpressionResolver.resolve(
+                initialLocation,
+                selections,
+                relations
+        );
+        if (!resolution.complete()) {
+            String diagnostics = resolution.diagnostics().stream()
+                    .map(diagnostic -> diagnostic.code() + ": " + diagnostic.message())
+                    .collect(java.util.stream.Collectors.joining("; "));
+            throw new IllegalArgumentException(
+                    "Explorer location did not resolve completely"
+                            + (diagnostics.isEmpty() ? "" : ": " + diagnostics)
+            );
+        }
+        if (resolution.paths().isEmpty()) {
+            throw new IllegalArgumentException("Explorer location resolved to no roots");
+        }
+        // Resolve and validate every member before publishing any session. A
+        // failed heterogeneous expression therefore cannot partially grant or
+        // display roots.
+        resolution.paths().forEach(this::preflightRoot);
+        resolution.paths().forEach(this::authorizeRoot);
+        SFMExplorerRepository.Explorer explorer = createExplorer(initialLocation, resolution.paths());
         explorers.register(explorer, true);
-        loader.openRoot(initialRoot);
+        resolution.paths().forEach(loader::openRoot);
         return panel(explorer.id());
     }
 
@@ -218,6 +247,37 @@ public final class SFMExplorerRuntime implements AutoCloseable {
 
     public SFMExplorerIoCounter filesystemIo() {
         return filesystemIo;
+    }
+
+    /** Dispatches one immutable bounded text request to the path's registered resolver. */
+    public CompletableFuture<SFMResolverTextResult> readText(SFMResolverTextRequest request) {
+        ensureOpen();
+        Objects.requireNonNull(request, "request");
+        return resolvers.find(request.path().scheme())
+                .map(resolver -> resolver.readText(request))
+                .orElseGet(() -> CompletableFuture.completedFuture(SFMResolverTextResult.failure(
+                        request,
+                        SFMResolverTextResult.Status.UNSUPPORTED_RESOLVER,
+                        request.expectedResolverGeneration(),
+                        "No explorer resolver is registered for scheme `" + request.path().scheme() + "`"
+                )));
+    }
+
+    /** Deepest explicit filesystem grant that already contains this path. */
+    public Optional<SFMPath> authorizedFilesystemRootFor(SFMPath path) {
+        ensureOpen();
+        Objects.requireNonNull(path, "path");
+        if (path.kind() != SFMPath.Kind.FILE) return Optional.empty();
+        Path nativePath = path.toNativePath().toAbsolutePath().normalize();
+        return filesystem.explicitRoots().stream()
+                .filter(root -> nativePath.startsWith(root.toNativePath().toAbsolutePath().normalize()))
+                .max(java.util.Comparator.comparingInt(root -> root.toNativePath().getNameCount()));
+    }
+
+    public Optional<Long> resolverGeneration(String scheme) {
+        ensureOpen();
+        Objects.requireNonNull(scheme, "scheme");
+        return resolvers.find(scheme).map(ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver::generation);
     }
 
     public SFMGatedExplorerResolver.Gate armFilesystemPublicationGate(SFMPath parent) {
@@ -276,8 +336,15 @@ public final class SFMExplorerRuntime implements AutoCloseable {
     }
 
     private SFMExplorerRepository.Explorer createExplorer(SFMPath initialRoot) {
+        return createExplorer(new SFMPathExpression.Literal(initialRoot), Set.of(initialRoot));
+    }
+
+    private SFMExplorerRepository.Explorer createExplorer(
+            SFMPathExpression initialLocation,
+            Set<SFMPath> initialRoots
+    ) {
         SFMExplorerId id = new SFMExplorerId("explorer-" + nextExplorerId.getAndIncrement());
-        SFMExplorerSession session = new SFMExplorerSession(id, initialRoot, selections);
+        SFMExplorerSession session = new SFMExplorerSession(id, initialLocation, initialRoots, selections);
         return new SFMExplorerRepository.Explorer(
                 session,
                 loader,
@@ -312,6 +379,11 @@ public final class SFMExplorerRuntime implements AutoCloseable {
         Optional<String> incompatibility = pathIncompatibility(path);
         if (incompatibility.isPresent()) throw new IllegalArgumentException(incompatibility.orElseThrow());
         if (path.scheme().equals("file")) filesystem.authorizeRoot(path.toNativePath());
+    }
+
+    private void preflightRoot(SFMPath path) {
+        Optional<String> incompatibility = pathIncompatibility(path);
+        if (incompatibility.isPresent()) throw new IllegalArgumentException(incompatibility.orElseThrow());
     }
 
     private Optional<String> locationAuthorityIncompatibility(SFMPath path) {

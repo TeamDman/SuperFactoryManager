@@ -1,19 +1,22 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
+import ca.teamdman.sfm.client.action.SFMCanonicalTokenArgument;
 import ca.teamdman.sfm.client.explorer.SFMExplorerRuntime;
-import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMPathExpression;
 import ca.teamdman.sfm.client.explorer.lazy.SFMItemRegistryExplorerResolver;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Objects;
 
-/** Generic selection-backed explorer scene with an optional concrete root. */
+/** Generic selection-backed explorer scene with an optional path-expression location. */
 public final class SFMExplorerScreenType implements SFMClientScreenType {
+    private static final SFMPathExpression DEFAULT_LOCATION = new SFMPathExpression.Literal(
+            SFMItemRegistryExplorerResolver.ROOT
+    );
+
     @Override
     public LiteralArgumentBuilder<SFMClientActionSource> createCommandNode(
             ResourceLocation screenTypeId,
@@ -23,11 +26,11 @@ public final class SFMExplorerScreenType implements SFMClientScreenType {
                 .<SFMClientActionSource>literal(screenTypeId.toString())
                 .executes(context -> opener.open(
                         context,
-                        new Recipe(screenTypeId, SFMItemRegistryExplorerResolver.ROOT)
+                        new Recipe(screenTypeId, DEFAULT_LOCATION)
                 ));
         node.then(RequiredArgumentBuilder.<SFMClientActionSource, String>argument(
-                        "initial_path",
-                        StringArgumentType.word()
+                        "path_expression",
+                        SFMCanonicalTokenArgument.token()
                 )
                 .suggests((context, builder) -> {
                     builder.suggest(SFMItemRegistryExplorerResolver.ROOT.canonical());
@@ -37,29 +40,24 @@ public final class SFMExplorerScreenType implements SFMClientScreenType {
                         context,
                         new Recipe(
                                 screenTypeId,
-                                concretePath(StringArgumentType.getString(context, "initial_path"))
+                                SFMPathExpression.parse(SFMCanonicalTokenArgument.get(context, "path_expression"))
                         )
                 )));
         return node;
     }
 
-    public record Recipe(ResourceLocation sceneTypeId, SFMPath initialRoot) implements SFMPanelReopenRecipe {
+    public record Recipe(
+            ResourceLocation sceneTypeId,
+            SFMPathExpression initialLocation
+    ) implements SFMPanelReopenRecipe {
         public Recipe {
             Objects.requireNonNull(sceneTypeId, "sceneTypeId");
-            Objects.requireNonNull(initialRoot, "initialRoot");
+            Objects.requireNonNull(initialLocation, "initialLocation");
         }
 
         @Override
         public SFMScreenPanel reopen() {
-            return SFMExplorerRuntime.get().openScene(initialRoot);
+            return SFMExplorerRuntime.get().openScene(initialLocation);
         }
-    }
-
-    private static SFMPath concretePath(String text) {
-        SFMPathExpression expression = SFMPathExpression.parse(text);
-        if (!(expression instanceof SFMPathExpression.Literal literal)) {
-            throw new IllegalArgumentException("An explorer scene requires one concrete root path");
-        }
-        return literal.path();
     }
 }

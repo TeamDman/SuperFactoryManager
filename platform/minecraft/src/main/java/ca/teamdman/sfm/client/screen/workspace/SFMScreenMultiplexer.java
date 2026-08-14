@@ -209,11 +209,27 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMScreenPanel panel,
             @Nullable SFMPanelReopenRecipe reopenRecipe
     ) {
+        return openToSide(
+                source,
+                side,
+                panel,
+                SFMWorkspacePanelMetadata.ordinary(),
+                reopenRecipe
+        );
+    }
+
+    public SFMWorkspacePanelIntentResult openToSide(
+            SFMWorkspacePanelId source,
+            SFMWorkspaceSide side,
+            SFMScreenPanel panel,
+            SFMWorkspacePanelMetadata metadata,
+            @Nullable SFMPanelReopenRecipe reopenRecipe
+    ) {
         if (layout.panel(source) == null) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
         return submit(source, new SFMWorkspacePanelIntent.OpenToSide(
                 side,
                 panel,
-                SFMWorkspacePanelMetadata.ordinary(),
+                Objects.requireNonNull(metadata, "metadata"),
                 reopenRecipe));
     }
 
@@ -446,6 +462,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     public @Nullable SFMScreenPanel panelInstance(SFMWorkspacePanelId panelId) {
         return layout.panel(panelId);
+    }
+
+    /** Host-owned metadata for an exact panel entry, including preview ownership. */
+    public @Nullable SFMWorkspacePanelMetadata panelMetadata(SFMWorkspacePanelId panelId) {
+        return layout.metadata(panelId);
     }
 
     public List<SFMScreenPanel> panels() {

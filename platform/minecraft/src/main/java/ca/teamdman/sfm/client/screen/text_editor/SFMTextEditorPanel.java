@@ -13,6 +13,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
@@ -20,7 +21,7 @@ import java.util.function.Function;
  * callback-aware screen below; legacy registrations still get a useful
  * lifecycle adapter while they are being migrated.
  */
-public final class SFMTextEditorPanel implements SFMScreenPanel {
+public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocumentPanelState {
     private final SFMTextEditorPanelOpenContext openContext;
     private final Screen screen;
     private SFMWorkspacePanelContext panelContext;
@@ -68,6 +69,16 @@ public final class SFMTextEditorPanel implements SFMScreenPanel {
         return openContext.editorId();
     }
 
+    /** Explorer previews are reusable only while their document is immutable. */
+    public boolean isReadOnly() {
+        return openContext.readOnly();
+    }
+
+    @Override
+    public Optional<ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot> documentSnapshot() {
+        return Optional.of(openContext.document());
+    }
+
     @Override
     public Component title() {
         return Component.literal(openContext.title());
@@ -92,6 +103,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel {
     private void init(Minecraft minecraft, SFMScreenPanelBounds bounds) {
         if (screen instanceof SFMDrawCanvasScreen drawCanvas) {
             drawCanvas.init(minecraft, Math.max(1, bounds.width()), Math.max(1, bounds.height()));
+            openContext.document().targetRange().ifPresent(drawCanvas::openAtTextRange);
         } else {
             screen.init(minecraft, Math.max(1, bounds.width()), Math.max(1, bounds.height()));
         }

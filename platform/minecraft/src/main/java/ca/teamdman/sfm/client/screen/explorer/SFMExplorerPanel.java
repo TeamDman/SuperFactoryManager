@@ -207,8 +207,12 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             case GLFW.GLFW_KEY_END -> model.selectLast(bounds);
             case GLFW.GLFW_KEY_RIGHT -> model.emitExpandSelected(bounds);
             case GLFW.GLFW_KEY_LEFT -> model.emitCollapseSelected(bounds);
-            case GLFW.GLFW_KEY_SPACE, GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER ->
-                    model.emitToggleSelected(bounds);
+            case GLFW.GLFW_KEY_SPACE -> activateSelected(SFMExplorerPreviewPlacement.Mode.PREVIEW);
+            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> activateSelected(
+                    control
+                            ? SFMExplorerPreviewPlacement.Mode.ADJACENT
+                            : SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW
+            );
             case GLFW.GLFW_KEY_F5 -> model.emitRefreshSelected(bounds);
             case GLFW.GLFW_KEY_R -> {
                 if ((modifiers & GLFW.GLFW_MOD_CONTROL) == 0) return false;
@@ -250,10 +254,9 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             return true;
         }
         long now = Util.getMillis();
-        if (cell.row().entry().expandable()
-                && lastClickPath.equals(Optional.of(cell.row().path()))
-                && now - lastClickTime <= 300L) {
-            model.emitToggleSelected(bounds);
+        if (lastClickPath.equals(Optional.of(cell.row().path())) && now - lastClickTime <= 300L) {
+            if (cell.row().entry().expandable()) model.emitToggleSelected(bounds);
+            else model.emitOpenSelected(bounds, SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW);
         }
         lastClickPath = Optional.of(cell.row().path());
         lastClickTime = now;
@@ -317,6 +320,23 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 
     public SFMExplorerPanelModel model() {
         return model;
+    }
+
+    public ca.teamdman.sfm.client.explorer.SFMExplorerId explorerId() {
+        return session.snapshot().id();
+    }
+
+    public SFMExplorerSession.Snapshot sessionSnapshot() {
+        return session.snapshot();
+    }
+
+    private void activateSelected(SFMExplorerPreviewPlacement.Mode mode) {
+        SFMExplorerPanelModel.State state = model.state(bounds);
+        if (state.selectedRow().map(row -> row.entry().expandable()).orElse(false)) {
+            model.emitToggleSelected(bounds);
+        } else {
+            model.emitOpenSelected(bounds, mode);
+        }
     }
 
     private void toggleView() {

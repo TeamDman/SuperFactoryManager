@@ -83,4 +83,14 @@ public final class SFMGatedExplorerResolver implements SFMExplorerResolver {
             return gate.released.thenApply(ignored -> page);
         });
     }
+
+    @Override
+    public boolean supportsTextRead() {
+        return delegate.supportsTextRead();
+    }
+
+    @Override
+    public CompletableFuture<SFMResolverTextResult> readText(SFMResolverTextRequest request) {
+        return delegate.readText(request);
+    }
 }

@@ -44,6 +44,16 @@ public final class SFMExplorerPanelActions {
         return PREFIX + "sfm:explorer/location/edit " + exact(explorerId) + " right";
     }
 
+    public static String pathOpen(SFMPath path, SFMExplorerPreviewPlacement.Mode mode) {
+        Objects.requireNonNull(mode, "mode");
+        String suffix = switch (mode) {
+            case PREVIEW -> "preview";
+            case FOCUS_PREVIEW -> "focus";
+            case ADJACENT -> "adjacent";
+        };
+        return PREFIX + "sfm:path/open " + Objects.requireNonNull(path, "path").canonical() + " " + suffix;
+    }
+
     public static String viewSet(SFMExplorerId explorerId, SFMExplorerProjection.View view) {
         return setting("sfm:explorer/view/set", explorerId, switch (view) {
             case LIST -> "sfm:list";

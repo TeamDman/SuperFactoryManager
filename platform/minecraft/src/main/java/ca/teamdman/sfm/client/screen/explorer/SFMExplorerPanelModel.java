@@ -167,6 +167,17 @@ public final class SFMExplorerPanelModel {
         actionSink.submit(SFMExplorerPanelActions.locationEdit(explorerId()));
     }
 
+    public boolean emitOpenSelected(
+            SFMScreenPanelBounds bounds,
+            SFMExplorerPreviewPlacement.Mode mode
+    ) {
+        State state = state(bounds);
+        Optional<SFMExplorerProjection.Row> selected = state.selectedRow();
+        if (selected.isEmpty() || selected.orElseThrow().entry().expandable()) return false;
+        actionSink.submit(SFMExplorerPanelActions.pathOpen(selected.orElseThrow().path(), mode));
+        return true;
+    }
+
     public void emitDroppedRoots(List<Path> paths) {
         Objects.requireNonNull(paths, "paths");
         paths.stream()

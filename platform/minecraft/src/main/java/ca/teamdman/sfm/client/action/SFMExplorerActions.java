@@ -35,6 +35,8 @@ public final class SFMExplorerActions {
             "explorer/group/set", SFMExplorerAction.Operation.GROUP_SET);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerAction> ROOT_HOIST_SET = register(
             "explorer/root/hoist/set", SFMExplorerAction.Operation.HOIST_SET);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMPathOpenAction> PATH_OPEN =
+            REGISTERER.register("path/open", SFMPathOpenAction::new);
 
     private SFMExplorerActions() {
     }

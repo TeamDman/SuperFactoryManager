@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -99,6 +100,47 @@ public class SFMGatedExplorerResolverTests {
 
         gate.release();
         assertEquals(List.of(STONE), items.join().entries().stream().map(SFMExplorerEntry::path).toList());
+    }
+
+    @Test
+    public void textReadCapabilityAndRequestsRemainTransparent() {
+        AtomicBoolean called = new AtomicBoolean();
+        SFMExplorerResolver delegate = new SFMExplorerResolver() {
+            @Override public String scheme() { return "registry"; }
+            @Override public long generation() { return 4; }
+            @Override public CompletableFuture<SFMExplorerEntry> describe(
+                    SFMPath path,
+                    SFMExplorerCancellationToken cancellation
+            ) {
+                return CompletableFuture.failedFuture(new UnsupportedOperationException());
+            }
+            @Override public CompletableFuture<ChildPage> resolveChildren(ChildRequest request) {
+                return CompletableFuture.failedFuture(new UnsupportedOperationException());
+            }
+            @Override public boolean supportsTextRead() { return true; }
+            @Override public CompletableFuture<SFMResolverTextResult> readText(SFMResolverTextRequest request) {
+                called.set(true);
+                return CompletableFuture.completedFuture(SFMResolverTextResult.failure(
+                        request,
+                        SFMResolverTextResult.Status.IO_ERROR,
+                        generation(),
+                        "delegated"
+                ));
+            }
+        };
+        SFMGatedExplorerResolver gated = new SFMGatedExplorerResolver(delegate);
+        SFMResolverTextRequest request = new SFMResolverTextRequest(
+                STONE,
+                ITEM_ROOT,
+                Optional.empty(),
+                64,
+                gated.generation(),
+                new SFMExplorerCancellationToken()
+        );
+
+        assertTrue(gated.supportsTextRead());
+        assertEquals(SFMResolverTextResult.Status.IO_ERROR, gated.readText(request).join().status());
+        assertTrue(called.get());
     }
 
     private static SFMExplorerResolver.ChildRequest request(

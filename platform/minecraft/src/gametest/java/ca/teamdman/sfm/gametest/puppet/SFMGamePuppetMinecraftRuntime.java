@@ -11,9 +11,7 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerPanel;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerLayout;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMPathFileExplorerSource;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMReadOnlyTextPanel;
-import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerWorkspace;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
-import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
 import ca.teamdman.sfm.client.terminal.SFMTerminalInteractionPuppetProbe;
@@ -1235,11 +1233,6 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     @Override
     public void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot) {
         requireFileExplorerPanel().acceptSnapshot(snapshot);
-    }
-
-    @Override
-    public void openFileExplorer(SFMFileExplorerSource source) {
-        minecraft.setScreen(SFMFileExplorerWorkspace.create(minecraft.screen, source));
     }
 
     @Override

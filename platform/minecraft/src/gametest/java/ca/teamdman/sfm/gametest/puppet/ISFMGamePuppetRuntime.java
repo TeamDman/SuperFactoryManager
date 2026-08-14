@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
-import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceAxis;
 import ca.teamdman.sfm.client.terminal.SFMTerminalInteractionPuppetProbe;
 import net.minecraft.client.gui.screens.Overlay;
@@ -173,8 +172,6 @@ public interface ISFMGamePuppetRuntime {
     void pressFileExplorerKey(int keyCode);
 
     void setFileExplorerSnapshot(SFMFileExplorerSnapshot snapshot);
-
-    void openFileExplorer(SFMFileExplorerSource source);
 
     boolean isFileExplorerOpen();
 
