@@ -1,6 +1,6 @@
 # Contextual input, action ownership, and addressable explorer plan
 
-**Plan status:** Active; A-2c plus C-3 are the next proposed vertical slice
+**Plan status:** Active; A-2c plus C-3 are in progress under the current goal
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
@@ -1585,7 +1585,7 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMRegistryAddressRe
 contributed adapters with accurate properties/outlinks/query behavior and no
 modification of the adapted classes.
 
-### [ ] A-2c Complete the generic explorer panel-scene cutover
+### [~] A-2c Complete the generic explorer panel-scene cutover
 
 **Established progress (2026-08-13):** X-4/X-5 and X-8a now provide the
 selection-backed lazy explorer, the registered generic `sfm:explorer` scene,
@@ -1982,7 +1982,7 @@ ordinary Minecraft navigation; native pick, explicit command, and drop have
 identical authority semantics; cancellation is harmless; roots persist; and no
 test depends on operating-system UI automation.
 
-### [ ] C-3 Open addressed explorer files in Text Editor v3 at source ranges
+### [~] C-3 Open addressed explorer files in Text Editor v3 at source ranges
 
 **Work:** Close D-17. Extend `SFMTextDocumentSource`, panel open context, and
 reopen recipe with the X-1 concrete path/root identity, source metadata/hash,
@@ -2121,7 +2121,7 @@ the in-game experience, warm latency is recorded and acceptable, every
 WSPACE/SYMBOL guidance id has evidence, and no propagation/publication occurs
 without a later goal.
 
-## Next recommended vertical slice
+## Current active vertical slice
 
 K-1 through K-7 remain complete. Selection/explorer X-1 through X-7 and
 X-8a are cleanly checkpointed by `7cfd4b138`; the reproducible explorer
@@ -2131,13 +2131,20 @@ document, but it intentionally opens a generated fixture location in the
 configured v1 editor. It does not prove reading a real source file or emplacing
 Text Editor v3.
 
-The next goal should therefore be the **generic explorer to addressed source
-editor slice**, stated precisely as:
+The accepted current goal is therefore the **generic explorer to addressed
+source editor slice**, stated precisely as:
 
 > Complete A-2c and C-3 in this plan, including focused tests, canonical
 > compile/full-suite validation, the declared GUI-scale matrix, and completion
 > notes. Do not begin symbol-worker/F12 work, fuzzy search, picker destinations,
 > propagation, publication, or release work.
+
+**Goal activation bookkeeping (2026-08-13):** The goal above is active. A-2c
+and C-3 are both marked in progress; their completion boxes remain open until
+the source cutover, focused and full validation, inspected matrix artifacts,
+changelog, and completion notes all agree. The prior X-1 through X-8a and I-4
+foundation remains checkpointed by commits `7cfd4b138`, `dbf6bf344`, and
+`987cbc65e`; this goal does not reopen or relabel that completed work.
 
 Its observable end state is:
 
