@@ -1,6 +1,6 @@
 # Contextual input, action ownership, and addressable explorer plan
 
-**Plan status:** Active; B-2 and C-4 are in progress with CLI-AST Phase 0.10 under the current goal
+**Plan status:** Active; B-2 is complete and C-4 remains in progress with CLI-AST Phase 0.10 under the current goal
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
@@ -1778,7 +1778,7 @@ asynchronous candidate batches for one Brigadier argument frontier, remains
 responsive/cancellable, never applies stale results, and executes only a
 command Brigadier parses as available and complete.
 
-### [~] B-2 Capture typed multi-origin context and 2D editor projections
+### [x] B-2 Capture typed multi-origin context and 2D editor projections
 
 **Work:** Close D-8. Add immutable context snapshots, stable projection-origin
 ids, provider/contributor hooks, and path-root derivation. Extend panel/editor
@@ -1805,6 +1805,17 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTextEditorContext
 **Completion criteria:** A captured context retains independently addressable
 explorer/editor origins and a true 2D editor point/document snapshot; no path is
 guessed from title text and no later focus change can retarget the snapshot.
+
+**Completion evidence (2026-08-14):** Commit `643385fb2` adds immutable
+multi-origin snapshots, stable contributor/container/local origin ids,
+independent visible explorer-root/selection and editor-document projections,
+focused-origin ranking without contribution loss, exact current-text hashes,
+read-only/dirty state, canvas x/y with optional Unicode-aware text hits,
+supplemental cursors/selections, path-root derivation, and reserved screen-point/
+ray values. `SFMContextSnapshotTests`, all `*ContextProjectionTests`,
+`SFMScreenMultiplexerContextTests`, and `SFMExplorerPanelActionEmissionTests`
+pass through `sfm-propagate-changes.exe test run --branch 1.19.2`; the
+multiplexer uses the same pure assembly seam in production and headless tests.
 
 ### [ ] B-3 Deliver Ctrl+Shift+N bounded fuzzy file search
 
