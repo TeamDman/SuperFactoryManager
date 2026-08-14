@@ -154,8 +154,10 @@ files behind its back, or guesses a process from a window title.
   Teamy Terminal is a caller rather than an IPC dependency, and multi-instance
   proof is desired but was not ordered ahead of opening real SFM source.
 - **Pass 2 — traceability:** Recorded the clean I-4 checkpoint and repeated
-  real-CLI matrix evidence. Kept I-5 intact as this plan's next internal item
-  while pointing the cross-plan trajectory to contextual A-2c/C-3.
+  real-CLI matrix evidence. Kept I-5 intact as this plan's next internal item.
+  The former cross-plan trajectory to contextual A-2c/C-3 completed in
+  `6dc3d2d04`; the pending cross-plan recommendation is now contextual B-2/C-4
+  plus CLI-AST Phase 0.10.
 - **Pass 3 — adversarial omission:** Checked that the priority note does not
   mark I-5 complete, weaken wrong-instance/ambiguity safeguards, couple game
   control to terminal rendering, or make two-game proof a hidden prerequisite
@@ -716,11 +718,12 @@ heterogeneous explorer, and machine-checkable selection/relation revisions.
 I-5 remains the next slice within this control-specific plan: prove two-game
 selection and run the canonical explorer CLI from Teamy Terminal without
 coupling terminal rendering to game control. It is not the next recommended
-cross-plan product goal. The immediate trajectory is contextual-plan A-2c plus
-C-3: finish the generic explorer cutover and open real resolver-authorized SFM
-source files read-only in Text Editor v3. I-5 can follow independently when
-multi-game hardening is more valuable; it is not a prerequisite for addressed
-file opening or later jump-to-definition work.
+cross-plan product goal. Contextual A-2c/C-3 completed in `6dc3d2d04`; the
+pending cross-plan recommendation is contextual B-2/C-4 plus CLI-AST Phase
+0.10, producing immutable editor context and a warm supervised
+definition-at-location provider before F12 navigation. I-5 can follow
+independently when multi-game hardening is more valuable; it is not a
+prerequisite for addressed file opening or jump-to-definition work.
 
 ## Overall completion criteria
 

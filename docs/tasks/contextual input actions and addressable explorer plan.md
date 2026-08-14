@@ -1,6 +1,6 @@
 # Contextual input, action ownership, and addressable explorer plan
 
-**Plan status:** Active; A-2c plus C-3 are in progress under the current goal
+**Plan status:** Active; A-2c and C-3 are complete; the B-2/C-4 next-goal boundary awaits approval
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
@@ -148,13 +148,13 @@ workspace.
 | WSPACE-2 | A folder should be addable to an explorer through a native folder picker when available. | Retain D-15 as a later input adapter. It must invoke the same explicit selector/path action and may not introduce a workspace repository or separate tree. | XSEL-6/XEXP-12 define the shared destination/action substrate; native picker remains later |
 | WSPACE-3 | Native picking must not be the only way to establish roots. | Direct typed path actions, external `sfm explorer root add`, and later folder drop all share the X-5/X-6 executor; tests never depend on OS-dialog automation. | XCLI-1/XEXP-12 |
 | WSPACE-4 | Explorer roots are explicit bounded authority, not permission to traverse a drive, user profile, process working directory, or arbitrary parent. | X-1/X-4 normalize and validate explicitly supplied roots and enumerate only immediate requested children. No ambient-root fallback exists. | XPATH-1 through XPATH-7 and XREL-1 |
-| WSPACE-5 | SFM source should be openable in the in-game text editor. | C-3 remains active after X-1 through X-7 and opens resolver-authorized file paths read-only with address/hash/range metadata; no manual `sfm_source` role or guessed root is required. | — |
+| WSPACE-5 | SFM source should be openable in the in-game text editor. | C-3 is complete: resolver-authorized file paths open read-only with address/hash/range metadata; no manual `sfm_source` role or guessed root is required. | — |
 | SYMBOL-1 | From SFM Java code in the in-game editor, the user must be able to jump to the definition of the symbol at the cursor. | C-4/C-5 add a source-location symbol query and a registered `sfm:symbol/definition/open` action with an editor-context F12 default and Alt+Enter offer. | — |
 | SYMBOL-2 | Definition lookup must use code context, not only a globally searched token string. | D-18/C-4 send the document address, immutable source snapshot/hash, source-set/resolver/index context, and exact row/column; the provider returns zero, one, or multiple typed source spans with diagnostics/confidence. | — |
 | SYMBOL-3 | Definition results should compose with panels and the command palette. | C-5 opens one unambiguous result in a Text Editor v3 panel at its range, uses the constrained palette for multiple candidates, and preserves a visible diagnostic for no/incomplete results. | — |
 | SYMBOL-4 | Reuse the Java symbol work already built in `sfm-propagate-changes`; do not create an unrelated Java resolver inside the Minecraft UI. | C-4 adds a reusable asynchronous provider/transport boundary over the existing live-source and dependency index; D-19 freezes the first transport without coupling the action contract to process or Vox details. | — |
 | SYMBOL-5 | Interactive navigation must not stall Minecraft. | C-4 runs source/index work off the render thread, supports cancellation and request generations, rejects stale responses, and records latency/index-completeness telemetry. | — |
-| PLAN-3 | Preserve the complete path from folder authorization through opening SFM code and jumping to a definition as executable vertical slices. | Selection/explorer X-1 through X-7, gates D-15 through D-19, active C-3 through C-6, topology, proofs, risks, and revised next-goal definition are authoritative. Superseded C-1/C-2 remain provenance only. | — |
+| PLAN-3 | Preserve the complete path from folder authorization through opening SFM code and jumping to a definition as executable vertical slices. | Selection/explorer X-1 through X-7 and C-3 are complete; gates D-15 through D-19, remaining C-4 through C-6, topology, proofs, risks, and revised next-goal definition are authoritative. Superseded C-1/C-2 remain provenance only. | — |
 
 ## Guidance traceability
 
@@ -306,11 +306,12 @@ workspace.
   Ctrl+Enter new-panel correction, safe preview ownership, jump-to-definition,
   and GUI-scale-matrix requests. Kept native folder picking, fuzzy search,
   symbol workers, and writable documents as separately ordered work.
-- **Pass 2 — traceability:** Reconciled source evidence with A-2c and C-3:
-  generic explorer/location foundations are complete; the three developer ids,
-  literal-only scene grammar, missing file-document source, and missing file
-  activation are executable remaining work. Froze the proposed next goal as
-  A-2c plus C-3 and moved F12/C-4 through C-6 behind that foundation.
+- **Pass 2 — traceability:** Reconciled source evidence with A-2c and C-3,
+  then closed those items in implementation commit `6dc3d2d04`: the one-off
+  developer ids and exclusive puppet path are gone, the generic scene accepts
+  full path expressions, and resolver-authorized file activation now reaches a
+  read-only Text Editor v3 document. F12/C-4 through C-6 remain behind that
+  completed foundation.
 - **Pass 3 — adversarial omission:** Checked that the revised slice does not
   reintroduce a global workspace, infer an ambient filesystem root, silently
   retain unreleased aliases, write source files, reuse a dirty/unrelated panel,
@@ -643,13 +644,13 @@ Out of scope unless a later goal explicitly expands it:
 | D-8 Editor coordinate contract | Is the authoritative editor position canvas x/y, text row/column, flat offset, or all of them? | **Working recommendation:** a typed coordinate-space value: Editor v3 supplies canvas x/y plus an optional resolved text row/column and selection; legacy editors adapt row/column and derive parser offsets with explicit encoding. | B-2 fixtures must prove conversions, multi-cursor retention, out-of-glyph points, Unicode, line endings, and no ambiguous silent coercion. |
 | D-9 Ctrl+Space migration | Is Ctrl+Space removed immediately when Alt+Enter ships, retained as an alias, or left on the legacy callback? | **Working recommendation:** retain it temporarily as a contextual binding to the same registered `context/actions/open` action, remove the direct callback, document Alt+Enter as primary, and decide removal only after live parity. | B-5 tests one provider registry/palette path for both gestures and no direct `Runnable` dispatch. |
 | D-10 Ctrl+Shift+E fallback | When the focused object has no revealable address, should the gesture focus an existing explorer, open a generic explorer, open an incomplete reveal draft, or report unavailable? | **Working recommendation:** capture the focused address and compatible explorer target set into an explicit action draft. Prefer an exact visible compatible explorer according to deterministic recency; otherwise use explicit non-exact `open-new`. Multiple equally ranked addresses open the constrained palette rather than guessing. | B-4 action vocabulary/default and live behavior remain provisional until accepted; the final action contains an explorer selector rather than consulting focus during execution. |
-| D-11 Public action/address-query vocabulary | Freeze names and quoting for file open, explorer focus/reveal, contextual actions, path-exists/contents examples, and wildcard address queries. | Use hierarchical provisional ids: `sfm:path/open`, `sfm:explorer/focus <explorer-selector>`, `sfm:explorer/reveal <explorer-selector> <path-expression>`, and `sfm:context/actions/open`. Context providers materialize exact/self-contained drafts; interactive callers may explicitly spell `focused`. Preserve the user's `a.txt`, path-exists/contents, and `sfm:item:minecraft:*wood*` examples as parse/offer fixtures. | Approval of A-2c/C-3 freezes only `sfm:path/open`; B-3 through B-5 later freeze the search/reveal/context ids and their public history/default fingerprints. |
-| D-12 File-result activation | What does accepting a path result do, especially for directories, binary files, dirty editors, and non-workspace callers? | **Working recommendation for A-2c/C-3 approval:** Space updates an explorer-owned read-only Text Editor v3 preview and retains explorer focus; Enter opens/focuses that safe target; Ctrl+Enter creates/focuses a new adjacent visible panel. Directories remain explorer navigation, unsupported files stay visible with a reason, and no path replaces a dirty editor, terminal, or unrelated panel. A non-workspace caller opens the ordinary workspace host first. | C-3 freezes and proves explorer-origin activation; B-3 later reuses the same action/placement contract for fuzzy results instead of inventing another preview policy. |
+| D-11 Public action/address-query vocabulary | Freeze names and quoting for file open, explorer focus/reveal, contextual actions, path-exists/contents examples, and wildcard address queries. | **Partially closed by A-2c/C-3:** `sfm:path/open` is frozen. Remaining hierarchical provisional ids are `sfm:explorer/focus <explorer-selector>`, `sfm:explorer/reveal <explorer-selector> <path-expression>`, and `sfm:context/actions/open`. Context providers materialize exact/self-contained drafts; interactive callers may explicitly spell `focused`. Preserve the user's `a.txt`, path-exists/contents, and `sfm:item:minecraft:*wood*` examples as parse/offer fixtures. | B-3 through B-5 later freeze the search/reveal/context ids and their public history/default fingerprints. |
+| D-12 File-result activation | What does accepting a path result do, especially for directories, binary files, dirty editors, and non-workspace callers? | **Closed by C-3:** Space updates an explorer-owned read-only Text Editor v3 preview and retains explorer focus; Enter opens/focuses that safe target; Ctrl+Enter creates/focuses a new adjacent visible panel. Directories remain explorer navigation, unsupported files stay visible with a reason, and no path replaces a dirty editor, terminal, or unrelated panel. A non-workspace caller opens the ordinary workspace host first. | B-3 later reuses the proven action/placement contract for fuzzy results instead of inventing another preview policy. |
 | D-13 No-context search root | What should Ctrl+Shift+N search when no panel contributes a path? | **Working recommendation:** use explicitly contributed resolver roots, including the current Minecraft instance run directory as the bounded packaged/dev contribution; show “no bounded roots available” if none exists. Visible explorer locations and named selections are contextual roots, not a global workspace catalog. Never fall back to a drive root, user profile, or process working directory. | X-1/X-4 and A-2a/B-3 default-device fixtures and the empty-context live state depend on the accepted fallback. |
 | D-14 `sfm_source` meaning | Which bounded root/device does the historical `sfm:explorer/file sfm_source` literal identify? | **Closed by the generic heterogeneous-explorer cutover:** that public literal/device is not implemented. `sfm_source` remains provenance for the rejected scene proposal only. A development launcher or deterministic puppet may supply the exact branch `platform/minecraft/src` root, but it becomes an ordinary resolver-authorized path expression. Direct `sfm explorer root add` and UI/drop/picker adapters add typed roots to explicitly selected explorers; project/source-set classification is derived. Missing explicit source authority is visibly unavailable. Never use a fixture, process directory, or upward directory search as a substitute. | A-2c proves the old scene/literal is absent; C-3 proves explicit source-root available/unavailable behavior. Selection/explorer X-1 through X-7 and control I-4 prove generic roots with no public role-assignment action. |
 | D-15 Native folder chooser lifecycle | Which API owns native folder selection and how is its blocking/modal lifecycle isolated from Minecraft? | **Working recommendation:** use Minecraft's bundled `TinyFileDialogs.tinyfd_selectFolderDialog` behind `SFMFolderPicker`; execute through a bounded platform-aware async/modal coordinator, suppress duplicate opens, restore game focus after completion, and submit the result to the same exact-selector root/add action on the Minecraft executor. A fake adapter proves cancel/success/failure. | A later post-X adapter may not call TinyFD directly from panel rendering, hide the explorer selector, create a separate catalog, or make OS-dialog automation part of completion. |
 | D-16 Explorer location ownership and persistence | Does root management mutate a focused explorer, a named collection, or a global singleton, and where is it persisted? | **Closed by the 2026-08-12 selection/explorer supersession:** each explorer session owns an explicit path-expression location. Adding a second root creates/uses a versioned selection-backed location. The first slice is game-session-only; no global default workspace or provisional disk format is introduced. Every action carries an explorer selector, with explicit non-exact open-if-none policy. Persisted named selections/collections require a later schema/migration goal. | Selection/explorer X-1 through X-7 prove exact/focused/all targeting, heterogeneous roots, session lifetime, and no accidental persistence. C-3 consumes the resulting paths. |
-| D-17 File-editor mutation boundary | Is opening an explorer-addressed file editable in the first slice? | **Working recommendation:** open read-only initially, retain address/hash and the capability seam for later writable documents, and never overwrite host source as a side effect of navigation. | C-3 can deliver safe source browsing/jump navigation without inventing save/conflict semantics; later write support is a separate approved goal. |
+| D-17 File-editor mutation boundary | Is opening an explorer-addressed file editable in the first slice? | **Closed by C-3:** open read-only initially, retain address/hash and the capability seam for later writable documents, and never overwrite host source as a side effect of navigation. | C-3 delivers safe source browsing/jump navigation without inventing save/conflict semantics; later write support is a separate approved goal. |
 | D-18 Definition-at-cursor request | What exact data identifies the symbol to resolve? | **Working recommendation:** document concrete address/root/source-set, immutable source text plus content hash, UTF-aware row/column and derived byte offset, branch/classpath/index identity, and request generation. The provider resolves the symbol at that location and returns typed spans; the Java client does not first reduce it to a bare token. | C-4 requires CLI scenario fixtures for imports, same simple name in multiple packages, fields, overloaded methods, dependency symbols, whitespace/no-symbol, stale disk text, CRLF, Unicode, and malformed positions. |
 | D-19 First symbol-provider transport | Should Minecraft spawn the installed CLI per request, hold a long-lived worker, or call a Vox service? | **Working recommendation:** freeze a provider-neutral Java contract first and deliver the first vertical slice with a supervised long-lived `sfm-propagate-changes` symbol worker using framed typed requests/responses. Reuse the existing Java-analysis engine in-process inside that worker, amortize index/source setup, and leave a Vox adapter possible without changing actions/results. Fall back visibly when the executable/worker is unavailable; never spawn one 2-second process per cursor query as the steady state. | C-4's CLI-plan handoff, lifecycle/cancellation tests, install discovery, and live latency target depend on approval of this reversible transport choice. |
 
@@ -1585,7 +1586,7 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMRegistryAddressRe
 contributed adapters with accurate properties/outlinks/query behavior and no
 modification of the adapted classes.
 
-### [~] A-2c Complete the generic explorer panel-scene cutover
+### [x] A-2c Complete the generic explorer panel-scene cutover
 
 **Established progress (2026-08-13):** X-4/X-5 and X-8a now provide the
 selection-backed lazy explorer, the registered generic `sfm:explorer` scene,
@@ -1596,16 +1597,16 @@ checkpointed by `dbf6bf344` and rooted at
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
 `title_screen_ext-20260813-162233-680`.
 
-A-2c is not complete. Repository inspection on 2026-08-13 confirms that
-`SFMDeveloperActions` still registers `developer/open_file_explorer`,
-`developer/open_instance_file_explorer`, and
-`developer/open_item_icon_picker`; three puppets and the palette-input helper
-still invoke those ids. `SFMExplorerScreenType` accepts only one literal
-concrete path and still defaults to the item-registry root rather than accepting
-the full X-1 path-expression location. The generic explorer body currently
-maps Space/Enter to expansion toggling and has no resolver-authorized file-open
-action. Those are the exact remaining cutover boundaries; completed X-8a
-location work must not be reopened.
+A-2c is complete in implementation commit `6dc3d2d04`.
+`SFMDeveloperActions`, its title-screen support branches, action metadata, and
+puppet command paths no longer expose `developer/open_file_explorer`,
+`developer/open_instance_file_explorer`, or `developer/open_item_icon_picker`.
+The obsolete bespoke large-file-explorer puppet/runtime hook was removed as
+well; reusable item-icon-picker presentation fixtures remain test-only and are
+not public opening aliases. `SFMExplorerScreenType` now accepts the complete
+X-1 path-expression token while retaining the item-registry root as its explicit
+omitted-argument default. File activation is owned by C-3; completed X-8a
+location editing remains unchanged.
 
 **Work:** Begin after X-4/X-5 provide the generic heterogeneous explorer and
 registered actions. Register one `sfm:explorer` `SFMClientScreenType` consumed
@@ -1669,9 +1670,9 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerScreenTyp
 sfm-propagate-changes.exe test run --branch 1.19.2 --filter OpenPanelActionTests --wait-for-build-lock
 sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMDeveloperActionRemovalTests --wait-for-build-lock
 sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerLocationDocumentTests --wait-for-build-lock
-sfm-propagate-changes.exe puppet run title_screen_integrated_file_explorer --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
-sfm-propagate-changes.exe puppet run title_screen_instance_file_explorer --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
-sfm-propagate-changes.exe puppet run title_screen_item_icon_file_explorer --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerPanelActionEmissionTests --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_item_icon_command_palette --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_explorer_open_sfm_java --branch 1.19.2 --variant declared --wait-for-build-lock
 sfm-propagate-changes.exe puppet run title_screen_explorer_location_editor --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
 ```
 
@@ -1683,6 +1684,19 @@ behavior remains intact. The header is a truthful, keyboard-operable location
 control rather than redundant identity/view prose; it opens the preferred editor
 through shared panel placement, and valid/stale/invalid edits exhibit atomic,
 authority-safe behavior.
+
+**Completion evidence (2026-08-13):** Commit `6dc3d2d04` removes the three
+unreleased developer actions, their title-screen cases, four superseded legacy
+file-explorer puppets, and the final bespoke large-explorer runtime hook. The
+only source occurrences of the deleted ids are negative assertions in
+`SFMDeveloperActionRemovalTests`. Generic omitted/file/registry/expression and
+directional command tests pass, as do the complete 838-test suite and canonical
+compile. The migrated item-registry puppet passed at `1280x720@auto`; its
+browsable run is
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`title_screen_ite-20260813-214345-182`. The real-file generic-scene proof is
+recorded with C-3 below. No aliases, redirects, propagation, publication, or
+release operation was performed.
 
 ### [ ] A-3 Generalize explorer nodes and object-properties panels around addresses
 
@@ -1982,7 +1996,7 @@ ordinary Minecraft navigation; native pick, explicit command, and drop have
 identical authority semantics; cancellation is harmless; roots persist; and no
 test depends on operating-system UI automation.
 
-### [~] C-3 Open addressed explorer files in Text Editor v3 at source ranges
+### [x] C-3 Open addressed explorer files in Text Editor v3 at source ranges
 
 **Work:** Close D-17. Extend `SFMTextDocumentSource`, panel open context, and
 reopen recipe with the X-1 concrete path/root identity, source metadata/hash,
@@ -2000,9 +2014,9 @@ expansion/navigation actions instead of being misclassified as text documents.
 Every gesture emits the same self-contained registered action as palette or
 binding invocation; execution captures the explorer id, concrete path, source
 revision/hash, and placement mode rather than consulting whichever panel is
-focused later. The provisional canonical public spelling is
-`sfm:path/open <concrete-path-address>`; approval of the A-2c/C-3 goal freezes
-that spelling because the command-palette surface is still unreleased.
+focused later. The completed A-2c/C-3 goal freezes the canonical public spelling
+as `sfm:path/open <concrete-path-address>`; the command-palette surface remains
+unreleased.
 
 Text Editor v3 must be emplaced as a panel-native document view. Its viewport,
 text surface, cursor, scroll state, diagnostics, and controls consume the
@@ -2030,6 +2044,22 @@ document address and exact open-at-range behavior suitable for navigation.
 Space, Enter, and Ctrl+Enter have distinct proven preview/focus/new-panel
 semantics; unrelated or dirty panels are never replaced; and the editor uses
 its panel allocation coherently from GUI scale 1 through the viewport maximum.
+
+**Completion evidence (2026-08-13):** Commit `6dc3d2d04` adds typed
+resolver-text requests/results, strict bounded UTF-8 filesystem reads,
+address/root/hash/metadata/range document snapshots, non-blocking deferred
+Text Editor v3 panels, `sfm:path/open`, and typed explorer-preview ownership.
+Space, Enter, Ctrl+Enter, directory expansion, reopen identity, stale/removed/
+binary/oversized/encoding/I/O diagnostics, range mapping, no-write behavior,
+and safe non-clobber placement are covered by focused tests and the final
+838/838 suite. The declared `title_screen_explorer_open_sfm_java` run passed
+all nine variants—Auto plus GUI scales 1 through 8—at 3840x2130. Every variant
+wrote a screenshot and `sfm.addressed-source-puppet/1` artifact proving the
+real `SFM.java` selection, read-only `sfm:text_editor_v3`, canonical root/path,
+SHA-256/byte metadata, focus/panel bounds, and no-write invariant. All nine
+figures were visually inspected; the run is
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`title_screen_exp-20260813-212137-953`.
 
 ### [ ] C-4 Add location-aware definition analysis and the async provider
 
@@ -2121,89 +2151,95 @@ the in-game experience, warm latency is recorded and acceptable, every
 WSPACE/SYMBOL guidance id has evidence, and no propagation/publication occurs
 without a later goal.
 
-## Current active vertical slice
+## Most recently completed vertical slice
 
-K-1 through K-7 remain complete. Selection/explorer X-1 through X-7 and
-X-8a are cleanly checkpointed by `7cfd4b138`; the reproducible explorer
-Auto-plus-scales-1-through-8 matrix is checkpointed by `dbf6bf344`. The latest
-figure proves generic heterogeneous explorers and the exact editable location
-document, but it intentionally opens a generated fixture location in the
-configured v1 editor. It does not prove reading a real source file or emplacing
-Text Editor v3.
+The **generic explorer to addressed source editor slice** is complete in
+implementation commit `6dc3d2d04`. It completed A-2c and C-3 without beginning
+symbol-worker/F12 work, fuzzy search, picker destinations, propagation,
+publication, or release work.
 
-The accepted current goal is therefore the **generic explorer to addressed
-source editor slice**, stated precisely as:
+The final evidence is:
 
-> Complete A-2c and C-3 in this plan, including focused tests, canonical
-> compile/full-suite validation, the declared GUI-scale matrix, and completion
-> notes. Do not begin symbol-worker/F12 work, fuzzy search, picker destinations,
-> propagation, publication, or release work.
+1. The canonical compile passed, and the complete Java suite reports `838`
+   found, `838` passed, `0` failed, skipped, or aborted.
+2. Focused explorer grammar/removal, resolver-read, addressed-document,
+   Text Editor v3, range, preview-placement, metadata, and action tests passed.
+3. `title_screen_item_icon_command_palette` passed at `1280x720@auto`; its
+   browsable run is `platform/minecraft/build/sfm-toolchain/artifacts/`
+   `game-test-preview/runs/title_screen_ite-20260813-214345-182`.
+4. `title_screen_explorer_open_sfm_java` passed its declared 3840x2130 matrix:
+   Auto plus GUI scales 1 through 8. Every variant contains a screenshot and
+   `sfm.addressed-source-puppet/1` artifact, and all nine screenshots were
+   visually inspected. The run is `platform/minecraft/build/sfm-toolchain/`
+   `artifacts/game-test-preview/runs/title_screen_exp-20260813-212137-953`.
+5. The structured evidence identifies real `SFM.java`, the canonical root/path,
+   immutable source metadata/hash/range, read-only `sfm:text_editor_v3`, focus
+   and panel bounds, effective GUI scale, and the no-write invariant.
+6. A final legacy scan finds the removed developer action ids only in negative
+   assertions. The obsolete large-explorer runtime hook and legacy puppets are
+   gone. No propagation, publication, or release operation was performed.
 
-**Goal activation bookkeeping (2026-08-13):** The goal above is active. A-2c
-and C-3 are both marked in progress; their completion boxes remain open until
-the source cutover, focused and full validation, inspected matrix artifacts,
-changelog, and completion notes all agree. The prior X-1 through X-8a and I-4
-foundation remains checkpointed by commits `7cfd4b138`, `dbf6bf344`, and
-`987cbc65e`; this goal does not reopen or relabel that completed work.
+## Recommended next vertical slice — pending approval
 
-Its observable end state is:
+The recommended next goal is the complete **captured editor context to warm
+definition provider** boundary:
 
-1. `sfm:panel/open[/direction] sfm:explorer [path-expression]` is the only
-   public explorer-opening grammar. The three unreleased developer explorer
-   actions and any obsolete subtype scene ids/support code are absent from
-   registries, Brigadier, palette candidates, defaults, tests, and puppets.
-2. One resolver-authorized source root can expose every SFM Java source set in
-   the generic lazy explorer without ambient-drive discovery or eager recursive
-   loading. Missing/unavailable contributions remain truthful diagnostics.
-3. A concrete text/Java path opens through the provisional canonical
-   `sfm:path/open <concrete-path-address>` action as a read-only Text Editor v3
-   document carrying canonical path/root identity, source hash/metadata, and an
-   optional exact target range. This slice never writes host source files.
-4. Space updates an explorer-owned preview and keeps explorer focus; Enter
-   opens/focuses that safe target; Ctrl+Enter creates and focuses a new adjacent
-   visible panel rather than reusing the preview. Direct gesture, palette, and
-   binding paths converge on the same captured semantic action. Directories
-   retain navigation/expansion behavior.
-5. Preview ownership cannot replace a dirty editor, terminal, or unrelated
-   panel. Reopen recipes preserve document identity while separate editors keep
-   independent cursor/scroll state. Removed roots, stale hashes, unsupported
-   encodings, binary/oversized files, and I/O failures are visible and safe.
-6. A self-orchestrating puppet opens the real SFM source tree, selects
-   `SFM.java`, and captures it beside the explorer in Text Editor v3 at Auto and
-   every numeric GUI scale supported by the 3840x2130 viewport. The editor uses
-   its panel allocation rather than the centered modal-style geometry exposed
-   by the v1 matrix. Machine artifacts record addresses, hashes, ranges,
-   selection/focus, and no-write evidence.
+> Complete B-2 and C-4 in this plan together with Phase 0.10.1 through 0.10.4
+> in `docs/tasks/cli ast refactoring suite plan.md`. Deliver immutable editor
+> context plus a manually invokable and supervised warm definition-at-location
+> provider. Stop before C-5/F12/Alt+Enter result navigation, C-6 live UI proof,
+> fuzzy file search, writable documents, picker destinations, propagation,
+> publication, or release work.
 
-Implementation may use two parallel lanes after the shared action/source DTOs
-are frozen: one lane removes legacy scenes and completes generic grammar;
-another adds resolver-backed immutable document loading and Text Editor v3
-layout. One integration owner must join panel registration, preview ownership,
-input mapping, and the live puppet. Central registries and shared panel classes
-must not be edited concurrently by both lanes.
+Its observable completion state will be:
 
-No unresolved architectural decision blocks this goal if approval also accepts
-the provisional `sfm:path/open` spelling and the Space/Enter/Ctrl+Enter contract
-above. Both are unreleased and can still be amended before the goal is set.
-Native TinyFD folder picking, persisted workspaces/selections, writable source
-documents, the item-picker destination migration (X-8), and pane/panel-entry
-identity cleanup (X-10) remain later slices.
+1. Text Editor v3 and other contributors can capture one immutable,
+   independently addressable context containing the concrete document/root/
+   source-set identity, exact current text and content hash, read-only/dirty
+   state, true canvas x/y, optional UTF-aware text row/column and byte offset,
+   primary selection, supplemental cursors, origin identity, and request/
+   workspace generations. Later focus or edits cannot retarget that snapshot.
+2. The installed CLI has an unambiguous direct location form for
+   `symbol show-definition` and returns a versioned typed zero/one/many result
+   with canonical symbols, source spans, confidence, completeness,
+   fingerprints, diagnostics, and recovery actions. Selector mode remains
+   unchanged and mutually exclusive with location mode.
+3. Location resolution reuses the existing source/dependency symbol engine for
+   imports, types, fields, methods/overloads, constructors, nested names,
+   cross-source-set visibility, and dependency sources. A supplied unsaved
+   document snapshot is overlaid in memory for that request and is never
+   written to disk; ambiguity and incomplete indexes remain explicit.
+4. `symbol serve` provides a versioned framed protocol on stdout with logs on
+   stderr, handshake/capability negotiation, many requests per process,
+   cancellation and generation replacement, precise cache invalidation,
+   bounded retained state, clean shutdown/restart, and no orphan child workers.
+   Direct and worker results are canonically equivalent.
+5. Minecraft owns a provider-neutral asynchronous registry/adapter around that
+   worker. It performs no Java parsing or process waits on the render thread,
+   rejects stale/late responses, visibly handles unavailable/crashed workers,
+   can restart cleanly, and emits privacy-safe hash/count/duration telemetry.
+6. Installed cold/warm benchmarks cover same-file, another SFM source set, and
+   a dependency definition. The acceptance target remains warm median at or
+   below 250 ms, warm p95 at or below 750 ms, no warm query above one second,
+   and zero leaked processes; a miss requires profiling and fixing the measured
+   dominant stage rather than weakening the target silently.
 
-After A-2c/C-3, the next dependency chain toward the user's jump-to-definition
-outcome is:
+The work can proceed in parallel after the request/result DTO is frozen:
 
-```text
-B-2 immutable editor document/cursor context
-+ C-4 CLI definition-at-location worker/provider
--> C-5 F12 definition navigation and contextual offer
--> C-6 live SFM/dependency definition journey
-```
+- a CLI analysis lane owns direct definition-at-location and scenarios;
+- a worker lane owns framing, reuse, invalidation, cancellation, and process
+  cleanup;
+- a Minecraft lane owns immutable context projections and the provider-neutral
+  async adapter against captured protocol fixtures;
+- one integration owner serializes shared schema, executable discovery,
+  lifecycle wiring, direct/worker parity, benchmark evidence, plans, and docs.
 
-That later goal still requires approval of D-18's exact source-location request
-and D-19's supervised long-lived CLI worker recommendation, plus a mirrored
-uniquely identified phase in `docs/tasks/cli ast refactoring suite plan.md`.
-The fuzzy-file chain A-1/A-2a/B-1/B-2/B-3 remains independently available
-after addressed file opening; neither should be smuggled into A-2c/C-3.
+Approval of this goal will close D-8 and freeze D-18's exact location request
+plus D-19's supervised-worker choice. It deliberately stops one boundary before
+any F12/keybinding/palette result-navigation behavior, so C-5 can consume a
+measured, deterministic provider rather than mixing UI design with analysis and
+process-lifecycle work. The independent fuzzy-file chain remains available
+after B-2 but is not part of this goal.
 
 ## Overall completion criteria
 
@@ -2231,7 +2267,7 @@ after addressed file opening; neither should be smuggled into A-2c/C-3.
   opens a versioned location document in the preferred editor through shared
   panel placement, applies edits atomically with authority/revision checks, and
   leaves view/sort/group/hoist discoverable without redundant header prose.
-- [ ] Explorer Java files open read-only in Text Editor v3 with concrete
+- [x] Explorer Java files open read-only in Text Editor v3 with concrete
   document addresses, source hashes, independent editor state, safe preview
   ownership, and exact open-at-range behavior.
 - [ ] F12 and the contextual-action provider resolve the symbol at the captured

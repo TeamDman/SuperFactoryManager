@@ -1088,10 +1088,11 @@ The inspected run is rooted at
 scales 1 through 8 plus Auto (effective scale 8), always showing the primary
 explorer, secondary explorer, and exact location document in the configured
 preferred editor. Panel boundaries remain stable. The matrix also makes a
-later C-3 acceptance concern explicit: the current preferred-v1 editor keeps a
-centered bounded form at low GUI scales and therefore leaves substantial panel
-space unused. C-3's Text Editor v3 file-opening proof must demonstrate a
-panel-native layout rather than inherit that modal-style geometry.
+then-pending C-3 acceptance concern explicit: the preferred-v1 editor kept a
+centered bounded form at low GUI scales and therefore left substantial panel
+space unused. C-3 closed that concern in `6dc3d2d04`; its inspected
+`title_screen_explorer_open_sfm_java` Auto-plus-scales-1-through-8 matrix uses
+the panel allocation for the real read-only `SFM.java` Text Editor v3 view.
 
 ### [ ] X-8 Compose pickers as selection destinations
 

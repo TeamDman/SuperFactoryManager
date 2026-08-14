@@ -1,8 +1,8 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0, Phase 0.8, and Phase 0.9 are complete; Phase 0.10 is the planned in-game navigation bridge before Phase 1
+**Plan status:** Active; Phase 0, Phase 0.8, and Phase 0.9 are complete; Phase 0.10 is pending approval with contextual B-2/C-4 as the next in-game navigation-provider goal
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-11
+**Last updated:** 2026-08-13
 **Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, and 2026-08-11 for the in-game definition-at-location bridge
 
 ## How to update this plan
