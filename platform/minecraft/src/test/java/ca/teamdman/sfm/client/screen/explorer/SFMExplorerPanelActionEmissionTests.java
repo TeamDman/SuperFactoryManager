@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.screen.explorer;
 
+import ca.teamdman.sfm.client.context.SFMContextCaptureRequest;
+import ca.teamdman.sfm.client.context.SFMContextPathProjection;
 import ca.teamdman.sfm.client.explorer.SFMChildRelationRepository;
 import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMPath;
@@ -13,6 +15,8 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
 import ca.teamdman.sfm.client.explorer.lazy.SFMInMemoryRegistryExplorerResolver;
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import org.junit.jupiter.api.Test;
 import org.lwjgl.glfw.GLFW;
 
@@ -185,6 +189,35 @@ public class SFMExplorerPanelActionEmissionTests {
                 fixture.actions()
         );
         assertTrue(fixture.panel().narration().getString().contains("Location control focused"));
+    }
+
+    @Test
+    public void contextCaptureKeepsRootAndSelectionAsIndependentAddressedOrigins() {
+        Fixture fixture = fileFixture();
+        fixture.panel().opened(
+                null,
+                BOUNDS,
+                SFMWorkspacePanelContext.unhosted(new SFMWorkspacePanelId(17))
+        );
+        fixture.panel().model().select(FILE, BOUNDS);
+
+        var contributions = fixture.panel().capture(new SFMContextCaptureRequest(
+                1, 2, 3, fixture.panel().focusedOriginId()
+        ));
+        assertEquals(2, contributions.size());
+        SFMContextPathProjection root = contributions.stream()
+                .map(value -> (SFMContextPathProjection) value.projection())
+                .filter(value -> value.role().equals("explorer-root"))
+                .findFirst().orElseThrow();
+        SFMContextPathProjection selection = contributions.stream()
+                .map(value -> (SFMContextPathProjection) value.projection())
+                .filter(value -> value.role().equals("explorer-selection"))
+                .findFirst().orElseThrow();
+
+        assertEquals(FILE_ROOT, root.path());
+        assertEquals(FILE, selection.path());
+        assertEquals(Optional.of(FILE_ROOT), selection.authorizedRoot());
+        assertEquals("panel-17", fixture.panel().focusedOriginId().orElseThrow().containerId());
     }
 
     private static Fixture fixture() {

@@ -1,11 +1,16 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.context.SFMContextCursorProjection;
+import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
+import ca.teamdman.sfm.client.context.SFMContextPosition;
+import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentPosition;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import ca.teamdman.sfm.common.config.SFMConfig;
@@ -109,6 +114,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private boolean panning;
     private boolean suppressNextNumpadPanChar;
     private boolean initialContentLoaded;
+    private String initialCanvasProjectionText = "";
+    private long contextGeneration;
     private double panAnchorMouseX;
     private double panAnchorMouseY;
     private double panAnchorCameraX;
@@ -783,7 +790,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         initialContentLoaded = true;
         model = new SFMDrawCanvasModel();
         model.typeText(openContext.initialValue(), this.font::width, this.font.lineHeight);
+        initialCanvasProjectionText = model.projectedText(this.font.width(" "), this.font.lineHeight);
         model.moveCursorToDocumentStart();
+        contextGeneration = incrementGeneration(contextGeneration);
     }
 
     /** Positions and visibly marks an exact UTF-8 witnessed source range. */
@@ -801,6 +810,110 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         cameraViewportWidth = this.width;
         cameraViewportHeight = this.height;
         rememberCursorPosition();
+    }
+
+    /** Captures exact current text plus immutable 2D cursor projections for one panel origin. */
+    public SFMContextDocumentProjection captureContextProjection(
+            String editorId,
+            SFMTextDocumentSnapshot baseline,
+            boolean readOnly
+    ) {
+        Objects.requireNonNull(baseline, "baseline");
+        loadInitialContent();
+        SFMDrawCanvasSyntaxHighlightingHelper.CanvasDocumentProjection canvas =
+                SFMDrawCanvasSyntaxHighlightingHelper.projectCanvasDocument(
+                        List.copyOf(model().glyphs()),
+                        this.font.width(" "),
+                        this.font.lineHeight
+                );
+        String projectedText = canvas.text();
+        boolean dirty = !projectedText.equals(initialCanvasProjectionText);
+        String currentText = !dirty && baseline.ready() ? baseline.text() : projectedText;
+        List<SFMContextCursorProjection> cursors = new ArrayList<>();
+        List<SFMDrawCanvasModel.CanvasCursor> currentCursors = List.copyOf(model().cursors());
+        for (int index = 0; index < currentCursors.size(); index++) {
+            SFMDrawCanvasModel.CanvasCursor cursor = currentCursors.get(index);
+            cursors.add(new SFMContextCursorProjection(
+                    "cursor-" + index,
+                    new SFMContextPosition.Canvas(
+                            cursor.x(),
+                            cursor.y(),
+                            contextTextPosition(cursor, canvas, currentText)
+                    ),
+                    index == model().focusedCursorIndex(),
+                    cursor.active()
+            ));
+        }
+        return SFMContextDocumentProjection.capture(
+                editorId,
+                baseline,
+                currentText,
+                dirty,
+                readOnly,
+                cursors,
+                List.of()
+        );
+    }
+
+    public long contextGeneration() {
+        return contextGeneration;
+    }
+
+    private Optional<SFMTextDocumentPosition> contextTextPosition(
+            SFMDrawCanvasModel.CanvasCursor cursor,
+            SFMDrawCanvasSyntaxHighlightingHelper.CanvasDocumentProjection canvas,
+            String currentText
+    ) {
+        if (canvas.text().isEmpty()) {
+            return currentText.isEmpty()
+                    ? Optional.of(SFMContextTextCoordinates.atUtf16Offset(currentText, 0))
+                    : Optional.empty();
+        }
+        SFMDrawCanvasModel.CanvasGlyph hit = null;
+        for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
+            if (!cursorInGlyphBounds(cursor, glyph)) continue;
+            if (hit != null && hit != glyph) return Optional.empty();
+            hit = glyph;
+        }
+
+        int projectedOffset = -1;
+        if (hit != null) {
+            projectedOffset = firstGlyphOffset(canvas, hit);
+        } else {
+            SFMDrawCanvasModel.CanvasGlyph finalGlyph = null;
+            for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
+                if (cursor.y() < glyph.y() || cursor.y() >= glyph.y() + this.font.lineHeight) continue;
+                if (finalGlyph == null || glyph.x() > finalGlyph.x()) finalGlyph = glyph;
+            }
+            if (finalGlyph != null && cursor.x() >= finalGlyph.x() + finalGlyph.width()) {
+                int start = firstGlyphOffset(canvas, finalGlyph);
+                if (start >= 0) projectedOffset = start + finalGlyph.text().length();
+            }
+        }
+        if (projectedOffset < 0) return Optional.empty();
+        SFMTextDocumentPosition projected = SFMContextTextCoordinates.atUtf16Offset(
+                canvas.text(),
+                projectedOffset
+        );
+        try {
+            return Optional.of(SFMContextTextCoordinates.atLineColumn(
+                    currentText,
+                    projected.line(),
+                    projected.column()
+            ));
+        } catch (IllegalArgumentException incompatibleBaseline) {
+            return Optional.empty();
+        }
+    }
+
+    private static int firstGlyphOffset(
+            SFMDrawCanvasSyntaxHighlightingHelper.CanvasDocumentProjection canvas,
+            SFMDrawCanvasModel.CanvasGlyph target
+    ) {
+        for (int index = 0; index < canvas.glyphsByCharIndex().size(); index++) {
+            if (canvas.glyphsByCharIndex().get(index) == target) return index;
+        }
+        return -1;
     }
 
     private void renderOpenTargetRange(PoseStack poseStack) {
@@ -1269,6 +1382,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private void rememberCursorPosition() {
+        contextGeneration = incrementGeneration(contextGeneration);
         if (!showCursorTrail && cursorTrail.isEmpty()) {
             return;
         }
@@ -1284,6 +1398,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         while (cursorTrail.size() > CURSOR_TRAIL_LIMIT) {
             cursorTrail.remove(0);
         }
+    }
+
+    private static long incrementGeneration(long value) {
+        return value == Long.MAX_VALUE ? value : value + 1;
     }
 
     private void insertLineBreak() {

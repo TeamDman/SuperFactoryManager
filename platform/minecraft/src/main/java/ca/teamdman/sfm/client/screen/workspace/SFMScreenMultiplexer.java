@@ -1,6 +1,11 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.context.SFMContextCaptureRequest;
+import ca.teamdman.sfm.client.context.SFMContextCaptureService;
+import ca.teamdman.sfm.client.context.SFMContextContributor;
+import ca.teamdman.sfm.client.context.SFMContextOriginId;
+import ca.teamdman.sfm.client.context.SFMContextSnapshot;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingEngine;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextSnapshot;
@@ -65,6 +70,8 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private long panelGroupRevision = Long.MIN_VALUE;
     private @Nullable SFMWorkspacePanelId observedFocusedPanel;
     private long keyboardFocusRevision;
+    private long contextWorkspaceRevision;
+    private long contextCaptureGeneration;
 
     private SFMScreenMultiplexer(
             @Nullable Screen previousScreen,
@@ -473,6 +480,44 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return layout.panels().stream().map(SFMWorkspaceLayout.PanelEntry::panel).toList();
     }
 
+    /** Captures every relevant visible panel independently; hidden tab entries are not guessed into context. */
+    public SFMContextSnapshot contextSnapshot() {
+        observeWorkspaceFocus();
+        contextCaptureGeneration = incrementContextGeneration(contextCaptureGeneration);
+        return captureVisibleContext(
+                layout.visiblePanels(),
+                layout.panel(layout.focusedPanel()),
+                contextCaptureGeneration,
+                contextWorkspaceRevision,
+                keyboardFocusRevision
+        );
+    }
+
+    /** Pure snapshot assembly seam shared by the live screen and headless contract tests. */
+    static SFMContextSnapshot captureVisibleContext(
+            List<SFMWorkspaceLayout.PanelEntry> visiblePanels,
+            @Nullable SFMScreenPanel focusedPanel,
+            long captureGeneration,
+            long workspaceGeneration,
+            long focusGeneration
+    ) {
+        List<SFMContextContributor> contributors = visiblePanels.stream()
+                .map(SFMWorkspaceLayout.PanelEntry::panel)
+                .filter(SFMContextContributor.class::isInstance)
+                .map(SFMContextContributor.class::cast)
+                .toList();
+        Optional<SFMContextOriginId> focusedOrigin = Optional.empty();
+        if (focusedPanel instanceof SFMContextContributor contributor) {
+            focusedOrigin = contributor.focusedOriginId();
+        }
+        return new SFMContextCaptureService(contributors).capture(new SFMContextCaptureRequest(
+                captureGeneration,
+                workspaceGeneration,
+                focusGeneration,
+                focusedOrigin
+        ));
+    }
+
     public List<SFMWorkspacePanelId> panelIds() {
         return layout.panels().stream().map(SFMWorkspaceLayout.PanelEntry::id).toList();
     }
@@ -561,6 +606,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     private void refreshLayout(boolean notifyPanels) {
+        contextWorkspaceRevision = incrementContextGeneration(contextWorkspaceRevision);
         if (panelGroup != null) {
             layout.recompose(panelGroup.layout(new SFMScreenPanelBounds(0, 0, this.width, this.height)));
             panelGroupRevision = panelGroup.revision();
@@ -589,6 +635,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 openPanel(entry.id(), entry.panel());
             }
         }
+    }
+
+    private static long incrementContextGeneration(long value) {
+        return value == Long.MAX_VALUE ? value : value + 1;
     }
 
     private void openPanel(SFMWorkspacePanelId id, SFMScreenPanel panel) {

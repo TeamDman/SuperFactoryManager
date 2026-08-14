@@ -1,5 +1,11 @@
 package ca.teamdman.sfm.client.screen.explorer;
 
+import ca.teamdman.sfm.client.context.SFMContextCaptureRequest;
+import ca.teamdman.sfm.client.context.SFMContextContribution;
+import ca.teamdman.sfm.client.context.SFMContextContributor;
+import ca.teamdman.sfm.client.context.SFMContextGenerationEvidence;
+import ca.teamdman.sfm.client.context.SFMContextOriginId;
+import ca.teamdman.sfm.client.context.SFMContextPathProjection;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
@@ -17,16 +23,19 @@ import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Consumer;
 
 /**
  * Bounded generic explorer presentation hosted through the ordinary panel
  * scene while all semantic mutations cross the supplied action execution seam.
  */
-public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget {
+public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget, SFMContextContributor {
+    private static final String CONTEXT_CONTRIBUTOR_ID = "sfm:explorer";
     private static final int PANEL = 0xF0202020;
     private static final int HEADER = 0xF02A2A2A;
     private static final int BORDER = 0xFF606060;
@@ -38,6 +47,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private static final int DIAGNOSTIC = 0xFFFF7777;
 
     private final SFMExplorerSession session;
+    private final SFMLazyExplorerLoader loader;
     private final SFMExplorerPanelModel model;
     private final SFMExplorerPresentationRegistry presentationRegistry;
     private final Runnable focusObserver;
@@ -51,6 +61,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private boolean wasFocused;
     private boolean closed;
     private KeyboardFocus keyboardFocus = KeyboardFocus.BODY;
+    private SFMWorkspacePanelContext panelContext;
 
     private enum KeyboardFocus {
         LOCATION,
@@ -127,7 +138,8 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             Consumer<String> clipboardSink
     ) {
         this.session = Objects.requireNonNull(session, "session");
-        model = new SFMExplorerPanelModel(session, loader, actionSink);
+        this.loader = Objects.requireNonNull(loader, "loader");
+        model = new SFMExplorerPanelModel(session, this.loader, actionSink);
         this.focusObserver = Objects.requireNonNull(focusObserver, "focusObserver");
         this.closeObserver = Objects.requireNonNull(closeObserver, "closeObserver");
         this.presentationRegistry = Objects.requireNonNull(presentationRegistry, "presentationRegistry");
@@ -153,12 +165,54 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     @Override
+    public String id() {
+        return CONTEXT_CONTRIBUTOR_ID;
+    }
+
+    @Override
+    public Optional<SFMContextOriginId> focusedOriginId() {
+        if (panelContext == null || closed) return Optional.empty();
+        SFMExplorerSession.Snapshot snapshot = session.snapshot();
+        if (snapshot.navigationCursor().isPresent()) return Optional.of(origin("selection"));
+        return snapshot.roots().stream().sorted().findFirst().map(root -> origin(rootLocalId(root)));
+    }
+
+    @Override
+    public List<SFMContextContribution> capture(SFMContextCaptureRequest request) {
+        if (panelContext == null || closed) return List.of();
+        SFMExplorerSession.Snapshot snapshot = session.snapshot();
+        long relationGeneration = loader.relationSnapshot().relation().id();
+        SFMContextGenerationEvidence evidence = new SFMContextGenerationEvidence(
+                snapshot.revision(),
+                snapshot.revision(),
+                snapshot.revision(),
+                relationGeneration
+        );
+        java.util.ArrayList<SFMContextContribution> result = new java.util.ArrayList<>();
+        List<SFMPath> roots = snapshot.roots().stream().sorted().toList();
+        for (SFMPath root : roots) {
+            result.add(new SFMContextContribution(
+                    origin(rootLocalId(root)),
+                    evidence,
+                    new SFMContextPathProjection(root, Optional.of(root), "explorer-root")
+            ));
+        }
+        snapshot.navigationCursor().ifPresent(path -> result.add(new SFMContextContribution(
+                origin("selection"),
+                evidence,
+                new SFMContextPathProjection(path, authorizedRoot(path, roots), "explorer-selection")
+        )));
+        return List.copyOf(result);
+    }
+
+    @Override
     public void opened(
             Minecraft minecraft,
             SFMScreenPanelBounds bounds,
             SFMWorkspacePanelContext context
     ) {
         this.bounds = Objects.requireNonNull(bounds, "bounds");
+        this.panelContext = Objects.requireNonNull(context, "context");
     }
 
     @Override
@@ -171,8 +225,35 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     public void closed() {
         if (closed) return;
         closed = true;
+        panelContext = null;
         session.close();
         closeObserver.run();
+    }
+
+    private SFMContextOriginId origin(String localId) {
+        return new SFMContextOriginId(
+                CONTEXT_CONTRIBUTOR_ID,
+                "panel-" + panelContext.panelId().value(),
+                localId
+        );
+    }
+
+    private static String rootLocalId(SFMPath root) {
+        return "root-" + UUID.nameUUIDFromBytes(root.canonical().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static Optional<SFMPath> authorizedRoot(SFMPath path, List<SFMPath> roots) {
+        return roots.stream()
+                .filter(root -> contains(root, path))
+                .max(java.util.Comparator.comparingInt(root -> root.segments().size()));
+    }
+
+    private static boolean contains(SFMPath root, SFMPath candidate) {
+        if (root.kind() != candidate.kind()
+                || !root.scheme().equals(candidate.scheme())
+                || !root.authority().equals(candidate.authority())
+                || root.segments().size() > candidate.segments().size()) return false;
+        return candidate.segments().subList(0, root.segments().size()).equals(root.segments());
     }
 
     @Override

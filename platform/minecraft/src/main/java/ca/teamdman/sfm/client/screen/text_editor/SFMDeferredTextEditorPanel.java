@@ -1,5 +1,9 @@
 package ca.teamdman.sfm.client.screen.text_editor;
 
+import ca.teamdman.sfm.client.context.SFMContextCaptureRequest;
+import ca.teamdman.sfm.client.context.SFMContextContribution;
+import ca.teamdman.sfm.client.context.SFMContextContributor;
+import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
@@ -19,7 +23,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /** Non-blocking panel that resolves one addressed document before hosting its editor. */
-public final class SFMDeferredTextEditorPanel implements SFMScreenPanel, SFMTextDocumentPanelState {
+public final class SFMDeferredTextEditorPanel
+        implements SFMScreenPanel, SFMTextDocumentPanelState, SFMContextContributor {
     private final SFMTextEditorPanelRecipe recipe;
     private final SFMExplorerCancellationToken cancellation = new SFMExplorerCancellationToken();
     private SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 1, 1);
@@ -52,6 +57,27 @@ public final class SFMDeferredTextEditorPanel implements SFMScreenPanel, SFMText
     @Override
     public Optional<SFMTextDocumentSnapshot> documentSnapshot() {
         return snapshot;
+    }
+
+    @Override
+    public String id() {
+        return delegate instanceof SFMContextContributor contributor
+                ? contributor.id()
+                : "sfm:text-editor";
+    }
+
+    @Override
+    public Optional<SFMContextOriginId> focusedOriginId() {
+        return delegate instanceof SFMContextContributor contributor
+                ? contributor.focusedOriginId()
+                : Optional.empty();
+    }
+
+    @Override
+    public java.util.List<SFMContextContribution> capture(SFMContextCaptureRequest request) {
+        return delegate instanceof SFMContextContributor contributor
+                ? contributor.capture(request)
+                : java.util.List.of();
     }
 
     @Override

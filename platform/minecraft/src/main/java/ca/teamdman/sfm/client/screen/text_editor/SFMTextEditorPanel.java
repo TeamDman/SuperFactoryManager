@@ -1,5 +1,11 @@
 package ca.teamdman.sfm.client.screen.text_editor;
 
+import ca.teamdman.sfm.client.context.SFMContextCaptureRequest;
+import ca.teamdman.sfm.client.context.SFMContextContribution;
+import ca.teamdman.sfm.client.context.SFMContextContributor;
+import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
+import ca.teamdman.sfm.client.context.SFMContextGenerationEvidence;
+import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasScreen;
 import ca.teamdman.sfm.client.screen.SFMTextEditorV3Screen;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
@@ -21,7 +27,8 @@ import java.util.function.Function;
  * callback-aware screen below; legacy registrations still get a useful
  * lifecycle adapter while they are being migrated.
  */
-public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocumentPanelState {
+public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocumentPanelState, SFMContextContributor {
+    private static final String CONTEXT_CONTRIBUTOR_ID = "sfm:text-editor";
     private final SFMTextEditorPanelOpenContext openContext;
     private final Screen screen;
     private SFMWorkspacePanelContext panelContext;
@@ -77,6 +84,55 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     @Override
     public Optional<ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot> documentSnapshot() {
         return Optional.of(openContext.document());
+    }
+
+    @Override
+    public String id() {
+        return CONTEXT_CONTRIBUTOR_ID;
+    }
+
+    @Override
+    public Optional<SFMContextOriginId> focusedOriginId() {
+        return panelContext == null ? Optional.empty() : Optional.of(contextOrigin());
+    }
+
+    @Override
+    public java.util.List<SFMContextContribution> capture(SFMContextCaptureRequest request) {
+        if (panelContext == null) return java.util.List.of();
+        SFMContextDocumentProjection projection;
+        long generation;
+        if (screen instanceof SFMDrawCanvasScreen drawCanvas) {
+            projection = drawCanvas.captureContextProjection(
+                    openContext.editorId(),
+                    openContext.document(),
+                    isReadOnly()
+            );
+            generation = drawCanvas.contextGeneration();
+        } else {
+            projection = SFMContextDocumentProjection.capture(
+                    openContext.editorId(),
+                    openContext.document(),
+                    openContext.document().text(),
+                    false,
+                    isReadOnly(),
+                    java.util.List.of(),
+                    java.util.List.of()
+            );
+            generation = 0;
+        }
+        return java.util.List.of(new SFMContextContribution(
+                contextOrigin(),
+                new SFMContextGenerationEvidence(generation, generation, generation, 0),
+                projection
+        ));
+    }
+
+    private SFMContextOriginId contextOrigin() {
+        return new SFMContextOriginId(
+                CONTEXT_CONTRIBUTOR_ID,
+                "panel-" + panelContext.panelId().value(),
+                "document"
+        );
     }
 
     @Override
