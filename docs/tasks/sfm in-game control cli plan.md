@@ -156,8 +156,8 @@ files behind its back, or guesses a process from a window title.
 - **Pass 2 — traceability:** Recorded the clean I-4 checkpoint and repeated
   real-CLI matrix evidence. Kept I-5 intact as this plan's next internal item.
   The former cross-plan trajectory to contextual A-2c/C-3 completed in
-  `6dc3d2d04`; the pending cross-plan recommendation is now contextual B-2/C-4
-  plus CLI-AST Phase 0.10.
+  `6dc3d2d04`; the active cross-plan goal is now contextual B-2/C-4 plus
+  CLI-AST Phase 0.10.
 - **Pass 3 — adversarial omission:** Checked that the priority note does not
   mark I-5 complete, weaken wrong-instance/ambiguity safeguards, couple game
   control to terminal rendering, or make two-game proof a hidden prerequisite
@@ -719,8 +719,8 @@ I-5 remains the next slice within this control-specific plan: prove two-game
 selection and run the canonical explorer CLI from Teamy Terminal without
 coupling terminal rendering to game control. It is not the next recommended
 cross-plan product goal. Contextual A-2c/C-3 completed in `6dc3d2d04`; the
-pending cross-plan recommendation is contextual B-2/C-4 plus CLI-AST Phase
-0.10, producing immutable editor context and a warm supervised
+active cross-plan goal is contextual B-2/C-4 plus CLI-AST Phase 0.10,
+producing immutable editor context and a warm supervised
 definition-at-location provider before F12 navigation. I-5 can follow
 independently when multi-game hardening is more valuable; it is not a
 prerequisite for addressed file opening or jump-to-definition work.

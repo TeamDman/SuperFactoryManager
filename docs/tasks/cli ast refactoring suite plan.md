@@ -1,8 +1,8 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0, Phase 0.8, and Phase 0.9 are complete; Phase 0.10 is pending approval with contextual B-2/C-4 as the next in-game navigation-provider goal
+**Plan status:** Active; Phase 0, Phase 0.8, and Phase 0.9 are complete; Phase 0.10 is in progress with contextual B-2/C-4
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-13
+**Last updated:** 2026-08-14
 **Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, and 2026-08-11 for the in-game definition-at-location bridge
 
 ## How to update this plan
@@ -1576,7 +1576,14 @@ presentation. It makes the existing symbol engine safely reusable by those
 features and keeps direct/manual invocation as an independently testable
 contract.
 
-### [ ] 0.10.1 Freeze the definition-at-location request/result and direct CLI form
+**Goal activation bookkeeping (2026-08-14):** Phase 0.10.1 through 0.10.4 are
+active together with contextual-plan B-2/C-4. The approved boundary includes
+the direct location form, reusable engine entry point, supervised framed worker,
+Minecraft provider handoff, installed latency/process-liveness evidence, and
+documentation. It excludes F12/Alt+Enter result navigation, live Minecraft UI
+proof, fuzzy search, source mutation, propagation, publication, and release.
+
+### [~] 0.10.1 Freeze the definition-at-location request/result and direct CLI form
 
 **Work:** Add versioned Facet `DefinitionAtPositionRequest` and
 `DefinitionAtPositionResult` values. A request identifies branch/classpath,
@@ -1605,7 +1612,7 @@ the normal CLI, while the same versioned typed request/result can be carried by
 the worker; selector and location modes are unambiguous and no raw token guess
 is part of the contract.
 
-### [ ] 0.10.2 Resolve the symbol at the location through the existing engine
+### [~] 0.10.2 Resolve the symbol at the location through the existing engine
 
 **Work:** Add a reusable engine entry point over the Phase 0.9 fact/link path
 and Phase 0.8 dependency index. Resolve the syntax/reference at the exact
@@ -1628,7 +1635,7 @@ with exact-selector results when both identify the same symbol.
 the existing symbol universe, not a second parser/resolver; exact current text
 can be analyzed without mutation; ambiguity/completeness remain truthful.
 
-### [ ] 0.10.3 Add `symbol serve` with framed requests, reuse, and cancellation
+### [~] 0.10.3 Add `symbol serve` with framed requests, reuse, and cancellation
 
 **Work:** Add `sfm-propagate-changes.exe symbol serve --branch <branch>` as a
 long-lived worker mode. Reserve stdout for `[u32 little-endian byte length][UTF-8
@@ -1654,7 +1661,7 @@ definition requests safely, amortizes reusable setup, never mixes logs with
 protocol bytes, invalidates by identity rather than hope, and exits without
 leaked children or persistent live-source state.
 
-### [ ] 0.10.4 Prove interactive latency, cancellation, and handoff documentation
+### [~] 0.10.4 Prove interactive latency, cancellation, and handoff documentation
 
 **Work:** Build/install the release CLI, start one worker against 1.19.2, and
 measure cold first query plus at least twenty warm definition-at-location
