@@ -313,8 +313,11 @@ fn run_worker_request(request: WorkerRequest) -> eyre::Result<()> {
             context: request.context.clone(),
             files: vec![JavaSourceFile {
                 absolute_path: PathBuf::from(file.path),
+                root_id: "worker-shard".to_owned(),
+                root_relative_path: file.report_path.clone(),
                 report_path: file.report_path,
                 source_set: file.source_set,
+                source_override: None,
             }],
             diagnostics: Vec::new(),
             classpath_entries: Vec::new(),

@@ -25,8 +25,14 @@ pub const JAVA_PARSER_FINGERPRINT: &str = "arborium-java/2.18.1";
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct JavaSourceFile {
     pub absolute_path: PathBuf,
+    pub root_id: String,
+    pub root_relative_path: String,
     pub report_path: String,
     pub source_set: String,
+    /// Request-scoped current text. Ordinary workspaces read `absolute_path`;
+    /// editor-location requests may replace exactly one document without
+    /// mutating the source tree.
+    pub source_override: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -113,6 +119,84 @@ impl JavaSourceWorkspace {
                     .iter()
                     .any(|visible| visible == target)
             })
+    }
+
+    /// Resolve a source without joining caller text onto a filesystem root.
+    /// Exact report paths win; otherwise a unique root-relative path is
+    /// accepted.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the path is empty, escapes a root, is absent, or
+    /// is ambiguous across selected roots.
+    pub fn source_file(&self, source_path: &str) -> eyre::Result<&JavaSourceFile> {
+        let source_path = normalize_requested_source_path(source_path)?;
+        let exact = self
+            .files
+            .iter()
+            .filter(|file| file.report_path == source_path)
+            .collect::<Vec<_>>();
+        match exact.as_slice() {
+            [file] => return Ok(file),
+            [] => {}
+            _ => eyre::bail!("Java source path `{source_path}` matched multiple report paths"),
+        }
+
+        let relative = self
+            .files
+            .iter()
+            .filter(|file| file.root_relative_path == source_path)
+            .collect::<Vec<_>>();
+        match relative.as_slice() {
+            [file] => Ok(file),
+            [] => eyre::bail!("Java source path `{source_path}` is not in the selected workspace"),
+            files => {
+                let matches = files
+                    .iter()
+                    .map(|file| {
+                        format!(
+                            "{} ({}, {})",
+                            file.report_path, file.root_id, file.source_set
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                eyre::bail!(
+                    "Java source path `{source_path}` is ambiguous across roots: {matches}. Pass an exact report path or a single --source-root"
+                )
+            }
+        }
+    }
+
+    /// Replace one exact workspace document with immutable caller-supplied
+    /// text for this analysis snapshot.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the root-relative identity is absent or not
+    /// unique.
+    pub fn with_source_overlay(
+        mut self,
+        root_id: &str,
+        root_relative_path: &str,
+        source: String,
+    ) -> eyre::Result<Self> {
+        let relative = normalize_requested_source_path(root_relative_path)?;
+        let matches = self
+            .files
+            .iter()
+            .enumerate()
+            .filter(|(_, file)| file.root_id == root_id && file.root_relative_path == relative)
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>();
+        let [index] = matches.as_slice() else {
+            eyre::bail!(
+                "Java source `{root_id}:{relative}` matched {} workspace files",
+                matches.len()
+            );
+        };
+        self.files[*index].source_override = Some(source);
+        Ok(self)
     }
 }
 
@@ -255,7 +339,14 @@ fn collect_catalog_roots(
             .then(|| excludes_by_set.get(declaration.source_set))
             .flatten()
             .map_or(&[][..], Vec::as_slice);
-        collect_files(&root, worktree, declaration.source_set, excludes, files)?;
+        collect_files(
+            &root,
+            worktree,
+            declaration.id,
+            declaration.source_set,
+            excludes,
+            files,
+        )?;
     }
     Ok(())
 }
@@ -303,7 +394,14 @@ fn collect_custom_workspace(
             JavaSourceRootKind::Custom,
             true,
         ));
-        collect_files_with_prefix(&absolute, &display_root, &source_set, &[], &mut files)?;
+        collect_files_with_prefix(
+            &absolute,
+            &display_root,
+            &format!("custom-{index}"),
+            &source_set,
+            &[],
+            &mut files,
+        )?;
     }
     deduplicate_files(&mut files)?;
     let source_sets = custom_source_set_outputs(&selected_source_sets);
@@ -444,6 +542,7 @@ fn branch_classpath_context(minecraft_dir: &Path) -> eyre::Result<(Vec<String>, 
 fn collect_files(
     root: &Path,
     report_base: &Path,
+    root_id: &str,
     source_set: &str,
     excludes: &[String],
     output: &mut Vec<JavaSourceFile>,
@@ -464,8 +563,11 @@ fn collect_files(
         }
         output.push(JavaSourceFile {
             absolute_path: entry.path().to_path_buf(),
+            root_id: root_id.to_owned(),
+            root_relative_path: relative_to_root,
             report_path: path_relative(report_base, entry.path())?,
             source_set: source_set.to_owned(),
+            source_override: None,
         });
     }
     Ok(())
@@ -474,6 +576,7 @@ fn collect_files(
 fn collect_files_with_prefix(
     root: &Path,
     report_prefix: &str,
+    root_id: &str,
     source_set: &str,
     excludes: &[String],
     output: &mut Vec<JavaSourceFile>,
@@ -494,8 +597,11 @@ fn collect_files_with_prefix(
         }
         output.push(JavaSourceFile {
             absolute_path: entry.path().to_path_buf(),
+            root_id: root_id.to_owned(),
+            root_relative_path: relative.clone(),
             report_path: format!("{}/{relative}", report_prefix.trim_end_matches('/')),
             source_set: source_set.to_owned(),
+            source_override: None,
         });
     }
     Ok(())
@@ -598,6 +704,21 @@ fn path_relative(root: &Path, path: &Path) -> eyre::Result<String> {
 
 fn normalize_slashes(value: &str) -> String {
     value.replace('\\', "/")
+}
+
+fn normalize_requested_source_path(value: &str) -> eyre::Result<String> {
+    let value = normalize_slashes(value.trim());
+    if value.is_empty() {
+        eyre::bail!("Java source path cannot be empty");
+    }
+    if value.starts_with('/')
+        || value
+            .split('/')
+            .any(|segment| segment.is_empty() || matches!(segment, "." | ".."))
+    {
+        eyre::bail!("Java source path `{value}` is not a normalized relative path");
+    }
+    Ok(value)
 }
 
 fn fingerprint(values: impl IntoIterator<Item = impl AsRef<str>>) -> String {

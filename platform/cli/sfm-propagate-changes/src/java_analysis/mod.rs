@@ -1,3 +1,4 @@
+mod definition_at_position;
 #[cfg(test)]
 mod definition_equivalence;
 mod definition_linker;
@@ -18,6 +19,7 @@ mod source_excludes;
 mod syntax;
 mod workspace;
 
+pub use definition_at_position::*;
 pub(crate) use definition_linker::*;
 pub use dependency_index_body::*;
 pub use dependency_index_identity::*;

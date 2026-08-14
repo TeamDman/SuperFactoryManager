@@ -902,13 +902,19 @@ mod tests {
             files: vec![
                 JavaSourceFile {
                     absolute_path: a_path,
+                    root_id: "custom-0".to_owned(),
+                    root_relative_path: "p/A.java".to_owned(),
                     report_path: "source/p/A.java".to_owned(),
                     source_set: "scenario".to_owned(),
+                    source_override: None,
                 },
                 JavaSourceFile {
                     absolute_path: b_path,
+                    root_id: "custom-0".to_owned(),
+                    root_relative_path: "p/B.java".to_owned(),
                     report_path: "source/p/B.java".to_owned(),
                     source_set: "scenario".to_owned(),
+                    source_override: None,
                 },
             ],
             diagnostics: Vec::new(),

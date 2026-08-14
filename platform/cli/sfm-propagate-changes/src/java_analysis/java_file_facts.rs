@@ -868,8 +868,11 @@ mod tests {
             .expect("temporary Java source should write");
         let file = JavaSourceFile {
             absolute_path: path,
+            root_id: "custom-0".to_owned(),
+            root_relative_path: "p/A.java".to_owned(),
             report_path: "source/p/A.java".to_owned(),
             source_set: "main".to_owned(),
+            source_override: None,
         };
 
         reset_java_parse_count();
