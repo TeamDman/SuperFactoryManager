@@ -18,6 +18,7 @@ use crate::jar_build::Parallelism;
 use crate::java_analysis::DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA;
 use crate::java_analysis::DependencyIndexBuildArtifacts;
 use crate::java_analysis::DependencyJavaSourceOrigin;
+use crate::java_analysis::DependencyJavaSymbolIndexBody;
 use crate::java_analysis::DependencyResolutionSelection;
 use crate::java_analysis::DependencySymbolIndexCompleteness;
 use crate::java_analysis::DependencySymbolIndexCreationMetadata;
@@ -587,6 +588,67 @@ pub(super) fn build_query_index(
         acquisition_commands: acquisition_commands(&preflight, branch)?,
     };
     Ok((index, Some(evidence)))
+}
+
+/// Load the immutable dependency declarations needed by a correctness-first
+/// direct definition-at-position query. The later supervised provider can
+/// retain this body instead of rescanning it for each request.
+pub(super) fn load_definition_at_position_dependencies(
+    workspace: &JavaSourceWorkspace,
+    branch: &BranchSelector,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<(
+    Option<DependencyJavaSymbolIndexBody>,
+    Option<DependencySymbolIndexQueryOutput>,
+)> {
+    if workspace.context.classpath_mode == JavaClasspathMode::Isolated {
+        return Ok((None, None));
+    }
+
+    let resolved =
+        resolve_index_context_from_analysis(branch, &workspace.context, CacheHome::resolve()?)?;
+    let _live_query_lock = ArtifactLock::acquire_with_cancellation(
+        resolved.store.live_query_lock_path(),
+        "direct definition-at-position query",
+        cancellation_token.clone(),
+    )?;
+    let probe = resolved.store.probe(&resolved.identity)?;
+    let preflight = preflight_index_sources(&resolved.inventory, &SourceProviderFilter::default())?;
+    let loaded = if probe.loadable {
+        let (manifest, payload_path) = resolved.store.validated_payload(
+            &resolved.identity,
+            DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA,
+        )?;
+        let scan = scan_dependency_java_symbol_index(
+            &payload_path,
+            &resolved.identity,
+            &manifest.counts,
+            DependencyResolutionSelection::None,
+            |_, _, _, _, _| true,
+            |_, _, _, _, _| false,
+        )?;
+        Some((manifest, scan.body))
+    } else {
+        None
+    };
+    let completeness = loaded.as_ref().map_or(
+        SymbolQueryCompleteness::Incomplete,
+        |(manifest, _)| match manifest.completeness {
+            DependencySymbolIndexCompleteness::Complete => SymbolQueryCompleteness::Complete,
+            DependencySymbolIndexCompleteness::Partial => SymbolQueryCompleteness::Incomplete,
+        },
+    );
+    let evidence = DependencySymbolIndexQueryOutput {
+        status: probe.status,
+        completeness,
+        expected_identity: resolved.identity.digest,
+        portable_path: probe.layout.portable.root,
+        path: probe.layout.concrete.root.display().to_string(),
+        reason: probe.reason,
+        refresh_command: render_refresh_command(branch)?,
+        acquisition_commands: acquisition_commands(&preflight, branch)?,
+    };
+    Ok((loaded.map(|(_, body)| body), Some(evidence)))
 }
 
 fn legacy_definition_pipeline_requested() -> bool {

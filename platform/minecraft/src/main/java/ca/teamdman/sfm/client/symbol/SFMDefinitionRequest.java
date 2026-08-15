@@ -8,17 +8,20 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /** Immutable provider-neutral input for definition lookup at one editor location. */
 public record SFMDefinitionRequest(
         String schema,
         long requestId,
+        /** Provider-origin-scoped correlation generation; supersession is an explicit cancellation. */
         long requestGeneration,
         Workspace workspace,
         Document document,
         Position position
 ) {
-    public static final String SCHEMA = "sfm.definition-at-position-request/1";
+    public static final String SCHEMA = "sfm.definition-at-position-request/2";
+    private static final Set<String> SOURCE_ROOT_KINDS = Set.of("declared", "generated", "custom");
 
     public enum ClasspathMode {
         BRANCH("branch"),
@@ -53,7 +56,7 @@ public record SFMDefinitionRequest(
             requireNonBlank(id, "source-root id");
             requireNonBlank(sourceSet, "source-root source set");
             requireNonBlank(path, "source-root path");
-            requireNonBlank(kind, "source-root kind");
+            requireWireName(kind, "source-root kind", SOURCE_ROOT_KINDS);
         }
     }
 
@@ -63,6 +66,7 @@ public record SFMDefinitionRequest(
             List<SourceRoot> sourceRoots,
             String classpathFingerprint,
             Optional<String> dependencyIndexIdentity,
+            String workspaceFingerprint,
             long workspaceGeneration
     ) {
         public Workspace {
@@ -75,6 +79,7 @@ public record SFMDefinitionRequest(
                     "dependencyIndexIdentity"
             );
             dependencyIndexIdentity.ifPresent(value -> requireNonBlank(value, "dependency-index identity"));
+            requireHashShape(workspaceFingerprint, "workspace fingerprint");
             requireNonNegative(workspaceGeneration, "workspaceGeneration");
             HashSet<String> ids = new HashSet<>();
             for (SourceRoot root : sourceRoots) {
@@ -102,6 +107,7 @@ public record SFMDefinitionRequest(
             requireCanonicalRelativePath(reportPath, "document report path");
             requireNonBlank(sourceSet, "document source set");
             Objects.requireNonNull(text, "text");
+            requireWellFormedUnicode(text, "document text");
             requireHashShape(contentHash, "contentHash");
             diskContentHash = Objects.requireNonNull(diskContentHash, "diskContentHash");
             diskContentHash.ifPresent(value -> requireHashShape(value, "diskContentHash"));
@@ -193,6 +199,7 @@ public record SFMDefinitionRequest(
 
     public static String sha256(String text) {
         Objects.requireNonNull(text, "text");
+        requireWellFormedUnicode(text, "text");
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
                     .digest(text.getBytes(StandardCharsets.UTF_8));
@@ -266,6 +273,25 @@ public record SFMDefinitionRequest(
 
     private static void requireNonBlank(String value, String label) {
         if (value == null || value.isBlank()) throw new IllegalArgumentException(label + " must not be blank");
+    }
+
+    private static void requireWireName(String value, String label, Set<String> allowed) {
+        requireNonBlank(value, label);
+        if (!allowed.contains(value)) throw new IllegalArgumentException("Unknown " + label + ": " + value);
+    }
+
+    private static void requireWellFormedUnicode(String value, String label) {
+        for (int index = 0; index < value.length(); index++) {
+            char current = value.charAt(index);
+            if (Character.isHighSurrogate(current)) {
+                if (index + 1 >= value.length() || !Character.isLowSurrogate(value.charAt(index + 1))) {
+                    throw new IllegalArgumentException(label + " contains an unpaired UTF-16 surrogate");
+                }
+                index++;
+            } else if (Character.isLowSurrogate(current)) {
+                throw new IllegalArgumentException(label + " contains an unpaired UTF-16 surrogate");
+            }
+        }
     }
 
     private static void requirePositive(long value, String label) {

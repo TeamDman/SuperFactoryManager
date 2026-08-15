@@ -5,6 +5,7 @@ use super::SymbolListArgs;
 use super::SymbolListUsagesArgs;
 use super::SymbolMoveArgs;
 use super::SymbolRenameArgs;
+use super::SymbolServeArgs;
 use super::SymbolShowDefinitionArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::jar::BranchSelector;
@@ -59,6 +60,8 @@ pub enum SymbolCommand {
     List(SymbolListArgs),
     /// Inspect or refresh the immutable dependency symbol index.
     Index(SymbolIndexArgs),
+    /// Serve framed definition-at-position requests over stdin/stdout.
+    Serve(SymbolServeArgs),
     /// Rename a selected Java symbol.
     Rename(SymbolRenameArgs),
     /// Move a selected Java symbol.
@@ -89,6 +92,7 @@ impl SymbolCommand {
             Self::ListUsages(args) => args.invoke_in(cancellation_token, invocation_dir),
             Self::List(args) => args.invoke_in(cancellation_token, invocation_dir),
             Self::Index(args) => args.invoke_in(cancellation_token, invocation_dir),
+            Self::Serve(args) => args.invoke_in(cancellation_token, invocation_dir),
             Self::Rename(args) => args.invoke(),
             Self::Move(args) => args.invoke(),
         }
@@ -264,6 +268,20 @@ mod tests {
             panic!("expected filtered symbol list command");
         };
         assert_eq!(filtered.pattern.as_deref(), Some("example.* run*"));
+    }
+
+    #[test]
+    fn parses_symbol_serve_with_the_normal_workspace_contract() {
+        let cli = parse(&["symbol", "serve", "--branch", "1.19.2"]);
+        let CliCommand::Symbol(SymbolArgs {
+            command: SymbolCommand::Serve(serve),
+        }) = cli.command
+        else {
+            panic!("expected symbol serve command");
+        };
+        assert_eq!(serve.workspace.branch.to_string(), "1.19.2");
+        assert!(serve.workspace.source_root.is_empty());
+        assert_eq!(serve.workspace.classpath_mode, None);
     }
 
     #[test]

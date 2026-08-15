@@ -1,3 +1,9 @@
+use super::DefinitionAtPositionDefinitionOutput;
+use super::DefinitionAtPositionOutcome;
+use super::DefinitionAtPositionRequest;
+use super::DefinitionAtPositionResult;
+use super::DefinitionDocumentIdentityOutput;
+use super::DefinitionSourceSpanOutput;
 use super::DependencyJavaSourceOrigin;
 use super::DependencyJavaSymbolIndexBody;
 use super::DiagnosticSeverity;
@@ -18,6 +24,8 @@ use super::SymbolCommandOutcome;
 use super::SymbolDefinitionOutput;
 use super::SymbolListOutput;
 use super::SymbolUsageListOutput;
+use super::blake3_content_hash;
+use super::definition_workspace_fingerprint;
 use super::syntax::JAVA_PARSER_FINGERPRINT;
 use super::syntax::JavaSyntaxFile;
 use super::syntax::declaration_name_node;
@@ -47,6 +55,99 @@ pub struct JavaSymbolIndex {
 pub(crate) struct JavaDependencyResolutionDefinition {
     pub(crate) symbol: JavaSymbolIdentityOutput,
     pub(crate) source_set: String,
+}
+
+/// Rich declaration surface retained by the warm linker. Unlike the portable
+/// dependency body, this keeps member types needed to resolve chained
+/// expressions without reparsing every live source file.
+#[derive(Clone, Debug)]
+pub(crate) struct JavaLiveDefinitionSurface {
+    pub(crate) context: JavaAnalysisContextOutput,
+    pub(crate) files: Vec<JavaFileFactIdentity>,
+    pub(crate) types: Vec<JavaSymbolDefinitionOutput>,
+    pub(crate) fields: Vec<JavaLiveFieldDefinition>,
+    pub(crate) methods: Vec<JavaLiveMethodDefinition>,
+    pub(crate) diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub(crate) struct JavaLiveFieldDefinition {
+    pub(crate) definition: JavaSymbolDefinitionOutput,
+    pub(crate) value_type: Option<String>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+pub(crate) struct JavaLiveMethodDefinition {
+    pub(crate) definition: JavaSymbolDefinitionOutput,
+    pub(crate) parameter_types: Vec<String>,
+    pub(crate) return_type: Option<String>,
+}
+
+impl JavaLiveDefinitionSurface {
+    pub(crate) fn into_index(self) -> JavaSymbolIndex {
+        let mut definitions = self.types;
+        definitions.extend(self.fields.into_iter().map(|field| field.definition));
+        definitions.extend(self.methods.into_iter().map(|method| method.definition));
+        JavaSymbolIndex::from_linked_definitions(
+            self.context,
+            &self.files,
+            definitions,
+            self.diagnostics,
+        )
+    }
+
+    fn source_sets(&self) -> BTreeSet<String> {
+        self.types
+            .iter()
+            .map(|definition| definition.identifier_span.source_set.clone())
+            .chain(
+                self.fields
+                    .iter()
+                    .map(|field| field.definition.identifier_span.source_set.clone()),
+            )
+            .chain(
+                self.methods
+                    .iter()
+                    .map(|method| method.definition.identifier_span.source_set.clone()),
+            )
+            .collect()
+    }
+}
+
+/// Analyze the exact immutable editor snapshot in `request` against the
+/// selected workspace and optional dependency index.
+///
+/// This is the shared direct-analysis entry point for the CLI and a future
+/// long-lived provider. It validates the request's root identity, replaces
+/// only the addressed document while parsing, and delegates symbol discovery
+/// to the same [`UsageCollector`] used by ordinary usage queries.
+///
+/// # Errors
+///
+/// Returns an error when a workspace source cannot be read or parsed. Invalid
+/// request/workspace combinations are represented as typed
+/// [`DefinitionAtPositionResult`] values.
+pub fn analyze_definition_at_position(
+    workspace: &JavaSourceWorkspace,
+    request: &DefinitionAtPositionRequest,
+    dependencies: Option<&DependencyJavaSymbolIndexBody>,
+) -> eyre::Result<DefinitionAtPositionResult> {
+    if let Err(error) = validate_definition_request_workspace(workspace, request) {
+        return Ok(DefinitionAtPositionResult::invalid_request(
+            request,
+            workspace.context.clone(),
+            format!("{error:#}"),
+        ));
+    }
+    let workspace = workspace.clone().with_source_overlay(
+        &request.document.root_id,
+        &request.document.root_relative_path,
+        request.document.text.clone(),
+    )?;
+    let index = JavaSymbolIndex::build_workspace(&workspace, true, dependencies, None, None, None)?;
+    let mut result = index.definition_at_position(request, &workspace);
+    normalize_definition_at_position_context(workspace.context.clone(), dependencies, &mut result);
+    Ok(result)
 }
 
 impl JavaSymbolIndex {
@@ -84,7 +185,7 @@ impl JavaSymbolIndex {
     ///
     /// Returns an error when a source cannot be read or Arborium cannot create a parse tree.
     pub fn build(workspace: &JavaSourceWorkspace) -> eyre::Result<Self> {
-        Self::build_workspace(workspace, true, None, None, None)
+        Self::build_workspace(workspace, true, None, None, None, None)
     }
 
     /// Build only declarations and declaration-time diagnostics. Definition
@@ -94,7 +195,7 @@ impl JavaSymbolIndex {
     ///
     /// Returns an error when a source cannot be read or parsed.
     pub fn build_definitions(workspace: &JavaSourceWorkspace) -> eyre::Result<Self> {
-        Self::build_workspace(workspace, false, None, None, None)
+        Self::build_workspace(workspace, false, None, None, None, None)
     }
 
     /// Live-index SFM sources while allowing an immutable dependency payload
@@ -108,7 +209,32 @@ impl JavaSymbolIndex {
         dependencies: &DependencyJavaSymbolIndexBody,
         include_usages: bool,
     ) -> eyre::Result<Self> {
-        Self::build_workspace(workspace, include_usages, Some(dependencies), None, None)
+        Self::build_workspace(
+            workspace,
+            include_usages,
+            Some(dependencies),
+            None,
+            None,
+            None,
+        )
+    }
+
+    /// Parse only the request target while resolving it against a rich live
+    /// declaration surface retained by the warm engine.
+    pub(crate) fn build_with_live_definitions(
+        workspace: &JavaSourceWorkspace,
+        live: &JavaLiveDefinitionSurface,
+        dependencies: Option<&DependencyJavaSymbolIndexBody>,
+        include_usages: bool,
+    ) -> eyre::Result<Self> {
+        Self::build_workspace(
+            workspace,
+            include_usages,
+            dependencies,
+            None,
+            None,
+            Some(live),
+        )
     }
 
     pub(crate) fn build_dependency_worker(
@@ -123,6 +249,7 @@ impl JavaSymbolIndex {
             None,
             resolution_dependencies,
             Some(diagnostic_limit),
+            None,
         )
     }
 
@@ -167,6 +294,7 @@ impl JavaSymbolIndex {
         dependencies: Option<&DependencyJavaSymbolIndexBody>,
         resolution_dependencies: Option<&[JavaDependencyResolutionDefinition]>,
         diagnostic_limit: Option<usize>,
+        live: Option<&JavaLiveDefinitionSurface>,
     ) -> eyre::Result<Self> {
         let mut files = workspace.files.iter().collect::<Vec<_>>();
         files.sort_by(|left, right| {
@@ -197,6 +325,9 @@ impl JavaSymbolIndex {
         if let Some(resolution_dependencies) = resolution_dependencies {
             dependency_sets.extend(resolution_dependency_source_sets(resolution_dependencies));
         }
+        if let Some(live) = live {
+            dependency_sets.extend(live.source_sets());
+        }
         if !dependency_sets.is_empty() {
             for from in &source_sets {
                 for target in &dependency_sets {
@@ -216,6 +347,7 @@ impl JavaSymbolIndex {
             include_usages,
             dependencies,
             resolution_dependencies,
+            live,
         ))
     }
 
@@ -316,6 +448,109 @@ impl JavaSymbolIndex {
         )
     }
 
+    pub(crate) fn definition_at_position(
+        &self,
+        request: &DefinitionAtPositionRequest,
+        workspace: &JavaSourceWorkspace,
+    ) -> DefinitionAtPositionResult {
+        let current_source_hash = blake3_content_hash(&request.document.text);
+        let offset = request.position.byte_offset;
+        let containing = self
+            .usages
+            .iter()
+            .filter(|usage| {
+                usage.span.path == request.document.report_path
+                    && usage.span.source_set == request.document.source_set
+                    && usage.span.source_hash == current_source_hash
+                    && usage.span.start_byte <= offset
+                    && offset < usage.span.end_byte
+            })
+            .collect::<Vec<_>>();
+        let narrowest_width = containing
+            .iter()
+            .map(|usage| usage.span.end_byte.saturating_sub(usage.span.start_byte))
+            .min();
+        let mut symbols = containing
+            .into_iter()
+            .filter(|usage| {
+                narrowest_width.is_some_and(|width| {
+                    usage.span.end_byte.saturating_sub(usage.span.start_byte) == width
+                })
+            })
+            .map(|usage| usage.target.clone())
+            .collect::<Vec<_>>();
+        symbols.sort();
+        symbols.dedup();
+
+        let selected_symbols = symbols.iter().collect::<BTreeSet<_>>();
+        let mut report_definitions = self
+            .definitions
+            .iter()
+            .filter(|definition| selected_symbols.contains(&definition.symbol))
+            .cloned()
+            .collect::<Vec<_>>();
+        report_definitions.sort();
+        report_definitions.dedup();
+        let outcome = if symbols.is_empty() {
+            DefinitionAtPositionOutcome::NoSymbol
+        } else if symbols.len() > 1 || report_definitions.len() > 1 {
+            DefinitionAtPositionOutcome::Ambiguous
+        } else if report_definitions.is_empty() {
+            DefinitionAtPositionOutcome::NoDefinition
+        } else {
+            DefinitionAtPositionOutcome::Success
+        };
+        let mut diagnostics = self
+            .diagnostics
+            .iter()
+            .filter(|diagnostic| {
+                diagnostic.span.as_ref().is_some_and(|span| {
+                    span.path == request.document.report_path
+                        && span.source_set == request.document.source_set
+                        && span.source_hash == current_source_hash
+                })
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        diagnostics.sort();
+        diagnostics.dedup();
+
+        let mut context = self.context.clone();
+        context.index_fingerprint = index_fingerprint(
+            &[IndexSourceEvidence {
+                report_path: request.document.report_path.clone(),
+                source_set: request.document.source_set.clone(),
+                source_hash: current_source_hash,
+            }],
+            &report_definitions,
+            &[],
+            &diagnostics,
+        );
+        let mut definitions = report_definitions
+            .iter()
+            .map(|definition| definition_at_position_definition(definition, workspace))
+            .collect::<Vec<_>>();
+        definitions.sort();
+        definitions.dedup();
+
+        DefinitionAtPositionResult {
+            schema: super::DEFINITION_AT_POSITION_RESULT_SCHEMA.to_owned(),
+            request_id: request.request_id,
+            request_generation: request.request_generation,
+            workspace_generation: request.workspace.workspace_generation,
+            outcome,
+            context,
+            document: DefinitionDocumentIdentityOutput::from(&request.document),
+            position: request.position,
+            symbols,
+            definitions,
+            completeness: super::SymbolQueryCompleteness::Complete,
+            diagnostics,
+            recovery_actions: Vec::new(),
+            dependency_index: None,
+        }
+    }
+
     fn matching_definitions(
         &self,
         selector: &JavaSymbolSelector,
@@ -341,7 +576,7 @@ impl JavaSymbolIndex {
         files: Vec<JavaSyntaxFile>,
         visibility: BTreeSet<(String, String)>,
     ) -> Self {
-        Self::build_from_parsed_mode(context, files, visibility, true, None, None)
+        Self::build_from_parsed_mode(context, files, visibility, true, None, None, None)
     }
 
     fn build_from_parsed_mode(
@@ -351,6 +586,7 @@ impl JavaSymbolIndex {
         include_usages: bool,
         dependencies: Option<&DependencyJavaSymbolIndexBody>,
         resolution_dependencies: Option<&[JavaDependencyResolutionDefinition]>,
+        live: Option<&JavaLiveDefinitionSurface>,
     ) -> Self {
         files.sort_by(|left, right| {
             (&left.report_path, &left.source_set).cmp(&(&right.report_path, &right.source_set))
@@ -365,7 +601,13 @@ impl JavaSymbolIndex {
             diagnostics.extend(dependencies.diagnostics.iter().cloned());
             add_dependency_source_sets(&mut context, dependencies);
         }
+        if let Some(live) = live {
+            diagnostics.extend(live.diagnostics.iter().cloned());
+        }
         let mut types = collect_type_declarations(&files);
+        if let Some(live) = live {
+            append_live_types(live, &mut types);
+        }
         if let Some(dependencies) = dependencies {
             append_dependency_types(dependencies, &mut types);
         }
@@ -375,6 +617,9 @@ impl JavaSymbolIndex {
         let type_lookup = TypeLookup::new(&types, visibility);
         let (mut fields, mut methods, mut member_diagnostics) =
             collect_member_declarations(&files, &type_lookup);
+        if let Some(live) = live {
+            append_live_members(live, &mut fields, &mut methods);
+        }
         if let Some(dependencies) = dependencies {
             append_dependency_members(dependencies, &mut fields, &mut methods);
         }
@@ -398,14 +643,24 @@ impl JavaSymbolIndex {
             field_lookup,
             method_lookup,
         };
+        Self::finish_build(context, &model, include_usages, dependencies, diagnostics)
+    }
+
+    fn finish_build(
+        mut context: JavaAnalysisContextOutput,
+        model: &JavaIndexModel,
+        include_usages: bool,
+        dependencies: Option<&DependencyJavaSymbolIndexBody>,
+        mut diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+    ) -> Self {
         let mut usages = dependencies
             .filter(|_| include_usages)
             .map_or_else(Vec::new, |dependencies| dependencies.usages.clone());
         if include_usages {
-            usages.extend(declaration_usages(&model));
+            usages.extend(declaration_usages(model));
             for file_index in 0..model.files.len() {
                 let (mut file_usages, mut file_diagnostics) =
-                    collect_file_usages(&model, file_index);
+                    collect_file_usages(model, file_index);
                 usages.append(&mut file_usages);
                 diagnostics.append(&mut file_diagnostics);
             }
@@ -452,6 +707,120 @@ impl JavaSymbolIndex {
             diagnostics,
         }
     }
+}
+
+pub(crate) fn validate_definition_request_workspace(
+    workspace: &JavaSourceWorkspace,
+    request: &DefinitionAtPositionRequest,
+) -> eyre::Result<()> {
+    request.validate()?;
+    let requested = &request.workspace;
+    let actual = &workspace.context;
+    if requested.branch != actual.branch {
+        eyre::bail!(
+            "definition request branch `{}` does not match workspace branch `{}`",
+            requested.branch,
+            actual.branch
+        );
+    }
+    if requested.classpath_mode != actual.classpath_mode {
+        eyre::bail!("definition request classpath mode does not match the workspace");
+    }
+    if requested.classpath_fingerprint != actual.classpath_fingerprint {
+        eyre::bail!("definition request classpath fingerprint does not match the workspace");
+    }
+    if requested.source_roots != actual.source_roots {
+        eyre::bail!("definition request source-root projection does not match the workspace");
+    }
+    let expected_workspace_fingerprint =
+        definition_workspace_fingerprint(actual, requested.dependency_index_identity.as_deref())?;
+    if requested.workspace_fingerprint != expected_workspace_fingerprint {
+        eyre::bail!("definition request workspace fingerprint does not match the workspace");
+    }
+    let matches = workspace
+        .files
+        .iter()
+        .filter(|file| {
+            file.root_id == request.document.root_id
+                && file.root_relative_path == request.document.root_relative_path
+        })
+        .collect::<Vec<_>>();
+    let [file] = matches.as_slice() else {
+        eyre::bail!(
+            "definition document `{}`:`{}` matched {} workspace files",
+            request.document.root_id,
+            request.document.root_relative_path,
+            matches.len()
+        );
+    };
+    if file.report_path != request.document.report_path {
+        eyre::bail!("definition document report path does not match the workspace file");
+    }
+    if file.source_set != request.document.source_set {
+        eyre::bail!("definition document source set does not match the workspace file");
+    }
+    Ok(())
+}
+
+fn definition_at_position_definition(
+    definition: &JavaSymbolDefinitionOutput,
+    workspace: &JavaSourceWorkspace,
+) -> DefinitionAtPositionDefinitionOutput {
+    DefinitionAtPositionDefinitionOutput {
+        symbol: definition.symbol.clone(),
+        identifier_span: definition_at_position_span(&definition.identifier_span, workspace),
+        declaration_span: definition_at_position_span(&definition.declaration_span, workspace),
+        confidence: definition.confidence,
+    }
+}
+
+fn definition_at_position_span(
+    span: &JavaSourceSpanOutput,
+    workspace: &JavaSourceWorkspace,
+) -> DefinitionSourceSpanOutput {
+    let mut matching_files = workspace
+        .files
+        .iter()
+        .filter(|file| file.report_path == span.path && file.source_set == span.source_set)
+        .collect::<Vec<_>>();
+    matching_files.sort_by(|left, right| {
+        (&left.root_id, &left.root_relative_path, &left.absolute_path).cmp(&(
+            &right.root_id,
+            &right.root_relative_path,
+            &right.absolute_path,
+        ))
+    });
+    if let Some(file) = matching_files.first() {
+        return DefinitionSourceSpanOutput::from_report_span(
+            span,
+            "workspace",
+            file.root_id.clone(),
+            file.root_relative_path.clone(),
+            format!("workspace://{}/{}", file.root_id, file.root_relative_path),
+        );
+    }
+    DefinitionSourceSpanOutput::from_report_span(
+        span,
+        "dependency-index",
+        "dependency-index",
+        span.path.clone(),
+        format!("dependency-index:///{}", span.path),
+    )
+}
+
+pub(crate) fn normalize_definition_at_position_context(
+    mut context: JavaAnalysisContextOutput,
+    dependencies: Option<&DependencyJavaSymbolIndexBody>,
+    result: &mut DefinitionAtPositionResult,
+) {
+    if let Some(dependencies) = dependencies {
+        add_dependency_source_sets(&mut context, dependencies);
+    }
+    JAVA_PARSER_FINGERPRINT.clone_into(&mut context.parser_fingerprint);
+    context
+        .index_fingerprint
+        .clone_from(&result.context.index_fingerprint);
+    result.context = context;
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -623,6 +992,67 @@ fn add_dependency_source_sets(
     context
         .source_sets
         .sort_by(|left, right| left.id.cmp(&right.id));
+}
+
+fn append_live_types(live: &JavaLiveDefinitionSurface, types: &mut Vec<TypeDeclaration>) {
+    let local_symbols = types
+        .iter()
+        .map(TypeDeclaration::symbol)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    types.extend(
+        live.types
+            .iter()
+            .filter(|definition| !local_symbols.contains(&definition.symbol))
+            .cloned()
+            .map(|definition| TypeDeclaration {
+                declaration: IndexedDeclaration::Report(Box::new(definition)),
+            }),
+    );
+    types.sort();
+    types.dedup();
+}
+
+fn append_live_members(
+    live: &JavaLiveDefinitionSurface,
+    fields: &mut Vec<FieldDeclaration>,
+    methods: &mut Vec<MethodDeclaration>,
+) {
+    let local_fields = fields
+        .iter()
+        .map(FieldDeclaration::symbol)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    fields.extend(
+        live.fields
+            .iter()
+            .filter(|field| !local_fields.contains(&field.definition.symbol))
+            .cloned()
+            .map(|field| FieldDeclaration {
+                declaration: IndexedDeclaration::Report(Box::new(field.definition)),
+                value_type: field.value_type,
+            }),
+    );
+    let local_methods = methods
+        .iter()
+        .map(MethodDeclaration::symbol)
+        .cloned()
+        .collect::<BTreeSet<_>>();
+    methods.extend(
+        live.methods
+            .iter()
+            .filter(|method| !local_methods.contains(&method.definition.symbol))
+            .cloned()
+            .map(|method| MethodDeclaration {
+                declaration: IndexedDeclaration::Report(Box::new(method.definition)),
+                parameter_types: method.parameter_types,
+                return_type: method.return_type,
+            }),
+    );
+    fields.sort();
+    fields.dedup();
+    methods.sort();
+    methods.dedup();
 }
 
 fn append_dependency_types(
@@ -958,7 +1388,10 @@ struct ResolvedType {
 #[derive(Clone, Debug)]
 enum TypeResolutionFailure {
     Unresolved(String),
-    Ambiguous(String),
+    Ambiguous {
+        name: String,
+        source_indices: Vec<usize>,
+    },
     Inaccessible(String),
 }
 
@@ -1417,14 +1850,22 @@ fn resolve_reference_type_name(
     owner: &str,
     lookup: &TypeLookup,
 ) -> Result<ResolvedType, TypeResolutionFailure> {
-    let direct_candidate = unique_direct_import(file, raw_name)?;
-    let imported_nested_candidate = if let Some((head, tail)) = raw_name.split_once('.') {
-        unique_direct_import(file, head)?.map(|import| format!("{import}.{tail}"))
+    let direct_candidates = direct_import_candidates(file, raw_name);
+    let imported_nested_candidates = if let Some((head, tail)) = raw_name.split_once('.') {
+        direct_import_candidates(file, head)
+            .into_iter()
+            .map(|import| format!("{import}.{tail}"))
+            .collect::<Vec<_>>()
     } else {
-        None
+        Vec::new()
     };
-    if let Some(candidate) = direct_candidate.or(imported_nested_candidate) {
-        return resolve_qualified_candidate(&candidate, file, lookup);
+    let explicit_candidates = if direct_candidates.is_empty() {
+        imported_nested_candidates
+    } else {
+        direct_candidates
+    };
+    if !explicit_candidates.is_empty() {
+        return resolve_candidate_set(raw_name, &explicit_candidates, file, lookup, false);
     }
 
     if raw_name.contains('.') && raw_name.chars().next().is_some_and(char::is_lowercase) {
@@ -1444,9 +1885,27 @@ fn resolve_reference_type_name(
     candidates.sort();
     candidates.dedup();
 
+    resolve_candidate_set(raw_name, &candidates, file, lookup, true)
+}
+
+fn resolve_qualified_candidate(
+    candidate: &str,
+    file: &JavaSyntaxFile,
+    lookup: &TypeLookup,
+) -> Result<ResolvedType, TypeResolutionFailure> {
+    resolve_candidate_set(candidate, &[candidate.to_owned()], file, lookup, false)
+}
+
+fn resolve_candidate_set(
+    display_name: &str,
+    candidates: &[String],
+    file: &JavaSyntaxFile,
+    lookup: &TypeLookup,
+    allow_java_lang_fallback: bool,
+) -> Result<ResolvedType, TypeResolutionFailure> {
     let mut visible = Vec::new();
     let mut inaccessible = false;
-    for candidate in &candidates {
+    for candidate in candidates {
         let all = lookup.all_indices(candidate);
         let available = lookup.visible_indices(candidate, &file.source_set);
         inaccessible |= !all.is_empty() && available.is_empty();
@@ -1459,54 +1918,37 @@ fn resolve_reference_type_name(
             qualified_name: lookup.types[*index].qualified_name.clone(),
             source_indices: visible,
         }),
-        [] if inaccessible => Err(TypeResolutionFailure::Inaccessible(raw_name.to_owned())),
-        [] if is_java_lang_type(raw_name) => Ok(ResolvedType {
-            qualified_name: format!("java.lang.{raw_name}"),
+        [] if inaccessible => Err(TypeResolutionFailure::Inaccessible(display_name.to_owned())),
+        [] if allow_java_lang_fallback && is_java_lang_type(display_name) => Ok(ResolvedType {
+            qualified_name: format!("java.lang.{display_name}"),
             source_indices: Vec::new(),
         }),
-        [] => Err(TypeResolutionFailure::Unresolved(raw_name.to_owned())),
-        _ => Err(TypeResolutionFailure::Ambiguous(raw_name.to_owned())),
-    }
-}
-
-fn resolve_qualified_candidate(
-    candidate: &str,
-    file: &JavaSyntaxFile,
-    lookup: &TypeLookup,
-) -> Result<ResolvedType, TypeResolutionFailure> {
-    let all = lookup.all_indices(candidate);
-    let visible = lookup.visible_indices(candidate, &file.source_set);
-    match visible.as_slice() {
-        [index] => Ok(ResolvedType {
-            qualified_name: lookup.types[*index].qualified_name.clone(),
+        [] if is_known_java_lang_qualified_type(display_name) => Ok(ResolvedType {
+            qualified_name: display_name.to_owned(),
+            source_indices: Vec::new(),
+        }),
+        [] => Err(TypeResolutionFailure::Unresolved(display_name.to_owned())),
+        _ => Err(TypeResolutionFailure::Ambiguous {
+            name: display_name.to_owned(),
             source_indices: visible,
         }),
-        [] if !all.is_empty() => Err(TypeResolutionFailure::Inaccessible(candidate.to_owned())),
-        [] if is_known_java_lang_qualified_type(candidate) => Ok(ResolvedType {
-            qualified_name: candidate.to_owned(),
-            source_indices: Vec::new(),
-        }),
-        [] => Err(TypeResolutionFailure::Unresolved(candidate.to_owned())),
-        _ => Err(TypeResolutionFailure::Ambiguous(candidate.to_owned())),
     }
 }
 
-fn unique_direct_import(
-    file: &JavaSyntaxFile,
-    simple_name: &str,
-) -> Result<Option<String>, TypeResolutionFailure> {
-    let Some(imports) = file.imports.direct_types.get(simple_name) else {
-        return Ok(None);
-    };
-    let qualified_names = imports
-        .iter()
-        .map(|import| import.qualified_name.as_str())
-        .collect::<BTreeSet<_>>();
-    match qualified_names.len() {
-        0 => Ok(None),
-        1 => Ok(qualified_names.first().map(|name| (*name).to_owned())),
-        _ => Err(TypeResolutionFailure::Ambiguous(simple_name.to_owned())),
-    }
+fn direct_import_candidates(file: &JavaSyntaxFile, simple_name: &str) -> Vec<String> {
+    let mut qualified_names =
+        file.imports
+            .direct_types
+            .get(simple_name)
+            .map_or_else(Vec::new, |imports| {
+                imports
+                    .iter()
+                    .map(|import| import.qualified_name.clone())
+                    .collect::<Vec<_>>()
+            });
+    qualified_names.sort();
+    qualified_names.dedup();
+    qualified_names
 }
 
 fn is_known_java_lang_qualified_type(candidate: &str) -> bool {
@@ -1555,7 +1997,7 @@ fn type_resolution_diagnostic(
             "java.unresolved-type",
             format!("Could not resolve {role} `{name}` without guessing"),
         ),
-        TypeResolutionFailure::Ambiguous(name) => (
+        TypeResolutionFailure::Ambiguous { name, .. } => (
             "java.ambiguous-type",
             format!("{role} `{name}` resolves to more than one visible source declaration"),
         ),
@@ -1663,10 +2105,10 @@ struct UsageCollector<'a> {
     diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug)]
 enum MemberResolutionFailure {
     Unresolved,
-    Ambiguous,
+    Ambiguous(Vec<JavaSymbolIdentityOutput>),
     Inaccessible,
 }
 
@@ -1698,11 +2140,14 @@ impl UsageCollector<'_> {
                         ResolutionConfidence::Resolved,
                     );
                 }
-                Err(failure) => self.diagnostics.push(type_resolution_diagnostic(
-                    failure,
-                    import.span,
-                    "imported type",
-                )),
+                Err(failure) => {
+                    self.record_type_ambiguity(&failure, JavaUsageKind::Import, &import.span);
+                    self.diagnostics.push(type_resolution_diagnostic(
+                        failure,
+                        import.span,
+                        "imported type",
+                    ));
+                }
             }
         }
 
@@ -1764,6 +2209,7 @@ impl UsageCollector<'_> {
             "local_variable_declaration" => self.visit_local_variable(node),
             "enhanced_for_statement" => self.visit_enhanced_for(node),
             "catch_clause" => self.visit_catch_clause(node),
+            "object_creation_expression" => self.visit_object_creation(node),
             "field_access" => self.visit_field_access(node),
             "method_invocation" => self.visit_method_invocation(node),
             "method_reference" => self.visit_method_reference(node),
@@ -1905,6 +2351,7 @@ impl UsageCollector<'_> {
                 ResolutionConfidence::Resolved,
             ),
             Err(failure) => {
+                self.record_type_ambiguity(&failure, JavaUsageKind::TypeReference, &span);
                 self.diagnostics
                     .push(type_resolution_diagnostic(failure, span, "type reference"));
             }
@@ -1933,6 +2380,97 @@ impl UsageCollector<'_> {
         }
         for child in named_children(node) {
             if child.byte_range() != field_node.byte_range() {
+                self.visit(child);
+            }
+        }
+    }
+
+    fn visit_object_creation(&mut self, node: Node<'_>) {
+        let Some(type_node) = node.child_by_field_name("type") else {
+            self.visit_children(node);
+            return;
+        };
+        let Some(raw_type) = self.file().text(type_node).map(ToOwned::to_owned) else {
+            self.visit_children(node);
+            return;
+        };
+        let span = self.file().span(type_node);
+        match self.resolve_type(&raw_type) {
+            Ok(resolved) => {
+                let owner = resolved.qualified_name;
+                let arguments = node
+                    .child_by_field_name("arguments")
+                    .map(named_children)
+                    .unwrap_or_default();
+                let argument_types = arguments
+                    .iter()
+                    .map(|argument| self.expression_type(*argument))
+                    .collect::<Vec<_>>();
+                let all_arguments_resolved = argument_types.iter().all(Option::is_some);
+                let declared_constructors = self.visible_methods(&owner, "<init>");
+                let mut candidates = declared_constructors
+                    .iter()
+                    .copied()
+                    .filter(|method| method.parameter_types.len() == argument_types.len())
+                    .collect::<Vec<_>>();
+                if all_arguments_resolved {
+                    candidates.retain(|method| {
+                        method.parameter_types.iter().zip(&argument_types).all(
+                            |(parameter, argument)| {
+                                argument
+                                    .as_deref()
+                                    .is_some_and(|argument| java_types_match(parameter, argument))
+                            },
+                        )
+                    });
+                }
+                candidates.sort_by(|left, right| left.declaration.cmp(&right.declaration));
+                candidates.dedup_by(|left, right| left.declaration == right.declaration);
+                match candidates.as_slice() {
+                    [constructor] => self.usages.push(JavaSymbolUsageOutput {
+                        target: constructor.symbol().clone(),
+                        kind: JavaUsageKind::Invocation,
+                        span: span.clone(),
+                        confidence: if all_arguments_resolved {
+                            ResolutionConfidence::Resolved
+                        } else {
+                            ResolutionConfidence::PartiallyResolved
+                        },
+                    }),
+                    [] if declared_constructors.is_empty() => self.record_type_indices(
+                        &resolved.source_indices,
+                        JavaUsageKind::TypeReference,
+                        &span,
+                        ResolutionConfidence::Resolved,
+                    ),
+                    [] => self.push_member_diagnostic(
+                        &MemberResolutionFailure::Unresolved,
+                        "<init>",
+                        span.clone(),
+                    ),
+                    _ => {
+                        let failure = MemberResolutionFailure::Ambiguous(
+                            candidates
+                                .iter()
+                                .map(|method| method.symbol().clone())
+                                .collect(),
+                        );
+                        self.record_member_ambiguity(&failure, JavaUsageKind::Invocation, &span);
+                        self.push_member_diagnostic(&failure, "<init>", span.clone());
+                    }
+                }
+            }
+            Err(failure) => {
+                self.record_type_ambiguity(&failure, JavaUsageKind::TypeReference, &span);
+                self.diagnostics.push(type_resolution_diagnostic(
+                    failure,
+                    span.clone(),
+                    "constructed type",
+                ));
+            }
+        }
+        for child in named_children(node) {
+            if child.byte_range() != type_node.byte_range() {
                 self.visit(child);
             }
         }
@@ -1967,13 +2505,25 @@ impl UsageCollector<'_> {
             .iter()
             .flat_map(|owner| self.visible_fields(owner, &name))
             .collect::<Vec<_>>();
-        if let [field] = candidates.as_slice() {
-            self.usages.push(JavaSymbolUsageOutput {
+        match candidates.as_slice() {
+            [field] => self.usages.push(JavaSymbolUsageOutput {
                 target: field.symbol().clone(),
                 kind: JavaUsageKind::FieldReference,
                 span: self.file().span(node),
                 confidence: ResolutionConfidence::Resolved,
-            });
+            }),
+            [] => {}
+            _ => {
+                let span = self.file().span(node);
+                let failure = MemberResolutionFailure::Ambiguous(
+                    candidates
+                        .iter()
+                        .map(|field| field.symbol().clone())
+                        .collect(),
+                );
+                self.record_member_ambiguity(&failure, JavaUsageKind::FieldReference, &span);
+                self.push_member_diagnostic(&failure, &name, span);
+            }
         }
     }
 
@@ -1996,7 +2546,10 @@ impl UsageCollector<'_> {
                 confidence,
             }),
             Ok(None) => {}
-            Err(failure) => self.push_member_diagnostic(failure, &name, span),
+            Err(failure) => {
+                self.record_member_ambiguity(&failure, JavaUsageKind::Invocation, &span);
+                self.push_member_diagnostic(&failure, &name, span);
+            }
         }
         for child in named_children(node) {
             if child.byte_range() != name_node.byte_range() {
@@ -2053,13 +2606,34 @@ impl UsageCollector<'_> {
                 span: span.clone(),
                 confidence: ResolutionConfidence::Resolved,
             }),
+            [] if name == "<init>" && self.has_source_type(&owner) => {
+                let indices = self
+                    .model
+                    .type_lookup
+                    .visible_indices(&owner, &self.file().source_set);
+                self.record_type_indices(
+                    &indices,
+                    JavaUsageKind::MethodReference,
+                    &span,
+                    ResolutionConfidence::Resolved,
+                );
+            }
             [] if self.has_source_type(&owner) => self.push_member_diagnostic(
-                MemberResolutionFailure::Unresolved,
+                &MemberResolutionFailure::Unresolved,
                 &name,
                 span.clone(),
             ),
             [] => {}
-            _ => self.push_member_diagnostic(MemberResolutionFailure::Ambiguous, &name, span),
+            _ => {
+                let failure = MemberResolutionFailure::Ambiguous(
+                    candidates
+                        .iter()
+                        .map(|method| method.symbol().clone())
+                        .collect(),
+                );
+                self.record_member_ambiguity(&failure, JavaUsageKind::MethodReference, &span);
+                self.push_member_diagnostic(&failure, &name, span);
+            }
         }
         for child in children {
             if name_range
@@ -2103,6 +2677,39 @@ impl UsageCollector<'_> {
         }
     }
 
+    fn record_type_ambiguity(
+        &mut self,
+        failure: &TypeResolutionFailure,
+        kind: JavaUsageKind,
+        span: &JavaSourceSpanOutput,
+    ) {
+        if let TypeResolutionFailure::Ambiguous { source_indices, .. } = failure {
+            self.record_type_indices(
+                source_indices,
+                kind,
+                span,
+                ResolutionConfidence::PartiallyResolved,
+            );
+        }
+    }
+
+    fn record_member_ambiguity(
+        &mut self,
+        failure: &MemberResolutionFailure,
+        kind: JavaUsageKind,
+        span: &JavaSourceSpanOutput,
+    ) {
+        if let MemberResolutionFailure::Ambiguous(symbols) = failure {
+            self.usages
+                .extend(symbols.iter().cloned().map(|target| JavaSymbolUsageOutput {
+                    target,
+                    kind,
+                    span: span.clone(),
+                    confidence: ResolutionConfidence::PartiallyResolved,
+                }));
+        }
+    }
+
     fn record_field_reference(
         &mut self,
         owner: &str,
@@ -2123,16 +2730,22 @@ impl UsageCollector<'_> {
                 },
             }),
             [] if self.has_source_type(owner) => self.push_member_diagnostic(
-                MemberResolutionFailure::Unresolved,
+                &MemberResolutionFailure::Unresolved,
                 name,
                 self.file().span(location),
             ),
             [] => {}
-            _ => self.push_member_diagnostic(
-                MemberResolutionFailure::Ambiguous,
-                name,
-                self.file().span(location),
-            ),
+            _ => {
+                let span = self.file().span(location);
+                let failure = MemberResolutionFailure::Ambiguous(
+                    candidates
+                        .iter()
+                        .map(|field| field.symbol().clone())
+                        .collect(),
+                );
+                self.record_member_ambiguity(&failure, JavaUsageKind::FieldReference, &span);
+                self.push_member_diagnostic(&failure, name, span);
+            }
         }
     }
 
@@ -2207,7 +2820,7 @@ impl UsageCollector<'_> {
 
     fn push_member_diagnostic(
         &mut self,
-        failure: MemberResolutionFailure,
+        failure: &MemberResolutionFailure,
         member: &str,
         span: JavaSourceSpanOutput,
     ) {
@@ -2216,7 +2829,7 @@ impl UsageCollector<'_> {
                 "java.unresolved-member",
                 format!("Could not resolve member `{member}` without guessing"),
             ),
-            MemberResolutionFailure::Ambiguous => (
+            MemberResolutionFailure::Ambiguous(_) => (
                 "java.ambiguous-member",
                 format!("Member `{member}` resolves to more than one visible declaration"),
             ),
@@ -2331,7 +2944,12 @@ impl UsageCollector<'_> {
                     Ok(None)
                 }
             }
-            _ => Err(MemberResolutionFailure::Ambiguous),
+            _ => Err(MemberResolutionFailure::Ambiguous(
+                candidates
+                    .iter()
+                    .map(|method| method.symbol().clone())
+                    .collect(),
+            )),
         }
     }
 
@@ -2604,7 +3222,11 @@ fn relevant_list_diagnostics(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::java_analysis::DefinitionDocumentInput;
+    use crate::java_analysis::DefinitionTextPositionInput;
+    use crate::java_analysis::DefinitionWorkspaceIdentityInput;
     use crate::java_analysis::JavaClasspathMode;
+    use crate::java_analysis::JavaSourceFile;
     use crate::java_analysis::JavaSourceRootKind;
     use crate::java_analysis::JavaSourceRootOutput;
     use crate::java_analysis::JavaSourceSetOutput;
@@ -2660,6 +3282,93 @@ mod tests {
         .expect("selector should parse")
     }
 
+    fn position_workspace(sources: &[(&str, &str)]) -> (tempfile::TempDir, JavaSourceWorkspace) {
+        let directory = tempfile::tempdir().expect("temporary definition workspace");
+        let root = directory.path().join("source");
+        let mut files = Vec::new();
+        for (relative, source) in sources {
+            let absolute_path = root.join(relative);
+            std::fs::create_dir_all(absolute_path.parent().expect("source parent"))
+                .expect("source directory");
+            std::fs::write(&absolute_path, source).expect("Java fixture");
+            files.push(JavaSourceFile {
+                absolute_path,
+                root_id: "scenario".to_owned(),
+                root_relative_path: (*relative).to_owned(),
+                report_path: format!("source/{relative}"),
+                source_set: "scenario".to_owned(),
+                source_override: None,
+            });
+        }
+        files.sort_by(|left, right| left.report_path.cmp(&right.report_path));
+        (
+            directory,
+            JavaSourceWorkspace {
+                context: context(&[("scenario", &["scenario"])]),
+                root_authorities: vec![super::super::JavaSourceRootAuthority {
+                    root_id: "scenario".to_owned(),
+                    source_set: "scenario".to_owned(),
+                    canonical_absolute_path: root,
+                    report_root_path: "source".to_owned(),
+                }],
+                files,
+                diagnostics: Vec::new(),
+                classpath_entries: Vec::new(),
+            },
+        )
+    }
+
+    fn position_request(
+        workspace: &JavaSourceWorkspace,
+        relative: &str,
+        text: &str,
+        line: u64,
+        column: u64,
+    ) -> DefinitionAtPositionRequest {
+        let file = workspace
+            .files
+            .iter()
+            .find(|file| file.root_id == "scenario" && file.root_relative_path == relative)
+            .expect("fixture request file");
+        position_request_for_file(workspace, file, text, line, column)
+    }
+
+    fn position_request_for_file(
+        workspace: &JavaSourceWorkspace,
+        file: &JavaSourceFile,
+        text: &str,
+        line: u64,
+        column: u64,
+    ) -> DefinitionAtPositionRequest {
+        let workspace_fingerprint = definition_workspace_fingerprint(&workspace.context, None)
+            .expect("fixture workspace fingerprint");
+        DefinitionAtPositionRequest::new(
+            17,
+            2,
+            DefinitionWorkspaceIdentityInput {
+                branch: workspace.context.branch.clone(),
+                classpath_mode: workspace.context.classpath_mode,
+                source_roots: workspace.context.source_roots.clone(),
+                classpath_fingerprint: workspace.context.classpath_fingerprint.clone(),
+                dependency_index_identity: None,
+                workspace_fingerprint,
+                workspace_generation: 5,
+            },
+            DefinitionDocumentInput {
+                address: format!("workspace://{}/{}", file.root_id, file.root_relative_path),
+                root_id: file.root_id.clone(),
+                root_relative_path: file.root_relative_path.clone(),
+                report_path: file.report_path.clone(),
+                source_set: file.source_set.clone(),
+                text: text.to_owned(),
+                content_hash: blake3_content_hash(text),
+                disk_content_hash: None,
+            },
+            DefinitionTextPositionInput::from_line_column(text, line, column)
+                .expect("fixture position"),
+        )
+    }
+
     fn dependency_type(qualified_name: &str) -> DependencyJavaSymbolIndexBody {
         let (owner, name) = qualified_name
             .rsplit_once('.')
@@ -2697,6 +3406,245 @@ mod tests {
     }
 
     #[test]
+    fn definition_at_position_uses_current_unicode_crlf_snapshot_and_import_resolution() {
+        let (_directory, workspace) = position_workspace(&[
+            ("p/Café.java", "package p; public class Café {}\r\n"),
+            ("q/Use.java", "package q; class Use {}\r\n"),
+        ]);
+        let current = concat!(
+            "package q;\r\n",
+            "import p.Café;\r\n",
+            "class Use {\r\n",
+            "    Café field;\r\n",
+            "}\r\n",
+        );
+        let request = position_request(&workspace, "q/Use.java", current, 4, 6);
+        let result =
+            analyze_definition_at_position(&workspace, &request, None).expect("position analysis");
+
+        assert_eq!(result.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(result.symbols[0].qualified_name, "p.Café");
+        assert_eq!(
+            result.definitions[0].identifier_span.report_path,
+            "source/p/Café.java"
+        );
+        assert_eq!(result.position.byte_offset, 47);
+    }
+
+    #[test]
+    fn definition_at_position_resolves_fields_and_methods_from_usage_collector() {
+        let use_source = concat!(
+            "package q;\n",
+            "import p.A;\n",
+            "class Use {\n",
+            "    void use(A target) {\n",
+            "        int copy = target.value;\n",
+            "        target.run(1);\n",
+            "    }\n",
+            "}\n",
+        );
+        let (_directory, workspace) = position_workspace(&[
+            (
+                "p/A.java",
+                "package p; public class A { public int value; public void run(int input) {} }\n",
+            ),
+            ("q/Use.java", use_source),
+        ]);
+
+        let field = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", use_source, 5, 28),
+            None,
+        )
+        .expect("field definition");
+        assert_eq!(field.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(field.symbols[0].canonical_selector(), "p.A value");
+
+        let method = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", use_source, 6, 17),
+            None,
+        )
+        .expect("method definition");
+        assert_eq!(method.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(method.symbols[0].canonical_selector(), "p.A run(I)V");
+    }
+
+    #[test]
+    fn definition_at_position_does_not_guess_bare_tokens_in_strings() {
+        let source = concat!(
+            "package q;\n",
+            "class Use {\n",
+            "    String text = \"A.value\";\n",
+            "}\n",
+        );
+        let (_directory, workspace) = position_workspace(&[("q/Use.java", source)]);
+        let result = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", source, 3, 21),
+            None,
+        )
+        .expect("no-symbol analysis");
+
+        assert_eq!(result.outcome, DefinitionAtPositionOutcome::NoSymbol);
+        assert!(result.symbols.is_empty());
+        assert!(result.definitions.is_empty());
+    }
+
+    #[test]
+    fn definition_at_position_resolves_nested_types_and_matches_exact_definition() {
+        let use_source = concat!(
+            "package q;\n",
+            "import p.Outer;\n",
+            "class Use { Outer.Inner value; }\n",
+        );
+        let (_directory, workspace) = position_workspace(&[
+            (
+                "p/Outer.java",
+                "package p; public class Outer { public static class Inner {} }\n",
+            ),
+            ("q/Use.java", use_source),
+        ]);
+        let result = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", use_source, 3, 21),
+            None,
+        )
+        .expect("nested definition");
+        let exact = JavaSymbolIndex::build(&workspace)
+            .expect("exact index")
+            .definition(&selector(&["p.Outer$Inner"]));
+
+        assert_eq!(result.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(result.symbols, vec![exact.definitions[0].symbol.clone()]);
+        assert_eq!(
+            result.definitions[0].identifier_span.report_path,
+            exact.definitions[0].identifier_span.path
+        );
+    }
+
+    #[test]
+    fn definition_at_position_treats_comments_and_whitespace_as_no_symbol() {
+        let source = concat!(
+            "package q;\n",
+            "class Use {\n",
+            "    // A value is only commentary\n",
+            "    String value;\n",
+            "}\n",
+        );
+        let (_directory, workspace) = position_workspace(&[("q/Use.java", source)]);
+        for (line, column) in [(3, 8), (4, 11)] {
+            let result = analyze_definition_at_position(
+                &workspace,
+                &position_request(&workspace, "q/Use.java", source, line, column),
+                None,
+            )
+            .expect("no-symbol location");
+            assert_eq!(result.outcome, DefinitionAtPositionOutcome::NoSymbol);
+            assert!(result.symbols.is_empty());
+        }
+    }
+
+    #[test]
+    fn definition_at_position_returns_typed_invalid_position() {
+        let source = "package p; class A {}\n";
+        let (_directory, workspace) = position_workspace(&[("p/A.java", source)]);
+        let mut request = position_request(&workspace, "p/A.java", source, 1, 18);
+        request.position.byte_offset += 1;
+
+        let result = analyze_definition_at_position(&workspace, &request, None)
+            .expect("typed invalid request");
+        assert_eq!(result.outcome, DefinitionAtPositionOutcome::InvalidRequest);
+        assert!(result.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "java.definition-position-invalid-request"
+                && diagnostic.message.contains("byte")
+        }));
+    }
+
+    #[test]
+    fn definition_at_position_obeys_directed_source_set_visibility() {
+        let directory = tempfile::tempdir().expect("source-set definition workspace");
+        let main_root = directory.path().join("source-main");
+        let test_root = directory.path().join("source-test");
+        std::fs::create_dir_all(main_root.join("main")).expect("main source directory");
+        std::fs::create_dir_all(test_root.join("hidden")).expect("test source directory");
+        let main_source = "package main; import hidden.Hidden; class Consumer { Hidden value; }\n";
+        let hidden_source = "package hidden; public class Hidden {}\n";
+        std::fs::write(main_root.join("main/Consumer.java"), main_source).expect("main source");
+        std::fs::write(test_root.join("hidden/Hidden.java"), hidden_source).expect("test source");
+        let mut analysis_context = context(&[("main", &["main"]), ("test", &["test", "main"])]);
+        analysis_context.source_roots = vec![
+            JavaSourceRootOutput {
+                id: "main-root".to_owned(),
+                source_set: "main".to_owned(),
+                path: "source-main".to_owned(),
+                kind: JavaSourceRootKind::Custom,
+                exists: true,
+            },
+            JavaSourceRootOutput {
+                id: "test-root".to_owned(),
+                source_set: "test".to_owned(),
+                path: "source-test".to_owned(),
+                kind: JavaSourceRootKind::Custom,
+                exists: true,
+            },
+        ];
+        let workspace = JavaSourceWorkspace {
+            context: analysis_context,
+            root_authorities: Vec::new(),
+            files: vec![
+                JavaSourceFile {
+                    absolute_path: main_root.join("main/Consumer.java"),
+                    root_id: "main-root".to_owned(),
+                    root_relative_path: "main/Consumer.java".to_owned(),
+                    report_path: "source-main/main/Consumer.java".to_owned(),
+                    source_set: "main".to_owned(),
+                    source_override: None,
+                },
+                JavaSourceFile {
+                    absolute_path: test_root.join("hidden/Hidden.java"),
+                    root_id: "test-root".to_owned(),
+                    root_relative_path: "hidden/Hidden.java".to_owned(),
+                    report_path: "source-test/hidden/Hidden.java".to_owned(),
+                    source_set: "test".to_owned(),
+                    source_override: None,
+                },
+            ],
+            diagnostics: Vec::new(),
+            classpath_entries: Vec::new(),
+        };
+        let request =
+            position_request_for_file(&workspace, &workspace.files[0], main_source, 1, 55);
+        let result = analyze_definition_at_position(&workspace, &request, None)
+            .expect("inaccessible source-set query");
+
+        assert_eq!(result.outcome, DefinitionAtPositionOutcome::NoSymbol);
+        assert!(
+            result
+                .diagnostics
+                .iter()
+                .any(|diagnostic| { diagnostic.code == "java.inaccessible-source-set-reference" })
+        );
+    }
+
+    #[test]
+    fn definition_at_position_rejects_non_workspace_document_identity() {
+        let source = "package p; class A {}\n";
+        let (_directory, workspace) = position_workspace(&[("p/A.java", source)]);
+        let mut request = position_request(&workspace, "p/A.java", source, 1, 18);
+        request.document.root_id = "other-root".to_owned();
+        let result = analyze_definition_at_position(&workspace, &request, None)
+            .expect("typed invalid request");
+
+        assert_eq!(result.outcome, DefinitionAtPositionOutcome::InvalidRequest);
+        assert!(
+            result.diagnostics.iter().any(|diagnostic| {
+                diagnostic.code == "java.definition-position-invalid-request"
+            })
+        );
+    }
+
+    #[test]
     fn cached_dependency_types_resolve_live_source_imports_without_reparsing_dependencies() {
         let dependency = dependency_type("net.minecraft.client.gui.components.MultiLineEditBox");
         let index = JavaSymbolIndex::build_from_parsed_mode(
@@ -2716,6 +3664,7 @@ mod tests {
             ]),
             true,
             Some(&dependency),
+            None,
             None,
         );
 
@@ -2762,6 +3711,7 @@ mod tests {
             true,
             None,
             Some(&resolution),
+            None,
         );
 
         let body = index.dependency_body(&[]);
@@ -2798,6 +3748,7 @@ mod tests {
             ]),
             true,
             Some(&dependency),
+            None,
             None,
         );
 
@@ -3227,9 +4178,10 @@ mod tests {
         }));
         for owner in ["p.A", "q.A"] {
             let report = index.usages(&selector(&[owner]));
-            assert!(!report.usages.iter().any(|usage| {
+            assert!(report.usages.iter().any(|usage| {
                 usage.kind == JavaUsageKind::TypeReference
                     && usage.span.path.ends_with("r/Consumer.java")
+                    && usage.confidence == ResolutionConfidence::PartiallyResolved
             }));
         }
     }

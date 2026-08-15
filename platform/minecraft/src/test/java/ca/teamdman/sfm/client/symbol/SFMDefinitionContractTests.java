@@ -39,6 +39,7 @@ class SFMDefinitionContractTests {
                 roots,
                 "blake3:workspace",
                 Optional.empty(),
+                "blake3:0000000000000000000000000000000000000000000000000000000000000000",
                 3
         );
         roots.clear();
@@ -71,6 +72,7 @@ class SFMDefinitionContractTests {
                 List.of(root(), root()),
                 "blake3:workspace",
                 Optional.empty(),
+                "blake3:0000000000000000000000000000000000000000000000000000000000000000",
                 3
         ));
     }
@@ -82,9 +84,83 @@ class SFMDefinitionContractTests {
 
         assertTrue(result.matches(request));
         assertFalse(result.matches(request.withIdentity(request.requestId() + 1, request.requestGeneration())));
+        assertFalse(copyResult(
+                result,
+                new SFMDefinitionResult.DocumentIdentity(
+                        result.document().address(),
+                        "different-root",
+                        result.document().rootRelativePath(),
+                        result.document().reportPath(),
+                        result.document().sourceSet(),
+                        result.document().contentHash(),
+                        result.document().diskContentHash()
+                ),
+                result.position(),
+                result.context()
+        ).matches(request));
+        assertFalse(copyResult(
+                result,
+                result.document(),
+                new SFMDefinitionRequest.Position(
+                        result.position().line(),
+                        result.position().column() + 1,
+                        result.position().byteOffset() + 1
+                ),
+                result.context()
+        ).matches(request));
+        assertFalse(copyResult(
+                result,
+                result.document(),
+                result.position(),
+                new SFMDefinitionResult.AnalysisContext(
+                        "different-branch",
+                        result.context().minecraftVersion(),
+                        result.context().javaRelease(),
+                        result.context().jdk(),
+                        result.context().sourceRoots(),
+                        result.context().sourceSets(),
+                        result.context().sourceExclusions(),
+                        result.context().classpathMode(),
+                        result.context().classpathFingerprint(),
+                        result.context().parserFingerprint(),
+                        result.context().indexFingerprint()
+                )
+        ).matches(request));
         assertEquals(request, SFMDefinitionJsonCodec.decodeRequest(SFMDefinitionJsonCodec.encodeRequest(request)));
         assertEquals(result, SFMDefinitionJsonCodec.decodeResult(SFMDefinitionJsonCodec.encodeResult(result)));
         assertTrue(SFMDefinitionJsonCodec.encodeRequest(request).contains("\"request_id\":7"));
+    }
+
+    @Test
+    void jsonU64FieldsRejectFractionalNegativeAndUnsupportedValues() {
+        String encoded = SFMDefinitionJsonCodec.encodeRequest(request());
+        assertThrows(IllegalArgumentException.class, () -> SFMDefinitionJsonCodec.decodeRequest(
+                encoded.replace("\"request_id\":7", "\"request_id\":1.5")
+        ));
+        assertThrows(IllegalArgumentException.class, () -> SFMDefinitionJsonCodec.decodeRequest(
+                encoded.replace("\"request_id\":7", "\"request_id\":-1")
+        ));
+        assertThrows(IllegalArgumentException.class, () -> SFMDefinitionJsonCodec.decodeRequest(
+                encoded.replace("\"request_id\":7", "\"request_id\":18446744073709551615")
+        ));
+        assertThrows(IllegalArgumentException.class, () -> SFMDefinitionJsonCodec.decodeRequest(
+                encoded.replace("\"kind\":\"custom\"", "\"kind\":\"future-root-kind\"")
+        ));
+    }
+
+    @Test
+    void malformedUtf16DocumentTextIsRejectedBeforeHashingOrFraming() {
+        String malformed = "class A { String value = \"\uD800\"; }";
+        assertThrows(IllegalArgumentException.class, () -> SFMDefinitionRequest.sha256(malformed));
+        assertThrows(IllegalArgumentException.class, () -> SFMDefinitionRequest.Document.sha256(
+                "file:///source/example/A.java",
+                "custom-0",
+                "example/A.java",
+                "source/example/A.java",
+                "custom",
+                malformed,
+                Optional.empty()
+        ));
     }
 
     @Test
@@ -126,6 +202,7 @@ class SFMDefinitionContractTests {
                         List.of(root()),
                         "blake3:workspace",
                         Optional.empty(),
+                        "blake3:0000000000000000000000000000000000000000000000000000000000000000",
                         3
                 ),
                 document(text),
@@ -187,6 +264,30 @@ class SFMDefinitionContractTests {
                 List.of(),
                 List.of(),
                 Optional.empty()
+        );
+    }
+
+    private static SFMDefinitionResult copyResult(
+            SFMDefinitionResult value,
+            SFMDefinitionResult.DocumentIdentity document,
+            SFMDefinitionRequest.Position position,
+            SFMDefinitionResult.AnalysisContext context
+    ) {
+        return new SFMDefinitionResult(
+                value.schema(),
+                value.requestId(),
+                value.requestGeneration(),
+                value.workspaceGeneration(),
+                value.outcome(),
+                context,
+                document,
+                position,
+                value.symbols(),
+                value.definitions(),
+                value.completeness(),
+                value.diagnostics(),
+                value.recoveryActions(),
+                value.dependencyIndex()
         );
     }
 

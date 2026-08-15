@@ -3,7 +3,7 @@
     "branch": "1.19.2",
     "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
     "classpath_mode": "isolated",
-    "index_fingerprint": "blake3:a7b469ad0742d51bb3905a751a916cffe53196fb5bf77c8e0184b18b38bf478f",
+    "index_fingerprint": "blake3:abb40561e300513d4fc67749d977962009c28bf00ba1e97ff996556e8bf6852c",
     "java_release": "17",
     "jdk": "java-17",
     "minecraft_version": "1.19.2",
@@ -44,7 +44,7 @@
   "diagnostics": [
     {
       "code": "java.inaccessible-source-set-reference",
-      "message": "field type `hidden.Hidden` exists only in a source set that is not visible here",
+      "message": "field type `Hidden` exists only in a source set that is not visible here",
       "severity": "warning",
       "span": {
         "end_byte": 71,
@@ -76,7 +76,7 @@
     },
     {
       "code": "java.inaccessible-source-set-reference",
-      "message": "type reference `hidden.Hidden` exists only in a source set that is not visible here",
+      "message": "type reference `Hidden` exists only in a source set that is not visible here",
       "severity": "warning",
       "span": {
         "end_byte": 65,

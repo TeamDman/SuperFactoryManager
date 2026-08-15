@@ -1,0 +1,103 @@
+{
+  "completeness": "complete",
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:2780776d5c5756ccece15406337c6ba02e5e8e73ab48abca70af1659a01a6177",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "address": "workspace://custom-0/p/Declared.java",
+        "end_byte": 52,
+        "end_column": 2,
+        "end_line": 5,
+        "report_path": "source/p/Declared.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/Declared.java",
+        "source_hash": "blake3:d39b3caeb0b4a955ed8f2d0b63117aee8f8a90524627e3320549278617419602",
+        "source_set": "custom",
+        "start_byte": 12,
+        "start_column": 1,
+        "start_line": 3
+      },
+      "identifier_span": {
+        "address": "workspace://custom-0/p/Declared.java",
+        "end_byte": 33,
+        "end_column": 22,
+        "end_line": 3,
+        "report_path": "source/p/Declared.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/Declared.java",
+        "source_hash": "blake3:d39b3caeb0b4a955ed8f2d0b63117aee8f8a90524627e3320549278617419602",
+        "source_set": "custom",
+        "start_byte": 25,
+        "start_column": 14,
+        "start_line": 3
+      },
+      "symbol": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "Declared",
+        "owner": "p",
+        "qualified_name": "p.Declared"
+      }
+    }
+  ],
+  "diagnostics": [],
+  "document": {
+    "address": "workspace://custom-0/p/Declared.java",
+    "content_hash": "blake3:d39b3caeb0b4a955ed8f2d0b63117aee8f8a90524627e3320549278617419602",
+    "disk_content_hash": "blake3:d39b3caeb0b4a955ed8f2d0b63117aee8f8a90524627e3320549278617419602",
+    "report_path": "source/p/Declared.java",
+    "root_id": "custom-0",
+    "root_relative_path": "p/Declared.java",
+    "source_set": "custom"
+  },
+  "outcome": "success",
+  "position": {
+    "byte_offset": 28,
+    "column": 17,
+    "line": 3
+  },
+  "recovery_actions": [],
+  "request_generation": 0,
+  "request_id": 0,
+  "schema": "sfm.definition-at-position-result/2",
+  "symbols": [
+    {
+      "descriptor": null,
+      "kind": "class",
+      "name": "Declared",
+      "owner": "p",
+      "qualified_name": "p.Declared"
+    }
+  ],
+  "workspace_generation": 0
+}

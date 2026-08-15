@@ -1,0 +1,1 @@
+sfm-propagate-changes.exe --output-format json symbol show-definition --source-path q/Use.java --source-root-id custom-1 --line 4 --column 7 --branch 1.19.2 --source-root source-left --source-root source-right --classpath-mode isolated

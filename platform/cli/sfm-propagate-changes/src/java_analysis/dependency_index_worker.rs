@@ -311,6 +311,7 @@ fn run_worker_request(request: WorkerRequest) -> eyre::Result<()> {
             .map(|dependencies| relevant_resolution_definitions(dependencies, &source));
         let workspace = JavaSourceWorkspace {
             context: request.context.clone(),
+            root_authorities: Vec::new(),
             files: vec![JavaSourceFile {
                 absolute_path: PathBuf::from(file.path),
                 root_id: "worker-shard".to_owned(),

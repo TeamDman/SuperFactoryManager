@@ -4,6 +4,9 @@ use super::JavaAnalysisDiagnosticOutput;
 use super::JavaDependencyResolutionDefinition;
 use super::JavaFileFactIdentity;
 use super::JavaFileFacts;
+use super::JavaLiveDefinitionSurface;
+use super::JavaLiveFieldDefinition;
+use super::JavaLiveMethodDefinition;
 use super::JavaRawCallableFact;
 use super::JavaRawFieldFact;
 use super::JavaSourceSpanOutput;
@@ -102,7 +105,19 @@ impl RawMemberFact {
 #[derive(Clone, Debug)]
 struct LinkedMember {
     definition: JavaSymbolDefinitionOutput,
+    resolution: LinkedMemberResolution,
     diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+}
+
+#[derive(Clone, Debug)]
+enum LinkedMemberResolution {
+    Field {
+        value_type: Option<String>,
+    },
+    Callable {
+        parameter_types: Vec<String>,
+        return_type: Option<String>,
+    },
 }
 
 #[derive(Clone, Debug)]
@@ -244,7 +259,15 @@ impl JavaDefinitionLinker {
         Ok(())
     }
 
-    pub(crate) fn seal(mut self, expected_files: usize) -> eyre::Result<JavaSymbolIndex> {
+    pub(crate) fn seal(self, expected_files: usize) -> eyre::Result<JavaSymbolIndex> {
+        self.seal_surface(expected_files)
+            .map(JavaLiveDefinitionSurface::into_index)
+    }
+
+    pub(crate) fn seal_surface(
+        mut self,
+        expected_files: usize,
+    ) -> eyre::Result<JavaLiveDefinitionSurface> {
         if self.files.len() != expected_files {
             eyre::bail!(
                 "Java definition snapshot expected {expected_files} files but received {}",
@@ -262,22 +285,46 @@ impl JavaDefinitionLinker {
             eyre::bail!("Java definition snapshot contains an unlinked member");
         }
 
-        let mut definitions = self.live_types;
+        let mut fields = Vec::new();
+        let mut methods = Vec::new();
         for linked in self.linked_members.into_values() {
-            definitions.push(linked.definition);
+            match linked.resolution {
+                LinkedMemberResolution::Field { value_type } => {
+                    fields.push(JavaLiveFieldDefinition {
+                        definition: linked.definition,
+                        value_type,
+                    });
+                }
+                LinkedMemberResolution::Callable {
+                    parameter_types,
+                    return_type,
+                } => {
+                    methods.push(JavaLiveMethodDefinition {
+                        definition: linked.definition,
+                        parameter_types,
+                        return_type,
+                    });
+                }
+            }
             self.diagnostics.extend(linked.diagnostics);
         }
-        definitions.sort();
-        definitions.dedup();
+        self.live_types.sort();
+        self.live_types.dedup();
+        fields.sort();
+        fields.dedup();
+        methods.sort();
+        methods.dedup();
         self.diagnostics.sort();
         self.diagnostics.dedup();
         let files = self.files.into_values().collect::<Vec<_>>();
-        Ok(JavaSymbolIndex::from_linked_definitions(
-            self.context,
-            &files,
-            definitions,
-            self.diagnostics,
-        ))
+        Ok(JavaLiveDefinitionSurface {
+            context: self.context,
+            files,
+            types: self.live_types,
+            fields,
+            methods,
+            diagnostics: self.diagnostics,
+        })
     }
 
     fn insert_type(&mut self, declaration: &LinkTypeDeclaration) -> BTreeSet<String> {
@@ -323,6 +370,10 @@ impl JavaDefinitionLinker {
                 "field type",
             ));
         }
+        let value_type = resolution
+            .as_ref()
+            .ok()
+            .map(|(qualified_name, _)| qualified_name.clone());
         LinkedMember {
             definition: JavaSymbolDefinitionOutput {
                 symbol: super::JavaSymbolIdentityOutput {
@@ -340,6 +391,7 @@ impl JavaDefinitionLinker {
                     ResolutionConfidence::PartiallyResolved
                 },
             },
+            resolution: LinkedMemberResolution::Field { value_type },
             diagnostics,
         }
     }
@@ -350,11 +402,15 @@ impl JavaDefinitionLinker {
         scope: &JavaFileResolutionScope,
     ) -> LinkedMember {
         let mut diagnostics = Vec::new();
+        let mut parameter_types = Vec::new();
         let mut parameter_descriptors = Vec::new();
         let mut complete = true;
         for raw_type in &callable.raw_parameter_types {
             match self.resolve_type(raw_type, &callable.owner, scope, false) {
-                Ok((_, descriptor)) => parameter_descriptors.push(descriptor),
+                Ok((qualified_name, descriptor)) => {
+                    parameter_types.push(qualified_name);
+                    parameter_descriptors.push(descriptor);
+                }
                 Err(failure) => {
                     complete = false;
                     diagnostics.push(type_resolution_diagnostic(
@@ -365,9 +421,9 @@ impl JavaDefinitionLinker {
                 }
             }
         }
-        let return_descriptor =
+        let (return_type, return_descriptor) =
             match self.resolve_type(&callable.raw_return_type, &callable.owner, scope, true) {
-                Ok((_, descriptor)) => Some(descriptor),
+                Ok((qualified_name, descriptor)) => (Some(qualified_name), Some(descriptor)),
                 Err(failure) => {
                     complete = false;
                     diagnostics.push(type_resolution_diagnostic(
@@ -375,7 +431,7 @@ impl JavaDefinitionLinker {
                         callable.identifier_span.clone(),
                         "method return type",
                     ));
-                    None
+                    (None, None)
                 }
             };
         let descriptor = (complete
@@ -407,6 +463,10 @@ impl JavaDefinitionLinker {
                 } else {
                     ResolutionConfidence::Unresolved
                 },
+            },
+            resolution: LinkedMemberResolution::Callable {
+                parameter_types,
+                return_type,
             },
             diagnostics,
         }
@@ -466,7 +526,7 @@ impl JavaDefinitionLinker {
         };
         if let Some(candidate) = direct.or(imported_nested) {
             return self.resolve_candidates(
-                &candidate,
+                raw_name,
                 std::slice::from_ref(&candidate),
                 scope,
                 true,
@@ -899,6 +959,7 @@ mod tests {
         std::fs::write(&b_path, "package p; class B {}").unwrap();
         let workspace = JavaSourceWorkspace {
             context: context(),
+            root_authorities: Vec::new(),
             files: vec![
                 JavaSourceFile {
                     absolute_path: a_path,

@@ -199,29 +199,31 @@ public final class SFMDefinitionQueryCoordinator implements AutoCloseable {
             return;
         }
         cancelTimer(pending);
+        Throwable completionFailure = null;
         synchronized (lock) {
             if (active.get(pending.originId) != pending) {
                 staleResponses = increment(staleResponses);
-                pending.result.completeExceptionally(new StaleResponseException());
-                return;
+                completionFailure = new StaleResponseException();
+            } else {
+                active.remove(pending.originId);
             }
-            active.remove(pending.originId);
-            if (failure != null) {
+            if (completionFailure == null && failure != null) {
                 failed = increment(failed);
-                pending.result.completeExceptionally(unwrap(failure));
-                return;
+                completionFailure = unwrap(failure);
             }
-            if (result == null || !result.matches(pending.request)) {
+            if (completionFailure == null && (result == null || !result.matches(pending.request))) {
                 mismatchedResponses = increment(mismatchedResponses);
-                pending.result.completeExceptionally(new MismatchedResponseException());
-                return;
+                completionFailure = new MismatchedResponseException();
             }
-            long latency = Math.max(0, nanoTime.getAsLong() - pending.startedNanos);
-            warmLatencyNanos.addLast(latency);
-            while (warmLatencyNanos.size() > MAXIMUM_LATENCY_SAMPLES) warmLatencyNanos.removeFirst();
-            completed = increment(completed);
-            pending.result.complete(result);
+            if (completionFailure == null) {
+                long latency = Math.max(0, nanoTime.getAsLong() - pending.startedNanos);
+                warmLatencyNanos.addLast(latency);
+                while (warmLatencyNanos.size() > MAXIMUM_LATENCY_SAMPLES) warmLatencyNanos.removeFirst();
+                completed = increment(completed);
+            }
         }
+        if (completionFailure == null) pending.result.complete(result);
+        else pending.result.completeExceptionally(completionFailure);
     }
 
     private enum CancellationKind { EXPLICIT, STALE, TIMEOUT, SHUTDOWN }

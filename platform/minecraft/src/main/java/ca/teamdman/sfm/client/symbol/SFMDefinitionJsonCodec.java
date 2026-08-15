@@ -31,6 +31,16 @@ public final class SFMDefinitionJsonCodec {
         return readResult(object(JsonParser.parseString(json), "result"));
     }
 
+    /** Package-local zero-copy envelope hook for the symbol-server protocol. */
+    static JsonObject encodeRequestObject(SFMDefinitionRequest request) {
+        return writeRequest(request);
+    }
+
+    /** Package-local envelope hook that keeps result parsing in this one codec. */
+    static SFMDefinitionResult decodeResultObject(JsonObject json) {
+        return readResult(json);
+    }
+
     private static JsonObject writeRequest(SFMDefinitionRequest value) {
         JsonObject json = new JsonObject();
         json.addProperty("schema", value.schema());
@@ -62,6 +72,7 @@ public final class SFMDefinitionJsonCodec {
         json.add("source_roots", roots);
         json.addProperty("classpath_fingerprint", value.classpathFingerprint());
         addOptional(json, "dependency_index_identity", value.dependencyIndexIdentity());
+        json.addProperty("workspace_fingerprint", value.workspaceFingerprint());
         json.addProperty("workspace_generation", value.workspaceGeneration());
         return json;
     }
@@ -73,6 +84,7 @@ public final class SFMDefinitionJsonCodec {
                 objects(json, "source_roots").stream().map(SFMDefinitionJsonCodec::readSourceRoot).toList(),
                 string(json, "classpath_fingerprint"),
                 optionalString(json, "dependency_index_identity"),
+                string(json, "workspace_fingerprint"),
                 longValue(json, "workspace_generation")
         );
     }
@@ -300,11 +312,40 @@ public final class SFMDefinitionJsonCodec {
         );
     }
 
+    private static JsonObject writeDefinitionSpan(SFMDefinitionResult.DefinitionSourceSpan value) {
+        JsonObject json = new JsonObject();
+        json.addProperty("address", value.address());
+        json.addProperty("resolver_id", value.resolverId());
+        json.addProperty("root_id", value.rootId());
+        json.addProperty("root_relative_path", value.rootRelativePath());
+        json.addProperty("report_path", value.reportPath());
+        json.addProperty("source_set", value.sourceSet());
+        json.addProperty("source_hash", value.sourceHash());
+        json.addProperty("start_byte", value.startByte());
+        json.addProperty("end_byte", value.endByte());
+        json.addProperty("start_line", value.startLine());
+        json.addProperty("start_column", value.startColumn());
+        json.addProperty("end_line", value.endLine());
+        json.addProperty("end_column", value.endColumn());
+        return json;
+    }
+
+    private static SFMDefinitionResult.DefinitionSourceSpan readDefinitionSpan(JsonObject json) {
+        return new SFMDefinitionResult.DefinitionSourceSpan(
+                string(json, "address"), string(json, "resolver_id"), string(json, "root_id"),
+                string(json, "root_relative_path"), string(json, "report_path"),
+                string(json, "source_set"), string(json, "source_hash"),
+                longValue(json, "start_byte"), longValue(json, "end_byte"),
+                longValue(json, "start_line"), longValue(json, "start_column"),
+                longValue(json, "end_line"), longValue(json, "end_column")
+        );
+    }
+
     private static JsonObject writeDefinition(SFMDefinitionResult.Definition value) {
         JsonObject json = new JsonObject();
         json.add("symbol", writeSymbol(value.symbol()));
-        json.add("identifier_span", writeSpan(value.identifierSpan()));
-        json.add("declaration_span", writeSpan(value.declarationSpan()));
+        json.add("identifier_span", writeDefinitionSpan(value.identifierSpan()));
+        json.add("declaration_span", writeDefinitionSpan(value.declarationSpan()));
         json.addProperty("confidence", value.confidence());
         return json;
     }
@@ -312,8 +353,8 @@ public final class SFMDefinitionJsonCodec {
     private static SFMDefinitionResult.Definition readDefinition(JsonObject json) {
         return new SFMDefinitionResult.Definition(
                 readSymbol(requiredObject(json, "symbol")),
-                readSpan(requiredObject(json, "identifier_span")),
-                readSpan(requiredObject(json, "declaration_span")),
+                readDefinitionSpan(requiredObject(json, "identifier_span")),
+                readDefinitionSpan(requiredObject(json, "declaration_span")),
                 string(json, "confidence")
         );
     }
@@ -336,7 +377,7 @@ public final class SFMDefinitionJsonCodec {
 
     private static JsonObject writeRecoveryAction(SFMDefinitionResult.RecoveryAction value) {
         JsonObject json = new JsonObject();
-        json.addProperty("kind", value.kind());
+        json.addProperty("kind", value.kind().wireName());
         json.addProperty("label", value.label());
         addOptional(json, "command", value.command());
         return json;
@@ -344,7 +385,9 @@ public final class SFMDefinitionJsonCodec {
 
     private static SFMDefinitionResult.RecoveryAction readRecoveryAction(JsonObject json) {
         return new SFMDefinitionResult.RecoveryAction(
-                string(json, "kind"), string(json, "label"), optionalString(json, "command")
+                SFMDefinitionResult.RecoveryActionKind.fromWireName(string(json, "kind")),
+                string(json, "label"),
+                optionalString(json, "command")
         );
     }
 
@@ -422,12 +465,16 @@ public final class SFMDefinitionJsonCodec {
     private static long longValue(JsonObject json, String name) {
         JsonElement value = required(json, name);
         if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber()) {
-            throw new IllegalArgumentException(name + " must be a JSON number");
+            throw new IllegalArgumentException(name + " must be a non-negative JSON integer");
+        }
+        String encoded = value.getAsString();
+        if (!encoded.matches("0|[1-9][0-9]*")) {
+            throw new IllegalArgumentException(name + " must be a non-negative JSON integer");
         }
         try {
-            return value.getAsLong();
+            return Long.parseLong(encoded);
         } catch (NumberFormatException error) {
-            throw new IllegalArgumentException(name + " must fit a signed 64-bit integer", error);
+            throw new IllegalArgumentException(name + " exceeds Java's supported u64 range", error);
         }
     }
 

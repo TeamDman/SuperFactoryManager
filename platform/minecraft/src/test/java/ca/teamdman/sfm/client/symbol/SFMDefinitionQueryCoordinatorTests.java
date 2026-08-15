@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -95,6 +96,37 @@ class SFMDefinitionQueryCoordinatorTests {
         registry.close();
     }
 
+    @Test
+    void dependentCompletionCanWaitForAnotherThreadToReenterCoordinator() {
+        ControlledProvider provider = new ControlledProvider();
+        SFMSymbolNavigationProviderRegistry registry = registry(provider);
+        SFMDefinitionQueryCoordinator coordinator = new SFMDefinitionQueryCoordinator(registry, scheduler);
+        var query = coordinator.submit("editor:a", template(), Duration.ofSeconds(1));
+        CompletableFuture<Void> callback = query.result().thenRun(() -> {
+            CountDownLatch observed = new CountDownLatch(1);
+            Thread observer = new Thread(() -> {
+                coordinator.telemetry();
+                observed.countDown();
+            }, "definition-coordinator-reentry-proof");
+            observer.setDaemon(true);
+            observer.start();
+            try {
+                if (!observed.await(500, TimeUnit.MILLISECONDS)) {
+                    throw new AssertionError("Dependent callback was invoked while the coordinator lock was held");
+                }
+            } catch (InterruptedException failure) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError(failure);
+            }
+        });
+
+        provider.complete(query.request(), result(query.request()));
+
+        callback.join();
+        coordinator.close();
+        registry.close();
+    }
+
     private static Throwable failure(CompletableFuture<?> future) {
         CompletionException failure = assertThrows(CompletionException.class, future::join);
         return failure.getCause();
@@ -120,6 +152,7 @@ class SFMDefinitionQueryCoordinatorTests {
                         List.of(root),
                         "blake3:workspace",
                         Optional.empty(),
+                        "blake3:0000000000000000000000000000000000000000000000000000000000000000",
                         3
                 ),
                 SFMDefinitionRequest.Document.sha256(

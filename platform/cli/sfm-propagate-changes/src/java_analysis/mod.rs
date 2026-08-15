@@ -1,4 +1,5 @@
 mod definition_at_position;
+mod definition_at_position_engine;
 #[cfg(test)]
 mod definition_equivalence;
 mod definition_linker;
@@ -16,10 +17,14 @@ mod live_worker_supervisor;
 mod report;
 mod selector;
 mod source_excludes;
+mod symbol_server;
+mod symbol_server_protocol;
+mod symbol_server_runtime;
 mod syntax;
 mod workspace;
 
 pub use definition_at_position::*;
+pub use definition_at_position_engine::*;
 pub(crate) use definition_linker::*;
 pub use dependency_index_body::*;
 pub use dependency_index_identity::*;
@@ -35,4 +40,7 @@ pub(crate) use live_worker_supervisor::*;
 pub use report::*;
 pub use selector::*;
 pub(crate) use source_excludes::*;
+pub use symbol_server::*;
+pub use symbol_server_protocol::*;
+pub use symbol_server_runtime::*;
 pub use workspace::*;

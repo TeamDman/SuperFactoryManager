@@ -59,6 +59,8 @@ class SFMDefinitionWorkerFrameCodecTests {
                 new ByteArrayInputStream(new byte[]{0, 0, 0, 0}), 64));
         assertThrows(IllegalArgumentException.class,
                 () -> SFMDefinitionWorkerFrameCodec.write(new ByteArrayOutputStream(), "", 64));
+        assertThrows(IOException.class,
+                () -> SFMDefinitionWorkerFrameCodec.write(new ByteArrayOutputStream(), "\uD800", 64));
     }
 
     private static final class FragmentedInputStream extends ByteArrayInputStream {

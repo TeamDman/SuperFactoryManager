@@ -1,0 +1,103 @@
+{
+  "completeness": "complete",
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:c9bef7130b92247a4d99ea5f010b4f67eb77911497ee1222c2d2e29417d5de70",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "address": "workspace://custom-0/p/Café.java",
+        "end_byte": 33,
+        "end_column": 21,
+        "end_line": 2,
+        "report_path": "source/p/Café.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/Café.java",
+        "source_hash": "blake3:4a763d6072e26592e8d0dac452c7e15f178ba5b1cd4d6f515b8b4aaa202f4f0d",
+        "source_set": "custom",
+        "start_byte": 12,
+        "start_column": 1,
+        "start_line": 2
+      },
+      "identifier_span": {
+        "address": "workspace://custom-0/p/Café.java",
+        "end_byte": 30,
+        "end_column": 18,
+        "end_line": 2,
+        "report_path": "source/p/Café.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/Café.java",
+        "source_hash": "blake3:4a763d6072e26592e8d0dac452c7e15f178ba5b1cd4d6f515b8b4aaa202f4f0d",
+        "source_set": "custom",
+        "start_byte": 25,
+        "start_column": 14,
+        "start_line": 2
+      },
+      "symbol": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "Café",
+        "owner": "p",
+        "qualified_name": "p.Café"
+      }
+    }
+  ],
+  "diagnostics": [],
+  "document": {
+    "address": "workspace://custom-0/q/Use.java",
+    "content_hash": "blake3:a566559931c7cebfb35808756fdcdefed335a7f94a020516c037c10aeb9c6a13",
+    "disk_content_hash": "blake3:a566559931c7cebfb35808756fdcdefed335a7f94a020516c037c10aeb9c6a13",
+    "report_path": "source/q/Use.java",
+    "root_id": "custom-0",
+    "root_relative_path": "q/Use.java",
+    "source_set": "custom"
+  },
+  "outcome": "success",
+  "position": {
+    "byte_offset": 47,
+    "column": 6,
+    "line": 4
+  },
+  "recovery_actions": [],
+  "request_generation": 0,
+  "request_id": 0,
+  "schema": "sfm.definition-at-position-result/2",
+  "symbols": [
+    {
+      "descriptor": null,
+      "kind": "class",
+      "name": "Café",
+      "owner": "p",
+      "qualified_name": "p.Café"
+    }
+  ],
+  "workspace_generation": 0
+}

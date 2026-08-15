@@ -13,12 +13,28 @@ pub struct CancellationToken {
 struct CancellationInner {
     cancelled: AtomicBool,
     reason: Mutex<Option<String>>,
+    parent: Option<CancellationToken>,
 }
 
 impl CancellationToken {
     #[must_use]
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Create an independently cancellable token which also observes
+    /// cancellation requested through this token.
+    ///
+    /// Cancelling the child does not cancel its parent or sibling tokens.
+    #[must_use]
+    pub fn child_token(&self) -> Self {
+        Self {
+            inner: Arc::new(CancellationInner {
+                cancelled: AtomicBool::new(false),
+                reason: Mutex::new(None),
+                parent: Some(self.clone()),
+            }),
+        }
     }
 
     /// Request cancellation for this token.
@@ -42,15 +58,27 @@ impl CancellationToken {
     #[must_use]
     pub fn is_cancelled(&self) -> bool {
         self.inner.cancelled.load(Ordering::Acquire)
+            || self
+                .inner
+                .parent
+                .as_ref()
+                .is_some_and(CancellationToken::is_cancelled)
     }
 
     #[must_use]
     pub fn cancellation_reason(&self) -> Option<String> {
-        self.inner
+        let local_reason = self
+            .inner
             .reason
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone()
+            .clone();
+        local_reason.or_else(|| {
+            self.inner
+                .parent
+                .as_ref()
+                .and_then(CancellationToken::cancellation_reason)
+        })
     }
 
     /// Return an error if cancellation has been requested.

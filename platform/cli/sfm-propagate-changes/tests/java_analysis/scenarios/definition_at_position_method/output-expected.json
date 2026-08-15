@@ -1,0 +1,103 @@
+{
+  "completeness": "complete",
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:bf99c47afb109e4c79cbd5febd95668ee4104ebd196c32f6d946cc69a326c41a",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "address": "workspace://custom-0/p/A.java",
+        "end_byte": 62,
+        "end_column": 34,
+        "end_line": 4,
+        "report_path": "source/p/A.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/A.java",
+        "source_hash": "blake3:87aabcdee2e21469a72b1cbf1267dc93e084f7d19c5852be6a96cd1429934993",
+        "source_set": "custom",
+        "start_byte": 33,
+        "start_column": 5,
+        "start_line": 4
+      },
+      "identifier_span": {
+        "address": "workspace://custom-0/p/A.java",
+        "end_byte": 48,
+        "end_column": 20,
+        "end_line": 4,
+        "report_path": "source/p/A.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/A.java",
+        "source_hash": "blake3:87aabcdee2e21469a72b1cbf1267dc93e084f7d19c5852be6a96cd1429934993",
+        "source_set": "custom",
+        "start_byte": 45,
+        "start_column": 17,
+        "start_line": 4
+      },
+      "symbol": {
+        "descriptor": "(I)V",
+        "kind": "method",
+        "name": "run",
+        "owner": "p.A",
+        "qualified_name": "p.A.run(I)V"
+      }
+    }
+  ],
+  "diagnostics": [],
+  "document": {
+    "address": "workspace://custom-0/q/Use.java",
+    "content_hash": "blake3:cfa038cdd178e7578fb0d8f5239d8642e6759960631e2815839e0f6dbbaa5bbc",
+    "disk_content_hash": "blake3:cfa038cdd178e7578fb0d8f5239d8642e6759960631e2815839e0f6dbbaa5bbc",
+    "report_path": "source/q/Use.java",
+    "root_id": "custom-0",
+    "root_relative_path": "q/Use.java",
+    "source_set": "custom"
+  },
+  "outcome": "success",
+  "position": {
+    "byte_offset": 76,
+    "column": 17,
+    "line": 5
+  },
+  "recovery_actions": [],
+  "request_generation": 0,
+  "request_id": 0,
+  "schema": "sfm.definition-at-position-result/2",
+  "symbols": [
+    {
+      "descriptor": "(I)V",
+      "kind": "method",
+      "name": "run",
+      "owner": "p.A",
+      "qualified_name": "p.A.run(I)V"
+    }
+  ],
+  "workspace_generation": 0
+}

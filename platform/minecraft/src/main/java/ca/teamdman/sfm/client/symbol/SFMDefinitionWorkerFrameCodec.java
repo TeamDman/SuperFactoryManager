@@ -50,7 +50,17 @@ public final class SFMDefinitionWorkerFrameCodec {
     public static void write(OutputStream output, String json, int maximumFrameBytes) throws IOException {
         requireMaximum(maximumFrameBytes);
         if (json == null || json.isEmpty()) throw new IllegalArgumentException("Worker JSON must not be empty");
-        byte[] payload = json.getBytes(StandardCharsets.UTF_8);
+        byte[] payload;
+        try {
+            ByteBuffer encoded = StandardCharsets.UTF_8.newEncoder()
+                    .onMalformedInput(CodingErrorAction.REPORT)
+                    .onUnmappableCharacter(CodingErrorAction.REPORT)
+                    .encode(CharBuffer.wrap(json));
+            payload = new byte[encoded.remaining()];
+            encoded.get(payload);
+        } catch (CharacterCodingException failure) {
+            throw new IOException("Definition worker frame contains malformed Unicode", failure);
+        }
         if (payload.length > maximumFrameBytes) {
             throw new IOException("Definition worker frame exceeds " + maximumFrameBytes + " bytes: " + payload.length);
         }

@@ -35,9 +35,22 @@ pub struct JavaSourceFile {
     pub source_override: Option<String>,
 }
 
+/// Filesystem authority corresponding one-to-one with a public source-root
+/// projection. This stays out of ordinary reports so absolute paths are only
+/// disclosed by explicitly local worker handshakes.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct JavaSourceRootAuthority {
+    pub root_id: String,
+    pub source_set: String,
+    pub canonical_absolute_path: PathBuf,
+    pub report_root_path: String,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct JavaSourceWorkspace {
     pub context: JavaAnalysisContextOutput,
+    /// Ordered identically to `context.source_roots`.
+    pub root_authorities: Vec<JavaSourceRootAuthority>,
     pub files: Vec<JavaSourceFile>,
     pub diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
     /// Stable lockfile identities only. These are evidence for branch-mode
@@ -168,6 +181,50 @@ impl JavaSourceWorkspace {
         }
     }
 
+    /// Resolve the public location-query grammar strictly as a source-root
+    /// relative path. An optional root ID disambiguates identical relative
+    /// paths without overloading the argument with report-path semantics.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the path is malformed, absent, or ambiguous.
+    pub fn source_file_at(
+        &self,
+        root_id: Option<&str>,
+        root_relative_path: &str,
+    ) -> eyre::Result<&JavaSourceFile> {
+        let relative = normalize_requested_source_path(root_relative_path)?;
+        let matches = self
+            .files
+            .iter()
+            .filter(|file| {
+                file.root_relative_path == relative
+                    && root_id.is_none_or(|requested| file.root_id == requested)
+            })
+            .collect::<Vec<_>>();
+        match matches.as_slice() {
+            [file] => Ok(file),
+            [] => {
+                if let Some(root_id) = root_id {
+                    eyre::bail!(
+                        "Java source `{root_id}:{relative}` is not in the selected workspace"
+                    );
+                }
+                eyre::bail!("Java source path `{relative}` is not in the selected workspace")
+            }
+            files => {
+                let roots = files
+                    .iter()
+                    .map(|file| file.root_id.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                eyre::bail!(
+                    "Java source path `{relative}` is ambiguous across roots [{roots}]; pass --source-root-id"
+                )
+            }
+        }
+    }
+
     /// Replace one exact workspace document with immutable caller-supplied
     /// text for this analysis snapshot.
     ///
@@ -256,6 +313,7 @@ fn collect_branch_workspace_with_catalog(
     }
 
     let mut roots = Vec::new();
+    let mut root_authorities = Vec::new();
     let mut exclusions = Vec::new();
     let mut files = Vec::new();
     let mut excludes_by_set = BTreeMap::<String, Vec<String>>::new();
@@ -290,11 +348,13 @@ fn collect_branch_workspace_with_catalog(
         worktree,
         &excludes_by_set,
         &mut roots,
+        &mut root_authorities,
         &mut files,
     )?;
 
     exclusions.sort();
     deduplicate_files(&mut files)?;
+    root_authorities.sort_by(|left, right| left.root_id.cmp(&right.root_id));
     let context = context(
         branch,
         minecraft_version,
@@ -308,6 +368,7 @@ fn collect_branch_workspace_with_catalog(
     );
     Ok(JavaSourceWorkspace {
         context,
+        root_authorities,
         files,
         diagnostics: Vec::new(),
         classpath_entries,
@@ -320,14 +381,22 @@ fn collect_catalog_roots(
     worktree: &Path,
     excludes_by_set: &BTreeMap<String, Vec<String>>,
     roots: &mut Vec<JavaSourceRootOutput>,
+    root_authorities: &mut Vec<JavaSourceRootAuthority>,
     files: &mut Vec<JavaSourceFile>,
 ) -> eyre::Result<()> {
     for declaration in catalog.roots {
         let root = declaration.resolve(minecraft_dir);
+        let report_root_path = worktree_relative(worktree, &root);
+        root_authorities.push(JavaSourceRootAuthority {
+            root_id: declaration.id.to_owned(),
+            source_set: declaration.source_set.to_owned(),
+            canonical_absolute_path: canonical_absolute_path(&root)?,
+            report_root_path: report_root_path.clone(),
+        });
         roots.push(root_output(
             declaration.id.to_owned(),
             declaration.source_set,
-            worktree_relative(worktree, &root),
+            report_root_path,
             match declaration.kind {
                 CatalogJavaSourceRootKind::Declared => JavaSourceRootKind::Declared,
                 CatalogJavaSourceRootKind::Generated => JavaSourceRootKind::Generated,
@@ -366,6 +435,7 @@ fn collect_custom_workspace(
     classpath_fingerprint: String,
 ) -> eyre::Result<JavaSourceWorkspace> {
     let mut roots = Vec::new();
+    let mut root_authorities = Vec::new();
     let mut files = Vec::new();
     let mut selected_source_sets = BTreeSet::new();
     let mut seen_roots = BTreeSet::new();
@@ -394,6 +464,12 @@ fn collect_custom_workspace(
             JavaSourceRootKind::Custom,
             true,
         ));
+        root_authorities.push(JavaSourceRootAuthority {
+            root_id: format!("custom-{index}"),
+            source_set: source_set.clone(),
+            canonical_absolute_path: absolute.clone(),
+            report_root_path: display_root.clone(),
+        });
         collect_files_with_prefix(
             &absolute,
             &display_root,
@@ -404,6 +480,7 @@ fn collect_custom_workspace(
         )?;
     }
     deduplicate_files(&mut files)?;
+    root_authorities.sort_by(|left, right| left.root_id.cmp(&right.root_id));
     let source_sets = custom_source_set_outputs(&selected_source_sets);
     let context = context(
         branch,
@@ -418,6 +495,7 @@ fn collect_custom_workspace(
     );
     Ok(JavaSourceWorkspace {
         context,
+        root_authorities,
         files,
         diagnostics: Vec::new(),
         classpath_entries,
@@ -649,6 +727,33 @@ fn root_output(
     }
 }
 
+/// Resolve an absolute, symlink-normalized path even when the final generated
+/// source directory does not exist yet. The nearest existing ancestor is
+/// canonicalized before the missing suffix is appended.
+fn canonical_absolute_path(path: &Path) -> eyre::Result<PathBuf> {
+    let mut existing = path;
+    let mut missing = Vec::new();
+    while !existing.exists() {
+        let name = existing.file_name().ok_or_else(|| {
+            eyre::eyre!("Could not find an existing ancestor for {}", path.display())
+        })?;
+        missing.push(name.to_os_string());
+        existing = existing.parent().ok_or_else(|| {
+            eyre::eyre!("Could not find an existing ancestor for {}", path.display())
+        })?;
+    }
+    let mut canonical = dunce::canonicalize(existing).wrap_err_with(|| {
+        format!(
+            "Failed to canonicalize source root ancestor {}",
+            existing.display()
+        )
+    })?;
+    for component in missing.into_iter().rev() {
+        canonical.push(component);
+    }
+    Ok(canonical)
+}
+
 fn read_java_release(minecraft_dir: &Path, minecraft_version: &str) -> eyre::Result<String> {
     let path = minecraft_dir
         .join("gradle")
@@ -749,6 +854,7 @@ mod tests {
                 fingerprint(["isolated"]),
                 &[],
             ),
+            root_authorities: Vec::new(),
             files: Vec::new(),
             diagnostics: Vec::new(),
             classpath_entries: Vec::new(),
@@ -839,6 +945,43 @@ mod tests {
     }
 
     #[test]
+    fn java_analysis_workspace_resolves_exact_or_unique_document_paths() {
+        let directory = tempfile::tempdir().expect("temporary scenario");
+        for root in ["source-a", "source-b"] {
+            let package = directory.path().join(root).join("example");
+            std::fs::create_dir_all(&package).expect("source directory");
+            std::fs::write(package.join("A.java"), "package example; class A {}")
+                .expect("source file");
+        }
+        let workspace = collect_custom_workspace(
+            "1.19.2",
+            "1.19.2",
+            "17",
+            &[PathBuf::from("source-a"), PathBuf::from("source-b")],
+            directory.path(),
+            JavaClasspathMode::Isolated,
+            Vec::new(),
+            fingerprint(["isolated"]),
+        )
+        .expect("custom workspace");
+
+        let _ = workspace.source_file("example/A.java").unwrap_err();
+        let _ = workspace
+            .source_file_at(None, "example/A.java")
+            .unwrap_err();
+        let exact = workspace
+            .source_file("source-a/example/A.java")
+            .expect("exact report path");
+        assert_eq!(exact.root_id, "custom-0");
+        assert_eq!(exact.root_relative_path, "example/A.java");
+        let rooted = workspace
+            .source_file_at(Some("custom-1"), "example/A.java")
+            .expect("root-qualified relative path");
+        assert_eq!(rooted.report_path, "source-b/example/A.java");
+        let _ = workspace.source_file("../example/A.java").unwrap_err();
+    }
+
+    #[test]
     fn java_analysis_workspace_discovers_new_catalog_roots_deterministically() {
         use crate::java_source_catalog::JavaBuildSourceGroup;
         use crate::java_source_catalog::JavaSourceRootDeclaration;
@@ -887,6 +1030,7 @@ mod tests {
 
         let excludes = BTreeMap::from([("main".to_owned(), vec!["example/Skip.java".to_owned()])]);
         let mut roots = Vec::new();
+        let mut root_authorities = Vec::new();
         let mut files = Vec::new();
         collect_catalog_roots(
             CATALOG,
@@ -894,6 +1038,7 @@ mod tests {
             worktree,
             &excludes,
             &mut roots,
+            &mut root_authorities,
             &mut files,
         )
         .expect("catalog roots should be collected");

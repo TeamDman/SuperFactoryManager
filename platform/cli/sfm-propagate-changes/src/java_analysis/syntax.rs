@@ -54,12 +54,15 @@ impl JavaSyntaxFile {
         file: &JavaSourceFile,
         diagnostic_limit: Option<usize>,
     ) -> eyre::Result<Self> {
-        let source = std::fs::read_to_string(&file.absolute_path).map_err(|error| {
-            eyre::eyre!(
-                "Failed to read Java source {}: {error}",
-                file.absolute_path.display()
-            )
-        })?;
+        let source = match &file.source_override {
+            Some(source) => source.clone(),
+            None => std::fs::read_to_string(&file.absolute_path).map_err(|error| {
+                eyre::eyre!(
+                    "Failed to read Java source {}: {error}",
+                    file.absolute_path.display()
+                )
+            })?,
+        };
         Self::parse_text_with_diagnostic_limit(
             &file.report_path,
             &file.source_set,

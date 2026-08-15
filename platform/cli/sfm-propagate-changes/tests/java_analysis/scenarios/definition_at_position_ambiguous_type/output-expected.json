@@ -1,0 +1,183 @@
+{
+  "completeness": "complete",
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:deeaf7022466f2811e1927d0f460e69906506847f41c1faa14f0f447897e3cce",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom"
+        ]
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "address": "workspace://custom-0/p/Choice.java",
+        "end_byte": 34,
+        "end_column": 23,
+        "end_line": 3,
+        "report_path": "source/p/Choice.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/Choice.java",
+        "source_hash": "blake3:d010a60ab6c022a7d080747b40bff760e0833c76c4f155900638ee0afdb3c8fc",
+        "source_set": "custom",
+        "start_byte": 12,
+        "start_column": 1,
+        "start_line": 3
+      },
+      "identifier_span": {
+        "address": "workspace://custom-0/p/Choice.java",
+        "end_byte": 31,
+        "end_column": 20,
+        "end_line": 3,
+        "report_path": "source/p/Choice.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/Choice.java",
+        "source_hash": "blake3:d010a60ab6c022a7d080747b40bff760e0833c76c4f155900638ee0afdb3c8fc",
+        "source_set": "custom",
+        "start_byte": 25,
+        "start_column": 14,
+        "start_line": 3
+      },
+      "symbol": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "Choice",
+        "owner": "p",
+        "qualified_name": "p.Choice"
+      }
+    },
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "address": "workspace://custom-0/r/Choice.java",
+        "end_byte": 34,
+        "end_column": 23,
+        "end_line": 3,
+        "report_path": "source/r/Choice.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "r/Choice.java",
+        "source_hash": "blake3:fee06bdbb1a5e54e848954ef7c5888ca99074cb23271d416e994da28f695c094",
+        "source_set": "custom",
+        "start_byte": 12,
+        "start_column": 1,
+        "start_line": 3
+      },
+      "identifier_span": {
+        "address": "workspace://custom-0/r/Choice.java",
+        "end_byte": 31,
+        "end_column": 20,
+        "end_line": 3,
+        "report_path": "source/r/Choice.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "r/Choice.java",
+        "source_hash": "blake3:fee06bdbb1a5e54e848954ef7c5888ca99074cb23271d416e994da28f695c094",
+        "source_set": "custom",
+        "start_byte": 25,
+        "start_column": 14,
+        "start_line": 3
+      },
+      "symbol": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "Choice",
+        "owner": "r",
+        "qualified_name": "r.Choice"
+      }
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "java.ambiguous-type",
+      "message": "field type `Choice` resolves to more than one visible source declaration",
+      "severity": "warning",
+      "span": {
+        "end_byte": 73,
+        "end_column": 17,
+        "end_line": 5,
+        "path": "source/q/Use.java",
+        "source_hash": "blake3:ee2d43e214ae7462c3f80b0760cdf1c9e6d1eb99fd9fb6096a09e3eb3679afcf",
+        "source_set": "custom",
+        "start_byte": 68,
+        "start_column": 12,
+        "start_line": 5
+      }
+    },
+    {
+      "code": "java.ambiguous-type",
+      "message": "type reference `Choice` resolves to more than one visible source declaration",
+      "severity": "warning",
+      "span": {
+        "end_byte": 67,
+        "end_column": 11,
+        "end_line": 5,
+        "path": "source/q/Use.java",
+        "source_hash": "blake3:ee2d43e214ae7462c3f80b0760cdf1c9e6d1eb99fd9fb6096a09e3eb3679afcf",
+        "source_set": "custom",
+        "start_byte": 61,
+        "start_column": 5,
+        "start_line": 5
+      }
+    }
+  ],
+  "document": {
+    "address": "workspace://custom-0/q/Use.java",
+    "content_hash": "blake3:ee2d43e214ae7462c3f80b0760cdf1c9e6d1eb99fd9fb6096a09e3eb3679afcf",
+    "disk_content_hash": "blake3:ee2d43e214ae7462c3f80b0760cdf1c9e6d1eb99fd9fb6096a09e3eb3679afcf",
+    "report_path": "source/q/Use.java",
+    "root_id": "custom-0",
+    "root_relative_path": "q/Use.java",
+    "source_set": "custom"
+  },
+  "outcome": "ambiguous",
+  "position": {
+    "byte_offset": 63,
+    "column": 7,
+    "line": 5
+  },
+  "recovery_actions": [],
+  "request_generation": 0,
+  "request_id": 0,
+  "schema": "sfm.definition-at-position-result/2",
+  "symbols": [
+    {
+      "descriptor": null,
+      "kind": "class",
+      "name": "Choice",
+      "owner": "p",
+      "qualified_name": "p.Choice"
+    },
+    {
+      "descriptor": null,
+      "kind": "class",
+      "name": "Choice",
+      "owner": "r",
+      "qualified_name": "r.Choice"
+    }
+  ],
+  "workspace_generation": 0
+}

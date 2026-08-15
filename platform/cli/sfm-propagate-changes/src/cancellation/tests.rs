@@ -70,3 +70,34 @@ fn cancellation_token_keeps_first_reason() {
             .is_err_and(|error| error.to_string() == "first")
     );
 }
+
+#[test]
+fn child_token_observes_parent_cancellation() {
+    let parent = CancellationToken::new();
+    let child = parent.child_token();
+
+    parent.request_cancel("server shutdown");
+
+    assert!(child.is_cancelled());
+    assert_eq!(
+        child.cancellation_reason().as_deref(),
+        Some("server shutdown")
+    );
+}
+
+#[test]
+fn child_cancellation_does_not_cancel_parent_or_sibling() {
+    let parent = CancellationToken::new();
+    let first = parent.child_token();
+    let second = parent.child_token();
+
+    first.request_cancel("stale request");
+
+    assert!(first.is_cancelled());
+    assert!(!parent.is_cancelled());
+    assert!(!second.is_cancelled());
+    assert_eq!(
+        first.cancellation_reason().as_deref(),
+        Some("stale request")
+    );
+}

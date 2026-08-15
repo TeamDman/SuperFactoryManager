@@ -3,6 +3,7 @@ use eyre::bail;
 use sfm_propagate_changes::cancellation::CancellationToken;
 use sfm_propagate_changes::cli::Cli;
 use sfm_propagate_changes::cli::output::OutputFormat;
+use sfm_propagate_changes::java_analysis::DefinitionAtPositionOutcome;
 use sfm_propagate_changes::java_analysis::SymbolCommandOutcome;
 use std::collections::BTreeMap;
 use std::fs;
@@ -69,7 +70,25 @@ fn run_scenario(scenario: &Path) -> eyre::Result<()> {
         .wrap_err_with(|| format!("invalid command in {}", command_path.display()))?;
     verify_snapshot_git_policy(scenario)?;
 
+    let before = scenario_files(scenario)?;
     let (rendered, actual_exit_code) = invoke_production_cli(&argv, scenario)?;
+    let after = scenario_files(scenario)?;
+    if before != after {
+        let changed = before
+            .keys()
+            .chain(after.keys())
+            .filter(|path| before.get(*path) != after.get(*path))
+            .collect::<std::collections::BTreeSet<_>>();
+        bail!(
+            "production CLI mutated scenario inputs in {}: {}",
+            scenario.display(),
+            changed
+                .into_iter()
+                .map(|path| path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ")
+        );
+    }
     let actual = canonicalize_json(&rendered)
         .wrap_err_with(|| format!("scenario output was not valid JSON: {}", scenario.display()))?;
     let actual_path = scenario.join(ACTUAL_FILE);
@@ -118,6 +137,36 @@ fn run_scenario(scenario: &Path) -> eyre::Result<()> {
         ));
     }
     Ok(())
+}
+
+fn scenario_files(scenario: &Path) -> eyre::Result<BTreeMap<PathBuf, Vec<u8>>> {
+    fn visit(
+        root: &Path,
+        directory: &Path,
+        files: &mut BTreeMap<PathBuf, Vec<u8>>,
+    ) -> eyre::Result<()> {
+        for entry in fs::read_dir(directory)
+            .wrap_err_with(|| format!("failed to read {}", directory.display()))?
+        {
+            let entry = entry?;
+            let path = entry.path();
+            let file_type = entry.file_type()?;
+            if file_type.is_dir() {
+                visit(root, &path, files)?;
+            } else if file_type.is_file() && entry.file_name() != ACTUAL_FILE {
+                let relative = path
+                    .strip_prefix(root)
+                    .wrap_err("scenario entry escaped its scenario root")?
+                    .to_path_buf();
+                files.insert(relative, fs::read(&path)?);
+            }
+        }
+        Ok(())
+    }
+
+    let mut files = BTreeMap::new();
+    visit(scenario, scenario, &mut files)?;
+    Ok(files)
 }
 
 fn invoke_production_cli(argv: &[String], invocation_dir: &Path) -> eyre::Result<(String, u8)> {
@@ -387,14 +436,28 @@ fn expected_public_status(input: &str) -> eyre::Result<u8> {
     let Some(CanonicalJson::String(outcome)) = fields.get("outcome") else {
         bail!("expected snapshot must contain a string outcome field");
     };
-    let outcome = match outcome.as_str() {
-        "success" => SymbolCommandOutcome::Success,
-        "no-match" => SymbolCommandOutcome::NoMatch,
-        "ambiguous" => SymbolCommandOutcome::Ambiguous,
-        "unsupported" => SymbolCommandOutcome::Unsupported,
+    if matches!(
+        outcome.as_str(),
+        "stale-document" | "invalid-request" | "unavailable"
+    ) {
+        return Ok(DefinitionAtPositionOutcome::InvalidRequest.exit_code());
+    }
+    if matches!(
+        fields.get("completeness"),
+        Some(CanonicalJson::String(completeness)) if completeness == "incomplete"
+    ) {
+        return Ok(5);
+    }
+    let status = match outcome.as_str() {
+        "success" => SymbolCommandOutcome::Success.exit_code(),
+        "no-match" => SymbolCommandOutcome::NoMatch.exit_code(),
+        "no-symbol" => DefinitionAtPositionOutcome::NoSymbol.exit_code(),
+        "no-definition" => DefinitionAtPositionOutcome::NoDefinition.exit_code(),
+        "ambiguous" => SymbolCommandOutcome::Ambiguous.exit_code(),
+        "unsupported" => SymbolCommandOutcome::Unsupported.exit_code(),
         other => bail!("unknown public command outcome {other:?}"),
     };
-    Ok(outcome.exit_code())
+    Ok(status)
 }
 
 impl CanonicalJson {
@@ -772,12 +835,20 @@ fn expected_snapshot_outcome_determines_public_exit_status() -> eyre::Result<()>
     for (outcome, expected_status) in [
         ("success", 0),
         ("no-match", 2),
+        ("no-symbol", 2),
+        ("no-definition", 2),
         ("ambiguous", 3),
+        ("invalid-request", 4),
+        ("unavailable", 4),
         ("unsupported", 4),
     ] {
         let snapshot = format!(r#"{{"outcome":"{outcome}"}}"#);
         assert_eq!(expected_public_status(&snapshot)?, expected_status);
     }
+    assert_eq!(
+        expected_public_status(r#"{"outcome":"success","completeness":"incomplete"}"#)?,
+        5
+    );
     let _ = expected_public_status(r#"{"schema":"missing-outcome"}"#).unwrap_err();
     let _ = expected_public_status(r#"{"outcome":"invented"}"#).unwrap_err();
     Ok(())
@@ -821,4 +892,21 @@ fn snapshot_policy_rejects_unsafe_actual_and_expected_paths() {
             .to_string()
             .contains("expected snapshot must not be ignored")
     );
+}
+
+#[test]
+fn scenario_file_snapshot_ignores_actual_output_but_detects_input_mutation() -> eyre::Result<()> {
+    let directory = tempfile::tempdir()?;
+    let source = directory.path().join("Use.java");
+    let actual = directory.path().join(ACTUAL_FILE);
+    fs::write(&source, "class Use {}")?;
+    fs::write(&actual, "first generated result")?;
+
+    let before = scenario_files(directory.path())?;
+    fs::write(&actual, "replacement generated result")?;
+    assert_eq!(before, scenario_files(directory.path())?);
+
+    fs::write(&source, "class Use { int changed; }")?;
+    assert_ne!(before, scenario_files(directory.path())?);
+    Ok(())
 }
