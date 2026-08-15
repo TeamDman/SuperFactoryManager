@@ -1,11 +1,11 @@
 # Contextual input, action ownership, and addressable explorer plan
 
-**Plan status:** Active; B-2 is complete and C-4 remains in progress with CLI-AST Phase 0.10 under the current goal
+**Plan status:** Active; B-2/C-4 and CLI-AST Phase 0.10 are complete; C-5 is the next eligible, not-yet-active slice
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
-**Last updated:** 2026-08-13
-**Intent audit:** Passed 2026-08-13 including the implementation/trajectory reconciliation recorded below
+**Last updated:** 2026-08-15
+**Intent audit:** Passed 2026-08-15 including the B-2/C-4 completion reconciliation recorded below
 
 ## How to update this plan
 
@@ -154,7 +154,7 @@ workspace.
 | SYMBOL-3 | Definition results should compose with panels and the command palette. | C-5 opens one unambiguous result in a Text Editor v3 panel at its range, uses the constrained palette for multiple candidates, and preserves a visible diagnostic for no/incomplete results. | — |
 | SYMBOL-4 | Reuse the Java symbol work already built in `sfm-propagate-changes`; do not create an unrelated Java resolver inside the Minecraft UI. | C-4 adds a reusable asynchronous provider/transport boundary over the existing live-source and dependency index; D-19 freezes the first transport without coupling the action contract to process or Vox details. | — |
 | SYMBOL-5 | Interactive navigation must not stall Minecraft. | C-4 runs source/index work off the render thread, supports cancellation and request generations, rejects stale responses, and records latency/index-completeness telemetry. | — |
-| PLAN-3 | Preserve the complete path from folder authorization through opening SFM code and jumping to a definition as executable vertical slices. | Selection/explorer X-1 through X-7 and C-3 are complete; gates D-15 through D-19, remaining C-4 through C-6, topology, proofs, risks, and revised next-goal definition are authoritative. Superseded C-1/C-2 remain provenance only. | — |
+| PLAN-3 | Preserve the complete path from folder authorization through opening SFM code and jumping to a definition as executable vertical slices. | Selection/explorer X-1 through X-7, C-3, and C-4 are complete; gates D-15 through D-19, remaining C-5/C-6, topology, proofs, risks, and revised next-goal definition are authoritative. Superseded C-1/C-2 remain provenance only. | — |
 
 ## Guidance traceability
 
@@ -651,8 +651,8 @@ Out of scope unless a later goal explicitly expands it:
 | D-15 Native folder chooser lifecycle | Which API owns native folder selection and how is its blocking/modal lifecycle isolated from Minecraft? | **Working recommendation:** use Minecraft's bundled `TinyFileDialogs.tinyfd_selectFolderDialog` behind `SFMFolderPicker`; execute through a bounded platform-aware async/modal coordinator, suppress duplicate opens, restore game focus after completion, and submit the result to the same exact-selector root/add action on the Minecraft executor. A fake adapter proves cancel/success/failure. | A later post-X adapter may not call TinyFD directly from panel rendering, hide the explorer selector, create a separate catalog, or make OS-dialog automation part of completion. |
 | D-16 Explorer location ownership and persistence | Does root management mutate a focused explorer, a named collection, or a global singleton, and where is it persisted? | **Closed by the 2026-08-12 selection/explorer supersession:** each explorer session owns an explicit path-expression location. Adding a second root creates/uses a versioned selection-backed location. The first slice is game-session-only; no global default workspace or provisional disk format is introduced. Every action carries an explorer selector, with explicit non-exact open-if-none policy. Persisted named selections/collections require a later schema/migration goal. | Selection/explorer X-1 through X-7 prove exact/focused/all targeting, heterogeneous roots, session lifetime, and no accidental persistence. C-3 consumes the resulting paths. |
 | D-17 File-editor mutation boundary | Is opening an explorer-addressed file editable in the first slice? | **Closed by C-3:** open read-only initially, retain address/hash and the capability seam for later writable documents, and never overwrite host source as a side effect of navigation. | C-3 delivers safe source browsing/jump navigation without inventing save/conflict semantics; later write support is a separate approved goal. |
-| D-18 Definition-at-cursor request | What exact data identifies the symbol to resolve? | **Approved for C-4 on 2026-08-14:** document concrete address/root/source-set, immutable source text plus content hash, UTF-aware row/column and derived byte offset, branch/classpath/index identity, and request generation. The provider resolves the symbol at that location and returns typed spans; the Java client does not first reduce it to a bare token. | C-4 requires CLI scenario fixtures for imports, same simple name in multiple packages, fields, overloaded methods, dependency symbols, whitespace/no-symbol, stale disk text, CRLF, Unicode, and malformed positions. |
-| D-19 First symbol-provider transport | Should Minecraft spawn the installed CLI per request, hold a long-lived worker, or call a Vox service? | **Approved for C-4 on 2026-08-14:** freeze a provider-neutral Java contract first and deliver the first vertical slice with a supervised long-lived `sfm-propagate-changes` symbol worker using framed typed requests/responses. Reuse the existing Java-analysis engine in-process inside that worker, amortize index/source setup, and leave a Vox adapter possible without changing actions/results. Fall back visibly when the executable/worker is unavailable; never spawn one 2-second process per cursor query as the steady state. | C-4's CLI-plan handoff, lifecycle/cancellation tests, install discovery, and live latency target now govern the active goal. |
+| D-18 Definition-at-cursor request | What exact data identifies the symbol to resolve? | **Closed by C-4 on 2026-08-15:** document concrete address/root/source-set, immutable source text plus content hash, UTF-aware row/column and derived byte offset, branch/classpath/index identity, provider-origin request generation, and worker-global workspace generation. The provider resolves the symbol at that location and returns typed spans; the Java client does not first reduce it to a bare token. | C-4 scenarios and tests cover imports, same simple name in multiple packages, fields, overloaded methods, constructors, dependency symbols, whitespace/no-symbol, stale disk text, CRLF, Unicode, malformed positions, and duplicate root-relative paths. |
+| D-19 First symbol-provider transport | Should Minecraft spawn the installed CLI per request, hold a long-lived worker, or call a Vox service? | **Closed by C-4 on 2026-08-15:** the provider-neutral Java contract uses one supervised long-lived `sfm-propagate-changes` symbol worker with framed typed requests/responses. It reuses the existing Java-analysis engine and bounded immutable resolution surfaces, remains replaceable by a Vox adapter, fails visibly when unavailable, and does not spawn one process per cursor query. | C-4's direct/worker parity, lifecycle/cancellation/process tests, install discovery, and 72.001 ms installed warm median are the implementation evidence. |
 
 ## Target action and binding vocabulary
 
@@ -2072,7 +2072,7 @@ figures were visually inspected; the run is
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
 `title_screen_exp-20260813-212137-953`.
 
-### [~] C-4 Add location-aware definition analysis and the async provider
+### [x] C-4 Add location-aware definition analysis and the async provider
 
 **Work:** Close D-18 and D-19 with the linked CLI-plan slice. Extract/reuse the
 existing Java-analysis engine behind a typed definition-at-document-location
@@ -2099,7 +2099,8 @@ privacy-safe telemetry, and byte-identical direct/worker results.
 ```pwsh
 cargo test --all-features java_analysis
 cargo test --all-features --test java_analysis_scenarios
-sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMSymbolNavigationProviderTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMSymbolServerNavigationProviderTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMSymbolServerInstalledIntegrationTests --wait-for-build-lock
 ```
 
 **Completion criteria:** The existing SFM symbol engine can resolve the symbol
@@ -2107,6 +2108,28 @@ at a concrete editor location using the exact current snapshot and complete
 workspace/dependency context; Minecraft receives typed cancellable results
 without blocking its render thread; steady-state queries reuse one supervised
 worker; and no-match is authoritative only when index completeness permits it.
+
+**Completion evidence (2026-08-15):** Commits `21a9b06e7` and `c32607d2f`
+complete the location engine, supervised worker, retained resolution surface,
+and real-process Java integration. Minecraft now projects B-2 snapshots into a
+provider-neutral, immutable definition request; owns explicit origin-scoped
+supersession and worker-global workspace generation; and supervises one CLI
+process through daemon state/I/O/timer threads with no render-thread wait. The
+production adapter supports typed unavailable/stale/protocol/timeout/restart
+recovery and emits only ids, hashes, counts, durations, and outcomes by default.
+The installed release probe rotated through a main source, gametest source, and
+dependency definition for 24 warm samples: 72.001 ms median, 103.068 ms p95,
+107.290 ms maximum, 501,850,112-byte peak working set, one observed descendant,
+and zero leaks. Cancellation and acknowledged shutdown were exercised. Raw
+evidence is retained in
+`docs/architecture/evidence/symbol-server-installed-probe-1.19.2.json`.
+Focused protocol/provider/context tests, the opt-in installed-process Java test,
+Rust Java-analysis/scenario suites, strict Rust checks, and canonical compile
+pass. The complete Java suite found 891 tests: 890 passed, zero failed, and the
+installed-process test was the sole expected opt-in abort when its properties
+were absent. The source audit exited 0 with 30 pre-existing grouped unresolved
+font-render-rule warnings. No F12/Alt+Enter result navigation or live UI proof
+was introduced; those remain C-5/C-6.
 
 ### [ ] C-5 Register jump-to-definition and integrate result navigation
 
@@ -2162,7 +2185,7 @@ the in-game experience, warm latency is recorded and acceptable, every
 WSPACE/SYMBOL guidance id has evidence, and no propagation/publication occurs
 without a later goal.
 
-## Most recently completed vertical slice
+## Previously completed vertical slice
 
 The **generic explorer to addressed source editor slice** is complete in
 implementation commit `6dc3d2d04`. It completed A-2c and C-3 without beginning
@@ -2190,7 +2213,7 @@ The final evidence is:
    assertions. The obsolete large-explorer runtime hook and legacy puppets are
    gone. No propagation, publication, or release operation was performed.
 
-## Current active vertical slice
+## Most recently completed vertical slice
 
 The accepted goal is the complete **captured editor context to warm definition
 provider** boundary:
@@ -2202,15 +2225,15 @@ provider** boundary:
 > fuzzy file search, writable documents, picker destinations, propagation,
 > publication, or release work.
 
-**Goal activation bookkeeping (2026-08-14):** The goal above is active. B-2,
-C-4, and CLI-AST Phase 0.10.1 through 0.10.4 are marked in progress. Approval
-freezes D-8's typed coordinate model, D-18's exact source-location request, and
-D-19's supervised long-lived worker as the first transport. Completion still
-requires focused/direct/worker/provider tests, installed latency and process-
-liveness evidence, canonical compile/full-suite validation, documentation, and
-completion notes; no F12 or result-navigation behavior is part of this goal.
+**Goal completion bookkeeping (2026-08-15):** B-2, C-4, and CLI-AST Phase
+0.10.1 through 0.10.4 are complete. The implementation freezes D-8's typed
+coordinate model, closes D-18's exact source-location request, and closes
+D-19's supervised long-lived worker as the first transport. Focused/direct/
+worker/provider tests, installed latency and process-liveness evidence,
+canonical compile/full-suite validation, documentation, and completion notes
+are recorded. No F12 or result-navigation behavior is part of this result.
 
-Its observable completion state will be:
+Its observable completion state is:
 
 1. Text Editor v3 and other contributors can capture one immutable,
    independently addressable context containing the concrete document/root/
@@ -2243,7 +2266,7 @@ Its observable completion state will be:
    and zero leaked processes; a miss requires profiling and fixing the measured
    dominant stage rather than weakening the target silently.
 
-The work can proceed in parallel after the request/result DTO is frozen:
+The completed work proceeded in parallel after the request/result DTO was frozen:
 
 - a CLI analysis lane owns direct definition-at-location and scenarios;
 - a worker lane owns framing, reuse, invalidation, cancellation, and process
@@ -2253,13 +2276,13 @@ The work can proceed in parallel after the request/result DTO is frozen:
 - one integration owner serializes shared schema, executable discovery,
   lifecycle wiring, direct/worker parity, benchmark evidence, plans, and docs.
 
-The approved goal freezes D-8's coordinate contract, D-18's exact location
-request, and D-19's supervised-worker choice; completing B-2/C-4 will close
-their implementation evidence. It deliberately stops one boundary before any
-F12/keybinding/palette result-navigation behavior, so C-5 can consume a
-measured, deterministic provider rather than mixing UI design with analysis and
-process-lifecycle work. The independent fuzzy-file chain remains available
-after B-2 but is not part of this goal.
+The completed goal freezes D-8's coordinate contract and closes D-18/D-19 with
+implementation evidence. It stopped one boundary before any F12/keybinding/
+palette result-navigation behavior, so C-5 can consume a measured,
+deterministic provider rather than mixing UI design with analysis and process-
+lifecycle work. C-5 is the next eligible slice but is not active until a later
+approved goal. The independent fuzzy-file chain remains available after B-2
+and was not part of this goal.
 
 ## Overall completion criteria
 
@@ -2348,7 +2371,7 @@ after B-2 but is not part of this goal.
 | Removing the textual view toggle hides projection controls | Preserve registered view/sort/group/hoist actions in contextual, palette, and keybinding discovery with keyboard-parity tests |
 | File navigation overwrites or reopens stale source unexpectedly | First slice is read-only; recipes retain address/hash/range, re-resolve capability, and show stale/unavailable diagnostics rather than writing or guessing |
 | Bare token lookup jumps to a same-named symbol in the wrong package | D-18 source-location query includes document snapshot/import/source-set context; ambiguity is typed and user-selected, never first-match |
-| Symbol lookup blocks Minecraft for the existing ~2.1-second CLI startup/query | D-19 long-lived supervised worker, render-thread prohibition, generation cancellation, cold/warm telemetry, and a live latency acceptance witness |
+| Symbol lookup blocks Minecraft for the former multi-second CLI startup/query | D-19 long-lived supervised worker, render-thread prohibition, generation cancellation, cold/warm telemetry, and the installed 72.001 ms warm-median acceptance witness |
 | Worker crash/cancel leaks subprocesses or applies a late definition | Owned process/job lifecycle, framed request ids/generations, kill/wait on shutdown/failure, stale-response rejection, and liveness tests |
 | Dependency index is stale but no-match is presented as authoritative | Existing index identity/completeness contract is preserved in `DefinitionResult`; incomplete outcomes include typed refresh/retry actions |
 | Source paths or text leak through telemetry | Default telemetry records provider/root ids, hashes, counts, durations, and outcomes only; raw paths/text require explicit user-visible artifact capture |

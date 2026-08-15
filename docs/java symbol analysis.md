@@ -22,6 +22,109 @@ sfm-propagate-changes.exe symbol index refresh --branch 1.19.2
 sfm-propagate-changes.exe symbol show-definition net.minecraft.client.gui.components.MultiLineEditBox --branch 1.19.2
 ```
 
+## Definition at an editor location
+
+`show-definition` also accepts an exact document location. This is mutually
+exclusive with its positional selector form:
+
+```powershell
+sfm-propagate-changes.exe --output-format json symbol show-definition `
+  --source-path ca/teamdman/sfm/common/item/DiskItem.java `
+  --line 43 `
+  --column 14 `
+  --branch 1.19.2
+```
+
+`--source-path` is relative to one selected source root. If the same relative
+path exists in more than one root, pass `--source-root-id <id>` rather than
+letting filesystem order choose. Direct CLI mode reads the current file from
+that declared root. The shared engine and worker additionally accept exact
+caller-supplied text as a request-scoped in-memory overlay; they record both
+overlay and disk hashes and never write the overlay to the source tree.
+
+The request schema is `sfm.definition-at-position-request/2`. It carries the
+root id, root-relative/report path, source set, typed address, exact text and
+content hash, optional disk hash, one-based Unicode-scalar row/column, derived
+UTF-8 byte offset, branch/classpath/source-root visibility, parser/dependency
+index/workspace fingerprints, provider-origin request generation, and global
+workspace generation. A request generation correlates work from one origin;
+same-origin supersession is an explicit cancellation rather than an accidental
+global-generation race. Workspace generation is worker-wide and invalidates
+older workspace state.
+
+The result schema is `sfm.definition-at-position-result/2`. It preserves
+zero/one/many outcomes, completeness, canonical symbol ids, confidence,
+root-authoritative definition spans, source/index fingerprints, diagnostics,
+and typed recovery. Stale source, invalid position, unavailable roots/indexes,
+ambiguity, and an incomplete dependency index do not collapse into a guessed
+match or authoritative no-match. A successful result can therefore still exit
+with status 5 when its dependency coverage is explicitly incomplete.
+
+## Warm symbol worker and Minecraft consumer
+
+Start the reusable worker with:
+
+```powershell
+sfm-propagate-changes.exe symbol serve --branch 1.19.2
+```
+
+The worker is an API process, not a line-oriented interactive command. Stdout
+is reserved for `[u32 little-endian payload length][UTF-8 JSON payload]` frames;
+logs go to stderr or `--log-file`. The `sfm.symbol-server/1` handshake checks
+frame schemas, capabilities, maximum frame size, pending-definition limit, and
+workspace identity before work is accepted. Versioned frames support
+definition, cancellation, workspace-generation update, ping, shutdown, and
+typed fatal/nonfatal errors. Length framing keeps embedded newline, NUL, and
+Unicode source text unambiguous.
+
+Within one worker lifetime, exact ordered source-content identities key a
+bounded immutable fact cache and at most two derived definition-resolution
+surfaces. Every query still reads and hashes the selected sources, so edits made
+outside the requesting editor invalidate reuse. A cache hit parses/walks only
+the target document against the retained resolution surface instead of
+relinking the workspace or re-expanding dependency declarations. A cancelled
+or failed rebuild is never published, and no live cache persists after exit.
+
+Minecraft consumes this protocol through `SFMSymbolNavigationProvider`, not by
+parsing Java in a screen. `SFMSymbolServerSupervisor` launches the branch-
+configured command above, defaults to `sfm-propagate-changes.exe`, and permits
+an executable override through `-Dsfm.symbol.workerExecutable=<path>`. Its
+defaults are a 10-second handshake timeout, 3-second request timeout, 2-second
+shutdown grace, 16 MiB frames, eight pending definitions, and sixteen pending
+controls. State, frame I/O, timers, and process reaping run on dedicated daemon
+threads; the render thread never waits for the process. The lifecycle is
+`STOPPED -> STARTING -> READY -> STOPPING -> CLOSED`, with typed unavailable,
+timeout, protocol, stale, crash/restart, and recovery behavior. F12, Alt+Enter,
+result selection, and panel navigation remain a later UI slice.
+
+Source text necessarily appears in an explicit definition request frame. It is
+not included in default logs or telemetry. Normal telemetry contains request/
+provider/root ids, hashes, counts, cache state, durations, and outcomes rather
+than source text or absolute workspace paths.
+
+### Installed 1.19.2 evidence
+
+The installed executable identified itself as revision `c32607d2f`, built
+2026-08-15. Its cold `DiskItem` request took 3,219.436 ms. A following set of
+24 warm requests rotated through main `DiskItem`, gametest
+`SFMGameTestHelper`, and dependency `BlockPos` locations and measured:
+
+- 72.001 ms median;
+- 103.068 ms p95;
+- 107.290 ms maximum;
+- 501,850,112 bytes peak working set;
+- one observed descendant process and zero leaked descendants;
+- typed cancellation acknowledgements and acknowledged clean shutdown.
+
+These values pass the unchanged acceptance limits of 250 ms median, 750 ms
+p95, and less than one second maximum. The first warm implementation took about
+1.8 seconds even with 1,504 fact-cache hits: telemetry showed that every query
+relinked the workspace and re-expanded 117,694 dependency definitions. The
+retained immutable resolution surface fixes that measured stage instead of
+weakening the limit. The complete machine-readable run, including all sample
+and stage telemetry, is
+`docs/architecture/evidence/symbol-server-installed-probe-1.19.2.json`.
+
 ## Live definition-query performance baseline
 
 Phase 0.9 uses the real installed command above as its acceptance benchmark.
@@ -211,8 +314,8 @@ classpath mode/fingerprint.
 
 `--output-format text|json|csv` selects the rendering. The default is text for
 an interactive terminal and JSON when stdout is redirected. JSON schemas are
-versioned as `sfm.symbol-definition/2`, `sfm.symbol-list/1`, and
-`sfm.symbol-usage-list/2`.
+versioned as `sfm.symbol-definition/2`, `sfm.symbol-list/1`,
+`sfm.symbol-usage-list/2`, and `sfm.definition-at-position-result/2`.
 CSV starts with a report row carrying the outcome/status, selector, workspace
 context, and fingerprints, followed by definition/usage and diagnostic rows.
 That report row keeps zero-match and ambiguity distinct even when there are no

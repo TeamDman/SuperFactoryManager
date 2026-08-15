@@ -1,9 +1,9 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0, Phase 0.8, and Phase 0.9 are complete; Phase 0.10 is in progress with contextual B-2/C-4
+**Plan status:** Active; Phase 0, Phase 0.8, Phase 0.9, and Phase 0.10 are complete; Phase 1 remains deferred
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-14
-**Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, and 2026-08-11 for the in-game definition-at-location bridge
+**Last updated:** 2026-08-15
+**Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, 2026-08-11 for the in-game definition-at-location bridge, and reconciled 2026-08-15 at Phase 0.10 completion
 
 ## How to update this plan
 
@@ -1576,14 +1576,14 @@ presentation. It makes the existing symbol engine safely reusable by those
 features and keeps direct/manual invocation as an independently testable
 contract.
 
-**Goal activation bookkeeping (2026-08-14):** Phase 0.10.1 through 0.10.4 are
-active together with contextual-plan B-2/C-4. The approved boundary includes
+**Goal completion bookkeeping (2026-08-15):** Phase 0.10.1 through 0.10.4 are
+complete together with contextual-plan B-2/C-4. The delivered boundary includes
 the direct location form, reusable engine entry point, supervised framed worker,
 Minecraft provider handoff, installed latency/process-liveness evidence, and
 documentation. It excludes F12/Alt+Enter result navigation, live Minecraft UI
 proof, fuzzy search, source mutation, propagation, publication, and release.
 
-### [~] 0.10.1 Freeze the definition-at-location request/result and direct CLI form
+### [x] 0.10.1 Freeze the definition-at-location request/result and direct CLI form
 
 **Work:** Add versioned Facet `DefinitionAtPositionRequest` and
 `DefinitionAtPositionResult` values. A request identifies branch/classpath,
@@ -1612,7 +1612,19 @@ the normal CLI, while the same versioned typed request/result can be carried by
 the worker; selector and location modes are unambiguous and no raw token guess
 is part of the contract.
 
-### [~] 0.10.2 Resolve the symbol at the location through the existing engine
+**Completion evidence (2026-08-15):** The CLI and shared engine now use
+`sfm.definition-at-position-request/2` and
+`sfm.definition-at-position-result/2`. Location mode accepts root-relative
+`--source-path`, one-based `--line`/`--column`, and optional
+`--source-root-id`; Figue rejects mixed selector/location forms. The request
+retains root/source-set/address identity, exact source text and hashes,
+Unicode-scalar coordinates plus UTF-8 byte offset, branch/classpath/index
+context, origin-scoped request generation, and worker-global workspace
+generation. An installed direct query resolved `DiskItem.java` line 43,
+column 14 to `ca.teamdman.sfm.common.item.DiskItem`; it correctly returned
+status 5 with `completeness: incomplete` because dependency coverage is partial.
+
+### [x] 0.10.2 Resolve the symbol at the location through the existing engine
 
 **Work:** Add a reusable engine entry point over the Phase 0.9 fact/link path
 and Phase 0.8 dependency index. Resolve the syntax/reference at the exact
@@ -1635,7 +1647,17 @@ with exact-selector results when both identify the same symbol.
 the existing symbol universe, not a second parser/resolver; exact current text
 can be analyzed without mutation; ambiguity/completeness remain truthful.
 
-### [~] 0.10.3 Add `symbol serve` with framed requests, reuse, and cancellation
+**Completion evidence (2026-08-15):** `DefinitionAtPositionEngine` reuses the
+existing Java facts, linker, source-set visibility, and immutable dependency
+index. It supports request-scoped in-memory overlays without writing source,
+keeps disk/overlay hashes distinct, and returns root-authoritative spans with
+typed stale, invalid-position, unavailable, ambiguous, incomplete, and recovery
+outcomes. Adjacent scenarios cover imported/project/dependency types, fields,
+methods, constructors, declaration self-navigation, Unicode/CRLF, no-symbol,
+ambiguity, overlays, and duplicate relative paths in different roots. Direct
+and worker modes consume the same engine and canonical result model.
+
+### [x] 0.10.3 Add `symbol serve` with framed requests, reuse, and cancellation
 
 **Work:** Add `sfm-propagate-changes.exe symbol serve --branch <branch>` as a
 long-lived worker mode. Reserve stdout for `[u32 little-endian byte length][UTF-8
@@ -1661,7 +1683,20 @@ definition requests safely, amortizes reusable setup, never mixes logs with
 protocol bytes, invalidates by identity rather than hope, and exits without
 leaked children or persistent live-source state.
 
-### [~] 0.10.4 Prove interactive latency, cancellation, and handoff documentation
+**Completion evidence (2026-08-15):** `symbol serve` reserves stdout for
+little-endian length-framed JSON and stderr/log files for diagnostics. Its
+versioned handshake negotiates schemas, capabilities, frame/pending limits,
+and workspace identity; definition, cancellation, workspace-generation, ping,
+and shutdown frames are covered by fragmented/coalesced/malformed/Unicode/NUL,
+late-response, cancellation, crash/restart, and cleanup tests. The worker keeps
+a bounded immutable fact cache and at most two content-keyed resolution
+surfaces; it re-hashes selected sources for external-edit detection and only
+publishes a rebuilt surface after successful completion. Minecraft now has the
+provider-neutral request/result adapter, supervised process implementation,
+origin-scoped supersession, daemon I/O/state/timer threads, bounded pending
+work, typed recovery, privacy-safe telemetry, and deterministic close/reap.
+
+### [x] 0.10.4 Prove interactive latency, cancellation, and handoff documentation
 
 **Work:** Build/install the release CLI, start one worker against 1.19.2, and
 measure cold first query plus at least twenty warm definition-at-location
@@ -1683,6 +1718,25 @@ this CLI phase; C-4/C-6 own consumer/live-game proof.
 latency and cleanup bounds, documentation is sufficient for the Minecraft
 provider to integrate without reading implementation details, all JAVA-32
 through JAVA-37 evidence is durable, and Phase 1 remains untouched.
+
+**Completion evidence (2026-08-15):** The installed executable identifies
+revision `c32607d2f`. Its cold 1.19.2 query took 3,219.436 ms. Twenty-four warm
+queries rotating through `DiskItem`, gametest `SFMGameTestHelper`, and indexed
+Minecraft `BlockPos` measured 72.001 ms median, 103.068 ms p95, and 107.290 ms
+maximum, passing the unchanged 250/750/1000 ms limits. Peak working set was
+501,850,112 bytes; cancellation returned both `cancelled` and
+`definition-cancelled`; shutdown was acknowledged; one descendant was observed
+and zero leaked. The initial warm implementation measured about 1.8 seconds
+because every request re-expanded 117,694 dependency definitions; retaining a
+content-keyed immutable resolution surface fixed the measured stage rather than
+weakening acceptance. Durable raw evidence is in
+`docs/architecture/evidence/symbol-server-installed-probe-1.19.2.json`.
+Strict Rust checks, 144 Java-analysis tests (2 ignored), all eight scenarios,
+the Java provider/protocol/context tests, the real installed-process Java
+integration test, and canonical compile passed. The complete Java suite found
+891 tests: 890 passed, zero failed, and the installed-process test was the sole
+expected opt-in abort when its properties were absent. `audit --branch 1.19.2`
+exited 0 with 30 pre-existing grouped unresolved font-render-rule warnings.
 
 ### Phase 0.10 risk register
 

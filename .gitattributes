@@ -3,6 +3,7 @@
 # are changed when only line endings change.
 **/src/generated/**/.cache/cache text eol=lf
 **/src/generated/**/*.json text eol=lf
+docs/architecture/evidence/*.json text eol=lf
 
 # This checked-in parser fixture deliberately exercises CRLF coordinates while
 # keeping the repository blob normalized for whitespace review.
