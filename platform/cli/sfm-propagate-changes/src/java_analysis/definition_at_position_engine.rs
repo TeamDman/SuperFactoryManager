@@ -3,6 +3,7 @@ use super::DefinitionAtPositionResult;
 use super::DependencyJavaSymbolIndexBody;
 use super::DependencySymbolIndexQueryOutput;
 use super::JavaDefinitionLinker;
+use super::JavaDefinitionResolutionSurface;
 use super::JavaDependencyResolutionDefinition;
 use super::JavaFileFactDetail;
 use super::JavaFileFacts;
@@ -10,7 +11,6 @@ use super::JavaFileFactsInput;
 use super::JavaLiveDefinitionSurface;
 use super::JavaSourceFile;
 use super::JavaSourceWorkspace;
-use super::JavaSymbolIndex;
 use super::blake3_content_hash;
 use super::content_hash_with_expected_algorithm;
 use super::extract_java_file_facts_from_text_with_detail;
@@ -18,13 +18,16 @@ use super::normalize_definition_at_position_context;
 use super::validate_definition_request_workspace;
 use crate::cancellation::CancellationToken;
 use facet::Facet;
+use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::fmt;
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Instant;
 
 pub const DEFAULT_DEFINITION_ENGINE_MAX_FACT_ENTRIES: usize = 4_096;
 pub const DEFAULT_DEFINITION_ENGINE_MAX_FACT_BYTES: usize = 256 * 1024 * 1024;
+const DEFAULT_DEFINITION_ENGINE_MAX_RESOLUTION_SURFACES: usize = 2;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct DefinitionAtPositionEngineLimits {
@@ -83,6 +86,10 @@ pub struct DefinitionAtPositionEngineTelemetry {
     pub total_micros: u64,
     pub fact_cache_hits: u64,
     pub fact_cache_misses: u64,
+    pub resolution_cache_hits: u64,
+    pub resolution_cache_misses: u64,
+    pub resolution_cache_entries: u64,
+    pub resolution_declarations: u64,
     pub reparsed_files: u64,
     pub source_files: u64,
     pub cache: DefinitionAtPositionEngineCacheSnapshot,
@@ -93,13 +100,82 @@ pub struct DefinitionAtPositionEngineOutput {
     pub telemetry: DefinitionAtPositionEngineTelemetry,
 }
 
-struct DefinitionFactSnapshot {
-    source_files: usize,
-    facts: Vec<JavaFileFacts>,
-    before_cache: DefinitionAtPositionEngineCacheSnapshot,
+struct DefinitionSourceSnapshot<'workspace> {
+    files: Vec<&'workspace JavaSourceFile>,
+    sources: Vec<String>,
+    keys: Vec<FactCacheKey>,
     source_snapshot_micros: u64,
+}
+
+struct DefinitionFactSnapshot {
+    facts: Vec<JavaFileFacts>,
     fact_parse_micros: u64,
     reparsed_files: u64,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
+struct ResolutionSurfaceCacheKey {
+    workspace_generation: u64,
+    fact_fingerprint: String,
+}
+
+struct CachedResolutionSurface {
+    surface: Arc<JavaDefinitionResolutionSurface>,
+    last_access: u64,
+}
+
+#[derive(Default)]
+struct ResolutionSurfaceCache {
+    entries: BTreeMap<ResolutionSurfaceCacheKey, CachedResolutionSurface>,
+    access_clock: u64,
+    hits: u64,
+    misses: u64,
+}
+
+impl ResolutionSurfaceCache {
+    fn get(
+        &mut self,
+        key: &ResolutionSurfaceCacheKey,
+    ) -> Option<Arc<JavaDefinitionResolutionSurface>> {
+        self.access_clock = self.access_clock.saturating_add(1);
+        let Some(entry) = self.entries.get_mut(key) else {
+            self.misses = self.misses.saturating_add(1);
+            return None;
+        };
+        entry.last_access = self.access_clock;
+        self.hits = self.hits.saturating_add(1);
+        Some(Arc::clone(&entry.surface))
+    }
+
+    fn insert(
+        &mut self,
+        key: ResolutionSurfaceCacheKey,
+        surface: Arc<JavaDefinitionResolutionSurface>,
+    ) {
+        self.access_clock = self.access_clock.saturating_add(1);
+        self.entries.insert(
+            key,
+            CachedResolutionSurface {
+                surface,
+                last_access: self.access_clock,
+            },
+        );
+        while self.entries.len() > DEFAULT_DEFINITION_ENGINE_MAX_RESOLUTION_SURFACES {
+            let Some(oldest) = self
+                .entries
+                .iter()
+                .min_by_key(|(key, entry)| (entry.last_access, *key))
+                .map(|(key, _)| key.clone())
+            else {
+                break;
+            };
+            self.entries.remove(&oldest);
+        }
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -132,7 +208,7 @@ struct FactCache {
 }
 
 impl FactCache {
-    fn prepare_generation(&mut self, generation: u64) -> eyre::Result<()> {
+    fn prepare_generation(&mut self, generation: u64) -> eyre::Result<bool> {
         if self
             .workspace_generation
             .is_some_and(|current| generation < current)
@@ -146,8 +222,9 @@ impl FactCache {
             self.entries.clear();
             self.retained_bytes = 0;
             self.workspace_generation = Some(generation);
+            return Ok(true);
         }
-        Ok(())
+        Ok(false)
     }
 
     fn replace_generation(&mut self, generation: u64) -> eyre::Result<bool> {
@@ -247,6 +324,7 @@ pub struct DefinitionAtPositionEngine {
     external_resolution: Vec<JavaDependencyResolutionDefinition>,
     limits: DefinitionAtPositionEngineLimits,
     cache: Mutex<FactCache>,
+    resolution_cache: Mutex<ResolutionSurfaceCache>,
 }
 
 impl DefinitionAtPositionEngine {
@@ -284,6 +362,7 @@ impl DefinitionAtPositionEngine {
             external_resolution,
             limits,
             cache: Mutex::new(FactCache::default()),
+            resolution_cache: Mutex::new(ResolutionSurfaceCache::default()),
         })
     }
 
@@ -293,10 +372,18 @@ impl DefinitionAtPositionEngine {
     ///
     /// Returns an error when `generation` moves backwards.
     pub fn replace_workspace_generation(&self, generation: u64) -> eyre::Result<bool> {
-        self.cache
+        let replaced = self
+            .cache
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .replace_generation(generation)
+            .replace_generation(generation)?;
+        if replaced {
+            self.resolution_cache
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clear();
+        }
+        Ok(replaced)
     }
 
     #[must_use]
@@ -305,6 +392,55 @@ impl DefinitionAtPositionEngine {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .snapshot()
+    }
+
+    fn prepare_workspace_generation(&self, generation: u64) -> eyre::Result<()> {
+        let replaced = self
+            .cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .prepare_generation(generation)?;
+        if replaced {
+            self.resolution_cache
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .clear();
+        }
+        Ok(())
+    }
+
+    fn resolution_cache_counts(&self) -> (u64, u64) {
+        let cache = self
+            .resolution_cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        (cache.hits, cache.misses)
+    }
+
+    fn resolution_surface_cache_key(
+        workspace_generation: u64,
+        keys: &[FactCacheKey],
+    ) -> ResolutionSurfaceCacheKey {
+        let mut hasher = blake3::Hasher::new();
+        hasher.update(&workspace_generation.to_le_bytes());
+        for key in keys {
+            hasher.update(&key.sequence.to_le_bytes());
+            for field in [
+                key.root_id.as_str(),
+                key.root_relative_path.as_str(),
+                key.report_path.as_str(),
+                key.source_set.as_str(),
+                key.content_hash.as_str(),
+            ] {
+                let length = u64::try_from(field.len()).unwrap_or(u64::MAX);
+                hasher.update(&length.to_le_bytes());
+                hasher.update(field.as_bytes());
+            }
+        }
+        ResolutionSurfaceCacheKey {
+            workspace_generation,
+            fact_fingerprint: format!("blake3:{}", hasher.finalize().to_hex()),
+        }
     }
 
     /// Analyze one immutable request while returning privacy-safe stage evidence.
@@ -326,17 +462,61 @@ impl DefinitionAtPositionEngine {
             });
         }
         cancellation_token.bail_if_cancelled()?;
-        let DefinitionFactSnapshot {
-            source_files,
-            facts,
-            before_cache,
-            source_snapshot_micros,
-            fact_parse_micros,
-            reparsed_files,
-        } = self.collect_facts(request, cancellation_token)?;
-        let (live, link_micros) = self.link_facts(facts, source_files, cancellation_token)?;
-        let (result, lookup_micros) = self.lookup(request, &live, cancellation_token)?;
+        self.prepare_workspace_generation(request.workspace.workspace_generation)?;
+        let before_cache = self.cache_snapshot();
+        let (before_resolution_hits, before_resolution_misses) = self.resolution_cache_counts();
+        let source_snapshot = self.collect_source_snapshot(request, cancellation_token)?;
+        let surface_key = Self::resolution_surface_cache_key(
+            request.workspace.workspace_generation,
+            &source_snapshot.keys,
+        );
+        let cached_surface = self
+            .resolution_cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .get(&surface_key);
+        let (surface, source_snapshot_micros, fact_parse_micros, link_micros, reparsed_files) =
+            if let Some(surface) = cached_surface {
+                (surface, source_snapshot.source_snapshot_micros, 0, 0, 0)
+            } else {
+                let source_snapshot_micros = source_snapshot.source_snapshot_micros;
+                let DefinitionFactSnapshot {
+                    facts,
+                    fact_parse_micros,
+                    reparsed_files,
+                } = self.collect_facts(source_snapshot, cancellation_token)?;
+                let source_files = facts.len();
+                let (live, link_micros) =
+                    self.link_facts(facts, source_files, cancellation_token)?;
+                cancellation_token.bail_if_cancelled()?;
+                let surface = JavaDefinitionResolutionSurface::build(
+                    &self.workspace,
+                    &live,
+                    self.dependencies.as_ref(),
+                );
+                self.resolution_cache
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner)
+                    .insert(surface_key, Arc::clone(&surface));
+                (
+                    surface,
+                    source_snapshot_micros,
+                    fact_parse_micros,
+                    link_micros,
+                    reparsed_files,
+                )
+            };
+        let (result, lookup_micros) = self.lookup(request, &surface, cancellation_token)?;
         let after_cache = self.cache_snapshot();
+        let (after_resolution_hits, after_resolution_misses) = self.resolution_cache_counts();
+        let resolution_cache_entries = self
+            .resolution_cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .entries
+            .len()
+            .try_into()
+            .unwrap_or(u64::MAX);
         Ok(DefinitionAtPositionEngineOutput {
             result,
             telemetry: DefinitionAtPositionEngineTelemetry {
@@ -347,8 +527,13 @@ impl DefinitionAtPositionEngine {
                 total_micros: duration_micros(started.elapsed()),
                 fact_cache_hits: after_cache.hits.saturating_sub(before_cache.hits),
                 fact_cache_misses: after_cache.misses.saturating_sub(before_cache.misses),
+                resolution_cache_hits: after_resolution_hits.saturating_sub(before_resolution_hits),
+                resolution_cache_misses: after_resolution_misses
+                    .saturating_sub(before_resolution_misses),
+                resolution_cache_entries,
+                resolution_declarations: surface.declaration_count().try_into().unwrap_or(u64::MAX),
                 reparsed_files,
-                source_files: source_files.try_into().unwrap_or(u64::MAX),
+                source_files: self.workspace.files.len().try_into().unwrap_or(u64::MAX),
                 cache: after_cache,
             },
         })
@@ -398,19 +583,11 @@ impl DefinitionAtPositionEngine {
         }))
     }
 
-    fn collect_facts(
-        &self,
+    fn collect_source_snapshot<'workspace>(
+        &'workspace self,
         request: &DefinitionAtPositionRequest,
         cancellation_token: &CancellationToken,
-    ) -> eyre::Result<DefinitionFactSnapshot> {
-        let before_cache = {
-            let mut cache = self
-                .cache
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
-            cache.prepare_generation(request.workspace.workspace_generation)?;
-            cache.snapshot()
-        };
+    ) -> eyre::Result<DefinitionSourceSnapshot<'workspace>> {
         let snapshot_started = Instant::now();
         let mut files = self.workspace.files.iter().collect::<Vec<_>>();
         files.sort_by(|left, right| {
@@ -420,13 +597,41 @@ impl DefinitionAtPositionEngine {
                 &right.absolute_path,
             ))
         });
+        let snapshots = files
+            .par_iter()
+            .enumerate()
+            .map(|(sequence, file)| {
+                cancellation_token.bail_if_cancelled()?;
+                let source = Self::source_for_request(file, request)?;
+                let key = Self::fact_cache_key(request, file, sequence, &source);
+                Ok((source, key))
+            })
+            .collect::<eyre::Result<Vec<_>>>()?;
+        let (sources, keys) = snapshots.into_iter().unzip();
+        Ok(DefinitionSourceSnapshot {
+            files,
+            sources,
+            keys,
+            source_snapshot_micros: duration_micros(snapshot_started.elapsed()),
+        })
+    }
+
+    fn collect_facts(
+        &self,
+        snapshot: DefinitionSourceSnapshot<'_>,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<DefinitionFactSnapshot> {
+        let DefinitionSourceSnapshot {
+            files,
+            sources,
+            keys,
+            ..
+        } = snapshot;
         let mut facts = Vec::with_capacity(files.len());
         let mut fact_parse_micros = 0_u64;
         let mut reparsed_files = 0_u64;
-        for (sequence, file) in files.iter().enumerate() {
+        for ((file, source), key) in files.into_iter().zip(sources).zip(keys) {
             cancellation_token.bail_if_cancelled()?;
-            let source = Self::source_for_request(file, request)?;
-            let key = Self::fact_cache_key(request, file, sequence, &source);
             if let Some(cached) = self
                 .cache
                 .lock()
@@ -451,11 +656,7 @@ impl DefinitionAtPositionEngine {
             facts.push(parsed);
         }
         Ok(DefinitionFactSnapshot {
-            source_files: files.len(),
             facts,
-            before_cache,
-            source_snapshot_micros: duration_micros(snapshot_started.elapsed())
-                .saturating_sub(fact_parse_micros),
             fact_parse_micros,
             reparsed_files,
         })
@@ -519,27 +720,12 @@ impl DefinitionAtPositionEngine {
     fn lookup(
         &self,
         request: &DefinitionAtPositionRequest,
-        live: &JavaLiveDefinitionSurface,
+        surface: &Arc<JavaDefinitionResolutionSurface>,
         cancellation_token: &CancellationToken,
     ) -> eyre::Result<(DefinitionAtPositionResult, u64)> {
         cancellation_token.bail_if_cancelled()?;
         let started = Instant::now();
-        let mut target = self.target_file(request)?.clone();
-        target.source_override = Some(request.document.text.clone());
-        let target_workspace = JavaSourceWorkspace {
-            context: self.workspace.context.clone(),
-            root_authorities: self.workspace.root_authorities.clone(),
-            files: vec![target],
-            diagnostics: self.workspace.diagnostics.clone(),
-            classpath_entries: self.workspace.classpath_entries.clone(),
-        };
-        let index = JavaSymbolIndex::build_with_live_definitions(
-            &target_workspace,
-            live,
-            self.dependencies.as_ref(),
-            true,
-        )?;
-        let mut result = index.definition_at_position(request, &self.workspace);
+        let mut result = surface.definition_at_position(&self.workspace, request)?;
         normalize_definition_at_position_context(
             self.workspace.context.clone(),
             self.dependencies.as_ref(),
@@ -629,6 +815,17 @@ impl DefinitionAtPositionEngine {
             total_micros: duration_micros(started.elapsed()),
             fact_cache_hits: 0,
             fact_cache_misses: 0,
+            resolution_cache_hits: 0,
+            resolution_cache_misses: 0,
+            resolution_cache_entries: self
+                .resolution_cache
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .entries
+                .len()
+                .try_into()
+                .unwrap_or(u64::MAX),
+            resolution_declarations: 0,
             reparsed_files: 0,
             source_files: self.workspace.files.len().try_into().unwrap_or(u64::MAX),
             cache: self.cache_snapshot(),
@@ -895,7 +1092,8 @@ mod tests {
         assert_eq!(warm.result, direct);
         assert_eq!(cold.telemetry.reparsed_files, 2);
         assert_eq!(warm.telemetry.reparsed_files, 0);
-        assert_eq!(warm.telemetry.fact_cache_hits, 2);
+        assert_eq!(warm.telemetry.fact_cache_hits, 0);
+        assert_eq!(warm.telemetry.resolution_cache_hits, 1);
     }
 
     #[test]
@@ -1053,9 +1251,11 @@ mod tests {
             "p.Leaf finish()I"
         );
         assert_eq!(warm_field.telemetry.reparsed_files, 0);
-        assert_eq!(warm_field.telemetry.fact_cache_hits, 4);
+        assert_eq!(warm_field.telemetry.fact_cache_hits, 0);
+        assert_eq!(warm_field.telemetry.resolution_cache_hits, 1);
         assert_eq!(warm_method.telemetry.reparsed_files, 0);
-        assert_eq!(warm_method.telemetry.fact_cache_hits, 4);
+        assert_eq!(warm_method.telemetry.fact_cache_hits, 0);
+        assert_eq!(warm_method.telemetry.resolution_cache_hits, 1);
     }
 
     #[test]
@@ -1213,5 +1413,59 @@ mod tests {
         assert_eq!(result.result.outcome, DefinitionAtPositionOutcome::Success);
         assert_eq!(result.telemetry.cache.entries, 1);
         assert!(result.telemetry.cache.evictions >= 1);
+    }
+
+    #[test]
+    fn resolution_surface_cache_is_content_keyed_and_bounded() {
+        let (_directory, workspace) = workspace_from_sources(&[
+            ("p/A.java", "package p; public class A {}\n"),
+            ("q/Use.java", "package q; class Use {}\n"),
+        ]);
+        let overlays = [
+            "package q; import p.A; class Use { A value0; }\n",
+            "package q; import p.A; class Use { A value1; }\n",
+            "package q; import p.A; class Use { A value2; }\n",
+        ];
+        let requests = overlays
+            .iter()
+            .enumerate()
+            .map(|(index, text)| {
+                request_at(
+                    &workspace,
+                    "q/Use.java",
+                    text,
+                    12,
+                    &format!("A value{index}"),
+                )
+            })
+            .collect::<Vec<_>>();
+        let engine = DefinitionAtPositionEngine::new(
+            workspace,
+            None,
+            None,
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("engine");
+
+        for request in &requests {
+            let output = engine
+                .analyze_with_telemetry(request, &CancellationToken::new())
+                .expect("overlay analysis");
+            assert_eq!(output.result.outcome, DefinitionAtPositionOutcome::Success);
+            assert!(
+                output.telemetry.resolution_cache_entries
+                    <= DEFAULT_DEFINITION_ENGINE_MAX_RESOLUTION_SURFACES as u64
+            );
+        }
+        let evicted = engine
+            .analyze_with_telemetry(&requests[0], &CancellationToken::new())
+            .expect("evicted overlay analysis");
+
+        assert_eq!(evicted.telemetry.resolution_cache_hits, 0);
+        assert_eq!(evicted.telemetry.resolution_cache_misses, 1);
+        assert_eq!(
+            evicted.telemetry.resolution_cache_entries,
+            DEFAULT_DEFINITION_ENGINE_MAX_RESOLUTION_SURFACES as u64
+        );
     }
 }

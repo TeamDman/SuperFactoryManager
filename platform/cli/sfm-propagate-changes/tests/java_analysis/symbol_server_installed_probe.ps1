@@ -4,7 +4,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string] $RepoRoot,
     [string] $Branch = "1.19.2",
-    [string] $OutputPath
+    [string] $OutputPath,
+    [ValidateRange(1, 1000)]
+    [int] $WarmSampleCount = 24
 )
 
 $ErrorActionPreference = "Stop"
@@ -181,14 +183,26 @@ function Get-DescendantProcessIds {
     return @($descendants)
 }
 
+$structuredLogPath = [System.IO.Path]::Combine(
+    [System.IO.Path]::GetTempPath(),
+    "sfm-symbol-server-probe-$([System.Guid]::NewGuid().ToString('N')).ndjson"
+)
 $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
 $startInfo.FileName = [System.IO.Path]::GetFullPath($Executable)
+$executableVersion = (& $startInfo.FileName --version | Out-String).Trim()
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($executableVersion)) {
+    throw "Could not read the probed executable version."
+}
 $startInfo.WorkingDirectory = [System.IO.Path]::GetFullPath($RepoRoot)
 $startInfo.UseShellExecute = $false
 $startInfo.CreateNoWindow = $true
 $startInfo.RedirectStandardInput = $true
 $startInfo.RedirectStandardOutput = $true
 $startInfo.RedirectStandardError = $true
+$startInfo.ArgumentList.Add("--log-filter")
+$startInfo.ArgumentList.Add("info")
+$startInfo.ArgumentList.Add("--log-file")
+$startInfo.ArgumentList.Add($structuredLogPath)
 $startInfo.ArgumentList.Add("symbol")
 $startInfo.ArgumentList.Add("serve")
 $startInfo.ArgumentList.Add("--branch")
@@ -202,6 +216,7 @@ if (-not $process.Start()) {
 $stderrTask = $process.StandardError.ReadToEndAsync()
 $stdin = $process.StandardInput.BaseStream
 $stdout = $process.StandardOutput.BaseStream
+$peakWorkingSetBytes = [int64] 0
 
 try {
     Write-Frame -Stream $stdin -Value ([ordered]@{
@@ -225,6 +240,8 @@ try {
     if ($helloFrame.kind -ne "hello") {
         throw "Expected server hello, got '$($helloFrame.kind)'."
     }
+    $process.Refresh()
+    $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, [int64] $process.WorkingSet64)
     $workspace = $helloFrame.hello.workspace.request_workspace
     $roots = @($helloFrame.hello.workspace.roots)
     $mainRoot = $roots | Where-Object {
@@ -261,9 +278,11 @@ try {
     if ($cold.outcome -ne "success" -or $cold.definitions -lt 1) {
         throw "Cold definition query did not resolve a definition."
     }
+    $process.Refresh()
+    $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, [int64] $process.WorkingSet64)
     $requestId++
     $warm = [System.Collections.Generic.List[object]]::new()
-    for ($index = 0; $index -lt 24; $index++) {
+    for ($index = 0; $index -lt $WarmSampleCount; $index++) {
         $template = $targets[$index % $targets.Count]
         $template.request.request_id = $requestId
         $requestId++
@@ -274,6 +293,7 @@ try {
         }
         $warm.Add($sample)
         $process.Refresh()
+        $peakWorkingSetBytes = [Math]::Max($peakWorkingSetBytes, [int64] $process.WorkingSet64)
     }
 
     foreach ($id in Get-DescendantProcessIds -RootProcessId ([uint32] $process.Id)) {
@@ -333,9 +353,16 @@ try {
     $telemetry = @($stderr -split "`r?`n" | Where-Object {
         $_ -match "symbol-server definition (completed|failed)"
     })
+    $structuredTelemetry = @(
+        [System.IO.File]::ReadAllLines($structuredLogPath) |
+            ForEach-Object { $_ | ConvertFrom-Json -Depth 100 } |
+            Where-Object { $_.fields.message -match "symbol-server definition (completed|failed)" } |
+            ForEach-Object { $_.fields }
+    )
     $report = [ordered]@{
         schema = "sfm.symbol-server-installed-probe/1"
         executable = [System.IO.Path]::GetFileName($startInfo.FileName)
+        executable_version = $executableVersion
         branch = $Branch
         cold = $cold
         warm_samples = $warm
@@ -352,11 +379,12 @@ try {
             pid = $process.Id
             exited = $process.HasExited
             exit_code = $process.ExitCode
-            peak_working_set_bytes = $process.PeakWorkingSet64
+            peak_working_set_bytes = $peakWorkingSetBytes
             observed_descendant_processes = $observedDescendants.Count
             leaked_descendant_processes = $leakedDescendants.Count
         }
         telemetry_lines = $telemetry
+        telemetry = $structuredTelemetry
     }
     $json = $report | ConvertTo-Json -Depth 100
     if ($OutputPath) {
@@ -365,10 +393,14 @@ try {
         [System.IO.File]::WriteAllText($destination, $json + [Environment]::NewLine)
     }
     $json
+    if (-not $report.warm_summary.accepted) {
+        throw "Installed symbol worker missed its warm latency acceptance bounds."
+    }
 } finally {
     if (-not $process.HasExited) {
         $process.Kill($true)
         $process.WaitForExit()
     }
     $process.Dispose()
+    Remove-Item -LiteralPath $structuredLogPath -ErrorAction SilentlyContinue
 }

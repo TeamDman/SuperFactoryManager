@@ -35,6 +35,7 @@ use super::syntax::is_type_declaration;
 use super::syntax::named_children;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::sync::Arc;
 use tree_sitter_patched_arborium::Node;
 
 #[derive(Clone, Debug)]
@@ -68,6 +69,24 @@ pub(crate) struct JavaLiveDefinitionSurface {
     pub(crate) fields: Vec<JavaLiveFieldDefinition>,
     pub(crate) methods: Vec<JavaLiveMethodDefinition>,
     pub(crate) diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+}
+
+/// Immutable name/member lookup surface shared by many editor-location queries.
+///
+/// Building these sorted declaration vectors and lookup maps dominates a fresh
+/// location query. The symbol server therefore constructs one surface from a
+/// linked fact snapshot and reuses it while that exact workspace/content
+/// identity remains current. Request-local syntax trees never enter this value.
+#[derive(Clone, Debug)]
+pub(crate) struct JavaDefinitionResolutionSurface {
+    context: JavaAnalysisContextOutput,
+    types: Vec<TypeDeclaration>,
+    fields: Vec<FieldDeclaration>,
+    methods: Vec<MethodDeclaration>,
+    type_lookup: TypeLookup,
+    field_lookup: BTreeMap<(String, String), Vec<usize>>,
+    method_lookup: BTreeMap<(String, String), Vec<usize>>,
+    diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -111,6 +130,136 @@ impl JavaLiveDefinitionSurface {
                     .map(|method| method.definition.identifier_span.source_set.clone()),
             )
             .collect()
+    }
+}
+
+impl JavaDefinitionResolutionSurface {
+    /// Build the immutable declaration/lookup state used by request-local
+    /// syntax walks. This is intentionally separate from `JavaSymbolIndex`:
+    /// editor queries need the global resolution vocabulary, but they do not
+    /// need to clone/sort every global usage and definition for each cursor.
+    pub(crate) fn build(
+        workspace: &JavaSourceWorkspace,
+        live: &JavaLiveDefinitionSurface,
+        dependencies: Option<&DependencyJavaSymbolIndexBody>,
+    ) -> Arc<Self> {
+        let mut context = workspace.context.clone();
+        JAVA_PARSER_FINGERPRINT.clone_into(&mut context.parser_fingerprint);
+        if let Some(dependencies) = dependencies {
+            add_dependency_source_sets(&mut context, dependencies);
+        }
+
+        let live_source_sets = live.source_sets();
+        let mut visibility = BTreeSet::new();
+        for from in &live_source_sets {
+            for to in &live_source_sets {
+                if workspace.is_visible(from, to) {
+                    visibility.insert((from.clone(), to.clone()));
+                }
+            }
+        }
+        let dependency_sets = dependencies.map_or_else(BTreeSet::new, dependency_source_sets);
+        for from in &live_source_sets {
+            for target in &dependency_sets {
+                visibility.insert((from.clone(), target.clone()));
+            }
+        }
+        for from in &dependency_sets {
+            for target in &dependency_sets {
+                visibility.insert((from.clone(), target.clone()));
+            }
+        }
+
+        let mut diagnostics = live.diagnostics.clone();
+        let mut types = Vec::new();
+        append_live_types(live, &mut types);
+        if let Some(dependencies) = dependencies {
+            diagnostics.extend(dependencies.diagnostics.iter().cloned());
+            append_dependency_types(dependencies, &mut types);
+        }
+        let type_lookup = TypeLookup::new(&types, visibility);
+
+        let mut fields = Vec::new();
+        let mut methods = Vec::new();
+        append_live_members(live, &mut fields, &mut methods);
+        if let Some(dependencies) = dependencies {
+            append_dependency_members(dependencies, &mut fields, &mut methods);
+        }
+        diagnostics.sort();
+        diagnostics.dedup();
+        let field_lookup = member_lookup(fields.iter().map(FieldDeclaration::symbol));
+        let method_lookup = member_lookup(methods.iter().map(MethodDeclaration::symbol));
+
+        Arc::new(Self {
+            context,
+            types,
+            fields,
+            methods,
+            type_lookup,
+            field_lookup,
+            method_lookup,
+            diagnostics,
+        })
+    }
+
+    /// Parse and walk only the addressed current document against this warm
+    /// global resolution surface.
+    pub(crate) fn definition_at_position(
+        self: &Arc<Self>,
+        workspace: &JavaSourceWorkspace,
+        request: &DefinitionAtPositionRequest,
+    ) -> eyre::Result<DefinitionAtPositionResult> {
+        let mut target = workspace
+            .files
+            .iter()
+            .find(|file| {
+                file.root_id == request.document.root_id
+                    && file.root_relative_path == request.document.root_relative_path
+            })
+            .cloned()
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "validated definition document `{}`:`{}` is absent from the resolution workspace",
+                    request.document.root_id,
+                    request.document.root_relative_path
+                )
+            })?;
+        target.source_override = Some(request.document.text.clone());
+        let parsed = JavaSyntaxFile::parse_with_diagnostic_limit(&target, None)?;
+        let mut diagnostics = parsed.diagnostics.clone();
+        let model = JavaIndexModel {
+            files: vec![parsed],
+            resolution: Arc::clone(self),
+        };
+        let mut usages = declaration_usages_for_files(&model);
+        let (mut file_usages, mut file_diagnostics) = collect_file_usages(&model, 0);
+        usages.append(&mut file_usages);
+        diagnostics.append(&mut file_diagnostics);
+        usages.sort();
+        usages.dedup();
+        diagnostics.sort();
+        diagnostics.dedup();
+
+        Ok(definition_at_position_from_parts(
+            self.context.clone(),
+            self.types
+                .iter()
+                .filter_map(TypeDeclaration::output)
+                .chain(self.fields.iter().filter_map(FieldDeclaration::output))
+                .chain(self.methods.iter().filter_map(MethodDeclaration::output)),
+            &usages,
+            self.diagnostics.iter().chain(diagnostics.iter()),
+            request,
+            workspace,
+        ))
+    }
+
+    #[must_use]
+    pub(crate) fn declaration_count(&self) -> usize {
+        self.types
+            .len()
+            .saturating_add(self.fields.len())
+            .saturating_add(self.methods.len())
     }
 }
 
@@ -216,24 +365,6 @@ impl JavaSymbolIndex {
             None,
             None,
             None,
-        )
-    }
-
-    /// Parse only the request target while resolving it against a rich live
-    /// declaration surface retained by the warm engine.
-    pub(crate) fn build_with_live_definitions(
-        workspace: &JavaSourceWorkspace,
-        live: &JavaLiveDefinitionSurface,
-        dependencies: Option<&DependencyJavaSymbolIndexBody>,
-        include_usages: bool,
-    ) -> eyre::Result<Self> {
-        Self::build_workspace(
-            workspace,
-            include_usages,
-            dependencies,
-            None,
-            None,
-            Some(live),
         )
     }
 
@@ -453,102 +584,14 @@ impl JavaSymbolIndex {
         request: &DefinitionAtPositionRequest,
         workspace: &JavaSourceWorkspace,
     ) -> DefinitionAtPositionResult {
-        let current_source_hash = blake3_content_hash(&request.document.text);
-        let offset = request.position.byte_offset;
-        let containing = self
-            .usages
-            .iter()
-            .filter(|usage| {
-                usage.span.path == request.document.report_path
-                    && usage.span.source_set == request.document.source_set
-                    && usage.span.source_hash == current_source_hash
-                    && usage.span.start_byte <= offset
-                    && offset < usage.span.end_byte
-            })
-            .collect::<Vec<_>>();
-        let narrowest_width = containing
-            .iter()
-            .map(|usage| usage.span.end_byte.saturating_sub(usage.span.start_byte))
-            .min();
-        let mut symbols = containing
-            .into_iter()
-            .filter(|usage| {
-                narrowest_width.is_some_and(|width| {
-                    usage.span.end_byte.saturating_sub(usage.span.start_byte) == width
-                })
-            })
-            .map(|usage| usage.target.clone())
-            .collect::<Vec<_>>();
-        symbols.sort();
-        symbols.dedup();
-
-        let selected_symbols = symbols.iter().collect::<BTreeSet<_>>();
-        let mut report_definitions = self
-            .definitions
-            .iter()
-            .filter(|definition| selected_symbols.contains(&definition.symbol))
-            .cloned()
-            .collect::<Vec<_>>();
-        report_definitions.sort();
-        report_definitions.dedup();
-        let outcome = if symbols.is_empty() {
-            DefinitionAtPositionOutcome::NoSymbol
-        } else if symbols.len() > 1 || report_definitions.len() > 1 {
-            DefinitionAtPositionOutcome::Ambiguous
-        } else if report_definitions.is_empty() {
-            DefinitionAtPositionOutcome::NoDefinition
-        } else {
-            DefinitionAtPositionOutcome::Success
-        };
-        let mut diagnostics = self
-            .diagnostics
-            .iter()
-            .filter(|diagnostic| {
-                diagnostic.span.as_ref().is_some_and(|span| {
-                    span.path == request.document.report_path
-                        && span.source_set == request.document.source_set
-                        && span.source_hash == current_source_hash
-                })
-            })
-            .cloned()
-            .collect::<Vec<_>>();
-        diagnostics.sort();
-        diagnostics.dedup();
-
-        let mut context = self.context.clone();
-        context.index_fingerprint = index_fingerprint(
-            &[IndexSourceEvidence {
-                report_path: request.document.report_path.clone(),
-                source_set: request.document.source_set.clone(),
-                source_hash: current_source_hash,
-            }],
-            &report_definitions,
-            &[],
-            &diagnostics,
-        );
-        let mut definitions = report_definitions
-            .iter()
-            .map(|definition| definition_at_position_definition(definition, workspace))
-            .collect::<Vec<_>>();
-        definitions.sort();
-        definitions.dedup();
-
-        DefinitionAtPositionResult {
-            schema: super::DEFINITION_AT_POSITION_RESULT_SCHEMA.to_owned(),
-            request_id: request.request_id,
-            request_generation: request.request_generation,
-            workspace_generation: request.workspace.workspace_generation,
-            outcome,
-            context,
-            document: DefinitionDocumentIdentityOutput::from(&request.document),
-            position: request.position,
-            symbols,
-            definitions,
-            completeness: super::SymbolQueryCompleteness::Complete,
-            diagnostics,
-            recovery_actions: Vec::new(),
-            dependency_index: None,
-        }
+        definition_at_position_from_parts(
+            self.context.clone(),
+            self.definitions.iter(),
+            &self.usages,
+            self.diagnostics.iter(),
+            request,
+            workspace,
+        )
     }
 
     fn matching_definitions(
@@ -636,12 +679,16 @@ impl JavaSymbolIndex {
         let method_lookup = member_lookup(methods.iter().map(MethodDeclaration::symbol));
         let model = JavaIndexModel {
             files,
-            types,
-            fields,
-            methods,
-            type_lookup,
-            field_lookup,
-            method_lookup,
+            resolution: Arc::new(JavaDefinitionResolutionSurface {
+                context: context.clone(),
+                types,
+                fields,
+                methods,
+                type_lookup,
+                field_lookup,
+                method_lookup,
+                diagnostics: diagnostics.clone(),
+            }),
         };
         Self::finish_build(context, &model, include_usages, dependencies, diagnostics)
     }
@@ -667,12 +714,14 @@ impl JavaSymbolIndex {
         }
 
         let mut definitions = model
+            .resolution
             .types
             .iter()
             .filter_map(TypeDeclaration::output)
             .cloned()
             .chain(
                 model
+                    .resolution
                     .fields
                     .iter()
                     .filter_map(FieldDeclaration::output)
@@ -680,6 +729,7 @@ impl JavaSymbolIndex {
             )
             .chain(
                 model
+                    .resolution
                     .methods
                     .iter()
                     .filter_map(MethodDeclaration::output)
@@ -706,6 +756,108 @@ impl JavaSymbolIndex {
             usages,
             diagnostics,
         }
+    }
+}
+
+fn definition_at_position_from_parts<'definition, 'diagnostic>(
+    mut context: JavaAnalysisContextOutput,
+    definitions: impl IntoIterator<Item = &'definition JavaSymbolDefinitionOutput>,
+    usages: &[JavaSymbolUsageOutput],
+    diagnostics: impl IntoIterator<Item = &'diagnostic JavaAnalysisDiagnosticOutput>,
+    request: &DefinitionAtPositionRequest,
+    workspace: &JavaSourceWorkspace,
+) -> DefinitionAtPositionResult {
+    let current_source_hash = blake3_content_hash(&request.document.text);
+    let offset = request.position.byte_offset;
+    let containing = usages
+        .iter()
+        .filter(|usage| {
+            usage.span.path == request.document.report_path
+                && usage.span.source_set == request.document.source_set
+                && usage.span.source_hash == current_source_hash
+                && usage.span.start_byte <= offset
+                && offset < usage.span.end_byte
+        })
+        .collect::<Vec<_>>();
+    let narrowest_width = containing
+        .iter()
+        .map(|usage| usage.span.end_byte.saturating_sub(usage.span.start_byte))
+        .min();
+    let mut symbols = containing
+        .into_iter()
+        .filter(|usage| {
+            narrowest_width.is_some_and(|width| {
+                usage.span.end_byte.saturating_sub(usage.span.start_byte) == width
+            })
+        })
+        .map(|usage| usage.target.clone())
+        .collect::<Vec<_>>();
+    symbols.sort();
+    symbols.dedup();
+
+    let selected_symbols = symbols.iter().collect::<BTreeSet<_>>();
+    let mut report_definitions = definitions
+        .into_iter()
+        .filter(|definition| selected_symbols.contains(&definition.symbol))
+        .cloned()
+        .collect::<Vec<_>>();
+    report_definitions.sort();
+    report_definitions.dedup();
+    let outcome = if symbols.is_empty() {
+        DefinitionAtPositionOutcome::NoSymbol
+    } else if symbols.len() > 1 || report_definitions.len() > 1 {
+        DefinitionAtPositionOutcome::Ambiguous
+    } else if report_definitions.is_empty() {
+        DefinitionAtPositionOutcome::NoDefinition
+    } else {
+        DefinitionAtPositionOutcome::Success
+    };
+    let mut diagnostics = diagnostics
+        .into_iter()
+        .filter(|diagnostic| {
+            diagnostic.span.as_ref().is_some_and(|span| {
+                span.path == request.document.report_path
+                    && span.source_set == request.document.source_set
+                    && span.source_hash == current_source_hash
+            })
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    diagnostics.sort();
+    diagnostics.dedup();
+
+    context.index_fingerprint = index_fingerprint(
+        &[IndexSourceEvidence {
+            report_path: request.document.report_path.clone(),
+            source_set: request.document.source_set.clone(),
+            source_hash: current_source_hash,
+        }],
+        &report_definitions,
+        &[],
+        &diagnostics,
+    );
+    let mut definitions = report_definitions
+        .iter()
+        .map(|definition| definition_at_position_definition(definition, workspace))
+        .collect::<Vec<_>>();
+    definitions.sort();
+    definitions.dedup();
+
+    DefinitionAtPositionResult {
+        schema: super::DEFINITION_AT_POSITION_RESULT_SCHEMA.to_owned(),
+        request_id: request.request_id,
+        request_generation: request.request_generation,
+        workspace_generation: request.workspace.workspace_generation,
+        outcome,
+        context,
+        document: DefinitionDocumentIdentityOutput::from(&request.document),
+        position: request.position,
+        symbols,
+        definitions,
+        completeness: super::SymbolQueryCompleteness::Complete,
+        diagnostics,
+        recovery_actions: Vec::new(),
+        dependency_index: None,
     }
 }
 
@@ -1264,12 +1416,7 @@ fn decode_descriptor_type(bytes: &[u8], cursor: &mut usize, allow_void: bool) ->
 
 struct JavaIndexModel {
     files: Vec<JavaSyntaxFile>,
-    types: Vec<TypeDeclaration>,
-    fields: Vec<FieldDeclaration>,
-    methods: Vec<MethodDeclaration>,
-    type_lookup: TypeLookup,
-    field_lookup: BTreeMap<(String, String), Vec<usize>>,
-    method_lookup: BTreeMap<(String, String), Vec<usize>>,
+    resolution: Arc<JavaDefinitionResolutionSurface>,
 }
 
 fn member_lookup<'a>(
@@ -2061,11 +2208,60 @@ fn is_java_lang_type(name: &str) -> bool {
 
 fn declaration_usages(model: &JavaIndexModel) -> Vec<JavaSymbolUsageOutput> {
     model
+        .resolution
         .types
         .iter()
         .filter_map(TypeDeclaration::output)
-        .chain(model.fields.iter().filter_map(FieldDeclaration::output))
-        .chain(model.methods.iter().filter_map(MethodDeclaration::output))
+        .chain(
+            model
+                .resolution
+                .fields
+                .iter()
+                .filter_map(FieldDeclaration::output),
+        )
+        .chain(
+            model
+                .resolution
+                .methods
+                .iter()
+                .filter_map(MethodDeclaration::output),
+        )
+        .map(|definition| JavaSymbolUsageOutput {
+            target: definition.symbol.clone(),
+            kind: JavaUsageKind::Declaration,
+            span: definition.identifier_span.clone(),
+            confidence: definition.confidence,
+        })
+        .collect()
+}
+
+fn declaration_usages_for_files(model: &JavaIndexModel) -> Vec<JavaSymbolUsageOutput> {
+    model
+        .resolution
+        .types
+        .iter()
+        .filter_map(TypeDeclaration::output)
+        .chain(
+            model
+                .resolution
+                .fields
+                .iter()
+                .filter_map(FieldDeclaration::output),
+        )
+        .chain(
+            model
+                .resolution
+                .methods
+                .iter()
+                .filter_map(MethodDeclaration::output),
+        )
+        .filter(|definition| {
+            model.files.iter().any(|file| {
+                definition.identifier_span.path == file.report_path
+                    && definition.identifier_span.source_set == file.source_set
+                    && definition.identifier_span.source_hash == file.source_hash
+            })
+        })
         .map(|definition| JavaSymbolUsageOutput {
             target: definition.symbol.clone(),
             kind: JavaUsageKind::Declaration,
@@ -2130,7 +2326,7 @@ impl UsageCollector<'_> {
             match resolve_qualified_candidate(
                 &import.qualified_name,
                 self.file(),
-                &self.model.type_lookup,
+                &self.model.resolution.type_lookup,
             ) {
                 Ok(resolved) => {
                     self.record_type_indices(
@@ -2153,9 +2349,11 @@ impl UsageCollector<'_> {
 
         let static_imports = self.file().imports.static_members.clone();
         for import in static_imports {
-            if let Ok(owner) =
-                resolve_qualified_candidate(&import.owner, self.file(), &self.model.type_lookup)
-            {
+            if let Ok(owner) = resolve_qualified_candidate(
+                &import.owner,
+                self.file(),
+                &self.model.resolution.type_lookup,
+            ) {
                 self.record_type_indices(
                     &owner.source_indices,
                     JavaUsageKind::Import,
@@ -2609,6 +2807,7 @@ impl UsageCollector<'_> {
             [] if name == "<init>" && self.has_source_type(&owner) => {
                 let indices = self
                     .model
+                    .resolution
                     .type_lookup
                     .visible_indices(&owner, &self.file().source_set);
                 self.record_type_indices(
@@ -2656,7 +2855,7 @@ impl UsageCollector<'_> {
             raw_type,
             self.file(),
             self.owners.last().map_or("", String::as_str),
-            &self.model.type_lookup,
+            &self.model.resolution.type_lookup,
         )
     }
 
@@ -2669,7 +2868,7 @@ impl UsageCollector<'_> {
     ) {
         for index in indices {
             self.usages.push(JavaSymbolUsageOutput {
-                target: self.model.types[*index].symbol().clone(),
+                target: self.model.resolution.types[*index].symbol().clone(),
                 kind,
                 span: span.clone(),
                 confidence,
@@ -2751,13 +2950,15 @@ impl UsageCollector<'_> {
 
     fn visible_fields(&self, owner: &str, name: &str) -> Vec<&FieldDeclaration> {
         self.model
+            .resolution
             .field_lookup
             .get(&(owner.to_owned(), name.to_owned()))
             .into_iter()
             .flatten()
-            .filter_map(|index| self.model.fields.get(*index))
+            .filter_map(|index| self.model.resolution.fields.get(*index))
             .filter(|field| {
                 self.model
+                    .resolution
                     .type_lookup
                     .is_visible(&self.file().source_set, field.source_set())
             })
@@ -2766,13 +2967,15 @@ impl UsageCollector<'_> {
 
     fn visible_methods(&self, owner: &str, name: &str) -> Vec<&MethodDeclaration> {
         self.model
+            .resolution
             .method_lookup
             .get(&(owner.to_owned(), name.to_owned()))
             .into_iter()
             .flatten()
-            .filter_map(|index| self.model.methods.get(*index))
+            .filter_map(|index| self.model.resolution.methods.get(*index))
             .filter(|method| {
                 self.model
+                    .resolution
                     .type_lookup
                     .is_visible(&self.file().source_set, method.source_set())
             })
@@ -2782,6 +2985,7 @@ impl UsageCollector<'_> {
     fn has_source_type(&self, owner: &str) -> bool {
         !self
             .model
+            .resolution
             .type_lookup
             .visible_indices(owner, &self.file().source_set)
             .is_empty()
@@ -2922,20 +3126,7 @@ impl UsageCollector<'_> {
             ))),
             [] => {
                 let any_source_owner = owners.iter().any(|owner| self.has_source_type(owner));
-                let any_hidden_member = owners.iter().any(|owner| {
-                    self.model
-                        .method_lookup
-                        .get(&(owner.clone(), name.to_owned()))
-                        .into_iter()
-                        .flatten()
-                        .filter_map(|index| self.model.methods.get(*index))
-                        .any(|method| {
-                            !self
-                                .model
-                                .type_lookup
-                                .is_visible(&self.file().source_set, method.source_set())
-                        })
-                });
+                let any_hidden_member = self.has_hidden_method(&owners, name);
                 if any_hidden_member {
                     Err(MemberResolutionFailure::Inaccessible)
                 } else if any_source_owner {
@@ -2951,6 +3142,25 @@ impl UsageCollector<'_> {
                     .collect(),
             )),
         }
+    }
+
+    fn has_hidden_method(&self, owners: &BTreeSet<String>, name: &str) -> bool {
+        owners.iter().any(|owner| {
+            self.model
+                .resolution
+                .method_lookup
+                .get(&(owner.clone(), name.to_owned()))
+                .into_iter()
+                .flatten()
+                .filter_map(|index| self.model.resolution.methods.get(*index))
+                .any(|method| {
+                    !self
+                        .model
+                        .resolution
+                        .type_lookup
+                        .is_visible(&self.file().source_set, method.source_set())
+                })
+        })
     }
 
     #[expect(
