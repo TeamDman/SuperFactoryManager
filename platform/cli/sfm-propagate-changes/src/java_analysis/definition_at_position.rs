@@ -17,7 +17,7 @@ use sha2::Sha256;
 use std::collections::BTreeSet;
 
 pub const DEFINITION_AT_POSITION_REQUEST_SCHEMA: &str = "sfm.definition-at-position-request/2";
-pub const DEFINITION_AT_POSITION_RESULT_SCHEMA: &str = "sfm.definition-at-position-result/2";
+pub const DEFINITION_AT_POSITION_RESULT_SCHEMA: &str = "sfm.definition-at-position-result/3";
 
 /// Immutable workspace identity carried by an editor-location request.
 ///
@@ -327,6 +327,13 @@ pub struct DefinitionSourceSpanOutput {
     pub report_path: String,
     pub source_set: String,
     pub source_hash: String,
+    /// SHA-256 over the exact same UTF-8 source bytes as `source_hash`.
+    ///
+    /// Workspace-backed definitions carry this witness so clients without a
+    /// BLAKE3 implementation can still pin an asynchronous file read. A span
+    /// without a witness is not safe for file navigation.
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub source_sha256: Option<String>,
     pub start_byte: u64,
     pub end_byte: u64,
     pub start_line: u64,
@@ -343,6 +350,7 @@ impl DefinitionSourceSpanOutput {
         root_id: impl Into<String>,
         root_relative_path: impl Into<String>,
         address: impl Into<String>,
+        source_sha256: Option<String>,
     ) -> Self {
         Self {
             address: address.into(),
@@ -352,6 +360,7 @@ impl DefinitionSourceSpanOutput {
             report_path: span.path.clone(),
             source_set: span.source_set.clone(),
             source_hash: span.source_hash.clone(),
+            source_sha256,
             start_byte: span.start_byte,
             end_byte: span.end_byte,
             start_line: span.start_line,

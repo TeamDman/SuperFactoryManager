@@ -54,7 +54,7 @@ public class SFMExplorerPresentationRegistryTests {
     }
 
     @Test
-    public void ordinaryFilesUseGenericFallbackEvenWhenResolverContributesIconSortMetadata() {
+    public void minecraftDefaultsMapOrdinaryFilesToThemeBackedItemPresentation() {
         SFMExplorerPresentationRegistry.Resolution resolution =
                 SFMExplorerPresentationRegistry.minecraftDefaults().resolve(row(
                         SFMPath.parse("file:///C:/work/example.txt"),
@@ -63,12 +63,12 @@ public class SFMExplorerPresentationRegistryTests {
                         Optional.of("file:txt")
                 ));
 
-        assertEquals(SFMExplorerPresentationRegistry.GENERIC_FALLBACK_ID, resolution.contributorId());
-        SFMExplorerPresentation.MarkerIcon icon = assertInstanceOf(
-                SFMExplorerPresentation.MarkerIcon.class,
+        assertEquals(SFMFilePathExplorerPresenter.ID, resolution.contributorId());
+        SFMExplorerPresentation.ItemIcon icon = assertInstanceOf(
+                SFMExplorerPresentation.ItemIcon.class,
                 resolution.presentation().icon()
         );
-        assertEquals("[F]", icon.marker());
+        assertEquals(new ResourceLocation("minecraft", "paper"), icon.item().requestedItem());
     }
 
     private static SFMExplorerPresentation marker(

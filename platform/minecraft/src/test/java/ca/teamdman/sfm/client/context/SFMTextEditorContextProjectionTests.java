@@ -43,6 +43,40 @@ class SFMTextEditorContextProjectionTests {
                 IllegalArgumentException.class,
                 () -> SFMContextTextCoordinates.atUtf16Offset(UNICODE_CRLF, 5)
         );
+        assertEquals(1, SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(UNICODE_CRLF, 2));
+        assertEquals(4, SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(UNICODE_CRLF, 6));
+        assertEquals(6, SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(UNICODE_CRLF, 10));
+        assertEquals(UNICODE_CRLF.length(), SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(
+                UNICODE_CRLF,
+                UNICODE_CRLF.getBytes(StandardCharsets.UTF_8).length
+        ));
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(UNICODE_CRLF, 1)
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(UNICODE_CRLF, 3)
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(UNICODE_CRLF, 8)
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(UNICODE_CRLF, 19)
+        );
+        assertEquals(
+                List.of(0, 1, 4, 6, UNICODE_CRLF.length()),
+                SFMContextTextCoordinates.utf16OffsetsAtUtf8Bytes(
+                        UNICODE_CRLF,
+                        List.of(0, 2, 6, 10, 18)
+                )
+        );
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> SFMContextTextCoordinates.utf16OffsetsAtUtf8Bytes(UNICODE_CRLF, List.of(2, 0))
+        );
     }
 
     @Test

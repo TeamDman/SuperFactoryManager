@@ -15,12 +15,14 @@ use super::blake3_content_hash;
 use super::content_hash_with_expected_algorithm;
 use super::extract_java_file_facts_from_text_with_detail;
 use super::normalize_definition_at_position_context;
+use super::sha256_content_hash;
 use super::validate_definition_request_workspace;
 use crate::cancellation::CancellationToken;
 use facet::Facet;
 use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::fmt;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::time::Instant;
@@ -33,6 +35,17 @@ const DEFAULT_DEFINITION_ENGINE_MAX_RESOLUTION_SURFACES: usize = 2;
 pub struct DefinitionAtPositionEngineLimits {
     pub max_fact_entries: usize,
     pub max_fact_bytes: usize,
+}
+
+/// One acquired dependency-source root that may turn an indexed portable span
+/// into an exact, hash-witnessed source location. These roots are resolved once
+/// by the CLI's lockfile/source-provider machinery and are not analysis inputs.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DefinitionDependencySourceRoot {
+    pub root_id: String,
+    pub report_prefix: String,
+    pub source_set: String,
+    pub canonical_absolute_path: PathBuf,
 }
 
 impl Default for DefinitionAtPositionEngineLimits {
@@ -322,6 +335,7 @@ pub struct DefinitionAtPositionEngine {
     dependencies: Option<DependencyJavaSymbolIndexBody>,
     dependency_index: Option<DependencySymbolIndexQueryOutput>,
     external_resolution: Vec<JavaDependencyResolutionDefinition>,
+    dependency_source_roots: Vec<DefinitionDependencySourceRoot>,
     limits: DefinitionAtPositionEngineLimits,
     cache: Mutex<FactCache>,
     resolution_cache: Mutex<ResolutionSurfaceCache>,
@@ -337,6 +351,28 @@ impl DefinitionAtPositionEngine {
         workspace: JavaSourceWorkspace,
         dependencies: Option<DependencyJavaSymbolIndexBody>,
         dependency_index: Option<DependencySymbolIndexQueryOutput>,
+        limits: DefinitionAtPositionEngineLimits,
+    ) -> Result<Self, DefinitionAtPositionEngineConfigurationError> {
+        Self::new_with_dependency_source_roots(
+            workspace,
+            dependencies,
+            dependency_index,
+            Vec::new(),
+            limits,
+        )
+    }
+
+    /// Construct a reusable engine that can also witness already-acquired
+    /// dependency sources without adding them to the live parse surface.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when a cache bound is zero.
+    pub fn new_with_dependency_source_roots(
+        workspace: JavaSourceWorkspace,
+        dependencies: Option<DependencyJavaSymbolIndexBody>,
+        dependency_index: Option<DependencySymbolIndexQueryOutput>,
+        mut dependency_source_roots: Vec<DefinitionDependencySourceRoot>,
         limits: DefinitionAtPositionEngineLimits,
     ) -> Result<Self, DefinitionAtPositionEngineConfigurationError> {
         if limits.max_fact_entries == 0 {
@@ -355,11 +391,27 @@ impl DefinitionAtPositionEngine {
             .collect::<Vec<_>>();
         external_resolution.sort();
         external_resolution.dedup();
+        dependency_source_roots.sort_by(|left, right| {
+            (
+                &left.report_prefix,
+                &left.source_set,
+                &left.root_id,
+                &left.canonical_absolute_path,
+            )
+                .cmp(&(
+                    &right.report_prefix,
+                    &right.source_set,
+                    &right.root_id,
+                    &right.canonical_absolute_path,
+                ))
+        });
+        dependency_source_roots.dedup();
         Ok(Self {
             workspace,
             dependencies,
             dependency_index,
             external_resolution,
+            dependency_source_roots,
             limits,
             cache: Mutex::new(FactCache::default()),
             resolution_cache: Mutex::new(ResolutionSurfaceCache::default()),
@@ -734,8 +786,71 @@ impl DefinitionAtPositionEngine {
         if let Some(dependency_index) = &self.dependency_index {
             result = result.with_dependency_index(dependency_index.clone());
         }
+        self.enrich_dependency_source_spans(&mut result);
         cancellation_token.bail_if_cancelled()?;
         Ok((result, duration_micros(started.elapsed())))
+    }
+
+    fn enrich_dependency_source_spans(&self, result: &mut DefinitionAtPositionResult) {
+        for definition in &mut result.definitions {
+            self.enrich_dependency_source_span(&mut definition.identifier_span);
+            self.enrich_dependency_source_span(&mut definition.declaration_span);
+        }
+    }
+
+    fn enrich_dependency_source_span(&self, span: &mut super::DefinitionSourceSpanOutput) {
+        if span.resolver_id != "dependency-index" {
+            return;
+        }
+        let mut matches = Vec::new();
+        for root in &self.dependency_source_roots {
+            if root.source_set != span.source_set {
+                continue;
+            }
+            let prefix = root.report_prefix.trim_end_matches('/');
+            let Some(relative) = span
+                .report_path
+                .strip_prefix(prefix)
+                .and_then(|tail| tail.strip_prefix('/'))
+            else {
+                continue;
+            };
+            if relative.is_empty() || relative.split('/').any(str::is_empty) {
+                continue;
+            }
+            let mut native = root.canonical_absolute_path.clone();
+            for segment in relative.split('/') {
+                native.push(segment);
+            }
+            let Ok(source) = std::fs::read_to_string(&native) else {
+                continue;
+            };
+            if blake3_content_hash(&source) != span.source_hash {
+                continue;
+            }
+            let Ok(start) = usize::try_from(span.start_byte) else {
+                continue;
+            };
+            let Ok(end) = usize::try_from(span.end_byte) else {
+                continue;
+            };
+            if end > source.len()
+                || start > end
+                || !source.is_char_boundary(start)
+                || !source.is_char_boundary(end)
+            {
+                continue;
+            }
+            matches.push((root, relative.to_owned(), source));
+        }
+        let [(root, relative, source)] = matches.as_slice() else {
+            return;
+        };
+        "dependency-source".clone_into(&mut span.resolver_id);
+        span.root_id.clone_from(&root.root_id);
+        span.root_relative_path.clone_from(relative);
+        span.address = contributed_address("dependency-source", &root.root_id, relative);
+        span.source_sha256 = Some(sha256_content_hash(source));
     }
 
     /// Analyze one request without exposing transport-independent telemetry.
@@ -835,6 +950,35 @@ impl DefinitionAtPositionEngine {
 
 fn duration_micros(duration: std::time::Duration) -> u64 {
     duration.as_micros().try_into().unwrap_or(u64::MAX)
+}
+
+fn contributed_address(scheme: &str, authority: &str, relative: &str) -> String {
+    let path = relative
+        .split('/')
+        .map(percent_encode_component)
+        .collect::<Vec<_>>()
+        .join("/");
+    format!(
+        "{}://{}/{}",
+        scheme,
+        percent_encode_component(authority),
+        path
+    )
+}
+
+fn percent_encode_component(value: &str) -> String {
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    let mut encoded = String::with_capacity(value.len());
+    for byte in value.as_bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            encoded.push(char::from(*byte));
+        } else {
+            encoded.push('%');
+            encoded.push(char::from(HEX[usize::from(byte >> 4)]));
+            encoded.push(char::from(HEX[usize::from(byte & 0x0F)]));
+        }
+    }
+    encoded
 }
 
 #[cfg(test)]
@@ -1265,18 +1409,36 @@ mod tests {
             "import net.minecraft.core.BlockPos;\n",
             "class Use { BlockPos value; }\n",
         );
-        let (_directory, workspace) = workspace_from_sources(&[("q/Use.java", source)]);
+        let (directory, workspace) = workspace_from_sources(&[("q/Use.java", source)]);
         let identity = "dependency-ready";
         let mut request = request_at(&workspace, "q/Use.java", source, 8, "BlockPos value");
         use_dependency_identity(&workspace, &mut request, identity);
-        let engine = DefinitionAtPositionEngine::new(
+        let dependency_source = "B";
+        let dependency_root = directory.path().join("dependency-source");
+        let dependency_relative = "net/minecraft/core/BlockPos.java";
+        let dependency_path = dependency_root.join(dependency_relative);
+        std::fs::create_dir_all(dependency_path.parent().expect("dependency parent"))
+            .expect("dependency parent");
+        std::fs::write(&dependency_path, dependency_source).expect("dependency source");
+        let mut dependencies = dependency_type("net.minecraft.core.BlockPos");
+        for definition in &mut dependencies.definitions {
+            definition.identifier_span.source_hash = blake3_content_hash(dependency_source);
+            definition.declaration_span.source_hash = blake3_content_hash(dependency_source);
+        }
+        let engine = DefinitionAtPositionEngine::new_with_dependency_source_roots(
             workspace,
-            Some(dependency_type("net.minecraft.core.BlockPos")),
+            Some(dependencies),
             Some(dependency_index(
                 DependencySymbolIndexProbeStatus::Ready,
                 SymbolQueryCompleteness::Complete,
                 identity,
             )),
+            vec![DefinitionDependencySourceRoot {
+                root_id: "dependency-source-0".to_owned(),
+                report_prefix: "dependency/minecraft/main/pipeline".to_owned(),
+                source_set: "dependency:minecraft:main".to_owned(),
+                canonical_absolute_path: dependency_root,
+            }],
             DefinitionAtPositionEngineLimits::default(),
         )
         .expect("engine");
@@ -1293,11 +1455,23 @@ mod tests {
         );
         assert_eq!(
             result.definitions[0].identifier_span.resolver_id,
-            "dependency-index"
+            "dependency-source"
         );
         assert_eq!(
             result.definitions[0].identifier_span.root_id,
-            "dependency-index"
+            "dependency-source-0"
+        );
+        assert_eq!(
+            result.definitions[0].identifier_span.root_relative_path,
+            dependency_relative
+        );
+        assert_eq!(
+            result.definitions[0].identifier_span.address,
+            "dependency-source://dependency-source-0/net/minecraft/core/BlockPos.java"
+        );
+        assert_eq!(
+            result.definitions[0].identifier_span.source_sha256,
+            Some(sha256_content_hash(dependency_source))
         );
         assert_eq!(result.completeness, SymbolQueryCompleteness::Complete);
         assert!(result.recovery_actions.is_empty());

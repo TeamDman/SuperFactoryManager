@@ -48,7 +48,7 @@
   "recovery_actions": [],
   "request_generation": 0,
   "request_id": 0,
-  "schema": "sfm.definition-at-position-result/2",
+  "schema": "sfm.definition-at-position-result/3",
   "symbols": [],
   "workspace_generation": 0
 }

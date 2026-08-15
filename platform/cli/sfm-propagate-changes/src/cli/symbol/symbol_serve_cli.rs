@@ -34,24 +34,29 @@ impl SymbolServeArgs {
     ) -> eyre::Result<CliOutput> {
         let branch = self.workspace.branch.clone();
         let workspace = self.workspace.resolve(invocation_dir)?;
-        let (dependencies, dependency_index) = super::load_definition_at_position_dependencies(
-            &workspace,
-            &branch,
-            cancellation_token,
-        )?;
-        let served_workspace = SymbolServerWorkspaceOutput::from_workspace(
+        let (dependencies, dependency_index, dependency_source_roots) =
+            super::load_definition_at_position_dependencies(
+                &workspace,
+                &branch,
+                cancellation_token,
+            )?;
+        let served_workspace = SymbolServerWorkspaceOutput::from_workspace_with_dependency_sources(
             &workspace,
             dependency_index
                 .as_ref()
                 .map(|index| index.expected_identity.clone()),
             0,
+            &dependency_source_roots,
         )?;
-        let engine = Arc::new(DefinitionAtPositionEngine::new(
-            workspace,
-            dependencies,
-            dependency_index,
-            DefinitionAtPositionEngineLimits::default(),
-        )?);
+        let engine = Arc::new(
+            DefinitionAtPositionEngine::new_with_dependency_source_roots(
+                workspace,
+                dependencies,
+                dependency_index,
+                dependency_source_roots,
+                DefinitionAtPositionEngineLimits::default(),
+            )?,
+        );
         let limits = SymbolServerLimits::default();
         let mut state = SymbolServerState::new(
             SymbolServerIdentity {

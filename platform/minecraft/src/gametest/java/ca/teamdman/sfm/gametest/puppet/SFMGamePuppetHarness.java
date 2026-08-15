@@ -216,6 +216,7 @@ public final class SFMGamePuppetHarness {
     private static void expandNumericVariantsAfterAutoProbe(Minecraft minecraft, ActivePuppet active) {
         if (viewportSelection.kind() != SFMGamePuppetViewportSelection.Kind.DECLARED
             || active.definition.viewportProfile() == SFMGamePuppetViewportProfile.CURRENT
+            || active.definition.viewportProfile() == SFMGamePuppetViewportProfile.FIXED_1280X720_AUTO
             || active.viewportVariant.guiScale() != 0) return;
         int maximumScale = SFMGamePuppetViewportController.maximumScale(minecraft);
         List<PuppetExecution> numeric = new ArrayList<>();

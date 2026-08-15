@@ -42,6 +42,7 @@
         "root_relative_path": "p/Café.java",
         "source_hash": "blake3:4a763d6072e26592e8d0dac452c7e15f178ba5b1cd4d6f515b8b4aaa202f4f0d",
         "source_set": "custom",
+        "source_sha256": "sha256:b7d82e6c54c2fd3c99bebe232ffd430841e11b47c99c584ca662cd626abab6ec",
         "start_byte": 12,
         "start_column": 1,
         "start_line": 2
@@ -57,6 +58,7 @@
         "root_relative_path": "p/Café.java",
         "source_hash": "blake3:4a763d6072e26592e8d0dac452c7e15f178ba5b1cd4d6f515b8b4aaa202f4f0d",
         "source_set": "custom",
+        "source_sha256": "sha256:b7d82e6c54c2fd3c99bebe232ffd430841e11b47c99c584ca662cd626abab6ec",
         "start_byte": 25,
         "start_column": 14,
         "start_line": 2
@@ -89,7 +91,7 @@
   "recovery_actions": [],
   "request_generation": 0,
   "request_id": 0,
-  "schema": "sfm.definition-at-position-result/2",
+  "schema": "sfm.definition-at-position-result/3",
   "symbols": [
     {
       "descriptor": null,

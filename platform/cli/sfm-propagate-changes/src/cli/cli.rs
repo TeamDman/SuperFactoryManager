@@ -101,6 +101,8 @@ pub enum Command {
     Test(super::test::TestArgs),
     /// Navigate and refactor Java symbols.
     Symbol(super::symbol::SymbolArgs),
+    /// Highlight exact source text or run the reusable syntax worker.
+    Syntax(super::syntax::SyntaxArgs),
     /// Repo root related commands
     RepoRoot(super::repo_root::RepoRootArgs),
 }
@@ -144,6 +146,7 @@ impl Command {
             Command::Puppet(args) => legacy_output(args.invoke(cancellation_token)),
             Command::Test(args) => legacy_output(args.invoke(cancellation_token)),
             Command::Symbol(args) => args.invoke_in(&cancellation_token, invocation_dir),
+            Command::Syntax(args) => args.invoke(&cancellation_token),
             Command::RepoRoot(args) => legacy_output(args.invoke()),
         }
     }

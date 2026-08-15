@@ -8,6 +8,9 @@ import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
+import ca.teamdman.sfm.client.syntax.SFMSyntaxHighlightResult;
+import ca.teamdman.sfm.client.syntax.SFMSyntaxHighlightRuntime;
+import ca.teamdman.sfm.client.syntax.SFMTextEditorSyntaxSession;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
@@ -38,13 +41,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, SFMDocumentActionTarget {
     @SFMLocalizationDatagen
     public static final LocalizationEntry TEXT_EDITOR_V3_READ_ONLY_DOCUMENT = new LocalizationEntry(
             "gui.sfm.text_editor_v3.read_only",
-            "Read-only document"
+            "Read-only"
     );
     @SFMLocalizationDatagen
     public static final LocalizationEntry TEXT_EDITOR_V3_DONE_BUTTON_TOOLTIP_PREFIX = new LocalizationEntry(
@@ -69,6 +74,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private static final int HUD_BORDER = 0xFF4B5563;
     private static final int HUD_TEXT = 0xFFE6EDF3;
     private static final int HUD_MUTED = 0xFF9CA3AF;
+    private static final int READ_ONLY_CHROME_BACKGROUND = 0xFF181D23;
     private static final int INPUT_LOG_LIMIT = 8;
     private static final double MIN_ZOOM = 0.05D;
     private static final double MAX_ZOOM = 8.0D;
@@ -81,6 +87,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private static final int DEFAULT_ORIGIN_MARGIN = 32;
     private static final double KEYBOARD_PAN_SCREEN_PIXELS = 64.0D;
     private static final int FIT_CONTENT_MARGIN = 32;
+    private static final AtomicLong NEXT_SYNTAX_ORIGIN = new AtomicLong();
     private static final int FOCUS_BORDER = 0xFF60A5FA;
     private static final int PANEL_BACKGROUND = 0xF01A2028;
     private static final int PANEL_TAB_BACKGROUND = 0xF0283340;
@@ -99,6 +106,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private final List<Button> diagnosticButtons = new ArrayList<>();
     private final List<EmbeddedDocument> embeddedDocuments = new ArrayList<>();
     private Button canvasFocusTarget;
+    private SFMTextEditorReadOnlyChrome.Rect configButtonBounds;
+    private SFMTextEditorReadOnlyChrome.Rect doneButtonBounds;
     private double cameraX;
     private double cameraY;
     private double zoom = 1.0D;
@@ -136,6 +145,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private boolean draggingGrammarInsert;
     private Optional<Component> saveDiagnostic = Optional.empty();
     private Optional<SFMTextDocumentRange> openTargetRange = Optional.empty();
+    private Map<SFMDrawCanvasModel.CanvasGlyph, Integer> localSyntaxColours = Map.of();
+    private Map<SFMDrawCanvasModel.CanvasGlyph, List<ChatFormatting>> remoteSyntaxStyles = Map.of();
+    private long documentGeneration;
+    private final String syntaxOriginId = "sfm:text-editor:" + NEXT_SYNTAX_ORIGIN.incrementAndGet();
+    private SFMTextEditorSyntaxSession syntaxSession;
+    private long lastRequestedSyntaxGeneration;
+    private long syntaxRequestStartedNanos;
+    private Optional<Component> syntaxDiagnostic = Optional.empty();
+    private Optional<SyntaxPresentationEvidence> syntaxPresentationEvidence = Optional.empty();
     private double grammarInsertStartX;
     private double grammarInsertStartY;
     private EmbeddedDocument resizingEmbeddedDocument;
@@ -206,6 +224,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         super.init();
         SFMScreenRenderUtils.enableKeyRepeating();
         loadInitialContent();
+        ensureRemoteSyntaxHighlighting();
         initializeCamera();
         canvasFocusTarget = new CanvasFocusTarget(1, 1, Math.max(1, this.width - 2), Math.max(1, this.height - 26), true);
         this.addRenderableWidget(canvasFocusTarget);
@@ -218,10 +237,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         addDiagnosticButton(8, 56, () -> showCursorTrail, value -> showCursorTrail = value, "Cursor Trail");
         addDiagnosticButton(8, 80, () -> showGrid, value -> showGrid = value, "Grid");
         addDiagnosticButton(8, 104, () -> hideSelection, value -> hideSelection = value, "Hide Selection");
+        configButtonBounds = null;
         if (openContext != null) {
+            configButtonBounds = new SFMTextEditorReadOnlyChrome.Rect(4, this.height - 24, 16, 20);
             this.addRenderableWidget(new SFMButtonBuilder()
-                    .setPosition(4, this.height - 24)
-                    .setSize(16, 20)
+                    .setPosition(configButtonBounds.x(), configButtonBounds.y())
+                    .setSize(configButtonBounds.width(), configButtonBounds.height())
                     .setText(Component.literal("#"))
                     .setOnPress(button -> SFMScreenChangeHelpers.setOrPushScreen(new SFMTextEditorConfigScreen(
                             this,
@@ -230,9 +251,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                     )))
                     .build());
         }
+        doneButtonBounds = new SFMTextEditorReadOnlyChrome.Rect(this.width - 88, this.height - 24, 80, 20);
         this.addRenderableWidget(new SFMButtonBuilder()
-                .setPosition(this.width - 88, this.height - 24)
-                .setSize(80, 20)
+                .setPosition(doneButtonBounds.x(), doneButtonBounds.y())
+                .setSize(doneButtonBounds.width(), doneButtonBounds.height())
                 .setText(CommonComponents.GUI_DONE)
                 .setOnPress(button -> this.saveDocumentAndClose())
                 .setTooltip(this, font, doneButtonTooltip())
@@ -270,6 +292,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             renderInputDiagnostics(poseStack);
         }
         renderSaveDiagnostic(poseStack);
+        renderSyntaxDiagnostic(poseStack);
+        renderReadOnlyChrome(poseStack);
         super.render(poseStack, mouseX, mouseY, partialTick);
     }
 
@@ -397,6 +421,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         String text = Character.toString(codePoint);
         rememberInputEvent(String.format("charTyped '%s' U+%04X modifiers=%s", text, (int) codePoint, modifierText(modifiers)));
         model().typeGlyph(text, this.font.width(text), this.font.lineHeight);
+        documentChanged();
         rememberCursorPosition();
         return true;
     }
@@ -515,24 +540,28 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
             if (openContext != null && openContext.readOnly()) return true;
             model().deleteLeftWord(this.font.lineHeight);
+            documentChanged();
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_DELETE && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
             if (openContext != null && openContext.readOnly()) return true;
             model().deleteRightWord(this.font.lineHeight);
+            documentChanged();
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
             if (openContext != null && openContext.readOnly()) return true;
             model().deleteLeft(this.font.lineHeight);
+            documentChanged();
             rememberCursorPosition();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_DELETE) {
             if (openContext != null && openContext.readOnly()) return true;
             model().deleteNearestAndMoveRight(this.font.lineHeight);
+            documentChanged();
             rememberCursorPosition();
             return true;
         }
@@ -792,6 +821,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         model.typeText(openContext.initialValue(), this.font::width, this.font.lineHeight);
         initialCanvasProjectionText = model.projectedText(this.font.width(" "), this.font.lineHeight);
         model.moveCursorToDocumentStart();
+        documentGeneration = incrementGeneration(documentGeneration);
+        refreshLocalSyntaxColours();
         contextGeneration = incrementGeneration(contextGeneration);
     }
 
@@ -1138,17 +1169,31 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private void renderGlyphs(PoseStack poseStack) {
-        Map<SFMDrawCanvasModel.CanvasGlyph, Integer> glyphColours = SFMDrawCanvasSyntaxHighlightingHelper.buildSyntaxHighlightColours(
-                model().glyphs(),
-                this.font.width(" "),
-                this.font.lineHeight,
-                GLYPH
-        );
         for (SFMDrawCanvasModel.CanvasGlyph glyph : model().glyphs()) {
             poseStack.pushPose();
             poseStack.translate(canvasToScreenX(glyph.x()), canvasToScreenY(glyph.y()), 0.0D);
             poseStack.scale((float) zoom, (float) zoom, 1.0F);
-            SFMFontUtils.draw(poseStack, this.font, glyph.text(), 0, 0, glyphColours.getOrDefault(glyph, GLYPH), true);
+            if (remoteSyntaxStyles.containsKey(glyph)) {
+                SFMFontUtils.draw(
+                        poseStack,
+                        this.font,
+                        SFMDrawCanvasRemoteSyntaxStyles.styledGlyph(glyph, remoteSyntaxStyles),
+                        0,
+                        0,
+                        GLYPH,
+                        true
+                );
+            } else {
+                SFMFontUtils.draw(
+                        poseStack,
+                        this.font,
+                        glyph.text(),
+                        0,
+                        0,
+                        localSyntaxColours.getOrDefault(glyph, GLYPH),
+                        true
+                );
+            }
             poseStack.popPose();
         }
     }
@@ -1406,6 +1451,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
 
     private void insertLineBreak() {
         model().insertLineBreak(this.font.lineHeight);
+        documentChanged();
         rememberCursorPosition();
     }
 
@@ -1420,7 +1466,179 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             return;
         }
         model().pasteText(clipboardContents, text -> this.font.width(text), this.font.lineHeight);
+        documentChanged();
         rememberCursorPosition();
+    }
+
+    private void documentChanged() {
+        documentGeneration = incrementGeneration(documentGeneration);
+        remoteSyntaxStyles = Map.of();
+        syntaxPresentationEvidence = Optional.empty();
+        refreshLocalSyntaxColours();
+        requestRemoteSyntaxStyles();
+    }
+
+    private void refreshLocalSyntaxColours() {
+        if (isConcreteJavaDocument()) {
+            localSyntaxColours = Map.of();
+            return;
+        }
+        localSyntaxColours = SFMDrawCanvasSyntaxHighlightingHelper.buildSyntaxHighlightColours(
+                model().glyphs(),
+                this.font.width(" "),
+                this.font.lineHeight,
+                GLYPH
+        );
+    }
+
+    private boolean isConcreteJavaDocument() {
+        return openContext != null
+                && openContext.documentSnapshot()
+                        .flatMap(SFMTextDocumentSnapshot::path)
+                        .map(path -> path.extension().equalsIgnoreCase("java"))
+                        .orElse(false);
+    }
+
+    private void ensureRemoteSyntaxHighlighting() {
+        if (!isConcreteJavaDocument()) return;
+        if (syntaxSession == null) {
+            syntaxSession = new SFMTextEditorSyntaxSession(
+                    syntaxOriginId,
+                    SFMSyntaxHighlightRuntime.get(),
+                    runnable -> Minecraft.getInstance().execute(runnable),
+                    this::publishRemoteSyntaxStyles,
+                    this::publishRemoteSyntaxFailure
+            );
+        }
+        requestRemoteSyntaxStyles();
+    }
+
+    private void requestRemoteSyntaxStyles() {
+        if (!isConcreteJavaDocument() || syntaxSession == null
+                || lastRequestedSyntaxGeneration == documentGeneration) return;
+        String source = getCurrentText();
+        syntaxRequestStartedNanos = System.nanoTime();
+        syntaxDiagnostic = Optional.empty();
+        try {
+            syntaxSession.request(documentGeneration, "java", source);
+            lastRequestedSyntaxGeneration = documentGeneration;
+        } catch (RuntimeException failure) {
+            publishRemoteSyntaxFailure(failure);
+        }
+    }
+
+    private void publishRemoteSyntaxStyles(SFMTextEditorSyntaxSession.Publication publication) {
+        if (syntaxSession == null
+                || publication.request().originGeneration() != documentGeneration
+                || !publication.request().source().equals(getCurrentText())) return;
+        SFMSyntaxHighlightResult result = publication.result();
+        if (result.outcome() != SFMSyntaxHighlightResult.Outcome.HIGHLIGHTED) {
+            remoteSyntaxStyles = Map.of();
+            syntaxDiagnostic = Optional.of(Component.literal(
+                    "Java syntax highlighting unavailable: " + result.outcome().wireName()
+            ));
+            return;
+        }
+        try {
+            List<SFMDrawCanvasRemoteSyntaxStyles.FormattingSpan> spans = result.spans().stream()
+                    .map(span -> new SFMDrawCanvasRemoteSyntaxStyles.FormattingSpan(
+                            Math.toIntExact(span.startByte()),
+                            Math.toIntExact(span.endByte()),
+                            SFMDrawCanvasRemoteSyntaxStyles.parseFormattingNames(span.chatFormatting())
+                    ))
+                    .toList();
+            remoteSyntaxStyles = SFMDrawCanvasRemoteSyntaxStyles.project(
+                    model().glyphs(),
+                    this.font.width(" "),
+                    this.font.lineHeight,
+                    publication.request().source(),
+                    spans
+            );
+            syntaxDiagnostic = Optional.empty();
+            Set<String> tags = result.spans().stream()
+                    .map(SFMSyntaxHighlightResult.Span::arboriumTag)
+                    .collect(Collectors.toUnmodifiableSet());
+            Set<String> formatting = result.spans().stream()
+                    .flatMap(span -> span.chatFormatting().stream())
+                    .collect(Collectors.toUnmodifiableSet());
+            syntaxPresentationEvidence = Optional.of(new SyntaxPresentationEvidence(
+                    publication.request().requestId(),
+                    publication.request().requestGeneration(),
+                    publication.request().originGeneration(),
+                    publication.request().sourceSha256(),
+                    result.parserFingerprint(),
+                    result.formattingSchema(),
+                    result.spans().size(),
+                    tags.size(),
+                    formatting.size(),
+                    result.cache().status().wireName(),
+                    result.elapsedMicros(),
+                    Math.max(0L, (System.nanoTime() - syntaxRequestStartedNanos) / 1_000L)
+            ));
+        } catch (RuntimeException invalid) {
+            remoteSyntaxStyles = Map.of();
+            syntaxPresentationEvidence = Optional.empty();
+            publishRemoteSyntaxFailure(invalid);
+        }
+    }
+
+    private void publishRemoteSyntaxFailure(Throwable failure) {
+        remoteSyntaxStyles = Map.of();
+        syntaxPresentationEvidence = Optional.empty();
+        Throwable current = failure;
+        while ((current instanceof java.util.concurrent.CompletionException
+                || current instanceof java.util.concurrent.ExecutionException)
+                && current.getCause() != null) current = current.getCause();
+        String detail = current.getMessage();
+        if (detail == null || detail.isBlank()) detail = current.getClass().getSimpleName();
+        if (detail.length() > 160) detail = detail.substring(0, 160);
+        syntaxDiagnostic = Optional.of(Component.literal("Java syntax highlighting unavailable: " + detail));
+    }
+
+    private void renderSyntaxDiagnostic(PoseStack poseStack) {
+        if (syntaxDiagnostic.isEmpty()) return;
+        int maximumWidth = Math.max(0, this.width - 16);
+        if (maximumWidth <= 0) return;
+        String rendered = this.font.plainSubstrByWidth(syntaxDiagnostic.orElseThrow().getString(), maximumWidth);
+        SFMFontUtils.draw(
+                poseStack,
+                this.font,
+                rendered,
+                8,
+                Math.max(2, this.height - 38),
+                0xFFFFAA00,
+                true
+        );
+    }
+
+    public Optional<SyntaxPresentationEvidence> syntaxPresentationEvidence() {
+        return syntaxPresentationEvidence;
+    }
+
+    public record SyntaxPresentationEvidence(
+            long requestId,
+            long requestGeneration,
+            long originGeneration,
+            String sourceSha256,
+            String parserFingerprint,
+            String formattingSchema,
+            int spanCount,
+            int distinctTagCount,
+            int distinctFormattingCount,
+            String cacheStatus,
+            long rustElapsedMicros,
+            long queryToVisibleMicros
+    ) {
+    }
+
+    @Override
+    public void removed() {
+        if (syntaxSession != null) {
+            syntaxSession.close();
+            syntaxSession = null;
+            lastRequestedSyntaxGeneration = 0;
+        }
+        super.removed();
     }
 
     private void copyCanvasTextToClipboard() {
@@ -1922,16 +2140,44 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
     }
 
-    private void renderReadOnlyMessage(PoseStack poseStack) {
+    private void renderReadOnlyChrome(PoseStack poseStack) {
+        if (openContext == null || !openContext.readOnly() || configButtonBounds == null || doneButtonBounds == null) {
+            return;
+        }
         Component message = TEXT_EDITOR_V3_READ_ONLY_DOCUMENT.getComponent();
-        int width = this.font.width(message);
-        int left = (this.width - width) / 2 - 8;
-        int top = this.height - 48;
-        int right = left + width + 16;
-        int bottom = top + this.font.lineHeight + 10;
-        fill(poseStack, left, top, right, bottom, HUD_BACKGROUND);
-        drawRectOutline(poseStack, left, top, right, bottom, HUD_BORDER);
-        SFMFontUtils.draw(poseStack, this.font, message, left + 8, top + 5, HUD_TEXT, true);
+        SFMTextEditorReadOnlyChrome.layout(
+                true,
+                configButtonBounds,
+                doneButtonBounds,
+                this.font.width(message),
+                this.font.lineHeight
+        ).ifPresent(layout -> {
+            SFMTextEditorReadOnlyChrome.Rect background = layout.background();
+            fill(
+                    poseStack,
+                    background.x(),
+                    background.y(),
+                    background.right(),
+                    background.bottom(),
+                    READ_ONLY_CHROME_BACKGROUND
+            );
+            if (background.width() >= 3 && background.height() >= 3) {
+                drawRectOutline(
+                        poseStack,
+                        background.x(),
+                        background.y(),
+                        background.right(),
+                        background.bottom(),
+                        HUD_BORDER
+                );
+            }
+
+            SFMTextEditorReadOnlyChrome.Rect textArea = layout.textArea();
+            String rendered = this.font.plainSubstrByWidth(message.getString(), textArea.width());
+            if (rendered.isEmpty()) return;
+            int textX = textArea.x() + (textArea.width() - this.font.width(rendered)) / 2;
+            SFMFontUtils.draw(poseStack, this.font, rendered, textX, textArea.y(), HUD_TEXT, true);
+        });
     }
 
     private void copyGrammarTextToClipboard() {

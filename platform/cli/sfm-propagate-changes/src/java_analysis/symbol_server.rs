@@ -869,6 +869,7 @@ mod tests {
                 source_set: "custom".to_owned(),
                 report_root_path: "source".to_owned(),
             }],
+            dependency_source_roots: Vec::new(),
         }
     }
 

@@ -669,7 +669,12 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         String label = override == null
                 ? "gui scale auto (" + inheritedScale + ")"
                 : "gui scale " + override;
-        workspaceToast = new WorkspaceToast(Component.literal(label), System.nanoTime(), shake);
+        showWorkspaceToast(Component.literal(label), shake);
+    }
+
+    /** Shared transient status surface for asynchronous panel actions. */
+    public void showWorkspaceToast(Component message, boolean shake) {
+        workspaceToast = new WorkspaceToast(Objects.requireNonNull(message, "message"), System.nanoTime(), shake);
     }
 
     @Override
@@ -993,7 +998,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 ? null
                 : host.focusedChild().orElse(null);
         ResourceLocation deepest = child == null
-                ? SFMKeyboardUsageSituations.DEFAULT
+                ? (panel == null ? SFMKeyboardUsageSituations.DEFAULT : panel.keyboardUsageSituationId())
                 : child.keyboardUsageSituationId();
         SFMKeyboardUsageSituationCatalog.ActiveAncestry ancestry =
                 SFMKeyboardUsageSituations.catalog().resolve(deepest);

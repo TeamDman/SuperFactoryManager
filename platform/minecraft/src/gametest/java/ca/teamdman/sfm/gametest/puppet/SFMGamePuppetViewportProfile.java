@@ -7,6 +7,8 @@ public enum SFMGamePuppetViewportProfile {
     CURRENT,
     /** Stable responsive evidence profile. Explicit scales are expanded after framebuffer measurement. */
     COMMON_RESPONSIVE,
+    /** One deterministic 1280x720 run using Minecraft's automatic GUI scale. */
+    FIXED_1280X720_AUTO,
     /**
      * One large physical viewport whose declared run expands from Auto to
      * every numeric GUI scale supported by that viewport.
@@ -26,6 +28,7 @@ public enum SFMGamePuppetViewportProfile {
 
     public List<int[]> requestedSizes() {
         if (this == CURRENT) return List.of();
+        if (this == FIXED_1280X720_AUTO) return List.of(new int[]{1280, 720});
         if (this == TERMINAL_PRESENTATION) return List.of(new int[]{1280, 720});
         if (this == GUI_SCALE_MATRIX) return List.of(new int[]{3840, 2130});
         return List.of(new int[]{640, 480}, new int[]{854, 480}, new int[]{1280, 720}, new int[]{1920, 1080});

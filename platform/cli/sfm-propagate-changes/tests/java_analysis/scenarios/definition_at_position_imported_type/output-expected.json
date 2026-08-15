@@ -42,6 +42,7 @@
         "root_relative_path": "p/A.java",
         "source_hash": "blake3:7a7c91364eafa6cd59d229f5d92991762870bdad4fe38eeb137e52b21bc5ccb3",
         "source_set": "custom",
+        "source_sha256": "sha256:c20a3010aca4c5d4879aa57a29edb59b99192c333c45626a02f76cfcf0f8e851",
         "start_byte": 12,
         "start_column": 1,
         "start_line": 3
@@ -57,6 +58,7 @@
         "root_relative_path": "p/A.java",
         "source_hash": "blake3:7a7c91364eafa6cd59d229f5d92991762870bdad4fe38eeb137e52b21bc5ccb3",
         "source_set": "custom",
+        "source_sha256": "sha256:c20a3010aca4c5d4879aa57a29edb59b99192c333c45626a02f76cfcf0f8e851",
         "start_byte": 25,
         "start_column": 14,
         "start_line": 3
@@ -89,7 +91,7 @@
   "recovery_actions": [],
   "request_generation": 0,
   "request_id": 0,
-  "schema": "sfm.definition-at-position-result/2",
+  "schema": "sfm.definition-at-position-result/3",
   "symbols": [
     {
       "descriptor": null,

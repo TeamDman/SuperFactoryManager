@@ -84,6 +84,20 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
             );
         }
 
+        /** Returns the same worker policy with one explicit per-request deadline. */
+        public Configuration withRequestTimeout(Duration timeout) {
+            return new Configuration(
+                    executable,
+                    branch,
+                    handshakeTimeout,
+                    timeout,
+                    shutdownTimeout,
+                    maximumFrameBytes,
+                    maximumPendingDefinitions,
+                    maximumPendingControls
+            );
+        }
+
         public List<String> command() {
             return List.of(executable, "symbol", "serve", "--branch", branch);
         }
@@ -348,6 +362,11 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         pending.put(request.requestId(), value);
         pendingCount.set(pending.size());
         submitted.incrementAndGet();
+        SFM.LOGGER.info(
+                "SFM_SYMBOL_REQUEST_ACCEPTED request={} generation={} workspace_generation={} timeout_ms={}",
+                request.requestId(), request.requestGeneration(),
+                request.workspace().workspaceGeneration(), timeout.toMillis()
+        );
         value.timeout = schedule(() -> executeState(
                 () -> cancelPending(
                         request.requestId(),
@@ -537,6 +556,8 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
                 write(current, SFMSymbolServerProtocol.definition(value.request));
                 value.sentEpoch = current.epoch;
                 sent++;
+                SFM.LOGGER.info("SFM_SYMBOL_REQUEST_SENT request={} epoch={}",
+                        value.request.requestId(), current.epoch);
             } catch (IOException failure) {
                 failSession(current, new WorkerUnavailableException(
                         "Unable to write a definition request", failure), FailureKind.TRANSPORT);
@@ -582,6 +603,8 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         }
         removePending(value);
         completed.incrementAndGet();
+        SFM.LOGGER.info("SFM_SYMBOL_REQUEST_COMPLETED request={} outcome={}",
+                result.requestId(), result.outcome());
         value.result.complete(result);
         flushPending();
     }
@@ -812,6 +835,7 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         removePending(value);
         if (kind == CancellationKind.TIMEOUT) timedOut.incrementAndGet();
         else cancelled.incrementAndGet();
+        SFM.LOGGER.info("SFM_SYMBOL_REQUEST_CANCELLED request={} kind={}", requestId, kind);
         SessionState current = session;
         if (value.sentEpoch != 0 && current != null && current.epoch == value.sentEpoch
                 && current.phase == Lifecycle.READY) {

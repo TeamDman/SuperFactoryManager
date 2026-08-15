@@ -274,6 +274,19 @@ public final class SFMExplorerRuntime implements AutoCloseable {
                 .max(java.util.Comparator.comparingInt(root -> root.toNativePath().getNameCount()));
     }
 
+    /**
+     * Grants one exact read-only source root advertised by the supervised local
+     * toolchain worker. Callers must first validate the worker's resolver/root
+     * identity; this method never infers a parent or broadens the supplied root.
+     */
+    public boolean authorizeManagedReadOnlyRoot(SFMPath root) {
+        ensureOpen();
+        Objects.requireNonNull(root, "root");
+        if (root.kind() != SFMPath.Kind.FILE) return false;
+        filesystem.authorizeRoot(root.toNativePath());
+        return filesystem.explicitRoots().stream().anyMatch(root::equals);
+    }
+
     public Optional<Long> resolverGeneration(String scheme) {
         ensureOpen();
         Objects.requireNonNull(scheme, "scheme");

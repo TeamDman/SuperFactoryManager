@@ -26,6 +26,7 @@ use super::SymbolListOutput;
 use super::SymbolUsageListOutput;
 use super::blake3_content_hash;
 use super::definition_workspace_fingerprint;
+use super::sha256_content_hash;
 use super::syntax::JAVA_PARSER_FINGERPRINT;
 use super::syntax::JavaSyntaxFile;
 use super::syntax::declaration_name_node;
@@ -838,7 +839,7 @@ fn definition_at_position_from_parts<'definition, 'diagnostic>(
     );
     let mut definitions = report_definitions
         .iter()
-        .map(|definition| definition_at_position_definition(definition, workspace))
+        .map(|definition| definition_at_position_definition(definition, workspace, request))
         .collect::<Vec<_>>();
     definitions.sort();
     definitions.dedup();
@@ -917,11 +918,20 @@ pub(crate) fn validate_definition_request_workspace(
 fn definition_at_position_definition(
     definition: &JavaSymbolDefinitionOutput,
     workspace: &JavaSourceWorkspace,
+    request: &DefinitionAtPositionRequest,
 ) -> DefinitionAtPositionDefinitionOutput {
     DefinitionAtPositionDefinitionOutput {
         symbol: definition.symbol.clone(),
-        identifier_span: definition_at_position_span(&definition.identifier_span, workspace),
-        declaration_span: definition_at_position_span(&definition.declaration_span, workspace),
+        identifier_span: definition_at_position_span(
+            &definition.identifier_span,
+            workspace,
+            request,
+        ),
+        declaration_span: definition_at_position_span(
+            &definition.declaration_span,
+            workspace,
+            request,
+        ),
         confidence: definition.confidence,
     }
 }
@@ -929,6 +939,7 @@ fn definition_at_position_definition(
 fn definition_at_position_span(
     span: &JavaSourceSpanOutput,
     workspace: &JavaSourceWorkspace,
+    request: &DefinitionAtPositionRequest,
 ) -> DefinitionSourceSpanOutput {
     let mut matching_files = workspace
         .files
@@ -943,12 +954,14 @@ fn definition_at_position_span(
         ))
     });
     if let Some(file) = matching_files.first() {
+        let source_sha256 = verified_source_sha256(span, file, request);
         return DefinitionSourceSpanOutput::from_report_span(
             span,
             "workspace",
             file.root_id.clone(),
             file.root_relative_path.clone(),
             format!("workspace://{}/{}", file.root_id, file.root_relative_path),
+            source_sha256,
         );
     }
     DefinitionSourceSpanOutput::from_report_span(
@@ -956,8 +969,32 @@ fn definition_at_position_span(
         "dependency-index",
         "dependency-index",
         span.path.clone(),
-        format!("dependency-index:///{}", span.path),
+        format!("dependency-index://dependency-index/{}", span.path),
+        None,
     )
+}
+
+fn verified_source_sha256(
+    span: &JavaSourceSpanOutput,
+    file: &super::JavaSourceFile,
+    request: &DefinitionAtPositionRequest,
+) -> Option<String> {
+    if file.root_id == request.document.root_id
+        && file.root_relative_path == request.document.root_relative_path
+        && file.report_path == request.document.report_path
+        && file.source_set == request.document.source_set
+    {
+        return sha256_witness_for_blake3(&span.source_hash, &request.document.text);
+    }
+    if let Some(source) = file.source_override.as_deref() {
+        return sha256_witness_for_blake3(&span.source_hash, source);
+    }
+    let source = std::fs::read_to_string(&file.absolute_path).ok()?;
+    sha256_witness_for_blake3(&span.source_hash, &source)
+}
+
+fn sha256_witness_for_blake3(expected_blake3: &str, source: &str) -> Option<String> {
+    (blake3_content_hash(source) == expected_blake3).then(|| sha256_content_hash(source))
 }
 
 pub(crate) fn normalize_definition_at_position_context(
@@ -2704,12 +2741,15 @@ impl UsageCollector<'_> {
             .flat_map(|owner| self.visible_fields(owner, &name))
             .collect::<Vec<_>>();
         match candidates.as_slice() {
-            [field] => self.usages.push(JavaSymbolUsageOutput {
-                target: field.symbol().clone(),
-                kind: JavaUsageKind::FieldReference,
-                span: self.file().span(node),
-                confidence: ResolutionConfidence::Resolved,
-            }),
+            [field] => {
+                self.usages.push(JavaSymbolUsageOutput {
+                    target: field.symbol().clone(),
+                    kind: JavaUsageKind::FieldReference,
+                    span: self.file().span(node),
+                    confidence: ResolutionConfidence::Resolved,
+                });
+                return;
+            }
             [] => {}
             _ => {
                 let span = self.file().span(node);
@@ -2721,6 +2761,35 @@ impl UsageCollector<'_> {
                 );
                 self.record_member_ambiguity(&failure, JavaUsageKind::FieldReference, &span);
                 self.push_member_diagnostic(&failure, &name, span);
+                return;
+            }
+        }
+
+        // Arborium represents `TypeName.member()` and `TypeName.FIELD` with an
+        // ordinary identifier as the receiver. Resolve that receiver as a type
+        // only after local/field lookup has failed, so wildcard package imports
+        // retain exact jump-to-definition spans without guessing at variables.
+        if Self::is_receiver_identifier(node) {
+            let span = self.file().span(node);
+            match self.resolve_type(&name) {
+                Ok(resolved) => self.record_type_indices(
+                    &resolved.source_indices,
+                    JavaUsageKind::TypeReference,
+                    &span,
+                    ResolutionConfidence::Resolved,
+                ),
+                Err(
+                    failure @ (TypeResolutionFailure::Ambiguous { .. }
+                    | TypeResolutionFailure::Inaccessible { .. }),
+                ) => {
+                    self.record_type_ambiguity(&failure, JavaUsageKind::TypeReference, &span);
+                    self.diagnostics.push(type_resolution_diagnostic(
+                        failure,
+                        span,
+                        "receiver type",
+                    ));
+                }
+                Err(TypeResolutionFailure::Unresolved(_)) => {}
             }
         }
     }
@@ -3013,6 +3082,19 @@ impl UsageCollector<'_> {
                 parent.kind(),
                 "type_identifier" | "scoped_type_identifier" | "scoped_identifier"
             )
+    }
+
+    fn is_receiver_identifier(node: Node<'_>) -> bool {
+        let Some(parent) = node.parent() else {
+            return false;
+        };
+        parent
+            .child_by_field_name("object")
+            .is_some_and(|candidate| candidate.byte_range() == node.byte_range())
+            || (parent.kind() == "method_reference"
+                && named_children(parent)
+                    .first()
+                    .is_some_and(|candidate| candidate.byte_range() == node.byte_range()))
     }
 
     fn lookup_local(&self, name: &str) -> Option<String> {
@@ -3678,6 +3760,39 @@ mod tests {
         .expect("method definition");
         assert_eq!(method.outcome, DefinitionAtPositionOutcome::Success);
         assert_eq!(method.symbols[0].canonical_selector(), "p.A run(I)V");
+    }
+
+    #[test]
+    fn definition_at_position_resolves_wildcard_imported_type_receiver() {
+        let use_source = concat!(
+            "package q;\n",
+            "import p.*;\n",
+            "class Use { void call() { Target.run(); } }\n",
+        );
+        let (_directory, workspace) = position_workspace(&[
+            (
+                "p/Target.java",
+                "package p; public class Target { public static void run() {} }\n",
+            ),
+            ("q/Use.java", use_source),
+        ]);
+        let line = use_source.lines().nth(2).expect("usage line");
+        let column =
+            u64::try_from(line.find("Target").expect("receiver") + 2).expect("receiver column");
+
+        let result = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", use_source, 3, column),
+            None,
+        )
+        .expect("wildcard receiver definition");
+
+        assert_eq!(result.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(result.symbols[0].canonical_selector(), "p.Target");
+        assert_eq!(
+            result.definitions[0].identifier_span.report_path,
+            "source/p/Target.java"
+        );
     }
 
     #[test]
@@ -4458,5 +4573,21 @@ mod tests {
                     && diagnostic.message.contains("java.fake.Missing")
             }));
         }
+    }
+
+    #[test]
+    fn sha256_navigation_witness_is_only_emitted_for_the_same_blake3_source() {
+        let source = "package example; class Target {}\n";
+        let blake3 = blake3_content_hash(source);
+
+        assert_eq!(
+            sha256_witness_for_blake3(&blake3, source),
+            Some(sha256_content_hash(source))
+        );
+        assert_eq!(
+            sha256_witness_for_blake3(&blake3, "package example; class Changed {}\n"),
+            None,
+            "a witness computed from different bytes would make a stale range look authoritative"
+        );
     }
 }

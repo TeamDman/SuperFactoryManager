@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Optional;
 
@@ -17,6 +19,11 @@ import java.util.Optional;
  */
 public interface SFMScreenPanel {
     Component title();
+
+    /** Deepest contextual keybinding situation when no child widget owns focus. */
+    default ResourceLocation keyboardUsageSituationId() {
+        return SFMKeyboardUsageSituations.DEFAULT;
+    }
 
     default Component narration() {
         return title();

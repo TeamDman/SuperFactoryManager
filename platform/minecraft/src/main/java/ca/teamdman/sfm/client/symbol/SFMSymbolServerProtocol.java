@@ -72,14 +72,47 @@ public final class SFMSymbolServerProtocol {
         }
     }
 
+    /** Acquired dependency-source root authenticated and disclosed by the local Rust worker. */
+    public record DependencySourceRootMapping(
+            String canonicalAbsolutePath,
+            String rootId,
+            String sourceSet,
+            String reportPrefix
+    ) {
+        public DependencySourceRootMapping {
+            canonicalAbsolutePath = normalizeCanonicalAbsolutePath(canonicalAbsolutePath);
+            rootId = nonBlank(rootId, "rootId");
+            sourceSet = nonBlank(sourceSet, "sourceSet");
+            reportPrefix = canonicalRelativePath(reportPrefix, "reportPrefix", false);
+            if (!reportPrefix.startsWith("dependency/")) {
+                throw new IllegalArgumentException("Dependency source report prefix must be under dependency/");
+            }
+        }
+
+        public String absoluteRootAddress() {
+            return ca.teamdman.sfm.client.explorer.SFMPath
+                    .fromNative(Path.of(canonicalAbsolutePath))
+                    .canonical();
+        }
+    }
+
     /** Worker-resolved identity retained for exact later context adaptation. */
     public record WorkspaceMetadata(
             SFMDefinitionRequest.Workspace workspace,
-            List<SourceRootMapping> rootMappings
+            List<SourceRootMapping> rootMappings,
+            List<DependencySourceRootMapping> dependencySourceRootMappings
     ) {
+        public WorkspaceMetadata(
+                SFMDefinitionRequest.Workspace workspace,
+                List<SourceRootMapping> rootMappings
+        ) {
+            this(workspace, rootMappings, List.of());
+        }
+
         public WorkspaceMetadata {
             Objects.requireNonNull(workspace, "workspace");
             rootMappings = List.copyOf(rootMappings);
+            dependencySourceRootMappings = List.copyOf(dependencySourceRootMappings);
             if (workspace.sourceRoots().size() != rootMappings.size()) {
                 throw new IllegalArgumentException("Worker root mappings do not cover every request root");
             }
@@ -94,6 +127,13 @@ public final class SFMSymbolServerProtocol {
                 }
                 if (!root.path().equals(mapping.reportRootPath())) {
                     throw new IllegalArgumentException("Worker root mapping report path disagrees with root");
+                }
+            }
+            HashSet<String> dependencyRootIds = new HashSet<>();
+            for (DependencySourceRootMapping mapping : dependencySourceRootMappings) {
+                if (!dependencyRootIds.add(mapping.rootId())) {
+                    throw new IllegalArgumentException(
+                            "Worker dependency source root id is duplicated: " + mapping.rootId());
                 }
             }
         }
@@ -418,8 +458,20 @@ public final class SFMSymbolServerProtocol {
                     string(mapping, "report_root_path")
             ));
         }
+        ArrayList<DependencySourceRootMapping> dependencyMappings = new ArrayList<>();
+        if (workspaceJson.has("dependency_source_roots")) {
+            for (JsonElement element : requiredArray(workspaceJson, "dependency_source_roots")) {
+                JsonObject mapping = object(element, "dependency_source_roots[]");
+                dependencyMappings.add(new DependencySourceRootMapping(
+                        string(mapping, "canonical_absolute_path"),
+                        string(mapping, "root_id"),
+                        string(mapping, "source_set"),
+                        string(mapping, "report_prefix")
+                ));
+            }
+        }
         try {
-            return new WorkspaceMetadata(workspace, mappings);
+            return new WorkspaceMetadata(workspace, mappings, dependencyMappings);
         } catch (IllegalArgumentException failure) {
             throw new ProtocolException("Invalid resolved workspace metadata", failure);
         }
@@ -550,10 +602,24 @@ public final class SFMSymbolServerProtocol {
     }
 
     private static String normalizeCanonicalAbsolutePath(String value) {
-        String candidate = nonBlank(value, "canonicalAbsolutePath");
+        String candidate = ordinaryWindowsPath(nonBlank(value, "canonicalAbsolutePath"));
         Path path = Path.of(candidate);
         if (!path.isAbsolute()) throw new IllegalArgumentException("canonicalAbsolutePath must be absolute");
         return path.normalize().toString();
+    }
+
+    /**
+     * Java NIO accepts ordinary drive and UNC paths but rejects the equivalent
+     * Win32 extended-length spelling emitted by Rust canonicalization.
+     */
+    static String ordinaryWindowsPath(String value) {
+        String extendedUnc = "\\\\?\\UNC\\";
+        if (value.regionMatches(true, 0, extendedUnc, 0, extendedUnc.length())) {
+            return "\\\\" + value.substring(extendedUnc.length());
+        }
+        String extended = "\\\\?\\";
+        if (value.startsWith(extended)) return value.substring(extended.length());
+        return value;
     }
 
     private static String canonicalRelativePath(String value, String label, boolean allowEmpty) {

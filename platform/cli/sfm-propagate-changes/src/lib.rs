@@ -28,6 +28,7 @@ pub mod source_git;
 pub(crate) mod source_maven;
 pub(crate) mod source_provider;
 pub mod state;
+pub mod syntax_highlight;
 pub mod terminal_output;
 pub mod toolchain_lockfile_schema;
 pub(crate) mod toolchain_lockfile_write;

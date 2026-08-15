@@ -14,6 +14,22 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMSymbolServerProtocolTests {
     @Test
+    void rustExtendedLengthWindowsPathsBecomeOrdinaryDriveAndUncPaths() {
+        assertEquals(
+                "D:\\workspace\\source",
+                SFMSymbolServerProtocol.ordinaryWindowsPath("\\\\?\\D:\\workspace\\source")
+        );
+        assertEquals(
+                "\\\\server\\share\\source",
+                SFMSymbolServerProtocol.ordinaryWindowsPath("\\\\?\\UNC\\server\\share\\source")
+        );
+        assertEquals(
+                "D:\\workspace\\source",
+                SFMSymbolServerProtocol.ordinaryWindowsPath("D:\\workspace\\source")
+        );
+    }
+
+    @Test
     void clientHelloExactlyMatchesTheConvergedRustEnvelope() {
         assertEquals(
                 "{\"kind\":\"hello\",\"schema\":\"sfm.symbol-server.hello/1\",\"hello\":"
@@ -41,6 +57,35 @@ class SFMSymbolServerProtocolTests {
         assertEquals(
                 "file:///D:/workspace/source",
                 frame.hello().workspace().rootMappings().get(0).absoluteRootAddress()
+        );
+    }
+
+    @Test
+    void helloRetainsManagedDependencySourceRootMetadata() throws Exception {
+        JsonObject envelope = JsonParser.parseString(
+                helloEnvelope(7, "D:/workspace/source", null, null)
+        ).getAsJsonObject();
+        JsonObject workspace = envelope.getAsJsonObject("hello").getAsJsonObject("workspace");
+        JsonObject dependencyRoot = new JsonObject();
+        dependencyRoot.addProperty("canonical_absolute_path", "D:/workspace/dependencies/forge");
+        dependencyRoot.addProperty("root_id", "dependency-source-0");
+        dependencyRoot.addProperty("source_set", "dependency:forge");
+        dependencyRoot.addProperty("report_prefix", "dependency/forge/userdev/loader-pipeline");
+        com.google.gson.JsonArray dependencyRoots = new com.google.gson.JsonArray();
+        dependencyRoots.add(dependencyRoot);
+        workspace.add("dependency_source_roots", dependencyRoots);
+
+        var frame = assertInstanceOf(
+                SFMSymbolServerProtocol.HelloFrame.class,
+                SFMSymbolServerProtocol.decodeServerFrame(envelope.toString())
+        );
+        var decoded = frame.hello().workspace().dependencySourceRootMappings().get(0);
+        assertEquals("dependency-source-0", decoded.rootId());
+        assertEquals("dependency:forge", decoded.sourceSet());
+        assertEquals("dependency/forge/userdev/loader-pipeline", decoded.reportPrefix());
+        assertEquals(
+                "file:///D:/workspace/dependencies/forge",
+                decoded.absoluteRootAddress()
         );
     }
 
@@ -84,7 +129,7 @@ class SFMSymbolServerProtocolTests {
     }
 
     @Test
-    void requestAndAddressedResultExactlyMatchTheRustVersionTwoJsonContract() {
+    void requestAndAddressedResultExactlyMatchTheRustVersionThreeJsonContract() {
         SFMDefinitionRequest request = request(7, 3, 11);
         String hash = "sha256:f119fc42a923d52cbd5420b0c5841969bef8dea5e8b78ba392ffb58312380247";
         String expectedRequest = "{\"schema\":\"sfm.definition-at-position-request/2\","
@@ -107,17 +152,19 @@ class SFMSymbolServerProtocolTests {
                 + "\"resolver_id\":\"sfm:file\",\"root_id\":\"custom-0\","
                 + "\"root_relative_path\":\"A.java\",\"report_path\":\"source/A.java\","
                 + "\"source_set\":\"custom\",\"source_hash\":\"" + hash + "\","
+                + "\"source_sha256\":\"" + hash + "\","
                 + "\"start_byte\":6,\"end_byte\":7,\"start_line\":1,\"start_column\":7,"
                 + "\"end_line\":1,\"end_column\":8}";
         String declarationSpan = "{\"address\":\"file:///D:/workspace/source/A.java\","
                 + "\"resolver_id\":\"sfm:file\",\"root_id\":\"custom-0\","
                 + "\"root_relative_path\":\"A.java\",\"report_path\":\"source/A.java\","
                 + "\"source_set\":\"custom\",\"source_hash\":\"" + hash + "\","
+                + "\"source_sha256\":\"" + hash + "\","
                 + "\"start_byte\":0,\"end_byte\":10,\"start_line\":1,\"start_column\":1,"
                 + "\"end_line\":1,\"end_column\":11}";
         String symbol = "{\"kind\":\"class\",\"owner\":\"example\",\"name\":\"A\","
                 + "\"qualified_name\":\"example.A\"}";
-        String expectedResult = "{\"schema\":\"sfm.definition-at-position-result/2\","
+        String expectedResult = "{\"schema\":\"sfm.definition-at-position-result/3\","
                 + "\"request_id\":7,\"request_generation\":3,\"workspace_generation\":11,"
                 + "\"outcome\":\"success\",\"context\":{\"branch\":\"1.19.2\","
                 + "\"minecraft_version\":\"1.19.2\",\"java_release\":\"17\",\"jdk\":\"jdk\","
@@ -148,7 +195,7 @@ class SFMSymbolServerProtocolTests {
         String oldRequest = SFMDefinitionJsonCodec.encodeRequest(request)
                 .replace(SFMDefinitionRequest.SCHEMA, "sfm.definition-at-position-request/1");
         String oldResult = SFMDefinitionJsonCodec.encodeResult(result(request))
-                .replace(SFMDefinitionResult.SCHEMA, "sfm.definition-at-position-result/1");
+                .replace(SFMDefinitionResult.SCHEMA, "sfm.definition-at-position-result/2");
 
         assertThrows(IllegalArgumentException.class, () -> SFMDefinitionJsonCodec.decodeRequest(oldRequest));
         assertThrows(IllegalArgumentException.class, () -> SFMDefinitionJsonCodec.decodeResult(oldResult));
@@ -310,12 +357,14 @@ class SFMSymbolServerProtocolTests {
                 request.document().address(), "sfm:file", request.document().rootId(),
                 request.document().rootRelativePath(), request.document().reportPath(),
                 request.document().sourceSet(), request.document().contentHash(),
+                Optional.of(request.document().contentHash()),
                 6, 7, 1, 7, 1, 8
         );
         SFMDefinitionResult.DefinitionSourceSpan declaration = new SFMDefinitionResult.DefinitionSourceSpan(
                 request.document().address(), "sfm:file", request.document().rootId(),
                 request.document().rootRelativePath(), request.document().reportPath(),
                 request.document().sourceSet(), request.document().contentHash(),
+                Optional.of(request.document().contentHash()),
                 0, 10, 1, 1, 1, 11
         );
         return new SFMDefinitionResult(

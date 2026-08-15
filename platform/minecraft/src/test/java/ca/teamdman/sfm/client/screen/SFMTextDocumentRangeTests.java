@@ -14,8 +14,10 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Optional;
+import java.util.OptionalLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -77,29 +79,58 @@ class SFMTextDocumentRangeTests {
         assertTrue(rejected.displayText().contains("range start"));
     }
 
+    @Test
+    void failedSnapshotsDiscardSourceRangesBeforeDiagnosticTextIsPresented() {
+        SFMTextDocumentRange sourceRange = new SFMTextDocumentRange(position(4), position(10));
+        byte[] bytes = TEXT.getBytes(StandardCharsets.UTF_8);
+        SFMResolverTextResult stale = SFMResolverTextResult.failure(
+                request(),
+                SFMResolverTextResult.Status.STALE_CONTENT,
+                1,
+                Optional.of(sha256(bytes)),
+                OptionalLong.of(bytes.length),
+                Optional.empty(),
+                "The file changed after definition analysis"
+        );
+
+        SFMTextDocumentSnapshot snapshot = SFMTextDocumentSnapshot.fromResolver(
+                stale,
+                Optional.of(sourceRange)
+        );
+
+        assertEquals(SFMTextDocumentSnapshot.State.STALE_CONTENT, snapshot.state());
+        assertFalse(snapshot.ready());
+        assertTrue(snapshot.targetRange().isEmpty(),
+                "source coordinates must not be retained for generated diagnostic text");
+        assertTrue(snapshot.displayText().contains("The file changed after definition analysis"));
+    }
+
     private static SFMTextDocumentPosition position(int byteOffset) {
         return SFMTextDocumentRange.positionAtByteOffset(TEXT, byteOffset);
     }
 
     private static SFMResolverTextResult readyResult(String text) {
-        SFMPath root = SFMPath.parse("file:///D:/fixture");
-        SFMResolverTextRequest request = new SFMResolverTextRequest(
-                SFMPath.parse("file:///D:/fixture/A.java"),
-                root,
-                Optional.empty(),
-                4096,
-                1,
-                new SFMExplorerCancellationToken()
-        );
         byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
         return SFMResolverTextResult.ready(
-                request,
+                request(),
                 1,
                 text,
                 sha256(bytes),
                 bytes.length,
                 Optional.empty(),
                 SFMResolverTextResult.LineEndingKind.MIXED
+        );
+    }
+
+    private static SFMResolverTextRequest request() {
+        SFMPath root = SFMPath.parse("file:///D:/fixture");
+        return new SFMResolverTextRequest(
+                SFMPath.parse("file:///D:/fixture/A.java"),
+                root,
+                Optional.empty(),
+                4096,
+                1,
+                new SFMExplorerCancellationToken()
         );
     }
 

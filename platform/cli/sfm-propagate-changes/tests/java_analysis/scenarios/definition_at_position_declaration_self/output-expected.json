@@ -42,6 +42,7 @@
         "root_relative_path": "p/Declared.java",
         "source_hash": "blake3:d39b3caeb0b4a955ed8f2d0b63117aee8f8a90524627e3320549278617419602",
         "source_set": "custom",
+        "source_sha256": "sha256:9e20da5bf3fc8dfbfe7ae8c79cae268b966e441910fd316ee97efa6db8f4f13e",
         "start_byte": 12,
         "start_column": 1,
         "start_line": 3
@@ -57,6 +58,7 @@
         "root_relative_path": "p/Declared.java",
         "source_hash": "blake3:d39b3caeb0b4a955ed8f2d0b63117aee8f8a90524627e3320549278617419602",
         "source_set": "custom",
+        "source_sha256": "sha256:9e20da5bf3fc8dfbfe7ae8c79cae268b966e441910fd316ee97efa6db8f4f13e",
         "start_byte": 25,
         "start_column": 14,
         "start_line": 3
@@ -89,7 +91,7 @@
   "recovery_actions": [],
   "request_generation": 0,
   "request_id": 0,
-  "schema": "sfm.definition-at-position-result/2",
+  "schema": "sfm.definition-at-position-result/3",
   "symbols": [
     {
       "descriptor": null,

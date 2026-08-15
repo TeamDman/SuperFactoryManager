@@ -184,7 +184,7 @@
   "gui.sfm.text_editor.v2.title": "Text Editor",
   "gui.sfm.text_editor_v3.done_button.tooltip.prefix": "Press ",
   "gui.sfm.text_editor_v3.done_button.tooltip.suffix": " to save",
-  "gui.sfm.text_editor_v3.read_only": "Read-only document",
+  "gui.sfm.text_editor_v3.read_only": "Read-only",
   "gui.sfm.title.intellisense_pick_list": "Intellisense Pick List",
   "gui.sfm.title.labelgun": "Label Gun",
   "gui.sfm.title.program_template_picker": "Program Template Picker",

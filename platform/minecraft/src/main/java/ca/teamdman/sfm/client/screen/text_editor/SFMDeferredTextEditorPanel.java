@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.context.SFMContextContributor;
 import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
@@ -17,6 +18,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -45,6 +47,13 @@ public final class SFMDeferredTextEditorPanel
     }
 
     @Override
+    public ResourceLocation keyboardUsageSituationId() {
+        return delegate == null
+                ? SFMKeyboardUsageSituations.TEXT_EDITOR
+                : delegate.keyboardUsageSituationId();
+    }
+
+    @Override
     public Component narration() {
         return delegate == null ? Component.literal(recipe.title() + ". " + status) : delegate.narration();
     }
@@ -57,6 +66,11 @@ public final class SFMDeferredTextEditorPanel
     @Override
     public Optional<SFMTextDocumentSnapshot> documentSnapshot() {
         return snapshot;
+    }
+
+    @Override
+    public boolean navigateToRange(ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange range) {
+        return delegate instanceof SFMTextDocumentPanelState state && state.navigateToRange(range);
     }
 
     @Override

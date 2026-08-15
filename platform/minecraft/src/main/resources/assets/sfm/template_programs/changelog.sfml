@@ -52,6 +52,10 @@ NAME "Changelog"
 -- Add direct sfm.exe explorer commands with explicit set-valued targets, all-or-none actions, and self-orchestrating visual evidence
 -- Replace redundant explorer headers with the exact canonical location and open revision-safe location editing in the preferred text editor
 -- Replace one-off developer explorer actions with the generic path-expression explorer and open resolver-authorized source files read-only in Text Editor v3
+-- Replace file-explorer text markers with themeable chest ItemStacks for directories and paper ItemStacks for files
+-- Mark explorer-opened read-only Text Editor v3 documents with contrast-backed bottom chrome
+-- Highlight Java source asynchronously through a cached Rust Arborium service while keeping rendering and unsupported files responsive
+-- Add F12, Alt+Enter, and command-palette jump-to-definition for addressed Java documents with safe panel navigation
 -- Keep preferred text editors responsive, clipped, and panel-local when explorer locations are opened beside narrow panels
 -- Add single-client responsive viewport sweeps and browsable puppet evidence reports
 -- Make literal punctuation in unquoted SFML wildcard matchers match only itself

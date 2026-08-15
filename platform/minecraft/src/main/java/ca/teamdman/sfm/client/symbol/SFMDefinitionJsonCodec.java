@@ -321,6 +321,7 @@ public final class SFMDefinitionJsonCodec {
         json.addProperty("report_path", value.reportPath());
         json.addProperty("source_set", value.sourceSet());
         json.addProperty("source_hash", value.sourceHash());
+        addOptional(json, "source_sha256", value.sourceSha256());
         json.addProperty("start_byte", value.startByte());
         json.addProperty("end_byte", value.endByte());
         json.addProperty("start_line", value.startLine());
@@ -335,6 +336,7 @@ public final class SFMDefinitionJsonCodec {
                 string(json, "address"), string(json, "resolver_id"), string(json, "root_id"),
                 string(json, "root_relative_path"), string(json, "report_path"),
                 string(json, "source_set"), string(json, "source_hash"),
+                optionalString(json, "source_sha256"),
                 longValue(json, "start_byte"), longValue(json, "end_byte"),
                 longValue(json, "start_line"), longValue(json, "start_column"),
                 longValue(json, "end_line"), longValue(json, "end_column")

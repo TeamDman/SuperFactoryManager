@@ -22,7 +22,7 @@ public record SFMDefinitionResult(
         List<RecoveryAction> recoveryActions,
         Optional<DependencyIndex> dependencyIndex
 ) {
-    public static final String SCHEMA = "sfm.definition-at-position-result/2";
+    public static final String SCHEMA = "sfm.definition-at-position-result/3";
     private static final Set<String> SYMBOL_KINDS = Set.of(
             "class", "interface", "enum", "record", "annotation", "field", "method", "constructor"
     );
@@ -171,6 +171,7 @@ public record SFMDefinitionResult(
             String reportPath,
             String sourceSet,
             String sourceHash,
+            Optional<String> sourceSha256,
             long startByte,
             long endByte,
             long startLine,
@@ -185,7 +186,10 @@ public record SFMDefinitionResult(
             requireNonBlank(rootRelativePath, "definition span root-relative path");
             requireNonBlank(reportPath, "definition span report path");
             requireNonBlank(sourceSet, "definition span source set");
-            requireNonBlank(sourceHash, "definition span hash");
+            requireTaggedHash(sourceHash, "definition span hash", Set.of("blake3", "sha256"));
+            sourceSha256 = Objects.requireNonNull(sourceSha256, "sourceSha256");
+            sourceSha256.ifPresent(value ->
+                    requireTaggedHash(value, "definition span SHA-256 witness", Set.of("sha256")));
             if (startByte < 0 || endByte < startByte) throw new IllegalArgumentException("Invalid byte span");
             if (startLine <= 0 || startColumn <= 0 || endLine <= 0 || endColumn <= 0) {
                 throw new IllegalArgumentException("Definition span line and column values are one-based");
@@ -307,6 +311,16 @@ public record SFMDefinitionResult(
 
     private static void requireNonBlank(String value, String label) {
         if (value == null || value.isBlank()) throw new IllegalArgumentException(label + " must not be blank");
+    }
+
+    private static void requireTaggedHash(String value, String label, Set<String> algorithms) {
+        requireNonBlank(value, label);
+        int separator = value.indexOf(':');
+        String algorithm = separator < 0 ? "" : value.substring(0, separator);
+        String digest = separator < 0 ? "" : value.substring(separator + 1);
+        if (!algorithms.contains(algorithm) || !digest.matches("[0-9a-f]{64}")) {
+            throw new IllegalArgumentException(label + " must be an algorithm-tagged lowercase 256-bit digest");
+        }
     }
 
     private static void requireWireName(String value, String label, Set<String> allowed) {

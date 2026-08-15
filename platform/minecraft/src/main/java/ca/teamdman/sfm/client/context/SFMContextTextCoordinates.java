@@ -100,6 +100,63 @@ public final class SFMContextTextCoordinates {
         return new SFMTextDocumentRange(atUtf16Offset(text, start), atUtf16Offset(text, end));
     }
 
+    /**
+     * Convert an exact UTF-8 byte boundary to Java's UTF-16 string offset.
+     * The returned offset never splits a Unicode scalar or a CRLF line ending.
+     */
+    public static int utf16OffsetAtUtf8Byte(String text, int requestedByteOffset) {
+        return utf16OffsetsAtUtf8Bytes(text, List.of(requestedByteOffset)).get(0);
+    }
+
+    /**
+     * Convert sorted UTF-8 byte boundaries in one source pass. This is the
+     * span-friendly form: thousands of style endpoints do not rescan the
+     * document thousands of times.
+     */
+    public static List<Integer> utf16OffsetsAtUtf8Bytes(String text, List<Integer> requestedByteOffsets) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(requestedByteOffsets, "requestedByteOffsets");
+        if (requestedByteOffsets.isEmpty()) return List.of();
+        int previous = -1;
+        for (Integer requested : requestedByteOffsets) {
+            Objects.requireNonNull(requested, "requestedByteOffsets[]");
+            if (requested < 0) throw new IllegalArgumentException("UTF-8 byte offsets must not be negative");
+            if (requested < previous) throw new IllegalArgumentException("UTF-8 byte offsets must be sorted");
+            previous = requested;
+        }
+
+        ArrayList<Integer> answer = new ArrayList<>(requestedByteOffsets.size());
+        int byteOffset = 0;
+        int requestIndex = 0;
+        for (int utf16Offset = 0; requestIndex < requestedByteOffsets.size();) {
+            int requestedByteOffset = requestedByteOffsets.get(requestIndex);
+            if (requestedByteOffset == byteOffset) {
+                if (utf16Offset > 0
+                        && utf16Offset < text.length()
+                        && text.charAt(utf16Offset - 1) == '\r'
+                        && text.charAt(utf16Offset) == '\n') {
+                    throw new IllegalArgumentException("UTF-8 byte offset splits a CRLF line ending");
+                }
+                answer.add(utf16Offset);
+                requestIndex++;
+                continue;
+            }
+            if (utf16Offset == text.length()) {
+                throw new IllegalArgumentException(
+                        "UTF-8 byte offset " + requestedByteOffset + " is outside 0.." + byteOffset
+                );
+            }
+            int codePoint = text.codePointAt(utf16Offset);
+            int nextByteOffset = byteOffset + utf8Length(codePoint);
+            if (requestedByteOffset < nextByteOffset) {
+                throw new IllegalArgumentException("UTF-8 byte offset splits a Unicode scalar");
+            }
+            byteOffset = nextByteOffset;
+            utf16Offset += Character.charCount(codePoint);
+        }
+        return List.copyOf(answer);
+    }
+
     public static String sha256(String text) {
         Objects.requireNonNull(text, "text");
         return SFMContextHashes.sha256(text.getBytes(StandardCharsets.UTF_8));

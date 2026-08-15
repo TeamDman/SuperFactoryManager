@@ -143,6 +143,110 @@ public final class SFMGamePuppetHelper {
         ));
     }
 
+    /** Waits for styled Java publication and records source-free explorer/editor evidence. */
+    public void assertSfmJavaSyntaxPresentation(Path root, Path file, String artifactName) {
+        add(new AssertSfmJavaSyntaxPresentationPuppetAction(
+                Objects.requireNonNull(root, "root"),
+                Objects.requireNonNull(file, "file"),
+                Objects.requireNonNull(artifactName, "artifactName")
+        ));
+    }
+
+    /** Repeats the exact immutable Java document and requires cache/session reuse. */
+    public void assertWarmSfmJavaSyntaxPresentation(
+            Path file,
+            String artifactName,
+            String mandatoryScreenshotCaptureId
+    ) {
+        add(new AssertWarmSfmJavaSyntaxPresentationPuppetAction(
+                Objects.requireNonNull(file, "file"),
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(mandatoryScreenshotCaptureId, "mandatoryScreenshotCaptureId")
+        ));
+    }
+
+    /** Positions an exact source occurrence, drives F12, and requires one exact SFM-owned target. */
+    public void assertJumpToDefinition(
+            Path sourceFile,
+            String symbol,
+            int occurrence,
+            Path expectedTargetFile,
+            String artifactName
+    ) {
+        add(new AssertJumpToDefinitionPuppetAction(
+                Objects.requireNonNull(sourceFile, "sourceFile"),
+                Objects.requireNonNull(symbol, "symbol"),
+                occurrence,
+                Objects.requireNonNull(expectedTargetFile, "expectedTargetFile"),
+                Objects.requireNonNull(artifactName, "artifactName")
+        ));
+    }
+
+    /** Repeats one exact symbol lookup and requires reuse of its existing addressed target panel. */
+    public void assertWarmJumpToDefinition(
+            Path sourceFile,
+            String symbol,
+            int occurrence,
+            Path expectedTargetFile,
+            String artifactName,
+            String mandatoryScreenshotCaptureId
+    ) {
+        add(new AssertWarmJumpToDefinitionPuppetAction(
+                Objects.requireNonNull(sourceFile, "sourceFile"),
+                Objects.requireNonNull(symbol, "symbol"),
+                occurrence,
+                Objects.requireNonNull(expectedTargetFile, "expectedTargetFile"),
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(mandatoryScreenshotCaptureId, "mandatoryScreenshotCaptureId")
+        ));
+    }
+
+    /** Drives a real two-candidate definition choice and records the selected exact target. */
+    public void assertAmbiguousJumpToDefinition(
+            Path sourceFile,
+            Path authorizedRoot,
+            Path fixturePath,
+            Path selectedTargetFile,
+            String artifactName,
+            String choiceCaptureName,
+            Component choiceCaption,
+            String targetCaptureName,
+            Component targetCaption
+    ) {
+        add(new AssertAmbiguousJumpToDefinitionPuppetAction(
+                Objects.requireNonNull(sourceFile, "sourceFile"),
+                Objects.requireNonNull(authorizedRoot, "authorizedRoot"),
+                Objects.requireNonNull(fixturePath, "fixturePath"),
+                Objects.requireNonNull(selectedTargetFile, "selectedTargetFile"),
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(choiceCaptureName, "choiceCaptureName"),
+                Objects.requireNonNull(choiceCaption, "choiceCaption"),
+                Objects.requireNonNull(targetCaptureName, "targetCaptureName"),
+                Objects.requireNonNull(targetCaption, "targetCaption")
+        ));
+    }
+
+    /** Runs a dependency jump only when the pinned index uniquely resolves its preflight selector. */
+    public void assertDependencyJumpToDefinitionIfIndexed(
+            Path sourceFile,
+            String symbol,
+            int occurrence,
+            String dependencySelector,
+            String artifactName,
+            String captureName,
+            Component captureCaption
+    ) {
+        add(new AssertJumpToDefinitionPuppetAction(
+                Objects.requireNonNull(sourceFile, "sourceFile"),
+                Objects.requireNonNull(symbol, "symbol"),
+                occurrence,
+                Objects.requireNonNull(dependencySelector, "dependencySelector"),
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(captureName, "captureName"),
+                Objects.requireNonNull(captureCaption, "captureCaption")
+        ));
+    }
+
     /**
      * Opens the contextual client command palette from the current screen.
      */

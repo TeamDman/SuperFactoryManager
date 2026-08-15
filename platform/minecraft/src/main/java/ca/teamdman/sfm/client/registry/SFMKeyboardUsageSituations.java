@@ -23,6 +23,7 @@ public final class SFMKeyboardUsageSituations {
     public static final ResourceLocation GLOBAL = new ResourceLocation(SFM.MOD_ID, "global");
     public static final ResourceLocation WORKSPACE = new ResourceLocation(SFM.MOD_ID, "workspace");
     public static final ResourceLocation DEFAULT = new ResourceLocation(SFM.MOD_ID, "default");
+    public static final ResourceLocation TEXT_EDITOR = new ResourceLocation(SFM.MOD_ID, "text_editor");
     public static final ResourceLocation TERMINAL = new ResourceLocation(SFM.MOD_ID, "terminal");
 
     private SFMKeyboardUsageSituations() {
@@ -72,6 +73,10 @@ public final class SFMKeyboardUsageSituations {
                 Component.literal("SFM default control"),
                 Component.literal("Active for ordinary controls in an SFM workspace"),
                 List.of(WORKSPACE)));
+        values.put(TEXT_EDITOR, new SFMKeyboardUsageSituation(
+                Component.literal("SFM text editor"),
+                Component.literal("Active while an SFM text editor owns keyboard input"),
+                List.of(DEFAULT)));
         values.put(TERMINAL, new SFMKeyboardUsageSituation(
                 Component.literal("SFM terminal"),
                 Component.literal("Active while the Rust terminal viewport owns keyboard input"),

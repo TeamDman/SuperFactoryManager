@@ -1,6 +1,6 @@
 # Contextual input, action ownership, and addressable explorer plan
 
-**Plan status:** Active; B-2/C-4 and CLI-AST Phase 0.10 are complete; C-4a through C-6 are prepared as the next coherent goal
+**Plan status:** Active; C-4a through C-6 and linked CLI-AST Phase 0.11 are complete, while the independent fuzzy/contextual Phase B and broader address/action work remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
@@ -154,7 +154,7 @@ workspace.
 | SYMBOL-3 | Definition results should compose with panels and the command palette. | C-5 opens one unambiguous result in a Text Editor v3 panel at its range, uses the constrained palette for multiple candidates, and preserves a visible diagnostic for no/incomplete results. | — |
 | SYMBOL-4 | Reuse the Java symbol work already built in `sfm-propagate-changes`; do not create an unrelated Java resolver inside the Minecraft UI. | C-4 adds a reusable asynchronous provider/transport boundary over the existing live-source and dependency index; D-19 freezes the first transport without coupling the action contract to process or Vox details. | — |
 | SYMBOL-5 | Interactive navigation must not stall Minecraft. | C-4 runs source/index work off the render thread, supports cancellation and request generations, rejects stale responses, and records latency/index-completeness telemetry. | — |
-| PLAN-3 | Preserve the complete path from folder authorization through opening SFM code and jumping to a definition as executable vertical slices. | Selection/explorer X-1 through X-7, C-3, and C-4 are complete; gates D-15 through D-19, remaining C-5/C-6, topology, proofs, risks, and revised next-goal definition are authoritative. Superseded C-1/C-2 remain provenance only. | — |
+| PLAN-3 | Preserve the complete path from folder authorization through opening SFM code and jumping to a definition as executable vertical slices. | Selection/explorer X-1 through X-7 and C-3 through C-6 are complete with typed/live evidence; D-15 remains the later native-picker adapter and superseded C-1/C-2 remain provenance only. | — |
 
 ## Authoritative user guidance ledger — 2026-08-15 source-presentation extension
 
@@ -170,7 +170,7 @@ workspace.
 | HILITE-4 | Highlighting must use the exact current Java text and must not apply a response to a changed document. | C-4c/C-4d carry request id, origin generation, language id, exact UTF-8 text, and content hash; work is off the render thread, cancellable, bounded, and stale/hash-mismatched responses are discarded. | — |
 | HILITE-5 | Analyze the SFM repository to identify which extensions should follow Java. | C-4c records the reproducible tracked-file audit and the deferred priority order: Rust, JSON, Gradle/Groovy, PowerShell, Markdown, TypeScript, then TOML. Existing SFML and G4 highlighters remain intact; enabling those additional Arborium languages is not part of this goal. | — |
 | HILITE-6 | Reusable parser/query objects should survive requests rather than being rebuilt for every frame or draw. | CLI-AST Phase 0.11 compiles the Java highlight query once per worker, reuses bounded parser/query state, and returns cached immutable results only when language plus source hash match. Editor rendering consumes an immutable snapshot and never reparses per frame. | — |
-| PLAN-4 | Update the resumable plan with current progress and every atom above, then set a goal that completes them together with C-5. | This ledger, traceability, three-pass audit, D-20 through D-24, C-4a through C-6, CLI-AST Phase 0.11, topology, completion criteria, and risks define that goal. | — |
+| PLAN-4 | Update the resumable plan with current progress and every atom above, then set a goal that completes them together with C-5. | This ledger, traceability, three-pass audit, D-20 through D-24, completed C-4a through C-6, completed CLI-AST Phase 0.11, topology, completion criteria, risks, and retained evidence record that goal without losing its design constraints. | — |
 
 ## Guidance traceability
 
@@ -2290,10 +2290,14 @@ Rust Java-analysis/scenario suites, strict Rust checks, and canonical compile
 pass. The complete Java suite found 891 tests: 890 passed, zero failed, and the
 installed-process test was the sole expected opt-in abort when its properties
 were absent. The source audit exited 0 with 30 pre-existing grouped unresolved
-font-render-rule warnings. No F12/Alt+Enter result navigation or live UI proof
-was introduced; those remain C-5/C-6.
+font-render-rule warnings. That provider slice introduced no F12/Alt+Enter
+result navigation or live UI proof; the later completed C-5/C-6 slice consumed
+the provider without retroactively broadening its scope.
 
-### [ ] C-4a Replace file explorer text markers with ItemStack icons
+### [x] C-4a Replace file explorer text markers with ItemStack icons
+
+**Parallel owner:** explorer-presentation agent; write scope is the explorer
+presentation contributor/default registry and focused presentation tests.
 
 **Work:** Add an ordered file-path presenter to
 `SFMExplorerPresentationRegistry.minecraftDefaults()`. Resolve a `file://`
@@ -2318,7 +2322,17 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerPresentat
 for directories and paper ItemStacks for files with no `[D]`/`[F]` markers,
 while registry/item and unknown-domain presentation remains correct.
 
-### [ ] C-4b Add explicit contrast-backed read-only EditorV3 chrome
+**Completion evidence (2026-08-15):** The ordered file-domain presenter uses
+the active theme's `minecraft:chest` directory item and `minecraft:paper` file
+item without overriding item-registry/custom presenters or generic fallback.
+Focused presentation tests and the complete Java suite passed. The final live
+journey and all nine declared GUI-scale variants visibly show chest directories
+and paper files with no textual `[D]`/`[F]` replacement.
+
+### [x] C-4b Add explicit contrast-backed read-only EditorV3 chrome
+
+**Parallel owner:** EditorV3-chrome agent; write scope is read-only status
+geometry/rendering/localization and focused chrome tests.
 
 **Work:** Change the localized status text to `Read-only` and render it only
 for read-only documents in EditorV3's bottom control lane between `#` and Done.
@@ -2343,7 +2357,17 @@ contrast-backed `Read-only` status physically between the existing controls at
 supported sizes/scales; writable panels omit it; no new focus/hit target or
 save behavior exists.
 
-### [ ] C-4c Add the Rust Arborium Java highlighting contract and service
+**Completion evidence (2026-08-15):** EditorV3 computes one non-interactive
+bounded status rectangle between `#` and Done, renders the exact localized
+`Read-only` text over a contrasting fill/border only for read-only documents,
+and preserves both neighbour hit/focus bounds. Geometry/state tests passed and
+the final Auto plus scales 1 through 8 screenshots were individually inspected
+with no overlap or clipped control.
+
+### [x] C-4c Add the Rust Arborium Java highlighting contract and service
+
+**Parallel owner:** coordinator/main lane; Phase 0.11 schema, engine, service,
+and Rust validation remain serialized here.
 
 **Work:** Complete linked CLI-AST Phase 0.11. Add typed versioned direct and
 framed-worker request/result contracts carrying request/origin generation,
@@ -2378,7 +2402,16 @@ exact Java text into deterministic, source-hash-bound ChatFormatting spans by
 direct command and reusable supervised worker; compilation/query setup is not
 repeated per request; no additional language or Java ANTLR parser ships.
 
-### [ ] C-4d Apply current Rust Java spans in EditorV3 asynchronously
+**Completion evidence (2026-08-15):** Versioned Facet direct/worker schemas,
+`syntax highlight`, and supervised `syntax serve` are implemented with the
+pinned Arborium Java grammar/highlighter and existing patched tree-sitter.
+Direct and worker results agree; one worker/query is reused; a repeated real
+`SFM.java` request was a cache hit and returned the same 356 spans, 9 tags, and
+10 formatting values in 75 microseconds of Rust work after a 1,776-microsecond
+cold parse. `check-all.ps1` passed 569 tests with 3 ignored plus all 8 scenario
+tests. Java remains the only newly enabled grammar.
+
+### [x] C-4d Apply current Rust Java spans in EditorV3 asynchronously
 
 **Work:** Add a provider-neutral Java highlight contract, codec, coordinator,
 and supervised-process adapter. Derive `.java -> java` from concrete typed
@@ -2408,7 +2441,16 @@ asynchronously transitions from readable fallback text to Arborium-derived
 ChatFormatting without a frame stall; stale spans never apply; other document
 types retain their established rendering.
 
-### [ ] C-5 Register jump-to-definition and integrate result navigation
+**Completion evidence (2026-08-15):** The Java provider/coordinator supervises
+the installed Rust worker off-thread, validates every schema/hash/language/
+origin/generation/range/style witness, converts UTF-8 ranges safely, and
+publishes immutable styles through the Minecraft executor. Fake-provider,
+protocol, stale/cancel/reopen, Unicode/CRLF, fallback, and real installed-worker
+tests passed. The final live artifact records 135,044 microseconds from cold
+worker launch to visible styles and 80,420 microseconds for a warm cache-hit
+query-to-visible update, with one launch attempt and no retained raw source.
+
+### [x] C-5 Register jump-to-definition and integrate result navigation
 
 **Work:** Register `sfm:symbol/definition/open`, its `sfm:text_editor` F12
 default, and an Alt+Enter context offer. Capture B-2 editor context once and
@@ -2435,7 +2477,15 @@ reach the same registered action; an unambiguous definition opens at the exact
 source range; ambiguity is user-selected; and failures are visible and
 recoverable without UI stalls or unsafe panel replacement.
 
-### [ ] C-6 Prove the SFM-source jump-to-definition journey live
+**Completion evidence (2026-08-15):** `sfm:symbol/definition/open` is the
+shared palette/F12/Alt+Enter route in the `sfm:text_editor` situation. Focused
+tests and the live journey prove exact SFM-source navigation, reuse of an
+already-visible target panel, a deterministic two-candidate `StringDistances`
+choice, and exact acquired Forge dependency-source navigation to
+`FMLClientSetupEvent.java`. Rust-emitted Windows extended paths are normalized
+at the Java boundary without weakening canonical path identity.
+
+### [x] C-6 Prove the SFM-source jump-to-definition journey live
 
 **Work:** Add one deterministic live journey: open a generic explorer, add or
 use an explicitly seeded SFM source root, browse a Java file, open it in Text
@@ -2470,6 +2520,28 @@ editor scale matrix, warm highlighting and definition latency are recorded and
 acceptable, every WSPACE/SYMBOL/SRCPRES/READONLY/HILITE guidance id has
 evidence, and no propagation/publication occurs without a later goal.
 
+**Completion evidence (2026-08-15):** The deterministic end-to-end run is
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`sfm-title_screen-20260815-151735-957`. Its five inspected figures and typed
+artifacts prove explorer -> highlighted `SFM.java` -> exact SFM definition ->
+stable ambiguous choice -> exact acquired Forge source, including addresses,
+cursor/ranges, hashes, worker generations, cache state, and no source mutation.
+The declared Auto plus GUI scales 1 through 8 run is
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`sfm-title_screen-20260815-152016-576`; all nine final screenshots were
+individually inspected after the exact `Read-only` localization correction.
+
+Warm definition navigation took 182,577 microseconds and dependency navigation
+took 279,692 microseconds; ambiguity became visible in 1,363,569 microseconds
+and the selected target followed in 298,418 microseconds. The 6,766,505-
+microsecond cold SFM definition remains honestly recorded. Its durable stage
+probe in `docs/architecture/evidence/symbol-server-installed-probe-1.19.2.json`
+attributes the dominant Rust cold cost to parsing 1,505 Java files
+(2,177,915 of 3,209,138 microseconds), while the warm worker reuses that state.
+Focused Rust/Java tests, `check-all.ps1`, canonical compile, the full Java suite,
+and both declared puppets exited successfully. No propagation, publication, or
+release operation was performed.
+
 ## Previously completed vertical slice
 
 The **generic explorer to addressed source editor slice** is complete in
@@ -2498,7 +2570,7 @@ The final evidence is:
    assertions. The obsolete large-explorer runtime hook and legacy puppets are
    gone. No propagation, publication, or release operation was performed.
 
-## Most recently completed vertical slice
+## Previously completed definition-provider vertical slice
 
 The accepted goal is the complete **captured editor context to warm definition
 provider** boundary:
@@ -2562,18 +2634,15 @@ The completed work proceeded in parallel after the request/result DTO was frozen
   lifecycle wiring, direct/worker parity, benchmark evidence, plans, and docs.
 
 The completed goal freezes D-8's coordinate contract and closes D-18/D-19 with
-implementation evidence. It stopped one boundary before any F12/keybinding/
-palette result-navigation behavior, so C-5 can consume a measured,
-deterministic provider rather than mixing UI design with analysis and process-
-lifecycle work. The prepared next goal combines the newly added C-4a through
-C-4d source-presentation/highlighting work with C-5 navigation and C-6 live
-proof so the user can inspect one coherent explorer-to-highlighted-source-to-
-definition journey. The independent fuzzy-file chain remains available after
-B-2 and is not part of that goal.
+implementation evidence. It stopped one boundary before F12/keybinding/palette
+result navigation, allowing the later C-4a-through-C-6 slice to consume a
+measured deterministic provider without mixing initial provider design with UI
+navigation. That later slice is recorded immediately below. The independent
+fuzzy-file chain remains available after B-2 and was not part of either goal.
 
-## Prepared next goal — source presentation through definition navigation
+## Most recently completed vertical slice — source presentation through definition navigation
 
-Set the next goal as:
+The completed goal was:
 
 > Complete C-4a, C-4b, C-4c, C-4d, C-5, and C-6 in
 > `docs/tasks/contextual input actions and addressable explorer plan.md`
@@ -2586,14 +2655,16 @@ Set the next goal as:
 > non-Java Arborium grammars, writable host files, fuzzy-file Phase B,
 > propagation, publication, or release tagging.
 
-The observable end state is one explicitly seeded generic explorer showing
+The observed end state is one explicitly seeded generic explorer showing
 chest directories and paper files; opening `SFM.java` beside it shows a
 contrast-backed `Read-only` status and visibly distinct Rust-supplied Java
 formatting without a UI stall; F12 and Alt+Enter resolve the exact symbol,
 opening one result at its source range or presenting stable choices for many;
 machine artifacts prove hashes/spans/cache/generations/latency and screenshots
 cover the declared GUI-scale matrix. Focused Rust/Java tests, `check-all.ps1`,
-canonical compile/full Java tests, and both declared puppets pass.
+canonical compile/full Java tests, and both declared puppets passed. The exact
+artifact ids, measured cold/warm behavior, and remaining cold parse bottleneck
+are recorded in C-4a through C-6 rather than being deferred to a future goal.
 
 ## Overall completion criteria
 
@@ -2624,14 +2695,14 @@ canonical compile/full Java tests, and both declared puppets pass.
 - [x] Explorer Java files open read-only in Text Editor v3 with concrete
   document addresses, source hashes, independent editor state, safe preview
   ownership, and exact open-at-range behavior.
-- [ ] File-domain explorer rows use chest/paper ItemStack icons without
+- [x] File-domain explorer rows use chest/paper ItemStack icons without
   overriding non-file presenters, and read-only EditorV3 panels expose the
   contrast-backed bottom-lane status without changing focus/hit behavior.
-- [ ] Concrete Java documents receive exact-current-text, Rust Arborium-derived
+- [x] Concrete Java documents receive exact-current-text, Rust Arborium-derived
   ChatFormatting spans asynchronously with validated Unicode/hash/generation
   identity, cached grammar/query state, plain/existing fallback, and no
   render-thread or per-frame parsing.
-- [ ] F12 and the contextual-action provider resolve the symbol at the captured
+- [x] F12 and the contextual-action provider resolve the symbol at the captured
   document location through the existing Java-analysis/index engine, never
   block the render thread, and correctly handle one/many/none/incomplete/stale
   outcomes.
@@ -2691,6 +2762,8 @@ canonical compile/full Java tests, and both declared puppets pass.
 | Bare token lookup jumps to a same-named symbol in the wrong package | D-18 source-location query includes document snapshot/import/source-set context; ambiguity is typed and user-selected, never first-match |
 | Symbol lookup blocks Minecraft for the former multi-second CLI startup/query | D-19 long-lived supervised worker, render-thread prohibition, generation cancellation, cold/warm telemetry, and the installed 72.001 ms warm-median acceptance witness |
 | Worker crash/cancel leaks subprocesses or applies a late definition | Owned process/job lifecycle, framed request ids/generations, kill/wait on shutdown/failure, stale-response rejection, and liveness tests |
+| A definition target changes after analysis but before its panel loads | Preserve and verify the worker's algorithm-tagged exact content identity through the asynchronous resolver; never discard a production `blake3:` witness, and never apply a retained target range to failure/diagnostic text |
+| An immediate Alt+Enter result is lost during the constrained-palette-to-workspace transition | Treat that exact captured transition as valid (or defer one client turn), then revalidate the captured editor origin, document hash, generation, and cursor before any navigation or feedback mutation |
 | Dependency index is stale but no-match is presented as authoritative | Existing index identity/completeness contract is preserved in `DefinitionResult`; incomplete outcomes include typed refresh/retry actions |
 | Source paths or text leak through telemetry | Default telemetry records provider/root ids, hashes, counts, durations, and outcomes only; raw paths/text require explicit user-visible artifact capture |
 | Chest/paper fallback makes registry leaves look like files | D-20 file-scheme presenter and contributor-precedence tests; expandable/leaf alone is never treated as file identity |
@@ -2698,6 +2771,9 @@ canonical compile/full Java tests, and both declared puppets pass.
 | Syntax service freezes the game or reparses every frame | Dedicated supervised Rust worker, off-render-thread Java coordinator, immutable published snapshots, query counters, and explicit no-per-frame tests |
 | Late highlighting colours a newer document or splits Unicode | Request origin/generation plus source hash, strict sorted UTF-8 boundary validation, scalar/CRLF conversion fixtures, and Minecraft-executor stale rejection |
 | Adding Arborium highlight introduces a second native tree-sitter library | Pin `arborium-highlight = 2.18.1` without its `tree-sitter` feature and test Cargo resolution/check-all against the existing patched tree-sitter provider |
+| A valid highlight result or JSON-expanded request exceeds the negotiated frame | Preflight encoded request/result sizes, fail only the affected request with a compact typed outcome, and regression-test the boundary without terminating a healthy worker |
+| Rapid editor supersession frees Java capacity before Rust releases the cancelled slot | Account cancelled-but-remotely-in-flight requests until a terminal acknowledgement/result, queue the newest local generation within negotiated bounds, and prove repeated supersession cannot produce `syntax.server-busy` |
+| Model-state assertions are mistaken for proof that icons/chrome/styles rendered | Machine artifacts label model-backed expectations honestly; mandatory screenshots/render evidence are inspected across the declared GUI-scale matrix before C-6 completes |
 | Missing Rust tooling makes source unreadable | Highlighting is advisory; unsupported/missing/crashed workers retain plain/existing text and visible bounded diagnostics while editor/navigation stay usable |
 | Language audit silently expands the release binary | C-4c enables Java only; later-language order is documentation/backlog, with dependency/features and artifact-size review required by a later goal |
 

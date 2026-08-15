@@ -65,6 +65,16 @@ pub struct SymbolServerWorkspaceRootOutput {
     pub report_root_path: String,
 }
 
+/// One already-acquired dependency source root available for exact addressed
+/// navigation. Concrete paths are disclosed only in the local worker hello.
+#[derive(Facet, Clone, Debug, Eq, PartialEq)]
+pub struct SymbolServerDependencySourceRootOutput {
+    pub canonical_absolute_path: String,
+    pub root_id: String,
+    pub source_set: String,
+    pub report_prefix: String,
+}
+
 /// Exact workspace value Java must copy into subsequent requests, plus the
 /// ordered filesystem mapping needed to derive document identity without
 /// guessing from display paths.
@@ -72,6 +82,8 @@ pub struct SymbolServerWorkspaceRootOutput {
 pub struct SymbolServerWorkspaceOutput {
     pub request_workspace: DefinitionWorkspaceIdentityInput,
     pub roots: Vec<SymbolServerWorkspaceRootOutput>,
+    #[facet(default)]
+    pub dependency_source_roots: Vec<SymbolServerDependencySourceRootOutput>,
 }
 
 impl SymbolServerWorkspaceOutput {
@@ -113,6 +125,28 @@ impl SymbolServerWorkspaceOutput {
                 );
             }
         }
+        let mut dependency_root_ids = std::collections::BTreeSet::new();
+        for root in &self.dependency_source_roots {
+            if root.root_id.trim().is_empty()
+                || root.source_set.trim().is_empty()
+                || root.report_prefix.trim().is_empty()
+                || !root.report_prefix.starts_with("dependency/")
+            {
+                eyre::bail!("served dependency source root contains an invalid identity field");
+            }
+            if !dependency_root_ids.insert(root.root_id.as_str()) {
+                eyre::bail!(
+                    "served dependency source root id is duplicated: {}",
+                    root.root_id
+                );
+            }
+            if !Path::new(&root.canonical_absolute_path).is_absolute() {
+                eyre::bail!(
+                    "served dependency source root `{}` path is not absolute",
+                    root.root_id
+                );
+            }
+        }
         Ok(())
     }
 
@@ -126,6 +160,27 @@ impl SymbolServerWorkspaceOutput {
         workspace: &JavaSourceWorkspace,
         dependency_index_identity: Option<String>,
         workspace_generation: u64,
+    ) -> eyre::Result<Self> {
+        Self::from_workspace_with_dependency_sources(
+            workspace,
+            dependency_index_identity,
+            workspace_generation,
+            &[],
+        )
+    }
+
+    /// Project a workspace plus already-acquired dependency roots into one
+    /// validated local handshake without adding dependencies to live parsing.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when workspace/root projections disagree, a path is
+    /// non-absolute or non-UTF-8, or dependency-root identities are invalid.
+    pub fn from_workspace_with_dependency_sources(
+        workspace: &JavaSourceWorkspace,
+        dependency_index_identity: Option<String>,
+        workspace_generation: u64,
+        dependency_source_roots: &[super::DefinitionDependencySourceRoot],
     ) -> eyre::Result<Self> {
         if workspace.context.source_roots.len() != workspace.root_authorities.len() {
             eyre::bail!(
@@ -182,6 +237,26 @@ impl SymbolServerWorkspaceOutput {
                 workspace_generation,
             },
             roots,
+            dependency_source_roots: dependency_source_roots
+                .iter()
+                .map(|root| {
+                    Ok(SymbolServerDependencySourceRootOutput {
+                        canonical_absolute_path: root
+                            .canonical_absolute_path
+                            .to_str()
+                            .ok_or_else(|| {
+                                eyre::eyre!(
+                                    "dependency source root `{}` has a non-UTF-8 canonical path",
+                                    root.root_id
+                                )
+                            })?
+                            .to_owned(),
+                        root_id: root.root_id.clone(),
+                        source_set: root.source_set.clone(),
+                        report_prefix: root.report_prefix.clone(),
+                    })
+                })
+                .collect::<eyre::Result<Vec<_>>>()?,
         };
         output.validate()?;
         Ok(output)
@@ -820,6 +895,7 @@ mod tests {
                 source_set: "custom".to_owned(),
                 report_root_path: "source".to_owned(),
             }],
+            dependency_source_roots: Vec::new(),
         }
     }
 
@@ -1015,7 +1091,26 @@ mod tests {
                 },
             })
             .expect("server hello JSON"),
-            r#"{"kind":"hello","schema":"sfm.symbol-server.hello/1","hello":{"protocol_schema":"sfm.symbol-server/1","server_name":"sfm-propagate-changes","server_version":"1","capabilities":["definition-at-position","cancellation","workspace-generation","ping","shutdown"],"max_frame_bytes":16777216,"max_pending_definitions":8,"workspace":{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":7},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}]}}}"#
+            r#"{"kind":"hello","schema":"sfm.symbol-server.hello/1","hello":{"protocol_schema":"sfm.symbol-server/1","server_name":"sfm-propagate-changes","server_version":"1","capabilities":["definition-at-position","cancellation","workspace-generation","ping","shutdown"],"max_frame_bytes":16777216,"max_pending_definitions":8,"workspace":{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":7},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[]}}}"#
+        );
+    }
+
+    #[test]
+    fn dependency_source_root_json_is_stable_for_java_interop() {
+        let mut workspace = served_workspace(7);
+        workspace
+            .dependency_source_roots
+            .push(SymbolServerDependencySourceRootOutput {
+                canonical_absolute_path: "C:/workspace/dependencies/forge".to_owned(),
+                root_id: "dependency-source-0".to_owned(),
+                source_set: "dependency:forge".to_owned(),
+                report_prefix: "dependency/forge/userdev/loader-pipeline".to_owned(),
+            });
+        workspace.validate().expect("dependency workspace");
+
+        assert_eq!(
+            facet_json::to_string(&workspace).expect("dependency workspace JSON"),
+            r#"{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":7},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[{"canonical_absolute_path":"C:/workspace/dependencies/forge","root_id":"dependency-source-0","source_set":"dependency:forge","report_prefix":"dependency/forge/userdev/loader-pipeline"}]}"#
         );
     }
 
@@ -1068,7 +1163,7 @@ mod tests {
                         cancelled_requests: 2,
                     },
                 },
-                r#"{"kind":"workspace-generation","schema":"sfm.symbol-server.workspace-generation/1","update":{"workspace":{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":12},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}]},"cancelled_requests":2}}"#,
+                r#"{"kind":"workspace-generation","schema":"sfm.symbol-server.workspace-generation/1","update":{"workspace":{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":12},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[]},"cancelled_requests":2}}"#,
             ),
             (
                 SymbolServerFrame::Pong {

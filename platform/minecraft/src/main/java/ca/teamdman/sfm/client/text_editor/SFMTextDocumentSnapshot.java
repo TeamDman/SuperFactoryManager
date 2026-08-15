@@ -65,6 +65,11 @@ public record SFMTextDocumentSnapshot(
                 throw new IllegalArgumentException("A ready document requires hash, byte length, and line endings");
             }
             targetRange.ifPresent(range -> range.validateAgainst(text));
+        } else {
+            // A failed load displays generated diagnostic text rather than the
+            // addressed source. Source coordinates are meaningless in that
+            // document and must never escape into the editor presentation.
+            targetRange = Optional.empty();
         }
     }
 
@@ -149,7 +154,7 @@ public record SFMTextDocumentSnapshot(
                 result.byteLength(),
                 result.lastModified(),
                 Optional.empty(),
-                targetRange,
+                Optional.empty(),
                 result.diagnostic().stream().toList()
         );
     }

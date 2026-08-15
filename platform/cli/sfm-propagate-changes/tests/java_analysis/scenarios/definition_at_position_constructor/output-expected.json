@@ -42,6 +42,7 @@
         "root_relative_path": "p/Widget.java",
         "source_hash": "blake3:162ff4f43fc8c063620e3bc389c0016bdddc647fc2ece8b79f6f22fb3395c9e4",
         "source_set": "custom",
+        "source_sha256": "sha256:64efcbf1e23d1962d6b2e40c2294bad269c086b96c4daa2aa370c98642292914",
         "start_byte": 38,
         "start_column": 5,
         "start_line": 4
@@ -57,6 +58,7 @@
         "root_relative_path": "p/Widget.java",
         "source_hash": "blake3:162ff4f43fc8c063620e3bc389c0016bdddc647fc2ece8b79f6f22fb3395c9e4",
         "source_set": "custom",
+        "source_sha256": "sha256:64efcbf1e23d1962d6b2e40c2294bad269c086b96c4daa2aa370c98642292914",
         "start_byte": 45,
         "start_column": 12,
         "start_line": 4
@@ -89,7 +91,7 @@
   "recovery_actions": [],
   "request_generation": 0,
   "request_id": 0,
-  "schema": "sfm.definition-at-position-result/2",
+  "schema": "sfm.definition-at-position-result/3",
   "symbols": [
     {
       "descriptor": "(I)V",

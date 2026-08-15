@@ -69,6 +69,7 @@ class SFMTextEditorPanelTests {
                         )
         );
         var screenContext = SFMTextEditorPanel.screenContext(panelContext, () -> closed.set(true));
+        assertEquals(panelContext.document(), screenContext.documentSnapshot().orElseThrow());
 
         SFMTextDocumentSaveResult rejected = screenContext.trySaveAndClose("rejected");
         assertFalse(rejected.saved());

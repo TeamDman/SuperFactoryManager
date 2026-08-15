@@ -16,6 +16,7 @@ use crate::dependency_sources::acquisition_targets;
 use crate::dependency_sources::preflight_sources;
 use crate::jar_build::Parallelism;
 use crate::java_analysis::DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA;
+use crate::java_analysis::DefinitionDependencySourceRoot;
 use crate::java_analysis::DependencyIndexBuildArtifacts;
 use crate::java_analysis::DependencyJavaSourceOrigin;
 use crate::java_analysis::DependencyJavaSymbolIndexBody;
@@ -600,9 +601,10 @@ pub(super) fn load_definition_at_position_dependencies(
 ) -> eyre::Result<(
     Option<DependencyJavaSymbolIndexBody>,
     Option<DependencySymbolIndexQueryOutput>,
+    Vec<DefinitionDependencySourceRoot>,
 )> {
     if workspace.context.classpath_mode == JavaClasspathMode::Isolated {
-        return Ok((None, None));
+        return Ok((None, None, Vec::new()));
     }
 
     let resolved =
@@ -648,7 +650,40 @@ pub(super) fn load_definition_at_position_dependencies(
         refresh_command: render_refresh_command(branch)?,
         acquisition_commands: acquisition_commands(&preflight, branch)?,
     };
-    Ok((loaded.map(|(_, body)| body), Some(evidence)))
+    let source_roots = definition_dependency_source_roots(&preflight)?;
+    Ok((loaded.map(|(_, body)| body), Some(evidence), source_roots))
+}
+
+fn definition_dependency_source_roots(
+    preflight: &SourcePreflight,
+) -> eyre::Result<Vec<DefinitionDependencySourceRoot>> {
+    let mut projected = preflight
+        .roots
+        .iter()
+        .map(|root| {
+            Ok((
+                format!("dependency/{}/{}", root.identity, root.provider_id),
+                format!("dependency:{}", root.identity.replace('/', ":")),
+                std::fs::canonicalize(&root.root)?,
+            ))
+        })
+        .collect::<eyre::Result<Vec<_>>>()?;
+    projected.sort();
+    projected.dedup();
+    Ok(projected
+        .into_iter()
+        .enumerate()
+        .map(
+            |(index, (report_prefix, source_set, canonical_absolute_path))| {
+                DefinitionDependencySourceRoot {
+                    root_id: format!("dependency-source-{index}"),
+                    report_prefix,
+                    source_set,
+                    canonical_absolute_path,
+                }
+            },
+        )
+        .collect())
 }
 
 fn legacy_definition_pipeline_requested() -> bool {

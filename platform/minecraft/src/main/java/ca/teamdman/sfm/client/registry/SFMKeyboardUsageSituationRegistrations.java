@@ -26,6 +26,10 @@ public final class SFMKeyboardUsageSituationRegistrations {
                 Component.literal("SFM default control"),
                 Component.literal("Active for ordinary controls in an SFM workspace"),
                 List.of(SFMKeyboardUsageSituations.WORKSPACE)));
+        REGISTERER.register("text_editor", () -> new SFMKeyboardUsageSituation(
+                Component.literal("SFM text editor"),
+                Component.literal("Active while an SFM text editor owns keyboard input"),
+                List.of(SFMKeyboardUsageSituations.DEFAULT)));
         REGISTERER.register("terminal", () -> new SFMKeyboardUsageSituation(
                 Component.literal("SFM terminal"),
                 Component.literal("Active while the Rust terminal viewport owns keyboard input"),

@@ -1,6 +1,6 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0 through Phase 0.10 are complete; Phase 0.11 is prepared with the linked source-presentation goal; Phase 1 remains deferred
+**Plan status:** Active; Phase 0 through Phase 0.11 are complete; Phase 1 remains deferred
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Last updated:** 2026-08-15
 **Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, 2026-08-11 for the in-game definition-at-location bridge, reconciled 2026-08-15 at Phase 0.10 completion, and extended 2026-08-15 for Rust-owned Arborium Java highlighting
@@ -1798,7 +1798,9 @@ Rust contract/service consumed by C-4c/C-4d in
 not begin refactoring Phase 1, change symbol correctness, or enable additional
 languages.
 
-### [ ] 0.11.1 Freeze syntax request/result schemas and the language backlog
+### [x] 0.11.1 Freeze syntax request/result schemas and the language backlog
+
+**Parallel owner:** coordinator/main lane.
 
 **Work:** Add versioned Facet types for an exact-source syntax request and
 result. The request owns positive request id, origin/request generation,
@@ -1830,7 +1832,16 @@ cargo test --all-features cli_help
 versioned types/docs alone; the exact source/hash/offset/style/language/fallback
 contract and Java-only support boundary are unambiguous.
 
-### [ ] 0.11.2 Implement cached Arborium Java highlighting
+**Completion evidence (2026-08-15):** The direct request/result,
+ChatFormatting, worker protocol/hello/highlight/cancel/ping/shutdown/error, and
+parser-fingerprint schemas are implemented as versioned Facet values and
+documented in `docs/java syntax highlighting.md`. Direct `syntax highlight
+--language java --stdin` is discoverable through CLI help and produces bounded,
+source-hash-bound UTF-8 spans without echoing source text. The tracked extension
+audit is recorded with Java as the sole enabled new grammar and the later
+language order preserved as backlog only.
+
+### [x] 0.11.2 Implement cached Arborium Java highlighting
 
 **Work:** Add `arborium-highlight = "=2.18.1"` with no `tree-sitter` feature.
 Compile `arborium_java::HIGHLIGHTS_QUERY` once against the existing
@@ -1857,7 +1868,18 @@ cargo tree --manifest-path .\platform\cli\sfm-propagate-changes\Cargo.toml --dup
 spans from one compiled Arborium query and bounded reusable state; Cargo keeps
 the existing patched tree-sitter as the sole native link provider.
 
-### [ ] 0.11.3 Add supervised `syntax serve` and prove direct/worker parity
+**Completion evidence (2026-08-15):** The engine compiles the pinned Arborium
+Java query once, flattens overlapping captures deterministically, maps stable
+tags to canonical Minecraft formatting, and retains bounded immutable results
+by language/hash/format schema. Contract/engine fixtures cover representative
+and malformed Java, overlap/coalescing, Unicode/combining/astral/CRLF bounds,
+hash/size/style failures, unsupported languages, reuse, eviction, and one query
+compilation. A real `SFM.java` cold request produced 356 spans across 9 tags and
+10 formatting values in 1,776 microseconds; the repeated cache hit took 75
+microseconds and returned the same semantic surface. Cargo retains the existing
+patched tree-sitter provider; no Java ANTLR or second native tree-sitter ships.
+
+### [x] 0.11.3 Add supervised `syntax serve` and prove direct/worker parity
 
 **Work:** Add a lightweight framed `syntax serve` process with explicit
 protocol/hello capabilities, maximum frame/pending limits, cancellation,
@@ -1886,6 +1908,27 @@ cargo test --all-features --test java_analysis_scenarios
 worker and obtain current-source Java spans with cancellation/stale safety;
 direct and worker output agree; warm reuse is measured; all Rust checks and
 existing symbol-analysis tests pass.
+
+**Completion evidence (2026-08-15):** `syntax serve` performs capability
+negotiation and bounded framed I/O, preserves protocol-only stdout, reuses one
+process/query/cache, acknowledges cancellation/ping/shutdown, and terminates or
+restarts cleanly on EOF, malformed input, timeout, and crash. Direct/worker
+parity, frame fragmentation/coalescing/bounds, pending accounting, repeated
+supersession, result-size fallback, lifecycle, and real Java-to-installed-Rust
+interop tests passed. `check-all.ps1` completed 569 tests with 3 ignored and all
+8 scenario tests; canonical Java compile and the full Java suite also exited
+successfully with the installed-worker integration enabled.
+
+### Phase 0.11 risk register
+
+| Risk | Guardrail and proof |
+| --- | --- |
+| A source-valid highlight result serializes beyond the negotiated frame and kills the session. | Preflight encoded result size and replace only that request with a compact typed failure that itself fits; preserve worker liveness and prove the reproduced boundary. |
+| A source under the byte limit expands beyond the frame after JSON escaping. | Both clients and the server enforce the negotiated encoded-frame budget before admission; an oversized request fails locally/typed without tearing down unrelated work. |
+| Cancellation releases client capacity before the single Rust engine releases its remote slot. | Track cancelled-but-remotely-in-flight identities through terminal acknowledgement/result and test rapid supersession beyond the pending limit without `syntax.server-busy`. |
+| Span/cache limits are checked only after expensive unbounded allocation or differ on cache hit. | Bound capture/event queues, check cancellation during capture normalization, apply identical request limits on hit/miss, and use conservative retained-memory accounting. |
+| Repeated worker failure spawns a process for every editor mutation. | Bounded restart backoff/circuit breaking reset by a valid hello, with explicit retry and deterministic lifecycle tests. |
+| Language-local protocol tests drift together while Rust and Java disagree. | At least one installed cross-runtime test writes Java frames to the real Rust worker and decodes Rust hello/result/shutdown frames. |
 
 ## Phase 1 — Inventory and architecture
 

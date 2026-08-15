@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public interface ISFMTextEditScreenOpenContext {
@@ -47,6 +48,11 @@ public interface ISFMTextEditScreenOpenContext {
     /** Whether the editor must present the document without allowing edits. */
     default boolean readOnly() {
         return false;
+    }
+
+    /** Concrete document metadata when this editor was opened from a typed panel document. */
+    default Optional<SFMTextDocumentSnapshot> documentSnapshot() {
+        return Optional.empty();
     }
 
     default void onTryClose(

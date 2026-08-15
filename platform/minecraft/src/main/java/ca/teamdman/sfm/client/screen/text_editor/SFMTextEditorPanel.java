@@ -8,6 +8,7 @@ import ca.teamdman.sfm.client.context.SFMContextGenerationEvidence;
 import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasScreen;
 import ca.teamdman.sfm.client.screen.SFMTextEditorV3Screen;
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
@@ -18,6 +19,7 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Optional;
 import java.util.function.Function;
@@ -81,9 +83,23 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         return openContext.readOnly();
     }
 
+    public Optional<SFMDrawCanvasScreen.SyntaxPresentationEvidence> syntaxPresentationEvidence() {
+        if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) return Optional.empty();
+        return drawCanvas.syntaxPresentationEvidence();
+    }
+
     @Override
     public Optional<ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot> documentSnapshot() {
         return Optional.of(openContext.document());
+    }
+
+    @Override
+    public boolean navigateToRange(ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange range) {
+        if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) return false;
+        range.validateAgainst(drawCanvas.captureContextProjection(
+                openContext.editorId(), openContext.document(), isReadOnly()).currentText());
+        drawCanvas.openAtTextRange(range);
+        return true;
     }
 
     @Override
@@ -141,6 +157,11 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     }
 
     @Override
+    public ResourceLocation keyboardUsageSituationId() {
+        return SFMKeyboardUsageSituations.TEXT_EDITOR;
+    }
+
+    @Override
     public Component narration() {
         return title().copy().append(Component.literal(openContext.readOnly() ? " (read-only)" : ""));
     }
@@ -167,6 +188,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 
     @Override
     public void closed() {
+        screen.removed();
         panelContext = null;
     }
 
@@ -234,6 +256,9 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         return new ISFMTextEditScreenOpenContext() {
             @Override public String initialValue() { return context.initialValue(); }
             @Override public boolean readOnly() { return context.readOnly(); }
+            @Override public Optional<ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot> documentSnapshot() {
+                return Optional.of(context.document());
+            }
             @Override public java.util.function.Consumer<String> saveWriter() {
                 return value -> context.saveHandler().save(value);
             }

@@ -106,7 +106,7 @@ impl SymbolShowDefinitionArgs {
                         column,
                         byte_offset: 0,
                     });
-                let (dependencies, dependency_index) =
+                let (dependencies, dependency_index, dependency_source_roots) =
                     super::load_definition_at_position_dependencies(
                         &workspace,
                         &branch,
@@ -147,10 +147,11 @@ impl SymbolShowDefinitionArgs {
                     },
                     position,
                 );
-                let engine = DefinitionAtPositionEngine::new(
+                let engine = DefinitionAtPositionEngine::new_with_dependency_source_roots(
                     workspace,
                     dependencies,
                     dependency_index,
+                    dependency_source_roots,
                     DefinitionAtPositionEngineLimits::default(),
                 )?;
                 let report = engine.analyze(&request, cancellation_token)?;

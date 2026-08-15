@@ -149,7 +149,19 @@ public final class SFMKeyBindingDefaults {
                         "sfm:panel/duplicate/below",
                         "sfm action invoke sfm:panel/duplicate/below",
                         SFMKeyStroke.of(GLFW.GLFW_KEY_MINUS,
-                                SFMKeyModifier.ALT, SFMKeyModifier.SHIFT))
+                                SFMKeyModifier.ALT, SFMKeyModifier.SHIFT)),
+                binding(
+                        "builtin/text-editor/symbol/definition/open",
+                        "sfm:symbol/definition/open",
+                        "sfm action invoke sfm:symbol/definition/open",
+                        SFMKeyboardUsageSituations.TEXT_EDITOR,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_F12)),
+                binding(
+                        "builtin/text-editor/context-actions/open",
+                        "sfm:symbol/definition/open",
+                        "sfm action invoke sfm:symbol/definition/open offer",
+                        SFMKeyboardUsageSituations.TEXT_EDITOR,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_ENTER, SFMKeyModifier.ALT))
         );
     }
 
