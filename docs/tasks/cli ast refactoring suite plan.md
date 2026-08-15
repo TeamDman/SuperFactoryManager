@@ -1,9 +1,9 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0, Phase 0.8, Phase 0.9, and Phase 0.10 are complete; Phase 1 remains deferred
+**Plan status:** Active; Phase 0 through Phase 0.10 are complete; Phase 0.11 is prepared with the linked source-presentation goal; Phase 1 remains deferred
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Last updated:** 2026-08-15
-**Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, 2026-08-11 for the in-game definition-at-location bridge, and reconciled 2026-08-15 at Phase 0.10 completion
+**Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, 2026-08-11 for the in-game definition-at-location bridge, reconciled 2026-08-15 at Phase 0.10 completion, and extended 2026-08-15 for Rust-owned Arborium Java highlighting
 
 ## How to update this plan
 
@@ -59,6 +59,18 @@ authorize source rewrites.
 | JAVA-36 | Zero, one, and multiple definition candidates plus incomplete dependency-index state must remain distinguishable. | The typed result returns canonical symbol ids, concrete source spans/root-relative paths, confidence/completeness, diagnostics, fingerprints, and typed recovery recommendations; no first-match fallback or false authoritative no-match is allowed. | — |
 | JAVA-37 | The worker transport must remain replaceable by a later Vox adapter and safe to consume from Minecraft. | Protocol/process details stay behind the provider-neutral contract in the contextual explorer plan; stdout is framed protocol only, stderr is diagnostics, schemas handshake explicitly, paths/content stay out of default telemetry, and direct/worker results are equivalent. | — |
 
+## Authoritative user guidance ledger — 2026-08-15 Arborium highlighting extension
+
+| ID | Active guidance | Required plan consequence | Superseded by |
+| --- | --- | --- | --- |
+| JAVA-38 | Minecraft Java should send the exact document text to Rust and receive syntax-highlighting spans to apply, rather than parse Java in the UI. | Phase 0.11 adds typed direct/worker requests and results; the contextual explorer plan owns the provider adapter and renderer. | — |
+| JAVA-39 | Use Arborium so new languages do not require one new Java-side ANTLR implementation each. | Phase 0.11 uses the pinned Arborium Java grammar/highlights query and Arborium flat-span normalization in Rust; it adds no Java grammar/parser. | — |
+| JAVA-40 | Returned presentation should be ChatFormatting spans. | The result schema carries sorted non-overlapping UTF-8 ranges, stable Arborium tags, and canonical lower-case ChatFormatting names that Java validates/applies. | — |
+| JAVA-41 | Java is required first; inspect SFM extensions to prioritize later languages. | Phase 0.11 enables Java only and records the tracked-file/local-Arborium audit: Rust, JSON, Gradle/Groovy, PowerShell, Markdown, TypeScript, TOML after Java. | — |
+| JAVA-42 | Reusable font/parser/highlighter objects should not be discarded between requests or draws. | Compile the Java query once per worker, reuse bounded parser/query state, cache immutable results by language/source hash, expose hit/miss telemetry, and keep rendering independent from parsing. | — |
+| JAVA-43 | Highlighting must be responsive and stale-safe. | Requests carry id/origin generation/source hash, are cancellable and bounded, run in a supervised long-lived process, and never apply a late result to changed text. | — |
+| JAVA-44 | Arborium integration must not destabilize the existing pinned parser. | Add `arborium-highlight = 2.18.1` without its `tree-sitter` feature and keep `tree-sitter-patched-arborium = 0.25.10` as the sole native tree-sitter link provider. | — |
+
 ## Guidance traceability for completed Phase 0 and next Phase 0.8
 
 | Guidance | Plan coverage | Evidence when complete |
@@ -84,6 +96,10 @@ authorize source rewrites.
 | JAVA-32, JAVA-35 | 0.10.1; 0.10.2 | Scenario fixtures prove context-aware resolution at exact cursor locations, including supplied snapshot overlays, Unicode/CRLF, ambiguity, fields/methods/types, and no file mutation. |
 | JAVA-33, JAVA-36 | 0.10.2; 0.10.4 | Direct CLI and reusable engine return identical versioned results with spans, completeness, diagnostics, and recovery actions over workspace plus dependency sources. |
 | JAVA-34, JAVA-37 | 0.10.3; 0.10.4 | Worker handshake/framing/cancellation/crash cleanup tests, warm latency evidence, privacy-safe telemetry, and byte-equivalence with direct invocation pass before the in-game provider integrates. |
+| JAVA-38, JAVA-39, JAVA-40 | 0.11.1; 0.11.2; contextual C-4c/C-4d | Exact-text request/result snapshots, Arborium Java captures flattened to deterministic ChatFormatting spans, direct/worker parity, and Java rendering evidence |
+| JAVA-41 | 0.11.1; developer documentation | Reproducible tracked-extension counts, local Arborium grammar availability, Java-only enabled feature set, and ordered deferred backlog |
+| JAVA-42, JAVA-43 | 0.11.2; 0.11.3 | Query/parser compile counters, cache hit/miss, bounded reuse, cancellation/stale/hash tests, latency evidence, and clean process/child shutdown |
+| JAVA-44 | 0.11.2; 0.11.3 | Cargo graph/check-all proof shows one native `links = "tree-sitter"` provider and the existing analysis suites remain green |
 
 ## Intent audit evidence
 
@@ -142,6 +158,29 @@ authorize source rewrites.
 - **Known source limitation:** None for the Phase 0 discussion; the original
   user messages were available in this conversation. Earlier broad plan history
   remains represented by the pre-existing sections and linked plans.
+
+## Intent audit evidence — 2026-08-15 Arborium highlighting extension
+
+- **Pass 1 — extraction:** Preserved Java-to-Rust exact-text highlighting,
+  Arborium rather than per-language Java ANTLR, ChatFormatting spans, Java
+  first, repository-extension prioritization, cached/reused objects, current
+  progress reconciliation, and the requirement that this work join C-5.
+- **Pass 2 — traceability:** Mapped JAVA-38 through JAVA-44 to Phase 0.11,
+  contextual C-4c/C-4d/C-6, exact direct/worker tests, Cargo link validation,
+  extension-audit evidence, and no-render-thread Java acceptance. Local sources
+  verify Arborium Java 2.18.1 exposes `HIGHLIGHTS_QUERY`, Arborium Highlight
+  2.18.1 exposes non-overlapping flat tokens, and this CLI already owns the
+  patched tree-sitter dependency and supervised-worker patterns.
+- **Pass 3 — adversarial omission:** Checked that Rust receives the actual
+  document snapshot rather than re-reading a path, returned spans are
+  source-hash/generation bound, ChatFormatting names are explicit rather than
+  HTML/ANSI, grammar/query compilation is not repeated per frame/request,
+  unsupported service leaves readable text, the dependency cannot add a
+  second `links = "tree-sitter"`, and the language audit is not mistaken for
+  permission to ship every grammar in this goal.
+- **Known source limitation:** None. The complete request, linked plan,
+  current CLI/Java sources, local Arborium repository, cached 2.18.1 crate
+  sources, and tracked SFM file list were available.
 
 ## Purpose
 
@@ -1750,6 +1789,103 @@ exited 0 with 30 pre-existing grouped unresolved font-render-rule warnings.
 | “Interactive” remains a multi-second fresh analysis behind a daemon. | Cold/warm stage telemetry and explicit warm median/p95/max acceptance; optimize measured cache/link bottleneck before completion. |
 | Transport details become Minecraft action API. | Provider-neutral request/result in the contextual plan; direct engine, CLI, and worker share typed values; Vox remains a replaceable future adapter. |
 | Protocol/telemetry leaks source text or absolute workspace paths. | Source content exists only in explicit request frames; default logs/telemetry use request/provider/root ids, hashes, counts, and durations. |
+
+## Phase 0.11 — Rust-owned Arborium Java syntax highlighting
+
+This phase is additive to the completed symbol-analysis engine. It supplies the
+Rust contract/service consumed by C-4c/C-4d in
+`docs/tasks/contextual input actions and addressable explorer plan.md`; it does
+not begin refactoring Phase 1, change symbol correctness, or enable additional
+languages.
+
+### [ ] 0.11.1 Freeze syntax request/result schemas and the language backlog
+
+**Work:** Add versioned Facet types for an exact-source syntax request and
+result. The request owns positive request id, origin/request generation,
+explicit language id, exact UTF-8 source, SHA-256, and maximum bounds. The
+result repeats identity and includes outcome/completeness, parser/highlighter
+fingerprint, elapsed/cache evidence, bounded diagnostics, and sorted
+non-overlapping UTF-8 spans containing an Arborium flat tag plus ordered
+canonical lower-case ChatFormatting names. Reject malformed hashes, unknown
+languages, invalid UTF-8 boundaries/ranges/styles, overlapping/out-of-order
+spans, and unbounded payloads.
+
+Add the canonical direct surface
+`syntax highlight --language java --stdin`; stdout is normal `CliOutput`, logs
+stay on stderr. Record the 2026-08-15 `git ls-files` counts and Java-first
+priority decision in `docs/java syntax highlighting.md`: after Java, Rust,
+JSON, Gradle/Groovy, PowerShell, Markdown, TypeScript, and TOML are candidates;
+plain text stays plain and existing SFML/G4 behavior is preserved.
+
+**Validation:** Facet/text/JSON snapshots cover empty and representative Java,
+identity/hash/bounds, all result outcomes, deterministic span/style order, and
+malformed input. CLI help/list exposes the verb-first direct and serve forms.
+
+```pwsh
+cargo test --all-features syntax_highlight_contract
+cargo test --all-features cli_help
+```
+
+**Completion criteria:** A fresh agent can implement either side from the
+versioned types/docs alone; the exact source/hash/offset/style/language/fallback
+contract and Java-only support boundary are unambiguous.
+
+### [ ] 0.11.2 Implement cached Arborium Java highlighting
+
+**Work:** Add `arborium-highlight = "=2.18.1"` with no `tree-sitter` feature.
+Compile `arborium_java::HIGHLIGHTS_QUERY` once against the existing
+`tree-sitter-patched-arborium` language, parse exact request text, convert raw
+captures to Arborium `Span`, use `spans_to_flat_tokens`, and map stable flat
+tags to canonical ChatFormatting lists. Reuse bounded parser/query context;
+cache immutable results by `(language, source_sha256, formatting-schema)` with
+an explicit byte/entry bound and hit/miss/eviction counters. Never cache source
+under the wrong hash or emit raw source/path in telemetry.
+
+**Validation:** Cover Java declarations, imports, annotations, comments,
+strings/text blocks, numbers, types/methods/fields, malformed Java, exact
+overlap precedence/coalescing, empty/trailing newline, CRLF, combining marks,
+astral Unicode, stable formatting, unsupported language, source/hash mismatch,
+cache reuse/eviction, one query compilation, and no duplicate native
+tree-sitter package/link.
+
+```pwsh
+cargo test --all-features syntax_highlight_engine
+cargo tree --manifest-path .\platform\cli\sfm-propagate-changes\Cargo.toml --duplicates
+```
+
+**Completion criteria:** Repeated Java requests produce deterministic flat
+spans from one compiled Arborium query and bounded reusable state; Cargo keeps
+the existing patched tree-sitter as the sole native link provider.
+
+### [ ] 0.11.3 Add supervised `syntax serve` and prove direct/worker parity
+
+**Work:** Add a lightweight framed `syntax serve` process with explicit
+protocol/hello capabilities, maximum frame/pending limits, cancellation,
+request generations, ping, shutdown, request terminal outcomes, and
+stdout-only frames. Reuse/extract the proven frame codec, child/process
+supervision, timeout, crash/restart, and cleanup patterns without requiring a
+symbol workspace/dependency index and without starting one process per
+request. Keep protocol details behind the Minecraft provider boundary.
+
+**Validation:** Prove byte-equivalent direct/worker results, fragmented and
+coalesced frames, handshake/schema/capability mismatch, pending/frame limits,
+pre/during/post cancellation, stale ids/generations, malformed frames, timeout,
+crash/restart, EOF, stderr logging, acknowledged shutdown, no leaked child,
+one process across multiple source hashes, cache hit on repetition, and warm
+request latency evidence. Then run strict Rust checks and existing Java-analysis
+regression suites.
+
+```pwsh
+cargo test --all-features syntax_highlight_server
+cargo test --all-features java_analysis
+cargo test --all-features --test java_analysis_scenarios
+& .\platform\cli\sfm-propagate-changes\check-all.ps1
+```
+
+**Completion criteria:** Minecraft can supervise one lightweight Rust syntax
+worker and obtain current-source Java spans with cancellation/stale safety;
+direct and worker output agree; warm reuse is measured; all Rust checks and
+existing symbol-analysis tests pass.
 
 ## Phase 1 — Inventory and architecture
 

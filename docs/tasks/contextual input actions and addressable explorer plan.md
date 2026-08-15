@@ -1,11 +1,11 @@
 # Contextual input, action ownership, and addressable explorer plan
 
-**Plan status:** Active; B-2/C-4 and CLI-AST Phase 0.10 are complete; C-5 is the next eligible, not-yet-active slice
+**Plan status:** Active; B-2/C-4 and CLI-AST Phase 0.10 are complete; C-4a through C-6 are prepared as the next coherent goal
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
 **Last updated:** 2026-08-15
-**Intent audit:** Passed 2026-08-15 including the B-2/C-4 completion reconciliation recorded below
+**Intent audit:** Passed 2026-08-15 including the explorer-icon, read-only-status, Arborium-highlighting, and C-5 goal extension recorded below
 
 ## How to update this plan
 
@@ -156,6 +156,22 @@ workspace.
 | SYMBOL-5 | Interactive navigation must not stall Minecraft. | C-4 runs source/index work off the render thread, supports cancellation and request generations, rejects stale responses, and records latency/index-completeness telemetry. | — |
 | PLAN-3 | Preserve the complete path from folder authorization through opening SFM code and jumping to a definition as executable vertical slices. | Selection/explorer X-1 through X-7, C-3, and C-4 are complete; gates D-15 through D-19, remaining C-5/C-6, topology, proofs, risks, and revised next-goal definition are authoritative. Superseded C-1/C-2 remain provenance only. | — |
 
+## Authoritative user guidance ledger — 2026-08-15 source-presentation extension
+
+| ID | Active guidance | Required plan consequence | Superseded by |
+| --- | --- | --- | --- |
+| SRCPRES-1 | File-backed explorer directory rows should use a real `minecraft:chest` ItemStack icon instead of the textual `[D]` marker. | C-4a adds a file-path presentation contributor ahead of the generic fallback and proves that directory rows resolve to the theme-backed chest icon without changing registry/item rows. | — |
+| SRCPRES-2 | File-backed explorer file rows may use a real `minecraft:paper` ItemStack icon instead of the textual `[F]` marker. | C-4a maps ordinary file leaves to the theme-backed paper icon, preserves richer future extension contributors, and retains the generic marker only for non-file domains with no richer presenter. | — |
+| READONLY-1 | A file opened from the explorer is read-only and EditorV3 must say `Read-only` between its `#` and Done controls. | C-4b renders a localized, non-interactive read-only status in the bottom control lane only when the document is read-only. | — |
+| READONLY-2 | The read-only words need contrast even when document content lies behind them. | C-4b draws the status over a solid bounded rectangle, keeps both neighbouring buttons usable/focusable, and proves responsive geometry at narrow panels and the declared GUI-scale matrix. | — |
+| HILITE-1 | Investigate and use Arborium for syntax highlighting so Minecraft Java can send document text to Rust and receive formatting spans instead of implementing another Java-side ANTLR grammar for every language. | C-4c/CLI-AST Phase 0.11 freeze a versioned Rust highlighting request/result and a supervised asynchronous service using Arborium grammar/query data; Java remains a transport, validation, and rendering consumer. | — |
+| HILITE-2 | Java support is the first required language. | C-4d implements `.java -> java` discovery and an Arborium Java highlighter before any additional grammar is enabled. | — |
+| HILITE-3 | Returned ranges should be ChatFormatting spans that the Java document renderer can apply. | C-4c returns source-hash-bound, non-overlapping UTF-8 byte ranges with stable Arborium tags and validated canonical ChatFormatting names; C-4d converts boundaries safely and applies colour/style to EditorV3 glyphs. | — |
+| HILITE-4 | Highlighting must use the exact current Java text and must not apply a response to a changed document. | C-4c/C-4d carry request id, origin generation, language id, exact UTF-8 text, and content hash; work is off the render thread, cancellable, bounded, and stale/hash-mismatched responses are discarded. | — |
+| HILITE-5 | Analyze the SFM repository to identify which extensions should follow Java. | C-4c records the reproducible tracked-file audit and the deferred priority order: Rust, JSON, Gradle/Groovy, PowerShell, Markdown, TypeScript, then TOML. Existing SFML and G4 highlighters remain intact; enabling those additional Arborium languages is not part of this goal. | — |
+| HILITE-6 | Reusable parser/query objects should survive requests rather than being rebuilt for every frame or draw. | CLI-AST Phase 0.11 compiles the Java highlight query once per worker, reuses bounded parser/query state, and returns cached immutable results only when language plus source hash match. Editor rendering consumes an immutable snapshot and never reparses per frame. | — |
+| PLAN-4 | Update the resumable plan with current progress and every atom above, then set a goal that completes them together with C-5. | This ledger, traceability, three-pass audit, D-20 through D-24, C-4a through C-6, CLI-AST Phase 0.11, topology, completion criteria, and risks define that goal. | — |
+
 ## Guidance traceability
 
 | Guidance | Plan coverage | Evidence when complete |
@@ -181,6 +197,11 @@ workspace.
 | WSPACE-5 | Selection/explorer X-1 through X-7; C-3 | Resolver-authorized read-only source opening with concrete document address/hash/range and live editor evidence |
 | SYMBOL-1, SYMBOL-2, SYMBOL-3, SYMBOL-4, SYMBOL-5 | B-2, B-5, C-3, C-4, C-5, C-6 | Location-query scenarios, current-snapshot/hash tests, async cancellation/stale-result tests, single/ambiguous/missing definition UI proofs, F12/Alt+Enter action parity, open-at-span proof, and measured live latency |
 | PLAN-3 | Entire 2026-08-11 multi-root extension | Three-pass intent audit, cross-plan dependency review, and fresh-agent resumption review |
+| SRCPRES-1, SRCPRES-2 | D-20; C-4a; C-6 | Presenter resolution tests, actual ItemStack ids, unchanged non-file presenter precedence, and a live explorer screenshot/artifact |
+| READONLY-1, READONLY-2 | D-21; C-4b; C-6 | Read-only/writable visibility tests, bottom-lane geometry and hit/focus parity, narrow-panel proof, and GUI-scale visual evidence |
+| HILITE-1, HILITE-2, HILITE-3, HILITE-4, HILITE-6 | D-22 through D-24; C-4c/C-4d; CLI-AST Phase 0.11; C-6 | Rust Arborium span fixtures, protocol/direct-worker parity, Unicode/CRLF/hash/cancellation tests, Java glyph-style tests, latency/cache telemetry, and live highlighted `SFM.java` evidence |
+| HILITE-5 | C-4c; source references | Reproducible `git ls-files` extension audit, local Arborium support cross-check, and an explicitly deferred ordered language backlog |
+| PLAN-4 | Entire 2026-08-15 source-presentation extension | Three distinct audit passes, prepared goal wording, and fresh-agent resumption review |
 
 ## Intent audit evidence — 2026-08-05
 
@@ -321,6 +342,33 @@ workspace.
   sources, linked plans, clean commits, successful matrix log, and figures were
   available.
 
+## Intent audit evidence — 2026-08-15 source-presentation extension
+
+- **Pass 1 — extraction:** Reread the complete current request and separated
+  directory chest icon, file paper icon, replacement of textual markers,
+  Arborium investigation, Java-to-Rust text ownership, returned
+  ChatFormatting spans, avoidance of per-language Java ANTLR implementations,
+  Java-first delivery, repository-extension prioritization, exact read-only
+  wording/placement/contrast, progress reconciliation, resumable-plan usage,
+  goal creation, and inclusion of C-5 into SRCPRES-1 through PLAN-4.
+- **Pass 2 — traceability:** Mapped every active id to D-20 through D-24,
+  C-4a through C-6, linked CLI-AST Phase 0.11, focused tests, a tracked-file
+  extension audit, and live artifacts. The inverse check ties the dedicated
+  Rust syntax lane, UTF-8 span contract, cached grammar/query state, and
+  Java-only boundary to local Arborium 2.18.1 APIs, the existing symbol-worker
+  lifecycle, the current EditorV3 model, or an explicit reversible decision.
+- **Pass 3 — adversarial omission:** Checked that “file” does not accidentally
+  turn every non-expandable registry object into paper; “between Done and #”
+  is the bottom control lane rather than a floating message above it; the solid
+  rectangle does not become an invisible hit target; Java sends the exact
+  current text rather than only a path; stale spans cannot colour changed
+  glyphs; the highlighter is not rebuilt per draw/request; existing SFML/G4
+  highlighting is retained; and the extension audit creates a later priority
+  list rather than silently widening this goal beyond Java.
+- **Known source limitation:** None. The complete current request, current
+  plans/sources/tests, local Arborium checkout, pinned crate sources, and
+  tracked SFM file list were available.
+
 ## Scope
 
 In scope:
@@ -353,6 +401,10 @@ In scope:
   opening, open/focus-at-range, and source-hash-aware snapshots.
 - Location-aware Java definition lookup over workspace and dependency sources,
   exposed as asynchronous registered actions and contextual offers.
+- File-domain explorer presentation with theme-backed chest/paper ItemStack
+  icons, plus an explicit contrast-backed EditorV3 read-only status.
+- A bounded, versioned, Rust-owned Arborium syntax-highlighting service and
+  Java client/renderer integration for `.java` documents first.
 - Baseline implementation and proof on 1.19.2, with explicit version-adapter
   seams for later propagation.
 
@@ -380,6 +432,12 @@ Out of scope unless a later goal explicitly expands it:
   first resolver/explorer slice.
 - Propagation, publication, release metadata changes, Teamy Studio, or Cloud
   Terrastodon work.
+- Enabling Arborium grammars beyond Java in this goal. Rust, JSON,
+  Gradle/Groovy, PowerShell, Markdown, TypeScript, and TOML are prioritized
+  follow-ups; existing SFML and G4 paths remain unchanged.
+- Writable host-file editing/save/conflict semantics, semantic diagnostics,
+  code completion, or replacing the existing Java symbol engine with
+  Arborium highlighting captures.
 
 ## Established foundation and source evidence
 
@@ -465,6 +523,32 @@ Out of scope unless a later goal explicitly expands it:
   document-address plus cursor location or a caller-supplied unsaved snapshot;
   C-4 and the linked CLI plan add that contextual request without duplicating
   the resolver in Java UI code.
+- `SFMExplorerPresentationRegistry` already supports ordered contributors and
+  render-ready `SFMExplorerPresentation.ItemIcon`; only its generic fallback
+  still emits `[D]`/`[F]`. `SFMClientTheme.defaults()` already names
+  `minecraft:chest` for `directory` and `minecraft:paper` for `unknown`, so
+  C-4a is a file-domain contributor/default-registration correction rather
+  than a second icon system.
+- `SFMTextDocumentSnapshot` and `SFMTextEditorPanelOpenContext` already carry
+  authoritative read-only state. `SFMDrawCanvasScreen` already localizes
+  `gui.sfm.text_editor_v3.read_only` and contains an unused contrast-backed
+  message renderer, while its bottom `#` and Done controls occupy the intended
+  status lane. C-4b makes that state visible with responsive, non-interactive
+  geometry instead of introducing another document capability.
+- `sfm-propagate-changes` already pins `arborium-java = 2.18.1` and
+  `tree-sitter-patched-arborium = 0.25.10`. The local Arborium checkout and
+  cached 2.18.1 crates prove that `arborium_java::HIGHLIGHTS_QUERY` is
+  available and that `arborium-highlight` can flatten overlapping captures
+  into non-overlapping UTF-8 `FlatToken` ranges. The new dependency must use
+  `arborium-highlight` without its `tree-sitter` feature so Cargo keeps the
+  already-pinned `links = "tree-sitter"` provider and avoids a duplicate
+  native tree-sitter link.
+- A 2026-08-15 `git ls-files` audit counted the leading tracked extensions as
+  `.java` 1,524, `.rs` 400, `.json` 178, `.gradle` 107, `.ps1` 55, `.md` 51,
+  `.txt` 45, `.sfml` 21, `.sfm` 15, `.ts` 14, `.toml` 7, and `.g4` 6. The local
+  Arborium checkout supplies Java, Rust, JSON, Groovy, PowerShell, Markdown,
+  TypeScript, and TOML grammars; Java is this goal, while the remaining
+  supported languages are ordered by prevalence/usefulness for later goals.
 - `docs/tasks/snapshot episodes and deterministic action environments plan.md`
   already distinguishes parameterized input actions from thousands of global
   registrations and plans deterministic keybinding traces. This plan defines
@@ -574,6 +658,27 @@ Out of scope unless a later goal explicitly expands it:
     record counts, durations, hashes, provider ids, and outcome classes, but
     not raw absolute paths or document contents unless an explicit artifact
     asks for them.
+31. File icons are selected by an ordered file-path presenter. A file-domain
+    directory is chest and a file-domain leaf is paper; expandable/leaf status
+    alone must not override richer registry/item presenters in other schemes.
+32. Read-only status is derived from the immutable document/open context. It is
+    visual and narrated but not clickable, cannot steal focus, and cannot
+    overlap or change the hit bounds of the `#` and Done controls.
+33. Syntax highlighting is advisory presentation. Unsupported language,
+    missing worker, timeout, cancellation, malformed span, or stale hash leaves
+    a readable plain/existing-highlight document and never blocks opening,
+    editing, closing, or jump-to-definition.
+34. Minecraft never parses Java for the new highlighting path and never waits
+    for Rust on the render thread. It sends exact text/hash/language/generation,
+    validates the versioned response, converts UTF-8 boundaries without
+    splitting scalars or CRLF, and publishes only the still-current snapshot.
+35. Rust owns Arborium parser/query execution and capture normalization. The
+    Java renderer owns applying the returned canonical ChatFormatting names to
+    Minecraft components/glyphs; raw HTML or ANSI output never crosses the
+    protocol.
+36. Compiled grammar/query data is process-lifetime state and parse contexts
+    are reused on their bounded worker lane. Rendering consumes immutable
+    highlight snapshots; neither side reparses/recompiles on every frame.
 
 ## Reversible working assumptions
 
@@ -653,6 +758,11 @@ Out of scope unless a later goal explicitly expands it:
 | D-17 File-editor mutation boundary | Is opening an explorer-addressed file editable in the first slice? | **Closed by C-3:** open read-only initially, retain address/hash and the capability seam for later writable documents, and never overwrite host source as a side effect of navigation. | C-3 delivers safe source browsing/jump navigation without inventing save/conflict semantics; later write support is a separate approved goal. |
 | D-18 Definition-at-cursor request | What exact data identifies the symbol to resolve? | **Closed by C-4 on 2026-08-15:** document concrete address/root/source-set, immutable source text plus content hash, UTF-aware row/column and derived byte offset, branch/classpath/index identity, provider-origin request generation, and worker-global workspace generation. The provider resolves the symbol at that location and returns typed spans; the Java client does not first reduce it to a bare token. | C-4 scenarios and tests cover imports, same simple name in multiple packages, fields, overloaded methods, constructors, dependency symbols, whitespace/no-symbol, stale disk text, CRLF, Unicode, malformed positions, and duplicate root-relative paths. |
 | D-19 First symbol-provider transport | Should Minecraft spawn the installed CLI per request, hold a long-lived worker, or call a Vox service? | **Closed by C-4 on 2026-08-15:** the provider-neutral Java contract uses one supervised long-lived `sfm-propagate-changes` symbol worker with framed typed requests/responses. It reuses the existing Java-analysis engine and bounded immutable resolution surfaces, remains replaceable by a Vox adapter, fails visibly when unavailable, and does not spawn one process per cursor query. | C-4's direct/worker parity, lifecycle/cancellation/process tests, install discovery, and 72.001 ms installed warm median are the implementation evidence. |
+| D-20 File icon domain | Should chest/paper replace the generic marker for every expandable/leaf object or only filesystem-backed rows? | **Closed for C-4a:** add an ordered file-path presenter. `file://` directories resolve to the theme's `directory` ItemStack (`minecraft:chest`) and `file://` leaves resolve to the theme's ordinary/unknown file ItemStack (`minecraft:paper`). Item-registry and future domain presenters retain precedence; only a truly unclaimed non-file object reaches `[D]`/`[F]`. | Presenter tests must assert path kind, actual resolved item id, contributor precedence, fallback behavior, narration/label stability, and list/small-icon geometry. |
+| D-21 Read-only status geometry | Is read-only communicated as a floating toast, a button, title suffix, or stable editor chrome? | **Closed for C-4b:** render localized `Read-only` as stable, non-interactive bottom chrome centred in the free lane between `#` and Done, on a solid high-contrast rectangle. Keep the narration suffix. At narrow widths, clamp/trim the status within the free lane without overlapping either button; writable documents omit it. | Geometry/render tests and the GUI-scale puppet must prove visibility, contrast, no hit/focus target, neighbour-button parity, and no document-content dependence. |
+| D-22 Syntax worker/process ownership | Should highlighting run in Java, spawn per document, extend the heavy symbol worker, or use a dedicated long-lived Rust lane? | **Closed as a reversible first implementation:** add `sfm-propagate-changes syntax highlight` plus supervised `syntax serve`. It reuses the existing bounded frame-codec/process-lifecycle patterns but does not require symbol-workspace/index startup and does not spawn per document/request. One client service shares the worker across editors; a later generic code-intelligence daemon may unify processes without changing the provider contract. | CLI direct/worker byte-equivalence, one-process reuse, cached-query evidence, crash/restart/cancel/timeout tests, and a Java missing-worker fallback are required. |
+| D-23 Highlight wire and style contract | What offsets and presentation data cross Rust/Java? | **Closed for schema 1:** request id/generation, language id, exact UTF-8 source, SHA-256, and bounded options go to Rust. Rust returns the same identity plus Arborium/parser fingerprint and sorted, non-overlapping `[start_byte,end_byte)` ranges containing a stable Arborium theme tag and ordered canonical lower-case ChatFormatting names. Java rejects unknown/invalid/split/stale spans and converts valid UTF-8 boundaries to the current glyph projection. No HTML/ANSI crosses the wire. | Facet JSON snapshots and Java codec tests cover empty/overlap, astral Unicode, combining marks, CRLF, trailing newline, malformed ranges/styles, hash mismatch, deterministic order, and direct/worker parity. |
+| D-24 Language and fallback policy | How is language selected, what ships first, and what happens without support/service? | **Closed for this goal:** an explicit language registry derives `.java -> java` from the concrete document path and sends that id; Rust remains authoritative for whether the language is available. Java is the sole new Arborium grammar enabled. Unsupported/no-path documents retain the existing SFML/G4/plain presentation; unavailable/failed/stale Rust results leave readable text and a bounded diagnostic/telemetry state, never a modal or blocked editor. | C-4c records the extension audit; C-4d tests Java selection, unsupported extension, missing executable, cancellation/staleness, and unchanged existing highlighters. |
 
 ## Target action and binding vocabulary
 
@@ -1038,6 +1148,44 @@ or analysis failure remains a visible actionable diagnostic. F12 and the
 Alt+Enter context provider invoke this same action path; neither implements a
 second token resolver.
 
+## Rust-owned syntax-highlighting contract
+
+`SFMSyntaxHighlightProvider` is presentation-only and independent from symbol
+resolution. It accepts an immutable document origin/generation, explicit
+language id, exact UTF-8 source text, source SHA-256, and bounds. Its future is
+cancellable. It returns a versioned immutable result with the same identity,
+an Arborium/parser fingerprint, elapsed/cache evidence, diagnostics, and
+sorted non-overlapping UTF-8 spans. Each span carries both Arborium's stable
+flat theme tag and canonical lower-case Minecraft ChatFormatting names; Java
+does not parse HTML or ANSI and Rust does not import Minecraft classes.
+
+The first Rust implementation is a lightweight, supervised
+`sfm-propagate-changes syntax serve` process with a manually invokable
+`syntax highlight` parity command. It uses the already pinned
+`arborium-java::HIGHLIGHTS_QUERY`, the existing patched tree-sitter parser,
+and Arborium's flat-token normalization. `arborium-highlight` is added without
+its `tree-sitter` feature to avoid a second native `links = "tree-sitter"`
+provider. The compiled Java query is process-lifetime shared state; bounded
+parse contexts and immutable `(language, source hash)` results are reusable.
+Protocol framing, executable discovery, cancellation, timeout, crash/restart,
+and child cleanup follow the proven symbol-worker patterns but do not require
+symbol workspace/dependency-index startup.
+
+The Java client derives a language id only from typed document metadata (Java
+initially means a concrete `.java` path), never from title prose. It submits
+off the render thread, supersedes by editor-origin generation, validates hash,
+span ordering/bounds/style names, converts UTF-8 byte boundaries without
+splitting Unicode scalars or CRLF, and publishes through the Minecraft
+executor only if the document is unchanged. EditorV3 renders immutable styles;
+it never calls the provider or reparses during `render`. Missing/unsupported/
+failed highlighting preserves readable existing/plain text and does not affect
+opening, keyboard input, closing, or C-5 symbol navigation.
+
+The next-language audit is recorded, not implemented: after Java, prioritize
+Rust, JSON, Gradle/Groovy, PowerShell, Markdown, TypeScript, then TOML. Plain
+text remains plain. Existing SFML lexer and G4 grammar highlighting remain
+available until a separately validated replacement exists.
+
 ## Execution order and parallel topology
 
 ```text
@@ -1068,7 +1216,10 @@ B-1 + B-2 + B-4 -> B-5 Alt+Enter contextual actions -> B-6 live join.
 X-1..X-7 -> C-3 addressed file opening.
 Native picker/drop is a later adapter to X-5 root actions, not a C-1/C-2 model.
 C-3 + B-2 + existing CLI symbol engine -> C-4 definition-at-location provider.
-C-3 + C-4 -> C-5 F12/Alt+Enter/panel navigation -> C-6 live join.
+C-3 -> C-4a file-domain icons + C-4b read-only chrome.
+C-3 + CLI-AST Phase 0.11 -> C-4c syntax contract/service -> C-4d Java editor integration.
+C-3 + C-4 -> C-5 F12/Alt+Enter/panel navigation.
+C-4a + C-4b + C-4d + C-5 -> C-6 live source-presentation/navigation join.
 
 In-game control CLI I-1/I-2/I-3 (scaffold + instance discovery/selection)
 is complete. X-1..X-5 + control I-3 -> control I-4/X-6 direct typed explorer
@@ -1116,6 +1267,17 @@ Safe parallel work after contract review:
 - C-5 palette/action/panel integration and C-6 puppets remain coordinator-owned
   because they touch central action registration, defaults, UI placement, and
   both sides' versioned schemas;
+- C-4a owns only explorer presentation contributor/default tests, while C-4b
+  owns only EditorV3 bottom-chrome geometry/render tests; they may proceed in
+  parallel because their Java write sets do not overlap;
+- CLI-AST Phase 0.11 owns Rust syntax request/result, Arborium execution,
+  direct/worker protocol, and Rust tests while C-5 initially owns Java action/
+  palette wiring; one coordinator freezes protocol fixtures before C-4d joins
+  the Java syntax client and editor renderer;
+- C-4d Java syntax integration and C-5 definition navigation both consume
+  editor context/lifecycle, so one coordinator must serialize edits to
+  `SFMTextEditorPanel`, `SFMDrawCanvasScreen`, shared context contracts, and
+  installed-worker discovery even if their pure tests proceed independently;
 - one integration owner must serialize changes to `SFMScreenMultiplexer`,
   `SFMKeyBindingService`, action registration, canonical plans, changelog, and
   live puppet definitions.
@@ -2131,6 +2293,121 @@ were absent. The source audit exited 0 with 30 pre-existing grouped unresolved
 font-render-rule warnings. No F12/Alt+Enter result navigation or live UI proof
 was introduced; those remain C-5/C-6.
 
+### [ ] C-4a Replace file explorer text markers with ItemStack icons
+
+**Work:** Add an ordered file-path presenter to
+`SFMExplorerPresentationRegistry.minecraftDefaults()`. Resolve a `file://`
+directory row to the active theme's `directory` icon (`minecraft:chest`) and a
+`file://` file row to the active theme's ordinary/unknown file icon
+(`minecraft:paper`). Do not key only on `expandable`; preserve the item-registry
+presenter, future richer file-extension presenters, labels, disclosure
+chevrons, narration, list/small-icons layout, and the generic fallback for
+unclaimed non-file schemes.
+
+**Validation:** Cover file directory/file, root/child, expanded/collapsed,
+list/small-icons, unavailable theme item fallback, item-registry precedence,
+custom earlier/later contributors, and an unclaimed non-file row. Assert the
+resolved item ids rather than only icon class.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerFilePresentationTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerPresentationRegistryTests --wait-for-build-lock
+```
+
+**Completion criteria:** A real file explorer visibly uses chest ItemStacks
+for directories and paper ItemStacks for files with no `[D]`/`[F]` markers,
+while registry/item and unknown-domain presentation remains correct.
+
+### [ ] C-4b Add explicit contrast-backed read-only EditorV3 chrome
+
+**Work:** Change the localized status text to `Read-only` and render it only
+for read-only documents in EditorV3's bottom control lane between `#` and Done.
+Use a solid high-contrast rectangle (and border if needed), derive geometry
+from the neighbouring controls, clamp/trim at narrow widths, and keep the
+status non-interactive so it cannot receive focus or intercept either button.
+Retain read-only narration and all save/close behavior; writable documents
+show no badge.
+
+**Validation:** Add pure geometry/state tests for read-only/writable, ordinary
+and narrow panel bounds, overlap exclusion, text/rectangle containment, and
+stable neighbour hit bounds. Exercise render ordering and keyboard/mouse access
+to `#` and Done. Extend the declared source-editor GUI-scale puppet assertions.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTextEditorReadOnlyChromeTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTextEditorAddressedOpenTests --wait-for-build-lock
+```
+
+**Completion criteria:** Every read-only EditorV3 panel has a legible
+contrast-backed `Read-only` status physically between the existing controls at
+supported sizes/scales; writable panels omit it; no new focus/hit target or
+save behavior exists.
+
+### [ ] C-4c Add the Rust Arborium Java highlighting contract and service
+
+**Work:** Complete linked CLI-AST Phase 0.11. Add typed versioned direct and
+framed-worker request/result contracts carrying request/origin generation,
+explicit language, exact source text/SHA-256, parser fingerprint, diagnostics,
+timing/cache evidence, and non-overlapping UTF-8 spans with Arborium flat tags
+plus canonical ChatFormatting names. Add `syntax highlight` and supervised
+`syntax serve`; compile the Java query once, reuse bounded parse context/cache,
+cancel/reap cleanly, keep stdout protocol-only, and never require the symbol
+workspace/index. Add `arborium-highlight = 2.18.1` without its tree-sitter
+feature and reuse the pinned Arborium Java grammar/patched parser.
+
+Record the reproducible tracked-extension audit in developer documentation:
+Java 1,524; Rust 400; JSON 178; Gradle/Groovy 107; PowerShell 55; Markdown 51;
+TypeScript 14; TOML 7. Keep Java as the only enabled new grammar and list the
+remaining supported languages in that order. Preserve existing SFML/G4 paths.
+
+**Validation:** Rust tests cover Java declarations/imports/comments/strings/
+numbers/annotations/generics/text blocks, empty/malformed Java, overlap
+flattening, deterministic order/coalescing, Unicode/combining/astral/CRLF/
+trailing-newline boundaries, format mapping, unsupported language, malformed
+hash/range/oversize, direct/worker byte parity, one-process/query reuse,
+cache hit/miss, cancellation, timeout, crash/restart, frame bounds, stdout/
+stderr separation, and clean shutdown with no child leak.
+
+```pwsh
+cargo test --all-features syntax_highlight
+& .\platform\cli\sfm-propagate-changes\check-all.ps1
+```
+
+**Completion criteria:** The installed/current-source Rust CLI can highlight
+exact Java text into deterministic, source-hash-bound ChatFormatting spans by
+direct command and reusable supervised worker; compilation/query setup is not
+repeated per request; no additional language or Java ANTLR parser ships.
+
+### [ ] C-4d Apply current Rust Java spans in EditorV3 asynchronously
+
+**Work:** Add a provider-neutral Java highlight contract, codec, coordinator,
+and supervised-process adapter. Derive `.java -> java` from concrete typed
+document metadata, submit the exact current EditorV3 projection off the render
+thread, cancel/supersede by editor origin/generation, validate protocol/hash/
+language/span/style identity, convert UTF-8 byte boundaries safely to Java's
+UTF-16/glyph projection, and publish immutable styles on the Minecraft
+executor. Render Components/glyphs with the returned ChatFormatting while
+preserving cursor/selection/open-target overlays. Never call Rust or parse in
+`render`; unsupported/missing/failed/stale service leaves readable existing or
+plain text and a bounded diagnostic state.
+
+**Validation:** Fake-provider and real installed-worker tests cover request
+text/path/language/hash, one editor and several editors, cancellation and late
+results, content mutation, reopened/closed panels, Unicode/CRLF conversion,
+malformed/unknown formatting, unsupported/no-path documents, worker missing/
+crash/restart, cache evidence, render-thread prohibition, no per-frame query,
+existing SFML/G4 parity, and styled Java glyph output.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMSyntaxHighlightProviderTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTextEditorSyntaxHighlightTests --wait-for-build-lock
+```
+
+**Completion criteria:** Opening a concrete `.java` document in EditorV3
+asynchronously transitions from readable fallback text to Arborium-derived
+ChatFormatting without a frame stall; stale spans never apply; other document
+types retain their established rendering.
+
 ### [ ] C-5 Register jump-to-definition and integrate result navigation
 
 **Work:** Register `sfm:symbol/definition/open`, its `sfm:text_editor` F12
@@ -2165,9 +2442,15 @@ use an explicitly seeded SFM source root, browse a Java file, open it in Text
 Editor v3, place the cursor on an imported SFM type and a dependency type, use
 F12, choose an ambiguous candidate fixture, return/focus between panels, and
 capture explorer locations, editor text/address/cursor, definition result, worker
-telemetry, and screenshots. Measure cold startup and warm query-to-visible-
-target latency; if the user-visible pause remains multi-second, profile the
-observed dominant stage before calling the phase complete.
+telemetry, and screenshots. The same evidence must prove chest/paper file
+icons, the contrast-backed bottom-lane `Read-only` status, and visibly distinct
+Java keyword/comment/string/type formatting sourced from the Rust result.
+Capture syntax request/result hash, parser fingerprint, span/tag/format counts,
+cache status, and request-to-visible-style latency without writing raw source
+to default telemetry. Measure cold startup and warm query-to-visible-target
+latency for both highlighting and definition navigation; if either user-visible
+pause remains multi-second, profile the observed dominant stage before calling
+the phase complete.
 
 **Validation:** Run focused CLI/Java tests, canonical compile/full suite, and
 the live puppet through the SFM CLI. Native picker use remains a separate
@@ -2177,13 +2460,15 @@ manual witness; the deterministic puppet uses an explicit seeded root.
 sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
 sfm-propagate-changes.exe test run --branch 1.19.2 --no-capture --wait-for-build-lock
 sfm-propagate-changes.exe puppet run title_screen_sfm_java_jump_to_definition --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_explorer_open_sfm_java --branch 1.19.2 --variant declared --wait-for-build-lock
 ```
 
 **Completion criteria:** Machine-readable artifacts prove the complete
 folder/explorer/file/cursor/definition/target chain, visual artifacts prove
-the in-game experience, warm latency is recorded and acceptable, every
-WSPACE/SYMBOL guidance id has evidence, and no propagation/publication occurs
-without a later goal.
+the chest/paper/read-only/Java-style experience across the declared source-
+editor scale matrix, warm highlighting and definition latency are recorded and
+acceptable, every WSPACE/SYMBOL/SRCPRES/READONLY/HILITE guidance id has
+evidence, and no propagation/publication occurs without a later goal.
 
 ## Previously completed vertical slice
 
@@ -2280,9 +2565,35 @@ The completed goal freezes D-8's coordinate contract and closes D-18/D-19 with
 implementation evidence. It stopped one boundary before any F12/keybinding/
 palette result-navigation behavior, so C-5 can consume a measured,
 deterministic provider rather than mixing UI design with analysis and process-
-lifecycle work. C-5 is the next eligible slice but is not active until a later
-approved goal. The independent fuzzy-file chain remains available after B-2
-and was not part of this goal.
+lifecycle work. The prepared next goal combines the newly added C-4a through
+C-4d source-presentation/highlighting work with C-5 navigation and C-6 live
+proof so the user can inspect one coherent explorer-to-highlighted-source-to-
+definition journey. The independent fuzzy-file chain remains available after
+B-2 and is not part of that goal.
+
+## Prepared next goal — source presentation through definition navigation
+
+Set the next goal as:
+
+> Complete C-4a, C-4b, C-4c, C-4d, C-5, and C-6 in
+> `docs/tasks/contextual input actions and addressable explorer plan.md`
+> together with Phase 0.11 in
+> `docs/tasks/cli ast refactoring suite plan.md`. Deliver file-domain chest/
+> paper ItemStack icons, contrast-backed EditorV3 read-only chrome, a cached
+> Rust Arborium Java syntax service and stale-safe Java renderer integration,
+> registered F12/Alt+Enter/palette jump-to-definition, and deterministic live
+> explorer-to-highlighted-source-to-definition evidence. Stop before enabling
+> non-Java Arborium grammars, writable host files, fuzzy-file Phase B,
+> propagation, publication, or release tagging.
+
+The observable end state is one explicitly seeded generic explorer showing
+chest directories and paper files; opening `SFM.java` beside it shows a
+contrast-backed `Read-only` status and visibly distinct Rust-supplied Java
+formatting without a UI stall; F12 and Alt+Enter resolve the exact symbol,
+opening one result at its source range or presenting stable choices for many;
+machine artifacts prove hashes/spans/cache/generations/latency and screenshots
+cover the declared GUI-scale matrix. Focused Rust/Java tests, `check-all.ps1`,
+canonical compile/full Java tests, and both declared puppets pass.
 
 ## Overall completion criteria
 
@@ -2313,6 +2624,13 @@ and was not part of this goal.
 - [x] Explorer Java files open read-only in Text Editor v3 with concrete
   document addresses, source hashes, independent editor state, safe preview
   ownership, and exact open-at-range behavior.
+- [ ] File-domain explorer rows use chest/paper ItemStack icons without
+  overriding non-file presenters, and read-only EditorV3 panels expose the
+  contrast-backed bottom-lane status without changing focus/hit behavior.
+- [ ] Concrete Java documents receive exact-current-text, Rust Arborium-derived
+  ChatFormatting spans asynchronously with validated Unicode/hash/generation
+  identity, cached grammar/query state, plain/existing fallback, and no
+  render-thread or per-frame parsing.
 - [ ] F12 and the contextual-action provider resolve the symbol at the captured
   document location through the existing Java-analysis/index engine, never
   block the render thread, and correctly handle one/many/none/incomplete/stale
@@ -2375,6 +2693,13 @@ and was not part of this goal.
 | Worker crash/cancel leaks subprocesses or applies a late definition | Owned process/job lifecycle, framed request ids/generations, kill/wait on shutdown/failure, stale-response rejection, and liveness tests |
 | Dependency index is stale but no-match is presented as authoritative | Existing index identity/completeness contract is preserved in `DefinitionResult`; incomplete outcomes include typed refresh/retry actions |
 | Source paths or text leak through telemetry | Default telemetry records provider/root ids, hashes, counts, durations, and outcomes only; raw paths/text require explicit user-visible artifact capture |
+| Chest/paper fallback makes registry leaves look like files | D-20 file-scheme presenter and contributor-precedence tests; expandable/leaf alone is never treated as file identity |
+| Read-only chrome covers or intercepts `#`/Done at small panel sizes | D-21 bounded free-lane geometry, non-widget rendering, overlap/hit/focus assertions, and GUI-scale visual proof |
+| Syntax service freezes the game or reparses every frame | Dedicated supervised Rust worker, off-render-thread Java coordinator, immutable published snapshots, query counters, and explicit no-per-frame tests |
+| Late highlighting colours a newer document or splits Unicode | Request origin/generation plus source hash, strict sorted UTF-8 boundary validation, scalar/CRLF conversion fixtures, and Minecraft-executor stale rejection |
+| Adding Arborium highlight introduces a second native tree-sitter library | Pin `arborium-highlight = 2.18.1` without its `tree-sitter` feature and test Cargo resolution/check-all against the existing patched tree-sitter provider |
+| Missing Rust tooling makes source unreadable | Highlighting is advisory; unsupported/missing/crashed workers retain plain/existing text and visible bounded diagnostics while editor/navigation stay usable |
+| Language audit silently expands the release binary | C-4c enables Java only; later-language order is documentation/backlog, with dependency/features and artifact-size review required by a later goal |
 
 ## Source and implementation references
 
@@ -2411,6 +2736,19 @@ and was not part of this goal.
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMClientScreenType.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceScreenTypes.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/file_explorer/`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPresentation.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPresentationRegistry.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/theme/SFMClientTheme.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/context/SFMContextTextCoordinates.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/symbol/SFMSymbolServerSupervisor.java`
+- `platform/cli/sfm-propagate-changes/src/java_analysis/symbol_server_protocol.rs`
+- `platform/cli/sfm-propagate-changes/src/java_analysis/symbol_server_runtime.rs`
+- `G:\Programming\Repos\arborium\AGENTS.md`
+- `G:\Programming\Repos\arborium\crates\arborium-highlight\src\render.rs`
+- `G:\Programming\Repos\arborium\langs\group-bark\java\def\arborium.yaml`
+- cached authoritative crate sources for `arborium-java` and
+  `arborium-highlight` 2.18.1 under `G:\Programming\Caches\CARGO_HOME`
 - `platform/minecraft/build/downloadMCMeta/version.json`
 - `platform/cli/sfm-propagate-changes/src/java_analysis/`
 - `platform/cli/sfm-propagate-changes/src/cli/symbol/`
