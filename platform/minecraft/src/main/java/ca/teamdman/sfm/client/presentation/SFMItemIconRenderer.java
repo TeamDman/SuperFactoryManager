@@ -11,7 +11,8 @@ public final class SFMItemIconRenderer {
 
     public static SFMResolvedItemIcon render(Minecraft minecraft, SFMItemIcon icon, int x, int y) {
         SFMResolvedItemIcon resolved = SFMItemIconResolver.resolve(icon);
-        if (requiresContextFallback(minecraft.level != null, usesCustomRenderer(minecraft, resolved))) {
+        if (shouldInspectCustomRenderer(minecraft.level != null)
+                && usesCustomRenderer(minecraft, resolved)) {
             resolved = SFMItemIconResolver.resolveFallback(icon);
             if (usesCustomRenderer(minecraft, resolved)) {
                 resolved = SFMItemIconResolver.resolvePaper(icon);
@@ -27,8 +28,8 @@ public final class SFMItemIconRenderer {
      * vanilla renderer restores its model-view stack, so choose the icon's
      * declared fallback before entering that renderer.
      */
-    static boolean requiresContextFallback(boolean levelAvailable, boolean customRenderer) {
-        return !levelAvailable && customRenderer;
+    static boolean shouldInspectCustomRenderer(boolean levelAvailable) {
+        return !levelAvailable;
     }
 
     private static boolean usesCustomRenderer(Minecraft minecraft, SFMResolvedItemIcon icon) {

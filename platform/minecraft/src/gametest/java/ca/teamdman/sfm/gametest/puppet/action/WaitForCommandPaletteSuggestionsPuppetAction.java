@@ -24,6 +24,9 @@ public final class WaitForCommandPaletteSuggestionsPuppetAction implements SFMPu
         if (this.expectedSuggestions.isEmpty()) {
             throw new IllegalArgumentException("At least one expected palette suggestion is required");
         }
+        if (this.expectedSuggestions.stream().distinct().count() != this.expectedSuggestions.size()) {
+            throw new IllegalArgumentException("Expected palette suggestions must be distinct");
+        }
     }
 
     @Override
@@ -37,7 +40,9 @@ public final class WaitForCommandPaletteSuggestionsPuppetAction implements SFMPu
         if (Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette) {
             String actualInput = palette.inputForAutomation();
             List<String> actualSuggestions = palette.suggestionTextsForAutomation();
-            if (actualInput.equals(expectedInput) && actualSuggestions.containsAll(expectedSuggestions)) {
+            boolean exactSuggestions = actualSuggestions.size() == expectedSuggestions.size()
+                    && actualSuggestions.containsAll(expectedSuggestions);
+            if (actualInput.equals(expectedInput) && exactSuggestions) {
                 return ++stableTicks > SFMGamePuppetHelper.RENDER_SETTLE_TICKS;
             }
             stableTicks = 0;

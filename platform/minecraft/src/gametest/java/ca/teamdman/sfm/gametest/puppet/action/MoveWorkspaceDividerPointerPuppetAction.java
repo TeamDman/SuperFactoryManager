@@ -43,7 +43,8 @@ public record MoveWorkspaceDividerPointerPuppetAction(
         }
 
         Point target = intersection(workspace.dividerDescriptions());
-        SFMGamePuppetPointer.move(workspace, target.x(), target.y());
+        SFMGamePuppetPointer.moveNative(workspace, target.x(), target.y());
+        SFMGamePuppetPointer.moveWorkspace(workspace, target.x(), target.y());
         if (workspace.dividerInteractionSnapshot().hoveredDividerIds().isEmpty()) {
             throw new IllegalStateException("Workspace divider hover did not resolve a divider");
         }
@@ -54,7 +55,8 @@ public record MoveWorkspaceDividerPointerPuppetAction(
         }
         double endX = target.x() + deltaX;
         double endY = target.y() + deltaY;
-        SFMGamePuppetPointer.move(workspace, endX, endY);
+        SFMGamePuppetPointer.moveNative(workspace, endX, endY);
+        SFMGamePuppetPointer.moveWorkspace(workspace, endX, endY);
         if (!workspace.mouseDragged(
                 endX,
                 endY,

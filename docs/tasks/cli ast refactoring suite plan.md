@@ -2137,9 +2137,9 @@ definition/usage surfaces, target-lazy bounded caches, cancellation, root and
 completeness evidence, and installed-process lifecycle probes. The installed
 revision-correct worker artifact
 `docs/task-evidence/source-navigation/symbol-server-installed-probe.json`
-uses schema 5 and records cold 4190.450 ms, warm mixed median 89.188 ms, p95
-137.690 ms, max 140.488 ms, definition median 72.778 ms, usage median 102.076
-ms, accepted memory (488.3 MiB peak working set; 504.8 MiB steady private),
+uses schema 5 and records cold 4032.028 ms, warm mixed median 82.760 ms, p95
+147.506 ms, max 148.340 ms, definition median 70.904 ms, usage median 103.601
+ms, accepted memory (487.2 MiB peak working set; 503.3 MiB steady private),
 exit 0, and zero leaked descendants. Its pre/post digest covers all 1,605 files
 under `platform/minecraft/src/*/java` and is byte-identical at
 `sha256:57d489ab5b7be89e20f5e17b3e35a0b77ce95604bd696cb112062ed16c92d37a`,

@@ -312,7 +312,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         hoverRange = SFMSourcePuppetProbe.symbolRange(document.text(), "ProgramContext", 0);
         hoverPointer = C11SourceNavigationPuppetProbe.pointer(workspace, source, hoverRange);
         hoverTopologyBefore = C11SourceNavigationPuppetProbe.topology(workspace);
-        SFMGamePuppetPointer.move(workspace, hoverPointer.globalX(), hoverPointer.globalY());
+        SFMGamePuppetPointer.moveNative(workspace, hoverPointer.globalX(), hoverPointer.globalY());
         advance(Phase.WAIT_HOVER_POINTER);
         return false;
     }
@@ -324,12 +324,14 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
             if (phaseTicks > 20) {
                 fail("Native puppet pointer did not settle at the Ctrl-hover target: expected="
                         + hoverPointer.globalX() + "," + hoverPointer.globalY()
-                        + " actual=" + current.logicalX() + "," + current.logicalY()
-                        + " native=" + current.nativeX() + "," + current.nativeY());
+                        + " glfwLogical=" + current.logicalX() + "," + current.logicalY()
+                        + " cachedLogical=" + current.cachedLogicalX() + "," + current.cachedLogicalY()
+                        + " glfwNative=" + current.nativeX() + "," + current.nativeY()
+                        + " cachedNative=" + current.cachedNativeX() + "," + current.cachedNativeY());
             }
             return false;
         }
-        workspace.mouseMoved(hoverPointer.globalX(), hoverPointer.globalY());
+        SFMGamePuppetPointer.moveWorkspace(workspace, hoverPointer.globalX(), hoverPointer.globalY());
         workspace.keyPressed(GLFW.GLFW_KEY_LEFT_CONTROL, 0, GLFW.GLFW_MOD_CONTROL);
         advance(Phase.WAIT_HOVER);
         return false;
@@ -550,7 +552,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private boolean invokeRightClick() {
         SFMScreenMultiplexer workspace = requireWorkspace();
         restoreSource(workspace);
-        SFMGamePuppetPointer.move(workspace, contextPointer.globalX(), contextPointer.globalY());
+        SFMGamePuppetPointer.moveNative(workspace, contextPointer.globalX(), contextPointer.globalY());
         require(workspace.mouseClicked(
                         contextPointer.globalX(), contextPointer.globalY(), GLFW.GLFW_MOUSE_BUTTON_RIGHT),
                 "The editor did not route the contextual right-click");
@@ -845,7 +847,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
             }
             if (performanceWarmupInteractionIndex < WARM_INTERACTION_KINDS) {
                 int interaction = performanceWarmupInteractionIndex;
-                performanceRenderTicket = SFMGamePuppetRenderHarness.beforeNextFrame(
+                performanceRenderTicket = SFMGamePuppetRenderHarness.betweenFrames(
                         workspace,
                         () -> runWarmInteraction(interaction, workspace)
                 );
@@ -878,7 +880,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
 
         if (performanceInteractionIndex < WARM_INTERACTION_COUNT) {
             int interaction = performanceInteractionIndex;
-            performanceRenderTicket = SFMGamePuppetRenderHarness.beforeNextFrame(
+            performanceRenderTicket = SFMGamePuppetRenderHarness.betweenFrames(
                     workspace,
                     () -> runWarmInteraction(interaction % WARM_INTERACTION_KINDS, workspace)
             );
@@ -896,8 +898,8 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         warmScript.add("pointer-move-second-symbol");
         evidence.add("warm_interaction_script", warmScript);
         evidence.addProperty("warm_measurement_window_reset", true);
-        evidence.addProperty("warm_measurement_dispatch", "screen-render-pre");
-        evidence.addProperty("warmup_render_pre_interactions", WARM_INTERACTION_KINDS);
+        evidence.addProperty("warm_measurement_dispatch", "between-screen-render-post-events");
+        evidence.addProperty("warmup_between_frame_interactions", WARM_INTERACTION_KINDS);
         evidence.addProperty("warm_measurement_cycles", WARM_MEASUREMENT_CYCLES);
         evidence.addProperty("warm_completed_input_to_frame_samples", completedInputToFrameSamples);
         evidence.add("warm_input_to_frame_samples", performanceInputSamples);
@@ -914,7 +916,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         require(performance.inputToFrameMaximumNanos() > 0,
                 "EditorV3 produced no live input-to-frame sample");
         require(performance.inputToFrameSamples() == WARM_INTERACTION_COUNT,
-                "EditorV3 did not complete every render-pre interaction sample: "
+                "EditorV3 did not complete every between-frame interaction sample: "
                         + performance.inputToFrameSamples());
         require(performance.contextCaptures() > 0,
                 "EditorV3 produced no contextual-capture sample");
@@ -942,7 +944,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
                 "OutputStatement"
         );
         switch (interaction) {
-            case 0 -> SFMGamePuppetPointer.move(
+            case 0 -> SFMGamePuppetPointer.moveWorkspace(
                     workspace,
                     outputStatement.globalX(),
                     outputStatement.globalY()
@@ -982,7 +984,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
                         source,
                         "ProgramContext"
                 );
-                SFMGamePuppetPointer.move(
+                SFMGamePuppetPointer.moveWorkspace(
                         workspace,
                         programContext.globalX(),
                         programContext.globalY()
