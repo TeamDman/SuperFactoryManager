@@ -44,8 +44,10 @@ public final class SFMGamePuppetHarness {
     private static int failedPuppetCount;
     private static int finalWorldHoldTicksRemaining = -1;
     private static int exitTicksRemaining = -1;
-    private static boolean pauseOnLostFocusCaptured;
+    private static boolean runtimeOptionsCaptured;
     private static boolean pauseOnLostFocusBeforeAutomation;
+    private static boolean vsyncBeforeAutomation;
+    private static int framerateLimitBeforeAutomation;
     private static List<SFMDiscoveredGamePuppet> selectedPuppets = List.of();
     private static List<PuppetExecution> selectedExecutions = new ArrayList<>();
     private static SFMGamePuppetViewportSelection viewportSelection;
@@ -156,6 +158,7 @@ public final class SFMGamePuppetHarness {
         if (activePuppet != null || awaitingTitleScreen || completed) {
             return;
         }
+        SFMGamePuppetRenderHarness.clear();
         if (nextPuppetIndex >= selectedExecutions.size()) {
             finishRun();
             return;
@@ -240,6 +243,7 @@ public final class SFMGamePuppetHarness {
         if (completed) {
             return;
         }
+        SFMGamePuppetRenderHarness.clear();
         completed = true;
         SFMGamePuppetViewportController.requestRestore(Minecraft.getInstance());
         restoreRuntimeOptions(Minecraft.getInstance());
@@ -287,6 +291,7 @@ public final class SFMGamePuppetHarness {
         if (active.failureRecorded) {
             return;
         }
+        SFMGamePuppetRenderHarness.clear();
         active.failureRecorded = true;
         active.success = false;
         failedPuppetCount++;
@@ -300,21 +305,37 @@ public final class SFMGamePuppetHarness {
     }
 
     private static void keepRuntimeUnpaused(Minecraft minecraft) {
-        if (!pauseOnLostFocusCaptured) {
-            pauseOnLostFocusCaptured = true;
+        if (!runtimeOptionsCaptured) {
+            runtimeOptionsCaptured = true;
             pauseOnLostFocusBeforeAutomation = minecraft.options.pauseOnLostFocus;
+            vsyncBeforeAutomation = minecraft.options.enableVsync().get();
+            framerateLimitBeforeAutomation = minecraft.options.framerateLimit().get();
+            SFM.LOGGER.info(
+                    "SFM_GAME_PUPPET_RUNTIME_OPTIONS_CAPTURED pause_on_lost_focus={} vsync={} max_fps={}",
+                    pauseOnLostFocusBeforeAutomation,
+                    vsyncBeforeAutomation,
+                    framerateLimitBeforeAutomation
+            );
         }
         if (minecraft.options.pauseOnLostFocus) {
             minecraft.options.pauseOnLostFocus = false;
         }
+        if (minecraft.options.enableVsync().get()) {
+            minecraft.options.enableVsync().set(false);
+        }
+        if (minecraft.options.framerateLimit().get() != 260) {
+            minecraft.options.framerateLimit().set(260);
+        }
     }
 
     private static void restoreRuntimeOptions(Minecraft minecraft) {
-        if (!pauseOnLostFocusCaptured) {
+        if (!runtimeOptionsCaptured) {
             return;
         }
         minecraft.options.pauseOnLostFocus = pauseOnLostFocusBeforeAutomation;
-        pauseOnLostFocusCaptured = false;
+        minecraft.options.enableVsync().set(vsyncBeforeAutomation);
+        minecraft.options.framerateLimit().set(framerateLimitBeforeAutomation);
+        runtimeOptionsCaptured = false;
     }
 
     public static boolean isAutomationActive() {

@@ -16,9 +16,33 @@ public final class SFMItemIconResolver {
     public static SFMResolvedItemIcon resolve(SFMItemIcon icon) {
         ResourceLocation selectedId = selectAvailableId(icon, SFMItemIconResolver::isAvailable);
         boolean fallback = !selectedId.equals(icon.requestedItem());
+        return resolveSelected(selectedId, icon.accessibleLabel(), fallback);
+    }
+
+    /**
+     * Resolves only the declared fallback (or paper). This is used when a
+     * present item cannot safely render in the current client context.
+     */
+    public static SFMResolvedItemIcon resolveFallback(SFMItemIcon icon) {
+        ResourceLocation selectedId = isAvailable(icon.fallbackItem())
+                ? icon.fallbackItem()
+                : SFMItemIcon.PAPER;
+        return resolveSelected(selectedId, icon.accessibleLabel(), true);
+    }
+
+    /** Last-resort vanilla icon for a context-incompatible custom renderer. */
+    public static SFMResolvedItemIcon resolvePaper(SFMItemIcon icon) {
+        return resolveSelected(SFMItemIcon.PAPER, icon.accessibleLabel(), true);
+    }
+
+    private static SFMResolvedItemIcon resolveSelected(
+            ResourceLocation selectedId,
+            String accessibleLabel,
+            boolean fallback
+    ) {
         Item resolved = SFMWellKnownRegistries.ITEMS.get(selectedId);
         if (resolved == null || resolved == Items.AIR) resolved = Items.PAPER;
-        return new SFMResolvedItemIcon(new ItemStack(resolved), icon.accessibleLabel(), fallback);
+        return new SFMResolvedItemIcon(new ItemStack(resolved), accessibleLabel, fallback);
     }
 
     public static ResourceLocation selectAvailableId(SFMItemIcon icon, Predicate<ResourceLocation> available) {

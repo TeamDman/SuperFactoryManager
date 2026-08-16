@@ -1,6 +1,6 @@
 # Typed selections, relations, and lazy explorers plan
 
-**Plan status:** Active; X-1 through X-7 and X-8a complete; X-8b now owns the observed explorer presentation/filter/focus/scroll repair before X-8 through X-11
+**Plan status:** Active; X-1 through X-7, X-8a, and the bounded X-8b interaction-repair slice are complete; picker X-8 and X-9 through X-11 remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Primary implementation target:** Minecraft 1.19.2
 **Related control plan:** `docs/tasks/sfm in-game control cli plan.md`
@@ -12,7 +12,7 @@
 CLI/explorer/path/selection/relation/picker/layout design discussion, the latest
 projection/icon/filter/focus/scroll observations, and the linked plans' existing
 ledgers; implementation closure audit remains valid for completed X-1 through
-X-7/X-8a code, tests, protocol, and live artifacts
+X-7/X-8a/X-8b code, tests, protocol, and live artifacts
 
 ## How to update this plan
 
@@ -1159,7 +1159,7 @@ space unused. C-3 closed that concern in `6dc3d2d04`; its inspected
 `title_screen_explorer_open_sfm_java` Auto-plus-scales-1-through-8 matrix uses
 the panel allocation for the real read-only `SFM.java` Text Editor v3 view.
 
-### [~] X-8b Repair explorer projection discovery and interaction fidelity
+### [x] X-8b Repair explorer projection discovery and interaction fidelity
 
 **Work:** Deliver XEXP-20 through XEXP-25 without changing semantic explorer
 membership or beginning picker X-8. Add an ordered extension/theme presenter
@@ -1215,13 +1215,20 @@ and cannot be overpainted; fuzzy filtering is responsive and truthful about
 lazy scope; and each wheel event changes the next observable projection without
 a delayed aggregate jump.
 
-**Implementation checkpoint (2026-08-16; live acceptance pending):** Java
-commit `2c013aa66` adds the contributed `.java` cocoa-beans icon with paper
+**Completion evidence (2026-08-16):** Java commit `2c013aa66` plus the current
+acceptance harness add the contributed `.java` cocoa-beans icon with safe paper
 fallback, deep view/path-display completions, ItemStack small-icons projection,
 four-edge inset focus chrome, immediate ordered wheel application/telemetry,
-and fuzzy filtering over current lazy materialization. Focused tests and static
-puppet compilation passed. The GUI-scale-matrix
-`title_screen_explorer_interaction_fidelity` live run remains.
+and fuzzy filtering over current lazy materialization. Focused tests, canonical
+compile, and the full Java suite passed. The declared Auto plus GUI scales 1
+through 8 `title_screen_explorer_interaction_fidelity` matrix passed at
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`title_screen_exp-20260816-173228-654`. Every one of its nine machine reports
+proves `LIST` plus `ABSOLUTE_PATH`, incomplete-materialization disclosure,
+zero filter-triggered relation revision/resolver I/O, ordered visible wheel
+steps `1,2,3`, final row `3`, and exclusive focus ownership. Six composed
+cross-scale contact sheets were visually inspected. Picker X-8 remains
+unstarted.
 
 ### [ ] X-8 Compose pickers as selection destinations
 
@@ -1295,7 +1302,7 @@ every drag gesture has an equivalent registered semantic action.
 
 ## Overall completion criteria
 
-- [ ] X-8b proves extension-specific file presentation, deep projection/path-
+- [x] X-8b proves extension-specific file presentation, deep projection/path-
   display completion, truthful fuzzy filtering, coherent four-edge child focus
   chrome, and ordered low-latency wheel response without changing lazy
   membership semantics.

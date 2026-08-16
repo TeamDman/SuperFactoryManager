@@ -10,8 +10,10 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
 import java.nio.file.Path;
+import java.util.List;
 
 /** GUI-scale-matrix journey for XEXP-20 through XEXP-25. */
 @SFMGamePuppet(viewportProfile = SFMGamePuppetViewportProfile.GUI_SCALE_MATRIX)
@@ -27,7 +29,6 @@ public final class TitleScreenExplorerInteractionFidelityGamePuppet {
         Path sfmJava = sourceRoot.resolve("main/java/ca/teamdman/sfm/SFM.java");
         SFMPath javaAddress = SFMPath.fromNative(sfmJava);
         SFMPath itemRoot = SFMItemRegistryExplorerResolver.ROOT;
-        SFMPath stone = SFMPath.parse("registry://minecraft/item/minecraft/stone");
 
         puppet.waitForOverlayToNotBePresent(LoadingOverlay.class);
         puppet.waitTicks(20);
@@ -36,31 +37,46 @@ public final class TitleScreenExplorerInteractionFidelityGamePuppet {
         );
         puppet.waitForScreen(SFMScreenMultiplexer.class);
         puppet.executeCommandPalette(
-                "sfm action invoke sfm:explorer/root/add focused "
+                "sfm action invoke sfm:explorer/root/add all "
                         + itemRoot.canonical() + " --if-no-match fail"
         );
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.waitForScreen(SFMScreenMultiplexer.class);
+        puppet.waitForExplorerPath(itemRoot, false);
         puppet.executeCommandPalette(
-                "sfm action invoke sfm:explorer/node/expand focused " + itemRoot.canonical()
+                "sfm action invoke sfm:explorer/node/expand all " + itemRoot.canonical()
         );
-        puppet.waitForExplorerPath(stone, false);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.waitForScreen(SFMScreenMultiplexer.class);
 
         puppet.openCommandPalette();
-        puppet.setCommandPaletteInput("sfm action invoke sfm:explorer/view/set focused ");
+        String viewPrefix = "sfm action invoke sfm:explorer/view/set focused ";
+        puppet.setCommandPaletteInput(viewPrefix);
+        puppet.waitForCommandPaletteSuggestions(viewPrefix, List.of("sfm:list", "sfm:small_icons"));
         puppet.capture("x8b-deep-view-completion", caption(
                 "The exact deep view prefix discovers registered list and small-icon values with descriptions."
         ));
         puppet.executeCommandPalette(
-                "sfm action invoke sfm:explorer/view/set focused sfm:small_icons"
+                "sfm action invoke sfm:explorer/view/set all sfm:small_icons"
         );
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.waitForScreen(SFMScreenMultiplexer.class);
 
         puppet.openCommandPalette();
-        puppet.setCommandPaletteInput("sfm action invoke sfm:explorer/path-display/set focused ");
+        String pathDisplayPrefix = "sfm action invoke sfm:explorer/path-display/set focused ";
+        puppet.setCommandPaletteInput(pathDisplayPrefix);
+        puppet.waitForCommandPaletteSuggestions(
+                pathDisplayPrefix,
+                List.of("sfm:absolute_path", "sfm:name", "sfm:relative_path")
+        );
         puppet.capture("x8b-deep-path-display-completion", caption(
                 "Path-label completion remains an independent axis with name, relative, and absolute choices."
         ));
         puppet.executeCommandPalette(
-                "sfm action invoke sfm:explorer/path-display/set focused sfm:absolute_path"
+                "sfm action invoke sfm:explorer/path-display/set all sfm:absolute_path"
         );
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.waitForScreen(SFMScreenMultiplexer.class);
 
         puppet.exerciseExplorerInteractionFidelity(javaAddress);
         puppet.closeScreenNaturally();

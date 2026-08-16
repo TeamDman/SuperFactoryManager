@@ -81,8 +81,10 @@ class SFMSymbolContextActionTests {
 
         String panelSource = Files.readString(source(
                 "ca/teamdman/sfm/client/screen/text_editor/SFMTextEditorPanel.java"));
-        assertTrue(panelSource.contains("executeEditorAction(\"sfm:context/actions/open\")"),
+        assertTrue(panelSource.contains("executeEditorAction(SFMContextActionsOpenAction.ID)"),
                 "right-click must invoke the same constrained action surface as Alt+Enter");
+        assertTrue(panelSource.contains("executeEditorAction(SFMJumpToDefinitionAction.ID)"),
+                "Ctrl+click must invoke definition through the typed panel-action seam");
 
         String actionSource = Files.readString(source(
                 "ca/teamdman/sfm/client/context/SFMJavaSymbolContextActionProvider.java"));

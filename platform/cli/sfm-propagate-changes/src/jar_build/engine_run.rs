@@ -2734,6 +2734,11 @@ fn prepare_client_automation_options(
     let mut updated = set_minecraft_option(&existing, "onboardAccessibility", "false");
     updated = set_minecraft_option(&updated, "narrator", "0");
     updated = set_minecraft_option(&updated, "pauseOnLostFocus", "false");
+    // Automation must measure the mod rather than compositor/driver policy for
+    // an unfocused preview window. Minecraft's dedicated automation run dirs
+    // are isolated from the contributor's normal client options.
+    updated = set_minecraft_option(&updated, "enableVsync", "false");
+    updated = set_minecraft_option(&updated, "maxFps", "260");
     updated = set_minecraft_option(&updated, "tutorialStep", "none");
     if matches!(kind, RunKind::GameTestPreview) {
         let master_volume = if run_options.game_puppet_mute {

@@ -612,6 +612,10 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    public void waitForCommandPaletteSuggestions(String input, List<String> expectedSuggestions) {
+        add(new WaitForCommandPaletteSuggestionsPuppetAction(input, expectedSuggestions));
+    }
+
     public void prepareIncompleteCommandPaletteInput(String command, String expected) {
         add(new SetCommandPaletteInputPuppetAction(command, expected));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));

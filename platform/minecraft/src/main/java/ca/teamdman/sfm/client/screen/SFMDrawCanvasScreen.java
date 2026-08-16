@@ -1239,6 +1239,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         return performanceTracker.snapshot();
     }
 
+    public void beginWarmPerformanceMeasurement() {
+        performanceTracker.beginWarmMeasurement();
+    }
+
     private ResolvedViewportGlyphs resolveViewportGlyphs() {
         long startedNanos = System.nanoTime();
         int spaceWidth = this.font.width(" ");

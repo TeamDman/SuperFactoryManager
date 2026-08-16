@@ -103,7 +103,7 @@ If we have a concept of virtual desktop-like things, then does that mean we have
 
 # In-game code review workspace and window manager plan
 
-**Plan status:** Active; multiplexer/explorer foundation integrated, review slice planning in progress, and Track 1b now owns pointer-driven divider resizing
+**Plan status:** Active; multiplexer/explorer foundation and Track 1b pointer-driven divider resizing are complete; review-surface and later relocation/workspace slices remain
 **Primary planning root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Related reference worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`  
 **Last updated:** 2026-08-16
@@ -505,7 +505,7 @@ is rejected from this track in favor of intentional `SFMScreenPanel` content.
 remain later capabilities or integration work rather than blockers to this
 checkpoint.
 
-### [~] Track 1b — Pointer-driven divider resizing and cursor affordances
+### [x] Track 1b — Pointer-driven divider resizing and cursor affordances
 
 This follow-up completes WRESIZE-1 through WRESIZE-6 without implementing
 Alt+drag relocation, explorer root/node drag, virtual workspaces, or arbitrary
@@ -592,13 +592,21 @@ respecting minima; panels/stacks/focus/content identities survive; keyboard,
 pointer, action, and automation paths agree; and artifacts make the share/bounds
 transition verifiable without computer vision.
 
-**Implementation checkpoint (2026-08-16; live acceptance pending):** Java
-commit `2c013aa66` adds stable divider/link identities, constrained share
+**Completion evidence (2026-08-16):** Java commit `2c013aa66` plus the current
+acceptance harness add stable divider/link identities, constrained share
 mutation, orthogonal intersection capture, cached GLFW cursor ownership,
 pointer/action parity, child-event suppression, cancellation, and structured
-before/during/after evidence. Pure and host integration tests plus static puppet
-compilation passed. The GUI-scale-matrix
-`title_screen_workspace_divider_resize` live run remains.
+before/during/after evidence. Pure/host integration tests, canonical compile,
+and the full Java suite passed. The declared Auto plus GUI scales 1 through 8
+`title_screen_workspace_divider_resize` matrix passed at
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`title_screen_wor-20260816-173904-102`. Its 27 machine layout reports prove the
+expected horizontal/intersection cursors, 1/2/3 captured dividers, exact
+36 / `(24,36)` / `(24,36,36)` deltas, stable focus and identities, respected
+minimums, continuously visible during-drag geometry, and distinct committed
+bounds. Three composed before/hover/during/after cross-scale journeys were
+visually inspected. Alt+drag relocation, explorer drag, and virtual workspaces
+remain deferred.
 
 **Parallel topology:** Once `DividerId`, geometry, delta, and cursor-adapter
 interfaces are frozen, a pure layout/test lane, a GLFW cursor-lifecycle lane,

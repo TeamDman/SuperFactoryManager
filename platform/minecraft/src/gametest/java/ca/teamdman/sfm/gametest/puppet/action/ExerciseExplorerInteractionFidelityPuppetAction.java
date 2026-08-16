@@ -40,19 +40,19 @@ import java.util.Optional;
  */
 public final class ExerciseExplorerInteractionFidelityPuppetAction implements SFMPuppetAction {
     private static final String SCHEMA = "sfm.explorer-interaction-fidelity/1";
-    private static final SFMPath STONE = SFMPath.parse("registry://minecraft/item/minecraft/stone");
-    private static final String FILTER_QUERY = "stne";
 
     private final SFMPath javaPath;
     private Stage stage = Stage.WAIT_READY;
     private int stageTicks;
     private SFMExplorerId explorerId;
+    private SFMPath itemPath;
+    private String filterQuery;
     private SFMExplorerPanel.FocusChrome bodyFocus;
     private SFMExplorerPanel.FocusChrome locationFocus;
     private SFMExplorerPanel.FocusChrome filterFocus;
     private SFMExplorerPanel.FocusChrome finalBodyFocus;
     private Map<String, Object> javaPresentation = Map.of();
-    private Map<String, Object> stonePresentation = Map.of();
+    private Map<String, Object> itemPresentation = Map.of();
     private SFMExplorerIoCounter.Snapshot ioBeforeFilter;
     private SFMExplorerIoCounter.Snapshot ioAfterFilter;
     private long relationBeforeFilter;
@@ -92,8 +92,9 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
             case SETTLE_FILTER -> settleFilter(handle);
             case CAPTURE_FILTER -> capture(runtime, "x8b-fuzzy-filter-focus", caption(
                     "The narrated filter ranks the current lazy materialization and truthfully reports excluded unmaterialized subtrees."
-            ), Stage.CLEAR_AND_SCROLL);
-            case CLEAR_AND_SCROLL -> clearFilterAndScroll(handle);
+            ), Stage.REQUEST_CLEAR_AND_LIST);
+            case REQUEST_CLEAR_AND_LIST -> requestClearAndList(handle);
+            case AWAIT_CLEAR_AND_LIST -> awaitClearAndListAndScroll(handle);
             case SETTLE_SCROLL -> settleScroll(handle);
             case CAPTURE_SCROLL -> capture(runtime, "x8b-ordered-wheel-body-focus", caption(
                     "Three wheel callbacks apply as three ordered model transitions and the next rendered frame shows the resulting body focus."
@@ -105,15 +106,15 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
     private boolean waitReady(Handle handle) {
         SFMExplorerPanelModel.State state = handle.state();
         boolean hasJava = row(state, javaPath).isPresent();
-        boolean hasStone = row(state, STONE).isPresent();
+        boolean hasItem = itemPath != null && row(state, itemPath).isPresent();
         Optional<SFMExplorerRuntime.ExplorerEvidence> runtimeEvidence = explorerEvidence();
         if (!hasJava
-                || !hasStone
+                || !hasItem
                 || state.session().settings().view() != SFMExplorerProjection.View.SMALL_ICONS
                 || state.session().settings().pathDisplay() != SFMExplorerProjection.PathDisplay.ABSOLUTE_PATH
                 || runtimeEvidence.isEmpty()
                 || !runtimeEvidence.orElseThrow().activeRequests().isEmpty()) {
-            return waitOrFail("the Java and stone rows with settled small-icons/absolute-path state");
+            return waitOrFail("the Java and registry-item rows with settled small-icons/absolute-path state");
         }
 
         handle.workspace().focusPanel(handle.panelId());
@@ -123,9 +124,9 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
                 "body focus must be exclusive before the first capture");
 
         SFMExplorerProjection.Row javaRow = row(state, javaPath).orElseThrow();
-        SFMExplorerProjection.Row stoneRow = row(state, STONE).orElseThrow();
+        SFMExplorerProjection.Row itemRow = row(state, itemPath).orElseThrow();
         javaPresentation = presentationEvidence(javaRow, state, true);
-        stonePresentation = presentationEvidence(stoneRow, state, false);
+        itemPresentation = presentationEvidence(itemRow, state, false);
         stage = Stage.SETTLE_BODY;
         stageTicks = 0;
         return false;
@@ -149,7 +150,7 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
 
         require(handle.workspace().keyPressed(GLFW.GLFW_KEY_TAB, 0, 0),
                 "workspace did not route Tab from location to filter");
-        for (char character : FILTER_QUERY.toCharArray()) {
+        for (char character : filterQuery.toCharArray()) {
             require(handle.workspace().charTyped(character, 0),
                     "workspace did not route filter character " + character);
         }
@@ -164,8 +165,8 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
     private boolean settleFilter(Handle handle) {
         SFMExplorerPanelModel.State state = handle.state();
         if (!state.projection().filter().active()
-                || !state.projection().filter().query().equals(FILTER_QUERY)
-                || row(state, STONE).isEmpty()) return waitOrFail("the live fuzzy-filter projection");
+                || !state.projection().filter().query().equals(filterQuery)
+                || row(state, itemPath).isEmpty()) return waitOrFail("the live fuzzy-filter projection");
         if (++stageTicks <= SFMGamePuppetHelper.RENDER_SETTLE_TICKS) return false;
 
         SFMExplorerRuntime.Evidence after = SFMExplorerRuntime.get().evidence();
@@ -193,17 +194,29 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         return false;
     }
 
-    private boolean clearFilterAndScroll(Handle handle) {
+    private boolean requestClearAndList(Handle handle) {
         require(handle.workspace().keyPressed(GLFW.GLFW_KEY_DELETE, 0, 0),
                 "Delete did not clear the focused explorer filter");
         require(handle.workspace().keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0),
                 "Enter did not return explorer focus to the body");
         require(handle.workspace().keyPressed(GLFW.GLFW_KEY_G, 0, GLFW.GLFW_MOD_CONTROL),
                 "Ctrl+G did not toggle the explorer view through its semantic action");
+        stage = Stage.AWAIT_CLEAR_AND_LIST;
+        stageTicks = 0;
+        return false;
+    }
+
+    private boolean awaitClearAndListAndScroll(Handle handle) {
+        SFMExplorerPanelModel.State published = handle.state();
+        if (!published.session().settings().filterQuery().isEmpty()
+                || published.session().settings().view() != SFMExplorerProjection.View.LIST) {
+            return waitOrFail("the selector-targeted filter-clear and list-view actions to publish");
+        }
+
         require(handle.workspace().keyPressed(GLFW.GLFW_KEY_HOME, 0, 0),
                 "Home did not select and reveal the first explorer row");
 
-        SFMExplorerPanelModel.State before = handle.state();
+        SFMExplorerPanelModel.State before = currentState(handle);
         require(before.session().settings().filterQuery().isEmpty(), "filter did not clear");
         require(before.session().settings().view() == SFMExplorerProjection.View.LIST,
                 "Ctrl+G did not switch small icons back to list view");
@@ -219,7 +232,7 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         for (int expected = 1; expected <= 3; expected++) {
             require(handle.workspace().mouseScrolled(mouseX, mouseY, -1D),
                     "workspace did not route wheel callback " + expected);
-            int observed = handle.state().viewport().scrollRow();
+            int observed = currentState(handle).viewport().scrollRow();
             immediateScrollRows.add(observed);
             require(observed == expected,
                     "wheel callback " + expected + " produced row " + observed + " instead of " + expected);
@@ -259,10 +272,10 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         evidence.put("schema", SCHEMA);
         evidence.put("explorer_id", explorerId.value());
         evidence.put("java_path", javaPath.canonical());
-        evidence.put("item_path", STONE.canonical());
+        evidence.put("item_path", itemPath.canonical());
         evidence.put("settings", settingsEvidence(state));
         evidence.put("java_presentation", javaPresentation);
-        evidence.put("item_presentation", stonePresentation);
+        evidence.put("item_presentation", itemPresentation);
         evidence.put("focus", focusEvidence());
         evidence.put("filter", filterEvidence);
         evidence.put("filter_relation_revision_before", relationBeforeFilter);
@@ -294,6 +307,10 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         };
     }
 
+    private static SFMExplorerPanelModel.State currentState(Handle handle) {
+        return handle.panel().model().state(handle.bounds());
+    }
+
     private Map<String, Object> presentationEvidence(
             SFMExplorerProjection.Row row,
             SFMExplorerPanelModel.State state,
@@ -309,7 +326,10 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
             require(!resolution.contributorId().equals("sfm:file_path"),
                     "Java row fell through to the ordinary paper presenter");
         } else {
-            require(icon.item().requestedItem().toString().equals("minecraft:stone"),
+            String expectedItem = row.entry().sortKey(ca.teamdman.sfm.client.explorer.lazy.SFMExplorerEntry.SORT_ICON)
+                    .value()
+                    .orElseThrow(() -> new IllegalStateException("Registry item has no icon sort identity"));
+            require(icon.item().requestedItem().toString().equals(expectedItem),
                     "item-registry row did not retain its actual ItemStack id");
         }
         String label = SFMExplorerPathLabeler.label(row, state.session());
@@ -396,6 +416,31 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         return state.projection().rows().stream().filter(candidate -> candidate.path().equals(path)).findFirst();
     }
 
+    private static Optional<SFMExplorerProjection.Row> firstRegistryItem(
+            SFMExplorerPanelModel.State state
+    ) {
+        return state.projection().rows().stream()
+                .filter(candidate -> candidate.path().kind() == SFMPath.Kind.REGISTRY)
+                .filter(candidate -> candidate.path().segments().size() >= 3)
+                .findFirst();
+    }
+
+    private static String fuzzyQuery(String label) {
+        StringBuilder searchable = new StringBuilder();
+        for (int index = 0; index < label.length(); index++) {
+            char character = Character.toLowerCase(label.charAt(index));
+            if (Character.isLetterOrDigit(character)) searchable.append(character);
+        }
+        if (searchable.isEmpty()) throw new IllegalStateException("Registry item label has no searchable characters");
+        if (searchable.length() <= 4) return searchable.toString();
+        StringBuilder query = new StringBuilder(4);
+        for (int sample = 0; sample < 4; sample++) {
+            int index = sample * (searchable.length() - 1) / 3;
+            query.append(searchable.charAt(index));
+        }
+        return query.toString();
+    }
+
     private Optional<SFMExplorerRuntime.ExplorerEvidence> explorerEvidence() {
         if (explorerId == null) return Optional.empty();
         return SFMExplorerRuntime.get().evidence().explorers().stream()
@@ -411,8 +456,12 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
             SFMScreenPanelBounds bounds = workspace.panelContentBounds(panelId);
             if (bounds == null) continue;
             SFMExplorerPanelModel.State state = panel.model().state(bounds);
-            if (explorerId == null
-                    && (row(state, javaPath).isEmpty() || row(state, STONE).isEmpty())) continue;
+            if (explorerId == null) {
+                Optional<SFMExplorerProjection.Row> registryItem = firstRegistryItem(state);
+                if (row(state, javaPath).isEmpty() || registryItem.isEmpty()) continue;
+                itemPath = registryItem.orElseThrow().path();
+                filterQuery = fuzzyQuery(registryItem.orElseThrow().entry().label());
+            }
             explorerId = panel.explorerId();
             return new Handle(workspace, panelId, panel, bounds, state);
         }
@@ -472,7 +521,8 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         FOCUS_FILTER,
         SETTLE_FILTER,
         CAPTURE_FILTER,
-        CLEAR_AND_SCROLL,
+        REQUEST_CLEAR_AND_LIST,
+        AWAIT_CLEAR_AND_LIST,
         SETTLE_SCROLL,
         CAPTURE_SCROLL,
         WRITE_EVIDENCE

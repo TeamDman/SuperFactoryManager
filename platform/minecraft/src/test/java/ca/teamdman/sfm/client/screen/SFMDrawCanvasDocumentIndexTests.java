@@ -107,6 +107,8 @@ class SFMDrawCanvasDocumentIndexTests {
         assertEquals(501, snapshot.frames());
         assertEquals(25, snapshot.inputToFrameMedianNanos());
         assertEquals(25, snapshot.inputToFrameP95Nanos());
+        assertEquals(1, snapshot.inputToFrameSamples());
+        assertEquals(25, snapshot.latestInputToFrameNanos());
         assertEquals(1, snapshot.inputEvents());
         assertEquals(1, snapshot.inputApplications());
         assertEquals(7, snapshot.inputApplyP95Nanos());
@@ -139,5 +141,37 @@ class SFMDrawCanvasDocumentIndexTests {
         assertEquals(0, snapshot.frameAllocatedMedianBytes());
         assertEquals(0, snapshot.frameAllocatedP95Bytes());
         assertEquals(0, snapshot.frameAllocatedMaximumBytes());
+    }
+
+    @Test
+    void warmMeasurementRetainsColdCostAndDropsHiddenSurfaceSamples() {
+        SFMDrawCanvasPerformanceTracker tracker = new SFMDrawCanvasPerformanceTracker(null);
+        var visible = new SFMDrawCanvasDocumentIndex.VisibleSlice(List.of(), 1, 0, 0);
+        tracker.coldLoad(91L);
+        tracker.inputReceived(1L);
+        tracker.inputApplied(2L);
+        tracker.frame(3L, 103L, visible, true);
+        tracker.contextCapture(7L);
+
+        tracker.beginWarmMeasurement();
+
+        var reset = tracker.snapshot();
+        assertEquals(91L, reset.coldLoadNanos());
+        assertEquals(0L, reset.frames());
+        assertEquals(0L, reset.inputEvents());
+        assertEquals(0L, reset.inputToFrameSamples());
+        assertEquals(0L, reset.latestInputToFrameNanos());
+        assertEquals(0L, reset.inputToFrameMaximumNanos());
+        assertEquals(0L, reset.contextCaptures());
+
+        tracker.inputReceived(200L);
+        tracker.inputApplied(205L);
+        tracker.frame(210L, 220L, visible, false);
+        var warm = tracker.snapshot();
+        assertEquals(20L, warm.inputToFrameP95Nanos());
+        assertEquals(1L, warm.inputToFrameSamples());
+        assertEquals(20L, warm.latestInputToFrameNanos());
+        assertEquals(5L, warm.inputApplyP95Nanos());
+        assertEquals(1L, warm.frames());
     }
 }

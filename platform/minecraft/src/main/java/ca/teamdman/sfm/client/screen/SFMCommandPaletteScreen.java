@@ -1028,6 +1028,16 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.input.moveCursorToEnd();
     }
 
+    /** Exact current input used to make visual-puppet captures self-verifying. */
+    public String inputForAutomation() {
+        return this.input.getValue();
+    }
+
+    /** Current Brigadier/fuzzy completion texts used by visual-puppet assertions. */
+    public List<String> suggestionTextsForAutomation() {
+        return this.suggestions.stream().map(Suggestion::getText).toList();
+    }
+
     /** Submits the current automation input through the same path as Enter. */
     public void submitInputForAutomation() {
         executeInput();

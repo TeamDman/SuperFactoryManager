@@ -236,6 +236,8 @@ fn client_automation_options_disable_onboarding_and_focus_pause() {
     assert!(updated.contains("onboardAccessibility:false\n"));
     assert!(updated.contains("narrator:0\n"));
     assert!(updated.contains("pauseOnLostFocus:false\n"));
+    assert!(updated.contains("enableVsync:false\n"));
+    assert!(updated.contains("maxFps:260\n"));
     assert!(updated.contains("tutorialStep:none\n"));
 
     let client_dir = minecraft_dir.join("runClient");

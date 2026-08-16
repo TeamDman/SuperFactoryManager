@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.screen.text_editor;
 
+import ca.teamdman.sfm.client.action.SFMContextActionsOpenAction;
+import ca.teamdman.sfm.client.action.SFMJumpToDefinitionAction;
 import ca.teamdman.sfm.client.context.SFMContextCaptureRequest;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
 import ca.teamdman.sfm.client.context.SFMContextContributor;
@@ -29,6 +31,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
@@ -252,8 +255,16 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             boolean inside = bounds.contains(mouseX, mouseY);
             if (focused != hoverFocused) {
                 hoverFocused = focused;
-                symbolHover.focusChanged();
-                clearHoverTarget();
+                reconcileHoverFocusTransition(
+                        focused,
+                        inside,
+                        hoverModifiers,
+                        () -> {
+                            symbolHover.focusChanged();
+                            clearHoverTarget();
+                        },
+                        () -> refreshHoverTarget(mouseX, mouseY)
+                );
             }
             if (!inside && pointerInside) {
                 pointerInside = false;
@@ -275,6 +286,21 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             }
         }
         screen.render(poseStack, mouseX, mouseY, partialTick);
+    }
+
+    static void reconcileHoverFocusTransition(
+            boolean focused,
+            boolean pointerInside,
+            SFMSymbolHoverIdentity.Modifiers modifiers,
+            Runnable reset,
+            Runnable refresh
+    ) {
+        Objects.requireNonNull(modifiers, "modifiers");
+        if (!focused) {
+            Objects.requireNonNull(reset, "reset").run();
+        } else if (pointerInside && modifiers.requestsDefinitionNavigation()) {
+            Objects.requireNonNull(refresh, "refresh").run();
+        }
     }
 
     @Override
@@ -312,9 +338,10 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 && screen instanceof SFMDrawCanvasScreen drawCanvas) {
             drawCanvas.focusContextAtScreen(mouseX, mouseY);
             if (hoverModifiers.requestsDefinitionNavigation()) refreshHoverTarget(mouseX, mouseY);
-            return executeEditorAction("sfm:context/actions/open");
+            return executeEditorAction(SFMContextActionsOpenAction.ID);
         }
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT
+                && hoverModifiers.requestsDefinitionNavigation()
                 && symbolHover != null
                 && symbolHover.snapshot().phase() == SFMSymbolHoverStateMachine.Phase.ACTIONABLE) {
             symbolHover.primaryPressed(mouseX, mouseY);
@@ -349,7 +376,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                     && screen instanceof SFMDrawCanvasScreen drawCanvas) {
                 drawCanvas.focusSymbolHit(capturedHit);
                 refreshHoverTarget(mouseX, mouseY);
-                return executeEditorAction("sfm:symbol/definition/open");
+                return executeEditorAction(SFMJumpToDefinitionAction.ID);
             }
             replaySuppressedPointerGesture(pressX, pressY, mouseX, mouseY, button,
                     decision.kind() == SFMSymbolHoverStateMachine.GestureKind.FALLBACK_DRAG);
@@ -551,9 +578,14 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         if (linkCursor != null) linkCursor.setLink(false);
     }
 
-    private boolean executeEditorAction(String command) {
+    private boolean executeEditorAction(ResourceLocation actionId) {
         if (panelContext == null) return false;
-        return SFMPanelActionExecution.execute(panelContext, Minecraft.getInstance(), command, ignored -> { });
+        return SFMPanelActionExecution.executeAction(
+                panelContext,
+                Minecraft.getInstance(),
+                actionId,
+                ignored -> { }
+        );
     }
 
     private void replaySuppressedPointerGesture(

@@ -24,6 +24,9 @@ import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetArtifactFormat;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetForegroundWindow;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetPointer;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetRenderHarness;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -57,12 +60,16 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private static final long FRAME_P95_BUDGET_NANOS = 33_300_000L;
     private static final long FRAME_PAUSE_BUDGET_NANOS = 100_000_000L;
     private static final long INPUT_P95_BUDGET_NANOS = 50_000_000L;
+    private static final int WARM_INTERACTION_KINDS = 6;
+    private static final int WARM_MEASUREMENT_CYCLES = 5;
+    private static final int WARM_INTERACTION_COUNT = WARM_INTERACTION_KINDS * WARM_MEASUREMENT_CYCLES;
     private static final String DEFINITION_COMMAND = "sfm action invoke sfm:symbol/definition/open";
     private static final String REFERENCES_COMMAND = "sfm action invoke sfm:symbol/references/open";
 
     private enum Phase {
         WAIT_SOURCE,
         PREPARE_HOVER,
+        WAIT_HOVER_POINTER,
         WAIT_HOVER,
         CAPTURE_HOVER,
         ACTIVATE_HOVER,
@@ -90,6 +97,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         PREPARE_REVEAL,
         WAIT_REVEAL,
         CAPTURE_REVEAL,
+        FOCUS_PERFORMANCE_WINDOW,
         WARM_PERFORMANCE,
         FINALIZE,
         COMPLETE
@@ -170,7 +178,13 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private List<SFMPath> referenceLeaves = List.of();
     private int referenceIndex;
     private SFMExplorerRuntime.ReferenceLeafNavigation pendingReferenceNavigation;
-    private int performanceSettleTicks;
+    private int performanceFocusRequests;
+    private boolean performanceMeasurementStarted;
+    private int performanceWarmupInteractionIndex;
+    private int performanceInteractionIndex;
+    private long completedInputToFrameSamples;
+    private SFMGamePuppetRenderHarness.Ticket performanceRenderTicket;
+    private final JsonArray performanceInputSamples = new JsonArray();
 
     public AssertSourceNavigationJourneyPuppetAction(
             Path sourceRoot,
@@ -222,6 +236,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         return switch (phase) {
             case WAIT_SOURCE -> waitSource();
             case PREPARE_HOVER -> prepareHover();
+            case WAIT_HOVER_POINTER -> waitHoverPointer();
             case WAIT_HOVER -> waitHover();
             case CAPTURE_HOVER -> captureHover(runtime);
             case ACTIVATE_HOVER -> activateHover();
@@ -249,6 +264,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
             case PREPARE_REVEAL -> prepareReveal();
             case WAIT_REVEAL -> waitReveal();
             case CAPTURE_REVEAL -> captureReveal(runtime);
+            case FOCUS_PERFORMANCE_WINDOW -> focusPerformanceWindow();
             case WARM_PERFORMANCE -> warmPerformance(runtime);
             case FINALIZE -> finalizeEvidence(runtime);
             case COMPLETE -> true;
@@ -296,6 +312,23 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         hoverRange = SFMSourcePuppetProbe.symbolRange(document.text(), "ProgramContext", 0);
         hoverPointer = C11SourceNavigationPuppetProbe.pointer(workspace, source, hoverRange);
         hoverTopologyBefore = C11SourceNavigationPuppetProbe.topology(workspace);
+        SFMGamePuppetPointer.move(workspace, hoverPointer.globalX(), hoverPointer.globalY());
+        advance(Phase.WAIT_HOVER_POINTER);
+        return false;
+    }
+
+    private boolean waitHoverPointer() {
+        SFMScreenMultiplexer workspace = requireWorkspace();
+        SFMGamePuppetPointer.Position current = SFMGamePuppetPointer.current();
+        if (!current.isWithin(hoverPointer.globalX(), hoverPointer.globalY(), 1.0D)) {
+            if (phaseTicks > 20) {
+                fail("Native puppet pointer did not settle at the Ctrl-hover target: expected="
+                        + hoverPointer.globalX() + "," + hoverPointer.globalY()
+                        + " actual=" + current.logicalX() + "," + current.logicalY()
+                        + " native=" + current.nativeX() + "," + current.nativeY());
+            }
+            return false;
+        }
         workspace.mouseMoved(hoverPointer.globalX(), hoverPointer.globalY());
         workspace.keyPressed(GLFW.GLFW_KEY_LEFT_CONTROL, 0, GLFW.GLFW_MOD_CONTROL);
         advance(Phase.WAIT_HOVER);
@@ -307,7 +340,13 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         C11SourceNavigationPuppetProbe.Hover hover = C11SourceNavigationPuppetProbe.hover(sourceEditor(workspace).orElseThrow());
         if (hover.snapshot().phase() != SFMSymbolHoverStateMachine.Phase.ACTIONABLE
                 || hover.renderedUnderline().isEmpty()
-                || !hover.handCursorSelected()) return false;
+                || !hover.handCursorSelected()) {
+            if (phaseTicks > 20
+                    && hover.lastCancellationCause() != SFMSymbolHoverStateMachine.CancellationCause.NONE) {
+                fail("Ctrl-hover lookup cancelled by " + hover.lastCancellationCause());
+            }
+            return false;
+        }
         require(hover.renderedUnderline().orElseThrow().equals(hoverPointer.hit().range()),
                 "Ctrl-hover underlined a range other than the exact ProgramContext symbol");
         JsonObject json = new JsonObject();
@@ -511,7 +550,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private boolean invokeRightClick() {
         SFMScreenMultiplexer workspace = requireWorkspace();
         restoreSource(workspace);
-        workspace.mouseMoved(contextPointer.globalX(), contextPointer.globalY());
+        SFMGamePuppetPointer.move(workspace, contextPointer.globalX(), contextPointer.globalY());
         require(workspace.mouseClicked(
                         contextPointer.globalX(), contextPointer.globalY(), GLFW.GLFW_MOUSE_BUTTON_RIGHT),
                 "The editor did not route the contextual right-click");
@@ -677,8 +716,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         assertReferenceIdentity(workspace);
         require(workspace.visiblePanelEntries().size() == initialVisiblePanels + 1,
                 "Opening a reference row changed visible pane geometry");
-        require(workspace.panelStackId(target.orElseThrow().panelId()).map(Object::toString)
-                        .filter(sourceStackId::equals).isPresent(),
+        require(sameStack(workspace, sourcePanelId, target.orElseThrow().panelId()),
                 "A reference row opened outside the originating source stack");
         JsonObject opened = new JsonObject();
         opened.addProperty("ordinal", referenceIndex + 1);
@@ -760,6 +798,38 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         if (!runtime.capture("output-statement-reveal-in-explorer", caption(
                 "Reveal in Explorer reuses the compatible source explorer and selects exact OutputStatement.java."
         ))) return false;
+        advance(Phase.FOCUS_PERFORMANCE_WINDOW);
+        return false;
+    }
+
+    private boolean focusPerformanceWindow() {
+        SFMGamePuppetForegroundWindow.Observation observation =
+                SFMGamePuppetForegroundWindow.request(Minecraft.getInstance());
+        performanceFocusRequests++;
+        if (!observation.readyForVisibleLatency()) {
+            if (phaseTicks > 40) {
+                fail("The visible EditorV3 latency checkpoint could not make its preview window foreground: "
+                        + observation);
+            }
+            return false;
+        }
+        // Give the compositor/driver half a second to leave any background
+        // application frame policy before starting the warm sample window.
+        if (phaseTicks < 10) return false;
+        JsonObject focus = new JsonObject();
+        focus.addProperty("required_for_visible_latency", true);
+        focus.addProperty("glfw_focused", observation.glfwFocused());
+        focus.addProperty("iconified", observation.iconified());
+        focus.addProperty("platform_probe_available", observation.platformProbeAvailable());
+        focus.addProperty("platform_foreground", observation.platformForeground());
+        focus.addProperty("foreground_request_accepted", observation.foregroundRequestAccepted());
+        focus.addProperty("thread_input_attached", observation.threadInputAttached());
+        focus.addProperty("platform_window", Long.toUnsignedString(observation.platformWindow()));
+        focus.addProperty("platform_foreground_window",
+                Long.toUnsignedString(observation.platformForegroundWindow()));
+        focus.addProperty("focus_requests", performanceFocusRequests);
+        focus.addProperty("settle_ticks", phaseTicks);
+        evidence.add("performance_window", focus);
         advance(Phase.WARM_PERFORMANCE);
         return false;
     }
@@ -767,21 +837,70 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private boolean warmPerformance(ISFMGamePuppetRuntime runtime) {
         SFMScreenMultiplexer workspace = requireWorkspace();
         SFMSourcePuppetProbe.EditorHandle source = restoreSource(workspace);
-        if (performanceSettleTicks == 0) {
-            SFMTextDocumentSnapshot document = source.state().documentSnapshot().orElseThrow();
-            SFMTextDocumentRange range = SFMSourcePuppetProbe.symbolRange(document.text(), "OutputStatement", 0);
-            C11SourceNavigationPuppetProbe.Pointer pointer = C11SourceNavigationPuppetProbe.pointer(workspace, source, range);
-            workspace.mouseMoved(pointer.globalX(), pointer.globalY());
-            workspace.mouseScrolled(pointer.globalX(), pointer.globalY(), -1.0D);
-        } else if (performanceSettleTicks == 2) {
-            C11SourceNavigationPuppetProbe.Pointer pointer = C11SourceNavigationPuppetProbe.pointer(
-                    workspace, source,
-                    SFMSourcePuppetProbe.symbolRange(
-                            source.state().documentSnapshot().orElseThrow().text(), "OutputStatement", 0));
-            workspace.mouseScrolled(pointer.globalX(), pointer.globalY(), 1.0D);
+        if (!performanceMeasurementStarted) {
+            if (performanceRenderTicket != null) {
+                if (!SFMGamePuppetRenderHarness.await(performanceRenderTicket)) return false;
+                performanceRenderTicket = null;
+                performanceWarmupInteractionIndex++;
+            }
+            if (performanceWarmupInteractionIndex < WARM_INTERACTION_KINDS) {
+                int interaction = performanceWarmupInteractionIndex;
+                performanceRenderTicket = SFMGamePuppetRenderHarness.beforeNextFrame(
+                        workspace,
+                        () -> runWarmInteraction(interaction, workspace)
+                );
+                return false;
+            }
+            C11SourceNavigationPuppetProbe.beginWarmPerformanceMeasurement(source);
+            performanceMeasurementStarted = true;
+            completedInputToFrameSamples = 0L;
+            return false;
         }
-        if (++performanceSettleTicks < 20) return false;
+
+        if (performanceRenderTicket != null) {
+            if (!SFMGamePuppetRenderHarness.await(performanceRenderTicket)) return false;
+            var completed = C11SourceNavigationPuppetProbe.performance(restoreSource(workspace));
+            require(completed.inputToFrameSamples() == completedInputToFrameSamples + 1L,
+                    "A warm interaction did not produce exactly one completed input-to-frame sample: before="
+                            + completedInputToFrameSamples + " after=" + completed.inputToFrameSamples());
+            JsonObject sample = new JsonObject();
+            sample.addProperty("ordinal", performanceInteractionIndex);
+            sample.addProperty("cycle", performanceInteractionIndex / WARM_INTERACTION_KINDS);
+            sample.addProperty("interaction", warmInteractionName(
+                    performanceInteractionIndex % WARM_INTERACTION_KINDS
+            ));
+            sample.addProperty("input_to_frame_nanos", completed.latestInputToFrameNanos());
+            performanceInputSamples.add(sample);
+            completedInputToFrameSamples = completed.inputToFrameSamples();
+            performanceRenderTicket = null;
+            performanceInteractionIndex++;
+        }
+
+        if (performanceInteractionIndex < WARM_INTERACTION_COUNT) {
+            int interaction = performanceInteractionIndex;
+            performanceRenderTicket = SFMGamePuppetRenderHarness.beforeNextFrame(
+                    workspace,
+                    () -> runWarmInteraction(interaction % WARM_INTERACTION_KINDS, workspace)
+            );
+            return false;
+        }
+
+        source = restoreSource(workspace);
         var performance = C11SourceNavigationPuppetProbe.performance(source);
+        JsonArray warmScript = new JsonArray();
+        warmScript.add("pointer-move");
+        warmScript.add("scroll-down");
+        warmScript.add("scroll-up");
+        warmScript.add("selection-click");
+        warmScript.add("f12-context-capture");
+        warmScript.add("pointer-move-second-symbol");
+        evidence.add("warm_interaction_script", warmScript);
+        evidence.addProperty("warm_measurement_window_reset", true);
+        evidence.addProperty("warm_measurement_dispatch", "screen-render-pre");
+        evidence.addProperty("warmup_render_pre_interactions", WARM_INTERACTION_KINDS);
+        evidence.addProperty("warm_measurement_cycles", WARM_MEASUREMENT_CYCLES);
+        evidence.addProperty("warm_completed_input_to_frame_samples", completedInputToFrameSamples);
+        evidence.add("warm_input_to_frame_samples", performanceInputSamples);
         evidence.add("performance", performance(performance));
         evidence.addProperty("definition_fixture_count", definitionEvidence.size());
         evidence.addProperty("reference_rows_opened", openedReferenceEvidence.size());
@@ -794,8 +913,15 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         require(performance.frames() > 0, "EditorV3 produced no live frame samples");
         require(performance.inputToFrameMaximumNanos() > 0,
                 "EditorV3 produced no live input-to-frame sample");
+        require(performance.inputToFrameSamples() == WARM_INTERACTION_COUNT,
+                "EditorV3 did not complete every render-pre interaction sample: "
+                        + performance.inputToFrameSamples());
         require(performance.contextCaptures() > 0,
                 "EditorV3 produced no contextual-capture sample");
+        require(performance.inputEvents() >= 7L * WARM_MEASUREMENT_CYCLES,
+                "EditorV3 warm script produced too few input events: " + performance.inputEvents());
+        require(performance.inputApplications() == performance.inputEvents(),
+                "EditorV3 did not synchronously apply every warm input event");
         require(performance.frameMedianNanos() <= FRAME_MEDIAN_BUDGET_NANOS,
                 "EditorV3 frame median exceeded 16.7 ms: " + performance.frameMedianNanos());
         require(performance.frameP95Nanos() <= FRAME_P95_BUDGET_NANOS,
@@ -806,6 +932,89 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
                 "EditorV3 input-to-frame p95 exceeded 50 ms: " + performance.inputToFrameP95Nanos());
         advance(Phase.FINALIZE);
         return false;
+    }
+
+    private void runWarmInteraction(int interaction, SFMScreenMultiplexer workspace) {
+        SFMSourcePuppetProbe.EditorHandle source = restoreSource(workspace);
+        C11SourceNavigationPuppetProbe.Pointer outputStatement = warmPointer(
+                workspace,
+                source,
+                "OutputStatement"
+        );
+        switch (interaction) {
+            case 0 -> SFMGamePuppetPointer.move(
+                    workspace,
+                    outputStatement.globalX(),
+                    outputStatement.globalY()
+            );
+            case 1 -> workspace.mouseScrolled(
+                    outputStatement.globalX(),
+                    outputStatement.globalY(),
+                    -1.0D
+            );
+            case 2 -> workspace.mouseScrolled(
+                    outputStatement.globalX(),
+                    outputStatement.globalY(),
+                    1.0D
+            );
+            case 3 -> {
+                require(workspace.mouseClicked(
+                                outputStatement.globalX(),
+                                outputStatement.globalY(),
+                                GLFW.GLFW_MOUSE_BUTTON_LEFT
+                        ),
+                        "The warm selection sample was not routed to EditorV3");
+                workspace.mouseReleased(
+                        outputStatement.globalX(),
+                        outputStatement.globalY(),
+                        GLFW.GLFW_MOUSE_BUTTON_LEFT
+                );
+            }
+            case 4 -> {
+                source.resolvedPanel().orElseThrow().keyPressed(GLFW.GLFW_KEY_F12, 0, 0);
+                require(C11SourceNavigationPuppetProbe.focusedDocument(workspace).isPresent(),
+                        "The warm F12-context capture sample was unavailable");
+                source.resolvedPanel().orElseThrow().keyReleased(GLFW.GLFW_KEY_F12, 0, 0);
+            }
+            case 5 -> {
+                C11SourceNavigationPuppetProbe.Pointer programContext = warmPointer(
+                        workspace,
+                        source,
+                        "ProgramContext"
+                );
+                SFMGamePuppetPointer.move(
+                        workspace,
+                        programContext.globalX(),
+                        programContext.globalY()
+                );
+            }
+            default -> throw new IllegalArgumentException("Unknown warm interaction index " + interaction);
+        }
+    }
+
+    private static String warmInteractionName(int interaction) {
+        return switch (interaction) {
+            case 0 -> "pointer-move";
+            case 1 -> "scroll-down";
+            case 2 -> "scroll-up";
+            case 3 -> "selection-click";
+            case 4 -> "f12-context-capture";
+            case 5 -> "pointer-move-second-symbol";
+            default -> throw new IllegalArgumentException("Unknown warm interaction index " + interaction);
+        };
+    }
+
+    private static C11SourceNavigationPuppetProbe.Pointer warmPointer(
+            SFMScreenMultiplexer workspace,
+            SFMSourcePuppetProbe.EditorHandle source,
+            String symbol
+    ) {
+        SFMTextDocumentSnapshot document = source.state().documentSnapshot().orElseThrow();
+        return C11SourceNavigationPuppetProbe.pointer(
+                workspace,
+                source,
+                SFMSourcePuppetProbe.symbolRange(document.text(), symbol, 0)
+        );
     }
 
     private boolean finalizeEvidence(ISFMGamePuppetRuntime runtime) {
@@ -833,9 +1042,6 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
                 .orElseThrow(() -> new IllegalStateException("OutputStatement.java editor disappeared"));
         require(workspace.focusPanel(source.panelId()), "OutputStatement.java editor could not be focused");
         sourcePanelId = source.panelId();
-        require(workspace.panelStackId(sourcePanelId).map(Object::toString)
-                        .filter(sourceStackId::equals).isPresent(),
-                "OutputStatement.java moved out of its original stack");
         return source;
     }
 
@@ -875,9 +1081,18 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     ) {
         require(workspace.visiblePanelEntries().size() == visibleBefore,
                 "Definition navigation created surprise split geometry");
-        require(workspace.panelStackId(targetPanelId).map(Object::toString)
-                        .filter(sourceStackId::equals).isPresent(),
+        require(sameStack(workspace, sourcePanelId, targetPanelId),
                 "Definition navigation escaped the originating source stack");
+    }
+
+    private static boolean sameStack(
+            SFMScreenMultiplexer workspace,
+            SFMWorkspacePanelId left,
+            SFMWorkspacePanelId right
+    ) {
+        return workspace.panelStackId(left)
+                .flatMap(leftStack -> workspace.panelStackId(right).map(leftStack::equals))
+                .orElse(false);
     }
 
     private void assertReferenceIdentity(SFMScreenMultiplexer workspace) {
@@ -984,6 +1199,8 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         json.addProperty("input_to_frame_median_nanos", performance.inputToFrameMedianNanos());
         json.addProperty("input_to_frame_p95_nanos", performance.inputToFrameP95Nanos());
         json.addProperty("input_to_frame_maximum_nanos", performance.inputToFrameMaximumNanos());
+        json.addProperty("input_to_frame_samples", performance.inputToFrameSamples());
+        json.addProperty("latest_input_to_frame_nanos", performance.latestInputToFrameNanos());
         json.addProperty("input_events", performance.inputEvents());
         json.addProperty("input_applications", performance.inputApplications());
         json.addProperty("input_apply_median_nanos", performance.inputApplyMedianNanos());
@@ -1018,6 +1235,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         json.addProperty("context_sample_present", performance.contextCaptures() > 0);
         json.addProperty("budgets_met", performance.frames() > 0
                 && performance.inputToFrameMaximumNanos() > 0
+                && performance.inputToFrameSamples() == WARM_INTERACTION_COUNT
                 && performance.contextCaptures() > 0
                 && performance.frameMedianNanos() <= FRAME_MEDIAN_BUDGET_NANOS
                 && performance.frameP95Nanos() <= FRAME_P95_BUDGET_NANOS

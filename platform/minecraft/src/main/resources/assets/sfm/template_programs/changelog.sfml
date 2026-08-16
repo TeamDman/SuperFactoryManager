@@ -58,6 +58,7 @@ NAME "Changelog"
 -- Add F12, Alt+Enter, and command-palette jump-to-definition for addressed Java documents with safe panel navigation
 -- Resolve JDK, local, member, annotation, and import definitions from Text Editor v3 without surprise side splits
 -- Add Ctrl-hover link affordances, Ctrl+click definition navigation, and shared Alt+Enter/right-click contextual actions
+-- Preserve EditorV3 multi-cursor clicks when no current actionable definition-hover target owns the gesture
 -- Add Alt+F7 persistent reference explorers and reveal-in-explorer for focused source documents
 -- Make large Text Editor v3 documents responsive with viewport indexes and reusable projection, style, and selection state
 -- Add extension-aware explorer icons, discoverable view/path modes, fuzzy filtering, immediate wheel scrolling, and corrected focus borders

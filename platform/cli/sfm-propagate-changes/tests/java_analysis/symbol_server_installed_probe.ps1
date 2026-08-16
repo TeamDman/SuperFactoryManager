@@ -75,6 +75,62 @@ function Get-Sha256ContentHash {
     return "sha256:$([System.Convert]::ToHexString($digest).ToLowerInvariant())"
 }
 
+function Get-BranchJavaSourceTreeSnapshot {
+    param([Parameter(Mandatory = $true)] [string] $Root)
+    $canonicalRoot = [System.IO.Path]::GetFullPath($Root)
+    $sourceBase = [System.IO.Path]::Combine(
+        $canonicalRoot,
+        "platform",
+        "minecraft",
+        "src"
+    )
+    if (-not (Test-Path -LiteralPath $sourceBase -PathType Container)) {
+        throw "Branch Java source base does not exist: $sourceBase"
+    }
+
+    $files = @(
+        [System.IO.Directory]::EnumerateDirectories($sourceBase) |
+            ForEach-Object { [System.IO.Path]::Combine($_, "java") } |
+            Where-Object { Test-Path -LiteralPath $_ -PathType Container } |
+            ForEach-Object {
+                [System.IO.Directory]::EnumerateFiles(
+                    $_,
+                    "*.java",
+                    [System.IO.SearchOption]::AllDirectories
+                )
+            }
+    )
+    [System.Array]::Sort($files, [System.StringComparer]::Ordinal)
+
+    $hasher = [System.Security.Cryptography.IncrementalHash]::CreateHash(
+        [System.Security.Cryptography.HashAlgorithmName]::SHA256
+    )
+    [int64] $totalBytes = 0
+    try {
+        foreach ($path in $files) {
+            $relativePath = [System.IO.Path]::GetRelativePath($canonicalRoot, $path).Replace('\', '/')
+            $contents = [System.IO.File]::ReadAllBytes($path)
+            $totalBytes += $contents.LongLength
+            $header = [System.Text.Encoding]::UTF8.GetBytes(
+                "path:$relativePath`nbytes:$($contents.LongLength)`n"
+            )
+            $hasher.AppendData($header)
+            $hasher.AppendData($contents)
+            $hasher.AppendData([byte[]] @(10))
+        }
+        $digest = $hasher.GetHashAndReset()
+    } finally {
+        $hasher.Dispose()
+    }
+
+    return [pscustomobject] [ordered]@{
+        scope = "platform/minecraft/src/*/java/**/*.java"
+        file_count = $files.Count
+        total_bytes = $totalBytes
+        sha256 = "sha256:$([System.Convert]::ToHexString($digest).ToLowerInvariant())"
+    }
+}
+
 function New-DefinitionRequest {
     param(
         [Parameter(Mandatory = $true)] [uint64] $RequestId,
@@ -297,6 +353,8 @@ $failureEvidencePath = "$artifactBase.failure.json"
 foreach ($staleEvidencePath in @($structuredLogPath, $stderrEvidencePath, $failureEvidencePath)) {
     [System.IO.File]::Delete($staleEvidencePath)
 }
+$probeStage = "source-tree/before"
+$sourceTreeBefore = Get-BranchJavaSourceTreeSnapshot -Root $RepoRoot
 $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
 $startInfo.FileName = [System.IO.Path]::GetFullPath($Executable)
 $executableVersion = (& $startInfo.FileName --version | Out-String).Trim()
@@ -571,6 +629,16 @@ try {
     if ($leakedDescendants.Count -ne 0) {
         throw "Symbol worker left descendant processes alive: $($leakedDescendants -join ', ')."
     }
+    $probeStage = "source-tree/after"
+    $sourceTreeAfter = Get-BranchJavaSourceTreeSnapshot -Root $RepoRoot
+    $sourceTreeEqual = (
+        $sourceTreeBefore.file_count -eq $sourceTreeAfter.file_count -and
+        $sourceTreeBefore.total_bytes -eq $sourceTreeAfter.total_bytes -and
+        $sourceTreeBefore.sha256 -eq $sourceTreeAfter.sha256
+    )
+    if (-not $sourceTreeEqual) {
+        throw "Installed symbol worker mutated the analyzed branch Java source tree."
+    }
     $stderr = $stderrTask.GetAwaiter().GetResult()
     $probeStage = "report"
     $warmSummary = Get-LatencySummary -Samples @($warm)
@@ -603,7 +671,7 @@ try {
         )
     }
     $report = [ordered]@{
-        schema = "sfm.symbol-server-installed-probe/4"
+        schema = "sfm.symbol-server-installed-probe/5"
         executable = [System.IO.Path]::GetFileName($startInfo.FileName)
         executable_version = $executableVersion
         branch = $Branch
@@ -615,6 +683,11 @@ try {
         usage_at_position_warm_summary = $usageWarmSummary
         negotiated_capabilities = @($helloFrame.hello.capabilities)
         managed_source_roots = $managedRoots
+        analyzed_source_tree = [ordered]@{
+            before = $sourceTreeBefore
+            after = $sourceTreeAfter
+            equal = $sourceTreeEqual
+        }
         mixed_response_kinds = $mixedKinds
         cancellation_response_kinds = $cancelKinds
         usage_cancellation_response_kinds = $usageCancelKinds
@@ -632,9 +705,9 @@ try {
         telemetry_lines = $telemetry
         telemetry = $structuredTelemetry
     }
-    $json = $report | ConvertTo-Json -Depth 100
+    $json = ($report | ConvertTo-Json -Depth 100).Replace("`r`n", "`n")
     if ($OutputPath) {
-        [System.IO.File]::WriteAllText($destination, $json + [Environment]::NewLine)
+        [System.IO.File]::WriteAllText($destination, $json + "`n")
     }
     $json
     if (-not $report.warm_summary.accepted -or

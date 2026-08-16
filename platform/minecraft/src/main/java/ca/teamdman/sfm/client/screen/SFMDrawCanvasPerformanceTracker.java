@@ -21,6 +21,8 @@ public final class SFMDrawCanvasPerformanceTracker {
             long inputToFrameMedianNanos,
             long inputToFrameP95Nanos,
             long inputToFrameMaximumNanos,
+            long inputToFrameSamples,
+            long latestInputToFrameNanos,
             long inputEvents,
             long inputApplications,
             long inputApplyMedianNanos,
@@ -65,6 +67,8 @@ public final class SFMDrawCanvasPerformanceTracker {
     private long contextCaptureNanos;
     private long syntaxWorkerSubmissions;
     private long inputEvents;
+    private long inputToFrameSamples;
+    private long latestInputToFrameNanos;
     private long inputApplications;
     private long styleProjectionRebuilds;
     private long styleProjectionNanos;
@@ -87,6 +91,41 @@ public final class SFMDrawCanvasPerformanceTracker {
 
     public void coldLoad(long nanos) {
         coldLoadNanos = Math.max(0L, nanos);
+    }
+
+    /**
+     * Starts an explicit warm interaction window while retaining the separately
+     * measured cold-load cost. This prevents time spent with another tab or
+     * palette visible from being misreported as EditorV3 input-to-frame latency.
+     */
+    public void beginWarmMeasurement() {
+        frameNanos.clear();
+        inputToFrameNanos.clear();
+        inputApplyNanos.clear();
+        frameAllocatedBytes.clear();
+        frames = 0L;
+        viewportRebuilds = 0L;
+        viewportCacheHits = 0L;
+        viewportResolveNanos = 0L;
+        glyphsVisited = 0L;
+        glyphsDrawn = 0L;
+        contextCaptures = 0L;
+        contextCaptureNanos = 0L;
+        syntaxWorkerSubmissions = 0L;
+        inputEvents = 0L;
+        inputToFrameSamples = 0L;
+        latestInputToFrameNanos = 0L;
+        inputApplications = 0L;
+        styleProjectionRebuilds = 0L;
+        styleProjectionNanos = 0L;
+        selectionGeometryRebuilds = 0L;
+        selectionGeometryCacheHits = 0L;
+        selectionGeometryNanos = 0L;
+        openTargetGeometryBuilds = 0L;
+        openTargetGeometryNanos = 0L;
+        frameAllocationSamples = 0L;
+        pendingInputNanos = -1L;
+        currentInputNanos = -1L;
     }
 
     public void inputReceived(long nowNanos) {
@@ -140,7 +179,9 @@ public final class SFMDrawCanvasPerformanceTracker {
             frameAllocationSamples++;
         }
         if (pendingInputNanos >= 0L) {
-            append(inputToFrameNanos, Math.max(0L, completedNanos - pendingInputNanos));
+            latestInputToFrameNanos = Math.max(0L, completedNanos - pendingInputNanos);
+            append(inputToFrameNanos, latestInputToFrameNanos);
+            inputToFrameSamples++;
             pendingInputNanos = -1L;
         }
     }
@@ -188,6 +229,8 @@ public final class SFMDrawCanvasPerformanceTracker {
                 input.median(),
                 input.p95(),
                 input.maximum(),
+                inputToFrameSamples,
+                latestInputToFrameNanos,
                 inputEvents,
                 inputApplications,
                 inputApply.median(),

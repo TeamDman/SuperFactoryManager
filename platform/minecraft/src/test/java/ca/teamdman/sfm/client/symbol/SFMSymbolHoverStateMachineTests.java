@@ -180,6 +180,8 @@ class SFMSymbolHoverStateMachineTests {
         machine.focusChanged();
         assertEquals(1, lookup.cancellations.get());
         assertEquals(SFMSymbolHoverStateMachine.Phase.IDLE, machine.snapshot().phase());
+        assertEquals(SFMSymbolHoverStateMachine.CancellationCause.FOCUS_CHANGED,
+                machine.lastCancellationCause());
 
         machine.observe(Optional.of(target("name", 0, 4, 0, 4, 0, 1)));
         assertEquals(2, lookup.submissions.size());

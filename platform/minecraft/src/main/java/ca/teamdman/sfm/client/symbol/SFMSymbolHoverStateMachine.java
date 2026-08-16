@@ -26,6 +26,16 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
         FALLBACK_DRAG
     }
 
+    public enum CancellationCause {
+        NONE,
+        TARGET_CHANGED,
+        MODIFIERS_CHANGED,
+        DOCUMENT_CHANGED,
+        FOCUS_CHANGED,
+        SCREEN_CLOSED,
+        POINTER_EXITED
+    }
+
     @FunctionalInterface
     public interface DragThreshold {
         boolean isDrag(double pressX, double pressY, double releaseX, double releaseY);
@@ -116,6 +126,7 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
     private ActiveLookup activeLookup;
     private Press press;
     private long lookupGeneration;
+    private CancellationCause lastCancellationCause = CancellationCause.NONE;
 
     public SFMSymbolHoverStateMachine(SFMSymbolHoverLookup lookup, DragThreshold dragThreshold) {
         this.lookup = Objects.requireNonNull(lookup, "lookup");
@@ -128,7 +139,7 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
         if (target.equals(newTarget)) return;
         target = newTarget;
         press = null;
-        refreshIdentity();
+        refreshIdentity(CancellationCause.TARGET_CHANGED);
     }
 
     /** Modifier events are independent of movement, so pressing Ctrl over a stationary symbol works. */
@@ -138,27 +149,27 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
         boolean releasedDefinitionModifier = modifiers.control() && !newModifiers.control();
         modifiers = newModifiers;
         if (releasedDefinitionModifier) {
-            cancelActive();
+            cancelActive(CancellationCause.MODIFIERS_CHANGED);
             snapshot = Snapshot.idle();
             press = null;
         }
-        refreshIdentity();
+        refreshIdentity(CancellationCause.MODIFIERS_CHANGED);
     }
 
     public synchronized void documentChanged() {
-        clear(true);
+        clear(true, CancellationCause.DOCUMENT_CHANGED);
     }
 
     public synchronized void focusChanged() {
-        clear(true);
+        clear(true, CancellationCause.FOCUS_CHANGED);
     }
 
     public synchronized void screenClosed() {
-        clear(true);
+        clear(true, CancellationCause.SCREEN_CLOSED);
     }
 
     public synchronized void pointerExited() {
-        clear(true);
+        clear(true, CancellationCause.POINTER_EXITED);
     }
 
     /** Captures the currently actionable identity, but leaves final click/drag policy to release. */
@@ -190,29 +201,35 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
         return terminalCache.size();
     }
 
+    public synchronized CancellationCause lastCancellationCause() {
+        return lastCancellationCause;
+    }
+
     @Override
     public synchronized void close() {
         screenClosed();
         terminalCache.clear();
     }
 
-    private void refreshIdentity() {
+    private void refreshIdentity(CancellationCause cancellationCause) {
         if (target.isEmpty() || !modifiers.control() || modifiers.alt()) {
-            cancelActive();
+            cancelActive(cancellationCause);
             snapshot = Snapshot.idle();
             return;
         }
         SFMSymbolHoverIdentity identity = target.orElseThrow().identity(modifiers);
         if (snapshot.identity().filter(identity::equals).isPresent()) return;
-        cancelActive();
+        cancelActive(cancellationCause);
         SFMSymbolHoverLookup.Resolution cached = terminalCache.get(identity);
         if (cached != null) {
+            lastCancellationCause = CancellationCause.NONE;
             snapshot = snapshot(identity, cached);
             return;
         }
         long generation = ++lookupGeneration;
         SFMSymbolHoverLookup.Query query = Objects.requireNonNull(lookup.submit(identity), "lookup query");
         activeLookup = new ActiveLookup(generation, identity, query);
+        lastCancellationCause = CancellationCause.NONE;
         snapshot = new Snapshot(Phase.LOOKING_UP, Optional.of(identity), Optional.empty(), false);
         query.result().whenComplete((resolution, failure) -> complete(generation, identity, resolution, failure));
     }
@@ -257,15 +274,16 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
         return new Snapshot(phase, Optional.of(identity), Optional.empty(), false);
     }
 
-    private void clear(boolean forgetTarget) {
-        cancelActive();
+    private void clear(boolean forgetTarget, CancellationCause cancellationCause) {
+        cancelActive(cancellationCause);
         snapshot = Snapshot.idle();
         press = null;
         if (forgetTarget) target = Optional.empty();
     }
 
-    private void cancelActive() {
+    private void cancelActive(CancellationCause cancellationCause) {
         if (activeLookup == null) return;
+        lastCancellationCause = Objects.requireNonNull(cancellationCause, "cancellationCause");
         activeLookup.query().cancel();
         activeLookup = null;
     }

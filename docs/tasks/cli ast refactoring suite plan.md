@@ -82,7 +82,7 @@ authorize source rewrites.
 | JAVA-49 | `Find References`/`Find Usages` should work from the editor position just as definition lookup does; the UI should not have to derive an exact selector first. | Phase 0.12.2 adds a mutually exclusive location form to `symbol list-usages`, a typed usage-at-position engine request/result, and a supervised worker capability sharing the definition context. | — |
 | JAVA-50 | Reference results must be rich enough for a persistent explorer and repeated source navigation. | Phase 0.12.2 returns the resolved target plus deterministic categorized usages, concrete source spans/addresses, source-set/origin/hash identity, completeness, diagnostics, and recovery recommendations. | — |
 | JAVA-51 | Interactive references must reuse the warm worker, remain cancellable/stale-safe, and not spawn one CLI process per invocation. | Phase 0.12.3 extends `symbol serve` negotiation/framing/cache/generation/cancellation with usage-at-position and proves direct/worker canonical parity and bounded lifecycle. | — |
-| JAVA-52 | The new work is navigation/review infrastructure, not authorization to begin source mutation or refactoring Phase 1. | Phase 0.12 is read-only, changes no Java source, invokes no Gradle flow, and stops before rename/move/refactor implementation, propagation, publication, or release. | — |
+| JAVA-52 | The new work is navigation/review infrastructure, not authorization to begin source mutation or refactoring Phase 1. | Phase 0.12 introduces no Java-source mutation/refactoring capability and does not mutate analyzed source trees. Java consumer implementation and test edits are allowed. Phase 1 rename/move/refactoring, Gradle, propagation, publication, and release remain out of scope. | — |
 
 ## Guidance traceability
 
@@ -117,7 +117,7 @@ authorize source rewrites.
 | JAVA-47, JAVA-48 | 0.12.1; 0.12.3; contextual C-7 | Negotiated root-mapping fixtures, exact quoted-failure regressions, target-domain completeness tests, partial-index match retention, and Java/Rust integration evidence |
 | JAVA-49, JAVA-50 | 0.12.2; contextual C-8 | Location-form CLI/parser scenarios, target-plus-categorized-usage schemas, zero/one/many/partial outcomes, stable spans/addresses, and persistent-explorer consumption fixtures |
 | JAVA-51 | 0.12.3 | Worker capability negotiation, direct/worker parity, warm latency, cancellation/generation/cache bounds, crash/restart/EOF cleanup, and zero leaked processes |
-| JAVA-52 | Phase 0.12 scope/exclusions | Read-only diff/source-tree equality proof, no Gradle/propagation/publication, and Phase 1 headings remain incomplete |
+| JAVA-52 | Phase 0.12 scope/exclusions | Pre/post byte-equality proof for analyzed source trees plus proof that no mutation-capable request or command was introduced; Java consumer implementation diffs are permitted; no Gradle/propagation/publication and Phase 1 headings remain incomplete |
 
 ## Intent audit evidence
 
@@ -2006,10 +2006,12 @@ successfully with the installed-worker integration enabled.
 
 ## Phase 0.12 — Complete location definitions and add location-aware usages
 
-This read-only phase is the CLI-side dependency of contextual-plan C-7 through
-C-9. It improves one symbol universe and one supervised worker; it does not
-implement Minecraft gestures/panels, mutate Java, invoke Gradle, propagate, or
-begin Phase 1 refactoring architecture.
+This read-only-analysis phase is the CLI-side dependency of contextual-plan
+C-7 through C-9. It improves one symbol universe and one supervised worker. It
+introduces no Java-source mutation/refactoring capability and does not mutate
+analyzed source trees; Java consumer implementation and test edits are allowed.
+It does not invoke Gradle, propagate, publish, release, or begin Phase 1
+refactoring architecture.
 
 ### [~] 0.12.1 Resolve JDK, local, member, annotation, and import definitions at position
 
@@ -2048,9 +2050,10 @@ commit `bd38aae8b` adds branch-selected JDK source definitions, implicit
 `java.lang`, lexical local/parameter lookup, and member/annotation/import
 location coverage. The strict CLI `check-all.ps1` gate passed 598 library tests
 (3 ignored) plus all 9 adjacent Java-analysis scenarios. The Minecraft
-consumer and exact F12 fixture journey are in Java commit `2c013aa66`; canonical
-Java compile/full-suite and the C-11 live puppet remain before this item may be
-marked complete.
+consumer and exact F12 fixture journey are in Java commit `2c013aa66` plus the
+current acceptance harness. Canonical Java compile/full-suite and the installed
+cross-runtime integration passed. One refreshed C-11 live run after the final
+input-gesture guard remains before this item may be marked complete.
 
 ### [~] 0.12.2 Add typed usage-at-position and the `list-usages` location form
 
@@ -2089,7 +2092,8 @@ commit `bd38aae8b` adds typed location-based usage requests/results for the
 direct CLI and reusable engine, deterministic target/categorized span output,
 bounded result admission, and zero/one/many/partial/duplicate-authority
 scenarios. Java commit `2c013aa66` consumes the contract through a persistent
-generic reference explorer. The integrated C-11 live result-retention journey
+generic reference explorer. Canonical Java integration and an earlier C-11
+result-retention journey passed; one refreshed run after the final input guard
 remains before completion.
 
 ### [~] 0.12.3 Extend `symbol serve`, prove root/completeness correctness, and hand off
@@ -2123,8 +2127,9 @@ EOF/shutdown, memory/process bounds, and zero leaked workers. Run required
 **Completion criteria:** One supervised worker serves correct definition and
 usage-at-position queries over workspace/dependency/JDK sources with measured
 interactive reuse, clean cancellation/lifecycle, canonical direct parity, and
-sufficient typed mapping/completeness evidence for C-7/C-8. Java sources and
-Phase 1 remain untouched.
+sufficient typed mapping/completeness evidence for C-7/C-8. No mutation-capable
+request/command is introduced, analyzed source trees remain byte-identical, and
+Phase 1 remains untouched; Java consumer implementation/test edits are allowed.
 
 **Implementation checkpoint (2026-08-16; live acceptance pending):** Rust
 commit `bd38aae8b` adds negotiated usage-at-position worker frames, shared
@@ -2132,10 +2137,14 @@ definition/usage surfaces, target-lazy bounded caches, cancellation, root and
 completeness evidence, and installed-process lifecycle probes. The installed
 revision-correct worker artifact
 `docs/task-evidence/source-navigation/symbol-server-installed-probe.json`
-records cold 4324.506 ms, warm mixed median 99.550 ms, p95 148.105 ms, max
-175.058 ms, definition median 75.679 ms, usage median 124.750 ms, accepted
-memory (485.9 MiB peak working set; 500.5 MiB steady private), exit 0, and zero
-leaked descendants. Canonical Java integration and live C-11 acceptance remain.
+uses schema 5 and records cold 4190.450 ms, warm mixed median 89.188 ms, p95
+137.690 ms, max 140.488 ms, definition median 72.778 ms, usage median 102.076
+ms, accepted memory (488.3 MiB peak working set; 504.8 MiB steady private),
+exit 0, and zero leaked descendants. Its pre/post digest covers all 1,605 files
+under `platform/minecraft/src/*/java` and is byte-identical at
+`sha256:57d489ab5b7be89e20f5e17b3e35a0b77ce95604bd696cb112062ed16c92d37a`,
+satisfying JAVA-52 without forbidding Java consumer implementation edits.
+Canonical Java integration passed; one refreshed live C-11 run remains.
 
 ### Phase 0.12 parallel work map
 

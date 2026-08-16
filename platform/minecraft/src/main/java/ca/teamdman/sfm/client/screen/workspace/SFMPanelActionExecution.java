@@ -3,9 +3,11 @@ package ca.teamdman.sfm.client.screen.workspace;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
+import ca.teamdman.sfm.client.screen.SFMActionChoice;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -13,6 +15,17 @@ import java.util.function.Consumer;
 /** Executes a panel control's canonical action against its captured host/panel. */
 public final class SFMPanelActionExecution {
     private SFMPanelActionExecution() {
+    }
+
+    /** Executes an action without making callers reconstruct the canonical command surface. */
+    public static boolean executeAction(
+            SFMWorkspacePanelContext context,
+            Minecraft minecraft,
+            ResourceLocation actionId,
+            Consumer<Component> feedback
+    ) {
+        Objects.requireNonNull(actionId);
+        return execute(context, minecraft, SFMActionChoice.invoke(actionId, "").command(), feedback);
     }
 
     public static boolean execute(

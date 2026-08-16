@@ -48,11 +48,13 @@ final class C11SourceNavigationPuppetProbe {
     record Hover(
             SFMSymbolHoverStateMachine.Snapshot snapshot,
             Optional<SFMSymbolHoverIdentity.TextGlyphRange> renderedUnderline,
-            boolean handCursorSelected
+            boolean handCursorSelected,
+            SFMSymbolHoverStateMachine.CancellationCause lastCancellationCause
     ) {
         Hover {
             Objects.requireNonNull(snapshot, "snapshot");
             renderedUnderline = Objects.requireNonNull(renderedUnderline, "renderedUnderline");
+            Objects.requireNonNull(lastCancellationCause, "lastCancellationCause");
         }
     }
 
@@ -151,7 +153,7 @@ final class C11SourceNavigationPuppetProbe {
             @SuppressWarnings("unchecked")
             Optional<SFMSymbolHoverIdentity.TextGlyphRange> underline =
                     (Optional<SFMSymbolHoverIdentity.TextGlyphRange>) DRAW_HOVER_UNDERLINE.get(draw(panel));
-            return new Hover(state.snapshot(), underline, selected);
+            return new Hover(state.snapshot(), underline, selected, state.lastCancellationCause());
         } catch (IllegalAccessException failure) {
             throw new IllegalStateException("Could not inspect the EditorV3 hover state", failure);
         }
@@ -176,6 +178,14 @@ final class C11SourceNavigationPuppetProbe {
             return draw(editor.resolvedPanel().orElseThrow()).performanceEvidence();
         } catch (IllegalAccessException failure) {
             throw new IllegalStateException("Could not inspect EditorV3 performance evidence", failure);
+        }
+    }
+
+    static void beginWarmPerformanceMeasurement(SFMSourcePuppetProbe.EditorHandle editor) {
+        try {
+            draw(editor.resolvedPanel().orElseThrow()).beginWarmPerformanceMeasurement();
+        } catch (IllegalAccessException failure) {
+            throw new IllegalStateException("Could not begin the EditorV3 warm performance measurement", failure);
         }
     }
 

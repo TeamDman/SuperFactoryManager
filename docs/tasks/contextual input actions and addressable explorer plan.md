@@ -502,9 +502,10 @@ workspace.
   exact ids and dependency order: CLI 0.12.1 -> C-7; CLI 0.12.2/0.12.3 -> C-8;
   B-4/B-5 subsets -> C-9; with X-8b and Track 1b as bounded parallel tracks,
   C-10 after instrumentation, and C-11 as the integrated acceptance/bookkeeping
-  gate. A fresh agent can tell what must not happen: no Gradle, source mutation,
-  propagation, publication, release tagging, Alt+drag relocation, picker X-8,
-  or broader Phase B search work.
+  gate. A fresh agent can tell what must not happen: no Gradle, Java-source
+  mutation/refactoring capability, analyzed-source-tree mutation, propagation,
+  publication, release tagging, Alt+drag relocation, picker X-8, or broader
+  Phase B search work. Java consumer implementation/test edits remain allowed.
 - **Known source limitation:** None. The verbatim requirement source is present
   in the current message, and the linked plans and 1.19.2 sources are available.
 
@@ -2194,7 +2195,7 @@ argument, useful contextual results arrive before a bounded recursive walk is
 finished, accepting a result performs the approved safe open/reveal behavior,
 and an empty context never scans a drive root.
 
-### [ ] B-4 Generalize reveal-in-explorer and bind Ctrl+Shift+E
+### [~] B-4 Generalize reveal-in-explorer and bind Ctrl+Shift+E
 
 **Work:** Close D-10 and the explorer vocabulary in D-11. Register semantic
 explorer focus/open and reveal actions. Resolve the captured focused address or
@@ -2225,7 +2226,12 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerRevealRes
 explicit reveal can target any compatible concrete address/query; file and item
 proofs use contributed explorer capabilities and preserve unrelated panels.
 
-### [ ] B-5 Replace token callbacks with Alt+Enter contextual action offers
+**Partial checkpoint (2026-08-16):** REVEAL-3 completes only the focused-
+document exact-path contribution and compatible-explorer reuse/open behavior.
+Ctrl+Shift+E fallback, item/query adapters, ambiguity handling, and every other
+B-4 requirement remain incomplete.
+
+### [~] B-5 Replace token callbacks with Alt+Enter contextual action offers
 
 **Work:** Close D-9 and the contextual-action portion of D-11. Register the
 semantic contextual-actions action and Alt+Enter default. Right-click over an
@@ -2262,6 +2268,11 @@ constrained to all valid contextual action drafts; context includes the whole
 document and true 2D point; missing arguments remain Brigadier/palette-owned;
 definition and persistent-reference offers can coexist; and Ctrl+Space no
 longer owns a separate one-to-one callback system.
+
+**Partial checkpoint (2026-08-16):** CTXREF completes only the Java-symbol
+provider, the shared Alt+Enter/right-click constrained palette, and the direct
+reference gestures. General token-callback migration, path/item providers,
+Ctrl+Space migration, and every other B-5 requirement remain incomplete.
 
 ### [ ] B-6 Prove contextual search/actions live and record the release boundary
 
@@ -2939,9 +2950,9 @@ Ctrl+left-click on a current actionable hover emits the same captured
 and separate click from drag. Add the `sfm:text_editor` Alt+F7 default for
 `sfm:symbol/references/open`. Right-click captures the clicked document point
 and opens the exact same B-5 constrained command-palette surface as Alt+Enter,
-including definition, references, and other registered providers. Keep
-Alt-click unbound for references while D-27 is open and preserve its existing
-multi-cursor behavior.
+including definition, references, and other registered providers. Per closed
+D-27, Alt-click remains unbound for references and retains EditorV3's existing
+Alt+click multi-cursor behavior.
 
 **Validation:** Test modifier press/release without mouse movement, movement
 between symbols, unresolved/ambiguous/slow/stale results, cache reuse, document
