@@ -46,7 +46,8 @@ pub(crate) struct JavaImport {
 pub(crate) struct JavaStaticImport {
     pub(crate) owner: String,
     pub(crate) member: String,
-    pub(crate) span: JavaSourceSpanOutput,
+    pub(crate) owner_span: JavaSourceSpanOutput,
+    pub(crate) member_span: JavaSourceSpanOutput,
 }
 
 impl JavaSyntaxFile {
@@ -265,15 +266,16 @@ fn find_imports(file: &JavaSyntaxFile) -> JavaImports {
             continue;
         };
         let absolute_start = node.start_byte() + relative_start;
-        let span = file.span_for_range(absolute_start..absolute_start + normalized.len());
         if is_static {
             if let Some(owner) = normalized.strip_suffix(".*") {
                 imports.static_wildcard_owners.insert(owner.to_owned());
             } else if let Some((owner, member)) = normalized.rsplit_once('.') {
+                let member_start = absolute_start + owner.len() + 1;
                 imports.static_members.push(JavaStaticImport {
                     owner: owner.to_owned(),
                     member: member.to_owned(),
-                    span,
+                    owner_span: file.span_for_range(absolute_start..absolute_start + owner.len()),
+                    member_span: file.span_for_range(member_start..member_start + member.len()),
                 });
             }
         } else if let Some(package) = normalized.strip_suffix(".*") {
@@ -285,7 +287,7 @@ fn find_imports(file: &JavaSyntaxFile) -> JavaImports {
                 .or_default()
                 .push(JavaImport {
                     qualified_name: normalized.to_owned(),
-                    span,
+                    span: file.span_for_range(absolute_start..absolute_start + normalized.len()),
                 });
         }
     }
@@ -295,7 +297,18 @@ fn find_imports(file: &JavaSyntaxFile) -> JavaImports {
         });
     }
     imports.static_members.sort_by(|left, right| {
-        (&left.owner, &left.member, &left.span).cmp(&(&right.owner, &right.member, &right.span))
+        (
+            &left.owner,
+            &left.member,
+            &left.owner_span,
+            &left.member_span,
+        )
+            .cmp(&(
+                &right.owner,
+                &right.member,
+                &right.owner_span,
+                &right.member_span,
+            ))
     });
     imports
 }
@@ -334,6 +347,10 @@ mod tests {
         assert!(file.imports.wildcard_packages.contains("other"));
         assert_eq!(file.imports.static_members[0].owner, "util.C");
         assert_eq!(file.imports.static_members[0].member, "VALUE");
+        assert_eq!(file.imports.static_members[0].owner_span.start_column, 15);
+        assert_eq!(file.imports.static_members[0].owner_span.end_column, 21);
+        assert_eq!(file.imports.static_members[0].member_span.start_column, 22);
+        assert_eq!(file.imports.static_members[0].member_span.end_column, 27);
         assert_eq!(file.imports.direct_types["B"][0].span.start_line, 2);
         assert_eq!(file.imports.direct_types["B"][0].span.start_column, 8);
         assert!(file.diagnostics.is_empty());

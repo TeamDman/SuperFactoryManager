@@ -304,6 +304,7 @@ impl<'a> RoutedJavaSymbol<'a> {
             JavaSymbolKind::Field | JavaSymbolKind::Method => {
                 identifiers.contains(owner_name) && member_accesses.contains(self.name)
             }
+            JavaSymbolKind::LocalVariable | JavaSymbolKind::Parameter => false,
         }
     }
 
@@ -359,6 +360,8 @@ fn parse_route_kind(value: &str) -> eyre::Result<JavaSymbolKind> {
         "field" => Ok(JavaSymbolKind::Field),
         "method" => Ok(JavaSymbolKind::Method),
         "constructor" => Ok(JavaSymbolKind::Constructor),
+        "local-variable" => Ok(JavaSymbolKind::LocalVariable),
+        "parameter" => Ok(JavaSymbolKind::Parameter),
         _ => eyre::bail!("unknown dependency Java symbol route kind `{value}`"),
     }
 }

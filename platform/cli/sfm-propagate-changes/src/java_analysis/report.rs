@@ -21,6 +21,7 @@ pub enum JavaSourceRootKind {
     Declared,
     Generated,
     Custom,
+    Jdk,
 }
 
 #[derive(Facet, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -35,6 +36,8 @@ pub enum JavaSymbolKind {
     Field,
     Method,
     Constructor,
+    LocalVariable,
+    Parameter,
 }
 
 #[derive(Facet, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -47,6 +50,7 @@ pub enum JavaUsageKind {
     FieldReference,
     Invocation,
     MethodReference,
+    LocalReference,
 }
 
 #[derive(Facet, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -82,6 +86,9 @@ pub struct DependencySymbolIndexQueryOutput {
     pub completeness: SymbolQueryCompleteness,
     pub expected_identity: String,
     pub portable_path: String,
+    /// Concrete local index root corresponding to `portable_path`. This is
+    /// intentionally distinct from the portable cache identity so local
+    /// clients can inspect the exact artifact that answered the query.
     pub path: String,
     pub reason: String,
     pub refresh_command: String,
@@ -204,6 +211,9 @@ impl JavaSymbolIdentityOutput {
                 self.name,
                 self.descriptor.as_deref().unwrap_or_default()
             ),
+            JavaSymbolKind::LocalVariable | JavaSymbolKind::Parameter => {
+                self.qualified_name.clone()
+            }
         }
     }
 }
@@ -723,6 +733,8 @@ const fn symbol_kind_name(kind: JavaSymbolKind) -> &'static str {
         JavaSymbolKind::Field => "field",
         JavaSymbolKind::Method => "method",
         JavaSymbolKind::Constructor => "constructor",
+        JavaSymbolKind::LocalVariable => "local-variable",
+        JavaSymbolKind::Parameter => "parameter",
     }
 }
 
@@ -734,6 +746,7 @@ const fn usage_kind_name(kind: JavaUsageKind) -> &'static str {
         JavaUsageKind::FieldReference => "field-reference",
         JavaUsageKind::Invocation => "invocation",
         JavaUsageKind::MethodReference => "method-reference",
+        JavaUsageKind::LocalReference => "local-reference",
     }
 }
 

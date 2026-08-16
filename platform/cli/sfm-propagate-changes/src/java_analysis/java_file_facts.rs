@@ -49,7 +49,8 @@ pub(crate) struct JavaTypeImportFact {
 pub(crate) struct JavaStaticImportFact {
     pub(crate) owner: String,
     pub(crate) member: String,
-    pub(crate) span: JavaSourceSpanOutput,
+    pub(crate) owner_span: JavaSourceSpanOutput,
+    pub(crate) member_span: JavaSourceSpanOutput,
 }
 
 #[derive(Facet, Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -184,6 +185,13 @@ fn build_java_file_facts_with_detail(
         detail,
         &mut declarations,
     );
+    if detail == JavaFileFactDetail::Declarations {
+        collect_syntax_referenced_types(
+            &syntax,
+            syntax.tree.root_node(),
+            &mut declarations.referenced_type_names,
+        );
+    }
 
     let (mut direct_type_imports, wildcard_packages, mut static_imports, static_wildcard_owners) =
         if detail == JavaFileFactDetail::Declarations {
@@ -213,7 +221,8 @@ fn build_java_file_facts_with_detail(
                     .map(|import| JavaStaticImportFact {
                         owner: import.owner.clone(),
                         member: import.member.clone(),
-                        span: import.span.clone(),
+                        owner_span: import.owner_span.clone(),
+                        member_span: import.member_span.clone(),
                     })
                     .collect::<Vec<_>>(),
                 syntax
@@ -268,6 +277,39 @@ fn build_java_file_facts_with_detail(
     drop(syntax);
     facts.validate()?;
     Ok(facts)
+}
+
+/// Capture type vocabulary from the complete syntax tree, not only member
+/// signatures. Definition-at-position must be able to seed platform-source
+/// lookup for locals, casts, object creation, annotations, and generic type
+/// arguments as well as declarations retained by the linker.
+fn collect_syntax_referenced_types(
+    file: &JavaSyntaxFile,
+    node: Node<'_>,
+    names: &mut BTreeSet<String>,
+) {
+    if is_nonsemantic_literal_or_comment(node.kind()) {
+        return;
+    }
+    match node.kind() {
+        "type_identifier" | "scoped_type_identifier" => {
+            if let Some(raw_type) = file.text(node) {
+                remember_referenced_type(raw_type, names);
+            }
+        }
+        "marker_annotation" | "annotation" => {
+            let name = node
+                .child_by_field_name("name")
+                .or_else(|| named_children(node).into_iter().next());
+            if let Some(raw_type) = name.and_then(|name| file.text(name)) {
+                remember_referenced_type(raw_type.trim_start_matches('@'), names);
+            }
+        }
+        _ => {}
+    }
+    for child in named_children(node) {
+        collect_syntax_referenced_types(file, child, names);
+    }
 }
 
 /// Visit every semantically relevant declaration node once. Direct members are
@@ -601,7 +643,11 @@ impl JavaFileFacts {
             self.direct_type_imports
                 .iter()
                 .map(|import| &import.span)
-                .chain(self.static_imports.iter().map(|import| &import.span))
+                .chain(
+                    self.static_imports
+                        .iter()
+                        .flat_map(|import| [&import.owner_span, &import.member_span]),
+                )
                 .chain(self.types.iter().flat_map(|definition| {
                     [&definition.identifier_span, &definition.declaration_span]
                 }))

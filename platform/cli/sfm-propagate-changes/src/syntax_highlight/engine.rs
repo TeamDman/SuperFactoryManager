@@ -861,8 +861,9 @@ mod tests {
             .validate_against(&request, SyntaxHighlightLimits::default())
             .expect("UTF-8 spans");
         assert!(result.spans.iter().all(|span| {
-            source.is_char_boundary(span.start_byte as usize)
-                && source.is_char_boundary(span.end_byte as usize)
+            usize::try_from(span.start_byte).is_ok_and(|offset| source.is_char_boundary(offset))
+                && usize::try_from(span.end_byte)
+                    .is_ok_and(|offset| source.is_char_boundary(offset))
         }));
     }
 

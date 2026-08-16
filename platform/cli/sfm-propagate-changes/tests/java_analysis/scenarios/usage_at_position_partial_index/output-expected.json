@@ -1,0 +1,322 @@
+{
+  "completeness": "incomplete",
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:19aebf76bc1a3e829a08306e2207d82a9cd6404519eadae6dd0efdf6b66701e4",
+    "classpath_mode": "branch",
+    "index_fingerprint": "blake3:a1c988660344207658d694436875fffef4fc5e7e705bfb468027eafbbd759f6c",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      },
+      {
+        "exists": true,
+        "id": "jdk-java-17-5d37c7c5f17836ce",
+        "kind": "jdk",
+        "path": "$sfm-cache/sources/jdk/17-2bc7ef5f44f1bad1/e9b1e8371a9b394577207c1b12eb8edea34bdabb/arborium-java-2.18.1-37cdda9748951a30/tree",
+        "source_set": "jdk:java-17"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom",
+          "dependency:cc-tweaked:main",
+          "dependency:forge:userdev",
+          "dependency:mekanism:api",
+          "dependency:mekanism:main",
+          "jdk:java-17"
+        ]
+      },
+      {
+        "id": "dependency:cc-tweaked:main",
+        "visible_source_sets": [
+          "dependency:cc-tweaked:main",
+          "dependency:forge:userdev",
+          "dependency:mekanism:api",
+          "dependency:mekanism:main"
+        ]
+      },
+      {
+        "id": "dependency:forge:userdev",
+        "visible_source_sets": [
+          "dependency:cc-tweaked:main",
+          "dependency:forge:userdev",
+          "dependency:mekanism:api",
+          "dependency:mekanism:main"
+        ]
+      },
+      {
+        "id": "dependency:mekanism:api",
+        "visible_source_sets": [
+          "dependency:cc-tweaked:main",
+          "dependency:forge:userdev",
+          "dependency:mekanism:api",
+          "dependency:mekanism:main"
+        ]
+      },
+      {
+        "id": "dependency:mekanism:main",
+        "visible_source_sets": [
+          "dependency:cc-tweaked:main",
+          "dependency:forge:userdev",
+          "dependency:mekanism:api",
+          "dependency:mekanism:main"
+        ]
+      },
+      {
+        "id": "jdk:java-17",
+        "visible_source_sets": [
+          "custom",
+          "dependency:cc-tweaked:main",
+          "dependency:forge:userdev",
+          "dependency:mekanism:api",
+          "dependency:mekanism:main",
+          "jdk:java-17"
+        ]
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "address": "workspace://custom-0/p/A.java",
+        "end_byte": 28,
+        "end_column": 18,
+        "end_line": 2,
+        "report_path": "source/p/A.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/A.java",
+        "source_hash": "blake3:5b3426539f2214c599af2150abbefb88a2afb52c1322478e93b2f7e64ca5fa36",
+        "source_set": "custom",
+        "source_sha256": "sha256:7d5276bc883b13d6c55a358b242c854df7e25f7e9befb7e9bd6d6ecf70e8ac6e",
+        "start_byte": 11,
+        "start_column": 1,
+        "start_line": 2
+      },
+      "identifier_span": {
+        "address": "workspace://custom-0/p/A.java",
+        "end_byte": 25,
+        "end_column": 15,
+        "end_line": 2,
+        "report_path": "source/p/A.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/A.java",
+        "source_hash": "blake3:5b3426539f2214c599af2150abbefb88a2afb52c1322478e93b2f7e64ca5fa36",
+        "source_set": "custom",
+        "source_sha256": "sha256:7d5276bc883b13d6c55a358b242c854df7e25f7e9befb7e9bd6d6ecf70e8ac6e",
+        "start_byte": 24,
+        "start_column": 14,
+        "start_line": 2
+      },
+      "symbol": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "A",
+        "owner": "p",
+        "qualified_name": "p.A"
+      }
+    }
+  ],
+  "dependency_index": {
+    "acquisition_commands": [],
+    "completeness": "incomplete",
+    "expected_identity": "blake3:7f259c18738075c2a9e7f034b48e0bcacb37c2a9147c39b9dc6f3e2aaa940d17",
+    "path": "$sfm-cache-local/symbol-index/v3/7f259c18738075c2a9e7f034b48e0bcacb37c2a9147c39b9dc6f3e2aaa940d17",
+    "portable_path": "$sfm-cache/symbol-index/v3/7f259c18738075c2a9e7f034b48e0bcacb37c2a9147c39b9dc6f3e2aaa940d17",
+    "reason": "manifest and payload are valid but dependency coverage is partial",
+    "refresh_command": "sfm-propagate-changes.exe symbol index refresh --branch 1.19.2",
+    "status": "partial"
+  },
+  "diagnostics": [
+    {
+      "code": "java.unresolved-type",
+      "message": "Could not resolve field type `MissingType` without guessing",
+      "severity": "warning",
+      "span": {
+        "end_byte": 73,
+        "end_column": 26,
+        "end_line": 5,
+        "path": "source/q/Use.java",
+        "source_hash": "blake3:15dd318808c8c5a9dba4761ca189be4925d8a3f9f33a8702baf6c8dbf5be66d6",
+        "source_set": "custom",
+        "start_byte": 64,
+        "start_column": 17,
+        "start_line": 5
+      }
+    },
+    {
+      "code": "java.unresolved-type",
+      "message": "Could not resolve type reference `MissingType` without guessing",
+      "severity": "warning",
+      "span": {
+        "end_byte": 63,
+        "end_column": 16,
+        "end_line": 5,
+        "path": "source/q/Use.java",
+        "source_hash": "blake3:15dd318808c8c5a9dba4761ca189be4925d8a3f9f33a8702baf6c8dbf5be66d6",
+        "source_set": "custom",
+        "start_byte": 52,
+        "start_column": 5,
+        "start_line": 5
+      }
+    }
+  ],
+  "document": {
+    "address": "workspace://custom-0/q/Use.java",
+    "content_hash": "blake3:15dd318808c8c5a9dba4761ca189be4925d8a3f9f33a8702baf6c8dbf5be66d6",
+    "disk_content_hash": "blake3:15dd318808c8c5a9dba4761ca189be4925d8a3f9f33a8702baf6c8dbf5be66d6",
+    "report_path": "source/q/Use.java",
+    "root_id": "custom-0",
+    "root_relative_path": "q/Use.java",
+    "source_set": "custom"
+  },
+  "outcome": "success",
+  "position": {
+    "byte_offset": 39,
+    "column": 5,
+    "line": 4
+  },
+  "recovery_actions": [
+    {
+      "command": "sfm-propagate-changes.exe symbol index refresh --branch 1.19.2",
+      "kind": "refresh-dependency-index",
+      "label": "Refresh the dependency symbol index"
+    }
+  ],
+  "request_generation": 0,
+  "request_id": 0,
+  "schema": "sfm.usage-at-position-result/1",
+  "skipped_categories": [
+    {
+      "category": "read-write-classification",
+      "reason": "References are located, but read/write roles are not yet proven for every Java expression."
+    },
+    {
+      "category": "override-implementation",
+      "reason": "Override and implementation relations require an inheritance-aware semantic pass."
+    },
+    {
+      "category": "javadoc",
+      "reason": "Javadoc references are not promoted to semantic usages by the Arborium syntax pass."
+    },
+    {
+      "category": "string-literal",
+      "reason": "String-literal spelling is intentionally not treated as a symbol reference."
+    },
+    {
+      "category": "reflection",
+      "reason": "Reflection-like references require API-specific evidence and are not guessed."
+    },
+    {
+      "category": "dynamic-dispatch",
+      "reason": "Targets that cannot be selected statically remain uncertain instead of choosing a first match."
+    }
+  ],
+  "targets": [
+    {
+      "descriptor": null,
+      "kind": "class",
+      "name": "A",
+      "owner": "p",
+      "qualified_name": "p.A"
+    }
+  ],
+  "usages": [
+    {
+      "confidence": "resolved",
+      "kind": "declaration",
+      "span": {
+        "address": "workspace://custom-0/p/A.java",
+        "end_byte": 25,
+        "end_column": 15,
+        "end_line": 2,
+        "report_path": "source/p/A.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/A.java",
+        "source_hash": "blake3:5b3426539f2214c599af2150abbefb88a2afb52c1322478e93b2f7e64ca5fa36",
+        "source_set": "custom",
+        "source_sha256": "sha256:7d5276bc883b13d6c55a358b242c854df7e25f7e9befb7e9bd6d6ecf70e8ac6e",
+        "start_byte": 24,
+        "start_column": 14,
+        "start_line": 2
+      },
+      "target": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "A",
+        "owner": "p",
+        "qualified_name": "p.A"
+      }
+    },
+    {
+      "confidence": "resolved",
+      "kind": "import",
+      "span": {
+        "address": "workspace://custom-0/q/Use.java",
+        "end_byte": 21,
+        "end_column": 11,
+        "end_line": 2,
+        "report_path": "source/q/Use.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "q/Use.java",
+        "source_hash": "blake3:15dd318808c8c5a9dba4761ca189be4925d8a3f9f33a8702baf6c8dbf5be66d6",
+        "source_set": "custom",
+        "source_sha256": "sha256:138395f7c0f9336de674b9e72e5e06037ac0a1e72e8027ebbe51d925224b9a40",
+        "start_byte": 18,
+        "start_column": 8,
+        "start_line": 2
+      },
+      "target": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "A",
+        "owner": "p",
+        "qualified_name": "p.A"
+      }
+    },
+    {
+      "confidence": "resolved",
+      "kind": "type-reference",
+      "span": {
+        "address": "workspace://custom-0/q/Use.java",
+        "end_byte": 40,
+        "end_column": 6,
+        "end_line": 4,
+        "report_path": "source/q/Use.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "q/Use.java",
+        "source_hash": "blake3:15dd318808c8c5a9dba4761ca189be4925d8a3f9f33a8702baf6c8dbf5be66d6",
+        "source_set": "custom",
+        "source_sha256": "sha256:138395f7c0f9336de674b9e72e5e06037ac0a1e72e8027ebbe51d925224b9a40",
+        "start_byte": 39,
+        "start_column": 5,
+        "start_line": 4
+      },
+      "target": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "A",
+        "owner": "p",
+        "qualified_name": "p.A"
+      }
+    }
+  ],
+  "workspace_generation": 0
+}

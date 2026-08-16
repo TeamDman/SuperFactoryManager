@@ -5,6 +5,7 @@ use super::JavaSourceExclusionOutput;
 use super::JavaSourceRootKind;
 use super::JavaSourceRootOutput;
 use super::JavaSourceSetOutput;
+use super::JdkSourceDomainState;
 use super::is_excluded_java_source;
 use super::read_version_source_excludes;
 use crate::branch_targets::select_single_worktree_target;
@@ -56,6 +57,7 @@ pub struct JavaSourceWorkspace {
     /// Stable lockfile identities only. These are evidence for branch-mode
     /// resolution, not an instruction to acquire or build missing artifacts.
     pub classpath_entries: Vec<String>,
+    pub(crate) jdk_sources: JdkSourceDomainState,
 }
 
 impl JavaSourceWorkspace {
@@ -112,6 +114,15 @@ impl JavaSourceWorkspace {
                 classpath_fingerprint,
             )?
         };
+        let jdk_sources = JdkSourceDomainState::resolve(
+            &java_release,
+            &resolved_branch,
+            &minecraft_version,
+            &minecraft_dir,
+        );
+        jdk_sources.apply_to_context(&mut workspace.context);
+        workspace.diagnostics.extend(jdk_sources.diagnostics());
+        workspace.jdk_sources = jdk_sources;
         workspace.files.sort_by(|left, right| {
             left.report_path
                 .cmp(&right.report_path)
@@ -372,6 +383,7 @@ fn collect_branch_workspace_with_catalog(
         files,
         diagnostics: Vec::new(),
         classpath_entries,
+        jdk_sources: JdkSourceDomainState::Disabled,
     })
 }
 
@@ -499,6 +511,7 @@ fn collect_custom_workspace(
         files,
         diagnostics: Vec::new(),
         classpath_entries,
+        jdk_sources: JdkSourceDomainState::Disabled,
     })
 }
 
@@ -858,6 +871,7 @@ mod tests {
             files: Vec::new(),
             diagnostics: Vec::new(),
             classpath_entries: Vec::new(),
+            jdk_sources: JdkSourceDomainState::Disabled,
         };
         assert!(workspace.is_visible("test", "main"));
         assert!(!workspace.is_visible("main", "test"));
@@ -1090,7 +1104,17 @@ mod tests {
             .iter()
             .map(|source_set| source_set.id.as_str())
             .collect::<Vec<_>>();
-        assert_eq!(sets, ["datagen", "gametest", "generated", "main", "test"]);
+        assert_eq!(
+            sets,
+            [
+                "datagen",
+                "gametest",
+                "generated",
+                "jdk:java-17",
+                "main",
+                "test"
+            ]
+        );
         for expected in ["main", "gametest", "datagen", "test"] {
             assert!(
                 workspace
@@ -1108,6 +1132,9 @@ mod tests {
                 .iter()
                 .any(|root| root.id == "generated-antlr-main")
         );
+        assert!(workspace.context.source_roots.iter().any(|root| {
+            root.kind == JavaSourceRootKind::Jdk && root.source_set == "jdk:java-17" && root.exists
+        }));
         assert!(
             workspace
                 .files

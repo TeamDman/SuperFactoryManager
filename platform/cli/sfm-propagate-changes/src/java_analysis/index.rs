@@ -19,11 +19,16 @@ use super::JavaSymbolKind;
 use super::JavaSymbolSelector;
 use super::JavaSymbolUsageOutput;
 use super::JavaUsageKind;
+#[cfg(test)]
+use super::JdkSourceDomainState;
 use super::ResolutionConfidence;
 use super::SymbolCommandOutcome;
 use super::SymbolDefinitionOutput;
 use super::SymbolListOutput;
 use super::SymbolUsageListOutput;
+use super::UsageAtPositionRequest;
+use super::UsageAtPositionResult;
+use super::UsageAtPositionUsageOutput;
 use super::blake3_content_hash;
 use super::definition_workspace_fingerprint;
 use super::sha256_content_hash;
@@ -34,15 +39,367 @@ use super::syntax::first_named_child;
 use super::syntax::is_nonsemantic_literal_or_comment;
 use super::syntax::is_type_declaration;
 use super::syntax::named_children;
+use super::usage_at_position::USAGE_AT_POSITION_MAX_RESULTS;
+use crate::cancellation::CancellationToken;
+use rayon::prelude::*;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::time::Instant;
 use tree_sitter_patched_arborium::Node;
+
+const USAGE_AT_POSITION_MAX_DIAGNOSTICS: usize = 512;
+const USAGE_TARGET_CACHE_MAX_ENTRIES: usize = 16;
+const USAGE_TARGET_CACHE_MAX_RETAINED_BYTES: usize = 64 * 1024 * 1024;
+
+/// Exact-target reference results cached against one immutable linked surface.
+///
+/// A previous implementation eagerly retained usages for every symbol in the
+/// workspace. The real SFM/JDK surface peaked above 50 GiB. This cache instead
+/// keeps only symbols the user actually requests. A cheap, correctness-safe
+/// identifier prefilter narrows semantic parsing to candidate files; the full
+/// resolver still verifies every retained row.
+pub(crate) struct JavaUsageResolutionSurface {
+    targets: Mutex<UsageTargetCache>,
+    pool: rayon::ThreadPool,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct JavaUsageSourceSnapshot<'snapshot, 'workspace> {
+    pub(crate) files: &'snapshot [&'workspace super::JavaSourceFile],
+    pub(crate) sources: &'snapshot [String],
+}
+
+struct CachedUsageTarget {
+    scan: Arc<UsageAtPositionScan>,
+    retained_bytes: usize,
+    last_access: u64,
+}
+
+#[derive(Default)]
+struct UsageTargetCache {
+    entries: BTreeMap<JavaSymbolIdentityOutput, CachedUsageTarget>,
+    retained_bytes: usize,
+    access_clock: u64,
+    evictions: u64,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct JavaUsageResolutionTelemetry {
+    pub(crate) target_cache_hits: u64,
+    pub(crate) target_build_micros: u64,
+    pub(crate) candidate_files: u64,
+    pub(crate) parsed_files: u64,
+    pub(crate) retained_rows: u64,
+    pub(crate) discarded_candidates: u64,
+    pub(crate) cache_entries: u64,
+    pub(crate) cache_retained_bytes: u64,
+    pub(crate) cache_evictions: u64,
+}
+
+impl UsageTargetCache {
+    fn get(&mut self, target: &JavaSymbolIdentityOutput) -> Option<Arc<UsageAtPositionScan>> {
+        self.access_clock = self.access_clock.saturating_add(1);
+        let cached = self.entries.get_mut(target)?;
+        cached.last_access = self.access_clock;
+        Some(Arc::clone(&cached.scan))
+    }
+
+    fn insert(&mut self, target: JavaSymbolIdentityOutput, scan: Arc<UsageAtPositionScan>) {
+        self.access_clock = self.access_clock.saturating_add(1);
+        if let Some(replaced) = self.entries.remove(&target) {
+            self.retained_bytes = self.retained_bytes.saturating_sub(replaced.retained_bytes);
+        }
+        let retained_bytes = symbol_retained_bytes(&target).saturating_add(scan.retained_bytes());
+        self.retained_bytes = self.retained_bytes.saturating_add(retained_bytes);
+        self.entries.insert(
+            target,
+            CachedUsageTarget {
+                scan,
+                retained_bytes,
+                last_access: self.access_clock,
+            },
+        );
+        while self.entries.len() > USAGE_TARGET_CACHE_MAX_ENTRIES
+            || self.retained_bytes > USAGE_TARGET_CACHE_MAX_RETAINED_BYTES
+        {
+            let Some(oldest) = self
+                .entries
+                .iter()
+                .min_by_key(|(target, cached)| (cached.last_access, *target))
+                .map(|(target, _)| target.clone())
+            else {
+                break;
+            };
+            if let Some(removed) = self.entries.remove(&oldest) {
+                self.retained_bytes = self.retained_bytes.saturating_sub(removed.retained_bytes);
+                self.evictions = self.evictions.saturating_add(1);
+            }
+        }
+    }
+
+    fn telemetry(&self) -> (u64, u64, u64) {
+        (
+            self.entries.len().try_into().unwrap_or(u64::MAX),
+            self.retained_bytes.try_into().unwrap_or(u64::MAX),
+            self.evictions,
+        )
+    }
+}
+
+impl JavaUsageResolutionSurface {
+    pub(crate) fn new() -> eyre::Result<Arc<Self>> {
+        let worker_count = std::thread::available_parallelism()
+            .map_or(1, std::num::NonZeroUsize::get)
+            .min(16);
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(worker_count)
+            .thread_name(|index| format!("sfm-java-usage-target-{index}"))
+            .build()?;
+        Ok(Arc::new(Self {
+            targets: Mutex::new(UsageTargetCache::default()),
+            pool,
+        }))
+    }
+
+    fn selected_or_build(
+        &self,
+        resolution: &Arc<JavaDefinitionResolutionSurface>,
+        files: &[&super::JavaSourceFile],
+        sources: &[String],
+        target: &JavaSymbolIdentityOutput,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<(UsageAtPositionScan, JavaUsageResolutionTelemetry)> {
+        cancellation_token.bail_if_cancelled()?;
+        let mut targets = loop {
+            match self.targets.try_lock() {
+                Ok(targets) => break targets,
+                Err(std::sync::TryLockError::WouldBlock) => {
+                    cancellation_token.bail_if_cancelled()?;
+                    std::thread::park_timeout(std::time::Duration::from_millis(2));
+                }
+                Err(std::sync::TryLockError::Poisoned(poisoned)) => {
+                    break poisoned.into_inner();
+                }
+            }
+        };
+        if let Some(cached) = targets.get(target) {
+            let (cache_entries, cache_retained_bytes, cache_evictions) = targets.telemetry();
+            return Ok((
+                cached.as_ref().clone(),
+                JavaUsageResolutionTelemetry {
+                    target_cache_hits: 1,
+                    retained_rows: cached.usages.len().try_into().unwrap_or(u64::MAX),
+                    discarded_candidates: cached.discarded_candidate_count,
+                    cache_entries,
+                    cache_retained_bytes,
+                    cache_evictions,
+                    ..JavaUsageResolutionTelemetry::default()
+                },
+            ));
+        }
+
+        let started = Instant::now();
+        let needle = usage_candidate_identifier(target);
+        let candidate_indices = sources
+            .iter()
+            .enumerate()
+            .filter_map(|(index, source)| {
+                source_contains_java_identifier(source, needle).then_some(index)
+            })
+            .collect::<Vec<_>>();
+        let selected = BTreeSet::from([target.clone()]);
+        let scan = self.pool.install(|| {
+            candidate_indices
+                .par_iter()
+                .map(|index| {
+                    cancellation_token.bail_if_cancelled()?;
+                    let mut file = files[*index].clone();
+                    file.source_override = Some(sources[*index].clone());
+                    let parsed = JavaSyntaxFile::parse_with_diagnostic_limit(
+                        &file,
+                        Some(USAGE_AT_POSITION_MAX_DIAGNOSTICS),
+                    )?;
+                    let mut diagnostics = parsed.diagnostics.clone();
+                    let model = JavaIndexModel {
+                        files: vec![parsed],
+                        resolution: Arc::clone(resolution),
+                    };
+                    let (usages, mut usage_diagnostics, _, discarded_candidates) =
+                        collect_selected_file_usages(
+                            &model,
+                            0,
+                            &selected,
+                            USAGE_AT_POSITION_MAX_RESULTS,
+                            USAGE_AT_POSITION_MAX_DIAGNOSTICS,
+                            cancellation_token,
+                        )?;
+                    diagnostics.append(&mut usage_diagnostics);
+                    let mut partial = UsageAtPositionScan::new();
+                    partial.discarded_candidate_count = discarded_candidates;
+                    for usage in usages {
+                        partial.record_usage(usage);
+                    }
+                    for diagnostic in diagnostics {
+                        partial.record_diagnostic(diagnostic);
+                    }
+                    cancellation_token.bail_if_cancelled()?;
+                    Ok::<_, eyre::Report>(partial)
+                })
+                .try_reduce(UsageAtPositionScan::new, |mut left, right| {
+                    left.merge(right);
+                    Ok(left)
+                })
+        })?;
+        cancellation_token.bail_if_cancelled()?;
+        targets.insert(target.clone(), Arc::new(scan.clone()));
+        let (cache_entries, cache_retained_bytes, cache_evictions) = targets.telemetry();
+        let telemetry = JavaUsageResolutionTelemetry {
+            target_cache_hits: 0,
+            target_build_micros: started.elapsed().as_micros().try_into().unwrap_or(u64::MAX),
+            candidate_files: candidate_indices.len().try_into().unwrap_or(u64::MAX),
+            parsed_files: candidate_indices.len().try_into().unwrap_or(u64::MAX),
+            retained_rows: scan.usages.len().try_into().unwrap_or(u64::MAX),
+            discarded_candidates: scan.discarded_candidate_count,
+            cache_entries,
+            cache_retained_bytes,
+            cache_evictions,
+        };
+        Ok((scan, telemetry))
+    }
+}
+
+fn usage_candidate_identifier(target: &JavaSymbolIdentityOutput) -> &str {
+    if target.kind == JavaSymbolKind::Constructor {
+        target.owner.rsplit('.').next().unwrap_or(&target.name)
+    } else {
+        &target.name
+    }
+}
+
+fn source_contains_java_identifier(source: &str, needle: &str) -> bool {
+    if needle.is_empty() || !needle.is_ascii() {
+        return true;
+    }
+    source.match_indices(needle).any(|(start, matched)| {
+        let before = start.checked_sub(1).map(|index| source.as_bytes()[index]);
+        let after = source.as_bytes().get(start + matched.len()).copied();
+        !before.is_some_and(is_java_identifier_byte) && !after.is_some_and(is_java_identifier_byte)
+    })
+}
+
+fn is_java_identifier_byte(byte: u8) -> bool {
+    byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'$') || !byte.is_ascii()
+}
+
+#[derive(Clone, Debug)]
+struct UsageAtPositionScan {
+    usages: BTreeSet<JavaSymbolUsageOutput>,
+    diagnostics: BTreeSet<JavaAnalysisDiagnosticOutput>,
+    discarded_candidate_count: u64,
+}
+
+impl UsageAtPositionScan {
+    fn new() -> Self {
+        Self {
+            usages: BTreeSet::new(),
+            diagnostics: BTreeSet::new(),
+            discarded_candidate_count: 0,
+        }
+    }
+
+    fn record_usage(&mut self, usage: JavaSymbolUsageOutput) {
+        if self.usages.contains(&usage) {
+            return;
+        }
+        if self.usages.len() < USAGE_AT_POSITION_MAX_RESULTS {
+            self.usages.insert(usage);
+            return;
+        }
+        let replace_largest = self.usages.last().is_some_and(|largest| usage < *largest);
+        if replace_largest {
+            self.usages.pop_last();
+            self.usages.insert(usage);
+        }
+        self.discarded_candidate_count = self.discarded_candidate_count.saturating_add(1);
+    }
+
+    fn record_diagnostic(&mut self, diagnostic: JavaAnalysisDiagnosticOutput) {
+        if self.diagnostics.contains(&diagnostic) {
+            return;
+        }
+        if self.diagnostics.len() < USAGE_AT_POSITION_MAX_DIAGNOSTICS {
+            self.diagnostics.insert(diagnostic);
+            return;
+        }
+        let replace_largest = self
+            .diagnostics
+            .last()
+            .is_some_and(|largest| diagnostic < *largest);
+        if replace_largest {
+            self.diagnostics.pop_last();
+            self.diagnostics.insert(diagnostic);
+        }
+    }
+
+    fn merge(&mut self, other: Self) {
+        self.discarded_candidate_count = self
+            .discarded_candidate_count
+            .saturating_add(other.discarded_candidate_count);
+        for usage in other.usages {
+            self.record_usage(usage);
+        }
+        for diagnostic in other.diagnostics {
+            self.record_diagnostic(diagnostic);
+        }
+    }
+
+    fn retained_bytes(&self) -> usize {
+        std::mem::size_of::<Self>()
+            .saturating_add(self.usages.iter().map(usage_retained_bytes).sum::<usize>())
+            .saturating_add(
+                self.diagnostics
+                    .iter()
+                    .map(diagnostic_retained_bytes)
+                    .sum::<usize>(),
+            )
+    }
+}
+
+fn usage_retained_bytes(usage: &JavaSymbolUsageOutput) -> usize {
+    std::mem::size_of::<JavaSymbolUsageOutput>()
+        .saturating_add(symbol_retained_bytes(&usage.target))
+        .saturating_add(span_retained_bytes(&usage.span))
+}
+
+fn diagnostic_retained_bytes(diagnostic: &JavaAnalysisDiagnosticOutput) -> usize {
+    std::mem::size_of::<JavaAnalysisDiagnosticOutput>()
+        .saturating_add(diagnostic.code.capacity())
+        .saturating_add(diagnostic.message.capacity())
+        .saturating_add(diagnostic.span.as_ref().map_or(0, span_retained_bytes))
+}
+
+fn symbol_retained_bytes(symbol: &JavaSymbolIdentityOutput) -> usize {
+    std::mem::size_of::<JavaSymbolIdentityOutput>()
+        .saturating_add(symbol.owner.capacity())
+        .saturating_add(symbol.name.capacity())
+        .saturating_add(symbol.descriptor.as_ref().map_or(0, String::capacity))
+        .saturating_add(symbol.qualified_name.capacity())
+}
+
+fn span_retained_bytes(span: &JavaSourceSpanOutput) -> usize {
+    std::mem::size_of::<JavaSourceSpanOutput>()
+        .saturating_add(span.path.capacity())
+        .saturating_add(span.source_set.capacity())
+        .saturating_add(span.source_hash.capacity())
+}
 
 #[derive(Clone, Debug)]
 pub struct JavaSymbolIndex {
     context: JavaAnalysisContextOutput,
     definitions: Vec<JavaSymbolDefinitionOutput>,
+    location_definitions: Vec<JavaSymbolDefinitionOutput>,
     usages: Vec<JavaSymbolUsageOutput>,
     diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
 }
@@ -233,7 +590,8 @@ impl JavaDefinitionResolutionSurface {
             resolution: Arc::clone(self),
         };
         let mut usages = declaration_usages_for_files(&model);
-        let (mut file_usages, mut file_diagnostics) = collect_file_usages(&model, 0);
+        let (mut file_usages, mut file_diagnostics, local_definitions) =
+            collect_file_usages(&model, 0);
         usages.append(&mut file_usages);
         diagnostics.append(&mut file_diagnostics);
         usages.sort();
@@ -243,16 +601,181 @@ impl JavaDefinitionResolutionSurface {
 
         Ok(definition_at_position_from_parts(
             self.context.clone(),
-            self.types
-                .iter()
-                .filter_map(TypeDeclaration::output)
-                .chain(self.fields.iter().filter_map(FieldDeclaration::output))
-                .chain(self.methods.iter().filter_map(MethodDeclaration::output)),
+            |selected_symbols| {
+                let mut definitions = self.definitions_for_symbols(selected_symbols);
+                definitions.extend(
+                    local_definitions
+                        .iter()
+                        .filter(|definition| selected_symbols.contains(&definition.symbol))
+                        .cloned(),
+                );
+                definitions
+            },
             &usages,
             self.diagnostics.iter().chain(diagnostics.iter()),
             request,
             workspace,
         ))
+    }
+
+    /// Resolve only the declarations selected by the addressed document.
+    ///
+    /// The previous warm path streamed every declaration through
+    /// `definition_at_position_from_parts`, which made every cursor query scan
+    /// the complete dependency/JDK vocabulary. These lookup tables already
+    /// exist for semantic linking, so reuse them as an exact identity index.
+    fn definitions_for_symbols(
+        &self,
+        selected_symbols: &BTreeSet<JavaSymbolIdentityOutput>,
+    ) -> Vec<JavaSymbolDefinitionOutput> {
+        let mut definitions = Vec::new();
+        for symbol in selected_symbols {
+            let indices = match symbol.kind {
+                JavaSymbolKind::Class
+                | JavaSymbolKind::Interface
+                | JavaSymbolKind::Enum
+                | JavaSymbolKind::Record
+                | JavaSymbolKind::Annotation => self
+                    .type_lookup
+                    .by_name
+                    .get(&symbol.qualified_name)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+                JavaSymbolKind::Field => self
+                    .field_lookup
+                    .get(&(symbol.owner.clone(), symbol.name.clone()))
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+                JavaSymbolKind::Method | JavaSymbolKind::Constructor => self
+                    .method_lookup
+                    .get(&(symbol.owner.clone(), symbol.name.clone()))
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+                JavaSymbolKind::LocalVariable | JavaSymbolKind::Parameter => &[],
+            };
+            match symbol.kind {
+                JavaSymbolKind::Class
+                | JavaSymbolKind::Interface
+                | JavaSymbolKind::Enum
+                | JavaSymbolKind::Record
+                | JavaSymbolKind::Annotation => {
+                    definitions.extend(indices.iter().filter_map(|index| {
+                        let declaration = &self.types[*index];
+                        (declaration.symbol() == symbol)
+                            .then(|| declaration.output().cloned())
+                            .flatten()
+                    }));
+                }
+                JavaSymbolKind::Field => definitions.extend(indices.iter().filter_map(|index| {
+                    let declaration = &self.fields[*index];
+                    (declaration.symbol() == symbol)
+                        .then(|| declaration.output().cloned())
+                        .flatten()
+                })),
+                JavaSymbolKind::Method | JavaSymbolKind::Constructor => {
+                    definitions.extend(indices.iter().filter_map(|index| {
+                        let declaration = &self.methods[*index];
+                        (declaration.symbol() == symbol)
+                            .then(|| declaration.output().cloned())
+                            .flatten()
+                    }));
+                }
+                JavaSymbolKind::LocalVariable | JavaSymbolKind::Parameter => {}
+            }
+        }
+        definitions
+    }
+
+    /// Resolve the symbol at the addressed document location, then reuse or
+    /// build its exact-target reference set from the same immutable source
+    /// snapshot that keyed the linked declaration surface.
+    pub(crate) fn usages_at_position(
+        self: &Arc<Self>,
+        usage_surface: &JavaUsageResolutionSurface,
+        workspace: &JavaSourceWorkspace,
+        snapshot: JavaUsageSourceSnapshot<'_, '_>,
+        request: &UsageAtPositionRequest,
+        dependencies: Option<&DependencyJavaSymbolIndexBody>,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<(UsageAtPositionResult, JavaUsageResolutionTelemetry)> {
+        cancellation_token.bail_if_cancelled()?;
+        let definition_request = request.as_definition_request();
+        let definition = self.definition_at_position(workspace, &definition_request)?;
+        let mut result = UsageAtPositionResult::from_definition(definition);
+        if result.outcome != super::UsageAtPositionOutcome::Success || result.targets.len() != 1 {
+            result.refresh_index_fingerprint();
+            return Ok((result, JavaUsageResolutionTelemetry::default()));
+        }
+
+        let selected = result.targets.iter().cloned().collect::<BTreeSet<_>>();
+        let target = result.targets.first().expect("one successful target");
+        let (mut scanned, mut usage_telemetry) = usage_surface.selected_or_build(
+            self,
+            snapshot.files,
+            snapshot.sources,
+            target,
+            cancellation_token,
+        )?;
+        if let Some(dependencies) = dependencies {
+            for usage in &dependencies.usages {
+                if selected.contains(&usage.target) {
+                    scanned.record_usage(usage.clone());
+                }
+            }
+        }
+        cancellation_token.bail_if_cancelled()?;
+        let discarded_candidate_count = scanned.discarded_candidate_count;
+        usage_telemetry.discarded_candidates = discarded_candidate_count;
+        let raw_usages = scanned.usages.into_iter().collect::<Vec<_>>();
+
+        let selected_paths = raw_usages
+            .iter()
+            .map(|usage| usage.span.path.as_str())
+            .collect::<BTreeSet<_>>();
+        let mut diagnostics = result.diagnostics.clone();
+        diagnostics.extend(scanned.diagnostics);
+        diagnostics.retain(|diagnostic| {
+            diagnostic.span.as_ref().is_some_and(|span| {
+                selected_paths.contains(span.path.as_str())
+                    || (span.path == request.document.report_path
+                        && span.source_hash == request.document.content_hash)
+            })
+        });
+        diagnostics.sort();
+        diagnostics.dedup();
+        result.diagnostics = diagnostics;
+        let mut span_resolver =
+            SnapshotDefinitionSpanResolver::new(snapshot.files, snapshot.sources);
+        result.usages = raw_usages
+            .into_iter()
+            .map(|usage| UsageAtPositionUsageOutput {
+                target: usage.target,
+                kind: usage.kind,
+                span: span_resolver.resolve(&usage.span),
+                confidence: usage.confidence,
+            })
+            .collect();
+
+        // A JDK declaration is part of the live resolution surface rather
+        // than the dependency usage body. Ensure every successful target has
+        // a declaration row even when no indexed usage supplied one.
+        result
+            .usages
+            .extend(
+                result
+                    .definitions
+                    .iter()
+                    .map(|definition| UsageAtPositionUsageOutput {
+                        target: definition.symbol.clone(),
+                        kind: JavaUsageKind::Declaration,
+                        span: definition.identifier_span.clone(),
+                        confidence: definition.confidence,
+                    }),
+            );
+        result.usages.sort();
+        result.usages.dedup();
+        cancellation_token.bail_if_cancelled()?;
+        Ok((result, usage_telemetry))
     }
 
     #[must_use]
@@ -261,6 +784,11 @@ impl JavaDefinitionResolutionSurface {
             .len()
             .saturating_add(self.fields.len())
             .saturating_add(self.methods.len())
+    }
+
+    #[must_use]
+    pub(crate) fn declaration_counts(&self) -> (usize, usize, usize) {
+        (self.types.len(), self.fields.len(), self.methods.len())
     }
 }
 
@@ -297,6 +825,14 @@ pub fn analyze_definition_at_position(
     let index = JavaSymbolIndex::build_workspace(&workspace, true, dependencies, None, None, None)?;
     let mut result = index.definition_at_position(request, &workspace);
     normalize_definition_at_position_context(workspace.context.clone(), dependencies, &mut result);
+    for definition in &mut result.definitions {
+        workspace
+            .jdk_sources
+            .enrich_span(&mut definition.identifier_span);
+        workspace
+            .jdk_sources
+            .enrich_span(&mut definition.declaration_span);
+    }
     Ok(result)
 }
 
@@ -324,6 +860,7 @@ impl JavaSymbolIndex {
         Self {
             context,
             definitions,
+            location_definitions: Vec::new(),
             usages: Vec::new(),
             diagnostics,
         }
@@ -415,6 +952,7 @@ impl JavaSymbolIndex {
         Self {
             context,
             definitions: live.definitions,
+            location_definitions: Vec::new(),
             usages: live.usages,
             diagnostics: live.diagnostics,
         }
@@ -436,10 +974,14 @@ impl JavaSymbolIndex {
                 &right.absolute_path,
             ))
         });
-        let parsed = files
+        let mut parsed = files
             .into_iter()
             .map(|file| JavaSyntaxFile::parse_with_diagnostic_limit(file, diagnostic_limit))
             .collect::<eyre::Result<Vec<_>>>()?;
+        let mut jdk_files = workspace
+            .jdk_sources
+            .syntax_files_for_project(&parsed, &crate::cancellation::CancellationToken::new())?;
+        parsed.append(&mut jdk_files);
 
         let source_sets = parsed
             .iter()
@@ -587,7 +1129,14 @@ impl JavaSymbolIndex {
     ) -> DefinitionAtPositionResult {
         definition_at_position_from_parts(
             self.context.clone(),
-            self.definitions.iter(),
+            |selected_symbols| {
+                self.definitions
+                    .iter()
+                    .chain(&self.location_definitions)
+                    .filter(|definition| selected_symbols.contains(&definition.symbol))
+                    .cloned()
+                    .collect()
+            },
             &self.usages,
             self.diagnostics.iter(),
             request,
@@ -704,13 +1253,15 @@ impl JavaSymbolIndex {
         let mut usages = dependencies
             .filter(|_| include_usages)
             .map_or_else(Vec::new, |dependencies| dependencies.usages.clone());
+        let mut location_definitions = Vec::new();
         if include_usages {
             usages.extend(declaration_usages(model));
             for file_index in 0..model.files.len() {
-                let (mut file_usages, mut file_diagnostics) =
+                let (mut file_usages, mut file_diagnostics, mut file_location_definitions) =
                     collect_file_usages(model, file_index);
                 usages.append(&mut file_usages);
                 diagnostics.append(&mut file_diagnostics);
+                location_definitions.append(&mut file_location_definitions);
             }
         }
 
@@ -739,6 +1290,8 @@ impl JavaSymbolIndex {
             .collect::<Vec<_>>();
         definitions.sort();
         definitions.dedup();
+        location_definitions.sort();
+        location_definitions.dedup();
         usages.sort();
         usages.dedup();
         diagnostics.sort();
@@ -748,21 +1301,28 @@ impl JavaSymbolIndex {
             .iter()
             .map(IndexSourceEvidence::from_file)
             .collect::<Vec<_>>();
+        let mut fingerprint_definitions = definitions.clone();
+        fingerprint_definitions.extend(location_definitions.iter().cloned());
+        fingerprint_definitions.sort();
+        fingerprint_definitions.dedup();
         context.index_fingerprint =
-            index_fingerprint(&evidence, &definitions, &usages, &diagnostics);
+            index_fingerprint(&evidence, &fingerprint_definitions, &usages, &diagnostics);
 
         Self {
             context,
             definitions,
+            location_definitions,
             usages,
             diagnostics,
         }
     }
 }
 
-fn definition_at_position_from_parts<'definition, 'diagnostic>(
+fn definition_at_position_from_parts<'diagnostic>(
     mut context: JavaAnalysisContextOutput,
-    definitions: impl IntoIterator<Item = &'definition JavaSymbolDefinitionOutput>,
+    resolve_definitions: impl FnOnce(
+        &BTreeSet<JavaSymbolIdentityOutput>,
+    ) -> Vec<JavaSymbolDefinitionOutput>,
     usages: &[JavaSymbolUsageOutput],
     diagnostics: impl IntoIterator<Item = &'diagnostic JavaAnalysisDiagnosticOutput>,
     request: &DefinitionAtPositionRequest,
@@ -796,12 +1356,8 @@ fn definition_at_position_from_parts<'definition, 'diagnostic>(
     symbols.sort();
     symbols.dedup();
 
-    let selected_symbols = symbols.iter().collect::<BTreeSet<_>>();
-    let mut report_definitions = definitions
-        .into_iter()
-        .filter(|definition| selected_symbols.contains(&definition.symbol))
-        .cloned()
-        .collect::<Vec<_>>();
+    let selected_symbols = symbols.iter().cloned().collect::<BTreeSet<_>>();
+    let mut report_definitions = resolve_definitions(&selected_symbols);
     report_definitions.sort();
     report_definitions.dedup();
     let outcome = if symbols.is_empty() {
@@ -936,7 +1492,71 @@ fn definition_at_position_definition(
     }
 }
 
-fn definition_at_position_span(
+struct SnapshotDefinitionSpanResolver<'source> {
+    files: BTreeMap<(String, String), (&'source super::JavaSourceFile, &'source str)>,
+    witnesses: BTreeMap<(String, String, String), Option<String>>,
+}
+
+impl<'source> SnapshotDefinitionSpanResolver<'source> {
+    fn new(files: &[&'source super::JavaSourceFile], sources: &'source [String]) -> Self {
+        let mut ordered = files
+            .iter()
+            .copied()
+            .zip(sources.iter().map(String::as_str))
+            .collect::<Vec<_>>();
+        ordered.sort_by(|(left, _), (right, _)| {
+            (&left.root_id, &left.root_relative_path, &left.absolute_path).cmp(&(
+                &right.root_id,
+                &right.root_relative_path,
+                &right.absolute_path,
+            ))
+        });
+        let mut by_report_identity = BTreeMap::new();
+        for (file, source) in ordered {
+            by_report_identity
+                .entry((file.report_path.clone(), file.source_set.clone()))
+                .or_insert((file, source));
+        }
+        Self {
+            files: by_report_identity,
+            witnesses: BTreeMap::new(),
+        }
+    }
+
+    fn resolve(&mut self, span: &JavaSourceSpanOutput) -> DefinitionSourceSpanOutput {
+        let key = (span.path.clone(), span.source_set.clone());
+        if let Some((file, source)) = self.files.get(&key).copied() {
+            let witness_key = (
+                span.path.clone(),
+                span.source_set.clone(),
+                span.source_hash.clone(),
+            );
+            let source_sha256 = self
+                .witnesses
+                .entry(witness_key)
+                .or_insert_with(|| sha256_witness_for_blake3(&span.source_hash, source))
+                .clone();
+            return DefinitionSourceSpanOutput::from_report_span(
+                span,
+                "workspace",
+                file.root_id.clone(),
+                file.root_relative_path.clone(),
+                format!("workspace://{}/{}", file.root_id, file.root_relative_path),
+                source_sha256,
+            );
+        }
+        DefinitionSourceSpanOutput::from_report_span(
+            span,
+            "dependency-index",
+            "dependency-index",
+            span.path.clone(),
+            format!("dependency-index://dependency-index/{}", span.path),
+            None,
+        )
+    }
+}
+
+pub(crate) fn definition_at_position_span(
     span: &JavaSourceSpanOutput,
     workspace: &JavaSourceWorkspace,
     request: &DefinitionAtPositionRequest,
@@ -1001,6 +1621,21 @@ pub(crate) fn normalize_definition_at_position_context(
     mut context: JavaAnalysisContextOutput,
     dependencies: Option<&DependencyJavaSymbolIndexBody>,
     result: &mut DefinitionAtPositionResult,
+) {
+    if let Some(dependencies) = dependencies {
+        add_dependency_source_sets(&mut context, dependencies);
+    }
+    JAVA_PARSER_FINGERPRINT.clone_into(&mut context.parser_fingerprint);
+    context
+        .index_fingerprint
+        .clone_from(&result.context.index_fingerprint);
+    result.context = context;
+}
+
+pub(crate) fn normalize_usage_at_position_context(
+    mut context: JavaAnalysisContextOutput,
+    dependencies: Option<&DependencyJavaSymbolIndexBody>,
+    result: &mut UsageAtPositionResult,
 ) {
     if let Some(dependencies) = dependencies {
         add_dependency_source_sets(&mut context, dependencies);
@@ -2049,27 +2684,40 @@ fn resolve_reference_type_name(
         direct_candidates
     };
     if !explicit_candidates.is_empty() {
-        return resolve_candidate_set(raw_name, &explicit_candidates, file, lookup, false);
+        return resolve_candidate_set(raw_name, &explicit_candidates, file, lookup);
     }
 
     if raw_name.contains('.') && raw_name.chars().next().is_some_and(char::is_lowercase) {
         return resolve_qualified_candidate(raw_name, file, lookup);
     }
 
-    let mut candidates = Vec::new();
     let mut enclosing = Some(owner);
     while let Some(current) = enclosing {
-        candidates.push(format!("{current}${raw_name}"));
+        let candidate = format!("{current}${raw_name}");
+        match resolve_candidate_set(raw_name, &[candidate], file, lookup) {
+            Err(TypeResolutionFailure::Unresolved(_)) => {}
+            result => return result,
+        }
         enclosing = current.rsplit_once('$').map(|(parent, _)| parent);
     }
-    candidates.push(qualify_name(&file.package_name, raw_name));
+
+    let package_candidate = qualify_name(&file.package_name, raw_name);
+    match resolve_candidate_set(raw_name, &[package_candidate], file, lookup) {
+        Err(TypeResolutionFailure::Unresolved(_)) => {}
+        result => return result,
+    }
+
+    // `java.lang` is an implicit type-import-on-demand. It therefore shares
+    // one precedence tier with explicit wildcard package imports, below
+    // lexically enclosing and current-package declarations.
+    let mut candidates = vec![format!("java.lang.{raw_name}")];
     for package in &file.imports.wildcard_packages {
         candidates.push(format!("{package}.{raw_name}"));
     }
     candidates.sort();
     candidates.dedup();
 
-    resolve_candidate_set(raw_name, &candidates, file, lookup, true)
+    resolve_candidate_set(raw_name, &candidates, file, lookup)
 }
 
 fn resolve_qualified_candidate(
@@ -2077,7 +2725,7 @@ fn resolve_qualified_candidate(
     file: &JavaSyntaxFile,
     lookup: &TypeLookup,
 ) -> Result<ResolvedType, TypeResolutionFailure> {
-    resolve_candidate_set(candidate, &[candidate.to_owned()], file, lookup, false)
+    resolve_candidate_set(candidate, &[candidate.to_owned()], file, lookup)
 }
 
 fn resolve_candidate_set(
@@ -2085,7 +2733,6 @@ fn resolve_candidate_set(
     candidates: &[String],
     file: &JavaSyntaxFile,
     lookup: &TypeLookup,
-    allow_java_lang_fallback: bool,
 ) -> Result<ResolvedType, TypeResolutionFailure> {
     let mut visible = Vec::new();
     let mut inaccessible = false;
@@ -2103,14 +2750,6 @@ fn resolve_candidate_set(
             source_indices: visible,
         }),
         [] if inaccessible => Err(TypeResolutionFailure::Inaccessible(display_name.to_owned())),
-        [] if allow_java_lang_fallback && is_java_lang_type(display_name) => Ok(ResolvedType {
-            qualified_name: format!("java.lang.{display_name}"),
-            source_indices: Vec::new(),
-        }),
-        [] if is_known_java_lang_qualified_type(display_name) => Ok(ResolvedType {
-            qualified_name: display_name.to_owned(),
-            source_indices: Vec::new(),
-        }),
         [] => Err(TypeResolutionFailure::Unresolved(display_name.to_owned())),
         _ => Err(TypeResolutionFailure::Ambiguous {
             name: display_name.to_owned(),
@@ -2133,12 +2772,6 @@ fn direct_import_candidates(file: &JavaSyntaxFile, simple_name: &str) -> Vec<Str
     qualified_names.sort();
     qualified_names.dedup();
     qualified_names
-}
-
-fn is_known_java_lang_qualified_type(candidate: &str) -> bool {
-    candidate
-        .strip_prefix("java.lang.")
-        .is_some_and(is_java_lang_type)
 }
 
 fn erase_java_type(raw_type: &str) -> (String, usize) {
@@ -2206,43 +2839,6 @@ fn qualify_name(package: &str, simple_name: &str) -> String {
     }
 }
 
-fn is_java_lang_type(name: &str) -> bool {
-    matches!(
-        name,
-        "Appendable"
-            | "AutoCloseable"
-            | "Boolean"
-            | "Byte"
-            | "Character"
-            | "CharSequence"
-            | "Class"
-            | "ClassLoader"
-            | "Cloneable"
-            | "Comparable"
-            | "Double"
-            | "Enum"
-            | "Error"
-            | "Exception"
-            | "Float"
-            | "Integer"
-            | "Iterable"
-            | "Long"
-            | "Math"
-            | "Number"
-            | "Object"
-            | "Record"
-            | "Runnable"
-            | "RuntimeException"
-            | "Short"
-            | "String"
-            | "StringBuilder"
-            | "System"
-            | "Thread"
-            | "Throwable"
-            | "Void"
-    )
-}
-
 fn declaration_usages(model: &JavaIndexModel) -> Vec<JavaSymbolUsageOutput> {
     model
         .resolution
@@ -2308,34 +2904,104 @@ fn declaration_usages_for_files(model: &JavaIndexModel) -> Vec<JavaSymbolUsageOu
         .collect()
 }
 
+type CollectedFileUsages = (
+    Vec<JavaSymbolUsageOutput>,
+    Vec<JavaAnalysisDiagnosticOutput>,
+    Vec<JavaSymbolDefinitionOutput>,
+    u64,
+);
+
 fn collect_file_usages(
     model: &JavaIndexModel,
     file_index: usize,
 ) -> (
     Vec<JavaSymbolUsageOutput>,
     Vec<JavaAnalysisDiagnosticOutput>,
+    Vec<JavaSymbolDefinitionOutput>,
 ) {
+    let (usages, diagnostics, definitions, _) =
+        collect_file_usages_with_limits(model, file_index, None, None, None, None);
+    (usages, diagnostics, definitions)
+}
+
+fn collect_selected_file_usages(
+    model: &JavaIndexModel,
+    file_index: usize,
+    selected_targets: &BTreeSet<JavaSymbolIdentityOutput>,
+    usage_limit: usize,
+    diagnostic_limit: usize,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<CollectedFileUsages> {
+    let collected = collect_file_usages_with_limits(
+        model,
+        file_index,
+        Some(selected_targets),
+        Some(usage_limit),
+        Some(diagnostic_limit),
+        Some(cancellation_token),
+    );
+    cancellation_token.bail_if_cancelled()?;
+    Ok(collected)
+}
+
+fn collect_file_usages_with_limits<'a>(
+    model: &'a JavaIndexModel,
+    file_index: usize,
+    selected_targets: Option<&'a BTreeSet<JavaSymbolIdentityOutput>>,
+    usage_limit: Option<usize>,
+    diagnostic_limit: Option<usize>,
+    cancellation_token: Option<&'a CancellationToken>,
+) -> CollectedFileUsages {
     let file = &model.files[file_index];
     let mut collector = UsageCollector {
         model,
         file_index,
         owners: Vec::new(),
+        callable_scopes: Vec::new(),
         scopes: Vec::new(),
-        usages: Vec::new(),
-        diagnostics: Vec::new(),
+        usages: BTreeSet::new(),
+        diagnostics: BTreeSet::new(),
+        local_definitions: Vec::new(),
+        selected_targets,
+        usage_limit,
+        diagnostic_limit,
+        discarded_usage_candidates: 0,
+        cancellation_token,
+        visited_nodes: 0,
+        cancelled: false,
     };
     collector.collect_import_usages();
     collector.visit(file.tree.root_node());
-    (collector.usages, collector.diagnostics)
+    (
+        collector.usages.into_iter().collect(),
+        collector.diagnostics.into_iter().collect(),
+        collector.local_definitions,
+        collector.discarded_usage_candidates,
+    )
 }
 
 struct UsageCollector<'a> {
     model: &'a JavaIndexModel,
     file_index: usize,
     owners: Vec<String>,
-    scopes: Vec<BTreeMap<String, String>>,
-    usages: Vec<JavaSymbolUsageOutput>,
-    diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+    callable_scopes: Vec<String>,
+    scopes: Vec<BTreeMap<String, LocalBinding>>,
+    usages: BTreeSet<JavaSymbolUsageOutput>,
+    diagnostics: BTreeSet<JavaAnalysisDiagnosticOutput>,
+    local_definitions: Vec<JavaSymbolDefinitionOutput>,
+    selected_targets: Option<&'a BTreeSet<JavaSymbolIdentityOutput>>,
+    usage_limit: Option<usize>,
+    diagnostic_limit: Option<usize>,
+    discarded_usage_candidates: u64,
+    cancellation_token: Option<&'a CancellationToken>,
+    visited_nodes: usize,
+    cancelled: bool,
+}
+
+#[derive(Clone, Debug)]
+struct LocalBinding {
+    value_type: Option<String>,
+    definition: JavaSymbolDefinitionOutput,
 }
 
 #[derive(Clone, Debug)]
@@ -2348,6 +3014,52 @@ enum MemberResolutionFailure {
 impl UsageCollector<'_> {
     fn file(&self) -> &JavaSyntaxFile {
         &self.model.files[self.file_index]
+    }
+
+    fn record_usage(&mut self, usage: JavaSymbolUsageOutput) {
+        if self
+            .selected_targets
+            .is_some_and(|targets| !targets.contains(&usage.target))
+        {
+            return;
+        }
+        if self.usages.contains(&usage) {
+            return;
+        }
+        if self
+            .usage_limit
+            .is_none_or(|limit| self.usages.len() < limit)
+        {
+            self.usages.insert(usage);
+            return;
+        }
+        let replace_largest = self.usages.last().is_some_and(|largest| usage < *largest);
+        if replace_largest {
+            self.usages.pop_last();
+            self.usages.insert(usage);
+        }
+        self.discarded_usage_candidates = self.discarded_usage_candidates.saturating_add(1);
+    }
+
+    fn record_diagnostic(&mut self, diagnostic: JavaAnalysisDiagnosticOutput) {
+        if self.diagnostics.contains(&diagnostic) {
+            return;
+        }
+        if self
+            .diagnostic_limit
+            .is_none_or(|limit| self.diagnostics.len() < limit)
+        {
+            self.diagnostics.insert(diagnostic);
+            return;
+        }
+        let replace_largest = self
+            .diagnostics
+            .last()
+            .is_some_and(|largest| diagnostic < *largest);
+        if replace_largest {
+            self.diagnostics.pop_last();
+            self.diagnostics.insert(diagnostic);
+        }
     }
 
     fn collect_import_usages(&mut self) {
@@ -2375,7 +3087,7 @@ impl UsageCollector<'_> {
                 }
                 Err(failure) => {
                     self.record_type_ambiguity(&failure, JavaUsageKind::Import, &import.span);
-                    self.diagnostics.push(type_resolution_diagnostic(
+                    self.record_diagnostic(type_resolution_diagnostic(
                         failure,
                         import.span,
                         "imported type",
@@ -2394,7 +3106,7 @@ impl UsageCollector<'_> {
                 self.record_type_indices(
                     &owner.source_indices,
                     JavaUsageKind::Import,
-                    &import.span,
+                    &import.owner_span,
                     ResolutionConfidence::Resolved,
                 );
             }
@@ -2404,10 +3116,10 @@ impl UsageCollector<'_> {
                 .map(|field| field.symbol().clone())
                 .collect::<Vec<_>>();
             for target in fields {
-                self.usages.push(JavaSymbolUsageOutput {
+                self.record_usage(JavaSymbolUsageOutput {
                     target,
                     kind: JavaUsageKind::Import,
-                    span: import.span.clone(),
+                    span: import.member_span.clone(),
                     confidence: ResolutionConfidence::Resolved,
                 });
             }
@@ -2422,10 +3134,10 @@ impl UsageCollector<'_> {
                 ResolutionConfidence::PartiallyResolved
             };
             for target in methods {
-                self.usages.push(JavaSymbolUsageOutput {
+                self.record_usage(JavaSymbolUsageOutput {
                     target,
                     kind: JavaUsageKind::Import,
-                    span: import.span.clone(),
+                    span: import.member_span.clone(),
                     confidence,
                 });
             }
@@ -2433,6 +3145,18 @@ impl UsageCollector<'_> {
     }
 
     fn visit(&mut self, node: Node<'_>) {
+        if self.cancelled {
+            return;
+        }
+        self.visited_nodes = self.visited_nodes.saturating_add(1);
+        if self.visited_nodes.is_multiple_of(256)
+            && self
+                .cancellation_token
+                .is_some_and(CancellationToken::is_cancelled)
+        {
+            self.cancelled = true;
+            return;
+        }
         if is_nonsemantic_literal_or_comment(node.kind()) {
             return;
         }
@@ -2444,6 +3168,7 @@ impl UsageCollector<'_> {
             "local_variable_declaration" => self.visit_local_variable(node),
             "enhanced_for_statement" => self.visit_enhanced_for(node),
             "catch_clause" => self.visit_catch_clause(node),
+            "marker_annotation" | "annotation" => self.visit_annotation(node),
             "object_creation_expression" => self.visit_object_creation(node),
             "field_access" => self.visit_field_access(node),
             "method_invocation" => self.visit_method_invocation(node),
@@ -2479,14 +3204,26 @@ impl UsageCollector<'_> {
     }
 
     fn visit_callable(&mut self, node: Node<'_>) {
+        let callable_name = node
+            .child_by_field_name("name")
+            .and_then(|name| self.file().text(name))
+            .unwrap_or("<anonymous>");
+        let owner = self
+            .owners
+            .last()
+            .cloned()
+            .unwrap_or_else(|| self.file().report_path.clone());
+        self.callable_scopes
+            .push(format!("{owner}#{callable_name}@{}", node.start_byte()));
         self.scopes.push(BTreeMap::new());
         if let Some(parameters) = node.child_by_field_name("parameters") {
             for parameter in named_children(parameters) {
-                self.register_typed_binding(parameter);
+                self.register_typed_binding(parameter, JavaSymbolKind::Parameter);
             }
         }
         self.visit_children(node);
         let _ = self.scopes.pop();
+        let _ = self.callable_scopes.pop();
     }
 
     fn visit_scope(&mut self, node: Node<'_>) {
@@ -2522,15 +3259,19 @@ impl UsageCollector<'_> {
                     .child_by_field_name("value")
                     .and_then(|value| self.expression_type(value))
             });
-            if let (Some(scope), Some(value_type)) = (self.scopes.last_mut(), value_type) {
-                scope.insert(name, value_type);
-            }
+            self.register_binding(
+                name,
+                name_node,
+                declarator,
+                value_type,
+                JavaSymbolKind::LocalVariable,
+            );
         }
     }
 
     fn visit_enhanced_for(&mut self, node: Node<'_>) {
         self.scopes.push(BTreeMap::new());
-        self.register_typed_binding(node);
+        self.register_typed_binding(node, JavaSymbolKind::LocalVariable);
         self.visit_children(node);
         let _ = self.scopes.pop();
     }
@@ -2538,31 +3279,115 @@ impl UsageCollector<'_> {
     fn visit_catch_clause(&mut self, node: Node<'_>) {
         self.scopes.push(BTreeMap::new());
         if let Some(parameter) = node.child_by_field_name("parameter") {
-            self.register_typed_binding(parameter);
+            self.register_typed_binding(parameter, JavaSymbolKind::LocalVariable);
         }
         self.visit_children(node);
         let _ = self.scopes.pop();
     }
 
-    fn register_typed_binding(&mut self, node: Node<'_>) {
+    fn register_typed_binding(&mut self, node: Node<'_>, kind: JavaSymbolKind) {
         let Some(type_node) = node.child_by_field_name("type") else {
             return;
         };
         self.visit(type_node);
-        let Some(raw_type) = self.file().text(type_node) else {
-            return;
-        };
-        let Ok(resolved) = self.resolve_type(raw_type) else {
-            return;
-        };
+        let value_type = self
+            .file()
+            .text(type_node)
+            .and_then(|raw_type| self.resolve_type(raw_type).ok())
+            .map(|resolved| resolved.qualified_name);
         let Some(name_node) = node.child_by_field_name("name") else {
             return;
         };
         let Some(name) = self.file().text(name_node).map(ToOwned::to_owned) else {
             return;
         };
+        self.register_binding(name, name_node, node, value_type, kind);
+    }
+
+    fn register_binding(
+        &mut self,
+        name: String,
+        name_node: Node<'_>,
+        declaration_node: Node<'_>,
+        value_type: Option<String>,
+        kind: JavaSymbolKind,
+    ) {
+        let identifier_span = self.file().span(name_node);
+        let lexical_owner = self
+            .callable_scopes
+            .last()
+            .or_else(|| self.owners.last())
+            .cloned()
+            .unwrap_or_else(|| self.file().report_path.clone());
+        let qualified_name = format!(
+            "{}#{}@{}",
+            self.file().report_path,
+            name,
+            identifier_span.start_byte
+        );
+        let definition = JavaSymbolDefinitionOutput {
+            symbol: JavaSymbolIdentityOutput {
+                kind,
+                owner: lexical_owner,
+                name: name.clone(),
+                descriptor: Some(format!("@{}", identifier_span.start_byte)),
+                qualified_name,
+            },
+            identifier_span: identifier_span.clone(),
+            declaration_span: self.file().span(declaration_node),
+            confidence: ResolutionConfidence::Resolved,
+        };
+        self.record_usage(JavaSymbolUsageOutput {
+            target: definition.symbol.clone(),
+            kind: JavaUsageKind::Declaration,
+            span: identifier_span,
+            confidence: ResolutionConfidence::Resolved,
+        });
+        self.local_definitions.push(definition.clone());
         if let Some(scope) = self.scopes.last_mut() {
-            scope.insert(name, resolved.qualified_name);
+            scope.insert(
+                name,
+                LocalBinding {
+                    value_type,
+                    definition,
+                },
+            );
+        }
+    }
+
+    fn visit_annotation(&mut self, node: Node<'_>) {
+        let Some(name_node) = node
+            .child_by_field_name("name")
+            .or_else(|| named_children(node).into_iter().next())
+        else {
+            self.visit_children(node);
+            return;
+        };
+        let Some(raw_type) = self.file().text(name_node) else {
+            self.visit_children(node);
+            return;
+        };
+        let span = self.file().span(name_node);
+        match self.resolve_type(raw_type.trim_start_matches('@')) {
+            Ok(resolved) => self.record_type_indices(
+                &resolved.source_indices,
+                JavaUsageKind::TypeReference,
+                &span,
+                ResolutionConfidence::Resolved,
+            ),
+            Err(failure) => {
+                self.record_type_ambiguity(&failure, JavaUsageKind::TypeReference, &span);
+                self.record_diagnostic(type_resolution_diagnostic(
+                    failure,
+                    span,
+                    "annotation type",
+                ));
+            }
+        }
+        for child in named_children(node) {
+            if child.byte_range() != name_node.byte_range() {
+                self.visit(child);
+            }
         }
     }
 
@@ -2587,8 +3412,7 @@ impl UsageCollector<'_> {
             ),
             Err(failure) => {
                 self.record_type_ambiguity(&failure, JavaUsageKind::TypeReference, &span);
-                self.diagnostics
-                    .push(type_resolution_diagnostic(failure, span, "type reference"));
+                self.record_diagnostic(type_resolution_diagnostic(failure, span, "type reference"));
             }
         }
         self.visit_children(node);
@@ -2662,7 +3486,7 @@ impl UsageCollector<'_> {
                 candidates.sort_by(|left, right| left.declaration.cmp(&right.declaration));
                 candidates.dedup_by(|left, right| left.declaration == right.declaration);
                 match candidates.as_slice() {
-                    [constructor] => self.usages.push(JavaSymbolUsageOutput {
+                    [constructor] => self.record_usage(JavaSymbolUsageOutput {
                         target: constructor.symbol().clone(),
                         kind: JavaUsageKind::Invocation,
                         span: span.clone(),
@@ -2697,7 +3521,7 @@ impl UsageCollector<'_> {
             }
             Err(failure) => {
                 self.record_type_ambiguity(&failure, JavaUsageKind::TypeReference, &span);
-                self.diagnostics.push(type_resolution_diagnostic(
+                self.record_diagnostic(type_resolution_diagnostic(
                     failure,
                     span.clone(),
                     "constructed type",
@@ -2718,7 +3542,13 @@ impl UsageCollector<'_> {
         let Some(name) = self.file().text(node).map(ToOwned::to_owned) else {
             return;
         };
-        if self.lookup_local(&name).is_some() {
+        if let Some(binding) = self.lookup_local(&name).cloned() {
+            self.record_usage(JavaSymbolUsageOutput {
+                target: binding.definition.symbol,
+                kind: JavaUsageKind::LocalReference,
+                span: self.file().span(node),
+                confidence: ResolutionConfidence::Resolved,
+            });
             return;
         }
         if let Some(owner) = self.owners.last().cloned()
@@ -2742,7 +3572,7 @@ impl UsageCollector<'_> {
             .collect::<Vec<_>>();
         match candidates.as_slice() {
             [field] => {
-                self.usages.push(JavaSymbolUsageOutput {
+                self.record_usage(JavaSymbolUsageOutput {
                     target: field.symbol().clone(),
                     kind: JavaUsageKind::FieldReference,
                     span: self.file().span(node),
@@ -2783,7 +3613,7 @@ impl UsageCollector<'_> {
                     | TypeResolutionFailure::Inaccessible { .. }),
                 ) => {
                     self.record_type_ambiguity(&failure, JavaUsageKind::TypeReference, &span);
-                    self.diagnostics.push(type_resolution_diagnostic(
+                    self.record_diagnostic(type_resolution_diagnostic(
                         failure,
                         span,
                         "receiver type",
@@ -2806,7 +3636,7 @@ impl UsageCollector<'_> {
             .to_owned();
         let span = self.file().span(name_node);
         match self.resolve_invocation(node) {
-            Ok(Some((method, confidence))) => self.usages.push(JavaSymbolUsageOutput {
+            Ok(Some((method, confidence))) => self.record_usage(JavaSymbolUsageOutput {
                 target: method.symbol().clone(),
                 kind: JavaUsageKind::Invocation,
                 span: span.clone(),
@@ -2867,7 +3697,7 @@ impl UsageCollector<'_> {
         };
         let candidates = self.visible_methods(&owner, &name);
         match candidates.as_slice() {
-            [method] => self.usages.push(JavaSymbolUsageOutput {
+            [method] => self.record_usage(JavaSymbolUsageOutput {
                 target: method.symbol().clone(),
                 kind: JavaUsageKind::MethodReference,
                 span: span.clone(),
@@ -2915,6 +3745,9 @@ impl UsageCollector<'_> {
 
     fn visit_children(&mut self, node: Node<'_>) {
         for child in named_children(node) {
+            if self.cancelled {
+                break;
+            }
             self.visit(child);
         }
     }
@@ -2936,7 +3769,7 @@ impl UsageCollector<'_> {
         confidence: ResolutionConfidence,
     ) {
         for index in indices {
-            self.usages.push(JavaSymbolUsageOutput {
+            self.record_usage(JavaSymbolUsageOutput {
                 target: self.model.resolution.types[*index].symbol().clone(),
                 kind,
                 span: span.clone(),
@@ -2987,7 +3820,7 @@ impl UsageCollector<'_> {
     ) {
         let candidates = self.visible_fields(owner, name);
         match candidates.as_slice() {
-            [field] => self.usages.push(JavaSymbolUsageOutput {
+            [field] => self.record_usage(JavaSymbolUsageOutput {
                 target: field.symbol().clone(),
                 kind: JavaUsageKind::FieldReference,
                 span: self.file().span(location),
@@ -3097,11 +3930,8 @@ impl UsageCollector<'_> {
                     .is_some_and(|candidate| candidate.byte_range() == node.byte_range()))
     }
 
-    fn lookup_local(&self, name: &str) -> Option<String> {
-        self.scopes
-            .iter()
-            .rev()
-            .find_map(|scope| scope.get(name).cloned())
+    fn lookup_local(&self, name: &str) -> Option<&LocalBinding> {
+        self.scopes.iter().rev().find_map(|scope| scope.get(name))
     }
 
     fn push_member_diagnostic(
@@ -3124,7 +3954,7 @@ impl UsageCollector<'_> {
                 format!("Member `{member}` exists only in a source set that is not visible here"),
             ),
         };
-        self.diagnostics.push(JavaAnalysisDiagnosticOutput {
+        self.record_diagnostic(JavaAnalysisDiagnosticOutput {
             code: code.to_owned(),
             severity: DiagnosticSeverity::Warning,
             message,
@@ -3254,6 +4084,7 @@ impl UsageCollector<'_> {
             "identifier" => {
                 let name = self.file().text(node)?;
                 self.lookup_local(name)
+                    .and_then(|binding| binding.value_type.clone())
                     .or_else(|| {
                         self.owners.last().and_then(|owner| {
                             let fields = self.visible_fields(owner, name);
@@ -3523,6 +4354,79 @@ mod tests {
     use crate::java_analysis::JavaSourceRootOutput;
     use crate::java_analysis::JavaSourceSetOutput;
 
+    #[test]
+    fn usage_scan_retains_a_deterministic_bounded_set_under_adversarial_volume() {
+        let mut forward = UsageAtPositionScan::new();
+        let mut reverse = UsageAtPositionScan::new();
+        let candidate_count = USAGE_AT_POSITION_MAX_RESULTS * 8;
+        for index in 0..candidate_count {
+            forward.record_usage(raw_usage(index));
+        }
+        for index in (0..candidate_count).rev() {
+            reverse.record_usage(raw_usage(index));
+        }
+
+        assert_eq!(forward.usages.len(), USAGE_AT_POSITION_MAX_RESULTS);
+        assert_eq!(reverse.usages.len(), USAGE_AT_POSITION_MAX_RESULTS);
+        assert_eq!(forward.usages, reverse.usages);
+        assert_eq!(
+            forward.discarded_candidate_count,
+            u64::try_from(candidate_count - USAGE_AT_POSITION_MAX_RESULTS).expect("fixture count")
+        );
+        assert_eq!(
+            reverse.discarded_candidate_count,
+            u64::try_from(candidate_count - USAGE_AT_POSITION_MAX_RESULTS).expect("fixture count")
+        );
+    }
+
+    #[test]
+    fn usage_target_cache_evicts_lru_entries_with_explicit_memory_bounds() {
+        let mut cache = UsageTargetCache::default();
+        let mut targets = Vec::new();
+        for index in 0..=USAGE_TARGET_CACHE_MAX_ENTRIES {
+            let mut usage = raw_usage(index);
+            usage.target.name = format!("Target{index:02}");
+            usage.target.qualified_name = format!("example.Target{index:02}");
+            let target = usage.target.clone();
+            let mut scan = UsageAtPositionScan::new();
+            scan.record_usage(usage);
+            cache.insert(target.clone(), Arc::new(scan));
+            targets.push(target);
+        }
+
+        assert_eq!(cache.entries.len(), USAGE_TARGET_CACHE_MAX_ENTRIES);
+        assert!(cache.retained_bytes <= USAGE_TARGET_CACHE_MAX_RETAINED_BYTES);
+        assert_eq!(cache.evictions, 1);
+        assert!(cache.get(&targets[0]).is_none());
+        assert!(cache.get(targets.last().expect("last target")).is_some());
+    }
+
+    fn raw_usage(index: usize) -> JavaSymbolUsageOutput {
+        let byte = u64::try_from(index).expect("fixture index");
+        JavaSymbolUsageOutput {
+            target: JavaSymbolIdentityOutput {
+                kind: JavaSymbolKind::Class,
+                owner: "example".to_owned(),
+                name: "Target".to_owned(),
+                descriptor: None,
+                qualified_name: "example.Target".to_owned(),
+            },
+            kind: JavaUsageKind::TypeReference,
+            span: JavaSourceSpanOutput {
+                path: format!("source/example/Use{index:08}.java"),
+                source_set: "scenario".to_owned(),
+                source_hash: format!("blake3:{index:064x}"),
+                start_byte: byte,
+                end_byte: byte.saturating_add(1),
+                start_line: byte.saturating_add(1),
+                start_column: 1,
+                end_line: byte.saturating_add(1),
+                end_column: 2,
+            },
+            confidence: ResolutionConfidence::Resolved,
+        }
+    }
+
     fn context(source_sets: &[(&str, &[&str])]) -> JavaAnalysisContextOutput {
         JavaAnalysisContextOutput {
             branch: "1.19.2".to_owned(),
@@ -3556,12 +4460,32 @@ mod tests {
             .expect("fixture Java source should parse")
     }
 
-    fn index(files: Vec<JavaSyntaxFile>) -> JavaSymbolIndex {
-        JavaSymbolIndex::build_from_parsed(
-            context(&[("scenario", &["scenario"])]),
-            files,
-            BTreeSet::from([("scenario".to_owned(), "scenario".to_owned())]),
-        )
+    fn index(mut files: Vec<JavaSyntaxFile>) -> JavaSymbolIndex {
+        let referenced_platform_types = ["String", "Object", "StringBuilder"]
+            .into_iter()
+            .filter(|name| files.iter().any(|file| file.source.contains(name)))
+            .collect::<Vec<_>>();
+        let mut context = context(&[("scenario", &["scenario"])]);
+        let mut visibility = BTreeSet::from([("scenario".to_owned(), "scenario".to_owned())]);
+        if !referenced_platform_types.is_empty() {
+            context.source_sets[0]
+                .visible_source_sets
+                .push("jdk:fixture".to_owned());
+            context.source_sets.push(JavaSourceSetOutput {
+                id: "jdk:fixture".to_owned(),
+                visible_source_sets: vec!["jdk:fixture".to_owned()],
+            });
+            visibility.insert(("scenario".to_owned(), "jdk:fixture".to_owned()));
+            visibility.insert(("jdk:fixture".to_owned(), "jdk:fixture".to_owned()));
+            files.extend(referenced_platform_types.into_iter().map(|name| {
+                parsed(
+                    &format!("jdk/java.base/java/lang/{name}.java"),
+                    "jdk:fixture",
+                    &format!("package java.lang; public class {name} {{}}"),
+                )
+            }));
+        }
+        JavaSymbolIndex::build_from_parsed(context, files, visibility)
     }
 
     fn selector(terms: &[&str]) -> JavaSymbolSelector {
@@ -3606,6 +4530,7 @@ mod tests {
                 files,
                 diagnostics: Vec::new(),
                 classpath_entries: Vec::new(),
+                jdk_sources: JdkSourceDomainState::Disabled,
             },
         )
     }
@@ -3760,6 +4685,135 @@ mod tests {
         .expect("method definition");
         assert_eq!(method.outcome, DefinitionAtPositionOutcome::Success);
         assert_eq!(method.symbols[0].canonical_selector(), "p.A run(I)V");
+    }
+
+    #[test]
+    fn definition_at_position_resolves_parameters_and_block_local_variables() {
+        let source = concat!(
+            "package q;\n",
+            "class Use {\n",
+            "    void run(String input) {\n",
+            "        String fromParameter = input;\n",
+            "        {\n",
+            "            String value = fromParameter;\n",
+            "            String first = value;\n",
+            "        }\n",
+            "        {\n",
+            "            String value = fromParameter;\n",
+            "            String second = value;\n",
+            "        }\n",
+            "    }\n",
+            "}\n",
+        );
+        let (_directory, workspace) = position_workspace(&[("q/Use.java", source)]);
+
+        let parameter = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", source, 4, 32),
+            None,
+        )
+        .expect("parameter definition");
+        assert_eq!(parameter.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(parameter.symbols[0].kind, JavaSymbolKind::Parameter);
+        assert_eq!(parameter.definitions[0].identifier_span.start_line, 3);
+
+        let first_block = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", source, 7, 28),
+            None,
+        )
+        .expect("first block local definition");
+        assert_eq!(first_block.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(first_block.symbols[0].kind, JavaSymbolKind::LocalVariable);
+        assert_eq!(first_block.definitions[0].identifier_span.start_line, 6);
+
+        let second_block = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", source, 11, 29),
+            None,
+        )
+        .expect("second block local definition");
+        assert_eq!(second_block.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(second_block.symbols[0].kind, JavaSymbolKind::LocalVariable);
+        assert_eq!(second_block.definitions[0].identifier_span.start_line, 10);
+        assert_ne!(first_block.symbols, second_block.symbols);
+    }
+
+    #[test]
+    fn definition_at_position_uses_exact_annotation_and_import_subject_spans() {
+        let source = concat!(
+            "package q;\n",
+            "import p.A;\n",
+            "import p.Marker;\n",
+            "import static p.Tools.VALUE;\n",
+            "import static p.Tools.run;\n",
+            "@Marker\n",
+            "class Use { A value = new A(); int number = VALUE; void call() { run(); } }\n",
+        );
+        let (_directory, workspace) = position_workspace(&[
+            ("p/A.java", "package p; public class A {}\n"),
+            ("p/Marker.java", "package p; public @interface Marker {}\n"),
+            (
+                "p/Tools.java",
+                "package p; public class Tools { public static int VALUE; public static void run() {} }\n",
+            ),
+            ("q/Use.java", source),
+        ]);
+        let column = |line_number: usize, needle: &str| {
+            let line = source.lines().nth(line_number - 1).expect("fixture line");
+            u64::try_from(line.find(needle).expect("fixture needle") + 1).expect("column fits u64")
+        };
+
+        let imported_type = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", source, 2, column(2, "A")),
+            None,
+        )
+        .expect("direct import definition");
+        assert_eq!(imported_type.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(imported_type.symbols[0].canonical_selector(), "p.A");
+
+        let static_owner = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", source, 4, column(4, "Tools")),
+            None,
+        )
+        .expect("static import owner definition");
+        assert_eq!(static_owner.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(static_owner.symbols[0].canonical_selector(), "p.Tools");
+
+        let static_field = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", source, 4, column(4, "VALUE")),
+            None,
+        )
+        .expect("static imported field definition");
+        assert_eq!(static_field.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(
+            static_field.symbols[0].canonical_selector(),
+            "p.Tools VALUE"
+        );
+
+        let static_method = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", source, 5, column(5, "run")),
+            None,
+        )
+        .expect("static imported method definition");
+        assert_eq!(static_method.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(
+            static_method.symbols[0].canonical_selector(),
+            "p.Tools run()V"
+        );
+
+        let annotation = analyze_definition_at_position(
+            &workspace,
+            &position_request(&workspace, "q/Use.java", source, 6, column(6, "Marker")),
+            None,
+        )
+        .expect("annotation definition");
+        assert_eq!(annotation.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(annotation.symbols[0].canonical_selector(), "p.Marker");
     }
 
     #[test]
@@ -3937,6 +4991,7 @@ mod tests {
             ],
             diagnostics: Vec::new(),
             classpath_entries: Vec::new(),
+            jdk_sources: JdkSourceDomainState::Disabled,
         };
         let request =
             position_request_for_file(&workspace, &workspace.files[0], main_source, 1, 55);
@@ -4509,6 +5564,54 @@ mod tests {
                     && usage.confidence == ResolutionConfidence::PartiallyResolved
             }));
         }
+    }
+
+    #[test]
+    fn java_symbol_index_applies_current_package_before_on_demand_imports() {
+        let index = index(vec![
+            parsed(
+                "source/p/String.java",
+                "scenario",
+                "package p; public class String {}",
+            ),
+            parsed(
+                "source/p/Use.java",
+                "scenario",
+                "package p; class Use { String value; }",
+            ),
+        ]);
+
+        let report = index.definition(&selector(&["p.Use", "value"]));
+        assert_eq!(report.outcome, SymbolCommandOutcome::Success);
+        assert_eq!(
+            report.definitions[0].confidence,
+            ResolutionConfidence::Resolved
+        );
+        assert!(index.diagnostics.iter().all(|diagnostic| {
+            diagnostic.code != "java.ambiguous-type"
+                || !diagnostic.message.contains("field type `String`")
+        }));
+    }
+
+    #[test]
+    fn java_symbol_index_treats_java_lang_and_wildcards_as_one_on_demand_tier() {
+        let index = index(vec![
+            parsed(
+                "source/p/String.java",
+                "scenario",
+                "package p; public class String {}",
+            ),
+            parsed(
+                "source/q/Use.java",
+                "scenario",
+                "package q; import p.*; class Use { String value; }",
+            ),
+        ]);
+
+        assert!(index.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "java.ambiguous-type"
+                && diagnostic.message.contains("field type `String`")
+        }));
     }
 
     #[test]

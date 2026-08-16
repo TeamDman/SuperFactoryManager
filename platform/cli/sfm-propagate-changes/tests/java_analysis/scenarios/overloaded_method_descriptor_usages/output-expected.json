@@ -3,7 +3,7 @@
     "branch": "1.19.2",
     "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
     "classpath_mode": "isolated",
-    "index_fingerprint": "blake3:40373efe2ad86d29e027de2043575883cc16f5a5c721e315418d21531f47711e",
+    "index_fingerprint": "blake3:cfe736a118cacef4a6f73a5b9011e6417830c540a559660f50e326cf6e8e17bf",
     "java_release": "17",
     "jdk": "java-17",
     "minecraft_version": "1.19.2",
@@ -16,18 +16,40 @@
         "kind": "custom",
         "path": "source",
         "source_set": "custom"
+      },
+      {
+        "exists": true,
+        "id": "jdk-java-17-5d37c7c5f17836ce",
+        "kind": "jdk",
+        "path": "$sfm-cache/sources/jdk/17-2bc7ef5f44f1bad1/e9b1e8371a9b394577207c1b12eb8edea34bdabb/arborium-java-2.18.1-37cdda9748951a30/tree",
+        "source_set": "jdk:java-17"
       }
     ],
     "source_sets": [
       {
         "id": "custom",
         "visible_source_sets": [
-          "custom"
+          "custom",
+          "jdk:java-17"
+        ]
+      },
+      {
+        "id": "jdk:java-17",
+        "visible_source_sets": [
+          "custom",
+          "jdk:java-17"
         ]
       }
     ]
   },
-  "diagnostics": [],
+  "diagnostics": [
+    {
+      "code": "java.unrelated-workspace-diagnostics-suppressed",
+      "message": "Additional diagnostics unrelated to selector `p.A run(I)V` were suppressed",
+      "severity": "info",
+      "span": null
+    }
+  ],
   "outcome": "success",
   "schema": "sfm.symbol-usage-list/2",
   "selector": {

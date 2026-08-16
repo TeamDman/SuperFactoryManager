@@ -3,7 +3,7 @@
     "branch": "1.19.2",
     "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
     "classpath_mode": "isolated",
-    "index_fingerprint": "blake3:4dcc7ce7657d521f9c5b2114e7c6f56e2599cea65ab78a8f8db2321d86c331ec",
+    "index_fingerprint": "blake3:6020208db6226d2d3d5a4b2975f8e36b9aad12df550aac6d2b5c33496c94596e",
     "java_release": "17",
     "jdk": "java-17",
     "minecraft_version": "1.19.2",
@@ -16,13 +16,28 @@
         "kind": "custom",
         "path": "source",
         "source_set": "custom"
+      },
+      {
+        "exists": true,
+        "id": "jdk-java-17-5d37c7c5f17836ce",
+        "kind": "jdk",
+        "path": "$sfm-cache/sources/jdk/17-2bc7ef5f44f1bad1/e9b1e8371a9b394577207c1b12eb8edea34bdabb/arborium-java-2.18.1-37cdda9748951a30/tree",
+        "source_set": "jdk:java-17"
       }
     ],
     "source_sets": [
       {
         "id": "custom",
         "visible_source_sets": [
-          "custom"
+          "custom",
+          "jdk:java-17"
+        ]
+      },
+      {
+        "id": "jdk:java-17",
+        "visible_source_sets": [
+          "custom",
+          "jdk:java-17"
         ]
       }
     ]
@@ -93,7 +108,14 @@
       }
     }
   ],
-  "diagnostics": [],
+  "diagnostics": [
+    {
+      "code": "java.unrelated-list-diagnostics-suppressed",
+      "message": "Suppressed 42 diagnostics outside files matched by symbol glob `example.* run*`",
+      "severity": "info",
+      "span": null
+    }
+  ],
   "outcome": "success",
   "pattern": "example.* run*",
   "schema": "sfm.symbol-list/1"

@@ -8,6 +8,7 @@ use super::SYMBOL_SERVER_HELLO_SCHEMA;
 use super::SYMBOL_SERVER_PING_SCHEMA;
 use super::SYMBOL_SERVER_PROTOCOL_SCHEMA;
 use super::SYMBOL_SERVER_SHUTDOWN_SCHEMA;
+use super::SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA;
 use super::SYMBOL_SERVER_WORKSPACE_GENERATION_SCHEMA;
 use super::SymbolServerCancellationOutput;
 use super::SymbolServerCancellationStatus;
@@ -19,8 +20,13 @@ use super::SymbolServerErrorDisposition;
 use super::SymbolServerErrorOutput;
 use super::SymbolServerFrame;
 use super::SymbolServerHelloOutput;
+use super::SymbolServerUsageAtPositionCancelledOutput;
+use super::SymbolServerUsageAtPositionErrorOutput;
 use super::SymbolServerWorkspaceGenerationOutput;
 use super::SymbolServerWorkspaceOutput;
+use super::USAGE_AT_POSITION_RESULT_SCHEMA;
+use super::UsageAtPositionRequest;
+use super::UsageAtPositionResult;
 use crate::cancellation::CancellationToken;
 use std::collections::BTreeMap;
 use std::fmt;
@@ -76,6 +82,22 @@ impl From<&DefinitionAtPositionRequest> for SymbolServerRequestKey {
     }
 }
 
+impl From<&UsageAtPositionRequest> for SymbolServerRequestKey {
+    fn from(request: &UsageAtPositionRequest) -> Self {
+        Self {
+            request_id: request.request_id,
+            request_generation: request.request_generation,
+            workspace_generation: request.workspace.workspace_generation,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SymbolServerRequestKind {
+    Definition,
+    UsageAtPosition,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SymbolServerEngineError {
     pub code: String,
@@ -99,6 +121,10 @@ pub enum SymbolServerEffect {
     Send(Box<SymbolServerFrame>),
     StartDefinition {
         request: Box<DefinitionAtPositionRequest>,
+        cancellation_token: CancellationToken,
+    },
+    StartUsageAtPosition {
+        request: Box<UsageAtPositionRequest>,
         cancellation_token: CancellationToken,
     },
 }
@@ -144,32 +170,34 @@ impl fmt::Display for SymbolServerConfigurationError {
 
 impl std::error::Error for SymbolServerConfigurationError {}
 
-struct PendingDefinition {
+struct PendingRequest {
     key: SymbolServerRequestKey,
+    kind: SymbolServerRequestKind,
     cancellation_token: CancellationToken,
     terminal_sent: bool,
 }
 
-struct PreCancelledDefinition {
+struct PreCancelledRequest {
     key: SymbolServerRequestKey,
     reason: String,
 }
 
 /// Pure lifecycle coordinator for one symbol-server connection.
 ///
-/// The state machine owns no threads or I/O. Callers execute
-/// [`SymbolServerEffect::StartDefinition`] and feed the eventual completion
-/// back through [`SymbolServerState::finish_definition`].
+/// The state machine owns no threads or I/O. Callers execute its typed start
+/// effects and feed eventual completions back through the matching finish
+/// method.
 pub struct SymbolServerState {
     identity: SymbolServerIdentity,
     limits: SymbolServerLimits,
     parent_cancellation_token: CancellationToken,
     phase: SymbolServerPhase,
     workspace: SymbolServerWorkspaceOutput,
-    highest_definition_request_id: Option<u64>,
+    highest_request_id: Option<u64>,
     negotiated_max_frame_bytes: usize,
-    pending: BTreeMap<u64, PendingDefinition>,
-    pre_cancelled: BTreeMap<u64, PreCancelledDefinition>,
+    negotiated_capabilities: Vec<SymbolServerCapability>,
+    pending: BTreeMap<u64, PendingRequest>,
+    pre_cancelled: BTreeMap<u64, PreCancelledRequest>,
     send_shutdown_ack_after_drain: bool,
 }
 
@@ -212,8 +240,9 @@ impl SymbolServerState {
             parent_cancellation_token,
             phase: SymbolServerPhase::AwaitingHello,
             workspace,
-            highest_definition_request_id: None,
+            highest_request_id: None,
             negotiated_max_frame_bytes: limits.max_frame_bytes,
+            negotiated_capabilities: Vec::new(),
             pending: BTreeMap::new(),
             pre_cancelled: BTreeMap::new(),
             send_shutdown_ack_after_drain: false,
@@ -227,6 +256,14 @@ impl SymbolServerState {
 
     #[must_use]
     pub fn pending_definition_count(&self) -> usize {
+        self.pending
+            .values()
+            .filter(|pending| pending.kind == SymbolServerRequestKind::Definition)
+            .count()
+    }
+
+    #[must_use]
+    pub fn pending_request_count(&self) -> usize {
         self.pending.len()
     }
 
@@ -264,6 +301,9 @@ impl SymbolServerState {
                 ),
                 SymbolServerClientFrame::Definition { request, .. } => {
                     self.handle_definition(*request)
+                }
+                SymbolServerClientFrame::UsageAtPosition { request, .. } => {
+                    self.handle_usage_at_position(*request)
                 }
                 SymbolServerClientFrame::Cancel {
                     request_id,
@@ -351,7 +391,7 @@ impl SymbolServerState {
         let Some(pending) = self.pending.remove(&key.request_id) else {
             return Vec::new();
         };
-        if pending.key != key {
+        if pending.key != key || pending.kind != SymbolServerRequestKind::Definition {
             self.pending.insert(pending.key.request_id, pending);
             return self.fatal_protocol_error(
                 "engine-completion-key-mismatch",
@@ -382,6 +422,61 @@ impl SymbolServerState {
                     ));
                 }
                 Err(error) => effects.push(Self::definition_error_effect(
+                    key,
+                    error.code,
+                    error.message,
+                    error.retryable,
+                )),
+            }
+        }
+        effects.extend(self.finish_drain_if_ready());
+        effects
+    }
+
+    /// Finish a previously emitted usage-at-position effect.
+    ///
+    /// Late completions after cancellation are consumed without a second
+    /// terminal response.
+    #[must_use]
+    pub fn finish_usage_at_position(
+        &mut self,
+        key: SymbolServerRequestKey,
+        completion: Result<UsageAtPositionResult, SymbolServerEngineError>,
+    ) -> Vec<SymbolServerEffect> {
+        let Some(pending) = self.pending.remove(&key.request_id) else {
+            return Vec::new();
+        };
+        if pending.key != key || pending.kind != SymbolServerRequestKind::UsageAtPosition {
+            self.pending.insert(pending.key.request_id, pending);
+            return self.fatal_protocol_error(
+                "engine-completion-key-mismatch",
+                "usage-at-position engine completion identity did not match its pending request",
+            );
+        }
+        let mut effects = Vec::new();
+        if !pending.terminal_sent {
+            match completion {
+                Ok(result) if usage_at_position_result_matches_key(&result, key) => {
+                    effects.push(SymbolServerEffect::send(
+                        SymbolServerFrame::UsageAtPositionResult {
+                            schema: SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA.to_owned(),
+                            result: Box::new(result),
+                        },
+                    ));
+                }
+                Ok(_) => {
+                    effects.push(Self::usage_at_position_error_effect(
+                        key,
+                        "engine-result-identity-mismatch",
+                        "usage-at-position engine returned a result for a different request",
+                        false,
+                    ));
+                    effects.extend(self.fatal_protocol_error(
+                        "engine-result-identity-mismatch",
+                        "usage-at-position engine returned a result for a different request",
+                    ));
+                }
+                Err(error) => effects.push(Self::usage_at_position_error_effect(
                     key,
                     error.code,
                     error.message,
@@ -431,6 +526,10 @@ impl SymbolServerState {
             );
         }
         self.negotiated_max_frame_bytes = self.limits.max_frame_bytes.min(client_maximum);
+        self.negotiated_capabilities = SymbolServerCapability::all()
+            .into_iter()
+            .filter(|capability| hello.capabilities.contains(capability))
+            .collect();
         self.phase = SymbolServerPhase::Ready;
         vec![SymbolServerEffect::send(SymbolServerFrame::Hello {
             schema: SYMBOL_SERVER_HELLO_SCHEMA.to_owned(),
@@ -438,7 +537,7 @@ impl SymbolServerState {
                 protocol_schema: SYMBOL_SERVER_PROTOCOL_SCHEMA.to_owned(),
                 server_name: self.identity.server_name.clone(),
                 server_version: self.identity.server_version.clone(),
-                capabilities: SymbolServerCapability::all().to_vec(),
+                capabilities: self.negotiated_capabilities.clone(),
                 max_frame_bytes: self.negotiated_max_frame_bytes as u64,
                 max_pending_definitions: self.limits.max_pending_definitions as u64,
                 workspace: self.workspace.clone(),
@@ -451,7 +550,12 @@ impl SymbolServerState {
         request: DefinitionAtPositionRequest,
     ) -> Vec<SymbolServerEffect> {
         let key = SymbolServerRequestKey::from(&request);
-        if let Some(rejection) = self.definition_identity_rejection(&request, key) {
+        if let Some(rejection) = self.request_identity_rejection(
+            key,
+            &request.workspace,
+            request.validate(),
+            SymbolServerRequestKind::Definition,
+        ) {
             return vec![rejection];
         }
 
@@ -474,7 +578,7 @@ impl SymbolServerState {
             effects.push(Self::definition_error_effect(
                 key,
                 "server-busy",
-                "symbol-server pending definition limit is reached",
+                "symbol-server pending request limit is reached",
                 true,
             ));
             return effects;
@@ -483,8 +587,9 @@ impl SymbolServerState {
         let cancellation_token = self.parent_cancellation_token.child_token();
         self.pending.insert(
             key.request_id,
-            PendingDefinition {
+            PendingRequest {
                 key,
+                kind: SymbolServerRequestKind::Definition,
                 cancellation_token: cancellation_token.clone(),
                 terminal_sent: false,
             },
@@ -496,61 +601,142 @@ impl SymbolServerState {
         effects
     }
 
-    fn definition_identity_rejection(
+    fn handle_usage_at_position(
         &mut self,
-        request: &DefinitionAtPositionRequest,
+        request: UsageAtPositionRequest,
+    ) -> Vec<SymbolServerEffect> {
+        let key = SymbolServerRequestKey::from(&request);
+        if !self
+            .negotiated_capabilities
+            .contains(&SymbolServerCapability::UsageAtPosition)
+        {
+            return vec![Self::usage_at_position_error_effect(
+                key,
+                "capability-not-negotiated",
+                "usage-at-position was not negotiated during the symbol-server handshake",
+                false,
+            )];
+        }
+        if let Some(rejection) = self.request_identity_rejection(
+            key,
+            &request.workspace,
+            request.validate(),
+            SymbolServerRequestKind::UsageAtPosition,
+        ) {
+            return vec![rejection];
+        }
+
+        let mut effects = Vec::new();
+        if let Some(pre_cancelled) = self.pre_cancelled.remove(&key.request_id) {
+            if pre_cancelled.key == key {
+                effects.push(Self::usage_at_position_cancelled_effect(
+                    key,
+                    pre_cancelled.reason,
+                ));
+            } else {
+                effects.push(Self::usage_at_position_error_effect(
+                    key,
+                    "stale-cancellation-generation",
+                    "a pre-request cancellation used a different request or workspace generation",
+                    false,
+                ));
+            }
+            return effects;
+        }
+
+        if self.pending.len() >= self.limits.max_pending_definitions {
+            effects.push(Self::usage_at_position_error_effect(
+                key,
+                "server-busy",
+                "symbol-server pending request limit is reached",
+                true,
+            ));
+            return effects;
+        }
+
+        let cancellation_token = self.parent_cancellation_token.child_token();
+        self.pending.insert(
+            key.request_id,
+            PendingRequest {
+                key,
+                kind: SymbolServerRequestKind::UsageAtPosition,
+                cancellation_token: cancellation_token.clone(),
+                terminal_sent: false,
+            },
+        );
+        effects.push(SymbolServerEffect::StartUsageAtPosition {
+            request: Box::new(request),
+            cancellation_token,
+        });
+        effects
+    }
+
+    fn request_identity_rejection(
+        &mut self,
         key: SymbolServerRequestKey,
+        request_workspace: &super::DefinitionWorkspaceIdentityInput,
+        validation: eyre::Result<()>,
+        kind: SymbolServerRequestKind,
     ) -> Option<SymbolServerEffect> {
+        let request_label = match kind {
+            SymbolServerRequestKind::Definition => "definition",
+            SymbolServerRequestKind::UsageAtPosition => "usage-at-position",
+        };
         if key.request_id == 0 {
             return Some(Self::protocol_error_effect(
                 "invalid-request-id",
-                "definition request id must be positive",
+                format!("{request_label} request id must be positive"),
                 SymbolServerErrorDisposition::Request,
                 Some(key.request_id),
                 Some(key.request_generation),
             ));
         }
         if self
-            .highest_definition_request_id
+            .highest_request_id
             .is_some_and(|highest| key.request_id <= highest)
         {
             return Some(Self::protocol_error_effect(
                 "stale-request-id",
-                "definition request ids must be unique and strictly increasing",
+                "symbol-server request ids must be unique and strictly increasing across request kinds",
                 SymbolServerErrorDisposition::Request,
                 Some(key.request_id),
                 Some(key.request_generation),
             ));
         }
-        self.highest_definition_request_id = Some(key.request_id);
+        self.highest_request_id = Some(key.request_id);
         self.pre_cancelled
             .retain(|request_id, _| *request_id >= key.request_id);
 
-        if let Err(error) = request.validate() {
-            return Some(Self::definition_error_effect(
+        if let Err(error) = validation {
+            return Some(Self::request_error_effect(
+                kind,
                 key,
-                "invalid-definition-request",
+                format!("invalid-{request_label}-request"),
                 error.to_string(),
                 false,
             ));
         }
         let workspace_generation = self.workspace.request_workspace.workspace_generation;
         if key.workspace_generation != workspace_generation {
-            return Some(Self::definition_error_effect(
+            return Some(Self::request_error_effect(
+                kind,
                 key,
                 "stale-workspace-generation",
                 format!(
-                    "definition targets workspace generation {}, but server is at {workspace_generation}",
+                    "{request_label} targets workspace generation {}, but server is at {workspace_generation}",
                     key.workspace_generation
                 ),
                 true,
             ));
         }
-        (request.workspace != self.workspace.request_workspace).then(|| {
-            Self::definition_error_effect(
+        (request_workspace != &self.workspace.request_workspace).then(|| {
+            Self::request_error_effect(
+                kind,
                 key,
                 "workspace-identity-mismatch",
-                "definition request workspace does not exactly match the worker-served workspace identity",
+                format!(
+                    "{request_label} request workspace does not exactly match the worker-served workspace identity"
+                ),
                 true,
             )
         })
@@ -561,11 +747,6 @@ impl SymbolServerState {
         key: SymbolServerRequestKey,
         reason: String,
     ) -> Vec<SymbolServerEffect> {
-        let reason = if reason.trim().is_empty() {
-            "definition request cancelled by client".to_owned()
-        } else {
-            reason
-        };
         if self.workspace.request_workspace.workspace_generation != key.workspace_generation {
             return vec![Self::cancellation_ack_effect(
                 key,
@@ -585,6 +766,19 @@ impl SymbolServerState {
                     SymbolServerCancellationStatus::AlreadyTerminal,
                 )];
             }
+            let reason = if reason.trim().is_empty() {
+                match pending.kind {
+                    SymbolServerRequestKind::Definition => {
+                        "definition request cancelled by client".to_owned()
+                    }
+                    SymbolServerRequestKind::UsageAtPosition => {
+                        "usage-at-position request cancelled by client".to_owned()
+                    }
+                }
+            } else {
+                reason
+            };
+            let kind = pending.kind;
             pending.cancellation_token.request_cancel(reason.clone());
             pending.terminal_sent = true;
             return vec![
@@ -592,11 +786,11 @@ impl SymbolServerState {
                     key,
                     SymbolServerCancellationStatus::CancellationRequested,
                 ),
-                Self::definition_cancelled_effect(key, reason),
+                Self::request_cancelled_effect(kind, key, reason),
             ];
         }
         if self
-            .highest_definition_request_id
+            .highest_request_id
             .is_some_and(|highest| key.request_id <= highest)
         {
             return vec![Self::cancellation_ack_effect(
@@ -604,6 +798,11 @@ impl SymbolServerState {
                 SymbolServerCancellationStatus::AlreadyTerminal,
             )];
         }
+        let reason = if reason.trim().is_empty() {
+            "symbol request cancelled by client".to_owned()
+        } else {
+            reason
+        };
         if let Some(existing) = self.pre_cancelled.get(&key.request_id) {
             return vec![Self::cancellation_ack_effect(
                 key,
@@ -621,7 +820,7 @@ impl SymbolServerState {
             )];
         }
         self.pre_cancelled
-            .insert(key.request_id, PreCancelledDefinition { key, reason });
+            .insert(key.request_id, PreCancelledRequest { key, reason });
         vec![Self::cancellation_ack_effect(
             key,
             SymbolServerCancellationStatus::RecordedBeforeRequest,
@@ -653,7 +852,7 @@ impl SymbolServerState {
             .filter(|pending| !pending.terminal_sent)
             .count();
         let mut effects = self.cancel_pending_matching(
-            "definition request cancelled by workspace generation replacement",
+            "symbol request cancelled by workspace generation replacement",
             true,
             |_| true,
         );
@@ -667,7 +866,7 @@ impl SymbolServerState {
         &mut self,
         reason: impl Into<String>,
         send_shutdown_ack: bool,
-        send_definition_terminals: bool,
+        send_request_terminals: bool,
     ) -> Vec<SymbolServerEffect> {
         if self.phase == SymbolServerPhase::Closed {
             return Vec::new();
@@ -676,7 +875,7 @@ impl SymbolServerState {
         self.send_shutdown_ack_after_drain = send_shutdown_ack;
         self.pre_cancelled.clear();
         let mut effects =
-            self.cancel_pending_matching(reason.into(), send_definition_terminals, |_| true);
+            self.cancel_pending_matching(reason.into(), send_request_terminals, |_| true);
         effects.extend(self.finish_drain_if_ready());
         effects
     }
@@ -684,8 +883,8 @@ impl SymbolServerState {
     fn cancel_pending_matching(
         &mut self,
         reason: impl Into<String>,
-        send_definition_terminals: bool,
-        predicate: impl Fn(&PendingDefinition) -> bool,
+        send_request_terminals: bool,
+        predicate: impl Fn(&PendingRequest) -> bool,
     ) -> Vec<SymbolServerEffect> {
         let reason = reason.into();
         let mut cancelled = Vec::new();
@@ -693,15 +892,15 @@ impl SymbolServerState {
             if !pending.terminal_sent && predicate(pending) {
                 pending.cancellation_token.request_cancel(reason.clone());
                 pending.terminal_sent = true;
-                if send_definition_terminals {
-                    cancelled.push((pending.key, reason.clone()));
+                if send_request_terminals {
+                    cancelled.push((pending.kind, pending.key, reason.clone()));
                 }
             }
         }
         cancelled
             .into_iter()
-            .map(|(key, cancellation_reason)| {
-                Self::definition_cancelled_effect(key, cancellation_reason)
+            .map(|(kind, key, cancellation_reason)| {
+                Self::request_cancelled_effect(kind, key, cancellation_reason)
             })
             .collect()
     }
@@ -734,7 +933,7 @@ impl SymbolServerState {
             None,
         )];
         effects.extend(self.begin_drain(
-            "definition request cancelled by fatal protocol error",
+            "symbol request cancelled by fatal protocol error",
             false,
             true,
         ));
@@ -779,6 +978,44 @@ impl SymbolServerState {
         })
     }
 
+    fn usage_at_position_error_effect(
+        key: SymbolServerRequestKey,
+        code: impl Into<String>,
+        message: impl Into<String>,
+        retryable: bool,
+    ) -> SymbolServerEffect {
+        SymbolServerEffect::send(SymbolServerFrame::UsageAtPositionFailed {
+            schema: SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA.to_owned(),
+            error: SymbolServerUsageAtPositionErrorOutput {
+                request_id: key.request_id,
+                request_generation: key.request_generation,
+                workspace_generation: key.workspace_generation,
+                code: code.into(),
+                message: message.into(),
+                retryable,
+            },
+        })
+    }
+
+    fn request_error_effect(
+        kind: SymbolServerRequestKind,
+        key: SymbolServerRequestKey,
+        code: impl Into<String>,
+        message: impl Into<String>,
+        retryable: bool,
+    ) -> SymbolServerEffect {
+        let code = code.into();
+        let message = message.into();
+        match kind {
+            SymbolServerRequestKind::Definition => {
+                Self::definition_error_effect(key, code, message, retryable)
+            }
+            SymbolServerRequestKind::UsageAtPosition => {
+                Self::usage_at_position_error_effect(key, code, message, retryable)
+            }
+        }
+    }
+
     fn definition_cancelled_effect(
         key: SymbolServerRequestKey,
         reason: impl Into<String>,
@@ -792,6 +1029,35 @@ impl SymbolServerState {
                 reason: reason.into(),
             },
         })
+    }
+
+    fn usage_at_position_cancelled_effect(
+        key: SymbolServerRequestKey,
+        reason: impl Into<String>,
+    ) -> SymbolServerEffect {
+        SymbolServerEffect::send(SymbolServerFrame::UsageAtPositionCancelled {
+            schema: SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA.to_owned(),
+            cancellation: SymbolServerUsageAtPositionCancelledOutput {
+                request_id: key.request_id,
+                request_generation: key.request_generation,
+                workspace_generation: key.workspace_generation,
+                reason: reason.into(),
+            },
+        })
+    }
+
+    fn request_cancelled_effect(
+        kind: SymbolServerRequestKind,
+        key: SymbolServerRequestKey,
+        reason: impl Into<String>,
+    ) -> SymbolServerEffect {
+        let reason = reason.into();
+        match kind {
+            SymbolServerRequestKind::Definition => Self::definition_cancelled_effect(key, reason),
+            SymbolServerRequestKind::UsageAtPosition => {
+                Self::usage_at_position_cancelled_effect(key, reason)
+            }
+        }
     }
 
     fn cancellation_ack_effect(
@@ -825,6 +1091,16 @@ fn definition_result_matches_key(
     key: SymbolServerRequestKey,
 ) -> bool {
     result.schema == DEFINITION_AT_POSITION_RESULT_SCHEMA
+        && result.request_id == key.request_id
+        && result.request_generation == key.request_generation
+        && result.workspace_generation == key.workspace_generation
+}
+
+fn usage_at_position_result_matches_key(
+    result: &UsageAtPositionResult,
+    key: SymbolServerRequestKey,
+) -> bool {
+    result.schema == USAGE_AT_POSITION_RESULT_SCHEMA
         && result.request_id == key.request_id
         && result.request_generation == key.request_generation
         && result.workspace_generation == key.workspace_generation
@@ -870,6 +1146,7 @@ mod tests {
                 report_root_path: "source".to_owned(),
             }],
             dependency_source_roots: Vec::new(),
+            managed_source_roots: Vec::new(),
         }
     }
 
@@ -962,6 +1239,25 @@ mod tests {
         )
     }
 
+    fn usage_request(
+        request_id: u64,
+        request_generation: u64,
+        workspace_generation: u64,
+    ) -> UsageAtPositionRequest {
+        let request = request(request_id, request_generation, workspace_generation);
+        UsageAtPositionRequest::new(
+            request.request_id,
+            request.request_generation,
+            request.workspace,
+            request.document,
+            request.position,
+        )
+    }
+
+    fn usage_result(request: &UsageAtPositionRequest) -> UsageAtPositionResult {
+        UsageAtPositionResult::from_definition(result(&request.as_definition_request()))
+    }
+
     fn handshake(state: &mut SymbolServerState, workspace_generation: u64) {
         let effects = state.handle_frame(hello());
         assert_eq!(effects.len(), 1);
@@ -993,14 +1289,27 @@ mod tests {
                 request,
                 cancellation_token,
             } => Some((request.as_ref().clone(), cancellation_token.clone())),
-            SymbolServerEffect::Send(_) => None,
+            SymbolServerEffect::Send(_) | SymbolServerEffect::StartUsageAtPosition { .. } => None,
+        })
+    }
+
+    fn started_usage_at_position(
+        effects: &[SymbolServerEffect],
+    ) -> Option<(UsageAtPositionRequest, CancellationToken)> {
+        effects.iter().find_map(|effect| match effect {
+            SymbolServerEffect::StartUsageAtPosition {
+                request,
+                cancellation_token,
+            } => Some((request.as_ref().clone(), cancellation_token.clone())),
+            SymbolServerEffect::Send(_) | SymbolServerEffect::StartDefinition { .. } => None,
         })
     }
 
     fn sent_frame(effect: &SymbolServerEffect) -> Option<&SymbolServerFrame> {
         match effect {
             SymbolServerEffect::Send(frame) => Some(frame.as_ref()),
-            SymbolServerEffect::StartDefinition { .. } => None,
+            SymbolServerEffect::StartDefinition { .. }
+            | SymbolServerEffect::StartUsageAtPosition { .. } => None,
         }
     }
 
@@ -1015,6 +1324,15 @@ mod tests {
                     cancellation.request_id == request_id
                 }
                 Some(SymbolServerFrame::DefinitionFailed { error, .. }) => {
+                    error.request_id == request_id
+                }
+                Some(SymbolServerFrame::UsageAtPositionResult { result, .. }) => {
+                    result.request_id == request_id
+                }
+                Some(SymbolServerFrame::UsageAtPositionCancelled { cancellation, .. }) => {
+                    cancellation.request_id == request_id
+                }
+                Some(SymbolServerFrame::UsageAtPositionFailed { error, .. }) => {
                     error.request_id == request_id
                 }
                 _ => false,
@@ -1063,6 +1381,35 @@ mod tests {
     }
 
     #[test]
+    fn pending_limit_is_shared_across_definition_and_usage_requests() {
+        let mut state = state(1);
+        handshake(&mut state, 7);
+        assert!(
+            started_usage_at_position(&state.handle_frame(
+                SymbolServerClientFrame::usage_at_position(usage_request(1, 1, 7),)
+            ))
+            .is_some()
+        );
+
+        let effects = state.handle_frame(SymbolServerClientFrame::definition(request(2, 1, 7)));
+
+        assert_eq!(terminal_count(&effects, 2), 1);
+        assert!(matches!(
+            sent_frame(&effects[0]),
+            Some(SymbolServerFrame::DefinitionFailed {
+                error: SymbolServerDefinitionErrorOutput {
+                    code,
+                    retryable: true,
+                    ..
+                },
+                ..
+            }) if code == "server-busy"
+        ));
+        assert_eq!(state.pending_request_count(), 1);
+        assert_eq!(state.pending_definition_count(), 0);
+    }
+
+    #[test]
     fn definition_request_must_copy_the_exact_served_workspace_identity() {
         let mut state = state(2);
         handshake(&mut state, 7);
@@ -1108,6 +1455,96 @@ mod tests {
     }
 
     #[test]
+    fn definition_and_usage_requests_share_bounds_and_complete_out_of_order() {
+        let mut state = state(2);
+        handshake(&mut state, 7);
+        let definition = request(1, 4, 7);
+        let usage = usage_request(2, 4, 7);
+        let definition_key = SymbolServerRequestKey::from(&definition);
+        let usage_key = SymbolServerRequestKey::from(&usage);
+
+        assert!(
+            started(&state.handle_frame(SymbolServerClientFrame::definition(definition.clone())))
+                .is_some()
+        );
+        assert!(
+            started_usage_at_position(
+                &state.handle_frame(SymbolServerClientFrame::usage_at_position(usage.clone()))
+            )
+            .is_some()
+        );
+        assert_eq!(state.pending_request_count(), 2);
+        assert_eq!(state.pending_definition_count(), 1);
+
+        let usage_effects = state.finish_usage_at_position(usage_key, Ok(usage_result(&usage)));
+        let definition_effects = state.finish_definition(definition_key, Ok(result(&definition)));
+
+        assert!(matches!(
+            usage_effects.first().and_then(sent_frame),
+            Some(SymbolServerFrame::UsageAtPositionResult { result, .. })
+                if result.request_id == 2
+        ));
+        assert!(matches!(
+            definition_effects.first().and_then(sent_frame),
+            Some(SymbolServerFrame::DefinitionResult { result, .. })
+                if result.request_id == 1
+        ));
+        assert_eq!(state.pending_request_count(), 0);
+    }
+
+    #[test]
+    fn usage_capability_is_additive_for_definition_only_clients() {
+        let mut state = state(2);
+        let effects = state.handle_frame(SymbolServerClientFrame::hello(
+            super::super::SymbolServerClientHello {
+                protocol_schema: SYMBOL_SERVER_PROTOCOL_SCHEMA.to_owned(),
+                client_name: "definition-only-client".to_owned(),
+                client_version: "1".to_owned(),
+                capabilities: vec![
+                    SymbolServerCapability::DefinitionAtPosition,
+                    SymbolServerCapability::Cancellation,
+                    SymbolServerCapability::WorkspaceGeneration,
+                    SymbolServerCapability::Ping,
+                    SymbolServerCapability::Shutdown,
+                ],
+                max_frame_bytes: 4096,
+            },
+        ));
+        assert!(matches!(
+            effects.first().and_then(sent_frame),
+            Some(SymbolServerFrame::Hello {
+                hello: SymbolServerHelloOutput { capabilities, .. },
+                ..
+            }) if !capabilities.contains(&SymbolServerCapability::UsageAtPosition)
+        ));
+
+        let definition = request(1, 1, 7);
+        let definition_key = SymbolServerRequestKey::from(&definition);
+        assert!(
+            started(&state.handle_frame(SymbolServerClientFrame::definition(definition.clone())))
+                .is_some()
+        );
+        assert_eq!(
+            terminal_count(
+                &state.finish_definition(definition_key, Ok(result(&definition))),
+                1
+            ),
+            1
+        );
+
+        let rejected = state.handle_frame(SymbolServerClientFrame::usage_at_position(
+            usage_request(2, 1, 7),
+        ));
+        assert!(matches!(
+            rejected.first().and_then(sent_frame),
+            Some(SymbolServerFrame::UsageAtPositionFailed {
+                error: SymbolServerUsageAtPositionErrorOutput { code, .. },
+                ..
+            }) if code == "capability-not-negotiated"
+        ));
+    }
+
+    #[test]
     fn cancellation_before_request_prevents_engine_start() {
         let mut state = state(2);
         handshake(&mut state, 7);
@@ -1132,6 +1569,40 @@ mod tests {
     }
 
     #[test]
+    fn cancellation_before_usage_request_prevents_engine_start() {
+        let mut state = state(2);
+        handshake(&mut state, 7);
+        let cancel = state.handle_frame(SymbolServerClientFrame::cancel(
+            1,
+            3,
+            7,
+            "selection changed",
+        ));
+        assert!(matches!(
+            cancel.first().and_then(sent_frame),
+            Some(SymbolServerFrame::Cancelled {
+                cancellation: SymbolServerCancellationOutput {
+                    status: SymbolServerCancellationStatus::RecordedBeforeRequest,
+                    ..
+                },
+                ..
+            })
+        ));
+
+        let effects = state.handle_frame(SymbolServerClientFrame::usage_at_position(
+            usage_request(1, 3, 7),
+        ));
+
+        assert!(started_usage_at_position(&effects).is_none());
+        assert!(matches!(
+            effects.first().and_then(sent_frame),
+            Some(SymbolServerFrame::UsageAtPositionCancelled { cancellation, .. })
+                if cancellation.request_id == 1
+        ));
+        assert_eq!(terminal_count(&effects, 1), 1);
+    }
+
+    #[test]
     fn cancellation_during_request_emits_one_terminal_and_suppresses_completion() {
         let mut state = state(2);
         handshake(&mut state, 7);
@@ -1148,6 +1619,50 @@ mod tests {
         assert!(token.is_cancelled());
         assert_eq!(terminal_count(&cancelled, 1), 1);
         assert_eq!(terminal_count(&completion, 1), 0);
+    }
+
+    #[test]
+    fn cancelling_usage_does_not_cancel_a_mixed_definition_request() {
+        let mut state = state(2);
+        handshake(&mut state, 7);
+        let definition = request(1, 3, 7);
+        let usage = usage_request(2, 3, 7);
+        let definition_key = SymbolServerRequestKey::from(&definition);
+        let usage_key = SymbolServerRequestKey::from(&usage);
+        let (_, definition_token) =
+            started(&state.handle_frame(SymbolServerClientFrame::definition(definition.clone())))
+                .expect("definition start");
+        let (_, usage_token) = started_usage_at_position(
+            &state.handle_frame(SymbolServerClientFrame::usage_at_position(usage.clone())),
+        )
+        .expect("usage start");
+
+        let cancelled = state.handle_frame(SymbolServerClientFrame::cancel(
+            2,
+            3,
+            7,
+            "selection changed",
+        ));
+
+        assert!(!definition_token.is_cancelled());
+        assert!(usage_token.is_cancelled());
+        assert!(cancelled.iter().any(|effect| matches!(
+            sent_frame(effect),
+            Some(SymbolServerFrame::UsageAtPositionCancelled { cancellation, .. })
+                if cancellation.request_id == 2
+        )));
+        assert!(
+            state
+                .finish_usage_at_position(usage_key, Ok(usage_result(&usage)))
+                .is_empty()
+        );
+        assert_eq!(
+            terminal_count(
+                &state.finish_definition(definition_key, Ok(result(&definition))),
+                1
+            ),
+            1
+        );
     }
 
     #[test]
@@ -1244,6 +1759,59 @@ mod tests {
     }
 
     #[test]
+    fn workspace_generation_replacement_cancels_mixed_requests_by_terminal_kind() {
+        let mut state = state(3);
+        handshake(&mut state, 7);
+        let definition = request(1, 1, 7);
+        let usage = usage_request(2, 1, 7);
+        let definition_key = SymbolServerRequestKey::from(&definition);
+        let usage_key = SymbolServerRequestKey::from(&usage);
+        let (_, definition_token) =
+            started(&state.handle_frame(SymbolServerClientFrame::definition(definition.clone())))
+                .expect("definition start");
+        let (_, usage_token) = started_usage_at_position(
+            &state.handle_frame(SymbolServerClientFrame::usage_at_position(usage.clone())),
+        )
+        .expect("usage start");
+
+        let update = state.handle_frame(SymbolServerClientFrame::workspace_generation(8));
+
+        assert!(definition_token.is_cancelled());
+        assert!(usage_token.is_cancelled());
+        assert!(update.iter().any(|effect| matches!(
+            sent_frame(effect),
+            Some(SymbolServerFrame::DefinitionCancelled { cancellation, .. })
+                if cancellation.request_id == 1
+        )));
+        assert!(update.iter().any(|effect| matches!(
+            sent_frame(effect),
+            Some(SymbolServerFrame::UsageAtPositionCancelled { cancellation, .. })
+                if cancellation.request_id == 2
+        )));
+        assert!(update.iter().any(|effect| matches!(
+            sent_frame(effect),
+            Some(SymbolServerFrame::WorkspaceGeneration {
+                update: SymbolServerWorkspaceGenerationOutput {
+                    cancelled_requests: 2,
+                    ..
+                },
+                ..
+            })
+        )));
+        assert!(
+            state
+                .finish_usage_at_position(usage_key, Ok(usage_result(&usage)))
+                .is_empty()
+        );
+        assert!(
+            state
+                .finish_definition(definition_key, Ok(result(&definition)))
+                .is_empty()
+        );
+        assert_eq!(state.pending_request_count(), 0);
+    }
+
+    #[test]
     fn shutdown_waits_for_cancelled_engine_before_acknowledging() {
         let mut state = state(2);
         handshake(&mut state, 7);
@@ -1290,6 +1858,40 @@ mod tests {
         assert!(
             state
                 .finish_definition(key, Ok(result(&request)))
+                .is_empty()
+        );
+        assert_eq!(state.phase(), SymbolServerPhase::Closed);
+    }
+
+    #[test]
+    fn eof_waits_for_mixed_engine_cleanup_without_writing_terminals() {
+        let mut state = state(2);
+        handshake(&mut state, 7);
+        let definition = request(1, 1, 7);
+        let usage = usage_request(2, 1, 7);
+        let definition_key = SymbolServerRequestKey::from(&definition);
+        let usage_key = SymbolServerRequestKey::from(&usage);
+        let (_, definition_token) =
+            started(&state.handle_frame(SymbolServerClientFrame::definition(definition.clone())))
+                .expect("definition start");
+        let (_, usage_token) = started_usage_at_position(
+            &state.handle_frame(SymbolServerClientFrame::usage_at_position(usage.clone())),
+        )
+        .expect("usage start");
+
+        assert!(state.handle_eof().is_empty());
+        assert!(definition_token.is_cancelled());
+        assert!(usage_token.is_cancelled());
+        assert_eq!(state.phase(), SymbolServerPhase::Draining);
+        assert!(
+            state
+                .finish_usage_at_position(usage_key, Ok(usage_result(&usage)))
+                .is_empty()
+        );
+        assert_eq!(state.phase(), SymbolServerPhase::Draining);
+        assert!(
+            state
+                .finish_definition(definition_key, Ok(result(&definition)))
                 .is_empty()
         );
         assert_eq!(state.phase(), SymbolServerPhase::Closed);

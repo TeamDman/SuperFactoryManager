@@ -51,7 +51,9 @@ impl JavaSymbolGlob {
             | JavaSymbolKind::Interface
             | JavaSymbolKind::Enum
             | JavaSymbolKind::Record
-            | JavaSymbolKind::Annotation => {
+            | JavaSymbolKind::Annotation
+            | JavaSymbolKind::LocalVariable
+            | JavaSymbolKind::Parameter => {
                 wildcard_matches_segments(&self.pattern, &[qualified_name])
             }
             JavaSymbolKind::Field => wildcard_matches_segments(&self.pattern, &[owner, " ", name]),

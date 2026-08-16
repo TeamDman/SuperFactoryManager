@@ -1441,12 +1441,12 @@ mod tests {
     #[test]
     fn syntax_highlight_server_contains_oversized_result_and_keeps_serving() {
         let maximum = MINIMUM_SYNTAX_SERVER_FRAME_BYTES;
-        let source = format!(
-            "class Many {{ {} }}",
-            (0..100)
-                .map(|index| format!("int field{index} = {index};"))
-                .collect::<String>()
-        );
+        let mut fields = String::new();
+        for index in 0..100 {
+            use std::fmt::Write as _;
+            write!(&mut fields, "int field{index} = {index};").expect("write to String");
+        }
+        let source = format!("class Many {{ {fields} }}");
         let target = request(1, 1, &source);
         let limits = SyntaxServerLimits {
             max_frame_bytes: maximum,

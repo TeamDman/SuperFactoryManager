@@ -11,11 +11,23 @@ use super::JavaFileFactsInput;
 use super::JavaLiveDefinitionSurface;
 use super::JavaSourceFile;
 use super::JavaSourceWorkspace;
+use super::JavaSymbolKind;
+use super::JavaUsageResolutionSurface;
+use super::JavaUsageResolutionTelemetry;
+use super::JavaUsageSourceSnapshot;
+#[cfg(test)]
+use super::JdkSourceDomainState;
+use super::UsageAtPositionRequest;
+use super::UsageAtPositionResult;
 use super::blake3_content_hash;
 use super::content_hash_with_expected_algorithm;
 use super::extract_java_file_facts_from_text_with_detail;
+use super::jdk_resolution_definitions;
 use super::normalize_definition_at_position_context;
+use super::normalize_usage_at_position_context;
 use super::sha256_content_hash;
+use super::usage_at_position::USAGE_AT_POSITION_MAX_ENCODED_BYTES;
+use super::usage_at_position::USAGE_AT_POSITION_MAX_RESULTS;
 use super::validate_definition_request_workspace;
 use crate::cancellation::CancellationToken;
 use facet::Facet;
@@ -103,6 +115,17 @@ pub struct DefinitionAtPositionEngineTelemetry {
     pub resolution_cache_misses: u64,
     pub resolution_cache_entries: u64,
     pub resolution_declarations: u64,
+    pub resolution_types: u64,
+    pub resolution_fields: u64,
+    pub resolution_methods: u64,
+    pub usage_index_build_micros: u64,
+    pub usage_index_cache_hits: u64,
+    pub usage_index_candidate_files: u64,
+    pub usage_index_parsed_files: u64,
+    pub usage_index_retained_rows: u64,
+    pub usage_index_cache_entries: u64,
+    pub usage_index_cache_retained_bytes: u64,
+    pub usage_index_cache_evictions: u64,
     pub reparsed_files: u64,
     pub source_files: u64,
     pub cache: DefinitionAtPositionEngineCacheSnapshot,
@@ -110,6 +133,11 @@ pub struct DefinitionAtPositionEngineTelemetry {
 
 pub struct DefinitionAtPositionEngineOutput {
     pub result: DefinitionAtPositionResult,
+    pub telemetry: DefinitionAtPositionEngineTelemetry,
+}
+
+pub struct UsageAtPositionEngineOutput {
+    pub result: UsageAtPositionResult,
     pub telemetry: DefinitionAtPositionEngineTelemetry,
 }
 
@@ -132,8 +160,20 @@ struct ResolutionSurfaceCacheKey {
     fact_fingerprint: String,
 }
 
+type UsageResolutionSlot = Arc<Mutex<Option<Arc<JavaUsageResolutionSurface>>>>;
+type ResolutionSurfaceHandle = (Arc<JavaDefinitionResolutionSurface>, UsageResolutionSlot);
+
+struct AcquiredResolutionSurface {
+    surface: Arc<JavaDefinitionResolutionSurface>,
+    usage_slot: UsageResolutionSlot,
+    fact_parse_micros: u64,
+    link_micros: u64,
+    reparsed_files: u64,
+}
+
 struct CachedResolutionSurface {
     surface: Arc<JavaDefinitionResolutionSurface>,
+    usages: UsageResolutionSlot,
     last_access: u64,
 }
 
@@ -146,10 +186,7 @@ struct ResolutionSurfaceCache {
 }
 
 impl ResolutionSurfaceCache {
-    fn get(
-        &mut self,
-        key: &ResolutionSurfaceCacheKey,
-    ) -> Option<Arc<JavaDefinitionResolutionSurface>> {
+    fn get(&mut self, key: &ResolutionSurfaceCacheKey) -> Option<ResolutionSurfaceHandle> {
         self.access_clock = self.access_clock.saturating_add(1);
         let Some(entry) = self.entries.get_mut(key) else {
             self.misses = self.misses.saturating_add(1);
@@ -157,19 +194,21 @@ impl ResolutionSurfaceCache {
         };
         entry.last_access = self.access_clock;
         self.hits = self.hits.saturating_add(1);
-        Some(Arc::clone(&entry.surface))
+        Some((Arc::clone(&entry.surface), Arc::clone(&entry.usages)))
     }
 
     fn insert(
         &mut self,
         key: ResolutionSurfaceCacheKey,
         surface: Arc<JavaDefinitionResolutionSurface>,
+        usages: UsageResolutionSlot,
     ) {
         self.access_clock = self.access_clock.saturating_add(1);
         self.entries.insert(
             key,
             CachedResolutionSurface {
                 surface,
+                usages,
                 last_access: self.access_clock,
             },
         );
@@ -339,6 +378,11 @@ pub struct DefinitionAtPositionEngine {
     limits: DefinitionAtPositionEngineLimits,
     cache: Mutex<FactCache>,
     resolution_cache: Mutex<ResolutionSurfaceCache>,
+    /// Single-flight gate for cold linked-surface construction. Cache hits
+    /// hold this only long enough to perform the lookup; cache misses retain it
+    /// through fact collection/linking/publication so two concurrent requests
+    /// cannot duplicate the largest retained analysis object.
+    resolution_build: Mutex<()>,
 }
 
 impl DefinitionAtPositionEngine {
@@ -384,6 +428,16 @@ impl DefinitionAtPositionEngine {
         let mut external_resolution = dependencies
             .iter()
             .flat_map(|body| &body.definitions)
+            .filter(|definition| {
+                matches!(
+                    definition.symbol.kind,
+                    JavaSymbolKind::Class
+                        | JavaSymbolKind::Interface
+                        | JavaSymbolKind::Enum
+                        | JavaSymbolKind::Record
+                        | JavaSymbolKind::Annotation
+                )
+            })
             .map(|definition| JavaDependencyResolutionDefinition {
                 symbol: definition.symbol.clone(),
                 source_set: definition.identifier_span.source_set.clone(),
@@ -415,6 +469,7 @@ impl DefinitionAtPositionEngine {
             limits,
             cache: Mutex::new(FactCache::default()),
             resolution_cache: Mutex::new(ResolutionSurfaceCache::default()),
+            resolution_build: Mutex::new(()),
         })
     }
 
@@ -469,6 +524,24 @@ impl DefinitionAtPositionEngine {
         (cache.hits, cache.misses)
     }
 
+    fn lock_resolution_build<'engine>(
+        &'engine self,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<std::sync::MutexGuard<'engine, ()>> {
+        loop {
+            match self.resolution_build.try_lock() {
+                Ok(guard) => return Ok(guard),
+                Err(std::sync::TryLockError::WouldBlock) => {
+                    cancellation_token.bail_if_cancelled()?;
+                    std::thread::park_timeout(std::time::Duration::from_millis(2));
+                }
+                Err(std::sync::TryLockError::Poisoned(poisoned)) => {
+                    return Ok(poisoned.into_inner());
+                }
+            }
+        }
+    }
+
     fn resolution_surface_cache_key(
         workspace_generation: u64,
         keys: &[FactCacheKey],
@@ -495,6 +568,60 @@ impl DefinitionAtPositionEngine {
         }
     }
 
+    fn acquire_resolution_surface(
+        &self,
+        workspace_generation: u64,
+        source_snapshot: &DefinitionSourceSnapshot<'_>,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<AcquiredResolutionSurface> {
+        let surface_key =
+            Self::resolution_surface_cache_key(workspace_generation, &source_snapshot.keys);
+        let _single_flight = self.lock_resolution_build(cancellation_token)?;
+        if let Some((surface, usage_slot)) = self
+            .resolution_cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .get(&surface_key)
+        {
+            return Ok(AcquiredResolutionSurface {
+                surface,
+                usage_slot,
+                fact_parse_micros: 0,
+                link_micros: 0,
+                reparsed_files: 0,
+            });
+        }
+
+        let DefinitionFactSnapshot {
+            facts,
+            fact_parse_micros,
+            reparsed_files,
+        } = self.collect_facts(source_snapshot, cancellation_token)?;
+        let source_files = facts.len();
+        let (live, link_micros) = self.link_facts(facts, source_files, cancellation_token)?;
+        cancellation_token.bail_if_cancelled()?;
+        let surface = JavaDefinitionResolutionSurface::build(
+            &self.workspace,
+            &live,
+            self.dependencies.as_ref(),
+        );
+        // References are target-lazy. Definition requests retain only this
+        // linked declaration surface; the first reference request initializes
+        // the bounded target cache behind the shared slot.
+        let usage_slot = Arc::new(Mutex::new(None));
+        self.resolution_cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .insert(surface_key, Arc::clone(&surface), Arc::clone(&usage_slot));
+        Ok(AcquiredResolutionSurface {
+            surface,
+            usage_slot,
+            fact_parse_micros,
+            link_micros,
+            reparsed_files,
+        })
+    }
+
     /// Analyze one immutable request while returning privacy-safe stage evidence.
     ///
     /// # Errors
@@ -518,46 +645,18 @@ impl DefinitionAtPositionEngine {
         let before_cache = self.cache_snapshot();
         let (before_resolution_hits, before_resolution_misses) = self.resolution_cache_counts();
         let source_snapshot = self.collect_source_snapshot(request, cancellation_token)?;
-        let surface_key = Self::resolution_surface_cache_key(
+        let source_snapshot_micros = source_snapshot.source_snapshot_micros;
+        let AcquiredResolutionSurface {
+            surface,
+            fact_parse_micros,
+            link_micros,
+            reparsed_files,
+            ..
+        } = self.acquire_resolution_surface(
             request.workspace.workspace_generation,
-            &source_snapshot.keys,
-        );
-        let cached_surface = self
-            .resolution_cache
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .get(&surface_key);
-        let (surface, source_snapshot_micros, fact_parse_micros, link_micros, reparsed_files) =
-            if let Some(surface) = cached_surface {
-                (surface, source_snapshot.source_snapshot_micros, 0, 0, 0)
-            } else {
-                let source_snapshot_micros = source_snapshot.source_snapshot_micros;
-                let DefinitionFactSnapshot {
-                    facts,
-                    fact_parse_micros,
-                    reparsed_files,
-                } = self.collect_facts(source_snapshot, cancellation_token)?;
-                let source_files = facts.len();
-                let (live, link_micros) =
-                    self.link_facts(facts, source_files, cancellation_token)?;
-                cancellation_token.bail_if_cancelled()?;
-                let surface = JavaDefinitionResolutionSurface::build(
-                    &self.workspace,
-                    &live,
-                    self.dependencies.as_ref(),
-                );
-                self.resolution_cache
-                    .lock()
-                    .unwrap_or_else(std::sync::PoisonError::into_inner)
-                    .insert(surface_key, Arc::clone(&surface));
-                (
-                    surface,
-                    source_snapshot_micros,
-                    fact_parse_micros,
-                    link_micros,
-                    reparsed_files,
-                )
-            };
+            &source_snapshot,
+            cancellation_token,
+        )?;
         let (result, lookup_micros) = self.lookup(request, &surface, cancellation_token)?;
         let after_cache = self.cache_snapshot();
         let (after_resolution_hits, after_resolution_misses) = self.resolution_cache_counts();
@@ -569,6 +668,8 @@ impl DefinitionAtPositionEngine {
             .len()
             .try_into()
             .unwrap_or(u64::MAX);
+        let (resolution_types, resolution_fields, resolution_methods) =
+            surface.declaration_counts();
         Ok(DefinitionAtPositionEngineOutput {
             result,
             telemetry: DefinitionAtPositionEngineTelemetry {
@@ -584,11 +685,153 @@ impl DefinitionAtPositionEngine {
                     .saturating_sub(before_resolution_misses),
                 resolution_cache_entries,
                 resolution_declarations: surface.declaration_count().try_into().unwrap_or(u64::MAX),
+                resolution_types: resolution_types.try_into().unwrap_or(u64::MAX),
+                resolution_fields: resolution_fields.try_into().unwrap_or(u64::MAX),
+                resolution_methods: resolution_methods.try_into().unwrap_or(u64::MAX),
+                usage_index_build_micros: 0,
+                usage_index_cache_hits: 0,
+                usage_index_candidate_files: 0,
+                usage_index_parsed_files: 0,
+                usage_index_retained_rows: 0,
+                usage_index_cache_entries: 0,
+                usage_index_cache_retained_bytes: 0,
+                usage_index_cache_evictions: 0,
                 reparsed_files,
                 source_files: self.workspace.files.len().try_into().unwrap_or(u64::MAX),
                 cache: after_cache,
             },
         })
+    }
+
+    /// Analyze one usage-at-position request while sharing the same immutable
+    /// facts and linked resolution surface as definition requests.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the request is invalid, the immutable source
+    /// snapshot cannot be collected, analysis is cancelled, or linking fails.
+    pub fn analyze_usages_with_telemetry(
+        &self,
+        request: &UsageAtPositionRequest,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<UsageAtPositionEngineOutput> {
+        let started = Instant::now();
+        if let Some(result) = self.usage_request_rejection(request)? {
+            return Ok(UsageAtPositionEngineOutput {
+                result,
+                telemetry: self.empty_telemetry(started),
+            });
+        }
+        let definition_request = request.as_definition_request();
+        cancellation_token.bail_if_cancelled()?;
+        self.prepare_workspace_generation(request.workspace.workspace_generation)?;
+        let before_cache = self.cache_snapshot();
+        let (before_resolution_hits, before_resolution_misses) = self.resolution_cache_counts();
+        let source_snapshot =
+            self.collect_source_snapshot(&definition_request, cancellation_token)?;
+        let source_snapshot_micros = source_snapshot.source_snapshot_micros;
+        let AcquiredResolutionSurface {
+            surface,
+            usage_slot,
+            fact_parse_micros,
+            link_micros,
+            reparsed_files,
+        } = self.acquire_resolution_surface(
+            request.workspace.workspace_generation,
+            &source_snapshot,
+            cancellation_token,
+        )?;
+        let (usage_surface, usage_index_build_micros, usage_index_cache_hits) = {
+            // Serialize only first-use construction for this linked surface.
+            // Definition requests never acquire this lock, while concurrent
+            // usage requests share one completed index instead of multiplying
+            // the workspace parse and its retained allocator pressure.
+            let mut slot = usage_slot
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if let Some(cached) = slot.as_ref() {
+                (Arc::clone(cached), 0_u64, 0_u64)
+            } else {
+                let usage_index_started = Instant::now();
+                let built = JavaUsageResolutionSurface::new()?;
+                let build_micros = duration_micros(usage_index_started.elapsed());
+                *slot = Some(Arc::clone(&built));
+                (built, build_micros, 0_u64)
+            }
+        };
+        let (result, lookup_micros, usage_resolution_telemetry) = self.lookup_usages(
+            request,
+            &surface,
+            &usage_surface,
+            &source_snapshot,
+            cancellation_token,
+        )?;
+        let usage_index_build_micros =
+            usage_index_build_micros.saturating_add(usage_resolution_telemetry.target_build_micros);
+        let usage_index_cache_hits =
+            usage_index_cache_hits.saturating_add(usage_resolution_telemetry.target_cache_hits);
+        let after_cache = self.cache_snapshot();
+        let (after_resolution_hits, after_resolution_misses) = self.resolution_cache_counts();
+        let resolution_cache_entries = self
+            .resolution_cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .entries
+            .len()
+            .try_into()
+            .unwrap_or(u64::MAX);
+        let (resolution_types, resolution_fields, resolution_methods) =
+            surface.declaration_counts();
+        Ok(UsageAtPositionEngineOutput {
+            result,
+            telemetry: DefinitionAtPositionEngineTelemetry {
+                source_snapshot_micros,
+                fact_parse_micros,
+                link_micros,
+                lookup_micros,
+                total_micros: duration_micros(started.elapsed()),
+                fact_cache_hits: after_cache.hits.saturating_sub(before_cache.hits),
+                fact_cache_misses: after_cache.misses.saturating_sub(before_cache.misses),
+                resolution_cache_hits: after_resolution_hits.saturating_sub(before_resolution_hits),
+                resolution_cache_misses: after_resolution_misses
+                    .saturating_sub(before_resolution_misses),
+                resolution_cache_entries,
+                resolution_declarations: surface.declaration_count().try_into().unwrap_or(u64::MAX),
+                resolution_types: resolution_types.try_into().unwrap_or(u64::MAX),
+                resolution_fields: resolution_fields.try_into().unwrap_or(u64::MAX),
+                resolution_methods: resolution_methods.try_into().unwrap_or(u64::MAX),
+                usage_index_build_micros,
+                usage_index_cache_hits,
+                usage_index_candidate_files: usage_resolution_telemetry.candidate_files,
+                usage_index_parsed_files: usage_resolution_telemetry.parsed_files,
+                usage_index_retained_rows: usage_resolution_telemetry.retained_rows,
+                usage_index_cache_entries: usage_resolution_telemetry.cache_entries,
+                usage_index_cache_retained_bytes: usage_resolution_telemetry.cache_retained_bytes,
+                usage_index_cache_evictions: usage_resolution_telemetry.cache_evictions,
+                reparsed_files,
+                source_files: self.workspace.files.len().try_into().unwrap_or(u64::MAX),
+                cache: after_cache,
+            },
+        })
+    }
+
+    fn usage_request_rejection(
+        &self,
+        request: &UsageAtPositionRequest,
+    ) -> eyre::Result<Option<UsageAtPositionResult>> {
+        let definition_request = request.as_definition_request();
+        if let Err(error) = request.validate() {
+            return Ok(Some(UsageAtPositionResult::from_definition(
+                DefinitionAtPositionResult::invalid_request(
+                    &definition_request,
+                    self.workspace.context.clone(),
+                    format!("{error:#}"),
+                ),
+            )));
+        }
+        Ok(self
+            .request_rejection(&definition_request)?
+            .map(UsageAtPositionResult::from_definition))
     }
 
     fn request_rejection(
@@ -670,32 +913,31 @@ impl DefinitionAtPositionEngine {
 
     fn collect_facts(
         &self,
-        snapshot: DefinitionSourceSnapshot<'_>,
+        snapshot: &DefinitionSourceSnapshot<'_>,
         cancellation_token: &CancellationToken,
     ) -> eyre::Result<DefinitionFactSnapshot> {
-        let DefinitionSourceSnapshot {
-            files,
-            sources,
-            keys,
-            ..
-        } = snapshot;
-        let mut facts = Vec::with_capacity(files.len());
+        let mut facts = Vec::with_capacity(snapshot.files.len());
         let mut fact_parse_micros = 0_u64;
         let mut reparsed_files = 0_u64;
-        for ((file, source), key) in files.into_iter().zip(sources).zip(keys) {
+        for ((file, source), key) in snapshot
+            .files
+            .iter()
+            .zip(&snapshot.sources)
+            .zip(&snapshot.keys)
+        {
             cancellation_token.bail_if_cancelled()?;
             if let Some(cached) = self
                 .cache
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .get(&key)
+                .get(key)
             {
                 facts.push(cached);
                 continue;
             }
             let parse_started = Instant::now();
             let source_len = source.len();
-            let parsed = self.parse_fact(file, source, key.sequence)?;
+            let parsed = self.parse_fact(file, source.clone(), key.sequence)?;
             fact_parse_micros =
                 fact_parse_micros.saturating_add(duration_micros(parse_started.elapsed()));
             reparsed_files = reparsed_files.saturating_add(1);
@@ -704,7 +946,7 @@ impl DefinitionAtPositionEngine {
             self.cache
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner)
-                .insert(key, parsed.clone(), retained_bytes, self.limits);
+                .insert(key.clone(), parsed.clone(), retained_bytes, self.limits);
             facts.push(parsed);
         }
         Ok(DefinitionFactSnapshot {
@@ -753,19 +995,44 @@ impl DefinitionAtPositionEngine {
 
     fn link_facts(
         &self,
-        facts: Vec<JavaFileFacts>,
+        mut facts: Vec<JavaFileFacts>,
         source_files: usize,
         cancellation_token: &CancellationToken,
     ) -> eyre::Result<(JavaLiveDefinitionSurface, u64)> {
         cancellation_token.bail_if_cancelled()?;
         let started = Instant::now();
+        let first_jdk_sequence = u64::try_from(facts.len()).unwrap_or(u64::MAX);
+        let visible_source_sets = self
+            .workspace
+            .context
+            .source_sets
+            .iter()
+            .map(|source_set| source_set.id.clone())
+            .collect::<Vec<_>>();
+        let mut jdk_facts = self.workspace.jdk_sources.facts_for_project(
+            &facts,
+            first_jdk_sequence,
+            &visible_source_sets,
+            cancellation_token,
+        )?;
+        let mut external_resolution = self.external_resolution.clone();
+        external_resolution.extend(jdk_resolution_definitions(&jdk_facts));
+        external_resolution.sort();
+        external_resolution.dedup();
+        facts.append(&mut jdk_facts);
+        let expected_files = facts.len();
         let mut linker =
-            JavaDefinitionLinker::new(self.workspace.context.clone(), &self.external_resolution);
+            JavaDefinitionLinker::new(self.workspace.context.clone(), &external_resolution);
         for file_facts in facts {
             cancellation_token.bail_if_cancelled()?;
             linker.ingest(file_facts)?;
         }
-        let live = linker.seal_surface(source_files)?;
+        let mut live = linker.seal_surface(expected_files)?;
+        live.diagnostics
+            .extend(self.workspace.diagnostics.iter().cloned());
+        live.diagnostics.sort();
+        live.diagnostics.dedup();
+        debug_assert!(expected_files >= source_files);
         Ok((live, duration_micros(started.elapsed())))
     }
 
@@ -787,14 +1054,91 @@ impl DefinitionAtPositionEngine {
             result = result.with_dependency_index(dependency_index.clone());
         }
         self.enrich_dependency_source_spans(&mut result);
+        self.enrich_jdk_source_spans(&mut result);
         cancellation_token.bail_if_cancelled()?;
         Ok((result, duration_micros(started.elapsed())))
+    }
+
+    fn lookup_usages(
+        &self,
+        request: &UsageAtPositionRequest,
+        surface: &Arc<JavaDefinitionResolutionSurface>,
+        usage_surface: &JavaUsageResolutionSurface,
+        source_snapshot: &DefinitionSourceSnapshot<'_>,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<(UsageAtPositionResult, u64, JavaUsageResolutionTelemetry)> {
+        cancellation_token.bail_if_cancelled()?;
+        let started = Instant::now();
+        let (mut result, usage_telemetry) = surface.usages_at_position(
+            usage_surface,
+            &self.workspace,
+            JavaUsageSourceSnapshot {
+                files: &source_snapshot.files,
+                sources: &source_snapshot.sources,
+            },
+            request,
+            self.dependencies.as_ref(),
+            cancellation_token,
+        )?;
+        normalize_usage_at_position_context(
+            self.workspace.context.clone(),
+            self.dependencies.as_ref(),
+            &mut result,
+        );
+        if let Some(dependency_index) = &self.dependency_index {
+            result = result.with_dependency_index(dependency_index.clone());
+        }
+        self.enrich_usage_dependency_source_spans(&mut result);
+        self.enrich_usage_jdk_source_spans(&mut result);
+        result.apply_result_limits(
+            USAGE_AT_POSITION_MAX_RESULTS,
+            USAGE_AT_POSITION_MAX_ENCODED_BYTES,
+            usage_telemetry.discarded_candidates,
+        )?;
+        result.refresh_index_fingerprint();
+        cancellation_token.bail_if_cancelled()?;
+        Ok((result, duration_micros(started.elapsed()), usage_telemetry))
     }
 
     fn enrich_dependency_source_spans(&self, result: &mut DefinitionAtPositionResult) {
         for definition in &mut result.definitions {
             self.enrich_dependency_source_span(&mut definition.identifier_span);
             self.enrich_dependency_source_span(&mut definition.declaration_span);
+        }
+    }
+
+    fn enrich_jdk_source_spans(&self, result: &mut DefinitionAtPositionResult) {
+        for definition in &mut result.definitions {
+            self.workspace
+                .jdk_sources
+                .enrich_span(&mut definition.identifier_span);
+            self.workspace
+                .jdk_sources
+                .enrich_span(&mut definition.declaration_span);
+        }
+    }
+
+    fn enrich_usage_dependency_source_spans(&self, result: &mut UsageAtPositionResult) {
+        for definition in &mut result.definitions {
+            self.enrich_dependency_source_span(&mut definition.identifier_span);
+            self.enrich_dependency_source_span(&mut definition.declaration_span);
+        }
+        for usage in &mut result.usages {
+            self.enrich_dependency_source_span(&mut usage.span);
+        }
+    }
+
+    fn enrich_usage_jdk_source_spans(&self, result: &mut UsageAtPositionResult) {
+        for definition in &mut result.definitions {
+            self.workspace
+                .jdk_sources
+                .enrich_span(&mut definition.identifier_span);
+            self.workspace
+                .jdk_sources
+                .enrich_span(&mut definition.declaration_span);
+        }
+        for usage in &mut result.usages {
+            self.workspace.jdk_sources.enrich_span(&mut usage.span);
         }
     }
 
@@ -864,6 +1208,20 @@ impl DefinitionAtPositionEngine {
         cancellation_token: &CancellationToken,
     ) -> eyre::Result<DefinitionAtPositionResult> {
         self.analyze_with_telemetry(request, cancellation_token)
+            .map(|output| output.result)
+    }
+
+    /// Analyze one usage request without returning transport telemetry.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Self::analyze_usages_with_telemetry`].
+    pub fn analyze_usages(
+        &self,
+        request: &UsageAtPositionRequest,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<UsageAtPositionResult> {
+        self.analyze_usages_with_telemetry(request, cancellation_token)
             .map(|output| output.result)
     }
 
@@ -941,6 +1299,17 @@ impl DefinitionAtPositionEngine {
                 .try_into()
                 .unwrap_or(u64::MAX),
             resolution_declarations: 0,
+            resolution_types: 0,
+            resolution_fields: 0,
+            resolution_methods: 0,
+            usage_index_build_micros: 0,
+            usage_index_cache_hits: 0,
+            usage_index_candidate_files: 0,
+            usage_index_parsed_files: 0,
+            usage_index_retained_rows: 0,
+            usage_index_cache_entries: 0,
+            usage_index_cache_retained_bytes: 0,
+            usage_index_cache_evictions: 0,
             reparsed_files: 0,
             source_files: self.workspace.files.len().try_into().unwrap_or(u64::MAX),
             cache: self.cache_snapshot(),
@@ -952,7 +1321,7 @@ fn duration_micros(duration: std::time::Duration) -> u64 {
     duration.as_micros().try_into().unwrap_or(u64::MAX)
 }
 
-fn contributed_address(scheme: &str, authority: &str, relative: &str) -> String {
+pub(crate) fn contributed_address(scheme: &str, authority: &str, relative: &str) -> String {
     let path = relative
         .split('/')
         .map(percent_encode_component)
@@ -998,10 +1367,11 @@ mod tests {
     use crate::java_analysis::JavaSourceSpanOutput;
     use crate::java_analysis::JavaSymbolDefinitionOutput;
     use crate::java_analysis::JavaSymbolIdentityOutput;
-    use crate::java_analysis::JavaSymbolKind;
     use crate::java_analysis::ResolutionConfidence;
     use crate::java_analysis::SymbolQueryCompleteness;
+    use crate::java_analysis::UsageAtPositionOutcome;
     use crate::java_analysis::definition_workspace_fingerprint;
+    use std::collections::BTreeSet;
 
     fn workspace() -> (tempfile::TempDir, JavaSourceWorkspace) {
         workspace_from_sources(&[
@@ -1065,6 +1435,7 @@ mod tests {
                 files,
                 diagnostics: Vec::new(),
                 classpath_entries: Vec::new(),
+                jdk_sources: JdkSourceDomainState::Disabled,
             },
         )
     }
@@ -1141,6 +1512,16 @@ mod tests {
         )
     }
 
+    fn usage_request(definition: DefinitionAtPositionRequest) -> UsageAtPositionRequest {
+        UsageAtPositionRequest::new(
+            definition.request_id,
+            definition.request_generation,
+            definition.workspace,
+            definition.document,
+            definition.position,
+        )
+    }
+
     fn use_dependency_identity(
         workspace: &JavaSourceWorkspace,
         request: &mut DefinitionAtPositionRequest,
@@ -1162,7 +1543,7 @@ mod tests {
             completeness,
             expected_identity: identity.to_owned(),
             portable_path: format!("symbol-index/v3/{identity}"),
-            path: format!("cache/symbol-index/v3/{identity}"),
+            path: format!("C:/fixture/symbol-index/v3/{identity}"),
             reason: format!("fixture status: {status:?}"),
             refresh_command: "sfm-propagate-changes symbol index refresh --branch 1.19.2"
                 .to_owned(),
@@ -1171,6 +1552,268 @@ mod tests {
                     .to_owned(),
             ],
         }
+    }
+
+    #[test]
+    fn implicit_java_lang_types_resolve_to_source_backed_jdk_definitions() {
+        let source = concat!(
+            "package q;\n",
+            "class Use { String text; Object value; StringBuilder builder; }\n",
+        );
+        let (_workspace_directory, mut workspace) =
+            workspace_from_sources(&[("q/Use.java", source)]);
+        let jdk_directory = tempfile::tempdir().expect("synthetic JDK source tree");
+        for (name, declaration) in [
+            ("String", "public final class String {}"),
+            ("Object", "public class Object {}"),
+            ("StringBuilder", "public final class StringBuilder {}"),
+        ] {
+            let path = jdk_directory
+                .path()
+                .join("java.base")
+                .join("java")
+                .join("lang")
+                .join(format!("{name}.java"));
+            std::fs::create_dir_all(path.parent().expect("JDK package")).expect("JDK package");
+            std::fs::write(&path, format!("package java.lang; {declaration}\n"))
+                .expect("JDK source");
+        }
+        workspace.jdk_sources = JdkSourceDomainState::ready_from_tree("17", jdk_directory.path())
+            .expect("JDK source domain");
+        workspace
+            .jdk_sources
+            .apply_to_context(&mut workspace.context);
+        let engine = DefinitionAtPositionEngine::new(
+            workspace.clone(),
+            None,
+            None,
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("definition engine");
+
+        for name in ["String", "Object", "StringBuilder"] {
+            let result = engine
+                .analyze(
+                    &request_at(&workspace, "q/Use.java", source, 1, name),
+                    &CancellationToken::new(),
+                )
+                .expect("JDK definition");
+
+            assert_eq!(result.outcome, DefinitionAtPositionOutcome::Success);
+            assert_eq!(
+                result.symbols[0].canonical_selector(),
+                format!("java.lang.{name}")
+            );
+            assert_eq!(
+                result.definitions[0].identifier_span.resolver_id,
+                "jdk-source"
+            );
+            assert!(
+                result.definitions[0]
+                    .identifier_span
+                    .root_relative_path
+                    .ends_with(&format!("java/lang/{name}.java"))
+            );
+            assert!(
+                result.definitions[0]
+                    .identifier_span
+                    .source_sha256
+                    .is_some()
+            );
+        }
+    }
+
+    #[test]
+    fn usage_at_position_returns_persistent_addressable_project_references() {
+        let use_source = "package q; import p.A; class Use { A first; A second; }\n";
+        let other_source = "package r; import p.A; class Other { A value; }\n";
+        let (_directory, workspace) = workspace_from_sources(&[
+            ("p/A.java", "package p; public class A {}\n"),
+            ("q/Use.java", use_source),
+            ("r/Other.java", other_source),
+        ]);
+        let engine = DefinitionAtPositionEngine::new(
+            workspace.clone(),
+            None,
+            None,
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("usage engine");
+        let mut definition_request = request_at(&workspace, "q/Use.java", use_source, 1, "A first");
+        definition_request.document.disk_content_hash =
+            Some(definition_request.document.content_hash.clone());
+        let usage_request = usage_request(definition_request.clone());
+
+        let definition = engine
+            .analyze_with_telemetry(&definition_request, &CancellationToken::new())
+            .expect("definition result");
+        assert_eq!(
+            definition.result.outcome,
+            DefinitionAtPositionOutcome::Success
+        );
+        let usages = engine
+            .analyze_usages_with_telemetry(&usage_request, &CancellationToken::new())
+            .expect("usage result");
+
+        assert_eq!(usages.result.outcome, UsageAtPositionOutcome::Success);
+        assert_eq!(usages.result.targets[0].canonical_selector(), "p.A");
+        assert!(usages.telemetry.resolution_cache_hits >= 1);
+        assert!(usages.telemetry.usage_index_build_micros > 0);
+        assert_eq!(usages.telemetry.usage_index_cache_hits, 0);
+        let paths = usages
+            .result
+            .usages
+            .iter()
+            .map(|usage| usage.span.report_path.as_str())
+            .collect::<BTreeSet<_>>();
+        assert!(paths.contains("source/p/A.java"));
+        assert!(paths.contains("source/q/Use.java"));
+        assert!(paths.contains("source/r/Other.java"));
+        assert!(usages.result.usages.iter().all(|usage| {
+            usage.span.resolver_id == "workspace"
+                && usage.span.address.starts_with("workspace://")
+                && usage.span.source_sha256.is_some()
+        }));
+
+        let repeated = engine
+            .analyze_usages_with_telemetry(&usage_request, &CancellationToken::new())
+            .expect("warm usage result");
+        assert_eq!(repeated.result, usages.result);
+        assert_eq!(repeated.telemetry.reparsed_files, 0);
+        assert_eq!(repeated.telemetry.usage_index_build_micros, 0);
+        assert_eq!(repeated.telemetry.usage_index_cache_hits, 1);
+    }
+
+    #[test]
+    fn concurrent_cold_requests_single_flight_one_resolution_surface() {
+        let mut owned_sources = vec![
+            (
+                "p/A.java".to_owned(),
+                "package p; public class A {}\n".to_owned(),
+            ),
+            (
+                "q/Use.java".to_owned(),
+                "package q; import p.A; class Use { A value; }\n".to_owned(),
+            ),
+        ];
+        // Keep the first build in flight long enough for both request threads
+        // to reach the single-flight gate deterministically on ordinary CI
+        // machines without adding a test-only production hook.
+        for index in 0..128 {
+            owned_sources.push((
+                format!("bulk/C{index}.java"),
+                format!("package bulk; class C{index} {{ int value{index}; }}\n"),
+            ));
+        }
+        let borrowed_sources = owned_sources
+            .iter()
+            .map(|(path, source)| (path.as_str(), source.as_str()))
+            .collect::<Vec<_>>();
+        let (_directory, workspace) = workspace_from_sources(&borrowed_sources);
+        let engine = DefinitionAtPositionEngine::new(
+            workspace.clone(),
+            None,
+            None,
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("definition engine");
+        let request = request_at(
+            &workspace,
+            "q/Use.java",
+            "package q; import p.A; class Use { A value; }\n",
+            1,
+            "A value",
+        );
+        let ready = std::sync::Barrier::new(3);
+
+        std::thread::scope(|scope| {
+            let first = scope.spawn(|| {
+                ready.wait();
+                engine.analyze(&request, &CancellationToken::new())
+            });
+            let second = scope.spawn(|| {
+                ready.wait();
+                engine.analyze(&request, &CancellationToken::new())
+            });
+            ready.wait();
+            assert_eq!(
+                first
+                    .join()
+                    .expect("first request thread")
+                    .expect("first request")
+                    .outcome,
+                DefinitionAtPositionOutcome::Success
+            );
+            assert_eq!(
+                second
+                    .join()
+                    .expect("second request thread")
+                    .expect("second request")
+                    .outcome,
+                DefinitionAtPositionOutcome::Success
+            );
+        });
+
+        let resolution_cache = engine
+            .resolution_cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert_eq!(resolution_cache.entries.len(), 1);
+        assert_eq!(resolution_cache.misses, 1);
+        assert_eq!(resolution_cache.hits, 1);
+        drop(resolution_cache);
+        let facts = engine.cache_snapshot();
+        assert_eq!(facts.misses, u64::try_from(workspace.files.len()).unwrap());
+    }
+
+    #[test]
+    fn usage_at_position_replaces_only_the_current_disk_file_with_an_unsaved_overlay() {
+        let disk_source = "package q; import p.A; class Use { A diskFirst; A diskSecond; }\n";
+        let overlay_source = "package q; import p.A; class Use { A overlayOnly; }\n";
+        let other_source = "package r; import p.A; class Other { A retained; }\n";
+        let (_directory, workspace) = workspace_from_sources(&[
+            ("p/A.java", "package p; public class A {}\n"),
+            ("q/Use.java", disk_source),
+            ("r/Other.java", other_source),
+        ]);
+        let engine = DefinitionAtPositionEngine::new(
+            workspace.clone(),
+            None,
+            None,
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("usage engine");
+        let mut definition_request =
+            request_at(&workspace, "q/Use.java", overlay_source, 1, "A overlayOnly");
+        definition_request.document.disk_content_hash = Some(blake3_content_hash(disk_source));
+        let usage_request = usage_request(definition_request);
+
+        let usages = engine
+            .analyze_usages_with_telemetry(&usage_request, &CancellationToken::new())
+            .expect("overlay usage result");
+
+        assert_eq!(usages.result.outcome, UsageAtPositionOutcome::Success);
+        assert_eq!(usages.result.targets[0].canonical_selector(), "p.A");
+        let overlay_hash = blake3_content_hash(overlay_source);
+        let current_document_usages = usages
+            .result
+            .usages
+            .iter()
+            .filter(|usage| usage.span.report_path == "source/q/Use.java")
+            .collect::<Vec<_>>();
+        assert!(!current_document_usages.is_empty());
+        assert!(
+            current_document_usages
+                .iter()
+                .all(|usage| usage.span.source_hash == overlay_hash)
+        );
+        assert!(
+            usages
+                .result
+                .usages
+                .iter()
+                .any(|usage| usage.span.report_path == "source/r/Other.java")
+        );
     }
 
     fn dependency_type(qualified_name: &str) -> DependencyJavaSymbolIndexBody {

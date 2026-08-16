@@ -1,0 +1,120 @@
+{
+  "completeness": "complete",
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:b80de14e6e1cd1403a53b3b650d1dd1d269eb94bcd5b4967daff93878a67a0e7",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      },
+      {
+        "exists": true,
+        "id": "jdk-java-17-5d37c7c5f17836ce",
+        "kind": "jdk",
+        "path": "$sfm-cache/sources/jdk/17-2bc7ef5f44f1bad1/e9b1e8371a9b394577207c1b12eb8edea34bdabb/arborium-java-2.18.1-37cdda9748951a30/tree",
+        "source_set": "jdk:java-17"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom",
+          "jdk:java-17"
+        ]
+      },
+      {
+        "id": "jdk:java-17",
+        "visible_source_sets": [
+          "custom",
+          "jdk:java-17"
+        ]
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "address": "jdk-source://jdk-java-17-5d37c7c5f17836ce/java.base/java/lang/String.java",
+        "end_byte": 182443,
+        "end_column": 2,
+        "end_line": 4656,
+        "report_path": "jdk/java-17/5d37c7c5f17836ce/java.base/java/lang/String.java",
+        "resolver_id": "jdk-source",
+        "root_id": "jdk-java-17-5d37c7c5f17836ce",
+        "root_relative_path": "java.base/java/lang/String.java",
+        "source_hash": "blake3:e20ef14b351d8292ba113f8307059c9a26ce958518270085eef763aaaf31d28f",
+        "source_set": "jdk:java-17",
+        "source_sha256": "sha256:8ac751a3c5b5a1a9bd4d1cf6941e63c4d35cb9a00954c46f53a66632b941cf7b",
+        "start_byte": 5803,
+        "start_column": 1,
+        "start_line": 140
+      },
+      "identifier_span": {
+        "address": "jdk-source://jdk-java-17-5d37c7c5f17836ce/java.base/java/lang/String.java",
+        "end_byte": 5828,
+        "end_column": 26,
+        "end_line": 140,
+        "report_path": "jdk/java-17/5d37c7c5f17836ce/java.base/java/lang/String.java",
+        "resolver_id": "jdk-source",
+        "root_id": "jdk-java-17-5d37c7c5f17836ce",
+        "root_relative_path": "java.base/java/lang/String.java",
+        "source_hash": "blake3:e20ef14b351d8292ba113f8307059c9a26ce958518270085eef763aaaf31d28f",
+        "source_set": "jdk:java-17",
+        "source_sha256": "sha256:8ac751a3c5b5a1a9bd4d1cf6941e63c4d35cb9a00954c46f53a66632b941cf7b",
+        "start_byte": 5822,
+        "start_column": 20,
+        "start_line": 140
+      },
+      "symbol": {
+        "descriptor": null,
+        "kind": "class",
+        "name": "String",
+        "owner": "java.lang",
+        "qualified_name": "java.lang.String"
+      }
+    }
+  ],
+  "diagnostics": [],
+  "document": {
+    "address": "workspace://custom-0/q/Use.java",
+    "content_hash": "blake3:cb74087dca24ef06c19ca5f0c7e15c56f17851b40a752522b360c5c137843ea1",
+    "disk_content_hash": "blake3:cb74087dca24ef06c19ca5f0c7e15c56f17851b40a752522b360c5c137843ea1",
+    "report_path": "source/q/Use.java",
+    "root_id": "custom-0",
+    "root_relative_path": "q/Use.java",
+    "source_set": "custom"
+  },
+  "outcome": "success",
+  "position": {
+    "byte_offset": 27,
+    "column": 5,
+    "line": 3
+  },
+  "recovery_actions": [],
+  "request_generation": 0,
+  "request_id": 0,
+  "schema": "sfm.definition-at-position-result/3",
+  "symbols": [
+    {
+      "descriptor": null,
+      "kind": "class",
+      "name": "String",
+      "owner": "java.lang",
+      "qualified_name": "java.lang.String"
+    }
+  ],
+  "workspace_generation": 0
+}

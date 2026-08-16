@@ -879,7 +879,7 @@ fn acquisition_commands(
 }
 
 fn render_refresh_command(branch: &BranchSelector) -> eyre::Result<String> {
-    Cli {
+    let arguments = Cli {
         global_args: GlobalArgs::default(),
         command: CliCommand::Symbol(super::SymbolArgs {
             command: super::SymbolCommand::Index(SymbolIndexArgs {
@@ -890,9 +890,12 @@ fn render_refresh_command(branch: &BranchSelector) -> eyre::Result<String> {
         }),
         builtins: figue::FigueBuiltins::default(),
     }
-    .to_args_string_with_current_exe()
-    .map(|command| command.to_string_lossy().into_owned())
-    .map_err(eyre::Report::from)
+    .to_args_string()
+    .map_err(eyre::Report::from)?;
+    Ok(format!(
+        "sfm-propagate-changes.exe {}",
+        arguments.to_string_lossy()
+    ))
 }
 
 const fn status_for_probe(status: DependencySymbolIndexProbeStatus) -> u8 {

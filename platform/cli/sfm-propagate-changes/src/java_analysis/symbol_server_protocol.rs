@@ -1,8 +1,12 @@
 use super::DefinitionAtPositionRequest;
 use super::DefinitionAtPositionResult;
 use super::DefinitionWorkspaceIdentityInput;
+use super::JavaSourceRootKind;
 use super::JavaSourceWorkspace;
+use super::UsageAtPositionRequest;
+use super::UsageAtPositionResult;
 use super::definition_workspace_fingerprint;
+use crate::paths::CACHE_DIR;
 use facet::Facet;
 use std::fmt;
 use std::io::Read;
@@ -12,6 +16,7 @@ use std::path::Path;
 pub const SYMBOL_SERVER_PROTOCOL_SCHEMA: &str = "sfm.symbol-server/1";
 pub const SYMBOL_SERVER_HELLO_SCHEMA: &str = "sfm.symbol-server.hello/1";
 pub const SYMBOL_SERVER_DEFINITION_SCHEMA: &str = "sfm.symbol-server.definition/1";
+pub const SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA: &str = "sfm.symbol-server.usage-at-position/1";
 pub const SYMBOL_SERVER_CANCEL_SCHEMA: &str = "sfm.symbol-server.cancel/1";
 pub const SYMBOL_SERVER_WORKSPACE_GENERATION_SCHEMA: &str =
     "sfm.symbol-server.workspace-generation/1";
@@ -30,17 +35,19 @@ pub enum SymbolServerCapability {
     WorkspaceGeneration,
     Ping,
     Shutdown,
+    UsageAtPosition,
 }
 
 impl SymbolServerCapability {
     #[must_use]
-    pub const fn all() -> [Self; 5] {
+    pub const fn all() -> [Self; 6] {
         [
             Self::DefinitionAtPosition,
             Self::Cancellation,
             Self::WorkspaceGeneration,
             Self::Ping,
             Self::Shutdown,
+            Self::UsageAtPosition,
         ]
     }
 }
@@ -75,6 +82,24 @@ pub struct SymbolServerDependencySourceRootOutput {
     pub report_prefix: String,
 }
 
+/// Canonical local mapping for a source domain managed outside the editable
+/// workspace roots. The resolver and address scheme are explicit so clients
+/// can open contributed addresses without reconstructing cache paths.
+#[derive(Facet, Clone, Debug, Eq, PartialEq)]
+pub struct SymbolServerManagedSourceRootOutput {
+    pub resolver_id: String,
+    pub address_scheme: String,
+    pub root_address: String,
+    pub resolver_identity: String,
+    pub canonical_absolute_path: String,
+    pub root_id: String,
+    pub source_set: String,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub portable_root_path: Option<String>,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub report_prefix: Option<String>,
+}
+
 /// Exact workspace value Java must copy into subsequent requests, plus the
 /// ordered filesystem mapping needed to derive document identity without
 /// guessing from display paths.
@@ -84,30 +109,46 @@ pub struct SymbolServerWorkspaceOutput {
     pub roots: Vec<SymbolServerWorkspaceRootOutput>,
     #[facet(default)]
     pub dependency_source_roots: Vec<SymbolServerDependencySourceRootOutput>,
+    #[facet(default)]
+    pub managed_source_roots: Vec<SymbolServerManagedSourceRootOutput>,
 }
 
 impl SymbolServerWorkspaceOutput {
-    /// Validate the exact one-to-one mapping advertised to clients.
+    /// Validate the exact ordered request-root mappings and additive managed
+    /// resolver mappings advertised to clients.
     ///
     /// # Errors
     ///
-    /// Returns an error for invalid request identity, ordering disagreement,
-    /// non-absolute filesystem paths, or blank mapping fields.
+    /// Returns an error for invalid request identity, missing/duplicate root
+    /// authority, non-absolute filesystem paths, or blank mapping fields.
     pub fn validate(&self) -> eyre::Result<()> {
         self.request_workspace.validate()?;
+        self.validate_workspace_roots()?;
+        self.validate_managed_source_roots()?;
+        self.validate_dependency_source_roots()
+    }
+
+    fn validate_workspace_roots(&self) -> eyre::Result<()> {
         if self.request_workspace.source_roots.len() != self.roots.len() {
             eyre::bail!(
-                "served workspace has {} source roots but {} root mappings",
+                "served workspace has {} source roots but {} ordered root mappings",
                 self.request_workspace.source_roots.len(),
                 self.roots.len()
             );
         }
+        let mut mapped_root_ids = std::collections::BTreeSet::new();
         for (root, mapping) in self.request_workspace.source_roots.iter().zip(&self.roots) {
             if mapping.root_id.trim().is_empty()
                 || mapping.source_set.trim().is_empty()
                 || mapping.report_root_path.trim().is_empty()
             {
                 eyre::bail!("served workspace root mapping contains a blank identity field");
+            }
+            if !mapped_root_ids.insert(mapping.root_id.as_str()) {
+                eyre::bail!(
+                    "served workspace root mapping id is duplicated: {}",
+                    mapping.root_id
+                );
             }
             if root.id != mapping.root_id
                 || root.source_set != mapping.source_set
@@ -125,6 +166,102 @@ impl SymbolServerWorkspaceOutput {
                 );
             }
         }
+        for root in &self.request_workspace.source_roots {
+            if !mapped_root_ids.contains(root.id.as_str()) {
+                eyre::bail!(
+                    "served source root `{}` has no ordered root mapping",
+                    root.id
+                );
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_managed_source_roots(&self) -> eyre::Result<()> {
+        let mut managed_root_keys = std::collections::BTreeSet::new();
+        for root in &self.managed_source_roots {
+            if root.resolver_id.trim().is_empty()
+                || root.address_scheme.trim().is_empty()
+                || root.root_address.trim().is_empty()
+                || root.resolver_identity.trim().is_empty()
+                || root.root_id.trim().is_empty()
+                || root.source_set.trim().is_empty()
+                || root
+                    .portable_root_path
+                    .as_deref()
+                    .is_some_and(|path| path.trim().is_empty())
+                || root
+                    .report_prefix
+                    .as_deref()
+                    .is_some_and(|path| path.trim().is_empty())
+            {
+                eyre::bail!("served managed source root contains an invalid identity field");
+            }
+            if !managed_root_keys.insert((root.resolver_id.as_str(), root.root_id.as_str())) {
+                eyre::bail!(
+                    "served managed source root is duplicated: {}://{}",
+                    root.resolver_id,
+                    root.root_id
+                );
+            }
+            if !Path::new(&root.canonical_absolute_path).is_absolute() {
+                eyre::bail!(
+                    "served managed source root `{}://{}` path is not absolute",
+                    root.resolver_id,
+                    root.root_id
+                );
+            }
+            let expected_root_address = format!("{}://{}/", root.address_scheme, root.root_id);
+            if root.root_address != expected_root_address {
+                eyre::bail!(
+                    "served managed source root `{}://{}` has non-canonical root address `{}`",
+                    root.resolver_id,
+                    root.root_id,
+                    root.root_address
+                );
+            }
+            let Some(request_root) = self
+                .request_workspace
+                .source_roots
+                .iter()
+                .find(|candidate| {
+                    candidate.id == root.root_id && candidate.source_set == root.source_set
+                })
+            else {
+                eyre::bail!(
+                    "served managed source root `{}://{}` has no matching request root",
+                    root.resolver_id,
+                    root.root_id
+                );
+            };
+            if request_root.kind == JavaSourceRootKind::Jdk
+                && (root.resolver_id != "jdk-source" || root.address_scheme != "jdk-source")
+            {
+                eyre::bail!(
+                    "served JDK source root `{}` does not use the jdk-source resolver",
+                    root.root_id
+                );
+            }
+        }
+        for root in &self.request_workspace.source_roots {
+            if root.exists
+                && root.kind == JavaSourceRootKind::Jdk
+                && !self.managed_source_roots.iter().any(|mapping| {
+                    mapping.root_id == root.id
+                        && mapping.resolver_id == "jdk-source"
+                        && mapping.address_scheme == "jdk-source"
+                })
+            {
+                eyre::bail!(
+                    "served JDK source root `{}` has no canonical jdk-source resolver mapping",
+                    root.id
+                );
+            }
+        }
+        Ok(())
+    }
+
+    fn validate_dependency_source_roots(&self) -> eyre::Result<()> {
         let mut dependency_root_ids = std::collections::BTreeSet::new();
         for root in &self.dependency_source_roots {
             if root.root_id.trim().is_empty()
@@ -182,24 +319,62 @@ impl SymbolServerWorkspaceOutput {
         workspace_generation: u64,
         dependency_source_roots: &[super::DefinitionDependencySourceRoot],
     ) -> eyre::Result<Self> {
-        if workspace.context.source_roots.len() != workspace.root_authorities.len() {
+        let (roots, mut managed_source_roots) = project_workspace_roots(workspace)?;
+        let workspace_fingerprint = definition_workspace_fingerprint(
+            &workspace.context,
+            dependency_index_identity.as_deref(),
+        )?;
+        let dependency_source_root_outputs =
+            project_dependency_source_roots(dependency_source_roots)?;
+        managed_source_roots.sort_by(|left, right| {
+            (&left.resolver_id, &left.root_id, &left.source_set).cmp(&(
+                &right.resolver_id,
+                &right.root_id,
+                &right.source_set,
+            ))
+        });
+        let output = Self {
+            request_workspace: DefinitionWorkspaceIdentityInput {
+                branch: workspace.context.branch.clone(),
+                classpath_mode: workspace.context.classpath_mode,
+                source_roots: workspace.context.source_roots.clone(),
+                classpath_fingerprint: workspace.context.classpath_fingerprint.clone(),
+                dependency_index_identity,
+                workspace_fingerprint,
+                workspace_generation,
+            },
+            roots,
+            dependency_source_roots: dependency_source_root_outputs,
+            managed_source_roots,
+        };
+        output.validate()?;
+        Ok(output)
+    }
+}
+
+fn project_workspace_roots(
+    workspace: &JavaSourceWorkspace,
+) -> eyre::Result<(
+    Vec<SymbolServerWorkspaceRootOutput>,
+    Vec<SymbolServerManagedSourceRootOutput>,
+)> {
+    let mut authorities = std::collections::BTreeMap::new();
+    for authority in &workspace.root_authorities {
+        if authorities
+            .insert(authority.root_id.as_str(), authority)
+            .is_some()
+        {
             eyre::bail!(
-                "workspace has {} source-root projections but {} filesystem authorities",
-                workspace.context.source_roots.len(),
-                workspace.root_authorities.len()
+                "workspace filesystem authority id is duplicated: {}",
+                authority.root_id
             );
         }
-        let mut roots = Vec::with_capacity(workspace.context.source_roots.len());
-        for (root, authority) in workspace
-            .context
-            .source_roots
-            .iter()
-            .zip(&workspace.root_authorities)
-        {
-            if root.id != authority.root_id
-                || root.source_set != authority.source_set
-                || root.path != authority.report_root_path
-            {
+    }
+    let mut roots = Vec::with_capacity(workspace.context.source_roots.len());
+    let mut managed = Vec::new();
+    for root in &workspace.context.source_roots {
+        if let Some(authority) = authorities.remove(root.id.as_str()) {
+            if root.source_set != authority.source_set || root.path != authority.report_root_path {
                 eyre::bail!(
                     "workspace source-root projection `{}` does not match its filesystem authority",
                     root.id
@@ -221,45 +396,125 @@ impl SymbolServerWorkspaceOutput {
                 source_set: root.source_set.clone(),
                 report_root_path: root.path.clone(),
             });
+            continue;
         }
-        let workspace_fingerprint = definition_workspace_fingerprint(
-            &workspace.context,
-            dependency_index_identity.as_deref(),
-        )?;
-        let output = Self {
-            request_workspace: DefinitionWorkspaceIdentityInput {
-                branch: workspace.context.branch.clone(),
-                classpath_mode: workspace.context.classpath_mode,
-                source_roots: workspace.context.source_roots.clone(),
-                classpath_fingerprint: workspace.context.classpath_fingerprint.clone(),
-                dependency_index_identity,
-                workspace_fingerprint,
-                workspace_generation,
-            },
-            roots,
-            dependency_source_roots: dependency_source_roots
-                .iter()
-                .map(|root| {
-                    Ok(SymbolServerDependencySourceRootOutput {
-                        canonical_absolute_path: root
-                            .canonical_absolute_path
-                            .to_str()
-                            .ok_or_else(|| {
-                                eyre::eyre!(
-                                    "dependency source root `{}` has a non-UTF-8 canonical path",
-                                    root.root_id
-                                )
-                            })?
-                            .to_owned(),
-                        root_id: root.root_id.clone(),
-                        source_set: root.source_set.clone(),
-                        report_prefix: root.report_prefix.clone(),
-                    })
-                })
-                .collect::<eyre::Result<Vec<_>>>()?,
-        };
-        output.validate()?;
-        Ok(output)
+        if root.kind != JavaSourceRootKind::Jdk {
+            eyre::bail!(
+                "workspace source-root projection `{}` has no filesystem or managed-source authority",
+                root.id
+            );
+        }
+        let canonical = managed_source_path(&root.path, &root.id, root.exists)?;
+        let canonical_absolute_path = canonical
+            .to_str()
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "JDK source root `{}` has a non-UTF-8 canonical path",
+                    root.id
+                )
+            })?
+            .to_owned();
+        roots.push(SymbolServerWorkspaceRootOutput {
+            canonical_absolute_path: canonical_absolute_path.clone(),
+            root_id: root.id.clone(),
+            source_set: root.source_set.clone(),
+            report_root_path: root.path.clone(),
+        });
+        if root.exists {
+            managed.push(SymbolServerManagedSourceRootOutput {
+                resolver_id: "jdk-source".to_owned(),
+                address_scheme: "jdk-source".to_owned(),
+                root_address: format!("jdk-source://{}/", root.id),
+                resolver_identity: root.path.clone(),
+                canonical_absolute_path,
+                root_id: root.id.clone(),
+                source_set: root.source_set.clone(),
+                portable_root_path: Some(root.path.clone()),
+                report_prefix: None,
+            });
+        }
+    }
+    if let Some((_, authority)) = authorities.into_iter().next() {
+        eyre::bail!(
+            "workspace filesystem authority `{}` has no source-root projection",
+            authority.root_id
+        );
+    }
+    Ok((roots, managed))
+}
+
+fn project_dependency_source_roots(
+    roots: &[super::DefinitionDependencySourceRoot],
+) -> eyre::Result<Vec<SymbolServerDependencySourceRootOutput>> {
+    let mut outputs = roots
+        .iter()
+        .map(|root| {
+            Ok(SymbolServerDependencySourceRootOutput {
+                canonical_absolute_path: root
+                    .canonical_absolute_path
+                    .to_str()
+                    .ok_or_else(|| {
+                        eyre::eyre!(
+                            "dependency source root `{}` has a non-UTF-8 canonical path",
+                            root.root_id
+                        )
+                    })?
+                    .to_owned(),
+                root_id: root.root_id.clone(),
+                source_set: root.source_set.clone(),
+                report_prefix: root.report_prefix.clone(),
+            })
+        })
+        .collect::<eyre::Result<Vec<_>>>()?;
+    outputs.sort_by(|left, right| {
+        (&left.root_id, &left.source_set, &left.report_prefix).cmp(&(
+            &right.root_id,
+            &right.source_set,
+            &right.report_prefix,
+        ))
+    });
+    Ok(outputs)
+}
+
+fn managed_source_path(
+    portable: &str,
+    root_id: &str,
+    require_existing: bool,
+) -> eyre::Result<std::path::PathBuf> {
+    let portable = Path::new(portable);
+    let local = if let Ok(relative) = portable.strip_prefix(Path::new("$sfm-cache")) {
+        CACHE_DIR.0.join(relative)
+    } else if portable.is_absolute() {
+        portable.to_path_buf()
+    } else if !require_existing {
+        CACHE_DIR
+            .0
+            .join("sources")
+            .join("jdk")
+            .join("unavailable")
+            .join(root_id)
+    } else {
+        eyre::bail!(
+            "managed source root `{root_id}` path is neither absolute nor rooted at $sfm-cache"
+        );
+    };
+    if require_existing {
+        dunce::canonicalize(&local).map_err(|error| {
+            eyre::eyre!(
+                "failed to canonicalize managed source root `{root_id}` at {}: {error}",
+                local.display()
+            )
+        })
+    } else if local.is_absolute() {
+        Ok(local)
+    } else {
+        std::env::current_dir()
+            .map(|current| current.join(local))
+            .map_err(|error| {
+                eyre::eyre!(
+                    "failed to absolutize unavailable managed source root `{root_id}`: {error}"
+                )
+            })
     }
 }
 
@@ -312,6 +567,24 @@ pub struct SymbolServerDefinitionErrorOutput {
 }
 
 #[derive(Facet, Clone, Debug, Eq, PartialEq)]
+pub struct SymbolServerUsageAtPositionCancelledOutput {
+    pub request_id: u64,
+    pub request_generation: u64,
+    pub workspace_generation: u64,
+    pub reason: String,
+}
+
+#[derive(Facet, Clone, Debug, Eq, PartialEq)]
+pub struct SymbolServerUsageAtPositionErrorOutput {
+    pub request_id: u64,
+    pub request_generation: u64,
+    pub workspace_generation: u64,
+    pub code: String,
+    pub message: String,
+    pub retryable: bool,
+}
+
+#[derive(Facet, Clone, Debug, Eq, PartialEq)]
 pub struct SymbolServerWorkspaceGenerationOutput {
     pub workspace: SymbolServerWorkspaceOutput,
     pub cancelled_requests: u64,
@@ -345,6 +618,10 @@ pub enum SymbolServerClientFrame {
     Definition {
         schema: String,
         request: Box<DefinitionAtPositionRequest>,
+    },
+    UsageAtPosition {
+        schema: String,
+        request: Box<UsageAtPositionRequest>,
     },
     Cancel {
         schema: String,
@@ -380,6 +657,14 @@ impl SymbolServerClientFrame {
     pub fn definition(request: DefinitionAtPositionRequest) -> Self {
         Self::Definition {
             schema: SYMBOL_SERVER_DEFINITION_SCHEMA.to_owned(),
+            request: Box::new(request),
+        }
+    }
+
+    #[must_use]
+    pub fn usage_at_position(request: UsageAtPositionRequest) -> Self {
+        Self::UsageAtPosition {
+            schema: SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA.to_owned(),
             request: Box::new(request),
         }
     }
@@ -429,6 +714,7 @@ impl SymbolServerClientFrame {
         match self {
             Self::Hello { schema, .. }
             | Self::Definition { schema, .. }
+            | Self::UsageAtPosition { schema, .. }
             | Self::Cancel { schema, .. }
             | Self::WorkspaceGeneration { schema, .. }
             | Self::Ping { schema, .. }
@@ -441,6 +727,7 @@ impl SymbolServerClientFrame {
         match self {
             Self::Hello { .. } => SYMBOL_SERVER_HELLO_SCHEMA,
             Self::Definition { .. } => SYMBOL_SERVER_DEFINITION_SCHEMA,
+            Self::UsageAtPosition { .. } => SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA,
             Self::Cancel { .. } => SYMBOL_SERVER_CANCEL_SCHEMA,
             Self::WorkspaceGeneration { .. } => SYMBOL_SERVER_WORKSPACE_GENERATION_SCHEMA,
             Self::Ping { .. } => SYMBOL_SERVER_PING_SCHEMA,
@@ -485,6 +772,18 @@ pub enum SymbolServerFrame {
         schema: String,
         error: SymbolServerDefinitionErrorOutput,
     },
+    UsageAtPositionResult {
+        schema: String,
+        result: Box<UsageAtPositionResult>,
+    },
+    UsageAtPositionCancelled {
+        schema: String,
+        cancellation: SymbolServerUsageAtPositionCancelledOutput,
+    },
+    UsageAtPositionFailed {
+        schema: String,
+        error: SymbolServerUsageAtPositionErrorOutput,
+    },
     Cancelled {
         schema: String,
         cancellation: SymbolServerCancellationOutput,
@@ -514,6 +813,9 @@ impl SymbolServerFrame {
             | Self::DefinitionResult { schema, .. }
             | Self::DefinitionCancelled { schema, .. }
             | Self::DefinitionFailed { schema, .. }
+            | Self::UsageAtPositionResult { schema, .. }
+            | Self::UsageAtPositionCancelled { schema, .. }
+            | Self::UsageAtPositionFailed { schema, .. }
             | Self::Cancelled { schema, .. }
             | Self::WorkspaceGeneration { schema, .. }
             | Self::Pong { schema, .. }
@@ -529,6 +831,9 @@ impl SymbolServerFrame {
             Self::DefinitionResult { .. }
             | Self::DefinitionCancelled { .. }
             | Self::DefinitionFailed { .. } => SYMBOL_SERVER_DEFINITION_SCHEMA,
+            Self::UsageAtPositionResult { .. }
+            | Self::UsageAtPositionCancelled { .. }
+            | Self::UsageAtPositionFailed { .. } => SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA,
             Self::Cancelled { .. } => SYMBOL_SERVER_CANCEL_SCHEMA,
             Self::WorkspaceGeneration { .. } => SYMBOL_SERVER_WORKSPACE_GENERATION_SCHEMA,
             Self::Pong { .. } => SYMBOL_SERVER_PING_SCHEMA,
@@ -798,7 +1103,7 @@ mod tests {
     use crate::java_analysis::DefinitionTextPositionInput;
     use crate::java_analysis::JavaAnalysisContextOutput;
     use crate::java_analysis::JavaClasspathMode;
-    use crate::java_analysis::JavaSourceRootKind;
+    use crate::java_analysis::JavaSourceRootAuthority;
     use crate::java_analysis::JavaSourceRootOutput;
     use crate::java_analysis::blake3_content_hash;
     use std::io::Cursor;
@@ -884,6 +1189,21 @@ mod tests {
         )
     }
 
+    fn usage_request() -> UsageAtPositionRequest {
+        let request = definition_request();
+        UsageAtPositionRequest::new(
+            request.request_id,
+            request.request_generation,
+            request.workspace,
+            request.document,
+            request.position,
+        )
+    }
+
+    fn usage_result(request: &UsageAtPositionRequest) -> UsageAtPositionResult {
+        UsageAtPositionResult::from_definition(definition_result(&request.as_definition_request()))
+    }
+
     fn served_workspace(workspace_generation: u64) -> SymbolServerWorkspaceOutput {
         let mut request_workspace = definition_request().workspace;
         request_workspace.workspace_generation = workspace_generation;
@@ -896,6 +1216,7 @@ mod tests {
                 report_root_path: "source".to_owned(),
             }],
             dependency_source_roots: Vec::new(),
+            managed_source_roots: Vec::new(),
         }
     }
 
@@ -977,6 +1298,39 @@ mod tests {
                 DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES,
             )
             .expect("decode definition result"),
+            Some(server_frame)
+        );
+    }
+
+    #[test]
+    fn usage_at_position_request_and_terminal_result_round_trip_as_framed_json() {
+        let request = usage_request();
+        let client_frame = SymbolServerClientFrame::usage_at_position(request.clone());
+        let client_bytes =
+            encode_symbol_server_client_frame(&client_frame, DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES)
+                .expect("usage-at-position request frame");
+        assert_eq!(
+            read_symbol_server_client_frame(
+                &mut Cursor::new(client_bytes),
+                DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES,
+            )
+            .expect("decode usage-at-position request"),
+            Some(client_frame)
+        );
+
+        let server_frame = SymbolServerFrame::UsageAtPositionResult {
+            schema: SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA.to_owned(),
+            result: Box::new(usage_result(&request)),
+        };
+        let server_bytes =
+            encode_symbol_server_frame(&server_frame, DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES)
+                .expect("usage-at-position result frame");
+        assert_eq!(
+            read_symbol_server_frame(
+                &mut Cursor::new(server_bytes),
+                DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES,
+            )
+            .expect("decode usage-at-position result"),
             Some(server_frame)
         );
     }
@@ -1075,7 +1429,7 @@ mod tests {
                 max_frame_bytes: 16_777_216,
             }))
             .expect("client hello JSON"),
-            r#"{"kind":"hello","schema":"sfm.symbol-server.hello/1","hello":{"protocol_schema":"sfm.symbol-server/1","client_name":"minecraft","client_version":"1","capabilities":["definition-at-position","cancellation","workspace-generation","ping","shutdown"],"max_frame_bytes":16777216}}"#
+            r#"{"kind":"hello","schema":"sfm.symbol-server.hello/1","hello":{"protocol_schema":"sfm.symbol-server/1","client_name":"minecraft","client_version":"1","capabilities":["definition-at-position","cancellation","workspace-generation","ping","shutdown","usage-at-position"],"max_frame_bytes":16777216}}"#
         );
         assert_eq!(
             facet_json::to_string(&SymbolServerFrame::Hello {
@@ -1091,7 +1445,7 @@ mod tests {
                 },
             })
             .expect("server hello JSON"),
-            r#"{"kind":"hello","schema":"sfm.symbol-server.hello/1","hello":{"protocol_schema":"sfm.symbol-server/1","server_name":"sfm-propagate-changes","server_version":"1","capabilities":["definition-at-position","cancellation","workspace-generation","ping","shutdown"],"max_frame_bytes":16777216,"max_pending_definitions":8,"workspace":{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":7},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[]}}}"#
+            r#"{"kind":"hello","schema":"sfm.symbol-server.hello/1","hello":{"protocol_schema":"sfm.symbol-server/1","server_name":"sfm-propagate-changes","server_version":"1","capabilities":["definition-at-position","cancellation","workspace-generation","ping","shutdown","usage-at-position"],"max_frame_bytes":16777216,"max_pending_definitions":8,"workspace":{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":7},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[],"managed_source_roots":[]}}}"#
         );
     }
 
@@ -1110,11 +1464,98 @@ mod tests {
 
         assert_eq!(
             facet_json::to_string(&workspace).expect("dependency workspace JSON"),
-            r#"{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":7},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[{"canonical_absolute_path":"C:/workspace/dependencies/forge","root_id":"dependency-source-0","source_set":"dependency:forge","report_prefix":"dependency/forge/userdev/loader-pipeline"}]}"#
+            r#"{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":7},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[{"canonical_absolute_path":"C:/workspace/dependencies/forge","root_id":"dependency-source-0","source_set":"dependency:forge","report_prefix":"dependency/forge/userdev/loader-pipeline"}],"managed_source_roots":[]}"#
         );
     }
 
     #[test]
+    fn workspace_projection_maps_source_backed_jdk_without_a_workspace_authority() {
+        let temporary = tempfile::tempdir().expect("managed source fixture");
+        let workspace_root = temporary.path().join("workspace");
+        let jdk_root = temporary.path().join("jdk-source");
+        std::fs::create_dir_all(&workspace_root).expect("workspace root");
+        std::fs::create_dir_all(jdk_root.join("java.base/java/lang")).expect("JDK source root");
+        std::fs::write(
+            jdk_root.join("java.base/java/lang/String.java"),
+            "package java.lang; public final class String {}\n",
+        )
+        .expect("JDK source fixture");
+        let canonical_workspace =
+            dunce::canonicalize(&workspace_root).expect("canonical workspace");
+        let canonical_jdk = dunce::canonicalize(&jdk_root).expect("canonical JDK source");
+        let canonical_jdk_text = canonical_jdk.to_string_lossy().into_owned();
+        let workspace_root_output = JavaSourceRootOutput {
+            id: "custom-0".to_owned(),
+            source_set: "custom".to_owned(),
+            path: "source".to_owned(),
+            kind: JavaSourceRootKind::Custom,
+            exists: true,
+        };
+        let jdk_root_output = JavaSourceRootOutput {
+            id: "jdk-java-17-fixture".to_owned(),
+            source_set: "jdk:java-17".to_owned(),
+            path: canonical_jdk_text.clone(),
+            kind: JavaSourceRootKind::Jdk,
+            exists: true,
+        };
+        let workspace = JavaSourceWorkspace {
+            context: JavaAnalysisContextOutput {
+                branch: "1.19.2".to_owned(),
+                minecraft_version: "1.19.2".to_owned(),
+                java_release: "17".to_owned(),
+                jdk: "fixture".to_owned(),
+                source_roots: vec![workspace_root_output, jdk_root_output],
+                source_sets: Vec::new(),
+                source_exclusions: Vec::new(),
+                classpath_mode: JavaClasspathMode::Isolated,
+                classpath_fingerprint: "blake3:workspace".to_owned(),
+                parser_fingerprint: "fixture-parser".to_owned(),
+                index_fingerprint: "fixture-index".to_owned(),
+            },
+            root_authorities: vec![JavaSourceRootAuthority {
+                root_id: "custom-0".to_owned(),
+                source_set: "custom".to_owned(),
+                canonical_absolute_path: canonical_workspace,
+                report_root_path: "source".to_owned(),
+            }],
+            files: Vec::new(),
+            diagnostics: Vec::new(),
+            classpath_entries: Vec::new(),
+            jdk_sources: crate::java_analysis::JdkSourceDomainState::Disabled,
+        };
+
+        let projected = SymbolServerWorkspaceOutput::from_workspace(&workspace, None, 5)
+            .expect("workspace projection with managed JDK source");
+
+        assert_eq!(projected.request_workspace.source_roots.len(), 2);
+        assert_eq!(projected.roots.len(), 2);
+        assert_eq!(projected.roots[1].root_id, "jdk-java-17-fixture");
+        assert_eq!(
+            projected.roots[1].canonical_absolute_path,
+            canonical_jdk_text
+        );
+        assert_eq!(projected.managed_source_roots.len(), 1);
+        let mapping = &projected.managed_source_roots[0];
+        assert_eq!(mapping.resolver_id, "jdk-source");
+        assert_eq!(mapping.address_scheme, "jdk-source");
+        assert_eq!(mapping.root_address, "jdk-source://jdk-java-17-fixture/");
+        assert_eq!(mapping.resolver_identity, canonical_jdk_text);
+        assert_eq!(mapping.root_id, "jdk-java-17-fixture");
+        assert_eq!(mapping.source_set, "jdk:java-17");
+        assert_eq!(mapping.canonical_absolute_path, canonical_jdk_text);
+        assert_eq!(
+            mapping.portable_root_path.as_deref(),
+            Some(canonical_jdk_text.as_str())
+        );
+        assert!(mapping.report_prefix.is_none());
+        projected.validate().expect("projected workspace validates");
+    }
+
+    #[test]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "the fixture intentionally spells out every stable wire envelope"
+    )]
     fn simple_server_json_envelopes_are_stable_for_java_interop() {
         let cases = [
             (
@@ -1144,6 +1585,32 @@ mod tests {
                 r#"{"kind":"definition-failed","schema":"sfm.symbol-server.definition/1","error":{"request_id":7,"request_generation":3,"workspace_generation":11,"code":"server-busy","message":"pending limit reached","retryable":true}}"#,
             ),
             (
+                SymbolServerFrame::UsageAtPositionCancelled {
+                    schema: SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA.to_owned(),
+                    cancellation: SymbolServerUsageAtPositionCancelledOutput {
+                        request_id: 8,
+                        request_generation: 4,
+                        workspace_generation: 11,
+                        reason: "selection changed".to_owned(),
+                    },
+                },
+                r#"{"kind":"usage-at-position-cancelled","schema":"sfm.symbol-server.usage-at-position/1","cancellation":{"request_id":8,"request_generation":4,"workspace_generation":11,"reason":"selection changed"}}"#,
+            ),
+            (
+                SymbolServerFrame::UsageAtPositionFailed {
+                    schema: SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA.to_owned(),
+                    error: SymbolServerUsageAtPositionErrorOutput {
+                        request_id: 8,
+                        request_generation: 4,
+                        workspace_generation: 11,
+                        code: "server-busy".to_owned(),
+                        message: "pending limit reached".to_owned(),
+                        retryable: true,
+                    },
+                },
+                r#"{"kind":"usage-at-position-failed","schema":"sfm.symbol-server.usage-at-position/1","error":{"request_id":8,"request_generation":4,"workspace_generation":11,"code":"server-busy","message":"pending limit reached","retryable":true}}"#,
+            ),
+            (
                 SymbolServerFrame::Cancelled {
                     schema: SYMBOL_SERVER_CANCEL_SCHEMA.to_owned(),
                     cancellation: SymbolServerCancellationOutput {
@@ -1163,7 +1630,7 @@ mod tests {
                         cancelled_requests: 2,
                     },
                 },
-                r#"{"kind":"workspace-generation","schema":"sfm.symbol-server.workspace-generation/1","update":{"workspace":{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":12},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[]},"cancelled_requests":2}}"#,
+                r#"{"kind":"workspace-generation","schema":"sfm.symbol-server.workspace-generation/1","update":{"workspace":{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":12},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[],"managed_source_roots":[]},"cancelled_requests":2}}"#,
             ),
             (
                 SymbolServerFrame::Pong {

@@ -409,11 +409,53 @@ enum CanonicalJson {
 }
 
 fn canonicalize_json(input: &str) -> eyre::Result<String> {
-    let value = parse_json(input)?;
+    let mut value = parse_json(input)?;
+    normalize_dependency_index_paths(&mut value)?;
     let mut output = String::new();
     value.write_pretty(&mut output, 0);
     output.push('\n');
     Ok(output)
+}
+
+fn normalize_dependency_index_paths(value: &mut CanonicalJson) -> eyre::Result<()> {
+    match value {
+        CanonicalJson::Array(values) => {
+            for value in values {
+                normalize_dependency_index_paths(value)?;
+            }
+        }
+        CanonicalJson::Object(fields) => {
+            let dependency_index_paths = match (fields.get("portable_path"), fields.get("path")) {
+                (Some(CanonicalJson::String(portable_path)), Some(CanonicalJson::String(path))) => {
+                    Some((portable_path.clone(), path.clone()))
+                }
+                _ => None,
+            };
+            if let Some((portable_path, path)) = dependency_index_paths
+                && let Some(suffix) = portable_path.strip_prefix("$sfm-cache/")
+                && suffix.starts_with("symbol-index/")
+            {
+                let normalized_path = path.replace('\\', "/");
+                if normalized_path == portable_path || !normalized_path.ends_with(suffix) {
+                    bail!(
+                        "dependency-index path {path:?} is not a concrete cache path for portable identity {portable_path:?}"
+                    );
+                }
+                fields.insert(
+                    "path".to_owned(),
+                    CanonicalJson::String(format!("$sfm-cache-local/{suffix}")),
+                );
+            }
+            for value in fields.values_mut() {
+                normalize_dependency_index_paths(value)?;
+            }
+        }
+        CanonicalJson::Null
+        | CanonicalJson::Bool(_)
+        | CanonicalJson::Number(_)
+        | CanonicalJson::String(_) => {}
+    }
+    Ok(())
 }
 
 fn parse_json(input: &str) -> eyre::Result<CanonicalJson> {
@@ -827,6 +869,22 @@ fn canonical_json_sorts_keys_and_normalizes_layout() -> eyre::Result<()> {
         canonicalize_json("{\n  \"a\": {\"one\": 1, \"two\": 2},\n  \"z\": [true, null]\n}")?;
     assert_eq!(left, right);
     assert!(left.starts_with("{\n  \"a\""));
+    Ok(())
+}
+
+#[test]
+fn canonical_json_preserves_dependency_index_path_contract_portably() -> eyre::Result<()> {
+    let canonical = canonicalize_json(
+        r#"{"dependency_index":{"portable_path":"$sfm-cache/symbol-index/v3/abc","path":"C:\\cache\\symbol-index\\v3\\abc"}}"#,
+    )?;
+    assert!(canonical.contains("\"portable_path\": \"$sfm-cache/symbol-index/v3/abc\""));
+    assert!(canonical.contains("\"path\": \"$sfm-cache-local/symbol-index/v3/abc\""));
+
+    let error = canonicalize_json(
+        r#"{"dependency_index":{"portable_path":"$sfm-cache/symbol-index/v3/abc","path":"C:\\cache\\symbol-index\\v3\\wrong"}}"#,
+    )
+    .expect_err("mismatched concrete path must not be hidden by snapshot normalization");
+    assert!(error.to_string().contains("is not a concrete cache path"));
     Ok(())
 }
 

@@ -14,6 +14,10 @@ pub struct GitSourcePaths {
     pub tree: PathBuf,
 }
 
+pub struct JdkSourcePaths {
+    pub tree: PathBuf,
+}
+
 pub struct SourceCacheLayout;
 
 impl SourceCacheLayout {
@@ -59,6 +63,24 @@ impl SourceCacheLayout {
             .join(stable_key(minecraft_version))
             .join(stable_key(pipeline_fingerprint))
             .join("tree")
+    }
+
+    /// Return the portable, content-addressed extraction location for one
+    /// exact JDK source archive and parser/index consumer.
+    #[must_use]
+    pub fn jdk(
+        java_release: &str,
+        source_hash: ContentHash,
+        parser_fingerprint: &str,
+    ) -> JdkSourcePaths {
+        JdkSourcePaths {
+            tree: PathBuf::from(SOURCE_CACHE_ROOT)
+                .join("jdk")
+                .join(stable_key(java_release))
+                .join(source_hash.hex())
+                .join(stable_key(parser_fingerprint))
+                .join("tree"),
+        }
     }
 }
 
@@ -113,6 +135,11 @@ mod tests {
         assert_ne!(first.tree, other_revision.tree);
         assert!(!first.repository.is_absolute());
         assert!(!first.tree.is_absolute());
+
+        let jdk = SourceCacheLayout::jdk("17", source_hash, "arborium-java/2.18.1");
+        assert!(jdk.tree.starts_with(SOURCE_CACHE_ROOT));
+        assert_eq!(jdk.tree.file_name().unwrap(), "tree");
+        assert!(!jdk.tree.is_absolute());
     }
 
     #[test]

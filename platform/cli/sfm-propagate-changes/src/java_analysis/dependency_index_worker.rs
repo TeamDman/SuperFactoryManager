@@ -15,6 +15,7 @@ use super::JavaSymbolDefinitionOutput;
 use super::JavaSymbolIdentityOutput;
 use super::JavaSymbolIndex;
 use super::JavaSymbolKind;
+use super::JdkSourceDomainState;
 #[cfg(test)]
 use super::ResolutionConfidence;
 use crate::cancellation::CancellationToken;
@@ -322,6 +323,7 @@ fn run_worker_request(request: WorkerRequest) -> eyre::Result<()> {
             }],
             diagnostics: Vec::new(),
             classpath_entries: Vec::new(),
+            jdk_sources: JdkSourceDomainState::Disabled,
         };
         let index = JavaSymbolIndex::build_dependency_worker(
             &workspace,
@@ -405,6 +407,7 @@ fn resolution_definition_is_relevant<T: Borrow<str> + Ord, U: Borrow<str> + Ord>
         JavaSymbolKind::Field | JavaSymbolKind::Method => {
             member_accesses.contains(name) && identifiers.contains(owner_name)
         }
+        JavaSymbolKind::LocalVariable | JavaSymbolKind::Parameter => false,
     }
 }
 
@@ -1265,6 +1268,8 @@ const fn resolution_kind(kind: JavaSymbolKind) -> &'static str {
         JavaSymbolKind::Field => "field",
         JavaSymbolKind::Method => "method",
         JavaSymbolKind::Constructor => "constructor",
+        JavaSymbolKind::LocalVariable => "local-variable",
+        JavaSymbolKind::Parameter => "parameter",
     }
 }
 
@@ -1278,6 +1283,8 @@ fn parse_resolution_kind(value: &str) -> eyre::Result<JavaSymbolKind> {
         "field" => Ok(JavaSymbolKind::Field),
         "method" => Ok(JavaSymbolKind::Method),
         "constructor" => Ok(JavaSymbolKind::Constructor),
+        "local-variable" => Ok(JavaSymbolKind::LocalVariable),
+        "parameter" => Ok(JavaSymbolKind::Parameter),
         _ => eyre::bail!("unknown dependency symbol resolution kind `{value}`"),
     }
 }

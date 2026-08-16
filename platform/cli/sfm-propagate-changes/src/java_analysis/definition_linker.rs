@@ -13,6 +13,8 @@ use super::JavaSourceSpanOutput;
 use super::JavaSymbolDefinitionOutput;
 use super::JavaSymbolIndex;
 use super::JavaSymbolKind;
+#[cfg(test)]
+use super::JdkSourceDomainState;
 use super::ResolutionConfidence;
 use eyre::WrapErr;
 use std::collections::BTreeMap;
@@ -525,23 +527,37 @@ impl JavaDefinitionLinker {
             None
         };
         if let Some(candidate) = direct.or(imported_nested) {
-            return self.resolve_candidates(
-                raw_name,
-                std::slice::from_ref(&candidate),
-                scope,
-                true,
-            );
+            return self.resolve_candidates(raw_name, std::slice::from_ref(&candidate), scope);
         }
         if raw_name.contains('.') && raw_name.chars().next().is_some_and(char::is_lowercase) {
-            return self.resolve_candidates(raw_name, &[raw_name.to_owned()], scope, true);
+            return self.resolve_candidates(raw_name, &[raw_name.to_owned()], scope);
         }
-        let candidates = unqualified_candidates(raw_name, owner, scope);
-        match self.resolve_candidates(raw_name, &candidates, scope, false) {
-            Err(TypeResolutionFailure::Unresolved(_)) if is_java_lang_type(raw_name) => {
-                Ok(format!("java.lang.{raw_name}"))
+        let mut enclosing = Some(owner);
+        while let Some(current) = enclosing {
+            let candidate = format!("{current}${raw_name}");
+            match self.resolve_candidates(raw_name, &[candidate], scope) {
+                Err(TypeResolutionFailure::Unresolved(_)) => {}
+                result => return result,
             }
-            result => result,
+            enclosing = current.rsplit_once('$').map(|(parent, _)| parent);
         }
+
+        let package_candidate = qualify_name(&scope.package_name, raw_name);
+        match self.resolve_candidates(raw_name, &[package_candidate], scope) {
+            Err(TypeResolutionFailure::Unresolved(_)) => {}
+            result => return result,
+        }
+
+        // `java.lang` is an implicit type-import-on-demand and has the same
+        // precedence as explicit wildcard package imports. Current-package
+        // and lexically enclosing declarations were considered first.
+        let mut on_demand_candidates = vec![format!("java.lang.{raw_name}")];
+        for package in &scope.wildcard_packages {
+            on_demand_candidates.push(format!("{package}.{raw_name}"));
+        }
+        on_demand_candidates.sort();
+        on_demand_candidates.dedup();
+        self.resolve_candidates(raw_name, &on_demand_candidates, scope)
     }
 
     fn resolve_candidates(
@@ -549,7 +565,6 @@ impl JavaDefinitionLinker {
         display_name: &str,
         candidates: &[String],
         scope: &JavaFileResolutionScope,
-        allow_qualified_java_lang: bool,
     ) -> Result<String, TypeResolutionFailure> {
         let mut visible = BTreeSet::new();
         let mut inaccessible = false;
@@ -577,13 +592,6 @@ impl JavaDefinitionLinker {
                 .next()
                 .expect("one visible declaration exists")),
             0 if inaccessible => Err(TypeResolutionFailure::Inaccessible(display_name.to_owned())),
-            0 if allow_qualified_java_lang
-                && candidates
-                    .first()
-                    .is_some_and(|candidate| is_known_java_lang_qualified_type(candidate)) =>
-            {
-                Ok(candidates[0].clone())
-            }
             0 => Err(TypeResolutionFailure::Unresolved(display_name.to_owned())),
             _ => Err(TypeResolutionFailure::Ambiguous(display_name.to_owned())),
         }
@@ -651,6 +659,7 @@ fn unqualified_candidates(
         enclosing = current.rsplit_once('$').map(|(parent, _)| parent);
     }
     candidates.push(qualify_name(&scope.package_name, raw_name));
+    candidates.push(format!("java.lang.{raw_name}"));
     for package in &scope.wildcard_packages {
         candidates.push(format!("{package}.{raw_name}"));
     }
@@ -728,49 +737,6 @@ fn is_primitive_or_void(name: &str) -> bool {
     matches!(
         name,
         "boolean" | "byte" | "char" | "short" | "int" | "long" | "float" | "double" | "void"
-    )
-}
-
-fn is_known_java_lang_qualified_type(candidate: &str) -> bool {
-    candidate
-        .strip_prefix("java.lang.")
-        .is_some_and(is_java_lang_type)
-}
-
-fn is_java_lang_type(name: &str) -> bool {
-    matches!(
-        name,
-        "Appendable"
-            | "AutoCloseable"
-            | "Boolean"
-            | "Byte"
-            | "Character"
-            | "CharSequence"
-            | "Class"
-            | "ClassLoader"
-            | "Cloneable"
-            | "Comparable"
-            | "Double"
-            | "Enum"
-            | "Error"
-            | "Exception"
-            | "Float"
-            | "Integer"
-            | "Iterable"
-            | "Long"
-            | "Math"
-            | "Number"
-            | "Object"
-            | "Record"
-            | "Runnable"
-            | "RuntimeException"
-            | "Short"
-            | "String"
-            | "StringBuilder"
-            | "System"
-            | "Thread"
-            | "Throwable"
-            | "Void"
     )
 }
 
@@ -906,6 +872,48 @@ mod tests {
     }
 
     #[test]
+    fn linker_prefers_current_package_type_over_implicit_java_lang_import() {
+        let mut linker = JavaDefinitionLinker::new(context(), &[]);
+        linker
+            .ingest(facts(
+                0,
+                "source/java/lang/String.java",
+                "package java.lang; public class String {}",
+            ))
+            .unwrap();
+        linker
+            .ingest(facts(
+                1,
+                "source/p/String.java",
+                "package p; public class String {}",
+            ))
+            .unwrap();
+        linker
+            .ingest(facts(
+                2,
+                "source/p/Use.java",
+                "package p; class Use { String value() { return null; } }",
+            ))
+            .unwrap();
+
+        let definition = linker
+            .linked_members
+            .values()
+            .find(|member| member.definition.symbol.owner == "p.Use")
+            .expect("current-package method should link");
+        assert_eq!(
+            definition.definition.symbol.descriptor.as_deref(),
+            Some("()Lp/String;")
+        );
+        assert!(
+            definition
+                .diagnostics
+                .iter()
+                .all(|diagnostic| diagnostic.code != "java.ambiguous-type")
+        );
+    }
+
+    #[test]
     fn linker_seal_is_deterministic_for_reordered_fact_arrival() {
         let a = facts(
             0,
@@ -980,6 +988,7 @@ mod tests {
             ],
             diagnostics: Vec::new(),
             classpath_entries: Vec::new(),
+            jdk_sources: JdkSourceDomainState::Disabled,
         };
         let legacy = JavaSymbolIndex::build_definitions(&workspace).unwrap();
         let mut linker = JavaDefinitionLinker::new(context(), &[]);

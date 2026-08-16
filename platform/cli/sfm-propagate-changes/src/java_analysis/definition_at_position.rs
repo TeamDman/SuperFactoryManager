@@ -762,6 +762,8 @@ const fn symbol_kind_name(kind: super::JavaSymbolKind) -> &'static str {
         super::JavaSymbolKind::Field => "field",
         super::JavaSymbolKind::Method => "method",
         super::JavaSymbolKind::Constructor => "constructor",
+        super::JavaSymbolKind::LocalVariable => "local-variable",
+        super::JavaSymbolKind::Parameter => "parameter",
     }
 }
 
@@ -1020,7 +1022,7 @@ mod tests {
             completeness: SymbolQueryCompleteness::Incomplete,
             expected_identity: "expected".to_owned(),
             portable_path: "symbol-index/v3/expected".to_owned(),
-            path: "cache/symbol-index/v3/expected".to_owned(),
+            path: "C:/fixture/symbol-index/v3/expected".to_owned(),
             reason: "missing".to_owned(),
             refresh_command: "sfm-propagate-changes symbol index refresh --branch 1.19.2"
                 .to_owned(),
@@ -1030,6 +1032,12 @@ mod tests {
         });
         assert_eq!(incomplete.status(), 4);
         assert_eq!(incomplete.recovery_actions.len(), 2);
+        let encoded = facet_json::to_string(&incomplete).expect("dependency-index evidence JSON");
+        assert!(encoded.contains("\"portable_path\":\"symbol-index/v3/expected\""));
+        assert!(encoded.contains("\"path\":\"C:/fixture/symbol-index/v3/expected\""));
+        let decoded: DefinitionAtPositionResult =
+            facet_json::from_str(&encoded).expect("dependency-index evidence round trip");
+        assert_eq!(decoded, incomplete);
     }
 
     #[test]

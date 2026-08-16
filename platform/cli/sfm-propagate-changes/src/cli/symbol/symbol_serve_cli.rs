@@ -20,8 +20,9 @@ pub struct SymbolServeArgs {
 }
 
 impl SymbolServeArgs {
-    /// Resolve one authoritative workspace and serve framed definition requests
-    /// until the client disconnects, shuts down, or the host is cancelled.
+    /// Resolve one authoritative workspace and serve framed definition and
+    /// usage-at-position requests until the client disconnects, shuts down, or
+    /// the host is cancelled.
     ///
     /// # Errors
     ///
@@ -70,7 +71,9 @@ impl SymbolServeArgs {
 
         tracing::info!(
             target: "sfm::symbol_server",
-            source_roots = state.served_workspace().roots.len(),
+            source_roots = state.served_workspace().request_workspace.source_roots.len(),
+            request_root_mappings = state.served_workspace().roots.len(),
+            managed_source_roots = state.served_workspace().managed_source_roots.len(),
             maximum_frame_bytes = limits.max_frame_bytes,
             maximum_pending_definitions = limits.max_pending_definitions,
             "symbol server ready for handshake"
