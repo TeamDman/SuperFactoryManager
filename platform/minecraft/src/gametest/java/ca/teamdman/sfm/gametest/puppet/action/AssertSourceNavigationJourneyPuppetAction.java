@@ -178,6 +178,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private List<SFMPath> referenceLeaves = List.of();
     private int referenceIndex;
     private SFMExplorerRuntime.ReferenceLeafNavigation pendingReferenceNavigation;
+    private int interactionFocusRequests;
     private int performanceFocusRequests;
     private boolean performanceMeasurementStarted;
     private int performanceWarmupInteractionIndex;
@@ -307,11 +308,38 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
 
     private boolean prepareHover() {
         SFMScreenMultiplexer workspace = requireWorkspace();
+        SFMGamePuppetForegroundWindow.Observation observation =
+                SFMGamePuppetForegroundWindow.request(Minecraft.getInstance());
+        interactionFocusRequests++;
+        if (!observation.readyForVisibleLatency()) {
+            if (phaseTicks > 40) {
+                fail("The native Ctrl-hover checkpoint could not make its preview window foreground: "
+                        + observation);
+            }
+            return false;
+        }
+        // GLFW only delivers a programmatic cursor move to Minecraft's mouse
+        // callback while this window owns foreground input. Let that ownership
+        // settle before moving the real pointer so the native and cached
+        // coordinates remain independently observable.
+        if (phaseTicks < 10) return false;
         SFMSourcePuppetProbe.EditorHandle source = restoreSource(workspace);
         SFMTextDocumentSnapshot document = source.state().documentSnapshot().orElseThrow();
         hoverRange = SFMSourcePuppetProbe.symbolRange(document.text(), "ProgramContext", 0);
         hoverPointer = C11SourceNavigationPuppetProbe.pointer(workspace, source, hoverRange);
         hoverTopologyBefore = C11SourceNavigationPuppetProbe.topology(workspace);
+        JsonObject focus = new JsonObject();
+        focus.addProperty("required_for_native_pointer", true);
+        focus.addProperty("glfw_focused", observation.glfwFocused());
+        focus.addProperty("iconified", observation.iconified());
+        focus.addProperty("platform_probe_available", observation.platformProbeAvailable());
+        focus.addProperty("platform_foreground", observation.platformForeground());
+        focus.addProperty("platform_window", Long.toUnsignedString(observation.platformWindow()));
+        focus.addProperty("platform_foreground_window",
+                Long.toUnsignedString(observation.platformForegroundWindow()));
+        focus.addProperty("focus_requests", interactionFocusRequests);
+        focus.addProperty("settle_ticks", phaseTicks);
+        evidence.add("interaction_window", focus);
         SFMGamePuppetPointer.moveNative(workspace, hoverPointer.globalX(), hoverPointer.globalY());
         advance(Phase.WAIT_HOVER_POINTER);
         return false;
