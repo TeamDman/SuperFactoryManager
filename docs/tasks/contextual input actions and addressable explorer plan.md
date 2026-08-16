@@ -1,6 +1,6 @@
 # Contextual input, action ownership, and addressable explorer plan
 
-**Plan status:** Active; C-4a through C-6 and linked CLI-AST Phase 0.11 are complete; C-7 through C-11 now own definition/reference correctness, gestures, placement, and large-document responsiveness while the independent fuzzy/contextual Phase B and broader address/action work remain
+**Plan status:** Active; C-4a through C-6 and linked CLI-AST Phase 0.11 are complete; C-7 through C-11 are implemented and validated except for one strict native-input live source-navigation rerun, while the independent fuzzy/contextual Phase B and broader address/action work remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
@@ -2891,12 +2891,13 @@ fixture—including the three JDK types—without either false-negative message;
 real incompleteness remains truthful; and unseen definitions become focused
 tabs/entries in the current pane rather than surprise side panels.
 
-**Implementation checkpoint (2026-08-16; live acceptance pending):** CLI
-commit `bd38aae8b` and Java commit `2c013aa66` implement the named JDK/local/
-member/annotation/import coverage, exact authorization/completeness regressions,
-and current-pane stack placement. Direct Java compilation and the 195-test
-focused integration suite passed. Canonical compile/full-suite plus the exact
-C-11 F12 live fixtures remain.
+**Implementation checkpoint (2026-08-16; strict live acceptance pending):**
+CLI commit `bd38aae8b`, Java commit `2c013aa66`, and acceptance-harness commits
+through `9a606c54a` implement the named JDK/local/member/annotation/import
+coverage, exact authorization/completeness regressions, and current-pane stack
+placement. Strict Rust checks, focused Java tests, canonical compile/full suite,
+and installed-worker integration passed. Only the corrected C-11 native-input
+F12 fixture journey remains.
 
 ### [~] C-8 Add location-aware usages and a persistent reference explorer
 
@@ -2929,11 +2930,13 @@ reference explorer whose complete identity and diagnostics remain visible while
 the user repeatedly jumps among source ranges; no result is discarded merely
 because one row was opened.
 
-**Implementation checkpoint (2026-08-16; live acceptance pending):** Commits
-`bd38aae8b` and `2c013aa66` implement location-aware usage lookup, immutable
-reference-result entities, generic explorer projection, retained result/source
-identities, and repeated row activation. Pure/integration tests passed; the
-C-11 live puppet must still retain the explorer while opening three references.
+**Implementation checkpoint (2026-08-16; strict live acceptance pending):**
+Commits `bd38aae8b` and `2c013aa66` implement location-aware usage lookup,
+immutable reference-result entities, generic explorer projection, retained
+result/source identities, and repeated row activation. Strict Rust checks,
+pure/integration tests, canonical Java validation, and installed-worker
+integration passed; the corrected C-11 puppet must still retain the explorer
+while opening three references.
 
 ### [~] C-9 Add symbol hover/click and one contextual-action gesture surface
 
@@ -2966,12 +2969,13 @@ Alt+F7 opens persistent references; right-click and Alt+Enter are one familiar
 contextual palette; no stale decoration, stuck cursor, duplicate parser, or
 stolen Alt+click behavior remains.
 
-**Implementation checkpoint (2026-08-16; live acceptance pending):** Java
-commit `2c013aa66` adds generation-safe cached Ctrl-hover decoration/cursor
-ownership, Ctrl+click action parity, Alt+F7, and one provider registry/constrained
-palette shared by Alt+Enter and right-click while retaining Alt-click
-multi-cursor behavior. Focused gesture/cursor/context tests passed; C-11 still
-owes visual and machine live proof.
+**Implementation checkpoint (2026-08-16; strict live acceptance pending):**
+Java commit `2c013aa66` plus acceptance-harness commits through `9a606c54a` add
+generation-safe cached Ctrl-hover decoration/cursor ownership, Ctrl+click action
+parity, Alt+F7, and one provider registry/constrained palette shared by
+Alt+Enter and right-click while retaining Alt-click multi-cursor behavior.
+Focused gesture/cursor/context tests and canonical Java validation passed; C-11
+still owes real foreground native-pointer visual and machine proof.
 
 ### [~] C-10 Measure and fix EditorV3 large-document responsiveness
 
@@ -3004,13 +3008,15 @@ the measured dominant stage is fixed; warm interaction meets D-29 without
 rendering/scanning all offscreen glyphs or rebuilding unchanged projections;
 and visual/semantic parity plus raw before/after evidence are inspectable.
 
-**Implementation checkpoint (2026-08-16; live acceptance pending):** Java
-commit `2c013aa66` adds indexed visible-glyph/document projections, reusable
-style/selection state, invalidation tests, and stage telemetry. The retained
-`before.json` reproduces 4.277 s cold projection, 23.45 GB allocation, 22,294
-glyph scans, and 12,353 pointer scans; `after.json` records 14.559 ms cold,
-3.59 MB, 2,860 visible glyph scans, and one pointer candidate. C-11 must still
-verify D-29 frame/input bounds in the real game.
+**Implementation checkpoint (2026-08-16; strict live acceptance pending):**
+Java commit `2c013aa66` plus corrected measurement commit `776c2c4f8` add
+indexed visible-glyph/document projections, reusable style/selection state,
+invalidation tests, stage telemetry, and dispatch across distinct render-post
+events so event-to-visible-frame latency includes the outer frame interval.
+The retained `before.json` reproduces 4.277 s cold projection, 23.45 GB
+allocation, 22,294 glyph scans, and 12,353 pointer scans; `after.json` records
+14.559 ms cold, 3.59 MB, 2,860 visible glyph scans, and one pointer candidate.
+C-11 must still verify D-29 frame/input bounds in the real foreground game.
 
 ### [~] C-11 Prove the corrected source-navigation journey and reconcile plans
 
@@ -3034,13 +3040,93 @@ stable reference list while navigating repeatedly; large-document interaction
 has measured acceptable latency; and the plan accurately retains all deferred
 decisions.
 
-**Implementation checkpoint (2026-08-16; live acceptance pending):** Java
-commit `2c013aa66` contains the integrated
-`title_screen_output_statement_source_navigation` puppet and its exact JDK,
-local, field, method, annotation, import, hover/context/reference/reveal,
-same-pane, and performance assertions. Static puppet compilation passed. The
-canonical compile/full Java suite and live run/artifact inspection remain; the
-separate X-8b and Track 1b puppets are likewise implemented but not yet run.
+**Implementation checkpoint (2026-08-16; strict native live acceptance
+pending):** Java commit `2c013aa66` and harness commits through `9a606c54a`
+contain the integrated `title_screen_output_statement_source_navigation`
+puppet and its exact JDK, local, field, method, annotation, import, hover/
+context/reference/reveal, same-pane, and corrected input/frame-performance
+assertions. Strict Rust checks, canonical compile/full Java suite, explicit
+installed-worker integration, and the durable worker probe passed. The separate
+X-8b and Track 1b Auto-plus-scales-1-through-8 matrices passed and were visually
+inspected at `title_screen_exp-20260816-185130-819` and
+`sfm-title_screen-20260816-185618-484`. Two corrected source-puppet attempts
+stopped honestly before native Ctrl-hover because the secure Windows `LockApp`
+desktop (HWND `131212`) remained foreground and rejected transfer; no cached or
+synthetic pointer state is accepted as a substitute. Rerun SRC after the
+interactive desktop is unlocked, inspect its machine reports/screenshots, then
+close C-7 through C-11 and linked CLI Phase 0.12.
+
+### Goal acceptance ledger — 35 exact requirements
+
+This table is the non-lossy completion surface for the 2026-08-16 goal. The
+evidence aliases are:
+
+- **RUST:** strict `check-all.ps1`: 598 tests passed, 3 ignored, plus all 9
+  adjacent Java-analysis scenarios.
+- **JAVA:** canonical compile and full Java suite, focused provider/adapter/
+  workspace/explorer/gesture/performance tests, and installed-worker
+  integration.
+- **WORKER:**
+  `docs/task-evidence/source-navigation/symbol-server-installed-probe.json`
+  schema 5: installed revision `4604d6b89`, 1,605 analyzed Java files, cold
+  4032.028 ms, warm mixed median 82.760 ms/p95 147.506 ms/max 148.340 ms,
+  accepted bounded memory, clean exit, zero descendants, and identical pre/post
+  source digest.
+- **SRC:** corrected
+  `sfm:title_screen_output_statement_source_navigation` declared puppet. Its
+  strict native-input rerun remains pending: the latest attempt stopped before
+  Ctrl-hover because Windows reported secure `LockApp` HWND `131212` as the
+  foreground desktop and rejected foreground transfer. This is deliberately
+  not accepted from simulated/cached pointer state.
+- **EXP:** clean Auto plus GUI scales 1–8 explorer matrix
+  `title_screen_exp-20260816-185130-819`, machine-complete and visually
+  inspected.
+- **DIV:** clean Auto plus GUI scales 1–8 divider matrix
+  `sfm-title_screen-20260816-185618-484`, machine-complete and visually
+  inspected.
+- **AUDIT:** `sfm-propagate-changes.exe audit --branch 1.19.2` exited zero on
+  2026-08-16 with the existing 37 unresolved-rule warnings in 2 tracked groups.
+
+| Requirement | State | Exact evidence and remaining gate |
+| --- | --- | --- |
+| NAVHARD-1 | Implementation proven; SRC pending | RUST JDK-source/implicit-`java.lang` scenarios and JAVA adapter/provider tests resolve `String`, `Object`, and `StringBuilder`; SRC must repeat all three through F12. |
+| NAVHARD-2 | Implementation proven; SRC pending | RUST location scenarios plus JAVA provider tests cover local, field, method, annotation, and import declarations; SRC must repeat each concrete fixture. |
+| NAVHARD-3 | Implementation proven; SRC pending | JAVA root-composition/fail-closed ambiguity tests preserve both quoted false-negative regressions; RUST retains matches under unrelated partial coverage; SRC must prove known fixtures remain navigable. |
+| NAVPLACE-1 | Implementation proven; SRC pending | `SFMJumpToDefinitionActionTests` prove exact-visible reuse and originating-pane stack insertion; SRC must prove zero surprise panes. |
+| HOVERDEF-1 | Implementation proven; SRC pending | `SFMSymbolHoverStateMachineTests` and `SFMTextEditorHoverCaptureCacheTests` prove generation-safe caching, exact range decoration, and cursor lifecycle; SRC must prove real native pointer/cached-pointer agreement and visible underline/hand cursor. |
+| HOVERDEF-2 | Implementation proven; SRC pending | `SFMTextEditorPanelTests` prove actionable Ctrl+click submits the same registered definition action and rejects stale targets; SRC must prove live parity. |
+| CTXREF-1 | Implementation proven; SRC pending | `SFMSymbolContextActionTests` prove Alt+Enter/right-click identical offers and order; SRC must prove the shared constrained palette live. |
+| CTXREF-2 | Implementation proven; SRC pending | Context/reference controller and keybinding tests prove the sole text-editor Alt+F7 default; SRC must prove direct persistent-reference invocation. |
+| CTXREF-3 | Implementation proven; SRC pending | `ctrlAltClickWithStaleActionableHoverFallsThroughToCanvasMultiCursor` proves Alt-click remains unbound for references and preserves multi-cursor behavior; SRC must prove broad gesture non-stealing. |
+| REFS-1 | Implementation proven; SRC pending | `SFMFindReferencesControllerTests` and `SFMSymbolReferenceExplorerResolverTests` prove immutable persistent result identity, deterministic category/file/span rows, and visible partial diagnostics; SRC must retain the explorer. |
+| REFS-2 | Implementation proven; SRC pending | Reference-controller/resolver tests prove repeated source activation without replacing the result surface; SRC must open at least three rows while retaining it. |
+| REVEAL-3 | Implementation proven; SRC pending | `SFMRevealInExplorerActionTests` and `SFMExplorerDocumentRevealCoordinatorTests` prove exact provenance and most-recent compatible explorer reuse without title guessing; SRC must prove live reuse. |
+| EDITPERF-1 | Implementation proven; SRC pending | Retained before/after JSON reproduces 4.277 s/23.45 GB before and 14.559 ms/3.59 MB after; SRC must record corrected end-to-end event-to-visible-frame latency. |
+| EDITPERF-2 | Implementation proven; SRC pending | `SFMDrawCanvasDocumentIndexTests` prove visible-range boundaries, invalidation, bounded samples, and one indexed pointer candidate; SRC must prove warm frame/input budgets without offscreen full scans. |
+| JAVA-45 | Implementation proven; SRC pending | RUST branch-selected JDK and implicit-import scenarios plus JAVA consumer tests; SRC exact JDK-type journey remains. |
+| JAVA-46 | Implementation proven; SRC pending | RUST lexical/member/annotation/import scenarios plus JAVA consumer tests; SRC named-category journey remains. |
+| JAVA-47 | Implementation proven; SRC pending | JAVA deepest-unique authorized-root tests and exact failure-string regression; SRC must prove its real document maps without guessing. |
+| JAVA-48 | Implementation proven; SRC pending | RUST target-domain-completeness/partial-index scenarios return a match plus scoped diagnostics; SRC must prove no false `NoSymbol`. |
+| JAVA-49 | Implementation proven; SRC pending | RUST usage-at-position zero/one/many/partial/duplicate-authority scenarios and JAVA provider consumption; SRC Alt+F7 journey remains. |
+| JAVA-50 | Implementation proven; SRC pending | RUST deterministic target/categorized span schema plus JAVA persistent explorer ordering/diagnostics tests; SRC repeated navigation remains. |
+| JAVA-51 | Implementation proven; SRC pending | WORKER proves mixed warm definition/usage reuse, lifecycle, memory, exit, and zero leaked descendants; installed Java integration passed; SRC must consume the installed lane live. |
+| JAVA-52 | Complete | WORKER pre/post digest is byte-identical at `sha256:57d489ab5b7be89e20f5e17b3e35a0b77ce95604bd696cb112062ed16c92d37a`; no mutation/refactoring command or analyzed-source mutation was introduced. |
+| XEXP-20 | Complete | `SFMExplorerFilePresentationTests`, `SFMItemIconRendererTests`, and EXP prove cocoa-beans Java presentation, paper fallback, chest directories, and real registry ItemStacks. |
+| XEXP-21 | Complete | `SFMClientActionPaletteSuggestionTests` and EXP prove the exact deep `view/set` completion frontier and visible list/small-icons behavior. |
+| XEXP-22 | Complete | Palette tests and EXP prove independent name/relative/absolute path display composing with view mode. |
+| XEXP-23 | Complete | `SFMExplorerPanelInteractionTests` and EXP prove exclusive location/filter/body focus, four-edge body chrome, and row-content inset at every declared scale. |
+| XEXP-24 | Complete | Interaction tests and EXP prove each callback mutates immediately and ordered visible rows `1,2,3` end at row `3`, with event/model/frame traces. |
+| XEXP-25 | Complete | `SFMExplorerFilterTests` and EXP prove fuzzy filtering over current lazy materialization, retained selection, incompleteness disclosure, unchanged relation revision, and zero resolver I/O. |
+| XLAY-6 | Complete | `SFMWorkspaceDividerTests`, `SFMScreenMultiplexerDividerInteractionTests`, and DIV prove stable divider geometry, orthogonal intersection capture, constrained share mutation, and identity preservation. |
+| WRESIZE-1 | Complete | DIV before/during/after geometry plus pure/host tests prove pointer dragging on every represented resizable border. |
+| WRESIZE-2 | Complete | Host cursor-lifecycle tests and DIV prove horizontal/vertical affordances with cached owned cursor handles and deterministic reset. |
+| WRESIZE-3 | Complete | T-junction/four-pane tests and DIV prove one intersection gesture captures both axes with the resize-all/crosshair affordance. |
+| WRESIZE-4 | Complete | Pure layout tests and DIV prove minima, normalized shares, stable panel/stack/focus/content identities, and distinct committed bounds. |
+| WRESIZE-5 | Complete | Registered resize-intent/action parity tests and DIV machine artifacts prove automation-addressable divider identities/deltas without screen-coordinate automation. |
+| WRESIZE-6 | Complete | Local VS Code `sash.ts`, `splitview.ts`, and `gridview.ts` were used only as behavioral references; SFM's implementation is original and adds no VS Code code or dependency. |
+
+The ledger closes only when every row is `Complete`. The secure-desktop failure
+is useful guard evidence for the native-input gate, not a substitute for SRC.
 
 ## Most recently completed vertical slice — source presentation through definition navigation
 

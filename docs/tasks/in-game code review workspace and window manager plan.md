@@ -592,21 +592,21 @@ respecting minima; panels/stacks/focus/content identities survive; keyboard,
 pointer, action, and automation paths agree; and artifacts make the share/bounds
 transition verifiable without computer vision.
 
-**Completion evidence (2026-08-16):** Java commit `2c013aa66` plus the current
-acceptance harness add stable divider/link identities, constrained share
+**Completion evidence (2026-08-16):** Java commit `2c013aa66` plus acceptance
+revision `776c2c4f8` add stable divider/link identities, constrained share
 mutation, orthogonal intersection capture, cached GLFW cursor ownership,
 pointer/action parity, child-event suppression, cancellation, and structured
 before/during/after evidence. Pure/host integration tests, canonical compile,
 and the full Java suite passed. The declared Auto plus GUI scales 1 through 8
 `title_screen_workspace_divider_resize` matrix passed at
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
-`title_screen_wor-20260816-173904-102`. Its 27 machine layout reports prove the
-expected horizontal/intersection cursors, 1/2/3 captured dividers, exact
-36 / `(24,36)` / `(24,36,36)` deltas, stable focus and identities, respected
-minimums, continuously visible during-drag geometry, and distinct committed
-bounds. Three composed before/hover/during/after cross-scale journeys were
-visually inspected. Alt+drag relocation, explorer drag, and virtual workspaces
-remain deferred.
+`sfm-title_screen-20260816-185618-484`. Its 27 machine layout reports per scale
+prove the expected horizontal/intersection cursors, 1/2/3 captured dividers,
+exact 36 / `(24,36)` / `(24,36,36)` deltas, stable focus and identities,
+respected minimums, continuously visible during-drag geometry, and distinct
+committed bounds. The fresh Auto four-pane intersection-hover and committed-
+resize frames were visually inspected. Alt+drag relocation, explorer drag, and
+virtual workspaces remain deferred.
 
 **Parallel topology:** Once `DividerId`, geometry, delta, and cursor-adapter
 interfaces are frozen, a pure layout/test lane, a GLFW cursor-lifecycle lane,

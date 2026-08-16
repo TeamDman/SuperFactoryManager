@@ -1215,20 +1215,22 @@ and cannot be overpainted; fuzzy filtering is responsive and truthful about
 lazy scope; and each wheel event changes the next observable projection without
 a delayed aggregate jump.
 
-**Completion evidence (2026-08-16):** Java commit `2c013aa66` plus the current
-acceptance harness add the contributed `.java` cocoa-beans icon with safe paper
-fallback, deep view/path-display completions, ItemStack small-icons projection,
-four-edge inset focus chrome, immediate ordered wheel application/telemetry,
-and fuzzy filtering over current lazy materialization. Focused tests, canonical
-compile, and the full Java suite passed. The declared Auto plus GUI scales 1
-through 8 `title_screen_explorer_interaction_fidelity` matrix passed at
+**Completion evidence (2026-08-16):** Java commit `2c013aa66` plus acceptance
+revision `776c2c4f8` add the contributed `.java` cocoa-beans icon with safe
+paper fallback, deep view/path-display completions, ItemStack small-icons
+projection, four-edge inset focus chrome, immediate ordered wheel application/
+telemetry, and fuzzy filtering over current lazy materialization. Focused tests,
+canonical compile, and the full Java suite passed. The clean declared Auto plus
+GUI scales 1 through 8 `title_screen_explorer_interaction_fidelity` matrix
+passed at
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
-`title_screen_exp-20260816-173228-654`. Every one of its nine machine reports
-proves `LIST` plus `ABSOLUTE_PATH`, incomplete-materialization disclosure,
-zero filter-triggered relation revision/resolver I/O, ordered visible wheel
-steps `1,2,3`, final row `3`, and exclusive focus ownership. Six composed
-cross-scale contact sheets were visually inspected. Picker X-8 remains
-unstarted.
+`title_screen_exp-20260816-185130-819`. Every one of its nine machine reports
+proves the exact deep completion set, `LIST` plus `ABSOLUTE_PATH`, incomplete-
+materialization disclosure, zero filter-triggered relation revision/resolver
+I/O, ordered visible wheel steps `1,2,3`, final row `3`, and exclusive focus
+ownership. Representative GUI-scale-1 and Auto frames plus Auto deep-view,
+deep-path-display, small-icons/body-focus, location-focus, and ordered-wheel
+frames were visually inspected. Picker X-8 remains unstarted.
 
 ### [ ] X-8 Compose pickers as selection destinations
 

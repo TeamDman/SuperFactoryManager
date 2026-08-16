@@ -1,6 +1,6 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0 through Phase 0.11 are complete; Phase 0.12 now owns location-definition coverage and location-usage/reference support before deferred Phase 1
+**Plan status:** Active; Phase 0 through Phase 0.11 are complete; Phase 0.12 location-definition/usage implementation and validation are complete except for the linked strict native-input C-11 live rerun before deferred Phase 1
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Last updated:** 2026-08-16
 **Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, 2026-08-11 for the in-game definition-at-location bridge, reconciled 2026-08-15 at Phase 0.10 completion, extended 2026-08-15 for Rust-owned Arborium Java highlighting, extended 2026-08-16 for JDK/local/member/import definition coverage plus location-aware usages, and post-compaction re-audited 2026-08-16 against the user's verbatim report
