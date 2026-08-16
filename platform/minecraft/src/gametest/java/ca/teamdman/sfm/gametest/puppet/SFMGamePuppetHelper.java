@@ -135,6 +135,13 @@ public final class SFMGamePuppetHelper {
         add(new WaitForExplorerPathPuppetAction(Objects.requireNonNull(path, "path"), select));
     }
 
+    /** Runs and records the self-contained X-8b focus/filter/wheel interaction journey. */
+    public void exerciseExplorerInteractionFidelity(SFMPath javaPath) {
+        add(new ExerciseExplorerInteractionFidelityPuppetAction(
+                Objects.requireNonNull(javaPath, "javaPath")
+        ));
+    }
+
     /** Records the final real-source identity, layout, focus, and no-write witness. */
     public void assertAddressedSfmJava(Path root, Path file) {
         add(new AssertAddressedSfmJavaPuppetAction(
@@ -244,6 +251,19 @@ public final class SFMGamePuppetHelper {
                 Objects.requireNonNull(artifactName, "artifactName"),
                 Objects.requireNonNull(captureName, "captureName"),
                 Objects.requireNonNull(captureCaption, "captureCaption")
+        ));
+    }
+
+    /** Enqueues the integrated C-11 source-navigation journey as one stateful live proof. */
+    public void assertSourceNavigationJourney(
+            Path sourceRoot,
+            Path sourceFile,
+            String artifactName
+    ) {
+        add(new AssertSourceNavigationJourneyPuppetAction(
+                Objects.requireNonNull(sourceRoot, "sourceRoot"),
+                Objects.requireNonNull(sourceFile, "sourceFile"),
+                Objects.requireNonNull(artifactName, "artifactName")
         ));
     }
 
@@ -604,6 +624,36 @@ public final class SFMGamePuppetHelper {
     /** Sends a real mouse-click callback to the center of one workspace panel. */
     public void clickWorkspacePanel(int panelIndex) {
         add(new ClickWorkspacePanelPuppetAction(panelIndex));
+    }
+
+    public void openWorkspaceDividerFixture(int paneCount) {
+        add(new OpenWorkspaceDividerFixturePuppetAction(paneCount));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void hoverWorkspaceDividerIntersection() {
+        add(new MoveWorkspaceDividerPointerPuppetAction(
+                MoveWorkspaceDividerPointerPuppetAction.Operation.HOVER, 0, 0));
+    }
+
+    public void dragWorkspaceDividerIntersection(int deltaX, int deltaY) {
+        add(new MoveWorkspaceDividerPointerPuppetAction(
+                MoveWorkspaceDividerPointerPuppetAction.Operation.PRESS_AND_DRAG,
+                deltaX,
+                deltaY));
+    }
+
+    public void releaseWorkspaceDividerIntersection() {
+        add(new MoveWorkspaceDividerPointerPuppetAction(
+                MoveWorkspaceDividerPointerPuppetAction.Operation.RELEASE, 0, 0));
+    }
+
+    public void writeWorkspaceDividerEvidence(
+            String artifactName,
+            String stage,
+            int paneCount
+    ) {
+        add(new WriteWorkspaceDividerEvidencePuppetAction(artifactName, stage, paneCount));
     }
 
     public void openSizeDisplay(SFMSizeDisplayWorkspace.Allocation allocation) {

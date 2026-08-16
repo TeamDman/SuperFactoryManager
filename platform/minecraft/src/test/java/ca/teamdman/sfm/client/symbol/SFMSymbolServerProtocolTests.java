@@ -35,7 +35,8 @@ class SFMSymbolServerProtocolTests {
                 "{\"kind\":\"hello\",\"schema\":\"sfm.symbol-server.hello/1\",\"hello\":"
                         + "{\"protocol_schema\":\"sfm.symbol-server/1\",\"client_name\":\"minecraft\","
                         + "\"client_version\":\"1\",\"capabilities\":[\"definition-at-position\","
-                        + "\"cancellation\",\"workspace-generation\",\"ping\",\"shutdown\"],"
+                        + "\"cancellation\",\"workspace-generation\",\"ping\",\"shutdown\","
+                        + "\"usage-at-position\"],"
                         + "\"max_frame_bytes\":16777216}}",
                 SFMSymbolServerProtocol.hello("minecraft", "1", 16_777_216)
         );
@@ -90,6 +91,53 @@ class SFMSymbolServerProtocolTests {
     }
 
     @Test
+    void helloRetainsCanonicalJdkManagedSourceAuthority() throws Exception {
+        JsonObject envelope = JsonParser.parseString(
+                helloEnvelope(7, "D:/workspace/source", null, null)
+        ).getAsJsonObject();
+        JsonObject workspace = envelope.getAsJsonObject("hello").getAsJsonObject("workspace");
+        JsonObject requestWorkspace = workspace.getAsJsonObject("request_workspace");
+
+        JsonObject jdkRoot = new JsonObject();
+        jdkRoot.addProperty("id", "jdk-java-17-abc123");
+        jdkRoot.addProperty("source_set", "jdk:java-17");
+        jdkRoot.addProperty("path", "jdk/java-17/abc123");
+        jdkRoot.addProperty("kind", "jdk");
+        jdkRoot.addProperty("exists", true);
+        requestWorkspace.getAsJsonArray("source_roots").add(jdkRoot);
+
+        JsonObject orderedRoot = new JsonObject();
+        orderedRoot.addProperty("canonical_absolute_path", "D:/cache/jdk/java-17/abc123/tree");
+        orderedRoot.addProperty("root_id", "jdk-java-17-abc123");
+        orderedRoot.addProperty("source_set", "jdk:java-17");
+        orderedRoot.addProperty("report_root_path", "jdk/java-17/abc123");
+        workspace.getAsJsonArray("roots").add(orderedRoot);
+
+        JsonObject managed = new JsonObject();
+        managed.addProperty("resolver_id", "jdk-source");
+        managed.addProperty("address_scheme", "jdk-source");
+        managed.addProperty("resolver_identity", "jdk/java-17/abc123");
+        managed.addProperty("canonical_absolute_path", "D:/cache/jdk/java-17/abc123/tree");
+        managed.addProperty("root_id", "jdk-java-17-abc123");
+        managed.addProperty("source_set", "jdk:java-17");
+        managed.addProperty("portable_root_path", "jdk/java-17/abc123");
+        managed.add("report_prefix", com.google.gson.JsonNull.INSTANCE);
+        com.google.gson.JsonArray managedRoots = new com.google.gson.JsonArray();
+        managedRoots.add(managed);
+        workspace.add("managed_source_roots", managedRoots);
+
+        var frame = assertInstanceOf(
+                SFMSymbolServerProtocol.HelloFrame.class,
+                SFMSymbolServerProtocol.decodeServerFrame(envelope.toString())
+        );
+        var decoded = frame.hello().workspace().managedSourceRootMappings().get(0);
+        assertEquals("jdk-source", decoded.resolverId());
+        assertEquals("jdk-java-17-abc123", decoded.rootId());
+        assertEquals(Optional.of("jdk/java-17/abc123"), decoded.portableRootPath());
+        assertEquals("file:///D:/cache/jdk/java-17/abc123/tree", decoded.absoluteRootAddress());
+    }
+
+    @Test
     void workspaceAckCarriesACompleteReplacementWorkspace() throws Exception {
         JsonObject hello = JsonParser.parseString(helloEnvelope(12, "D:/workspace/new-source", null, null))
                 .getAsJsonObject()
@@ -126,6 +174,44 @@ class SFMSymbolServerProtocolTests {
                 SFMSymbolServerProtocol.decodeServerFrame(envelope.toString())
         );
         assertEquals(result, decoded.result());
+    }
+
+    @Test
+    void usageRequestAndResultUseTheAdditiveWorkerCapability() throws Exception {
+        SFMUsageAtPositionRequest request = SFMUsageAtPositionRequest.fromDefinition(request(19, 4, 7));
+        SFMDefinitionResult definition = result(request.asDefinitionRequest());
+        SFMUsageAtPositionResult result = new SFMUsageAtPositionResult(
+                SFMUsageAtPositionResult.SCHEMA,
+                definition.requestId(), definition.requestGeneration(), definition.workspaceGeneration(),
+                definition.outcome(), definition.context(), definition.document(), definition.position(),
+                definition.symbols(), definition.definitions(), List.of(), List.of(),
+                definition.completeness(), definition.diagnostics(), definition.recoveryActions(),
+                definition.dependencyIndex()
+        );
+
+        JsonObject requestEnvelope = JsonParser.parseString(
+                SFMSymbolServerProtocol.usageAtPosition(request)).getAsJsonObject();
+        assertEquals("usage-at-position", requestEnvelope.get("kind").getAsString());
+        assertEquals(SFMSymbolServerProtocol.USAGE_AT_POSITION_SCHEMA,
+                requestEnvelope.get("schema").getAsString());
+        assertEquals(request, SFMDefinitionJsonCodec.decodeUsageRequest(
+                requestEnvelope.getAsJsonObject("request").toString()));
+
+        JsonObject resultEnvelope = new JsonObject();
+        resultEnvelope.addProperty("kind", "usage-at-position-result");
+        resultEnvelope.addProperty("schema", SFMSymbolServerProtocol.USAGE_AT_POSITION_SCHEMA);
+        resultEnvelope.add("result", JsonParser.parseString(
+                SFMDefinitionJsonCodec.encodeUsageResult(result)));
+        var decoded = assertInstanceOf(
+                SFMSymbolServerProtocol.UsageAtPositionResultFrame.class,
+                SFMSymbolServerProtocol.decodeServerFrame(resultEnvelope.toString())
+        );
+        assertEquals(result, decoded.result());
+        assertEquals(
+                SFMSymbolServerProtocol.cancel(request.asDefinitionRequest(), "test"),
+                SFMSymbolServerProtocol.cancel(request, "test"),
+                "both request kinds share the same typed cancellation identity"
+        );
     }
 
     @Test

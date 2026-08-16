@@ -1,7 +1,5 @@
 package ca.teamdman.sfm.client.action;
 
-import ca.teamdman.sfm.client.screen.SFMActionChoice;
-import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextDocumentPanelState;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.symbol.SFMJumpToDefinitionController;
@@ -16,7 +14,6 @@ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.List;
 import java.util.Objects;
 
 /** Registered F12/palette route into the supervised symbol-navigation provider. */
@@ -65,8 +62,6 @@ public final class SFMJumpToDefinitionAction implements SFMClientAction<SFMClien
     @Override
     public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
         node.executes(this::invoke);
-        node.then(LiteralArgumentBuilder.<SFMClientActionSource>literal("offer")
-                .executes(this::offer));
         node.then(LiteralArgumentBuilder.<SFMClientActionSource>literal("select")
                 .then(RequiredArgumentBuilder.<SFMClientActionSource, Long>argument(
                                 "definition_session", LongArgumentType.longArg(1))
@@ -83,16 +78,6 @@ public final class SFMJumpToDefinitionAction implements SFMClientAction<SFMClien
             CommandContext<SFMClientActionSource> context
     ) throws CommandSyntaxException {
         if (!controller.begin(target, context.getSource()::sendFeedback)) throw FAILED.create();
-        return 1;
-    }
-
-    private int offer(CommandContext<SFMClientActionSource> context) throws CommandSyntaxException {
-        SFMClientActionContext target = available(context);
-        SFMCommandPaletteScreen.openChoices(
-                target,
-                Component.literal("Editor actions"),
-                List.of(SFMActionChoice.invoke(ID, ""))
-        );
         return 1;
     }
 

@@ -2,11 +2,15 @@ package ca.teamdman.sfm.client.screen.workspace;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -21,15 +25,19 @@ public final class SFMWorkspaceLayout {
     private Node root;
     private long nextPanelId;
     private SFMWorkspacePanelId focusedPanel;
+    private long mutationRevision;
     private final IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelId> persistentPanelIds;
     private final IdentityHashMap<SFMScreenPanel, SFMWorkspacePanelMetadata> persistentPanelMetadata;
+    private final Map<SFMWorkspaceDividerLinkId, List<SFMWorkspaceDividerId>> dividerLinks;
 
     private SFMWorkspaceLayout(Node root, long nextPanelId, SFMWorkspacePanelId focusedPanel) {
         this.root = root;
         this.nextPanelId = nextPanelId;
         this.focusedPanel = focusedPanel;
+        this.mutationRevision = 0;
         this.persistentPanelIds = new IdentityHashMap<>();
         this.persistentPanelMetadata = new IdentityHashMap<>();
+        this.dividerLinks = new LinkedHashMap<>();
         List<PanelEntry> entries = new ArrayList<>();
         collectPanels(root, entries);
         entries.forEach(entry -> {
@@ -93,6 +101,13 @@ public final class SFMWorkspaceLayout {
         if (focusedPanel == null || !isVisible(root, focusedPanel)) {
             focusedPanel = firstVisible(root).id();
         }
+        mutationRevision++;
+        pruneDividerLinks();
+    }
+
+    /** Changes for which an in-flight absolute resize capture must be discarded. */
+    public long mutationRevision() {
+        return mutationRevision;
     }
 
     public SFMWorkspacePanelId focusedPanel() {
@@ -102,6 +117,7 @@ public final class SFMWorkspaceLayout {
     public boolean focus(SFMWorkspacePanelId panelId) {
         Activation activated = activate(root, panelId);
         if (!activated.found()) return false;
+        if (!root.equals(activated.node())) mutationRevision++;
         root = activated.node();
         focusedPanel = panelId;
         return true;
@@ -132,6 +148,8 @@ public final class SFMWorkspaceLayout {
         persistentPanelMetadata.put(panel, metadata);
         root = normalize(insert(root, source, side, new PanelNode(inserted, panel, metadata)));
         focusedPanel = inserted;
+        mutationRevision++;
+        pruneDividerLinks();
         return inserted;
     }
 
@@ -159,6 +177,8 @@ public final class SFMWorkspaceLayout {
         persistentPanelMetadata.put(panel, metadata);
         root = pushIntoNearestStack(root, source, new PanelNode(inserted, panel, metadata));
         focusedPanel = inserted;
+        mutationRevision++;
+        pruneDividerLinks();
         return inserted;
     }
 
@@ -188,6 +208,8 @@ public final class SFMWorkspaceLayout {
             root = normalize(insert(root, anchor, side, moved));
         }
         focusedPanel = panelId;
+        mutationRevision++;
+        pruneDividerLinks();
         return true;
     }
 
@@ -218,6 +240,8 @@ public final class SFMWorkspaceLayout {
             root = replacePayload(root, next.id(), currentNode.panel(), nextNode.metadata());
         }
         rebuildPersistentIndexes();
+        mutationRevision++;
+        pruneDividerLinks();
         return true;
     }
 
@@ -256,6 +280,7 @@ public final class SFMWorkspaceLayout {
         if (minimumPixels < 0) throw new IllegalArgumentException("Track minimum must be non-negative");
         Configuration configured = configure(root, panelId, share, minimumPixels);
         root = configured.node();
+        if (configured.changed()) mutationRevision++;
         return configured.changed();
     }
 
@@ -291,6 +316,7 @@ public final class SFMWorkspaceLayout {
         Resize resized = computeResize(panelId, side, viewport, dividerPixels, minimumPanelPixels);
         if (!resized.changed()) return false;
         root = resized.node();
+        mutationRevision++;
         return true;
     }
 
@@ -337,6 +363,8 @@ public final class SFMWorkspaceLayout {
             int targetIndex = removedVisibleIndex < 0 ? 0 : removedVisibleIndex;
             focusedPanel = visibleAfter.get(Math.min(targetIndex, visibleAfter.size() - 1)).id();
         }
+        mutationRevision++;
+        pruneDividerLinks();
         return true;
     }
 
@@ -406,6 +434,8 @@ public final class SFMWorkspaceLayout {
         if (!rotation.changed()) return false;
         root = rotation.node();
         focusedPanel = rotation.focused();
+        mutationRevision++;
+        pruneDividerLinks();
         return true;
     }
 
@@ -417,6 +447,737 @@ public final class SFMWorkspaceLayout {
         Map<SFMWorkspacePanelId, SFMScreenPanelBounds> answer = new LinkedHashMap<>();
         allocate(root, viewport, dividerPixels, answer);
         return Collections.unmodifiableMap(answer);
+    }
+
+    /** Stable slot identity; every entry in a stack resolves to the same value. */
+    public Optional<SFMWorkspaceStackId> stackId(SFMWorkspacePanelId panelId) {
+        Objects.requireNonNull(panelId);
+        return Optional.ofNullable(stackId(root, panelId));
+    }
+
+    /** Describes all currently visible dividers in deterministic tree order. */
+    public List<SFMWorkspaceDivider> dividers(
+            SFMScreenPanelBounds viewport,
+            int dividerPixels,
+            int hitSlopPixels,
+            int minimumPanelPixels
+    ) {
+        Objects.requireNonNull(viewport);
+        validateDividerGeometryArguments(dividerPixels, hitSlopPixels, minimumPanelPixels);
+        List<SFMWorkspaceDivider> answer = new ArrayList<>();
+        Map<SFMWorkspaceDividerId, SFMWorkspaceDividerLinkId> linksByDivider = linksByDivider();
+        collectDividers(
+                root,
+                viewport,
+                viewport,
+                "r",
+                dividerPixels,
+                hitSlopPixels,
+                minimumPanelPixels,
+                linksByDivider,
+                answer
+        );
+        return List.copyOf(answer);
+    }
+
+    /**
+     * Selects at most one directly-hit divider per axis, then expands only its
+     * explicit link group. Coincident same-axis geometry is never an implicit link.
+     */
+    public SFMWorkspaceDividerHit hitTestDividers(
+            double mouseX,
+            double mouseY,
+            SFMScreenPanelBounds viewport,
+            int dividerPixels,
+            int hitSlopPixels,
+            int minimumPanelPixels
+    ) {
+        List<SFMWorkspaceDivider> descriptions = dividers(
+                viewport, dividerPixels, hitSlopPixels, minimumPanelPixels);
+        Map<SFMWorkspaceDividerId, SFMWorkspaceDivider> byId = new LinkedHashMap<>();
+        descriptions.forEach(divider -> byId.put(divider.id(), divider));
+        LinkedHashSet<SFMWorkspaceDividerId> selected = new LinkedHashSet<>();
+        for (SFMWorkspaceAxis axis : SFMWorkspaceAxis.values()) {
+            descriptions.stream()
+                    .filter(divider -> divider.axis() == axis)
+                    .filter(divider -> divider.hitBounds().contains(mouseX, mouseY))
+                    .min(dividerHitComparator(mouseX, mouseY))
+                    .ifPresent(divider -> {
+                        selected.add(divider.id());
+                        if (divider.linkId() != null) {
+                            dividerLinks.getOrDefault(divider.linkId(), List.of()).forEach(selected::add);
+                        }
+                    });
+        }
+        List<SFMWorkspaceDivider> hits = selected.stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(SFMWorkspaceDivider::id))
+                .toList();
+        boolean horizontal = hits.stream().anyMatch(divider -> divider.axis() == SFMWorkspaceAxis.HORIZONTAL);
+        boolean vertical = hits.stream().anyMatch(divider -> divider.axis() == SFMWorkspaceAxis.VERTICAL);
+        SFMWorkspaceDividerCursor cursor = horizontal && vertical
+                ? SFMWorkspaceDividerCursor.RESIZE_BOTH
+                : horizontal
+                ? SFMWorkspaceDividerCursor.HORIZONTAL_RESIZE
+                : vertical
+                ? SFMWorkspaceDividerCursor.VERTICAL_RESIZE
+                : SFMWorkspaceDividerCursor.DEFAULT;
+        return hits.isEmpty() ? SFMWorkspaceDividerHit.empty() : new SFMWorkspaceDividerHit(hits, cursor);
+    }
+
+    /** Explicitly links same-axis dividers. This is the only source of synchronized same-axis motion. */
+    public boolean linkDividers(
+            SFMWorkspaceDividerLinkId linkId,
+            List<SFMWorkspaceDividerId> dividerIds
+    ) {
+        Objects.requireNonNull(linkId);
+        Objects.requireNonNull(dividerIds);
+        List<SFMWorkspaceDividerId> ids = List.copyOf(new LinkedHashSet<>(dividerIds));
+        if (ids.size() < 2) throw new IllegalArgumentException("A divider link requires at least two dividers");
+        Set<SFMWorkspaceDividerId> current = structuralDividerIds();
+        if (!current.containsAll(ids)) throw new IllegalArgumentException("A linked divider is not in the current layout");
+        SFMWorkspaceAxis axis = ids.get(0).axis();
+        if (ids.stream().anyMatch(id -> id.axis() != axis)) {
+            throw new IllegalArgumentException("Explicit links join same-axis dividers only");
+        }
+        List<SFMWorkspaceDividerId> sorted = ids.stream().sorted().toList();
+        if (sorted.equals(dividerLinks.get(linkId))) return false;
+        dividerLinks.replaceAll((existing, members) -> members.stream()
+                .filter(id -> !ids.contains(id))
+                .toList());
+        dividerLinks.values().removeIf(members -> members.size() < 2);
+        dividerLinks.put(linkId, sorted);
+        mutationRevision++;
+        return true;
+    }
+
+    public boolean unlinkDividers(SFMWorkspaceDividerLinkId linkId) {
+        Objects.requireNonNull(linkId);
+        if (dividerLinks.remove(linkId) == null) return false;
+        mutationRevision++;
+        return true;
+    }
+
+    public Map<SFMWorkspaceDividerLinkId, List<SFMWorkspaceDividerId>> dividerLinks() {
+        Map<SFMWorkspaceDividerLinkId, List<SFMWorkspaceDividerId>> answer = new LinkedHashMap<>();
+        dividerLinks.forEach((id, members) -> answer.put(id, List.copyOf(members)));
+        return Collections.unmodifiableMap(answer);
+    }
+
+    /** Captures absolute drag state so repeated pointer events never accumulate rounding drift. */
+    public Optional<DividerResizeSession> captureDividerResize(
+            List<SFMWorkspaceDividerId> requestedIds,
+            SFMScreenPanelBounds viewport,
+            int dividerPixels,
+            int hitSlopPixels,
+            int minimumPanelPixels
+    ) {
+        Objects.requireNonNull(requestedIds);
+        validateDividerGeometryArguments(dividerPixels, hitSlopPixels, minimumPanelPixels);
+        Map<SFMWorkspaceDividerId, SFMWorkspaceDivider> descriptions = new LinkedHashMap<>();
+        dividers(viewport, dividerPixels, hitSlopPixels, minimumPanelPixels)
+                .forEach(divider -> descriptions.put(divider.id(), divider));
+        LinkedHashSet<SFMWorkspaceDividerId> expanded = new LinkedHashSet<>();
+        for (SFMWorkspaceDividerId requested : requestedIds) {
+            SFMWorkspaceDivider divider = descriptions.get(requested);
+            if (divider == null) return Optional.empty();
+            expanded.add(requested);
+            if (divider.linkId() != null) {
+                expanded.addAll(dividerLinks.getOrDefault(divider.linkId(), List.of()));
+            }
+        }
+        if (expanded.isEmpty()) return Optional.empty();
+        List<SFMWorkspaceDividerId> ids = expanded.stream().sorted().toList();
+        if (!descriptions.keySet().containsAll(ids)) return Optional.empty();
+        Map<SFMWorkspaceDividerId, SFMWorkspaceDividerLinkId> capturedLinks = new LinkedHashMap<>();
+        ids.forEach(id -> {
+            SFMWorkspaceDividerLinkId linkId = descriptions.get(id).linkId();
+            if (linkId != null) capturedLinks.put(id, linkId);
+        });
+        return Optional.of(new DividerResizeSession(
+                this,
+                root,
+                mutationRevision,
+                ids,
+                capturedLinks,
+                viewport,
+                dividerPixels,
+                hitSlopPixels,
+                minimumPanelPixels,
+                bounds(viewport, dividerPixels)
+        ));
+    }
+
+    /** Re-evaluates one capture from its immutable starting tree using absolute deltas. */
+    public SFMWorkspaceDividerResizeResult updateDividerResize(
+            DividerResizeSession session,
+            int deltaX,
+            int deltaY
+    ) {
+        Objects.requireNonNull(session);
+        if (!session.active || session.owner != this || mutationRevision != session.mutationRevision) {
+            return sessionResult(session, SFMWorkspaceDividerResizeResult.Status.STALE, Map.of());
+        }
+        Node candidate = session.originalRoot;
+        Map<SFMWorkspaceDividerId, Integer> appliedDeltas = new LinkedHashMap<>();
+        boolean clamped = false;
+        Map<Object, List<SFMWorkspaceDividerId>> resizeGroups = new LinkedHashMap<>();
+        for (SFMWorkspaceDividerId dividerId : session.dividerIds) {
+            SFMWorkspaceDividerLinkId linkId = session.linkIds.get(dividerId);
+            Object groupKey = linkId == null ? dividerId : linkId;
+            resizeGroups.computeIfAbsent(groupKey, ignored -> new ArrayList<>()).add(dividerId);
+        }
+        for (List<SFMWorkspaceDividerId> group : resizeGroups.values()) {
+            int requested = group.get(0).axis() == SFMWorkspaceAxis.HORIZONTAL ? deltaX : deltaY;
+            int sharedDelta = requested;
+            if (group.size() > 1) {
+                for (SFMWorkspaceDividerId dividerId : group) {
+                    DividerApplication probe = applyDividerDelta(
+                            session.originalRoot,
+                            "r",
+                            dividerId,
+                            requested,
+                            session.viewport,
+                            session.dividerPixels,
+                            session.minimumPanelPixels
+                    );
+                    if (!probe.matched()) {
+                        return sessionResult(session, SFMWorkspaceDividerResizeResult.Status.STALE, appliedDeltas);
+                    }
+                    sharedDelta = sharedClampedDelta(sharedDelta, probe.appliedDelta(), requested);
+                }
+            }
+            clamped |= sharedDelta != requested;
+            for (SFMWorkspaceDividerId dividerId : group) {
+                DividerApplication applied = applyDividerDelta(
+                        candidate,
+                        "r",
+                        dividerId,
+                        sharedDelta,
+                        session.viewport,
+                        session.dividerPixels,
+                        session.minimumPanelPixels
+                );
+                if (!applied.matched()) {
+                    return sessionResult(session, SFMWorkspaceDividerResizeResult.Status.STALE, appliedDeltas);
+                }
+                candidate = applied.node();
+                appliedDeltas.put(dividerId, applied.appliedDelta());
+                clamped |= applied.appliedDelta() != sharedDelta;
+            }
+        }
+        root = candidate;
+        session.lastDeltaX = deltaX;
+        session.lastDeltaY = deltaY;
+        session.lastAppliedDeltas = Map.copyOf(appliedDeltas);
+        session.currentBounds = bounds(session.viewport, session.dividerPixels);
+        SFMWorkspaceDividerResizeResult.Status status = session.beforeBounds.equals(session.currentBounds)
+                ? clamped
+                ? SFMWorkspaceDividerResizeResult.Status.CLAMPED
+                : SFMWorkspaceDividerResizeResult.Status.UNCHANGED
+                : clamped
+                ? SFMWorkspaceDividerResizeResult.Status.CLAMPED
+                : SFMWorkspaceDividerResizeResult.Status.APPLIED;
+        return sessionResult(session, status, appliedDeltas);
+    }
+
+    private static int sharedClampedDelta(int current, int candidate, int requested) {
+        if (requested > 0) return Math.min(current, candidate);
+        if (requested < 0) return Math.max(current, candidate);
+        return 0;
+    }
+
+    /** Commits the current share state and invalidates the capture. */
+    public boolean finishDividerResize(DividerResizeSession session) {
+        Objects.requireNonNull(session);
+        if (!session.active || session.owner != this || mutationRevision != session.mutationRevision) {
+            session.active = false;
+            return false;
+        }
+        session.active = false;
+        if (!session.originalRoot.equals(root)) mutationRevision++;
+        return true;
+    }
+
+    /** Restores the exact starting tree unless another layout mutation superseded the capture. */
+    public boolean cancelDividerResize(DividerResizeSession session) {
+        Objects.requireNonNull(session);
+        if (!session.active || session.owner != this || mutationRevision != session.mutationRevision) {
+            session.active = false;
+            return false;
+        }
+        boolean changed = !session.originalRoot.equals(root);
+        root = session.originalRoot;
+        session.currentBounds = session.beforeBounds;
+        session.active = false;
+        return changed;
+    }
+
+    /** Ends a superseded capture without restoring stale state over a newer layout. */
+    public void abandonDividerResize(DividerResizeSession session) {
+        Objects.requireNonNull(session);
+        session.active = false;
+    }
+
+    public SFMWorkspaceDividerResizeResult resizeDividers(
+            SFMWorkspaceResizeDividersIntent intent,
+            SFMScreenPanelBounds viewport,
+            int dividerPixels,
+            int hitSlopPixels,
+            int minimumPanelPixels
+    ) {
+        Objects.requireNonNull(intent);
+        Optional<DividerResizeSession> captured = captureDividerResize(
+                intent.dividerIds(), viewport, dividerPixels, hitSlopPixels, minimumPanelPixels);
+        if (captured.isEmpty()) {
+            Map<SFMWorkspacePanelId, SFMScreenPanelBounds> current = bounds(viewport, dividerPixels);
+            return new SFMWorkspaceDividerResizeResult(
+                    SFMWorkspaceDividerResizeResult.Status.UNAVAILABLE,
+                    Map.of(), current, current);
+        }
+        DividerResizeSession session = captured.orElseThrow();
+        SFMWorkspaceDividerResizeResult result = updateDividerResize(session, intent.deltaX(), intent.deltaY());
+        finishDividerResize(session);
+        return result;
+    }
+
+    private static void validateDividerGeometryArguments(
+            int dividerPixels,
+            int hitSlopPixels,
+            int minimumPanelPixels
+    ) {
+        if (dividerPixels < 0) throw new IllegalArgumentException("Divider width must be non-negative");
+        if (hitSlopPixels < 0) throw new IllegalArgumentException("Divider hit slop must be non-negative");
+        if (minimumPanelPixels < 0) throw new IllegalArgumentException("Panel minimum must be non-negative");
+    }
+
+    private Map<SFMWorkspaceDividerId, SFMWorkspaceDividerLinkId> linksByDivider() {
+        Map<SFMWorkspaceDividerId, SFMWorkspaceDividerLinkId> answer = new LinkedHashMap<>();
+        dividerLinks.forEach((linkId, members) -> members.forEach(member -> answer.put(member, linkId)));
+        return answer;
+    }
+
+    private Set<SFMWorkspaceDividerId> structuralDividerIds() {
+        Set<SFMWorkspaceDividerId> answer = new LinkedHashSet<>();
+        collectStructuralDividerIds(root, "r", answer);
+        return Set.copyOf(answer);
+    }
+
+    private void pruneDividerLinks() {
+        Set<SFMWorkspaceDividerId> current = structuralDividerIds();
+        dividerLinks.replaceAll((link, members) -> members.stream()
+                .filter(current::contains)
+                .sorted()
+                .toList());
+        dividerLinks.values().removeIf(members -> members.size() < 2);
+    }
+
+    private static void collectStructuralDividerIds(
+            Node node,
+            String path,
+            Set<SFMWorkspaceDividerId> answer
+    ) {
+        if (node == null || node instanceof PanelNode) return;
+        if (node instanceof StackNode stack) {
+            collectStructuralDividerIds(
+                    stack.children().get(stack.active()),
+                    path + "_s" + stack.active(),
+                    answer);
+            return;
+        }
+        LinearNode linear = (LinearNode) node;
+        for (int index = 0; index < linear.children().size() - 1; index++) {
+            answer.add(dividerId(linear, path, index));
+        }
+        for (int index = 0; index < linear.children().size(); index++) {
+            collectStructuralDividerIds(linear.children().get(index).node(), path + "_l" + index, answer);
+        }
+    }
+
+    private static void collectDividers(
+            Node node,
+            SFMScreenPanelBounds nodeBounds,
+            SFMScreenPanelBounds viewport,
+            String path,
+            int dividerPixels,
+            int hitSlopPixels,
+            int minimumPanelPixels,
+            Map<SFMWorkspaceDividerId, SFMWorkspaceDividerLinkId> linksByDivider,
+            List<SFMWorkspaceDivider> answer
+    ) {
+        if (node == null || node instanceof PanelNode) return;
+        if (node instanceof StackNode stack) {
+            collectDividers(
+                    stack.children().get(stack.active()),
+                    nodeBounds,
+                    viewport,
+                    path + "_s" + stack.active(),
+                    dividerPixels,
+                    hitSlopPixels,
+                    minimumPanelPixels,
+                    linksByDivider,
+                    answer);
+            return;
+        }
+
+        LinearNode linear = (LinearNode) node;
+        int totalLength = axisLength(nodeBounds, linear.axis());
+        int available = Math.max(0, totalLength - dividerPixels * (linear.children().size() - 1));
+        int[] lengths = allocateTracks(linear.children(), available);
+        List<SFMScreenPanelBounds> childBounds = new ArrayList<>(linear.children().size());
+        for (int index = 0; index < linear.children().size(); index++) {
+            childBounds.add(trackBounds(nodeBounds, linear.axis(), lengths, index, dividerPixels));
+        }
+
+        for (int index = 0; index < linear.children().size() - 1; index++) {
+            Track before = linear.children().get(index);
+            Track after = linear.children().get(index + 1);
+            SFMScreenPanelBounds beforeBounds = childBounds.get(index);
+            int position = linear.axis() == SFMWorkspaceAxis.HORIZONTAL
+                    ? beforeBounds.x() + beforeBounds.width()
+                    : beforeBounds.y() + beforeBounds.height();
+            int visibleThickness = Math.max(1, dividerPixels);
+            SFMScreenPanelBounds lineBounds = linear.axis() == SFMWorkspaceAxis.HORIZONTAL
+                    ? new SFMScreenPanelBounds(position, nodeBounds.y(), visibleThickness, nodeBounds.height())
+                    : new SFMScreenPanelBounds(nodeBounds.x(), position, nodeBounds.width(), visibleThickness);
+            SFMScreenPanelBounds hitBounds = expandAndClip(lineBounds, hitSlopPixels, viewport);
+            int beforeMinimum = Math.max(
+                    before.minimumPixels(),
+                    minimumExtent(before.node(), linear.axis(), dividerPixels, minimumPanelPixels));
+            int afterMinimum = Math.max(
+                    after.minimumPixels(),
+                    minimumExtent(after.node(), linear.axis(), dividerPixels, minimumPanelPixels));
+            int minimumPosition = position - Math.max(0, lengths[index] - beforeMinimum);
+            int maximumPosition = position + Math.max(0, lengths[index + 1] - afterMinimum);
+            SFMWorkspaceDividerId id = dividerId(linear, path, index);
+            answer.add(new SFMWorkspaceDivider(
+                    id,
+                    linear.axis(),
+                    lineBounds,
+                    hitBounds,
+                    position,
+                    minimumPosition,
+                    maximumPosition,
+                    lengths[index],
+                    lengths[index + 1],
+                    beforeMinimum,
+                    afterMinimum,
+                    before.share(),
+                    after.share(),
+                    panelIds(before.node()),
+                    panelIds(after.node()),
+                    linksByDivider.get(id)
+            ));
+        }
+
+        for (int index = 0; index < linear.children().size(); index++) {
+            collectDividers(
+                    linear.children().get(index).node(),
+                    childBounds.get(index),
+                    viewport,
+                    path + "_l" + index,
+                    dividerPixels,
+                    hitSlopPixels,
+                    minimumPanelPixels,
+                    linksByDivider,
+                    answer);
+        }
+    }
+
+    private static SFMWorkspaceDividerId dividerId(LinearNode linear, String path, int boundaryIndex) {
+        return new SFMWorkspaceDividerId(
+                path,
+                linear.axis(),
+                boundaryIndex,
+                anchorPanelId(linear.children().get(boundaryIndex).node()),
+                anchorPanelId(linear.children().get(boundaryIndex + 1).node())
+        );
+    }
+
+    private static SFMWorkspacePanelId anchorPanelId(Node node) {
+        return panelIds(node).stream().min(Comparator.comparingLong(SFMWorkspacePanelId::value)).orElseThrow();
+    }
+
+    private static List<SFMWorkspacePanelId> panelIds(Node node) {
+        List<SFMWorkspacePanelId> answer = new ArrayList<>();
+        collectPanelIds(node, answer);
+        return answer.stream().distinct().sorted(Comparator.comparingLong(SFMWorkspacePanelId::value)).toList();
+    }
+
+    private static void collectPanelIds(Node node, List<SFMWorkspacePanelId> answer) {
+        if (node instanceof PanelNode panel) {
+            answer.add(panel.id());
+        } else if (node instanceof StackNode stack) {
+            stack.children().forEach(child -> collectPanelIds(child, answer));
+        } else if (node instanceof LinearNode linear) {
+            linear.children().forEach(track -> collectPanelIds(track.node(), answer));
+        }
+    }
+
+    private static @Nullable SFMWorkspaceStackId stackId(Node node, SFMWorkspacePanelId panelId) {
+        if (node == null) return null;
+        if (node instanceof PanelNode panel) {
+            return panel.id().equals(panelId)
+                    ? new SFMWorkspaceStackId("panel." + panel.id().value())
+                    : null;
+        }
+        if (node instanceof StackNode stack && contains(stack, panelId)) {
+            String members = String.join("_", panelIds(stack).stream()
+                    .map(id -> Long.toString(id.value()))
+                    .toList());
+            return new SFMWorkspaceStackId("stack." + members);
+        }
+        if (node instanceof StackNode stack) {
+            for (Node child : stack.children()) {
+                SFMWorkspaceStackId found = stackId(child, panelId);
+                if (found != null) return found;
+            }
+            return null;
+        }
+        for (Track track : ((LinearNode) node).children()) {
+            SFMWorkspaceStackId found = stackId(track.node(), panelId);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private static SFMScreenPanelBounds expandAndClip(
+            SFMScreenPanelBounds bounds,
+            int pixels,
+            SFMScreenPanelBounds clip
+    ) {
+        long left = Math.max((long) clip.x(), (long) bounds.x() - pixels);
+        long top = Math.max((long) clip.y(), (long) bounds.y() - pixels);
+        long right = Math.min((long) clip.x() + clip.width(), (long) bounds.x() + bounds.width() + pixels);
+        long bottom = Math.min((long) clip.y() + clip.height(), (long) bounds.y() + bounds.height() + pixels);
+        return new SFMScreenPanelBounds(
+                (int) left,
+                (int) top,
+                Math.max(0, (int) (right - left)),
+                Math.max(0, (int) (bottom - top))
+        );
+    }
+
+    private static Comparator<SFMWorkspaceDivider> dividerHitComparator(double mouseX, double mouseY) {
+        return Comparator
+                .comparingInt((SFMWorkspaceDivider divider) -> divider.lineBounds().contains(mouseX, mouseY) ? 0 : 1)
+                .thenComparingDouble(divider -> divider.axis() == SFMWorkspaceAxis.HORIZONTAL
+                        ? Math.abs(mouseX - divider.position())
+                        : Math.abs(mouseY - divider.position()))
+                .thenComparingInt(divider -> divider.axis() == SFMWorkspaceAxis.HORIZONTAL
+                        ? divider.lineBounds().height()
+                        : divider.lineBounds().width())
+                .thenComparing(SFMWorkspaceDivider::id);
+    }
+
+    private static DividerApplication applyDividerDelta(
+            Node node,
+            String path,
+            SFMWorkspaceDividerId target,
+            int requestedDelta,
+            SFMScreenPanelBounds nodeBounds,
+            int dividerPixels,
+            int minimumPanelPixels
+    ) {
+        if (node instanceof PanelNode) return DividerApplication.unmatched(node);
+        if (node instanceof StackNode stack) {
+            int active = stack.active();
+            DividerApplication nested = applyDividerDelta(
+                    stack.children().get(active),
+                    path + "_s" + active,
+                    target,
+                    requestedDelta,
+                    nodeBounds,
+                    dividerPixels,
+                    minimumPanelPixels);
+            if (!nested.matched()) return DividerApplication.unmatched(stack);
+            if (nested.node().equals(stack.children().get(active))) {
+                return new DividerApplication(stack, true, nested.appliedDelta());
+            }
+            List<Node> children = new ArrayList<>(stack.children());
+            children.set(active, nested.node());
+            return new DividerApplication(new StackNode(children, active), true, nested.appliedDelta());
+        }
+
+        LinearNode linear = (LinearNode) node;
+        int totalLength = axisLength(nodeBounds, linear.axis());
+        int available = Math.max(0, totalLength - dividerPixels * (linear.children().size() - 1));
+        int[] lengths = allocateTracks(linear.children(), available);
+        if (path.equals(target.nodePath()) && linear.axis() == target.axis()
+                && target.boundaryIndex() < linear.children().size() - 1
+                && dividerId(linear, path, target.boundaryIndex()).equals(target)) {
+            return applyLinearDividerDelta(
+                    linear,
+                    target.boundaryIndex(),
+                    requestedDelta,
+                    lengths,
+                    available,
+                    dividerPixels,
+                    minimumPanelPixels);
+        }
+
+        for (int index = 0; index < linear.children().size(); index++) {
+            Track track = linear.children().get(index);
+            DividerApplication nested = applyDividerDelta(
+                    track.node(),
+                    path + "_l" + index,
+                    target,
+                    requestedDelta,
+                    trackBounds(nodeBounds, linear.axis(), lengths, index, dividerPixels),
+                    dividerPixels,
+                    minimumPanelPixels);
+            if (!nested.matched()) continue;
+            if (nested.node().equals(track.node())) {
+                return new DividerApplication(linear, true, nested.appliedDelta());
+            }
+            List<Track> children = new ArrayList<>(linear.children());
+            children.set(index, track.withNode(nested.node()));
+            return new DividerApplication(new LinearNode(linear.axis(), children), true, nested.appliedDelta());
+        }
+        return DividerApplication.unmatched(linear);
+    }
+
+    /** Shared minimum/clamping/share-normalization model for keyboard, pointer, and action resizing. */
+    private static DividerApplication applyLinearDividerDelta(
+            LinearNode linear,
+            int boundaryIndex,
+            int requestedDelta,
+            int[] lengths,
+            int available,
+            int dividerPixels,
+            int minimumPanelPixels
+    ) {
+        int beforeIndex = boundaryIndex;
+        int afterIndex = beforeIndex + 1;
+        Track before = linear.children().get(beforeIndex);
+        Track after = linear.children().get(afterIndex);
+        int beforeMinimum = Math.max(
+                before.minimumPixels(),
+                minimumExtent(before.node(), linear.axis(), dividerPixels, minimumPanelPixels));
+        int afterMinimum = Math.max(
+                after.minimumPixels(),
+                minimumExtent(after.node(), linear.axis(), dividerPixels, minimumPanelPixels));
+        int minimumDelta = beforeMinimum - lengths[beforeIndex];
+        int maximumDelta = lengths[afterIndex] - afterMinimum;
+        int appliedDelta = minimumDelta > maximumDelta
+                ? 0
+                : Math.max(minimumDelta, Math.min(maximumDelta, requestedDelta));
+        if (appliedDelta == 0) return new DividerApplication(linear, true, 0);
+        lengths[beforeIndex] += appliedDelta;
+        lengths[afterIndex] -= appliedDelta;
+        return new DividerApplication(
+                new LinearNode(linear.axis(), normalizedTracksForLengths(linear.children(), lengths, available)),
+                true,
+                appliedDelta);
+    }
+
+    private SFMWorkspaceDividerResizeResult sessionResult(
+            DividerResizeSession session,
+            SFMWorkspaceDividerResizeResult.Status status,
+            Map<SFMWorkspaceDividerId, Integer> appliedDeltas
+    ) {
+        Map<SFMWorkspacePanelId, SFMScreenPanelBounds> current = session.owner == this
+                ? bounds(session.viewport, session.dividerPixels)
+                : session.currentBounds;
+        session.currentBounds = current;
+        return new SFMWorkspaceDividerResizeResult(
+                status,
+                appliedDeltas,
+                session.beforeBounds,
+                current
+        );
+    }
+
+    public static final class DividerResizeSession {
+        private final SFMWorkspaceLayout owner;
+        private final Node originalRoot;
+        private final long mutationRevision;
+        private final List<SFMWorkspaceDividerId> dividerIds;
+        private final Map<SFMWorkspaceDividerId, SFMWorkspaceDividerLinkId> linkIds;
+        private final SFMScreenPanelBounds viewport;
+        private final int dividerPixels;
+        private final int hitSlopPixels;
+        private final int minimumPanelPixels;
+        private final Map<SFMWorkspacePanelId, SFMScreenPanelBounds> beforeBounds;
+        private Map<SFMWorkspacePanelId, SFMScreenPanelBounds> currentBounds;
+        private Map<SFMWorkspaceDividerId, Integer> lastAppliedDeltas = Map.of();
+        private int lastDeltaX;
+        private int lastDeltaY;
+        private boolean active = true;
+
+        private DividerResizeSession(
+                SFMWorkspaceLayout owner,
+                Node originalRoot,
+                long mutationRevision,
+                List<SFMWorkspaceDividerId> dividerIds,
+                Map<SFMWorkspaceDividerId, SFMWorkspaceDividerLinkId> linkIds,
+                SFMScreenPanelBounds viewport,
+                int dividerPixels,
+                int hitSlopPixels,
+                int minimumPanelPixels,
+                Map<SFMWorkspacePanelId, SFMScreenPanelBounds> beforeBounds
+        ) {
+            this.owner = owner;
+            this.originalRoot = originalRoot;
+            this.mutationRevision = mutationRevision;
+            this.dividerIds = List.copyOf(dividerIds);
+            this.linkIds = Map.copyOf(linkIds);
+            this.viewport = viewport;
+            this.dividerPixels = dividerPixels;
+            this.hitSlopPixels = hitSlopPixels;
+            this.minimumPanelPixels = minimumPanelPixels;
+            this.beforeBounds = Map.copyOf(beforeBounds);
+            this.currentBounds = this.beforeBounds;
+        }
+
+        public long mutationRevision() {
+            return mutationRevision;
+        }
+
+        public List<SFMWorkspaceDividerId> dividerIds() {
+            return dividerIds;
+        }
+
+        public SFMScreenPanelBounds viewport() {
+            return viewport;
+        }
+
+        public int dividerPixels() {
+            return dividerPixels;
+        }
+
+        public int hitSlopPixels() {
+            return hitSlopPixels;
+        }
+
+        public int minimumPanelPixels() {
+            return minimumPanelPixels;
+        }
+
+        public Map<SFMWorkspacePanelId, SFMScreenPanelBounds> beforeBounds() {
+            return beforeBounds;
+        }
+
+        public Map<SFMWorkspacePanelId, SFMScreenPanelBounds> currentBounds() {
+            return currentBounds;
+        }
+
+        public Map<SFMWorkspaceDividerId, Integer> lastAppliedDeltas() {
+            return lastAppliedDeltas;
+        }
+
+        public int lastDeltaX() {
+            return lastDeltaX;
+        }
+
+        public int lastDeltaY() {
+            return lastDeltaY;
+        }
+
+        public boolean active() {
+            return active;
+        }
     }
 
     public static LayoutSpec panel(SFMScreenPanel panel) {
@@ -670,23 +1431,18 @@ public final class SFMWorkspaceLayout {
             return Resize.unmatched(linear);
         }
 
-        Track neighbor = linear.children().get(neighborIndex);
-        int neighborMinimum = Math.max(
-                neighbor.minimumPixels(),
-                minimumExtent(neighbor.node(), linear.axis(), dividerPixels, minimumPanelPixels)
-        );
-        int capacity = lengths[neighborIndex] - neighborMinimum;
-        if (capacity <= 0) return new Resize(linear, true, false);
-
         int namedStep = Math.max(1, (int) Math.round(available * DIRECTIONAL_RESIZE_STEP_FRACTION));
-        int delta = Math.min(namedStep, capacity);
-        lengths[sourceIndex] += delta;
-        lengths[neighborIndex] -= delta;
-        return new Resize(
-                new LinearNode(linear.axis(), normalizedTracksForLengths(linear.children(), lengths, available)),
-                true,
-                true
-        );
+        int boundaryIndex = side.before() ? neighborIndex : sourceIndex;
+        int requestedDelta = side.before() ? -namedStep : namedStep;
+        DividerApplication applied = applyLinearDividerDelta(
+                linear,
+                boundaryIndex,
+                requestedDelta,
+                lengths,
+                available,
+                dividerPixels,
+                minimumPanelPixels);
+        return new Resize(applied.node(), true, applied.appliedDelta() != 0);
     }
 
     private static int axisLength(SFMScreenPanelBounds bounds, SFMWorkspaceAxis axis) {
@@ -1209,6 +1965,12 @@ public final class SFMWorkspaceLayout {
     private record Resize(Node node, boolean matched, boolean changed) {
         private static Resize unmatched(Node node) {
             return new Resize(node, false, false);
+        }
+    }
+
+    private record DividerApplication(Node node, boolean matched, int appliedDelta) {
+        private static DividerApplication unmatched(Node node) {
+            return new DividerApplication(node, false, 0);
         }
     }
 

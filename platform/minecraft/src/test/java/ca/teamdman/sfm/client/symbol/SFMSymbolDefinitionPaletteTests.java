@@ -17,6 +17,7 @@ import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 import sun.misc.Unsafe;
 
@@ -35,6 +36,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMSymbolDefinitionPaletteTests {
+    private static final ResourceLocation TEST_EDITOR_ID =
+            new ResourceLocation("sfm", "standalone_test_editor");
+
     @Test
     void choicesAreStableLabelledExactAndOneShot() throws Exception {
         SFMDefinitionChoiceSessionService service = new SFMDefinitionChoiceSessionService();
@@ -90,8 +94,62 @@ class SFMSymbolDefinitionPaletteTests {
         assertEquals(targetPanelId, result.panelId());
         assertEquals(range, document.navigatedRange);
         assertEquals(targetPanelId, workspace.focused);
-        assertFalse(workspace.openedRight,
+        assertFalse(workspace.openedInSourceStack,
                 "navigation must not replace or add a panel when the immutable target is already open");
+    }
+
+    @Test
+    void unseenDefinitionOpensAsATabInTheOriginatingPanelStack() {
+        SFMPath root = SFMPath.parse("file:///D:/workspace/src");
+        SFMWorkspacePanelId sourcePanelId = new SFMWorkspacePanelId(1);
+        TrackingDocumentPanel source = new TrackingDocumentPanel(snapshot(
+                "class Source {}\n",
+                SFMPath.parse("file:///D:/workspace/src/Source.java"),
+                root
+        ));
+        TrackingWorkspace workspace = new TrackingWorkspace(sourcePanelId, source);
+
+        SFMDefinitionNavigation.Result result = SFMDefinitionNavigation.open(
+                workspace,
+                sourcePanelId,
+                hello(),
+                SFMJumpToDefinitionActionTests.definition(
+                        "example.Target", "Target.java", 6, "Target"),
+                () -> TEST_EDITOR_ID
+        );
+
+        assertEquals(SFMDefinitionNavigation.Status.OPENED_IN_SOURCE_STACK, result.status());
+        assertTrue(workspace.openedInSourceStack);
+        assertEquals(sourcePanelId, workspace.openedIntoSourcePanelId);
+        assertEquals(new SFMWorkspacePanelId(9), result.panelId());
+    }
+
+    @Test
+    void jdkDefinitionUsesTheExactWorkerManagedRootAndCurrentPanelStack() {
+        SFMWorkspacePanelId sourcePanelId = new SFMWorkspacePanelId(1);
+        TrackingWorkspace workspace = new TrackingWorkspace(sourcePanelId, null, true);
+        SFMDefinitionResult.SymbolIdentity symbol = new SFMDefinitionResult.SymbolIdentity(
+                "class", "java.lang.String", "String", Optional.empty(), "java.lang.String");
+        SFMDefinitionResult.DefinitionSourceSpan span = new SFMDefinitionResult.DefinitionSourceSpan(
+                "jdk-source://jdk-java-17-abc123/java.base/java/lang/String.java",
+                "jdk-source",
+                "jdk-java-17-abc123",
+                "java.base/java/lang/String.java",
+                "jdk/java-17/abc123/java.base/java/lang/String.java",
+                "jdk:java-17",
+                "blake3:" + "a".repeat(64),
+                Optional.of("sha256:" + "b".repeat(64)),
+                13, 19, 1, 14, 1, 20);
+        SFMDefinitionResult.Definition definition = new SFMDefinitionResult.Definition(
+                symbol, span, span, "resolved");
+
+        SFMDefinitionNavigation.Result result = SFMDefinitionNavigation.open(
+                workspace, sourcePanelId, helloWithJdk(), definition, () -> TEST_EDITOR_ID);
+
+        assertEquals(SFMDefinitionNavigation.Status.OPENED_IN_SOURCE_STACK, result.status());
+        assertTrue(workspace.managedRootAuthorized);
+        assertTrue(workspace.openedInSourceStack);
+        assertEquals(sourcePanelId, workspace.openedIntoSourcePanelId);
     }
 
     @Test
@@ -133,6 +191,31 @@ class SFMSymbolDefinitionPaletteTests {
                 SFMPath.parse("file:///D:/other/src"),
                 SFMPath.parse("file:///D:/other/src/Target.java")
         ).isEmpty());
+    }
+
+    @Test
+    void definitionReadUsesTheIntersectionOfNarrowResolverAndWorkerRoots() {
+        SFMPath analysisRoot = SFMPath.parse("file:///D:/workspace/src");
+        SFMPath packageGrant = SFMPath.parse("file:///D:/workspace/src/example");
+        TrackingDocumentPanel source = new TrackingDocumentPanel(snapshot(
+                "class Source {}\n",
+                SFMPath.parse("file:///D:/workspace/src/example/Source.java"),
+                packageGrant
+        ));
+
+        assertEquals(
+                Optional.of(packageGrant),
+                SFMDefinitionNavigation.sourceReadAuthority(
+                        source,
+                        analysisRoot,
+                        SFMPath.parse("file:///D:/workspace/src/example/Target.java")
+                )
+        );
+        assertTrue(SFMDefinitionNavigation.sourceReadAuthority(
+                source,
+                analysisRoot,
+                SFMPath.parse("file:///D:/workspace/src/other/Target.java")
+        ).isEmpty(), "the worker root must not broaden the originating resolver grant");
     }
 
     @Test
@@ -185,7 +268,7 @@ class SFMSymbolDefinitionPaletteTests {
 
         assertEquals(SFMDefinitionNavigation.Status.UNAVAILABLE, result.status());
         assertTrue(result.message().contains("root identity"));
-        assertFalse(workspace.openedRight);
+        assertFalse(workspace.openedInSourceStack);
     }
 
     @Test
@@ -207,7 +290,7 @@ class SFMSymbolDefinitionPaletteTests {
         );
 
         assertEquals(SFMDefinitionNavigation.Status.UNAVAILABLE, result.status());
-        assertFalse(workspace.openedRight);
+        assertFalse(workspace.openedInSourceStack);
         assertEquals(null, workspace.focused);
     }
 
@@ -229,7 +312,7 @@ class SFMSymbolDefinitionPaletteTests {
 
         assertEquals(SFMDefinitionNavigation.Status.UNAVAILABLE, result.status());
         assertTrue(result.message().contains("no SHA-256 witness"));
-        assertFalse(workspace.openedRight);
+        assertFalse(workspace.openedInSourceStack);
         assertNull(workspace.focused);
     }
 
@@ -309,6 +392,38 @@ class SFMSymbolDefinitionPaletteTests {
         );
     }
 
+    private static SFMSymbolServerProtocol.ServerHello helloWithJdk() {
+        SFMDefinitionRequest.SourceRoot main = new SFMDefinitionRequest.SourceRoot(
+                "main", "main", "src", "declared", true);
+        SFMDefinitionRequest.SourceRoot jdk = new SFMDefinitionRequest.SourceRoot(
+                "jdk-java-17-abc123", "jdk:java-17", "jdk/java-17/abc123", "jdk", true);
+        SFMDefinitionRequest.Workspace workspace = new SFMDefinitionRequest.Workspace(
+                "1.19.2", SFMDefinitionRequest.ClasspathMode.BRANCH, List.of(main, jdk),
+                "blake3:classpath", Optional.empty(),
+                "blake3:" + "0".repeat(64), 1);
+        return new SFMSymbolServerProtocol.ServerHello(
+                SFMSymbolServerProtocol.PROTOCOL_SCHEMA,
+                "sfm-symbol-server", "1", Set.copyOf(SFMSymbolServerProtocol.CLIENT_CAPABILITIES),
+                1024 * 1024, 8,
+                new SFMSymbolServerProtocol.WorkspaceMetadata(
+                        workspace,
+                        List.of(
+                                new SFMSymbolServerProtocol.SourceRootMapping(
+                                        "D:\\workspace\\src", "main", "main", "src"),
+                                new SFMSymbolServerProtocol.SourceRootMapping(
+                                        "D:\\cache\\jdk\\tree", "jdk-java-17-abc123",
+                                        "jdk:java-17", "jdk/java-17/abc123")
+                        ),
+                        List.of(),
+                        List.of(new SFMSymbolServerProtocol.ManagedSourceRootMapping(
+                                "jdk-source", "jdk-source", "jdk/java-17/abc123",
+                                "D:\\cache\\jdk\\tree", "jdk-java-17-abc123", "jdk:java-17",
+                                Optional.of("jdk/java-17/abc123"), Optional.empty()))
+                ),
+                "{}"
+        );
+    }
+
     private static SFMTextDocumentSnapshot snapshot(String text, SFMPath path, SFMPath root) {
         String sha256 = SFMTextDocumentSnapshot.literal(text).sha256().orElseThrow();
         return new SFMTextDocumentSnapshot(
@@ -332,12 +447,24 @@ class SFMSymbolDefinitionPaletteTests {
     private static final class TrackingWorkspace implements SFMDefinitionNavigation.Workspace {
         private final SFMWorkspacePanelId targetPanelId;
         private final SFMScreenPanel targetPanel;
-        private boolean openedRight;
+        private boolean openedInSourceStack;
+        private SFMWorkspacePanelId openedIntoSourcePanelId;
         private SFMWorkspacePanelId focused;
+        private final boolean allowManagedRoot;
+        private boolean managedRootAuthorized;
 
         private TrackingWorkspace(SFMWorkspacePanelId targetPanelId, SFMScreenPanel targetPanel) {
+            this(targetPanelId, targetPanel, false);
+        }
+
+        private TrackingWorkspace(
+                SFMWorkspacePanelId targetPanelId,
+                SFMScreenPanel targetPanel,
+                boolean allowManagedRoot
+        ) {
             this.targetPanelId = targetPanelId;
             this.targetPanel = targetPanel;
+            this.allowManagedRoot = allowManagedRoot;
         }
 
         @Override public List<SFMWorkspacePanelId> panelIds() {
@@ -345,15 +472,20 @@ class SFMSymbolDefinitionPaletteTests {
         }
         @Override public SFMScreenPanel panel(SFMWorkspacePanelId panelId) { return targetPanel; }
         @Override public boolean focus(SFMWorkspacePanelId panelId) { focused = panelId; return true; }
-        @Override public SFMWorkspacePanelIntentResult openRight(
+        @Override public SFMWorkspacePanelIntentResult openInSourceStack(
                 SFMWorkspacePanelId sourcePanelId,
                 SFMScreenPanel panel,
                 SFMPanelReopenRecipe recipe
         ) {
-            openedRight = true;
+            openedInSourceStack = true;
+            openedIntoSourcePanelId = sourcePanelId;
             return SFMWorkspacePanelIntentResult.APPLIED;
         }
         @Override public SFMWorkspacePanelId focusedPanelId() { return new SFMWorkspacePanelId(9); }
+        @Override public boolean authorizeManagedReadRoot(SFMPath root) {
+            managedRootAuthorized = true;
+            return allowManagedRoot;
+        }
     }
 
     private static final class TrackingDocumentPanel implements SFMScreenPanel, SFMTextDocumentPanelState {

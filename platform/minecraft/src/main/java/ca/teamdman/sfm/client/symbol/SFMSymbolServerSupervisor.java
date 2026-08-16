@@ -135,6 +135,18 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         }
     }
 
+    public record UsageSubmission(
+            SFMUsageAtPositionRequest request,
+            CompletableFuture<SFMUsageAtPositionResult> result,
+            Runnable cancellation
+    ) {
+        public UsageSubmission {
+            Objects.requireNonNull(request, "request");
+            Objects.requireNonNull(result, "result");
+            Objects.requireNonNull(cancellation, "cancellation");
+        }
+    }
+
     /** Content-free bounded evidence suitable for logs and diagnostics. */
     public record Telemetry(
             Lifecycle lifecycle,
@@ -206,7 +218,7 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
     private final AtomicLong restarts = new AtomicLong();
     private final AtomicInteger pendingCount = new AtomicInteger();
     private final AtomicInteger controlCount = new AtomicInteger();
-    private final Map<Long, PendingDefinition> pending = new LinkedHashMap<>();
+    private final Map<Long, PendingRequest<?>> pending = new LinkedHashMap<>();
     private final Map<Long, PendingPing> pings = new LinkedHashMap<>();
     private final Map<Long, CompletableFuture<Long>> workspaceUpdates = new LinkedHashMap<>();
     private final List<CompletableFuture<SFMSymbolServerProtocol.ServerHello>> readiness = new ArrayList<>();
@@ -302,8 +314,33 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
                 ), result);
             }
         };
-        executeState(() -> accept(request, result, timeout, cancellationRequested), result);
+        executeState(() -> accept(
+                new PendingDefinition(request, result), timeout, cancellationRequested), result);
         return new Submission(request, result, cancellationAction);
+    }
+
+    public UsageSubmission submit(SFMUsageAtPositionRequest request) {
+        return submit(request, configuration.requestTimeout());
+    }
+
+    public UsageSubmission submit(SFMUsageAtPositionRequest request, Duration timeout) {
+        Objects.requireNonNull(request, "request");
+        positive(timeout, "timeout");
+        CompletableFuture<SFMUsageAtPositionResult> result = new CompletableFuture<>();
+        AtomicBoolean cancellationRequested = new AtomicBoolean();
+        Runnable cancellationAction = () -> {
+            if (cancellationRequested.compareAndSet(false, true)) {
+                executeState(() -> cancelPending(
+                        request.requestId(),
+                        request.requestGeneration(),
+                        new CancellationException("Usage-at-position request cancelled"),
+                        CancellationKind.EXPLICIT
+                ), result);
+            }
+        };
+        executeState(() -> accept(
+                new PendingUsage(request, result), timeout, cancellationRequested), result);
+        return new UsageSubmission(request, result, cancellationAction);
     }
 
     /** Start lazily and complete asynchronously after the validated hello. */
@@ -330,48 +367,47 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
     }
 
     private void accept(
-            SFMDefinitionRequest request,
-            CompletableFuture<SFMDefinitionResult> result,
+            PendingRequest<?> value,
             Duration timeout,
             AtomicBoolean cancellationRequested
     ) {
+        CompletableFuture<?> result = value.result();
         if (closing.get()) {
             result.completeExceptionally(new WorkerUnavailableException("Symbol worker is closed"));
             return;
         }
         if (cancellationRequested.get() || result.isCancelled()) return;
-        if (request.requestId() <= 0) {
+        if (value.requestId() <= 0) {
             result.completeExceptionally(new IllegalArgumentException("Worker request id must be positive"));
             return;
         }
-        if (!request.workspace().branch().equals(configuration.branch())) {
+        if (!value.workspace().branch().equals(configuration.branch())) {
             result.completeExceptionally(new IllegalArgumentException(
-                    "Definition request branch does not match the supervised worker"
+                    "Symbol request branch does not match the supervised worker"
             ));
             return;
         }
-        if (pending.containsKey(request.requestId())) {
-            result.completeExceptionally(new IllegalArgumentException("Duplicate pending definition request id"));
+        if (pending.containsKey(value.requestId())) {
+            result.completeExceptionally(new IllegalArgumentException("Duplicate pending symbol request id"));
             return;
         }
         if (pending.size() >= configuration.maximumPendingDefinitions()) {
-            result.completeExceptionally(new CapacityException("Local definition pending limit is reached"));
+            result.completeExceptionally(new CapacityException("Local symbol-request pending limit is reached"));
             return;
         }
-        PendingDefinition value = new PendingDefinition(request, result);
-        pending.put(request.requestId(), value);
+        pending.put(value.requestId(), value);
         pendingCount.set(pending.size());
         submitted.incrementAndGet();
         SFM.LOGGER.info(
-                "SFM_SYMBOL_REQUEST_ACCEPTED request={} generation={} workspace_generation={} timeout_ms={}",
-                request.requestId(), request.requestGeneration(),
-                request.workspace().workspaceGeneration(), timeout.toMillis()
+                "SFM_SYMBOL_REQUEST_ACCEPTED request={} kind={} generation={} workspace_generation={} timeout_ms={}",
+                value.requestId(), value.kind(), value.requestGeneration(),
+                value.workspaceGeneration(), timeout.toMillis()
         );
         value.timeout = schedule(() -> executeState(
                 () -> cancelPending(
-                        request.requestId(),
-                        request.requestGeneration(),
-                        new TimeoutException("Definition request timed out"),
+                        value.requestId(),
+                        value.requestGeneration(),
+                        new TimeoutException("Symbol request timed out"),
                         CancellationKind.TIMEOUT
                 ),
                 result
@@ -477,6 +513,12 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
             completeCancelled(definition);
         } else if (frame instanceof SFMSymbolServerProtocol.DefinitionFailedFrame definition) {
             completeFailed(definition);
+        } else if (frame instanceof SFMSymbolServerProtocol.UsageAtPositionResultFrame usage) {
+            completeUsage(usage.result());
+        } else if (frame instanceof SFMSymbolServerProtocol.UsageAtPositionCancelledFrame usage) {
+            completeUsageCancelled(usage);
+        } else if (frame instanceof SFMSymbolServerProtocol.UsageAtPositionFailedFrame usage) {
+            completeUsageFailed(usage);
         } else if (frame instanceof SFMSymbolServerProtocol.CancelledFrame) {
             // Cancellation acknowledgements are intentionally not retained.
         } else if (frame instanceof SFMSymbolServerProtocol.WorkspaceGenerationFrame update) {
@@ -527,18 +569,18 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         SessionState current = session;
         if (current == null || current.phase != Lifecycle.READY) return;
         int sent = (int) pending.values().stream().filter(value -> value.sentEpoch == current.epoch).count();
-        List<PendingDefinition> snapshot = new ArrayList<>(pending.values());
-        for (PendingDefinition value : snapshot) {
+        List<PendingRequest<?>> snapshot = new ArrayList<>(pending.values());
+        for (PendingRequest<?> value : snapshot) {
             if (value.sentEpoch != 0) continue;
             if (current.requestedWorkspaceGeneration >= 0) return;
             if (sent >= current.maximumPendingDefinitions) {
-                removeAndFail(value, new CapacityException("Worker definition pending limit is reached"));
+                removeAndFail(value, new CapacityException("Worker symbol-request pending limit is reached"));
                 continue;
             }
-            long requestedGeneration = value.request.workspace().workspaceGeneration();
+            long requestedGeneration = value.workspaceGeneration();
             if (requestedGeneration < current.workspaceGeneration) {
                 removeAndFail(value, new WorkerUnavailableException(
-                        "Definition request has a stale workspace generation"));
+                        "Symbol request has a stale workspace generation"));
                 continue;
             }
             if (requestedGeneration > current.workspaceGeneration) {
@@ -547,20 +589,20 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
             }
             SFMSymbolServerProtocol.ServerHello currentHello = hello.orElse(null);
             if (currentHello == null
-                    || !value.request.workspace().equals(currentHello.workspace().workspace())) {
+                    || !value.workspace().equals(currentHello.workspace().workspace())) {
                 removeAndFail(value, new ProtocolMismatchException(
-                        "Definition request workspace does not match the worker handshake"));
+                        "Symbol request workspace does not match the worker handshake"));
                 continue;
             }
             try {
-                write(current, SFMSymbolServerProtocol.definition(value.request));
+                write(current, value.encodedFrame());
                 value.sentEpoch = current.epoch;
                 sent++;
-                SFM.LOGGER.info("SFM_SYMBOL_REQUEST_SENT request={} epoch={}",
-                        value.request.requestId(), current.epoch);
+                SFM.LOGGER.info("SFM_SYMBOL_REQUEST_SENT request={} kind={} epoch={}",
+                        value.requestId(), value.kind(), current.epoch);
             } catch (IOException failure) {
                 failSession(current, new WorkerUnavailableException(
-                        "Unable to write a definition request", failure), FailureKind.TRANSPORT);
+                        "Unable to write a symbol request", failure), FailureKind.TRANSPORT);
                 return;
             }
         }
@@ -579,20 +621,20 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
             return false;
         }
         current.requestedWorkspaceGeneration = generation;
-        List<PendingDefinition> stale = pending.values().stream()
+        List<PendingRequest<?>> stale = pending.values().stream()
                 .filter(value -> value.sentEpoch == current.epoch)
-                .filter(value -> value.request.workspace().workspaceGeneration() < generation)
+                .filter(value -> value.workspaceGeneration() < generation)
                 .toList();
-        for (PendingDefinition value : stale) {
+        for (PendingRequest<?> value : stale) {
             removeAndFail(value, new CancellationException(
-                    "Definition request superseded by workspace generation"));
+                    "Symbol request superseded by workspace generation"));
         }
         return true;
     }
 
     private void completeDefinition(SFMDefinitionResult result) {
-        PendingDefinition value = pending.get(result.requestId());
-        if (value == null) {
+        PendingRequest<?> pendingValue = pending.get(result.requestId());
+        if (!(pendingValue instanceof PendingDefinition value)) {
             lateResponses.incrementAndGet();
             return;
         }
@@ -609,9 +651,28 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         flushPending();
     }
 
+    private void completeUsage(SFMUsageAtPositionResult result) {
+        PendingRequest<?> pendingValue = pending.get(result.requestId());
+        if (!(pendingValue instanceof PendingUsage value)) {
+            lateResponses.incrementAndGet();
+            return;
+        }
+        if (!result.matches(value.request)) {
+            failSession(session, new ProtocolMismatchException("Usage-at-position response identity mismatch"),
+                    FailureKind.PROTOCOL);
+            return;
+        }
+        removePending(value);
+        completed.incrementAndGet();
+        SFM.LOGGER.info("SFM_SYMBOL_REQUEST_COMPLETED request={} kind=usage-at-position outcome={}",
+                result.requestId(), result.outcome());
+        value.result.complete(result);
+        flushPending();
+    }
+
     private void completeCancelled(SFMSymbolServerProtocol.DefinitionCancelledFrame frame) {
-        PendingDefinition value = pending.get(frame.requestId());
-        if (value == null) {
+        PendingRequest<?> pendingValue = pending.get(frame.requestId());
+        if (!(pendingValue instanceof PendingDefinition value)) {
             lateResponses.incrementAndGet();
             return;
         }
@@ -627,13 +688,49 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
     }
 
     private void completeFailed(SFMSymbolServerProtocol.DefinitionFailedFrame frame) {
-        PendingDefinition value = pending.get(frame.requestId());
-        if (value == null) {
+        PendingRequest<?> pendingValue = pending.get(frame.requestId());
+        if (!(pendingValue instanceof PendingDefinition value)) {
             lateResponses.incrementAndGet();
             return;
         }
         if (!matches(value.request, frame.requestId(), frame.requestGeneration(), frame.workspaceGeneration())) {
             failSession(session, new ProtocolMismatchException("Failure response identity mismatch"),
+                    FailureKind.PROTOCOL);
+            return;
+        }
+        removePending(value);
+        remoteFailures.incrementAndGet();
+        value.result.completeExceptionally(new RemoteDefinitionException(
+                frame.code(), frame.message(), frame.retryable()
+        ));
+        flushPending();
+    }
+
+    private void completeUsageCancelled(SFMSymbolServerProtocol.UsageAtPositionCancelledFrame frame) {
+        PendingRequest<?> pendingValue = pending.get(frame.requestId());
+        if (!(pendingValue instanceof PendingUsage value)) {
+            lateResponses.incrementAndGet();
+            return;
+        }
+        if (!matches(value.request, frame.requestId(), frame.requestGeneration(), frame.workspaceGeneration())) {
+            failSession(session, new ProtocolMismatchException("Usage cancellation response identity mismatch"),
+                    FailureKind.PROTOCOL);
+            return;
+        }
+        removePending(value);
+        cancelled.incrementAndGet();
+        value.result.completeExceptionally(new CancellationException("Usage-at-position cancelled by worker"));
+        flushPending();
+    }
+
+    private void completeUsageFailed(SFMSymbolServerProtocol.UsageAtPositionFailedFrame frame) {
+        PendingRequest<?> pendingValue = pending.get(frame.requestId());
+        if (!(pendingValue instanceof PendingUsage value)) {
+            lateResponses.incrementAndGet();
+            return;
+        }
+        if (!matches(value.request, frame.requestId(), frame.requestGeneration(), frame.workspaceGeneration())) {
+            failSession(session, new ProtocolMismatchException("Usage failure response identity mismatch"),
                     FailureKind.PROTOCOL);
             return;
         }
@@ -810,12 +907,12 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
             return;
         }
         if (error.requestId().isPresent()) {
-            PendingDefinition value = pending.get(error.requestId().orElseThrow());
-            if (value != null && error.requestGeneration().orElse(value.request.requestGeneration())
-                    == value.request.requestGeneration()) {
+            PendingRequest<?> value = pending.get(error.requestId().orElseThrow());
+            if (value != null && error.requestGeneration().orElse(value.requestGeneration())
+                    == value.requestGeneration()) {
                 removePending(value);
                 remoteFailures.incrementAndGet();
-                value.result.completeExceptionally(new RemoteDefinitionException(
+                value.fail(new RemoteDefinitionException(
                         error.code(), error.message(), false
                 ));
                 return;
@@ -830,8 +927,8 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
             Throwable reason,
             CancellationKind kind
     ) {
-        PendingDefinition value = pending.get(requestId);
-        if (value == null || value.request.requestGeneration() != requestGeneration) return;
+        PendingRequest<?> value = pending.get(requestId);
+        if (value == null || value.requestGeneration() != requestGeneration) return;
         removePending(value);
         if (kind == CancellationKind.TIMEOUT) timedOut.incrementAndGet();
         else cancelled.incrementAndGet();
@@ -840,13 +937,13 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         if (value.sentEpoch != 0 && current != null && current.epoch == value.sentEpoch
                 && current.phase == Lifecycle.READY) {
             try {
-                write(current, SFMSymbolServerProtocol.cancel(value.request, kind.wireReason));
+                write(current, value.cancelFrame(kind.wireReason));
             } catch (IOException failure) {
                 failSession(current, new WorkerUnavailableException(
-                        "Unable to write definition cancellation", failure), FailureKind.TRANSPORT);
+                        "Unable to write symbol-request cancellation", failure), FailureKind.TRANSPORT);
             }
         }
-        value.result.completeExceptionally(reason);
+        value.fail(reason);
         flushPending();
     }
 
@@ -903,12 +1000,12 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
     }
 
     private void failAllPending(Throwable failure) {
-        List<PendingDefinition> values = List.copyOf(pending.values());
+        List<PendingRequest<?>> values = List.copyOf(pending.values());
         pending.clear();
         pendingCount.set(0);
-        for (PendingDefinition value : values) {
+        for (PendingRequest<?> value : values) {
             cancelTimer(value.timeout);
-            value.result.completeExceptionally(failure);
+            value.fail(failure);
         }
     }
 
@@ -932,13 +1029,13 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         controlCount.set(pings.size() + workspaceUpdates.size() + readiness.size());
     }
 
-    private void removeAndFail(PendingDefinition value, Throwable failure) {
+    private void removeAndFail(PendingRequest<?> value, Throwable failure) {
         removePending(value);
-        value.result.completeExceptionally(failure);
+        value.fail(failure);
     }
 
-    private void removePending(PendingDefinition value) {
-        if (!pending.remove(value.request.requestId(), value)) return;
+    private void removePending(PendingRequest<?> value) {
+        if (!pending.remove(value.requestId(), value)) return;
         cancelTimer(value.timeout);
         pendingCount.set(pending.size());
     }
@@ -1032,6 +1129,17 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
                 && request.workspace().workspaceGeneration() == workspaceGeneration;
     }
 
+    private static boolean matches(
+            SFMUsageAtPositionRequest request,
+            long requestId,
+            long requestGeneration,
+            long workspaceGeneration
+    ) {
+        return request.requestId() == requestId
+                && request.requestGeneration() == requestGeneration
+                && request.workspace().workspaceGeneration() == workspaceGeneration;
+    }
+
     private static void cancelTimer(ScheduledFuture<?> future) {
         if (future != null) future.cancel(false);
     }
@@ -1086,19 +1194,71 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         CancellationKind(String wireReason) { this.wireReason = wireReason; }
     }
 
-    private static final class PendingDefinition {
+    private abstract static sealed class PendingRequest<T>
+            permits PendingDefinition, PendingUsage {
+        protected final CompletableFuture<T> result;
+        protected long sentEpoch;
+        protected ScheduledFuture<?> timeout;
+
+        private PendingRequest(CompletableFuture<T> result) {
+            this.result = Objects.requireNonNull(result, "result");
+        }
+
+        abstract long requestId();
+        abstract long requestGeneration();
+        abstract long workspaceGeneration();
+        abstract SFMDefinitionRequest.Workspace workspace();
+        abstract String encodedFrame();
+        abstract String cancelFrame(String reason);
+        abstract String kind();
+
+        CompletableFuture<T> result() {
+            return result;
+        }
+
+        void fail(Throwable failure) {
+            result.completeExceptionally(failure);
+        }
+    }
+
+    private static final class PendingDefinition extends PendingRequest<SFMDefinitionResult> {
         private final SFMDefinitionRequest request;
-        private final CompletableFuture<SFMDefinitionResult> result;
-        private long sentEpoch;
-        private ScheduledFuture<?> timeout;
 
         private PendingDefinition(
                 SFMDefinitionRequest request,
                 CompletableFuture<SFMDefinitionResult> result
         ) {
-            this.request = request;
-            this.result = result;
+            super(result);
+            this.request = Objects.requireNonNull(request, "request");
         }
+
+        @Override long requestId() { return request.requestId(); }
+        @Override long requestGeneration() { return request.requestGeneration(); }
+        @Override long workspaceGeneration() { return request.workspace().workspaceGeneration(); }
+        @Override SFMDefinitionRequest.Workspace workspace() { return request.workspace(); }
+        @Override String encodedFrame() { return SFMSymbolServerProtocol.definition(request); }
+        @Override String cancelFrame(String reason) { return SFMSymbolServerProtocol.cancel(request, reason); }
+        @Override String kind() { return "definition-at-position"; }
+    }
+
+    private static final class PendingUsage extends PendingRequest<SFMUsageAtPositionResult> {
+        private final SFMUsageAtPositionRequest request;
+
+        private PendingUsage(
+                SFMUsageAtPositionRequest request,
+                CompletableFuture<SFMUsageAtPositionResult> result
+        ) {
+            super(result);
+            this.request = Objects.requireNonNull(request, "request");
+        }
+
+        @Override long requestId() { return request.requestId(); }
+        @Override long requestGeneration() { return request.requestGeneration(); }
+        @Override long workspaceGeneration() { return request.workspace().workspaceGeneration(); }
+        @Override SFMDefinitionRequest.Workspace workspace() { return request.workspace(); }
+        @Override String encodedFrame() { return SFMSymbolServerProtocol.usageAtPosition(request); }
+        @Override String cancelFrame(String reason) { return SFMSymbolServerProtocol.cancel(request, reason); }
+        @Override String kind() { return "usage-at-position"; }
     }
 
     private static final class PendingPing {

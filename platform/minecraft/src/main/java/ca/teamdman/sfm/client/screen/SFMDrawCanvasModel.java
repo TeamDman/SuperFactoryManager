@@ -1,15 +1,24 @@
 package ca.teamdman.sfm.client.screen;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 public class SFMDrawCanvasModel {
     public static final int PRIMARY_CURSOR_COLOR = 0xFFE6EDF3;
     public static final int SECONDARY_CURSOR_COLOR = 0xFF7DD3FC;
 
-    private final List<CanvasGlyph> glyphs = new ArrayList<>();
+    private final GlyphList glyphs = new GlyphList();
     private List<CanvasCursor> cursors = new ArrayList<>();
     private int focusedCursorIndex;
+    private long contentRevision;
+    private CachedDocumentIndex cachedDocumentIndex;
+    private long documentIndexBuildCount;
+    private long lastDocumentIndexBuildNanos;
 
     public SFMDrawCanvasModel() {
         ensureCursors();
@@ -17,6 +26,40 @@ public class SFMDrawCanvasModel {
 
     public List<CanvasGlyph> glyphs() {
         return glyphs;
+    }
+
+    public long contentRevision() {
+        return contentRevision;
+    }
+
+    public SFMDrawCanvasDocumentIndex documentIndex(int spaceWidth, int lineHeight) {
+        int safeSpaceWidth = Math.max(1, spaceWidth);
+        int safeLineHeight = Math.max(1, lineHeight);
+        CachedDocumentIndex cached = cachedDocumentIndex;
+        if (cached == null
+                || cached.contentRevision() != contentRevision
+                || cached.spaceWidth() != safeSpaceWidth
+                || cached.lineHeight() != safeLineHeight) {
+            long started = System.nanoTime();
+            cached = new CachedDocumentIndex(
+                    contentRevision,
+                    safeSpaceWidth,
+                    safeLineHeight,
+                    SFMDrawCanvasDocumentIndex.build(glyphs, safeSpaceWidth, safeLineHeight)
+            );
+            cachedDocumentIndex = cached;
+            lastDocumentIndexBuildNanos = Math.max(0L, System.nanoTime() - started);
+            documentIndexBuildCount++;
+        }
+        return cached.index();
+    }
+
+    public long documentIndexBuildCount() {
+        return documentIndexBuildCount;
+    }
+
+    public long lastDocumentIndexBuildNanos() {
+        return lastDocumentIndexBuildNanos;
     }
 
     public List<CanvasCursor> cursors() {
@@ -245,6 +288,43 @@ public class SFMDrawCanvasModel {
         }
     }
 
+    /** Linear cold-load path used when replacing the complete document. */
+    public void replaceText(
+            String text,
+            GlyphWidthReader glyphWidthReader,
+            int lineHeight
+    ) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(glyphWidthReader, "glyphWidthReader");
+        int safeLineHeight = Math.max(1, lineHeight);
+        glyphs.beginBulkChange();
+        try {
+            glyphs.clear();
+            glyphs.ensureCapacity(text.codePointCount(0, text.length()));
+            double x = 0.0D;
+            double y = 0.0D;
+            for (int offset = 0; offset < text.length(); ) {
+                int codePoint = text.codePointAt(offset);
+                offset += Character.charCount(codePoint);
+                if (codePoint == '\r') continue;
+                if (codePoint == '\n') {
+                    x = 0.0D;
+                    y += safeLineHeight;
+                    continue;
+                }
+                String glyphText = new String(Character.toChars(codePoint));
+                int width = glyphWidthReader.width(glyphText);
+                if (!" ".equals(glyphText)) glyphs.add(new CanvasGlyph(glyphText, x, y, width));
+                x += width;
+            }
+            cursors = new ArrayList<>();
+            cursors.add(new CanvasCursor(x, y, PRIMARY_CURSOR_COLOR, true));
+            focusedCursorIndex = 0;
+        } finally {
+            glyphs.endBulkChange();
+        }
+    }
+
     public void pasteText(
             String text,
             GlyphWidthReader glyphWidthReader,
@@ -282,9 +362,7 @@ public class SFMDrawCanvasModel {
             int spaceWidth,
             int lineHeight
     ) {
-        return SFMDrawCanvasSyntaxHighlightingHelper
-                .projectCanvasDocument(glyphs, spaceWidth, lineHeight)
-                .text();
+        return documentIndex(spaceWidth, lineHeight).projection().text();
     }
 
     public void backspace() {
@@ -1704,6 +1782,14 @@ public class SFMDrawCanvasModel {
     ) {
     }
 
+    private record CachedDocumentIndex(
+            long contentRevision,
+            int spaceWidth,
+            int lineHeight,
+            SFMDrawCanvasDocumentIndex index
+    ) {
+    }
+
     private record CursorTarget(
             CanvasCursor cursor,
             CanvasGlyph target
@@ -1807,5 +1893,124 @@ public class SFMDrawCanvasModel {
 
     public interface GlyphWidthReader {
         int width(String text);
+    }
+
+    /** ArrayList-compatible legacy surface that also invalidates derived state. */
+    private final class GlyphList extends ArrayList<CanvasGlyph> {
+        private int bulkDepth;
+        private boolean bulkChanged;
+
+        private void beginBulkChange() {
+            bulkDepth++;
+        }
+
+        private void endBulkChange() {
+            if (bulkDepth <= 0) throw new IllegalStateException("Unbalanced glyph bulk change");
+            bulkDepth--;
+            if (bulkDepth == 0 && bulkChanged) {
+                bulkChanged = false;
+                markContentChanged();
+            }
+        }
+
+        private void changed() {
+            if (bulkDepth > 0) bulkChanged = true;
+            else markContentChanged();
+        }
+
+        @Override
+        public boolean add(CanvasGlyph glyph) {
+            boolean changed = super.add(glyph);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public void add(int index, CanvasGlyph element) {
+            super.add(index, element);
+            changed();
+        }
+
+        @Override
+        public boolean addAll(Collection<? extends CanvasGlyph> values) {
+            boolean changed = super.addAll(values);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public boolean addAll(int index, Collection<? extends CanvasGlyph> values) {
+            boolean changed = super.addAll(index, values);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public CanvasGlyph remove(int index) {
+            CanvasGlyph removed = super.remove(index);
+            changed();
+            return removed;
+        }
+
+        @Override
+        public boolean remove(Object value) {
+            boolean changed = super.remove(value);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public boolean removeAll(Collection<?> values) {
+            boolean changed = super.removeAll(values);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public boolean retainAll(Collection<?> values) {
+            boolean changed = super.retainAll(values);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public boolean removeIf(Predicate<? super CanvasGlyph> filter) {
+            boolean changed = super.removeIf(filter);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public void clear() {
+            if (isEmpty()) return;
+            super.clear();
+            changed();
+        }
+
+        @Override
+        public CanvasGlyph set(int index, CanvasGlyph element) {
+            CanvasGlyph previous = super.set(index, element);
+            if (previous != element) changed();
+            return previous;
+        }
+
+        @Override
+        public void replaceAll(UnaryOperator<CanvasGlyph> operator) {
+            if (isEmpty()) return;
+            super.replaceAll(operator);
+            changed();
+        }
+
+        @Override
+        public void sort(Comparator<? super CanvasGlyph> comparator) {
+            if (size() <= 1) return;
+            super.sort(comparator);
+            changed();
+        }
+    }
+
+    private void markContentChanged() {
+        contentRevision = contentRevision == Long.MAX_VALUE ? contentRevision : contentRevision + 1;
+        cachedDocumentIndex = null;
     }
 }

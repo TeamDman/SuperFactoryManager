@@ -24,7 +24,8 @@ public record SFMDefinitionResult(
 ) {
     public static final String SCHEMA = "sfm.definition-at-position-result/3";
     private static final Set<String> SYMBOL_KINDS = Set.of(
-            "class", "interface", "enum", "record", "annotation", "field", "method", "constructor"
+            "class", "interface", "enum", "record", "annotation", "field", "method", "constructor",
+            "local-variable", "parameter"
     );
     private static final Set<String> RESOLUTION_CONFIDENCES = Set.of(
             "resolved", "partially-resolved", "unresolved"

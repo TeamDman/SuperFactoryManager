@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.explorer.lazy;
 
 import ca.teamdman.sfm.client.explorer.SFMChildRelationRepository;
 import ca.teamdman.sfm.client.explorer.SFMPath;
+import ca.teamdman.sfm.client.search.SFMFuzzyScorer;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,16 +50,40 @@ public final class SFMExplorerProjection {
         SHOW_ROOTS
     }
 
-    public record Settings(View view, Sort sort, Group group, Hoist hoist) {
+    public enum PathDisplay {
+        NAME,
+        RELATIVE_PATH,
+        ABSOLUTE_PATH
+    }
+
+    public record Settings(
+            View view,
+            Sort sort,
+            Group group,
+            Hoist hoist,
+            PathDisplay pathDisplay,
+            String filterQuery
+    ) {
         public Settings {
             Objects.requireNonNull(view, "view");
             Objects.requireNonNull(sort, "sort");
             Objects.requireNonNull(group, "group");
             Objects.requireNonNull(hoist, "hoist");
+            Objects.requireNonNull(pathDisplay, "pathDisplay");
+            filterQuery = Objects.requireNonNull(filterQuery, "filterQuery").strip();
+        }
+
+        /** Source-compatible constructor for the projection axes that predate X-8b. */
+        public Settings(View view, Sort sort, Group group, Hoist hoist) {
+            this(view, sort, group, hoist, PathDisplay.NAME, "");
         }
 
         public static Settings defaults() {
-            return new Settings(View.LIST, Sort.NAME, Group.HIERARCHY, Hoist.AUTO);
+            return new Settings(View.LIST, Sort.NAME, Group.HIERARCHY, Hoist.AUTO, PathDisplay.NAME, "");
+        }
+
+        public boolean filterActive() {
+            return !filterQuery.isEmpty();
         }
     }
 
@@ -85,7 +110,8 @@ public final class SFMExplorerProjection {
             Settings settings,
             long relationRevision,
             List<Row> rows,
-            List<String> diagnostics
+            List<String> diagnostics,
+            FilterEvidence filter
     ) {
         public Result {
             Objects.requireNonNull(settings, "settings");
@@ -94,6 +120,26 @@ public final class SFMExplorerProjection {
             }
             rows = List.copyOf(rows);
             diagnostics = List.copyOf(diagnostics);
+            Objects.requireNonNull(filter, "filter");
+        }
+    }
+
+    /** Evidence that filtering remained local to the currently published lazy relation. */
+    public record FilterEvidence(
+            String query,
+            int candidateCount,
+            int matchCount,
+            boolean incompleteMaterialization
+    ) {
+        public FilterEvidence {
+            query = Objects.requireNonNull(query, "query");
+            if (candidateCount < 0 || matchCount < 0 || matchCount > candidateCount) {
+                throw new IllegalArgumentException("Invalid explorer filter counts");
+            }
+        }
+
+        public boolean active() {
+            return !query.isEmpty();
         }
     }
 
@@ -134,17 +180,86 @@ public final class SFMExplorerProjection {
             boolean showRoots = session.settings().hoist() == Hoist.SHOW_ROOTS
                     || roots.size() != 1
                     || !rootHasPublishedPage(roots.get(0));
-            if (session.settings().group() == Group.NONE) {
+            FilterEvidence filter;
+            if (session.settings().filterActive()) {
+                filter = projectFilteredMaterialization(roots, showRoots);
+            } else if (session.settings().group() == Group.NONE) {
                 projectFlat(roots, showRoots);
+                filter = new FilterEvidence("", rows.size(), rows.size(), false);
             } else {
                 projectHierarchy(roots, showRoots);
+                filter = new FilterEvidence("", rows.size(), rows.size(), false);
             }
             return new Result(
                     session.settings(),
                     relations.relation().id(),
                     rows,
-                    diagnostics
+                    diagnostics,
+                    filter
             );
+        }
+
+        /**
+         * Filtering is a flat ranking over already-published relation rows.
+         * It deliberately ignores expansion for candidate discovery and never
+         * asks a resolver for more children.
+         */
+        private FilterEvidence projectFilteredMaterialization(List<SFMPath> roots, boolean showRoots) {
+            HashSet<SFMPath> visited = new HashSet<>();
+            HashSet<SFMPath> ancestry = new HashSet<>();
+            for (SFMPath root : roots) {
+                boolean newRoot = visited.add(root);
+                if (showRoots && newRoot) addRow(root, 0, true);
+                addMaterializedChildren(root, showRoots ? 1 : 0, visited, ancestry);
+            }
+            ArrayList<RowMatch> matches = new ArrayList<>();
+            String query = session.settings().filterQuery();
+            for (Row row : rows) {
+                float score = Math.min(
+                        SFMFuzzyScorer.score(query, row.entry().label()),
+                        SFMFuzzyScorer.score(query, row.path().canonical())
+                );
+                if (score <= SFMFuzzyScorer.DEFAULT_THRESHOLD) matches.add(new RowMatch(row, score));
+            }
+            int candidates = rows.size();
+            matches.sort(Comparator
+                    .comparingDouble(RowMatch::score)
+                    .thenComparing(match -> match.row().path().canonical()));
+            rows.clear();
+            matches.stream().map(RowMatch::row).forEach(rows::add);
+            return new FilterEvidence(query, candidates, rows.size(), materializationIsIncomplete(visited));
+        }
+
+        private void addMaterializedChildren(
+                SFMPath parent,
+                int depth,
+                Set<SFMPath> visited,
+                Set<SFMPath> ancestry
+        ) {
+            if (!ancestry.add(parent)) {
+                diagnostics.add("cycle suppressed below " + parent.canonical());
+                return;
+            }
+            for (SFMPath child : sorted(relations.relation().childrenOf(parent))) {
+                if (visited.add(child)) {
+                    addRow(child, depth, false);
+                    addMaterializedChildren(child, depth + 1, visited, ancestry);
+                }
+            }
+            ancestry.remove(parent);
+        }
+
+        private boolean materializationIsIncomplete(Set<SFMPath> candidates) {
+            for (SFMPath path : candidates) {
+                SFMExplorerEntry entry = entry(path);
+                if (!entry.expandable()) continue;
+                SFMChildRelationRepository.PageState state = relations.pageStates().get(path);
+                if (state == null
+                        || state.materialization()
+                        != SFMChildRelationRepository.PageState.Materialization.MATERIALIZED
+                        || state.continuation().isPresent()) return true;
+            }
+            return false;
         }
 
         /** Keep an unmaterialized single root visible so it still has an expandable control. */
@@ -262,6 +377,9 @@ public final class SFMExplorerProjection {
                     : path.segments().get(path.segments().size() - 1);
             if (label.isEmpty()) label = path.canonical();
             return SFMExplorerEntry.simple(path, label, true, Optional.empty());
+        }
+
+        private record RowMatch(Row row, float score) {
         }
     }
 }

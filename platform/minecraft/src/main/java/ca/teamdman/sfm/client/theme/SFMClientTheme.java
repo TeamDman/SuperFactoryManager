@@ -60,7 +60,7 @@ public record SFMClientTheme(
         files.put("unknown", icon("minecraft:paper", "unknown file"));
         files.put("extensionless", icon("minecraft:name_tag", "file without extension"));
         files.put(".sfml", icon("sfm:disk", "SFM program"));
-        files.put(".java", icon("minecraft:book", "Java source"));
+        files.put(".java", icon("minecraft:cocoa_beans", "Java source"));
         files.put(".json", icon("minecraft:map", "JSON document"));
         files.put(".toml", icon("minecraft:comparator", "TOML configuration"));
         return new SFMClientTheme(colours, syntax, files, Map.of());

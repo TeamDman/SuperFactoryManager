@@ -24,15 +24,39 @@ public final class SFMExplorerPanelViewport {
         public boolean contains(double pointX, double pointY) {
             return pointX >= x && pointX < x + width && pointY >= y && pointY < y + height;
         }
+
+        public Rect inset(int pixels) {
+            if (pixels < 0) throw new IllegalArgumentException("Inset must not be negative");
+            int horizontal = Math.min(width, pixels * 2);
+            int vertical = Math.min(height, pixels * 2);
+            return new Rect(
+                    x + Math.min(pixels, width),
+                    y + Math.min(pixels, height),
+                    width - horizontal,
+                    height - vertical
+            );
+        }
     }
 
-    public record Layout(Rect content, Rect header, Rect body, Rect status, Rect locationControl) {
+    public record Layout(
+            Rect content,
+            Rect header,
+            Rect filter,
+            Rect bodyFrame,
+            Rect body,
+            Rect status,
+            Rect locationControl,
+            Rect filterControl
+    ) {
         public Layout {
             Objects.requireNonNull(content, "content");
             Objects.requireNonNull(header, "header");
+            Objects.requireNonNull(filter, "filter");
+            Objects.requireNonNull(bodyFrame, "bodyFrame");
             Objects.requireNonNull(body, "body");
             Objects.requireNonNull(status, "status");
             Objects.requireNonNull(locationControl, "locationControl");
+            Objects.requireNonNull(filterControl, "filterControl");
         }
     }
 
@@ -105,7 +129,7 @@ public final class SFMExplorerPanelViewport {
         Layout layout = layout(bounds);
         int columns = view == SFMExplorerProjection.View.LIST
                 ? 1
-                : Math.max(1, layout.body().width() / SMALL_ICON_MINIMUM_WIDTH);
+                : Math.max(1, layout.bodyFrame().width() / SMALL_ICON_MINIMUM_WIDTH);
         int cellHeight = view == SFMExplorerProjection.View.LIST
                 ? LIST_ROW_HEIGHT
                 : SMALL_ICON_CELL_HEIGHT;
@@ -158,24 +182,29 @@ public final class SFMExplorerPanelViewport {
         );
     }
 
-    private static Layout layout(SFMScreenPanelBounds rawBounds) {
+    public static Layout layout(SFMScreenPanelBounds rawBounds) {
         int margin = rawBounds.width() < 220 || rawBounds.height() < 140 ? 3 : 6;
         SFMScreenPanelBounds inset = rawBounds.inset(margin);
         Rect content = new Rect(inset.x(), inset.y(), inset.width(), inset.height());
         int headerHeight = Math.min(24, content.height());
         int remainingAfterHeader = Math.max(0, content.height() - headerHeight);
-        int statusHeight = Math.min(14, remainingAfterHeader);
-        int bodyHeight = Math.max(0, remainingAfterHeader - statusHeight);
+        int filterHeight = Math.min(18, remainingAfterHeader);
+        int remainingAfterFilter = Math.max(0, remainingAfterHeader - filterHeight);
+        int statusHeight = Math.min(14, remainingAfterFilter);
+        int bodyHeight = Math.max(0, remainingAfterFilter - statusHeight);
         Rect header = new Rect(content.x(), content.y(), content.width(), headerHeight);
-        Rect body = new Rect(content.x(), content.y() + headerHeight, content.width(), bodyHeight);
-        Rect status = new Rect(content.x(), body.y() + body.height(), content.width(), statusHeight);
+        Rect filter = new Rect(content.x(), content.y() + headerHeight, content.width(), filterHeight);
+        Rect bodyFrame = new Rect(content.x(), filter.y() + filter.height(), content.width(), bodyHeight);
+        Rect body = bodyFrame.inset(1);
+        Rect status = new Rect(content.x(), bodyFrame.y() + bodyFrame.height(), content.width(), statusHeight);
         Rect locationControl = new Rect(
                 header.x(),
                 header.y(),
                 header.width(),
                 header.height()
         );
-        return new Layout(content, header, body, status, locationControl);
+        Rect filterControl = new Rect(filter.x(), filter.y(), filter.width(), filter.height());
+        return new Layout(content, header, filter, bodyFrame, body, status, locationControl, filterControl);
     }
 
     private static int divideRoundUp(int value, int divisor) {

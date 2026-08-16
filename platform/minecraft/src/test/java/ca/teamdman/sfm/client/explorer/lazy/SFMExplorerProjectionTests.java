@@ -27,6 +27,7 @@ public class SFMExplorerProjectionTests {
     private static final SFMPath ZETA = SFMPath.parse("file:///C:/project/zeta.java");
     private static final SFMPath DIRECTORY = SFMPath.parse("file:///C:/project/directory");
     private static final SFMPath NESTED = SFMPath.parse("file:///C:/project/directory/nested.md");
+    private static final SFMPath FRESH = SFMPath.parse("file:///C:/project/directory/fresh-result.txt");
 
     @Test
     public void unmaterializedAutoHoistKeepsTheSingleRootExpandableUntilItsPagePublishes() {
@@ -176,6 +177,73 @@ public class SFMExplorerProjectionTests {
         session.setScrollOffset(12);
         SFMExplorerProjection.project(session.snapshot(), relations.snapshot(), entries);
         assertEquals(before, relations.snapshot(), "projection and navigation are read-only over semantic relations");
+    }
+
+    @Test
+    public void fuzzyFilterRanksOnlyPublishedMaterializationAndIncludesNewlyPublishedRows() {
+        SFMChildRelationRepository relations = new SFMChildRelationRepository();
+        publish(relations, FILE_ROOT, List.of(ZETA, DIRECTORY), 1);
+        publish(relations, DIRECTORY, List.of(NESTED), 1);
+        Map<SFMPath, SFMExplorerEntry> entries = entries(
+                entry(FILE_ROOT, "project", true, Optional.of("folder")),
+                entry(DIRECTORY, "directory", true, Optional.of("folder")),
+                entry(NESTED, "nested.md", false, Optional.of("text")),
+                entry(FRESH, "fresh-result.txt", false, Optional.of("text")),
+                entry(ZETA, "zeta.java", false, Optional.of("code"))
+        );
+        SFMExplorerSession session = new SFMExplorerSession(
+                new SFMExplorerId("filter"), FILE_ROOT, new SFMSelectionRepository()
+        );
+        assertFalse(session.snapshot().expanded().contains(DIRECTORY));
+
+        session.setFilterQuery("nstd");
+        SFMExplorerProjection.Result typo = SFMExplorerProjection.project(
+                session.snapshot(), relations.snapshot(), entries
+        );
+        assertEquals(List.of(NESTED), paths(typo), "filtering sees published descendants without expanding them");
+        assertEquals("nstd", typo.filter().query());
+        assertEquals(3, typo.filter().candidateCount());
+        assertEquals(1, typo.filter().matchCount());
+        assertFalse(typo.filter().incompleteMaterialization());
+        assertFalse(session.snapshot().expanded().contains(DIRECTORY), "filtering must not mutate expansion");
+
+        publish(relations, DIRECTORY, List.of(NESTED, FRESH), 2);
+        session.setFilterQuery("frslt");
+        SFMExplorerProjection.Result arriving = SFMExplorerProjection.project(
+                session.snapshot(), relations.snapshot(), entries
+        );
+        assertEquals(List.of(FRESH), paths(arriving), "newly published materialization joins the next projection");
+        assertEquals(4, arriving.filter().candidateCount());
+    }
+
+    @Test
+    public void fuzzyFilterReportsPartialLazyScopeInsteadOfClaimingExhaustiveSearch() {
+        SFMChildRelationRepository relations = new SFMChildRelationRepository();
+        SFMChildRelationRepository.RefreshTicket ticket = relations.beginRefresh(Set.of(FILE_ROOT), 1);
+        relations.publish(ticket, List.of(new SFMChildPage(
+                FILE_ROOT,
+                List.of(new SFMChildEdge(FILE_ROOT, ALPHA)),
+                Optional.of("next-page"),
+                SFMChildPage.Completeness.PARTIAL,
+                1,
+                List.of()
+        )));
+        Map<SFMPath, SFMExplorerEntry> entries = entries(
+                entry(FILE_ROOT, "project", true, Optional.of("folder")),
+                entry(ALPHA, "alpha.txt", false, Optional.of("text"))
+        );
+        SFMExplorerSession session = new SFMExplorerSession(
+                new SFMExplorerId("partial-filter"), FILE_ROOT, new SFMSelectionRepository()
+        );
+        session.setFilterQuery("alpha");
+
+        SFMExplorerProjection.Result result = SFMExplorerProjection.project(
+                session.snapshot(), relations.snapshot(), entries
+        );
+
+        assertEquals(List.of(ALPHA), paths(result));
+        assertTrue(result.filter().incompleteMaterialization());
+        assertEquals(1, result.filter().candidateCount());
     }
 
     private static void publish(

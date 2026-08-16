@@ -7,6 +7,7 @@ import ca.teamdman.sfm.client.explorer.SFMPathExpression;
 import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionRequest;
 import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionResult;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSettingRegistry;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -30,7 +31,10 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
         VIEW_SET,
         SORT_SET,
         GROUP_SET,
-        HOIST_SET
+        HOIST_SET,
+        PATH_DISPLAY_SET,
+        FILTER_SET,
+        FILTER_CLEAR
     }
 
     private final Operation operation;
@@ -52,6 +56,9 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
             case SORT_SET -> "Set explorer sort";
             case GROUP_SET -> "Set explorer grouping";
             case HOIST_SET -> "Set explorer root hoisting";
+            case PATH_DISPLAY_SET -> "Set explorer path labels";
+            case FILTER_SET -> "Set explorer fuzzy filter";
+            case FILTER_CLEAR -> "Clear explorer fuzzy filter";
         });
     }
 
@@ -120,11 +127,26 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
                 ));
             }
             selector.then(path);
+        } else if (operation == Operation.FILTER_CLEAR) {
+            selector.executes(context -> invokeOperation(
+                    context,
+                    SFMExplorerActionRequest.IfNoMatch.FAIL
+            ));
+        } else if (operation == Operation.FILTER_SET) {
+            selector.then(RequiredArgumentBuilder
+                    .<SFMClientActionSource, String>argument(
+                            "query",
+                            StringArgumentType.greedyString()
+                    )
+                    .executes(context -> invokeOperation(
+                            context,
+                            SFMExplorerActionRequest.IfNoMatch.FAIL
+                    )));
         } else {
             RequiredArgumentBuilder<SFMClientActionSource, String> setting = RequiredArgumentBuilder
-                    .<SFMClientActionSource, String>argument("setting", StringArgumentType.word())
+                    .<SFMClientActionSource, String>argument("setting", SFMCanonicalTokenArgument.token())
                     .suggests((context, builder) -> {
-                        for (String value : settingSuggestions()) builder.suggest(value);
+                        suggestSettings(builder);
                         return builder.buildFuture();
                     })
                     .executes(context -> invokeOperation(
@@ -210,12 +232,19 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
                 default -> throw new AssertionError("Path operation expected");
             };
         }
-        String setting = StringArgumentType.getString(context, "setting");
+        if (operation == Operation.FILTER_SET) {
+            return new SFMExplorerActionRequest.FilterSet(StringArgumentType.getString(context, "query"));
+        }
+        if (operation == Operation.FILTER_CLEAR) {
+            return new SFMExplorerActionRequest.FilterClear();
+        }
+        String setting = SFMCanonicalTokenArgument.get(context, "setting");
         return switch (operation) {
             case VIEW_SET -> new SFMExplorerActionRequest.ViewSet(parseView(setting));
             case SORT_SET -> new SFMExplorerActionRequest.SortSet(parseSort(setting));
             case GROUP_SET -> new SFMExplorerActionRequest.GroupSet(parseGroup(setting));
             case HOIST_SET -> new SFMExplorerActionRequest.HoistSet(parseHoist(setting));
+            case PATH_DISPLAY_SET -> new SFMExplorerActionRequest.PathDisplaySet(parsePathDisplay(setting));
             default -> throw new AssertionError("Setting operation expected");
         };
     }
@@ -223,18 +252,41 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
     private boolean takesPath() {
         return switch (operation) {
             case NODE_EXPAND, NODE_COLLAPSE, NODE_TOGGLE, NODE_REFRESH, ROOT_ADD, ROOT_REMOVE -> true;
-            case VIEW_SET, SORT_SET, GROUP_SET, HOIST_SET -> false;
+            case VIEW_SET, SORT_SET, GROUP_SET, HOIST_SET, PATH_DISPLAY_SET, FILTER_SET, FILTER_CLEAR -> false;
         };
     }
 
     private List<String> settingSuggestions() {
         return switch (operation) {
-            case VIEW_SET -> List.of("sfm:list", "sfm:small_icons");
+            case VIEW_SET -> SFMExplorerSettingRegistry.views().stream()
+                    .map(SFMExplorerSettingRegistry.Option::id)
+                    .toList();
+            case PATH_DISPLAY_SET -> SFMExplorerSettingRegistry.pathDisplays().stream()
+                    .map(SFMExplorerSettingRegistry.Option::id)
+                    .toList();
             case SORT_SET -> List.of("sfm:name", "sfm:extension", "sfm:icon");
             case GROUP_SET -> List.of("sfm:hierarchy", "sfm:none");
             case HOIST_SET -> List.of("auto", "show-roots");
             default -> List.of();
         };
+    }
+
+    private void suggestSettings(com.mojang.brigadier.suggestion.SuggestionsBuilder builder) {
+        if (operation == Operation.VIEW_SET) {
+            SFMExplorerSettingRegistry.views().forEach(option -> builder.suggest(
+                    option.id(),
+                    Component.literal(option.label() + ": " + option.description())
+            ));
+            return;
+        }
+        if (operation == Operation.PATH_DISPLAY_SET) {
+            SFMExplorerSettingRegistry.pathDisplays().forEach(option -> builder.suggest(
+                    option.id(),
+                    Component.literal(option.label() + ": " + option.description())
+            ));
+            return;
+        }
+        settingSuggestions().forEach(builder::suggest);
     }
 
     private static SFMPath concretePath(String text) {
@@ -251,11 +303,11 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
     }
 
     private static SFMExplorerProjection.View parseView(String value) {
-        return switch (value) {
-            case "sfm:list" -> SFMExplorerProjection.View.LIST;
-            case "sfm:small_icons" -> SFMExplorerProjection.View.SMALL_ICONS;
-            default -> throw new IllegalArgumentException("Unknown explorer view: " + value);
-        };
+        return SFMExplorerSettingRegistry.requireView(value);
+    }
+
+    private static SFMExplorerProjection.PathDisplay parsePathDisplay(String value) {
+        return SFMExplorerSettingRegistry.requirePathDisplay(value);
     }
 
     private static SFMExplorerProjection.Sort parseSort(String value) {

@@ -8,6 +8,7 @@ import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.context.SFMContextPathProjection;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerPathReveal;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 
 /**
@@ -61,11 +63,17 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private boolean wasFocused;
     private boolean closed;
     private KeyboardFocus keyboardFocus = KeyboardFocus.BODY;
+    private String filterDraft;
     private SFMWorkspacePanelContext panelContext;
+    private volatile Optional<SFMPath> pendingRevealSelection = Optional.empty();
 
     private enum KeyboardFocus {
         LOCATION,
+        FILTER,
         BODY
+    }
+
+    public record FocusChrome(boolean location, boolean filter, boolean body) {
     }
 
     public SFMExplorerPanel(
@@ -144,6 +152,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         this.closeObserver = Objects.requireNonNull(closeObserver, "closeObserver");
         this.presentationRegistry = Objects.requireNonNull(presentationRegistry, "presentationRegistry");
         this.clipboardSink = Objects.requireNonNull(clipboardSink, "clipboardSink");
+        filterDraft = session.snapshot().settings().filterQuery();
     }
 
     @Override
@@ -155,12 +164,19 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     public Component narration() {
         SFMExplorerPanelModel.State state = model.state(bounds);
         String selection = state.selectedRow()
-                .map(row -> ". Selected " + row.entry().label())
+                .map(row -> {
+                    SFMExplorerPresentation presentation = presentation(state, row);
+                    return ". Selected " + presentation.label() + ", " + iconNarration(presentation.icon());
+                })
                 .orElse("");
         return Component.literal(
                 "Explorer location " + state.session().location().canonical() + ". "
                         + state.projection().rows().size() + " entries" + selection
                         + (keyboardFocus == KeyboardFocus.LOCATION ? ". Location control focused" : "")
+                        + (keyboardFocus == KeyboardFocus.FILTER
+                        ? ". Filter control focused. Current filter "
+                        + (filterDraft.isEmpty() ? "empty" : filterDraft)
+                        : "")
         );
     }
 
@@ -260,9 +276,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         boolean control = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0;
         if (keyCode == GLFW.GLFW_KEY_TAB && !control) {
-            keyboardFocus = keyboardFocus == KeyboardFocus.LOCATION
-                    ? KeyboardFocus.BODY
-                    : KeyboardFocus.LOCATION;
+            cycleKeyboardFocus((modifiers & GLFW.GLFW_MOD_SHIFT) != 0);
+            return true;
+        }
+        if (control && keyCode == GLFW.GLFW_KEY_F) {
+            focusFilter();
             return true;
         }
         if (keyboardFocus == KeyboardFocus.LOCATION) {
@@ -280,6 +298,34 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 keyboardFocus = KeyboardFocus.BODY;
                 return true;
             }
+        }
+        if (keyboardFocus == KeyboardFocus.FILTER) {
+            if (control && keyCode == GLFW.GLFW_KEY_C) {
+                clipboardSink.accept(filterDraft);
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+                if (!filterDraft.isEmpty()) setFilterDraft(
+                        filterDraft.substring(0, filterDraft.offsetByCodePoints(filterDraft.length(), -1))
+                );
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_DELETE) {
+                setFilterDraft("");
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+                if (filterDraft.isEmpty()) keyboardFocus = KeyboardFocus.BODY;
+                else setFilterDraft("");
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_ENTER
+                    || keyCode == GLFW.GLFW_KEY_KP_ENTER
+                    || keyCode == GLFW.GLFW_KEY_DOWN) {
+                keyboardFocus = KeyboardFocus.BODY;
+                return true;
+            }
+            return false;
         }
         switch (keyCode) {
             case GLFW.GLFW_KEY_UP -> model.moveSelection(-1, bounds);
@@ -316,6 +362,16 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     @Override
+    public boolean charTyped(char character, int modifiers) {
+        int commandModifiers = GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER;
+        if (keyboardFocus != KeyboardFocus.FILTER
+                || Character.isISOControl(character)
+                || (modifiers & commandModifiers) != 0) return false;
+        setFilterDraft(filterDraft + character);
+        return true;
+    }
+
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
         SFMExplorerPanelModel.State state = model.state(bounds);
@@ -324,8 +380,18 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             model.emitLocationEdit();
             return true;
         }
+        if (state.viewport().layout().filterControl().contains(mouseX, mouseY)) {
+            focusFilter();
+            return true;
+        }
         Optional<SFMExplorerPanelViewport.Cell> hit = state.viewport().hit(mouseX, mouseY);
-        if (hit.isEmpty()) return false;
+        if (hit.isEmpty()) {
+            if (state.viewport().layout().bodyFrame().contains(mouseX, mouseY)) {
+                keyboardFocus = KeyboardFocus.BODY;
+                return true;
+            }
+            return false;
+        }
         keyboardFocus = KeyboardFocus.BODY;
         SFMExplorerPanelViewport.Cell cell = hit.orElseThrow();
         model.select(cell.row().path(), bounds);
@@ -352,9 +418,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        SFMExplorerPanelModel.State state = model.state(bounds);
-        if (!state.viewport().layout().body().contains(mouseX, mouseY)) return false;
-        model.scrollRows(delta > 0 ? -1 : 1, bounds);
+        if (delta == 0) return false;
+        SFMExplorerPanelViewport.Layout layout = SFMExplorerPanelViewport.layout(bounds);
+        if (!layout.bodyFrame().contains(mouseX, mouseY)) return false;
+        int magnitude = Math.max(1, (int) Math.ceil(Math.abs(delta)));
+        model.scrollRows(delta > 0 ? -magnitude : magnitude, bounds);
         return true;
     }
 
@@ -378,16 +446,30 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         this.bounds = bounds;
         this.mouseX = mouseX;
         this.mouseY = mouseY;
+        pendingRevealSelection.ifPresent(path -> model.select(path, bounds));
         SFMExplorerPanelModel.State state = model.state(bounds);
+        if (pendingRevealSelection.isPresent()
+                && state.selectedRow().map(row -> row.path().equals(pendingRevealSelection.orElseThrow())).orElse(false)) {
+            pendingRevealSelection = Optional.empty();
+        }
+        if (keyboardFocus != KeyboardFocus.FILTER) {
+            filterDraft = state.session().settings().filterQuery();
+        }
         SFMExplorerPanelViewport.Layout layout = state.viewport().layout();
+        FocusChrome chrome = focusChrome(focused);
         fill(poseStack, layout.content(), PANEL);
         fill(poseStack, layout.header(), HEADER);
-        border(poseStack, layout.content(), focused ? FOCUSED_BORDER : BORDER);
-        renderHeader(poseStack, minecraft, state);
+        fill(poseStack, layout.filter(), HEADER);
+        fill(poseStack, layout.bodyFrame(), PANEL);
+        border(poseStack, layout.content(), BORDER);
+        renderHeader(poseStack, minecraft, state, chrome.location());
+        renderFilter(poseStack, minecraft, state, chrome.filter());
         for (SFMExplorerPanelViewport.Cell cell : state.viewport().cells()) {
             renderCell(poseStack, minecraft, state, cell);
         }
         renderStatus(poseStack, minecraft, state);
+        border(poseStack, layout.bodyFrame(), chrome.body() ? FOCUSED_BORDER : BORDER);
+        model.observeVisibleFrame(state.viewport().scrollRow());
         if (state.viewport().layout().locationControl().contains(mouseX, mouseY)
                 && minecraft.screen != null) {
             minecraft.screen.renderComponentTooltip(
@@ -411,6 +493,21 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         return session.snapshot();
     }
 
+    /**
+     * Materializes every missing ancestor page and queues exact row selection
+     * against the next real panel bounds, so reveal never guesses scroll geometry.
+     */
+    public CompletionStage<SFMExplorerPathReveal.Result> revealPath(SFMPath containingRoot, SFMPath path) {
+        return SFMExplorerPathReveal.reveal(
+                session,
+                loader,
+                containingRoot,
+                path,
+                128,
+                () -> pendingRevealSelection = Optional.of(path)
+        );
+    }
+
     private void activateSelected(SFMExplorerPreviewPlacement.Mode mode) {
         SFMExplorerPanelModel.State state = model.state(bounds);
         if (state.selectedRow().map(row -> row.entry().expandable()).orElse(false)) {
@@ -430,7 +527,8 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private void renderHeader(
             PoseStack poseStack,
             Minecraft minecraft,
-            SFMExplorerPanelModel.State state
+            SFMExplorerPanelModel.State state,
+            boolean focused
     ) {
         SFMExplorerPanelViewport.Layout layout = state.viewport().layout();
         int textY = layout.header().y() + Math.max(1, (layout.header().height() - minecraft.font.lineHeight) / 2);
@@ -438,7 +536,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         border(
                 poseStack,
                 layout.locationControl(),
-                keyboardFocus == KeyboardFocus.LOCATION ? FOCUSED_BORDER : BORDER
+                focused ? FOCUSED_BORDER : BORDER
         );
         drawTrimmed(
                 poseStack,
@@ -455,11 +553,54 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         return keyboardFocus == KeyboardFocus.LOCATION;
     }
 
+    boolean filterControlHasKeyboardFocus() {
+        return keyboardFocus == KeyboardFocus.FILTER;
+    }
+
+    boolean bodyControlHasKeyboardFocus() {
+        return keyboardFocus == KeyboardFocus.BODY;
+    }
+
+    public FocusChrome focusChrome(boolean panelFocused) {
+        return new FocusChrome(
+                panelFocused && keyboardFocus == KeyboardFocus.LOCATION,
+                panelFocused && keyboardFocus == KeyboardFocus.FILTER,
+                panelFocused && keyboardFocus == KeyboardFocus.BODY
+        );
+    }
+
     private static void copyToMinecraftClipboard(String text) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft != null && minecraft.keyboardHandler != null) {
             minecraft.keyboardHandler.setClipboard(text);
         }
+    }
+
+    private void renderFilter(
+            PoseStack poseStack,
+            Minecraft minecraft,
+            SFMExplorerPanelModel.State state,
+            boolean focused
+    ) {
+        SFMExplorerPanelViewport.Rect control = state.viewport().layout().filterControl();
+        fill(poseStack, control, 0xF02F2F2F);
+        border(poseStack, control, focused ? FOCUSED_BORDER : BORDER);
+        String visibleQuery = keyboardFocus == KeyboardFocus.FILTER
+                ? filterDraft
+                : state.session().settings().filterQuery();
+        String text = visibleQuery.isEmpty()
+                ? "Filter current materialization (Ctrl+F)"
+                : "Filter: " + visibleQuery + (focused ? "_" : "");
+        int textY = control.y() + Math.max(1, (control.height() - minecraft.font.lineHeight) / 2);
+        drawTrimmed(
+                poseStack,
+                minecraft,
+                text,
+                control.x() + 4,
+                textY,
+                Math.max(0, control.width() - 8),
+                visibleQuery.isEmpty() ? MUTED : TEXT
+        );
     }
 
     private void renderCell(
@@ -470,12 +611,12 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     ) {
         boolean selected = state.selectedPath().equals(Optional.of(cell.row().path()));
         boolean hovered = cell.bounds().contains(mouseX, mouseY);
-        SFMExplorerPresentation presentation = presentationRegistry.resolve(cell.row()).presentation();
+        SFMExplorerPresentation presentation = presentation(state, cell.row());
         if (selected) fill(poseStack, cell.bounds(), SELECTED);
         else if (hovered) fill(poseStack, cell.bounds(), HOVERED);
         if (state.viewport().view() == SFMExplorerProjection.View.SMALL_ICONS) {
             border(poseStack, cell.bounds(), 0xFF3A3A3A);
-            renderSmallIconCell(poseStack, minecraft, cell, presentation);
+            renderSmallIconCell(poseStack, minecraft, state, cell, presentation);
         } else {
             renderListCell(poseStack, minecraft, cell, presentation);
         }
@@ -524,6 +665,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private void renderSmallIconCell(
             PoseStack poseStack,
             Minecraft minecraft,
+            SFMExplorerPanelModel.State state,
             SFMExplorerPanelViewport.Cell cell,
             SFMExplorerPresentation presentation
     ) {
@@ -543,7 +685,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         drawTrimmed(
                 poseStack,
                 minecraft,
-                cell.row().path().canonical(),
+                stateSecondaryLabel(cell.row(), state),
                 labelX,
                 cell.bounds().y() + 19,
                 width,
@@ -573,7 +715,13 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 + state.viewport().totalItems() + " entries; relation r"
                 + state.projection().relationRevision();
         int colour = MUTED;
-        if (!state.projection().diagnostics().isEmpty()) {
+        if (state.projection().filter().active()) {
+            summary = state.projection().filter().matchCount() + " matches / "
+                    + state.projection().filter().candidateCount() + " materialized entries"
+                    + (state.projection().filter().incompleteMaterialization()
+                    ? "; unmaterialized subtrees excluded"
+                    : "; materialization complete");
+        } else if (!state.projection().diagnostics().isEmpty()) {
             summary += "; " + state.projection().diagnostics().get(0);
             colour = DIAGNOSTIC;
         }
@@ -591,6 +739,64 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private void rememberClick(SFMPath path) {
         lastClickPath = Optional.of(path);
         lastClickTime = Util.getMillis();
+    }
+
+    private SFMExplorerPresentation presentation(
+            SFMExplorerPanelModel.State state,
+            SFMExplorerProjection.Row row
+    ) {
+        SFMExplorerPresentation resolved = presentationRegistry.resolve(row).presentation();
+        return new SFMExplorerPresentation(
+                SFMExplorerPathLabeler.label(row, state.session()),
+                resolved.icon()
+        );
+    }
+
+    private static String stateSecondaryLabel(
+            SFMExplorerProjection.Row row,
+            SFMExplorerPanelModel.State state
+    ) {
+        return state.session().settings().pathDisplay() == SFMExplorerProjection.PathDisplay.NAME
+                ? row.path().canonical()
+                : row.entry().label();
+    }
+
+    private static String iconNarration(SFMExplorerPresentation.Icon icon) {
+        if (icon instanceof SFMExplorerPresentation.ItemIcon item) {
+            return item.item().accessibleLabel() + " ItemStack icon";
+        }
+        if (icon instanceof SFMExplorerPresentation.MarkerIcon marker) {
+            return marker.marker() + " marker icon";
+        }
+        throw new AssertionError("Unhandled explorer icon " + icon);
+    }
+
+    private void cycleKeyboardFocus(boolean reverse) {
+        keyboardFocus = reverse
+                ? switch (keyboardFocus) {
+                    case BODY -> KeyboardFocus.FILTER;
+                    case FILTER -> KeyboardFocus.LOCATION;
+                    case LOCATION -> KeyboardFocus.BODY;
+                }
+                : switch (keyboardFocus) {
+                    case BODY -> KeyboardFocus.LOCATION;
+                    case LOCATION -> KeyboardFocus.FILTER;
+                    case FILTER -> KeyboardFocus.BODY;
+                };
+        if (keyboardFocus == KeyboardFocus.FILTER) {
+            filterDraft = session.snapshot().settings().filterQuery();
+        }
+    }
+
+    private void focusFilter() {
+        keyboardFocus = KeyboardFocus.FILTER;
+        filterDraft = session.snapshot().settings().filterQuery();
+    }
+
+    private void setFilterDraft(String query) {
+        filterDraft = Objects.requireNonNull(query, "query");
+        if (filterDraft.isEmpty()) model.emitFilterClear();
+        else model.emitFilterSet(filterDraft);
     }
 
     private static void fill(PoseStack poseStack, SFMExplorerPanelViewport.Rect rect, int colour) {

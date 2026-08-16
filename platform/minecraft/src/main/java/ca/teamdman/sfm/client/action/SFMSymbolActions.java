@@ -13,6 +13,10 @@ public final class SFMSymbolActions {
 
     public static final SFMRegistryObject<SFMClientAction<?>, SFMJumpToDefinitionAction> OPEN_DEFINITION =
             REGISTERER.register("symbol/definition/open", SFMJumpToDefinitionAction::new);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMFindReferencesAction> OPEN_REFERENCES =
+            REGISTERER.register("symbol/references/open", SFMFindReferencesAction::new);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMContextActionsOpenAction> OPEN_CONTEXT_ACTIONS =
+            REGISTERER.register("context/actions/open", SFMContextActionsOpenAction::new);
 
     private SFMSymbolActions() {
     }

@@ -192,6 +192,20 @@ public class SFMExplorerPanelActionEmissionTests {
     }
 
     @Test
+    public void pathDisplayAndFilterControlsEmitExactSelectorTargetedActions() {
+        Fixture fixture = fixture();
+        fixture.panel().model().emitPathDisplaySet(SFMExplorerProjection.PathDisplay.ABSOLUTE_PATH);
+        fixture.panel().model().emitFilterSet("stne");
+        fixture.panel().model().emitFilterClear();
+
+        assertEquals(List.of(
+                "sfm action invoke sfm:explorer/path-display/set id(explorer%20one) sfm:absolute_path",
+                "sfm action invoke sfm:explorer/filter/set id(explorer%20one) stne",
+                "sfm action invoke sfm:explorer/filter/clear id(explorer%20one)"
+        ), fixture.actions());
+    }
+
+    @Test
     public void contextCaptureKeepsRootAndSelectionAsIndependentAddressedOrigins() {
         Fixture fixture = fileFixture();
         fixture.panel().opened(

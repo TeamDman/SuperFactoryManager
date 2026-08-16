@@ -440,6 +440,15 @@ public final class SFMExplorerActionEngine {
         } else if (operation instanceof SFMExplorerActionRequest.HoistSet set) {
             changed = session.snapshot().settings().hoist() != set.hoist();
             session.setHoist(set.hoist());
+        } else if (operation instanceof SFMExplorerActionRequest.PathDisplaySet set) {
+            changed = session.snapshot().settings().pathDisplay() != set.pathDisplay();
+            session.setPathDisplay(set.pathDisplay());
+        } else if (operation instanceof SFMExplorerActionRequest.FilterSet set) {
+            changed = !session.snapshot().settings().filterQuery().equals(set.query());
+            session.setFilterQuery(set.query());
+        } else if (operation instanceof SFMExplorerActionRequest.FilterClear) {
+            changed = !session.snapshot().settings().filterQuery().isEmpty();
+            session.setFilterQuery("");
         }
 
         return new StateAppliedTarget(plan, changed);

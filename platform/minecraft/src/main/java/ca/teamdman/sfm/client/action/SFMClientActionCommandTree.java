@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
+import ca.teamdman.sfm.client.search.SFMFuzzyScorer;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.context.StringRange;
@@ -15,8 +16,6 @@ import net.minecraft.network.chat.ComponentContents;
 import net.minecraft.network.chat.contents.LiteralContents;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
-import org.simmetrics.StringDistance;
-import org.simmetrics.metrics.StringDistances;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -35,7 +34,6 @@ public final class SFMClientActionCommandTree {
     private static final long SLOW_COMPLETION_NANOS = 100_000_000L;
     private static final int MAX_LITERAL_CONTINUATION_DEPTH = 8;
     private static final int MAX_LITERAL_CONTINUATION_CANDIDATES = 256;
-    private static final StringDistance ACTION_DISTANCE = StringDistances.damerauLevenshtein();
 
     private final CommandDispatcher<SFMClientActionSource> dispatcher;
     private final Map<ResourceLocation, SFMClientAction<?>> actions;
@@ -421,33 +419,18 @@ public final class SFMClientActionCommandTree {
         };
         float best = Float.MAX_VALUE;
         for (String candidate : candidates) {
-            String normalized = candidate.toLowerCase(Locale.ROOT);
-            float distance = ACTION_DISTANCE.distance(query, normalized)
-                    / Math.max(1, Math.max(query.length(), normalized.length()));
-            if (normalized.startsWith(query)) distance -= 0.05f;
-            if (normalized.contains(query)) distance -= 0.5f;
-            best = Math.min(best, distance);
+            best = Math.min(best, SFMFuzzyScorer.score(query, candidate));
         }
         return best;
     }
 
     private static float choiceScore(String query, String choice, ActionSearchMetadata action) {
         float score = actionScore(query, action);
-        String normalized = choice.toLowerCase(Locale.ROOT);
-        float choiceDistance = ACTION_DISTANCE.distance(query, normalized)
-                / Math.max(1, Math.max(query.length(), normalized.length()));
-        if (normalized.startsWith(query)) choiceDistance -= 0.05f;
-        if (normalized.contains(query)) choiceDistance -= 0.5f;
-        return Math.min(score, choiceDistance);
+        return Math.min(score, SFMFuzzyScorer.score(query, choice));
     }
 
     private static float literalScore(String query, String candidate) {
-        String normalized = candidate.toLowerCase(Locale.ROOT);
-        float distance = ACTION_DISTANCE.distance(query, normalized)
-                / Math.max(1, Math.max(query.length(), normalized.length()));
-        if (normalized.startsWith(query)) distance -= 0.05f;
-        if (normalized.contains(query)) distance -= 0.5f;
-        return distance;
+        return SFMFuzzyScorer.score(query, candidate);
     }
 
     /**

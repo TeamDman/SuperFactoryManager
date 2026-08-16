@@ -22,6 +22,11 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextResult;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
+import ca.teamdman.sfm.client.symbol.SFMSymbolReferenceExplorerResolver;
+import ca.teamdman.sfm.client.symbol.SFMSymbolReferenceResultRepository;
+import ca.teamdman.sfm.client.symbol.SFMSymbolServerProtocol;
+import ca.teamdman.sfm.client.symbol.SFMUsageAtPositionResult;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
@@ -80,6 +85,31 @@ public final class SFMExplorerRuntime implements AutoCloseable {
         }
     }
 
+    public record ReferenceExplorer(
+            SFMSymbolReferenceResultRepository.StoredResult storedResult,
+            SFMExplorerPanel panel
+    ) {
+        public ReferenceExplorer {
+            Objects.requireNonNull(storedResult, "storedResult");
+            Objects.requireNonNull(panel, "panel");
+        }
+    }
+
+    public record ReferenceLeafNavigation(
+            SFMSymbolReferenceResultRepository.LeafLookup leaf,
+            SFMScreenMultiplexer workspace,
+            SFMWorkspacePanelId sourcePanelId
+    ) {
+        public ReferenceLeafNavigation {
+            Objects.requireNonNull(leaf, "leaf");
+            Objects.requireNonNull(workspace, "workspace");
+            Objects.requireNonNull(sourcePanelId, "sourcePanelId");
+        }
+    }
+
+    private record ReferenceOrigin(SFMScreenMultiplexer workspace, SFMWorkspacePanelId sourcePanelId) {
+    }
+
     private static volatile SFMExplorerRuntime instance;
 
     private final ExecutorService resolverExecutor;
@@ -92,6 +122,10 @@ public final class SFMExplorerRuntime implements AutoCloseable {
     private final SFMLazyExplorerLoader loader;
     private final SFMExplorerRepository explorers;
     private final SFMExplorerActionEngine actions;
+    private final SFMSymbolReferenceResultRepository symbolReferenceResults;
+    private final SFMSymbolReferenceExplorerResolver symbolReferenceResolver;
+    private final Map<SFMSymbolReferenceResultRepository.ResultId, ReferenceOrigin> referenceOrigins =
+            new TreeMap<>(java.util.Comparator.comparing(SFMSymbolReferenceResultRepository.ResultId::value));
     private final AtomicLong nextExplorerId = new AtomicLong(1);
     private final Map<SFMExplorerId, SFMExplorerPanel> panels = new TreeMap<>(
             java.util.Comparator.comparing(SFMExplorerId::value)
@@ -118,6 +152,13 @@ public final class SFMExplorerRuntime implements AutoCloseable {
                 resolverExecutor,
                 DEFAULT_PAGE_SIZE
         ));
+        symbolReferenceResults = new SFMSymbolReferenceResultRepository();
+        symbolReferenceResolver = new SFMSymbolReferenceExplorerResolver(
+                symbolReferenceResults,
+                resolverExecutor,
+                DEFAULT_PAGE_SIZE
+        );
+        resolvers.register(symbolReferenceResolver);
         loader = new SFMLazyExplorerLoader(resolvers, relations, minecraft::execute);
         explorers = new SFMExplorerRepository();
         actions = new SFMExplorerActionEngine(
@@ -230,6 +271,36 @@ public final class SFMExplorerRuntime implements AutoCloseable {
                 this::submitPanelAction,
                 () -> focusExplorer(id),
                 () -> closeExplorer(id)
+        ));
+    }
+
+    /** Publishes one immutable references result and opens its stable contributed root. */
+    public synchronized ReferenceExplorer publishReferenceResult(
+            SFMUsageAtPositionResult result,
+            SFMSymbolServerProtocol.ServerHello hello,
+            SFMScreenMultiplexer workspace,
+            SFMWorkspacePanelId sourcePanelId
+    ) {
+        ensureOpen();
+        Objects.requireNonNull(workspace, "workspace");
+        Objects.requireNonNull(sourcePanelId, "sourcePanelId");
+        SFMSymbolReferenceResultRepository.StoredResult stored = symbolReferenceResults.append(result, hello);
+        SFMExplorerPanel panel = (SFMExplorerPanel) openScene(stored.rootPath());
+        referenceOrigins.put(stored.id(), new ReferenceOrigin(workspace, sourcePanelId));
+        return new ReferenceExplorer(stored, panel);
+    }
+
+    /** Resolves an exact persistent reference leaf back to its originating editor stack. */
+    public synchronized Optional<ReferenceLeafNavigation> referenceLeafNavigation(SFMPath path) {
+        ensureOpen();
+        Optional<SFMSymbolReferenceResultRepository.LeafLookup> leaf = symbolReferenceResolver.lookupLeaf(path);
+        if (leaf.isEmpty()) return Optional.empty();
+        ReferenceOrigin origin = referenceOrigins.get(leaf.orElseThrow().resultId());
+        if (origin == null) return Optional.empty();
+        return Optional.of(new ReferenceLeafNavigation(
+                leaf.orElseThrow(),
+                origin.workspace(),
+                origin.sourcePanelId()
         ));
     }
 
@@ -427,6 +498,12 @@ public final class SFMExplorerRuntime implements AutoCloseable {
     private synchronized void closeExplorer(SFMExplorerId id) {
         panels.remove(id);
         explorers.unregister(id).ifPresent(explorer -> explorer.session().close());
+    }
+
+    /** Removes a newly-created scene that could not be attached to its requested workspace. */
+    public synchronized void discardExplorer(SFMExplorerId id) {
+        ensureOpen();
+        closeExplorer(Objects.requireNonNull(id, "id"));
     }
 
     private void ensureOpen() {

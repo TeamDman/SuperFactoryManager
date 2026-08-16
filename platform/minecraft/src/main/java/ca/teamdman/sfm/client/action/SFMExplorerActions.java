@@ -35,8 +35,16 @@ public final class SFMExplorerActions {
             "explorer/group/set", SFMExplorerAction.Operation.GROUP_SET);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerAction> ROOT_HOIST_SET = register(
             "explorer/root/hoist/set", SFMExplorerAction.Operation.HOIST_SET);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerAction> PATH_DISPLAY_SET = register(
+            "explorer/path-display/set", SFMExplorerAction.Operation.PATH_DISPLAY_SET);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerAction> FILTER_SET = register(
+            "explorer/filter/set", SFMExplorerAction.Operation.FILTER_SET);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerAction> FILTER_CLEAR = register(
+            "explorer/filter/clear", SFMExplorerAction.Operation.FILTER_CLEAR);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMPathOpenAction> PATH_OPEN =
             REGISTERER.register("path/open", SFMPathOpenAction::new);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMRevealInExplorerAction> REVEAL =
+            REGISTERER.register("explorer/reveal", SFMRevealInExplorerAction::new);
 
     private SFMExplorerActions() {
     }

@@ -10,7 +10,7 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult;
-import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceSide;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetadata;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentPosition;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
@@ -24,10 +24,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /** Safe addressed navigation for one worker-resolved definition. */
 public final class SFMDefinitionNavigation {
-    public enum Status { FOCUSED_EXISTING, OPENED_ADJACENT, UNAVAILABLE }
+    public enum Status { FOCUSED_EXISTING, OPENED_IN_SOURCE_STACK, UNAVAILABLE }
 
     public record Result(Status status, @Nullable SFMWorkspacePanelId panelId, String message) {
         public Result {
@@ -47,7 +48,7 @@ public final class SFMDefinitionNavigation {
 
         boolean focus(SFMWorkspacePanelId panelId);
 
-        SFMWorkspacePanelIntentResult openRight(
+        SFMWorkspacePanelIntentResult openInSourceStack(
                 SFMWorkspacePanelId sourcePanelId,
                 SFMScreenPanel panel,
                 SFMPanelReopenRecipe recipe
@@ -79,10 +80,32 @@ public final class SFMDefinitionNavigation {
             SFMSymbolServerProtocol.ServerHello hello,
             SFMDefinitionResult.Definition definition
     ) {
+        return open(
+                workspace,
+                sourcePanelId,
+                hello,
+                definition,
+                () -> SFMTextEditors.V3.getId().orElseThrow().location()
+        );
+    }
+
+    /**
+     * Test seam for navigation placement. The production supplier remains lazy
+     * so focusing an already-open document does not initialize the editor
+     * registry, and standalone tests can exercise placement without ModLauncher.
+     */
+    static Result open(
+            Workspace workspace,
+            SFMWorkspacePanelId sourcePanelId,
+            SFMSymbolServerProtocol.ServerHello hello,
+            SFMDefinitionResult.Definition definition,
+            Supplier<ResourceLocation> editorIdSupplier
+    ) {
         Objects.requireNonNull(workspace, "workspace");
         Objects.requireNonNull(sourcePanelId, "sourcePanelId");
         Objects.requireNonNull(hello, "hello");
         Objects.requireNonNull(definition, "definition");
+        Objects.requireNonNull(editorIdSupplier, "editorIdSupplier");
 
         SFMDefinitionResult.DefinitionSourceSpan span = definition.identifierSpan();
         SFMPath portableAddress;
@@ -91,7 +114,15 @@ public final class SFMDefinitionNavigation {
         } catch (IllegalArgumentException failure) {
             return unavailable("Definition target address is invalid: " + rootMessage(failure));
         }
-        boolean managedDependencyRoot = span.resolverId().equals("dependency-source");
+        boolean dependencySourceRoot = span.resolverId().equals("dependency-source");
+        List<SFMSymbolServerProtocol.ManagedSourceRootMapping> managedMappings =
+                hello.workspace().managedSourceRootMappings().stream()
+                        .filter(candidate -> candidate.resolverId().equals(span.resolverId()))
+                        .filter(candidate -> candidate.addressScheme().equals(portableAddress.scheme()))
+                        .filter(candidate -> candidate.rootId().equals(span.rootId()))
+                        .filter(candidate -> candidate.sourceSet().equals(span.sourceSet()))
+                        .toList();
+        boolean managedSourceRoot = managedMappings.size() == 1;
         List<String> rootPaths;
         if (span.resolverId().equals("workspace")) {
             rootPaths = hello.workspace().rootMappings().stream()
@@ -100,12 +131,17 @@ public final class SFMDefinitionNavigation {
                     .map(SFMSymbolServerProtocol.SourceRootMapping::canonicalAbsolutePath)
                     .sorted()
                     .toList();
-        } else if (managedDependencyRoot) {
+        } else if (dependencySourceRoot) {
             rootPaths = hello.workspace().dependencySourceRootMappings().stream()
                     .filter(candidate -> candidate.rootId().equals(span.rootId()))
                     .filter(candidate -> candidate.sourceSet().equals(span.sourceSet()))
                     .filter(candidate -> dependencyReportPathMatches(candidate, span))
                     .map(SFMSymbolServerProtocol.DependencySourceRootMapping::canonicalAbsolutePath)
+                    .sorted()
+                    .toList();
+        } else if (managedSourceRoot) {
+            rootPaths = managedMappings.stream()
+                    .map(SFMSymbolServerProtocol.ManagedSourceRootMapping::canonicalAbsolutePath)
                     .sorted()
                     .toList();
         } else {
@@ -166,7 +202,7 @@ public final class SFMDefinitionNavigation {
         }
 
         Optional<SFMPath> readAuthority;
-        if (managedDependencyRoot) {
+        if (dependencySourceRoot || managedSourceRoot) {
             readAuthority = workspace.authorizeManagedReadRoot(analysisRoot)
                     ? Optional.of(analysisRoot)
                     : Optional.empty();
@@ -179,7 +215,10 @@ public final class SFMDefinitionNavigation {
         }
         SFMTextDocumentSource.PathAddress source = pinnedSource(
                 target, readAuthority.orElseThrow(), expectedSha256, range);
-        ResourceLocation editorId = SFMTextEditors.V3.getId().orElseThrow().location();
+        ResourceLocation editorId = Objects.requireNonNull(
+                editorIdSupplier.get(),
+                "editorIdSupplier returned null"
+        );
         String title = target.segments().isEmpty()
                 ? target.canonical()
                 : target.segments().get(target.segments().size() - 1);
@@ -190,12 +229,13 @@ public final class SFMDefinitionNavigation {
                 true,
                 title
         );
-        SFMWorkspacePanelIntentResult opened = workspace.openRight(sourcePanelId, recipe.reopen(), recipe);
+        SFMWorkspacePanelIntentResult opened = workspace.openInSourceStack(
+                sourcePanelId, recipe.reopen(), recipe);
         if (opened != SFMWorkspacePanelIntentResult.APPLIED) {
-            return unavailable("No safe adjacent panel placement is available for the definition");
+            return unavailable("No safe source-panel stack placement is available for the definition");
         }
         SFMWorkspacePanelId openedId = workspace.focusedPanelId();
-        return new Result(Status.OPENED_ADJACENT, openedId,
+        return new Result(Status.OPENED_IN_SOURCE_STACK, openedId,
                 "Opened " + span.address() + ":" + span.startLine());
     }
 
@@ -247,8 +287,10 @@ public final class SFMDefinitionNavigation {
 
     /**
      * Reuses the originating document's existing resolver grant after proving
-     * that it contains both the worker-negotiated analysis root and target.
-     * A worker response therefore narrows authority but can never create it.
+     * that both it and the worker-negotiated analysis root contain the target.
+     * The two roots may be nested in either direction; their intersection is
+     * the usable authority. A worker response therefore narrows authority but
+     * can never create it.
      */
     static Optional<SFMPath> sourceReadAuthority(
             @Nullable SFMScreenPanel sourcePanel,
@@ -261,7 +303,6 @@ public final class SFMDefinitionNavigation {
         return editor.documentSnapshot()
                 .filter(SFMTextDocumentSnapshot::ready)
                 .flatMap(SFMTextDocumentSnapshot::authorizedRoot)
-                .filter(root -> contains(root, analysisRoot))
                 .filter(root -> contains(analysisRoot, target))
                 .filter(root -> contains(root, target));
     }
@@ -348,12 +389,17 @@ public final class SFMDefinitionNavigation {
             return delegate.panelInstance(panelId);
         }
         @Override public boolean focus(SFMWorkspacePanelId panelId) { return delegate.focusPanel(panelId); }
-        @Override public SFMWorkspacePanelIntentResult openRight(
+        @Override public SFMWorkspacePanelIntentResult openInSourceStack(
                 SFMWorkspacePanelId sourcePanelId,
                 SFMScreenPanel panel,
                 SFMPanelReopenRecipe recipe
         ) {
-            return delegate.openToSide(sourcePanelId, SFMWorkspaceSide.RIGHT, panel, recipe);
+            return delegate.openIntoSlot(
+                    sourcePanelId,
+                    panel,
+                    SFMWorkspacePanelMetadata.ordinary(),
+                    recipe
+            );
         }
         @Override public SFMWorkspacePanelId focusedPanelId() { return delegate.focusedPanelId(); }
         @Override public boolean authorizeManagedReadRoot(SFMPath root) {

@@ -32,7 +32,10 @@ public record SFMExplorerActionRequest(
             ViewSet,
             SortSet,
             GroupSet,
-            HoistSet {
+            HoistSet,
+            PathDisplaySet,
+            FilterSet,
+            FilterClear {
         String id();
 
         default boolean mutatesSession() {
@@ -129,6 +132,30 @@ public record SFMExplorerActionRequest(
         public HoistSet { Objects.requireNonNull(hoist, "hoist"); }
         @Override
         public String id() { return "root.hoist.set"; }
+    }
+
+    public record PathDisplaySet(SFMExplorerProjection.PathDisplay pathDisplay) implements Operation {
+        public PathDisplaySet { Objects.requireNonNull(pathDisplay, "pathDisplay"); }
+        @Override
+        public String id() { return "path-display.set"; }
+    }
+
+    public record FilterSet(String query) implements Operation {
+        public FilterSet {
+            query = Objects.requireNonNull(query, "query").strip();
+            if (query.isEmpty()) throw new IllegalArgumentException("Explorer filter query must not be blank");
+            if (query.length() > 1024) throw new IllegalArgumentException("Explorer filter query is too long");
+            if (query.indexOf('\n') >= 0 || query.indexOf('\r') >= 0) {
+                throw new IllegalArgumentException("Explorer filter query must be one line");
+            }
+        }
+        @Override
+        public String id() { return "filter.set"; }
+    }
+
+    public record FilterClear() implements Operation {
+        @Override
+        public String id() { return "filter.clear"; }
     }
 
     public SFMExplorerActionRequest {

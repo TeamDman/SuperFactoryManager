@@ -24,6 +24,8 @@ public record SFMContextDocumentProjection(
         List<SFMContextCursorProjection> cursors,
         List<SFMContextSelectionProjection> selections
 ) implements SFMContextProjection {
+    private static final String COMPUTE_CURRENT_SHA256 = "\u0000compute-current-sha256";
+
     public SFMContextDocumentProjection {
         Objects.requireNonNull(editorId, "editorId");
         if (editorId.isBlank()) throw new IllegalArgumentException("Editor id must not be blank");
@@ -34,7 +36,9 @@ public record SFMContextDocumentProjection(
         selections = List.copyOf(selections);
 
         String actualHash = SFMContextTextCoordinates.sha256(currentText);
-        if (!actualHash.equals(currentSha256)) {
+        if (COMPUTE_CURRENT_SHA256.equals(currentSha256)) {
+            currentSha256 = actualHash;
+        } else if (!actualHash.equals(currentSha256)) {
             throw new IllegalArgumentException("Current document hash does not match current text");
         }
         if (!dirty && baseline.ready()) {
@@ -84,7 +88,7 @@ public record SFMContextDocumentProjection(
                 editorId,
                 baseline,
                 currentText,
-                SFMContextTextCoordinates.sha256(currentText),
+                COMPUTE_CURRENT_SHA256,
                 dirty,
                 readOnly,
                 cursors,

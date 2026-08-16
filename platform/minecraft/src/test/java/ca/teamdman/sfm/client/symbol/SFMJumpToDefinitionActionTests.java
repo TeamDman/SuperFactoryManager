@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.symbol;
 
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
+import ca.teamdman.sfm.client.action.SFMContextActionsOpenAction;
 import ca.teamdman.sfm.client.action.SFMJumpToDefinitionAction;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
 import ca.teamdman.sfm.client.context.SFMContextCursorProjection;
@@ -52,7 +53,7 @@ class SFMJumpToDefinitionActionTests {
             new SFMContextOriginId("sfm:text-editor", "panel-under-test", "document");
 
     @Test
-    void canonicalActionExposesDirectOfferAndExactSelectionRoutes() {
+    void canonicalActionExposesDirectLookupAndExactSelectionRoutes() {
         SFMJumpToDefinitionAction action = new SFMJumpToDefinitionAction();
         LiteralArgumentBuilder<SFMClientActionSource> builder =
                 LiteralArgumentBuilder.literal(SFMJumpToDefinitionAction.ID.toString());
@@ -61,9 +62,8 @@ class SFMJumpToDefinitionActionTests {
 
         assertEquals("sfm:symbol/definition/open", SFMJumpToDefinitionAction.ID.toString());
         assertNotNull(node.getCommand(), "the canonical action must invoke lookup directly");
-        assertEquals(Set.of("offer", "select"), node.getChildren().stream()
+        assertEquals(Set.of("select"), node.getChildren().stream()
                 .map(child -> child.getName()).collect(java.util.stream.Collectors.toSet()));
-        assertNotNull(node.getChild("offer").getCommand());
         var session = node.getChild("select").getChildren().iterator().next();
         assertEquals("definition_session", session.getName());
         var index = session.getChildren().iterator().next();
@@ -78,23 +78,21 @@ class SFMJumpToDefinitionActionTests {
     }
 
     @Test
-    void f12AndAltEnterAreTextEditorScopedRoutesToTheSameAction() {
-        List<SFMKeyBinding> bindings = SFMKeyBindingDefaults.definitions().stream()
+    void f12AndAltEnterAreTextEditorScopedDirectAndContextualRoutes() {
+        List<SFMKeyBinding> definitionBindings = SFMKeyBindingDefaults.definitions().stream()
                 .filter(binding -> binding.actionId().equals(SFMJumpToDefinitionAction.ID.toString()))
                 .toList();
-        assertEquals(2, bindings.size());
+        assertEquals(1, definitionBindings.size());
 
-        SFMKeyBinding f12 = bindings.stream()
-                .filter(binding -> binding.sequence().strokes().get(0).keyCode() == GLFW.GLFW_KEY_F12)
-                .findFirst().orElseThrow();
+        SFMKeyBinding f12 = definitionBindings.get(0);
         assertEquals("sfm action invoke sfm:symbol/definition/open", f12.commandDraft());
         assertEquals(SFMKeyboardUsageSituations.TEXT_EDITOR, f12.situationId());
         assertEquals(Set.of(), f12.sequence().strokes().get(0).modifiers());
 
-        SFMKeyBinding altEnter = bindings.stream()
-                .filter(binding -> binding.sequence().strokes().get(0).keyCode() == GLFW.GLFW_KEY_ENTER)
+        SFMKeyBinding altEnter = SFMKeyBindingDefaults.definitions().stream()
+                .filter(binding -> binding.actionId().equals(SFMContextActionsOpenAction.ID.toString()))
                 .findFirst().orElseThrow();
-        assertEquals("sfm action invoke sfm:symbol/definition/open offer", altEnter.commandDraft());
+        assertEquals("sfm action invoke sfm:context/actions/open", altEnter.commandDraft());
         assertEquals(SFMKeyboardUsageSituations.TEXT_EDITOR, altEnter.situationId());
         assertEquals(Set.of(SFMKeyModifier.ALT), altEnter.sequence().strokes().get(0).modifiers());
         assertEquals(
@@ -141,6 +139,23 @@ class SFMJumpToDefinitionActionTests {
         );
         assertTrue(none.incomplete());
         assertTrue(none.message().contains("index is incomplete"));
+    }
+
+    @Test
+    void incompleteIndexNoSymbolFalseNegativeMessageRemainsExact() {
+        SFMDefinitionOutcomeRouter.Report report = assertInstanceOf(
+                SFMDefinitionOutcomeRouter.Report.class,
+                SFMDefinitionOutcomeRouter.route(result(
+                        SFMDefinitionResult.Outcome.NO_SYMBOL,
+                        SFMDefinitionResult.Completeness.INCOMPLETE,
+                        List.of()))
+        );
+
+        assertTrue(report.incomplete());
+        assertEquals(
+                "No symbol is present at the captured editor position (dependency/source index is incomplete)",
+                report.message()
+        );
     }
 
     @Test

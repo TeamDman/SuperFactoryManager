@@ -13,6 +13,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
 /**
@@ -81,11 +82,11 @@ public final class SFMDefinitionQueryCoordinator implements AutoCloseable {
     private final SFMSymbolNavigationProviderRegistry providers;
     private final ScheduledExecutorService scheduler;
     private final LongSupplier nanoTime;
+    private final LongSupplier requestIds;
     private final Object lock = new Object();
     private final Map<String, Pending> active = new HashMap<>();
     private final Map<String, Long> generations = new HashMap<>();
     private final ArrayDeque<Long> warmLatencyNanos = new ArrayDeque<>();
-    private long nextRequestId;
     private long submitted;
     private long completed;
     private long cancelled;
@@ -99,7 +100,7 @@ public final class SFMDefinitionQueryCoordinator implements AutoCloseable {
             SFMSymbolNavigationProviderRegistry providers,
             ScheduledExecutorService scheduler
     ) {
-        this(providers, scheduler, System::nanoTime);
+        this(providers, scheduler, System::nanoTime, localRequestIds());
     }
 
     SFMDefinitionQueryCoordinator(
@@ -107,9 +108,19 @@ public final class SFMDefinitionQueryCoordinator implements AutoCloseable {
             ScheduledExecutorService scheduler,
             LongSupplier nanoTime
     ) {
+        this(providers, scheduler, nanoTime, localRequestIds());
+    }
+
+    SFMDefinitionQueryCoordinator(
+            SFMSymbolNavigationProviderRegistry providers,
+            ScheduledExecutorService scheduler,
+            LongSupplier nanoTime,
+            LongSupplier requestIds
+    ) {
         this.providers = Objects.requireNonNull(providers, "providers");
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime");
+        this.requestIds = Objects.requireNonNull(requestIds, "requestIds");
     }
 
     public Handle submit(String originId, SFMDefinitionRequest template, Duration timeout) {
@@ -125,8 +136,8 @@ public final class SFMDefinitionQueryCoordinator implements AutoCloseable {
             SFMSymbolNavigationProvider provider = providers.preferredAvailable()
                     .map(SFMSymbolNavigationProviderRegistry.Entry::provider)
                     .orElseThrow(NoProviderException::new);
-            long requestId = increment(nextRequestId);
-            nextRequestId = requestId;
+            long requestId = requestIds.getAsLong();
+            if (requestId <= 0) throw new IllegalStateException("Definition request id source returned a non-positive value");
             long generation = increment(generations.getOrDefault(originId, 0L));
             generations.put(originId, generation);
             SFMDefinitionRequest request = template.withIdentity(requestId, generation);
@@ -288,5 +299,10 @@ public final class SFMDefinitionQueryCoordinator implements AutoCloseable {
     private static long increment(long value) {
         if (value == Long.MAX_VALUE) throw new IllegalStateException("Definition identity counter exhausted");
         return value + 1;
+    }
+
+    private static LongSupplier localRequestIds() {
+        AtomicLong sequence = new AtomicLong();
+        return () -> sequence.updateAndGet(SFMDefinitionQueryCoordinator::increment);
     }
 }

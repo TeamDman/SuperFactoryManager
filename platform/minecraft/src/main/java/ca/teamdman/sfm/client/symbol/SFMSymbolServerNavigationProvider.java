@@ -8,7 +8,8 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /** Provider-neutral facade over the supervised local {@code symbol serve} worker. */
-public final class SFMSymbolServerNavigationProvider implements SFMSymbolNavigationProvider {
+public final class SFMSymbolServerNavigationProvider
+        implements SFMSymbolNavigationProvider, SFMSymbolReferenceProvider {
     public static final ResourceLocation ID = new ResourceLocation("sfm", "symbol_server");
 
     private final SFMSymbolServerSupervisor supervisor;
@@ -36,6 +37,12 @@ public final class SFMSymbolServerNavigationProvider implements SFMSymbolNavigat
     public Query query(SFMDefinitionRequest request) {
         SFMSymbolServerSupervisor.Submission submission = supervisor.submit(request);
         return new Query(request, submission.result(), submission.cancellation());
+    }
+
+    @Override
+    public ReferenceQuery query(SFMUsageAtPositionRequest request) {
+        SFMSymbolServerSupervisor.UsageSubmission submission = supervisor.submit(request);
+        return new ReferenceQuery(request, submission.result(), submission.cancellation());
     }
 
     public CompletableFuture<SFMSymbolServerProtocol.ServerHello> start(Duration timeout) {

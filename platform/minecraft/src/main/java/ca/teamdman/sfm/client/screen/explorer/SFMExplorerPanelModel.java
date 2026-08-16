@@ -9,6 +9,7 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -21,6 +22,42 @@ import java.util.Set;
  */
 public final class SFMExplorerPanelModel {
     private static final int DEFAULT_PAGINATION_PAGE_SIZE = 128;
+    private static final int MAXIMUM_SCROLL_TRACES = 128;
+
+    public record ScrollTrace(
+            long sequence,
+            int requestedDelta,
+            int beforeRow,
+            int afterRow,
+            long callbackNanoTime,
+            long modelMutationNanoTime,
+            Optional<Long> firstObservedFrame,
+            Optional<Long> firstObservedNanoTime,
+            Optional<Integer> observedScrollRow
+    ) {
+        public ScrollTrace {
+            if (sequence <= 0) throw new IllegalArgumentException("Scroll sequence must be positive");
+            Objects.requireNonNull(firstObservedFrame, "firstObservedFrame");
+            Objects.requireNonNull(firstObservedNanoTime, "firstObservedNanoTime");
+            Objects.requireNonNull(observedScrollRow, "observedScrollRow");
+            if (firstObservedFrame.isPresent() != observedScrollRow.isPresent()
+                    || firstObservedFrame.isPresent() != firstObservedNanoTime.isPresent()) {
+                throw new IllegalArgumentException("Observed scroll evidence requires frame, time, and row");
+            }
+        }
+
+        public long eventToModelNanos() {
+            return Math.max(0L, modelMutationNanoTime - callbackNanoTime);
+        }
+
+        public Optional<Long> modelToFrameNanos() {
+            return firstObservedNanoTime.map(observed -> Math.max(0L, observed - modelMutationNanoTime));
+        }
+
+        public Optional<Long> eventToFrameNanos() {
+            return firstObservedNanoTime.map(observed -> Math.max(0L, observed - callbackNanoTime));
+        }
+    }
 
     public record State(
             SFMExplorerSession.Snapshot session,
@@ -50,6 +87,9 @@ public final class SFMExplorerPanelModel {
     private final SFMLazyExplorerLoader loader;
     private final SFMExplorerSemanticActionSink actionSink;
     private final int paginationPageSize;
+    private final ArrayList<ScrollTrace> scrollTraces = new ArrayList<>();
+    private long nextScrollSequence = 1;
+    private long nextFrameSequence = 1;
 
     public SFMExplorerPanelModel(
             SFMExplorerSession session,
@@ -93,7 +133,7 @@ public final class SFMExplorerPanelModel {
             sessionSnapshot = session.snapshot();
         }
         State state = new State(sessionSnapshot, projection, viewport);
-        requestNextPageNearViewport(state, relationSnapshot);
+        if (!projection.filter().active()) requestNextPageNearViewport(state, relationSnapshot);
         return state;
     }
 
@@ -124,12 +164,54 @@ public final class SFMExplorerPanelModel {
         selectBoundary(bounds, true);
     }
 
-    public void scrollRows(int delta, SFMScreenPanelBounds bounds) {
+    public synchronized ScrollTrace scrollRows(int delta, SFMScreenPanelBounds bounds) {
+        long callbackNanoTime = System.nanoTime();
         State state = state(bounds);
-        session.setScrollOffset(Math.max(0, Math.min(
+        int before = state.viewport().scrollRow();
+        int after = Math.max(0, Math.min(
                 state.viewport().maximumScrollRow(),
-                state.viewport().scrollRow() + delta
-        )));
+                before + delta
+        ));
+        session.setScrollOffset(after);
+        long modelMutationNanoTime = System.nanoTime();
+        ScrollTrace trace = new ScrollTrace(
+                nextScrollSequence++,
+                delta,
+                before,
+                after,
+                callbackNanoTime,
+                modelMutationNanoTime,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty()
+        );
+        if (scrollTraces.size() == MAXIMUM_SCROLL_TRACES) scrollTraces.remove(0);
+        scrollTraces.add(trace);
+        return trace;
+    }
+
+    public synchronized void observeVisibleFrame(int visibleScrollRow) {
+        long frame = nextFrameSequence++;
+        long observedNanoTime = System.nanoTime();
+        for (int index = 0; index < scrollTraces.size(); index++) {
+            ScrollTrace trace = scrollTraces.get(index);
+            if (trace.firstObservedFrame().isPresent()) continue;
+            scrollTraces.set(index, new ScrollTrace(
+                    trace.sequence(),
+                    trace.requestedDelta(),
+                    trace.beforeRow(),
+                    trace.afterRow(),
+                    trace.callbackNanoTime(),
+                    trace.modelMutationNanoTime(),
+                    Optional.of(frame),
+                    Optional.of(observedNanoTime),
+                    Optional.of(visibleScrollRow)
+            ));
+        }
+    }
+
+    public synchronized List<ScrollTrace> scrollTraceSnapshot() {
+        return List.copyOf(scrollTraces);
     }
 
     public boolean emitExpandSelected(SFMScreenPanelBounds bounds) {
@@ -201,6 +283,18 @@ public final class SFMExplorerPanelModel {
         actionSink.submit(SFMExplorerPanelActions.hoistSet(explorerId(), hoist));
     }
 
+    public void emitPathDisplaySet(SFMExplorerProjection.PathDisplay pathDisplay) {
+        actionSink.submit(SFMExplorerPanelActions.pathDisplaySet(explorerId(), pathDisplay));
+    }
+
+    public void emitFilterSet(String query) {
+        actionSink.submit(SFMExplorerPanelActions.filterSet(explorerId(), query));
+    }
+
+    public void emitFilterClear() {
+        actionSink.submit(SFMExplorerPanelActions.filterClear(explorerId()));
+    }
+
     private boolean emitSelected(SFMScreenPanelBounds bounds, NodeOperation operation) {
         State state = state(bounds);
         Optional<SFMExplorerProjection.Row> selected = state.selectedRow();
@@ -239,6 +333,7 @@ public final class SFMExplorerPanelModel {
     ) {
         if (sessionSnapshot.navigationCursor().isPresent()
                 && indexOf(projection.rows(), sessionSnapshot.navigationCursor().orElseThrow()) >= 0) return;
+        if (projection.filter().active() && sessionSnapshot.navigationCursor().isPresent()) return;
         Optional<SFMPath> navigation = sessionSnapshot.navigationCursor()
                 .filter(path -> indexOf(projection.rows(), path) >= 0);
         Optional<SFMPath> next = navigation.or(() -> projection.rows().stream()

@@ -319,7 +319,11 @@ public final class SFMDefinitionContextAdapter {
         ArrayList<SFMSymbolServerProtocol.SourceRootMapping> matches = new ArrayList<>();
         for (SFMSymbolServerProtocol.SourceRootMapping mapping : workspace.rootMappings()) {
             SFMPath analysisRoot = SFMPath.fromNative(java.nio.file.Path.of(mapping.canonicalAbsolutePath()));
-            if (relativeSegments(authorizedRoot, analysisRoot).isEmpty()
+            // The resolver grant and worker root may be nested in either direction.
+            // Their safe composition is the concrete document, which must be
+            // contained by both. Requiring the grant to contain the complete
+            // worker root rejected legitimate package/subtree grants.
+            if (relativeSegments(authorizedRoot, documentPath).isEmpty()
                     || relativeSegments(analysisRoot, documentPath).isEmpty()) {
                 continue;
             }

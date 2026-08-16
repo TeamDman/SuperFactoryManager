@@ -340,19 +340,69 @@ public final class SFMExplorerSession implements AutoCloseable {
     }
 
     public synchronized void setView(SFMExplorerProjection.View view) {
-        setSettings(new SFMExplorerProjection.Settings(view, settings.sort(), settings.group(), settings.hoist()));
+        setSettings(new SFMExplorerProjection.Settings(
+                view,
+                settings.sort(),
+                settings.group(),
+                settings.hoist(),
+                settings.pathDisplay(),
+                settings.filterQuery()
+        ));
     }
 
     public synchronized void setSort(SFMExplorerProjection.Sort sort) {
-        setSettings(new SFMExplorerProjection.Settings(settings.view(), sort, settings.group(), settings.hoist()));
+        setSettings(new SFMExplorerProjection.Settings(
+                settings.view(),
+                sort,
+                settings.group(),
+                settings.hoist(),
+                settings.pathDisplay(),
+                settings.filterQuery()
+        ));
     }
 
     public synchronized void setGroup(SFMExplorerProjection.Group group) {
-        setSettings(new SFMExplorerProjection.Settings(settings.view(), settings.sort(), group, settings.hoist()));
+        setSettings(new SFMExplorerProjection.Settings(
+                settings.view(),
+                settings.sort(),
+                group,
+                settings.hoist(),
+                settings.pathDisplay(),
+                settings.filterQuery()
+        ));
     }
 
     public synchronized void setHoist(SFMExplorerProjection.Hoist hoist) {
-        setSettings(new SFMExplorerProjection.Settings(settings.view(), settings.sort(), settings.group(), hoist));
+        setSettings(new SFMExplorerProjection.Settings(
+                settings.view(),
+                settings.sort(),
+                settings.group(),
+                hoist,
+                settings.pathDisplay(),
+                settings.filterQuery()
+        ));
+    }
+
+    public synchronized void setPathDisplay(SFMExplorerProjection.PathDisplay pathDisplay) {
+        setSettings(new SFMExplorerProjection.Settings(
+                settings.view(),
+                settings.sort(),
+                settings.group(),
+                settings.hoist(),
+                pathDisplay,
+                settings.filterQuery()
+        ));
+    }
+
+    public synchronized void setFilterQuery(String filterQuery) {
+        setSettings(new SFMExplorerProjection.Settings(
+                settings.view(),
+                settings.sort(),
+                settings.group(),
+                settings.hoist(),
+                settings.pathDisplay(),
+                filterQuery
+        ));
     }
 
     public synchronized boolean expand(SFMPath path) {

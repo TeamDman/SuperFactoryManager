@@ -11,6 +11,9 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
+import ca.teamdman.sfm.client.symbol.SFMDefinitionNavigation;
+import ca.teamdman.sfm.client.symbol.SFMDefinitionResult;
+import ca.teamdman.sfm.client.symbol.SFMSymbolReferenceResultRepository;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
@@ -21,6 +24,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.Objects;
 import java.util.Optional;
 
 /** Opens one already-authorized concrete file through the shared panel/editor seam. */
@@ -70,6 +74,9 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
     ) throws CommandSyntaxException {
         try {
             SFMPath path = concretePath(SFMCanonicalTokenArgument.get(commandContext, "concrete_path"));
+            if (path.scheme().equals(SFMSymbolReferenceResultRepository.SCHEME)) {
+                return openReferenceLeaf(commandContext, path);
+            }
             if (path.kind() != SFMPath.Kind.FILE) {
                 throw new IllegalArgumentException("The first addressed editor slice supports file:// paths only");
             }
@@ -131,6 +138,73 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
                     failure.getMessage() == null ? failure.getClass().getSimpleName() : failure.getMessage()
             )).create();
         }
+    }
+
+    private int openReferenceLeaf(
+            CommandContext<SFMClientActionSource> commandContext,
+            SFMPath path
+    ) throws CommandSyntaxException {
+        SFMExplorerRuntime.ReferenceLeafNavigation navigation = SFMExplorerRuntime.get()
+                .referenceLeafNavigation(path)
+                .orElseThrow(() -> new SimpleCommandExceptionType(Component.literal(
+                        "The reference result is stale or this row is informational"
+                )).create());
+        SFMClientActionContext actionContext = commandContext.getSource().context();
+        if (actionContext.originatingHost() != navigation.workspace()
+                || !actionContext.originatingHostIsCurrent().getAsBoolean()) {
+            throw new SimpleCommandExceptionType(Component.literal(
+                    "The workspace that owns this reference result is no longer available"
+            )).create();
+        }
+        SFMWorkspacePanelId invokingPanelId = actionContext.originatingPanelId();
+        boolean invokingExplorerOwnsResult = invokingPanelId != null
+                && navigation.workspace().containsPanel(invokingPanelId)
+                && navigation.workspace().panelInstance(invokingPanelId) instanceof SFMExplorerPanel explorer
+                && explorer.sessionSnapshot().roots().contains(referenceRoot(path));
+        SFMWorkspacePanelId navigationPanelId = chooseReferenceNavigationPanel(
+                navigation.workspace().containsPanel(navigation.sourcePanelId()),
+                navigation.sourcePanelId(),
+                invokingExplorerOwnsResult,
+                invokingPanelId
+        ).orElseThrow(() -> new SimpleCommandExceptionType(Component.literal(
+                "Neither the originating editor nor this result explorer can host the reference target"
+        )).create());
+        var leaf = navigation.leaf();
+        SFMDefinitionResult.Definition synthetic = new SFMDefinitionResult.Definition(
+                leaf.usage().target(),
+                leaf.sourceSpan(),
+                leaf.sourceSpan(),
+                leaf.usage().confidence()
+        );
+        SFMDefinitionNavigation.Result result = SFMDefinitionNavigation.open(
+                navigation.workspace(),
+                navigationPanelId,
+                leaf.serverHello(),
+                synthetic
+        );
+        commandContext.getSource().sendFeedback(Component.literal(result.message()));
+        if (!result.applied()) {
+            throw new SimpleCommandExceptionType(Component.literal(result.message())).create();
+        }
+        return 1;
+    }
+
+    static Optional<SFMWorkspacePanelId> chooseReferenceNavigationPanel(
+            boolean sourcePanelAvailable,
+            SFMWorkspacePanelId sourcePanelId,
+            boolean invokingExplorerOwnsResult,
+            SFMWorkspacePanelId invokingPanelId
+    ) {
+        Objects.requireNonNull(sourcePanelId, "sourcePanelId");
+        if (sourcePanelAvailable) return Optional.of(sourcePanelId);
+        if (invokingExplorerOwnsResult && invokingPanelId != null) return Optional.of(invokingPanelId);
+        return Optional.empty();
+    }
+
+    private static SFMPath referenceRoot(SFMPath path) {
+        return SFMSymbolReferenceResultRepository.rootPath(
+                new SFMSymbolReferenceResultRepository.ResultId(path.authority())
+        );
     }
 
     private static SFMPath concretePath(String canonical) {

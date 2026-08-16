@@ -21,6 +21,7 @@ public final class SFMSymbolServerProtocol {
     public static final String PROTOCOL_SCHEMA = "sfm.symbol-server/1";
     public static final String HELLO_SCHEMA = "sfm.symbol-server.hello/1";
     public static final String DEFINITION_SCHEMA = "sfm.symbol-server.definition/1";
+    public static final String USAGE_AT_POSITION_SCHEMA = "sfm.symbol-server.usage-at-position/1";
     public static final String CANCEL_SCHEMA = "sfm.symbol-server.cancel/1";
     public static final String WORKSPACE_GENERATION_SCHEMA = "sfm.symbol-server.workspace-generation/1";
     public static final String PING_SCHEMA = "sfm.symbol-server.ping/1";
@@ -28,6 +29,7 @@ public final class SFMSymbolServerProtocol {
     public static final String ERROR_SCHEMA = "sfm.symbol-server.error/1";
 
     public static final String CAPABILITY_DEFINITION = "definition-at-position";
+    public static final String CAPABILITY_USAGE_AT_POSITION = "usage-at-position";
     public static final String CAPABILITY_CANCELLATION = "cancellation";
     public static final String CAPABILITY_WORKSPACE_GENERATION = "workspace-generation";
     public static final String CAPABILITY_PING = "ping";
@@ -37,7 +39,8 @@ public final class SFMSymbolServerProtocol {
             CAPABILITY_CANCELLATION,
             CAPABILITY_WORKSPACE_GENERATION,
             CAPABILITY_PING,
-            CAPABILITY_SHUTDOWN
+            CAPABILITY_SHUTDOWN,
+            CAPABILITY_USAGE_AT_POSITION
     );
     private static final Set<String> CANCELLATION_STATUSES = Set.of(
             "recorded-before-request",
@@ -96,23 +99,68 @@ public final class SFMSymbolServerProtocol {
         }
     }
 
+    /** Worker-owned immutable source tree (for example the branch-selected JDK source cache). */
+    public record ManagedSourceRootMapping(
+            String resolverId,
+            String addressScheme,
+            String resolverIdentity,
+            String canonicalAbsolutePath,
+            String rootId,
+            String sourceSet,
+            Optional<String> portableRootPath,
+            Optional<String> reportPrefix
+    ) {
+        public ManagedSourceRootMapping {
+            resolverId = nonBlank(resolverId, "resolverId");
+            addressScheme = nonBlank(addressScheme, "addressScheme");
+            resolverIdentity = nonBlank(resolverIdentity, "resolverIdentity");
+            canonicalAbsolutePath = normalizeCanonicalAbsolutePath(canonicalAbsolutePath);
+            rootId = nonBlank(rootId, "rootId");
+            sourceSet = nonBlank(sourceSet, "sourceSet");
+            portableRootPath = Objects.requireNonNull(portableRootPath, "portableRootPath")
+                    .map(value -> canonicalRelativePath(value, "portableRootPath", false));
+            reportPrefix = Objects.requireNonNull(reportPrefix, "reportPrefix")
+                    .map(value -> canonicalRelativePath(value, "reportPrefix", false));
+            if (!resolverId.matches("[a-z][a-z0-9+.-]*")
+                    || !addressScheme.matches("[a-z][a-z0-9+.-]*")) {
+                throw new IllegalArgumentException("Managed source resolver identities must be canonical schemes");
+            }
+        }
+
+        public String absoluteRootAddress() {
+            return ca.teamdman.sfm.client.explorer.SFMPath
+                    .fromNative(Path.of(canonicalAbsolutePath))
+                    .canonical();
+        }
+    }
+
     /** Worker-resolved identity retained for exact later context adaptation. */
     public record WorkspaceMetadata(
             SFMDefinitionRequest.Workspace workspace,
             List<SourceRootMapping> rootMappings,
-            List<DependencySourceRootMapping> dependencySourceRootMappings
+            List<DependencySourceRootMapping> dependencySourceRootMappings,
+            List<ManagedSourceRootMapping> managedSourceRootMappings
     ) {
         public WorkspaceMetadata(
                 SFMDefinitionRequest.Workspace workspace,
                 List<SourceRootMapping> rootMappings
         ) {
-            this(workspace, rootMappings, List.of());
+            this(workspace, rootMappings, List.of(), List.of());
+        }
+
+        public WorkspaceMetadata(
+                SFMDefinitionRequest.Workspace workspace,
+                List<SourceRootMapping> rootMappings,
+                List<DependencySourceRootMapping> dependencySourceRootMappings
+        ) {
+            this(workspace, rootMappings, dependencySourceRootMappings, List.of());
         }
 
         public WorkspaceMetadata {
             Objects.requireNonNull(workspace, "workspace");
             rootMappings = List.copyOf(rootMappings);
             dependencySourceRootMappings = List.copyOf(dependencySourceRootMappings);
+            managedSourceRootMappings = List.copyOf(managedSourceRootMappings);
             if (workspace.sourceRoots().size() != rootMappings.size()) {
                 throw new IllegalArgumentException("Worker root mappings do not cover every request root");
             }
@@ -134,6 +182,24 @@ public final class SFMSymbolServerProtocol {
                 if (!dependencyRootIds.add(mapping.rootId())) {
                     throw new IllegalArgumentException(
                             "Worker dependency source root id is duplicated: " + mapping.rootId());
+                }
+            }
+            HashSet<String> managedRootIds = new HashSet<>();
+            for (ManagedSourceRootMapping mapping : managedSourceRootMappings) {
+                String key = mapping.resolverId() + "://" + mapping.rootId();
+                if (!managedRootIds.add(key)) {
+                    throw new IllegalArgumentException("Worker managed source root is duplicated: " + key);
+                }
+                SFMDefinitionRequest.SourceRoot sourceRoot = workspace.sourceRoots().stream()
+                        .filter(root -> root.id().equals(mapping.rootId()))
+                        .filter(root -> root.sourceSet().equals(mapping.sourceSet()))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalArgumentException(
+                                "Worker managed source root has no matching request root: " + key));
+                if (sourceRoot.kind().equals("jdk")
+                        && (!mapping.resolverId().equals("jdk-source")
+                        || !mapping.addressScheme().equals("jdk-source"))) {
+                    throw new IllegalArgumentException("JDK source roots require the jdk-source resolver identity");
                 }
             }
         }
@@ -181,7 +247,8 @@ public final class SFMSymbolServerProtocol {
     }
 
     public sealed interface ServerFrame permits HelloFrame, DefinitionResultFrame,
-            DefinitionCancelledFrame, DefinitionFailedFrame, CancelledFrame,
+            DefinitionCancelledFrame, DefinitionFailedFrame, UsageAtPositionResultFrame,
+            UsageAtPositionCancelledFrame, UsageAtPositionFailedFrame, CancelledFrame,
             WorkspaceGenerationFrame, PongFrame, ShutdownFrame, ErrorFrame {
     }
 
@@ -211,6 +278,33 @@ public final class SFMSymbolServerProtocol {
             boolean retryable
     ) implements ServerFrame {
         public DefinitionFailedFrame {
+            code = nonBlank(code, "code");
+            message = Objects.requireNonNull(message, "message");
+        }
+    }
+
+    public record UsageAtPositionResultFrame(SFMUsageAtPositionResult result) implements ServerFrame {
+        public UsageAtPositionResultFrame { Objects.requireNonNull(result, "result"); }
+    }
+
+    public record UsageAtPositionCancelledFrame(
+            long requestId,
+            long requestGeneration,
+            long workspaceGeneration,
+            String reason
+    ) implements ServerFrame {
+        public UsageAtPositionCancelledFrame { reason = Objects.requireNonNull(reason, "reason"); }
+    }
+
+    public record UsageAtPositionFailedFrame(
+            long requestId,
+            long requestGeneration,
+            long workspaceGeneration,
+            String code,
+            String message,
+            boolean retryable
+    ) implements ServerFrame {
+        public UsageAtPositionFailedFrame {
             code = nonBlank(code, "code");
             message = Objects.requireNonNull(message, "message");
         }
@@ -288,12 +382,46 @@ public final class SFMSymbolServerProtocol {
         ).toString();
     }
 
+    public static String usageAtPosition(SFMUsageAtPositionRequest request) {
+        Objects.requireNonNull(request, "request");
+        return envelope(
+                "usage-at-position",
+                USAGE_AT_POSITION_SCHEMA,
+                "request",
+                SFMDefinitionJsonCodec.encodeUsageRequestObject(request)
+        ).toString();
+    }
+
     public static String cancel(SFMDefinitionRequest request, String reason) {
         Objects.requireNonNull(request, "request");
         JsonObject frame = base("cancel", CANCEL_SCHEMA);
         frame.addProperty("request_id", request.requestId());
         frame.addProperty("request_generation", request.requestGeneration());
         frame.addProperty("workspace_generation", request.workspace().workspaceGeneration());
+        frame.addProperty("reason", Objects.requireNonNull(reason, "reason"));
+        return frame.toString();
+    }
+
+    public static String cancel(SFMUsageAtPositionRequest request, String reason) {
+        Objects.requireNonNull(request, "request");
+        return cancel(
+                request.requestId(),
+                request.requestGeneration(),
+                request.workspace().workspaceGeneration(),
+                reason
+        );
+    }
+
+    private static String cancel(
+            long requestId,
+            long requestGeneration,
+            long workspaceGeneration,
+            String reason
+    ) {
+        JsonObject frame = base("cancel", CANCEL_SCHEMA);
+        frame.addProperty("request_id", requestId);
+        frame.addProperty("request_generation", requestGeneration);
+        frame.addProperty("workspace_generation", workspaceGeneration);
         frame.addProperty("reason", Objects.requireNonNull(reason, "reason"));
         return frame.toString();
     }
@@ -346,6 +474,34 @@ public final class SFMSymbolServerProtocol {
                     requireSchema(schema, DEFINITION_SCHEMA);
                     JsonObject value = requiredObject(frame, "error");
                     yield new DefinitionFailedFrame(
+                            nonNegativeLong(value, "request_id"),
+                            nonNegativeLong(value, "request_generation"),
+                            nonNegativeLong(value, "workspace_generation"),
+                            string(value, "code"),
+                            string(value, "message"),
+                            bool(value, "retryable")
+                    );
+                }
+                case "usage-at-position-result" -> {
+                    requireSchema(schema, USAGE_AT_POSITION_SCHEMA);
+                    yield new UsageAtPositionResultFrame(SFMDefinitionJsonCodec.decodeUsageResultObject(
+                            requiredObject(frame, "result")
+                    ));
+                }
+                case "usage-at-position-cancelled" -> {
+                    requireSchema(schema, USAGE_AT_POSITION_SCHEMA);
+                    JsonObject value = requiredObject(frame, "cancellation");
+                    yield new UsageAtPositionCancelledFrame(
+                            nonNegativeLong(value, "request_id"),
+                            nonNegativeLong(value, "request_generation"),
+                            nonNegativeLong(value, "workspace_generation"),
+                            string(value, "reason")
+                    );
+                }
+                case "usage-at-position-failed" -> {
+                    requireSchema(schema, USAGE_AT_POSITION_SCHEMA);
+                    JsonObject value = requiredObject(frame, "error");
+                    yield new UsageAtPositionFailedFrame(
                             nonNegativeLong(value, "request_id"),
                             nonNegativeLong(value, "request_generation"),
                             nonNegativeLong(value, "workspace_generation"),
@@ -470,8 +626,24 @@ public final class SFMSymbolServerProtocol {
                 ));
             }
         }
+        ArrayList<ManagedSourceRootMapping> managedMappings = new ArrayList<>();
+        if (workspaceJson.has("managed_source_roots")) {
+            for (JsonElement element : requiredArray(workspaceJson, "managed_source_roots")) {
+                JsonObject mapping = object(element, "managed_source_roots[]");
+                managedMappings.add(new ManagedSourceRootMapping(
+                        string(mapping, "resolver_id"),
+                        string(mapping, "address_scheme"),
+                        string(mapping, "resolver_identity"),
+                        string(mapping, "canonical_absolute_path"),
+                        string(mapping, "root_id"),
+                        string(mapping, "source_set"),
+                        optionalString(mapping, "portable_root_path"),
+                        optionalString(mapping, "report_prefix")
+                ));
+            }
+        }
         try {
-            return new WorkspaceMetadata(workspace, mappings, dependencyMappings);
+            return new WorkspaceMetadata(workspace, mappings, dependencyMappings, managedMappings);
         } catch (IllegalArgumentException failure) {
             throw new ProtocolException("Invalid resolved workspace metadata", failure);
         }

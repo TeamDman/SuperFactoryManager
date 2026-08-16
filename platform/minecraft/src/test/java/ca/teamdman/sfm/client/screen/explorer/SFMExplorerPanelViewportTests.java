@@ -25,11 +25,11 @@ public class SFMExplorerPanelViewportTests {
         );
 
         assertEquals(1, viewport.columns());
-        assertEquals(3, viewport.visibleGridRows());
-        assertEquals(3, viewport.capacity());
-        assertEquals(3, viewport.cells().size());
+        assertEquals(2, viewport.visibleGridRows());
+        assertEquals(2, viewport.capacity());
+        assertEquals(2, viewport.cells().size());
         assertEquals(17, viewport.firstVisibleIndex());
-        assertEquals(List.of(17, 18, 19), viewport.cells().stream()
+        assertEquals(List.of(17, 18), viewport.cells().stream()
                 .map(SFMExplorerPanelViewport.Cell::absoluteIndex)
                 .toList());
         assertTrue(viewport.cells().stream().allMatch(cell -> inside(
@@ -99,6 +99,34 @@ public class SFMExplorerPanelViewportTests {
         }
     }
 
+    @Test
+    public void bodyViewportIsInsetOnAllFourEdgesSoRowsCannotPaintOverFocusChrome() {
+        for (SFMScreenPanelBounds bounds : List.of(
+                new SFMScreenPanelBounds(0, 0, 90, 80),
+                new SFMScreenPanelBounds(0, 0, 160, 120),
+                new SFMScreenPanelBounds(4, 7, 640, 360)
+        )) {
+            for (SFMExplorerProjection.View view : SFMExplorerProjection.View.values()) {
+                for (int scroll : List.of(0, Integer.MAX_VALUE)) {
+                    SFMExplorerPanelViewport.Snapshot viewport = SFMExplorerPanelViewport.calculate(
+                            bounds,
+                            view,
+                            rows(100),
+                            scroll
+                    );
+                    SFMExplorerPanelViewport.Rect frame = viewport.layout().bodyFrame();
+                    SFMExplorerPanelViewport.Rect body = viewport.layout().body();
+                    assertEquals(frame.x() + Math.min(1, frame.width()), body.x());
+                    assertEquals(frame.y() + Math.min(1, frame.height()), body.y());
+                    assertEquals(Math.max(0, frame.width() - 2), body.width());
+                    assertEquals(Math.max(0, frame.height() - 2), body.height());
+                    assertTrue(viewport.cells().stream().allMatch(cell -> inside(cell.bounds(), body)));
+                    assertTrue(viewport.cells().stream().noneMatch(cell -> touchesOuterEdge(cell.bounds(), frame)));
+                }
+            }
+        }
+    }
+
     private static List<SFMExplorerProjection.Row> rows(int count) {
         ArrayList<SFMExplorerProjection.Row> answer = new ArrayList<>();
         for (int index = 0; index < count; index++) {
@@ -134,5 +162,15 @@ public class SFMExplorerPanelViewportTests {
                 && inner.y() >= outer.y()
                 && inner.x() + inner.width() <= outer.x() + outer.width()
                 && inner.y() + inner.height() <= outer.y() + outer.height();
+    }
+
+    private static boolean touchesOuterEdge(
+            SFMExplorerPanelViewport.Rect inner,
+            SFMExplorerPanelViewport.Rect outer
+    ) {
+        return inner.x() <= outer.x()
+                || inner.y() <= outer.y()
+                || inner.x() + inner.width() >= outer.x() + outer.width()
+                || inner.y() + inner.height() >= outer.y() + outer.height();
     }
 }

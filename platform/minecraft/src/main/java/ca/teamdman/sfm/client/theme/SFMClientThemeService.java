@@ -21,7 +21,7 @@ public final class SFMClientThemeService {
             unknown = "minecraft:paper"
             extensionless = "minecraft:name_tag"
             ".sfml" = "sfm:disk"
-            ".java" = "minecraft:book"
+            ".java" = "minecraft:cocoa_beans"
             ".json" = "minecraft:map"
             ".toml" = "minecraft:comparator"
 

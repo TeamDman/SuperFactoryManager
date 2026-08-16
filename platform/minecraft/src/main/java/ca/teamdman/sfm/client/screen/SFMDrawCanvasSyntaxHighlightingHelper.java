@@ -94,7 +94,7 @@ public class SFMDrawCanvasSyntaxHighlightingHelper {
             int spaceWidth,
             int lineHeight
     ) {
-        return projectCanvasDocument(sourceGlyphs, spaceWidth, Integer.valueOf(Math.max(1, lineHeight)));
+        return SFMDrawCanvasDocumentIndex.build(sourceGlyphs, spaceWidth, lineHeight).projection();
     }
 
     private static CanvasDocumentProjection projectCanvasDocument(

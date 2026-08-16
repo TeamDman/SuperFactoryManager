@@ -128,6 +128,83 @@ class SFMSymbolServerNavigationProviderTests {
     }
 
     @Test
+    void oneWorkerServesMixedDefinitionAndUsageRequestsOutOfOrder() throws Exception {
+        AtomicReference<FakeSession> sessionRef = new AtomicReference<>();
+        AtomicReference<SFMDefinitionRequest> definition = new AtomicReference<>();
+        AtomicReference<SFMUsageAtPositionRequest> usage = new AtomicReference<>();
+        FakeSession session = new FakeSession(1, frame -> {
+            switch (kind(frame)) {
+                case "hello" -> sessionRef.get().send(SFMSymbolServerProtocolTests.helloEnvelope(
+                        7, "D:/workspace/source", null, null));
+                case "definition" -> {
+                    definition.set(SFMDefinitionJsonCodec.decodeRequest(frame.get("request").toString()));
+                    sendMixedResultsWhenReady(sessionRef.get(), definition.get(), usage.get());
+                }
+                case "usage-at-position" -> {
+                    usage.set(SFMDefinitionJsonCodec.decodeUsageRequest(frame.get("request").toString()));
+                    sendMixedResultsWhenReady(sessionRef.get(), definition.get(), usage.get());
+                }
+            }
+        });
+        sessionRef.set(session);
+        FakeFactory factory = new FakeFactory(session);
+        SFMSymbolServerSupervisor supervisor = supervisor(configuration(Duration.ofSeconds(1)), factory);
+
+        SFMDefinitionRequest definitionRequest = request(31, 4, 7);
+        SFMUsageAtPositionRequest usageRequest = usageRequest(32, 4, 7);
+        var definitionSubmission = supervisor.submit(definitionRequest);
+        var usageSubmission = supervisor.submit(usageRequest);
+
+        assertEquals(31, definitionSubmission.result().get(2, TimeUnit.SECONDS).requestId());
+        assertEquals(32, usageSubmission.result().get(2, TimeUnit.SECONDS).requestId());
+        assertEquals(1, factory.starts.get(), "mixed queries must reuse the same supervised worker");
+        assertEquals(2, supervisor.telemetry().completed());
+        assertEquals(1, session.framesOfKind("definition").size());
+        assertEquals(1, session.framesOfKind("usage-at-position").size());
+    }
+
+    @Test
+    void usageCancellationUsesTheSharedIdentityAndDiscardsLateResults() throws Exception {
+        FakeSession session = nonRespondingDefinitionSession(7, 0);
+        SFMSymbolServerSupervisor supervisor = supervisor(configuration(Duration.ofSeconds(1)),
+                new FakeFactory(session));
+        SFMSymbolServerNavigationProvider provider = new SFMSymbolServerNavigationProvider(supervisor);
+        SFMUsageAtPositionRequest request = usageRequest(33, 5, 7);
+        SFMSymbolReferenceProvider.ReferenceQuery query = provider.query(request);
+        await(() -> session.framesOfKind("usage-at-position").size() == 1);
+
+        assertTrue(query.cancel());
+        await(() -> session.framesOfKind("cancel").size() == 1);
+        JsonObject cancel = session.framesOfKind("cancel").get(0);
+        assertEquals(33, cancel.get("request_id").getAsLong());
+        assertEquals(5, cancel.get("request_generation").getAsLong());
+        assertEquals(7, cancel.get("workspace_generation").getAsLong());
+
+        session.send(usageResultEnvelope(usageResult(request)));
+        await(() -> supervisor.telemetry().lateResponses() == 1);
+        assertTrue(query.result().isCancelled());
+    }
+
+    @Test
+    void definitionAndUsageShareOneBoundedPendingCapacity() throws Exception {
+        FakeSession session = nonRespondingDefinitionSession(7, 0);
+        SFMSymbolServerSupervisor.Configuration base = configuration(Duration.ofSeconds(1));
+        SFMSymbolServerSupervisor.Configuration onePending = new SFMSymbolServerSupervisor.Configuration(
+                base.executable(), base.branch(), base.handshakeTimeout(), base.requestTimeout(),
+                base.shutdownTimeout(), base.maximumFrameBytes(), 1, base.maximumPendingControls()
+        );
+        SFMSymbolServerSupervisor supervisor = supervisor(onePending, new FakeFactory(session));
+
+        var definition = supervisor.submit(request(34, 1, 7));
+        await(() -> session.framesOfKind("definition").size() == 1);
+        Throwable capacityFailure = failure(supervisor.submit(usageRequest(35, 1, 7)).result());
+
+        assertInstanceOf(SFMSymbolServerSupervisor.CapacityException.class, capacityFailure);
+        definition.cancellation().run();
+        await(() -> definition.result().isCancelled());
+    }
+
+    @Test
     void cancellationSendsExactIdentityAndLateResultIsDiscarded() throws Exception {
         FakeSession session = nonRespondingDefinitionSession(7, 0);
         SFMSymbolServerSupervisor supervisor = supervisor(configuration(Duration.ofSeconds(1)),
@@ -332,9 +409,57 @@ class SFMSymbolServerNavigationProviderTests {
         return SFMSymbolServerProtocolTests.request(id, generation, workspaceGeneration);
     }
 
+    private static SFMUsageAtPositionRequest usageRequest(
+            long id,
+            long generation,
+            long workspaceGeneration
+    ) {
+        return SFMUsageAtPositionRequest.fromDefinition(request(id, generation, workspaceGeneration));
+    }
+
+    private static void sendMixedResultsWhenReady(
+            FakeSession session,
+            SFMDefinitionRequest definition,
+            SFMUsageAtPositionRequest usage
+    ) {
+        if (definition == null || usage == null) return;
+        session.sendCoalesced(List.of(
+                usageResultEnvelope(usageResult(usage)),
+                definitionResultEnvelope(SFMSymbolServerProtocolTests.result(definition))
+        ));
+    }
+
+    private static SFMUsageAtPositionResult usageResult(SFMUsageAtPositionRequest request) {
+        SFMDefinitionResult definition = SFMSymbolServerProtocolTests.result(request.asDefinitionRequest());
+        return new SFMUsageAtPositionResult(
+                SFMUsageAtPositionResult.SCHEMA,
+                request.requestId(),
+                request.requestGeneration(),
+                request.workspace().workspaceGeneration(),
+                definition.outcome(),
+                definition.context(),
+                definition.document(),
+                definition.position(),
+                definition.symbols(),
+                definition.definitions(),
+                List.of(),
+                List.of(),
+                definition.completeness(),
+                definition.diagnostics(),
+                definition.recoveryActions(),
+                definition.dependencyIndex()
+        );
+    }
+
     private static String definitionResultEnvelope(SFMDefinitionResult result) {
         JsonObject envelope = base("definition-result", SFMSymbolServerProtocol.DEFINITION_SCHEMA);
         envelope.add("result", JsonParser.parseString(SFMDefinitionJsonCodec.encodeResult(result)));
+        return envelope.toString();
+    }
+
+    private static String usageResultEnvelope(SFMUsageAtPositionResult result) {
+        JsonObject envelope = base("usage-at-position-result", SFMSymbolServerProtocol.USAGE_AT_POSITION_SCHEMA);
+        envelope.add("result", JsonParser.parseString(SFMDefinitionJsonCodec.encodeUsageResult(result)));
         return envelope.toString();
     }
 

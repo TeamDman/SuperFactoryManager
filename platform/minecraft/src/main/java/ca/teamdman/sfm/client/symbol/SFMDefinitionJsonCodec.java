@@ -31,6 +31,22 @@ public final class SFMDefinitionJsonCodec {
         return readResult(object(JsonParser.parseString(json), "result"));
     }
 
+    public static String encodeUsageRequest(SFMUsageAtPositionRequest request) {
+        return writeUsageRequest(request).toString();
+    }
+
+    public static SFMUsageAtPositionRequest decodeUsageRequest(String json) {
+        return readUsageRequest(object(JsonParser.parseString(json), "usage request"));
+    }
+
+    public static String encodeUsageResult(SFMUsageAtPositionResult result) {
+        return writeUsageResult(result).toString();
+    }
+
+    public static SFMUsageAtPositionResult decodeUsageResult(String json) {
+        return readUsageResult(object(JsonParser.parseString(json), "usage result"));
+    }
+
     /** Package-local zero-copy envelope hook for the symbol-server protocol. */
     static JsonObject encodeRequestObject(SFMDefinitionRequest request) {
         return writeRequest(request);
@@ -39,6 +55,14 @@ public final class SFMDefinitionJsonCodec {
     /** Package-local envelope hook that keeps result parsing in this one codec. */
     static SFMDefinitionResult decodeResultObject(JsonObject json) {
         return readResult(json);
+    }
+
+    static JsonObject encodeUsageRequestObject(SFMUsageAtPositionRequest request) {
+        return writeUsageRequest(request);
+    }
+
+    static SFMUsageAtPositionResult decodeUsageResultObject(JsonObject json) {
+        return readUsageResult(json);
     }
 
     private static JsonObject writeRequest(SFMDefinitionRequest value) {
@@ -54,6 +78,28 @@ public final class SFMDefinitionJsonCodec {
 
     private static SFMDefinitionRequest readRequest(JsonObject json) {
         return new SFMDefinitionRequest(
+                string(json, "schema"),
+                longValue(json, "request_id"),
+                longValue(json, "request_generation"),
+                readWorkspace(requiredObject(json, "workspace")),
+                readDocument(requiredObject(json, "document")),
+                readPosition(requiredObject(json, "position"))
+        );
+    }
+
+    private static JsonObject writeUsageRequest(SFMUsageAtPositionRequest value) {
+        JsonObject json = new JsonObject();
+        json.addProperty("schema", value.schema());
+        json.addProperty("request_id", value.requestId());
+        json.addProperty("request_generation", value.requestGeneration());
+        json.add("workspace", writeWorkspace(value.workspace()));
+        json.add("document", writeDocument(value.document()));
+        json.add("position", writePosition(value.position()));
+        return json;
+    }
+
+    private static SFMUsageAtPositionRequest readUsageRequest(JsonObject json) {
+        return new SFMUsageAtPositionRequest(
                 string(json, "schema"),
                 longValue(json, "request_id"),
                 longValue(json, "request_generation"),
@@ -183,6 +229,54 @@ public final class SFMDefinitionJsonCodec {
                 readPosition(requiredObject(json, "position")),
                 objects(json, "symbols").stream().map(SFMDefinitionJsonCodec::readSymbol).toList(),
                 objects(json, "definitions").stream().map(SFMDefinitionJsonCodec::readDefinition).toList(),
+                SFMDefinitionResult.Completeness.fromWireName(string(json, "completeness")),
+                objects(json, "diagnostics").stream().map(SFMDefinitionJsonCodec::readDiagnostic).toList(),
+                objects(json, "recovery_actions").stream()
+                        .map(SFMDefinitionJsonCodec::readRecoveryAction).toList(),
+                optionalObject(json, "dependency_index").map(SFMDefinitionJsonCodec::readDependencyIndex)
+        );
+    }
+
+    private static JsonObject writeUsageResult(SFMUsageAtPositionResult value) {
+        JsonObject json = new JsonObject();
+        json.addProperty("schema", value.schema());
+        json.addProperty("request_id", value.requestId());
+        json.addProperty("request_generation", value.requestGeneration());
+        json.addProperty("workspace_generation", value.workspaceGeneration());
+        json.addProperty("outcome", value.outcome().wireName());
+        json.add("context", writeContext(value.context()));
+        json.add("document", writeDocumentIdentity(value.document()));
+        json.add("position", writePosition(value.position()));
+        json.add("targets", array(value.targets().stream().map(SFMDefinitionJsonCodec::writeSymbol).toList()));
+        json.add("definitions", array(value.definitions().stream()
+                .map(SFMDefinitionJsonCodec::writeDefinition).toList()));
+        json.add("usages", array(value.usages().stream().map(SFMDefinitionJsonCodec::writeUsage).toList()));
+        json.add("skipped_categories", array(value.skippedCategories().stream()
+                .map(SFMDefinitionJsonCodec::writeSkippedCategory).toList()));
+        json.addProperty("completeness", value.completeness().wireName());
+        json.add("diagnostics", array(value.diagnostics().stream()
+                .map(SFMDefinitionJsonCodec::writeDiagnostic).toList()));
+        json.add("recovery_actions", array(value.recoveryActions().stream()
+                .map(SFMDefinitionJsonCodec::writeRecoveryAction).toList()));
+        value.dependencyIndex().ifPresent(index -> json.add("dependency_index", writeDependencyIndex(index)));
+        return json;
+    }
+
+    private static SFMUsageAtPositionResult readUsageResult(JsonObject json) {
+        return new SFMUsageAtPositionResult(
+                string(json, "schema"),
+                longValue(json, "request_id"),
+                longValue(json, "request_generation"),
+                longValue(json, "workspace_generation"),
+                SFMDefinitionResult.Outcome.fromWireName(string(json, "outcome")),
+                readContext(requiredObject(json, "context")),
+                readDocumentIdentity(requiredObject(json, "document")),
+                readPosition(requiredObject(json, "position")),
+                objects(json, "targets").stream().map(SFMDefinitionJsonCodec::readSymbol).toList(),
+                objects(json, "definitions").stream().map(SFMDefinitionJsonCodec::readDefinition).toList(),
+                objects(json, "usages").stream().map(SFMDefinitionJsonCodec::readUsage).toList(),
+                objects(json, "skipped_categories").stream()
+                        .map(SFMDefinitionJsonCodec::readSkippedCategory).toList(),
                 SFMDefinitionResult.Completeness.fromWireName(string(json, "completeness")),
                 objects(json, "diagnostics").stream().map(SFMDefinitionJsonCodec::readDiagnostic).toList(),
                 objects(json, "recovery_actions").stream()
@@ -358,6 +452,38 @@ public final class SFMDefinitionJsonCodec {
                 readDefinitionSpan(requiredObject(json, "identifier_span")),
                 readDefinitionSpan(requiredObject(json, "declaration_span")),
                 string(json, "confidence")
+        );
+    }
+
+    private static JsonObject writeUsage(SFMUsageAtPositionResult.Usage value) {
+        JsonObject json = new JsonObject();
+        json.add("target", writeSymbol(value.target()));
+        json.addProperty("kind", value.kind().wireName());
+        json.add("span", writeDefinitionSpan(value.span()));
+        json.addProperty("confidence", value.confidence());
+        return json;
+    }
+
+    private static SFMUsageAtPositionResult.Usage readUsage(JsonObject json) {
+        return new SFMUsageAtPositionResult.Usage(
+                readSymbol(requiredObject(json, "target")),
+                SFMUsageAtPositionResult.UsageKind.fromWireName(string(json, "kind")),
+                readDefinitionSpan(requiredObject(json, "span")),
+                string(json, "confidence")
+        );
+    }
+
+    private static JsonObject writeSkippedCategory(SFMUsageAtPositionResult.SkippedCategory value) {
+        JsonObject json = new JsonObject();
+        json.addProperty("category", value.category().wireName());
+        json.addProperty("reason", value.reason());
+        return json;
+    }
+
+    private static SFMUsageAtPositionResult.SkippedCategory readSkippedCategory(JsonObject json) {
+        return new SFMUsageAtPositionResult.SkippedCategory(
+                SFMUsageAtPositionResult.SkippedCategoryKind.fromWireName(string(json, "category")),
+                string(json, "reason")
         );
     }
 

@@ -134,6 +134,23 @@ public class SFMExplorerActionTests {
                 settings.targets().get(0).snapshot().settings()
         );
 
+        SFMExplorerActionResult pathDisplay = engine.execute(request(
+                exact,
+                new SFMExplorerActionRequest.PathDisplaySet(
+                        SFMExplorerProjection.PathDisplay.ABSOLUTE_PATH
+                )
+        ));
+        assertEquals(SFMExplorerProjection.PathDisplay.ABSOLUTE_PATH,
+                pathDisplay.targets().get(0).snapshot().settings().pathDisplay());
+        SFMExplorerActionResult filter = engine.execute(request(
+                exact, new SFMExplorerActionRequest.FilterSet("child")
+        ));
+        assertEquals("child", filter.targets().get(0).snapshot().settings().filterQuery());
+        SFMExplorerActionResult filterCleared = engine.execute(request(
+                exact, new SFMExplorerActionRequest.FilterClear()
+        ));
+        assertTrue(filterCleared.targets().get(0).snapshot().settings().filterQuery().isEmpty());
+
         SFMExplorerActionResult add = engine.execute(request(
                 exact, new SFMExplorerActionRequest.RootAdd(SECOND_ROOT)
         ));

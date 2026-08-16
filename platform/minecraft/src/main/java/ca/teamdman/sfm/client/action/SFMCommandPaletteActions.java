@@ -197,6 +197,11 @@ public final class SFMCommandPaletteActions {
             () -> new ResizePanelAction(SFMWorkspaceSide.BELOW)
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, ResizeDividersAction> RESIZE_DIVIDERS = REGISTERER.register(
+            "panel/resize/dividers",
+            ResizeDividersAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, PanelScaleAction> SET_PANEL_SCALE = REGISTERER.register(
             "panel/scale/set",
             () -> new PanelScaleAction(PanelScaleAction.Operation.SET)

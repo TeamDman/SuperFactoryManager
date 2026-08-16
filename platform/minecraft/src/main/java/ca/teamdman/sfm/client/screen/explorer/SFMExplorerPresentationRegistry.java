@@ -64,6 +64,11 @@ public final class SFMExplorerPresentationRegistry {
                     new SFMMinecraftItemExplorerPresenter()
             )
             .register(
+                    SFMFileExtensionExplorerPresenter.ID,
+                    SFMFileExtensionExplorerPresenter.ORDER,
+                    new SFMFileExtensionExplorerPresenter()
+            )
+            .register(
                     SFMFilePathExplorerPresenter.ID,
                     SFMFilePathExplorerPresenter.ORDER,
                     new SFMFilePathExplorerPresenter()

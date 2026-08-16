@@ -12,10 +12,13 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.LongSupplier;
 
 /** Lazily owns the one supervised symbol worker used by client navigation. */
-public final class SFMSymbolNavigationRuntime implements SFMDefinitionLookupService, AutoCloseable {
+public final class SFMSymbolNavigationRuntime
+        implements SFMDefinitionLookupService, SFMReferenceLookupService, AutoCloseable {
     public static final String BRANCH_PROPERTY = "sfm.symbol.workerBranch";
     private static final Duration HANDSHAKE_TIMEOUT = Duration.ofSeconds(10);
     // A fresh worker parses the complete branch surface before its reusable
@@ -28,6 +31,7 @@ public final class SFMSymbolNavigationRuntime implements SFMDefinitionLookupServ
     private final SFMSymbolNavigationProviderRegistry providers;
     private final ScheduledExecutorService scheduler;
     private final SFMDefinitionQueryCoordinator coordinator;
+    private final SFMUsageQueryCoordinator usageCoordinator;
     private final SFMDefinitionContextAdapter adapter = new SFMDefinitionContextAdapter();
     private final AtomicBoolean closed = new AtomicBoolean();
 
@@ -42,7 +46,10 @@ public final class SFMSymbolNavigationRuntime implements SFMDefinitionLookupServ
         providers = new SFMSymbolNavigationProviderRegistry();
         providers.register(100, provider);
         scheduler = Executors.newSingleThreadScheduledExecutor(daemonThreads("sfm-definition-query"));
-        coordinator = new SFMDefinitionQueryCoordinator(providers, scheduler);
+        AtomicLong requestSequence = new AtomicLong();
+        LongSupplier requestIds = () -> requestSequence.updateAndGet(SFMSymbolNavigationRuntime::incrementRequestId);
+        coordinator = new SFMDefinitionQueryCoordinator(providers, scheduler, System::nanoTime, requestIds);
+        usageCoordinator = new SFMUsageQueryCoordinator(provider, scheduler, System::nanoTime, requestIds);
         Runtime.getRuntime().addShutdownHook(new Thread(
                 this::close,
                 "sfm-symbol-navigation-shutdown"
@@ -54,14 +61,14 @@ public final class SFMSymbolNavigationRuntime implements SFMDefinitionLookupServ
     }
 
     @Override
-    public Submission query(SFMContextContribution contribution) {
+    public SFMDefinitionLookupService.Submission query(SFMContextContribution contribution) {
         Objects.requireNonNull(contribution, "contribution");
         if (closed.get()) {
-            return new Submission(CompletableFuture.failedFuture(
+            return new SFMDefinitionLookupService.Submission(CompletableFuture.failedFuture(
                     new IllegalStateException("SFM symbol navigation is closed")), () -> { });
         }
 
-        CompletableFuture<Lookup> answer = new CompletableFuture<>();
+        CompletableFuture<SFMDefinitionLookupService.Lookup> answer = new CompletableFuture<>();
         AtomicBoolean cancelled = new AtomicBoolean();
         AtomicReference<Runnable> activeCancellation = new AtomicReference<>(() -> { });
         provider.start(HANDSHAKE_TIMEOUT).whenComplete((hello, startupFailure) -> {
@@ -113,7 +120,7 @@ public final class SFMSymbolNavigationRuntime implements SFMDefinitionLookupServ
                             queryFailure == null ? "none" : unwrap(queryFailure).getClass().getSimpleName()
                     );
                     if (queryFailure != null) answer.completeExceptionally(unwrap(queryFailure));
-                    else answer.complete(new Lookup(hello, result));
+                    else answer.complete(new SFMDefinitionLookupService.Lookup(hello, result));
                 });
             } catch (RuntimeException failure) {
                 SFM.LOGGER.warn("SFM_DEFINITION_RUNTIME_FAILED failure_type={}",
@@ -121,7 +128,80 @@ public final class SFMSymbolNavigationRuntime implements SFMDefinitionLookupServ
                 answer.completeExceptionally(failure);
             }
         });
-        return new Submission(answer, () -> {
+        return new SFMDefinitionLookupService.Submission(answer, () -> {
+            if (!cancelled.compareAndSet(false, true)) return;
+            activeCancellation.get().run();
+            answer.cancel(false);
+        });
+    }
+
+    @Override
+    public SFMReferenceLookupService.Submission queryReferences(SFMContextContribution contribution) {
+        Objects.requireNonNull(contribution, "contribution");
+        if (closed.get()) {
+            return new SFMReferenceLookupService.Submission(CompletableFuture.failedFuture(
+                    new IllegalStateException("SFM symbol navigation is closed")), () -> { });
+        }
+
+        CompletableFuture<SFMReferenceLookupService.Lookup> answer = new CompletableFuture<>();
+        AtomicBoolean cancelled = new AtomicBoolean();
+        AtomicReference<Runnable> activeCancellation = new AtomicReference<>(() -> { });
+        provider.start(HANDSHAKE_TIMEOUT).whenComplete((hello, startupFailure) -> {
+            try {
+                SFM.LOGGER.info("SFM_REFERENCE_RUNTIME_READY completed={} cancelled={}",
+                        startupFailure == null, cancelled.get());
+                if (cancelled.get()) {
+                    answer.cancel(false);
+                    return;
+                }
+                if (startupFailure != null) {
+                    answer.completeExceptionally(unwrap(startupFailure));
+                    return;
+                }
+                SFMDefinitionContextAdapter.Adaptation adaptation = adapter.adapt(
+                        contribution,
+                        Optional.of(hello),
+                        1,
+                        0
+                );
+                if (!adaptation.success()) {
+                    answer.completeExceptionally(new ContextUnavailableException(adaptation));
+                    return;
+                }
+                SFMUsageQueryCoordinator.Handle handle = usageCoordinator.submit(
+                        contribution.originId().toString(),
+                        SFMUsageAtPositionRequest.fromDefinition(adaptation.request().orElseThrow()),
+                        QUERY_TIMEOUT
+                );
+                SFM.LOGGER.info(
+                        "SFM_REFERENCE_RUNTIME_SUBMITTED request={} generation={} workspace_generation={}",
+                        handle.request().requestId(),
+                        handle.request().requestGeneration(),
+                        handle.request().workspace().workspaceGeneration()
+                );
+                activeCancellation.set(handle::cancel);
+                if (cancelled.get()) {
+                    handle.cancel();
+                    answer.cancel(false);
+                    return;
+                }
+                handle.result().whenComplete((result, queryFailure) -> {
+                    SFM.LOGGER.info(
+                            "SFM_REFERENCE_RUNTIME_COMPLETED request={} success={} failure_type={}",
+                            handle.request().requestId(),
+                            queryFailure == null,
+                            queryFailure == null ? "none" : unwrap(queryFailure).getClass().getSimpleName()
+                    );
+                    if (queryFailure != null) answer.completeExceptionally(unwrap(queryFailure));
+                    else answer.complete(new SFMReferenceLookupService.Lookup(hello, result));
+                });
+            } catch (RuntimeException failure) {
+                SFM.LOGGER.warn("SFM_REFERENCE_RUNTIME_FAILED failure_type={}",
+                        failure.getClass().getSimpleName());
+                answer.completeExceptionally(failure);
+            }
+        });
+        return new SFMReferenceLookupService.Submission(answer, () -> {
             if (!cancelled.compareAndSet(false, true)) return;
             activeCancellation.get().run();
             answer.cancel(false);
@@ -131,6 +211,7 @@ public final class SFMSymbolNavigationRuntime implements SFMDefinitionLookupServ
     @Override
     public void close() {
         if (!closed.compareAndSet(false, true)) return;
+        usageCoordinator.close();
         coordinator.close();
         providers.close();
         scheduler.shutdownNow();
@@ -166,6 +247,11 @@ public final class SFMSymbolNavigationRuntime implements SFMDefinitionLookupServ
             thread.setDaemon(true);
             return thread;
         };
+    }
+
+    private static long incrementRequestId(long value) {
+        if (value == Long.MAX_VALUE) throw new IllegalStateException("Symbol request identity counter exhausted");
+        return value + 1;
     }
 
     private static final class Holder {

@@ -157,9 +157,15 @@ public final class SFMKeyBindingDefaults {
                         SFMKeyboardUsageSituations.TEXT_EDITOR,
                         SFMKeyStroke.of(GLFW.GLFW_KEY_F12)),
                 binding(
+                        "builtin/text-editor/symbol/references/open",
+                        "sfm:symbol/references/open",
+                        "sfm action invoke sfm:symbol/references/open",
+                        SFMKeyboardUsageSituations.TEXT_EDITOR,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_F7, SFMKeyModifier.ALT)),
+                binding(
                         "builtin/text-editor/context-actions/open",
-                        "sfm:symbol/definition/open",
-                        "sfm action invoke sfm:symbol/definition/open offer",
+                        "sfm:context/actions/open",
+                        "sfm action invoke sfm:context/actions/open",
                         SFMKeyboardUsageSituations.TEXT_EDITOR,
                         SFMKeyStroke.of(GLFW.GLFW_KEY_ENTER, SFMKeyModifier.ALT))
         );

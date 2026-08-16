@@ -123,6 +123,40 @@ class SFMDefinitionContextAdapterTests {
     }
 
     @Test
+    void resolverAuthorizedSubtreeComposesWithContainingWorkerSourceRoot() {
+        Path repoRoot = Path.of("D:/workspace/sfm");
+        Path sourceRoot = repoRoot.resolve("platform/minecraft/src/main/java");
+        Path authorizedPackage = sourceRoot.resolve("ca/teamdman/sfm");
+        Path file = authorizedPackage.resolve("OutputStatement.java");
+        String text = "package ca.teamdman.sfm; class OutputStatement {}\n";
+
+        var adapted = new SFMDefinitionContextAdapter().adapt(
+                contribution(projection(
+                        authorizedPackage,
+                        file,
+                        text,
+                        text,
+                        new SFMContextPosition.Text(SFMContextTextCoordinates.atLineColumn(text, 0, 38))
+                )),
+                Optional.of(hello(8, List.of(root(
+                        "main-java", "main", sourceRoot,
+                        "platform/minecraft/src/main/java"
+                )))),
+                12,
+                5
+        );
+
+        assertTrue(adapted.success(),
+                "a document contained by both roots must not produce the historical "
+                        + "'No worker source root contains the document within its resolver authorization' false negative");
+        assertEquals("main-java", adapted.request().orElseThrow().document().rootId());
+        assertEquals(
+                "ca/teamdman/sfm/OutputStatement.java",
+                adapted.request().orElseThrow().document().rootRelativePath()
+        );
+    }
+
+    @Test
     void equallyDeepMappingsAndOutsideAuthorizationFailClosed() {
         Path repoRoot = Path.of("D:/workspace/sfm");
         Path sourceRoot = repoRoot.resolve("src/main/java");

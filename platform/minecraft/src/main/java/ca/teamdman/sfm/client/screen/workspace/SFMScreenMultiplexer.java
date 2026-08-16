@@ -44,6 +44,7 @@ import java.util.Set;
 /** Owns Minecraft's Screen lifecycle while hosting a normalized tree of SFM panels. */
 public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePanelHost {
     private static final int DIVIDER_WIDTH = 2;
+    private static final int DIVIDER_HIT_SLOP = 3;
     private static final int MINIMUM_PANEL_PIXELS = 48;
     private static final int PANEL_BACKGROUND = 0xE0202020;
     private static final int FOCUSED_BORDER = 0xFF55FFFF;
@@ -72,6 +73,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private long keyboardFocusRevision;
     private long contextWorkspaceRevision;
     private long contextCaptureGeneration;
+    private @Nullable SFMWorkspaceDividerInteraction dividerInteraction;
 
     private SFMScreenMultiplexer(
             @Nullable Screen previousScreen,
@@ -392,7 +394,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 MINIMUM_PANEL_PIXELS)) {
             return SFMWorkspacePanelIntentResult.UNAVAILABLE;
         }
-        refreshLayout(true);
+        refreshLayout(true, false);
         return SFMWorkspacePanelIntentResult.APPLIED;
     }
 
@@ -462,6 +464,12 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return layout.focusedPanel();
     }
 
+    /** Current keyboard-focus revision without forcing a full context capture. */
+    public long keyboardFocusGeneration() {
+        observeWorkspaceFocus();
+        return keyboardFocusRevision;
+    }
+
     /** Exact visible panel targeted by focused-panel actions. */
     public @Nullable SFMScreenPanel focusedPanelInstance() {
         return layout.panel(layout.focusedPanel());
@@ -522,6 +530,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return layout.panels().stream().map(SFMWorkspaceLayout.PanelEntry::id).toList();
     }
 
+    public Optional<SFMWorkspaceStackId> panelStackId(SFMWorkspacePanelId panelId) {
+        return layout.stackId(panelId);
+    }
+
     public @Nullable SFMScreenPanelBounds panelBounds(SFMWorkspacePanelId panelId) {
         return panelBounds.get(panelId);
     }
@@ -530,6 +542,70 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     public @Nullable SFMScreenPanelBounds panelContentBounds(SFMWorkspacePanelId panelId) {
         SFMWorkspaceLayout.PanelEntry entry = layout.entry(panelId);
         return entry == null ? null : contentBounds(entry);
+    }
+
+    public List<SFMWorkspaceDivider> dividerDescriptions() {
+        if (this.width <= 0 || this.height <= 0) return List.of();
+        return layout.dividers(
+                workspaceViewport(),
+                DIVIDER_WIDTH,
+                DIVIDER_HIT_SLOP,
+                MINIMUM_PANEL_PIXELS);
+    }
+
+    /** Logical and physical rectangles are exposed together for automation evidence. */
+    public List<SFMWorkspaceDividerView> dividerViews() {
+        if (this.minecraft == null) return dividerDescriptions().stream()
+                .map(divider -> new SFMWorkspaceDividerView(
+                        divider, divider.lineBounds(), divider.hitBounds()))
+                .toList();
+        var window = this.minecraft.getWindow();
+        SFMScreenPanelBounds viewport = workspaceViewport();
+        return dividerDescriptions().stream()
+                .map(divider -> SFMWorkspaceDividerView.scale(
+                        divider, viewport, window.getWidth(), window.getHeight()))
+                .toList();
+    }
+
+    public SFMWorkspaceDividerInteraction.Snapshot dividerInteractionSnapshot() {
+        SFMWorkspaceDividerInteraction interaction = dividerInteraction;
+        return interaction == null
+                ? new SFMWorkspaceDividerInteraction.Snapshot(
+                SFMWorkspaceDividerCursor.DEFAULT,
+                List.of(),
+                List.of(),
+                null,
+                null,
+                0.0D,
+                0.0D,
+                Map.of(),
+                Map.of(),
+                Map.of())
+                : interaction.snapshot();
+    }
+
+    public SFMWorkspaceDividerResizeResult resizeDividers(SFMWorkspaceResizeDividersIntent intent) {
+        if (this.width <= 0 || this.height <= 0) {
+            return new SFMWorkspaceDividerResizeResult(
+                    SFMWorkspaceDividerResizeResult.Status.UNAVAILABLE,
+                    Map.of(),
+                    Map.of(),
+                    Map.of());
+        }
+        SFMWorkspaceDividerResizeResult result = layout.resizeDividers(
+                intent,
+                workspaceViewport(),
+                DIVIDER_WIDTH,
+                DIVIDER_HIT_SLOP,
+                MINIMUM_PANEL_PIXELS);
+        if (result.changed()) {
+            if (this.minecraft == null) {
+                panelBounds = layout.bounds(workspaceViewport(), DIVIDER_WIDTH);
+            } else {
+                refreshLayout(true, false);
+            }
+        }
+        return result;
     }
 
     @Override
@@ -601,16 +677,57 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     protected void init() {
+        disposeDividerInteraction();
         super.init();
         refreshLayout(true);
+        if (this.minecraft != null) {
+            dividerInteraction = new SFMWorkspaceDividerInteraction(
+                    new SFMWorkspaceDividerInteraction.Host() {
+                        @Override
+                        public SFMWorkspaceLayout layout() {
+                            return layout;
+                        }
+
+                        @Override
+                        public SFMScreenPanelBounds viewport() {
+                            return workspaceViewport();
+                        }
+
+                        @Override
+                        public int dividerPixels() {
+                            return DIVIDER_WIDTH;
+                        }
+
+                        @Override
+                        public int hitSlopPixels() {
+                            return DIVIDER_HIT_SLOP;
+                        }
+
+                        @Override
+                        public int minimumPanelPixels() {
+                            return MINIMUM_PANEL_PIXELS;
+                        }
+
+                        @Override
+                        public void dividerLayoutChanged() {
+                            refreshLayout(true, false);
+                        }
+                    },
+                    SFMWorkspaceGlfwCursorHost.live(this.minecraft.getWindow().getWindow()));
+        }
     }
 
     private void refreshLayout(boolean notifyPanels) {
+        refreshLayout(notifyPanels, true);
+    }
+
+    private void refreshLayout(boolean notifyPanels, boolean recomposePanelGroup) {
         contextWorkspaceRevision = incrementContextGeneration(contextWorkspaceRevision);
-        if (panelGroup != null) {
+        if (panelGroup != null && recomposePanelGroup) {
             layout.recompose(panelGroup.layout(new SFMScreenPanelBounds(0, 0, this.width, this.height)));
             panelGroupRevision = panelGroup.revision();
         }
+        if (dividerInteraction != null) dividerInteraction.synchronizeLayoutRevision();
         panelBounds = layout.bounds(new SFMScreenPanelBounds(0, 0, this.width, this.height), DIVIDER_WIDTH);
         synchronizeWidgetHostActivation();
         observeWorkspaceFocus();
@@ -637,6 +754,16 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         }
     }
 
+    private SFMScreenPanelBounds workspaceViewport() {
+        return new SFMScreenPanelBounds(0, 0, Math.max(0, this.width), Math.max(0, this.height));
+    }
+
+    private void disposeDividerInteraction() {
+        SFMWorkspaceDividerInteraction interaction = dividerInteraction;
+        dividerInteraction = null;
+        if (interaction != null) interaction.close();
+    }
+
     private static long incrementContextGeneration(long value) {
         return value == Long.MAX_VALUE ? value : value + 1;
     }
@@ -660,7 +787,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     @Override
     public void tick() {
         if (panelGroup != null && panelGroupRevision != panelGroup.revision()) refreshLayout(true);
+        if (dividerInteraction != null && this.minecraft != null
+                && GLFW.glfwGetWindowAttrib(
+                this.minecraft.getWindow().getWindow(), GLFW.GLFW_FOCUSED) != GLFW.GLFW_TRUE) {
+            dividerInteraction.focusLost();
+        }
         for (SFMWorkspaceLayout.PanelEntry entry : layout.visiblePanels()) entry.panel().tick();
+        ca.teamdman.sfm.client.symbol.SFMFindReferencesController.tickProduction(this);
         if (workspaceToast != null && workspaceToast.isExpired(System.nanoTime())) workspaceToast = null;
     }
 
@@ -705,6 +838,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     public void onClose() {
         if (closing) return;
         closing = true;
+        disposeDividerInteraction();
         for (SFMWorkspaceLayout.PanelEntry entry : layout.allPanels()) {
             entry.panel().widgetHost().ifPresent(SFMPanelWidgetHost::closed);
             entry.panel().closed();
@@ -713,6 +847,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         openedPanelInstances.clear();
         reopenRecipes.clear();
         SFMScreenChangeHelpers.setScreen(previousScreen);
+    }
+
+    @Override
+    public void removed() {
+        disposeDividerInteraction();
+        ca.teamdman.sfm.client.symbol.SFMFindReferencesController.workspaceRemovedProduction(this);
+        super.removed();
     }
 
     @Override
@@ -742,15 +883,23 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             }
             renderEntryAffordances(poseStack, entry, bounds);
         }
+        renderDividerAffordances(poseStack);
         if (dropFeedback != null) {
             SFMFontUtils.draw(poseStack, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
         super.render(poseStack, mouseX, mouseY, partialTick);
         renderWorkspaceToast(poseStack);
+        if (dividerInteraction != null) dividerInteraction.reassertCursor();
     }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_ESCAPE
+                && dividerInteraction != null
+                && dividerInteraction.isCaptured()) {
+            dividerInteraction.cancel();
+            return true;
+        }
         boolean control = (modifiers & GLFW.GLFW_MOD_CONTROL) != 0 || Screen.hasControlDown();
         boolean shift = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0 || Screen.hasShiftDown();
         if (panelGroup != null && control && keyCode == GLFW.GLFW_KEY_M) {
@@ -838,6 +987,8 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (dividerInteraction != null
+                && dividerInteraction.pointerPressed(mouseX, mouseY, button)) return true;
         SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
         if (entry != null) {
             layout.focus(entry.id());
@@ -855,6 +1006,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
+        if (dividerInteraction != null) {
+            dividerInteraction.pointerMoved(mouseX, mouseY);
+            if (dividerInteraction.isHoveringDivider() || dividerInteraction.isCaptured()) {
+                super.mouseMoved(mouseX, mouseY);
+                return;
+            }
+        }
         SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
         if (entry != null) {
             int[] local = localMouse(entry, mouseX, mouseY);
@@ -866,6 +1024,8 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (dividerInteraction != null
+                && dividerInteraction.pointerReleased(mouseX, mouseY, button)) return true;
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         SFMWorkspaceLayout.PanelEntry entry = focused == null ? null : layout.entry(layout.focusedPanel());
         int[] local = entry == null ? new int[]{0, 0} : localMouse(entry, mouseX, mouseY);
@@ -877,6 +1037,8 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (dividerInteraction != null
+                && dividerInteraction.pointerDragged(mouseX, mouseY, button)) return true;
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         SFMWorkspaceLayout.PanelEntry entry = focused == null ? null : layout.entry(layout.focusedPanel());
         int[] local = entry == null ? new int[]{0, 0} : localMouse(entry, mouseX, mouseY);
@@ -1078,6 +1240,19 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                         foreground,
                         true);
             }
+        }
+    }
+
+    private void renderDividerAffordances(PoseStack poseStack) {
+        if (dividerInteraction == null) return;
+        SFMWorkspaceDividerInteraction.Snapshot snapshot = dividerInteraction.snapshot();
+        Set<SFMWorkspaceDividerId> hovered = new HashSet<>(snapshot.hoveredDividerIds());
+        Set<SFMWorkspaceDividerId> captured = new HashSet<>(snapshot.capturedDividerIds());
+        for (SFMWorkspaceDivider divider : dividerDescriptions()) {
+            if (!hovered.contains(divider.id()) && !captured.contains(divider.id())) continue;
+            SFMScreenPanelBounds line = divider.lineBounds();
+            int color = captured.contains(divider.id()) ? 0xFFFFAA33 : 0xFF55FFFF;
+            fill(poseStack, line.x(), line.y(), line.x() + line.width(), line.y() + line.height(), color);
         }
     }
 

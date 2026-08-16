@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -137,6 +138,42 @@ class SFMClientActionPaletteSuggestionTests {
                 .toList();
 
         assertFalse(suggestions.stream().anyMatch(suggestion -> suggestion.contains("sfm:terminal")));
+    }
+
+    @Test
+    void deepExplorerViewAndPathDisplayValuesAreDiscoverableAndExecutableGrammarLeaves() {
+        ResourceLocation viewId = new ResourceLocation("sfm", "explorer/view/set");
+        ResourceLocation pathDisplayId = new ResourceLocation("sfm", "explorer/path-display/set");
+        SFMClientActionCommandTree tree = tree(
+                Map.entry(viewId, new SFMExplorerAction(SFMExplorerAction.Operation.VIEW_SET)),
+                Map.entry(pathDisplayId, new SFMExplorerAction(SFMExplorerAction.Operation.PATH_DISPLAY_SET))
+        );
+        SFMClientActionSource source = source();
+
+        String viewPrefix = "sfm action invoke sfm:explorer/view/set focused ";
+        List<Suggestion> views = tree.getPaletteSuggestions(viewPrefix, tree.parse(viewPrefix, source))
+                .join().getList();
+        assertEquals(List.of("sfm:list", "sfm:small_icons"),
+                views.stream().map(Suggestion::getText).toList());
+        assertTrue(views.stream().allMatch(suggestion -> suggestion.getTooltip() != null));
+        assertTrue(views.stream().anyMatch(suggestion -> suggestion.getTooltip().getString().contains("ItemStack")));
+        var parsedView = tree.parse(viewPrefix + "sfm:small_icons", source);
+        assertTrue(SFMClientActionExecutor.isExecutable(parsedView), () ->
+                "remaining=" + parsedView.getReader().getRemaining()
+                        + ", exceptions=" + parsedView.getExceptions()
+                        + ", command=" + parsedView.getContext().getCommand());
+
+        String pathPrefix = "sfm action invoke sfm:explorer/path-display/set focused ";
+        List<Suggestion> paths = tree.getPaletteSuggestions(pathPrefix, tree.parse(pathPrefix, source))
+                .join().getList();
+        assertEquals(Set.of("sfm:name", "sfm:relative_path", "sfm:absolute_path"),
+                paths.stream().map(Suggestion::getText).collect(java.util.stream.Collectors.toSet()));
+        assertTrue(paths.stream().allMatch(suggestion -> suggestion.getTooltip() != null));
+        var parsedPathDisplay = tree.parse(pathPrefix + "sfm:absolute_path", source);
+        assertTrue(SFMClientActionExecutor.isExecutable(parsedPathDisplay), () ->
+                "remaining=" + parsedPathDisplay.getReader().getRemaining()
+                        + ", exceptions=" + parsedPathDisplay.getExceptions()
+                        + ", command=" + parsedPathDisplay.getContext().getCommand());
     }
 
     @Test

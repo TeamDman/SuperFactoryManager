@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMPathExpression;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSettingRegistry;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -55,10 +56,7 @@ public final class SFMExplorerPanelActions {
     }
 
     public static String viewSet(SFMExplorerId explorerId, SFMExplorerProjection.View view) {
-        return setting("sfm:explorer/view/set", explorerId, switch (view) {
-            case LIST -> "sfm:list";
-            case SMALL_ICONS -> "sfm:small_icons";
-        });
+        return setting("sfm:explorer/view/set", explorerId, SFMExplorerSettingRegistry.id(view));
     }
 
     public static String sortSet(SFMExplorerId explorerId, SFMExplorerProjection.Sort sort) {
@@ -71,6 +69,30 @@ public final class SFMExplorerPanelActions {
 
     public static String hoistSet(SFMExplorerId explorerId, SFMExplorerProjection.Hoist hoist) {
         return setting("sfm:explorer/root/hoist/set", explorerId, wireId(hoist));
+    }
+
+    public static String pathDisplaySet(
+            SFMExplorerId explorerId,
+            SFMExplorerProjection.PathDisplay pathDisplay
+    ) {
+        return setting(
+                "sfm:explorer/path-display/set",
+                explorerId,
+                SFMExplorerSettingRegistry.id(pathDisplay)
+        );
+    }
+
+    public static String filterSet(SFMExplorerId explorerId, String query) {
+        String normalized = Objects.requireNonNull(query, "query").strip();
+        if (normalized.isEmpty()) return filterClear(explorerId);
+        if (normalized.indexOf('\n') >= 0 || normalized.indexOf('\r') >= 0) {
+            throw new IllegalArgumentException("Explorer filter query must be one line");
+        }
+        return command("sfm:explorer/filter/set", explorerId, normalized);
+    }
+
+    public static String filterClear(SFMExplorerId explorerId) {
+        return PREFIX + "sfm:explorer/filter/clear " + exact(explorerId);
     }
 
     private static String node(String operation, SFMExplorerId explorerId, SFMPath path) {

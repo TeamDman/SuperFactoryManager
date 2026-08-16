@@ -21,7 +21,7 @@ public record SFMDefinitionRequest(
         Position position
 ) {
     public static final String SCHEMA = "sfm.definition-at-position-request/2";
-    private static final Set<String> SOURCE_ROOT_KINDS = Set.of("declared", "generated", "custom");
+    private static final Set<String> SOURCE_ROOT_KINDS = Set.of("declared", "generated", "custom", "jdk");
 
     public enum ClasspathMode {
         BRANCH("branch"),
