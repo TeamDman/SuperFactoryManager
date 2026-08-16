@@ -505,7 +505,7 @@ is rejected from this track in favor of intentional `SFMScreenPanel` content.
 remain later capabilities or integration work rather than blockers to this
 checkpoint.
 
-### [ ] Track 1b — Pointer-driven divider resizing and cursor affordances
+### [~] Track 1b — Pointer-driven divider resizing and cursor affordances
 
 This follow-up completes WRESIZE-1 through WRESIZE-6 without implementing
 Alt+drag relocation, explorer root/node drag, virtual workspaces, or arbitrary
@@ -591,6 +591,14 @@ one intersection gesture resizes every explicitly hit orthogonal divider while
 respecting minima; panels/stacks/focus/content identities survive; keyboard,
 pointer, action, and automation paths agree; and artifacts make the share/bounds
 transition verifiable without computer vision.
+
+**Implementation checkpoint (2026-08-16; live acceptance pending):** Java
+commit `2c013aa66` adds stable divider/link identities, constrained share
+mutation, orthogonal intersection capture, cached GLFW cursor ownership,
+pointer/action parity, child-event suppression, cancellation, and structured
+before/during/after evidence. Pure and host integration tests plus static puppet
+compilation passed. The GUI-scale-matrix
+`title_screen_workspace_divider_resize` live run remains.
 
 **Parallel topology:** Once `DividerId`, geometry, delta, and cursor-adapter
 interfaces are frozen, a pure layout/test lane, a GLFW cursor-lifecycle lane,

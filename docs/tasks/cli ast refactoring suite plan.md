@@ -2011,7 +2011,7 @@ C-9. It improves one symbol universe and one supervised worker; it does not
 implement Minecraft gestures/panels, mutate Java, invoke Gradle, propagate, or
 begin Phase 1 refactoring architecture.
 
-### [ ] 0.12.1 Resolve JDK, local, member, annotation, and import definitions at position
+### [~] 0.12.1 Resolve JDK, local, member, annotation, and import definitions at position
 
 **Work:** Extend the branch symbol universe with a first-class JDK-source
 domain selected by the branch's existing JDK/release configuration. Prefer the
@@ -2043,7 +2043,16 @@ precise semantically justified ambiguity/unsupported outcome; no JDK symbol is
 resolved by name guessing; target matches survive unrelated partial coverage;
 and index/source identities make the answer reproducible.
 
-### [ ] 0.12.2 Add typed usage-at-position and the `list-usages` location form
+**Implementation checkpoint (2026-08-16; live acceptance pending):** Rust
+commit `bd38aae8b` adds branch-selected JDK source definitions, implicit
+`java.lang`, lexical local/parameter lookup, and member/annotation/import
+location coverage. The strict CLI `check-all.ps1` gate passed 598 library tests
+(3 ignored) plus all 9 adjacent Java-analysis scenarios. The Minecraft
+consumer and exact F12 fixture journey are in Java commit `2c013aa66`; canonical
+Java compile/full-suite and the C-11 live puppet remain before this item may be
+marked complete.
+
+### [~] 0.12.2 Add typed usage-at-position and the `list-usages` location form
 
 **Work:** Add versioned `UsageAtPositionRequest`/`UsageAtPositionResult`
 (exact schema names/version frozen by Facet snapshots). Reuse the definition
@@ -2075,7 +2084,15 @@ cursor, and where is it referenced?” without manufacturing a selector; the
 typed answer is sufficient to build a persistent explorer and remains honest
 about origin, certainty, completeness, and skipped categories.
 
-### [ ] 0.12.3 Extend `symbol serve`, prove root/completeness correctness, and hand off
+**Implementation checkpoint (2026-08-16; live acceptance pending):** Rust
+commit `bd38aae8b` adds typed location-based usage requests/results for the
+direct CLI and reusable engine, deterministic target/categorized span output,
+bounded result admission, and zero/one/many/partial/duplicate-authority
+scenarios. Java commit `2c013aa66` consumes the contract through a persistent
+generic reference explorer. The integrated C-11 live result-retention journey
+remains before completion.
+
+### [~] 0.12.3 Extend `symbol serve`, prove root/completeness correctness, and hand off
 
 **Work:** Negotiate `usage-at-position` as an additive capability and add
 framed request/result/cancel terminal messages. Reuse the worker's immutable
@@ -2108,6 +2125,17 @@ usage-at-position queries over workspace/dependency/JDK sources with measured
 interactive reuse, clean cancellation/lifecycle, canonical direct parity, and
 sufficient typed mapping/completeness evidence for C-7/C-8. Java sources and
 Phase 1 remain untouched.
+
+**Implementation checkpoint (2026-08-16; live acceptance pending):** Rust
+commit `bd38aae8b` adds negotiated usage-at-position worker frames, shared
+definition/usage surfaces, target-lazy bounded caches, cancellation, root and
+completeness evidence, and installed-process lifecycle probes. The installed
+revision-correct worker artifact
+`docs/task-evidence/source-navigation/symbol-server-installed-probe.json`
+records cold 4324.506 ms, warm mixed median 99.550 ms, p95 148.105 ms, max
+175.058 ms, definition median 75.679 ms, usage median 124.750 ms, accepted
+memory (485.9 MiB peak working set; 500.5 MiB steady private), exit 0, and zero
+leaked descendants. Canonical Java integration and live C-11 acceptance remain.
 
 ### Phase 0.12 parallel work map
 

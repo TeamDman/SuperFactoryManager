@@ -1,0 +1,15 @@
+{
+  "schema": "sfm.editor-v3-performance-probe/1",
+  "captured_at": "2026-08-16T11:31:55.582819200Z",
+  "source_path": "D:\\Repos\\Minecraft\\SFM\\repos2\\1.19.2\\platform\\minecraft\\src\\main\\java\\ca\\teamdman\\sfml\\ast\\OutputStatement.java",
+  "source_sha256": "15c9296b2e11f648657140d4056bc253793f385b1babc2fb9a4bade508de29f1",
+  "source_bytes": 34019,
+  "source_lines": 817,
+  "java_version": "17.0.6",
+  "os": "Windows 11 10.0 amd64",
+  "viewport": {"width": 1280, "height": 720, "line_height": 9},
+  "cold_load": {"nanos": 14558900, "allocated_bytes": 3591872, "glyphs": 22294},
+  "projection": {"nanos": 44501000, "allocated_bytes": 6919408, "utf16_units": 34018},
+  "frame_scan": {"nanos": 2056500, "glyphs_visited": 2860, "visible_glyphs": 2860},
+  "pointer_hit_scan": {"nanos": 32200, "glyphs_visited": 1, "hit": true}
+}

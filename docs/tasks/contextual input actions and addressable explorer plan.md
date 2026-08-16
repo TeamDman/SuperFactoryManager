@@ -2843,7 +2843,7 @@ fuzzy-file chain remains available after B-2 and was not part of either goal.
 
 ## Phase C follow-up — symbol correctness, persistent references, and responsive interaction
 
-### [ ] C-7 Harden definition coverage, resolver authorization, and pane-stack placement
+### [~] C-7 Harden definition coverage, resolver authorization, and pane-stack placement
 
 **Work:** Complete linked CLI-AST Phase 0.12.1 and consume its revised typed
 results without adding Java-side parsing. Make definition-at-position resolve
@@ -2880,7 +2880,14 @@ fixture—including the three JDK types—without either false-negative message;
 real incompleteness remains truthful; and unseen definitions become focused
 tabs/entries in the current pane rather than surprise side panels.
 
-### [ ] C-8 Add location-aware usages and a persistent reference explorer
+**Implementation checkpoint (2026-08-16; live acceptance pending):** CLI
+commit `bd38aae8b` and Java commit `2c013aa66` implement the named JDK/local/
+member/annotation/import coverage, exact authorization/completeness regressions,
+and current-pane stack placement. Direct Java compilation and the 195-test
+focused integration suite passed. Canonical compile/full-suite plus the exact
+C-11 F12 live fixtures remain.
+
+### [~] C-8 Add location-aware usages and a persistent reference explorer
 
 **Work:** Complete linked CLI-AST Phase 0.12.2/0.12.3. Add a provider-neutral
 references request at the same immutable document/hash/UTF-aware location as
@@ -2911,7 +2918,13 @@ reference explorer whose complete identity and diagnostics remain visible while
 the user repeatedly jumps among source ranges; no result is discarded merely
 because one row was opened.
 
-### [ ] C-9 Add symbol hover/click and one contextual-action gesture surface
+**Implementation checkpoint (2026-08-16; live acceptance pending):** Commits
+`bd38aae8b` and `2c013aa66` implement location-aware usage lookup, immutable
+reference-result entities, generic explorer projection, retained result/source
+identities, and repeated row activation. Pure/integration tests passed; the
+C-11 live puppet must still retain the explorer while opening three references.
+
+### [~] C-9 Add symbol hover/click and one contextual-action gesture surface
 
 **Work:** Close D-25/D-27 while consuming B-5. Add immutable hover identity
 `(editor origin, document hash/generation, exact glyph/text range, modifiers)`.
@@ -2942,7 +2955,14 @@ Alt+F7 opens persistent references; right-click and Alt+Enter are one familiar
 contextual palette; no stale decoration, stuck cursor, duplicate parser, or
 stolen Alt+click behavior remains.
 
-### [ ] C-10 Measure and fix EditorV3 large-document responsiveness
+**Implementation checkpoint (2026-08-16; live acceptance pending):** Java
+commit `2c013aa66` adds generation-safe cached Ctrl-hover decoration/cursor
+ownership, Ctrl+click action parity, Alt+F7, and one provider registry/constrained
+palette shared by Alt+Enter and right-click while retaining Alt-click
+multi-cursor behavior. Focused gesture/cursor/context tests passed; C-11 still
+owes visual and machine live proof.
+
+### [~] C-10 Measure and fix EditorV3 large-document responsiveness
 
 **Work:** Establish a deterministic benchmark/puppet opening the real
 `platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java` at
@@ -2973,7 +2993,15 @@ the measured dominant stage is fixed; warm interaction meets D-29 without
 rendering/scanning all offscreen glyphs or rebuilding unchanged projections;
 and visual/semantic parity plus raw before/after evidence are inspectable.
 
-### [ ] C-11 Prove the corrected source-navigation journey and reconcile plans
+**Implementation checkpoint (2026-08-16; live acceptance pending):** Java
+commit `2c013aa66` adds indexed visible-glyph/document projections, reusable
+style/selection state, invalidation tests, and stage telemetry. The retained
+`before.json` reproduces 4.277 s cold projection, 23.45 GB allocation, 22,294
+glyph scans, and 12,353 pointer scans; `after.json` records 14.559 ms cold,
+3.59 MB, 2,860 visible glyph scans, and one pointer candidate. C-11 must still
+verify D-29 frame/input bounds in the real game.
+
+### [~] C-11 Prove the corrected source-navigation journey and reconcile plans
 
 **Work:** Extend the source-editor live journey to open `OutputStatement.java`,
 exercise Ctrl-hover/Ctrl+click and F12 on project/JDK/local/member/annotation/
@@ -2994,6 +3022,14 @@ guidance id has pure, integration, and live evidence; the user can inspect one
 stable reference list while navigating repeatedly; large-document interaction
 has measured acceptable latency; and the plan accurately retains all deferred
 decisions.
+
+**Implementation checkpoint (2026-08-16; live acceptance pending):** Java
+commit `2c013aa66` contains the integrated
+`title_screen_output_statement_source_navigation` puppet and its exact JDK,
+local, field, method, annotation, import, hover/context/reference/reveal,
+same-pane, and performance assertions. Static puppet compilation passed. The
+canonical compile/full Java suite and live run/artifact inspection remain; the
+separate X-8b and Track 1b puppets are likewise implemented but not yet run.
 
 ## Most recently completed vertical slice — source presentation through definition navigation
 

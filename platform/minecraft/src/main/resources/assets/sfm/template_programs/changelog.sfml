@@ -56,6 +56,12 @@ NAME "Changelog"
 -- Mark explorer-opened read-only Text Editor v3 documents with contrast-backed bottom chrome
 -- Highlight Java source asynchronously through a cached Rust Arborium service while keeping rendering and unsupported files responsive
 -- Add F12, Alt+Enter, and command-palette jump-to-definition for addressed Java documents with safe panel navigation
+-- Resolve JDK, local, member, annotation, and import definitions from Text Editor v3 without surprise side splits
+-- Add Ctrl-hover link affordances, Ctrl+click definition navigation, and shared Alt+Enter/right-click contextual actions
+-- Add Alt+F7 persistent reference explorers and reveal-in-explorer for focused source documents
+-- Make large Text Editor v3 documents responsive with viewport indexes and reusable projection, style, and selection state
+-- Add extension-aware explorer icons, discoverable view/path modes, fuzzy filtering, immediate wheel scrolling, and corrected focus borders
+-- Add pointer-driven panel divider resizing with horizontal, vertical, and intersection cursor affordances
 -- Keep preferred text editors responsive, clipped, and panel-local when explorer locations are opened beside narrow panels
 -- Add single-client responsive viewport sweeps and browsable puppet evidence reports
 -- Make literal punctuation in unquoted SFML wildcard matchers match only itself

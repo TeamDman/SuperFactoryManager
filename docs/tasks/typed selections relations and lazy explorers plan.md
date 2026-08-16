@@ -1159,7 +1159,7 @@ space unused. C-3 closed that concern in `6dc3d2d04`; its inspected
 `title_screen_explorer_open_sfm_java` Auto-plus-scales-1-through-8 matrix uses
 the panel allocation for the real read-only `SFM.java` Text Editor v3 view.
 
-### [ ] X-8b Repair explorer projection discovery and interaction fidelity
+### [~] X-8b Repair explorer projection discovery and interaction fidelity
 
 **Work:** Deliver XEXP-20 through XEXP-25 without changing semantic explorer
 membership or beginning picker X-8. Add an ordered extension/theme presenter
@@ -1214,6 +1214,14 @@ visibly use small ItemStack icons; focus chrome belongs to exactly one child
 and cannot be overpainted; fuzzy filtering is responsive and truthful about
 lazy scope; and each wheel event changes the next observable projection without
 a delayed aggregate jump.
+
+**Implementation checkpoint (2026-08-16; live acceptance pending):** Java
+commit `2c013aa66` adds the contributed `.java` cocoa-beans icon with paper
+fallback, deep view/path-display completions, ItemStack small-icons projection,
+four-edge inset focus chrome, immediate ordered wheel application/telemetry,
+and fuzzy filtering over current lazy materialization. Focused tests and static
+puppet compilation passed. The GUI-scale-matrix
+`title_screen_explorer_interaction_fidelity` live run remains.
 
 ### [ ] X-8 Compose pickers as selection destinations
 
