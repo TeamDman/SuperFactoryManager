@@ -1,9 +1,9 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0 through Phase 0.11 are complete; Phase 1 remains deferred
+**Plan status:** Active; Phase 0 through Phase 0.11 are complete; Phase 0.12 now owns location-definition coverage and location-usage/reference support before deferred Phase 1
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-15
-**Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, 2026-08-11 for the in-game definition-at-location bridge, reconciled 2026-08-15 at Phase 0.10 completion, and extended 2026-08-15 for Rust-owned Arborium Java highlighting
+**Last updated:** 2026-08-16
+**Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, 2026-08-11 for the in-game definition-at-location bridge, reconciled 2026-08-15 at Phase 0.10 completion, extended 2026-08-15 for Rust-owned Arborium Java highlighting, extended 2026-08-16 for JDK/local/member/import definition coverage plus location-aware usages, and post-compaction re-audited 2026-08-16 against the user's verbatim report
 
 ## How to update this plan
 
@@ -71,7 +71,20 @@ authorize source rewrites.
 | JAVA-43 | Highlighting must be responsive and stale-safe. | Requests carry id/origin generation/source hash, are cancellable and bounded, run in a supervised long-lived process, and never apply a late result to changed text. | — |
 | JAVA-44 | Arborium integration must not destabilize the existing pinned parser. | Add `arborium-highlight = 2.18.1` without its `tree-sitter` feature and keep `tree-sitter-patched-arborium = 0.25.10` as the sole native tree-sitter link provider. | — |
 
-## Guidance traceability for completed Phase 0 and next Phase 0.8
+## Authoritative user guidance ledger — 2026-08-16 location intelligence extension
+
+| ID | Active guidance | Required plan consequence | Superseded by |
+| --- | --- | --- | --- |
+| JAVA-45 | Definition-at-position must resolve `String`, `Object`, and `StringBuilder`, including Java's implicit `java.lang` import behavior. | Phase 0.12.1 composes branch-selected JDK sources with workspace/dependency symbols, keys them by JDK/source identity, and adds exact platform-type location scenarios. | — |
+| JAVA-46 | Definition-at-position must handle variables, fields, methods, annotations, and import statements when statically resolvable. | Phase 0.12.1 adds lexical local/parameter declarations and reference-range classification while reusing existing type/member/import facts and overload/source-set semantics. | — |
+| JAVA-47 | Known resolver-authorized files must not falsely fail with `no worker source root contains the document within its resolver authorization`. | Phase 0.12.3 plus contextual C-7 validate negotiated root/source-set/report-path identity and preserve a fixture for the exact Java-side failure; the Rust engine must expose sufficient canonical mapping evidence rather than invite path guessing. | — |
+| JAVA-48 | An incomplete dependency/source index must remain visible, but it must not turn a resolvable symbol into `NoSymbol` merely because some unrelated components are missing. | Phase 0.12.1/0.12.3 separate target-domain completeness from global partial coverage, return matches plus scoped diagnostics, and preserve the exact false-negative text as a regression. | — |
+| JAVA-49 | `Find References`/`Find Usages` should work from the editor position just as definition lookup does; the UI should not have to derive an exact selector first. | Phase 0.12.2 adds a mutually exclusive location form to `symbol list-usages`, a typed usage-at-position engine request/result, and a supervised worker capability sharing the definition context. | — |
+| JAVA-50 | Reference results must be rich enough for a persistent explorer and repeated source navigation. | Phase 0.12.2 returns the resolved target plus deterministic categorized usages, concrete source spans/addresses, source-set/origin/hash identity, completeness, diagnostics, and recovery recommendations. | — |
+| JAVA-51 | Interactive references must reuse the warm worker, remain cancellable/stale-safe, and not spawn one CLI process per invocation. | Phase 0.12.3 extends `symbol serve` negotiation/framing/cache/generation/cancellation with usage-at-position and proves direct/worker canonical parity and bounded lifecycle. | — |
+| JAVA-52 | The new work is navigation/review infrastructure, not authorization to begin source mutation or refactoring Phase 1. | Phase 0.12 is read-only, changes no Java source, invokes no Gradle flow, and stops before rename/move/refactor implementation, propagation, publication, or release. | — |
+
+## Guidance traceability
 
 | Guidance | Plan coverage | Evidence when complete |
 | --- | --- | --- |
@@ -100,6 +113,11 @@ authorize source rewrites.
 | JAVA-41 | 0.11.1; developer documentation | Reproducible tracked-extension counts, local Arborium grammar availability, Java-only enabled feature set, and ordered deferred backlog |
 | JAVA-42, JAVA-43 | 0.11.2; 0.11.3 | Query/parser compile counters, cache hit/miss, bounded reuse, cancellation/stale/hash tests, latency evidence, and clean process/child shutdown |
 | JAVA-44 | 0.11.2; 0.11.3 | Cargo graph/check-all proof shows one native `links = "tree-sitter"` provider and the existing analysis suites remain green |
+| JAVA-45, JAVA-46 | 0.12.1 | Exact JDK implicit-import plus local/parameter/field/method/annotation/import location scenarios, canonical selector agreement, source-span identity, and truthful unsupported cases |
+| JAVA-47, JAVA-48 | 0.12.1; 0.12.3; contextual C-7 | Negotiated root-mapping fixtures, exact quoted-failure regressions, target-domain completeness tests, partial-index match retention, and Java/Rust integration evidence |
+| JAVA-49, JAVA-50 | 0.12.2; contextual C-8 | Location-form CLI/parser scenarios, target-plus-categorized-usage schemas, zero/one/many/partial outcomes, stable spans/addresses, and persistent-explorer consumption fixtures |
+| JAVA-51 | 0.12.3 | Worker capability negotiation, direct/worker parity, warm latency, cancellation/generation/cache bounds, crash/restart/EOF cleanup, and zero leaked processes |
+| JAVA-52 | Phase 0.12 scope/exclusions | Read-only diff/source-tree equality proof, no Gradle/propagation/publication, and Phase 1 headings remain incomplete |
 
 ## Intent audit evidence
 
@@ -182,6 +200,40 @@ authorize source rewrites.
   current CLI/Java sources, local Arborium repository, cached 2.18.1 crate
   sources, and tracked SFM file list were available.
 
+## Intent audit evidence — 2026-08-16 location intelligence extension
+
+- **Pass 1 — extraction:** Preserved the three exact JDK examples, every named
+  Java symbol category (variable, field, method, annotation, import), both
+  quoted failure outcomes, the distinction between find usages/references and
+  definition, the requirement for a persistent UI consumer, and the warm push/
+  cancellation expectation. Kept UI gestures and panel placement in the linked
+  contextual plan rather than misassigning them to the CLI.
+- **Pass 2 — traceability:** Mapped JAVA-45 through JAVA-48 to Phase 0.12.1 and
+  0.12.3, JAVA-49/JAVA-50 to 0.12.2, JAVA-51 to 0.12.3, and the read-only scope
+  boundary to JAVA-52. Verified that the existing CLI has exact-selector
+  `list-usages`, definition-at-position, live workspace facts, cached dependency
+  sources, and one supervised symbol worker, but no usage-at-position capability
+  and no explicit JDK-source domain. The extension reuses those facts instead
+  of adding another parser/index or making Minecraft synthesize selectors.
+- **Pass 3 — adversarial omission:** Checked that implicit `java.lang` does not
+  become a text-name guess; locals/parameters retain lexical scope and shadowing;
+  method calls retain overload/dynamic-dispatch honesty; import clicks target
+  imported declarations rather than the import token itself; partial unrelated
+  dependencies do not suppress a valid target; JDK/dependency/workspace origins
+  remain distinguishable; usage categories and source hashes survive transport;
+  worker stdout stays framed; cancellation reaps child work; and Phase 0.12 does
+  not begin rename/move/refactoring or Java-source writes.
+- **Fresh-agent resumption check:** A new agent can freeze the JDK/location
+  identity and result schemas, complete 0.12.1, then integrate 0.12.2/0.12.3
+  through the existing engine/worker while leaving Phase 1 untouched. The
+  public location forms, validation layers, parallel ownership, and handoff to
+  contextual C-7/C-8 are explicit enough to resume without conversation
+  history.
+- **Known source limitation:** None. The complete user report and current
+  definition/index/worker sources were available. Exact JDK source acquisition
+  storage and result-schema version numbers remain implementation details to be
+  frozen in 0.12.1/0.12.2 fixtures, not untracked assumptions.
+
 ## Purpose
 
 Build a safe, CLI-first Java refactoring suite on top of the source discovery,
@@ -211,6 +263,20 @@ sfm-propagate-changes.exe symbol index show --branch <branch>
 sfm-propagate-changes.exe symbol rename <at-selector> <new-name> --branch <branch> (--dry-run|--apply)
 sfm-propagate-changes.exe symbol move <at-selector> <qualified-destination> --branch <branch> (--dry-run|--apply)
 ```
+
+Phase 0.12 retains the exact-selector positional forms and gives both
+definition and usage commands one mutually exclusive document-location form:
+
+```text
+sfm-propagate-changes.exe symbol show-definition --source-path <root-relative-java-path> --line <n> --column <n> --branch <branch> [--source-root-id <id>]
+sfm-propagate-changes.exe symbol list-usages --source-path <root-relative-java-path> --line <n> --column <n> --branch <branch> [--source-root-id <id>]
+```
+
+The `list-usage` alias accepts the identical location form. Typed worker calls
+may additionally carry the exact in-memory document overlay/hash; the public
+manual CLI reads the declared source unless a separately documented stdin
+overlay is later approved. Figue rejects a mixed positional selector plus
+location request before analysis.
 
 `show-definition`, `list-usages`/`list-usage`, and `list` are read-only and
 must work without a Gradle build or game launch. They return stable
@@ -1696,6 +1762,14 @@ methods, constructors, declaration self-navigation, Unicode/CRLF, no-symbol,
 ambiguity, overlays, and duplicate relative paths in different roots. Direct
 and worker modes consume the same engine and canonical result model.
 
+**User-testing boundary correction (2026-08-16):** The completed scenario set
+did not establish branch-JDK source/implicit `java.lang` resolution, lexical
+locals/parameters, every annotation/import/member cursor shape, or the Java
+resolver-authorization composition used by all live explorer roots. Those gaps
+do not invalidate the reusable engine/worker boundary, but they do invalidate
+any broader claim that all F12 positions are covered. Phase 0.12 preserves the
+reported false negatives as regressions and extends this same engine.
+
 ### [x] 0.10.3 Add `symbol serve` with framed requests, reuse, and cancellation
 
 **Work:** Add `sfm-propagate-changes.exe symbol serve --branch <branch>` as a
@@ -1929,6 +2003,142 @@ successfully with the installed-worker integration enabled.
 | Span/cache limits are checked only after expensive unbounded allocation or differ on cache hit. | Bound capture/event queues, check cancellation during capture normalization, apply identical request limits on hit/miss, and use conservative retained-memory accounting. |
 | Repeated worker failure spawns a process for every editor mutation. | Bounded restart backoff/circuit breaking reset by a valid hello, with explicit retry and deterministic lifecycle tests. |
 | Language-local protocol tests drift together while Rust and Java disagree. | At least one installed cross-runtime test writes Java frames to the real Rust worker and decodes Rust hello/result/shutdown frames. |
+
+## Phase 0.12 — Complete location definitions and add location-aware usages
+
+This read-only phase is the CLI-side dependency of contextual-plan C-7 through
+C-9. It improves one symbol universe and one supervised worker; it does not
+implement Minecraft gestures/panels, mutate Java, invoke Gradle, propagate, or
+begin Phase 1 refactoring architecture.
+
+### [ ] 0.12.1 Resolve JDK, local, member, annotation, and import definitions at position
+
+**Work:** Extend the branch symbol universe with a first-class JDK-source
+domain selected by the branch's existing JDK/release configuration. Prefer the
+selected JDK's validated `src.zip`/source inventory, publish/index it under an
+identity containing JDK release/provider/parser/index format and source bytes,
+and report missing/stale platform sources explicitly. Model implicit
+`java.lang` and ordinary import/package precedence semantically. Do not search
+ambient JDK installations or accept spelling alone as a resolved declaration.
+
+Extend per-document lexical facts/range classification for local variables and
+parameters, including nested scopes, shadowing, lambdas/catches/patterns only
+where modeled, and declaration self-navigation. Reuse existing field/method/
+constructor/import/type facts for member calls, method references, annotation
+types, import declarations, static imports, and overloads. Dynamic or
+insufficiently modeled dispatch returns typed ambiguous/unsupported evidence,
+not a guessed first match. Separate target-domain completeness from unrelated
+global dependency partiality so a valid match is returned with scoped warnings.
+
+**Validation:** Adjacent scenarios use exact source positions for `String`,
+`Object`, `StringBuilder`, explicit/wildcard/static imports, locals/parameters
+with shadowing, fields, overloaded methods, constructors, annotations, import
+tokens, declaration names, inherited/dynamic cases, all source sets, and
+workspace/dependency/JDK origins. Missing/stale JDK/dependency sources and an
+unrelated partial component remain visible without suppressing a known match.
+Direct selector and location forms agree where one exact selector exists.
+
+**Completion criteria:** Every JAVA-45/JAVA-46 fixture resolves or returns a
+precise semantically justified ambiguity/unsupported outcome; no JDK symbol is
+resolved by name guessing; target matches survive unrelated partial coverage;
+and index/source identities make the answer reproducible.
+
+### [ ] 0.12.2 Add typed usage-at-position and the `list-usages` location form
+
+**Work:** Add versioned `UsageAtPositionRequest`/`UsageAtPositionResult`
+(exact schema names/version frozen by Facet snapshots). Reuse the definition
+request's branch/classpath, ordered roots/source sets, exact current source/hash,
+UTF-aware position, dependency/JDK identities, and generations. Resolve one
+target semantically, then return that target plus deterministic categorized
+references: declaration, read/write/local use, field access, invocation,
+constructor call, method reference, override/implementation, annotation use,
+import/qualification, Javadoc/string/reflection-like candidates where already
+classified. Categories with insufficient semantic certainty remain reported as
+skipped/uncertain and are never silently promoted to safe refactoring usages.
+
+Extend canonical `symbol list-usages` and alias `list-usage` with the mutually
+exclusive location form shown above. Preserve exact-selector behavior and
+status codes. Each returned usage carries canonical symbol identity, portable
+resolver address, root-relative/report path, source set/origin, source hash,
+UTF-8 byte plus line/column span, confidence, completeness, diagnostics, and
+typed refresh/acquisition recommendations. Direct/manual and reusable-engine
+paths return the same canonical semantic body.
+
+**Validation:** Figue and scenario tests cover mixed-form rejection, alias
+parity, zero/one/many usages, every supported category, locals with shadowing,
+overloads, dependency/JDK/project references, current overlay versus disk,
+Unicode/CRLF, ambiguous/unsupported target, incomplete indexes, stable ordering,
+bounded output, text/JSON/CSV, and exact direct-engine parity.
+
+**Completion criteria:** A caller can ask “what symbol is under this exact
+cursor, and where is it referenced?” without manufacturing a selector; the
+typed answer is sufficient to build a persistent explorer and remains honest
+about origin, certainty, completeness, and skipped categories.
+
+### [ ] 0.12.3 Extend `symbol serve`, prove root/completeness correctness, and hand off
+
+**Work:** Negotiate `usage-at-position` as an additive capability and add
+framed request/result/cancel terminal messages. Reuse the worker's immutable
+workspace/dependency/JDK resolution surfaces, file-fact cache, generations,
+bounded pending work, cancellation, restart/backoff, and owned-child cleanup.
+Definition and usage requests over one unchanged workspace must share reusable
+state; neither may invalidate the other by request type alone.
+
+Expose enough canonical source-root/JDK/dependency mapping evidence for the
+Minecraft adapter to compose its resolver authorization without absolute-path
+guessing. Add cross-runtime regressions for the exact messages
+`No worker source root contains the document within its resolver authorization`
+and `No symbol is present at the captured editor position (dependency/source index is incomplete)`:
+known fixtures must succeed, while real unmapped/partial cases retain truthful
+typed diagnostics. Measure cold and at least twenty warm mixed definition/
+usage requests, cancellation, crash/restart, and process liveness. Keep the
+existing definition warm bounds; record a separate usage warm median/p95/max
+before the consumer goal and optimize any multi-second dominant stage rather
+than hiding it.
+
+**Validation:** Protocol fragmentation/coalescing/schema/capability/limits,
+out-of-order mixed requests, cancellation and generation replacement,
+cache hit/invalidation, definition regression parity, direct/worker canonical
+parity, Java installed-process decoding, root mapping, missing executable,
+EOF/shutdown, memory/process bounds, and zero leaked workers. Run required
+`check-all.ps1`, scenarios, canonical Java integration tests, and diff checks.
+
+**Completion criteria:** One supervised worker serves correct definition and
+usage-at-position queries over workspace/dependency/JDK sources with measured
+interactive reuse, clean cancellation/lifecycle, canonical direct parity, and
+sufficient typed mapping/completeness evidence for C-7/C-8. Java sources and
+Phase 1 remain untouched.
+
+### Phase 0.12 parallel work map
+
+After the request/result and JDK-source identity are frozen by one integration
+owner, disjoint lanes may proceed in parallel:
+
+- **JDK/location-definition lane:** JDK source provider/index identity,
+  implicit imports, lexical declarations, and 0.12.1 scenarios.
+- **Usage engine lane:** usage-at-position DTOs, target/category extraction,
+  exact-selector equivalence, and direct CLI scenarios.
+- **Worker protocol lane:** additive frames/capabilities, mixed request
+  lifecycle, cache/cancellation/process tests against frozen fixtures.
+- **Minecraft consumer lane (linked plan):** codecs/provider/reference-result
+  adapters against checked-in protocol fixtures; it does not edit Rust engine
+  internals before integration.
+- **Integration owner:** shared module exports, Figue registration, Facet schema
+  snapshots, worker wiring, cross-runtime probe, benchmarks, docs, and plans.
+
+### Phase 0.12 risk register
+
+| Risk | Guardrail and proof |
+| --- | --- |
+| JDK lookup searches an ambient installation different from the branch JDK | Resolve only through branch-selected JDK/provider identity; fingerprint source bytes/release; missing source is explicit |
+| Implicit `java.lang` becomes a same-simple-name guess | Apply Java package/import precedence against indexed JDK declarations and preserve ambiguity/conflict scenarios |
+| Local-variable support ignores shadowing or crosses lexical scopes | Scope-tree/range fixtures for blocks, parameters, lambdas/catches where modeled; unsupported constructs stay typed |
+| Clicking an import resolves the token `import` or a partial segment | Syntax-range classification maps the qualified imported subject/reference to its declaration with exact spans |
+| Global partial dependency coverage suppresses a valid target | Target-domain completeness is separate; return valid matches plus scoped missing-input diagnostics |
+| Usage-at-position duplicates the parser/index or first performs a public selector query | One internal semantic target-resolution entry point feeds definition and usage collection over the same fact universe |
+| Reference categories overstate certainty needed for later refactors | Every category/confidence is explicit; uncertain textual/Javadoc/reflection candidates remain separate and uneditable |
+| Mixed definition/usage requests exceed worker memory or leak processes | Shared bounded immutable surfaces, pending/output limits, owned child handles, cancellation/crash/EOF cleanup, and liveness probes |
+| Protocol change breaks the completed Minecraft definition client | Additive capability negotiation, old definition frame compatibility tests, checked-in Java fixture parity, and schema mismatch diagnostics |
 
 ## Phase 1 — Inventory and architecture
 

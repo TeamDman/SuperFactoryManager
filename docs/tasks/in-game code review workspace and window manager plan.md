@@ -103,10 +103,11 @@ If we have a concept of virtual desktop-like things, then does that mean we have
 
 # In-game code review workspace and window manager plan
 
-**Plan status:** Active; multiplexer/explorer foundation integrated, review slice planning in progress
+**Plan status:** Active; multiplexer/explorer foundation integrated, review slice planning in progress, and Track 1b now owns pointer-driven divider resizing
 **Primary planning root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Related reference worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`  
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-16
+**Intent audit:** Passed and post-compaction re-audited 2026-08-16 for the divider-border/intersection/cursor extension while preserving the prior layout-algebra constraints and the user's verbatim VS Code-like resize expectations
 
 ## How to update this plan
 
@@ -134,6 +135,58 @@ document. The next planning pass should separate and relate these concerns:
 - integration with the mount workflow and native filesystem affordances; and
 - the smallest coherent release slice, its persistence model, tests, and
   cross-version propagation strategy.
+
+## Authoritative user guidance ledger — 2026-08-16 divider interaction extension
+
+| ID | Active guidance | Required plan consequence | Superseded by |
+| --- | --- | --- | --- |
+| WRESIZE-1 | A user should be able to resize panels by dragging the border/divider between them, with behavior familiar from VS Code. | Track 1b adds explicit divider identities/hit regions, continuous share updates with minimum constraints, pointer capture/cancel, and live resizing. | — |
+| WRESIZE-2 | Hovering a resizable divider must change the OS cursor to communicate horizontal or vertical resizing before the drag begins. | Track 1b adds a version-adapted owned GLFW standard-cursor seam with horizontal/vertical shapes, deterministic reset, and no per-frame cursor allocation. | — |
+| WRESIZE-3 | At the intersection of three or more panels/dividers, one drag should resize both axes and use a crosshair/four-direction resize cursor. | Track 1b hit-tests a set of orthogonal divider identities at one point and captures both deltas; a true linked row/column grid still requires explicit Grid/linked-divider semantics rather than coincidence. | — |
+| WRESIZE-4 | Resizing must preserve the layout model's minimums, proportions, panel identities, stacks, focus, and content state. | Track 1b mutates track shares through one constrained layout operation and proves nested Linear/Stack and three/four-pane cases without rebuilding panels. | — |
+| WRESIZE-5 | Mouse behavior should remain action/automation addressable instead of becoming pointer-only hidden state. | Track 1b exposes divider descriptions and an equivalent registered resize intent carrying explicit divider selector/delta or resulting shares; existing keyboard `panel/resize/...` remains semantically consistent. | — |
+| WRESIZE-6 | `G:\Programming\Repos\vscode` may be used as a local behavior reference. | Track 1b records VS Code's sash/split/grid files as evidence for cursor/hit/linked-resize behavior, but copies neither TypeScript/DOM code nor a dependency. | — |
+
+## Guidance traceability — 2026-08-16 extension
+
+| Guidance | Plan coverage | Evidence when complete |
+| --- | --- | --- |
+| WRESIZE-1, WRESIZE-2 | Track 1b geometry/cursor/host lanes | Divider hit tests, horizontal/vertical cursor lifecycle, continuous drag/share/minimum tests, cancel/focus/lifecycle proof, and live pointer artifacts |
+| WRESIZE-3, WRESIZE-4 | Track 1b pure layout lane | T-junction and four-pane intersection fixtures, orthogonal delta application, explicit linkage rules, stable panel/stack/focus identities, and responsive resize screenshots |
+| WRESIZE-5 | Track 1b action/automation contract | Action-registry/completion tests, explicit divider/result identity, keyboard/pointer semantic parity, and machine-readable before/during/after shares/bounds |
+| WRESIZE-6 | Track 1b source evidence | References to local VS Code `sash.ts`, `splitview.ts`, and `gridview.ts`, with an original SFM implementation and license/dependency non-adoption note |
+
+## Intent audit evidence — 2026-08-16 divider interaction extension
+
+- **Pass 1 — extraction:** Preserved border dragging, VS Code-like behavior,
+  horizontal/vertical cursor changes, intersections of three or more panels,
+  simultaneous two-axis resize, and the crosshair/four-direction visual cue as
+  distinct WRESIZE requirements. Kept this separate from the earlier Alt+drag
+  relocation and explorer-node drag proposals.
+- **Pass 2 — traceability:** Mapped every id to Track 1b and inspected the
+  current foundation. `SFMWorkspaceLayout` already has normalized n-ary Linear
+  shares/minimums and directional five-percent resize; `SFMScreenMultiplexer`
+  routes mouse events only into panels and exposes no divider hover/drag; the
+  earlier algebra deliberately leaves Grid/divider dragging/linking deferred.
+  Local VS Code sources provide `Sash`, SplitView constraints, orthogonal
+  sashes, linked sashes, and GridView linked width/height nodes as behavioral
+  evidence.
+- **Pass 3 — adversarial omission:** Checked that a coincident line does not
+  silently become permanently linked, a T-junction can still capture both
+  actual dividers under the pointer, minimums cannot produce negative bounds,
+  resize does not recreate panel content or alter stack selection, the OS
+  cursor cannot remain stuck after focus/screen loss, pointer capture does not
+  leak clicks into child panels, and automation can reproduce the result
+  without screen-coordinate `SendInput`.
+- **Fresh-agent resumption check:** A new agent can start Track 1b from the
+  existing Linear/share/minimum and keyboard-resize foundation, freeze
+  DividerId/geometry/delta/cursor interfaces, run the three disjoint lanes,
+  and integrate one two-/three-/four-pane puppet without beginning relocation,
+  explorer drag, virtual workspaces, or review-surface work.
+- **Known source limitation:** None. Current SFM layout/host source, the earlier
+  layout-algebra checkpoint, the complete user requirement, and local VS Code
+  source were available. Exact GLFW cursor shape availability across later
+  Minecraft/LWJGL versions remains an adapter concern with crosshair fallback.
 
 The versioned snapshot, episode, raw-event, action-trace, replay, calculator
 environment, and future amalgamation contracts are owned by the separate
@@ -451,6 +504,99 @@ is rejected from this track in favor of intentional `SFMScreenPanel` content.
 `Stack`, `Grid`, persistence, divider dragging/linking, and the Track 3 adapter
 remain later capabilities or integration work rather than blockers to this
 checkpoint.
+
+### [ ] Track 1b — Pointer-driven divider resizing and cursor affordances
+
+This follow-up completes WRESIZE-1 through WRESIZE-6 without implementing
+Alt+drag relocation, explorer root/node drag, virtual workspaces, or arbitrary
+vanilla `Screen` embedding.
+
+**Verified starting point:** `SFMWorkspaceLayout` already stores normalized
+n-ary horizontal/vertical `LinearNode` tracks with positive shares and minimums,
+allocates stable panel bounds, and supports discrete directional resize by a
+five-percent step. `SFMScreenMultiplexer` currently forwards mouse movement,
+click, drag, release, and scroll to panel content; it has no first-class divider
+identity, divider hit region, pointer capture, continuous share mutation, or OS
+cursor ownership. The accepted algebra reserves `Grid`/linked dividers and says
+coincident geometry alone does not create semantic linkage.
+
+**Work — pure divider model:** Derive stable `DividerId` values from layout
+node identity/path plus axis and adjacent track identities. Expose each divider's
+logical/physical hit rectangle, movement interval, adjacent minima/current
+shares, and optional explicit link group. Add a pure constrained operation that
+applies a pixel/logical delta (or final share pair) without recreating panels,
+then normalizes shares deterministically. Resize all divider ids captured at a
+pointer intersection in one logical transaction: x affects vertical dividers,
+y affects horizontal dividers. At a T-junction or nested three-panel layout,
+only dividers whose real hit regions contain the pointer participate. Persisted
+cross-branch synchronization requires explicit Grid/linked ids; visual
+coincidence is not enough.
+
+**Work — host gesture and cursor lifecycle:** Hit-test dividers before child
+panel dispatch. Hovering one axis selects horizontal/vertical standard resize
+cursor; hovering an orthogonal set selects the best available resize-all cursor
+or a documented crosshair fallback. Create standard cursor handles once per
+Minecraft window/lifecycle, restore the prior/default cursor on exit, and
+destroy owned handles safely. Mouse-down captures exact divider ids, starting
+shares/bounds, pointer, workspace generation, and button. Drag applies deltas
+continuously even if the pointer leaves the original narrow hit region;
+release commits, Escape/screen close/focus loss/layout replacement cancels or
+ends according to a tested policy. Captured divider gestures consume input so
+child panels do not also click/drag.
+
+**Work — semantic action and observability:** Add an internal typed
+`ResizeDividers` intent and a registered hierarchical action that can select
+divider ids and set/adjust shares or deltas without ambient pointer coordinates.
+Keep `sfm:panel/resize/{left|right|above|below}` as the keyboard-friendly
+panel-relative operation; both paths call the same constrained share model.
+Describe dividers, links, hit bounds, shares/minima, active hover/capture, and
+before/during/after panel bounds in structured puppet artifacts.
+
+**Local behavior references:** Inspect, cite, and behaviorally adapt—without
+copying or depending on—the following VS Code sources:
+
+- `G:\Programming\Repos\vscode\src\vs\base\browser\ui\sash\sash.ts`
+- `G:\Programming\Repos\vscode\src\vs\base\browser\ui\splitview\splitview.ts`
+- `G:\Programming\Repos\vscode\src\vs\base\browser\ui\grid\gridview.ts`
+
+Relevant concepts include orientation-specific cursor state, enlarged hit
+areas, drag start/change/end, minimum/maximum constraints, orthogonal boundary
+sashes, linked sashes, and linked width/height nodes. SFM remains an original
+Minecraft/LWJGL implementation over its own layout/action model.
+
+**Validation:** Pure tests cover two panels, unequal shares, minima/clamping,
+reverse drag, viewport/GUI-scale conversion, nested same/orthogonal splits,
+T-junctions, four-pane intersections, explicit versus coincident links,
+stacks/hidden entries, focus/identity preservation, deterministic serialization,
+cancel, and layout mutation during capture. Host tests cover hover entry/exit,
+horizontal/vertical/intersection cursor shape, no per-frame handle creation,
+screen/focus lifecycle reset, pointer capture outside bounds, child-event
+suppression, registered-action parity, and keyboard resize regression.
+
+Add a self-contained puppet with two-, three-, and four-pane layouts. It pauses
+on each cursor/drag state, writes machine-readable divider/share/bounds data,
+and captures before/during/after images at representative GUI scales. The
+three/four-pane case must visibly resize both axes from one intersection drag.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMWorkspaceDividerTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMScreenMultiplexerDividerInteractionTests --wait-for-build-lock
+sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_workspace_divider_resize --branch 1.19.2 --variant declared --wait-for-build-lock
+```
+
+**Completion criteria:** Every resizable border advertises itself before drag;
+horizontal/vertical and intersection cursor states are correct and never stick;
+one intersection gesture resizes every explicitly hit orthogonal divider while
+respecting minima; panels/stacks/focus/content identities survive; keyboard,
+pointer, action, and automation paths agree; and artifacts make the share/bounds
+transition verifiable without computer vision.
+
+**Parallel topology:** Once `DividerId`, geometry, delta, and cursor-adapter
+interfaces are frozen, a pure layout/test lane, a GLFW cursor-lifecycle lane,
+and a puppet/artifact lane may proceed in parallel. One integration owner alone
+edits `SFMScreenMultiplexer`, central action registration, shared layout wiring,
+plan/changelog bookkeeping, and final live proof.
 
 ### [x] Track 2 — Native file drag-and-drop feasibility
 

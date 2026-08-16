@@ -1,17 +1,18 @@
 # Typed selections, relations, and lazy explorers plan
 
-**Plan status:** Active; X-1 through X-7 and X-8a complete, X-8 through X-11 retained for later goals
+**Plan status:** Active; X-1 through X-7 and X-8a complete; X-8b now owns the observed explorer presentation/filter/focus/scroll repair before X-8 through X-11
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Primary implementation target:** Minecraft 1.19.2
 **Related control plan:** `docs/tasks/sfm in-game control cli plan.md`
 **Related UI plan:** `docs/tasks/contextual input actions and addressable explorer plan.md`
 **Related comment plan:** `docs/tasks/global comment selection and review sessions plan.md`
 **Related editor plan:** `docs/tasks/draw editor document regions and commands plan.md`
-**Last updated:** 2026-08-13
-**Intent audit:** Passed 2026-08-13 against the complete 2026-08-12 through 2026-08-13
-CLI/explorer/path/selection/relation/picker/layout design discussion and the
-linked plans' existing ledgers; implementation closure audit passed against the
-final X-1 through X-7 code, tests, protocol, and live artifacts
+**Last updated:** 2026-08-16
+**Intent audit:** Passed and post-compaction re-audited 2026-08-16 against the complete 2026-08-12 through 2026-08-16
+CLI/explorer/path/selection/relation/picker/layout design discussion, the latest
+projection/icon/filter/focus/scroll observations, and the linked plans' existing
+ledgers; implementation closure audit remains valid for completed X-1 through
+X-7/X-8a code, tests, protocol, and live artifacts
 
 ## How to update this plan
 
@@ -139,6 +140,12 @@ existing use of “workspace” for the complete split/stack panel host.
 | XEXP-17 | A selection-backed multi-root location should expose its truthful canonical expression, including internal selection ids such as `members(id(explorer-1-location))`; the UI must not hide system complexity that a user can learn and manipulate. | X-8a renders `ExplorerSession.location().canonical()` directly in the header and preferred-editor document. Visual truncation may save space, but tooltip, narration, copy, and editor content preserve the exact expression. | — |
 | XEXP-18 | Editing the location must not partially mutate roots, grant new filesystem authority merely by typing text, or silently overwrite a newer location revision. | X-8a parses and resolves the complete document, preflights all resolver/authority requirements, then applies one action-backed all-or-none location replacement with an expected explorer/location revision. Invalid, unauthorized, or stale saves leave the explorer unchanged and return in-editor diagnostics/conflict evidence. | — |
 | XEXP-19 | Removing the textual view toggle must not make view/sort/group inaccessible, mouse-only, or undiscoverable. | Existing projection actions remain canonical and appear in contextual actions/command palette/keybinding discovery; focused tests prove keyboard and action parity after the header cutover. | — |
+| XEXP-20 | File icons should vary by extension; `.java` should have a recognizable non-paper icon, with cocoa/cocoa beans proposed as an example. | X-8b adds an ordered extension/theme presentation contribution ahead of the ordinary paper fallback. The exact `.java` ItemStack remains XD-9; the 1.19.2 working proposal is `minecraft:cocoa_beans`. | — |
+| XEXP-21 | `sfm action invoke sfm:explorer/view/set ` must suggest registered view values such as list and icons so `registry://minecraft/item/` can be switched to an ItemStack icon view. | X-8b repairs deep Brigadier/palette continuation discovery, exposes `sfm:list` and `sfm:small_icons`, and proves the item-registry small-icon projection renders actual ItemStacks. | — |
+| XEXP-22 | “Absolute paths” is another desired explorer presentation option, but it should be composable with list versus icons rather than accidentally making those mutually exclusive. | XD-10/X-8b preserve the request and add a separate path/label presentation axis with `name`, `relative_path`, and `absolute_path` contributions unless the user explicitly chooses one closed view enum. | — |
+| XEXP-23 | Explorer body focus chrome is internally inconsistent: left/right edges remain when the address bar is focused, top/bottom are missing, and a selected row can paint over the border because content is not inset/clipped. | X-8b derives body chrome solely from `KeyboardFocus.BODY`, renders all four edges above or outside row content, and allocates an inset body viewport so cells cannot overwrite it. | — |
+| XEXP-24 | Multiple mouse-wheel events must apply immediately and in order; one physical motion must not pause and then become one large jump. Holding Down, which currently feels responsive, is the comparison control. | X-8b instruments callback -> model mutation -> visible frame, preserves every received delta in order, forbids trailing-edge debounce/coalescing in SFM, and fixes whichever measured event/render stage causes the delay. | — |
+| XEXP-25 | The explorer needs fuzzy filtering. | X-8b adds action-backed per-explorer filter query/state and a focusable filter surface using the shared fuzzy scorer. XD-11 keeps local materialized-row filtering distinct from B-3's bounded recursive file search. | — |
 
 ### Layout and deferred interaction
 
@@ -149,6 +156,7 @@ existing use of “workspace” for the complete split/stack panel host.
 | XLAY-3 | Arbitrary layouts are recursive split trees, including `[1,2;3,4]` and `[1,[2;3],4]`; matrix notation is descriptive, not storage. | Preserve the existing split/stack tree foundation and add pane identity rather than replacing it with a fixed matrix. | — |
 | XLAY-4 | Alt+drag panel repositioning with a VS Code-like highlighted destination is desirable but lower priority than explorer content/remoting. | X-11 records it as a later action-backed slice; it is excluded from the first goal. | — |
 | XLAY-5 | Dragging roots/nodes between explorers should later support Ctrl=copy, Shift=move, and right-drag=ask, changing explorer membership rather than moving underlying filesystem/registry objects. | X-11 preserves explicit deferred semantics and tests them separately from OS file mutation. | — |
+| XLAY-6 | Panel borders and multi-divider intersections need VS Code-like pointer resizing and cursor affordances. | Window-manager Track 1b owns divider identities, hit geometry, continuous shares, two-axis intersection capture, cursor lifecycle, registered-action parity, and live proof; X-10's pane terminology must remain compatible. | — |
 
 ## Guidance traceability
 
@@ -165,8 +173,10 @@ existing use of “workspace” for the complete split/stack panel host.
 | XEXP-1 through XEXP-5 | Explorer session/projection contract; X-4 | Heterogeneous root, hoist, view/sort/group tests and visual proof |
 | XEXP-6 through XEXP-14 | Action/target/remoting contract; X-5, X-6, X-7 | Registry/action parity tests plus direct CLI puppet |
 | XEXP-15 through XEXP-19 | Editable location-header contract; X-8a and contextual-plan A-2c | Geometry/narration/action tests, preferred-editor recipe, atomic/stale save fixtures, and live location-editor puppet |
+| XEXP-20 through XEXP-25 | XD-9 through XD-11; X-8b | Extension/theme presenter tests, deep action-completion tests, list/small-icon ItemStack proof, independent path-label modes, exact focus-border geometry/render ordering, wheel event-to-frame traces, fuzzy filter ranking/action/keyboard tests, and a live explorer interaction puppet |
 | XLAY-1 through XLAY-3 | X-10 | Pane/entry/component selector and nested-layout tests |
 | XLAY-4, XLAY-5 | X-11 explicit deferral | Later goal must retain highlighted placement and copy/move/ask semantics |
+| XLAY-6 | Window-manager Track 1b; X-10 compatibility | Divider-id/geometry/share tests, horizontal/vertical/intersection cursors and drag proofs, action parity, nested three/four-pane fixtures, and live screenshot/machine topology evidence |
 
 ## Intent audit evidence
 
@@ -228,6 +238,42 @@ existing use of “workspace” for the complete split/stack panel host.
 - **Known source limitation:** None. The relevant original messages, plans,
   commits, console completion record, manifest, and all nine figures were
   available.
+
+### Intent-audit extension — 2026-08-16 explorer interaction repair
+
+- **Pass 1 — extraction:** Split the latest explorer report into extension-icon,
+  projection-completion, list/icons/absolute-path presentation, three separate
+  focus-border defects, wheel sequencing/latency, fuzzy filtering, and linked
+  panel-divider requirements. Preserved `registry://minecraft/item/`, the
+  proposed cocoa Java icon, the comparison with responsive Down-key repeat,
+  and the distinction between a missing option and an option that exists but
+  cannot be discovered through the palette.
+- **Pass 2 — traceability:** Mapped XEXP-20 through XEXP-25 to one bounded X-8b
+  item and XLAY-6 to window-manager Track 1b. Verified the present foundation:
+  `SFMExplorerProjection.View` already has LIST/SMALL_ICONS and
+  `SFMExplorerAction.settingSuggestions()` already supplies `sfm:list` and
+  `sfm:small_icons`; `SFMExplorerPanel` draws a focused content border without
+  consulting LOCATION versus BODY and cells render into that same rectangle;
+  `mouseScrolled` mutates the model immediately in source. The plan therefore
+  tests deeper suggestion traversal and event-to-frame behavior instead of
+  inventing missing enums or a debounce without evidence.
+- **Pass 3 — adversarial omission:** Checked that extension icons retain chest
+  directories and paper fallback; item icons remain real ItemStacks; absolute
+  path labels can coexist with small icons; address-bar focus does not leave
+  body side edges; fixing top/bottom cannot let rows overwrite the new border;
+  fuzzy filtering does not silently recurse `C:\`; every wheel callback remains
+  observable; and pointer-divider work is not conflated with later Alt+drag
+  relocation or filesystem node moves.
+- **Fresh-agent resumption check:** A new agent can begin at X-8b, resolve
+  XD-9 through XD-11 before public-id/history changes, and validate icons,
+  deep completions, path display, focus chrome, filtering, and wheel latency
+  without beginning picker X-8 or divider Track 1b. The plan exposes exact
+  commands, boundaries, tests, and the current-source observations that must be
+  verified rather than assumed.
+- **Known source limitation:** None. Current Java source and the complete user
+  report were available. The exact Java icon, path-display axis spelling, and
+  local-filter recursion policy remain XD-9 through XD-11 rather than silently
+  frozen.
 
 ## Established foundation
 
@@ -335,6 +381,11 @@ existing use of “workspace” for the complete split/stack panel host.
   `sfm:name`, `sfm:extension`, and `sfm:icon`; initial groups are
   `sfm:hierarchy` and `sfm:none`. These are
   registry contributions, not closed enums in the durable model.
+- X-8b's working path-label axis is `sfm:name`, `sfm:relative_path`, and
+  `sfm:absolute_path`, independently combinable with view/sort/group/hoist.
+  The canonical action is provisionally
+  `sfm:explorer/path-display/set <explorer-selector> <path-display-id>`; XD-10
+  freezes the exact name before command history or documentation claims it.
 - A live selection address (`selection://a`) resolves the current head; a pinned
   address (`selection://a@<revision-id>`) resolves exactly one immutable
   revision. Names need not be globally unique beyond their repository/lifetime;
@@ -572,6 +623,9 @@ For every set-valued mutation:
 | XD-6 Root ordering | Is location a list or set? | Membership is a set; manual order is independent projection metadata. | Algebra tests ignore order; projection tests prove deterministic manual/name order. |
 | XD-7 Resolver authority | Can a displayed path be opened directly? | Only resolver-issued typed paths/capabilities authorize reads; display text never grants authority. | Spoofed title/path and traversal/symlink fixtures fail closed. |
 | XD-8 Existing review algebra | Replace or adapt? | Preserve `SFMReviewSessionV1.SelectionRule`; later adapt shared expressions to pinned review rules. | Existing review fixtures remain byte/semantic compatible until X-9. |
+| XD-9 Java extension icon | Which ItemStack represents `.java`, and is the map fixed or contributed? | **Closed for X-8b:** use an ordered contributed extension/theme registry and `minecraft:cocoa_beans` for `.java` on 1.19.2 (the valid item matching the proposed cocoa concept), with paper fallback and no filename-only hard-coded renderer branch. The mapping remains replaceable through the contribution surface. | X-8b tests precedence, case handling, compound extensions, missing item fallback, narration, list/small-icons, and actual item ids. |
+| XD-10 Absolute-path presentation | Is “absolute paths” a mutually exclusive view beside list/icons or an independent label/path-display axis? | **Closed for X-8b:** independent path display so `small_icons + absolute_path` is representable. `view/set` still discovers list/icons; a hierarchical `path-display/set` action discovers name/relative/absolute. | X-8b freezes action/id spelling and tests every combination before exposing it in palette history. |
+| XD-11 Explorer fuzzy-filter scope | Does filtering search only known rows or recursively enumerate descendants? | **Closed for X-8b:** filter/rank the current lazy materialization (and newly arriving pages) immediately without I/O. B-3 owns bounded cancellable recursive file search through Ctrl+Shift+N. The filter visibly says when a subtree is unmaterialized rather than implying exhaustive search. | Filter tests assert zero resolver reads caused solely by query changes, stable selection/expansion, streamed-page incorporation, and a separate recursive-search action. |
 
 All gates have a reversible working resolution sufficient for the first slice.
 X-1/X-2 must record the exact final grammar before downstream integration.
@@ -638,8 +692,10 @@ X-1 paths/expressions + X-2 selectors
                                       v
                                X-7 live proof
 
+Immediate repair: X-8b explorer projection/icon/filter/focus/scroll fidelity
 Later: X-8 picker destinations -> X-9 editor/comments
        X-10 pane terminology -> X-11 drag interactions
+Linked: window-manager Track 1b pointer divider resize -> X-10 terminology
 ```
 
 Safe parallel lanes after X-1/X-2 freeze shared Facet/Java contracts:
@@ -1042,6 +1098,15 @@ save rejection diagnostics. Successful saves publish one expected-revision
 leave every prior location intact and never grant filesystem authority merely
 because text named a path.
 
+**User-testing boundary correction (2026-08-16):** X-8a proved that projection
+actions remained registered and directly invokable after removing the header
+toggle; it did not prove that the production command palette explores the deep
+continuation far enough to display `sfm:list`/`sfm:small_icons` after the exact
+`sfm:explorer/view/set` prefix. It also did not cover body-versus-location
+border rendering, wheel event-to-frame latency, fuzzy filtering, extension
+icons, or an absolute-path label axis. X-8b owns those observed gaps; X-8a must
+not be cited as proof they already work.
+
 Focused tests cover narrow/wide geometry, exact title/tooltip-adjacent
 narration/copy content, mouse/keyboard action parity, all placement/editor
 command forms, literal/heterogeneous/selection-id/Unicode/composed byte-exact
@@ -1093,6 +1158,62 @@ centered bounded form at low GUI scales and therefore left substantial panel
 space unused. C-3 closed that concern in `6dc3d2d04`; its inspected
 `title_screen_explorer_open_sfm_java` Auto-plus-scales-1-through-8 matrix uses
 the panel allocation for the real read-only `SFM.java` Text Editor v3 view.
+
+### [ ] X-8b Repair explorer projection discovery and interaction fidelity
+
+**Work:** Deliver XEXP-20 through XEXP-25 without changing semantic explorer
+membership or beginning picker X-8. Add an ordered extension/theme presenter
+between the file presenter and paper fallback; preserve chest directories,
+item-registry presentation, custom contributor precedence, chat-component
+labels, and list/small-icon geometry. Apply XD-9's goal-scoped cocoa-beans
+mapping through the contribution surface rather than a renderer special case.
+
+Repair the command-palette/Brigadier continuation path rather than adding more
+hard-coded top-level fuzzy aliases. At
+`sfm action invoke sfm:explorer/view/set <selector> `, expose every registered
+view (`sfm:list`, `sfm:small_icons`) with stable labels/descriptions and prove
+that small-icons on `registry://minecraft/item/` renders actual ItemStacks.
+Apply XD-10's independent path-display axis so name, relative, and absolute
+labels compose with either view.
+
+Refactor explorer geometry into header, inset body viewport, status/filter, and
+border layers. Render the body focus rectangle only for `KeyboardFocus.BODY`,
+include all four edges, and prevent selected/hovered/icon cells from covering
+it at any supported width/GUI scale. Address-bar focus owns only address-bar
+chrome.
+
+Add self-contained `sfm:explorer/filter/set <explorer-selector> <query>` and
+`sfm:explorer/filter/clear <explorer-selector>` actions plus a focusable,
+narrated filter control. Use the shared fuzzy scorer, deterministic stable keys,
+and XD-11's lazy-materialization boundary; preserve expansion and selection by
+path when ranks change. Instrument every wheel callback, requested delta,
+model-row transition, and first frame displaying it. Apply events in receipt
+order and fix the measured delay without trailing debounce or input loss.
+
+**Validation:** Presenter tests cover `.java`, ordinary files, directories,
+case/compound/unknown extensions, missing theme items, custom precedence, and
+list/small-icons. Palette tests start from the exact deep command prefix and
+prove registered view/path-display candidates plus Brigadier execution. Render
+geometry tests cover LOCATION/BODY/unfocused state, four edges, row inset,
+narrow panels, selected first/last rows, and the GUI-scale matrix. Fuzzy tests
+cover typo/subsequence scoring, empty/clear, selection retention, newly loaded
+pages, zero filter-caused resolver reads, and multi-explorer selectors. Scroll
+tests inject one and several callbacks in one frame and require ordered visible
+steps with event-to-frame telemetry; Down-key repeat is retained as a control.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerFilePresentationTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMClientActionPaletteSuggestionTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerPanelInteractionTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerFilterTests --wait-for-build-lock
+```
+
+**Completion criteria:** A Java file has the approved extension icon; deep
+palette completion exposes view and path-display values; the item registry can
+visibly use small ItemStack icons; focus chrome belongs to exactly one child
+and cannot be overpainted; fuzzy filtering is responsive and truthful about
+lazy scope; and each wheel event changes the next observable projection without
+a delayed aggregate jump.
 
 ### [ ] X-8 Compose pickers as selection destinations
 
@@ -1166,8 +1287,12 @@ every drag gesture has an equivalent registered semantic action.
 
 ## Overall completion criteria
 
+- [ ] X-8b proves extension-specific file presentation, deep projection/path-
+  display completion, truthful fuzzy filtering, coherent four-edge child focus
+  chrome, and ordered low-latency wheel response without changing lazy
+  membership semantics.
 - [x] Every active guidance id has task and validation evidence or remains
-  explicitly assigned to X-8 through X-11.
+  explicitly assigned to X-8b or X-8 through X-11.
 - [x] Canonical long-form direct explorer commands and registered actions agree;
   no implicit explorer target or built-in short alias exists.
 - [x] Concrete paths, path expressions, entity selectors, selections, child
@@ -1201,6 +1326,12 @@ every drag gesture has an equivalent registered semantic action.
 | Selection undo destroys provenance needed by comments/collaboration | Immutable revision ledger and explicit heads; pinned addresses for reproducible consumers |
 | Selection set loses hierarchy parent ownership | Store parent/child relation separately; derive child path sets from relation range |
 | View/sort/group choices mutate semantic membership | Separate projection object and membership/relation repositories |
+| Extension icons replace domain presentation or make every file a special case | Ordered contributed extension/theme presenter after domain-specific handlers and before paper fallback; assert actual ItemStack ids and precedence |
+| Existing registered view ids remain unreachable from a deep palette prefix | Exercise the exact `sfm action invoke sfm:explorer/view/set ...` frontier through the production continuation/ranking path; do not add top-level aliases |
+| Absolute-path labels are encoded as a mutually exclusive view | XD-10 independent path-display axis and cross-product tests with list/small-icons |
+| Focus-border repair leaves stale side edges or lets rows cover another edge | Child-specific focus state, inset body bounds, explicit render layer order, and first/last selected-row pixel assertions |
+| Fuzzy filtering accidentally walks a drive or lies about exhaustive results | XD-11 zero-I/O local filter with visible materialization completeness; recursive traversal remains B-3 |
+| Wheel smoothing/debounce hides intermediate events or a render stall is misdiagnosed as input coalescing | Sequence-numbered callback/model/frame telemetry, ordered event assertions, and evidence-selected repair rather than speculative timers |
 | Generic explorer becomes least-common-denominator UI | Contributed resolver/presentation/view/group capabilities with explicit unavailable reasons |
 | Existing file/item puppets regress during cutover | Keep adapters until parity; focused tests and migrated live artifacts before deleting old paths |
 | Generated Vox changes break Gradle-only contributors | Deterministic checked-in Java generation and canonical compile without Cargo |
@@ -1224,6 +1355,10 @@ every drag gesture has an equivalent registered semantic action.
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/file_explorer/SFMFileExplorerEntry.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/file_explorer/SFMFileExplorerModel.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/item_picker/SFMItemPickerModel.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanel.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPanelModel.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/explorer/SFMExplorerPresentationRegistry.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMExplorerAction.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceLayout.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspacePanelId.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/review/session/SFMReviewSessionV1.java`

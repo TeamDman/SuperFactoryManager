@@ -1,11 +1,11 @@
 # Contextual input, action ownership, and addressable explorer plan
 
-**Plan status:** Active; C-4a through C-6 and linked CLI-AST Phase 0.11 are complete, while the independent fuzzy/contextual Phase B and broader address/action work remain
+**Plan status:** Active; C-4a through C-6 and linked CLI-AST Phase 0.11 are complete; C-7 through C-11 now own definition/reference correctness, gestures, placement, and large-document responsiveness while the independent fuzzy/contextual Phase B and broader address/action work remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
-**Last updated:** 2026-08-15
-**Intent audit:** Passed 2026-08-15 including the explorer-icon, read-only-status, Arborium-highlighting, and C-5 goal extension recorded below
+**Last updated:** 2026-08-16
+**Intent audit:** Passed and post-compaction re-audited 2026-08-16 against the user's verbatim 16-bullet report, including the symbol-hover/reference, definition-correctness, placement, reveal, explorer interaction, divider-resize, and large-document-performance work recorded below
 
 ## How to update this plan
 
@@ -172,6 +172,59 @@ workspace.
 | HILITE-6 | Reusable parser/query objects should survive requests rather than being rebuilt for every frame or draw. | CLI-AST Phase 0.11 compiles the Java highlight query once per worker, reuses bounded parser/query state, and returns cached immutable results only when language plus source hash match. Editor rendering consumes an immutable snapshot and never reparses per frame. | — |
 | PLAN-4 | Update the resumable plan with current progress and every atom above, then set a goal that completes them together with C-5. | This ledger, traceability, three-pass audit, D-20 through D-24, completed C-4a through C-6, completed CLI-AST Phase 0.11, topology, completion criteria, risks, and retained evidence record that goal without losing its design constraints. | — |
 
+## Authoritative user guidance ledger — 2026-08-16 symbol interaction and responsiveness extension
+
+| ID | Active guidance | Required plan consequence | Superseded by |
+| --- | --- | --- | --- |
+| NAVHARD-1 | F12 on JDK types such as `String`, `Object`, and `StringBuilder` must navigate instead of reporting `No symbol present at captured editor position`. | C-7 and CLI-AST Phase 0.12 add implicit `java.lang` resolution plus branch-selected JDK-source indexing/identity and exact dependency/JDK source navigation fixtures. | — |
+| NAVHARD-2 | F12 on a variable, field, method, annotation, or import statement must navigate to the corresponding declaration when Java semantics make it statically resolvable. | C-7 and CLI-AST Phase 0.12 cover local/parameter lexical declarations, members/overloads, annotation types, imported symbols, and truthful ambiguous/dynamic/unsupported outcomes. | — |
+| NAVHARD-3 | The observed messages `Jump to definition unavailable: no worker source root contains the document within its resolver authorization` and `No symbol is present at the captured editor position (dependency/source index is incomplete)` are false negatives for known source documents and must not be papered over. | C-7 preserves both strings as regression fixtures, repairs resolver-root composition and index completeness at the responsible boundary, and requires diagnostics to distinguish an actual authorization/index problem from an unsupported Java construct. | — |
+| NAVPLACE-1 | F12 sometimes opens a new split panel when navigation should open a new tab/entry in the current pane. | C-7 removes the unconditional `openRight` fallback from definition navigation: reuse an exact visible document first, otherwise push the target into the originating pane stack and focus it. Explicit open-to-side actions remain separate. | — |
+| HOVERDEF-1 | Holding Ctrl over a resolvable symbol in EditorV3 should underline the exact symbol range and change the OS cursor to a link/pointer affordance. | C-9 adds generation-safe hover hit testing, cached asynchronous availability, decoration, and a version-adapted GLFW cursor-lifecycle seam; it performs no worker query or allocation per render frame. | — |
+| HOVERDEF-2 | Ctrl+click on that decorated symbol should invoke the same go-to-definition action as F12 rather than hard-code another resolver. | C-9 emits the captured `sfm:symbol/definition/open` action/context and tests parity, stale hover rejection, focus changes, drag suppression, and the existing multi-cursor interaction recorded in D-25. | — |
+| CTXREF-1 | Alt+Enter must offer `Find References`/`Find Usages`, and right-click in the editor should open the same contextual action surface rather than a second menu implementation. | B-5/C-9 use one `SFMContextActionProvider` registry and constrained command-palette surface for Alt+Enter and right-click; providers emit canonical action drafts and missing arguments remain palette-owned. | — |
+| CTXREF-2 | Alt+F7 should directly invoke find references. | C-8/C-9 register `sfm:symbol/references/open`, add an `sfm:text_editor` Alt+F7 default, and prove parity with the Alt+Enter offer. | — |
+| CTXREF-3 | Alt-click was proposed as another possible find-references gesture, but not selected as a firm default. | D-27 keeps Alt-click unbound until explicitly approved; C-9 must not steal EditorV3's existing Alt+click multi-cursor gesture accidentally. | — |
+| REFS-1 | Find references must produce a persistent explorer panel or document that retains the complete result list and permits repeated navigation; it must not be a one-time choice list that disappears after opening one result. | C-8 projects one immutable, versioned reference-result entity through the generic explorer resolver/panel, with category/file/span rows, completeness/diagnostics, and an independently retained source-query identity. | — |
+| REFS-2 | Opening one reference should preserve the result surface so the user can jump among several references. | C-8 gives the reference explorer ordinary explorer-owned preview semantics: result activation opens/focuses a source tab/entry without replacing the reference explorer, and back/repeated activation remains deterministic. | — |
+| REVEAL-3 | A focused document needs a `Reveal in Explorer` action. | B-4 explicitly contributes the focused editor's concrete document path to `sfm:explorer/reveal`; it reuses or opens a compatible explorer through typed resolver capability and never guesses from the title. | — |
+| EDITPERF-1 | EditorV3 is perceptibly laggy on large documents such as `platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java`. | C-10 first reproduces and measures open, frame, pointer, selection, scroll, context-capture, and syntax-style costs on that exact file before changing the implementation. | — |
+| EDITPERF-2 | Large-document work should be data-driven and should reuse immutable/visible-state products rather than repeatedly scanning or rebuilding the complete glyph collection. | C-10 adds counters/traces and then addresses the measured dominant stages with viewport-aware glyph indexing, cached projections/styles/selection geometry, explicit invalidation, and allocation bounds; it does not assume syntax highlighting is the bottleneck. | — |
+| PLAN-5 | Every atom, concrete failure string, gesture, tentative proposal, motivation, and expected navigation/persistence behavior in the 2026-08-16 report must remain addressable in the resumable plans. | This ledger, traceability rows, three-pass audit, D-25 through D-29, C-7 through C-11, linked CLI Phase 0.12, explorer X-8b, and window-manager Track 1b form the lossless cross-plan record. | — |
+
+### Cross-plan atom index for the complete 2026-08-16 report
+
+| Report atom | Authoritative IDs/work item |
+| --- | --- |
+| Ctrl-held hover underlines the exact actionable symbol range | HOVERDEF-1; C-9 |
+| Ctrl-held hover changes the OS cursor to a link/pointer and restores it on every exit path | HOVERDEF-1; C-9 |
+| Ctrl+click uses the registered definition action when actionable; the report's alternative of opening the context surface is preserved as a considered choice, with Alt+Enter/right-click owning that surface | HOVERDEF-2; D-25; C-9 |
+| Alt+Enter offers Find References/Usages | CTXREF-1; B-5; C-8/C-9 |
+| Editor right-click opens the same contextual command-palette surface as Alt+Enter | CTXREF-1; B-5; C-9 |
+| Alt+F7 directly invokes persistent Find References | CTXREF-2; C-8/C-9 |
+| Alt-click remains a tentative proposal and is deliberately unbound so it does not steal existing multi-cursor input | CTXREF-3; D-27; C-9 |
+| Find References opens a persistent explorer/document rather than a one-shot disappearing choice list | REFS-1; C-8; CLI Phase 0.12.2/0.12.3 |
+| Opening one reference retains the result surface and permits repeated jumps | REFS-2; C-8; C-11 |
+| Every resizable panel border/divider supports VS Code-like pointer dragging | Window-manager WRESIZE-1/WRESIZE-4/WRESIZE-5; Track 1b; explorer XLAY-6 |
+| Horizontal/vertical dividers advertise the correct resize cursor | Window-manager WRESIZE-2; Track 1b |
+| A real three-or-more-panel orthogonal intersection supports one two-axis drag with a resize-all/crosshair affordance | Window-manager WRESIZE-3; Track 1b |
+| File icons vary through an extension/theme contribution; `.java` initially uses the proposed cocoa-beans ItemStack rather than a renderer hard-code | Explorer XEXP-20; XD-9; X-8b |
+| The exact `sfm:explorer/view/set` frontier suggests list and small-icons values | Explorer XEXP-21; X-8b |
+| Small-icons on `registry://minecraft/item/` render actual ItemStacks | Explorer XEXP-21; X-8b |
+| Absolute-path presentation is available and composes independently with list/icons | Explorer XEXP-22; XD-10; X-8b |
+| F12 resolves `String`, `Object`, and `StringBuilder` through branch-selected JDK sources and implicit `java.lang` | NAVHARD-1; D-28; C-7; CLI Phase 0.12.1 |
+| F12 resolves statically knowable variables, fields, methods, annotations, and imports | NAVHARD-2; C-7; CLI Phase 0.12.1 |
+| A known authorized source cannot produce `Jump to definition unavailable: no worker source root contains the document within its resolver authorization` | NAVHARD-3; C-7; CLI Phase 0.12.3 |
+| A resolvable symbol cannot be suppressed by `No symbol is present at the captured editor position (dependency/source index is incomplete)` | NAVHARD-3; C-7; CLI Phase 0.12.1/0.12.3 |
+| The real `OutputStatement.java` EditorV3 lag is measured, attributed, and fixed without speculative debounce/input loss | EDITPERF-1/EDITPERF-2; D-29; C-10 |
+| Address-bar focus leaves no stale left/right explorer-body highlight | Explorer XEXP-23; X-8b |
+| Body focus draws the missing top and bottom edges as well as the sides | Explorer XEXP-23; X-8b |
+| The body viewport is inset/layered so selected rows cannot overwrite focus chrome | Explorer XEXP-23; X-8b |
+| Multiple wheel callbacks are applied immediately, individually, and in receipt order rather than after input stops | Explorer XEXP-24; X-8b |
+| The explorer has action-backed, focusable fuzzy filtering over its current lazy materialization | Explorer XEXP-25; XD-11; X-8b |
+| F12 reuses an exact visible target or opens a tab/entry in the current pane stack, never an implicit side split | NAVPLACE-1; D-26; C-7 |
+| A focused document contributes an exact resolver-backed `Reveal in Explorer` action | REVEAL-3; B-4; C-11 |
+
 ## Guidance traceability
 
 | Guidance | Plan coverage | Evidence when complete |
@@ -202,6 +255,14 @@ workspace.
 | HILITE-1, HILITE-2, HILITE-3, HILITE-4, HILITE-6 | D-22 through D-24; C-4c/C-4d; CLI-AST Phase 0.11; C-6 | Rust Arborium span fixtures, protocol/direct-worker parity, Unicode/CRLF/hash/cancellation tests, Java glyph-style tests, latency/cache telemetry, and live highlighted `SFM.java` evidence |
 | HILITE-5 | C-4c; source references | Reproducible `git ls-files` extension audit, local Arborium support cross-check, and an explicitly deferred ordered language backlog |
 | PLAN-4 | Entire 2026-08-15 source-presentation extension | Three distinct audit passes, prepared goal wording, and fresh-agent resumption review |
+| NAVHARD-1, NAVHARD-2, NAVHARD-3 | D-28; C-7; CLI-AST Phase 0.12.1/0.12.3 | Exact location scenarios for JDK/project/dependency types, locals/parameters/fields/methods/annotations/imports, root-authority composition tests, the two quoted false-negative regressions, and truthful completeness/unsupported outcomes |
+| NAVPLACE-1 | D-26; C-7; C-11 | Current-pane stack placement tests, exact-visible reuse, explicit-side-action separation, nested split/stack fixtures, and a live F12 topology artifact proving no surprise split |
+| HOVERDEF-1, HOVERDEF-2 | D-25; C-9; C-11 | Symbol-range hit tests, Ctrl modifier transitions, pointer-cursor lifecycle, one cached request per immutable hover identity, F12/action parity, stale/drag/focus tests, and live hover/click evidence |
+| CTXREF-1, CTXREF-2, CTXREF-3 | D-27; B-5; C-8; C-9; C-11 | Shared provider/choice-surface tests, right-click/Alt+Enter parity, Alt+F7 default/action proof, Alt-click non-stealing assertion, and live contextual/reference evidence |
+| REFS-1, REFS-2 | D-26; C-8; CLI-AST Phase 0.12.2/0.12.3; C-11 | Versioned reference-result schema, complete/incomplete category fixtures, generic explorer projection, repeated result activation with retained result panel, preview ownership, and live source jumps |
+| REVEAL-3 | B-4; C-11 | Focused-document contribution, exact path/resolver targeting, compatible explorer reuse/open, reveal selection/scroll, no-title-guess and live action proof |
+| EDITPERF-1, EDITPERF-2 | D-29; C-10; C-11 | Reproducible `OutputStatement.java` benchmark, stage/frame/input counters, before/after traces, viewport/caching/invalidation tests, allocation bounds, and live responsive interaction evidence |
+| PLAN-5 | Entire 2026-08-16 extension plus linked explorer/CLI/window-manager plans | Three-pass intent audit, exact-id cross-plan map, unresolved-decision register, and fresh-agent resumption review |
 
 ## Intent audit evidence — 2026-08-05
 
@@ -369,6 +430,84 @@ workspace.
   plans/sources/tests, local Arborium checkout, pinned crate sources, and
   tracked SFM file list were available.
 
+## Intent audit evidence — 2026-08-16 symbol interaction and responsiveness extension
+
+- **Pass 1 — extraction:** Reread the complete report and split every compound
+  sentence into NAVHARD-1 through PLAN-5. Preserved all concrete gestures
+  (Ctrl-hover, Ctrl+click, Alt+Enter, tentative Alt-click, Alt+F7, right-click,
+  F12), all three named JDK examples, both exact failure strings, every Java
+  symbol category, persistent-reference motivation, current-pane-tab placement,
+  focused-document reveal, the exact `OutputStatement.java` lag witness, and
+  the requirement that no atom be forgotten. Explorer presentation/filter/
+  scroll/focus-border and panel-divider atoms are retained in the linked
+  selection/explorer and window-manager ledgers rather than compressed here.
+- **Pass 2 — traceability:** Mapped definition/JDK/local-symbol correctness to
+  C-7 and CLI Phase 0.12.1; location usages and persistent results to C-8 and
+  CLI Phase 0.12.2/0.12.3; pointer/context gestures to B-5/C-9; focused reveal
+  to B-4; measured large-document work to C-10; and one live integrated proof
+  to C-11. Cross-checked the inverse against current source: navigation really
+  calls `openRight`, Ctrl+left-click currently moves all cursors, right-click
+  has no EditorV3 context route, and the renderer repeatedly traverses the
+  complete glyph list. These are verified foundations, not silently assumed
+  causes or accepted designs.
+- **Pass 3 — adversarial omission:** Checked that `Find References` is not
+  reduced to a disappearing definition-style choice list; right-click and
+  Alt+Enter do not become two selection systems; the pointer does not imply a
+  stale/unresolvable target; hover does not spawn work per frame; JDK support
+  is not mislabeled as an ordinary mod dependency; incomplete-index and
+  authorization diagnostics remain truthful; F12 does not keep creating side
+  splits; Alt-click does not steal the established multi-cursor gesture without
+  approval; reveal does not infer a path from title text; and performance work
+  measures event, projection, style, selection, and render stages before
+  choosing viewport/caching changes.
+- **Fresh-agent resumption check:** A new agent can identify C-7 as the first
+  source-navigation dependency, see that it requires CLI 0.12.1, proceed to
+  C-8/0.12.2-0.12.3, then C-9/C-10/C-11, while treating explorer X-8b and
+  window-manager Track 1b as parallel bounded plans. The agent can also see
+  that no goal, propagation, publication, or implementation authorization was
+  created by this planning update.
+- **Known source limitation:** None. The complete user report, current plans,
+  current 1.19.2 Java/Rust sources, and the local VS Code source reference were
+  available. The reversible `.java` icon, Alt-click, absolute-path presentation,
+  local-filter scope, Ctrl+click fallback, target-placement, JDK-source, and
+  performance-budget choices are closed below for this implementation goal and
+  remain explicit rather than becoming hidden assumptions.
+
+## Intent re-audit evidence — 2026-08-16 verbatim repost after compaction
+
+- **Pass 1 — extraction:** Reread the user's current message from beginning to
+  end; it reproduces the complete earlier report verbatim despite conversation
+  compaction. Expanded the cross-plan atom index above so underline, pointer,
+  click choice, each context gesture, persistent-result lifetime, divider axes,
+  each explorer presentation/focus/scroll/filter defect, both exact resolver
+  failures, every named Java symbol category, pane placement, reveal, and the
+  exact large-file witness are independently visible rather than hidden inside
+  grouped prose.
+- **Pass 2 — traceability:** Followed every atom from the index to an active
+  guidance id, decision, executable work item, validation, and observable
+  completion criterion across C-7 through C-11, the REVEAL-3 portion of B-4,
+  the CTXREF portion of B-5, CLI-AST 0.12.1 through 0.12.3, explorer X-8b, and
+  window-manager Track 1b. The inverse check found no material work in those
+  slices unsupported by the report, verified source behavior, or a labeled
+  reversible design decision.
+- **Pass 3 — adversarial omission:** Rechecked the report's uncertainty words
+  and motivations: Ctrl+click uses definition while Alt+Enter/right-click own
+  context; tentative Alt-click remains unbound; cocoa beans is an initial
+  contributed mapping rather than a hard-coded universal icon; absolute paths
+  compose with view mode; scroll delay is measured before its cause is named;
+  references persist after activation; two-axis resize requires a real hit
+  intersection; and F12 geometry changes only through explicit side-opening
+  actions. No atom is deferred merely because it crosses one of the four plans.
+- **Fresh-agent resumption check:** The authoritative next set is now named by
+  exact ids and dependency order: CLI 0.12.1 -> C-7; CLI 0.12.2/0.12.3 -> C-8;
+  B-4/B-5 subsets -> C-9; with X-8b and Track 1b as bounded parallel tracks,
+  C-10 after instrumentation, and C-11 as the integrated acceptance/bookkeeping
+  gate. A fresh agent can tell what must not happen: no Gradle, source mutation,
+  propagation, publication, release tagging, Alt+drag relocation, picker X-8,
+  or broader Phase B search work.
+- **Known source limitation:** None. The verbatim requirement source is present
+  in the current message, and the linked plans and 1.19.2 sources are available.
+
 ## Scope
 
 In scope:
@@ -394,13 +533,21 @@ In scope:
   plus approved SFM-owned default bindings.
 - Canonical typed file/item explorer panel scenes and complete removal of the
   unreleased one-off developer opening actions they replace.
-- Persisted multi-root SFM workspaces, explicit root add/remove/reorder actions,
-  native TinyFD folder selection, typed-path and drag/drop alternatives, and
-  workspace-root availability diagnostics.
+- Selection-backed session-scoped multi-root explorer locations, explicit root
+  add/remove/reorder actions, later native TinyFD folder selection, typed-path
+  and drag/drop alternatives, and resolver-root availability diagnostics.
+  Persisting named selections/locations remains a separately approved schema.
 - File-backed Text Editor v3 documents with durable addresses, safe read-only
   opening, open/focus-at-range, and source-hash-aware snapshots.
 - Location-aware Java definition lookup over workspace and dependency sources,
   exposed as asynchronous registered actions and contextual offers.
+- Correct location-aware definition and reference lookup for JDK, dependency,
+  project, member, local, annotation, and import symbols; persistent generic
+  reference-result explorers; Ctrl-hover/click, Alt+F7, right-click, and
+  Alt+Enter action parity; deterministic current-pane navigation; and focused
+  document reveal.
+- Measured EditorV3 large-document responsiveness with viewport/caching work
+  selected from reproducible stage and frame evidence rather than conjecture.
 - File-domain explorer presentation with theme-backed chest/paper ItemStack
   icons, plus an explicit contrast-backed EditorV3 read-only status.
 - A bounded, versioned, Rust-owned Arborium syntax-highlighting service and
@@ -763,6 +910,11 @@ Out of scope unless a later goal explicitly expands it:
 | D-22 Syntax worker/process ownership | Should highlighting run in Java, spawn per document, extend the heavy symbol worker, or use a dedicated long-lived Rust lane? | **Closed as a reversible first implementation:** add `sfm-propagate-changes syntax highlight` plus supervised `syntax serve`. It reuses the existing bounded frame-codec/process-lifecycle patterns but does not require symbol-workspace/index startup and does not spawn per document/request. One client service shares the worker across editors; a later generic code-intelligence daemon may unify processes without changing the provider contract. | CLI direct/worker byte-equivalence, one-process reuse, cached-query evidence, crash/restart/cancel/timeout tests, and a Java missing-worker fallback are required. |
 | D-23 Highlight wire and style contract | What offsets and presentation data cross Rust/Java? | **Closed for schema 1:** request id/generation, language id, exact UTF-8 source, SHA-256, and bounded options go to Rust. Rust returns the same identity plus Arborium/parser fingerprint and sorted, non-overlapping `[start_byte,end_byte)` ranges containing a stable Arborium theme tag and ordered canonical lower-case ChatFormatting names. Java rejects unknown/invalid/split/stale spans and converts valid UTF-8 boundaries to the current glyph projection. No HTML/ANSI crosses the wire. | Facet JSON snapshots and Java codec tests cover empty/overlap, astral Unicode, combining marks, CRLF, trailing newline, malformed ranges/styles, hash mismatch, deterministic order, and direct/worker parity. |
 | D-24 Language and fallback policy | How is language selected, what ships first, and what happens without support/service? | **Closed for this goal:** an explicit language registry derives `.java -> java` from the concrete document path and sends that id; Rust remains authoritative for whether the language is available. Java is the sole new Arborium grammar enabled. Unsupported/no-path documents retain the existing SFML/G4/plain presentation; unavailable/failed/stale Rust results leave readable text and a bounded diagnostic/telemetry state, never a modal or blocked editor. | C-4c records the extension audit; C-4d tests Java selection, unsupported extension, missing executable, cancellation/staleness, and unchanged existing highlighters. |
+| D-25 Ctrl+click versus existing cursor behavior | EditorV3 currently uses Alt+click to add a cursor and Ctrl+click to move all cursors. Does definition navigation replace Ctrl+click everywhere or only when a symbol is actionable? | **Closed for this goal:** an exact current-hash hover target intercepts Ctrl+click and submits definition navigation; with no actionable target, retain the existing cursor behavior. Alt+click remains multi-cursor. Never begin a text drag and a navigation action from the same press. | C-9 tests actionable/unavailable/stale targets, modifier transitions, drag thresholds, and current multi-cursor parity. A different global replacement requires explicit approval. |
+| D-26 Definition/reference target placement | Should an unseen source target create a split, a tab in the current pane, a preview owned by a result explorer, or something else? | **Closed for this goal:** direct F12/Ctrl+click/Alt+F7 preserve the originating pane and push a new panel entry/tab there after exact-visible reuse. A reference explorer retains its own pane and opens results through its owned preview target. Only explicit directional actions create new geometry. | C-7/C-8 use self-contained captured pane/result-owner ids and nested layout tests; no fallback calls `openRight` implicitly. |
+| D-27 Alt-click reference binding | Should Alt-click also find references? | **Closed for this goal:** do not bind it. Alt+click already adds EditorV3 cursors and the user described Alt-click as “maybe”; Alt+F7 plus Alt+Enter/right-click provide complete reference access without a conflict. | C-9 asserts no Alt-click reference default. If later approved, the plan must state the replacement/modifier precedence and migrate the multi-cursor gesture deliberately. |
+| D-28 Java platform/source completeness | How do JDK declarations and source-root authorization compose with the existing live-workspace plus dependency-source index? | **Closed for this goal:** add a branch-JDK source domain keyed by selected JDK release/home plus `src.zip` content identity, model implicit `java.lang`, and compose resolver-authorized editor roots with negotiated worker source mappings by concrete containment/source-set identity. Never downgrade a missing platform source to authoritative `NoSymbol`. | CLI Phase 0.12/C-7 scenarios must resolve `String`, `Object`, and `StringBuilder`, preserve partial-index diagnostics, and reproduce both quoted false negatives before the fix. |
+| D-29 Large-document responsiveness budget | What evidence is sufficient to call EditorV3 responsive? | **Closed for this goal:** on the declared baseline and exact `OutputStatement.java`, record cold open separately; during warm idle, pointer movement, scroll, selection, and F12-context capture, target median editor-attributed frame work <=16.7 ms, p95 <=33.3 ms, no editor-attributed pause >=100 ms, and input-to-visible p95 <=50 ms. If hardware/host load invalidates a bound, preserve raw traces and seek user approval rather than silently weakening it. | C-10 instruments glyph visits, projection/style/selection cache rebuilds, allocations, worker calls, and event-to-frame latency; C-11 retains before/after evidence and visual approval. |
 
 ## Target action and binding vocabulary
 
@@ -807,8 +959,11 @@ sfm:explorer/root/move/up <explorer-selector> <path-expression>
 sfm:explorer/root/move/down <explorer-selector> <path-expression>
 sfm:explorer/location/edit <explorer-selector> [focused|left|right|above|below] [editor-id]
 sfm:explorer/location/set <explorer-selector> <path-expression> --expected-revision <revision>
+sfm:explorer/reveal <explorer-selector> <path-expression>
 sfm:path/open <concrete-path-address>
 sfm:symbol/definition/open
+sfm:symbol/references/open
+sfm:context/actions/open
 ```
 
 Every root action contains an explorer selector. Widgets emit exact ids;
@@ -818,6 +973,13 @@ to an implicit default. `root/pick` is the later native-dialog adapter,
 intent. Contextual definition providers capture the focused editor
 document/cursor into an immutable context value before producing the final
 action; execution does not reread an unrelated later focus state.
+
+`sfm:symbol/references/open` is the UI-facing “Find References” operation and
+uses the CLI engine's `symbol list-usages` vocabulary internally. It captures
+the editor document/hash/position exactly once and opens a versioned generic
+reference-result explorer; it is not a transient candidate chooser. F12,
+Ctrl+click, Alt+F7, Alt+Enter, and right-click are bindings/gestures over these
+registered semantic actions, never alternate parsers or hidden callbacks.
 
 The explorer header gesture emits exact-id `location/edit`, whose default
 placement is `right`; that action delegates to the ordinary typed
@@ -1221,6 +1383,17 @@ C-3 + CLI-AST Phase 0.11 -> C-4c syntax contract/service -> C-4d Java editor int
 C-3 + C-4 -> C-5 F12/Alt+Enter/panel navigation.
 C-4a + C-4b + C-4d + C-5 -> C-6 live source-presentation/navigation join.
 
+CLI-AST Phase 0.12.1 + C-7 fixes location coverage/root mapping/pane-stack placement.
+CLI-AST Phase 0.12.2/0.12.3 + C-7 -> C-8 persistent reference explorer.
+B-5 + C-7 + C-8 -> C-9 hover/click/Alt+F7/right-click gesture parity.
+C-3/C-4d -> C-10 measured large-document optimization.
+C-7 + C-8 + C-9 + C-10 -> C-11 live corrected source-navigation join.
+
+Selection/explorer X-8b independently repairs extension icons, deep projection
+completion, path labels, focus chrome, local fuzzy filtering, and scroll latency.
+Window-manager Track 1b independently adds pointer divider resize/cursors and
+joins pane terminology through selection/explorer X-10.
+
 In-game control CLI I-1/I-2/I-3 (scaffold + instance discovery/selection)
 is complete. X-1..X-5 + control I-3 -> control I-4/X-6 direct typed explorer
 commands -> X-7 one-game proof -> control I-5 multi-game hardening.
@@ -1278,6 +1451,17 @@ Safe parallel work after contract review:
   editor context/lifecycle, so one coordinator must serialize edits to
   `SFMTextEditorPanel`, `SFMDrawCanvasScreen`, shared context contracts, and
   installed-worker discovery even if their pure tests proceed independently;
+- after Phase 0.12 schemas freeze, JDK/location-definition analysis, usage
+  collection, worker protocol, explorer X-8b presentation/interaction, and
+  window-manager Track 1b pure divider geometry can proceed in disjoint lanes;
+- C-7/C-8 Java provider/navigation integration, C-9 EditorV3 gestures, and C-10
+  EditorV3 instrumentation/optimization overlap in screen/context files and
+  must be integrated serially even when their Rust/pure-model tests run in
+  parallel;
+- X-8b owns explorer panel/action/presentation files and must coordinate any
+  shared command-palette continuation edit with B-1/B-5; Track 1b owns layout/
+  multiplexer cursor/drag files and must coordinate central input routing with
+  C-9;
 - one integration owner must serialize changes to `SFMScreenMultiplexer`,
   `SFMKeyBindingService`, action registration, canonical plans, changelog, and
   live puppet definitions.
@@ -2020,7 +2204,10 @@ established panel placement rules; preserve source origin and selected item.
 Add one approved contextual Ctrl+Shift+E default and ambiguity choices through
 the constrained palette. Prove both a path/file-explorer adapter and an
 item/item-explorer (or deterministic item fixture) adapter; do not centralize a
-file/item type switch.
+file/item type switch. A focused Text Editor v3 document contributes its exact
+resolver-issued concrete path and authority independently from any explorer
+selection, so `Reveal in Explorer` is available from the document context and
+never derives a path from title text.
 
 **Validation:** Tests cover focused editor file, focused explorer selection,
 independently targeting the non-focused contribution, directory, item id,
@@ -2041,12 +2228,17 @@ proofs use contributed explorer capabilities and preserve unrelated panels.
 ### [ ] B-5 Replace token callbacks with Alt+Enter contextual action offers
 
 **Work:** Close D-9 and the contextual-action portion of D-11. Register the
-semantic contextual-actions action and Alt+Enter default. Add the
+semantic contextual-actions action and Alt+Enter default. Right-click over an
+EditorV3 document opens this same constrained command-palette choice surface;
+it does not own a second context-menu model. Add the
 `SFMContextActionProvider` registry and open the existing constrained palette
 with every applicable offer. Adapt `ProgramTokenContextActions` behavior to
 whole-document/2D-context providers that emit canonical drafts for resource
 identifier expansion, label/input/output/bool/if inspection, preserving all
-applicable offers rather than first-match only. Add the mandatory path
+applicable offers rather than first-match only. Java document providers add
+both jump-to-definition and `sfm:symbol/references/open` where the captured
+position is analyzable; Alt+F7 remains the direct references binding owned by
+C-8/C-9. Add the mandatory path
 existence/content and item-query reveal fixtures. Remove direct `Runnable`
 dispatch; route Ctrl+Space according to D-9. Missing arguments stay in the
 palette and use Brigadier suggestions/completeness.
@@ -2064,10 +2256,12 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMProgramContextAct
 sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMChoiceSessionTests --wait-for-build-lock
 ```
 
-**Completion criteria:** Alt+Enter presents the familiar searchable palette
+**Completion criteria:** Alt+Enter and editor right-click present the same
+familiar searchable palette
 constrained to all valid contextual action drafts; context includes the whole
 document and true 2D point; missing arguments remain Brigadier/palette-owned;
-and Ctrl+Space no longer owns a separate one-to-one callback system.
+definition and persistent-reference offers can coexist; and Ctrl+Space no
+longer owns a separate one-to-one callback system.
 
 ### [ ] B-6 Prove contextual search/actions live and record the release boundary
 
@@ -2485,6 +2679,13 @@ choice, and exact acquired Forge dependency-source navigation to
 `FMLClientSetupEvent.java`. Rust-emitted Windows extended paths are normalized
 at the Java boundary without weakening canonical path identity.
 
+**User-testing boundary correction (2026-08-16):** This completion evidence is
+valid for the named fixtures only. It does not prove implicit JDK `java.lang`,
+locals/parameters, every member/annotation/import position, all resolver-root
+compositions, or desired current-pane-stack placement. The observed failures
+and surprise `openRight` behavior are authoritative regressions assigned to
+C-7; C-5/C-6 must not be cited as satisfying NAVHARD/NAVPLACE.
+
 ### [x] C-6 Prove the SFM-source jump-to-definition journey live
 
 **Work:** Add one deterministic live journey: open a generic explorer, add or
@@ -2640,6 +2841,160 @@ measured deterministic provider without mixing initial provider design with UI
 navigation. That later slice is recorded immediately below. The independent
 fuzzy-file chain remains available after B-2 and was not part of either goal.
 
+## Phase C follow-up — symbol correctness, persistent references, and responsive interaction
+
+### [ ] C-7 Harden definition coverage, resolver authorization, and pane-stack placement
+
+**Work:** Complete linked CLI-AST Phase 0.12.1 and consume its revised typed
+results without adding Java-side parsing. Make definition-at-position resolve
+branch-selected JDK sources and implicit `java.lang` (`String`, `Object`, and
+`StringBuilder`), local variables, parameters, fields, methods/overloads,
+annotation names/usages, and imported symbols. Repair the Java context adapter
+so a resolver-authorized document under any negotiated branch source set maps
+to the deepest unique worker root; retain fail-closed containment and explicit
+ambiguity. Reproduce both quoted false-negative messages before correction and
+keep genuine unavailable/incomplete cases typed and actionable.
+
+Replace `SFMDefinitionNavigation`'s unconditional unseen-target `openRight`
+path. First focus/navigate an exact already-open document; otherwise push one
+read-only, hash/range-pinned editor entry into the originating pane's stack and
+focus it. Never replace a dirty editor or terminal, and never create new split
+geometry unless an explicit directional panel action requested it.
+
+**Validation:** Rust scenario and Java integration fixtures cover every named
+JDK/symbol category, declaration/reference positions, imports/static imports,
+same names/overloads, source sets, dependency/JDK/workspace origins, missing or
+stale indexes, exact authority mapping, ambiguous roots, changed snapshots,
+and both verbatim regression messages. Workspace tests cover exact-visible
+reuse and nested `[[1,2],3]`/stack placement with no extra visible pane.
+
+```pwsh
+cargo test --all-features java_analysis
+cargo test --all-features --test java_analysis_scenarios
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMDefinitionContextAdapterTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMJumpToDefinitionActionTests --wait-for-build-lock
+```
+
+**Completion criteria:** F12 navigates every statically resolvable named
+fixture—including the three JDK types—without either false-negative message;
+real incompleteness remains truthful; and unseen definitions become focused
+tabs/entries in the current pane rather than surprise side panels.
+
+### [ ] C-8 Add location-aware usages and a persistent reference explorer
+
+**Work:** Complete linked CLI-AST Phase 0.12.2/0.12.3. Add a provider-neutral
+references request at the same immutable document/hash/UTF-aware location as
+definitions, with direct `symbol list-usages` location form and supervised
+worker capability. Return the resolved target symbol plus deterministic,
+categorized source spans, completeness, diagnostics, index identities, and
+recovery actions; do not require the UI to guess an exact selector first.
+
+Register `sfm:symbol/references/open`. Materialize each accepted response as a
+versioned session-scoped reference-result entity and a resolver-contributed
+generic explorer location (provisional spelling
+`symbol-references://<result-id>/`, frozen with parse/print fixtures before it
+enters history). Project stable category -> file -> span rows with source-set/
+origin labels. The result panel survives opening a row. Row activation uses an
+explorer-owned source preview/current-pane stack target so repeated reference
+jumps preserve the result list and unrelated panels. A missing/partial index
+remains visible in the explorer instead of becoming an empty authoritative set.
+
+**Validation:** Cover types, locals/parameters, fields, methods, annotations,
+imports, method references, overrides where represented, zero/one/many,
+workspace/dependency/JDK origins, ambiguous/unsupported targets, incomplete
+indexes, stale document/result generations, direct/worker parity, stable row
+ordering, retained panel identity, repeated activation, exact source ranges,
+and no one-time choice-session substitution.
+
+**Completion criteria:** Alt+F7/palette invocation opens one persistent generic
+reference explorer whose complete identity and diagnostics remain visible while
+the user repeatedly jumps among source ranges; no result is discarded merely
+because one row was opened.
+
+### [ ] C-9 Add symbol hover/click and one contextual-action gesture surface
+
+**Work:** Close D-25/D-27 while consuming B-5. Add immutable hover identity
+`(editor origin, document hash/generation, exact glyph/text range, modifiers)`.
+Holding Ctrl over a lexically valid Java symbol submits at most one cancellable
+availability/definition lookup per identity, caches the result, rejects stale
+responses, underlines only the exact actionable range, and owns a scoped
+link/pointer cursor until modifier, mouse, focus, screen, document, or result
+state changes. It never queries or creates cursor objects from `render`.
+
+Ctrl+left-click on a current actionable hover emits the same captured
+`sfm:symbol/definition/open` action as F12. Resolve D-25's fallback explicitly
+and separate click from drag. Add the `sfm:text_editor` Alt+F7 default for
+`sfm:symbol/references/open`. Right-click captures the clicked document point
+and opens the exact same B-5 constrained command-palette surface as Alt+Enter,
+including definition, references, and other registered providers. Keep
+Alt-click unbound for references while D-27 is open and preserve its existing
+multi-cursor behavior.
+
+**Validation:** Test modifier press/release without mouse movement, movement
+between symbols, unresolved/ambiguous/slow/stale results, cache reuse, document
+mutation, focus/screen close, cursor restoration, click/drag threshold,
+multiple cursors, F12/Ctrl+click parity, Alt+F7 direct invocation, right-click/
+Alt+Enter identical offers/order, and absence of per-frame provider work.
+
+**Completion criteria:** A Ctrl-held actionable symbol visibly behaves like a
+link and Ctrl+click navigates through the registered definition action;
+Alt+F7 opens persistent references; right-click and Alt+Enter are one familiar
+contextual palette; no stale decoration, stuck cursor, duplicate parser, or
+stolen Alt+click behavior remains.
+
+### [ ] C-10 Measure and fix EditorV3 large-document responsiveness
+
+**Work:** Establish a deterministic benchmark/puppet opening the real
+`platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java` at
+declared viewport/GUI-scale variants. Instrument cold document projection,
+glyph creation, remote/local style projection, per-frame glyph visits/draws,
+selection/open-target geometry, cursor hit testing, context capture, allocations,
+worker submissions, mouse/scroll/key event receipt, state application, and
+next-visible-frame time. Keep raw before traces and identify the dominant
+stages before changing behavior.
+
+Then fix measured costs. The expected candidates—subject to evidence—are a
+line/spatial index and visible-glyph range, immutable document projection keyed
+by content/layout identity, range-based syntax style lookup rather than repeated
+full glyph maps, cached selection/open-target geometry, and invalidation only
+on text/font/layout/zoom/selection changes. Preserve exact rendering,
+multi-cursor semantics, Arborium stale safety, open-at-range, zoom/pan, and
+small-document behavior. Do not hide latency by dropping input or debouncing
+away intermediate state.
+
+**Validation:** Unit tests prove visibility boundaries, invalidation causes,
+offscreen exclusion, exact style/selection parity, Unicode/CRLF, zoom/pan, and
+bounded retained allocations. JFR/JMH or equivalent stage probes plus a live
+input script compare before/after on the exact file against D-29, retaining raw
+machine/profile/viewport identity. Full-source screenshots detect visual drift.
+
+**Completion criteria:** The lag is computationally reproduced and attributed;
+the measured dominant stage is fixed; warm interaction meets D-29 without
+rendering/scanning all offscreen glyphs or rebuilding unchanged projections;
+and visual/semantic parity plus raw before/after evidence are inspectable.
+
+### [ ] C-11 Prove the corrected source-navigation journey and reconcile plans
+
+**Work:** Extend the source-editor live journey to open `OutputStatement.java`,
+exercise Ctrl-hover/Ctrl+click and F12 on project/JDK/local/member/annotation/
+import fixtures, run Alt+F7, retain the reference explorer while opening at
+least three rows, use right-click and Alt+Enter, reveal the focused document in
+an explorer, and prove no unexpected pane appears. Capture pointer/underline,
+pane/stack/result identities, worker/index outcomes, event/frame performance,
+and exact document/source spans as machine artifacts plus screenshots.
+
+Run the separate explorer X-8b and window-manager Track 1b puppets when those
+items complete; do not claim their icon/filter/scroll/border/divider outcomes
+from this source-navigation puppet. Update changelog and all four coordinating
+plans with exact commits/tests/artifacts. Propagation, publication, and release
+tagging remain separately authorized.
+
+**Completion criteria:** Every NAVHARD/HOVERDEF/CTXREF/REFS/REVEAL-3/EDITPERF
+guidance id has pure, integration, and live evidence; the user can inspect one
+stable reference list while navigating repeatedly; large-document interaction
+has measured acceptable latency; and the plan accurately retains all deferred
+decisions.
+
 ## Most recently completed vertical slice — source presentation through definition navigation
 
 The completed goal was:
@@ -2702,10 +3057,24 @@ are recorded in C-4a through C-6 rather than being deferred to a future goal.
   ChatFormatting spans asynchronously with validated Unicode/hash/generation
   identity, cached grammar/query state, plain/existing fallback, and no
   render-thread or per-frame parsing.
-- [x] F12 and the contextual-action provider resolve the symbol at the captured
-  document location through the existing Java-analysis/index engine, never
-  block the render thread, and correctly handle one/many/none/incomplete/stale
-  outcomes.
+- [x] The original C-5 fixture set routes F12 through the captured asynchronous
+  Java-analysis/index action and distinguishes one/many/none/incomplete/stale
+  outcomes without render-thread blocking; C-7 owns the subsequently observed
+  symbol-kind/root-mapping/placement gaps.
+- [ ] F12 resolves the declared JDK/project/local/member/annotation/import
+  fixtures without the recorded false-negative diagnostics and opens unseen
+  targets in the current pane stack rather than creating an implicit split.
+- [ ] Find References is available from Alt+F7 and the shared Alt+Enter/right-
+  click contextual palette, and produces a persistent generic result explorer
+  that remains while several source ranges are opened.
+- [ ] Ctrl-hover/Ctrl+click expose one stale-safe link affordance/action path;
+  OS cursor state always restores and no per-frame worker work or unapproved
+  Alt-click conflict exists.
+- [ ] Focused documents can reveal their exact resolver path in a compatible
+  explorer without title guessing or unrelated-panel replacement.
+- [ ] The exact `OutputStatement.java` workload has reproducible before/after
+  stage and frame evidence, meets the approved warm interaction budget, and
+  retains rendering/navigation/multi-cursor/syntax semantics.
 - [ ] Palette candidates can arrive incrementally with deterministic ranking,
   stable selection, cancellation, stale-generation rejection, visible
   loading/truncation/errors, and Brigadier-authoritative execution.
@@ -2765,6 +3134,14 @@ are recorded in C-4a through C-6 rather than being deferred to a future goal.
 | A definition target changes after analysis but before its panel loads | Preserve and verify the worker's algorithm-tagged exact content identity through the asynchronous resolver; never discard a production `blake3:` witness, and never apply a retained target range to failure/diagnostic text |
 | An immediate Alt+Enter result is lost during the constrained-palette-to-workspace transition | Treat that exact captured transition as valid (or defer one client turn), then revalidate the captured editor origin, document hash, generation, and cursor before any navigation or feedback mutation |
 | Dependency index is stale but no-match is presented as authoritative | Existing index identity/completeness contract is preserved in `DefinitionResult`; incomplete outcomes include typed refresh/retry actions |
+| JDK `java.lang` symbols are treated as bare unresolved tokens | Branch-selected JDK source identity plus implicit-import semantics, exact `String`/`Object`/`StringBuilder` scenarios, and no authoritative no-match without platform-source completeness |
+| A valid editor file is rejected because resolver authorization and worker roots use different but containing boundaries | Compose the exact resolver grant with negotiated canonical root mappings, choose the deepest unique contained source root, retain strict containment, and preserve both quoted failures as regression fixtures |
+| F12/reference navigation silently grows a forest of split panes | Exact-visible reuse followed by captured originating-pane stack insertion; directional geometry only from explicit actions; topology artifacts assert visible pane count |
+| Reference results disappear after the first jump | Versioned result entity plus ordinary generic explorer panel/owned preview semantics; repeated-activation tests retain result id, rows, completeness, and scroll state |
+| Ctrl-hover spams the worker or leaves a stale underline/OS cursor | Immutable hover identity, one cancellable cached request per identity, generation/hash/focus checks, no render-time submission, and lifecycle cursor restoration |
+| Right-click and Alt+Enter drift into separate action menus | Both capture context then open the same `SFMContextActionProvider` constrained palette; parity tests compare offers, order, execution, and incomplete drafts |
+| Ctrl/Alt mouse gestures regress existing multi-cursor editing | D-25/D-27 explicitly own precedence; tests cover actionable/unavailable symbols, drag thresholds, Ctrl fallback, and unmodified Alt+click behavior |
+| Large-document optimization guesses the wrong bottleneck or drops input | Preserve raw event-to-frame/stage/allocation traces first; optimize only measured costs; never debounce away intermediate input; retain visual and semantic parity fixtures |
 | Source paths or text leak through telemetry | Default telemetry records provider/root ids, hashes, counts, durations, and outcomes only; raw paths/text require explicit user-visible artifact capture |
 | Chest/paper fallback makes registry leaves look like files | D-20 file-scheme presenter and contributor-precedence tests; expandable/leaf alone is never treated as file identity |
 | Read-only chrome covers or intercepts `#`/Done at small panel sizes | D-21 bounded free-lane geometry, non-widget rendering, overlap/hit/focus assertions, and GUI-scale visual proof |
@@ -2791,6 +3168,12 @@ are recorded in C-4a through C-6 rather than being deferred to a future goal.
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceLayout.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPanel.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/SFMTerminalPropertiesPanel.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/symbol/SFMDefinitionContextAdapter.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/symbol/SFMDefinitionNavigation.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/symbol/SFMJumpToDefinitionController.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/SFMDrawCanvasScreen.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/SFMDrawCanvasRemoteSyntaxStyles.java`
+- `platform/minecraft/src/main/java/ca/teamdman/sfml/ast/OutputStatement.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/keybinding/`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMCommandPaletteActions.java`
 - `platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMDeveloperActions.java`
