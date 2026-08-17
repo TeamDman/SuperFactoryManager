@@ -504,8 +504,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                         projection.currentSha256(),
                         documentGeneration
                 ),
-                symbolHit.range(),
-                new SFMSymbolHoverIdentity.PointerState(symbolHit.glyphOrdinal(), false)
+                symbolHit.range()
         );
         return Optional.of(new HoverCapture(contribution, symbolHit, target));
     }

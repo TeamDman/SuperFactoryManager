@@ -195,8 +195,7 @@ class SFMTextEditorPanelTests {
                         "content-hash:name",
                         1L
                 ),
-                SFMSymbolHoverIdentity.TextGlyphRange.fromUtf16("name", 0, 4, 0, 4),
-                new SFMSymbolHoverIdentity.PointerState(0, false)
+                SFMSymbolHoverIdentity.TextGlyphRange.fromUtf16("name", 0, 4, 0, 4)
         );
     }
 

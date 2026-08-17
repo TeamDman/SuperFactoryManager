@@ -23,7 +23,7 @@ class SFMSymbolHoverStateMachineTests {
     void modifierPressWithoutMovementSubmitsOnceAndOwnsExactUnderlineAfterResolution() {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
-        var target = target("name", 0, 4, 0, 4, 0, 1);
+        var target = target("name", 0, 4, 0, 4, 1);
 
         machine.observe(Optional.of(target));
         assertEquals(SFMSymbolHoverStateMachine.Phase.IDLE, machine.snapshot().phase());
@@ -43,7 +43,7 @@ class SFMSymbolHoverStateMachineTests {
     void identicalEventsNeverDuplicateSubmission() {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
-        var target = target("name", 0, 4, 0, 4, 0, 1);
+        var target = target("name", 0, 4, 0, 4, 1);
 
         machine.observe(Optional.of(target));
         machine.modifiersChanged(CTRL);
@@ -59,8 +59,8 @@ class SFMSymbolHoverStateMachineTests {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
         machine.modifiersChanged(CTRL);
-        machine.observe(Optional.of(target("first second", 0, 5, 0, 5, 0, 1)));
-        machine.observe(Optional.of(target("first second", 6, 12, 6, 12, 1, 1)));
+        machine.observe(Optional.of(target("first second", 0, 5, 0, 5, 1)));
+        machine.observe(Optional.of(target("first second", 6, 12, 6, 12, 1)));
 
         assertEquals(2, lookup.submissions.size());
         assertEquals(1, lookup.cancellations.get());
@@ -74,17 +74,21 @@ class SFMSymbolHoverStateMachineTests {
     }
 
     @Test
-    void pointerMovementIsIdentitySensitiveAndExitCancelsTheReplacementLookup() {
+    void movementWithinOneSymbolKeepsTheLookupAndExitCancelsIt() {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
         machine.modifiersChanged(CTRL);
-        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 0, 1)));
-        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1, 1)));
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
+        // Pointer coordinates and the glyph beneath them are deliberately not
+        // part of async lookup identity once hit testing has canonicalized the
+        // exact symbol range. Moving within one identifier must not restart a
+        // cold definition query.
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
 
-        assertEquals(2, lookup.submissions.size());
-        assertEquals(1, lookup.cancellations.get());
+        assertEquals(1, lookup.submissions.size());
+        assertEquals(0, lookup.cancellations.get());
         machine.pointerExited();
-        assertEquals(2, lookup.cancellations.get());
+        assertEquals(1, lookup.cancellations.get());
         assertEquals(SFMSymbolHoverStateMachine.Phase.IDLE, machine.snapshot().phase());
     }
 
@@ -98,7 +102,7 @@ class SFMSymbolHoverStateMachineTests {
             LookupHarness lookup = new LookupHarness();
             var machine = machine(lookup);
             machine.modifiersChanged(CTRL);
-            machine.observe(Optional.of(target("name", 0, 4, 0, 4, 0, 1)));
+            machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
             lookup.complete(0, resolution);
             assertEquals(resolution.name(), machine.snapshot().phase().name());
             assertTrue(machine.snapshot().underlineRange().isEmpty());
@@ -111,7 +115,7 @@ class SFMSymbolHoverStateMachineTests {
     void terminalResultIsReusedAfterModifierReleaseAndRepress() {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
-        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 0, 1)));
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
         machine.modifiersChanged(CTRL);
         lookup.complete(0, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
 
@@ -132,7 +136,7 @@ class SFMSymbolHoverStateMachineTests {
         machine.modifiersChanged(CTRL);
 
         for (int i = 0; i < 300; i++) {
-            machine.observe(Optional.of(target("name" + i, 0, 4, 0, 4, i, i + 1L)));
+            machine.observe(Optional.of(target("name" + i, 0, 4, 0, 4, i + 1L)));
             lookup.complete(i, SFMSymbolHoverLookup.Resolution.UNRESOLVED);
         }
 
@@ -143,7 +147,7 @@ class SFMSymbolHoverStateMachineTests {
     void modifierReleaseCancelsSlowLookupAndRestoresCursor() {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
-        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 0, 1)));
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
         machine.modifiersChanged(CTRL);
 
         machine.modifiersChanged(SFMSymbolHoverIdentity.Modifiers.NONE);
@@ -159,7 +163,7 @@ class SFMSymbolHoverStateMachineTests {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
         machine.modifiersChanged(CTRL);
-        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 0, 1)));
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
 
         machine.documentChanged();
         assertEquals(1, lookup.cancellations.get());
@@ -167,7 +171,7 @@ class SFMSymbolHoverStateMachineTests {
         lookup.complete(0, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
         assertEquals(0, machine.cachedIdentityCount());
 
-        machine.observe(Optional.of(target("name!", 0, 4, 0, 4, 0, 2)));
+        machine.observe(Optional.of(target("name!", 0, 4, 0, 4, 2)));
         assertEquals(2, lookup.submissions.size());
     }
 
@@ -176,14 +180,14 @@ class SFMSymbolHoverStateMachineTests {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
         machine.modifiersChanged(CTRL);
-        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 0, 1)));
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
         machine.focusChanged();
         assertEquals(1, lookup.cancellations.get());
         assertEquals(SFMSymbolHoverStateMachine.Phase.IDLE, machine.snapshot().phase());
         assertEquals(SFMSymbolHoverStateMachine.CancellationCause.FOCUS_CHANGED,
                 machine.lastCancellationCause());
 
-        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 0, 1)));
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
         assertEquals(2, lookup.submissions.size());
         machine.screenClosed();
         assertEquals(2, lookup.cancellations.get());
@@ -194,7 +198,7 @@ class SFMSymbolHoverStateMachineTests {
     void altPreservesFallbackRatherThanClaimingDefinitionNavigation() {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
-        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 0, 1)));
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
         machine.modifiersChanged(CTRL_ALT);
 
         assertEquals(0, lookup.submissions.size());
@@ -209,7 +213,7 @@ class SFMSymbolHoverStateMachineTests {
     void currentActionableHoverActivatesOnlyForClickNotDrag() {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
-        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 0, 1)));
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
         machine.modifiersChanged(CTRL);
         lookup.complete(0, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
 
@@ -229,10 +233,10 @@ class SFMSymbolHoverStateMachineTests {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
         machine.modifiersChanged(CTRL);
-        machine.observe(Optional.of(target("first second", 0, 5, 0, 5, 0, 1)));
+        machine.observe(Optional.of(target("first second", 0, 5, 0, 5, 1)));
         lookup.complete(0, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
         machine.primaryPressed(10, 10);
-        machine.observe(Optional.of(target("first second", 6, 12, 6, 12, 1, 1)));
+        machine.observe(Optional.of(target("first second", 6, 12, 6, 12, 1)));
 
         assertEquals(
                 SFMSymbolHoverStateMachine.GestureKind.FALLBACK_CLICK,
@@ -278,7 +282,6 @@ class SFMSymbolHoverStateMachineTests {
             int utf16End,
             int glyphStart,
             int glyphEnd,
-            int pointerGlyph,
             long documentGeneration
     ) {
         return new SFMSymbolHoverStateMachine.Target(
@@ -294,8 +297,7 @@ class SFMSymbolHoverStateMachineTests {
                         utf16End,
                         glyphStart,
                         glyphEnd
-                ),
-                new SFMSymbolHoverIdentity.PointerState(pointerGlyph, false)
+                )
         );
     }
 

@@ -57,18 +57,16 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
     public record Target(
             SFMSymbolHoverIdentity.EditorOrigin editorOrigin,
             SFMSymbolHoverIdentity.DocumentVersion document,
-            SFMSymbolHoverIdentity.TextGlyphRange range,
-            SFMSymbolHoverIdentity.PointerState pointer
+            SFMSymbolHoverIdentity.TextGlyphRange range
     ) {
         public Target {
             Objects.requireNonNull(editorOrigin, "editorOrigin");
             Objects.requireNonNull(document, "document");
             Objects.requireNonNull(range, "range");
-            Objects.requireNonNull(pointer, "pointer");
         }
 
         SFMSymbolHoverIdentity identity(SFMSymbolHoverIdentity.Modifiers modifiers) {
-            return new SFMSymbolHoverIdentity(editorOrigin, document, range, pointer, modifiers);
+            return new SFMSymbolHoverIdentity(editorOrigin, document, range, modifiers);
         }
     }
 

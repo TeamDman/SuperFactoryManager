@@ -13,14 +13,12 @@ public record SFMSymbolHoverIdentity(
         EditorOrigin editorOrigin,
         DocumentVersion document,
         TextGlyphRange range,
-        PointerState pointer,
         Modifiers modifiers
 ) {
     public SFMSymbolHoverIdentity {
         Objects.requireNonNull(editorOrigin, "editorOrigin");
         Objects.requireNonNull(document, "document");
         Objects.requireNonNull(range, "range");
-        Objects.requireNonNull(pointer, "pointer");
         Objects.requireNonNull(modifiers, "modifiers");
     }
 
@@ -140,13 +138,6 @@ public record SFMSymbolHoverIdentity(
             if (codePoint <= 0x7FF) return 2;
             if (codePoint <= 0xFFFF) return 3;
             return 4;
-        }
-    }
-
-    /** Hit-tested pointer state; raw drag coordinates are intentionally kept out of hover identity. */
-    public record PointerState(int glyphIndex, boolean primaryButtonDown) {
-        public PointerState {
-            requireNonNegative(glyphIndex, "glyphIndex");
         }
     }
 

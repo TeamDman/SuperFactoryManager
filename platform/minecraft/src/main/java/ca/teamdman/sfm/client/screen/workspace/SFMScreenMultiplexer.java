@@ -279,6 +279,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     public boolean focusPanel(SFMWorkspacePanelId panelId) {
+        Objects.requireNonNull(panelId, "panelId");
+        if (panelId.equals(layout.focusedPanel())) {
+            return layout.panel(panelId) != null;
+        }
         boolean focused = layout.focus(panelId);
         if (focused) refreshLayout(true);
         return focused;

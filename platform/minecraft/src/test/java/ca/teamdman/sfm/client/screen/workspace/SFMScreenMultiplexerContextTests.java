@@ -11,7 +11,9 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
+import sun.misc.Unsafe;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -20,6 +22,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMScreenMultiplexerContextTests {
+    @Test
+    void focusingTheAlreadyFocusedPanelDoesNotInvalidateWorkspaceLayout() throws Exception {
+        FakeContextPanel left = new FakeContextPanel("left", SFMPath.parse("file:///D:/left/A.java"));
+        FakeContextPanel right = new FakeContextPanel("right", SFMPath.parse("file:///D:/right/A.java"));
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.sideBySide(left, right);
+        SFMScreenMultiplexer workspace = unsafeWorkspace(layout);
+        SFMWorkspacePanelId focused = layout.focusedPanel();
+
+        assertTrue(workspace.focusPanel(focused));
+        assertEquals(0L, longField(workspace, "contextWorkspaceRevision"),
+                "idempotent focus must not resize panels or invalidate captured workspace context");
+    }
+
     @Test
     void visibleOriginsRemainIndependentWhenFocusChangesAndCapturedContentIsImmutable() {
         FakeContextPanel left = new FakeContextPanel("left", SFMPath.parse("file:///D:/left/A.java"));
@@ -56,6 +71,24 @@ class SFMScreenMultiplexerContextTests {
         left.replace(SFMPath.parse("file:///D:/left/Changed.java"));
         SFMContextPathProjection retained = (SFMContextPathProjection) first.contributions().get(0).projection();
         assertEquals("file:///D:/left/A.java", retained.path().canonical());
+    }
+
+    private static SFMScreenMultiplexer unsafeWorkspace(SFMWorkspaceLayout layout) throws Exception {
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        SFMScreenMultiplexer workspace =
+                (SFMScreenMultiplexer) unsafe.allocateInstance(SFMScreenMultiplexer.class);
+        Field layoutField = SFMScreenMultiplexer.class.getDeclaredField("layout");
+        layoutField.setAccessible(true);
+        layoutField.set(workspace, layout);
+        return workspace;
+    }
+
+    private static long longField(Object target, String name) throws Exception {
+        Field field = target.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        return field.getLong(target);
     }
 
     private static final class FakeContextPanel implements SFMScreenPanel, SFMContextContributor {
