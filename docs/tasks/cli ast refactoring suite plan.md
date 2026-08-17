@@ -1,8 +1,8 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0 through Phase 0.11 are complete; Phase 0.12 location-definition/usage implementation and validation are complete except for the linked strict native-input C-11 live rerun before deferred Phase 1
+**Plan status:** Active; Phase 0 through Phase 0.12 are complete; mutation-capable Phase 1 remains deferred and unstarted
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-16
+**Last updated:** 2026-08-17
 **Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, 2026-08-11 for the in-game definition-at-location bridge, reconciled 2026-08-15 at Phase 0.10 completion, extended 2026-08-15 for Rust-owned Arborium Java highlighting, extended 2026-08-16 for JDK/local/member/import definition coverage plus location-aware usages, and post-compaction re-audited 2026-08-16 against the user's verbatim report
 
 ## How to update this plan
@@ -2013,7 +2013,7 @@ analyzed source trees; Java consumer implementation and test edits are allowed.
 It does not invoke Gradle, propagate, publish, release, or begin Phase 1
 refactoring architecture.
 
-### [~] 0.12.1 Resolve JDK, local, member, annotation, and import definitions at position
+### [x] 0.12.1 Resolve JDK, local, member, annotation, and import definitions at position
 
 **Work:** Extend the branch symbol universe with a first-class JDK-source
 domain selected by the branch's existing JDK/release configuration. Prefer the
@@ -2045,17 +2045,18 @@ precise semantically justified ambiguity/unsupported outcome; no JDK symbol is
 resolved by name guessing; target matches survive unrelated partial coverage;
 and index/source identities make the answer reproducible.
 
-**Implementation checkpoint (2026-08-16; live acceptance pending):** Rust
-commit `bd38aae8b` adds branch-selected JDK source definitions, implicit
-`java.lang`, lexical local/parameter lookup, and member/annotation/import
-location coverage. The strict CLI `check-all.ps1` gate passed 598 library tests
-(3 ignored) plus all 9 adjacent Java-analysis scenarios. The Minecraft
-consumer and exact F12 fixture journey are in Java commit `2c013aa66` plus the
-current acceptance harness. Canonical Java compile/full-suite and the installed
-cross-runtime integration passed. One refreshed C-11 live run after the final
-input-gesture guard remains before this item may be marked complete.
+**Completion evidence (2026-08-17):** Rust commit `bd38aae8b` adds
+branch-selected JDK source definitions, implicit `java.lang`, lexical
+local/parameter lookup, and member/annotation/import location coverage. The
+strict CLI `check-all.ps1` gate passed 598 library tests (3 ignored) plus all 9
+adjacent Java-analysis scenarios. Java commit `2c013aa66` consumes the typed
+results and commit `727bcef2c` stabilizes the final interaction path. Canonical
+Java compile/full-suite and installed cross-runtime integration passed. The
+fresh C-11 run `sfm-title_screen-20260816-235458-728` navigated all nine
+declared fixtures, including `String`, `Object`, and `StringBuilder`, with no
+unexpected pane and no false unavailable/incomplete definition result.
 
-### [~] 0.12.2 Add typed usage-at-position and the `list-usages` location form
+### [x] 0.12.2 Add typed usage-at-position and the `list-usages` location form
 
 **Work:** Add versioned `UsageAtPositionRequest`/`UsageAtPositionResult`
 (exact schema names/version frozen by Facet snapshots). Reuse the definition
@@ -2087,16 +2088,17 @@ cursor, and where is it referenced?” without manufacturing a selector; the
 typed answer is sufficient to build a persistent explorer and remains honest
 about origin, certainty, completeness, and skipped categories.
 
-**Implementation checkpoint (2026-08-16; live acceptance pending):** Rust
-commit `bd38aae8b` adds typed location-based usage requests/results for the
-direct CLI and reusable engine, deterministic target/categorized span output,
-bounded result admission, and zero/one/many/partial/duplicate-authority
-scenarios. Java commit `2c013aa66` consumes the contract through a persistent
-generic reference explorer. Canonical Java integration and an earlier C-11
-result-retention journey passed; one refreshed run after the final input guard
-remains before completion.
+**Completion evidence (2026-08-17):** Rust commit `bd38aae8b` adds typed
+location-based usage requests/results for the direct CLI and reusable engine,
+deterministic target/categorized span output, bounded result admission, and
+zero/one/many/partial/duplicate-authority scenarios. Java commit `2c013aa66`
+consumes the contract through a persistent generic reference explorer.
+Canonical Java integration passed. The fresh C-11 run returned 76 usages from
+the exact editor location, kept partial-index completeness visible, retained
+one result identity, and opened three source rows without replacing the result
+surface.
 
-### [~] 0.12.3 Extend `symbol serve`, prove root/completeness correctness, and hand off
+### [x] 0.12.3 Extend `symbol serve`, prove root/completeness correctness, and hand off
 
 **Work:** Negotiate `usage-at-position` as an additive capability and add
 framed request/result/cancel terminal messages. Reuse the worker's immutable
@@ -2131,8 +2133,8 @@ sufficient typed mapping/completeness evidence for C-7/C-8. No mutation-capable
 request/command is introduced, analyzed source trees remain byte-identical, and
 Phase 1 remains untouched; Java consumer implementation/test edits are allowed.
 
-**Implementation checkpoint (2026-08-16; live acceptance pending):** Rust
-commit `bd38aae8b` adds negotiated usage-at-position worker frames, shared
+**Completion evidence (2026-08-17):** Rust commit `bd38aae8b` adds negotiated
+usage-at-position worker frames, shared
 definition/usage surfaces, target-lazy bounded caches, cancellation, root and
 completeness evidence, and installed-process lifecycle probes. The installed
 revision-correct worker artifact
@@ -2144,7 +2146,10 @@ exit 0, and zero leaked descendants. Its pre/post digest covers all 1,605 files
 under `platform/minecraft/src/*/java` and is byte-identical at
 `sha256:57d489ab5b7be89e20f5e17b3e35a0b77ce95604bd696cb112062ed16c92d37a`,
 satisfying JAVA-52 without forbidding Java consumer implementation edits.
-Canonical Java integration passed; one refreshed live C-11 run remains.
+Canonical Java integration passed. The fresh C-11 run consumed this installed
+worker lane through nine definitions and one 76-usage result; all navigation,
+retention, and responsiveness assertions passed. No mutation request/command
+was introduced, and Phase 1 remains untouched.
 
 ### Phase 0.12 parallel work map
 

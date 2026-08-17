@@ -7,7 +7,7 @@
 **Related UI plan:** `docs/tasks/contextual input actions and addressable explorer plan.md`
 **Related comment plan:** `docs/tasks/global comment selection and review sessions plan.md`
 **Related editor plan:** `docs/tasks/draw editor document regions and commands plan.md`
-**Last updated:** 2026-08-16
+**Last updated:** 2026-08-17
 **Intent audit:** Passed and post-compaction re-audited 2026-08-16 against the complete 2026-08-12 through 2026-08-16
 CLI/explorer/path/selection/relation/picker/layout design discussion, the latest
 projection/icon/filter/focus/scroll observations, and the linked plans' existing
@@ -1231,6 +1231,11 @@ I/O, ordered visible wheel steps `1,2,3`, final row `3`, and exclusive focus
 ownership. Representative GUI-scale-1 and Auto frames plus Auto deep-view,
 deep-path-display, small-icons/body-focus, location-focus, and ordered-wheel
 frames were visually inspected. Picker X-8 remains unstarted.
+
+**2026-08-17 goal reconciliation:** XEXP-20 through XEXP-25 are also marked
+complete in the contextual plan's 35-requirement acceptance ledger. Their
+independent EXP matrix remains the authoritative live proof; the completed
+source-navigation SRC run does not broaden X-8b or begin picker X-8.
 
 ### [ ] X-8 Compose pickers as selection destinations
 

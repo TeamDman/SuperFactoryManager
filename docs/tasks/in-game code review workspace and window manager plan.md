@@ -106,7 +106,7 @@ If we have a concept of virtual desktop-like things, then does that mean we have
 **Plan status:** Active; multiplexer/explorer foundation and Track 1b pointer-driven divider resizing are complete; review-surface and later relocation/workspace slices remain
 **Primary planning root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Related reference worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`  
-**Last updated:** 2026-08-16
+**Last updated:** 2026-08-17
 **Intent audit:** Passed and post-compaction re-audited 2026-08-16 for the divider-border/intersection/cursor extension while preserving the prior layout-algebra constraints and the user's verbatim VS Code-like resize expectations
 
 ## How to update this plan
@@ -607,6 +607,12 @@ respected minimums, continuously visible during-drag geometry, and distinct
 committed bounds. The fresh Auto four-pane intersection-hover and committed-
 resize frames were visually inspected. Alt+drag relocation, explorer drag, and
 virtual workspaces remain deferred.
+
+**2026-08-17 goal reconciliation:** XLAY-6 and WRESIZE-1 through WRESIZE-6 are
+also marked complete in the contextual plan's 35-requirement acceptance
+ledger. Their independent DIV matrix remains the authoritative live proof; the
+completed source-navigation SRC run does not authorize Alt+drag relocation,
+explorer-node drag, or later workspace slices.
 
 **Parallel topology:** Once `DividerId`, geometry, delta, and cursor-adapter
 interfaces are frozen, a pure layout/test lane, a GLFW cursor-lifecycle lane,

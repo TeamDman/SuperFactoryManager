@@ -61,6 +61,7 @@ NAME "Changelog"
 -- Preserve EditorV3 multi-cursor clicks when no current actionable definition-hover target owns the gesture
 -- Add Alt+F7 persistent reference explorers and reveal-in-explorer for focused source documents
 -- Make large Text Editor v3 documents responsive with viewport indexes and reusable projection, style, and selection state
+-- Avoid reinitializing large editor panels when focus is already unchanged, preserving responsive input-to-frame latency
 -- Add extension-aware explorer icons, discoverable view/path modes, fuzzy filtering, immediate wheel scrolling, and corrected focus borders
 -- Add pointer-driven panel divider resizing with horizontal, vertical, and intersection cursor affordances
 -- Keep preferred text editors responsive, clipped, and panel-local when explorer locations are opened beside narrow panels
