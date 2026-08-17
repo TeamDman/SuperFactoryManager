@@ -32,6 +32,10 @@ The codex harness buffers stdio by default, so if a `sfm-propagate-changes.exe` 
 
 When the CLI reports `os_error=5` while opening a lock under the user-level artifact cache, first treat it as a Codex sandbox access-denial case. The sandbox may be unable to open the lock even when no other process owns it; rerun the command with normal Windows cache access or outside the sandbox before investigating stale locks. A real concurrent process can produce the same Windows error, so the CLI still retries briefly and reports both possibilities.
 
+## Goal execution and testing readiness
+
+Read the repository-wide [goal execution and testing readiness guidelines](tasks/goal%20execution%20and%20testing%20readiness%20guidelines.md) before starting or completing an autonomous implementation goal. It requires explicit tooling freshness, installer responsibility, bounded in-scope process cleanup, lock diagnostics, and a copyable manual-testing handoff. Goal authority permits stopping and restarting only processes proven to belong to the SFM/Minecraft/toolchain test scope; it does not permit broad process killing, repository reset, recursive deletion, or unrelated-application disruption.
+
 ## Changelog
 
 The SFM changelog is [here](../platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml) and MUST be updated after performing changes that are observable during gameplay.
