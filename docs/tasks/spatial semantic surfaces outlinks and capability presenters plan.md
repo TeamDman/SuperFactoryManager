@@ -660,7 +660,22 @@ edge, intent, corpus, framing, classification, or ownership semantics. Schema
 changes after this point require an explicit version bump and fixture
 migration.
 
-### [ ] SS-1 Implement typed domains, regions, projections, and outlinks
+### [x] SS-1 Implement typed domains, regions, projections, and outlinks
+
+**Completion notes (2026-08-18):** The frozen values are implemented by
+`SFMSpatialSemanticContract`; `SFMCanvasTextRegionAdapter` preserves the
+existing `SFMContextCanvasTextMap` while projecting immutable canvas/UTF-8
+regions; `SFMRegionGraph` owns generation-scoped region/outlink identity,
+containment, children, and explicit destination projections; and
+`SFMOutlinkRepository` owns mod-qualified registration, descending-priority /
+ascending-id order, stable generation, cancellation, availability, duplicate
+rejection, contributor-failure isolation, close lifecycle, and explicit
+equal-priority diagnostics without hiding tied results. Navigation intent
+remains distinct from generic action drafts, and a provider-certified region
+must contain the retained exact query point. `SFMRegionDomainTests` and
+`SFMOutlinkRepositoryTests` both passed through their plan-listed
+`sfm-propagate-changes.exe test run` filters with normal access to the existing
+pinned cache. No dependency or lockfile changed.
 
 **Work:**
 
