@@ -17,6 +17,17 @@ output, affected files, and propagation evidence beneath the item that it
 proves. This plan describes an implementation; creating the plan does not
 authorize source rewrites.
 
+## Spatial semantic consumer relationship — 2026-08-17
+
+`docs/tasks/spatial semantic surfaces outlinks and capability presenters plan.md`
+owns the domain/region/outlink and canvas-coverage contracts. This CLI plan
+remains authoritative for parsing/indexing Java, source-set/JDK/dependency
+resolution, warm worker lifecycle, direct/worker parity, definitions/usages,
+and future refactoring. Spatial-plan SS-3 is the next consumer/extension of
+that engine: it requests nested semantic regions and reciprocal relations, then
+publishes a compact generation-tagged map to Java. It must extend the existing
+scenario and output discipline rather than create an in-game Java parser.
+
 ## Authoritative user guidance ledger for the next phase
 
 | ID | Active guidance | Required plan consequence | Superseded by |

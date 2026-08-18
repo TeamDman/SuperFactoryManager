@@ -37,6 +37,16 @@ properties controls now participate in the shared Minecraft-like widget/focus
 tree rather than a terminal-only focus mechanism. K-1 through K-7 retain the
 contract and evidence for that completed foundation.
 
+K-8 is the next keyboard-discovery extension: the command palette will expose
+an explicit button that captures a physical hotkey/sequence without executing
+it, then reuses the palette's result viewport to show effective matches,
+conflicts/shadowed matches, and clearly labelled related bindings in the
+captured origin keyboard-usage context. Exact effective matches rank first; a
+captured `Ctrl+Alt+L` may also show a `Ctrl+L` binding below them as a related
+modifier-subset result, but must not falsely claim that `Ctrl+L` would fire for
+the extra-Alt input. Query mode is inspection-only: selecting a result opens
+action details and must not invoke the matched action.
+
 The next user-visible extension is contextual search and action discovery.
 Ctrl+Shift+N opens a command-palette-backed fuzzy search over bounded file
 paths seeded from the user's current panels rather than a disk root;
@@ -55,6 +65,23 @@ slice live in `typed selections relations and lazy explorers plan.md`. The
 first symbol provider still reuses the existing SFM CLI Java-analysis/index
 machinery asynchronously; it does not guess definitions from token text or
 perform source analysis on Minecraft's render thread.
+
+## Spatial semantic surface relationship — 2026-08-17
+
+`docs/tasks/spatial semantic surfaces outlinks and capability presenters plan.md`
+is authoritative for the next source-navigation layer: typed canvas/document/
+syntax regions, zero-to-many outlink relations, exhaustive and sampled spatial
+coverage, destination-region projections, reciprocal definition/reference
+evidence, editor location/history/toast follow-ups, generalized capability
+selection, and bounded rich previews.
+
+This plan remains authoritative for gestures, keyboard situations, constrained
+command-palette choices, action drafts, and address/explorer integration. Its
+completed C-7 through C-11 evidence is the baseline, not proof that every
+canvas glyph is semantically classified. Future hover/F12/Alt+F7 work joins
+the spatial plan at SS-4 and must replace the current identifier-only hit gate
+without introducing another gesture-specific parser. K-8 hotkey discovery is
+independent and remains owned here.
 
 ## Selection-backed explorer supersession — 2026-08-12
 
@@ -97,10 +124,15 @@ workspace.
 | KBIND-4 | The terminal F3 behavior must appear in SFM Shortcuts as a real binding/action. | K-3 registers the diagnostic-choice behavior as a semantic action, seeds F3 contextually, and removes the hard-coded multiplexer-only path; K-5 audits the remaining SFM-owned raw handlers. | — |
 | KBIND-5 | Panel-scale increase is the physical Ctrl+Equal relationship, shown as separated key tokens (`Ctrl =`) rather than the ambiguous `Ctrl++`; increase/decrease/clear each ship one main-row default rather than a visually duplicated keypad pair. | K-3's 2026-08-06 correction updates immutable defaults and fingerprints, proves the exact event match, and adds shared pink read-only keycaps; K-6 reuses them as focusable/removable capture controls. | Earlier main/keypad parity and logical-plus display wording |
 | KBIND-6 | `sfm:panel/scale/clear` restores auto/inherited. If its effective scale is N, increase must select N+1 and decrease must first select explicit N before later numeric decrements; the null/auto state must never be treated as zero. | Release P-2.5 owns the scale-state transition; K-7 proves the contextual Ctrl+0/Ctrl+=/Ctrl+- route uses the same action semantics. | — |
-| KBIND-7 | Scale changes should communicate state without permanently consuming panel space: show fading `gui scale N` or `gui scale auto (N)` toasts, and repeat the toast with a slight shake when increase/decrease is already at a numeric boundary. | Release P-2.6 owns the workspace toast lifecycle; K-7 proves action, fade, effective-auto text, and boundary feedback. | — |
+| KBIND-7 | Scale changes should communicate state without permanently consuming panel space: show fading `gui scale N` or `gui scale auto (N)` toasts, and repeat the toast with a slight shake when increase/decrease is already at a numeric boundary. | Release P-2.6 owns and proves the completed scale-feedback producer/single-toast baseline; spatial-semantic NX-4 owns the later generic addressable queue/input/lifecycle evolution and must migrate this producer without regressing fade, effective-auto text, boundary feedback, or shake. | — |
 | KUI-1 | `sfm:keybindings/manage` needs sortable Name and Binding Count headers. | K-6 adds keyboard-focusable headers, ascending/descending state, stable tie breaks, and filter/scroll preservation. | — |
 | KUI-2 | Binding entry needs a focusable capture mechanism that records the entered mapping. | K-6 introduces a dedicated capture widget integrated with normal focus and dispatch suspension. | — |
 | KUI-3 | Triple Escape should back out of capture; each captured chord element is a keyboard-focusable button that removes that element when activated. | K-6 defines the time-bounded cancel sequence, removable stroke chips, Save/Cancel focus targets, and mouse/keyboard parity. | — |
+| KUI-4 | The command palette needs an explicit, focusable button that grabs keyboard attention for hotkey lookup rather than interpreting the next key as palette text or an action. | K-8 adds a discoverable “Find actions by hotkey” capture control that shares the physical capture primitive but uses an inspection-only result mode. | — |
+| KDISC-1 | While hotkey lookup is active, physical key events (including modifier/key combinations and supported multi-stroke sequences) are captured by the lookup surface; they do not type into the command draft, invoke actions, or leak to Minecraft/terminal input. Escape cancellation, completion, focus loss, and key-release cleanup are explicit. | K-8 adds a capture-session state machine around `SFMKeySequenceCapture`, freezes the keyboard-usage context at entry, and proves dispatch suspension/restoration on every exit path. | — |
+| KDISC-2 | After capture, show actions whose bindings match the captured sequence, with exact matches before near/derivative matches. A captured `Ctrl+Alt+L` must be able to show a matching `Ctrl+L` binding below a direct `Ctrl+Alt+L` result rather than silently treating them as equal. | K-8 defines a pure deterministic matcher/ranker: exact physical sequence and modifier set first, then same-sequence eligible modifier-subset derivatives with an explicit relation label and distance; no arbitrary fuzzy key substitution is implied. | — |
+| KDISC-3 | The result surface must explain why each action appears, including its binding, match relation/score, action identity, and keyboard-usage situation. Looking up a hotkey is not an invocation; result activation opens action details, and execution requires leaving lookup mode and using the ordinary explicit command path. | K-8 extends the shared palette suggestion model with typed lookup results, stable tie-breaking, frozen-origin-context eligibility, and an inspection-only details activation contract. | — |
+| KDISC-4 | The feature must be testable without asking a human to press every key: pure capture/ranking/context tests cover exact, subset, no-match, chord, cancellation, focus-loss, and cleanup cases, while a live palette puppet proves the button, visible captured hotkey, ranked results, and non-invocation. | K-8 adds machine-readable lookup artifacts and a live witness alongside focused Java tests; the existing binding-management capture tests remain regression coverage for editing. | — |
 | ACT-1 | Keyboard-drivable SFM behavior, including clickable/focusable buttons, should be backed by registered actions instead of mutating otherwise unreachable state directly. | K-2 converts terminal controls; K-5 inventories and migrates semantic SFM behaviors in bounded waves while retaining intrinsic text/pointer input as parameterized input actions. | — |
 | ACT-2 | Public shortcut/action exploration must not be polluted by opaque `sfm:screen/mouse/click <x> <y>` bindings. Stable element identity such as `sfm:button/edit_manager_disk` may bridge a live control to its semantic action. | K-5 introduces action-element contributions with stable addresses and canonical action drafts; coordinate clicks remain automation input, not the user-facing semantic contract. | — |
 | ACT-3 | A Manager Edit control should expose the semantic relationship between the live element, a contextual action such as `sfm:manager/disk/edit <manager-pos>`, and any bindings. | K-5 uses one Manager-screen action element as the non-panel proof that dynamic context and semantic action ownership work. Exact final id is a contract gate. | — |
@@ -263,6 +295,7 @@ workspace.
 | REVEAL-3 | B-4; C-11 | Focused-document contribution, exact path/resolver targeting, compatible explorer reuse/open, reveal selection/scroll, no-title-guess and live action proof |
 | EDITPERF-1, EDITPERF-2 | D-29; C-10; C-11 | Reproducible `OutputStatement.java` benchmark, stage/frame/input counters, before/after traces, viewport/caching/invalidation tests, allocation bounds, and live responsive interaction evidence |
 | PLAN-5 | Entire 2026-08-16 extension plus linked explorer/CLI/window-manager plans | Three-pass intent audit, exact-id cross-plan map, unresolved-decision register, and fresh-agent resumption review |
+| KUI-4, KDISC-1, KDISC-2, KDISC-3, KDISC-4 | K-8 | Pure capture/ranking/context tests, dispatch-leak tests, and a live command-palette hotkey-lookup artifact showing exact-before-relaxed ordering and no action invocation |
 
 ## Intent audit evidence — 2026-08-05
 
@@ -508,6 +541,51 @@ workspace.
   Phase B search work. Java consumer implementation/test edits remain allowed.
 - **Known source limitation:** None. The verbatim requirement source is present
   in the current message, and the linked plans and 1.19.2 sources are available.
+
+## Intent audit evidence — 2026-08-17 hotkey-discovery extension
+
+- **Pass 1 — extraction:** Atomized the new request into the explicit palette
+  capture control (KUI-4), keyboard ownership/non-interpretation and cleanup
+  (KDISC-1), exact-versus-derivative result ordering including the concrete
+  `Ctrl+Alt+L` / `Ctrl+L` example (KDISC-2), explainable inspection-only result
+  presentation (KDISC-3), and pure/live proof without requiring manual key-by-
+  key inspection (KDISC-4).
+- **Pass 2 — traceability:** Mapped each atom to D-30 and K-8, reusing the
+  verified `SFMKeySequenceCapture` primitive while keeping binding editing and
+  palette lookup as separate state machines. The inverse check confirms that
+  capture, ranking, context eligibility, result activation, cleanup, and live
+  evidence each have an executable work or validation consequence.
+- **Pass 3 — adversarial omission:** Checked that the feature is not reduced to
+  editing a binding, ordinary palette text entry, a hidden global key listener,
+  arbitrary fuzzy key substitution, or an action-invocation shortcut. The
+  captured context, strict modifier-subset example, physical-key semantics,
+  no-leak cleanup, and inspection-only result behavior remain explicit.
+- **Known source limitation:** The broader pre-compaction conversation was not
+  reread from raw history; this extension was audited against the current user
+  message, the durable keybinding ledger, and the current capture/palette source
+  and tests. No older requirement was changed or marked superseded.
+
+### K-8 implementation-readiness re-audit — 2026-08-17
+
+- **Pass 1 — extraction:** Split the former single K-8 task into origin-context
+  capture, runtime-dispatch-equivalent result semantics, physical capture
+  completion/cancellation, scoped suspension ownership, typed palette rows,
+  exact/conflict/shadow/related ranking, lifecycle/accessibility, live evidence,
+  and release ownership.
+- **Pass 2 — traceability:** D-30 and K-8a through K-8e now name stable ids,
+  context/binding revisions, relation meanings, per-stroke subset distance,
+  action-details-only activation, constrained-palette exclusion, fault cleanup,
+  focused tests, machine artifacts, and the P-5.5 join/defer decision.
+- **Pass 3 — adversarial omission:** Rechecked that “related” does not falsely
+  mean “would dispatch”; palette focus does not overwrite the origin situation;
+  deepest-situation, partial-sequence, and equal-depth conflicts are not lost;
+  Tab/Enter/arrows/Delete remain capturable; one global boolean cannot release
+  another capture owner; and inspecting a result cannot execute, draft, or
+  enter history.
+- **Known source limitation:** Exact inter-stroke and triple-Escape durations
+  remain values to inherit from the tested binding engine rather than duplicate
+  as prose constants. K-8a freezes their referenced constants/fixtures before
+  implementation.
 
 ## Scope
 
@@ -916,6 +994,7 @@ Out of scope unless a later goal explicitly expands it:
 | D-27 Alt-click reference binding | Should Alt-click also find references? | **Closed for this goal:** do not bind it. Alt+click already adds EditorV3 cursors and the user described Alt-click as “maybe”; Alt+F7 plus Alt+Enter/right-click provide complete reference access without a conflict. | C-9 asserts no Alt-click reference default. If later approved, the plan must state the replacement/modifier precedence and migrate the multi-cursor gesture deliberately. |
 | D-28 Java platform/source completeness | How do JDK declarations and source-root authorization compose with the existing live-workspace plus dependency-source index? | **Closed for this goal:** add a branch-JDK source domain keyed by selected JDK release/home plus `src.zip` content identity, model implicit `java.lang`, and compose resolver-authorized editor roots with negotiated worker source mappings by concrete containment/source-set identity. Never downgrade a missing platform source to authoritative `NoSymbol`. | CLI Phase 0.12/C-7 scenarios must resolve `String`, `Object`, and `StringBuilder`, preserve partial-index diagnostics, and reproduce both quoted false negatives before the fix. |
 | D-29 Large-document responsiveness budget | What evidence is sufficient to call EditorV3 responsive? | **Closed for this goal:** on the declared baseline and exact `OutputStatement.java`, record cold open separately; during warm idle, pointer movement, scroll, selection, and F12-context capture, target median editor-attributed frame work <=16.7 ms, p95 <=33.3 ms, no editor-attributed pause >=100 ms, and input-to-visible p95 <=50 ms. If hardware/host load invalidates a bound, preserve raw traces and seek user approval rather than silently weakening it. | C-10 instruments glyph visits, projection/style/selection cache rebuilds, allocations, worker calls, and event-to-frame latency; C-11 retains before/after evidence and visual approval. |
+| D-30 Hotkey lookup capture and ranking | Is lookup a binding-editor operation, a normal palette query, or a separate keyboard-capture mode, and which “derivatives” are eligible? | **Closed for K-8:** use a palette-owned inspection session entered by a focusable action element; freeze the originating situation/action/panel/element and binding revision before the palette replaces that context; simulate the runtime deepest-situation/partial-sequence/conflict matcher for effective exact results; label shadowed/conflicting exact rows separately; then rank same-stroke strict modifier-subset bindings as related results that would not fire for the captured input. No arbitrary key substitution or execution is permitted. | K-8a freezes stable ids/capture timing/release classification; K-8b through K-8e implement exact lookup, related sequences, lifecycle/accessibility, and live evidence. |
 
 ## Target action and binding vocabulary
 
@@ -1361,6 +1440,12 @@ K-3 situation registry/storage/defaults --> K-4 panel topology actions ---------
 K-5 inventory/action ownership starts read-only after K-1 contract,
 then integrates semantic controls after K-2/K-3.
 
+K-3 + K-6 + shared palette viewport -> K-8a contract/origin/release freeze
+  -> K-8b exact walking skeleton -> K-8c sequences/conflicts/related ranking
+  -> K-8d lifecycle/accessibility -> K-8e live/release join.
+K-8b extracts only the typed palette-row seam that future B-1 will reuse; it
+does not wait for or implement B-1's complete asynchronous streaming layer.
+
 Selection/explorer X-1..X-7 first freeze typed content paths, selections,
 relations, generic lazy explorer sessions/actions, and direct control.
 
@@ -1410,6 +1495,10 @@ Safe parallel work after contract review:
 
 - one owner may implement the pure situation/storage model while another owns
   the panel child-widget host;
+- after K-8a freezes ids/context/capture semantics, one owner may implement the
+  pure runtime-matcher parity and related-result ranker while another owns the
+  scoped capture lease; palette controls/typed rows and the final lifecycle/
+  puppet join remain coordinator-owned;
 - pure layout resize/duplicate recipe tests can proceed independently after
   D-1, without touching the widget host or binding UI;
 - address parse/print fixtures can proceed independently after D-5;
@@ -1854,6 +1943,193 @@ post-sort-header geometry. The shared puppet palette actions set the real
 input, hold it for the documented 500 ms observation window, and then submit
 through the real command path. The two unrelated generated-resource edits
 remain unmodified by this slice.
+
+### [ ] K-8 Discover actions from a captured hotkey in the command palette
+
+K-8 is split so a smaller implementation agent does not conflate physical
+capture, runtime dispatch semantics, palette row presentation, and release
+bookkeeping. It reuses the capture value representation, but not the binding-
+editor widget's Enter/arrow/Delete behavior.
+
+#### [ ] K-8a Freeze lookup identity, origin context, capture timing, and release boundary
+
+**Work:**
+
+- Freeze stable identities before public/history use:
+  `sfm:palette/hotkey_lookup/open`, a focus/audit element id, lookup session and
+  generation ids, serialized origin-context fingerprint, binding-repository
+  revision, typed relation ids, stable row key
+  `(binding-revision, binding-id, relation)`, action-details destination, puppet
+  phase/test-counter ids, and artifact schema.
+- Capture the origin **before** pushing or focusing the palette. The immutable
+  lookup context contains the action context, ordered situation ids/depths,
+  originating pane/panel-entry/component/action-element identities, binding
+  revision, and a stale-origin policy. The palette's own global situation must
+  not replace the terminal/editor/workspace context being inspected.
+- Freeze result meanings. `effective-exact` means the runtime matcher would
+  dispatch that binding. `exact-shadowed` and `exact-conflict` explain exact
+  physical matches that runtime precedence suppresses. A
+  `related-modifier-subset` row has the same stroke keys and fewer modifiers
+  but would **not** fire for the captured extra-modifier input. Result prose
+  must preserve these distinctions.
+- Freeze capture behavior independently from binding editing. After activating
+  the lookup control, wait until the activation key and pre-held modifiers are
+  released. Every subsequent physical non-modifier key—including Tab, Enter,
+  arrows, Backspace/Delete, and supported mouse buttons—is capturable. Key
+  repeat is suppressed. A completed stroke starts the existing bounded
+  inter-stroke timeout; timeout submits the sequence. A pointer-activated Done
+  control may submit early. Triple Escape within its documented window cancels;
+  one/two Escape strokes remain capturable if the window expires. Focus/screen
+  loss cancels and releases all state. Modifier-only input does not form a
+  complete stroke.
+- Lookup is available only in an ordinary palette. Hide/disable it in ephemeral
+  constrained `sfm choose` sessions so a curated choice surface cannot leak
+  unrelated global actions.
+- Activation has one outcome: leave lookup and open the existing action-details
+  surface for that result. It never fills a draft, executes an action, or writes
+  command history. Draft preparation, if later desired, needs a separate
+  explicit action.
+- Close the release cutoff without reopening completed P-5.2. If K-8 lands
+  before release P-5.5, extend P-5.5/changelog/live evidence; otherwise record
+  it explicitly as post-release work.
+
+**Validation:** contract/parser/identity golden tests and a release-plan
+traceability audit; no production behavior is claimed from this task alone.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeyHotkeyLookupContractTests --wait-for-build-lock
+```
+
+**Completion criteria:** Every persisted/public id, origin field, result
+relation, input completion/cancellation rule, activation behavior, constrained-
+palette rule, and release owner is explicit enough that K-8b through K-8e do
+not invent semantics.
+
+#### [ ] K-8b Implement an exact effective-lookup walking skeleton
+
+**Work:**
+
+- Add the action-backed, focusable/narrated `Find actions by hotkey` control and
+  explicit Tab/Shift+Tab traversal. Ordinary Tab suggestion acceptance remains
+  deliberate; focus traversal cannot be swallowed by the query widget.
+- Acquire a scoped dispatch-suspension lease owned by the lookup session.
+  Replace/wrap process-global boolean suspension so one owner cannot unsuspend
+  another. Closing the lease resets matcher, input-handler pressed/consumed
+  state, held modifiers, and character-event suppression on every exit path.
+- Capture one physical single-stroke sequence, run the same pure runtime
+  deepest-situation/partial-sequence/conflict precedence against the frozen
+  snapshot, and publish one typed `effective-exact` row.
+- Extract the minimum typed palette-row/stable-selection seam compatible with
+  future B-1 streamed candidates. Do not encode relation metadata in Brigadier
+  display strings or block K-8 on the complete asynchronous B-1 phase.
+- Activating the row opens action details; an action/test counter and history
+  assertions prove no invocation or command-history write occurred.
+
+**Validation:** focused action-element/focus, scoped-lease, frozen-origin,
+runtime-matcher parity, typed-row, details-activation, zero-execution, and
+zero-history tests.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeyHotkeyLookupExactTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMCommandPaletteFocusTests --wait-for-build-lock
+```
+
+**Completion criteria:** From a terminal/editor/workspace origin, a keyboard or
+pointer user can enter lookup, capture one exact hotkey, see the runtime-
+effective binding, and inspect its details with no input leak or mutation.
+
+#### [ ] K-8c Add sequences, conflicts, shadowing, and related modifier subsets
+
+**Work:**
+
+- Extend capture through the frozen inter-stroke timeout and maximum sequence
+  bounds. Preserve physical keys/modifiers per stroke; do not compare rendered
+  glyph labels.
+- Simulate runtime partial-sequence reservation, deepest situation precedence,
+  equal-depth conflict suppression, disabled/tombstoned mappings, and duplicate
+  action ids. Show one stable row per binding with its effective, shadowed, or
+  conflict relation.
+- After all exact-physical rows, add related rows only when every candidate
+  stroke has the same key and a modifier set that is a subset of the captured
+  stroke. Distance is the total removed-modifier count, followed by situation
+  depth, stable binding id, action id, and relation tie-breaks. Do not substitute
+  keys, reorder strokes, or compare unrelated sequence lengths.
+- The required fixture has direct `Ctrl+Alt+L` results first and a clearly
+  labelled `Ctrl+L` related result below them; prose states that the latter
+  would not dispatch for the captured input.
+
+**Validation:** exact/partial/conflict/shadow/disabled/duplicate/multi-stroke,
+per-stroke subset, no-substitution, deterministic-order, stable-selection, and
+runtime-matcher equivalence tests.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeyHotkeyLookupRankingTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeybindingMatchResolverTests --wait-for-build-lock
+```
+
+**Completion criteria:** Results accurately explain runtime behavior and nearby
+modifier-subset discoveries without calling related bindings effective.
+
+#### [ ] K-8d Harden lifecycle, capturable controls, focus, and accessibility
+
+**Work:**
+
+- Cover Tab, Enter, arrows, Backspace/Delete, Escape, modifier-only events,
+  repeats, character callbacks, activation-key release, mouse buttons, timeout,
+  empty/no-match, maximum sequence, focus loss, origin invalidation, binding-
+  revision changes, screen replacement, exceptions, and close.
+- Define stale origin/revision presentation: keep the captured diagnostic
+  artifact, reject dispatch claims, and require a new lookup rather than
+  silently re-evaluating against changed state.
+- Reuse the palette viewport/scrollbar/mouse selection and add full narration
+  of captured sequence, relation, action, situation, binding, reason/distance,
+  stale state, and inspection-only activation.
+- Prove every exit releases the scoped lease and restores prior palette focus
+  or safely closes when the origin no longer exists.
+
+**Validation:** pure capture/lifecycle/focus-loss/cleanup and accessibility
+tests, including fault injection after each acquired resource.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeyHotkeyLookupLifecycleTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeySequenceCaptureTests --wait-for-build-lock
+```
+
+**Completion criteria:** No physical key is accidentally unavailable merely
+because the binding editor used it for editing, and no cancellation/error path
+leaves dispatch suspended, a modifier held, a character leaked, or stale
+results described as current.
+
+#### [ ] K-8e Prove the lookup live and join the release ledger
+
+**Work:**
+
+- Add machine-readable origin-context, binding-revision, capture events,
+  matcher decisions, ranked rows, selected details row, cleanup state,
+  history-before/after, and test-action counter artifacts.
+- Extend the dynamic-keybinding puppet with keyboard and pointer entry, visible
+  capture, the required exact/conflict/related ordering, one multi-stroke
+  example, no-match/cancel, details activation, and the existing 500 ms visible
+  observation convention.
+- Run canonical Java validation and the release decision from K-8a. Record the
+  current installed-tool state according to the operational-readiness guide.
+
+**Validation:**
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeyHotkeyLookupTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeySequenceCaptureTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMKeybindingMatchResolverTests --wait-for-build-lock
+sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_dynamic_key_bindings --branch 1.19.2 --wait-for-build-lock
+```
+
+**Completion criteria:** A user can focus the command-palette lookup control,
+capture physical single/multi-stroke input without typing or invocation, and
+inspect stable origin-eligible results whose effective, suppressed, conflict,
+and related meanings agree with runtime dispatch. Every cleanup path is clean,
+artifacts prove inspection-only behavior, and release inclusion/deferment is
+explicit.
 
 ## Phase A — Typed addresses and explorer projections
 
@@ -2534,6 +2810,13 @@ Focused presentation tests and the complete Java suite passed. The final live
 journey and all nine declared GUI-scale variants visibly show chest directories
 and paper files with no textual `[D]`/`[F]` replacement.
 
+**Follow-up ownership (2026-08-18):** Spatial-semantic plan NX-3a owns the
+bounded adapter that projects persistent reference-result category/file/span
+rows through this completed ItemStack presentation pipeline. C-4a remains the
+one icon registry/theme/fallback authority; NX-3a must not reinterpret every
+expandable non-file object as a filesystem directory or create parallel icon
+configuration.
+
 ### [x] C-4b Add explicit contrast-backed read-only EditorV3 chrome
 
 **Parallel owner:** EditorV3-chrome agent; write scope is read-only status
@@ -3182,7 +3465,8 @@ are recorded in C-4a through C-6 rather than being deferred to a future goal.
 - [ ] Panel close, scale, resize, duplicate, focus, and diagnostics actions have
   stable ids, captured-target safety, and documented defaults.
 - [ ] Binding management is fully keyboard-operable, sortable, scrollable, and
-  capable of editing composable chords without focus traps.
+  capable of editing composable chords without focus traps; the command palette
+  can also inspect eligible actions from a captured hotkey without invoking it.
 - [ ] Typed addresses round-trip, resolve only with declared context/device
   authority, and support contributed adapters for SFM and Vanilla objects.
 - [ ] Action/Registry Explorer links agree with the underlying registries,
@@ -3247,6 +3531,7 @@ are recorded in C-4a through C-6 rather than being deferred to a future goal.
 | Risk | Guardrail |
 | --- | --- |
 | Contextual bindings double-fire or steal PTY/Minecraft input | D-2 precedence contract, one captured situation snapshot, focus-change reset, exact terminal pass-through/non-leak tests |
+| Hotkey lookup accidentally invokes a matched action or leaves a modifier/focus capture active | K-8 uses a separate inspection-only mode, frozen context, explicit dispatch-suspension ownership, release/focus/screen cleanup tests, and a puppet action counter proving lookup caused no execution |
 | Panel widgets imitate Vanilla visually but remain outside focus/narration | K-1 child-host contract plus keyboard-only and narration assertions; visual similarity alone is insufficient |
 | Duplicate aliases a mutable terminal/editor lifecycle | D-1 typed re-open recipe, reject unsupported panels, independent identity/session/dirty-state tests |
 | Default reseeding overrides user choices | Immutable built-ins plus schema-2 override/tombstone migration tests |

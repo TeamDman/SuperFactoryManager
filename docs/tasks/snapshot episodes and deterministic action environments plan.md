@@ -2,7 +2,7 @@
 
 **Plan status:** Proposed  
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-02
+**Last updated:** 2026-08-17
 
 ## How to update this plan
 
@@ -52,7 +52,13 @@ This foundation supports several related products:
 - [Global comment selection and review sessions](global%20comment%20selection%20and%20review%20sessions%20plan.md)
 - [CLI AST refactoring suite](cli%20ast%20refactoring%20suite%20plan.md)
 - [Draw editor layers, commands, and canvas workspace](draw%20editor%20document%20regions%20and%20commands%20plan.md)
+- [Spatial semantic surfaces, outlinks, and capability presenters](spatial%20semantic%20surfaces%20outlinks%20and%20capability%20presenters%20plan.md)
 - [SFM client log console](sfm%20client%20log%20console%20plan.md)
+
+This plan owns generic snapshots, episodes, timelines, and deterministic
+replay. The spatial/capability plan owns command-palette preview contribution
+and uses these episode contracts for animated/simulated previews; it must not
+invent a second time/replay format.
 
 ## Terms and invariants
 

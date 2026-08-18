@@ -1,7 +1,7 @@
 # Global comment selection and review sessions plan
 
 **Plan status:** Active
-**Last updated:** 2026-08-12
+**Last updated:** 2026-08-17
 
 ## Purpose
 
@@ -55,6 +55,14 @@ must not migrate or rewrite persisted review sessions. The adapter requires
 round-trip, stale-revision, hash-mismatch, live-head-versus-pinned, and
 multi-document tests before either representation can replace existing review
 storage.
+
+`docs/tasks/spatial semantic surfaces outlinks and capability presenters plan.md`
+now owns the generic domain/region/outlink algebra and spatial coverage that
+can describe canvas and Java semantic surfaces. Comments remain owned here.
+Selection X-9 plus spatial SS-7 must adapt a resolved region into a pinned
+comment selector with document snapshot/hash, domain, projection, and
+selection-revision provenance; neither plan may replace comments with a moving
+live region or store a region as an unbounded pixel list.
 
 ## Release code-review profile — 2026-08-08
 

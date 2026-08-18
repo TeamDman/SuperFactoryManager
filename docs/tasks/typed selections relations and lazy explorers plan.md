@@ -63,6 +63,20 @@ This plan supersedes the proposed global persisted
 `SFMExplorerWorkspace`/`sfm workspace add .` abstraction. It does not remove the
 existing use of “workspace” for the complete split/stack panel host.
 
+## Spatial semantic region relationship — 2026-08-17
+
+`docs/tasks/spatial semantic surfaces outlinks and capability presenters plan.md`
+owns typed canvas/document/syntax regions, outlink relations, spatial coverage,
+and navigation projections. This plan continues to own paths, path
+expressions, entity selectors, selection revisions/set algebra, lazy explorer
+membership, pane/entry/component identity, and picker destinations.
+
+The join remains explicit: X-9 adapts semantic/spatial regions into the shared
+selection ledger without enumerating pixels or replacing pinned comment rules;
+X-10 freezes pane terminology before spatial pane selectors and branching
+navigation history become public. Semantic Java children in spatial-plan NX-3
+reuse this plan's lazy relation/revision/publication rules.
+
 ## Authoritative user guidance ledger
 
 ### CLI and action grammar

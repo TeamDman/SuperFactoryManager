@@ -2,7 +2,7 @@
 
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
-**Last updated:** 2026-08-08
+**Last updated:** 2026-08-17
 **Update rules:** Keep this plan executable. Record decisions and evidence beside the affected work item, keep at most one current implementation focus, and update this file after every release-scope or artifact-policy change. Do not mark a phase complete from compilation alone; attach the command and the artifact or runtime evidence that proves it.
 
 ## Purpose
@@ -94,6 +94,15 @@ The authoritative implementation contracts are shared with
 `docs/tasks/cli ast refactoring suite plan.md`; neither plan may introduce a
 second comment, snapshot, selector, or equivalence model.
 
+`docs/tasks/spatial semantic surfaces outlinks and capability presenters plan.md`
+now owns source-interaction coverage, semantic-region outlinks, reciprocal
+navigation evidence, and the concrete editor/explorer navigation regressions
+observed on 2026-08-17. Its SS-1 through SS-4 and NX correctness work are
+release-candidate inputs subject to gate SD-17 and human visual inspection.
+Generalized rich previews and virtual-world simulation remain non-blocking
+research/feature work until explicitly promoted; no coverage report grants
+human code-review approval.
+
 ## Interaction follow-up guidance ledger — 2026-08-05
 
 | ID | Active user guidance | Required plan consequence | Superseded by |
@@ -104,7 +113,7 @@ second comment, snapshot, selector, or equivalence model.
 | I-PASTE-2 | Teamy Terminal and Java each retain their own clipboard adapter while collaborating through typed guarded and bypass paste signals, with supplied versus automatic clipboard bodies. | Teamy 3.6.4f and V-4.2e define one guard engine and Java-friendly wire records equivalent to `Paste{WithGuard,WithoutGuard}` and `PasteBody{Supplied,Auto}`. | — |
 | I-KEY-1 | Focused-panel scale increase/decrease/clear use one canonical main-row physical binding each: Ctrl+Equal, Ctrl+Minus, and Ctrl+0. The UI renders separated physical-key tokens such as `Ctrl =`, not ambiguous logical-glyph strings such as `Ctrl++`; duplicate keypad defaults are not shipped. They must appear in the palette `[?]` binding behavior. | P-5.2 corrects the defaults, migration fingerprint and exact event-consumption tests, and reuses one token model for text fallbacks plus pink read-only keycaps; K-6 makes capture keycaps focusable/removable. | Earlier Ctrl+plus/main-keypad parity wording |
 | I-KEY-2 | Clearing a panel scale selects auto/inherited rather than numeric zero. If auto resolves to N, the first increase selects N+1 and the first decrease selects explicit N; later adjustments continue numerically. Thus auto=4 gives `Ctrl+0, Ctrl+= -> 5` and `Ctrl+0, Ctrl+- -> 4`, never 1. | P-2.5 defines auto's ordered transition position; P-5.2/K-7 prove the registered actions and contextual shortcuts use it. | — |
-| I-KEY-3 | Panel scale feedback must be a transient fading toast, not a persistent panel label. Auto reports both state and effective value (`gui scale auto (4)`). A relative adjustment at a numeric boundary repeats the current scale toast with a small shake. | P-2.6 removes the persistent affordance and P-5.5/K-7 proves fade, effective-auto text, and boundary re-notification. | — |
+| I-KEY-3 | Panel scale feedback must be a transient fading toast, not a persistent panel label. Auto reports both state and effective value (`gui scale auto (4)`). A relative adjustment at a numeric boundary repeats the current scale toast with a small shake. | P-2.6 removes the persistent affordance and P-5.5/K-7 proves fade, effective-auto text, and boundary re-notification. Spatial-semantic NX-4 later migrates this producer into the generic actionable queue and must retain the same evidence. | — |
 | I-PAL-1 | Typing a later grammar atom in the action slot, such as `sfm action invoke term`, must discover complete grammar-valid literal continuations including `sfm:panel/open sfm:terminal`, directional panel-open variants, and `sfm:terminal_properties`. | P-5.2 adds bounded literal-descendant traversal over the already-compiled Brigadier tree, returns whole continuation paths, preserves action metadata from the first token, and never invokes argument suggestion providers during the traversal. | — |
 | I-HIST-1 | The palette stores command history for ranking; at the default `sfm action invoke ` query, the exact most recently executed command is the first suggestion. | P-5.3 records successful palette executions and injects full-command MRU candidates ahead of ordinary blank-query action ids. | — |
 | I-HIST-2 | `sfm:palette/history/open` opens a read-only history document, supports center/left/right/above/below placement and an optional editor id, and discards changes. | P-5.4 uses hierarchical placement actions, with the base action meaning center/focused, and enforces read-only behavior across every selectable editor. | — |
@@ -124,7 +133,7 @@ second comment, snapshot, selector, or equivalence model.
 | I-SEL-1, I-SEL-2, I-PASTE-1, I-PASTE-2 | Vox terminal plan V-4.2e; Teamy Terminal plan 3.6.4f | Facet round trips/package, Teamy core/Vox/native tests, SFM focused tests, and a live normal/high-scale selection/copy/paste puppet |
 | I-KEY-1 | P-5.2 and P-5.5 | Storage/default/conflict tests, palette `[?]` capture, and focused-terminal non-leak assertion |
 | I-KEY-2 | P-2.5, P-5.2, and P-5.5 | Pure auto/explicit transition tests plus a live clear/increase/clear/decrease artifact showing effective and stored scales |
-| I-KEY-3 | P-2.6, P-5.2, and P-5.5 | Live toast captures for auto/effective text, fade-out, and repeated boundary attempts with shake |
+| I-KEY-3 | P-2.6, P-5.2, P-5.5, and spatial-semantic NX-4 migration regression | Live toast captures for auto/effective text, fade-out, repeated boundary attempts with shake, and parity after migration to the addressable queue |
 | I-PAL-1 | P-5.2 and P-5.5 | Unit proof for full nested paths, unavailable-tree exclusion and executability, plus a live `term` palette capture |
 | I-HIST-1 | P-5.3 and P-5.5 | Bounded storage/ranking tests and a live execute/reopen/MRU witness |
 | I-HIST-2, I-HIST-3 | P-5.4 and P-5.5 | Action completion, all placements, editor selection/read-only enforcement, and clear-remains-empty witness |
@@ -586,6 +595,13 @@ At a numeric boundary, the current value is shown again with a short shake.
 Puppets and headless observations must expose slot order, stack order, visible
 entry, focus, dimensions, scale, and toast state so the behavior can be
 asserted without relying only on screenshots.
+
+**Follow-up ownership (2026-08-18):** P-2.6 remains the completed authority for
+scale-feedback content and the existing single-toast baseline. Spatial-semantic
+plan NX-4 owns the generic addressable toast queue, hover/copy/pin/dismiss input,
+and lifecycle evolution. NX-4 must migrate the P-2.6 producer into that shared
+surface while retaining effective-auto text, fade, repeat-at-boundary, and
+shake; it must not layer a competing toast renderer over the multiplexer.
 
 ### P-2 implementation evidence
 

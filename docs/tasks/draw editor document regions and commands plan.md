@@ -3,7 +3,7 @@
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Reference-only worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`
-**Last updated:** 2026-08-12
+**Last updated:** 2026-08-17
 
 ## How to update this plan
 
@@ -76,6 +76,17 @@ overlapping operational ranges without an explicit editor rule, or makes
 navigation row focus clobber semantic selection. Review/comment conversion
 also preserves pinned snapshot/hash semantics owned by the global-comment
 plan. X-1 through X-7 therefore introduce no editor persistence migration.
+
+## Spatial semantic interaction relationship — 2026-08-17
+
+`spatial semantic surfaces outlinks and capability presenters plan.md` owns the
+classification of a rendered canvas point into geometric/textual/semantic
+regions, registered outlinks, source-navigation coverage, and destination
+framing. This editor plan remains authoritative for glyph storage, canonical
+canvas coordinates, camera transforms, layers, cursors, editing, and save
+projection. The spatial plan must adapt `SFMDrawCanvasDocumentIndex` and the
+existing context projections; it must not replace the canvas model or reduce
+the user's 2D hit to an identifier string before providers run.
 
 ## Purpose
 
