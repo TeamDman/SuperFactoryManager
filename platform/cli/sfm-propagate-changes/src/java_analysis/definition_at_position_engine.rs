@@ -1,3 +1,4 @@
+use super::DefinitionAtPositionOutcome;
 use super::DefinitionAtPositionRequest;
 use super::DefinitionAtPositionResult;
 use super::DependencyJavaSymbolIndexBody;
@@ -8,6 +9,10 @@ use super::JavaDependencyResolutionDefinition;
 use super::JavaFileFactDetail;
 use super::JavaFileFacts;
 use super::JavaFileFactsInput;
+use super::JavaInteractionFileOutput;
+use super::JavaInteractionFileState;
+use super::JavaInteractionMapRequest;
+use super::JavaInteractionMapResult;
 use super::JavaLiveDefinitionSurface;
 use super::JavaSourceFile;
 use super::JavaSourceWorkspace;
@@ -20,6 +25,7 @@ use super::JdkSourceDomainState;
 use super::UsageAtPositionRequest;
 use super::UsageAtPositionResult;
 use super::blake3_content_hash;
+use super::build_java_interaction_map;
 use super::content_hash_with_expected_algorithm;
 use super::extract_java_file_facts_from_text_with_detail;
 use super::jdk_resolution_definitions;
@@ -138,6 +144,11 @@ pub struct DefinitionAtPositionEngineOutput {
 
 pub struct UsageAtPositionEngineOutput {
     pub result: UsageAtPositionResult,
+    pub telemetry: DefinitionAtPositionEngineTelemetry,
+}
+
+pub struct JavaInteractionMapEngineOutput {
+    pub result: JavaInteractionMapResult,
     pub telemetry: DefinitionAtPositionEngineTelemetry,
 }
 
@@ -815,6 +826,341 @@ impl DefinitionAtPositionEngine {
         })
     }
 
+    /// Build one generation-tagged, paged semantic interaction map while
+    /// sharing the same immutable facts and linked resolution surface as
+    /// definition/reference queries.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for source I/O, cancellation, parsing/linking failure,
+    /// or an encoded page that cannot satisfy the caller's declared bound.
+    /// Contract failures remain typed `invalid-request` results.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "the interaction-map transaction keeps validation, cancellation, cache deltas, and telemetry in one auditable sequence"
+    )]
+    pub fn analyze_interaction_map_with_telemetry(
+        &self,
+        request: &JavaInteractionMapRequest,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<JavaInteractionMapEngineOutput> {
+        let started = Instant::now();
+        if let Err(error) = request.validate() {
+            return Ok(JavaInteractionMapEngineOutput {
+                result: JavaInteractionMapResult::invalid_request(request, format!("{error:#}")),
+                telemetry: self.empty_telemetry(started),
+            });
+        }
+        let definition_request = request.as_definition_request()?;
+        if let Some(rejection) = self.request_rejection(&definition_request)? {
+            let message = rejection
+                .diagnostics
+                .iter()
+                .map(|diagnostic| diagnostic.message.as_str())
+                .collect::<Vec<_>>()
+                .join("; ");
+            let result = match rejection.outcome {
+                DefinitionAtPositionOutcome::StaleDocument => {
+                    JavaInteractionMapResult::stale_document(request, message)
+                }
+                DefinitionAtPositionOutcome::Unavailable => {
+                    JavaInteractionMapResult::unavailable(request, message)
+                }
+                _ => JavaInteractionMapResult::invalid_request(request, message),
+            };
+            return Ok(JavaInteractionMapEngineOutput {
+                result,
+                telemetry: self.empty_telemetry(started),
+            });
+        }
+        cancellation_token.bail_if_cancelled()?;
+        self.prepare_workspace_generation(request.workspace.workspace_generation)?;
+        let before_cache = self.cache_snapshot();
+        let (before_resolution_hits, before_resolution_misses) = self.resolution_cache_counts();
+        let source_snapshot =
+            self.collect_source_snapshot(&definition_request, cancellation_token)?;
+        let source_snapshot_micros = source_snapshot.source_snapshot_micros;
+        let AcquiredResolutionSurface {
+            surface,
+            fact_parse_micros,
+            link_micros,
+            reparsed_files,
+            ..
+        } = self.acquire_resolution_surface(
+            request.workspace.workspace_generation,
+            &source_snapshot,
+            cancellation_token,
+        )?;
+        let (semantic_generation, semantic_fingerprint) =
+            java_interaction_semantic_identity(request, &surface);
+        let lookup_started = Instant::now();
+        let result = if request
+            .known_semantic_fingerprint
+            .as_deref()
+            .is_some_and(|known| known == semantic_fingerprint)
+        {
+            JavaInteractionMapResult::not_modified(
+                request,
+                semantic_generation,
+                semantic_fingerprint,
+            )
+        } else {
+            let resolved =
+                surface.resolve_interaction_document(&self.workspace, &definition_request)?;
+            cancellation_token.bail_if_cancelled()?;
+            let inventory = self.interaction_file_inventory(&source_snapshot, &surface);
+            build_java_interaction_map(
+                request,
+                &resolved,
+                &surface,
+                &self.workspace,
+                &self.dependency_source_roots,
+                inventory,
+                semantic_generation,
+                semantic_fingerprint,
+            )?
+        };
+        let lookup_micros = duration_micros(lookup_started.elapsed());
+        cancellation_token.bail_if_cancelled()?;
+        let after_cache = self.cache_snapshot();
+        let (after_resolution_hits, after_resolution_misses) = self.resolution_cache_counts();
+        let resolution_cache_entries = self
+            .resolution_cache
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .entries
+            .len()
+            .try_into()
+            .unwrap_or(u64::MAX);
+        let (resolution_types, resolution_fields, resolution_methods) =
+            surface.declaration_counts();
+        Ok(JavaInteractionMapEngineOutput {
+            result,
+            telemetry: DefinitionAtPositionEngineTelemetry {
+                source_snapshot_micros,
+                fact_parse_micros,
+                link_micros,
+                lookup_micros,
+                total_micros: duration_micros(started.elapsed()),
+                fact_cache_hits: after_cache.hits.saturating_sub(before_cache.hits),
+                fact_cache_misses: after_cache.misses.saturating_sub(before_cache.misses),
+                resolution_cache_hits: after_resolution_hits.saturating_sub(before_resolution_hits),
+                resolution_cache_misses: after_resolution_misses
+                    .saturating_sub(before_resolution_misses),
+                resolution_cache_entries,
+                resolution_declarations: surface.declaration_count().try_into().unwrap_or(u64::MAX),
+                resolution_types: resolution_types.try_into().unwrap_or(u64::MAX),
+                resolution_fields: resolution_fields.try_into().unwrap_or(u64::MAX),
+                resolution_methods: resolution_methods.try_into().unwrap_or(u64::MAX),
+                usage_index_build_micros: 0,
+                usage_index_cache_hits: 0,
+                usage_index_candidate_files: 0,
+                usage_index_parsed_files: 0,
+                usage_index_retained_rows: 0,
+                usage_index_cache_entries: 0,
+                usage_index_cache_retained_bytes: 0,
+                usage_index_cache_evictions: 0,
+                reparsed_files,
+                source_files: self.workspace.files.len().try_into().unwrap_or(u64::MAX),
+                cache: after_cache,
+            },
+        })
+    }
+
+    #[expect(
+        clippy::too_many_lines,
+        reason = "the inventory exhaustively records workspace, JDK, dependency, and missing-root terminal states in one ordered ledger"
+    )]
+    fn interaction_file_inventory(
+        &self,
+        snapshot: &DefinitionSourceSnapshot<'_>,
+        surface: &JavaDefinitionResolutionSurface,
+    ) -> Vec<JavaInteractionFileOutput> {
+        let mut files = BTreeMap::<(String, String, String), JavaInteractionFileOutput>::new();
+        for ((file, source), key) in snapshot
+            .files
+            .iter()
+            .zip(&snapshot.sources)
+            .zip(&snapshot.keys)
+        {
+            let state = if key.content_hash == blake3_content_hash(source) {
+                JavaInteractionFileState::Covered
+            } else {
+                JavaInteractionFileState::Stale
+            };
+            files.insert(
+                (
+                    file.report_path.clone(),
+                    file.source_set.clone(),
+                    key.content_hash.clone(),
+                ),
+                JavaInteractionFileOutput {
+                    address: contributed_address(
+                        "workspace",
+                        &file.root_id,
+                        &file.root_relative_path,
+                    ),
+                    resolver_id: "workspace".to_owned(),
+                    root_id: file.root_id.clone(),
+                    root_relative_path: file.root_relative_path.clone(),
+                    report_path: file.report_path.clone(),
+                    source_set: file.source_set.clone(),
+                    content_hash: Some(key.content_hash.clone()),
+                    state,
+                    diagnostic: None,
+                },
+            );
+        }
+
+        for fact in surface.files() {
+            let key = (
+                fact.report_path.clone(),
+                fact.source_set.clone(),
+                fact.source_hash.clone(),
+            );
+            if files.contains_key(&key) {
+                continue;
+            }
+            let jdk_identity = self
+                .workspace
+                .jdk_sources
+                .report_identity(&fact.report_path, &fact.source_set);
+            let (address, resolver_id, root_id, root_relative_path, state, diagnostic) =
+                if let Some(identity) = jdk_identity {
+                    (
+                        contributed_address(
+                            "jdk-source",
+                            &identity.root_id,
+                            &identity.root_relative_path,
+                        ),
+                        "jdk-source".to_owned(),
+                        identity.root_id,
+                        identity.root_relative_path,
+                        JavaInteractionFileState::Covered,
+                        None,
+                    )
+                } else {
+                    (
+                        contributed_address("dependency-index", "jdk", &fact.report_path),
+                        "dependency-index".to_owned(),
+                        "jdk".to_owned(),
+                        fact.report_path.clone(),
+                        JavaInteractionFileState::Partial,
+                        Some(
+                            "JDK semantic facts were indexed, but their exact source identity was not available"
+                                .to_owned(),
+                        ),
+                    )
+                };
+            files.insert(
+                key,
+                JavaInteractionFileOutput {
+                    address,
+                    resolver_id,
+                    root_id,
+                    root_relative_path,
+                    report_path: fact.report_path.clone(),
+                    source_set: fact.source_set.clone(),
+                    content_hash: Some(fact.source_hash.clone()),
+                    state,
+                    diagnostic,
+                },
+            );
+        }
+
+        if let Some(dependencies) = &self.dependencies {
+            for span in dependencies
+                .definitions
+                .iter()
+                .flat_map(|definition| [&definition.identifier_span, &definition.declaration_span])
+                .chain(dependencies.usages.iter().map(|usage| &usage.span))
+                .chain(
+                    dependencies
+                        .diagnostics
+                        .iter()
+                        .filter_map(|diagnostic| diagnostic.span.as_ref()),
+                )
+            {
+                let key = (
+                    span.path.clone(),
+                    span.source_set.clone(),
+                    span.source_hash.clone(),
+                );
+                files
+                    .entry(key)
+                    .or_insert_with(|| self.dependency_inventory_file(span));
+            }
+        }
+
+        for root in self
+            .workspace
+            .context
+            .source_roots
+            .iter()
+            .filter(|root| !root.exists)
+        {
+            files.insert(
+                (root.path.clone(), root.source_set.clone(), String::new()),
+                JavaInteractionFileOutput {
+                    address: root.path.clone(),
+                    resolver_id: "unavailable-source-root".to_owned(),
+                    root_id: root.id.clone(),
+                    root_relative_path: root.path.clone(),
+                    report_path: root.path.clone(),
+                    source_set: root.source_set.clone(),
+                    content_hash: None,
+                    state: JavaInteractionFileState::Missing,
+                    diagnostic: Some("Selected Java source root is unavailable".to_owned()),
+                },
+            );
+        }
+        files.into_values().collect()
+    }
+
+    fn dependency_inventory_file(
+        &self,
+        span: &super::JavaSourceSpanOutput,
+    ) -> JavaInteractionFileOutput {
+        for root in &self.dependency_source_roots {
+            if root.source_set != span.source_set {
+                continue;
+            }
+            let prefix = root.report_prefix.trim_end_matches('/');
+            let Some(relative) = span
+                .path
+                .strip_prefix(prefix)
+                .and_then(|tail| tail.strip_prefix('/'))
+            else {
+                continue;
+            };
+            return JavaInteractionFileOutput {
+                address: contributed_address("dependency-source", &root.root_id, relative),
+                resolver_id: "dependency-source".to_owned(),
+                root_id: root.root_id.clone(),
+                root_relative_path: relative.to_owned(),
+                report_path: span.path.clone(),
+                source_set: span.source_set.clone(),
+                content_hash: Some(span.source_hash.clone()),
+                state: JavaInteractionFileState::Covered,
+                diagnostic: None,
+            };
+        }
+        JavaInteractionFileOutput {
+            address: contributed_address("dependency-index", "dependency-index", &span.path),
+            resolver_id: "dependency-index".to_owned(),
+            root_id: "dependency-index".to_owned(),
+            root_relative_path: span.path.clone(),
+            report_path: span.path.clone(),
+            source_set: span.source_set.clone(),
+            content_hash: Some(span.source_hash.clone()),
+            state: JavaInteractionFileState::Covered,
+            diagnostic: Some(
+                "Indexed dependency semantics are available; exact source material is not acquired"
+                    .to_owned(),
+            ),
+        }
+    }
+
     fn usage_request_rejection(
         &self,
         request: &UsageAtPositionRequest,
@@ -1225,6 +1571,20 @@ impl DefinitionAtPositionEngine {
             .map(|output| output.result)
     }
 
+    /// Analyze one interaction-map request without transport telemetry.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Self::analyze_interaction_map_with_telemetry`].
+    pub fn analyze_interaction_map(
+        &self,
+        request: &JavaInteractionMapRequest,
+        cancellation_token: &CancellationToken,
+    ) -> eyre::Result<JavaInteractionMapResult> {
+        self.analyze_interaction_map_with_telemetry(request, cancellation_token)
+            .map(|output| output.result)
+    }
+
     fn visible_source_sets(&self, source_set: &str) -> Vec<String> {
         let mut visible = self
             .workspace
@@ -1317,6 +1677,45 @@ impl DefinitionAtPositionEngine {
     }
 }
 
+fn java_interaction_semantic_identity(
+    request: &JavaInteractionMapRequest,
+    surface: &JavaDefinitionResolutionSurface,
+) -> (u64, String) {
+    let mut hasher = blake3::Hasher::new();
+    for value in [
+        super::JAVA_INTERACTION_MAP_SCHEMA,
+        request.workspace.workspace_fingerprint.as_str(),
+        request.document.content_hash.as_str(),
+        surface.context().parser_fingerprint.as_str(),
+        surface.context().index_fingerprint.as_str(),
+    ] {
+        hasher.update(&u64::try_from(value.len()).unwrap_or(u64::MAX).to_le_bytes());
+        hasher.update(value.as_bytes());
+    }
+    hasher.update(
+        &u64::try_from(surface.files().len())
+            .unwrap_or(u64::MAX)
+            .to_le_bytes(),
+    );
+    for file in surface.files() {
+        for value in [
+            file.report_path.as_str(),
+            file.source_set.as_str(),
+            file.source_hash.as_str(),
+        ] {
+            hasher.update(&u64::try_from(value.len()).unwrap_or(u64::MAX).to_le_bytes());
+            hasher.update(value.as_bytes());
+        }
+    }
+    let hash = hasher.finalize();
+    let mut generation_bytes = [0_u8; 8];
+    generation_bytes.copy_from_slice(&hash.as_bytes()[..8]);
+    (
+        u64::from_le_bytes(generation_bytes),
+        format!("blake3:{}", hash.to_hex()),
+    )
+}
+
 fn duration_micros(duration: std::time::Duration) -> u64 {
     duration.as_micros().try_into().unwrap_or(u64::MAX)
 }
@@ -1353,7 +1752,6 @@ fn percent_encode_component(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::java_analysis::DefinitionAtPositionOutcome;
     use crate::java_analysis::DefinitionDocumentInput;
     use crate::java_analysis::DefinitionRecoveryActionKind;
     use crate::java_analysis::DefinitionTextPositionInput;

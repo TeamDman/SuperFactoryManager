@@ -438,6 +438,7 @@ pub(crate) struct JavaLiveDefinitionSurface {
 #[derive(Clone, Debug)]
 pub(crate) struct JavaDefinitionResolutionSurface {
     context: JavaAnalysisContextOutput,
+    files: Vec<JavaFileFactIdentity>,
     types: Vec<TypeDeclaration>,
     fields: Vec<FieldDeclaration>,
     methods: Vec<MethodDeclaration>,
@@ -445,6 +446,16 @@ pub(crate) struct JavaDefinitionResolutionSurface {
     field_lookup: BTreeMap<(String, String), Vec<usize>>,
     method_lookup: BTreeMap<(String, String), Vec<usize>>,
     diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+}
+
+/// One parsed editor snapshot resolved against the immutable workspace symbol
+/// surface. Interaction-map generation consumes this value directly so a
+/// document is not reparsed once per token or glyph.
+pub(crate) struct JavaResolvedInteractionDocument {
+    pub(crate) syntax: JavaSyntaxFile,
+    pub(crate) usages: Vec<JavaSymbolUsageOutput>,
+    pub(crate) local_definitions: Vec<JavaSymbolDefinitionOutput>,
+    pub(crate) diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -550,6 +561,7 @@ impl JavaDefinitionResolutionSurface {
 
         Arc::new(Self {
             context,
+            files: live.files.clone(),
             types,
             fields,
             methods,
@@ -567,6 +579,38 @@ impl JavaDefinitionResolutionSurface {
         workspace: &JavaSourceWorkspace,
         request: &DefinitionAtPositionRequest,
     ) -> eyre::Result<DefinitionAtPositionResult> {
+        let resolved = self.resolve_interaction_document(workspace, request)?;
+        Ok(definition_at_position_from_parts(
+            self.context.clone(),
+            |selected_symbols| {
+                let mut definitions = self.definitions_for_symbols(selected_symbols);
+                definitions.extend(
+                    resolved
+                        .local_definitions
+                        .iter()
+                        .filter(|definition| selected_symbols.contains(&definition.symbol))
+                        .cloned(),
+                );
+                definitions
+            },
+            &resolved.usages,
+            self.diagnostics.iter().chain(resolved.diagnostics.iter()),
+            request,
+            workspace,
+        ))
+    }
+
+    /// Parse and semantically resolve an addressed document exactly once.
+    ///
+    /// The returned syntax tree remains request-owned. It is deliberately not
+    /// admitted to the workspace cache: its identity is the caller supplied
+    /// content hash and request generation, and stale consumers must discard
+    /// the complete interaction map.
+    pub(crate) fn resolve_interaction_document(
+        self: &Arc<Self>,
+        workspace: &JavaSourceWorkspace,
+        request: &DefinitionAtPositionRequest,
+    ) -> eyre::Result<JavaResolvedInteractionDocument> {
         let mut target = workspace
             .files
             .iter()
@@ -599,23 +643,16 @@ impl JavaDefinitionResolutionSurface {
         diagnostics.sort();
         diagnostics.dedup();
 
-        Ok(definition_at_position_from_parts(
-            self.context.clone(),
-            |selected_symbols| {
-                let mut definitions = self.definitions_for_symbols(selected_symbols);
-                definitions.extend(
-                    local_definitions
-                        .iter()
-                        .filter(|definition| selected_symbols.contains(&definition.symbol))
-                        .cloned(),
-                );
-                definitions
-            },
-            &usages,
-            self.diagnostics.iter().chain(diagnostics.iter()),
-            request,
-            workspace,
-        ))
+        Ok(JavaResolvedInteractionDocument {
+            syntax: model
+                .files
+                .into_iter()
+                .next()
+                .expect("one addressed Java document remains in the interaction model"),
+            usages,
+            local_definitions,
+            diagnostics,
+        })
     }
 
     /// Resolve only the declarations selected by the addressed document.
@@ -624,7 +661,7 @@ impl JavaDefinitionResolutionSurface {
     /// `definition_at_position_from_parts`, which made every cursor query scan
     /// the complete dependency/JDK vocabulary. These lookup tables already
     /// exist for semantic linking, so reuse them as an exact identity index.
-    fn definitions_for_symbols(
+    pub(crate) fn definitions_for_symbols(
         &self,
         selected_symbols: &BTreeSet<JavaSymbolIdentityOutput>,
     ) -> Vec<JavaSymbolDefinitionOutput> {
@@ -789,6 +826,16 @@ impl JavaDefinitionResolutionSurface {
     #[must_use]
     pub(crate) fn declaration_counts(&self) -> (usize, usize, usize) {
         (self.types.len(), self.fields.len(), self.methods.len())
+    }
+
+    #[must_use]
+    pub(crate) const fn context(&self) -> &JavaAnalysisContextOutput {
+        &self.context
+    }
+
+    #[must_use]
+    pub(crate) fn files(&self) -> &[JavaFileFactIdentity] {
+        &self.files
     }
 }
 
@@ -1227,10 +1274,21 @@ impl JavaSymbolIndex {
 
         let field_lookup = member_lookup(fields.iter().map(FieldDeclaration::symbol));
         let method_lookup = member_lookup(methods.iter().map(MethodDeclaration::symbol));
+        let resolution_files = files
+            .iter()
+            .enumerate()
+            .map(|(sequence, file)| JavaFileFactIdentity {
+                sequence: u64::try_from(sequence).unwrap_or(u64::MAX),
+                report_path: file.report_path.clone(),
+                source_set: file.source_set.clone(),
+                source_hash: file.source_hash.clone(),
+            })
+            .collect();
         let model = JavaIndexModel {
             files,
             resolution: Arc::new(JavaDefinitionResolutionSurface {
                 context: context.clone(),
+                files: resolution_files,
                 types,
                 fields,
                 methods,
@@ -1471,7 +1529,7 @@ pub(crate) fn validate_definition_request_workspace(
     Ok(())
 }
 
-fn definition_at_position_definition(
+pub(crate) fn definition_at_position_definition(
     definition: &JavaSymbolDefinitionOutput,
     workspace: &JavaSourceWorkspace,
     request: &DefinitionAtPositionRequest,

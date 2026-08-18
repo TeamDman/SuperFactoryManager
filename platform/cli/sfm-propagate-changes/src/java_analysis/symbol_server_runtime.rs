@@ -41,6 +41,11 @@ enum RuntimeEvent {
         completion: Box<Result<super::UsageAtPositionResult, SymbolServerEngineError>>,
         telemetry: Option<DefinitionAtPositionEngineTelemetry>,
     },
+    JavaInteractionMapFinished {
+        key: SymbolServerRequestKey,
+        completion: Box<Result<super::JavaInteractionMapResult, SymbolServerEngineError>>,
+        telemetry: Option<DefinitionAtPositionEngineTelemetry>,
+    },
 }
 
 #[derive(Default)]
@@ -178,8 +183,75 @@ fn handle_runtime_event<W: Write>(
             );
             state.finish_usage_at_position(key, *completion)
         }
+        RuntimeEvent::JavaInteractionMapFinished {
+            key,
+            completion,
+            telemetry,
+        } => {
+            record_java_interaction_map_completion(
+                counters,
+                key,
+                completion.as_ref(),
+                telemetry.as_ref(),
+            );
+            state.finish_java_interaction_map(key, *completion)
+        }
     };
     apply_effects(effects, writer, state, engine, events_tx)
+}
+
+fn record_java_interaction_map_completion(
+    counters: &mut RuntimeCounters,
+    key: SymbolServerRequestKey,
+    completion: &Result<super::JavaInteractionMapResult, SymbolServerEngineError>,
+    telemetry: Option<&DefinitionAtPositionEngineTelemetry>,
+) {
+    if let Some(telemetry) = telemetry {
+        counters.completed_requests = counters.completed_requests.saturating_add(1);
+        tracing::info!(
+            target: "sfm::symbol_server",
+            request_id = key.request_id,
+            request_generation = key.request_generation,
+            workspace_generation = key.workspace_generation,
+            total_micros = telemetry.total_micros,
+            source_snapshot_micros = telemetry.source_snapshot_micros,
+            fact_parse_micros = telemetry.fact_parse_micros,
+            link_micros = telemetry.link_micros,
+            lookup_micros = telemetry.lookup_micros,
+            fact_cache_hits = telemetry.fact_cache_hits,
+            fact_cache_misses = telemetry.fact_cache_misses,
+            resolution_cache_hits = telemetry.resolution_cache_hits,
+            resolution_cache_misses = telemetry.resolution_cache_misses,
+            resolution_cache_entries = telemetry.resolution_cache_entries,
+            resolution_declarations = telemetry.resolution_declarations,
+            resolution_types = telemetry.resolution_types,
+            resolution_fields = telemetry.resolution_fields,
+            resolution_methods = telemetry.resolution_methods,
+            usage_index_build_micros = telemetry.usage_index_build_micros,
+            usage_index_cache_hits = telemetry.usage_index_cache_hits,
+            usage_index_candidate_files = telemetry.usage_index_candidate_files,
+            usage_index_parsed_files = telemetry.usage_index_parsed_files,
+            usage_index_retained_rows = telemetry.usage_index_retained_rows,
+            usage_index_cache_entries = telemetry.usage_index_cache_entries,
+            usage_index_cache_retained_bytes = telemetry.usage_index_cache_retained_bytes,
+            usage_index_cache_evictions = telemetry.usage_index_cache_evictions,
+            reparsed_files = telemetry.reparsed_files,
+            source_files = telemetry.source_files,
+            cache_entries = telemetry.cache.entries,
+            cache_bytes = telemetry.cache.retained_bytes,
+            outcome = ?completion.as_ref().map(|result| &result.outcome),
+            "symbol-server Java interaction map completed"
+        );
+    } else if completion.is_err() {
+        counters.failed_requests = counters.failed_requests.saturating_add(1);
+        tracing::warn!(
+            target: "sfm::symbol_server",
+            request_id = key.request_id,
+            request_generation = key.request_generation,
+            workspace_generation = key.workspace_generation,
+            "symbol-server Java interaction map failed or was cancelled"
+        );
+    }
 }
 
 fn record_usage_at_position_completion(
@@ -280,6 +352,10 @@ fn record_definition_completion(
     }
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "the runtime dispatch keeps every effect variant in one exhaustive queue-draining match"
+)]
 fn apply_effects<W: Write>(
     effects: Vec<SymbolServerEffect>,
     writer: &mut W,
@@ -367,6 +443,48 @@ fn apply_effects<W: Write>(
                         key,
                         Err(SymbolServerEngineError::new(
                             "usage-at-position-engine-thread-failed",
+                            error.to_string(),
+                            true,
+                        )),
+                    ));
+                }
+            }
+            SymbolServerEffect::StartJavaInteractionMap {
+                request,
+                cancellation_token,
+            } => {
+                let key = SymbolServerRequestKey::from(request.as_ref());
+                let engine = Arc::clone(engine);
+                let events_tx = events_tx.clone();
+                let spawn = std::thread::Builder::new()
+                    .name(format!("sfm-java-interaction-map-{}", key.request_id))
+                    .spawn(move || {
+                        let analyzed = engine.analyze_interaction_map_with_telemetry(
+                            request.as_ref(),
+                            &cancellation_token,
+                        );
+                        let (completion, telemetry) = match analyzed {
+                            Ok(output) => (Ok(output.result), Some(output.telemetry)),
+                            Err(error) => (
+                                Err(SymbolServerEngineError::new(
+                                    "java-interaction-map-engine-failed",
+                                    error.to_string(),
+                                    false,
+                                )),
+                                None,
+                            ),
+                        };
+                        let _ = events_tx.send(RuntimeEvent::JavaInteractionMapFinished {
+                            key,
+                            completion: Box::new(completion),
+                            telemetry,
+                        });
+                    });
+                if let Err(error) = spawn {
+                    pending.extend(state.finish_java_interaction_map(
+                        key,
+                        Err(SymbolServerEngineError::new(
+                            "java-interaction-map-engine-thread-failed",
                             error.to_string(),
                             true,
                         )),
@@ -616,6 +734,18 @@ mod tests {
         )
     }
 
+    fn interaction_map_request_from_definition(
+        request: &DefinitionAtPositionRequest,
+        request_id: u64,
+    ) -> crate::java_analysis::JavaInteractionMapRequest {
+        crate::java_analysis::JavaInteractionMapRequest::new(
+            request_id,
+            request.request_generation,
+            request.workspace.clone(),
+            request.document.clone(),
+        )
+    }
+
     #[test]
     fn runtime_handshake_exposes_roots_and_worker_result_matches_direct_engine() {
         let (_directory, engine, served, request) = fixture();
@@ -704,6 +834,103 @@ mod tests {
             facet_json::to_string(&direct).expect("direct result JSON")
         );
         assert!(matches!(shutdown, SymbolServerFrame::Shutdown { .. }));
+        assert!(
+            read_symbol_server_frame(&mut output, DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES)
+                .expect("clean output EOF")
+                .is_none()
+        );
+        assert_eq!(summary.completed_requests, 1);
+        assert_eq!(summary.failed_requests, 0);
+        assert_eq!(state.phase(), SymbolServerPhase::Closed);
+    }
+
+    #[test]
+    fn runtime_java_interaction_map_matches_direct_engine_and_stays_framed() {
+        let (_directory, engine, served, definition_request) = fixture();
+        let request = interaction_map_request_from_definition(&definition_request, 3);
+        let direct = engine
+            .analyze_interaction_map(&request, &CancellationToken::new())
+            .expect("direct Java interaction-map result");
+        let hello = SymbolServerClientFrame::hello(SymbolServerClientHello {
+            protocol_schema: SYMBOL_SERVER_PROTOCOL_SCHEMA.to_owned(),
+            client_name: "java-test".to_owned(),
+            client_version: "1".to_owned(),
+            capabilities: SymbolServerCapability::all().to_vec(),
+            max_frame_bytes: DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES as u64,
+        });
+        let mut before_wait =
+            encode_symbol_server_client_frame(&hello, DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES)
+                .expect("hello frame");
+        before_wait.extend(
+            encode_symbol_server_client_frame(
+                &SymbolServerClientFrame::java_interaction_map(request),
+                DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES,
+            )
+            .expect("Java interaction-map request frame"),
+        );
+        let after_wait = encode_symbol_server_client_frame(
+            &SymbolServerClientFrame::shutdown("test complete"),
+            DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES,
+        )
+        .expect("shutdown frame");
+        let gate = Arc::new(FrameGate::default());
+        let reader = GatedReader {
+            before_wait: Cursor::new(before_wait),
+            after_wait: Cursor::new(after_wait),
+            gate: Arc::clone(&gate),
+            required_responses: 2,
+            wait_complete: false,
+        };
+        let mut writer = GatedWriter {
+            bytes: Vec::new(),
+            parsed_bytes: 0,
+            gate,
+        };
+        let mut state = SymbolServerState::new(
+            crate::java_analysis::SymbolServerIdentity {
+                server_name: "sfm-propagate-changes".to_owned(),
+                server_version: "test".to_owned(),
+            },
+            served,
+            crate::java_analysis::SymbolServerLimits::default(),
+            CancellationToken::new(),
+        )
+        .expect("server state");
+
+        let summary = run_symbol_server_runtime(
+            reader,
+            &mut writer,
+            &mut state,
+            &engine,
+            &CancellationToken::new(),
+            DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES,
+        )
+        .expect("Java interaction-map symbol-server runtime");
+
+        let mut output = Cursor::new(writer.bytes);
+        assert!(matches!(
+            read_symbol_server_frame(&mut output, DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES)
+                .expect("server hello")
+                .expect("hello frame"),
+            SymbolServerFrame::Hello { .. }
+        ));
+        let frame = read_symbol_server_frame(&mut output, DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES)
+            .expect("map result")
+            .expect("map result frame");
+        let SymbolServerFrame::JavaInteractionMapResult { result, .. } = frame else {
+            panic!("expected Java interaction-map result frame");
+        };
+        assert_eq!(result.as_ref(), &direct);
+        assert_eq!(
+            facet_json::to_string(result.as_ref()).expect("worker interaction-map JSON"),
+            facet_json::to_string(&direct).expect("direct interaction-map JSON")
+        );
+        assert!(matches!(
+            read_symbol_server_frame(&mut output, DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES)
+                .expect("server shutdown")
+                .expect("shutdown frame"),
+            SymbolServerFrame::Shutdown { .. }
+        ));
         assert!(
             read_symbol_server_frame(&mut output, DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES)
                 .expect("clean output EOF")

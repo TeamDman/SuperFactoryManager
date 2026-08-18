@@ -1,0 +1,39 @@
+{
+  "schema": "sfm.java-interaction-map-scenario-summary/1",
+  "outcome": "success",
+  "semantic_kinds_complete": true,
+  "relations_complete": true,
+  "strict_non_whitespace_complete": true,
+  "reciprocity_complete": true,
+  "workspace_inventory_complete": true,
+  "exact_regressions": [
+    {
+      "id": "LexerAdapter",
+      "covered": true
+    },
+    {
+      "id": "Mod",
+      "covered": true
+    },
+    {
+      "id": "LocalizationEntry",
+      "covered": true
+    },
+    {
+      "id": "String",
+      "covered": true
+    },
+    {
+      "id": "java.io.Serializable",
+      "covered": true
+    },
+    {
+      "id": "Serial",
+      "covered": true
+    },
+    {
+      "id": "serialVersionUID",
+      "covered": true
+    }
+  ]
+}

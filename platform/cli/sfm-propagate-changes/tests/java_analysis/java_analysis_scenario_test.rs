@@ -1,11 +1,24 @@
 use eyre::Context as _;
 use eyre::bail;
+use facet::Facet;
 use sfm_propagate_changes::cancellation::CancellationToken;
 use sfm_propagate_changes::cli::Cli;
+use sfm_propagate_changes::cli::jar::BranchSelector;
 use sfm_propagate_changes::cli::output::OutputFormat;
+use sfm_propagate_changes::java_analysis::DefinitionAtPositionEngine;
+use sfm_propagate_changes::java_analysis::DefinitionAtPositionEngineLimits;
 use sfm_propagate_changes::java_analysis::DefinitionAtPositionOutcome;
+use sfm_propagate_changes::java_analysis::DefinitionDocumentInput;
+use sfm_propagate_changes::java_analysis::JavaClasspathMode;
+use sfm_propagate_changes::java_analysis::JavaInteractionClassificationStatus;
+use sfm_propagate_changes::java_analysis::JavaInteractionMapOutcome;
+use sfm_propagate_changes::java_analysis::JavaInteractionMapRequest;
+use sfm_propagate_changes::java_analysis::JavaSourceWorkspace;
 use sfm_propagate_changes::java_analysis::SymbolCommandOutcome;
+use sfm_propagate_changes::java_analysis::SymbolServerWorkspaceOutput;
+use sfm_propagate_changes::java_analysis::blake3_content_hash;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fs;
 use std::io::Write as _;
 use std::path::Path;
@@ -23,6 +36,24 @@ enum Quote {
     None,
     Single,
     Double,
+}
+
+#[derive(Facet, Clone, Debug, Eq, PartialEq)]
+struct JavaInteractionMapScenarioRegression {
+    id: String,
+    covered: bool,
+}
+
+#[derive(Facet, Clone, Debug, Eq, PartialEq)]
+struct JavaInteractionMapScenarioSummary {
+    schema: String,
+    outcome: JavaInteractionMapOutcome,
+    semantic_kinds_complete: bool,
+    relations_complete: bool,
+    strict_non_whitespace_complete: bool,
+    reciprocity_complete: bool,
+    workspace_inventory_complete: bool,
+    exact_regressions: Vec<JavaInteractionMapScenarioRegression>,
 }
 
 #[test]
@@ -44,6 +75,191 @@ fn java_analysis_scenarios() -> eyre::Result<()> {
             failures.join("\n\n")
         );
     }
+    Ok(())
+}
+
+#[test]
+fn java_interaction_map_semantic_matrix_scenario() -> eyre::Result<()> {
+    let scenario = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("java_analysis")
+        .join("interaction_map_scenarios")
+        .join("semantic_matrix");
+    let source_root = scenario.join("source");
+    let workspace = JavaSourceWorkspace::resolve(
+        BranchSelector::from("1.19.2".to_owned()),
+        std::slice::from_ref(&source_root),
+        JavaClasspathMode::Isolated,
+        &scenario,
+    )?;
+    let expected_workspace_files = workspace
+        .files
+        .iter()
+        .map(|file| (file.report_path.clone(), file.source_set.clone()))
+        .collect::<BTreeSet<_>>();
+    let document = workspace
+        .source_file("ca/teamdman/sfm/LexerAdapter.java")?
+        .clone();
+    let text = fs::read_to_string(&document.absolute_path)?;
+    let served = SymbolServerWorkspaceOutput::from_workspace(&workspace, None, 0)?;
+    let request = JavaInteractionMapRequest::new(
+        1,
+        1,
+        served.request_workspace,
+        DefinitionDocumentInput {
+            address: format!(
+                "workspace://{}/{}",
+                document.root_id, document.root_relative_path
+            ),
+            root_id: document.root_id,
+            root_relative_path: document.root_relative_path,
+            report_path: document.report_path,
+            source_set: document.source_set,
+            text: text.clone(),
+            content_hash: blake3_content_hash(&text),
+            disk_content_hash: Some(blake3_content_hash(&text)),
+        },
+    );
+    let engine = DefinitionAtPositionEngine::new(
+        workspace,
+        None,
+        None,
+        DefinitionAtPositionEngineLimits::default(),
+    )?;
+    let result = engine.analyze_interaction_map(&request, &CancellationToken::new())?;
+    let kinds = result
+        .regions
+        .iter()
+        .map(|region| region.semantic_kind.as_str())
+        .collect::<BTreeSet<_>>();
+    let semantic_kinds_complete = [
+        "java-import",
+        "java-annotation",
+        "java-modifiers",
+        "java-class-declaration",
+        "java-field-declaration",
+        "java-method-declaration",
+        "java-parameter-declaration",
+        "java-signature",
+        "java-body",
+        "java-delimiter",
+        "java-statement",
+        "java-punctuation",
+        "java-operator",
+        "java-literal",
+        "java-qualified-name",
+    ]
+    .into_iter()
+    .all(|required| kinds.contains(required));
+    let relation_kinds = result
+        .outlinks
+        .iter()
+        .map(|outlink| outlink.relation_kind.as_str())
+        .collect::<BTreeSet<_>>();
+    let relations_complete = [
+        "definition",
+        "reference",
+        "matching-delimiter",
+        "containing-region",
+        "child-region",
+        "signature",
+        "body",
+        "statement",
+        "path",
+    ]
+    .into_iter()
+    .all(|required| relation_kinds.contains(required));
+    let classifications = result
+        .classifications
+        .iter()
+        .map(|classification| (classification.region_id.as_str(), classification))
+        .collect::<BTreeMap<_, _>>();
+    let exceptions = result
+        .exceptions
+        .iter()
+        .map(|exception| exception.region_id.as_str())
+        .collect::<BTreeSet<_>>();
+    let strict_non_whitespace_complete = text.char_indices().all(|(offset, character)| {
+        character.is_whitespace()
+            || result.regions.iter().any(|region| {
+                region.start_byte() <= offset as u64
+                    && (offset as u64) < region.end_byte()
+                    && (classifications
+                        .get(region.id.as_str())
+                        .is_some_and(|classification| {
+                            classification.status == JavaInteractionClassificationStatus::Actionable
+                                && !classification.navigation_outlink_ids.is_empty()
+                        })
+                        || exceptions.contains(region.id.as_str()))
+            })
+    });
+    let outlinks = result
+        .outlinks
+        .iter()
+        .map(|outlink| (outlink.id.as_str(), outlink))
+        .collect::<BTreeMap<_, _>>();
+    let reciprocity_complete = !result.reciprocity.is_empty()
+        && result.reciprocity.iter().all(|evidence| {
+            let Some(definition) = outlinks.get(evidence.definition_outlink_id.as_str()) else {
+                return false;
+            };
+            let Some(reference) = outlinks.get(evidence.reference_outlink_id.as_str()) else {
+                return false;
+            };
+            definition.relation_kind == "definition"
+                && reference.relation_kind == "reference"
+                && definition.source_region_id == reference.destination_region_id
+                && definition.destination_region_id == reference.source_region_id
+        });
+    let actual_workspace_files = result
+        .files
+        .iter()
+        .filter(|file| file.resolver_id == "workspace")
+        .map(|file| (file.report_path.clone(), file.source_set.clone()))
+        .collect::<BTreeSet<_>>();
+    let workspace_inventory_complete = expected_workspace_files == actual_workspace_files;
+    let exact_regressions = [
+        "LexerAdapter",
+        "Mod",
+        "LocalizationEntry",
+        "String",
+        "java.io.Serializable",
+        "Serial",
+        "serialVersionUID",
+    ]
+    .into_iter()
+    .map(|needle| {
+        let covered = result.regions.iter().any(|region| {
+            let Ok(start) = usize::try_from(region.start_byte()) else {
+                return false;
+            };
+            let Ok(end) = usize::try_from(region.end_byte()) else {
+                return false;
+            };
+            text.get(start..end).is_some_and(|value| value == needle)
+                && (result.outlinks.iter().any(|outlink| {
+                    outlink.source_region_id == region.id && outlink.relation_kind == "definition"
+                }) || exceptions.contains(region.id.as_str()))
+        });
+        JavaInteractionMapScenarioRegression {
+            id: needle.to_owned(),
+            covered,
+        }
+    })
+    .collect::<Vec<_>>();
+    let actual = JavaInteractionMapScenarioSummary {
+        schema: "sfm.java-interaction-map-scenario-summary/1".to_owned(),
+        outcome: result.outcome,
+        semantic_kinds_complete,
+        relations_complete,
+        strict_non_whitespace_complete,
+        reciprocity_complete,
+        workspace_inventory_complete,
+        exact_regressions,
+    };
+    let expected: JavaInteractionMapScenarioSummary =
+        facet_json::from_str(&fs::read_to_string(scenario.join(EXPECTED_FILE))?)?;
+    assert_eq!(actual, expected);
     Ok(())
 }
 

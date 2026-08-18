@@ -1,6 +1,8 @@
 use super::DefinitionAtPositionRequest;
 use super::DefinitionAtPositionResult;
 use super::DefinitionWorkspaceIdentityInput;
+use super::JavaInteractionMapRequest;
+use super::JavaInteractionMapResult;
 use super::JavaSourceRootKind;
 use super::JavaSourceWorkspace;
 use super::UsageAtPositionRequest;
@@ -17,6 +19,8 @@ pub const SYMBOL_SERVER_PROTOCOL_SCHEMA: &str = "sfm.symbol-server/1";
 pub const SYMBOL_SERVER_HELLO_SCHEMA: &str = "sfm.symbol-server.hello/1";
 pub const SYMBOL_SERVER_DEFINITION_SCHEMA: &str = "sfm.symbol-server.definition/1";
 pub const SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA: &str = "sfm.symbol-server.usage-at-position/1";
+pub const SYMBOL_SERVER_JAVA_INTERACTION_MAP_SCHEMA: &str =
+    "sfm.symbol-server.java-interaction-map/1";
 pub const SYMBOL_SERVER_CANCEL_SCHEMA: &str = "sfm.symbol-server.cancel/1";
 pub const SYMBOL_SERVER_WORKSPACE_GENERATION_SCHEMA: &str =
     "sfm.symbol-server.workspace-generation/1";
@@ -36,11 +40,12 @@ pub enum SymbolServerCapability {
     Ping,
     Shutdown,
     UsageAtPosition,
+    JavaInteractionMap,
 }
 
 impl SymbolServerCapability {
     #[must_use]
-    pub const fn all() -> [Self; 6] {
+    pub const fn all() -> [Self; 7] {
         [
             Self::DefinitionAtPosition,
             Self::Cancellation,
@@ -48,6 +53,7 @@ impl SymbolServerCapability {
             Self::Ping,
             Self::Shutdown,
             Self::UsageAtPosition,
+            Self::JavaInteractionMap,
         ]
     }
 }
@@ -585,6 +591,24 @@ pub struct SymbolServerUsageAtPositionErrorOutput {
 }
 
 #[derive(Facet, Clone, Debug, Eq, PartialEq)]
+pub struct SymbolServerJavaInteractionMapCancelledOutput {
+    pub request_id: u64,
+    pub request_generation: u64,
+    pub workspace_generation: u64,
+    pub reason: String,
+}
+
+#[derive(Facet, Clone, Debug, Eq, PartialEq)]
+pub struct SymbolServerJavaInteractionMapErrorOutput {
+    pub request_id: u64,
+    pub request_generation: u64,
+    pub workspace_generation: u64,
+    pub code: String,
+    pub message: String,
+    pub retryable: bool,
+}
+
+#[derive(Facet, Clone, Debug, Eq, PartialEq)]
 pub struct SymbolServerWorkspaceGenerationOutput {
     pub workspace: SymbolServerWorkspaceOutput,
     pub cancelled_requests: u64,
@@ -622,6 +646,10 @@ pub enum SymbolServerClientFrame {
     UsageAtPosition {
         schema: String,
         request: Box<UsageAtPositionRequest>,
+    },
+    JavaInteractionMap {
+        schema: String,
+        request: Box<JavaInteractionMapRequest>,
     },
     Cancel {
         schema: String,
@@ -665,6 +693,14 @@ impl SymbolServerClientFrame {
     pub fn usage_at_position(request: UsageAtPositionRequest) -> Self {
         Self::UsageAtPosition {
             schema: SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA.to_owned(),
+            request: Box::new(request),
+        }
+    }
+
+    #[must_use]
+    pub fn java_interaction_map(request: JavaInteractionMapRequest) -> Self {
+        Self::JavaInteractionMap {
+            schema: SYMBOL_SERVER_JAVA_INTERACTION_MAP_SCHEMA.to_owned(),
             request: Box::new(request),
         }
     }
@@ -715,6 +751,7 @@ impl SymbolServerClientFrame {
             Self::Hello { schema, .. }
             | Self::Definition { schema, .. }
             | Self::UsageAtPosition { schema, .. }
+            | Self::JavaInteractionMap { schema, .. }
             | Self::Cancel { schema, .. }
             | Self::WorkspaceGeneration { schema, .. }
             | Self::Ping { schema, .. }
@@ -728,6 +765,7 @@ impl SymbolServerClientFrame {
             Self::Hello { .. } => SYMBOL_SERVER_HELLO_SCHEMA,
             Self::Definition { .. } => SYMBOL_SERVER_DEFINITION_SCHEMA,
             Self::UsageAtPosition { .. } => SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA,
+            Self::JavaInteractionMap { .. } => SYMBOL_SERVER_JAVA_INTERACTION_MAP_SCHEMA,
             Self::Cancel { .. } => SYMBOL_SERVER_CANCEL_SCHEMA,
             Self::WorkspaceGeneration { .. } => SYMBOL_SERVER_WORKSPACE_GENERATION_SCHEMA,
             Self::Ping { .. } => SYMBOL_SERVER_PING_SCHEMA,
@@ -784,6 +822,18 @@ pub enum SymbolServerFrame {
         schema: String,
         error: SymbolServerUsageAtPositionErrorOutput,
     },
+    JavaInteractionMapResult {
+        schema: String,
+        result: Box<JavaInteractionMapResult>,
+    },
+    JavaInteractionMapCancelled {
+        schema: String,
+        cancellation: SymbolServerJavaInteractionMapCancelledOutput,
+    },
+    JavaInteractionMapFailed {
+        schema: String,
+        error: SymbolServerJavaInteractionMapErrorOutput,
+    },
     Cancelled {
         schema: String,
         cancellation: SymbolServerCancellationOutput,
@@ -816,6 +866,9 @@ impl SymbolServerFrame {
             | Self::UsageAtPositionResult { schema, .. }
             | Self::UsageAtPositionCancelled { schema, .. }
             | Self::UsageAtPositionFailed { schema, .. }
+            | Self::JavaInteractionMapResult { schema, .. }
+            | Self::JavaInteractionMapCancelled { schema, .. }
+            | Self::JavaInteractionMapFailed { schema, .. }
             | Self::Cancelled { schema, .. }
             | Self::WorkspaceGeneration { schema, .. }
             | Self::Pong { schema, .. }
@@ -834,6 +887,9 @@ impl SymbolServerFrame {
             Self::UsageAtPositionResult { .. }
             | Self::UsageAtPositionCancelled { .. }
             | Self::UsageAtPositionFailed { .. } => SYMBOL_SERVER_USAGE_AT_POSITION_SCHEMA,
+            Self::JavaInteractionMapResult { .. }
+            | Self::JavaInteractionMapCancelled { .. }
+            | Self::JavaInteractionMapFailed { .. } => SYMBOL_SERVER_JAVA_INTERACTION_MAP_SCHEMA,
             Self::Cancelled { .. } => SYMBOL_SERVER_CANCEL_SCHEMA,
             Self::WorkspaceGeneration { .. } => SYMBOL_SERVER_WORKSPACE_GENERATION_SCHEMA,
             Self::Pong { .. } => SYMBOL_SERVER_PING_SCHEMA,
@@ -1204,6 +1260,16 @@ mod tests {
         UsageAtPositionResult::from_definition(definition_result(&request.as_definition_request()))
     }
 
+    fn interaction_map_request() -> JavaInteractionMapRequest {
+        let request = definition_request();
+        JavaInteractionMapRequest::new(
+            request.request_id,
+            request.request_generation,
+            request.workspace,
+            request.document,
+        )
+    }
+
     fn served_workspace(workspace_generation: u64) -> SymbolServerWorkspaceOutput {
         let mut request_workspace = definition_request().workspace;
         request_workspace.workspace_generation = workspace_generation;
@@ -1336,6 +1402,47 @@ mod tests {
     }
 
     #[test]
+    fn java_interaction_map_request_and_terminal_result_round_trip_as_framed_json() {
+        let request = interaction_map_request();
+        let client_frame = SymbolServerClientFrame::java_interaction_map(request.clone());
+        let client_bytes =
+            encode_symbol_server_client_frame(&client_frame, DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES)
+                .expect("Java interaction-map request frame");
+        assert_eq!(
+            read_symbol_server_client_frame(
+                &mut Cursor::new(client_bytes),
+                DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES,
+            )
+            .expect("decode Java interaction-map request"),
+            Some(client_frame)
+        );
+
+        let server_frame = SymbolServerFrame::JavaInteractionMapResult {
+            schema: SYMBOL_SERVER_JAVA_INTERACTION_MAP_SCHEMA.to_owned(),
+            result: Box::new(JavaInteractionMapResult::invalid_request(
+                &request,
+                "fixture interaction-map result",
+            )),
+        };
+        let server_bytes =
+            encode_symbol_server_frame(&server_frame, DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES)
+                .expect("Java interaction-map result frame");
+        assert_eq!(
+            &server_bytes[..4],
+            &((server_bytes.len() - 4) as u32).to_le_bytes()
+        );
+        assert!(server_bytes.len() <= DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES);
+        assert_eq!(
+            read_symbol_server_frame(
+                &mut Cursor::new(server_bytes),
+                DEFAULT_SYMBOL_SERVER_MAX_FRAME_BYTES,
+            )
+            .expect("decode Java interaction-map result"),
+            Some(server_frame)
+        );
+    }
+
+    #[test]
     fn oversized_frame_is_rejected_from_header_before_payload_allocation() {
         let maximum = 32;
         let mut reader = Cursor::new(33_u32.to_le_bytes());
@@ -1429,7 +1536,7 @@ mod tests {
                 max_frame_bytes: 16_777_216,
             }))
             .expect("client hello JSON"),
-            r#"{"kind":"hello","schema":"sfm.symbol-server.hello/1","hello":{"protocol_schema":"sfm.symbol-server/1","client_name":"minecraft","client_version":"1","capabilities":["definition-at-position","cancellation","workspace-generation","ping","shutdown","usage-at-position"],"max_frame_bytes":16777216}}"#
+            r#"{"kind":"hello","schema":"sfm.symbol-server.hello/1","hello":{"protocol_schema":"sfm.symbol-server/1","client_name":"minecraft","client_version":"1","capabilities":["definition-at-position","cancellation","workspace-generation","ping","shutdown","usage-at-position","java-interaction-map"],"max_frame_bytes":16777216}}"#
         );
         assert_eq!(
             facet_json::to_string(&SymbolServerFrame::Hello {
@@ -1445,7 +1552,7 @@ mod tests {
                 },
             })
             .expect("server hello JSON"),
-            r#"{"kind":"hello","schema":"sfm.symbol-server.hello/1","hello":{"protocol_schema":"sfm.symbol-server/1","server_name":"sfm-propagate-changes","server_version":"1","capabilities":["definition-at-position","cancellation","workspace-generation","ping","shutdown","usage-at-position"],"max_frame_bytes":16777216,"max_pending_definitions":8,"workspace":{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":7},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[],"managed_source_roots":[]}}}"#
+            r#"{"kind":"hello","schema":"sfm.symbol-server.hello/1","hello":{"protocol_schema":"sfm.symbol-server/1","server_name":"sfm-propagate-changes","server_version":"1","capabilities":["definition-at-position","cancellation","workspace-generation","ping","shutdown","usage-at-position","java-interaction-map"],"max_frame_bytes":16777216,"max_pending_definitions":8,"workspace":{"request_workspace":{"branch":"1.19.2","classpath_mode":"isolated","source_roots":[{"id":"custom-0","source_set":"custom","path":"source","kind":"custom","exists":true}],"classpath_fingerprint":"blake3:workspace","workspace_fingerprint":"blake3:0000000000000000000000000000000000000000000000000000000000000000","workspace_generation":7},"roots":[{"canonical_absolute_path":"C:/workspace/source","root_id":"custom-0","source_set":"custom","report_root_path":"source"}],"dependency_source_roots":[],"managed_source_roots":[]}}}"#
         );
     }
 

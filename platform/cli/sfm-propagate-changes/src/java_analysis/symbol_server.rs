@@ -1,10 +1,14 @@
 use super::DEFINITION_AT_POSITION_RESULT_SCHEMA;
 use super::DefinitionAtPositionRequest;
 use super::DefinitionAtPositionResult;
+use super::JAVA_INTERACTION_MAP_SCHEMA;
+use super::JavaInteractionMapRequest;
+use super::JavaInteractionMapResult;
 use super::SYMBOL_SERVER_CANCEL_SCHEMA;
 use super::SYMBOL_SERVER_DEFINITION_SCHEMA;
 use super::SYMBOL_SERVER_ERROR_SCHEMA;
 use super::SYMBOL_SERVER_HELLO_SCHEMA;
+use super::SYMBOL_SERVER_JAVA_INTERACTION_MAP_SCHEMA;
 use super::SYMBOL_SERVER_PING_SCHEMA;
 use super::SYMBOL_SERVER_PROTOCOL_SCHEMA;
 use super::SYMBOL_SERVER_SHUTDOWN_SCHEMA;
@@ -20,6 +24,8 @@ use super::SymbolServerErrorDisposition;
 use super::SymbolServerErrorOutput;
 use super::SymbolServerFrame;
 use super::SymbolServerHelloOutput;
+use super::SymbolServerJavaInteractionMapCancelledOutput;
+use super::SymbolServerJavaInteractionMapErrorOutput;
 use super::SymbolServerUsageAtPositionCancelledOutput;
 use super::SymbolServerUsageAtPositionErrorOutput;
 use super::SymbolServerWorkspaceGenerationOutput;
@@ -33,6 +39,7 @@ use std::fmt;
 
 pub const DEFAULT_SYMBOL_SERVER_MAX_PENDING_DEFINITIONS: usize = 8;
 pub const DEFAULT_SYMBOL_SERVER_MAX_PRE_CANCELLED_REQUESTS: usize = 32;
+const JAVA_INTERACTION_MAP_FRAME_ENVELOPE_RESERVE_BYTES: usize = 512;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SymbolServerLimits {
@@ -92,10 +99,21 @@ impl From<&UsageAtPositionRequest> for SymbolServerRequestKey {
     }
 }
 
+impl From<&JavaInteractionMapRequest> for SymbolServerRequestKey {
+    fn from(request: &JavaInteractionMapRequest) -> Self {
+        Self {
+            request_id: request.request_id,
+            request_generation: request.request_generation,
+            workspace_generation: request.workspace.workspace_generation,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SymbolServerRequestKind {
     Definition,
     UsageAtPosition,
+    JavaInteractionMap,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -125,6 +143,10 @@ pub enum SymbolServerEffect {
     },
     StartUsageAtPosition {
         request: Box<UsageAtPositionRequest>,
+        cancellation_token: CancellationToken,
+    },
+    StartJavaInteractionMap {
+        request: Box<JavaInteractionMapRequest>,
         cancellation_token: CancellationToken,
     },
 }
@@ -305,6 +327,9 @@ impl SymbolServerState {
                 SymbolServerClientFrame::UsageAtPosition { request, .. } => {
                     self.handle_usage_at_position(*request)
                 }
+                SymbolServerClientFrame::JavaInteractionMap { request, .. } => {
+                    self.handle_java_interaction_map(*request)
+                }
                 SymbolServerClientFrame::Cancel {
                     request_id,
                     request_generation,
@@ -477,6 +502,61 @@ impl SymbolServerState {
                     ));
                 }
                 Err(error) => effects.push(Self::usage_at_position_error_effect(
+                    key,
+                    error.code,
+                    error.message,
+                    error.retryable,
+                )),
+            }
+        }
+        effects.extend(self.finish_drain_if_ready());
+        effects
+    }
+
+    /// Finish a previously emitted Java interaction-map effect.
+    ///
+    /// Late completions after cancellation are consumed without a second
+    /// terminal response.
+    #[must_use]
+    pub fn finish_java_interaction_map(
+        &mut self,
+        key: SymbolServerRequestKey,
+        completion: Result<JavaInteractionMapResult, SymbolServerEngineError>,
+    ) -> Vec<SymbolServerEffect> {
+        let Some(pending) = self.pending.remove(&key.request_id) else {
+            return Vec::new();
+        };
+        if pending.key != key || pending.kind != SymbolServerRequestKind::JavaInteractionMap {
+            self.pending.insert(pending.key.request_id, pending);
+            return self.fatal_protocol_error(
+                "engine-completion-key-mismatch",
+                "Java interaction-map engine completion identity did not match its pending request",
+            );
+        }
+        let mut effects = Vec::new();
+        if !pending.terminal_sent {
+            match completion {
+                Ok(result) if java_interaction_map_result_matches_key(&result, key) => {
+                    effects.push(SymbolServerEffect::send(
+                        SymbolServerFrame::JavaInteractionMapResult {
+                            schema: SYMBOL_SERVER_JAVA_INTERACTION_MAP_SCHEMA.to_owned(),
+                            result: Box::new(result),
+                        },
+                    ));
+                }
+                Ok(_) => {
+                    effects.push(Self::java_interaction_map_error_effect(
+                        key,
+                        "engine-result-identity-mismatch",
+                        "Java interaction-map engine returned a result for a different request",
+                        false,
+                    ));
+                    effects.extend(self.fatal_protocol_error(
+                        "engine-result-identity-mismatch",
+                        "Java interaction-map engine returned a result for a different request",
+                    ));
+                }
+                Err(error) => effects.push(Self::java_interaction_map_error_effect(
                     key,
                     error.code,
                     error.message,
@@ -671,6 +751,92 @@ impl SymbolServerState {
         effects
     }
 
+    fn handle_java_interaction_map(
+        &mut self,
+        mut request: JavaInteractionMapRequest,
+    ) -> Vec<SymbolServerEffect> {
+        let key = SymbolServerRequestKey::from(&request);
+        if !self
+            .negotiated_capabilities
+            .contains(&SymbolServerCapability::JavaInteractionMap)
+        {
+            return vec![Self::java_interaction_map_error_effect(
+                key,
+                "capability-not-negotiated",
+                "Java interaction-map was not negotiated during the symbol-server handshake",
+                false,
+            )];
+        }
+        if let Some(rejection) = self.request_identity_rejection(
+            key,
+            &request.workspace,
+            request.validate(),
+            SymbolServerRequestKind::JavaInteractionMap,
+        ) {
+            return vec![rejection];
+        }
+
+        let payload_budget = self
+            .negotiated_max_frame_bytes
+            .saturating_sub(JAVA_INTERACTION_MAP_FRAME_ENVELOPE_RESERVE_BYTES);
+        if payload_budget == 0 {
+            return vec![Self::java_interaction_map_error_effect(
+                key,
+                "frame-budget-too-small",
+                "Negotiated symbol-server frame size cannot contain a Java interaction-map envelope",
+                false,
+            )];
+        }
+        request.window.max_encoded_bytes = request
+            .window
+            .max_encoded_bytes
+            .min(u64::try_from(payload_budget).unwrap_or(u64::MAX));
+
+        let mut effects = Vec::new();
+        if let Some(pre_cancelled) = self.pre_cancelled.remove(&key.request_id) {
+            if pre_cancelled.key == key {
+                effects.push(Self::java_interaction_map_cancelled_effect(
+                    key,
+                    pre_cancelled.reason,
+                ));
+            } else {
+                effects.push(Self::java_interaction_map_error_effect(
+                    key,
+                    "stale-cancellation-generation",
+                    "a pre-request cancellation used a different request or workspace generation",
+                    false,
+                ));
+            }
+            return effects;
+        }
+
+        if self.pending.len() >= self.limits.max_pending_definitions {
+            effects.push(Self::java_interaction_map_error_effect(
+                key,
+                "server-busy",
+                "symbol-server pending request limit is reached",
+                true,
+            ));
+            return effects;
+        }
+
+        let cancellation_token = self.parent_cancellation_token.child_token();
+        self.pending.insert(
+            key.request_id,
+            PendingRequest {
+                key,
+                kind: SymbolServerRequestKind::JavaInteractionMap,
+                cancellation_token: cancellation_token.clone(),
+                terminal_sent: false,
+            },
+        );
+        effects.push(SymbolServerEffect::StartJavaInteractionMap {
+            request: Box::new(request),
+            cancellation_token,
+        });
+        effects
+    }
+
     fn request_identity_rejection(
         &mut self,
         key: SymbolServerRequestKey,
@@ -681,6 +847,7 @@ impl SymbolServerState {
         let request_label = match kind {
             SymbolServerRequestKind::Definition => "definition",
             SymbolServerRequestKind::UsageAtPosition => "usage-at-position",
+            SymbolServerRequestKind::JavaInteractionMap => "java-interaction-map",
         };
         if key.request_id == 0 {
             return Some(Self::protocol_error_effect(
@@ -773,6 +940,9 @@ impl SymbolServerState {
                     }
                     SymbolServerRequestKind::UsageAtPosition => {
                         "usage-at-position request cancelled by client".to_owned()
+                    }
+                    SymbolServerRequestKind::JavaInteractionMap => {
+                        "Java interaction-map request cancelled by client".to_owned()
                     }
                 }
             } else {
@@ -997,6 +1167,25 @@ impl SymbolServerState {
         })
     }
 
+    fn java_interaction_map_error_effect(
+        key: SymbolServerRequestKey,
+        code: impl Into<String>,
+        message: impl Into<String>,
+        retryable: bool,
+    ) -> SymbolServerEffect {
+        SymbolServerEffect::send(SymbolServerFrame::JavaInteractionMapFailed {
+            schema: SYMBOL_SERVER_JAVA_INTERACTION_MAP_SCHEMA.to_owned(),
+            error: SymbolServerJavaInteractionMapErrorOutput {
+                request_id: key.request_id,
+                request_generation: key.request_generation,
+                workspace_generation: key.workspace_generation,
+                code: code.into(),
+                message: message.into(),
+                retryable,
+            },
+        })
+    }
+
     fn request_error_effect(
         kind: SymbolServerRequestKind,
         key: SymbolServerRequestKey,
@@ -1012,6 +1201,9 @@ impl SymbolServerState {
             }
             SymbolServerRequestKind::UsageAtPosition => {
                 Self::usage_at_position_error_effect(key, code, message, retryable)
+            }
+            SymbolServerRequestKind::JavaInteractionMap => {
+                Self::java_interaction_map_error_effect(key, code, message, retryable)
             }
         }
     }
@@ -1046,6 +1238,21 @@ impl SymbolServerState {
         })
     }
 
+    fn java_interaction_map_cancelled_effect(
+        key: SymbolServerRequestKey,
+        reason: impl Into<String>,
+    ) -> SymbolServerEffect {
+        SymbolServerEffect::send(SymbolServerFrame::JavaInteractionMapCancelled {
+            schema: SYMBOL_SERVER_JAVA_INTERACTION_MAP_SCHEMA.to_owned(),
+            cancellation: SymbolServerJavaInteractionMapCancelledOutput {
+                request_id: key.request_id,
+                request_generation: key.request_generation,
+                workspace_generation: key.workspace_generation,
+                reason: reason.into(),
+            },
+        })
+    }
+
     fn request_cancelled_effect(
         kind: SymbolServerRequestKind,
         key: SymbolServerRequestKey,
@@ -1056,6 +1263,9 @@ impl SymbolServerState {
             SymbolServerRequestKind::Definition => Self::definition_cancelled_effect(key, reason),
             SymbolServerRequestKind::UsageAtPosition => {
                 Self::usage_at_position_cancelled_effect(key, reason)
+            }
+            SymbolServerRequestKind::JavaInteractionMap => {
+                Self::java_interaction_map_cancelled_effect(key, reason)
             }
         }
     }
@@ -1101,6 +1311,16 @@ fn usage_at_position_result_matches_key(
     key: SymbolServerRequestKey,
 ) -> bool {
     result.schema == USAGE_AT_POSITION_RESULT_SCHEMA
+        && result.request_id == key.request_id
+        && result.request_generation == key.request_generation
+        && result.workspace_generation == key.workspace_generation
+}
+
+fn java_interaction_map_result_matches_key(
+    result: &JavaInteractionMapResult,
+    key: SymbolServerRequestKey,
+) -> bool {
+    result.schema == JAVA_INTERACTION_MAP_SCHEMA
         && result.request_id == key.request_id
         && result.request_generation == key.request_generation
         && result.workspace_generation == key.workspace_generation
@@ -1258,6 +1478,24 @@ mod tests {
         UsageAtPositionResult::from_definition(result(&request.as_definition_request()))
     }
 
+    fn interaction_map_request(
+        request_id: u64,
+        request_generation: u64,
+        workspace_generation: u64,
+    ) -> JavaInteractionMapRequest {
+        let request = request(request_id, request_generation, workspace_generation);
+        JavaInteractionMapRequest::new(
+            request.request_id,
+            request.request_generation,
+            request.workspace,
+            request.document,
+        )
+    }
+
+    fn interaction_map_result(request: &JavaInteractionMapRequest) -> JavaInteractionMapResult {
+        JavaInteractionMapResult::invalid_request(request, "fixture interaction map")
+    }
+
     fn handshake(state: &mut SymbolServerState, workspace_generation: u64) {
         let effects = state.handle_frame(hello());
         assert_eq!(effects.len(), 1);
@@ -1289,7 +1527,9 @@ mod tests {
                 request,
                 cancellation_token,
             } => Some((request.as_ref().clone(), cancellation_token.clone())),
-            SymbolServerEffect::Send(_) | SymbolServerEffect::StartUsageAtPosition { .. } => None,
+            SymbolServerEffect::Send(_)
+            | SymbolServerEffect::StartUsageAtPosition { .. }
+            | SymbolServerEffect::StartJavaInteractionMap { .. } => None,
         })
     }
 
@@ -1301,7 +1541,23 @@ mod tests {
                 request,
                 cancellation_token,
             } => Some((request.as_ref().clone(), cancellation_token.clone())),
-            SymbolServerEffect::Send(_) | SymbolServerEffect::StartDefinition { .. } => None,
+            SymbolServerEffect::Send(_)
+            | SymbolServerEffect::StartDefinition { .. }
+            | SymbolServerEffect::StartJavaInteractionMap { .. } => None,
+        })
+    }
+
+    fn started_interaction_map(
+        effects: &[SymbolServerEffect],
+    ) -> Option<(JavaInteractionMapRequest, CancellationToken)> {
+        effects.iter().find_map(|effect| match effect {
+            SymbolServerEffect::StartJavaInteractionMap {
+                request,
+                cancellation_token,
+            } => Some((request.as_ref().clone(), cancellation_token.clone())),
+            SymbolServerEffect::Send(_)
+            | SymbolServerEffect::StartDefinition { .. }
+            | SymbolServerEffect::StartUsageAtPosition { .. } => None,
         })
     }
 
@@ -1309,7 +1565,8 @@ mod tests {
         match effect {
             SymbolServerEffect::Send(frame) => Some(frame.as_ref()),
             SymbolServerEffect::StartDefinition { .. }
-            | SymbolServerEffect::StartUsageAtPosition { .. } => None,
+            | SymbolServerEffect::StartUsageAtPosition { .. }
+            | SymbolServerEffect::StartJavaInteractionMap { .. } => None,
         }
     }
 
@@ -1333,6 +1590,15 @@ mod tests {
                     cancellation.request_id == request_id
                 }
                 Some(SymbolServerFrame::UsageAtPositionFailed { error, .. }) => {
+                    error.request_id == request_id
+                }
+                Some(SymbolServerFrame::JavaInteractionMapResult { result, .. }) => {
+                    result.request_id == request_id
+                }
+                Some(SymbolServerFrame::JavaInteractionMapCancelled { cancellation, .. }) => {
+                    cancellation.request_id == request_id
+                }
+                Some(SymbolServerFrame::JavaInteractionMapFailed { error, .. }) => {
                     error.request_id == request_id
                 }
                 _ => false,
@@ -1490,6 +1756,118 @@ mod tests {
                 if result.request_id == 1
         ));
         assert_eq!(state.pending_request_count(), 0);
+    }
+
+    #[test]
+    fn java_interaction_map_uses_shared_bounds_and_generation_tagged_terminal() {
+        let mut state = state(1);
+        handshake(&mut state, 7);
+        let map_request = interaction_map_request(1, 4, 7);
+        let key = SymbolServerRequestKey::from(&map_request);
+
+        let effects = state.handle_frame(SymbolServerClientFrame::java_interaction_map(
+            map_request.clone(),
+        ));
+        let (started_request, _) = started_interaction_map(&effects).expect("map start effect");
+        assert_eq!(started_request.request_id, map_request.request_id);
+        assert_eq!(
+            started_request.request_generation,
+            map_request.request_generation
+        );
+        assert_eq!(started_request.workspace, map_request.workspace);
+        assert_eq!(started_request.document, map_request.document);
+        assert_eq!(
+            started_request.window.max_encoded_bytes,
+            4096 - JAVA_INTERACTION_MAP_FRAME_ENVELOPE_RESERVE_BYTES as u64
+        );
+        assert_eq!(state.pending_request_count(), 1);
+
+        let busy = state.handle_frame(SymbolServerClientFrame::definition(request(2, 4, 7)));
+        assert!(matches!(
+            busy.first().and_then(sent_frame),
+            Some(SymbolServerFrame::DefinitionFailed {
+                error: SymbolServerDefinitionErrorOutput { code, .. },
+                ..
+            }) if code == "server-busy"
+        ));
+
+        let completed =
+            state.finish_java_interaction_map(key, Ok(interaction_map_result(&map_request)));
+        assert!(matches!(
+            completed.first().and_then(sent_frame),
+            Some(SymbolServerFrame::JavaInteractionMapResult { result, .. })
+                if result.request_id == 1
+                    && result.request_generation == 4
+                    && result.workspace_generation == 7
+        ));
+        assert_eq!(terminal_count(&completed, 1), 1);
+        assert_eq!(state.pending_request_count(), 0);
+    }
+
+    #[test]
+    fn java_interaction_map_requires_capability_negotiation() {
+        let mut state = state(1);
+        let effects = state.handle_frame(SymbolServerClientFrame::hello(
+            super::super::SymbolServerClientHello {
+                protocol_schema: SYMBOL_SERVER_PROTOCOL_SCHEMA.to_owned(),
+                client_name: "pre-map-client".to_owned(),
+                client_version: "1".to_owned(),
+                capabilities: vec![
+                    SymbolServerCapability::DefinitionAtPosition,
+                    SymbolServerCapability::Cancellation,
+                    SymbolServerCapability::WorkspaceGeneration,
+                    SymbolServerCapability::Ping,
+                    SymbolServerCapability::Shutdown,
+                ],
+                max_frame_bytes: 4096,
+            },
+        ));
+        assert!(matches!(
+            effects.first().and_then(sent_frame),
+            Some(SymbolServerFrame::Hello {
+                hello: SymbolServerHelloOutput { capabilities, .. },
+                ..
+            }) if !capabilities.contains(&SymbolServerCapability::JavaInteractionMap)
+        ));
+
+        let rejected = state.handle_frame(SymbolServerClientFrame::java_interaction_map(
+            interaction_map_request(1, 1, 7),
+        ));
+        assert!(started_interaction_map(&rejected).is_none());
+        assert!(matches!(
+            rejected.first().and_then(sent_frame),
+            Some(SymbolServerFrame::JavaInteractionMapFailed {
+                error: SymbolServerJavaInteractionMapErrorOutput { code, .. },
+                ..
+            }) if code == "capability-not-negotiated"
+        ));
+    }
+
+    #[test]
+    fn java_interaction_map_cancellation_is_terminal_and_suppresses_late_generation() {
+        let mut state = state(1);
+        handshake(&mut state, 7);
+        let request = interaction_map_request(1, 3, 7);
+        let key = SymbolServerRequestKey::from(&request);
+        let (_, token) = started_interaction_map(&state.handle_frame(
+            SymbolServerClientFrame::java_interaction_map(request.clone()),
+        ))
+        .expect("map start effect");
+
+        let cancelled =
+            state.handle_frame(SymbolServerClientFrame::cancel(1, 3, 7, "document changed"));
+        let late = state.finish_java_interaction_map(key, Ok(interaction_map_result(&request)));
+
+        assert!(token.is_cancelled());
+        assert!(cancelled.iter().any(|effect| matches!(
+            sent_frame(effect),
+            Some(SymbolServerFrame::JavaInteractionMapCancelled { cancellation, .. })
+                if cancellation.request_id == 1
+                    && cancellation.request_generation == 3
+                    && cancellation.workspace_generation == 7
+        )));
+        assert_eq!(terminal_count(&cancelled, 1), 1);
+        assert_eq!(terminal_count(&late, 1), 0);
     }
 
     #[test]

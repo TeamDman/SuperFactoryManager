@@ -62,6 +62,12 @@ pub(crate) struct JdkSourceDomain {
     inventory: BTreeMap<String, Vec<String>>,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct JdkSourceReportIdentity {
+    pub(crate) root_id: String,
+    pub(crate) root_relative_path: String,
+}
+
 impl JdkSourceDomainState {
     pub(crate) fn resolve(
         java_release: &str,
@@ -133,6 +139,17 @@ impl JdkSourceDomainState {
         if let Self::Ready(domain) = self {
             domain.enrich_span(span);
         }
+    }
+
+    pub(crate) fn report_identity(
+        &self,
+        report_path: &str,
+        source_set: &str,
+    ) -> Option<JdkSourceReportIdentity> {
+        let Self::Ready(domain) = self else {
+            return None;
+        };
+        domain.report_identity(report_path, source_set)
     }
 
     pub(crate) fn syntax_files_for_project(
@@ -425,6 +442,26 @@ impl JdkSourceDomain {
         relative.clone_into(&mut span.root_relative_path);
         span.address = super::contributed_address("jdk-source", &self.root_id, relative);
         span.source_sha256 = Some(sha256_content_hash(&source));
+    }
+
+    fn report_identity(
+        &self,
+        report_path: &str,
+        source_set: &str,
+    ) -> Option<JdkSourceReportIdentity> {
+        if source_set != self.source_set {
+            return None;
+        }
+        let relative = report_path
+            .strip_prefix(self.report_prefix.trim_end_matches('/'))?
+            .strip_prefix('/')?;
+        if relative.is_empty() || relative.split('/').any(str::is_empty) {
+            return None;
+        }
+        Some(JdkSourceReportIdentity {
+            root_id: self.root_id.clone(),
+            root_relative_path: relative.to_owned(),
+        })
     }
 }
 
