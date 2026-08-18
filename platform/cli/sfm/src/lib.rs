@@ -4,6 +4,7 @@ pub mod discovery;
 pub mod explorer;
 pub mod output;
 pub mod protocol;
+pub mod spatial;
 
 use crate::cli::Cli;
 

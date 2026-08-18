@@ -197,11 +197,13 @@ mod tests {
         SfmControlExplorerTargetResult, SfmControlLifecycle, SfmControlPingResult,
         SfmGameInstanceDescriptor,
     };
+    use crate::spatial::{SpatialCoverageRunInput, SpatialCoverageScope};
     use std::sync::{Arc, Mutex};
 
     #[derive(Clone)]
     struct FakeControl {
         captured: Arc<Mutex<Option<SfmControlExplorerOperationRequest>>>,
+        captured_action: Arc<Mutex<Option<SfmControlInvokeClientActionRequest>>>,
     }
 
     impl SfmControl for FakeControl {
@@ -229,6 +231,7 @@ mod tests {
             &self,
             request: SfmControlInvokeClientActionRequest,
         ) -> Result<SfmControlInvokeClientActionResult, SfmControlError> {
+            *self.captured_action.lock().expect("capture lock") = Some(request.clone());
             Ok(SfmControlInvokeClientActionResult {
                 instance_id: "instance-test".to_owned(),
                 process_id: 42,
@@ -314,24 +317,66 @@ mod tests {
             current_screen: "SFMWorkspaceScreen".to_owned(),
             world_present: false,
             world_label: String::new(),
-            capabilities: vec![EXPLORER_CONTROL_CAPABILITY.to_owned()],
+            capabilities: vec![
+                EXPLORER_CONTROL_CAPABILITY.to_owned(),
+                "client-action.invoke".to_owned(),
+            ],
             request_id,
         }
     }
 
+    async fn assert_spatial_coverage_round_trip(
+        live: &LiveInstance,
+        captured_action: &Arc<Mutex<Option<SfmControlInvokeClientActionRequest>>>,
+    ) {
+        let coverage_tokens = SpatialCoverageRunInput {
+            scope: SpatialCoverageScope::Workspace,
+            selector: "focused".to_owned(),
+            profile: "sfm:strict_java_navigation".to_owned(),
+            layout_matrix: "sfm:auto_1_through_8".to_owned(),
+            seed: 7,
+            budget: 100_000,
+            artifact_destination: "auto".to_owned(),
+        }
+        .action_tokens()
+        .expect("coverage action tokens");
+        let action_result = invoke_client_action(live, coverage_tokens.clone())
+            .await
+            .expect("generic client-action round trip");
+        let captured_action = captured_action
+            .lock()
+            .expect("capture lock")
+            .clone()
+            .expect("captured client action");
+        assert_eq!(captured_action.action_tokens, coverage_tokens);
+        assert_eq!(
+            captured_action.action_tokens.first().map(String::as_str),
+            Some("sfm:spatial/coverage/run")
+        );
+        assert_eq!(
+            action_result.canonical_action,
+            "sfm:spatial/coverage/run workspace focused sfm:strict_java_navigation sfm:auto_1_through_8 7 100000 auto"
+        );
+    }
+
     #[tokio::test]
-    async fn fake_vox_round_trip_preserves_canonical_explorer_contract() {
+    async fn fake_vox_round_trip_preserves_canonical_control_contracts() {
         let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
             .await
             .expect("bind fake game");
         let address = listener.local_addr().expect("fake game address");
         let captured = Arc::new(Mutex::new(None));
+        let captured_action = Arc::new(Mutex::new(None));
         let server = {
             let captured = Arc::clone(&captured);
+            let captured_action = Arc::clone(&captured_action);
             tokio::spawn(async move {
                 vox::serve_listener(
                     listener,
-                    SfmControlDispatcher::new(FakeControl { captured }),
+                    SfmControlDispatcher::new(FakeControl {
+                        captured,
+                        captured_action,
+                    }),
                 )
                 .await
                 .expect("serve fake game");
@@ -411,6 +456,8 @@ mod tests {
         assert_eq!(captured_node.canonical_path, "registry://minecraft/item/");
         assert!(captured_node.setting_value.is_empty());
         assert_eq!(captured_node.if_no_match, SfmControlExplorerIfNoMatch::Fail);
+
+        assert_spatial_coverage_round_trip(&live, &captured_action).await;
         server.abort();
     }
 }

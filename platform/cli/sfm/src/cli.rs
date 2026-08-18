@@ -10,6 +10,10 @@ use crate::protocol::{
     SfmControlExplorerOperationStatus, SfmControlExplorerTargetResult, validate_action_tokens,
     validate_explorer_projection_id,
 };
+use crate::spatial::{
+    SPATIAL_COVERAGE_RUN_OUTPUT_SCHEMA, SPATIAL_COVERAGE_RUN_OUTPUT_SCHEMA_VERSION,
+    SpatialCoverageRunInput, SpatialCoverageScope,
+};
 use facet::Facet;
 use figue::{self as args, FigueBuiltins};
 use std::path::Path;
@@ -37,6 +41,8 @@ pub enum Command {
     Instance(InstanceArgs),
     /// Query and mutate generic explorer sessions in a selected game.
     Explorer(ExplorerArgs),
+    /// Run spatial analysis and coverage operations in a selected game.
+    Spatial(SpatialArgs),
     /// Invoke one registered SFM client action in a selected game.
     Invoke(InvokeArgs),
 }
@@ -46,6 +52,7 @@ impl Command {
         match self {
             Self::Instance(args) => args.invoke().await,
             Self::Explorer(args) => args.invoke().await,
+            Self::Spatial(args) => args.invoke().await,
             Self::Invoke(args) => args.invoke().await,
         }
     }
@@ -633,6 +640,133 @@ fn canonicalize_cli_path(value: &str) -> eyre::Result<String> {
 }
 
 #[derive(Debug, Facet)]
+pub struct SpatialArgs {
+    #[facet(args::subcommand)]
+    pub command: SpatialCommand,
+}
+
+impl SpatialArgs {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        self.command.invoke().await
+    }
+}
+
+#[derive(Debug, Facet)]
+#[repr(u8)]
+pub enum SpatialCommand {
+    /// Run canvas-owned spatial coverage in a selected live game.
+    Coverage(SpatialCoverageArgs),
+}
+
+impl SpatialCommand {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        match self {
+            Self::Coverage(args) => args.invoke().await,
+        }
+    }
+}
+
+#[derive(Debug, Facet)]
+pub struct SpatialCoverageArgs {
+    #[facet(args::subcommand)]
+    pub command: SpatialCoverageCommand,
+}
+
+impl SpatialCoverageArgs {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        self.command.invoke().await
+    }
+}
+
+#[derive(Debug, Facet)]
+#[repr(u8)]
+pub enum SpatialCoverageCommand {
+    /// Produce document or workspace spatial-coverage evidence and artifacts.
+    Run(SpatialCoverageRunArgs),
+}
+
+impl SpatialCoverageCommand {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        match self {
+            Self::Run(args) => args.invoke().await,
+        }
+    }
+}
+
+#[derive(Debug, Facet)]
+pub struct SpatialCoverageRunArgs {
+    /// Coverage scope: `document` or `workspace`.
+    #[facet(args::positional)]
+    pub scope: SpatialCoverageScope,
+    /// Resolver-owned selector captured by the game, such as `focused`.
+    #[facet(args::positional)]
+    pub selector: String,
+    /// Namespaced coverage profile, such as `sfm:strict_java_navigation`.
+    #[facet(args::positional)]
+    pub profile: String,
+    /// Namespaced layout matrix, such as `sfm:auto_1_through_8`.
+    #[facet(args::positional)]
+    pub layout_matrix: String,
+    /// Non-negative deterministic sampling seed.
+    #[facet(args::positional)]
+    pub seed: i64,
+    /// Positive maximum semantic-query count.
+    #[facet(args::positional)]
+    pub budget: i64,
+    /// `auto` or an explicit game-authorized artifact destination.
+    #[facet(args::positional)]
+    pub artifact_destination: String,
+    #[facet(default, flatten)]
+    pub target: TargetArgs,
+}
+
+impl SpatialCoverageRunArgs {
+    fn input(&self) -> SpatialCoverageRunInput {
+        SpatialCoverageRunInput {
+            scope: self.scope,
+            selector: self.selector.clone(),
+            profile: self.profile.clone(),
+            layout_matrix: self.layout_matrix.clone(),
+            seed: self.seed,
+            budget: self.budget,
+            artifact_destination: self.artifact_destination.clone(),
+        }
+    }
+
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        let input = self.input();
+        let action_tokens = input.action_tokens()?;
+        let snapshot = discover_instances().await?;
+        let selected = select_instance(
+            &snapshot,
+            self.target.instance_pid,
+            self.target.instance_id.as_deref(),
+        )?;
+        let result = invoke_client_action(&selected, action_tokens.clone()).await?;
+        let artifact_destination = input.artifact_destination.clone();
+        Ok(CliOutput::facet(SpatialCoverageRunOutput {
+            schema: SPATIAL_COVERAGE_RUN_OUTPUT_SCHEMA.to_owned(),
+            schema_version: SPATIAL_COVERAGE_RUN_OUTPUT_SCHEMA_VERSION,
+            arguments: input,
+            action_tokens,
+            artifact_destination,
+            invocation: SpatialCoverageInvocationOutput {
+                instance_id: result.instance_id,
+                process_id: result.process_id,
+                request_id: result.request_id,
+                canonical_action: result.canonical_action,
+                result_code: result.result_code,
+                feedback: result.feedback,
+                resulting_screen_present: result.resulting_screen_present,
+                resulting_screen: result.resulting_screen,
+                workspace_present: result.workspace_present,
+                workspace_panel_count: result.workspace_panel_count,
+            },
+        }))
+    }
+}
+
+#[derive(Debug, Facet)]
 pub struct InvokeArgs {
     /// Registered SFM client action id followed by its action arguments.
     #[facet(args::positional)]
@@ -691,6 +825,31 @@ struct InstanceListOutput {
 #[derive(Debug, Facet)]
 struct InvokeOutput {
     schema: String,
+    instance_id: String,
+    process_id: u32,
+    request_id: String,
+    canonical_action: String,
+    result_code: i32,
+    feedback: Vec<String>,
+    resulting_screen_present: bool,
+    resulting_screen: String,
+    workspace_present: bool,
+    workspace_panel_count: u32,
+}
+
+#[derive(Debug, Facet)]
+struct SpatialCoverageRunOutput {
+    schema: String,
+    schema_version: u16,
+    arguments: SpatialCoverageRunInput,
+    action_tokens: Vec<String>,
+    artifact_destination: String,
+    invocation: SpatialCoverageInvocationOutput,
+}
+
+#[derive(Debug, Facet)]
+#[allow(clippy::struct_excessive_bools)]
+struct SpatialCoverageInvocationOutput {
     instance_id: String,
     process_id: u32,
     request_id: String,
@@ -883,6 +1042,120 @@ mod tests {
                 .iter()
                 .any(|argument| argument == "text with spaces")
         );
+    }
+
+    #[test]
+    fn parses_canonical_spatial_coverage_run_with_instance_target() {
+        let parsed = parse(&[
+            "spatial",
+            "coverage",
+            "run",
+            "document",
+            "focused",
+            "sfm:strict_java_navigation",
+            "sfm:auto_1_through_8",
+            "0",
+            "100000",
+            "auto",
+            "--instance-id",
+            "game-7",
+        ]);
+        let Command::Spatial(SpatialArgs {
+            command:
+                SpatialCommand::Coverage(SpatialCoverageArgs {
+                    command: SpatialCoverageCommand::Run(run),
+                }),
+        }) = parsed.command
+        else {
+            panic!("expected spatial coverage run command");
+        };
+        assert_eq!(run.scope, SpatialCoverageScope::Document);
+        assert_eq!(run.selector, "focused");
+        assert_eq!(run.profile, "sfm:strict_java_navigation");
+        assert_eq!(run.layout_matrix, "sfm:auto_1_through_8");
+        assert_eq!(run.seed, 0);
+        assert_eq!(run.budget, 100_000);
+        assert_eq!(run.artifact_destination, "auto");
+        assert_eq!(run.target.instance_id.as_deref(), Some("game-7"));
+        assert_eq!(
+            run.input().action_tokens().expect("canonical tokens"),
+            [
+                "sfm:spatial/coverage/run",
+                "document",
+                "focused",
+                "sfm:strict_java_navigation",
+                "sfm:auto_1_through_8",
+                "0",
+                "100000",
+                "auto",
+            ]
+        );
+    }
+
+    #[test]
+    fn spatial_coverage_to_args_retains_full_hierarchy_and_target() {
+        let parsed = parse(&[
+            "spatial",
+            "coverage",
+            "run",
+            "workspace",
+            "focused",
+            "sfm:classification",
+            "sfm:auto_1_through_8",
+            "17",
+            "2500",
+            "artifact://requested",
+            "--instance-pid",
+            "1234",
+        ]);
+        let rendered = parsed
+            .to_args()
+            .expect("canonical arguments")
+            .iter()
+            .map(|argument| argument.to_string_lossy().into_owned())
+            .collect::<Vec<_>>();
+        assert!(
+            rendered
+                .windows(3)
+                .any(|arguments| arguments == ["spatial", "coverage", "run"])
+        );
+        assert!(
+            rendered
+                .windows(2)
+                .any(|arguments| arguments == ["--instance-pid", "1234"])
+        );
+        assert!(rendered.iter().any(|argument| argument == "workspace"));
+        assert!(
+            rendered
+                .iter()
+                .any(|argument| argument == "artifact://requested")
+        );
+    }
+
+    #[test]
+    fn spatial_coverage_has_no_short_or_flat_aliases() {
+        parse_fails(&[
+            "coverage",
+            "run",
+            "document",
+            "focused",
+            "sfm:classification",
+            "sfm:auto_1_through_8",
+            "0",
+            "1",
+            "auto",
+        ]);
+        parse_fails(&[
+            "spatial",
+            "run",
+            "document",
+            "focused",
+            "sfm:classification",
+            "sfm:auto_1_through_8",
+            "0",
+            "1",
+            "auto",
+        ]);
     }
 
     #[test]
