@@ -12,6 +12,12 @@ import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPreviewPlacement;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
+import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
+import ca.teamdman.sfm.client.semantic.SFMSpatialCoverageArtifacts;
+import ca.teamdman.sfm.client.semantic.SFMSpatialCoverageService;
+import ca.teamdman.sfm.client.semantic.SFMSpatialSamplingPolicies;
+import ca.teamdman.sfm.client.semantic.SFMSpatialSemanticContract;
+import ca.teamdman.sfm.client.semantic.SFMSpatialSemanticJsonCodec;
 import ca.teamdman.sfm.client.symbol.SFMDefinitionLookupService;
 import ca.teamdman.sfm.client.symbol.SFMDefinitionResult;
 import ca.teamdman.sfm.client.symbol.SFMReferenceLookupService;
@@ -30,6 +36,7 @@ import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetRenderHarness;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -63,6 +70,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private static final int WARM_INTERACTION_KINDS = 6;
     private static final int WARM_MEASUREMENT_CYCLES = 5;
     private static final int WARM_INTERACTION_COUNT = WARM_INTERACTION_KINDS * WARM_MEASUREMENT_CYCLES;
+    private static final long SPATIAL_COVERAGE_BUDGET = 4_096L;
     private static final String DEFINITION_COMMAND = "sfm action invoke sfm:symbol/definition/open";
     private static final String REFERENCES_COMMAND = "sfm action invoke sfm:symbol/references/open";
 
@@ -146,6 +154,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private final JsonObject evidence = new JsonObject();
     private final JsonArray definitionEvidence = new JsonArray();
     private final JsonArray openedReferenceEvidence = new JsonArray();
+    private final JsonArray framingEvidence = new JsonArray();
     private Phase phase = Phase.WAIT_SOURCE;
     private int totalTicks;
     private int phaseTicks;
@@ -159,6 +168,8 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private int fixtureIndex;
     private Fixture currentFixture;
     private SFMTextDocumentRange currentSourceRange;
+    private C11SourceNavigationPuppetProbe.SpatialWitness currentSemanticWitness;
+    private C11SourceNavigationPuppetProbe.SpatialWitness hoverSemanticWitness;
     private SFMDefinitionLookupService.Submission definitionSubmission;
     private SFMDefinitionLookupService.Lookup definitionLookup;
     private long lookupStartedNanos;
@@ -223,6 +234,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         }
         evidence.add("symbol_worker", worker);
         evidence.add("definitions", definitionEvidence);
+        evidence.add("framing_observations", framingEvidence);
     }
 
     @Override
@@ -324,9 +336,13 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         // coordinates remain independently observable.
         if (phaseTicks < 10) return false;
         SFMSourcePuppetProbe.EditorHandle source = restoreSource(workspace);
+        if (C11SourceNavigationPuppetProbe.spatialCoverage(source).isEmpty()) return false;
         SFMTextDocumentSnapshot document = source.state().documentSnapshot().orElseThrow();
         hoverRange = SFMSourcePuppetProbe.symbolRange(document.text(), "ProgramContext", 0);
         hoverPointer = C11SourceNavigationPuppetProbe.pointer(workspace, source, hoverRange);
+        hoverSemanticWitness = C11SourceNavigationPuppetProbe.spatialWitness(source, hoverPointer)
+                .orElseThrow(() -> new IllegalStateException(
+                        "The ProgramContext canvas point has no generation-consistent semantic witness"));
         hoverTopologyBefore = C11SourceNavigationPuppetProbe.topology(workspace);
         JsonObject focus = new JsonObject();
         focus.addProperty("required_for_native_pointer", true);
@@ -386,6 +402,11 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         json.addProperty("identity_present", hover.snapshot().identity().isPresent());
         json.add("source_range", C11SourceNavigationPuppetProbe.range(hoverRange));
         json.add("underline_range", hoverGlyphRange(hover.renderedUnderline().orElseThrow()));
+        json.add("semantic_relation", semanticRelation(
+                hoverSemanticWitness,
+                "ctrl-click",
+                "definition"
+        ));
         json.add("topology_before", hoverTopologyBefore);
         evidence.add("ctrl_hover", json);
         advance(Phase.CAPTURE_HOVER);
@@ -428,6 +449,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         hover.addProperty("action", "sfm:symbol/definition/open");
         hover.addProperty("target_panel_id", target.orElseThrow().panelId().toString());
         hover.addProperty("duration_micros", microsSince(navigationStartedNanos));
+        hover.add("framing", captureFraming(target.orElseThrow(), "ctrl-click"));
         hover.add("topology_after", C11SourceNavigationPuppetProbe.topology(workspace));
         advance(Phase.PREPARE_DEFINITION);
         return false;
@@ -444,8 +466,14 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         SFMTextDocumentSnapshot document = source.state().documentSnapshot().orElseThrow();
         currentSourceRange = SFMSourcePuppetProbe.symbolRange(
                 document.text(), currentFixture.symbol(), currentFixture.occurrence());
-        require(source.resolvedPanel().orElseThrow().navigateToRange(currentSourceRange),
-                "Could not position " + currentFixture.id());
+        C11SourceNavigationPuppetProbe.Pointer pointer = C11SourceNavigationPuppetProbe.pointer(
+                workspace,
+                source,
+                currentSourceRange
+        );
+        currentSemanticWitness = C11SourceNavigationPuppetProbe.spatialWitness(source, pointer)
+                .orElseThrow(() -> new IllegalStateException(
+                        "No generation-consistent semantic witness for " + currentFixture.id()));
         SFMContextContribution contribution = C11SourceNavigationPuppetProbe.focusedDocument(workspace)
                 .orElseThrow(() -> new IllegalStateException("The positioned source contribution is unavailable"));
         navigationTopologyBefore = C11SourceNavigationPuppetProbe.topology(workspace);
@@ -484,6 +512,11 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
                 definitionLookup,
                 microsSince(lookupStartedNanos)
         );
+        fixture.add("semantic_relation", semanticRelation(
+                currentSemanticWitness,
+                "F12/" + currentFixture.id(),
+                "definition"
+        ));
         fixture.add("topology_before", navigationTopologyBefore);
         definitionEvidence.add(fixture);
         advance(Phase.INVOKE_F12);
@@ -522,6 +555,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         navigation.addProperty("visible_panels_before", navigationVisibleBefore);
         navigation.addProperty("visible_panels_after", workspace.visiblePanelEntries().size());
         navigation.addProperty("no_unexpected_pane", true);
+        navigation.add("framing", captureFraming(target.orElseThrow(), "F12/" + currentFixture.id()));
         navigation.add("topology_after", C11SourceNavigationPuppetProbe.topology(workspace));
         fixture.add("navigation", navigation);
         if (currentFixture.id().equals("member-method")) methodDefinitionProven = true;
@@ -1047,7 +1081,182 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         );
     }
 
+    private JsonObject semanticRelation(
+            C11SourceNavigationPuppetProbe.SpatialWitness witness,
+            String gesture,
+            String preferredRelation
+    ) {
+        SFMSpatialCoverageService.Observation observation = witness.observation();
+        SFMSpatialSemanticContract.Probe probe = observation.probe();
+        require(probe.classification().status() == SFMSpatialSemanticContract.ClassificationStatus.ACTIONABLE,
+                "The semantic witness for " + gesture + " is not actionable");
+        SFMSpatialSemanticContract.Outlink selected = probe.outlinks().stream()
+                .filter(outlink -> outlink.intent() == SFMSpatialSemanticContract.Intent.NAVIGATE)
+                .filter(outlink -> outlink.relationKind().equals(preferredRelation))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "The semantic witness offers no " + preferredRelation + " navigation relation for " + gesture));
+
+        JsonObject result = new JsonObject();
+        result.addProperty("gesture", gesture);
+        result.addProperty("classification", probe.classification().status().wireName());
+        result.addProperty("certified_region_id", probe.certifiedRegion().id());
+        result.addProperty("semantic_kind", probe.certifiedRegion().semanticKind());
+        result.addProperty("workspace_generation", witness.snapshot().workspaceGeneration());
+        result.addProperty("document_generation", witness.snapshot().documentGeneration());
+        result.addProperty("semantic_generation", witness.snapshot().semanticGeneration());
+        result.addProperty("layout_generation", witness.snapshot().layoutGeneration());
+        result.addProperty("workspace_fingerprint", witness.snapshot().workspaceFingerprint());
+        result.addProperty("document_hash", witness.snapshot().documentHash());
+        result.addProperty("semantic_fingerprint", witness.snapshot().semanticFingerprint());
+        result.addProperty("layout_fingerprint", witness.snapshot().layoutFingerprint());
+        result.addProperty("selected_outlink_id", selected.id());
+        result.addProperty("selected_relation_kind", selected.relationKind());
+        result.addProperty("selected_projection", selected.recommendedProjection());
+        result.addProperty("provider_branch", observation.providerBranch());
+        result.addProperty("boundary_witnessed", observation.boundaryWitnessed());
+        result.addProperty("reciprocity_expected", observation.reciprocityExpected());
+        result.addProperty("reciprocal", observation.reciprocal());
+
+        JsonArray candidates = new JsonArray();
+        for (SFMSpatialSemanticContract.Outlink outlink : probe.outlinks()) {
+            JsonObject candidate = new JsonObject();
+            candidate.addProperty("id", outlink.id());
+            candidate.addProperty("relation_kind", outlink.relationKind());
+            candidate.addProperty("intent", outlink.intent().wireName());
+            candidate.addProperty("provider_id", outlink.providerId());
+            candidate.addProperty("provider_generation", outlink.providerGeneration());
+            candidate.addProperty("reason", outlink.reason());
+            candidate.addProperty("recommended_projection", outlink.recommendedProjection());
+            if (outlink.destinationRegionId() != null) {
+                candidate.addProperty("destination_region_id", outlink.destinationRegionId());
+            }
+            if (outlink.destinationQuery() != null) {
+                candidate.addProperty("destination_query", outlink.destinationQuery());
+            }
+            candidates.add(candidate);
+        }
+        result.add("candidate_outlinks", candidates);
+
+        JsonArray drafts = new JsonArray();
+        for (SFMSpatialSemanticContract.ActionDraft draft : probe.actionDrafts()) {
+            JsonObject action = new JsonObject();
+            action.addProperty("action_id", draft.actionId());
+            action.add("arguments", strings(draft.arguments()));
+            drafts.add(action);
+        }
+        result.add("action_drafts", drafts);
+
+        JsonArray providers = new JsonArray();
+        for (SFMSpatialSemanticContract.ProviderEvidence provider : probe.providerEvidence()) {
+            JsonObject item = new JsonObject();
+            item.addProperty("provider_id", provider.providerId());
+            item.addProperty("priority", provider.priority());
+            item.addProperty("outcome", provider.outcome());
+            if (provider.diagnostic() != null) item.addProperty("diagnostic", provider.diagnostic());
+            providers.add(item);
+        }
+        result.add("provider_evidence", providers);
+        return result;
+    }
+
+    private JsonObject captureFraming(
+            SFMSourcePuppetProbe.EditorHandle target,
+            String route
+    ) {
+        SFMSpatialSemanticContract.FramingObservation observation =
+                C11SourceNavigationPuppetProbe.framing(target)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Navigation route " + route + " published no framing observation"));
+        require(observation.landmarkVisible(),
+                "Navigation route " + route + " framed the landmark outside the viewport");
+        JsonObject json = JsonParser.parseString(
+                SFMSpatialSemanticJsonCodec.encodeFramingObservation(observation)
+        ).getAsJsonObject();
+        json.addProperty("route", route);
+        framingEvidence.add(json.deepCopy());
+        return json;
+    }
+
+    private boolean captureSpatialCoverage(ISFMGamePuppetRuntime runtime) {
+        SFMSourcePuppetProbe.EditorHandle source = restoreSource(requireWorkspace());
+        SFMTextEditorPanel.SpatialCoverageCapture capture =
+                C11SourceNavigationPuppetProbe.spatialCoverage(source).orElse(null);
+        if (capture == null) return false;
+        Minecraft minecraft = Minecraft.getInstance();
+        int configuredScale = minecraft.options.guiScale().get();
+        String scaleId = configuredScale == 0 ? "auto" : Integer.toString(configuredScale);
+        String requestId = artifactName + "-gui-scale-" + scaleId;
+        SFMSpatialSemanticContract.CoverageRequest request =
+                new SFMSpatialSemanticContract.CoverageRequest(
+                        SFMSpatialSemanticContract.COVERAGE_REQUEST_SCHEMA,
+                        requestId,
+                        SFMSpatialSemanticContract.Scope.DOCUMENT,
+                        "focused",
+                        "sfm:strict_java_navigation",
+                        "sfm:auto_1_through_8",
+                        0,
+                        SPATIAL_COVERAGE_BUDGET,
+                        artifactName + "-spatial-coverage",
+                        capture.snapshot()
+                );
+        SFMSpatialCoverageService.Run run = new SFMSpatialCoverageService().run(
+                request,
+                new SFMSpatialCoverageService.WorkspaceSnapshot(
+                        capture.snapshot().workspaceFingerprint(),
+                        List.of(capture.document())
+                ),
+                SFMSpatialSamplingPolicies.adaptiveFailureSeeking()
+        );
+        long uncovered = run.exceptions().stream()
+                .filter(exception -> exception.kind().equals("unclassified")
+                        || exception.kind().equals("navigation-uncovered"))
+                .count();
+        require(uncovered == 0,
+                "Live spatial coverage found " + uncovered + " strict Java gaps");
+
+        Path artifactDirectory = minecraft.gameDirectory.toPath()
+                .resolve("sfm-artifacts")
+                .resolve("spatial-coverage")
+                .resolve(requestId)
+                .toAbsolutePath()
+                .normalize();
+        SFMSpatialCoverageArtifacts.Written written;
+        try {
+            written = SFMSpatialCoverageArtifacts.write(run, artifactDirectory);
+        } catch (java.io.IOException failure) {
+            throw new IllegalStateException(
+                    "Could not write the live spatial coverage artifact set to " + artifactDirectory,
+                    failure
+            );
+        }
+
+        JsonObject report = JsonParser.parseString(
+                SFMSpatialSemanticJsonCodec.encodeCoverageReport(run.report())
+        ).getAsJsonObject();
+        report.addProperty("configured_gui_scale", configuredScale);
+        report.addProperty("effective_gui_scale", minecraft.getWindow().getGuiScale());
+        report.addProperty("window_width", minecraft.getWindow().getScreenWidth());
+        report.addProperty("window_height", minecraft.getWindow().getScreenHeight());
+        report.addProperty("unclassified_or_navigation_uncovered", uncovered);
+        report.addProperty("typed_exception_count", run.exceptions().size());
+        JsonObject artifactPaths = new JsonObject();
+        artifactPaths.addProperty("directory", artifactDirectory.toString());
+        artifactPaths.addProperty("report", written.report().toString());
+        artifactPaths.addProperty("map", written.map().toString());
+        artifactPaths.addProperty("heatmap", written.heatmap().toString());
+        report.add("artifacts", artifactPaths);
+        evidence.add("spatial_coverage_report", report.deepCopy());
+        runtime.writeArtifact(
+                artifactName + "-spatial-coverage",
+                SFMGamePuppetArtifactFormat.JSON,
+                new GsonBuilder().setPrettyPrinting().create().toJson(report)
+        );
+        return true;
+    }
+
     private boolean finalizeEvidence(ISFMGamePuppetRuntime runtime) {
+        if (!captureSpatialCoverage(runtime)) return false;
         require(definitionEvidence.size() == fixtures.size(),
                 "The C-11 journey did not exercise every definition fixture");
         require(methodDefinitionProven,

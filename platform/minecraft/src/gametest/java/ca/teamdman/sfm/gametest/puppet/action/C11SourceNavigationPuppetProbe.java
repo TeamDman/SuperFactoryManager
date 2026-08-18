@@ -14,6 +14,8 @@ import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
+import ca.teamdman.sfm.client.semantic.SFMSpatialCoverageService;
+import ca.teamdman.sfm.client.semantic.SFMSpatialSemanticContract;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverIdentity;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverStateMachine;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
@@ -55,6 +57,23 @@ final class C11SourceNavigationPuppetProbe {
             Objects.requireNonNull(snapshot, "snapshot");
             renderedUnderline = Objects.requireNonNull(renderedUnderline, "renderedUnderline");
             Objects.requireNonNull(lastCancellationCause, "lastCancellationCause");
+        }
+    }
+
+    record SpatialWitness(
+            SFMSpatialSemanticContract.SnapshotIdentity snapshot,
+            SFMSpatialCoverageService.Observation observation
+    ) {
+        SpatialWitness {
+            Objects.requireNonNull(snapshot, "snapshot");
+            Objects.requireNonNull(observation, "observation");
+            SFMSpatialSemanticContract.Probe probe = observation.probe();
+            if (probe.workspaceGeneration() != snapshot.workspaceGeneration()
+                    || probe.documentGeneration() != snapshot.documentGeneration()
+                    || probe.semanticGeneration() != snapshot.semanticGeneration()
+                    || probe.layoutGeneration() != snapshot.layoutGeneration()) {
+                throw new IllegalArgumentException("Spatial witness generations do not match its snapshot");
+            }
         }
     }
 
@@ -156,6 +175,33 @@ final class C11SourceNavigationPuppetProbe {
             return new Hover(state.snapshot(), underline, selected, state.lastCancellationCause());
         } catch (IllegalAccessException failure) {
             throw new IllegalStateException("Could not inspect the EditorV3 hover state", failure);
+        }
+    }
+
+    static Optional<SFMTextEditorPanel.SpatialCoverageCapture> spatialCoverage(
+            SFMSourcePuppetProbe.EditorHandle editor
+    ) {
+        return editor.resolvedPanel().flatMap(SFMTextEditorPanel::captureSpatialCoverage);
+    }
+
+    static Optional<SpatialWitness> spatialWitness(
+            SFMSourcePuppetProbe.EditorHandle editor,
+            Pointer pointer
+    ) {
+        Objects.requireNonNull(pointer, "pointer");
+        return spatialCoverage(editor).map(capture -> new SpatialWitness(
+                capture.snapshot(),
+                capture.document().oracle().probe(pointer.localX(), pointer.localY())
+        ));
+    }
+
+    static Optional<SFMSpatialSemanticContract.FramingObservation> framing(
+            SFMSourcePuppetProbe.EditorHandle editor
+    ) {
+        try {
+            return draw(editor.resolvedPanel().orElseThrow()).navigationFramingObservation();
+        } catch (IllegalAccessException failure) {
+            throw new IllegalStateException("Could not inspect EditorV3 navigation framing", failure);
         }
     }
 

@@ -19,7 +19,7 @@ import java.util.stream.Stream;
 
 /** Integrated C-11 proof over the real large OutputStatement.java document. */
 @SFMGamePuppet(
-        viewportProfile = SFMGamePuppetViewportProfile.FIXED_1280X720_AUTO,
+        viewportProfile = SFMGamePuppetViewportProfile.GUI_SCALE_MATRIX,
         timeoutTicks = 20 * 20 * 60
 )
 public final class TitleScreenOutputStatementSourceNavigationGamePuppet {
