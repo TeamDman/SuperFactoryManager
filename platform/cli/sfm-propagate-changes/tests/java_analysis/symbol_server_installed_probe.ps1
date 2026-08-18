@@ -8,7 +8,11 @@ param(
     [ValidateRange(2, 1000)]
     [int] $WarmSampleCount = 24,
     [int64] $MaximumPeakWorkingSetBytes = 2GB,
-    [int64] $MaximumSteadyPrivateMemoryBytes = 1GB
+    [int64] $MaximumSteadyPrivateMemoryBytes = 1GB,
+    [ValidateRange(1, 120000)]
+    [double] $MaximumColdJavaInteractionMapMilliseconds = 10000,
+    [ValidateRange(1, 30000)]
+    [double] $MaximumWarmJavaInteractionMapMilliseconds = 1000
 )
 
 $ErrorActionPreference = "Stop"
@@ -206,6 +210,22 @@ function New-UsageRequest {
     return $fixture
 }
 
+function New-InteractionMapRequest {
+    param(
+        [Parameter(Mandatory = $true)] [uint64] $RequestId,
+        [Parameter(Mandatory = $true)] $Workspace,
+        [Parameter(Mandatory = $true)] $Root,
+        [Parameter(Mandatory = $true)] [string] $RelativePath,
+        [Parameter(Mandatory = $true)] [string] $Pattern,
+        [Parameter(Mandatory = $true)] [string] $Token
+    )
+    $fixture = New-DefinitionRequest @PSBoundParameters
+    $fixture.request.schema = "sfm.java-interaction-map-request/1"
+    [void] $fixture.request.Remove("position")
+    $fixture.label = "$($fixture.label):interaction-map"
+    return $fixture
+}
+
 function Invoke-Definition {
     param(
         [Parameter(Mandatory = $true)] $InputStream,
@@ -260,6 +280,38 @@ function Invoke-Usage {
         completeness = $response.result.completeness
         targets = @($response.result.targets).Count
         usages = @($response.result.usages).Count
+    }
+}
+
+function Invoke-InteractionMap {
+    param(
+        [Parameter(Mandatory = $true)] $InputStream,
+        [Parameter(Mandatory = $true)] $OutputStream,
+        [Parameter(Mandatory = $true)] $Request
+    )
+    $frame = [ordered]@{
+        kind = "java-interaction-map"
+        schema = "sfm.symbol-server.java-interaction-map/1"
+        request = $Request
+    }
+    $watch = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-Frame -Stream $InputStream -Value $frame
+    $response = Read-Frame -Stream $OutputStream
+    $watch.Stop()
+    if ($response.kind -ne "java-interaction-map-result") {
+        throw "Expected java-interaction-map-result, got '$($response.kind)': $($response | ConvertTo-Json -Depth 20 -Compress)"
+    }
+    return [pscustomobject] [ordered]@{
+        operation = "java-interaction-map"
+        label = ""
+        elapsed_ms = [Math]::Round($watch.Elapsed.TotalMilliseconds, 3)
+        outcome = $response.result.outcome
+        semantic_fingerprint = $response.result.semantic_fingerprint
+        regions = @($response.result.regions).Count
+        classifications = @($response.result.classifications).Count
+        outlinks = @($response.result.outlinks).Count
+        inventory_files = @($response.result.files).Count
+        encoded_bytes = $response.result.page.encoded_bytes
     }
 }
 
@@ -402,7 +454,8 @@ try {
                 "workspace-generation",
                 "ping",
                 "shutdown",
-                "usage-at-position"
+                "usage-at-position",
+                "java-interaction-map"
             )
             max_frame_bytes = 16777216
         }
@@ -414,6 +467,9 @@ try {
     }
     if (@($helloFrame.hello.capabilities) -notcontains "usage-at-position") {
         throw "Worker hello did not negotiate usage-at-position."
+    }
+    if (@($helloFrame.hello.capabilities) -notcontains "java-interaction-map") {
+        throw "Worker hello did not negotiate java-interaction-map."
     }
     Add-ProcessMemorySample -Process $process -Stage "handshake-complete" -Samples $memorySamples
     $workspace = $helloFrame.hello.workspace.request_workspace
@@ -477,6 +533,9 @@ try {
             -RelativePath "ca/teamdman/sfm/common/util/SFMBlockPosUtils.java" `
             -Pattern "import net.minecraft.core.BlockPos;" -Token "BlockPos")
     )
+    $interactionTarget = New-InteractionMapRequest -RequestId $requestId -Workspace $workspace `
+        -Root $mainRoot -RelativePath "ca/teamdman/sfml/ast/OutputStatement.java" `
+        -Pattern "class OutputStatement" -Token "OutputStatement"
 
     $probeStage = "query/cold-definition"
     $cold = Invoke-Definition -InputStream $stdin -OutputStream $stdout -Request $targets[0].request
@@ -486,6 +545,31 @@ try {
     }
     Add-ProcessMemorySample -Process $process -Stage "cold-definition-complete" -Samples $memorySamples
     $requestId++
+    $probeStage = "query/cold-java-interaction-map"
+    $interactionTarget.request.request_id = $requestId
+    $requestId++
+    $coldInteractionMap = Invoke-InteractionMap -InputStream $stdin -OutputStream $stdout `
+        -Request $interactionTarget.request
+    $coldInteractionMap.label = $interactionTarget.label
+    if ($coldInteractionMap.outcome -ne "success" -or $coldInteractionMap.regions -lt 1) {
+        throw "Cold Java interaction-map query did not produce a semantic map."
+    }
+    Add-ProcessMemorySample -Process $process -Stage "cold-java-interaction-map-complete" `
+        -Samples $memorySamples
+
+    $probeStage = "query/warm-java-interaction-map"
+    $interactionTarget.request.request_id = $requestId
+    $interactionTarget.request["known_semantic_fingerprint"] = $coldInteractionMap.semantic_fingerprint
+    $requestId++
+    $warmInteractionMap = Invoke-InteractionMap -InputStream $stdin -OutputStream $stdout `
+        -Request $interactionTarget.request
+    $warmInteractionMap.label = $interactionTarget.label
+    if ($warmInteractionMap.outcome -ne "not-modified") {
+        throw "Warm Java interaction-map query did not use its semantic fingerprint."
+    }
+    Add-ProcessMemorySample -Process $process -Stage "warm-java-interaction-map-complete" `
+        -Samples $memorySamples
+
     $coldUsages = [System.Collections.Generic.List[object]]::new()
     foreach ($template in $usageTargets) {
         $probeStage = "query/cold-usage-at-position-$($template.label)"
@@ -648,15 +732,19 @@ try {
     $usageWarmSummary = Get-LatencySummary -Samples @(
         $warm | Where-Object { $_.operation -eq "usage-at-position" }
     )
+    $telemetryPattern = "symbol-server ((definition|usage-at-position) (completed|failed)|Java interaction map (completed|failed or was cancelled))"
     $telemetry = @($stderr -split "`r?`n" | Where-Object {
-        $_ -match "symbol-server (definition|usage-at-position) (completed|failed)"
+        $_ -match $telemetryPattern
     })
     $structuredTelemetry = @(
         [System.IO.File]::ReadAllLines($structuredLogPath) |
             ForEach-Object { $_ | ConvertFrom-Json -Depth 100 } |
-            Where-Object { $_.fields.message -match "symbol-server (definition|usage-at-position) (completed|failed)" } |
+            Where-Object { $_.fields.message -match $telemetryPattern } |
             ForEach-Object { $_.fields }
     )
+    $interactionMapTelemetry = @($structuredTelemetry | Where-Object {
+        $_.message -eq "symbol-server Java interaction map completed"
+    })
     $steadyMemory = $memorySamples | Where-Object {
         $_.stage -eq "before-shutdown"
     } | Select-Object -Last 1
@@ -670,12 +758,26 @@ try {
             $steadyMemory.private_memory_bytes -le $MaximumSteadyPrivateMemoryBytes
         )
     }
+    $interactionMapAcceptance = [ordered]@{
+        maximum_cold_ms = $MaximumColdJavaInteractionMapMilliseconds
+        maximum_warm_ms = $MaximumWarmJavaInteractionMapMilliseconds
+        observed_cold_ms = $coldInteractionMap.elapsed_ms
+        observed_warm_ms = $warmInteractionMap.elapsed_ms
+        completion_telemetry_events = $interactionMapTelemetry.Count
+        accepted = (
+            $coldInteractionMap.elapsed_ms -le $MaximumColdJavaInteractionMapMilliseconds -and
+            $warmInteractionMap.elapsed_ms -le $MaximumWarmJavaInteractionMapMilliseconds -and
+            $interactionMapTelemetry.Count -ge 2
+        )
+    }
     $report = [ordered]@{
-        schema = "sfm.symbol-server-installed-probe/5"
+        schema = "sfm.symbol-server-installed-probe/6"
         executable = [System.IO.Path]::GetFileName($startInfo.FileName)
         executable_version = $executableVersion
         branch = $Branch
         cold = $cold
+        cold_java_interaction_map = $coldInteractionMap
+        warm_java_interaction_map = $warmInteractionMap
         cold_usage_at_position_samples = $coldUsages
         warm_samples = $warm
         warm_summary = $warmSummary
@@ -702,6 +804,7 @@ try {
             leaked_descendant_processes = $leakedDescendants.Count
         }
         memory_acceptance = $memoryAcceptance
+        java_interaction_map_acceptance = $interactionMapAcceptance
         telemetry_lines = $telemetry
         telemetry = $structuredTelemetry
     }
@@ -713,8 +816,9 @@ try {
     if (-not $report.warm_summary.accepted -or
         -not $report.definition_warm_summary.accepted -or
         -not $report.usage_at_position_warm_summary.accepted -or
-        -not $report.memory_acceptance.accepted) {
-        throw "Installed symbol worker missed its warm latency or memory acceptance bounds."
+        -not $report.memory_acceptance.accepted -or
+        -not $report.java_interaction_map_acceptance.accepted) {
+        throw "Installed symbol worker missed its latency, telemetry, or memory acceptance bounds."
     }
     $probeSucceeded = $true
 } catch {

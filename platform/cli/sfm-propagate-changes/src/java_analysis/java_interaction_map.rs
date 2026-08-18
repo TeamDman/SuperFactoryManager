@@ -1114,36 +1114,123 @@ fn paginate_complete_map(
         diagnostics: complete.diagnostics,
     };
 
-    loop {
-        install_page_relations(
-            &mut result,
-            &selected_regions,
-            &selected_inventory,
-            &complete.classifications,
-            &complete.outlinks,
-            &complete.reciprocity,
-            &complete.exceptions,
-        );
-        let encoded_bytes = refresh_encoded_bytes(&mut result)?;
-        if encoded_bytes <= request.window.max_encoded_bytes {
-            break;
-        }
-        // Preserve at least one row from every non-empty requested lane so a
-        // successful bounded page always advances both advertised cursors.
-        // Region rows normally dominate encoded size because they carry their
-        // classifications and outlinks, so trim them before inventory rows.
-        if selected_regions.len() > 1 {
-            selected_regions.pop();
-        } else if selected_inventory.len() > 1 {
-            selected_inventory.pop();
-        } else {
-            eyre::bail!(
-                "Java interaction-map minimum non-empty page exceeds max_encoded_bytes={} bytes",
-                request.window.max_encoded_bytes
+    install_page_relations(
+        &mut result,
+        &selected_regions,
+        &selected_inventory,
+        &complete.classifications,
+        &complete.outlinks,
+        &complete.reciprocity,
+        &complete.exceptions,
+    );
+    if refresh_encoded_bytes(&mut result)? <= request.window.max_encoded_bytes {
+        return Ok(result);
+    }
+
+    // Preserve at least one row from every non-empty requested lane so a
+    // successful bounded page always advances both advertised cursors.
+    // Region rows normally dominate encoded size because they carry their
+    // classifications and outlinks, so trim them before inventory rows. The
+    // old implementation removed one row and re-encoded the multi-megabyte
+    // page after every removal. Large real documents therefore performed
+    // thousands of full serializations. Prefix size is monotonic, so find the
+    // largest fitting prefix in logarithmic probes without changing policy.
+    if selected_regions.len() > 1 {
+        let fitting = largest_fitting_prefix(selected_regions.len() - 1, |count| {
+            install_page_relations(
+                &mut result,
+                &selected_regions[..count],
+                &selected_inventory,
+                &complete.classifications,
+                &complete.outlinks,
+                &complete.reciprocity,
+                &complete.exceptions,
             );
+            Ok(refresh_encoded_bytes(&mut result)? <= request.window.max_encoded_bytes)
+        })?;
+        if let Some(count) = fitting {
+            selected_regions.truncate(count);
+            install_page_relations(
+                &mut result,
+                &selected_regions,
+                &selected_inventory,
+                &complete.classifications,
+                &complete.outlinks,
+                &complete.reciprocity,
+                &complete.exceptions,
+            );
+            refresh_encoded_bytes(&mut result)?;
+            return Ok(result);
         }
+        selected_regions.truncate(1);
+    }
+
+    if selected_inventory.len() > 1 {
+        let fitting = largest_fitting_prefix(selected_inventory.len() - 1, |count| {
+            install_page_relations(
+                &mut result,
+                &selected_regions,
+                &selected_inventory[..count],
+                &complete.classifications,
+                &complete.outlinks,
+                &complete.reciprocity,
+                &complete.exceptions,
+            );
+            Ok(refresh_encoded_bytes(&mut result)? <= request.window.max_encoded_bytes)
+        })?;
+        if let Some(count) = fitting {
+            selected_inventory.truncate(count);
+            install_page_relations(
+                &mut result,
+                &selected_regions,
+                &selected_inventory,
+                &complete.classifications,
+                &complete.outlinks,
+                &complete.reciprocity,
+                &complete.exceptions,
+            );
+            refresh_encoded_bytes(&mut result)?;
+            return Ok(result);
+        }
+        selected_inventory.truncate(1);
+    }
+
+    install_page_relations(
+        &mut result,
+        &selected_regions,
+        &selected_inventory,
+        &complete.classifications,
+        &complete.outlinks,
+        &complete.reciprocity,
+        &complete.exceptions,
+    );
+    let encoded_bytes = refresh_encoded_bytes(&mut result)?;
+    if encoded_bytes > request.window.max_encoded_bytes {
+        eyre::bail!(
+            "Java interaction-map minimum non-empty page exceeds max_encoded_bytes={} bytes",
+            request.window.max_encoded_bytes
+        );
     }
     Ok(result)
+}
+
+fn largest_fitting_prefix(
+    maximum: usize,
+    mut fits: impl FnMut(usize) -> eyre::Result<bool>,
+) -> eyre::Result<Option<usize>> {
+    let mut low = 1_usize;
+    let mut high = maximum;
+    let mut best = None;
+    while low <= high {
+        let middle = low + (high - low) / 2;
+        if fits(middle)? {
+            best = Some(middle);
+            low = middle.saturating_add(1);
+        } else {
+            high = middle.saturating_sub(1);
+        }
+    }
+    Ok(best)
 }
 
 fn refresh_encoded_bytes(result: &mut JavaInteractionMapResult) -> eyre::Result<u64> {
@@ -2448,6 +2535,27 @@ mod tests {
         assert!(invalid.validate().is_err());
         invalid = request.with_known_semantic_fingerprint(format!("blake3:{}", "a".repeat(64)));
         invalid.validate().expect("valid known fingerprint");
+    }
+
+    #[test]
+    fn largest_fitting_prefix_is_exact_and_logarithmic() {
+        let mut probes = 0_usize;
+        let selected = largest_fitting_prefix(16_383, |count| {
+            probes += 1;
+            Ok(count <= 3_289)
+        })
+        .expect("prefix search");
+        assert_eq!(selected, Some(3_289));
+        assert!(probes <= 15, "binary prefix search used {probes} probes");
+
+        assert_eq!(
+            largest_fitting_prefix(32, |_| Ok(false)).expect("no fitting prefix"),
+            None
+        );
+        assert_eq!(
+            largest_fitting_prefix(32, |_| Ok(true)).expect("all prefixes fit"),
+            Some(32)
+        );
     }
 
     #[test]
