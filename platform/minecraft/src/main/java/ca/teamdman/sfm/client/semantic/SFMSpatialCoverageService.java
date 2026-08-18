@@ -245,7 +245,7 @@ public final class SFMSpatialCoverageService {
                     exceptions.add(new ExceptionRow(document.address(), cell.x(), cell.y(),
                             "unclassified", "No provider made a deliberate claim"));
                 }
-                if (!hasNavigationOutlink(observation)) {
+                if (requiresStrictNavigation(observation) && !hasNavigationOutlink(observation)) {
                     navigationMissing++;
                     exceptions.add(new ExceptionRow(document.address(), cell.x(), cell.y(),
                             "navigation-uncovered", "No navigate-intent outlink"));
@@ -333,7 +333,11 @@ public final class SFMSpatialCoverageService {
         long total = samples.size();
         long classification = samples.stream().filter(sample -> sample.observation().probe().classification().status()
                 != SFMSpatialSemanticContract.ClassificationStatus.UNCLASSIFIED).count();
-        long navigation = samples.stream().filter(sample -> hasNavigationOutlink(sample.observation())).count();
+        long navigationRequired = samples.stream()
+                .filter(sample -> requiresStrictNavigation(sample.observation())).count();
+        long navigation = samples.stream()
+                .filter(sample -> requiresStrictNavigation(sample.observation()))
+                .filter(sample -> hasNavigationOutlink(sample.observation())).count();
         long actionOnly = samples.stream().filter(sample -> !hasNavigationOutlink(sample.observation())
                 && (!sample.observation().probe().actionDrafts().isEmpty()
                 || !sample.observation().probe().outlinks().isEmpty())).count();
@@ -345,7 +349,7 @@ public final class SFMSpatialCoverageService {
                 && sample.observation().reciprocal()).count();
         return List.of(
                 new SFMSpatialSemanticContract.CoverageDimension("classification", classification, total),
-                new SFMSpatialSemanticContract.CoverageDimension("navigation", navigation, total),
+                new SFMSpatialSemanticContract.CoverageDimension("navigation", navigation, navigationRequired),
                 new SFMSpatialSemanticContract.CoverageDimension("action-only", actionOnly, total),
                 new SFMSpatialSemanticContract.CoverageDimension("real-gesture", realGesture, total),
                 new SFMSpatialSemanticContract.CoverageDimension("provider-branch", branches, Math.max(branches, 1)),
@@ -357,6 +361,14 @@ public final class SFMSpatialCoverageService {
     private static boolean hasNavigationOutlink(Observation observation) {
         return observation.probe().outlinks().stream().anyMatch(outlink ->
                 outlink.intent() == SFMSpatialSemanticContract.Intent.NAVIGATE);
+    }
+
+    private static boolean requiresStrictNavigation(Observation observation) {
+        var classification = observation.probe().classification();
+        if (classification.status() != SFMSpatialSemanticContract.ClassificationStatus.EXPLICIT_NO_ACTION) {
+            return true;
+        }
+        return !Set.of("whitespace", "outside-document").contains(classification.reasonCode());
     }
 
     private static String signature(Observation observation) {

@@ -69,6 +69,19 @@ class SFMSpatialCoverageTests {
     }
 
     @Test
+    void witnessedWhitespaceIsExcludedFromStrictNavigationWithoutInflatingCoverage() {
+        var document = document("file:///Whitespace.java", 3, 2,
+                (x, y) -> explicitNoAction(x, y, region("whitespace", 0, 3, 0, 2), "whitespace"));
+        var run = service().run(request(100), workspace(document), SFMSpatialSamplingPolicies.exhaustive());
+
+        assertEquals(6, dimension(run, "classification").covered());
+        assertEquals(0, dimension(run, "navigation").covered());
+        assertEquals(0, dimension(run, "navigation").total());
+        assertTrue(run.exceptions().stream().noneMatch(row -> row.kind().equals("navigation-uncovered")));
+        assertEquals(SFMSpatialSemanticContract.FileState.COVERED, run.report().files().get(0).state());
+    }
+
+    @Test
     void workspaceInventoryRetainsFailedFilesAndArtifactsAreAdjacent(@TempDir Path directory) throws Exception {
         var covered = document("file:///A.java", 2, 2,
                 (x, y) -> observation(x, y, region("all", 0, 2, 0, 2), true, true));
@@ -148,6 +161,23 @@ class SFMSpatialCoverageTests {
                 1, 2, 3, 4);
         return new SFMSpatialCoverageService.Observation(
                 probe, gesture, navigation ? "resolved" : "explicit-no-action", true, navigation, navigation);
+    }
+
+    private static SFMSpatialCoverageService.Observation explicitNoAction(
+            double x,
+            double y,
+            SFMSpatialSemanticContract.Region certified,
+            String reason
+    ) {
+        var probe = new SFMSpatialSemanticContract.Probe(
+                SFMSpatialSemanticContract.PROBE_SCHEMA, "canvas:test", List.of(x, y),
+                SFMSpatialSemanticContract.Intent.NAVIGATE, certified,
+                new SFMSpatialSemanticContract.Classification(
+                        SFMSpatialSemanticContract.ClassificationStatus.EXPLICIT_NO_ACTION, reason),
+                List.of(), List.of(), List.of(new SFMSpatialSemanticContract.ProviderEvidence(
+                "sfm:test", 1, "explicit-no-action", null)), 1, 2, 3, 4);
+        return new SFMSpatialCoverageService.Observation(
+                probe, true, "explicit-no-action", true, false, false);
     }
 
     private static SFMSpatialSemanticContract.Region region(
