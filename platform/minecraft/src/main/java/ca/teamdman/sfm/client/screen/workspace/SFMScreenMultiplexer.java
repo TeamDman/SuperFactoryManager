@@ -18,6 +18,8 @@ import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMScissorStack;
+import ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastLayout;
+import ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastQueue;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPanel;
 import ca.teamdman.sfm.client.terminal.SFMTerminalPropertiesPanel;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
@@ -28,6 +30,7 @@ import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.FormattedCharSequence;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -57,6 +60,12 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private static final ResourceLocation CLOSE_PANEL = new ResourceLocation(SFM.MOD_ID, "panel/close");
     private static final ResourceLocation CLOSE_SCREEN = new ResourceLocation(SFM.MOD_ID, "screen/close");
     private static final ResourceLocation CLOSE_PALETTE = new ResourceLocation(SFM.MOD_ID, "palette/close");
+    private static final ResourceLocation COPY_TOAST = new ResourceLocation(SFM.MOD_ID, "toast/copy");
+    private static final ResourceLocation STOP_TOAST_TIMER = new ResourceLocation(SFM.MOD_ID, "toast/timer/stop");
+    private static final ResourceLocation RESUME_TOAST_TIMER = new ResourceLocation(SFM.MOD_ID, "toast/timer/resume");
+    private static final ResourceLocation DISMISS_TOAST = new ResourceLocation(SFM.MOD_ID, "toast/dismiss");
+    private static final String SCALE_TOAST_KEY = "sfm:panel-scale";
+    private static final int TOAST_MAX_LINES = 6;
 
     private final @Nullable Screen previousScreen;
     private final SFMWorkspaceLayout layout;
@@ -67,7 +76,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private Map<SFMWorkspacePanelId, SFMScreenPanelBounds> panelBounds = Map.of();
     private boolean closing;
     private @Nullable Component dropFeedback;
-    private @Nullable WorkspaceToast workspaceToast;
+    private @Nullable SFMWorkspaceToastQueue workspaceToasts = new SFMWorkspaceToastQueue();
+    private @Nullable SFMWorkspaceToastLayout workspaceToastLayout = new SFMWorkspaceToastLayout();
+    private List<ToastHitRegion> workspaceToastHitRegions = List.of();
+    private @Nullable SFMWorkspaceToastQueue.ToastId capturedWorkspaceToastPointer;
     private long panelGroupRevision = Long.MIN_VALUE;
     private @Nullable SFMWorkspacePanelId observedFocusedPanel;
     private long keyboardFocusRevision;
@@ -682,6 +694,8 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     @Override
     protected void init() {
         disposeDividerInteraction();
+        workspaceToastHitRegions = List.of();
+        capturedWorkspaceToastPointer = null;
         super.init();
         refreshLayout(true);
         if (this.minecraft != null) {
@@ -798,7 +812,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         }
         for (SFMWorkspaceLayout.PanelEntry entry : layout.visiblePanels()) entry.panel().tick();
         ca.teamdman.sfm.client.symbol.SFMFindReferencesController.tickProduction(this);
-        if (workspaceToast != null && workspaceToast.isExpired(System.nanoTime())) workspaceToast = null;
+        toastQueue().tick();
     }
 
     /** Shows the current panel scale without permanently occupying panel space. */
@@ -806,12 +820,85 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         String label = override == null
                 ? "gui scale auto (" + inheritedScale + ")"
                 : "gui scale " + override;
-        showWorkspaceToast(Component.literal(label), shake);
+        toastQueue().publish(
+                SCALE_TOAST_KEY,
+                label,
+                SFMWorkspaceToastQueue.Presentation.workspaceStatus(shake)
+        );
     }
 
-    /** Shared transient status surface for asynchronous panel actions. */
-    public void showWorkspaceToast(Component message, boolean shake) {
-        workspaceToast = new WorkspaceToast(Objects.requireNonNull(message, "message"), System.nanoTime(), shake);
+    /** Shared status surface for producers that intentionally replace the generic status lane. */
+    public SFMWorkspaceToastQueue.ToastId showWorkspaceToast(Component message, boolean shake) {
+        return showWorkspaceToast("sfm:workspace-status", message, shake);
+    }
+
+    /** Publishes or replaces one producer-owned status lane while retaining other queued messages. */
+    public SFMWorkspaceToastQueue.ToastId showWorkspaceToast(
+            String replacementKey,
+            Component message,
+            boolean shake
+    ) {
+        return toastQueue().publish(
+                replacementKey,
+                Objects.requireNonNull(message, "message").getString(),
+                SFMWorkspaceToastQueue.Presentation.actionableStatus(shake)
+        );
+    }
+
+    public List<SFMWorkspaceToastQueue.ToastId> activeWorkspaceToastIds() {
+        return toastQueue().activeIds();
+    }
+
+    public Optional<SFMWorkspaceToastQueue.Snapshot> workspaceToastSnapshot(
+            SFMWorkspaceToastQueue.ToastId id
+    ) {
+        return toastQueue().snapshot(id);
+    }
+
+    public Optional<SFMWorkspaceToastQueue.Snapshot> latestWorkspaceToast() {
+        return toastQueue().latestSnapshot();
+    }
+
+    /**
+     * Returns the last painted hit target for one live toast. The surface is
+     * intentionally read-only so puppet/assistive input can exercise the same
+     * pointer route as a user without duplicating layout calculations.
+     */
+    public Optional<SFMWorkspaceToastLayout.Bounds> workspaceToastBounds(
+            SFMWorkspaceToastQueue.ToastId id
+    ) {
+        Objects.requireNonNull(id, "id");
+        List<ToastHitRegion> hitRegions = workspaceToastHitRegions;
+        if (hitRegions == null) return Optional.empty();
+        return hitRegions.stream()
+                .filter(region -> region.id().equals(id))
+                .map(ToastHitRegion::bounds)
+                .findFirst();
+    }
+
+    public boolean copyWorkspaceToast(SFMWorkspaceToastQueue.ToastId id) {
+        Optional<String> text = toastQueue().text(id);
+        if (text.isEmpty() || this.minecraft == null) return false;
+        this.minecraft.keyboardHandler.setClipboard(text.orElseThrow());
+        return true;
+    }
+
+    public SFMWorkspaceToastQueue.MutationResult stopWorkspaceToastTimer(
+            SFMWorkspaceToastQueue.ToastId id
+    ) {
+        return toastQueue().pin(id);
+    }
+
+    public SFMWorkspaceToastQueue.MutationResult resumeWorkspaceToastTimer(
+            SFMWorkspaceToastQueue.ToastId id
+    ) {
+        return toastQueue().resume(id);
+    }
+
+    public SFMWorkspaceToastQueue.MutationResult dismissWorkspaceToast(
+            SFMWorkspaceToastQueue.ToastId id
+    ) {
+        return toastQueue().dismiss(id);
     }
 
     @Override
@@ -825,7 +912,16 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         Component narration = focused == null
                 ? Component.literal("Empty SFM workspace")
                 : Component.literal("SFM workspace. Focused panel: ").append(focused.narration());
-        return dropFeedback == null ? narration : narration.copy().append(Component.literal(". ")).append(dropFeedback);
+        if (dropFeedback != null) narration = narration.copy().append(Component.literal(". ")).append(dropFeedback);
+        Optional<SFMWorkspaceToastQueue.Snapshot> toast = latestWorkspaceToast();
+        if (toast.isPresent()) {
+            SFMWorkspaceToastQueue.Snapshot snapshot = toast.orElseThrow();
+            narration = narration.copy().append(Component.literal(
+                    ". Notification " + snapshot.id().value() + ": " + snapshot.text()
+                            + ". Left click to copy; right click for actions."
+            ));
+        }
+        return narration;
     }
 
     @Override
@@ -850,6 +946,9 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         openedPanels.clear();
         openedPanelInstances.clear();
         reopenRecipes.clear();
+        toastQueue().close();
+        workspaceToastHitRegions = List.of();
+        capturedWorkspaceToastPointer = null;
         SFMScreenChangeHelpers.setScreen(previousScreen);
     }
 
@@ -892,7 +991,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMFontUtils.draw(poseStack, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
         super.render(poseStack, mouseX, mouseY, partialTick);
-        renderWorkspaceToast(poseStack);
+        renderWorkspaceToasts(poseStack, mouseX, mouseY);
         if (dividerInteraction != null) dividerInteraction.reassertCursor();
     }
 
@@ -991,6 +1090,14 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        Optional<SFMWorkspaceToastQueue.ToastId> toast = workspaceToastAt(mouseX, mouseY);
+        if (toast.isPresent()) {
+            SFMWorkspaceToastQueue.ToastId id = toast.orElseThrow();
+            capturedWorkspaceToastPointer = button == GLFW.GLFW_MOUSE_BUTTON_RIGHT ? null : id;
+            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) copyWorkspaceToast(id);
+            else if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) openWorkspaceToastActions(id);
+            return true;
+        }
         if (dividerInteraction != null
                 && dividerInteraction.pointerPressed(mouseX, mouseY, button)) return true;
         SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
@@ -1010,6 +1117,12 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
+        Optional<SFMWorkspaceToastQueue.ToastId> toast = workspaceToastAt(mouseX, mouseY);
+        toastQueue().setHovered(toast.orElse(null));
+        if (toast.isPresent()) {
+            super.mouseMoved(mouseX, mouseY);
+            return;
+        }
         if (dividerInteraction != null) {
             dividerInteraction.pointerMoved(mouseX, mouseY);
             if (dividerInteraction.isHoveringDivider() || dividerInteraction.isCaptured()) {
@@ -1028,6 +1141,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        if (capturedWorkspaceToastPointer != null) {
+            capturedWorkspaceToastPointer = null;
+            return true;
+        }
+        if (workspaceToastAt(mouseX, mouseY).isPresent()) return true;
         if (dividerInteraction != null
                 && dividerInteraction.pointerReleased(mouseX, mouseY, button)) return true;
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
@@ -1041,6 +1159,8 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        if (capturedWorkspaceToastPointer != null) return true;
+        if (workspaceToastAt(mouseX, mouseY).isPresent()) return true;
         if (dividerInteraction != null
                 && dividerInteraction.pointerDragged(mouseX, mouseY, button)) return true;
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
@@ -1058,6 +1178,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        if (workspaceToastAt(mouseX, mouseY).isPresent()) return true;
         SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
         if (entry != null) {
             layout.focus(entry.id());
@@ -1260,63 +1381,168 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         }
     }
 
-    private void renderWorkspaceToast(PoseStack poseStack) {
-        if (workspaceToast == null) return;
-        long elapsedNanos = Math.max(0L, System.nanoTime() - workspaceToast.startedNanos());
-        double elapsedMillis = elapsedNanos / 1_000_000.0D;
-        if (elapsedMillis >= WorkspaceToast.DURATION_MILLIS) return;
+    private void renderWorkspaceToasts(PoseStack poseStack, int mouseX, int mouseY) {
+        List<SFMWorkspaceToastQueue.Snapshot> snapshots = toastQueue().snapshots();
+        if (snapshots.isEmpty()) {
+            workspaceToastHitRegions = List.of();
+            toastQueue().setHovered(null);
+            return;
+        }
 
-        float opacity = workspaceToast.opacity(elapsedMillis);
-        int alpha = Math.max(0, Math.min(255, Math.round(opacity * 255.0F)));
-        String text = workspaceToast.message().getString();
-        int paddingX = 8;
-        int paddingY = 5;
-        int boxWidth = this.font.width(text) + paddingX * 2;
-        int boxHeight = this.font.lineHeight + paddingY * 2;
-        int shakeOffset = workspaceToast.shakeOffset(elapsedMillis);
-        int left = Math.max(2, (this.width - boxWidth) / 2 + shakeOffset);
-        int top = Math.max(2, this.height - boxHeight - 18);
-        int right = Math.min(this.width - 2, left + boxWidth);
-        int bottom = Math.min(this.height - 2, top + boxHeight);
+        int textWidth = Math.max(24, Math.min(420, this.width - 32));
+        ArrayList<ToastRenderData> renderData = new ArrayList<>();
+        ArrayList<SFMWorkspaceToastLayout.Measure> measures = new ArrayList<>();
+        for (SFMWorkspaceToastQueue.Snapshot snapshot : snapshots) {
+            ArrayList<FormattedCharSequence> lines = new ArrayList<>(
+                    this.font.split(Component.literal(snapshot.text()), textWidth));
+            if (lines.isEmpty()) lines.add(Component.literal(" ").getVisualOrderText());
+            if (lines.size() > TOAST_MAX_LINES) {
+                lines.subList(TOAST_MAX_LINES - 1, lines.size()).clear();
+                lines.add(Component.literal("…").getVisualOrderText());
+            }
+            int widest = lines.stream().mapToInt(this.font::width).max().orElse(1);
+            int boxWidth = Math.min(Math.max(1, this.width - 4), widest + 16);
+            int boxHeight = lines.size() * this.font.lineHeight + 12;
+            ToastRenderData data = new ToastRenderData(snapshot, List.copyOf(lines), boxWidth, boxHeight);
+            renderData.add(data);
+            measures.add(new SFMWorkspaceToastLayout.Measure(snapshot.id(), boxWidth, boxHeight));
+        }
+
+        List<SFMWorkspaceToastLayout.Bounds> bounds = toastLayout().place(this.width, this.height, measures);
+        SFMWorkspaceToastQueue.ToastId hovered = bounds.stream()
+                .filter(candidate -> candidate.contains(mouseX, mouseY))
+                .map(SFMWorkspaceToastLayout.Bounds::id)
+                .reduce((first, second) -> second)
+                .orElse(null);
+        toastQueue().setHovered(hovered);
+
+        Map<SFMWorkspaceToastQueue.ToastId, SFMWorkspaceToastQueue.Snapshot> updated =
+                new java.util.HashMap<>();
+        toastQueue().snapshots().forEach(snapshot -> updated.put(snapshot.id(), snapshot));
+        Map<SFMWorkspaceToastQueue.ToastId, ToastRenderData> dataById = new java.util.HashMap<>();
+        renderData.forEach(data -> dataById.put(data.snapshot().id(), data));
+
+        ArrayList<ToastHitRegion> hitRegions = new ArrayList<>();
+        for (SFMWorkspaceToastLayout.Bounds base : bounds) {
+            ToastRenderData data = dataById.get(base.id());
+            SFMWorkspaceToastQueue.Snapshot snapshot = updated.get(base.id());
+            if (data == null || snapshot == null) continue;
+            int left = Math.max(2, Math.min(
+                    Math.max(2, this.width - base.width() - 2),
+                    base.x() + snapshot.shakeOffset()));
+            SFMWorkspaceToastLayout.Bounds painted = new SFMWorkspaceToastLayout.Bounds(
+                    base.id(), left, base.y(), base.width(), base.height());
+            hitRegions.add(new ToastHitRegion(base.id(), painted));
+            renderWorkspaceToast(poseStack, data.lines(), snapshot, painted);
+        }
+        workspaceToastHitRegions = List.copyOf(hitRegions);
+    }
+
+    private void renderWorkspaceToast(
+            PoseStack poseStack,
+            List<FormattedCharSequence> lines,
+            SFMWorkspaceToastQueue.Snapshot snapshot,
+            SFMWorkspaceToastLayout.Bounds bounds
+    ) {
+        int alpha = Math.max(0, Math.min(255, Math.round(snapshot.opacity() * 255.0F)));
+        int left = bounds.x();
+        int top = bounds.y();
+        int right = left + bounds.width();
+        int bottom = top + bounds.height();
         fill(poseStack, left, top, right, bottom, withAlpha(0x20252B, alpha));
         fill(poseStack, left, top, right, top + 1, withAlpha(0x55FFFF, alpha));
-        fill(poseStack, left, bottom - 1, right, bottom, withAlpha(0x55FFFF, alpha));
         fill(poseStack, left, top, left + 1, bottom, withAlpha(0x55FFFF, alpha));
         fill(poseStack, right - 1, top, right, bottom, withAlpha(0x55FFFF, alpha));
-        SFMFontUtils.draw(poseStack, this.font, text, left + paddingX, top + paddingY,
-                withAlpha(0xFFFFFF, alpha), true);
+        int textY = top + 5;
+        for (FormattedCharSequence line : lines) {
+            SFMFontUtils.draw(poseStack, this.font, line, left + 8, textY,
+                    withAlpha(0xFFFFFF, alpha), true);
+            textY += this.font.lineHeight;
+        }
+
+        int barTop = bottom - 2;
+        fill(poseStack, left, barTop, right, bottom, withAlpha(0x30404A, alpha));
+        int remainingWidth = (int) Math.round(bounds.width() * snapshot.remainingFraction());
+        if (remainingWidth > 0) {
+            fill(poseStack, left, barTop, Math.min(right, left + remainingWidth), bottom,
+                    withAlpha(0x55FFFF, alpha));
+        }
+    }
+
+    private Optional<SFMWorkspaceToastQueue.ToastId> workspaceToastAt(double mouseX, double mouseY) {
+        List<ToastHitRegion> hitRegions = workspaceToastHitRegions;
+        if (hitRegions == null) return Optional.empty();
+        for (int index = hitRegions.size() - 1; index >= 0; index--) {
+            ToastHitRegion hit = hitRegions.get(index);
+            if (hit.bounds().contains(mouseX, mouseY)
+                    && toastQueue().snapshot(hit.id()).isPresent()) return Optional.of(hit.id());
+        }
+        return Optional.empty();
+    }
+
+    private boolean openWorkspaceToastActions(SFMWorkspaceToastQueue.ToastId id) {
+        Optional<SFMWorkspaceToastQueue.Snapshot> snapshot = toastQueue().snapshot(id);
+        if (snapshot.isEmpty()) return false;
+        Optional<SFMWorkspaceToastQueue.InteractionLease> acquired =
+                toastQueue().acquireInteractionLease(id);
+        if (acquired.isEmpty()) return false;
+        SFMWorkspaceToastQueue.InteractionLease lease = acquired.orElseThrow();
+        SFMClientActionContext context = SFMClientActionContext.create(
+                this,
+                () -> !closing && Minecraft.getInstance().screen == this
+        );
+        try {
+            SFMCommandPaletteScreen palette = SFMCommandPaletteScreen.openChoices(
+                    context,
+                    Component.literal("Notification " + id.value()),
+                    workspaceToastChoices(snapshot.orElseThrow()),
+                    lease::close
+            );
+            lease.onToastRemoved(palette::dismissActionSurface);
+            return true;
+        } catch (RuntimeException failure) {
+            lease.close();
+            throw failure;
+        }
+    }
+
+    static List<SFMActionChoice> workspaceToastChoices(SFMWorkspaceToastQueue.Snapshot snapshot) {
+        String id = snapshot.id().commandArgument();
+        return List.of(
+                SFMActionChoice.invoke(COPY_TOAST, id),
+                SFMActionChoice.invoke(
+                        snapshot.pinned() ? RESUME_TOAST_TIMER : STOP_TOAST_TIMER,
+                        id),
+                SFMActionChoice.invoke(DISMISS_TOAST, id)
+        );
+    }
+
+    private SFMWorkspaceToastQueue toastQueue() {
+        if (workspaceToasts == null) workspaceToasts = new SFMWorkspaceToastQueue();
+        return workspaceToasts;
+    }
+
+    private SFMWorkspaceToastLayout toastLayout() {
+        if (workspaceToastLayout == null) workspaceToastLayout = new SFMWorkspaceToastLayout();
+        return workspaceToastLayout;
     }
 
     private static int withAlpha(int rgb, int alpha) {
         return (alpha << 24) | (rgb & 0x00FFFFFF);
     }
 
-    private record WorkspaceToast(Component message, long startedNanos, boolean shake) {
-        private static final double DURATION_MILLIS = 2_200.0D;
-        private static final double FADE_IN_MILLIS = 140.0D;
-        private static final double FADE_OUT_MILLIS = 650.0D;
-        private static final double SHAKE_MILLIS = 480.0D;
+    private record ToastRenderData(
+            SFMWorkspaceToastQueue.Snapshot snapshot,
+            List<FormattedCharSequence> lines,
+            int width,
+            int height
+    ) {
+    }
 
-        private boolean isExpired(long nowNanos) {
-            return nowNanos - startedNanos >= (long) (DURATION_MILLIS * 1_000_000.0D);
-        }
-
-        private float opacity(double elapsedMillis) {
-            if (elapsedMillis < FADE_IN_MILLIS) {
-                return (float) (elapsedMillis / FADE_IN_MILLIS);
-            }
-            double fadeOutStart = DURATION_MILLIS - FADE_OUT_MILLIS;
-            if (elapsedMillis > fadeOutStart) {
-                return (float) Math.max(0.0D, (DURATION_MILLIS - elapsedMillis) / FADE_OUT_MILLIS);
-            }
-            return 1.0F;
-        }
-
-        private int shakeOffset(double elapsedMillis) {
-            if (!shake || elapsedMillis >= SHAKE_MILLIS) return 0;
-            double strength = 1.0D - elapsedMillis / SHAKE_MILLIS;
-            return (int) Math.round(Math.sin(elapsedMillis / 24.0D * Math.PI * 2.0D) * 3.0D * strength);
-        }
+    private record ToastHitRegion(
+            SFMWorkspaceToastQueue.ToastId id,
+            SFMWorkspaceToastLayout.Bounds bounds
+    ) {
     }
 
 }

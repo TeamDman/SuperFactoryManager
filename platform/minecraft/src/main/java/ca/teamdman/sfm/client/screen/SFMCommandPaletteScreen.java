@@ -41,6 +41,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 
@@ -112,6 +113,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private final boolean pushed;
     private final String initialQuery;
     private final @Nullable SFMChoiceSession choiceSession;
+    private final Runnable closeListener;
     @SuppressWarnings("NotNullFieldNotInitialized")
     private SFMClientActionCommandTree commandTree;
 
@@ -128,6 +130,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private long suggestionRevision;
     private long bindingCycleTicks;
     private boolean closing;
+    private boolean closeListenerNotified;
     private boolean insertedRequiredArgumentSeparator;
 
     private SFMCommandPaletteScreen(
@@ -140,6 +143,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.initialQuery = initialQuery.isBlank() ? DEFAULT_QUERY : initialQuery;
         this.pushed = pushed;
         this.choiceSession = null;
+        this.closeListener = () -> { };
         this.commandTree = SFMClientActions.commandTree();
     }
 
@@ -156,6 +160,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 () -> ACTIVE == this && Minecraft.getInstance().screen == this);
         this.choiceSession = SFMChoiceSessionService.create(choices, actionContext);
         this.initialQuery = choiceSession.prefix();
+        this.closeListener = () -> { };
     }
 
     private SFMCommandPaletteScreen(
@@ -163,6 +168,16 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             Component title,
             List<SFMActionChoice> choices,
             boolean pushed
+    ) {
+        this(capturedContext, title, choices, pushed, () -> { });
+    }
+
+    private SFMCommandPaletteScreen(
+            SFMClientActionContext capturedContext,
+            Component title,
+            List<SFMActionChoice> choices,
+            boolean pushed,
+            Runnable closeListener
     ) {
         super(title);
         this.pushed = pushed;
@@ -172,6 +187,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 capturedContext.originatingPanelId());
         this.choiceSession = SFMChoiceSessionService.create(choices, actionContext);
         this.initialQuery = choiceSession.prefix();
+        this.closeListener = Objects.requireNonNull(closeListener, "closeListener");
     }
 
     public static SFMClientActionContext createOriginContext() {
@@ -231,6 +247,33 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             SFMScreenChangeHelpers.setOrPushScreen(palette);
         } catch (RuntimeException exception) {
             SFMChoiceSessionService.invalidate(palette.choiceSession);
+            if (ACTIVE == palette) ACTIVE = null;
+            throw exception;
+        }
+    }
+
+    /**
+     * Opens a constrained surface whose lifecycle is leased by its origin.
+     * The listener runs exactly once for command completion, Escape, external
+     * dismissal, failed opening, or screen removal.
+     */
+    public static SFMCommandPaletteScreen openChoices(
+            SFMClientActionContext capturedContext,
+            Component title,
+            List<SFMActionChoice> choices,
+            Runnable closeListener
+    ) {
+        Minecraft minecraft = Minecraft.getInstance();
+        boolean pushed = minecraft.screen != null;
+        SFMCommandPaletteScreen palette = new SFMCommandPaletteScreen(
+                capturedContext, title, choices, pushed, closeListener);
+        ACTIVE = palette;
+        try {
+            SFMScreenChangeHelpers.setOrPushScreen(palette);
+            return palette;
+        } catch (RuntimeException exception) {
+            SFMChoiceSessionService.invalidate(palette.choiceSession);
+            palette.notifyCloseListener();
             if (ACTIVE == palette) ACTIVE = null;
             throw exception;
         }
@@ -314,6 +357,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         if (this.closing) return;
         this.closing = true;
         if (choiceSession != null) SFMChoiceSessionService.invalidate(choiceSession);
+        notifyCloseListener();
         if (ACTIVE == this) ACTIVE = null;
         if (this.pushed) {
             SFMScreenChangeHelpers.popScreen();
@@ -330,8 +374,15 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     @Override
     public void removed() {
         if (choiceSession != null) SFMChoiceSessionService.invalidate(choiceSession);
+        notifyCloseListener();
         if (ACTIVE == this) ACTIVE = null;
         super.removed();
+    }
+
+    private void notifyCloseListener() {
+        if (closeListenerNotified) return;
+        closeListenerNotified = true;
+        closeListener.run();
     }
 
     @Override

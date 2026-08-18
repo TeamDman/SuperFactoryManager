@@ -19,7 +19,6 @@ import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import com.google.gson.JsonObject;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
@@ -60,7 +59,6 @@ final class SFMSourcePuppetProbe {
     private static final Field DRAW_MODEL = field(SFMDrawCanvasScreen.class, "model");
     private static final Field CONTEXT_GENERATION = field(SFMDrawCanvasScreen.class, "contextGeneration");
     private static final Field DOCUMENT_GENERATION = field(SFMDrawCanvasScreen.class, "documentGeneration");
-    private static final Field WORKSPACE_TOAST = field(SFMScreenMultiplexer.class, "workspaceToast");
 
     private SFMSourcePuppetProbe() {
     }
@@ -95,18 +93,7 @@ final class SFMSourcePuppetProbe {
      */
     static Optional<String> workspaceToastText(SFMScreenMultiplexer workspace) {
         Objects.requireNonNull(workspace, "workspace");
-        try {
-            Object toast = WORKSPACE_TOAST.get(workspace);
-            if (toast == null) return Optional.empty();
-            Field message = toast.getClass().getDeclaredField("message");
-            message.setAccessible(true);
-            Object value = message.get(toast);
-            return value instanceof Component component
-                    ? Optional.of(component.getString())
-                    : Optional.empty();
-        } catch (ReflectiveOperationException failure) {
-            throw new IllegalStateException("Could not inspect the workspace status toast", failure);
-        }
+        return workspace.latestWorkspaceToast().map(snapshot -> snapshot.text());
     }
 
     static Optional<ExplorerHandle> explorer(SFMScreenMultiplexer workspace) {

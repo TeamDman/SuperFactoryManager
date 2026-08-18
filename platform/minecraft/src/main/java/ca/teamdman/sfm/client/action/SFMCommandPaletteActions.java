@@ -97,6 +97,26 @@ public final class SFMCommandPaletteActions {
             ClosePaletteAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST = REGISTERER.register(
+            "toast/copy",
+            () -> new SFMToastAction(SFMToastAction.Operation.COPY)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> STOP_TOAST_TIMER = REGISTERER.register(
+            "toast/timer/stop",
+            () -> new SFMToastAction(SFMToastAction.Operation.STOP_TIMER)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> RESUME_TOAST_TIMER = REGISTERER.register(
+            "toast/timer/resume",
+            () -> new SFMToastAction(SFMToastAction.Operation.RESUME_TIMER)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> DISMISS_TOAST = REGISTERER.register(
+            "toast/dismiss",
+            () -> new SFMToastAction(SFMToastAction.Operation.DISMISS)
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, PaletteHistoryOpenAction> OPEN_PALETTE_HISTORY = REGISTERER.register(
             "palette/history/open",
             () -> new PaletteHistoryOpenAction(PaletteHistoryOpenAction.Direction.CENTER)

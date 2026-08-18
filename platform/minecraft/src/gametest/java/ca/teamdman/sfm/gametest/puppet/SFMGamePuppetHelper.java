@@ -267,6 +267,11 @@ public final class SFMGamePuppetHelper {
         ));
     }
 
+    /** Exercises copy, pin/resume, exact dismiss, and later-message survival through the live toast UI. */
+    public void exerciseActionableToast(String artifactName) {
+        add(new ExerciseActionableToastPuppetAction(Objects.requireNonNull(artifactName, "artifactName")));
+    }
+
     /**
      * Opens the contextual client command palette from the current screen.
      */

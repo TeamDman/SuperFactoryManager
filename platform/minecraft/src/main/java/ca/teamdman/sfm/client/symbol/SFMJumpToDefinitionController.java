@@ -25,6 +25,7 @@ import java.util.function.Supplier;
 
 /** One-capture UI orchestration for the registered jump-to-definition action. */
 public final class SFMJumpToDefinitionController {
+    private static final String TOAST_REPLACEMENT_KEY = "sfm:symbol-definition";
     @FunctionalInterface
     interface ChoicePresenter {
         void open(SFMClientActionContext context, Component title, List<SFMActionChoice> choices);
@@ -268,7 +269,7 @@ public final class SFMJumpToDefinitionController {
             Component message
     ) {
         feedback.accept(message);
-        if (workspace != null) workspace.showWorkspaceToast(message, false);
+        if (workspace != null) workspace.showWorkspaceToast(TOAST_REPLACEMENT_KEY, message, false);
     }
 
     static String failureMessage(Throwable failure) {

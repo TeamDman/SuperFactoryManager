@@ -28,6 +28,7 @@ import java.util.function.Supplier;
 
 /** One-capture orchestration for persistent symbol-reference explorers. */
 public final class SFMFindReferencesController {
+    private static final String TOAST_REPLACEMENT_KEY = "sfm:symbol-references";
     private static final SFMFindReferencesController PRODUCTION = createProduction();
 
     @FunctionalInterface
@@ -276,7 +277,7 @@ public final class SFMFindReferencesController {
             Component message
     ) {
         feedback.accept(message);
-        if (workspace != null) workspace.showWorkspaceToast(message, false);
+        if (workspace != null) workspace.showWorkspaceToast(TOAST_REPLACEMENT_KEY, message, false);
     }
 
     private record Pending(
