@@ -34,6 +34,14 @@ public final class SFMSpatialSemanticJsonCodec {
         return PRETTY_GSON.toJson(value) + "\n";
     }
 
+    public static String encodeCoverageRequest(SFMSpatialSemanticContract.CoverageRequest value) {
+        return PRETTY_GSON.toJson(value) + "\n";
+    }
+
+    public static String encodeCoverageReport(SFMSpatialSemanticContract.CoverageReport value) {
+        return PRETTY_GSON.toJson(value) + "\n";
+    }
+
     public static SFMSpatialSemanticContract.Bundle decode(String json) {
         return readBundle(object(JsonParser.parseString(json), "spatial semantic bundle"));
     }

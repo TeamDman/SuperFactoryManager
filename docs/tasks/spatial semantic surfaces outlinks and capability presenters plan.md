@@ -713,7 +713,25 @@ identity and bound without an identifier-only helper or ambient authority. It
 also states the soundly certified region, separates navigation from other
 intents, and identifies/order-resolves two independently registered providers.
 
-### [ ] SS-2 Build the spatial coverage oracle and sampling policies
+### [x] SS-2 Build the spatial coverage oracle and sampling policies
+
+**Completion notes (2026-08-18):** `SFMSpatialCoverageService` is a public,
+test/puppet/action-ready Java canvas service rather than fixture-only logic. It
+snapshots every supplied workspace document, preserves terminal failure rows,
+retains exact sampled canvas points, validates provider-certified rectangles at
+interior/corner/inside/outside witnesses, rejects contradictory certificates,
+records query/reuse/cache/subdivision/fallback counters, and publishes separate
+classification, navigation, action-only, real-gesture, provider-branch,
+boundary, and reciprocity dimensions. `SFMSpatialSamplingPolicies` implements
+versioned exhaustive, seeded uniform, stratified, maximin/farthest-next, and
+adaptive failure-seeking orders with duplicate/out-of-bounds checks.
+`SFMSpatialCoverageArtifacts` atomically emits adjacent versioned report JSON,
+compact map/exception/partition/next-candidate JSON, and a bounded PNG heatmap.
+The golden service test proves a 100-cell exhaustive result agrees with oracle
+truth while using fewer than 20 semantic queries, and a contradictory broad
+certificate remains visible as subdivision plus uncovered evidence.
+`SFMSpatialCoverageTests` and `SFMCanvasInteractionCoverageTests` passed via
+their plan-listed SFM CLI filters. No dependency or lockfile changed.
 
 **Work:**
 
