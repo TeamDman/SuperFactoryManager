@@ -1,8 +1,7 @@
 # Spatial semantic surfaces, outlinks, and capability presenters plan
 
-**Plan status:** Active; SS-0 through SS-4, NX-3a, NX-4, and CP-3 are complete;
-bounded SS-5/SS-6/NX-4a implementation and acceptance are complete pending the
-shared final committed/install handoff; NX-1/NX-2/full NX-3 and CP-1+ remain
+**Plan status:** Active; SS-0 through SS-6, NX-3a, NX-4, NX-4a, and CP-3 are
+complete; NX-1/NX-2/full NX-3, CP-1+, SS-7, and SS-8 remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Primary implementation target:** Minecraft 1.19.2
 **Last updated:** 2026-08-18
@@ -940,9 +939,9 @@ fallback when it cannot, and never hides a fit-capable left edge; and the live
 coverage artifact has zero unclassified or navigation-uncovered strict-Java
 glyphs for its fixtures.
 
-### [~] SS-5 Repair the exact post-goal Java navigation and stale-result regressions
+### [x] SS-5 Repair the exact post-goal Java navigation and stale-result regressions
 
-**Implementation checkpoint (2026-08-18):** Navigation requests now carry an
+**Completion notes (2026-08-18):** Navigation requests now carry an
 immutable witness for the document address/content, panel entry, semantic and
 provider generations, and request generation. Cursor, selection, hover, and
 mouse-release changes no longer discard an otherwise valid explicit request;
@@ -961,8 +960,9 @@ The natural Auto plus GUI-scales 1 through 8 matrix passed 9/9 at
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
 `title_screen_man-20260818-184051-229`; every variant resolves the exact
 qualified owner/member, Forge loader, and varargs-constructor targets through
-EditorV3 and records the canonical source/destination evidence. Final task
-closure shares the goal's committed/install handoff.
+EditorV3 and records the canonical source/destination evidence. The shared
+closure is implementation commit `d6947fa84` plus the installed revision/hash
+recorded under CLI-AST 0.12.4.
 
 **Ownership join:** CLI-AST 0.12.4 owns corrected Java facts, locked Forge
 source derivation, and direct/worker parity. This item owns Java consumption,
@@ -1007,9 +1007,9 @@ results cannot navigate; every rejection names the changed witness dimension;
 and the puppet records source/destination addresses, regions, bounds, request
 identity, and final framing.
 
-### [~] SS-6 Add action-backed symbol inspection and deterministic copy projections
+### [x] SS-6 Add action-backed symbol inspection and deterministic copy projections
 
-**Implementation checkpoint (2026-08-18):** One immutable symbol-inspection
+**Completion notes (2026-08-18):** One immutable symbol-inspection
 snapshot now feeds hierarchical aggregate and granular copy actions for
 details, file, line, column, bounds, logical path, and Access Transformer
 reference. Reports preserve the captured resolver/address/source/content and
@@ -1024,7 +1024,8 @@ within the 1,187-test Java acceptance run. The 9/9 manual-symbol matrix at
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
 `title_screen_man-20260818-184051-229` opens the real contextual surface,
 copies exact symbol evidence, and visibly receives the shared confirmation
-toast. Final task closure shares the goal's committed/install handoff.
+toast. The shared closure is implementation commit `d6947fa84` plus the
+installed revision/hash recorded under CLI-AST 0.12.4.
 
 **Work:** Capture one immutable `SymbolInspectionSnapshot` from the exact
 clicked/cursor semantic region. It must remain useful even when definition
@@ -1251,9 +1252,9 @@ the intended toast; dismiss never becomes persistent silence or targets a
 replacement; existing scale feedback retains its proven behavior; and future
 silence preferences can be added without replacing the toast contract.
 
-### [~] NX-4a Confirm clipboard-copy actions through the shared toast queue
+### [x] NX-4a Confirm clipboard-copy actions through the shared toast queue
 
-**Implementation checkpoint (2026-08-18):** Toast left-click and symbol-copy
+**Completion notes (2026-08-18):** Toast left-click and symbol-copy
 actions now use the shared action-backed copy-feedback path. A successful copy
 publishes one distinct bounded confirmation without replacing, dismissing,
 repinning, or resetting the source toast; failures cannot claim success and
@@ -1263,8 +1264,9 @@ The natural puppet at
 `title_screen_act-20260818-184609-885` proves exact clipboard bytes, source
 toast preservation, visible `Copied notification 2 to the clipboard`
 confirmation, pinned lifetime behavior, exact dismissal, and a later identical
-toast remaining independently visible. Final task closure shares the goal's
-committed/install handoff.
+toast remaining independently visible. The shared closure is implementation
+commit `d6947fa84` plus the installed revision/hash recorded under CLI-AST
+0.12.4.
 
 **Work:** Route a toast's direct left-click through the registered
 `sfm:toast/copy <toast-id>` action instead of bypassing action feedback with a
@@ -1540,9 +1542,9 @@ adapters (SS-7), Rust-language navigation/release closure (SS-8), propagation,
 publication, release tagging, or human visual approval. A cheap painted editor
 path is not substituted for the truthful NX-2 design.
 
-## Recommended post-goal manual-testing repair batch — 2026-08-18
+## Completed post-goal manual-testing repair batch — 2026-08-18
 
-The next executable goal is:
+The completed executable goal was:
 
 > Complete CLI-AST 0.12.4, SS-5, SS-6, X-8c, B-5a, and NX-4a: repair the
 > exact `TranslatableContents`, fully qualified `SFMModCompat`, and
@@ -1558,7 +1560,7 @@ The next executable goal is:
 > use only already-pinned artifacts/source machinery and do not clone new
 > repositories or run lockfile-mutating commands.
 
-Observable completion requires all of the following:
+Observable completion was judged against all of the following:
 
 1. The three exact one-based production probes navigate through direct CLI,
    reusable engine, supervised worker, interaction map, and natural EditorV3
@@ -1586,6 +1588,16 @@ Observable completion requires all of the following:
    mutation; the handoff explicitly says no manual install is required. All
    scoped changes and plan/changelog evidence are committed and the worktree is
    clean.
+
+**Completion notes (2026-08-18):** Implementation commit `d6947fa84` satisfies
+items 1 through 7 through the direct scenarios, full Rust/Java suites, focused
+installed-worker integration, and natural puppet matrices recorded under the
+owning tasks. The installed `sfm-propagate-changes.exe` reports that revision,
+has SHA-256
+`5427E3F3357FF6ADD12529820515D9B51B303DCFD069D3EA41BC1F2CEFE44855`,
+and returned success for all three exact production probes. This bookkeeping
+closure satisfies item 8; user install required: no. The next-plan surface is
+still NX-1/NX-2/full NX-3, CP-1+, SS-7, and SS-8 and was not silently advanced.
 
 Parallel lanes are intentionally available after fixtures freeze the expected
 contracts: CLI-AST 0.12.4 owns Rust analysis/source derivation; X-8c owns lazy

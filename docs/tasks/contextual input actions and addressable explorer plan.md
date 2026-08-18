@@ -1,9 +1,8 @@
 # Contextual input, action ownership, and addressable explorer plan
 
 **Plan status:** Active; C-4a through C-11 and linked CLI-AST Phases 0.11
-through 0.12.3 are complete; the bounded REVEAL-3 subset of B-4 and CTXREF
-subset of B-5 are complete; B-5a implementation and acceptance are complete
-pending the shared final committed/install handoff; broader Phase B remains
+through 0.12.4 are complete; the bounded REVEAL-3 subset of B-4 and CTXREF
+subset of B-5 plus B-5a are complete; broader Phase B and B-6 remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
@@ -2553,9 +2552,9 @@ provider, the shared Alt+Enter/right-click constrained palette, and the direct
 reference gestures. General token-callback migration, path/item providers,
 Ctrl+Space migration, and every other B-5 requirement remain incomplete.
 
-### [~] B-5a Add explicit mouse-accessible cancellation to every palette surface
+### [x] B-5a Add explicit mouse-accessible cancellation to every palette surface
 
-**Implementation checkpoint (2026-08-18):** The shared command-palette screen
+**Completion notes (2026-08-18):** The shared command-palette screen
 now owns one visible Vanilla-like, narrated, Tab-focusable `Cancel` widget for
 full and constrained surfaces. It dispatches canonical
 `sfm:palette/close`, supports mouse and keyboard activation, and participates
@@ -2567,8 +2566,9 @@ full 1,187-test Java acceptance run. The contextual live matrix at
 `title_screen_con-20260818-172947-550` and standard-palette evidence at
 `title_screen-20260818-173837-438` exercise the shared surface, including
 right-click open, Cancel dismissal, reopen, and real action execution across
-the supported scale/layout coverage. Final task closure shares the goal's
-committed/install handoff.
+the supported scale/layout coverage. The shared closure is implementation
+commit `d6947fa84` plus the installed revision/hash recorded under CLI-AST
+0.12.4.
 
 **Manual evidence (2026-08-18):** The full command palette and constrained
 Alt+Enter/right-click choice surface close with Escape but expose no visible

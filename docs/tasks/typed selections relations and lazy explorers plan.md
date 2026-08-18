@@ -1,8 +1,7 @@
 # Typed selections, relations, and lazy explorers plan
 
-**Plan status:** Active; X-1 through X-7, X-8a, and X-8b are complete; bounded
-X-8c implementation and acceptance are complete pending the shared final
-committed/install handoff; picker X-8 and X-9 through X-11 remain
+**Plan status:** Active; X-1 through X-7 and X-8a through X-8c are complete;
+picker X-8 and X-9 through X-11 remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Primary implementation target:** Minecraft 1.19.2
 **Related control plan:** `docs/tasks/sfm in-game control cli plan.md`
@@ -1253,9 +1252,9 @@ complete in the contextual plan's 35-requirement acceptance ledger. Their
 independent EXP matrix remains the authoritative live proof; the completed
 source-navigation SRC run does not broaden X-8b or begin picker X-8.
 
-### [~] X-8c Preserve root-to-match ancestry during lazy explorer filtering
+### [x] X-8c Preserve root-to-match ancestry during lazy explorer filtering
 
-**Implementation checkpoint (2026-08-18):** Filtering now projects the minimal
+**Completion notes (2026-08-18):** Filtering now projects the minimal
 already-materialized root-to-match hierarchy instead of flattening matches.
 Shared ancestors are merged without cycles, context rows remain distinct from
 actual fuzzy matches, original depth and deterministic descendant ordering are
@@ -1268,8 +1267,8 @@ acceptance run. The Auto plus GUI-scales 1 through 8 explorer matrix passed at
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
 `title_screen_exp-20260818-175027-577`, proving the complete materialized chain
 to `SFM.java`, truthful counts, visual match/context distinction, and zero
-filter-triggered relation work. Final task closure shares the goal's
-committed/install handoff.
+filter-triggered relation work. The shared closure is implementation commit
+`d6947fa84` plus the installed revision/hash recorded under CLI-AST 0.12.4.
 
 **Manual evidence and changed requirement (2026-08-18):** Filtering the SFM
 source explorer for `SFM` currently shows a flat fuzzy-ranked list containing

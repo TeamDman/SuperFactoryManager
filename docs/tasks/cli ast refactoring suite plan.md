@@ -1,9 +1,7 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0 through Phase 0.12.3 are complete; bounded
-0.12.4 implementation and acceptance are complete pending its final committed
-revision and post-commit CLI installation; mutation-capable Phase 1 remains
-deferred and unstarted
+**Plan status:** Active; Phase 0 through Phase 0.12.4 are complete;
+mutation-capable Phase 1 remains deferred and unstarted
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Last updated:** 2026-08-18
 **Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, 2026-08-11 for the in-game definition-at-location bridge, reconciled 2026-08-15 at Phase 0.10 completion, extended 2026-08-15 for Rust-owned Arborium Java highlighting, extended 2026-08-16 for JDK/local/member/import definition coverage plus location-aware usages, and post-compaction re-audited 2026-08-16 against the user's verbatim report
@@ -2165,9 +2163,9 @@ worker lane through nine definitions and one 76-usage result; all navigation,
 retention, and responsiveness assertions passed. No mutation request/command
 was introduced, and Phase 1 remains untouched.
 
-### [~] 0.12.4 Close exact manual-test constructor, qualified-receiver, and locked Forge-source gaps
+### [x] 0.12.4 Close exact manual-test constructor, qualified-receiver, and locked Forge-source gaps
 
-**Implementation checkpoint (2026-08-18):** Corrected Java formal-parameter
+**Completion notes (2026-08-18):** Corrected Java formal-parameter
 facts now retain varargs array identity, fully qualified static receivers emit
 one canonical owner/member usage, and the dependency index derives navigable
 Forge loader source solely from the already-locked `javafmllanguage` artifact.
@@ -2190,9 +2188,17 @@ Adjacent scenarios live in
 `platform/cli/sfm-propagate-changes/check-all.ps1` acceptance run passed format,
 clippy, dependency policy, build, 629 Rust library tests (three ignored), and
 all ten Java-analysis scenarios. The checked-in dependency graph and lockfiles
-remain unchanged. Final completion is intentionally withheld until the
-implementation is committed and that exact revision is installed and
-re-probed through the user-visible `sfm-propagate-changes.exe`.
+remain unchanged.
+
+Implementation commit `d6947fa84` was installed after its final source
+mutation at
+`G:\Programming\Caches\CARGO_HOME\bin\sfm-propagate-changes.exe`; the
+installed executable reports revision `d6947fa84` and SHA-256
+`5427E3F3357FF6ADD12529820515D9B51B303DCFD069D3EA41BC1F2CEFE44855`.
+All three exact installed-CLI probes returned `outcome: success` with the
+canonical targets above, including locked Vineflower Forge source. The
+property-gated `SFMSymbolServerInstalledIntegrationTests` was then run against
+that installed executable and exited 0. User install required: no.
 
 **Manual evidence and diagnosis (2026-08-18):** The following direct
 `symbol show-definition --source-path ... --line ... --column ...` probes
