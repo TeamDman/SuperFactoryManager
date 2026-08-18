@@ -40,13 +40,18 @@ public final class SFMJavaInteractionMapSpatialAdapter
             throw new IllegalArgumentException("Java interaction map does not match the canvas document");
         }
         utf8ByteAtUtf16 = utf8ByteOffsets(text);
-        regionAtUtf8Byte = indexRegions(map, utf8ByteAtUtf16[text.length()]);
         LinkedHashMap<String, SFMJavaInteractionMap.Classification> classifications = new LinkedHashMap<>();
         map.classifications().forEach(value -> classifications.put(value.regionId(), value));
         classificationsByRegion = Map.copyOf(classifications);
         LinkedHashMap<String, SFMJavaInteractionMap.Outlink> indexedOutlinks = new LinkedHashMap<>();
         map.outlinks().forEach(outlink -> indexedOutlinks.put(outlink.id(), outlink));
         outlinksById = Map.copyOf(indexedOutlinks);
+        regionAtUtf8Byte = indexRegions(
+                map,
+                utf8ByteAtUtf16[text.length()],
+                classificationsByRegion,
+                outlinksById
+        );
         LinkedHashSet<String> reciprocalIds = new LinkedHashSet<>();
         map.reciprocity().stream()
                 .filter(value -> value.status() == SFMJavaInteractionMap.ReciprocityStatus.VERIFIED)
@@ -121,15 +126,23 @@ public final class SFMJavaInteractionMapSpatialAdapter
 
     private static SFMJavaInteractionMap.Region[] indexRegions(
             SFMJavaInteractionMap.Result map,
-            int utf8Bytes
+            int utf8Bytes,
+            Map<String, SFMJavaInteractionMap.Classification> classificationsByRegion,
+            Map<String, SFMJavaInteractionMap.Outlink> outlinksById
     ) {
         SFMJavaInteractionMap.Region[] result = new SFMJavaInteractionMap.Region[utf8Bytes];
         Set<String> utf8Domains = map.domains().stream()
                 .filter(domain -> domain.kind().equals("utf8"))
                 .map(SFMJavaInteractionMap.Domain::id)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        Map<String, Integer> interactionRanks = new HashMap<>();
+        map.regions().forEach(region -> interactionRanks.put(
+                region.id(),
+                interactionRank(region, classificationsByRegion, outlinksById)
+        ));
         Comparator<SFMJavaInteractionMap.Region> specificity = Comparator
                 .comparingLong(SFMJavaInteractionMap.Region::byteLength)
+                .thenComparingInt(region -> interactionRanks.getOrDefault(region.id(), 8))
                 .thenComparing(SFMJavaInteractionMap.Region::id);
         List<SFMJavaInteractionMap.Region> starts = map.regions().stream()
                 .filter(region -> utf8Domains.contains(region.domainId()))
@@ -154,6 +167,36 @@ public final class SFMJavaInteractionMapSpatialAdapter
             if (!active.isEmpty()) result[offset] = active.first();
         }
         return result;
+    }
+
+    /**
+     * Equal source intervals can represent both raw syntax and a resolved semantic
+     * projection. Prefer the region carrying the strongest navigation contract;
+     * region identity is only the final deterministic tie-breaker.
+     */
+    private static int interactionRank(
+            SFMJavaInteractionMap.Region region,
+            Map<String, SFMJavaInteractionMap.Classification> classificationsByRegion,
+            Map<String, SFMJavaInteractionMap.Outlink> outlinksById
+    ) {
+        SFMJavaInteractionMap.Classification classification = classificationsByRegion.get(region.id());
+        if (classification == null) return 8;
+        List<SFMJavaInteractionMap.Outlink> navigation = classification.navigationOutlinkIds().stream()
+                .map(outlinksById::get)
+                .filter(Objects::nonNull)
+                .toList();
+        if (navigation.stream().anyMatch(outlink -> outlink.relationKind().equals("definition")
+                && outlink.completeness().equals("complete")
+                && outlink.confidence().equals("resolved"))) return 0;
+        if (navigation.stream().anyMatch(outlink -> outlink.relationKind().equals("reference")
+                && outlink.completeness().equals("complete")
+                && outlink.confidence().equals("resolved"))) return 1;
+        if (navigation.stream().anyMatch(outlink -> outlink.relationKind().equals("definition"))) return 2;
+        if (navigation.stream().anyMatch(outlink -> outlink.relationKind().equals("reference"))) return 3;
+        if (navigation.stream().anyMatch(outlink -> outlink.intent().equals("navigate"))) return 4;
+        if (!navigation.isEmpty()) return 5;
+        if (!classification.contextualActionIds().isEmpty()) return 6;
+        return classification.status() == SFMJavaInteractionMap.ClassificationStatus.ACTIONABLE ? 6 : 7;
     }
 
     private static int[] utf8ByteOffsets(String text) {

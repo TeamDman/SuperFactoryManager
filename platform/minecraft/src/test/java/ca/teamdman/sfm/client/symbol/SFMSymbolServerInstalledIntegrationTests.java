@@ -162,6 +162,13 @@ class SFMSymbolServerInstalledIntegrationTests {
             for (String symbol : java.util.List.of("ProgramContext", "String", "Object", "StringBuilder")) {
                 assertDefinitionRelation(interactionMap, adapter, outputStatementText, symbol);
             }
+            assertDefinitionRelation(
+                    interactionMap,
+                    adapter,
+                    outputStatementText,
+                    "amountAvailableToMove",
+                    1
+            );
             assertTrue(adapterMillis < 5_000,
                     () -> "OutputStatement spatial adapter construction froze for " + adapterMillis + "ms");
 
@@ -194,7 +201,17 @@ class SFMSymbolServerInstalledIntegrationTests {
             String source,
             String symbol
     ) {
-        int utf16Offset = firstExactJavaToken(source, symbol);
+        assertDefinitionRelation(interactionMap, adapter, source, symbol, 0);
+    }
+
+    private static void assertDefinitionRelation(
+            SFMJavaInteractionMap.Result interactionMap,
+            SFMJavaInteractionMapSpatialAdapter adapter,
+            String source,
+            String symbol,
+            int occurrence
+    ) {
+        int utf16Offset = exactJavaToken(source, symbol, occurrence);
         assertTrue(utf16Offset >= 0, () -> "OutputStatement fixture no longer contains " + symbol);
         long utf8Offset = source.substring(0, utf16Offset).getBytes(StandardCharsets.UTF_8).length;
         String containingRegions = interactionMap.regions().stream()
@@ -213,8 +230,10 @@ class SFMSymbolServerInstalledIntegrationTests {
                         + containingRegions);
     }
 
-    private static int firstExactJavaToken(String source, String token) {
+    private static int exactJavaToken(String source, String token, int occurrence) {
+        if (occurrence < 0) throw new IllegalArgumentException("occurrence must not be negative");
         int offset = 0;
+        int matched = 0;
         while (offset < source.length()) {
             int found = source.indexOf(token, offset);
             if (found < 0) return -1;
@@ -222,7 +241,10 @@ class SFMSymbolServerInstalledIntegrationTests {
             boolean startsAtBoundary = found == 0 || !Character.isJavaIdentifierPart(source.charAt(found - 1));
             boolean endsAtBoundary = after == source.length()
                     || !Character.isJavaIdentifierPart(source.charAt(after));
-            if (startsAtBoundary && endsAtBoundary) return found;
+            if (startsAtBoundary && endsAtBoundary) {
+                if (matched == occurrence) return found;
+                matched++;
+            }
             offset = found + 1;
         }
         return -1;
