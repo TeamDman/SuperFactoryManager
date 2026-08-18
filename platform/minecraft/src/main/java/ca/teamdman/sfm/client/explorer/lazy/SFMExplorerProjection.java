@@ -56,6 +56,13 @@ public final class SFMExplorerProjection {
         ABSOLUTE_PATH
     }
 
+    /** Explains why a row is present while a filter is active. */
+    public enum FilterRole {
+        NONE,
+        MATCH,
+        CONTEXT_ANCESTOR
+    }
+
     public record Settings(
             View view,
             Sort sort,
@@ -93,7 +100,8 @@ public final class SFMExplorerProjection {
             int depth,
             boolean root,
             boolean expanded,
-            SFMExplorerEntry.SortKey activeSortKey
+            SFMExplorerEntry.SortKey activeSortKey,
+            FilterRole filterRole
     ) {
         public Row {
             Objects.requireNonNull(path, "path");
@@ -103,6 +111,27 @@ public final class SFMExplorerProjection {
             }
             if (depth < 0) throw new IllegalArgumentException("Projection depth must not be negative");
             Objects.requireNonNull(activeSortKey, "activeSortKey");
+            Objects.requireNonNull(filterRole, "filterRole");
+        }
+
+        /** Source-compatible constructor for callers that create unfiltered rows. */
+        public Row(
+                SFMPath path,
+                SFMExplorerEntry entry,
+                int depth,
+                boolean root,
+                boolean expanded,
+                SFMExplorerEntry.SortKey activeSortKey
+        ) {
+            this(path, entry, depth, root, expanded, activeSortKey, FilterRole.NONE);
+        }
+
+        public boolean filterMatch() {
+            return filterRole == FilterRole.MATCH;
+        }
+
+        public boolean filterContextAncestor() {
+            return filterRole == FilterRole.CONTEXT_ANCESTOR;
         }
     }
 
@@ -129,12 +158,18 @@ public final class SFMExplorerProjection {
             String query,
             int candidateCount,
             int matchCount,
+            int visibleRowCount,
+            int contextAncestorCount,
             boolean incompleteMaterialization
     ) {
         public FilterEvidence {
             query = Objects.requireNonNull(query, "query");
             if (candidateCount < 0 || matchCount < 0 || matchCount > candidateCount) {
                 throw new IllegalArgumentException("Invalid explorer filter counts");
+            }
+            if (visibleRowCount < 0 || contextAncestorCount < 0
+                    || visibleRowCount != matchCount + contextAncestorCount) {
+                throw new IllegalArgumentException("Invalid explorer filter projection counts");
             }
         }
 
@@ -185,10 +220,10 @@ public final class SFMExplorerProjection {
                 filter = projectFilteredMaterialization(roots, showRoots);
             } else if (session.settings().group() == Group.NONE) {
                 projectFlat(roots, showRoots);
-                filter = new FilterEvidence("", rows.size(), rows.size(), false);
+                filter = inactiveFilterEvidence();
             } else {
                 projectHierarchy(roots, showRoots);
-                filter = new FilterEvidence("", rows.size(), rows.size(), false);
+                filter = inactiveFilterEvidence();
             }
             return new Result(
                     session.settings(),
@@ -199,54 +234,146 @@ public final class SFMExplorerProjection {
             );
         }
 
+        private FilterEvidence inactiveFilterEvidence() {
+            return new FilterEvidence("", rows.size(), rows.size(), rows.size(), 0, false);
+        }
+
         /**
-         * Filtering is a flat ranking over already-published relation rows.
-         * It deliberately ignores expansion for candidate discovery and never
-         * asks a resolver for more children.
+         * Filtering ranks only the already-published relation. Hierarchy mode
+         * emits each match with the materialized ancestor chain that locates
+         * it; flat mode emits only matches. Neither path asks a resolver for
+         * children or mutates persisted expansion state.
          */
         private FilterEvidence projectFilteredMaterialization(List<SFMPath> roots, boolean showRoots) {
             HashSet<SFMPath> visited = new HashSet<>();
             HashSet<SFMPath> ancestry = new HashSet<>();
+            ArrayList<MaterializedNode> topLevel = new ArrayList<>();
+            ArrayList<MaterializedNode> candidates = new ArrayList<>();
             for (SFMPath root : roots) {
-                boolean newRoot = visited.add(root);
-                if (showRoots && newRoot) addRow(root, 0, true);
-                addMaterializedChildren(root, showRoots ? 1 : 0, visited, ancestry);
+                if (!visited.add(root)) continue;
+                if (showRoots) {
+                    MaterializedNode rootNode = new MaterializedNode(row(root, 0, true));
+                    topLevel.add(rootNode);
+                    candidates.add(rootNode);
+                    addMaterializedChildren(root, rootNode, 1, visited, ancestry, topLevel, candidates);
+                } else {
+                    addMaterializedChildren(root, null, 0, visited, ancestry, topLevel, candidates);
+                }
             }
-            ArrayList<RowMatch> matches = new ArrayList<>();
             String query = session.settings().filterQuery();
-            for (Row row : rows) {
-                float score = Math.min(
-                        SFMFuzzyScorer.score(query, row.entry().label()),
-                        SFMFuzzyScorer.score(query, row.path().canonical())
-                );
-                if (score <= SFMFuzzyScorer.DEFAULT_THRESHOLD) matches.add(new RowMatch(row, score));
+            topLevel.forEach(node -> score(node, query));
+            int matchCount = (int) candidates.stream().filter(MaterializedNode::matches).count();
+
+            if (session.settings().group() == Group.NONE) {
+                candidates.stream()
+                        .filter(MaterializedNode::matches)
+                        .sorted(Comparator
+                                .comparingDouble((MaterializedNode node) -> node.directScore())
+                                .thenComparing(node -> node.row().path().canonical()))
+                        .map(this::flatFilteredRow)
+                        .forEach(rows::add);
+            } else {
+                topLevel.stream()
+                        .filter(MaterializedNode::included)
+                        .sorted(filteredSubtreeComparator())
+                        .forEach(this::emitFilteredHierarchy);
             }
-            int candidates = rows.size();
-            matches.sort(Comparator
-                    .comparingDouble(RowMatch::score)
-                    .thenComparing(match -> match.row().path().canonical()));
-            rows.clear();
-            matches.stream().map(RowMatch::row).forEach(rows::add);
-            return new FilterEvidence(query, candidates, rows.size(), materializationIsIncomplete(visited));
+            int contextAncestorCount = rows.size() - matchCount;
+            return new FilterEvidence(
+                    query,
+                    candidates.size(),
+                    matchCount,
+                    rows.size(),
+                    contextAncestorCount,
+                    materializationIsIncomplete(visited)
+            );
         }
 
         private void addMaterializedChildren(
                 SFMPath parent,
+                MaterializedNode visibleParent,
                 int depth,
                 Set<SFMPath> visited,
-                Set<SFMPath> ancestry
+                Set<SFMPath> ancestry,
+                List<MaterializedNode> topLevel,
+                List<MaterializedNode> candidates
         ) {
             if (!ancestry.add(parent)) {
                 diagnostics.add("cycle suppressed below " + parent.canonical());
                 return;
             }
             for (SFMPath child : sorted(relations.relation().childrenOf(parent))) {
-                if (visited.add(child)) {
-                    addRow(child, depth, false);
-                    addMaterializedChildren(child, depth + 1, visited, ancestry);
+                if (ancestry.contains(child)) {
+                    diagnostics.add("cycle suppressed below " + parent.canonical()
+                            + " through " + child.canonical());
+                    continue;
                 }
+                if (!visited.add(child)) continue;
+                MaterializedNode childNode = new MaterializedNode(row(child, depth, false));
+                candidates.add(childNode);
+                if (visibleParent == null) topLevel.add(childNode);
+                else visibleParent.children().add(childNode);
+                addMaterializedChildren(
+                        child,
+                        childNode,
+                        depth + 1,
+                        visited,
+                        ancestry,
+                        topLevel,
+                        candidates
+                );
             }
             ancestry.remove(parent);
+        }
+
+        private float score(MaterializedNode node, String query) {
+            float directScore = Math.min(
+                    SFMFuzzyScorer.score(query, node.row().entry().label()),
+                    SFMFuzzyScorer.score(query, node.row().path().canonical())
+            );
+            node.directScore(directScore);
+            node.matches(directScore <= SFMFuzzyScorer.DEFAULT_THRESHOLD);
+            float best = node.matches() ? directScore : Float.POSITIVE_INFINITY;
+            for (MaterializedNode child : node.children()) best = Math.min(best, score(child, query));
+            node.bestDescendantScore(best);
+            return best;
+        }
+
+        private Comparator<MaterializedNode> filteredSubtreeComparator() {
+            return Comparator
+                    .comparingDouble((MaterializedNode node) -> node.bestDescendantScore())
+                    .thenComparing(node -> node.row().path().canonical());
+        }
+
+        private void emitFilteredHierarchy(MaterializedNode node) {
+            List<MaterializedNode> includedChildren = node.children().stream()
+                    .filter(MaterializedNode::included)
+                    .sorted(filteredSubtreeComparator())
+                    .toList();
+            Row source = node.row();
+            rows.add(new Row(
+                    source.path(),
+                    source.entry(),
+                    source.depth(),
+                    source.root(),
+                    source.expanded() || !includedChildren.isEmpty(),
+                    source.activeSortKey(),
+                    node.matches() ? FilterRole.MATCH : FilterRole.CONTEXT_ANCESTOR
+            ));
+            includedChildren.forEach(this::emitFilteredHierarchy);
+        }
+
+        private Row flatFilteredRow(MaterializedNode node) {
+            Row source = node.row();
+            return new Row(
+                    source.path(),
+                    source.entry(),
+                    0,
+                    source.root(),
+                    source.expanded(),
+                    source.activeSortKey(),
+                    FilterRole.MATCH
+            );
         }
 
         private boolean materializationIsIncomplete(Set<SFMPath> candidates) {
@@ -326,20 +453,25 @@ public final class SFMExplorerProjection {
         }
 
         private void addRow(SFMPath path, int depth, boolean root) {
+            rows.add(row(path, depth, root));
+        }
+
+        private Row row(SFMPath path, int depth, boolean root) {
             SFMExplorerEntry entry = entries.getOrDefault(path, fallback(path));
             SFMExplorerEntry.SortKey active = entry.sortKey(session.settings().sort().contributionId());
             active.unavailableReason().ifPresent(reason -> diagnostics.add(
                     path.canonical() + ": " + reason
             ));
             diagnostics.addAll(entry.diagnostics());
-            rows.add(new Row(
+            return new Row(
                     path,
                     entry,
                     depth,
                     root,
                     session.expanded().contains(path),
-                    active
-            ));
+                    active,
+                    FilterRole.NONE
+            );
         }
 
         private List<SFMPath> orderedRoots() {
@@ -379,7 +511,52 @@ public final class SFMExplorerProjection {
             return SFMExplorerEntry.simple(path, label, true, Optional.empty());
         }
 
-        private record RowMatch(Row row, float score) {
+        private static final class MaterializedNode {
+            private final Row row;
+            private final ArrayList<MaterializedNode> children = new ArrayList<>();
+            private float directScore = Float.POSITIVE_INFINITY;
+            private float bestDescendantScore = Float.POSITIVE_INFINITY;
+            private boolean matches;
+
+            private MaterializedNode(Row row) {
+                this.row = row;
+            }
+
+            private Row row() {
+                return row;
+            }
+
+            private ArrayList<MaterializedNode> children() {
+                return children;
+            }
+
+            private float directScore() {
+                return directScore;
+            }
+
+            private void directScore(float directScore) {
+                this.directScore = directScore;
+            }
+
+            private float bestDescendantScore() {
+                return bestDescendantScore;
+            }
+
+            private void bestDescendantScore(float bestDescendantScore) {
+                this.bestDescendantScore = bestDescendantScore;
+            }
+
+            private boolean matches() {
+                return matches;
+            }
+
+            private void matches(boolean matches) {
+                this.matches = matches;
+            }
+
+            private boolean included() {
+                return Float.isFinite(bestDescendantScore);
+            }
         }
     }
 }

@@ -27,17 +27,22 @@ public final class TitleScreenCommandPaletteGamePuppet {
                         .append(Component.literal("suggestions reached through wheel, keyboard, track, and thumb."))
         );
         puppet.setCommandPaletteInput("sfm action invoke open");
+        puppet.focusCommandPaletteCancel();
         puppet.capture(
                 "command-palette-fuzzy-open",
                 Component.literal("SFM ")
                         .withStyle(ChatFormatting.GOLD)
-                        .append(Component.literal("fuzzy action discovery for open."))
+                        .append(Component.literal(
+                                "fuzzy action discovery for open; the visible focused Cancel control is narrated and Tab-reachable."
+                        ))
         );
         puppet.capture(
                 "command-palette",
                 Component.literal("SFM ")
                         .withStyle(ChatFormatting.GOLD)
-                        .append(Component.literal("command palette on the title screen."))
+                        .append(Component.literal(
+                                "command palette on the title screen with its shared Vanilla-like Cancel control."
+                        ))
         );
     }
 }

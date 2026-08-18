@@ -1,0 +1,121 @@
+{
+  "completeness": "complete",
+  "context": {
+    "branch": "1.19.2",
+    "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
+    "classpath_mode": "isolated",
+    "index_fingerprint": "blake3:d97d06def7de99912bfe3cf98f3a98e777a0022c543479eed610b5c7794fc82f",
+    "java_release": "17",
+    "jdk": "java-17",
+    "minecraft_version": "1.19.2",
+    "parser_fingerprint": "arborium-java/2.18.1",
+    "source_exclusions": [],
+    "source_roots": [
+      {
+        "exists": true,
+        "id": "custom-0",
+        "kind": "custom",
+        "path": "source",
+        "source_set": "custom"
+      },
+      {
+        "exists": true,
+        "id": "jdk-java-17-5d37c7c5f17836ce",
+        "kind": "jdk",
+        "path": "$sfm-cache/sources/jdk/17-2bc7ef5f44f1bad1/e9b1e8371a9b394577207c1b12eb8edea34bdabb/arborium-java-2.18.1-37cdda9748951a30/tree",
+        "source_set": "jdk:java-17"
+      }
+    ],
+    "source_sets": [
+      {
+        "id": "custom",
+        "visible_source_sets": [
+          "custom",
+          "jdk:java-17"
+        ]
+      },
+      {
+        "id": "jdk:java-17",
+        "visible_source_sets": [
+          "custom",
+          "jdk:java-17"
+        ]
+      }
+    ]
+  },
+  "definitions": [
+    {
+      "confidence": "resolved",
+      "declaration_span": {
+        "address": "workspace://custom-0/p/Widget.java",
+        "end_byte": 115,
+        "end_column": 49,
+        "end_line": 5,
+        "report_path": "source/p/Widget.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/Widget.java",
+        "source_hash": "blake3:2e6d1f583109aabfe2604a1934f188a48e25419a44995e7ea8093fd2522c56b6",
+        "source_set": "custom",
+        "source_sha256": "sha256:449e3a82cee6dc1d4a7842ef2f150e8c62379dc71f8d6d6363ec48adec41a63a",
+        "start_byte": 71,
+        "start_column": 5,
+        "start_line": 5
+      },
+      "identifier_span": {
+        "address": "workspace://custom-0/p/Widget.java",
+        "end_byte": 84,
+        "end_column": 18,
+        "end_line": 5,
+        "report_path": "source/p/Widget.java",
+        "resolver_id": "workspace",
+        "root_id": "custom-0",
+        "root_relative_path": "p/Widget.java",
+        "source_hash": "blake3:2e6d1f583109aabfe2604a1934f188a48e25419a44995e7ea8093fd2522c56b6",
+        "source_set": "custom",
+        "source_sha256": "sha256:449e3a82cee6dc1d4a7842ef2f150e8c62379dc71f8d6d6363ec48adec41a63a",
+        "start_byte": 78,
+        "start_column": 12,
+        "start_line": 5
+      },
+      "symbol": {
+        "descriptor": "(Ljava/lang/String;[Ljava/lang/Object;)V",
+        "kind": "constructor",
+        "name": "<init>",
+        "owner": "p.Widget",
+        "qualified_name": "p.Widget.<init>(Ljava/lang/String;[Ljava/lang/Object;)V"
+      }
+    }
+  ],
+  "diagnostics": [],
+  "document": {
+    "address": "workspace://custom-0/q/Use.java",
+    "content_hash": "blake3:c43b161c86d4ce0a7e090e25d6a555fb173e07d0c13524832ac6080424f5e13f",
+    "disk_content_hash": "blake3:c43b161c86d4ce0a7e090e25d6a555fb173e07d0c13524832ac6080424f5e13f",
+    "report_path": "source/q/Use.java",
+    "root_id": "custom-0",
+    "root_relative_path": "q/Use.java",
+    "source_set": "custom"
+  },
+  "outcome": "success",
+  "position": {
+    "byte_offset": 108,
+    "column": 22,
+    "line": 5
+  },
+  "recovery_actions": [],
+  "request_generation": 0,
+  "request_id": 0,
+  "schema": "sfm.definition-at-position-result/3",
+  "symbols": [
+    {
+      "descriptor": "(Ljava/lang/String;[Ljava/lang/Object;)V",
+      "kind": "constructor",
+      "name": "<init>",
+      "owner": "p.Widget",
+      "qualified_name": "p.Widget.<init>(Ljava/lang/String;[Ljava/lang/Object;)V"
+    }
+  ],
+  "workspace_generation": 0
+}
+

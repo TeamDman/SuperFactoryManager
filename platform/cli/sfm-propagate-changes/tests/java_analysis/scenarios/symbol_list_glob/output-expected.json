@@ -3,7 +3,7 @@
     "branch": "1.19.2",
     "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
     "classpath_mode": "isolated",
-    "index_fingerprint": "blake3:6020208db6226d2d3d5a4b2975f8e36b9aad12df550aac6d2b5c33496c94596e",
+    "index_fingerprint": "blake3:59c0e026cb9c819c66017da26e3a27a646093c0a76946c8c68d1bbccb4eacc02",
     "java_release": "17",
     "jdk": "java-17",
     "minecraft_version": "1.19.2",
@@ -111,7 +111,7 @@
   "diagnostics": [
     {
       "code": "java.unrelated-list-diagnostics-suppressed",
-      "message": "Suppressed 42 diagnostics outside files matched by symbol glob `example.* run*`",
+      "message": "Suppressed 45 diagnostics outside files matched by symbol glob `example.* run*`",
       "severity": "info",
       "span": null
     }

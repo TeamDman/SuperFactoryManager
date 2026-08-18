@@ -34,12 +34,12 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Self-contained live proof for X-8b. It uses the real workspace key, character,
- * and wheel callbacks, captures each focus/filter stage, and emits bounded
- * machine evidence beside the screenshots.
+ * Self-contained live proof for X-8b/X-8c. It uses the real workspace key,
+ * character, and wheel callbacks, captures each focus/filter stage, and emits
+ * bounded machine evidence beside the screenshots.
  */
 public final class ExerciseExplorerInteractionFidelityPuppetAction implements SFMPuppetAction {
-    private static final String SCHEMA = "sfm.explorer-interaction-fidelity/1";
+    private static final String SCHEMA = "sfm.explorer-interaction-fidelity/2";
 
     private final SFMPath javaPath;
     private Stage stage = Stage.WAIT_READY;
@@ -70,7 +70,7 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
 
     @Override
     public String description() {
-        return "exercise live explorer projection, focus, fuzzy filter, and ordered wheel behavior";
+        return "exercise live explorer projection, hierarchy-preserving filter, focus, and ordered wheel behavior";
     }
 
     @Override
@@ -90,8 +90,8 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
             ), Stage.FOCUS_FILTER);
             case FOCUS_FILTER -> focusFilterAndType(handle);
             case SETTLE_FILTER -> settleFilter(handle);
-            case CAPTURE_FILTER -> capture(runtime, "x8b-fuzzy-filter-focus", caption(
-                    "The narrated filter ranks the current lazy materialization and truthfully reports excluded unmaterialized subtrees."
+            case CAPTURE_FILTER -> capture(runtime, "x8c-hierarchy-filter-focus", caption(
+                    "SFM.java remains under its materialized ancestor chain; bright matches and muted [context] rows are counted and narrated separately."
             ), Stage.REQUEST_CLEAR_AND_LIST);
             case REQUEST_CLEAR_AND_LIST -> requestClearAndList(handle);
             case AWAIT_CLEAR_AND_LIST -> awaitClearAndListAndScroll(handle);
@@ -166,7 +166,7 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         SFMExplorerPanelModel.State state = handle.state();
         if (!state.projection().filter().active()
                 || !state.projection().filter().query().equals(filterQuery)
-                || row(state, itemPath).isEmpty()) return waitOrFail("the live fuzzy-filter projection");
+                || row(state, javaPath).isEmpty()) return waitOrFail("the live hierarchy-preserving filter projection");
         if (++stageTicks <= SFMGamePuppetHelper.RENDER_SETTLE_TICKS) return false;
 
         SFMExplorerRuntime.Evidence after = SFMExplorerRuntime.get().evidence();
@@ -181,13 +181,44 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
                 "filtering started a resolver request");
 
         SFMExplorerProjection.FilterEvidence filter = state.projection().filter();
+        List<SFMExplorerProjection.Row> rows = state.projection().rows();
+        SFMExplorerProjection.Row target = row(state, javaPath).orElseThrow();
+        require(target.filterMatch(), "the filtered SFM.java target was not classified as an actual match");
+        long projectedMatches = rows.stream().filter(SFMExplorerProjection.Row::filterMatch).count();
+        long projectedContext = rows.stream().filter(SFMExplorerProjection.Row::filterContextAncestor).count();
+        require(projectedMatches == filter.matchCount(), "filter match evidence disagrees with projected row roles");
+        require(projectedContext == filter.contextAncestorCount(),
+                "filter context evidence disagrees with projected row roles");
+        require(projectedContext > 0, "SFM.java filter did not retain any materialized context ancestors");
+        require(filter.visibleRowCount() == rows.size(), "filter visible-row evidence disagrees with projection");
+        require(rows.stream().noneMatch(candidate -> candidate.filterRole() == SFMExplorerProjection.FilterRole.NONE),
+                "an active filtered projection exposed a row with no filter role");
+        List<SFMExplorerProjection.Row> ancestorChain = ancestorChainBefore(rows, target);
+        require(ancestorChain.size() == target.depth(),
+                "SFM.java did not retain one ancestor for every projected depth");
+        require(ancestorChain.stream().allMatch(SFMExplorerProjection.Row::filterContextAncestor),
+                "SFM.java ancestry contained a row not identified as filter context");
+        String narration = handle.panel().narration().getString();
+        require(narration.contains(filter.matchCount() + (filter.matchCount() == 1 ? " match" : " matches")),
+                "filter narration omitted the actual-match count");
+        require(narration.contains(filter.contextAncestorCount()
+                        + (filter.contextAncestorCount() == 1 ? " context ancestor" : " context ancestors")),
+                "filter narration omitted the context-ancestor count");
+
         Map<String, Object> evidence = new LinkedHashMap<>();
         evidence.put("query", filter.query());
         evidence.put("candidate_count", filter.candidateCount());
         evidence.put("match_count", filter.matchCount());
+        evidence.put("visible_row_count", filter.visibleRowCount());
+        evidence.put("context_ancestor_count", filter.contextAncestorCount());
         evidence.put("incomplete_materialization", filter.incompleteMaterialization());
-        evidence.put("visible_paths", state.projection().rows().stream()
+        evidence.put("target_path", target.path().canonical());
+        evidence.put("target_role", target.filterRole().name());
+        evidence.put("target_ancestor_paths", ancestorChain.stream()
                 .map(result -> result.path().canonical()).toList());
+        evidence.put("narration", narration);
+        evidence.put("rows", rows.stream().map(ExerciseExplorerInteractionFidelityPuppetAction::filterRowEvidence)
+                .toList());
         filterEvidence = evidence;
         stage = Stage.CAPTURE_FILTER;
         stageTicks = 0;
@@ -379,6 +410,35 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         return evidence;
     }
 
+    private static Map<String, Object> filterRowEvidence(SFMExplorerProjection.Row row) {
+        Map<String, Object> evidence = new LinkedHashMap<>();
+        evidence.put("path", row.path().canonical());
+        evidence.put("depth", row.depth());
+        evidence.put("root", row.root());
+        evidence.put("expanded", row.expanded());
+        evidence.put("filter_role", row.filterRole().name());
+        return evidence;
+    }
+
+    private static List<SFMExplorerProjection.Row> ancestorChainBefore(
+            List<SFMExplorerProjection.Row> rows,
+            SFMExplorerProjection.Row target
+    ) {
+        int targetIndex = rows.indexOf(target);
+        if (targetIndex < 0) return List.of();
+        ArrayList<SFMExplorerProjection.Row> reverse = new ArrayList<>();
+        int expectedDepth = target.depth() - 1;
+        for (int index = targetIndex - 1; index >= 0 && expectedDepth >= 0; index--) {
+            SFMExplorerProjection.Row candidate = rows.get(index);
+            if (candidate.depth() == expectedDepth) {
+                reverse.add(candidate);
+                expectedDepth--;
+            }
+        }
+        java.util.Collections.reverse(reverse);
+        return List.copyOf(reverse);
+    }
+
     private static Map<String, Object> ioEvidence(SFMExplorerIoCounter.Snapshot io) {
         Map<String, Object> evidence = new LinkedHashMap<>();
         evidence.put("metadata_reads", io.metadataReads());
@@ -425,22 +485,6 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
                 .findFirst();
     }
 
-    private static String fuzzyQuery(String label) {
-        StringBuilder searchable = new StringBuilder();
-        for (int index = 0; index < label.length(); index++) {
-            char character = Character.toLowerCase(label.charAt(index));
-            if (Character.isLetterOrDigit(character)) searchable.append(character);
-        }
-        if (searchable.isEmpty()) throw new IllegalStateException("Registry item label has no searchable characters");
-        if (searchable.length() <= 4) return searchable.toString();
-        StringBuilder query = new StringBuilder(4);
-        for (int sample = 0; sample < 4; sample++) {
-            int index = sample * (searchable.length() - 1) / 3;
-            query.append(searchable.charAt(index));
-        }
-        return query.toString();
-    }
-
     private Optional<SFMExplorerRuntime.ExplorerEvidence> explorerEvidence() {
         if (explorerId == null) return Optional.empty();
         return SFMExplorerRuntime.get().evidence().explorers().stream()
@@ -458,9 +502,12 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
             SFMExplorerPanelModel.State state = panel.model().state(bounds);
             if (explorerId == null) {
                 Optional<SFMExplorerProjection.Row> registryItem = firstRegistryItem(state);
-                if (row(state, javaPath).isEmpty() || registryItem.isEmpty()) continue;
+                Optional<SFMExplorerProjection.Row> javaRow = row(state, javaPath);
+                if (javaRow.isEmpty() || registryItem.isEmpty()) continue;
                 itemPath = registryItem.orElseThrow().path();
-                filterQuery = fuzzyQuery(registryItem.orElseThrow().entry().label());
+                // The extra descriptive term keeps SFM.java a strong fuzzy match while the
+                // published path segments above it remain context-only rows.
+                filterQuery = javaRow.orElseThrow().entry().label() + " file";
             }
             explorerId = panel.explorerId();
             return new Handle(workspace, panelId, panel, bounds, state);
@@ -503,7 +550,7 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
     }
 
     private static Component caption(String text) {
-        return Component.literal("SFM Explorer X-8b — ").withStyle(ChatFormatting.GOLD)
+        return Component.literal("SFM Explorer X-8b/X-8c — ").withStyle(ChatFormatting.GOLD)
                 .append(Component.literal(text).withStyle(ChatFormatting.BLACK));
     }
 

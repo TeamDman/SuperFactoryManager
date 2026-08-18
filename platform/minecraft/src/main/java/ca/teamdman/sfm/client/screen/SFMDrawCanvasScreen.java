@@ -1092,14 +1092,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         String projectedText = canvas.text();
         boolean dirty = !projectedText.equals(initialCanvasProjectionText);
         String currentText = !dirty && baseline.ready() ? baseline.text() : projectedText;
-        int navigationOffset = Math.min(hit.navigationUtf16Offset(), currentText.length());
-        SFMDrawCanvasModel.CanvasGlyph glyph = navigationOffset < canvas.glyphsByCharIndex().size()
-                ? canvas.glyphsByCharIndex().get(navigationOffset)
-                : null;
-        if (glyph == null) glyph = index.orderedGlyphs().get(hit.range().glyphStart());
+        SFMDrawCanvasModel.CanvasGlyph glyph = index.orderedGlyphs().get(hit.glyphOrdinal());
+        int capturedOffset = index.utf16OffsetOf(glyph)
+                .orElse(Math.min(hit.navigationUtf16Offset(), currentText.length()));
         SFMTextDocumentPosition position = SFMContextTextCoordinates.atUtf16Offset(
                 currentText,
-                navigationOffset
+                capturedOffset
         );
         SFMContextDocumentProjection captured = SFMContextDocumentProjection.capture(
                 editorId,

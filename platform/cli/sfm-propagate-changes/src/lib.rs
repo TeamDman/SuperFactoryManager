@@ -5,6 +5,7 @@ pub mod cli;
 pub mod colour;
 pub mod curseforge;
 pub(crate) mod dependency_inventory;
+pub(crate) mod dependency_locked_sources;
 pub(crate) mod dependency_sources;
 pub mod jar_build;
 pub mod java_analysis;

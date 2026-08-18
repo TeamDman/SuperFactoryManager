@@ -7,6 +7,12 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Fix Java definition navigation for varargs constructors, fully qualified static receivers, and locked Forge loader source
+-- Keep asynchronous source navigation valid across harmless cursor changes while rejecting changed documents with precise reasons
+-- Add action-backed aggregate and granular symbol-detail copying with deterministic replay evidence
+-- Preserve materialized root-to-match ancestry and honest context counts while fuzzy-filtering explorers
+-- Add a visible shared Cancel action to full and constrained command-palette surfaces
+-- Confirm toast and symbol clipboard actions without replacing or dismissing their source notification
 -- Add panelized Text Editor v3, read-only grammar viewing, and review changes/comments/hashtags explorers
 -- Retire the title-screen SFM Dev chooser and superseded managed-bundle/source-review entry points
 -- Add command-palette actions for vanilla keybindings and setting, incrementing, or decrementing GUI scale

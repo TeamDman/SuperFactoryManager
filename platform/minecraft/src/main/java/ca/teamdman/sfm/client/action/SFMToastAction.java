@@ -86,7 +86,7 @@ public final class SFMToastAction implements SFMClientAction<SFMScreenMultiplexe
         };
         if (!available) throw STALE.create();
         context.getSource().sendFeedback(Component.literal(switch (operation) {
-            case COPY -> "Copied toast " + id.value() + " to the clipboard";
+            case COPY -> "Copied notification " + id.value() + " to the clipboard";
             case STOP_TIMER -> "Stopped timer for toast " + id.value();
             case RESUME_TIMER -> "Resumed timer for toast " + id.value();
             case DISMISS -> "Dismissed toast " + id.value();

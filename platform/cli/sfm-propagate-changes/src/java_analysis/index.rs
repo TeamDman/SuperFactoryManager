@@ -32,6 +32,7 @@ use super::UsageAtPositionResult;
 use super::UsageAtPositionUsageOutput;
 use super::blake3_content_hash;
 use super::definition_workspace_fingerprint;
+use super::java_file_facts::raw_parameter_type;
 use super::sha256_content_hash;
 use super::syntax::JAVA_PARSER_FINGERPRINT;
 use super::syntax::JavaSyntaxFile;
@@ -1882,10 +1883,23 @@ fn add_dependency_source_sets(
     dependencies: &DependencyJavaSymbolIndexBody,
 ) {
     let dependency_sets = dependency_source_sets(dependencies);
+    let jdk_sets = context
+        .source_roots
+        .iter()
+        .filter(|root| root.kind == super::JavaSourceRootKind::Jdk)
+        .map(|root| root.source_set.clone())
+        .collect::<BTreeSet<_>>();
+    let mut dependency_visibility = dependency_sets.clone();
+    dependency_visibility.extend(jdk_sets.iter().cloned());
     for source_set in &mut context.source_sets {
         source_set
             .visible_source_sets
             .extend(dependency_sets.iter().cloned());
+        if dependency_sets.contains(&source_set.id) {
+            source_set
+                .visible_source_sets
+                .extend(jdk_sets.iter().cloned());
+        }
         source_set.visible_source_sets.sort();
         source_set.visible_source_sets.dedup();
     }
@@ -1899,7 +1913,7 @@ fn add_dependency_source_sets(
         }
         context.source_sets.push(super::JavaSourceSetOutput {
             id: source_set.clone(),
-            visible_source_sets: dependency_sets.iter().cloned().collect(),
+            visible_source_sets: dependency_visibility.iter().cloned().collect(),
         });
     }
     context
@@ -2670,18 +2684,7 @@ fn collect_raw_method(
         .map(named_children)
         .unwrap_or_default()
         .into_iter()
-        .filter_map(|parameter| {
-            parameter
-                .child_by_field_name("type")
-                .and_then(|type_node| file.text(type_node))
-                .map(|raw_type| {
-                    if parameter.kind() == "spread_parameter" {
-                        format!("{raw_type}...")
-                    } else {
-                        raw_type.to_owned()
-                    }
-                })
-        })
+        .filter_map(|parameter| raw_parameter_type(file, parameter))
         .collect();
     methods.push(RawMethodDeclaration {
         owner: owner.to_owned(),
@@ -3262,6 +3265,7 @@ impl UsageCollector<'_> {
             "field_access" => self.visit_field_access(node),
             "method_invocation" => self.visit_method_invocation(node),
             "method_reference" => self.visit_method_reference(node),
+            "scoped_identifier" => self.visit_qualified_expression_name(node),
             "type_identifier" | "scoped_type_identifier" => {
                 self.visit_type_reference(node);
             }
@@ -3508,6 +3512,16 @@ impl UsageCollector<'_> {
     }
 
     fn visit_field_access(&mut self, node: Node<'_>) {
+        if let Some(resolved) = self.resolve_qualified_type_expression(node) {
+            let span = self.file().span(node);
+            self.record_type_indices(
+                &resolved.source_indices,
+                JavaUsageKind::TypeReference,
+                &span,
+                ResolutionConfidence::Resolved,
+            );
+            return;
+        }
         let Some(field_node) = node.child_by_field_name("field") else {
             self.visit_children(node);
             return;
@@ -3531,6 +3545,20 @@ impl UsageCollector<'_> {
                 self.visit(child);
             }
         }
+    }
+
+    fn visit_qualified_expression_name(&mut self, node: Node<'_>) {
+        let Some(resolved) = self.resolve_qualified_type_expression(node) else {
+            self.visit_children(node);
+            return;
+        };
+        let span = self.file().span(node);
+        self.record_type_indices(
+            &resolved.source_indices,
+            JavaUsageKind::TypeReference,
+            &span,
+            ResolutionConfidence::Resolved,
+        );
     }
 
     fn visit_object_creation(&mut self, node: Node<'_>) {
@@ -3848,6 +3876,29 @@ impl UsageCollector<'_> {
             self.owners.last().map_or("", String::as_str),
             &self.model.resolution.type_lookup,
         )
+    }
+
+    /// Resolve a syntactically expression-shaped qualified name as a type only
+    /// when Java's value namespace does not claim its left-most segment. This
+    /// is the distinction needed for receivers such as
+    /// `ca.teamdman.Type.staticMethod()` without turning `local.field` into a
+    /// guessed type reference when a package happens to share `local`'s name.
+    fn resolve_qualified_type_expression(&self, node: Node<'_>) -> Option<ResolvedType> {
+        if !matches!(node.kind(), "field_access" | "scoped_identifier") {
+            return None;
+        }
+        let raw_type = self.file().text(node)?;
+        let root = raw_type.split('.').next()?.trim();
+        if root.is_empty()
+            || self.lookup_local(root).is_some()
+            || self
+                .owners
+                .last()
+                .is_some_and(|owner| !self.visible_fields(owner, root).is_empty())
+        {
+            return None;
+        }
+        self.resolve_type(raw_type).ok()
     }
 
     fn record_type_indices(
@@ -4189,7 +4240,10 @@ impl UsageCollector<'_> {
                     })
             }
             "this" => self.owners.last().cloned(),
-            "scoped_identifier" | "type_identifier" | "scoped_type_identifier" => self
+            "scoped_identifier" => self
+                .resolve_qualified_type_expression(node)
+                .map(|resolved| resolved.qualified_name),
+            "type_identifier" | "scoped_type_identifier" => self
                 .file()
                 .text(node)
                 .and_then(|raw_type| self.resolve_type(raw_type).ok())
@@ -4221,6 +4275,9 @@ impl UsageCollector<'_> {
                 first_named_child(node).and_then(|expression| self.expression_type(expression))
             }
             "field_access" => {
+                if let Some(resolved) = self.resolve_qualified_type_expression(node) {
+                    return Some(resolved.qualified_name);
+                }
                 let field_name = node
                     .child_by_field_name("field")
                     .and_then(|field| self.file().text(field))?;
@@ -4708,6 +4765,172 @@ mod tests {
             Vec::new(),
             Vec::new(),
         )
+    }
+
+    #[test]
+    fn dependency_source_sets_inherit_jdk_visibility_added_before_them() {
+        let mut context = context(&[
+            ("main", &["main", "jdk:fixture"]),
+            ("jdk:fixture", &["main", "jdk:fixture"]),
+        ]);
+        context.source_roots.push(JavaSourceRootOutput {
+            id: "jdk-fixture".to_owned(),
+            source_set: "jdk:fixture".to_owned(),
+            path: "jdk".to_owned(),
+            kind: JavaSourceRootKind::Jdk,
+            exists: true,
+        });
+
+        add_dependency_source_sets(&mut context, &dependency_type("example.Dependency"));
+
+        let dependency = context
+            .source_sets
+            .iter()
+            .find(|source_set| source_set.id == "dependency:minecraft:main")
+            .expect("dependency source set should be declared");
+        assert_eq!(
+            dependency.visible_source_sets,
+            ["dependency:minecraft:main", "jdk:fixture"]
+        );
+    }
+
+    #[test]
+    fn varargs_constructor_keeps_its_array_descriptor_and_resolves_every_type_glyph() {
+        let widget = concat!(
+            "package p;\n",
+            "public class Widget {\n",
+            "    public Widget(String key) {}\n",
+            "    public Widget(String key, Object... args) {}\n",
+            "}\n",
+        );
+        let use_source = concat!(
+            "package q;\n",
+            "import p.Widget;\n",
+            "class Use {\n",
+            "    Widget create(String key, Object[] args) {\n",
+            "        return new Widget(key, args);\n",
+            "    }\n",
+            "}\n",
+        );
+        let symbol_index = index(vec![
+            parsed("source/p/Widget.java", "scenario", widget),
+            parsed("source/q/Use.java", "scenario", use_source),
+        ]);
+        let descriptors = symbol_index
+            .definitions
+            .iter()
+            .filter(|definition| {
+                definition.symbol.owner == "p.Widget"
+                    && definition.symbol.kind == JavaSymbolKind::Constructor
+            })
+            .map(|definition| definition.symbol.descriptor.as_deref())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            descriptors,
+            [
+                Some("(Ljava/lang/String;)V"),
+                Some("(Ljava/lang/String;[Ljava/lang/Object;)V"),
+            ]
+        );
+
+        let (_directory, workspace) = position_workspace(&[
+            (
+                "java/lang/Object.java",
+                "package java.lang; public class Object {}\n",
+            ),
+            (
+                "java/lang/String.java",
+                "package java.lang; public class String {}\n",
+            ),
+            ("p/Widget.java", widget),
+            ("q/Use.java", use_source),
+        ]);
+        for column in 20..=25 {
+            let request = position_request(&workspace, "q/Use.java", use_source, 5, column);
+            let result = analyze_definition_at_position(&workspace, &request, None)
+                .expect("varargs constructor position analysis");
+            assert_eq!(
+                result.outcome,
+                DefinitionAtPositionOutcome::Success,
+                "column {column}: {:?}",
+                result.diagnostics
+            );
+            assert_eq!(result.definitions.len(), 1, "column {column}");
+            assert_eq!(
+                result.definitions[0].symbol.descriptor.as_deref(),
+                Some("(Ljava/lang/String;[Ljava/lang/Object;)V"),
+                "column {column}"
+            );
+        }
+    }
+
+    #[test]
+    fn fully_qualified_static_receiver_resolves_owner_and_member_regions() {
+        let compat = concat!(
+            "package p;\n",
+            "public class Compat {\n",
+            "    public static boolean ready() { return true; }\n",
+            "}\n",
+        );
+        let use_source = concat!(
+            "package q;\n",
+            "class Use {\n",
+            "    boolean call() {\n",
+            "        return p.Compat.ready();\n",
+            "    }\n",
+            "}\n",
+        );
+        let (_directory, workspace) =
+            position_workspace(&[("p/Compat.java", compat), ("q/Use.java", use_source)]);
+
+        for column in 16..=23 {
+            let request = position_request(&workspace, "q/Use.java", use_source, 4, column);
+            let result = analyze_definition_at_position(&workspace, &request, None)
+                .expect("qualified owner position analysis");
+            assert_eq!(result.outcome, DefinitionAtPositionOutcome::Success);
+            assert_eq!(result.definitions[0].symbol.qualified_name, "p.Compat");
+        }
+        for column in 25..=29 {
+            let request = position_request(&workspace, "q/Use.java", use_source, 4, column);
+            let result = analyze_definition_at_position(&workspace, &request, None)
+                .expect("qualified member position analysis");
+            assert_eq!(result.outcome, DefinitionAtPositionOutcome::Success);
+            assert_eq!(
+                result.definitions[0].symbol.qualified_name,
+                "p.Compat.ready()Z"
+            );
+        }
+    }
+
+    #[test]
+    fn value_root_wins_over_same_spelled_qualified_type_receiver() {
+        let compat = concat!(
+            "package p;\n",
+            "public class Compat {\n",
+            "    public static boolean ready() { return true; }\n",
+            "}\n",
+        );
+        let use_source = concat!(
+            "package q;\n",
+            "class Holder { p.Compat Compat; }\n",
+            "class Use {\n",
+            "    Holder p;\n",
+            "    boolean call() {\n",
+            "        return p.Compat.ready();\n",
+            "    }\n",
+            "}\n",
+        );
+        let (_directory, workspace) =
+            position_workspace(&[("p/Compat.java", compat), ("q/Use.java", use_source)]);
+        let request = position_request(&workspace, "q/Use.java", use_source, 6, 18);
+        let result = analyze_definition_at_position(&workspace, &request, None)
+            .expect("value-root collision analysis");
+
+        assert_eq!(result.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(result.definitions.len(), 1);
+        assert_eq!(result.definitions[0].symbol.kind, JavaSymbolKind::Field);
+        assert_eq!(result.definitions[0].symbol.owner, "q.Holder");
+        assert_eq!(result.definitions[0].symbol.name, "Compat");
     }
 
     #[test]

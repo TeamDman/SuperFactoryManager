@@ -26,6 +26,8 @@ public final class ExerciseActionableToastPuppetAction implements SFMPuppetActio
     private int phaseTicks;
     private SFMWorkspaceToastQueue.ToastId firstId;
     private String firstText;
+    private SFMWorkspaceToastQueue.ToastId copyConfirmationId;
+    private String copyConfirmationText;
     private long pinnedRemainingNanos;
 
     public ExerciseActionableToastPuppetAction(String artifactName) {
@@ -82,9 +84,21 @@ public final class ExerciseActionableToastPuppetAction implements SFMPuppetActio
         if (!Minecraft.getInstance().keyboardHandler.getClipboard().equals(firstText)) {
             throw new IllegalStateException("Left click did not copy the exact toast text");
         }
-        if (!workspace.mouseClicked(x, y, GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
-            throw new IllegalStateException("Right click did not open actionable-toast choices");
+        SFMWorkspaceToastQueue.Snapshot retained = requiredFirst(workspace);
+        if (!retained.text().equals(firstText)) {
+            throw new IllegalStateException("Copying mutated the source toast text");
         }
+        SFMWorkspaceToastQueue.Snapshot confirmation = workspace.latestWorkspaceToast()
+                .filter(candidateSnapshot -> !candidateSnapshot.id().equals(firstId))
+                .orElseThrow(() -> new IllegalStateException(
+                        "Left click did not publish a distinct clipboard confirmation toast"));
+        copyConfirmationId = confirmation.id();
+        copyConfirmationText = confirmation.text();
+        String expectedConfirmation = "Copied notification " + firstId.value() + " to the clipboard";
+        if (!copyConfirmationText.equals(expectedConfirmation)) {
+            throw new IllegalStateException("Unexpected clipboard confirmation: " + copyConfirmationText);
+        }
+        openChoices(workspace, firstId);
         transition(Phase.PIN_CHOICE);
         return false;
     }
@@ -174,6 +188,10 @@ public final class ExerciseActionableToastPuppetAction implements SFMPuppetActio
         evidence.addProperty("first_toast_id", firstId.value());
         evidence.addProperty("first_text", firstText);
         evidence.addProperty("copied_exact_text", true);
+        evidence.addProperty("copy_confirmation_id", copyConfirmationId.value());
+        evidence.addProperty("copy_confirmation_text", copyConfirmationText);
+        evidence.addProperty("copy_confirmation_visible", true);
+        evidence.addProperty("copy_preserved_source", true);
         evidence.addProperty("pin_preserved_remaining_nanos", pinnedRemainingNanos);
         evidence.addProperty("dismissed_exact_instance", true);
         evidence.addProperty("later_toast_id", replacement.id().value());

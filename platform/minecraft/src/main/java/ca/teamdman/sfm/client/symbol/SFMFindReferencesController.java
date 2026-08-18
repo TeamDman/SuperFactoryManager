@@ -4,8 +4,6 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.OpenPanelAction;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
-import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
-import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.context.SFMContextSnapshot;
 import ca.teamdman.sfm.client.explorer.SFMExplorerRuntime;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
@@ -41,19 +39,14 @@ public final class SFMFindReferencesController {
         );
     }
 
-    interface WorkspaceState {
-        SFMContextSnapshot snapshot(SFMScreenMultiplexer workspace);
-
-        boolean containsPanel(SFMScreenMultiplexer workspace, SFMWorkspacePanelId panelId);
-    }
-
     private final Supplier<SFMReferenceLookupService> lookupService;
     private final Consumer<Runnable> clientExecutor;
     private final Predicate<SFMScreenMultiplexer> currentWorkspace;
     private final Presenter presenter;
-    private final WorkspaceState workspaceState;
+    private final SFMNavigationWorkspaceState workspaceState;
     private final Map<SFMScreenMultiplexer, Map<SFMWorkspacePanelId, Pending>> active =
             new IdentityHashMap<>();
+    private long requestGeneration;
 
     public static SFMFindReferencesController production() {
         return PRODUCTION;
@@ -65,18 +58,7 @@ public final class SFMFindReferencesController {
                 runnable -> Minecraft.getInstance().execute(runnable),
                 workspace -> Minecraft.getInstance().screen == workspace,
                 SFMFindReferencesController::openPersistentExplorer,
-                new WorkspaceState() {
-                    @Override public SFMContextSnapshot snapshot(SFMScreenMultiplexer workspace) {
-                        return workspace.contextSnapshot();
-                    }
-
-                    @Override public boolean containsPanel(
-                            SFMScreenMultiplexer workspace,
-                            SFMWorkspacePanelId panelId
-                    ) {
-                        return workspace.containsPanel(panelId);
-                    }
-                }
+                SFMNavigationWorkspaceState.production()
         );
     }
 
@@ -99,7 +81,7 @@ public final class SFMFindReferencesController {
             Consumer<Runnable> clientExecutor,
             Predicate<SFMScreenMultiplexer> currentWorkspace,
             Presenter presenter,
-            WorkspaceState workspaceState
+            SFMNavigationWorkspaceState workspaceState
     ) {
         this.lookupService = Objects.requireNonNull(lookupService, "lookupService");
         this.clientExecutor = Objects.requireNonNull(clientExecutor, "clientExecutor");
@@ -116,11 +98,16 @@ public final class SFMFindReferencesController {
             return reject(null, feedback, "Find references requires a focused SFM text editor");
         }
         SFMWorkspacePanelId sourcePanelId = context.originatingPanelId();
-        Optional<SFMContextContribution> focused = focusedDocument(workspaceState.snapshot(workspace));
+        SFMContextSnapshot snapshot = workspaceState.snapshot(workspace);
+        Optional<SFMContextContribution> focused = SFMNavigationWorkspaceState.focusedDocument(snapshot);
         if (focused.isEmpty()) {
             return reject(workspace, feedback, "The focused editor has no active path-addressed text position");
         }
         SFMContextContribution captured = focused.orElseThrow();
+        Optional<Object> panelEntryIdentity = workspaceState.panelEntryIdentity(workspace, sourcePanelId);
+        if (panelEntryIdentity.isEmpty()) {
+            return reject(workspace, feedback, "Find references requires a live source panel");
+        }
         SFMClientActionContext durableContext = new SFMClientActionContext(
                 workspace,
                 () -> workspaceState.containsPanel(workspace, sourcePanelId)
@@ -128,22 +115,34 @@ public final class SFMFindReferencesController {
                         || context.originatingHostIsCurrent().getAsBoolean()),
                 sourcePanelId
         );
-        show(workspace, feedback, Component.literal("Finding references...").withStyle(ChatFormatting.GRAY));
         SFMReferenceLookupService.Submission submission;
         try {
             submission = lookupService.get().queryReferences(captured);
         } catch (RuntimeException failure) {
             return reject(workspace, feedback, failureMessage(failure));
         }
-        Pending pending = new Pending(sourcePanelId, captured, submission, feedback);
+        SFMNavigationRequestWitness witness = SFMNavigationRequestWitness.capture(
+                workspace,
+                sourcePanelId,
+                panelEntryIdentity.orElseThrow(),
+                captured,
+                nextRequestGeneration()
+        );
+        Pending pending = new Pending(witness, submission, feedback);
         replaceActive(workspace, pending);
+        show(workspace, feedback, Component.literal("Finding references...").withStyle(ChatFormatting.GRAY));
         submission.result().whenComplete((lookup, failure) -> clientExecutor.accept(() -> {
-            if (!removeActive(workspace, pending)) return;
-            if (!durableContext.originatingHostIsCurrent().getAsBoolean()) return;
-            if (!sameFocusedContribution(workspaceState.snapshot(workspace), captured)) {
-                reject(workspace, feedback, "Find references ignored because the editor document or cursor changed");
+            if (!isActive(workspace, pending)) return;
+            SFMNavigationRequestWitness.Validation validity = validate(workspace, pending);
+            removeActive(workspace, pending);
+            if (!validity.isValid()) {
+                reject(workspace, feedback, invalidationMessage(
+                        "Find references ignored",
+                        validity.rejection().orElseThrow()
+                ));
                 return;
             }
+            if (!durableContext.originatingHostIsCurrent().getAsBoolean()) return;
             if (failure != null) {
                 reject(workspace, feedback, failureMessage(failure));
                 return;
@@ -162,25 +161,28 @@ public final class SFMFindReferencesController {
 
     void cancelStale(SFMScreenMultiplexer workspace) {
         Objects.requireNonNull(workspace, "workspace");
-        List<Pending> stale = new ArrayList<>();
+        List<StalePending> stale = new ArrayList<>();
         synchronized (active) {
             Map<SFMWorkspacePanelId, Pending> byPanel = active.get(workspace);
             if (byPanel == null || byPanel.isEmpty()) return;
-            SFMContextSnapshot snapshot = workspaceState.snapshot(workspace);
             byPanel.values().removeIf(pending -> {
-                boolean invalid = !currentWorkspace.test(workspace)
-                        || !workspaceState.containsPanel(workspace, pending.sourcePanelId())
-                        || !sameFocusedContribution(snapshot, pending.captured());
-                if (invalid) stale.add(pending);
-                return invalid;
+                SFMNavigationRequestWitness.Validation validity = currentWorkspace.test(workspace)
+                        ? validate(workspace, pending)
+                        : SFMNavigationRequestWitness.Validation.rejected(
+                                SFMNavigationRequestWitness.RejectionReason.WORKSPACE_NOT_CURRENT);
+                if (validity.isValid()) return false;
+                stale.add(new StalePending(pending, validity.rejection().orElseThrow()));
+                return true;
             });
             if (byPanel.isEmpty()) active.remove(workspace);
         }
-        for (Pending pending : stale) {
+        for (StalePending stalePending : stale) {
+            Pending pending = stalePending.pending();
             pending.submission().cancel();
-            show(workspace, pending.feedback(), Component.literal(
-                    "Find references cancelled because the editor document, cursor, focus, or panel changed"
-            ).withStyle(ChatFormatting.GRAY));
+            show(workspace, pending.feedback(), Component.literal(invalidationMessage(
+                    "Find references cancelled",
+                    stalePending.reason()
+            )).withStyle(ChatFormatting.GRAY));
         }
     }
 
@@ -199,16 +201,29 @@ public final class SFMFindReferencesController {
         Pending previous;
         synchronized (active) {
             previous = active.computeIfAbsent(workspace, ignored -> new LinkedHashMap<>())
-                    .put(pending.sourcePanelId(), pending);
+                    .put(pending.witness().sourcePanelId(), pending);
         }
-        if (previous != null) previous.submission().cancel();
+        if (previous != null) {
+            previous.submission().cancel();
+            show(workspace, previous.feedback(), Component.literal(invalidationMessage(
+                    "Find references cancelled",
+                    SFMNavigationRequestWitness.RejectionReason.SUPERSEDED_REQUEST
+            )).withStyle(ChatFormatting.GRAY));
+        }
+    }
+
+    private boolean isActive(SFMScreenMultiplexer workspace, Pending pending) {
+        synchronized (active) {
+            Map<SFMWorkspacePanelId, Pending> byPanel = active.get(workspace);
+            return byPanel != null && byPanel.get(pending.witness().sourcePanelId()) == pending;
+        }
     }
 
     private boolean removeActive(SFMScreenMultiplexer workspace, Pending pending) {
         synchronized (active) {
             Map<SFMWorkspacePanelId, Pending> byPanel = active.get(workspace);
-            if (byPanel == null || byPanel.get(pending.sourcePanelId()) != pending) return false;
-            byPanel.remove(pending.sourcePanelId());
+            if (byPanel == null || byPanel.get(pending.witness().sourcePanelId()) != pending) return false;
+            byPanel.remove(pending.witness().sourcePanelId());
             if (byPanel.isEmpty()) active.remove(workspace);
             return true;
         }
@@ -232,20 +247,51 @@ public final class SFMFindReferencesController {
         return opened != 0;
     }
 
-    private static Optional<SFMContextContribution> focusedDocument(SFMContextSnapshot snapshot) {
-        Optional<SFMContextOriginId> focused = snapshot.focusedOriginId();
-        if (focused.isEmpty()) return Optional.empty();
-        return snapshot.contributions().stream()
-                .filter(contribution -> contribution.originId().equals(focused.orElseThrow()))
-                .filter(contribution -> contribution.projection() instanceof SFMContextDocumentProjection)
-                .findFirst();
+    private SFMNavigationRequestWitness.Validation validate(
+            SFMScreenMultiplexer workspace,
+            Pending pending
+    ) {
+        SFMContextSnapshot snapshot = workspaceState.snapshot(workspace);
+        SFMNavigationRequestWitness witness = pending.witness();
+        return witness.validate(
+                workspace,
+                workspaceState.panelEntryIdentity(workspace, witness.sourcePanelId()),
+                workspaceState.contribution(
+                        workspace,
+                        witness.sourcePanelId(),
+                        witness.originId(),
+                        snapshot
+                ),
+                currentRequestGeneration(workspace, witness.sourcePanelId())
+        );
     }
 
-    private static boolean sameFocusedContribution(
-            SFMContextSnapshot snapshot,
-            SFMContextContribution captured
+    private long nextRequestGeneration() {
+        synchronized (active) {
+            if (requestGeneration == Long.MAX_VALUE) {
+                throw new IllegalStateException("Find-references request generation exhausted");
+            }
+            return ++requestGeneration;
+        }
+    }
+
+    private long currentRequestGeneration(
+            SFMScreenMultiplexer workspace,
+            SFMWorkspacePanelId panelId
     ) {
-        return focusedDocument(snapshot).filter(captured::equals).isPresent();
+        synchronized (active) {
+            Map<SFMWorkspacePanelId, Pending> byPanel = active.get(workspace);
+            if (byPanel == null) return -1;
+            Pending pending = byPanel.get(panelId);
+            return pending == null ? -1 : pending.witness().requestGeneration();
+        }
+    }
+
+    private static String invalidationMessage(
+            String prefix,
+            SFMNavigationRequestWitness.RejectionReason reason
+    ) {
+        return prefix + ": " + reason.description();
     }
 
     static String failureMessage(Throwable failure) {
@@ -281,16 +327,24 @@ public final class SFMFindReferencesController {
     }
 
     private record Pending(
-            SFMWorkspacePanelId sourcePanelId,
-            SFMContextContribution captured,
+            SFMNavigationRequestWitness witness,
             SFMReferenceLookupService.Submission submission,
             Consumer<Component> feedback
     ) {
         private Pending {
-            Objects.requireNonNull(sourcePanelId, "sourcePanelId");
-            Objects.requireNonNull(captured, "captured");
+            Objects.requireNonNull(witness, "witness");
             Objects.requireNonNull(submission, "submission");
             Objects.requireNonNull(feedback, "feedback");
+        }
+    }
+
+    private record StalePending(
+            Pending pending,
+            SFMNavigationRequestWitness.RejectionReason reason
+    ) {
+        private StalePending {
+            Objects.requireNonNull(pending, "pending");
+            Objects.requireNonNull(reason, "reason");
         }
     }
 }

@@ -10,7 +10,10 @@ import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
 import ca.teamdman.sfm.client.context.SFMContextGenerationEvidence;
 import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.context.SFMContextPosition;
+import ca.teamdman.sfm.client.context.SFMContextSelectionProjection;
 import ca.teamdman.sfm.client.context.SFMContextSnapshot;
+import ca.teamdman.sfm.client.explorer.SFMPath;
+import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextResult;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBinding;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingDefaults;
 import ca.teamdman.sfm.client.keybinding.SFMKeyModifier;
@@ -32,10 +35,12 @@ import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -298,14 +303,72 @@ class SFMJumpToDefinitionActionTests {
 
         assertEquals(0, navigations.get());
         assertTrue(feedback.stream().anyMatch(message ->
-                message.getString().contains("editor document or cursor changed")));
+                message.getString().contains("source document bytes changed")));
     }
 
     @Test
-    void changedCursorMakesAnAsyncResultStaleBeforeNavigation() {
+    void cursorSelectionFocusAndCaptureChangesDoNotInvalidateAnExplicitRequest() {
         String text = "class Use { Target value; }\n";
         AtomicReference<SFMContextContribution> currentContribution = new AtomicReference<>(
                 contribution(text, 12, 1));
+        TestWorkspaceState state = new TestWorkspaceState(currentContribution);
+        SFMScreenMultiplexer workspace = uninitializedWorkspace();
+        SFMWorkspacePanelId panelId = new SFMWorkspacePanelId(1);
+        CompletableFuture<SFMDefinitionLookupService.Lookup> pending = new CompletableFuture<>();
+        AtomicInteger navigations = new AtomicInteger();
+        List<Component> feedback = new ArrayList<>();
+        SFMJumpToDefinitionController controller = controller(
+                ignored -> new SFMDefinitionLookupService.Submission(pending, () -> { }),
+                ignored -> true,
+                navigations,
+                state
+        );
+
+        assertTrue(controller.begin(
+                new SFMClientActionContext(workspace, () -> true, panelId),
+                feedback::add
+        ));
+        currentContribution.set(contributionWithSelection(text, 13, 99));
+        state.focusedOrigin.set(Optional.empty());
+        pending.complete(successfulLookup());
+
+        assertEquals(1, navigations.get(),
+                "cursor, selection, contributor, and capture changes must not invalidate stable bytes/address");
+        assertTrue(feedback.stream().noneMatch(message -> message.getString().contains("ignored")));
+    }
+
+    @Test
+    void changedResolverAddressRejectsWithoutBlamingTheCursor() {
+        String text = "class Use { Target value; }\n";
+        AtomicReference<SFMContextContribution> currentContribution = new AtomicReference<>(
+                addressedContribution(text, "file:///D:/workspace/src/Use.java", 12, 1));
+        SFMScreenMultiplexer workspace = uninitializedWorkspace();
+        CompletableFuture<SFMDefinitionLookupService.Lookup> pending = new CompletableFuture<>();
+        AtomicInteger navigations = new AtomicInteger();
+        List<Component> feedback = new ArrayList<>();
+        SFMJumpToDefinitionController controller = controller(
+                pending, ignored -> true, navigations, currentContribution);
+
+        assertTrue(controller.begin(
+                new SFMClientActionContext(workspace, () -> true, new SFMWorkspacePanelId(1)),
+                feedback::add
+        ));
+        currentContribution.set(addressedContribution(
+                text, "file:///D:/workspace/src/Replaced.java", 12, 2));
+        pending.complete(successfulLookup());
+
+        assertEquals(0, navigations.get());
+        assertTrue(feedback.stream().anyMatch(message ->
+                message.getString().contains("source document resolver/address changed")));
+        assertTrue(feedback.stream().noneMatch(message ->
+                message.getString().contains("cursor changed")));
+    }
+
+    @Test
+    void changedProviderGenerationRejectsWithTheProviderDimension() {
+        String text = "class Use { Target value; }\n";
+        AtomicReference<SFMContextContribution> currentContribution = new AtomicReference<>(
+                contribution(text, 12, 1, 7));
         SFMScreenMultiplexer workspace = uninitializedWorkspace();
         SFMWorkspacePanelId panelId = new SFMWorkspacePanelId(1);
         CompletableFuture<SFMDefinitionLookupService.Lookup> pending = new CompletableFuture<>();
@@ -318,34 +381,133 @@ class SFMJumpToDefinitionActionTests {
                 new SFMClientActionContext(workspace, () -> true, panelId),
                 feedback::add
         ));
-        currentContribution.set(contribution(text, 13, 1));
+        currentContribution.set(contribution(text, 12, 2, 8));
         pending.complete(successfulLookup());
 
         assertEquals(0, navigations.get());
         assertTrue(feedback.stream().anyMatch(message ->
-                message.getString().contains("editor document or cursor changed")));
+                message.getString().contains("semantic provider generation changed")));
     }
 
     @Test
-    void changedEditorGenerationMakesAnAsyncResultStaleBeforeNavigation() {
+    void removedAndReplacedPanelEntriesHaveDistinctTypedReasons() {
         String text = "class Use { Target value; }\n";
+        for (boolean removed : List.of(true, false)) {
+            AtomicReference<SFMContextContribution> currentContribution = new AtomicReference<>(
+                    contribution(text, 12, 1));
+            TestWorkspaceState state = new TestWorkspaceState(currentContribution);
+            SFMScreenMultiplexer workspace = uninitializedWorkspace();
+            CompletableFuture<SFMDefinitionLookupService.Lookup> pending = new CompletableFuture<>();
+            AtomicInteger navigations = new AtomicInteger();
+            List<Component> feedback = new ArrayList<>();
+            SFMJumpToDefinitionController controller = controller(
+                    ignored -> new SFMDefinitionLookupService.Submission(pending, () -> { }),
+                    ignored -> true,
+                    navigations,
+                    state
+            );
+
+            assertTrue(controller.begin(
+                    new SFMClientActionContext(workspace, () -> true, new SFMWorkspacePanelId(1)),
+                    feedback::add
+            ));
+            state.panelEntry.set(removed ? null : new Object());
+            pending.complete(successfulLookup());
+
+            assertEquals(0, navigations.get());
+            String expected = removed ? "source panel was removed" : "source panel entry was replaced";
+            assertTrue(feedback.stream().anyMatch(message -> message.getString().contains(expected)));
+        }
+    }
+
+    @Test
+    void newerExplicitRequestRejectsAnOutOfOrderOlderCompletion() {
         AtomicReference<SFMContextContribution> currentContribution = new AtomicReference<>(
-                contribution(text, 12, 1));
+                contribution("class Use { Target value; }\n", 12, 1));
+        TestWorkspaceState state = new TestWorkspaceState(currentContribution);
         SFMScreenMultiplexer workspace = uninitializedWorkspace();
-        SFMWorkspacePanelId panelId = new SFMWorkspacePanelId(1);
-        CompletableFuture<SFMDefinitionLookupService.Lookup> pending = new CompletableFuture<>();
+        CompletableFuture<SFMDefinitionLookupService.Lookup> first = new CompletableFuture<>();
+        CompletableFuture<SFMDefinitionLookupService.Lookup> second = new CompletableFuture<>();
+        AtomicInteger calls = new AtomicInteger();
+        AtomicInteger firstCancellation = new AtomicInteger();
         AtomicInteger navigations = new AtomicInteger();
+        List<Component> feedback = new ArrayList<>();
         SFMJumpToDefinitionController controller = controller(
-                pending, ignored -> true, navigations, currentContribution);
+                ignored -> calls.getAndIncrement() == 0
+                        ? new SFMDefinitionLookupService.Submission(first, firstCancellation::incrementAndGet)
+                        : new SFMDefinitionLookupService.Submission(second, () -> { }),
+                ignored -> true,
+                navigations,
+                state
+        );
+        SFMClientActionContext context = new SFMClientActionContext(
+                workspace, () -> true, new SFMWorkspacePanelId(1));
 
-        assertTrue(controller.begin(
-                new SFMClientActionContext(workspace, () -> true, panelId),
-                ignored -> { }
-        ));
-        currentContribution.set(contribution(text, 12, 2));
-        pending.complete(successfulLookup());
+        assertTrue(controller.begin(context, feedback::add));
+        assertTrue(controller.begin(context, feedback::add));
+        assertEquals(1, firstCancellation.get());
 
-        assertEquals(0, navigations.get());
+        first.complete(successfulLookup());
+        second.complete(successfulLookup());
+
+        assertEquals(1, navigations.get(), "only the newest request may navigate");
+        assertTrue(feedback.stream().anyMatch(message ->
+                message.getString().contains("newer explicit request superseded")));
+    }
+
+    @Test
+    void puppetGateAcceptsThenHoldsCompletionUntilChangedBytesAreRejected() {
+        String original = "class Use { Target value; }\n";
+        AtomicReference<SFMContextContribution> currentContribution = new AtomicReference<>(
+                contribution(original, 12, 1));
+        TestWorkspaceState state = new TestWorkspaceState(currentContribution);
+        CompletableFuture<SFMDefinitionLookupService.Lookup> result = new CompletableFuture<>();
+        AtomicReference<Runnable> timeoutAction = new AtomicReference<>();
+        SFMNavigationPuppetCompletionGate gate = SFMNavigationPuppetCompletionGate.forTests(
+                () -> true,
+                System::nanoTime,
+                (timeout, action) -> timeoutAction.set(action)
+        );
+        AtomicInteger navigations = new AtomicInteger();
+        List<Component> feedback = new ArrayList<>();
+        SFMScreenMultiplexer workspace = uninitializedWorkspace();
+        SFMJumpToDefinitionController controller = controller(
+                ignored -> new SFMDefinitionLookupService.Submission(result, () -> { }),
+                ignored -> true,
+                navigations,
+                state,
+                gate
+        );
+
+        try (SFMNavigationPuppetCompletionGate.Lease lease = gate.arm(Duration.ofSeconds(5))) {
+            assertTrue(controller.begin(
+                    new SFMClientActionContext(workspace, () -> true, new SFMWorkspacePanelId(1)),
+                    feedback::add
+            ));
+            assertTrue(lease.observation().accepted(), "the controller must acknowledge the captured request");
+
+            result.complete(successfulLookup());
+            assertTrue(lease.observation().completionHeld(), "the completed lookup must be held before validation");
+            assertEquals(0, navigations.get());
+
+            currentContribution.set(contribution(
+                    "class Use { Other value; }\n",
+                    12,
+                    2
+            ));
+            lease.release();
+
+            assertEquals(0, navigations.get(), "changed bytes must never reach navigation");
+            assertEquals(
+                    Optional.of("DOCUMENT_CONTENT_CHANGED"),
+                    lease.observation().rejectionCode()
+            );
+            assertTrue(feedback.stream().anyMatch(message ->
+                    message.getString().equals(
+                            "Jump to definition ignored: the source document bytes changed"
+                    )));
+            assertTrue(timeoutAction.get() != null, "the gate must retain its bounded timeout");
+        }
     }
 
     private static SFMJumpToDefinitionController controller(
@@ -356,6 +518,31 @@ class SFMJumpToDefinitionActionTests {
     ) {
         SFMDefinitionLookupService lookup = ignored ->
                 new SFMDefinitionLookupService.Submission(result, () -> { });
+        return controller(lookup, currentWorkspace, navigations, new TestWorkspaceState(currentContribution));
+    }
+
+    private static SFMJumpToDefinitionController controller(
+            SFMDefinitionLookupService lookup,
+            java.util.function.Predicate<SFMScreenMultiplexer> currentWorkspace,
+            AtomicInteger navigations,
+            SFMNavigationWorkspaceState workspaceState
+    ) {
+        return controller(
+                lookup,
+                currentWorkspace,
+                navigations,
+                workspaceState,
+                SFMNavigationCompletionGate.DIRECT
+        );
+    }
+
+    private static SFMJumpToDefinitionController controller(
+            SFMDefinitionLookupService lookup,
+            java.util.function.Predicate<SFMScreenMultiplexer> currentWorkspace,
+            AtomicInteger navigations,
+            SFMNavigationWorkspaceState workspaceState,
+            SFMNavigationCompletionGate completionGate
+    ) {
         return new SFMJumpToDefinitionController(
                 SFMJumpToDefinitionAction.ID,
                 () -> lookup,
@@ -371,25 +558,8 @@ class SFMJumpToDefinitionActionTests {
                     );
                 },
                 new SFMDefinitionChoiceSessionService(),
-                new SFMJumpToDefinitionController.WorkspaceState() {
-                    @Override public SFMContextSnapshot snapshot(SFMScreenMultiplexer workspace) {
-                        SFMContextContribution contribution = currentContribution.get();
-                        return new SFMContextSnapshot(
-                                1,
-                                1,
-                                1,
-                                Optional.of(contribution.originId()),
-                                List.of(contribution)
-                        );
-                    }
-
-                    @Override public boolean containsPanel(
-                            SFMScreenMultiplexer workspace,
-                            SFMWorkspacePanelId panelId
-                    ) {
-                        return true;
-                    }
-                }
+                workspaceState,
+                completionGate
         );
     }
 
@@ -405,6 +575,15 @@ class SFMJumpToDefinitionActionTests {
     }
 
     private static SFMContextContribution contribution(String text, int byteOffset, long generation) {
+        return contribution(text, byteOffset, generation, 0);
+    }
+
+    private static SFMContextContribution contribution(
+            String text,
+            int byteOffset,
+            long generation,
+            long providerGeneration
+    ) {
         SFMTextDocumentSnapshot baseline = SFMTextDocumentSnapshot.literal(text);
         SFMContextDocumentProjection projection = SFMContextDocumentProjection.capture(
                 "editor-v3",
@@ -423,9 +602,120 @@ class SFMJumpToDefinitionActionTests {
         );
         return new SFMContextContribution(
                 DOCUMENT_ORIGIN,
+                new SFMContextGenerationEvidence(
+                        generation, generation, generation, providerGeneration),
+                projection
+        );
+    }
+
+    private static SFMContextContribution contributionWithSelection(
+            String text,
+            int byteOffset,
+            long generation
+    ) {
+        SFMTextDocumentSnapshot baseline = SFMTextDocumentSnapshot.literal(text);
+        SFMContextDocumentProjection projection = SFMContextDocumentProjection.capture(
+                "editor-v3",
+                baseline,
+                text,
+                false,
+                false,
+                List.of(new SFMContextCursorProjection(
+                        "primary",
+                        new SFMContextPosition.Text(
+                                SFMTextDocumentRange.positionAtByteOffset(text, byteOffset)),
+                        true,
+                        true
+                )),
+                List.of(new SFMContextSelectionProjection(
+                        "primary-selection",
+                        List.of(new SFMTextDocumentRange(
+                                SFMTextDocumentRange.positionAtByteOffset(text, 0),
+                                SFMTextDocumentRange.positionAtByteOffset(text, 5)
+                        )),
+                        true
+                ))
+        );
+        return new SFMContextContribution(
+                DOCUMENT_ORIGIN,
+                new SFMContextGenerationEvidence(generation, 1, generation, 0),
+                projection
+        );
+    }
+
+    private static SFMContextContribution addressedContribution(
+            String text,
+            String address,
+            int byteOffset,
+            long generation
+    ) {
+        SFMPath path = SFMPath.parse(address);
+        SFMPath root = SFMPath.parse("file:///D:/workspace/src/");
+        SFMTextDocumentSnapshot baseline = new SFMTextDocumentSnapshot(
+                SFMTextDocumentSnapshot.State.READY,
+                text,
+                SFMTextDocumentSnapshot.MutationCapability.READ_ONLY,
+                Optional.of(path),
+                Optional.of(root),
+                Optional.of(sha256Witness(text).substring("sha256:".length())),
+                OptionalLong.of(text.getBytes(StandardCharsets.UTF_8).length),
+                Optional.empty(),
+                Optional.of(SFMResolverTextResult.LineEndingKind.LF),
+                Optional.empty(),
+                List.of()
+        );
+        SFMContextDocumentProjection projection = SFMContextDocumentProjection.capture(
+                "editor-v3",
+                baseline,
+                text,
+                false,
+                true,
+                List.of(new SFMContextCursorProjection(
+                        "primary",
+                        new SFMContextPosition.Text(
+                                SFMTextDocumentRange.positionAtByteOffset(text, byteOffset)),
+                        true,
+                        true
+                )),
+                List.of()
+        );
+        return new SFMContextContribution(
+                DOCUMENT_ORIGIN,
                 new SFMContextGenerationEvidence(generation, generation, generation, 0),
                 projection
         );
+    }
+
+    private static final class TestWorkspaceState implements SFMNavigationWorkspaceState {
+        private final AtomicReference<SFMContextContribution> currentContribution;
+        private final AtomicReference<Object> panelEntry = new AtomicReference<>(new Object());
+        private final AtomicReference<Optional<SFMContextOriginId>> focusedOrigin =
+                new AtomicReference<>();
+
+        private TestWorkspaceState(AtomicReference<SFMContextContribution> currentContribution) {
+            this.currentContribution = currentContribution;
+            this.focusedOrigin.set(Optional.of(currentContribution.get().originId()));
+        }
+
+        @Override
+        public SFMContextSnapshot snapshot(SFMScreenMultiplexer workspace) {
+            SFMContextContribution contribution = currentContribution.get();
+            return new SFMContextSnapshot(
+                    99,
+                    77,
+                    55,
+                    focusedOrigin.get(),
+                    List.of(contribution)
+            );
+        }
+
+        @Override
+        public Optional<Object> panelEntryIdentity(
+                SFMScreenMultiplexer workspace,
+                SFMWorkspacePanelId panelId
+        ) {
+            return Optional.ofNullable(panelEntry.get());
+        }
     }
 
     private static SFMSymbolServerProtocol.ServerHello hello() {

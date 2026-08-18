@@ -189,6 +189,38 @@ public final class SFMGamePuppetHelper {
         ));
     }
 
+    /** Proves that a naturally submitted F12 result cannot navigate after its editor bytes change. */
+    public void assertStaleDocumentJumpRejection(
+            Path sourceFile,
+            String symbol,
+            int occurrence,
+            String artifactName
+    ) {
+        add(new AssertStaleDocumentJumpPuppetAction(
+                Objects.requireNonNull(sourceFile, "sourceFile"),
+                Objects.requireNonNull(symbol, "symbol"),
+                occurrence,
+                Objects.requireNonNull(artifactName, "artifactName")
+        ));
+    }
+
+    /** Copies one immutable contextual symbol report and artifacts its exact clipboard bytes. */
+    public void assertSymbolInspectionCopy(
+            Path sourceFile,
+            String symbol,
+            int occurrence,
+            String artifactName,
+            String phase
+    ) {
+        add(new AssertSymbolInspectionCopyPuppetAction(
+                Objects.requireNonNull(sourceFile, "sourceFile"),
+                Objects.requireNonNull(symbol, "symbol"),
+                occurrence,
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(phase, "phase")
+        ));
+    }
+
     /** Repeats one exact symbol lookup and requires reuse of its existing addressed target panel. */
     public void assertWarmJumpToDefinition(
             Path sourceFile,
@@ -325,6 +357,27 @@ public final class SFMGamePuppetHelper {
     public void exerciseCommandPaletteViewport() {
         add(new ExerciseCommandPaletteViewportPuppetAction());
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Focuses the real narrated Cancel widget without activating it. */
+    public void focusCommandPaletteCancel() {
+        add(new FocusCommandPaletteCancelPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Proves the B-5a right-click, pointer-Cancel, reopen, and real-action journey. */
+    public void exerciseContextualPaletteCancel(
+            Path sourceFile,
+            String symbol,
+            int occurrence,
+            String artifactName
+    ) {
+        add(new ExerciseContextualPaletteCancelPuppetAction(
+                Objects.requireNonNull(sourceFile, "sourceFile"),
+                Objects.requireNonNull(symbol, "symbol"),
+                occurrence,
+                Objects.requireNonNull(artifactName, "artifactName")
+        ));
     }
 
     public void assertFormerTerminalStartButtonRoutesToTerminal() {

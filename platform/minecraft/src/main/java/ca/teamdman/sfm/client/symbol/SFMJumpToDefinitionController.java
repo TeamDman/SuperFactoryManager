@@ -3,8 +3,6 @@ package ca.teamdman.sfm.client.symbol;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
-import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
-import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.context.SFMContextSnapshot;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
@@ -15,7 +13,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CancellationException;
@@ -41,12 +42,6 @@ public final class SFMJumpToDefinitionController {
         );
     }
 
-    interface WorkspaceState {
-        SFMContextSnapshot snapshot(SFMScreenMultiplexer workspace);
-
-        boolean containsPanel(SFMScreenMultiplexer workspace, SFMWorkspacePanelId panelId);
-    }
-
     private final ResourceLocation actionId;
     private final Supplier<SFMDefinitionLookupService> lookupService;
     private final Consumer<Runnable> clientExecutor;
@@ -54,7 +49,11 @@ public final class SFMJumpToDefinitionController {
     private final ChoicePresenter choicePresenter;
     private final Navigator navigator;
     private final SFMDefinitionChoiceSessionService choiceSessions;
-    private final WorkspaceState workspaceState;
+    private final SFMNavigationWorkspaceState workspaceState;
+    private final SFMNavigationCompletionGate completionGate;
+    private final Map<SFMScreenMultiplexer, Map<SFMWorkspacePanelId, Pending>> active =
+            new IdentityHashMap<>();
+    private long requestGeneration;
 
     public static SFMJumpToDefinitionController production(ResourceLocation actionId) {
         return new SFMJumpToDefinitionController(
@@ -65,18 +64,8 @@ public final class SFMJumpToDefinitionController {
                 SFMCommandPaletteScreen::openChoices,
                 SFMDefinitionNavigation::open,
                 new SFMDefinitionChoiceSessionService(),
-                new WorkspaceState() {
-                    @Override public SFMContextSnapshot snapshot(SFMScreenMultiplexer workspace) {
-                        return workspace.contextSnapshot();
-                    }
-
-                    @Override public boolean containsPanel(
-                            SFMScreenMultiplexer workspace,
-                            SFMWorkspacePanelId panelId
-                    ) {
-                        return workspace.containsPanel(panelId);
-                    }
-                }
+                SFMNavigationWorkspaceState.production(),
+                SFMNavigationPuppetCompletionGate.productionHook()
         );
     }
 
@@ -88,7 +77,31 @@ public final class SFMJumpToDefinitionController {
             ChoicePresenter choicePresenter,
             Navigator navigator,
             SFMDefinitionChoiceSessionService choiceSessions,
-            WorkspaceState workspaceState
+            SFMNavigationWorkspaceState workspaceState
+    ) {
+        this(
+                actionId,
+                lookupService,
+                clientExecutor,
+                currentWorkspace,
+                choicePresenter,
+                navigator,
+                choiceSessions,
+                workspaceState,
+                SFMNavigationCompletionGate.DIRECT
+        );
+    }
+
+    SFMJumpToDefinitionController(
+            ResourceLocation actionId,
+            Supplier<SFMDefinitionLookupService> lookupService,
+            Consumer<Runnable> clientExecutor,
+            Predicate<SFMScreenMultiplexer> currentWorkspace,
+            ChoicePresenter choicePresenter,
+            Navigator navigator,
+            SFMDefinitionChoiceSessionService choiceSessions,
+            SFMNavigationWorkspaceState workspaceState,
+            SFMNavigationCompletionGate completionGate
     ) {
         this.actionId = Objects.requireNonNull(actionId, "actionId");
         this.lookupService = Objects.requireNonNull(lookupService, "lookupService");
@@ -98,6 +111,7 @@ public final class SFMJumpToDefinitionController {
         this.navigator = Objects.requireNonNull(navigator, "navigator");
         this.choiceSessions = Objects.requireNonNull(choiceSessions, "choiceSessions");
         this.workspaceState = Objects.requireNonNull(workspaceState, "workspaceState");
+        this.completionGate = Objects.requireNonNull(completionGate, "completionGate");
     }
 
     public boolean begin(SFMClientActionContext context, Consumer<Component> feedback) {
@@ -109,12 +123,16 @@ public final class SFMJumpToDefinitionController {
         }
         SFMWorkspacePanelId sourcePanelId = context.originatingPanelId();
         SFMContextSnapshot snapshot = workspaceState.snapshot(workspace);
-        Optional<SFMContextContribution> focused = focusedDocument(snapshot);
+        Optional<SFMContextContribution> focused = SFMNavigationWorkspaceState.focusedDocument(snapshot);
         if (focused.isEmpty()) {
             return reject(workspace, feedback,
                     "The focused editor has no active path-addressed text position");
         }
         SFMContextContribution capturedContribution = focused.orElseThrow();
+        Optional<Object> panelEntryIdentity = workspaceState.panelEntryIdentity(workspace, sourcePanelId);
+        if (panelEntryIdentity.isEmpty()) {
+            return reject(workspace, feedback, "Jump to definition requires a live source panel");
+        }
 
         SFMClientActionContext durableContext = new SFMClientActionContext(
                 workspace,
@@ -123,31 +141,47 @@ public final class SFMJumpToDefinitionController {
                         || context.originatingHostIsCurrent().getAsBoolean()),
                 sourcePanelId
         );
-        show(workspace, feedback, Component.literal("Looking up definition...").withStyle(ChatFormatting.GRAY));
         SFMDefinitionLookupService.Submission submission;
         try {
             submission = lookupService.get().query(capturedContribution);
         } catch (RuntimeException failure) {
             return reject(workspace, feedback, failureMessage(failure));
         }
-        submission.result().whenComplete((lookup, failure) -> clientExecutor.accept(() -> {
-            boolean hostIsCurrent = durableContext.originatingHostIsCurrent().getAsBoolean();
-            SFM.LOGGER.info("SFM_DEFINITION_ACTION_COMPLETED host_current={} success={} failure_type={}",
-                    hostIsCurrent,
-                    failure == null,
-                    failure == null ? "none" : failure.getClass().getSimpleName());
-            if (!hostIsCurrent) return;
-            if (!sameFocusedContribution(workspaceState.snapshot(workspace), capturedContribution)) {
-                reject(workspace, feedback,
-                        "Jump to definition ignored because the editor document or cursor changed");
-                return;
-            }
-            if (failure != null) {
-                reject(workspace, feedback, failureMessage(failure));
-                return;
-            }
-            present(durableContext, workspace, sourcePanelId, lookup, feedback);
-        }));
+        SFMNavigationRequestWitness witness = SFMNavigationRequestWitness.capture(
+                workspace,
+                sourcePanelId,
+                panelEntryIdentity.orElseThrow(),
+                capturedContribution,
+                nextRequestGeneration()
+        );
+        Pending pending = new Pending(witness, submission, feedback);
+        replaceActive(workspace, pending);
+        completionGate.accepted(witness);
+        show(workspace, feedback, Component.literal("Looking up definition...").withStyle(ChatFormatting.GRAY));
+        submission.result().whenComplete((lookup, failure) -> completionGate.dispatchCompletion(
+                witness,
+                () -> clientExecutor.accept(() -> {
+                    if (!isActive(workspace, pending)) return;
+                    SFMNavigationRequestWitness.Validation validity = validate(workspace, pending);
+                    removeActive(workspace, pending);
+                    if (!validity.isValid()) {
+                        SFMNavigationRequestWitness.RejectionReason reason = validity.rejection().orElseThrow();
+                        rejectPending(workspace, pending, reason);
+                        return;
+                    }
+                    boolean hostIsCurrent = durableContext.originatingHostIsCurrent().getAsBoolean();
+                    SFM.LOGGER.info("SFM_DEFINITION_ACTION_COMPLETED host_current={} success={} failure_type={}",
+                            hostIsCurrent,
+                            failure == null,
+                            failure == null ? "none" : failure.getClass().getSimpleName());
+                    if (!hostIsCurrent) return;
+                    if (failure != null) {
+                        reject(workspace, feedback, failureMessage(failure));
+                        return;
+                    }
+                    present(durableContext, workspace, sourcePanelId, lookup, feedback);
+                })
+        ));
         return true;
     }
 
@@ -219,27 +253,96 @@ public final class SFMJumpToDefinitionController {
                 "Retry: sfm action invoke " + actionId).withStyle(ChatFormatting.AQUA));
     }
 
-    private static Optional<SFMContextContribution> focusedDocument(SFMContextSnapshot snapshot) {
-        Optional<SFMContextOriginId> focused = snapshot.focusedOriginId();
-        if (focused.isEmpty()) return Optional.empty();
-        return snapshot.contributions().stream()
-                .filter(contribution -> contribution.originId().equals(focused.orElseThrow()))
-                .filter(contribution -> contribution.projection() instanceof SFMContextDocumentProjection)
-                .findFirst();
+    private SFMNavigationRequestWitness.Validation validate(
+            SFMScreenMultiplexer workspace,
+            Pending pending
+    ) {
+        SFMContextSnapshot snapshot = workspaceState.snapshot(workspace);
+        SFMNavigationRequestWitness witness = pending.witness();
+        return witness.validate(
+                workspace,
+                workspaceState.panelEntryIdentity(workspace, witness.sourcePanelId()),
+                workspaceState.contribution(
+                        workspace,
+                        witness.sourcePanelId(),
+                        witness.originId(),
+                        snapshot
+                ),
+                currentRequestGeneration(workspace, witness.sourcePanelId())
+        );
     }
 
-    /**
-     * Results are valid only for the exact focused contribution that produced
-     * the request. Record equality covers the stable origin, contributor
-     * generations, current document identity/hash, cursors, and selections.
-     */
-    private static boolean sameFocusedContribution(
-            SFMContextSnapshot currentSnapshot,
-            SFMContextContribution capturedContribution
+    private long nextRequestGeneration() {
+        synchronized (active) {
+            if (requestGeneration == Long.MAX_VALUE) {
+                throw new IllegalStateException("Jump-to-definition request generation exhausted");
+            }
+            return ++requestGeneration;
+        }
+    }
+
+    private void replaceActive(SFMScreenMultiplexer workspace, Pending pending) {
+        Pending previous;
+        synchronized (active) {
+            previous = active.computeIfAbsent(workspace, ignored -> new LinkedHashMap<>())
+                    .put(pending.witness().sourcePanelId(), pending);
+        }
+        if (previous != null) {
+            previous.submission().cancel();
+            rejectPending(
+                    workspace,
+                    previous,
+                    SFMNavigationRequestWitness.RejectionReason.SUPERSEDED_REQUEST
+            );
+        }
+    }
+
+    private void rejectPending(
+            SFMScreenMultiplexer workspace,
+            Pending pending,
+            SFMNavigationRequestWitness.RejectionReason reason
     ) {
-        return focusedDocument(currentSnapshot)
-                .filter(capturedContribution::equals)
-                .isPresent();
+        completionGate.rejected(pending.witness(), reason);
+        SFM.LOGGER.info(
+                "SFM_DEFINITION_ACTION_REJECTED request={} panel={} reason={} description={}",
+                pending.witness().requestGeneration(),
+                pending.witness().sourcePanelId().value(),
+                reason.name(),
+                reason.description()
+        );
+        reject(workspace, pending.feedback(), invalidationMessage(reason));
+    }
+
+    private boolean isActive(SFMScreenMultiplexer workspace, Pending pending) {
+        synchronized (active) {
+            Map<SFMWorkspacePanelId, Pending> byPanel = active.get(workspace);
+            return byPanel != null && byPanel.get(pending.witness().sourcePanelId()) == pending;
+        }
+    }
+
+    private void removeActive(SFMScreenMultiplexer workspace, Pending pending) {
+        synchronized (active) {
+            Map<SFMWorkspacePanelId, Pending> byPanel = active.get(workspace);
+            if (byPanel == null || byPanel.get(pending.witness().sourcePanelId()) != pending) return;
+            byPanel.remove(pending.witness().sourcePanelId());
+            if (byPanel.isEmpty()) active.remove(workspace);
+        }
+    }
+
+    private long currentRequestGeneration(
+            SFMScreenMultiplexer workspace,
+            SFMWorkspacePanelId panelId
+    ) {
+        synchronized (active) {
+            Map<SFMWorkspacePanelId, Pending> byPanel = active.get(workspace);
+            if (byPanel == null) return -1;
+            Pending pending = byPanel.get(panelId);
+            return pending == null ? -1 : pending.witness().requestGeneration();
+        }
+    }
+
+    private static String invalidationMessage(SFMNavigationRequestWitness.RejectionReason reason) {
+        return "Jump to definition ignored: " + reason.description();
     }
 
     private static void showNavigation(
@@ -284,5 +387,17 @@ public final class SFMJumpToDefinitionController {
         String message = current.getMessage();
         return "Jump to definition unavailable: "
                 + (message == null || message.isBlank() ? current.getClass().getSimpleName() : message);
+    }
+
+    private record Pending(
+            SFMNavigationRequestWitness witness,
+            SFMDefinitionLookupService.Submission submission,
+            Consumer<Component> feedback
+    ) {
+        private Pending {
+            Objects.requireNonNull(witness, "witness");
+            Objects.requireNonNull(submission, "submission");
+            Objects.requireNonNull(feedback, "feedback");
+        }
     }
 }

@@ -137,6 +137,20 @@ public final class SFMWorkspaceToastQueue implements AutoCloseable {
             String text,
             Presentation presentation
     ) {
+        return publishPreserving(null, replacementKey, text, presentation);
+    }
+
+    /**
+     * Publishes while protecting one addressed source toast from replacement
+     * or capacity eviction. Clipboard confirmations use this so acknowledging
+     * a copy cannot mutate the notification that was copied.
+     */
+    public ToastId publishPreserving(
+            @Nullable ToastId protectedId,
+            @Nullable String replacementKey,
+            String text,
+            Presentation presentation
+    ) {
         List<InteractionLease> retired = new ArrayList<>();
         ToastId id;
         synchronized (this) {
@@ -146,10 +160,16 @@ public final class SFMWorkspaceToastQueue implements AutoCloseable {
             String normalizedKey = normalizeKey(replacementKey);
             if (!normalizedKey.isEmpty()) {
                 ToastId replacedId = replacementIds.get(normalizedKey);
-                if (replacedId != null) retired.addAll(removeInternal(replacedId));
+                if (replacedId != null && !replacedId.equals(protectedId)) {
+                    retired.addAll(removeInternal(replacedId));
+                }
             }
             while (toasts.size() >= MAX_TOASTS) {
-                ToastId oldest = toasts.keySet().iterator().next();
+                ToastId oldest = toasts.keySet().stream()
+                        .filter(candidate -> !candidate.equals(protectedId))
+                        .findFirst()
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Cannot publish a bounded toast while preserving the only queue entry"));
                 retired.addAll(removeInternal(oldest));
             }
             id = nextToastId();

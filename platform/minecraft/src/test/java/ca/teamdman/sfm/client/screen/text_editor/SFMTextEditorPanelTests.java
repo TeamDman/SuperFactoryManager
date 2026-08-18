@@ -1,11 +1,15 @@
 package ca.teamdman.sfm.client.screen.text_editor;
 
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasModel;
+import ca.teamdman.sfm.client.screen.SFMDrawCanvasScreen;
+import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverLookup;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverStateMachine;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelOpenContext;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverIdentity;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -69,6 +73,18 @@ class SFMTextEditorPanelTests {
         );
 
         assertEquals(List.of("reset"), calls);
+    }
+
+    @Test
+    void symbolInspectionGeometryAcceptsOnlyTrailingLineEndingProjectionOmission() {
+        assertTrue(SFMTextEditorPanel.inspectionProjectionMatches("class A {}", "class A {}"));
+        assertTrue(SFMTextEditorPanel.inspectionProjectionMatches("class A {}\n", "class A {}"));
+        assertTrue(SFMTextEditorPanel.inspectionProjectionMatches("class A {}\r\n", "class A {}"));
+        assertTrue(SFMTextEditorPanel.inspectionProjectionMatches("class A {}\n\n", "class A {}\n"));
+
+        assertFalse(SFMTextEditorPanel.inspectionProjectionMatches("class A { }\n", "class A {}"));
+        assertFalse(SFMTextEditorPanel.inspectionProjectionMatches("class A {} ", "class A {}"));
+        assertFalse(SFMTextEditorPanel.inspectionProjectionMatches("class A {}", "class B {}"));
     }
 
     @Test
@@ -180,6 +196,36 @@ class SFMTextEditorPanelTests {
         assertTrue(closed.get());
     }
 
+    @Test
+    void reusedEditorPublishesTheLatestNavigationTargetRange() throws Exception {
+        String text = "class A { void first() {} void second() {} }";
+        SFMTextDocumentRange first = rangeOf(text, "first");
+        SFMTextDocumentRange second = rangeOf(text, "second");
+        SFMTextDocumentSnapshot baseline = withTargetRange(SFMTextDocumentSnapshot.literal(text), first);
+        SFMTextEditorPanelOpenContext context = new SFMTextEditorPanelOpenContext(
+                "sfm:text_editor_v3",
+                baseline,
+                true,
+                "A.java",
+                ignored -> SFMTextDocumentSaveResult.success()
+        );
+        RecordingNavigationScreen screen = allocateWithoutConstructor(RecordingNavigationScreen.class);
+        setField(screen, "text", text);
+        setField(screen, "navigatedRange", Optional.empty());
+        var constructor = SFMTextEditorPanel.class.getDeclaredConstructor(
+                SFMTextEditorPanelOpenContext.class,
+                Screen.class
+        );
+        constructor.setAccessible(true);
+        SFMTextEditorPanel panel = constructor.newInstance(context, screen);
+
+        assertEquals(Optional.of(first), panel.documentSnapshot().orElseThrow().targetRange());
+        assertTrue(panel.navigateToRange(second));
+        assertEquals(Optional.of(second), screen.navigatedRange);
+        assertEquals(withTargetRange(baseline, second), panel.documentSnapshot().orElseThrow(),
+                "A reused editor must publish the exact range it now presents without losing provenance");
+    }
+
     private static SFMSymbolHoverStateMachine.Target hoverTarget() {
         return new SFMSymbolHoverStateMachine.Target(
                 new SFMSymbolHoverIdentity.EditorOrigin(
@@ -211,6 +257,34 @@ class SFMTextEditorPanelTests {
         return type.cast(((Unsafe) unsafeField.get(null)).allocateInstance(type));
     }
 
+    private static SFMTextDocumentRange rangeOf(String text, String token) {
+        int start = text.indexOf(token);
+        if (start < 0) throw new IllegalArgumentException("Missing token " + token);
+        return new SFMTextDocumentRange(
+                SFMTextDocumentRange.positionAtByteOffset(text, start),
+                SFMTextDocumentRange.positionAtByteOffset(text, start + token.length())
+        );
+    }
+
+    private static SFMTextDocumentSnapshot withTargetRange(
+            SFMTextDocumentSnapshot document,
+            SFMTextDocumentRange range
+    ) {
+        return new SFMTextDocumentSnapshot(
+                document.state(),
+                document.text(),
+                document.mutationCapability(),
+                document.path(),
+                document.authorizedRoot(),
+                document.sha256(),
+                document.byteLength(),
+                document.lastModified(),
+                document.lineEndingKind(),
+                Optional.of(range),
+                document.diagnostics()
+        );
+    }
+
     private static final class RecordingMultiCursorScreen extends Screen implements ISFMTextEditScreen {
         private ISFMTextEditScreenOpenContext openContext;
         private SFMDrawCanvasModel model;
@@ -236,6 +310,38 @@ class SFMTextEditorPanelTests {
             clicks++;
             model.addCursor(mouseX, mouseY);
             return true;
+        }
+    }
+
+    private static final class RecordingNavigationScreen extends SFMDrawCanvasScreen {
+        private String text;
+        private Optional<SFMTextDocumentRange> navigatedRange;
+
+        private RecordingNavigationScreen() {
+            super((Screen) null);
+        }
+
+        @Override
+        public SFMContextDocumentProjection captureContextProjection(
+                String editorId,
+                SFMTextDocumentSnapshot baseline,
+                boolean readOnly
+        ) {
+            return SFMContextDocumentProjection.capture(
+                    editorId,
+                    baseline,
+                    text,
+                    false,
+                    readOnly,
+                    List.of(),
+                    List.of()
+            );
+        }
+
+        @Override
+        public void openAtTextRange(SFMTextDocumentRange range) {
+            range.validateAgainst(text);
+            navigatedRange = Optional.of(range);
         }
     }
 }

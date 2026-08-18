@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMSelectionRepository;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerEntry;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolverRegistry;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
 import ca.teamdman.sfm.client.explorer.lazy.SFMInMemoryRegistryExplorerResolver;
@@ -19,6 +20,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMExplorerPanelInteractionTests {
@@ -135,6 +137,85 @@ public class SFMExplorerPanelInteractionTests {
         }
         assertTrue(panel.model().scrollTraceSnapshot().isEmpty(),
                 "the Down-key comparison control must not masquerade as wheel telemetry");
+    }
+
+    @Test
+    public void filterMatchesAndContextAncestorsHaveDistinctVisualAndNarratedPresentations() {
+        SFMPath matchPath = SFMPath.parse("registry://minecraft/item/minecraft/sfm_java");
+        SFMExplorerEntry entry = SFMExplorerEntry.simple(
+                matchPath,
+                "SFM.java",
+                false,
+                Optional.of("minecraft:paper")
+        );
+        SFMExplorerProjection.Row match = new SFMExplorerProjection.Row(
+                matchPath,
+                entry,
+                1,
+                false,
+                false,
+                entry.sortKey(SFMExplorerEntry.SORT_NAME),
+                SFMExplorerProjection.FilterRole.MATCH
+        );
+        SFMExplorerProjection.Row context = new SFMExplorerProjection.Row(
+                matchPath,
+                entry,
+                1,
+                false,
+                true,
+                entry.sortKey(SFMExplorerEntry.SORT_NAME),
+                SFMExplorerProjection.FilterRole.CONTEXT_ANCESTOR
+        );
+
+        SFMExplorerPanel.FilterRowPresentation matchPresentation =
+                SFMExplorerPanel.filterRowPresentation(match, entry.label());
+        SFMExplorerPanel.FilterRowPresentation contextPresentation =
+                SFMExplorerPanel.filterRowPresentation(context, entry.label());
+
+        assertEquals("SFM.java", matchPresentation.label());
+        assertEquals("filter match", matchPresentation.narration());
+        assertEquals("[context] SFM.java", contextPresentation.label());
+        assertEquals(
+                "context ancestor included to locate a filter match",
+                contextPresentation.narration()
+        );
+        assertNotEquals(matchPresentation.textColour(), contextPresentation.textColour());
+
+        SFMExplorerProjection.FilterEvidence evidence = new SFMExplorerProjection.FilterEvidence(
+                "SFM.java",
+                8,
+                2,
+                5,
+                3,
+                true
+        );
+        assertEquals(
+                "2 matches + 3 context ancestors = 5 visible / 8 materialized entries; "
+                        + "unmaterialized subtrees excluded",
+                SFMExplorerPanel.filterSummary(evidence)
+        );
+        assertEquals(
+                "Filter showing 2 matches and 3 context ancestors, 5 visible rows from 8 materialized "
+                        + "entries. Unmaterialized subtrees are excluded",
+                SFMExplorerPanel.filterNarration(evidence)
+        );
+    }
+
+    @Test
+    public void activeFilterNarrationReportsCountsAndTheSelectedRowsRole() {
+        Fixture fixture = fixture(4);
+        fixture.session().setHoist(SFMExplorerProjection.Hoist.SHOW_ROOTS);
+        fixture.session().setFilterQuery("3");
+
+        fixture.session().navigateTo(ROOT);
+        String contextNarration = fixture.panel().narration().getString();
+        assertTrue(contextNarration.contains("Filter showing 1 match and 1 context ancestor, 2 visible rows"));
+        assertTrue(contextNarration.contains("context ancestor included to locate a filter match"));
+
+        fixture.session().navigateTo(SFMPath.parse("registry://minecraft/item/minecraft/test_item_3"));
+        String matchNarration = fixture.panel().narration().getString();
+        assertTrue(matchNarration.contains("filter match"));
+        assertFalse(matchNarration.contains("context ancestor included to locate a filter match"));
     }
 
     private static Fixture fixture(int childCount) {

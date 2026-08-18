@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -224,6 +225,112 @@ class SFMWorkspaceToastTests {
     }
 
     @Test
+    void pointerCopyDraftUsesTheCanonicalToastAction() {
+        assertEquals(
+                "sfm:toast/copy 7",
+                SFMScreenMultiplexer.workspaceToastActionDraft(
+                        new ResourceLocation("sfm", "toast/copy"),
+                        new SFMWorkspaceToastQueue.ToastId(7)
+                )
+        );
+    }
+
+    @Test
+    void successfulCopyPreservesSourceAndCoalescesOneConfirmationLane() throws Exception {
+        MutableNanoClock clock = new MutableNanoClock();
+        SFMWorkspaceToastQueue queue = new SFMWorkspaceToastQueue(clock);
+        SFMScreenMultiplexer workspace = headlessWorkspace(queue);
+        var source = workspace.showWorkspaceToast(
+                "failure", Component.literal("Exact failure bytes\nsecond line"), false);
+        assertEquals(SFMWorkspaceToastQueue.MutationResult.APPLIED,
+                workspace.stopWorkspaceToastTimer(source));
+        var before = workspace.workspaceToastSnapshot(source).orElseThrow();
+        AtomicReference<String> clipboard = new AtomicReference<>();
+
+        assertTrue(workspace.copyWorkspaceToast(source, clipboard::set));
+        assertEquals("Exact failure bytes\nsecond line", clipboard.get());
+        var afterFirstCopy = workspace.workspaceToastSnapshot(source).orElseThrow();
+        assertEquals(before.text(), afterFirstCopy.text());
+        assertEquals(before.pinned(), afterFirstCopy.pinned());
+        assertEquals(before.remainingNanos(), afterFirstCopy.remainingNanos());
+        assertEquals(2, workspace.activeWorkspaceToastIds().size());
+        var firstConfirmation = workspace.latestWorkspaceToast().orElseThrow();
+        assertEquals("Copied notification " + source.value() + " to the clipboard",
+                firstConfirmation.text());
+
+        var unrelated = workspace.showWorkspaceToast(
+                "later-unrelated", Component.literal("later unrelated message"), false);
+        assertTrue(workspace.copyWorkspaceToast(source, clipboard::set));
+        assertTrue(workspace.workspaceToastSnapshot(source).isPresent());
+        assertTrue(workspace.workspaceToastSnapshot(firstConfirmation.id()).isEmpty());
+        assertTrue(workspace.workspaceToastSnapshot(unrelated).isPresent());
+        assertEquals(3, workspace.activeWorkspaceToastIds().size());
+        assertEquals("Copied notification " + source.value() + " to the clipboard",
+                workspace.latestWorkspaceToast().orElseThrow().text());
+    }
+
+    @Test
+    void copyConfirmationPreservesAnOldestSourceWhenTheQueueIsFull() throws Exception {
+        SFMWorkspaceToastQueue queue = new SFMWorkspaceToastQueue();
+        SFMScreenMultiplexer workspace = headlessWorkspace(queue);
+        var source = workspace.showWorkspaceToast("source", Component.literal("oldest source"), false);
+        for (int index = 1; index < SFMWorkspaceToastQueue.MAX_TOASTS; index++) {
+            workspace.showWorkspaceToast(
+                    "lane-" + index,
+                    Component.literal("message " + index),
+                    false
+            );
+        }
+        assertEquals(SFMWorkspaceToastQueue.MAX_TOASTS, workspace.activeWorkspaceToastIds().size());
+
+        assertTrue(workspace.copyWorkspaceToast(source, ignored -> { }));
+
+        assertTrue(workspace.workspaceToastSnapshot(source).isPresent());
+        assertEquals("oldest source", workspace.workspaceToastSnapshot(source).orElseThrow().text());
+        assertEquals(SFMWorkspaceToastQueue.MAX_TOASTS, workspace.activeWorkspaceToastIds().size());
+        assertEquals("Copied notification " + source.value() + " to the clipboard",
+                workspace.latestWorkspaceToast().orElseThrow().text());
+    }
+
+    @Test
+    void copyingAConfirmationCreatesAnotherBoundedLaneWithoutMutatingItsSource() throws Exception {
+        MutableNanoClock clock = new MutableNanoClock();
+        SFMWorkspaceToastQueue queue = new SFMWorkspaceToastQueue(clock);
+        SFMScreenMultiplexer workspace = headlessWorkspace(queue);
+        var source = workspace.showWorkspaceToast("failure", Component.literal("failure"), false);
+        AtomicReference<String> clipboard = new AtomicReference<>();
+        assertTrue(workspace.copyWorkspaceToast(source, clipboard::set));
+        var confirmation = workspace.latestWorkspaceToast().orElseThrow();
+        var confirmationBefore = workspace.workspaceToastSnapshot(confirmation.id()).orElseThrow();
+
+        assertTrue(workspace.copyWorkspaceToast(confirmation.id(), clipboard::set));
+        assertEquals(confirmationBefore.text(), clipboard.get());
+        assertEquals(confirmationBefore,
+                workspace.workspaceToastSnapshot(confirmation.id()).orElseThrow());
+        assertEquals(3, workspace.activeWorkspaceToastIds().size());
+        assertEquals("Copied notification " + confirmation.id().value() + " to the clipboard",
+                workspace.latestWorkspaceToast().orElseThrow().text());
+
+        assertTrue(workspace.copyWorkspaceToast(source, clipboard::set));
+        assertTrue(workspace.workspaceToastSnapshot(source).isPresent());
+        assertTrue(workspace.workspaceToastSnapshot(confirmation.id()).isEmpty());
+        assertEquals(3, workspace.activeWorkspaceToastIds().size());
+    }
+
+    @Test
+    void staleCopyDoesNotWriteClipboardOrClaimSuccess() throws Exception {
+        SFMWorkspaceToastQueue queue = new SFMWorkspaceToastQueue();
+        SFMScreenMultiplexer workspace = headlessWorkspace(queue);
+        AtomicInteger writes = new AtomicInteger();
+
+        assertFalse(workspace.copyWorkspaceToast(
+                new SFMWorkspaceToastQueue.ToastId(999),
+                ignored -> writes.incrementAndGet()));
+        assertEquals(0, writes.get());
+        assertTrue(workspace.activeWorkspaceToastIds().isEmpty());
+    }
+
+    @Test
     void logicalLayoutStaysInsideResizedAndGuiScaledViewportsWithHalfOpenHits() {
         SFMWorkspaceToastLayout layout = new SFMWorkspaceToastLayout();
         var one = new SFMWorkspaceToastQueue.ToastId(1);
@@ -271,6 +378,12 @@ class SFMWorkspaceToastTests {
     }
 
     private static SFMScreenMultiplexer headlessWorkspace() throws Exception {
+        return headlessWorkspace(new SFMWorkspaceToastQueue());
+    }
+
+    private static SFMScreenMultiplexer headlessWorkspace(
+            SFMWorkspaceToastQueue queue
+    ) throws Exception {
         Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
         unsafeField.setAccessible(true);
         Unsafe unsafe = (Unsafe) unsafeField.get(null);
@@ -278,7 +391,7 @@ class SFMWorkspaceToastTests {
                 (SFMScreenMultiplexer) unsafe.allocateInstance(SFMScreenMultiplexer.class);
         Field queueField = SFMScreenMultiplexer.class.getDeclaredField("workspaceToasts");
         queueField.setAccessible(true);
-        queueField.set(workspace, new SFMWorkspaceToastQueue());
+        queueField.set(workspace, queue);
         return workspace;
     }
 }

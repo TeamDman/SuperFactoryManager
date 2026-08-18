@@ -37,6 +37,8 @@ class PaletteHistoryActionTests {
                 "sfm action invoke sfm:palette/history/open"));
         assertFalse(SFMCommandHistoryService.isRecordable(
                 "sfm action invoke sfm:palette/history/clear"));
+        assertFalse(SFMCommandHistoryService.isRecordable(
+                "sfm action invoke sfm:palette/close"));
         assertTrue(SFMCommandHistoryService.isRecordable(
                 "sfm action invoke sfm:echo hello"));
     }

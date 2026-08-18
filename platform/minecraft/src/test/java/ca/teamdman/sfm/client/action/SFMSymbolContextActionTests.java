@@ -100,6 +100,7 @@ class SFMSymbolContextActionTests {
         assertEquals(1, occurrences(source, "register(\"symbol/definition/open\""));
         assertEquals(1, occurrences(source, "register(\"symbol/references/open\""));
         assertEquals(1, occurrences(source, "register(\"context/actions/open\""));
+        assertEquals(7, occurrences(source, "copy(SFMSymbolInspectionFormatters.Projection."));
 
         String definition = Files.readString(source(
                 "ca/teamdman/sfm/client/action/SFMJumpToDefinitionAction.java"));

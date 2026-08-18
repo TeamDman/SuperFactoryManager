@@ -200,10 +200,20 @@ public class SFMExplorerProjectionTests {
         SFMExplorerProjection.Result typo = SFMExplorerProjection.project(
                 session.snapshot(), relations.snapshot(), entries
         );
-        assertEquals(List.of(NESTED), paths(typo), "filtering sees published descendants without expanding them");
+        assertEquals(
+                List.of(DIRECTORY, NESTED),
+                paths(typo),
+                "filtering force-reveals the materialized ancestry of a published descendant"
+        );
+        assertTrue(typo.rows().get(0).filterContextAncestor());
+        assertTrue(typo.rows().get(0).expanded(), "the filtered projection, not session state, opens context");
+        assertTrue(typo.rows().get(1).filterMatch());
+        assertEquals(List.of(0, 1), typo.rows().stream().map(SFMExplorerProjection.Row::depth).toList());
         assertEquals("nstd", typo.filter().query());
         assertEquals(3, typo.filter().candidateCount());
         assertEquals(1, typo.filter().matchCount());
+        assertEquals(2, typo.filter().visibleRowCount());
+        assertEquals(1, typo.filter().contextAncestorCount());
         assertFalse(typo.filter().incompleteMaterialization());
         assertFalse(session.snapshot().expanded().contains(DIRECTORY), "filtering must not mutate expansion");
 
@@ -212,8 +222,143 @@ public class SFMExplorerProjectionTests {
         SFMExplorerProjection.Result arriving = SFMExplorerProjection.project(
                 session.snapshot(), relations.snapshot(), entries
         );
-        assertEquals(List.of(FRESH), paths(arriving), "newly published materialization joins the next projection");
+        assertEquals(
+                List.of(DIRECTORY, FRESH),
+                paths(arriving),
+                "newly published materialization joins the next hierarchy projection"
+        );
         assertEquals(4, arriving.filter().candidateCount());
+        assertEquals(1, arriving.filter().matchCount());
+        assertEquals(2, arriving.filter().visibleRowCount());
+        assertEquals(1, arriving.filter().contextAncestorCount());
+    }
+
+    @Test
+    public void filteredHierarchyMergesSharedAncestryAndMarksMatchingAncestorsHonestly() {
+        SFMPath source = SFMPath.parse("registry://test/source");
+        SFMPath java = SFMPath.parse("registry://test/source/java");
+        SFMPath packagePath = SFMPath.parse("registry://test/source/java/package");
+        SFMPath exact = SFMPath.parse("registry://test/source/java/package/qzxv-needle-7391.java");
+        SFMPath sibling = SFMPath.parse("registry://test/source/java/package/qzxv-other-needle-7391-test.java");
+        SFMPath unrelated = SFMPath.parse("registry://test/source/resources");
+        SFMChildRelationRepository relations = new SFMChildRelationRepository();
+        publish(relations, source, List.of(java, unrelated), 1);
+        publish(relations, java, List.of(packagePath), 1);
+        publish(relations, packagePath, List.of(exact, sibling), 1);
+        Map<SFMPath, SFMExplorerEntry> entries = entries(
+                entry(source, "source", true, Optional.of("folder")),
+                entry(java, "java", true, Optional.of("folder")),
+                entry(packagePath, "package", true, Optional.of("folder")),
+                entry(exact, "qzxv-needle-7391.java", false, Optional.of("code")),
+                entry(sibling, "qzxv-other-needle-7391-test.java", false, Optional.of("code")),
+                entry(unrelated, "resources", true, Optional.of("folder"))
+        );
+        SFMExplorerSession session = new SFMExplorerSession(
+                new SFMExplorerId("filter-shared-ancestry"), source, new SFMSelectionRepository()
+        );
+        session.setFilterQuery("qzxv-needle-7391");
+
+        SFMExplorerProjection.Result result = SFMExplorerProjection.project(
+                session.snapshot(), relations.snapshot(), entries
+        );
+
+        assertEquals(List.of(java, packagePath, exact, sibling), paths(result),
+                "siblings remain deterministically ordered by fuzzy score then canonical path");
+        assertEquals(List.of(0, 1, 2, 2), result.rows().stream()
+                .map(SFMExplorerProjection.Row::depth).toList());
+        assertEquals(List.of(
+                SFMExplorerProjection.FilterRole.CONTEXT_ANCESTOR,
+                SFMExplorerProjection.FilterRole.CONTEXT_ANCESTOR,
+                SFMExplorerProjection.FilterRole.MATCH,
+                SFMExplorerProjection.FilterRole.MATCH
+        ), result.rows().stream().map(SFMExplorerProjection.Row::filterRole).toList());
+        assertEquals(2, result.filter().matchCount());
+        assertEquals(4, result.filter().visibleRowCount());
+        assertEquals(2, result.filter().contextAncestorCount());
+        assertEquals(5, result.filter().candidateCount());
+        assertEquals(Set.of(), session.snapshot().expanded(), "forced ancestry must remain projection-only");
+
+        session.setFilterQuery("package");
+        SFMExplorerProjection.Result matchingAncestor = SFMExplorerProjection.project(
+                session.snapshot(), relations.snapshot(), entries
+        );
+        assertEquals(List.of(java, packagePath, sibling, exact), paths(matchingAncestor));
+        assertTrue(matchingAncestor.rows().get(1).filterMatch(),
+                "an ancestor that independently matches is a match, not context");
+        assertEquals(
+                matchingAncestor.rows().stream().filter(SFMExplorerProjection.Row::filterMatch).count(),
+                matchingAncestor.filter().matchCount()
+        );
+        assertEquals(
+                matchingAncestor.rows().stream().filter(SFMExplorerProjection.Row::filterContextAncestor).count(),
+                matchingAncestor.filter().contextAncestorCount()
+        );
+    }
+
+    @Test
+    public void filteredSubtreesUseBestDescendantScoreAcrossMultipleRoots() {
+        SFMPath rootA = SFMPath.parse("registry://test/a");
+        SFMPath rootB = SFMPath.parse("registry://test/b");
+        SFMPath fuzzy = SFMPath.parse("registry://test/a/nxxeexxdxxlxxe");
+        SFMPath exact = SFMPath.parse("registry://test/b/needle");
+        SFMChildRelationRepository relations = new SFMChildRelationRepository();
+        publish(relations, rootA, List.of(fuzzy), 1);
+        publish(relations, rootB, List.of(exact), 1);
+        Map<SFMPath, SFMExplorerEntry> entries = entries(
+                entry(rootA, "root-a", true, Optional.of("folder")),
+                entry(rootB, "root-b", true, Optional.of("folder")),
+                entry(fuzzy, "nxxeexxdxxlxxe", false, Optional.of("text")),
+                entry(exact, "needle", false, Optional.of("text"))
+        );
+        SFMExplorerSession session = new SFMExplorerSession(
+                new SFMExplorerId("filter-multiple-roots"), rootA, new SFMSelectionRepository()
+        );
+        session.addRoot(rootB);
+        session.setManualRootOrder(List.of(rootA, rootB));
+        session.setFilterQuery("needle");
+
+        SFMExplorerProjection.Result result = SFMExplorerProjection.project(
+                session.snapshot(), relations.snapshot(), entries
+        );
+
+        assertEquals(List.of(rootB, exact, rootA, fuzzy), paths(result),
+                "exact descendant score outranks manual root order; canonical paths break ties");
+        assertEquals(List.of(0, 1, 0, 1), result.rows().stream()
+                .map(SFMExplorerProjection.Row::depth).toList());
+        assertEquals(2, result.filter().matchCount());
+        assertEquals(2, result.filter().contextAncestorCount());
+    }
+
+    @Test
+    public void flatFilteredProjectionComposesWithViewPathAxesAndSuppressesCycles() {
+        SFMPath leaf = SFMPath.parse("file:///C:/project/directory/qzxv-target-7391.java");
+        SFMChildRelationRepository relations = new SFMChildRelationRepository();
+        publish(relations, FILE_ROOT, List.of(DIRECTORY), 1);
+        publish(relations, DIRECTORY, List.of(FILE_ROOT, leaf), 1);
+        Map<SFMPath, SFMExplorerEntry> entries = entries(
+                entry(FILE_ROOT, "project", true, Optional.of("folder")),
+                entry(DIRECTORY, "directory", true, Optional.of("folder")),
+                entry(leaf, "qzxv-target-7391.java", false, Optional.of("code"))
+        );
+        SFMExplorerSession session = new SFMExplorerSession(
+                new SFMExplorerId("flat-filter-cycle"), FILE_ROOT, new SFMSelectionRepository()
+        );
+        session.setGroup(SFMExplorerProjection.Group.NONE);
+        session.setView(SFMExplorerProjection.View.SMALL_ICONS);
+        session.setPathDisplay(SFMExplorerProjection.PathDisplay.ABSOLUTE_PATH);
+        session.setFilterQuery("qzxv-target-7391");
+
+        SFMExplorerProjection.Result result = SFMExplorerProjection.project(
+                session.snapshot(), relations.snapshot(), entries
+        );
+
+        assertEquals(List.of(leaf), paths(result));
+        assertEquals(0, result.rows().get(0).depth());
+        assertTrue(result.rows().get(0).filterMatch());
+        assertEquals(0, result.filter().contextAncestorCount());
+        assertEquals(SFMExplorerProjection.View.SMALL_ICONS, result.settings().view());
+        assertEquals(SFMExplorerProjection.PathDisplay.ABSOLUTE_PATH, result.settings().pathDisplay());
+        assertTrue(result.diagnostics().stream().anyMatch(message -> message.contains("cycle suppressed")));
     }
 
     @Test

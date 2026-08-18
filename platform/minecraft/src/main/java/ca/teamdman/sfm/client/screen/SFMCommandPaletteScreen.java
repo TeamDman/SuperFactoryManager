@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.function.Consumer;
 
 /**
  * The first, deliberately small, presentation of SFM's contextual action
@@ -100,12 +101,20 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private static final int CONSOLE_HEIGHT = 72;
     private static final int EMPTY_CONSOLE_HEIGHT = 18;
     private static final int PANEL_MARGIN = 12;
-    private static final int PANEL_BASE_HEIGHT = 92;
+    private static final int PANEL_BASE_HEIGHT = 116;
+    private static final int HORIZONTAL_PADDING = 10;
+    private static final int INPUT_TOP_OFFSET = 30;
+    private static final int BUTTON_ROW_TOP_OFFSET = 54;
+    private static final int GUIDANCE_TOP_OFFSET = 78;
+    private static final int SUGGESTION_TOP_OFFSET = 94;
+    private static final int CONSOLE_TOP_OFFSET = 106;
+    private static final int BUTTON_GAP = 4;
     private static final int SUGGESTION_ROW_HEIGHT = 18;
     private static final int SUGGESTION_ROW_CONTENT_HEIGHT = 16;
     private static final int SCROLLBAR_WIDTH = 6;
     private static final int SCROLLBAR_GAP = 4;
     private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 12;
+    static final String CLOSE_ACTION_COMMAND = "sfm action invoke sfm:palette/close";
 
     private static @Nullable SFMCommandPaletteScreen ACTIVE;
 
@@ -122,6 +131,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     @SuppressWarnings("NotNullFieldNotInitialized")
     private Button executeButton;
     @SuppressWarnings("NotNullFieldNotInitialized")
+    private Button cancelButton;
+    @SuppressWarnings("NotNullFieldNotInitialized")
     private SFMConsoleWidget consoleWidget;
     private List<Suggestion> suggestions = List.of();
     private final List<Component> feedback = new ArrayList<>();
@@ -129,9 +140,62 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private String error = "";
     private long suggestionRevision;
     private long bindingCycleTicks;
-    private boolean closing;
-    private boolean closeListenerNotified;
+    private final CloseLifecycle closeLifecycle = new CloseLifecycle();
     private boolean insertedRequiredArgumentSeparator;
+
+    @FunctionalInterface
+    interface PaletteActionExecutor {
+        int execute(
+                String command,
+                SFMClientActionContext context,
+                Consumer<Component> feedback
+        ) throws CommandSyntaxException;
+    }
+
+    record ControlBounds(int x, int y, int width, int height) {
+        int right() {
+            return x + width;
+        }
+    }
+
+    record ControlsLayout(
+            ControlBounds input,
+            ControlBounds execute,
+            ControlBounds cancel
+    ) {
+    }
+
+    /** Read-only witness for the real shared Cancel widget used by live puppets. */
+    public record CancelControlAutomationSnapshot(
+            String label,
+            int x,
+            int y,
+            int width,
+            int height,
+            boolean visible,
+            boolean active,
+            boolean focused,
+            String narrationPriority
+    ) {
+    }
+
+    static final class CloseLifecycle {
+        private boolean closing;
+        private boolean cleaned;
+
+        boolean beginClose() {
+            if (closing) return false;
+            closing = true;
+            return true;
+        }
+
+        boolean runCleanupOnce(Runnable cleanup) {
+            if (cleaned) return false;
+            cleaned = true;
+            cleanup.run();
+            return true;
+        }
+    }
 
     private SFMCommandPaletteScreen(
             SFMClientActionContext actionContext,
@@ -227,8 +291,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         try {
             SFMScreenChangeHelpers.setOrPushScreen(palette);
         } catch (RuntimeException exception) {
-            SFMChoiceSessionService.invalidate(palette.choiceSession);
-            if (ACTIVE == palette) ACTIVE = null;
+            palette.closeLifecycle.beginClose();
+            palette.cleanupActionSurface();
             throw exception;
         }
     }
@@ -246,8 +310,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         try {
             SFMScreenChangeHelpers.setOrPushScreen(palette);
         } catch (RuntimeException exception) {
-            SFMChoiceSessionService.invalidate(palette.choiceSession);
-            if (ACTIVE == palette) ACTIVE = null;
+            palette.closeLifecycle.beginClose();
+            palette.cleanupActionSurface();
             throw exception;
         }
     }
@@ -272,9 +336,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             SFMScreenChangeHelpers.setOrPushScreen(palette);
             return palette;
         } catch (RuntimeException exception) {
-            SFMChoiceSessionService.invalidate(palette.choiceSession);
-            palette.notifyCloseListener();
-            if (ACTIVE == palette) ACTIVE = null;
+            palette.closeLifecycle.beginClose();
+            palette.cleanupActionSurface();
             throw exception;
         }
     }
@@ -313,18 +376,16 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         ACTIVE = this;
         if (choiceSession != null) commandTree = choiceSession.activate();
         SFMScreenRenderUtils.enableKeyRepeating();
-        int width = Math.min(460, this.width - 24);
-        int left = (this.width - width) / 2;
+        int width = panelWidth();
+        int left = panelLeft();
         int top = panelTop();
-        int executeWidth = 68;
-        int horizontalPadding = 10;
-        int inputWidth = width - horizontalPadding * 2 - executeWidth - 4;
+        ControlsLayout controls = controlsLayout(this.width, top);
         this.input = this.addRenderableWidget(new EditBox(
                 this.font,
-                left + horizontalPadding,
-                top + 30,
-                inputWidth,
-                20,
+                controls.input().x(),
+                controls.input().y(),
+                controls.input().width(),
+                controls.input().height(),
                 INPUT_PLACEHOLDER.getComponent()
         ));
         this.input.setMaxLength(2048);
@@ -332,17 +393,21 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.input.setSuggestion("");
         this.input.setResponder(this::refreshSuggestions);
         this.executeButton = this.addRenderableWidget(new SFMButtonBuilder()
-                .setPosition(left + width - horizontalPadding - executeWidth, top + 30)
-                .setSize(executeWidth, 20)
+                .setPosition(controls.execute().x(), controls.execute().y())
+                .setSize(controls.execute().width(), controls.execute().height())
                 .setText(EXECUTE)
                 .setOnPress(button -> executeInput())
                 .build());
         this.executeButton.active = false;
+        this.cancelButton = this.addRenderableWidget(createCancelButton(
+                controls.cancel(),
+                this::cancelThroughAction
+        ));
         this.consoleWidget = new SFMConsoleWidget(
                 this.font,
-                left + horizontalPadding,
+                left + HORIZONTAL_PADDING,
                 consoleTop(top),
-                width - horizontalPadding * 2,
+                Math.max(1, width - HORIZONTAL_PADDING * 2),
                 consoleHeight()
         );
         layoutWidgets();
@@ -354,11 +419,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     @Override
     public void onClose() {
-        if (this.closing) return;
-        this.closing = true;
-        if (choiceSession != null) SFMChoiceSessionService.invalidate(choiceSession);
-        notifyCloseListener();
-        if (ACTIVE == this) ACTIVE = null;
+        if (!closeLifecycle.beginClose()) return;
+        cleanupActionSurface();
         if (this.pushed) {
             SFMScreenChangeHelpers.popScreen();
         } else {
@@ -373,23 +435,36 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     @Override
     public void removed() {
-        if (choiceSession != null) SFMChoiceSessionService.invalidate(choiceSession);
-        notifyCloseListener();
-        if (ACTIVE == this) ACTIVE = null;
+        closeLifecycle.beginClose();
+        cleanupActionSurface();
         super.removed();
     }
 
-    private void notifyCloseListener() {
-        if (closeListenerNotified) return;
-        closeListenerNotified = true;
-        closeListener.run();
+    private void cleanupActionSurface() {
+        closeLifecycle.runCleanupOnce(() -> {
+            try {
+                if (choiceSession != null && !choiceSession.invalidated()) {
+                    SFMChoiceSessionService.invalidate(choiceSession);
+                }
+            } finally {
+                try {
+                    closeListener.run();
+                } finally {
+                    if (ACTIVE == this) ACTIVE = null;
+                }
+            }
+        });
     }
 
     @Override
     public boolean keyPressed(int key, int scanCode, int modifiers) {
         if (key == GLFW.GLFW_KEY_ESCAPE) {
-            onClose();
+            cancelThroughAction();
             return true;
+        }
+        if ((key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER || key == GLFW.GLFW_KEY_SPACE)
+                && this.getFocused() instanceof Button) {
+            return super.keyPressed(key, scanCode, modifiers);
         }
         if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) {
             if (!currentInputIsExecutable()
@@ -401,12 +476,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             return true;
         }
         if (key == GLFW.GLFW_KEY_TAB) {
-            if (!this.input.isFocused()) {
-                this.setFocused(this.input);
-                this.input.setFocused(true);
+            boolean forward = (modifiers & GLFW.GLFW_MOD_SHIFT) == 0 && !Screen.hasShiftDown();
+            if (forward && this.input.isFocused() && applySelectedSuggestion()) {
                 return true;
             }
-            applySelectedSuggestion();
+            if (!this.changeFocus(forward)) this.changeFocus(forward);
             return true;
         }
         if (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN) {
@@ -528,12 +602,20 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 this.font,
                 guidance,
                 left + 10,
-                top + 54,
+                top + GUIDANCE_TOP_OFFSET,
                 muted,
                 false
         );
         if (suggestions.isEmpty()) {
-            SFMFontUtils.draw(poseStack, this.font, EMPTY_RESULTS.getComponent(), left + 10, top + 72, muted, false);
+            SFMFontUtils.draw(
+                    poseStack,
+                    this.font,
+                    EMPTY_RESULTS.getComponent(),
+                    left + 10,
+                    top + SUGGESTION_TOP_OFFSET + 2,
+                    muted,
+                    false
+            );
         } else {
             SFMVerticalListViewport.ScrollbarGeometry scrollbar = suggestionScrollbarGeometry();
             SFMVerticalListViewport.Bounds rows = suggestionRowBounds(scrollbar.visible());
@@ -705,7 +787,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     }
 
     private int panelWidth() {
-        return Math.min(460, this.width - 24);
+        return panelWidth(this.width);
+    }
+
+    static int panelWidth(int viewportWidth) {
+        return Math.max(1, Math.min(460, viewportWidth - PANEL_MARGIN * 2));
     }
 
     private int panelLeft() {
@@ -721,7 +807,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     }
 
     private int consoleTop(int panelTop) {
-        return panelTop + 72 + visibleSuggestionCount() * SUGGESTION_ROW_HEIGHT + 10;
+        return panelTop + CONSOLE_TOP_OFFSET + visibleSuggestionCount() * SUGGESTION_ROW_HEIGHT;
     }
 
     private int visibleSuggestionCount() {
@@ -747,31 +833,61 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     }
 
     private void layoutWidgets() {
-        if (this.input == null || this.executeButton == null || this.consoleWidget == null) {
+        if (this.input == null || this.executeButton == null || this.cancelButton == null
+                || this.consoleWidget == null) {
             return;
         }
-        int left = panelLeft();
         int top = panelTop();
-        int width = panelWidth();
-        int horizontalPadding = 10;
-        int executeWidth = 68;
-        this.input.setX(left + horizontalPadding);
-        this.input.y = top + 30;
-        this.executeButton.x = left + width - horizontalPadding - executeWidth;
-        this.executeButton.y = top + 30;
+        ControlsLayout controls = controlsLayout(this.width, top);
+        this.input.setX(controls.input().x());
+        this.input.y = controls.input().y();
+        this.executeButton.x = controls.execute().x();
+        this.executeButton.y = controls.execute().y();
+        this.cancelButton.x = controls.cancel().x();
+        this.cancelButton.y = controls.cancel().y();
         this.consoleWidget.setBounds(
-                left + horizontalPadding,
+                panelLeft() + HORIZONTAL_PADDING,
                 consoleTop(top),
-                width - horizontalPadding * 2,
+                Math.max(1, panelWidth() - HORIZONTAL_PADDING * 2),
                 consoleHeight()
         );
         suggestionViewport.configure(suggestions.size(), visibleSuggestionCount());
     }
 
+    static ControlsLayout controlsLayout(int viewportWidth, int panelTop) {
+        int panelWidth = panelWidth(viewportWidth);
+        int panelLeft = (viewportWidth - panelWidth) / 2;
+        int contentLeft = panelLeft + HORIZONTAL_PADDING;
+        int contentWidth = Math.max(1, panelWidth - HORIZONTAL_PADDING * 2);
+        int executeWidth = Math.max(1, (contentWidth - BUTTON_GAP) / 2);
+        int cancelWidth = Math.max(1, contentWidth - BUTTON_GAP - executeWidth);
+        return new ControlsLayout(
+                new ControlBounds(contentLeft, panelTop + INPUT_TOP_OFFSET, contentWidth, 20),
+                new ControlBounds(contentLeft, panelTop + BUTTON_ROW_TOP_OFFSET, executeWidth, 20),
+                new ControlBounds(
+                        contentLeft + executeWidth + BUTTON_GAP,
+                        panelTop + BUTTON_ROW_TOP_OFFSET,
+                        cancelWidth,
+                        20
+                )
+        );
+    }
+
+    static Button createCancelButton(ControlBounds bounds, Runnable onPress) {
+        Objects.requireNonNull(bounds, "bounds");
+        Objects.requireNonNull(onPress, "onPress");
+        return new SFMButtonBuilder()
+                .setPosition(bounds.x(), bounds.y())
+                .setSize(bounds.width(), bounds.height())
+                .setText(Component.literal("Cancel"))
+                .setOnPress(button -> onPress.run())
+                .build();
+    }
+
     private SFMVerticalListViewport.Bounds suggestionListBounds() {
         return new SFMVerticalListViewport.Bounds(
                 panelLeft() + 6,
-                panelTop() + 70,
+                panelTop() + SUGGESTION_TOP_OFFSET,
                 Math.max(0, panelWidth() - 12),
                 visibleSuggestionCount() * SUGGESTION_ROW_HEIGHT);
     }
@@ -891,9 +1007,10 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 new SFMClientActionSource(actionContext)));
     }
 
-    private void applySelectedSuggestion() {
+    private boolean applySelectedSuggestion() {
         int selectedSuggestion = suggestionViewport.selectedRow();
-        if (selectedSuggestion < 0 || selectedSuggestion >= this.suggestions.size()) return;
+        if (selectedSuggestion < 0 || selectedSuggestion >= this.suggestions.size()) return false;
+        String previousValue = this.input.getValue();
         String current = commandInput();
         String suggestedValue = this.suggestions.get(selectedSuggestion).apply(current);
         String value = SFMClientCommandInsertion.prepare(
@@ -904,6 +1021,27 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.input.setValue(value);
         this.insertedRequiredArgumentSeparator = !value.equals(suggestedValue);
         this.input.moveCursorToEnd();
+        return !previousValue.equals(this.input.getValue());
+    }
+
+    private void cancelThroughAction() {
+        try {
+            invokeCancelAction(SFMClientActionExecutor::execute, actionContext, feedback::add);
+        } catch (CommandSyntaxException exception) {
+            SFM.LOGGER.warn("Command palette could not invoke its canonical close action", exception);
+            this.error = EXECUTION_FAILED.getComponent(exception.getMessage()).getString();
+        } catch (RuntimeException exception) {
+            SFM.LOGGER.error("Command palette close action failed", exception);
+            this.error = EXECUTION_FAILED.getComponent(exception.getMessage()).getString();
+        }
+    }
+
+    static int invokeCancelAction(
+            PaletteActionExecutor executor,
+            SFMClientActionContext context,
+            Consumer<Component> feedback
+    ) throws CommandSyntaxException {
+        return executor.execute(CLOSE_ACTION_COMMAND, context, feedback);
     }
 
     private void executeInput() {
@@ -989,6 +1127,65 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             throw new IllegalStateException("Command palette is not constrained by a choice session");
         }
         return choiceSession.canonicalCommands();
+    }
+
+    /**
+     * Focuses and describes the real Cancel widget after applying the current
+     * responsive layout. This is deliberately an observation hook: activation
+     * still travels through the widget's ordinary mouse/key path.
+     */
+    public CancelControlAutomationSnapshot focusCancelForAutomation() {
+        layoutWidgets();
+        this.setFocused(cancelButton);
+        cancelButton.setFocused(true);
+        CancelControlAutomationSnapshot snapshot = cancelControlSnapshotForAutomation();
+        if (!snapshot.visible() || !snapshot.active() || !snapshot.focused()) {
+            throw new IllegalStateException("Palette Cancel control is not visible, active, and focused: " + snapshot);
+        }
+        if (snapshot.x() < 0 || snapshot.y() < 0
+                || snapshot.x() + snapshot.width() > this.width
+                || snapshot.y() + snapshot.height() > this.height) {
+            throw new IllegalStateException("Palette Cancel control is outside the logical viewport: " + snapshot
+                    + " viewport=" + this.width + "x" + this.height);
+        }
+        return snapshot;
+    }
+
+    /** Clicks the center of the visible Cancel widget through normal screen mouse dispatch. */
+    public void clickCancelForAutomation() {
+        CancelControlAutomationSnapshot snapshot = focusCancelForAutomation();
+        double mouseX = snapshot.x() + snapshot.width() / 2.0D;
+        double mouseY = snapshot.y() + snapshot.height() / 2.0D;
+        if (!mouseClicked(mouseX, mouseY, GLFW.GLFW_MOUSE_BUTTON_LEFT)) {
+            throw new IllegalStateException("Palette Cancel pointer event was not consumed at "
+                    + mouseX + "," + mouseY);
+        }
+        mouseReleased(mouseX, mouseY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+    }
+
+    /** Whether a constrained choice has reached the pointer-selectable suggestion viewport. */
+    public boolean choiceReadyForPointerAutomation(String canonicalCommand) {
+        if (choiceSession == null) {
+            throw new IllegalStateException("Command palette is not constrained by a choice session");
+        }
+        String surfaceCommand = choiceSession.surfaceCommand(canonicalCommand);
+        String suggestionText = surfaceCommand.substring(choiceSession.prefix().length());
+        return suggestions.stream().anyMatch(suggestion -> suggestion.getText().equals(suggestionText));
+    }
+
+    private CancelControlAutomationSnapshot cancelControlSnapshotForAutomation() {
+        ControlBounds bounds = controlsLayout(this.width, panelTop()).cancel();
+        return new CancelControlAutomationSnapshot(
+                cancelButton.getMessage().getString(),
+                bounds.x(),
+                bounds.y(),
+                bounds.width(),
+                bounds.height(),
+                cancelButton.visible,
+                cancelButton.active,
+                cancelButton.isFocused(),
+                cancelButton.narrationPriority().name()
+        );
     }
 
     /** Executes a canonical choice through its real session-scoped Brigadier path. */

@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMJumpToDefinitionAction;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextResult;
+import ca.teamdman.sfm.client.screen.text_editor.SFMDeferredTextEditorPanel;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextDocumentPanelState;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
@@ -14,6 +15,7 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
+import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -93,9 +95,54 @@ class SFMSymbolDefinitionPaletteTests {
         assertEquals(SFMDefinitionNavigation.Status.FOCUSED_EXISTING, result.status());
         assertEquals(targetPanelId, result.panelId());
         assertEquals(range, document.navigatedRange);
+        assertEquals(Optional.of(range), document.documentSnapshot().orElseThrow().targetRange());
         assertEquals(targetPanelId, workspace.focused);
         assertFalse(workspace.openedInSourceStack,
                 "navigation must not replace or add a panel when the immutable target is already open");
+    }
+
+    @Test
+    void existingDeferredEditorAtomicallyPublishesTheNewExactRangeWithoutOpeningDuplicate() throws Exception {
+        SFMPath root = SFMPath.parse("file:///D:/workspace/src");
+        SFMPath target = SFMPath.parse("file:///D:/workspace/src/Target.java");
+        String text = "class Target {}\n";
+        SFMTextDocumentRange originalRange = new SFMTextDocumentRange(
+                SFMTextDocumentRange.positionAtByteOffset(text, 0),
+                SFMTextDocumentRange.positionAtByteOffset(text, "class".length())
+        );
+        SFMDefinitionResult.Definition definition = SFMJumpToDefinitionActionTests.definition(
+                "example.Target", "Target.java", 6, "Target");
+        SFMTextDocumentRange destinationRange = SFMDefinitionNavigation.range(definition.identifierSpan());
+        SFMTextDocumentSnapshot baseline = withTargetRange(snapshot(text, target, root), originalRange);
+        TrackingDocumentPanel delegate = new TrackingDocumentPanel(baseline);
+        SFMDeferredTextEditorPanel deferred = new SFMDeferredTextEditorPanel(new SFMTextEditorPanelRecipe(
+                new ResourceLocation("sfm", "text_editor"),
+                TEST_EDITOR_ID,
+                new SFMTextDocumentSource.Literal(text),
+                true,
+                "Target.java"
+        ));
+        setField(deferred, "snapshot", Optional.of(baseline));
+        setField(deferred, "delegate", delegate);
+        SFMWorkspacePanelId targetPanelId = new SFMWorkspacePanelId(3);
+        TrackingWorkspace workspace = new TrackingWorkspace(targetPanelId, deferred);
+
+        SFMDefinitionNavigation.Result result = SFMDefinitionNavigation.open(
+                workspace,
+                new SFMWorkspacePanelId(1),
+                hello(),
+                definition
+        );
+
+        assertEquals(SFMDefinitionNavigation.Status.FOCUSED_EXISTING, result.status());
+        assertEquals(targetPanelId, result.panelId());
+        assertEquals(targetPanelId, workspace.focused);
+        assertEquals(Optional.of(destinationRange), delegate.documentSnapshot().orElseThrow().targetRange());
+        assertEquals(Optional.of(destinationRange), deferred.documentSnapshot().orElseThrow().targetRange(),
+                "the deferred panel observed by diagnostics and puppets must publish the new destination");
+        assertFalse(workspace.openedInSourceStack,
+                "reusing an existing deferred editor must not open a duplicate panel");
+        assertEquals(List.of(targetPanelId), workspace.panelIds());
     }
 
     @Test
@@ -438,6 +485,31 @@ class SFMSymbolDefinitionPaletteTests {
         );
     }
 
+    private static SFMTextDocumentSnapshot withTargetRange(
+            SFMTextDocumentSnapshot document,
+            SFMTextDocumentRange range
+    ) {
+        return new SFMTextDocumentSnapshot(
+                document.state(),
+                document.text(),
+                document.mutationCapability(),
+                document.path(),
+                document.authorizedRoot(),
+                document.sha256(),
+                document.byteLength(),
+                document.lastModified(),
+                document.lineEndingKind(),
+                Optional.of(range),
+                document.diagnostics()
+        );
+    }
+
+    private static void setField(Object target, String name, Object value) throws ReflectiveOperationException {
+        Field field = target.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(target, value);
+    }
+
     private static SFMScreenMultiplexer uninitializedWorkspace() throws Exception {
         Field field = Unsafe.class.getDeclaredField("theUnsafe");
         field.setAccessible(true);
@@ -489,7 +561,7 @@ class SFMSymbolDefinitionPaletteTests {
     }
 
     private static final class TrackingDocumentPanel implements SFMScreenPanel, SFMTextDocumentPanelState {
-        private final SFMTextDocumentSnapshot snapshot;
+        private SFMTextDocumentSnapshot snapshot;
         private SFMTextDocumentRange navigatedRange;
 
         private TrackingDocumentPanel(SFMTextDocumentSnapshot snapshot) { this.snapshot = snapshot; }
@@ -498,6 +570,7 @@ class SFMSymbolDefinitionPaletteTests {
         @Override public Optional<SFMTextDocumentSnapshot> documentSnapshot() { return Optional.of(snapshot); }
         @Override public boolean navigateToRange(SFMTextDocumentRange range) {
             navigatedRange = range;
+            snapshot = withTargetRange(snapshot, range);
             return true;
         }
         @Override public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,

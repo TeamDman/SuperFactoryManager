@@ -6,6 +6,8 @@ use super::DiagnosticSeverity;
 use super::JavaAnalysisContextOutput;
 use super::JavaAnalysisDiagnosticOutput;
 use super::JavaDependencyResolutionDefinition;
+use super::JavaFileFactDetail;
+use super::JavaFileFactsInput;
 use super::JavaSourceFile;
 #[cfg(test)]
 use super::JavaSourceSpanOutput;
@@ -18,6 +20,8 @@ use super::JavaSymbolKind;
 use super::JdkSourceDomainState;
 #[cfg(test)]
 use super::ResolutionConfidence;
+use super::extract_java_file_facts_from_text_with_detail;
+use super::jdk_resolution_definitions;
 use crate::cancellation::CancellationToken;
 use eyre::WrapErr;
 use facet::Facet;
@@ -35,7 +39,7 @@ use std::process::ExitStatus;
 use std::time::Duration;
 
 const WORKER_ENV: &str = "SFM_DEPENDENCY_SYMBOL_INDEX_WORKER_REQUEST";
-const WORKER_SCHEMA: &str = "sfm.dependency-symbol-index-worker/4";
+const WORKER_SCHEMA: &str = "sfm.dependency-symbol-index-worker/5";
 const WORKER_OUTPUT_SCHEMA: &str = "sfm.dependency-symbol-index-worker-output/2";
 const RESOLUTION_SCHEMA: &str = "sfm.dependency-symbol-resolution-index/3";
 const WORKER_CHUNK_SIZE: usize = 32;
@@ -46,7 +50,6 @@ const WORKER_CHUNK_SIZE: usize = 32;
 const WORKER_MEMORY_LIMIT_BYTES: usize = 1536 * 1024 * 1024;
 const REFRESH_PARENT_MEMORY_LIMIT_BYTES: usize = 1536 * 1024 * 1024;
 const WORKER_OUTPUT_LIMIT_BYTES: u64 = 128 * 1024 * 1024;
-const PASS_OUTPUT_LIMIT_BYTES: u64 = 512 * 1024 * 1024;
 const WORKER_DIAGNOSTIC_LIMIT: usize = 8;
 const KEEP_FAILED_WORKDIR_ENV: &str = "SFM_KEEP_FAILED_DEPENDENCY_INDEX_WORKDIR";
 
@@ -110,6 +113,7 @@ struct WorkerRequest {
     pass: WorkerPass,
     context: JavaAnalysisContextOutput,
     files: Vec<WorkerSourceFile>,
+    jdk_context_path: Option<String>,
     resolution_body_path: Option<String>,
     output_path: String,
 }
@@ -117,6 +121,7 @@ struct WorkerRequest {
 struct WorkerInvocation {
     pass: WorkerPass,
     files: Vec<WorkerSourceFile>,
+    jdk_context_path: Option<String>,
     resolution_body_path: Option<String>,
     output_path: String,
 }
@@ -146,6 +151,7 @@ fn read_worker_request(path: &Path) -> eyre::Result<WorkerRequest> {
     let context_path = next_worker_request_field(&mut lines, "context")?;
     let context: JavaAnalysisContextOutput =
         facet_json::from_str(&std::fs::read_to_string(context_path)?)?;
+    let jdk_context = next_worker_request_field(&mut lines, "jdk-context")?;
     let resolution = next_worker_request_field(&mut lines, "resolution")?;
     let output_path = next_worker_request_field(&mut lines, "output")?;
     let mut files = Vec::new();
@@ -155,7 +161,7 @@ fn read_worker_request(path: &Path) -> eyre::Result<WorkerRequest> {
         if fields.next() != Some("file") {
             eyre::bail!(
                 "dependency symbol worker request line {} is not a file record",
-                line_index + 6
+                line_index + 7
             );
         }
         let Some(path) = fields.next() else {
@@ -181,6 +187,7 @@ fn read_worker_request(path: &Path) -> eyre::Result<WorkerRequest> {
         pass,
         context,
         files,
+        jdk_context_path: (!jdk_context.is_empty()).then_some(jdk_context),
         resolution_body_path: (!resolution.is_empty()).then_some(resolution),
         output_path,
     })
@@ -216,6 +223,11 @@ fn write_worker_request(
     writeln!(writer, "{WORKER_SCHEMA}")?;
     write_worker_request_field(&mut writer, "pass", worker_pass_name(request.pass))?;
     write_worker_request_field(&mut writer, "context", &context_path.display().to_string())?;
+    write_worker_request_field(
+        &mut writer,
+        "jdk-context",
+        request.jdk_context_path.as_deref().unwrap_or_default(),
+    )?;
     write_worker_request_field(
         &mut writer,
         "resolution",
@@ -283,6 +295,17 @@ fn run_worker_request(request: WorkerRequest) -> eyre::Result<()> {
         .iter()
         .map(|file| std::fs::read_to_string(&file.path))
         .collect::<std::io::Result<Vec<_>>>()?;
+    let jdk_sources = if request.pass == WorkerPass::Types {
+        JdkSourceDomainState::Disabled
+    } else {
+        request
+            .jdk_context_path
+            .as_deref()
+            .map(Path::new)
+            .map(JdkSourceDomainState::read_worker_context)
+            .transpose()?
+            .unwrap_or(JdkSourceDomainState::Disabled)
+    };
     let resolution_identifiers = source_texts
         .iter()
         .flat_map(|source| java_identifier_tokens(source))
@@ -293,7 +316,7 @@ fn run_worker_request(request: WorkerRequest) -> eyre::Result<()> {
         .flat_map(|source| java_member_access_tokens(source))
         .map(str::to_owned)
         .collect::<BTreeSet<_>>();
-    let dependencies = request
+    let mut dependencies = request
         .resolution_body_path
         .as_deref()
         .map(|path| {
@@ -303,69 +326,145 @@ fn run_worker_request(request: WorkerRequest) -> eyre::Result<()> {
                 &resolution_member_accesses,
             )
         })
-        .transpose()?;
+        .transpose()?
+        .unwrap_or_default();
+    dependencies.extend(worker_jdk_resolution_definitions(
+        &request.context,
+        &request.files,
+        &source_texts,
+        &jdk_sources,
+    )?);
+    dependencies.sort();
+    dependencies.dedup();
     let mut body = DependencyJavaSymbolIndexBody::new(Vec::new(), Vec::new(), Vec::new());
     for (file, source) in request.files.into_iter().zip(source_texts) {
-        let report_path = file.report_path.clone();
-        let resolution_dependencies = dependencies
-            .as_deref()
-            .map(|dependencies| relevant_resolution_definitions(dependencies, &source));
-        let workspace = JavaSourceWorkspace {
-            context: request.context.clone(),
-            root_authorities: Vec::new(),
-            files: vec![JavaSourceFile {
-                absolute_path: PathBuf::from(file.path),
-                root_id: "worker-shard".to_owned(),
-                root_relative_path: file.report_path.clone(),
-                report_path: file.report_path,
-                source_set: file.source_set,
-                source_override: None,
-            }],
-            diagnostics: Vec::new(),
-            classpath_entries: Vec::new(),
-            jdk_sources: JdkSourceDomainState::Disabled,
-        };
-        let index = JavaSymbolIndex::build_dependency_worker(
-            &workspace,
-            resolution_dependencies.as_deref(),
-            request.pass == WorkerPass::Usages,
-            if request.pass == WorkerPass::Types {
-                8
-            } else {
-                0
-            },
+        append_worker_file_output(
+            &request.context,
+            request.pass,
+            file,
+            &source,
+            &dependencies,
+            &mut body,
         )?;
-        let mut file_body = index.dependency_body(&[]);
-        file_body.definitions.retain(|definition| {
-            definition.identifier_span.path == report_path
-                && match request.pass {
-                    WorkerPass::Types => is_type(definition.symbol.kind),
-                    WorkerPass::Members => !is_type(definition.symbol.kind),
-                    WorkerPass::Usages => false,
-                }
-        });
-        file_body
-            .usages
-            .retain(|usage| request.pass == WorkerPass::Usages && usage.span.path == report_path);
-        // Type shards run before the cross-shard type table exists. The shared
-        // analyzer also inspects members, so only its syntax diagnostics are
-        // authoritative in this pass; member diagnostics belong to the later
-        // member pass, which resolves against the completed type table.
-        file_body.diagnostics.retain(|diagnostic| {
-            diagnostic
-                .span
-                .as_ref()
-                .is_none_or(|span| span.path == report_path)
-                && (request.pass != WorkerPass::Types || diagnostic.code.starts_with("java.parse-"))
-        });
-        body.definitions.append(&mut file_body.definitions);
-        body.usages.append(&mut file_body.usages);
-        body.diagnostics.append(&mut file_body.diagnostics);
     }
     limit_worker_diagnostics(&mut body.diagnostics);
     let body = DependencyJavaSymbolIndexBody::new(body.definitions, body.usages, body.diagnostics);
     write_body(Path::new(&request.output_path), &body)?;
     Ok(())
+}
+
+fn append_worker_file_output(
+    context: &JavaAnalysisContextOutput,
+    pass: WorkerPass,
+    file: WorkerSourceFile,
+    source: &str,
+    dependencies: &[JavaDependencyResolutionDefinition],
+    body: &mut DependencyJavaSymbolIndexBody,
+) -> eyre::Result<()> {
+    let report_path = file.report_path.clone();
+    let resolution_dependencies =
+        (!dependencies.is_empty()).then(|| relevant_resolution_definitions(dependencies, source));
+    let workspace = JavaSourceWorkspace {
+        context: context.clone(),
+        root_authorities: Vec::new(),
+        files: vec![JavaSourceFile {
+            absolute_path: PathBuf::from(file.path),
+            root_id: "worker-shard".to_owned(),
+            root_relative_path: file.report_path.clone(),
+            report_path: file.report_path,
+            source_set: file.source_set,
+            source_override: None,
+        }],
+        diagnostics: Vec::new(),
+        classpath_entries: Vec::new(),
+        jdk_sources: JdkSourceDomainState::Disabled,
+    };
+    let index = JavaSymbolIndex::build_dependency_worker(
+        &workspace,
+        resolution_dependencies.as_deref(),
+        pass == WorkerPass::Usages,
+        if pass == WorkerPass::Types { 8 } else { 0 },
+    )?;
+    let mut file_body = index.dependency_body(&[]);
+    file_body.definitions.retain(|definition| {
+        definition.identifier_span.path == report_path
+            && match pass {
+                WorkerPass::Types => is_type(definition.symbol.kind),
+                WorkerPass::Members => !is_type(definition.symbol.kind),
+                WorkerPass::Usages => false,
+            }
+    });
+    file_body
+        .usages
+        .retain(|usage| pass == WorkerPass::Usages && usage.span.path == report_path);
+    // Type shards run before the cross-shard type table exists. The shared
+    // analyzer also inspects members, so only its syntax diagnostics are
+    // authoritative in this pass; member diagnostics belong to the later
+    // member pass, which resolves against the completed type table.
+    file_body.diagnostics.retain(|diagnostic| {
+        diagnostic
+            .span
+            .as_ref()
+            .is_none_or(|span| span.path == report_path)
+            && (pass != WorkerPass::Types || diagnostic.code.starts_with("java.parse-"))
+    });
+    body.definitions.append(&mut file_body.definitions);
+    body.usages.append(&mut file_body.usages);
+    body.diagnostics.append(&mut file_body.diagnostics);
+    Ok(())
+}
+
+fn worker_jdk_resolution_definitions(
+    context: &JavaAnalysisContextOutput,
+    files: &[WorkerSourceFile],
+    source_texts: &[String],
+    jdk_sources: &JdkSourceDomainState,
+) -> eyre::Result<Vec<JavaDependencyResolutionDefinition>> {
+    if !matches!(jdk_sources, JdkSourceDomainState::Ready(_)) {
+        return Ok(Vec::new());
+    }
+    let mut project_facts = Vec::with_capacity(files.len());
+    for (sequence, (file, source)) in files.iter().zip(source_texts).enumerate() {
+        let visible_source_sets = context
+            .source_sets
+            .iter()
+            .find(|source_set| source_set.id == file.source_set)
+            .map_or_else(
+                || vec![file.source_set.clone()],
+                |source_set| source_set.visible_source_sets.clone(),
+            );
+        let mut facts = extract_java_file_facts_from_text_with_detail(
+            JavaFileFactsInput {
+                sequence: u64::try_from(sequence).unwrap_or(u64::MAX),
+                report_path: &file.report_path,
+                source_set: &file.source_set,
+                visible_source_sets: &visible_source_sets,
+            },
+            source.clone(),
+            Some(WORKER_DIAGNOSTIC_LIMIT),
+            JavaFileFactDetail::Declarations,
+        )?;
+        // JDK candidate discovery needs imports and referenced type names, not
+        // retained project declarations. Release those owned collections before
+        // the worker materializes the small set of selected JDK source facts.
+        facts.types.clear();
+        facts.fields.clear();
+        facts.callables.clear();
+        facts.diagnostics.clear();
+        project_facts.push(facts);
+    }
+    let visible_source_sets = context
+        .source_sets
+        .iter()
+        .map(|source_set| source_set.id.clone())
+        .collect::<Vec<_>>();
+    let jdk_facts = jdk_sources.facts_for_project(
+        &project_facts,
+        u64::try_from(project_facts.len()).unwrap_or(u64::MAX),
+        &visible_source_sets,
+        &CancellationToken::new(),
+    )?;
+    Ok(jdk_resolution_definitions(&jdk_facts))
 }
 
 fn relevant_resolution_definitions(
@@ -474,91 +573,14 @@ pub(crate) fn build_java_index_sharded(
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<DependencyIndexBuildArtifacts> {
     let temporary = tempfile::tempdir()?;
-    let result: eyre::Result<(PathBuf, DependencySymbolIndexCounts)> = (|| {
-        let context_path = temporary.path().join("context.json");
-        let mut context_writer = BufWriter::new(std::fs::File::create(&context_path)?);
-        facet_json::to_writer_std(&mut context_writer, &workspace.context)?;
-        context_writer.flush()?;
-        drop(context_writer);
-        let records_path = temporary.path().join("records.ndjson");
-        let mut records = BufWriter::new(std::fs::File::create(&records_path)?);
-        facet_json::to_writer_std(
-            &mut records,
-            &DependencyJavaSymbolIndexStreamHeader::new(identity.clone()),
-        )?;
-        records.write_all(b"\n")?;
-        let mut counts = DependencySymbolIndexCounts {
-            source_files: u64::try_from(workspace.files.len()).unwrap_or(u64::MAX),
-            definitions: 0,
-            usages: 0,
-            diagnostics: 0,
-        };
-        let mut diagnostics_seen = BTreeSet::new();
-
-        let external_path = temporary.path().join("external.tsv");
-        write_resolution_index(&external_path, external_resolution)?;
-
-        let types_path = temporary.path().join("types.tsv");
-        let mut type_resolution = BufWriter::new(std::fs::File::create(&types_path)?);
-        writeln!(type_resolution, "{RESOLUTION_SCHEMA}")?;
-        run_pass(
-            WorkerPass::Types,
-            workspace,
-            None,
-            temporary.path(),
-            &context_path,
-            cancellation_token,
-            &mut records,
-            Some(&mut type_resolution),
-            &mut counts,
-            &mut diagnostics_seen,
-        )?;
-        type_resolution.flush()?;
-        drop(type_resolution);
-
-        let member_input_path = temporary.path().join("member-input.tsv");
-        combine_resolution_files(&[&types_path, &external_path], &member_input_path)?;
-
-        let members_path = temporary.path().join("members.tsv");
-        let mut member_resolution = BufWriter::new(std::fs::File::create(&members_path)?);
-        writeln!(member_resolution, "{RESOLUTION_SCHEMA}")?;
-        run_pass(
-            WorkerPass::Members,
-            workspace,
-            Some(&member_input_path),
-            temporary.path(),
-            &context_path,
-            cancellation_token,
-            &mut records,
-            Some(&mut member_resolution),
-            &mut counts,
-            &mut diagnostics_seen,
-        )?;
-        member_resolution.flush()?;
-        drop(member_resolution);
-
-        let definitions_path = temporary.path().join("definitions.tsv");
-        combine_resolution_files(
-            &[&types_path, &members_path, &external_path],
-            &definitions_path,
-        )?;
-        if include_usages {
-            run_pass(
-                WorkerPass::Usages,
-                workspace,
-                Some(&definitions_path),
-                temporary.path(),
-                &context_path,
-                cancellation_token,
-                &mut records,
-                None,
-                &mut counts,
-                &mut diagnostics_seen,
-            )?;
-        }
-        records.flush()?;
-        Ok((records_path, counts))
-    })();
+    let result = build_java_index_sharded_in_temp(
+        workspace,
+        identity,
+        external_resolution,
+        include_usages,
+        cancellation_token,
+        temporary.path(),
+    );
     match result {
         Ok((records_path, counts)) => Ok(DependencyIndexBuildArtifacts {
             _temporary: temporary,
@@ -574,6 +596,133 @@ pub(crate) fn build_java_index_sharded(
         }
         Err(error) => Err(error),
     }
+}
+
+fn build_java_index_sharded_in_temp(
+    workspace: &JavaSourceWorkspace,
+    identity: &DependencySymbolIndexIdentity,
+    external_resolution: &[JavaDependencyResolutionDefinition],
+    include_usages: bool,
+    cancellation_token: &CancellationToken,
+    temporary: &Path,
+) -> eyre::Result<(PathBuf, DependencySymbolIndexCounts)> {
+    let context_path = temporary.join("context.json");
+    let mut context_writer = BufWriter::new(std::fs::File::create(&context_path)?);
+    facet_json::to_writer_std(&mut context_writer, &workspace.context)?;
+    context_writer.flush()?;
+    drop(context_writer);
+    let jdk_context_path = temporary.join("jdk-context.json");
+    let jdk_context_path = workspace
+        .jdk_sources
+        .write_worker_context(&jdk_context_path)?
+        .then_some(jdk_context_path);
+    let records_path = temporary.join("records.ndjson");
+    let mut records = BufWriter::new(std::fs::File::create(&records_path)?);
+    facet_json::to_writer_std(
+        &mut records,
+        &DependencyJavaSymbolIndexStreamHeader::new(identity.clone()),
+    )?;
+    records.write_all(b"\n")?;
+    let mut counts = DependencySymbolIndexCounts {
+        source_files: u64::try_from(workspace.files.len()).unwrap_or(u64::MAX),
+        definitions: 0,
+        usages: 0,
+        diagnostics: 0,
+    };
+    let mut diagnostics_seen = BTreeSet::new();
+
+    let external_path = temporary.join("external.tsv");
+    write_resolution_index(&external_path, external_resolution)?;
+    let types_path = temporary.join("types.tsv");
+    run_resolution_pass(
+        WorkerPass::Types,
+        workspace,
+        None,
+        temporary,
+        &context_path,
+        jdk_context_path.as_deref(),
+        cancellation_token,
+        &mut records,
+        &types_path,
+        &mut counts,
+        &mut diagnostics_seen,
+    )?;
+
+    let member_input_path = temporary.join("member-input.tsv");
+    combine_resolution_files(&[&types_path, &external_path], &member_input_path)?;
+    let members_path = temporary.join("members.tsv");
+    run_resolution_pass(
+        WorkerPass::Members,
+        workspace,
+        Some(&member_input_path),
+        temporary,
+        &context_path,
+        jdk_context_path.as_deref(),
+        cancellation_token,
+        &mut records,
+        &members_path,
+        &mut counts,
+        &mut diagnostics_seen,
+    )?;
+
+    let definitions_path = temporary.join("definitions.tsv");
+    combine_resolution_files(
+        &[&types_path, &members_path, &external_path],
+        &definitions_path,
+    )?;
+    if include_usages {
+        run_pass(
+            WorkerPass::Usages,
+            workspace,
+            Some(&definitions_path),
+            temporary,
+            &context_path,
+            jdk_context_path.as_deref(),
+            cancellation_token,
+            &mut records,
+            None,
+            &mut counts,
+            &mut diagnostics_seen,
+        )?;
+    }
+    records.flush()?;
+    Ok((records_path, counts))
+}
+
+#[expect(
+    clippy::too_many_arguments,
+    reason = "one resolution pass owns the worker paths, cancellation, and typed output sinks"
+)]
+fn run_resolution_pass(
+    pass: WorkerPass,
+    workspace: &JavaSourceWorkspace,
+    resolution_body_path: Option<&Path>,
+    temporary: &Path,
+    context_path: &Path,
+    jdk_context_path: Option<&Path>,
+    cancellation_token: &CancellationToken,
+    records: &mut BufWriter<std::fs::File>,
+    output_path: &Path,
+    counts: &mut DependencySymbolIndexCounts,
+    diagnostics_seen: &mut BTreeSet<String>,
+) -> eyre::Result<()> {
+    let mut resolution = BufWriter::new(std::fs::File::create(output_path)?);
+    writeln!(resolution, "{RESOLUTION_SCHEMA}")?;
+    run_pass(
+        pass,
+        workspace,
+        resolution_body_path,
+        temporary,
+        context_path,
+        jdk_context_path,
+        cancellation_token,
+        records,
+        Some(&mut resolution),
+        counts,
+        diagnostics_seen,
+    )?;
+    resolution.flush()?;
+    Ok(())
 }
 
 fn write_resolution_index(
@@ -677,6 +826,7 @@ fn run_pass(
     resolution_body_path: Option<&Path>,
     temporary: &Path,
     context_path: &Path,
+    jdk_context_path: Option<&Path>,
     cancellation_token: &CancellationToken,
     records: &mut BufWriter<std::fs::File>,
     resolution: Option<&mut BufWriter<std::fs::File>>,
@@ -688,8 +838,7 @@ fn run_pass(
         resolution,
         counts,
         diagnostics_seen,
-        output_bytes: 0,
-        successful_workers: 0,
+        output: PassOutputMeasurements::default(),
     };
     let chunks = workspace
         .files
@@ -701,6 +850,7 @@ fn run_pass(
             resolution_body_path,
             temporary,
             context_path,
+            jdk_context_path,
             cancellation_token,
             chunk,
             &chunk_index.to_string(),
@@ -716,6 +866,14 @@ fn run_pass(
             "dependency symbol index worker progress"
         );
     }
+    tracing::info!(
+        target: "sfm::java_analysis",
+        pass = ?pass,
+        successful_workers = accumulator.output.successful_workers,
+        streamed_output_bytes = accumulator.output.streamed_bytes,
+        largest_worker_output_bytes = accumulator.output.largest_worker_bytes,
+        "dependency symbol index pass completed through bounded worker spools"
+    );
     Ok(())
 }
 
@@ -724,8 +882,31 @@ struct PassAccumulator<'a> {
     resolution: Option<&'a mut BufWriter<std::fs::File>>,
     counts: &'a mut DependencySymbolIndexCounts,
     diagnostics_seen: &'a mut BTreeSet<String>,
-    output_bytes: u64,
+    output: PassOutputMeasurements,
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct PassOutputMeasurements {
+    streamed_bytes: u64,
+    largest_worker_bytes: u64,
     successful_workers: usize,
+}
+
+impl PassOutputMeasurements {
+    fn observe_worker_output(&mut self, output_bytes: u64) -> eyre::Result<()> {
+        if output_bytes > WORKER_OUTPUT_LIMIT_BYTES {
+            eyre::bail!(
+                "dependency symbol index worker output exceeded {} bytes",
+                WORKER_OUTPUT_LIMIT_BYTES
+            );
+        }
+        self.streamed_bytes = self
+            .streamed_bytes
+            .checked_add(output_bytes)
+            .ok_or_else(|| eyre::eyre!("dependency symbol index output byte count overflowed"))?;
+        self.largest_worker_bytes = self.largest_worker_bytes.max(output_bytes);
+        Ok(())
+    }
 }
 
 #[expect(
@@ -737,6 +918,7 @@ fn run_pass_chunk(
     resolution_body_path: Option<&Path>,
     temporary: &Path,
     context_path: &Path,
+    jdk_context_path: Option<&Path>,
     cancellation_token: &CancellationToken,
     files: &[JavaSourceFile],
     shard: &str,
@@ -757,6 +939,7 @@ fn run_pass_chunk(
                 source_set: file.source_set.clone(),
             })
             .collect(),
+        jdk_context_path: jdk_context_path.map(|path| path.display().to_string()),
         resolution_body_path: resolution_body_path.map(|path| path.display().to_string()),
         output_path: output_path.display().to_string(),
     };
@@ -783,6 +966,7 @@ fn run_pass_chunk(
                 resolution_body_path,
                 temporary,
                 context_path,
+                jdk_context_path,
                 cancellation_token,
                 &files[..split],
                 &format!("{shard}a"),
@@ -795,6 +979,7 @@ fn run_pass_chunk(
                 resolution_body_path,
                 temporary,
                 context_path,
+                jdk_context_path,
                 cancellation_token,
                 &files[split..],
                 &format!("{shard}b"),
@@ -810,28 +995,21 @@ fn run_pass_chunk(
             WORKER_MEMORY_LIMIT_BYTES
         );
     }
-    let output_bytes = std::fs::metadata(&output_path)?.len();
-    if output_bytes > WORKER_OUTPUT_LIMIT_BYTES {
-        eyre::bail!(
-            "dependency symbol index worker output exceeded {} bytes",
-            WORKER_OUTPUT_LIMIT_BYTES
-        );
-    }
-    accumulator.output_bytes = accumulator.output_bytes.saturating_add(output_bytes);
-    if accumulator.output_bytes > PASS_OUTPUT_LIMIT_BYTES {
-        eyre::bail!(
-            "dependency symbol index pass output exceeded {} bytes",
-            PASS_OUTPUT_LIMIT_BYTES
-        );
-    }
-    append_worker_output(&output_path, accumulator)?;
-    accumulator.successful_workers += 1;
+    let output_bytes = consume_worker_output(&output_path, accumulator)?;
+    std::fs::remove_file(&request_path).wrap_err_with(|| {
+        format!(
+            "Failed to remove consumed dependency symbol worker request {}",
+            request_path.display()
+        )
+    })?;
     tracing::info!(
         target: "sfm::java_analysis",
         pass = ?pass,
         shard,
         source_count = files.len(),
-        successful_workers = accumulator.successful_workers,
+        output_bytes,
+        successful_workers = accumulator.output.successful_workers,
+        pass_streamed_output_bytes = accumulator.output.streamed_bytes,
         initial_chunk,
         initial_chunk_count,
         "dependency symbol index worker shard completed"
@@ -1070,6 +1248,22 @@ fn append_worker_output(path: &Path, accumulator: &mut PassAccumulator<'_>) -> e
         }
     }
     Ok(())
+}
+
+fn consume_worker_output(path: &Path, accumulator: &mut PassAccumulator<'_>) -> eyre::Result<u64> {
+    let output_bytes = std::fs::metadata(path)
+        .wrap_err_with(|| format!("Failed to measure worker spool {}", path.display()))?
+        .len();
+    accumulator.output.observe_worker_output(output_bytes)?;
+    append_worker_output(path, accumulator)?;
+    std::fs::remove_file(path).wrap_err_with(|| {
+        format!(
+            "Failed to remove consumed dependency symbol worker spool {}",
+            path.display()
+        )
+    })?;
+    accumulator.output.successful_workers += 1;
+    Ok(output_bytes)
 }
 
 fn trim_line_ending(line: &mut Vec<u8>) {
@@ -1367,6 +1561,88 @@ mod tests {
     }
 
     #[test]
+    fn streamed_spool_pass_accepts_more_than_the_legacy_aggregate_limit() {
+        const LEGACY_PASS_OUTPUT_LIMIT_BYTES: u64 = 512 * 1024 * 1024;
+        let mut measurements = PassOutputMeasurements::default();
+
+        // Five individually bounded spools reproduce the aggregate condition
+        // that used to abort a real branch refresh, without materializing a
+        // 640 MiB test fixture. Aggregate volume is telemetry; the per-worker
+        // spool and process memory ceilings are the safety boundaries.
+        for _ in 0..5 {
+            measurements
+                .observe_worker_output(WORKER_OUTPUT_LIMIT_BYTES)
+                .expect("each bounded worker spool should be accepted");
+        }
+
+        assert_eq!(measurements.streamed_bytes, 5 * WORKER_OUTPUT_LIMIT_BYTES);
+        assert!(measurements.streamed_bytes > LEGACY_PASS_OUTPUT_LIMIT_BYTES);
+        assert_eq!(measurements.largest_worker_bytes, WORKER_OUTPUT_LIMIT_BYTES);
+        let error = measurements
+            .observe_worker_output(WORKER_OUTPUT_LIMIT_BYTES + 1)
+            .expect_err("an individual oversized worker spool must still fail");
+        assert!(error.to_string().contains("worker output exceeded"));
+    }
+
+    #[test]
+    fn consumed_worker_spool_is_streamed_then_removed() {
+        let temporary = tempfile::tempdir().expect("temporary spool directory");
+        let worker_path = temporary.path().join("worker.ndjson");
+        let records_path = temporary.path().join("records.ndjson");
+        let diagnostic = JavaAnalysisDiagnosticOutput {
+            code: "java.synthetic-spool-regression".to_owned(),
+            severity: DiagnosticSeverity::Warning,
+            message: "synthetic bounded spool".to_owned(),
+            span: None,
+        };
+        std::fs::write(
+            &worker_path,
+            format!(
+                "{WORKER_OUTPUT_SCHEMA}\ndiagnostic\t{}\n",
+                facet_json::to_string(&diagnostic).expect("diagnostic JSON")
+            ),
+        )
+        .expect("worker spool");
+        let expected_bytes = std::fs::metadata(&worker_path)
+            .expect("worker spool metadata")
+            .len();
+        let mut records =
+            BufWriter::new(std::fs::File::create(&records_path).expect("records destination"));
+        let mut counts = DependencySymbolIndexCounts {
+            source_files: 1,
+            definitions: 0,
+            usages: 0,
+            diagnostics: 0,
+        };
+        let mut diagnostics_seen = BTreeSet::new();
+        let mut accumulator = PassAccumulator {
+            records: &mut records,
+            resolution: None,
+            counts: &mut counts,
+            diagnostics_seen: &mut diagnostics_seen,
+            output: PassOutputMeasurements::default(),
+        };
+
+        assert_eq!(
+            consume_worker_output(&worker_path, &mut accumulator)
+                .expect("consume bounded worker spool"),
+            expected_bytes
+        );
+        assert_eq!(accumulator.output.streamed_bytes, expected_bytes);
+        assert_eq!(accumulator.output.successful_workers, 1);
+        drop(accumulator);
+        records.flush().expect("flush streamed records");
+
+        assert!(!worker_path.exists(), "consumed spool must not accumulate");
+        assert_eq!(counts.diagnostics, 1);
+        assert!(
+            std::fs::read_to_string(records_path)
+                .expect("streamed records")
+                .contains("diagnostic\t")
+        );
+    }
+
+    #[test]
     fn private_worker_writes_only_requested_local_pass_records() {
         let temporary = tempfile::tempdir().expect("temporary worker directory");
         let source = temporary.path().join("A.java");
@@ -1385,6 +1661,7 @@ mod tests {
                 report_path: "dependency/example/A.java".to_owned(),
                 source_set: "dependency:example".to_owned(),
             }],
+            jdk_context_path: None,
             resolution_body_path: None,
             output_path: output.display().to_string(),
         })
@@ -1442,6 +1719,7 @@ mod tests {
                 &helper_source,
                 "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/SFMGameTestHelper.java",
             )],
+            jdk_context_path: None,
             resolution_body_path: None,
             output_path: helper_output.display().to_string(),
         })
@@ -1454,6 +1732,7 @@ mod tests {
                 &test_source,
                 "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MoveWithoutTagConjunctionGameTest.java",
             )],
+            jdk_context_path: None,
             resolution_body_path: None,
             output_path: test_types_output.display().to_string(),
         })
@@ -1481,6 +1760,7 @@ mod tests {
                 &test_source,
                 "platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/migrated/MoveWithoutTagConjunctionGameTest.java",
             )],
+            jdk_context_path: None,
             resolution_body_path: Some(types_path.display().to_string()),
             output_path: test_members_output.display().to_string(),
         })
@@ -1506,6 +1786,115 @@ mod tests {
     }
 
     #[test]
+    fn member_pass_resolves_varargs_constructor_with_pinned_jdk_worker_context() {
+        let temporary = tempfile::tempdir().expect("temporary worker directory");
+        let jdk_tree = temporary.path().join("jdk");
+        let java_lang = jdk_tree.join("java.base/java/lang");
+        std::fs::create_dir_all(&java_lang).expect("JDK java.lang directory");
+        std::fs::write(
+            java_lang.join("Object.java"),
+            "package java.lang; public class Object {}\n",
+        )
+        .expect("JDK Object source");
+        std::fs::write(
+            java_lang.join("String.java"),
+            "package java.lang; public final class String extends Object {}\n",
+        )
+        .expect("JDK String source");
+        let jdk_sources =
+            JdkSourceDomainState::ready_from_tree("17", &jdk_tree).expect("JDK source domain");
+        let jdk_context_path = temporary.path().join("jdk-context.json");
+        assert!(
+            jdk_sources
+                .write_worker_context(&jdk_context_path)
+                .expect("JDK worker context")
+        );
+
+        let mut worker_context = context();
+        jdk_sources.apply_to_context(&mut worker_context);
+        worker_context
+            .source_sets
+            .push(crate::java_analysis::JavaSourceSetOutput {
+                id: "dependency:fixture".to_owned(),
+                visible_source_sets: vec![
+                    "dependency:fixture".to_owned(),
+                    "jdk:java-17".to_owned(),
+                ],
+            });
+        worker_context
+            .source_sets
+            .sort_by(|left, right| left.id.cmp(&right.id));
+
+        let source_path = temporary.path().join("Widget.java");
+        let source = concat!(
+            "package p;\n",
+            "public class Widget {\n",
+            "    public Widget(String key) {}\n",
+            "    public Widget(String key, Object... args) {}\n",
+            "}\n",
+        );
+        std::fs::write(&source_path, source).expect("Widget source");
+        let worker_file = WorkerSourceFile {
+            path: source_path.display().to_string(),
+            report_path: "dependency/fixture/p/Widget.java".to_owned(),
+            source_set: "dependency:fixture".to_owned(),
+        };
+        let types_output = temporary.path().join("widget-types.ndjson");
+        let members_output = temporary.path().join("widget-members.ndjson");
+        let types_path = temporary.path().join("types.tsv");
+
+        run_worker_request(WorkerRequest {
+            schema: WORKER_SCHEMA.to_owned(),
+            pass: WorkerPass::Types,
+            context: worker_context.clone(),
+            files: vec![worker_file.clone()],
+            jdk_context_path: Some(jdk_context_path.display().to_string()),
+            resolution_body_path: None,
+            output_path: types_output.display().to_string(),
+        })
+        .expect("Widget type pass");
+        let types = read_body(&types_output).expect("Widget type body");
+        write_resolution_body(&types_path, &types.definitions).expect("Widget type resolution");
+
+        run_worker_request(WorkerRequest {
+            schema: WORKER_SCHEMA.to_owned(),
+            pass: WorkerPass::Members,
+            context: worker_context,
+            files: vec![worker_file],
+            jdk_context_path: Some(jdk_context_path.display().to_string()),
+            resolution_body_path: Some(types_path.display().to_string()),
+            output_path: members_output.display().to_string(),
+        })
+        .expect("Widget member pass");
+
+        let members = read_body(members_output).expect("Widget member body");
+        let descriptors = members
+            .definitions
+            .iter()
+            .filter(|definition| definition.symbol.kind == JavaSymbolKind::Constructor)
+            .map(|definition| {
+                (
+                    definition.symbol.descriptor.as_deref(),
+                    definition.confidence,
+                )
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            descriptors,
+            [
+                (
+                    Some("(Ljava/lang/String;)V"),
+                    ResolutionConfidence::Resolved
+                ),
+                (
+                    Some("(Ljava/lang/String;[Ljava/lang/Object;)V"),
+                    ResolutionConfidence::Resolved,
+                ),
+            ]
+        );
+    }
+
+    #[test]
     fn types_pass_preserves_authoritative_parse_diagnostics() {
         let temporary = tempfile::tempdir().expect("temporary worker directory");
         let source = temporary.path().join("Broken.java");
@@ -1525,6 +1914,7 @@ mod tests {
                 report_path: "source/example/Broken.java".to_owned(),
                 source_set: "main".to_owned(),
             }],
+            jdk_context_path: None,
             resolution_body_path: None,
             output_path: output.display().to_string(),
         })
@@ -1564,6 +1954,7 @@ mod tests {
                     report_path: "dependency/example/A.java".to_owned(),
                     source_set: "dependency:example".to_owned(),
                 }],
+                jdk_context_path: Some("C:\\cache\\jdk-context.json".to_owned()),
                 resolution_body_path: Some("C:\\cache\\types.tsv".to_owned()),
                 output_path: "C:\\output\\members.ndjson".to_owned(),
             },
@@ -1577,6 +1968,10 @@ mod tests {
         assert_eq!(request.context, context());
         assert_eq!(request.files.len(), 1);
         assert_eq!(request.files[0].report_path, "dependency/example/A.java");
+        assert_eq!(
+            request.jdk_context_path.as_deref(),
+            Some("C:\\cache\\jdk-context.json")
+        );
         assert_eq!(
             request.resolution_body_path.as_deref(),
             Some("C:\\cache\\types.tsv")
@@ -1778,6 +2173,7 @@ mod tests {
                     source_set: "dependency:minecraft:main".to_owned(),
                 })
                 .collect(),
+            jdk_context_path: None,
             resolution_body_path: None,
             output_path: output.display().to_string(),
         })

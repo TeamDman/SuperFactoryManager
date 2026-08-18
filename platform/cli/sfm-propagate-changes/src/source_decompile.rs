@@ -34,12 +34,42 @@ pub(crate) fn configure_decompile_sources(
     roots: Vec<String>,
 ) -> eyre::Result<DecompileSourceProviderV3> {
     let binary = inventory.artifact(component);
-    let decompiler = inventory.artifact(decompiler_component);
+    derive_locked_decompile_provider(inventory, binary, decompiler_component, "vineflower", roots)
+}
+
+/// Derive a content-addressed decompile provider from artifacts already
+/// authenticated by the effective lock. This does not mutate the lockfile or
+/// inspect ambient Maven/Gradle caches.
+pub(crate) fn derive_locked_decompile_provider(
+    inventory: &DependencyInventory,
+    binary: &ArtifactV3,
+    decompiler_component: &crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3,
+    provider_id: &str,
+    roots: Vec<String>,
+) -> eyre::Result<DecompileSourceProviderV3> {
     let runtime = VineflowerRunner.prepare()?;
-    let fingerprint =
-        decompile_fingerprint(binary.hash, decompiler.hash, &runtime.runtime_identity);
-    Ok(DecompileSourceProviderV3 {
-        id: "vineflower".to_owned(),
+    Ok(derive_locked_decompile_provider_with_runtime(
+        inventory,
+        binary,
+        decompiler_component,
+        provider_id,
+        roots,
+        &runtime.runtime_identity,
+    ))
+}
+
+pub(crate) fn derive_locked_decompile_provider_with_runtime(
+    inventory: &DependencyInventory,
+    binary: &ArtifactV3,
+    decompiler_component: &crate::toolchain_lockfile_schema::version::v3::DependencyComponentV3,
+    provider_id: &str,
+    roots: Vec<String>,
+    runtime_identity: &str,
+) -> DecompileSourceProviderV3 {
+    let decompiler = inventory.artifact(decompiler_component);
+    let fingerprint = decompile_fingerprint(binary.hash, decompiler.hash, runtime_identity);
+    DecompileSourceProviderV3 {
+        id: provider_id.to_owned(),
         declaration: DecompileSourceDeclarationV3 { roots },
         derived_checks: DecompileSourceDerivedChecksV3 {
             binary_artifact_id: binary.id.clone(),
@@ -47,7 +77,7 @@ pub(crate) fn configure_decompile_sources(
             tree_cache_path: SourceCacheLayout::decompiled(binary.hash, &fingerprint),
             fingerprint,
         },
-    })
+    }
 }
 
 pub(crate) fn acquire_locked_decompiled_sources(

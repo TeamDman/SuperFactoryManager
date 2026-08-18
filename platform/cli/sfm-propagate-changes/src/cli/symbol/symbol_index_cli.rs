@@ -7,6 +7,10 @@ use crate::cli::jar::BranchSelector;
 use crate::cli::output::CliOutput;
 use crate::dependency_inventory::DependencyInventory;
 use crate::dependency_inventory::SourceStatus;
+use crate::dependency_locked_sources::LockedArtifactSource;
+use crate::dependency_locked_sources::acquire_locked_artifact_sources;
+use crate::dependency_locked_sources::append_locked_artifact_source_preflight;
+use crate::dependency_locked_sources::derive_locked_loader_artifact_sources;
 use crate::dependency_sources::SourceAcquisitionRecommendation;
 use crate::dependency_sources::SourcePreflight;
 use crate::dependency_sources::SourceProviderFilter;
@@ -49,9 +53,10 @@ use crate::java_analysis::derive_dependency_symbol_index_projection_inputs;
 use crate::java_analysis::enforce_refresh_parent_memory_limit;
 use crate::java_analysis::java_identifier_tokens;
 use crate::java_analysis::java_member_access_tokens;
-use crate::java_analysis::project_dependency_symbol_index_identity;
+use crate::java_analysis::project_dependency_symbol_index_identity_with_locked_sources;
 use crate::java_analysis::scan_dependency_java_symbol_index;
 use crate::paths::CacheHome;
+use crate::payload_fetcher::http_fetcher;
 use crate::toolchain_lockfile_schema::version::v3::DependencyKindV3;
 use crate::toolchain_lockfile_schema::version::v3::DependencyRoleV3;
 use chrono::Utc;
@@ -138,8 +143,9 @@ impl SymbolIndexRefreshArgs {
         cancellation_token.bail_if_cancelled()?;
         let started = Instant::now();
         let resolved = resolve_index_context(&self.branch, invocation_dir)?;
+        acquire_locked_index_artifact_sources(&resolved, cancellation_token)?;
         let filter = SourceProviderFilter::default();
-        let mut preflight = preflight_index_sources(&resolved.inventory, &filter)?;
+        let mut preflight = preflight_resolved_index_sources(&resolved, &filter)?;
         let missing_targets = preflight
             .missing
             .iter()
@@ -163,7 +169,7 @@ impl SymbolIndexRefreshArgs {
                 Parallelism::default(),
                 cancellation_token,
             )?;
-            preflight = preflight_index_sources(&resolved.inventory, &filter)?;
+            preflight = preflight_resolved_index_sources(&resolved, &filter)?;
         }
 
         cancellation_token.bail_if_cancelled()?;
@@ -264,7 +270,7 @@ impl SymbolIndexShowArgs {
         let resolved = resolve_index_context(&self.branch, invocation_dir)?;
         let probe = resolved.store.probe(&resolved.identity)?;
         let preflight =
-            preflight_index_sources(&resolved.inventory, &SourceProviderFilter::default())?;
+            preflight_resolved_index_sources(&resolved, &SourceProviderFilter::default())?;
         let loaded = probe
             .loadable
             .then(|| {
@@ -299,6 +305,19 @@ struct ResolvedIndexContext {
     inventory: DependencyInventory,
     identity: DependencySymbolIndexIdentity,
     store: DependencySymbolIndexStore,
+    locked_artifact_sources: Vec<LockedArtifactSource>,
+}
+
+fn acquire_locked_index_artifact_sources(
+    resolved: &ResolvedIndexContext,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    acquire_locked_artifact_sources(
+        &resolved.inventory,
+        &resolved.locked_artifact_sources,
+        cancellation_token,
+        &http_fetcher()?,
+    )
 }
 
 fn resolve_index_context(
@@ -321,13 +340,19 @@ fn resolve_index_context_from_analysis(
     cache_home: CacheHome,
 ) -> eyre::Result<ResolvedIndexContext> {
     let inventory = DependencyInventory::load(&branch.clone().into_query()?, cache_home.clone())?;
+    let locked_artifact_sources = derive_locked_loader_artifact_sources(&inventory)?;
     let inputs = derive_dependency_symbol_index_projection_inputs(&inventory, analysis_context)?;
-    let projection = project_dependency_symbol_index_identity(&inventory, inputs)?;
+    let projection = project_dependency_symbol_index_identity_with_locked_sources(
+        &inventory,
+        inputs,
+        &locked_artifact_sources,
+    )?;
     let identity = DependencySymbolIndexIdentity::from_projection(projection)?;
     Ok(ResolvedIndexContext {
         inventory,
         identity,
         store: DependencySymbolIndexStore::new(cache_home),
+        locked_artifact_sources,
     })
 }
 
@@ -417,7 +442,7 @@ pub(super) fn build_query_index(
     )?;
     timings.finish(LiveQueryStage::AcquireLock);
     let probe = resolved.store.probe(&resolved.identity)?;
-    let preflight = preflight_index_sources(&resolved.inventory, &SourceProviderFilter::default())?;
+    let preflight = preflight_resolved_index_sources(&resolved, &SourceProviderFilter::default())?;
     timings.finish(LiveQueryStage::ProbeSources);
     let complete_definition = probe.loadable
         && !legacy_definition_pipeline_requested()
@@ -615,7 +640,7 @@ pub(super) fn load_definition_at_position_dependencies(
         cancellation_token.clone(),
     )?;
     let probe = resolved.store.probe(&resolved.identity)?;
-    let preflight = preflight_index_sources(&resolved.inventory, &SourceProviderFilter::default())?;
+    let preflight = preflight_resolved_index_sources(&resolved, &SourceProviderFilter::default())?;
     let loaded = if probe.loadable {
         let (manifest, payload_path) = resolved.store.validated_payload(
             &resolved.identity,
@@ -745,6 +770,7 @@ fn workspace_resolution_vocabulary(
 
 fn preflight_index_sources(
     inventory: &DependencyInventory,
+    locked_artifact_sources: &[LockedArtifactSource],
     filter: &SourceProviderFilter,
 ) -> eyre::Result<SourcePreflight> {
     let dependencies = inventory
@@ -754,11 +780,24 @@ fn preflight_index_sources(
         })
         .map(|dependency| dependency.id.clone())
         .collect::<Vec<_>>();
-    preflight_sources(
+    let mut preflight = preflight_sources(
         inventory,
         &dependencies,
         filter,
         SourceProviderSelection::PreferredMatching,
+    )?;
+    append_locked_artifact_source_preflight(inventory, locked_artifact_sources, &mut preflight);
+    Ok(preflight)
+}
+
+fn preflight_resolved_index_sources(
+    resolved: &ResolvedIndexContext,
+    filter: &SourceProviderFilter,
+) -> eyre::Result<SourcePreflight> {
+    preflight_index_sources(
+        &resolved.inventory,
+        &resolved.locked_artifact_sources,
+        filter,
     )
 }
 

@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /** Owns Minecraft's Screen lifecycle while hosting a normalized tree of SFM panels. */
 public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePanelHost {
@@ -65,6 +66,9 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private static final ResourceLocation RESUME_TOAST_TIMER = new ResourceLocation(SFM.MOD_ID, "toast/timer/resume");
     private static final ResourceLocation DISMISS_TOAST = new ResourceLocation(SFM.MOD_ID, "toast/dismiss");
     private static final String SCALE_TOAST_KEY = "sfm:panel-scale";
+    private static final String COPY_CONFIRMATION_TOAST_KEY = "sfm:clipboard-copy-confirmation";
+    private static final String COPY_CONFIRMATION_ALTERNATE_TOAST_KEY =
+            "sfm:clipboard-copy-confirmation-alternate";
     private static final int TOAST_MAX_LINES = 6;
 
     private final @Nullable Screen previousScreen;
@@ -845,6 +849,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         );
     }
 
+    /** Publishes into the bounded clipboard-confirmation lane without replacing workspace status. */
+    public SFMWorkspaceToastQueue.ToastId showClipboardCopyConfirmation(Component message) {
+        return showWorkspaceToast(COPY_CONFIRMATION_TOAST_KEY, message, false);
+    }
+
     public List<SFMWorkspaceToastQueue.ToastId> activeWorkspaceToastIds() {
         return toastQueue().activeIds();
     }
@@ -877,9 +886,29 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     public boolean copyWorkspaceToast(SFMWorkspaceToastQueue.ToastId id) {
-        Optional<String> text = toastQueue().text(id);
-        if (text.isEmpty() || this.minecraft == null) return false;
-        this.minecraft.keyboardHandler.setClipboard(text.orElseThrow());
+        if (this.minecraft == null) return false;
+        return copyWorkspaceToast(id, this.minecraft.keyboardHandler::setClipboard);
+    }
+
+    boolean copyWorkspaceToast(
+            SFMWorkspaceToastQueue.ToastId id,
+            Consumer<String> clipboardWriter
+    ) {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(clipboardWriter, "clipboardWriter");
+        Optional<SFMWorkspaceToastQueue.Snapshot> source = toastQueue().snapshot(id);
+        if (source.isEmpty()) return false;
+        SFMWorkspaceToastQueue.Snapshot snapshot = source.orElseThrow();
+        clipboardWriter.accept(snapshot.text());
+        String confirmationKey = COPY_CONFIRMATION_TOAST_KEY.equals(snapshot.replacementKey())
+                ? COPY_CONFIRMATION_ALTERNATE_TOAST_KEY
+                : COPY_CONFIRMATION_TOAST_KEY;
+        toastQueue().publishPreserving(
+                id,
+                confirmationKey,
+                "Copied notification " + id.value() + " to the clipboard",
+                SFMWorkspaceToastQueue.Presentation.workspaceStatus(false)
+        );
         return true;
     }
 
@@ -1094,7 +1123,9 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         if (toast.isPresent()) {
             SFMWorkspaceToastQueue.ToastId id = toast.orElseThrow();
             capturedWorkspaceToastPointer = button == GLFW.GLFW_MOUSE_BUTTON_RIGHT ? null : id;
-            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) copyWorkspaceToast(id);
+            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                invokeWorkspaceAction(workspaceToastActionDraft(COPY_TOAST, id));
+            }
             else if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) openWorkspaceToastActions(id);
             return true;
         }
@@ -1515,6 +1546,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                         id),
                 SFMActionChoice.invoke(DISMISS_TOAST, id)
         );
+    }
+
+    static String workspaceToastActionDraft(
+            ResourceLocation actionId,
+            SFMWorkspaceToastQueue.ToastId toastId
+    ) {
+        return actionId + " " + toastId.commandArgument();
     }
 
     private SFMWorkspaceToastQueue toastQueue() {

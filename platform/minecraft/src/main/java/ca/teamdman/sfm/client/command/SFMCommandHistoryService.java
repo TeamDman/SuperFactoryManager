@@ -83,7 +83,8 @@ public final class SFMCommandHistoryService {
                 ? null
                 : ResourceLocation.tryParse(suffix.substring(0, separator));
         return actionId == null || !actionId.getNamespace().equals("sfm")
-                || !actionId.getPath().startsWith("palette/history/");
+                || (!actionId.getPath().startsWith("palette/history/")
+                && !actionId.getPath().equals("palette/close"));
     }
 
     public static void clear() {

@@ -44,6 +44,8 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private static final int FOCUSED_BORDER = 0xFF55FFFF;
     private static final int TEXT = 0xFFE8E8E8;
     private static final int MUTED = 0xFFAAAAAA;
+    private static final int CONTEXT_TEXT = 0xFF91A5AE;
+    private static final int CONTEXT_ACCENT = 0xFF526C78;
     private static final int SELECTED = 0xFF264F78;
     private static final int HOVERED = 0xFF303A44;
     private static final int DIAGNOSTIC = 0xFFFF7777;
@@ -74,6 +76,53 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     public record FocusChrome(boolean location, boolean filter, boolean body) {
+    }
+
+    record FilterRowPresentation(String label, int textColour, String narration) {
+    }
+
+    static FilterRowPresentation filterRowPresentation(
+            SFMExplorerProjection.Row row,
+            String label
+    ) {
+        Objects.requireNonNull(row, "row");
+        Objects.requireNonNull(label, "label");
+        return switch (row.filterRole()) {
+            case NONE -> new FilterRowPresentation(label, TEXT, "");
+            case MATCH -> new FilterRowPresentation(label, TEXT, "filter match");
+            case CONTEXT_ANCESTOR -> new FilterRowPresentation(
+                    "[context] " + label,
+                    CONTEXT_TEXT,
+                    "context ancestor included to locate a filter match"
+            );
+        };
+    }
+
+    static String filterSummary(SFMExplorerProjection.FilterEvidence filter) {
+        Objects.requireNonNull(filter, "filter");
+        return countLabel(filter.matchCount(), "match", "matches") + " + "
+                + countLabel(filter.contextAncestorCount(), "context ancestor", "context ancestors")
+                + " = " + filter.visibleRowCount() + " visible / "
+                + filter.candidateCount() + " materialized entries"
+                + (filter.incompleteMaterialization()
+                ? "; unmaterialized subtrees excluded"
+                : "; materialization complete");
+    }
+
+    static String filterNarration(SFMExplorerProjection.FilterEvidence filter) {
+        Objects.requireNonNull(filter, "filter");
+        return "Filter showing " + countLabel(filter.matchCount(), "match", "matches")
+                + " and "
+                + countLabel(filter.contextAncestorCount(), "context ancestor", "context ancestors")
+                + ", " + countLabel(filter.visibleRowCount(), "visible row", "visible rows")
+                + " from " + filter.candidateCount() + " materialized entries. "
+                + (filter.incompleteMaterialization()
+                ? "Unmaterialized subtrees are excluded"
+                : "Materialization is complete");
+    }
+
+    private static String countLabel(int count, String singular, String plural) {
+        return count + " " + (count == 1 ? singular : plural);
     }
 
     public SFMExplorerPanel(
@@ -166,12 +215,20 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         String selection = state.selectedRow()
                 .map(row -> {
                     SFMExplorerPresentation presentation = presentation(state, row);
-                    return ". Selected " + presentation.label() + ", " + iconNarration(presentation.icon());
+                    FilterRowPresentation filterPresentation = filterRowPresentation(row, presentation.label());
+                    String filterRole = filterPresentation.narration().isEmpty()
+                            ? ""
+                            : ", " + filterPresentation.narration();
+                    return ". Selected " + presentation.label() + ", "
+                            + iconNarration(presentation.icon()) + filterRole;
                 })
                 .orElse("");
+        String filter = state.projection().filter().active()
+                ? ". " + filterNarration(state.projection().filter())
+                : "";
         return Component.literal(
                 "Explorer location " + state.session().location().canonical() + ". "
-                        + state.projection().rows().size() + " entries" + selection
+                        + state.projection().rows().size() + " entries" + filter + selection
                         + (keyboardFocus == KeyboardFocus.LOCATION ? ". Location control focused" : "")
                         + (keyboardFocus == KeyboardFocus.FILTER
                         ? ". Filter control focused. Current filter "
@@ -612,13 +669,26 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         boolean selected = state.selectedPath().equals(Optional.of(cell.row().path()));
         boolean hovered = cell.bounds().contains(mouseX, mouseY);
         SFMExplorerPresentation presentation = presentation(state, cell.row());
+        FilterRowPresentation filterPresentation = filterRowPresentation(cell.row(), presentation.label());
         if (selected) fill(poseStack, cell.bounds(), SELECTED);
         else if (hovered) fill(poseStack, cell.bounds(), HOVERED);
+        if (cell.row().filterContextAncestor()) {
+            fill(
+                    poseStack,
+                    new SFMExplorerPanelViewport.Rect(
+                            cell.bounds().x(),
+                            cell.bounds().y(),
+                            Math.min(2, cell.bounds().width()),
+                            cell.bounds().height()
+                    ),
+                    CONTEXT_ACCENT
+            );
+        }
         if (state.viewport().view() == SFMExplorerProjection.View.SMALL_ICONS) {
             border(poseStack, cell.bounds(), 0xFF3A3A3A);
-            renderSmallIconCell(poseStack, minecraft, state, cell, presentation);
+            renderSmallIconCell(poseStack, minecraft, state, cell, presentation, filterPresentation);
         } else {
-            renderListCell(poseStack, minecraft, cell, presentation);
+            renderListCell(poseStack, minecraft, cell, presentation, filterPresentation);
         }
     }
 
@@ -626,7 +696,8 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             PoseStack poseStack,
             Minecraft minecraft,
             SFMExplorerPanelViewport.Cell cell,
-            SFMExplorerPresentation presentation
+            SFMExplorerPresentation presentation,
+            FilterRowPresentation filterPresentation
     ) {
         int baseX = cell.chevron().x();
         int textY = cell.bounds().y() + Math.max(1, (cell.bounds().height() - minecraft.font.lineHeight) / 2);
@@ -654,11 +725,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         drawTrimmed(
                 poseStack,
                 minecraft,
-                presentation.label(),
+                filterPresentation.label(),
                 labelX,
                 textY,
                 Math.max(0, cell.bounds().x() + cell.bounds().width() - labelX - 4),
-                TEXT
+                filterPresentation.textColour()
         );
     }
 
@@ -667,7 +738,8 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             Minecraft minecraft,
             SFMExplorerPanelModel.State state,
             SFMExplorerPanelViewport.Cell cell,
-            SFMExplorerPresentation presentation
+            SFMExplorerPresentation presentation,
+            FilterRowPresentation filterPresentation
     ) {
         int iconX = cell.bounds().x() + 4;
         int iconY = cell.bounds().y() + 3;
@@ -681,7 +753,15 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         );
         int labelX = cell.bounds().x() + 25;
         int width = Math.max(0, cell.bounds().width() - 29);
-        drawTrimmed(poseStack, minecraft, presentation.label(), labelX, cell.bounds().y() + 5, width, TEXT);
+        drawTrimmed(
+                poseStack,
+                minecraft,
+                filterPresentation.label(),
+                labelX,
+                cell.bounds().y() + 5,
+                width,
+                filterPresentation.textColour()
+        );
         drawTrimmed(
                 poseStack,
                 minecraft,
@@ -716,11 +796,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 + state.projection().relationRevision();
         int colour = MUTED;
         if (state.projection().filter().active()) {
-            summary = state.projection().filter().matchCount() + " matches / "
-                    + state.projection().filter().candidateCount() + " materialized entries"
-                    + (state.projection().filter().incompleteMaterialization()
-                    ? "; unmaterialized subtrees excluded"
-                    : "; materialization complete");
+            summary = filterSummary(state.projection().filter());
         } else if (!state.projection().diagnostics().isEmpty()) {
             summary += "; " + state.projection().diagnostics().get(0);
             colour = DIAGNOSTIC;

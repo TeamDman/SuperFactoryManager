@@ -1,7 +1,8 @@
 # Spatial semantic surfaces, outlinks, and capability presenters plan
 
 **Plan status:** Active; SS-0 through SS-4, NX-3a, NX-4, and CP-3 are complete;
-the bounded SS-5/SS-6/NX-4a post-goal repair work is next
+bounded SS-5/SS-6/NX-4a implementation and acceptance are complete pending the
+shared final committed/install handoff; NX-1/NX-2/full NX-3 and CP-1+ remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Primary implementation target:** Minecraft 1.19.2
 **Last updated:** 2026-08-18
@@ -939,7 +940,29 @@ fallback when it cannot, and never hides a fit-capable left edge; and the live
 coverage artifact has zero unclassified or navigation-uncovered strict-Java
 glyphs for its fixtures.
 
-### [ ] SS-5 Repair the exact post-goal Java navigation and stale-result regressions
+### [~] SS-5 Repair the exact post-goal Java navigation and stale-result regressions
+
+**Implementation checkpoint (2026-08-18):** Navigation requests now carry an
+immutable witness for the document address/content, panel entry, semantic and
+provider generations, and request generation. Cursor, selection, hover, and
+mouse-release changes no longer discard an otherwise valid explicit request;
+changed document bytes reject with the precise
+`DOCUMENT_CONTENT_CHANGED` reason, while removed/replaced panels, stale
+generations, and superseding requests remain guarded. Reusing an editor tab
+atomically focuses and publishes the exact destination range, including when a
+deferred editor acquires its delegate.
+
+Focused Java tests and the full suite pass (1,187 passed, zero failed, one
+intentionally property-gated installed-worker integration aborted). The
+stale-document puppet proves zero navigation and zero disk mutation at
+`platform/minecraft/runGameTestPreview/puppet-artifacts/`
+`title_screen_stale_document_navigation__stale-document-navigation__1280x720_auto.json`.
+The natural Auto plus GUI-scales 1 through 8 matrix passed 9/9 at
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`title_screen_man-20260818-184051-229`; every variant resolves the exact
+qualified owner/member, Forge loader, and varargs-constructor targets through
+EditorV3 and records the canonical source/destination evidence. Final task
+closure shares the goal's committed/install handoff.
 
 **Ownership join:** CLI-AST 0.12.4 owns corrected Java facts, locked Forge
 source derivation, and direct/worker parity. This item owns Java consumption,
@@ -984,7 +1007,24 @@ results cannot navigate; every rejection names the changed witness dimension;
 and the puppet records source/destination addresses, regions, bounds, request
 identity, and final framing.
 
-### [ ] SS-6 Add action-backed symbol inspection and deterministic copy projections
+### [~] SS-6 Add action-backed symbol inspection and deterministic copy projections
+
+**Implementation checkpoint (2026-08-18):** One immutable symbol-inspection
+snapshot now feeds hierarchical aggregate and granular copy actions for
+details, file, line, column, bounds, logical path, and Access Transformer
+reference. Reports preserve the captured resolver/address/source/content and
+semantic evidence, deterministic field ordering, and a copyable CLI replay;
+unresolved or unrepresentable values remain explicit and are never guessed.
+The Java symbol context provider no longer initializes Minecraft global
+language state in headless tests: branch evidence comes only from the explicit
+worker-branch property, otherwise replay truthfully reports that it is absent.
+
+Snapshot, formatter, context-provider, action, clipboard, and race tests pass
+within the 1,187-test Java acceptance run. The 9/9 manual-symbol matrix at
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`title_screen_man-20260818-184051-229` opens the real contextual surface,
+copies exact symbol evidence, and visibly receives the shared confirmation
+toast. Final task closure shares the goal's committed/install handoff.
 
 **Work:** Capture one immutable `SymbolInspectionSnapshot` from the exact
 clicked/cursor semantic region. It must remain useful even when definition
@@ -1211,7 +1251,20 @@ the intended toast; dismiss never becomes persistent silence or targets a
 replacement; existing scale feedback retains its proven behavior; and future
 silence preferences can be added without replacing the toast contract.
 
-### [ ] NX-4a Confirm clipboard-copy actions through the shared toast queue
+### [~] NX-4a Confirm clipboard-copy actions through the shared toast queue
+
+**Implementation checkpoint (2026-08-18):** Toast left-click and symbol-copy
+actions now use the shared action-backed copy-feedback path. A successful copy
+publishes one distinct bounded confirmation without replacing, dismissing,
+repinning, or resetting the source toast; failures cannot claim success and
+rendering cannot recursively invoke copying. Focused queue/action tests pass.
+The natural puppet at
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`title_screen_act-20260818-184609-885` proves exact clipboard bytes, source
+toast preservation, visible `Copied notification 2 to the clipboard`
+confirmation, pinned lifetime behavior, exact dismissal, and a later identical
+toast remaining independently visible. Final task closure shares the goal's
+committed/install handoff.
 
 **Work:** Route a toast's direct left-click through the registered
 `sfm:toast/copy <toast-id>` action instead of bypassing action feedback with a

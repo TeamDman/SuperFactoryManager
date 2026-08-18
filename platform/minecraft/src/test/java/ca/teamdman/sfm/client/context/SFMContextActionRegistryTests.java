@@ -3,8 +3,10 @@ package ca.teamdman.sfm.client.context;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMFindReferencesAction;
 import ca.teamdman.sfm.client.action.SFMJumpToDefinitionAction;
+import ca.teamdman.sfm.client.action.SFMSymbolCopyAction;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
+import ca.teamdman.sfm.client.symbol.SFMSymbolInspectionFormatters;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import org.junit.jupiter.api.Test;
@@ -50,19 +52,16 @@ class SFMContextActionRegistryTests {
         SFMContextActionRegistry.Resolution resolution = SFMContextActionRegistry.minecraftDefaults()
                 .resolve(request(javaDocument(text, "StringBuilder")));
 
-        assertEquals(List.of(
-                SFMActionChoice.invoke(SFMJumpToDefinitionAction.ID, ""),
-                SFMActionChoice.invoke(SFMFindReferencesAction.ID, "")
-        ), resolution.choices());
+        assertJavaSymbolOffers(resolution.choices());
         assertTrue(resolution.diagnostics().isEmpty());
     }
 
     @Test
-    void javaProviderOffersNothingForWhitespaceNonJavaOrUnfocusedDocuments() {
+    void javaProviderOffersTruthfulCopiesForWhitespaceButNothingForNonJavaOrUnfocusedDocuments() {
         SFMContextContribution whitespace = javaDocument("class Use { String value; }\n", "\n");
         SFMContextContribution nonJava = document("class Use {}\n", "Use", "file:///D:/src/Use.txt");
 
-        assertTrue(SFMContextActionRegistry.minecraftDefaults().resolve(request(whitespace)).choices().isEmpty());
+        assertJavaCopyOffers(SFMContextActionRegistry.minecraftDefaults().resolve(request(whitespace)).choices());
         assertTrue(SFMContextActionRegistry.minecraftDefaults().resolve(request(nonJava)).choices().isEmpty());
         SFMContextContribution javaDocument = javaDocument("class Use {}\n", "Use");
         SFMContextSnapshot unfocused = new SFMContextSnapshot(1, 1, 1, Optional.empty(), List.of(javaDocument));
@@ -72,24 +71,24 @@ class SFMContextActionRegistryTests {
     }
 
     @Test
-    void javaProviderSuppressesCommentsStringsCharactersAndTextBlocks() {
-        assertTrue(resolveJava("// λ StringBuilder\r\nclass Use {}\r\n", "StringBuilder").isEmpty());
-        assertTrue(resolveJava("class Use { /* Object */ int value; }\n", "Object").isEmpty());
-        assertTrue(resolveJava(
+    void javaProviderSuppressesNavigationButRetainsTruthfulCopiesForCommentsAndLiterals() {
+        assertJavaCopyOffers(resolveJava("// λ StringBuilder\r\nclass Use {}\r\n", "StringBuilder"));
+        assertJavaCopyOffers(resolveJava("class Use { /* Object */ int value; }\n", "Object"));
+        assertJavaCopyOffers(resolveJava(
                 "class Use { String text = \"prefix \\\" StringBuilder\"; }\n",
                 "StringBuilder"
-        ).isEmpty());
-        assertTrue(resolveJava("class Use { char letter = 'λ'; }\n", "λ").isEmpty());
-        assertTrue(resolveJava(
+        ));
+        assertJavaCopyOffers(resolveJava("class Use { char letter = 'λ'; }\n", "λ"));
+        assertJavaCopyOffers(resolveJava(
                 "class Use {\r\n String text = \"\"\"\r\n Object\r\n \"\"\";\r\n}\r\n",
                 "Object"
-        ).isEmpty());
+        ));
         String escapedTextBlockQuotes = "\\" + "\"\"\"";
-        assertTrue(resolveJava(
+        assertJavaCopyOffers(resolveJava(
                 "class Use {\r\n String text = \"\"\"\r\n " + escapedTextBlockQuotes
                         + " StringBuilder\r\n \"\"\";\r\n}\r\n",
                 "StringBuilder"
-        ).isEmpty());
+        ));
     }
 
     @Test
@@ -104,10 +103,30 @@ class SFMContextActionRegistryTests {
     }
 
     private static void assertJavaSymbolOffers(String text, String cursorNeedle) {
+        assertJavaSymbolOffers(resolveJava(text, cursorNeedle));
+    }
+
+    private static void assertJavaSymbolOffers(List<SFMActionChoice> choices) {
+        assertEquals(9, choices.size());
         assertEquals(List.of(
                 SFMActionChoice.invoke(SFMJumpToDefinitionAction.ID, ""),
                 SFMActionChoice.invoke(SFMFindReferencesAction.ID, "")
-        ), resolveJava(text, cursorNeedle));
+        ), choices.subList(0, 2));
+        assertJavaCopyOffers(choices.subList(2, choices.size()));
+    }
+
+    private static void assertJavaCopyOffers(List<SFMActionChoice> choices) {
+        assertEquals(
+                List.of(SFMSymbolInspectionFormatters.Projection.values()).stream()
+                        .map(SFMSymbolCopyAction::id)
+                        .toList(),
+                choices.stream().map(SFMActionChoice::actionId).toList()
+        );
+        List<String> sessionArguments = choices.stream()
+                .map(choice -> choice.command().substring(choice.command().lastIndexOf(' ') + 1))
+                .toList();
+        assertEquals(1, sessionArguments.stream().distinct().count());
+        assertTrue(Long.parseLong(sessionArguments.get(0)) > 0);
     }
 
     private static List<SFMActionChoice> resolveJava(String text, String cursorNeedle) {

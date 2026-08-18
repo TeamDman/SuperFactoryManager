@@ -196,7 +196,26 @@ public final class SFMDefinitionNavigation {
                     range,
                     definition.symbol().name()
             )) continue;
-            if (!editor.navigateToRange(range) || !workspace.focus(panelId)) continue;
+            // Once an exact immutable document is found, never fall through
+            // to opening a duplicate. Focus it first, then update and verify
+            // the exact destination before reporting FOCUSED_EXISTING.
+            if (!workspace.focus(panelId)) {
+                return unavailable("The existing definition editor could not be focused");
+            }
+            if (workspace.panel(panelId) != panel) {
+                return unavailable("The existing definition editor changed while it was focused");
+            }
+            if (!editor.navigateToRange(range)) {
+                return unavailable("The existing definition editor could not apply the exact target range");
+            }
+            boolean exactRangePublished = editor.documentSnapshot()
+                    .filter(SFMTextDocumentSnapshot::ready)
+                    .flatMap(SFMTextDocumentSnapshot::targetRange)
+                    .filter(range::equals)
+                    .isPresent();
+            if (!exactRangePublished) {
+                return unavailable("The existing definition editor did not publish the exact target range");
+            }
             return new Result(Status.FOCUSED_EXISTING, panelId,
                     "Focused " + span.address() + ":" + span.startLine());
         }

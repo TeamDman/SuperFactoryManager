@@ -502,7 +502,7 @@ fn collect_raw_callable(
     });
 }
 
-fn raw_parameter_type(file: &JavaSyntaxFile, parameter: Node<'_>) -> Option<String> {
+pub(crate) fn raw_parameter_type(file: &JavaSyntaxFile, parameter: Node<'_>) -> Option<String> {
     let type_node = parameter.child_by_field_name("type").or_else(|| {
         (parameter.kind() == "spread_parameter")
             .then(|| {

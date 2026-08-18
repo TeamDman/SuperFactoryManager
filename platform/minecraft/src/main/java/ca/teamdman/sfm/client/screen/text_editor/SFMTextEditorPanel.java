@@ -8,6 +8,8 @@ import ca.teamdman.sfm.client.context.SFMContextContributor;
 import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
 import ca.teamdman.sfm.client.context.SFMContextGenerationEvidence;
 import ca.teamdman.sfm.client.context.SFMContextOriginId;
+import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
+import ca.teamdman.sfm.client.screen.SFMDrawCanvasModel;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasScreen;
 import ca.teamdman.sfm.client.screen.SFMTextEditorV3Screen;
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
@@ -18,6 +20,8 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelOpenContext;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.semantic.SFMCanvasSpatialCoverageSnapshot;
 import ca.teamdman.sfm.client.semantic.SFMJavaInteractionMapSpatialAdapter;
 import ca.teamdman.sfm.client.semantic.SFMSpatialCoverageService;
@@ -30,6 +34,8 @@ import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMapSession;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverIdentity;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverLookup;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverStateMachine;
+import ca.teamdman.sfm.client.symbol.SFMSymbolInspectionEvidenceSource;
+import ca.teamdman.sfm.client.symbol.SFMSymbolInspectionSnapshot;
 import ca.teamdman.sfm.client.symbol.SFMSymbolNavigationRuntime;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -38,6 +44,10 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -49,17 +59,20 @@ import org.lwjgl.glfw.GLFW;
  * callback-aware screen below; legacy registrations still get a useful
  * lifecycle adapter while they are being migrated.
  */
-public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocumentPanelState, SFMContextContributor {
+public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocumentPanelState, SFMContextContributor,
+        SFMSymbolInspectionEvidenceSource {
     private static final String CONTEXT_CONTRIBUTOR_ID = "sfm:text-editor";
     private static final double DEFINITION_DRAG_THRESHOLD_PIXELS = 3.0D;
     private final SFMTextEditorPanelOpenContext openContext;
     private final Screen screen;
+    private SFMTextDocumentSnapshot presentedDocument;
     private final SFMTextEditorHoverCaptureCache<Optional<HoverCapture>> hoverCaptureCache =
             new SFMTextEditorHoverCaptureCache<>();
     private SFMWorkspacePanelContext panelContext;
     private SFMSymbolHoverStateMachine symbolHover;
     private SFMEditorLinkCursorHost linkCursor;
     private SFMContextContribution hoverContribution;
+    private SFMContextDocumentProjection contextualProjectionOverride;
     private SFMDrawCanvasScreen.SymbolHit hoverHit;
     private SFMDrawCanvasScreen.SymbolHit capturedHoverHit;
     private boolean capturedHoverClick;
@@ -81,6 +94,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     ) {
         this.openContext = openContext;
         this.screen = screen;
+        this.presentedDocument = openContext.document();
     }
 
     public static SFMTextEditorPanel textEditorV3(SFMTextEditorPanelOpenContext context) {
@@ -129,17 +143,37 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     }
 
     @Override
-    public Optional<ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot> documentSnapshot() {
-        return Optional.of(openContext.document());
+    public Optional<SFMTextDocumentSnapshot> documentSnapshot() {
+        return Optional.of(presentedDocument);
     }
 
     @Override
-    public boolean navigateToRange(ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange range) {
+    public boolean navigateToRange(SFMTextDocumentRange range) {
         if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) return false;
         range.validateAgainst(drawCanvas.captureContextProjection(
                 openContext.editorId(), openContext.document(), isReadOnly()).currentText());
         drawCanvas.openAtTextRange(range);
+        presentedDocument = withTargetRange(presentedDocument, range);
         return true;
+    }
+
+    private static SFMTextDocumentSnapshot withTargetRange(
+            SFMTextDocumentSnapshot document,
+            SFMTextDocumentRange range
+    ) {
+        return new SFMTextDocumentSnapshot(
+                document.state(),
+                document.text(),
+                document.mutationCapability(),
+                document.path(),
+                document.authorizedRoot(),
+                document.sha256(),
+                document.byteLength(),
+                document.lastModified(),
+                document.lineEndingKind(),
+                Optional.of(range),
+                document.diagnostics()
+        );
     }
 
     @Override
@@ -157,7 +191,10 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         if (panelContext == null) return java.util.List.of();
         SFMContextDocumentProjection projection;
         long generation;
-        if (screen instanceof SFMDrawCanvasScreen drawCanvas) {
+        if (contextualProjectionOverride != null) {
+            projection = contextualProjectionOverride;
+            generation = screen instanceof SFMDrawCanvasScreen drawCanvas ? drawCanvas.contextGeneration() : 0;
+        } else if (screen instanceof SFMDrawCanvasScreen drawCanvas) {
             projection = drawCanvas.captureContextProjection(
                     openContext.editorId(),
                     openContext.document(),
@@ -245,6 +282,294 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     }
 
     @Override
+    public Optional<SFMSymbolInspectionSnapshot.SemanticEvidence> captureSymbolInspectionEvidence(
+            SFMContextDocumentProjection document,
+            SFMSymbolInspectionSnapshot.CapturedPoint point
+    ) {
+        Objects.requireNonNull(document, "document");
+        Objects.requireNonNull(point, "point");
+        if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) return Optional.empty();
+        SFMJavaInteractionMap.Result map = currentInteractionMap(drawCanvas).orElse(null);
+        if (map == null
+                || !map.document().contentHash().equals(SFMDefinitionRequest.sha256(document.currentText()))) {
+            return Optional.of(lexicalInspectionEvidence(drawCanvas, document, point));
+        }
+        long probe = SFMSymbolInspectionSnapshot.semanticProbeByte(document.currentText(), point.position());
+        SFMJavaInteractionMap.Region target = map.mostSpecificRegionAtByte(probe).orElse(null);
+        if (target == null) return Optional.empty();
+
+        ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange textRange;
+        try {
+            List<Integer> offsets = SFMContextTextCoordinates.utf16OffsetsAtUtf8Bytes(
+                    document.currentText(),
+                    List.of(Math.toIntExact(target.startByte()), Math.toIntExact(target.endByte()))
+            );
+            textRange = SFMContextTextCoordinates.rangeAtUtf16Offsets(
+                    document.currentText(), offsets.get(0), offsets.get(1));
+        } catch (ArithmeticException | IllegalArgumentException invalidRange) {
+            return Optional.empty();
+        }
+
+        List<SFMJavaInteractionMap.Outlink> touching = map.outlinks().stream()
+                .filter(value -> value.sourceRegionId().equals(target.id())
+                        || value.destinationRegionId().equals(target.id()))
+                .sorted(Comparator.comparing(SFMJavaInteractionMap.Outlink::id))
+                .toList();
+        List<String> selectors = touching.stream()
+                .flatMap(value -> value.actionDrafts().stream())
+                .filter(value -> value.actionId().equals("sfm:symbol/definition/open")
+                        || value.actionId().equals("sfm:symbol/references/open"))
+                .filter(value -> !value.arguments().isEmpty())
+                .map(value -> value.arguments().get(0))
+                .distinct()
+                .sorted()
+                .toList();
+        List<SFMSymbolInspectionSnapshot.Outlink> outlinks = touching.stream()
+                .map(SFMTextEditorPanel::inspectionOutlink)
+                .toList();
+
+        ArrayList<String> diagnostics = new ArrayList<>();
+        for (SFMDefinitionResult.Diagnostic diagnostic : map.diagnostics()) {
+            diagnostics.add(diagnostic.code() + " [" + diagnostic.severity() + "]: " + diagnostic.message());
+        }
+        map.classification(target.id()).flatMap(SFMJavaInteractionMap.Classification::reasonCode)
+                .ifPresent(value -> diagnostics.add("classification: " + value));
+        map.exceptions().stream()
+                .filter(value -> value.regionId().equals(target.id()))
+                .forEach(value -> diagnostics.add(value.code() + ": " + value.reason()
+                        + " (" + value.effect().wireName() + "; " + value.witness() + ")"));
+
+        List<String> logicalPath = map.regions().stream()
+                .filter(value -> value.startByte() <= target.startByte()
+                        && target.endByte() <= value.endByte())
+                .sorted(Comparator.comparingLong(SFMJavaInteractionMap.Region::byteLength).reversed()
+                        .thenComparing(SFMJavaInteractionMap.Region::id))
+                .map(value -> value.semanticKind() + "[" + value.id() + "]")
+                .toList();
+        SFMJavaInteractionMap.FileRow sourceFile = map.files().stream()
+                .filter(value -> value.address().equals(map.document().address())
+                        && value.rootId().equals(map.document().rootId()))
+                .findFirst()
+                .orElse(null);
+        SFMSymbolInspectionSnapshot.DocumentEvidence documentEvidence =
+                new SFMSymbolInspectionSnapshot.DocumentEvidence(
+                        Optional.of(map.document().address()),
+                        sourceFile == null ? Optional.empty() : Optional.of(sourceFile.resolverId()),
+                        Optional.of(map.document().rootId()),
+                        Optional.of(map.document().rootRelativePath()),
+                        Optional.of(map.document().reportPath()),
+                        Optional.of(map.document().sourceSet())
+                );
+
+        SFMDrawCanvasScreen.SpatialLayoutSnapshot layout = drawCanvas.captureSpatialLayout();
+        InspectionGeometry geometry = inspectionGeometry(layout, document.currentText(), textRange);
+        return Optional.of(new SFMSymbolInspectionSnapshot.SemanticEvidence(
+                document.currentSha256(),
+                point.position(),
+                documentEvidence,
+                textRange,
+                Optional.of(target.id()),
+                target.semanticKind(),
+                logicalPath,
+                geometry.glyphs(),
+                selectors,
+                summarize(touching, SFMJavaInteractionMap.Outlink::confidence, "unresolved"),
+                summarize(touching, SFMJavaInteractionMap.Outlink::completeness, "incomplete"),
+                outlinks,
+                diagnostics,
+                geometry.canvasBounds(),
+                geometry.localScreenBounds(),
+                geometry.globalScreenBounds(),
+                geometry.physicalPixelBounds(),
+                Optional.of(new SFMSymbolInspectionSnapshot.Rectangle(
+                        0, 0, layout.viewportWidth(), layout.viewportHeight()))
+        ));
+    }
+
+    private SFMSymbolInspectionSnapshot.SemanticEvidence lexicalInspectionEvidence(
+            SFMDrawCanvasScreen drawCanvas,
+            SFMContextDocumentProjection document,
+            SFMSymbolInspectionSnapshot.CapturedPoint point
+    ) {
+        SFMDrawCanvasScreen.SpatialLayoutSnapshot layout = drawCanvas.captureSpatialLayout();
+        InspectionGeometry geometry = inspectionGeometry(layout, document.currentText(), point.localRange());
+        return new SFMSymbolInspectionSnapshot.SemanticEvidence(
+                document.currentSha256(),
+                point.position(),
+                SFMSymbolInspectionSnapshot.DocumentEvidence.empty(),
+                point.localRange(),
+                Optional.empty(),
+                point.localKind(),
+                List.of(),
+                geometry.glyphs(),
+                List.of(),
+                "unresolved",
+                "incomplete",
+                List.of(),
+                List.of("java.semantic-map-unavailable: selected glyph geometry was captured without guessing a symbol"),
+                geometry.canvasBounds(),
+                geometry.localScreenBounds(),
+                geometry.globalScreenBounds(),
+                geometry.physicalPixelBounds(),
+                Optional.of(new SFMSymbolInspectionSnapshot.Rectangle(
+                        0, 0, layout.viewportWidth(), layout.viewportHeight()))
+        );
+    }
+
+    private static SFMSymbolInspectionSnapshot.Outlink inspectionOutlink(SFMJavaInteractionMap.Outlink value) {
+        return new SFMSymbolInspectionSnapshot.Outlink(
+                value.id(),
+                value.relationKind(),
+                value.destinationQuery(),
+                value.providerId(),
+                value.providerGeneration(),
+                value.confidence(),
+                value.completeness(),
+                value.recommendedProjection(),
+                value.reason(),
+                value.provenance()
+        );
+    }
+
+    private static String summarize(
+            List<SFMJavaInteractionMap.Outlink> outlinks,
+            java.util.function.Function<SFMJavaInteractionMap.Outlink, String> projection,
+            String fallback
+    ) {
+        List<String> values = outlinks.stream().map(projection).distinct().sorted().toList();
+        return values.isEmpty() ? fallback : String.join("|", values);
+    }
+
+    private InspectionGeometry inspectionGeometry(
+            SFMDrawCanvasScreen.SpatialLayoutSnapshot layout,
+            String expectedText,
+            ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange textRange
+    ) {
+        var projection = layout.index().projection();
+        if (!inspectionProjectionMatches(expectedText, projection.text())) return InspectionGeometry.EMPTY;
+        List<Integer> offsets = SFMContextTextCoordinates.utf16OffsetsAtUtf8Bytes(
+                expectedText,
+                List.of(textRange.start().byteOffset(), textRange.end().byteOffset())
+        );
+        int start = offsets.get(0);
+        int end = offsets.get(1);
+        if (end > projection.text().length()
+                || !expectedText.substring(start, end).equals(projection.text().substring(start, end))) {
+            return InspectionGeometry.EMPTY;
+        }
+        LinkedHashSet<SFMDrawCanvasModel.CanvasGlyph> glyphs = new LinkedHashSet<>();
+        for (int index = start; index < end && index < projection.glyphsByCharIndex().size(); index++) {
+            SFMDrawCanvasModel.CanvasGlyph glyph = projection.glyphsByCharIndex().get(index);
+            if (glyph != null) glyphs.add(glyph);
+        }
+        ArrayList<SFMSymbolInspectionSnapshot.Rectangle> canvas = new ArrayList<>();
+        ArrayList<SFMSymbolInspectionSnapshot.Glyph> selectedGlyphs = new ArrayList<>();
+        for (SFMDrawCanvasModel.CanvasGlyph glyph : glyphs) {
+            SFMSymbolInspectionSnapshot.Rectangle glyphBounds = new SFMSymbolInspectionSnapshot.Rectangle(
+                    glyph.x(), glyph.y(), glyph.x() + glyph.width(), glyph.y() + layout.lineHeight());
+            addOrMergeRow(canvas, glyphBounds);
+            int ordinal = layout.index().glyphOrdinalOf(glyph)
+                    .orElseThrow(() -> new IllegalStateException("Selected glyph is absent from its document index"));
+            int utf16Offset = layout.index().utf16OffsetOf(glyph)
+                    .orElseThrow(() -> new IllegalStateException("Selected glyph has no UTF-16 projection"));
+            selectedGlyphs.add(new SFMSymbolInspectionSnapshot.Glyph(
+                    ordinal, utf16Offset, glyph.text(), glyphBounds));
+        }
+        ArrayList<SFMSymbolInspectionSnapshot.Rectangle> screen = new ArrayList<>();
+        for (SFMSymbolInspectionSnapshot.Rectangle rectangle : canvas) {
+            screen.add(new SFMSymbolInspectionSnapshot.Rectangle(
+                    canvasToScreen(rectangle.left(), layout.camera().x(), layout.camera().zoom(),
+                            layout.viewportWidth()),
+                    canvasToScreen(rectangle.top(), layout.camera().y(), layout.camera().zoom(),
+                            layout.viewportHeight()),
+                    canvasToScreen(rectangle.right(), layout.camera().x(), layout.camera().zoom(),
+                            layout.viewportWidth()),
+                    canvasToScreen(rectangle.bottom(), layout.camera().y(), layout.camera().zoom(),
+                            layout.viewportHeight())
+            ));
+        }
+        ArrayList<SFMSymbolInspectionSnapshot.Rectangle> globalScreen = new ArrayList<>();
+        ArrayList<SFMSymbolInspectionSnapshot.Rectangle> physicalPixels = new ArrayList<>();
+        if (panelContext != null) {
+            for (SFMSymbolInspectionSnapshot.Rectangle rectangle : screen) {
+                SFMScreenPanelBounds logical = new SFMScreenPanelBounds(
+                        (int) Math.floor(rectangle.left()),
+                        (int) Math.floor(rectangle.top()),
+                        Math.max(1, (int) Math.ceil(rectangle.right()) - (int) Math.floor(rectangle.left())),
+                        Math.max(1, (int) Math.ceil(rectangle.bottom()) - (int) Math.floor(rectangle.top()))
+                );
+                panelContext.measure(logical).ifPresent(metrics -> {
+                    globalScreen.add(inspectionRectangle(metrics.globalGuiLogicalBounds()));
+                    physicalPixels.add(inspectionRectangle(metrics.physicalPixelBounds()));
+                });
+            }
+        }
+        return new InspectionGeometry(selectedGlyphs, canvas, screen, globalScreen, physicalPixels);
+    }
+
+    static boolean inspectionProjectionMatches(String documentText, String projectedText) {
+        Objects.requireNonNull(documentText, "documentText");
+        Objects.requireNonNull(projectedText, "projectedText");
+        if (documentText.equals(projectedText)) return true;
+        return trimTrailingLineEndings(documentText).equals(trimTrailingLineEndings(projectedText));
+    }
+
+    private static String trimTrailingLineEndings(String value) {
+        int end = value.length();
+        while (end > 0) {
+            char character = value.charAt(end - 1);
+            if (character != '\r' && character != '\n') break;
+            end--;
+        }
+        return value.substring(0, end);
+    }
+
+    private static void addOrMergeRow(
+            List<SFMSymbolInspectionSnapshot.Rectangle> values,
+            SFMSymbolInspectionSnapshot.Rectangle next
+    ) {
+        if (!values.isEmpty()) {
+            SFMSymbolInspectionSnapshot.Rectangle previous = values.get(values.size() - 1);
+            if (Double.compare(previous.top(), next.top()) == 0
+                    && Double.compare(previous.bottom(), next.bottom()) == 0
+                    && next.left() <= previous.right()) {
+                values.set(values.size() - 1, new SFMSymbolInspectionSnapshot.Rectangle(
+                        previous.left(), previous.top(), Math.max(previous.right(), next.right()), previous.bottom()));
+                return;
+            }
+        }
+        values.add(next);
+    }
+
+    private static double canvasToScreen(double value, double camera, double zoom, int viewportSize) {
+        return (value - camera) * zoom + viewportSize / 2.0D;
+    }
+
+    private static SFMSymbolInspectionSnapshot.Rectangle inspectionRectangle(SFMScreenPanelBounds value) {
+        return new SFMSymbolInspectionSnapshot.Rectangle(
+                value.x(), value.y(), value.x() + value.width(), value.y() + value.height());
+    }
+
+    private record InspectionGeometry(
+            List<SFMSymbolInspectionSnapshot.Glyph> glyphs,
+            List<SFMSymbolInspectionSnapshot.Rectangle> canvasBounds,
+            List<SFMSymbolInspectionSnapshot.Rectangle> localScreenBounds,
+            List<SFMSymbolInspectionSnapshot.Rectangle> globalScreenBounds,
+            List<SFMSymbolInspectionSnapshot.Rectangle> physicalPixelBounds
+    ) {
+        private static final InspectionGeometry EMPTY = new InspectionGeometry(
+                List.of(), List.of(), List.of(), List.of(), List.of());
+
+        private InspectionGeometry {
+            glyphs = List.copyOf(glyphs);
+            canvasBounds = List.copyOf(canvasBounds);
+            localScreenBounds = List.copyOf(localScreenBounds);
+            globalScreenBounds = List.copyOf(globalScreenBounds);
+            physicalPixelBounds = List.copyOf(physicalPixelBounds);
+        }
+    }
+
+    @Override
     public void opened(Minecraft minecraft, SFMScreenPanelBounds bounds, SFMWorkspacePanelContext context) {
         this.panelContext = context;
         if (screen instanceof SFMDrawCanvasScreen) {
@@ -270,7 +595,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     private void init(Minecraft minecraft, SFMScreenPanelBounds bounds) {
         if (screen instanceof SFMDrawCanvasScreen drawCanvas) {
             drawCanvas.init(minecraft, Math.max(1, bounds.width()), Math.max(1, bounds.height()));
-            openContext.document().targetRange().ifPresent(drawCanvas::openAtTextRange);
+            presentedDocument.targetRange().ifPresent(drawCanvas::openAtTextRange);
         } else {
             screen.init(minecraft, Math.max(1, bounds.width()), Math.max(1, bounds.height()));
         }
@@ -405,13 +730,20 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         rememberPointer(mouseX, mouseY);
         if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT
                 && screen instanceof SFMDrawCanvasScreen drawCanvas) {
-            drawCanvas.symbolHitAtScreen(mouseX, mouseY, currentInteractionMap(drawCanvas))
-                    .ifPresentOrElse(
-                            drawCanvas::focusSymbolHit,
-                            () -> drawCanvas.focusContextAtScreen(mouseX, mouseY)
-                    );
+            Optional<SFMDrawCanvasScreen.SymbolHit> hit = drawCanvas.symbolHitAtScreen(
+                    mouseX, mouseY, currentInteractionMap(drawCanvas));
+            hit.ifPresentOrElse(drawCanvas::focusSymbolHit, () -> drawCanvas.focusContextAtScreen(mouseX, mouseY));
+            contextualProjectionOverride = hit
+                    .map(value -> drawCanvas.captureContextProjectionAt(
+                            openContext.editorId(), openContext.document(), isReadOnly(), value))
+                    .orElseGet(() -> drawCanvas.captureContextProjection(
+                            openContext.editorId(), openContext.document(), isReadOnly()));
             if (hoverModifiers.requestsDefinitionNavigation()) refreshHoverTarget(mouseX, mouseY);
-            return executeEditorAction(SFMContextActionsOpenAction.ID);
+            try {
+                return executeEditorAction(SFMContextActionsOpenAction.ID);
+            } finally {
+                contextualProjectionOverride = null;
+            }
         }
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT
                 && hoverModifiers.requestsDefinitionNavigation()

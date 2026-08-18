@@ -70,7 +70,18 @@ public final class SFMDeferredTextEditorPanel
 
     @Override
     public boolean navigateToRange(ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange range) {
-        return delegate instanceof SFMTextDocumentPanelState state && state.navigateToRange(range);
+        if (!(delegate instanceof SFMTextDocumentPanelState state) || !state.navigateToRange(range)) {
+            return false;
+        }
+        Optional<SFMTextDocumentSnapshot> navigated = state.documentSnapshot()
+                .filter(SFMTextDocumentSnapshot::ready)
+                .filter(document -> document.targetRange().filter(range::equals).isPresent());
+        if (navigated.isEmpty()) return false;
+        // The deferred wrapper is the panel state observed by navigation,
+        // context capture, and puppets. Publish the delegate's exact new
+        // destination in the same client-thread operation.
+        snapshot = navigated;
+        return true;
     }
 
     @Override

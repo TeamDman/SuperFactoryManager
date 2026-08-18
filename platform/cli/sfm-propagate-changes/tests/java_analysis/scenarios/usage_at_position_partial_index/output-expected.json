@@ -32,6 +32,7 @@
         "visible_source_sets": [
           "custom",
           "dependency:cc-tweaked:main",
+          "dependency:forge:javafmllanguage",
           "dependency:forge:userdev",
           "dependency:mekanism:api",
           "dependency:mekanism:main",
@@ -42,36 +43,55 @@
         "id": "dependency:cc-tweaked:main",
         "visible_source_sets": [
           "dependency:cc-tweaked:main",
+          "dependency:forge:javafmllanguage",
           "dependency:forge:userdev",
           "dependency:mekanism:api",
-          "dependency:mekanism:main"
+          "dependency:mekanism:main",
+          "jdk:java-17"
+        ]
+      },
+      {
+        "id": "dependency:forge:javafmllanguage",
+        "visible_source_sets": [
+          "dependency:cc-tweaked:main",
+          "dependency:forge:javafmllanguage",
+          "dependency:forge:userdev",
+          "dependency:mekanism:api",
+          "dependency:mekanism:main",
+          "jdk:java-17"
         ]
       },
       {
         "id": "dependency:forge:userdev",
         "visible_source_sets": [
           "dependency:cc-tweaked:main",
+          "dependency:forge:javafmllanguage",
           "dependency:forge:userdev",
           "dependency:mekanism:api",
-          "dependency:mekanism:main"
+          "dependency:mekanism:main",
+          "jdk:java-17"
         ]
       },
       {
         "id": "dependency:mekanism:api",
         "visible_source_sets": [
           "dependency:cc-tweaked:main",
+          "dependency:forge:javafmllanguage",
           "dependency:forge:userdev",
           "dependency:mekanism:api",
-          "dependency:mekanism:main"
+          "dependency:mekanism:main",
+          "jdk:java-17"
         ]
       },
       {
         "id": "dependency:mekanism:main",
         "visible_source_sets": [
           "dependency:cc-tweaked:main",
+          "dependency:forge:javafmllanguage",
           "dependency:forge:userdev",
           "dependency:mekanism:api",
-          "dependency:mekanism:main"
+          "dependency:mekanism:main",
+          "jdk:java-17"
         ]
       },
       {
@@ -79,6 +99,7 @@
         "visible_source_sets": [
           "custom",
           "dependency:cc-tweaked:main",
+          "dependency:forge:javafmllanguage",
           "dependency:forge:userdev",
           "dependency:mekanism:api",
           "dependency:mekanism:main",
@@ -134,9 +155,9 @@
   "dependency_index": {
     "acquisition_commands": [],
     "completeness": "incomplete",
-    "expected_identity": "blake3:7f259c18738075c2a9e7f034b48e0bcacb37c2a9147c39b9dc6f3e2aaa940d17",
-    "path": "$sfm-cache-local/symbol-index/v3/7f259c18738075c2a9e7f034b48e0bcacb37c2a9147c39b9dc6f3e2aaa940d17",
-    "portable_path": "$sfm-cache/symbol-index/v3/7f259c18738075c2a9e7f034b48e0bcacb37c2a9147c39b9dc6f3e2aaa940d17",
+    "expected_identity": "blake3:9bd9e49666530b044ab4e5aa88b151e08a9b9ffc8b47b48d4013ba99d92b32ee",
+    "path": "$sfm-cache-local/symbol-index/v3/9bd9e49666530b044ab4e5aa88b151e08a9b9ffc8b47b48d4013ba99d92b32ee",
+    "portable_path": "$sfm-cache/symbol-index/v3/9bd9e49666530b044ab4e5aa88b151e08a9b9ffc8b47b48d4013ba99d92b32ee",
     "reason": "manifest and payload are valid but dependency coverage is partial",
     "refresh_command": "sfm-propagate-changes.exe symbol index refresh --branch 1.19.2",
     "status": "partial"

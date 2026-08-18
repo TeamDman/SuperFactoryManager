@@ -71,7 +71,7 @@ class SFMFindReferencesControllerTests {
     }
 
     @Test
-    void changedDocumentOrCursorRejectsTheAsyncResultAsStale() {
+    void changedDocumentBytesCancelTheAsyncResultWithTheExactReason() {
         SFMContextContribution captured = contribution("class Use { Target value; }\n", 12, 1);
         AtomicReference<SFMContextContribution> current = new AtomicReference<>(captured);
         CompletableFuture<SFMReferenceLookupService.Lookup> pending = new CompletableFuture<>();
@@ -100,33 +100,75 @@ class SFMFindReferencesControllerTests {
 
         assertEquals(0, presentations.get());
         assertTrue(feedback.stream().anyMatch(message ->
-                message.getString().contains("cancelled because the editor document, cursor, focus, or panel changed")));
+                message.getString().contains("source document bytes changed")));
     }
 
     @Test
-    void aNewRequestForTheSameEditorCancelsThePreviousSubmission() {
+    void cursorAndContributionGenerationChangesRemainValidDuringTickCancellationChecks() {
+        String text = "class Use { Target value; }\n";
+        SFMContextContribution captured = contribution(text, 12, 1);
+        AtomicReference<SFMContextContribution> current = new AtomicReference<>(captured);
+        CompletableFuture<SFMReferenceLookupService.Lookup> pending = new CompletableFuture<>();
+        AtomicInteger presentations = new AtomicInteger();
+        AtomicInteger cancellations = new AtomicInteger();
+        SFMScreenMultiplexer workspace = uninitializedWorkspace();
+        SFMFindReferencesController controller = controller(
+                current,
+                ignored -> new SFMReferenceLookupService.Submission(pending, cancellations::incrementAndGet),
+                (context, host, panel, lookup) -> {
+                    presentations.incrementAndGet();
+                    return true;
+                }
+        );
+
+        assertTrue(controller.begin(
+                new SFMClientActionContext(workspace, () -> true, PANEL_ID),
+                ignored -> { }
+        ));
+        current.set(contribution(text, 13, 99));
+        controller.cancelStale(workspace);
+        pending.complete(lookup(result(List.of(), SFMDefinitionResult.Completeness.COMPLETE, false)));
+
+        assertEquals(0, cancellations.get(), "cursor movement must not cancel reference analysis");
+        assertEquals(1, presentations.get(), "the stable request must still open its result explorer");
+    }
+
+    @Test
+    void aNewRequestForTheSameEditorRejectsAnOutOfOrderOlderCompletion() {
         SFMContextContribution captured = contribution("class Use { Target value; }\n", 12, 1);
         AtomicReference<SFMContextContribution> current = new AtomicReference<>(captured);
         CompletableFuture<SFMReferenceLookupService.Lookup> first = new CompletableFuture<>();
         CompletableFuture<SFMReferenceLookupService.Lookup> second = new CompletableFuture<>();
         AtomicInteger calls = new AtomicInteger();
         AtomicInteger firstCancellations = new AtomicInteger();
+        AtomicInteger presentations = new AtomicInteger();
+        List<Component> firstFeedback = new ArrayList<>();
         SFMScreenMultiplexer workspace = uninitializedWorkspace();
         SFMFindReferencesController controller = controller(
                 current,
                 ignored -> calls.getAndIncrement() == 0
                         ? new SFMReferenceLookupService.Submission(first, firstCancellations::incrementAndGet)
                         : new SFMReferenceLookupService.Submission(second, () -> { }),
-                (context, host, panel, lookup) -> true
+                (context, host, panel, lookup) -> {
+                    presentations.incrementAndGet();
+                    return true;
+                }
         );
         SFMClientActionContext context = new SFMClientActionContext(workspace, () -> true, PANEL_ID);
 
-        assertTrue(controller.begin(context, ignored -> { }));
+        assertTrue(controller.begin(context, firstFeedback::add));
         assertTrue(controller.begin(context, ignored -> { }));
 
         assertEquals(1, firstCancellations.get());
+        assertTrue(firstFeedback.stream().anyMatch(message ->
+                message.getString().contains("newer explicit request superseded")));
+        int feedbackBeforeOldCompletion = firstFeedback.size();
         first.complete(lookup(result(List.of(), SFMDefinitionResult.Completeness.COMPLETE, false)));
+        assertEquals(0, presentations.get(), "the superseded completion must remain inert");
+        assertEquals(feedbackBeforeOldCompletion, firstFeedback.size(),
+                "the late completion must not replace its precise supersession reason");
         second.complete(lookup(result(List.of(), SFMDefinitionResult.Completeness.COMPLETE, false)));
+        assertEquals(1, presentations.get(), "only the newest request may publish a references explorer");
     }
 
     @Test
@@ -204,16 +246,16 @@ class SFMFindReferencesControllerTests {
                 Runnable::run,
                 ignored -> true,
                 (context, host, sourcePanelId, lookup) -> true,
-                new SFMFindReferencesController.WorkspaceState() {
+                new SFMNavigationWorkspaceState() {
                     @Override public SFMContextSnapshot snapshot(SFMScreenMultiplexer host) {
                         return new SFMContextSnapshot(1, 1, 1, Optional.empty(), List.of());
                     }
 
-                    @Override public boolean containsPanel(
+                    @Override public Optional<Object> panelEntryIdentity(
                             SFMScreenMultiplexer host,
                             SFMWorkspacePanelId panelId
                     ) {
-                        return true;
+                        return Optional.of(panelId);
                     }
                 }
         );
@@ -238,18 +280,20 @@ class SFMFindReferencesControllerTests {
                 Runnable::run,
                 ignored -> true,
                 presenter,
-                new SFMFindReferencesController.WorkspaceState() {
+                new SFMNavigationWorkspaceState() {
+                    private final Object panelEntry = new Object();
+
                     @Override public SFMContextSnapshot snapshot(SFMScreenMultiplexer workspace) {
                         SFMContextContribution contribution = current.get();
                         return new SFMContextSnapshot(
                                 1, 1, 1, Optional.of(contribution.originId()), List.of(contribution));
                     }
 
-                    @Override public boolean containsPanel(
+                    @Override public Optional<Object> panelEntryIdentity(
                             SFMScreenMultiplexer workspace,
                             SFMWorkspacePanelId panelId
                     ) {
-                        return true;
+                        return Optional.of(panelEntry);
                     }
                 }
         );

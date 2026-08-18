@@ -15,6 +15,9 @@ use crate::dependency_inventory::DependencyInventory;
 use crate::dependency_inventory::kind_label;
 use crate::dependency_inventory::role_label;
 use crate::dependency_inventory::scope_label;
+use crate::dependency_locked_sources::LockedArtifactSource;
+#[cfg(test)]
+use crate::dependency_locked_sources::derive_locked_loader_artifact_sources;
 use crate::java_analysis::DEPENDENCY_JAVA_SYMBOL_INDEX_BODY_SCHEMA;
 use crate::java_analysis::DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA;
 use crate::java_analysis::DEPENDENCY_SYMBOL_INDEX_STORE_FORMAT_VERSION;
@@ -39,7 +42,7 @@ use std::collections::BTreeSet;
 
 pub(crate) const DEPENDENCY_SYMBOL_INDEX_TOOLCHAIN_PROFILE: &str = "rust-toolchain";
 pub(crate) const DEPENDENCY_JAVA_SYMBOL_INDEX_ALGORITHM_FINGERPRINT: &str =
-    "sfm.dependency-java-symbol-index-algorithm/3";
+    "sfm.dependency-java-symbol-index-algorithm/5";
 
 /// Path-free context supplied by the branch/workspace resolver around the
 /// effective dependency inventory.
@@ -205,9 +208,23 @@ fn visit_active_feature<'a>(
 /// Returns an error when the effective lock is invalid, a provider priority
 /// cannot fit the portable representation, or the resulting path-free
 /// projection fails identity validation.
+#[cfg(test)]
 pub(crate) fn project_dependency_symbol_index_identity(
     inventory: &DependencyInventory,
     inputs: DependencySymbolIndexProjectionInputs,
+) -> eyre::Result<DependencySymbolIndexIdentityProjection> {
+    let locked_artifact_sources = derive_locked_loader_artifact_sources(inventory)?;
+    project_dependency_symbol_index_identity_with_locked_sources(
+        inventory,
+        inputs,
+        &locked_artifact_sources,
+    )
+}
+
+pub(crate) fn project_dependency_symbol_index_identity_with_locked_sources(
+    inventory: &DependencyInventory,
+    inputs: DependencySymbolIndexProjectionInputs,
+    locked_artifact_sources: &[LockedArtifactSource],
 ) -> eyre::Result<DependencySymbolIndexIdentityProjection> {
     inventory.lockfile.validate()?;
     let projection = DependencySymbolIndexIdentityProjection {
@@ -226,7 +243,9 @@ pub(crate) fn project_dependency_symbol_index_identity(
                 .collect(),
             dependencies: inventory
                 .dependencies()
-                .map(|dependency| project_dependency(inventory, dependency))
+                .map(|dependency| {
+                    project_dependency(inventory, dependency, locked_artifact_sources)
+                })
                 .collect::<eyre::Result<Vec<_>>>()?,
         },
         context: inputs.context,
@@ -241,16 +260,58 @@ pub(crate) fn project_dependency_symbol_index_identity(
 fn project_dependency(
     inventory: &DependencyInventory,
     dependency: &DependencyV3,
+    locked_artifact_sources: &[LockedArtifactSource],
 ) -> eyre::Result<DependencyProjection> {
+    let mut components = dependency
+        .components
+        .iter()
+        .map(|component| project_component(inventory, component))
+        .collect::<eyre::Result<Vec<_>>>()?;
+    components.extend(
+        locked_artifact_sources
+            .iter()
+            .filter(|source| source.dependency_id == dependency.id)
+            .map(|source| project_locked_artifact_source(inventory, source))
+            .collect::<eyre::Result<Vec<_>>>()?,
+    );
     Ok(DependencyProjection {
         id: dependency.id.clone(),
         kind: kind_label(dependency.kind).to_owned(),
         role: role_label(dependency.role).to_owned(),
-        components: dependency
-            .components
-            .iter()
-            .map(|component| project_component(inventory, component))
-            .collect::<eyre::Result<Vec<_>>>()?,
+        components,
+    })
+}
+
+fn project_locked_artifact_source(
+    inventory: &DependencyInventory,
+    source: &LockedArtifactSource,
+) -> eyre::Result<DependencyComponentProjection> {
+    let artifact = inventory
+        .artifact_by_id(&source.artifact_id)
+        .ok_or_else(|| eyre::eyre!("Unknown locked source artifact `{}`", source.artifact_id))?;
+    let provider = SourceProviderV3::Decompile(source.provider.clone());
+    let mut acquisition = vec![
+        property("acquisition-kind", "derived-locked-artifact"),
+        property("locked-coordinate", &source.coordinate),
+        property("derived-artifact-id", &source.artifact_id),
+        property("derived-expected-hash", &artifact.hash.to_string()),
+    ];
+    if let Some(repository_id) = &source.repository_id {
+        acquisition.push(property("repository-id", repository_id));
+    }
+    Ok(DependencyComponentProjection {
+        id: source.component_id.clone(),
+        scopes: vec!["compile".to_owned(), "runtime".to_owned()],
+        acquisition,
+        artifact: DependencyArtifactProjection {
+            id: artifact.id.clone(),
+            content_hash: artifact.hash.to_string(),
+            resolved_coordinate: Some(source.coordinate.clone()),
+            provenance: artifact_provenance_label(artifact.provenance).to_owned(),
+        },
+        preferred_provider: Some(project_dependency_source_provider(
+            SourceProviderView::new(inventory, &provider, 0),
+        )?),
     })
 }
 
@@ -593,6 +654,8 @@ mod tests {
     fn dependency_index_projection_covers_every_effective_component_and_preferred_provider() {
         let inventory = fixture("first", "raw formatting one");
         let projection = project(&inventory);
+        let locked_artifact_sources =
+            derive_locked_loader_artifact_sources(&inventory).expect("locked artifact sources");
         assert_eq!(
             projection.effective_lock.dependencies.len(),
             inventory.lockfile.dependencies.len()
@@ -610,6 +673,7 @@ mod tests {
                 .iter()
                 .map(|dependency| dependency.components.len())
                 .sum::<usize>()
+                + locked_artifact_sources.len()
         );
 
         for dependency in &inventory.lockfile.dependencies {
@@ -638,6 +702,34 @@ mod tests {
                 }
             }
         }
+
+        let forge = projection
+            .effective_lock
+            .dependencies
+            .iter()
+            .find(|dependency| dependency.id == "forge")
+            .expect("Forge dependency projection");
+        let javafml = forge
+            .components
+            .iter()
+            .find(|component| component.id == "javafmllanguage")
+            .expect("locked javafmllanguage source projection");
+        assert_eq!(
+            javafml.artifact.content_hash,
+            "blake3:84a169e7cb2f76d914ac3b5432055cdd5b0e34c0"
+        );
+        let provider = javafml
+            .preferred_provider
+            .as_ref()
+            .expect("derived decompile provider");
+        assert_eq!(provider.kind, DependencySourceProviderKind::Decompile);
+        assert!(provider.derived_checks.iter().any(|property| {
+            property.key == "decompiler-artifact-id"
+                && property.value == "org-vineflower-vineflower-1-12-0-865bc756"
+        }));
+        assert!(provider.derived_checks.iter().any(|property| {
+            property.key == "fingerprint" && property.value.starts_with("blake3:")
+        }));
     }
 
     #[test]

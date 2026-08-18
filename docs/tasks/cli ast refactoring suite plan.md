@@ -1,7 +1,8 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0 through Phase 0.12.3 are complete; the bounded
-0.12.4 manual-navigation repair is next; mutation-capable Phase 1 remains
+**Plan status:** Active; Phase 0 through Phase 0.12.3 are complete; bounded
+0.12.4 implementation and acceptance are complete pending its final committed
+revision and post-commit CLI installation; mutation-capable Phase 1 remains
 deferred and unstarted
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Last updated:** 2026-08-18
@@ -2164,7 +2165,34 @@ worker lane through nine definitions and one 76-usage result; all navigation,
 retention, and responsiveness assertions passed. No mutation request/command
 was introduced, and Phase 1 remains untouched.
 
-### [ ] 0.12.4 Close exact manual-test constructor, qualified-receiver, and locked Forge-source gaps
+### [~] 0.12.4 Close exact manual-test constructor, qualified-receiver, and locked Forge-source gaps
+
+**Implementation checkpoint (2026-08-18):** Corrected Java formal-parameter
+facts now retain varargs array identity, fully qualified static receivers emit
+one canonical owner/member usage, and the dependency index derives navigable
+Forge loader source solely from the already-locked `javafmllanguage` artifact.
+The new source identity is bounded by the locked artifact hash, decompiler/tool
+identity, parser/index format, and branch visibility. The completed index has
+identity
+`blake3:9bd9e49666530b044ab4e5aa88b151e08a9b9ffc8b47b48d4013ba99d92b32ee`,
+7,618 files, 117,736 definitions, and 1,316,286 usages. Its partial status is
+truthful: six locked inputs are ready and 44 dependencies explicitly report no
+source provider rather than being guessed from ambient caches.
+
+The three exact production probes now resolve
+`SFMModCompat.isComputerCraftLoaded()Z`, locked/decompiled
+`FMLJavaModLoadingContext`, and
+`TranslatableContents.<init>(Ljava/lang/String;[Ljava/lang/Object;)V`.
+Adjacent scenarios live in
+`tests/java_analysis/scenarios/definition_at_position_qualified_static_owner`,
+`definition_at_position_qualified_static_member`, and
+`definition_at_position_varargs_constructor`. An unsandboxed
+`platform/cli/sfm-propagate-changes/check-all.ps1` acceptance run passed format,
+clippy, dependency policy, build, 629 Rust library tests (three ignored), and
+all ten Java-analysis scenarios. The checked-in dependency graph and lockfiles
+remain unchanged. Final completion is intentionally withheld until the
+implementation is committed and that exact revision is installed and
+re-probed through the user-visible `sfm-propagate-changes.exe`.
 
 **Manual evidence and diagnosis (2026-08-18):** The following direct
 `symbol show-definition --source-path ... --line ... --column ...` probes

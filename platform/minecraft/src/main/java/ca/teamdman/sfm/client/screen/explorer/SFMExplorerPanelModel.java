@@ -128,7 +128,8 @@ public final class SFMExplorerPanelModel {
                 projection.rows(),
                 sessionSnapshot.scrollOffset()
         );
-        if (viewport.scrollRow() != sessionSnapshot.scrollOffset()) {
+        if (!projection.filter().active()
+                && viewport.scrollRow() != sessionSnapshot.scrollOffset()) {
             session.setScrollOffset(viewport.scrollRow());
             sessionSnapshot = session.snapshot();
         }

@@ -36,6 +36,7 @@ use tree_sitter_patched_arborium::Node;
 use walkdir::WalkDir;
 
 const JDK_SOURCE_INDEX_FORMAT: &str = "sfm.jdk-source-index/1";
+const JDK_SOURCE_WORKER_CONTEXT_SCHEMA: &str = "sfm.jdk-source-worker-context/1";
 
 /// Branch-selected JDK source state. Synthetic workspaces deliberately use
 /// `Disabled`; a real branch always records either a content-addressed source
@@ -60,6 +61,19 @@ pub(crate) struct JdkSourceDomain {
     portable_tree: PathBuf,
     canonical_tree: PathBuf,
     /// Top-level qualified source type to one or more module-relative files.
+    inventory: BTreeMap<String, Vec<String>>,
+}
+
+#[derive(Facet)]
+struct JdkSourceWorkerContext {
+    schema: String,
+    identity: String,
+    java_release: String,
+    root_id: String,
+    source_set: String,
+    report_prefix: String,
+    portable_tree: String,
+    canonical_tree: String,
     inventory: BTreeMap<String, Vec<String>>,
 }
 
@@ -184,6 +198,77 @@ impl JdkSourceDomainState {
             }
             Self::Disabled | Self::Unavailable { .. } => Ok(Vec::new()),
         }
+    }
+
+    /// Persist the already-resolved, lock-backed JDK source inventory for
+    /// short-lived Java analysis workers. This private snapshot prevents every
+    /// worker from rescanning the JDK tree while preserving the exact source
+    /// domain selected by the branch toolchain plan.
+    pub(crate) fn write_worker_context(&self, path: &Path) -> eyre::Result<bool> {
+        let Self::Ready(domain) = self else {
+            return Ok(false);
+        };
+        let portable_tree = domain
+            .portable_tree
+            .to_str()
+            .ok_or_else(|| eyre::eyre!("JDK worker portable source path is not UTF-8"))?;
+        let canonical_tree = domain
+            .canonical_tree
+            .to_str()
+            .ok_or_else(|| eyre::eyre!("JDK worker canonical source path is not UTF-8"))?;
+        let context = JdkSourceWorkerContext {
+            schema: JDK_SOURCE_WORKER_CONTEXT_SCHEMA.to_owned(),
+            identity: domain.identity.clone(),
+            java_release: domain.java_release.clone(),
+            root_id: domain.root_id.clone(),
+            source_set: domain.source_set.clone(),
+            report_prefix: domain.report_prefix.clone(),
+            portable_tree: portable_tree.to_owned(),
+            canonical_tree: canonical_tree.to_owned(),
+            inventory: domain.inventory.clone(),
+        };
+        let mut writer = std::io::BufWriter::new(std::fs::File::create(path)?);
+        facet_json::to_writer_std(&mut writer, &context)?;
+        std::io::Write::flush(&mut writer)?;
+        Ok(true)
+    }
+
+    /// Rehydrate a private worker snapshot written by `write_worker_context`.
+    /// The snapshot is transport only: its canonical tree must still exist,
+    /// and every inventory entry remains a canonical relative path.
+    pub(crate) fn read_worker_context(path: &Path) -> eyre::Result<Self> {
+        let encoded = std::fs::read_to_string(path)?;
+        let context: JdkSourceWorkerContext = facet_json::from_str(&encoded)?;
+        if context.schema != JDK_SOURCE_WORKER_CONTEXT_SCHEMA {
+            eyre::bail!("unsupported JDK source worker context schema");
+        }
+        for (qualified_name, entries) in &context.inventory {
+            if qualified_name.trim().is_empty() || entries.is_empty() {
+                eyre::bail!("JDK source worker inventory contains an empty type entry");
+            }
+            for entry in entries {
+                validate_addressed_relative_path(entry)?;
+            }
+        }
+        if context.inventory.is_empty() {
+            eyre::bail!("JDK source worker inventory is empty");
+        }
+        let canonical_tree = dunce::canonicalize(&context.canonical_tree).wrap_err_with(|| {
+            format!(
+                "failed to canonicalize JDK worker source tree {}",
+                context.canonical_tree
+            )
+        })?;
+        Ok(Self::Ready(Arc::new(JdkSourceDomain {
+            identity: context.identity,
+            java_release: context.java_release,
+            root_id: context.root_id,
+            source_set: context.source_set,
+            report_prefix: context.report_prefix,
+            portable_tree: PathBuf::from(context.portable_tree),
+            canonical_tree,
+            inventory: context.inventory,
+        })))
     }
 
     #[cfg(test)]
