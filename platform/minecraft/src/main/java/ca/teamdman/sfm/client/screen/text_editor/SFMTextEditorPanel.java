@@ -18,8 +18,14 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelOpenContext;
+import ca.teamdman.sfm.client.semantic.SFMCanvasSpatialCoverageSnapshot;
+import ca.teamdman.sfm.client.semantic.SFMJavaInteractionMapSpatialAdapter;
+import ca.teamdman.sfm.client.semantic.SFMSpatialCoverageService;
+import ca.teamdman.sfm.client.semantic.SFMSpatialSemanticContract;
 import ca.teamdman.sfm.client.symbol.SFMDefinitionLookupService;
 import ca.teamdman.sfm.client.symbol.SFMDefinitionResult;
+import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMap;
+import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMapSession;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverIdentity;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverLookup;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverStateMachine;
@@ -63,6 +69,9 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     private boolean pointerInside;
     private boolean hoverFocused;
     private long observedDocumentGeneration = -1L;
+    private String observedDocumentContentHash = "";
+    private String observedSemanticFingerprint = "";
+    private SFMJavaInteractionMapSession interactionMapSession;
     private SFMSymbolHoverIdentity.Modifiers hoverModifiers = SFMSymbolHoverIdentity.Modifiers.NONE;
 
     private SFMTextEditorPanel(
@@ -196,6 +205,44 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         return title().copy().append(Component.literal(openContext.readOnly() ? " (read-only)" : ""));
     }
 
+    /** Captures one exact, generation-consistent canvas plus Rust semantic map. */
+    public Optional<SpatialCoverageCapture> captureSpatialCoverage() {
+        if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) return Optional.empty();
+        SFMJavaInteractionMap.Result map = currentInteractionMap(drawCanvas).orElse(null);
+        if (map == null) return Optional.empty();
+        SFMContextDocumentProjection projection = drawCanvas.captureContextProjection(
+                openContext.editorId(), openContext.document(), isReadOnly());
+        if (!projection.currentSha256().equals(map.document().contentHash())
+                || map.documentGeneration() != drawCanvas.documentGeneration()) {
+            return Optional.empty();
+        }
+        SFMDrawCanvasScreen.SpatialLayoutSnapshot layout = drawCanvas.captureSpatialLayout();
+        SFMSpatialCoverageService.Document document = SFMCanvasSpatialCoverageSnapshot.capture(
+                map.document().address(),
+                map.document().sourceSet(),
+                map.document().contentHash(),
+                layout.index(),
+                layout.lineHeight(),
+                map.workspaceGeneration(),
+                map.documentGeneration(),
+                layout.generation(),
+                new SFMJavaInteractionMapSpatialAdapter(projection.currentText(), map)
+        );
+        SFMSpatialSemanticContract.SnapshotIdentity identity =
+                new SFMSpatialSemanticContract.SnapshotIdentity(
+                        map.workspaceFingerprint(),
+                        map.workspaceGeneration(),
+                        map.document().address(),
+                        map.document().contentHash(),
+                        map.documentGeneration(),
+                        map.semanticFingerprint(),
+                        map.semanticGeneration(),
+                        layout.fingerprint(),
+                        layout.generation()
+                );
+        return Optional.of(new SpatialCoverageCapture(identity, document, map.files()));
+    }
+
     @Override
     public void opened(Minecraft minecraft, SFMScreenPanelBounds bounds, SFMWorkspacePanelContext context) {
         this.panelContext = context;
@@ -204,11 +251,13 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                     this::submitHoverLookup,
                     SFMSymbolHoverStateMachine.DragThreshold.euclidean(DEFINITION_DRAG_THRESHOLD_PIXELS)
             );
+            this.interactionMapSession = new SFMJavaInteractionMapSession(SFMSymbolNavigationRuntime.get());
             this.linkCursor = SFMEditorLinkCursorHost.live(minecraft.getWindow().getWindow());
         }
         init(minecraft, bounds);
         if (screen instanceof SFMDrawCanvasScreen drawCanvas) {
             observedDocumentGeneration = drawCanvas.documentGeneration();
+            refreshInteractionMap(drawCanvas);
         }
     }
 
@@ -236,12 +285,19 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             linkCursor.close();
             linkCursor = null;
         }
+        if (interactionMapSession != null) {
+            interactionMapSession.close();
+            interactionMapSession = null;
+        }
         hoverContribution = null;
         hoverHit = null;
         capturedHoverHit = null;
         capturedHoverClick = false;
         pointerInside = false;
         hoverFocused = false;
+        observedDocumentGeneration = -1L;
+        observedDocumentContentHash = "";
+        observedSemanticFingerprint = "";
         hoverModifiers = SFMSymbolHoverIdentity.Modifiers.NONE;
         hoverCaptureCache.clear();
         screen.removed();
@@ -276,6 +332,17 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 observedDocumentGeneration = documentGeneration;
                 symbolHover.documentChanged();
                 clearHoverTarget();
+                refreshInteractionMap(drawCanvas);
+            }
+            String semanticFingerprint = currentInteractionMap(drawCanvas)
+                    .map(SFMJavaInteractionMap.Result::semanticFingerprint)
+                    .orElse("");
+            if (!semanticFingerprint.equals(observedSemanticFingerprint)) {
+                observedSemanticFingerprint = semanticFingerprint;
+                clearHoverTarget();
+                if (focused && inside && hoverModifiers.requestsDefinitionNavigation()) {
+                    refreshHoverTarget(mouseX, mouseY);
+                }
             }
             SFMSymbolHoverStateMachine.Snapshot hover = symbolHover.snapshot();
             drawCanvas.setSymbolHoverUnderline(focused && inside
@@ -336,7 +403,11 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         rememberPointer(mouseX, mouseY);
         if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT
                 && screen instanceof SFMDrawCanvasScreen drawCanvas) {
-            drawCanvas.focusContextAtScreen(mouseX, mouseY);
+            drawCanvas.symbolHitAtScreen(mouseX, mouseY, currentInteractionMap(drawCanvas))
+                    .ifPresentOrElse(
+                            drawCanvas::focusSymbolHit,
+                            () -> drawCanvas.focusContextAtScreen(mouseX, mouseY)
+                    );
             if (hoverModifiers.requestsDefinitionNavigation()) refreshHoverTarget(mouseX, mouseY);
             return executeEditorAction(SFMContextActionsOpenAction.ID);
         }
@@ -433,8 +504,32 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 || !document.currentSha256().equals(identity.document().contentHash())) {
             return new SFMSymbolHoverLookup.Query(
                     CompletableFuture.completedFuture(SFMSymbolHoverLookup.Resolution.UNAVAILABLE),
-                    () -> { }
+                () -> { }
             );
+        }
+        if (screen instanceof SFMDrawCanvasScreen drawCanvas
+                && hoverHit != null
+                && hoverHit.semanticRegionId().isPresent()) {
+            Optional<SFMJavaInteractionMap.Result> currentMap = currentInteractionMap(drawCanvas);
+            if (currentMap.isPresent()
+                    && currentMap.orElseThrow().semanticGeneration() == hoverHit.semanticGeneration()) {
+                SFMJavaInteractionMap.Result map = currentMap.orElseThrow();
+                SFMJavaInteractionMap.Classification classification = map
+                        .classification(hoverHit.semanticRegionId().orElseThrow())
+                        .orElse(null);
+                int navigationTargets = classification == null
+                        ? 0
+                        : map.navigationOutlinks(classification).size();
+                SFMSymbolHoverLookup.Resolution resolution = navigationTargets > 1
+                        ? SFMSymbolHoverLookup.Resolution.AMBIGUOUS
+                        : navigationTargets == 1
+                                ? SFMSymbolHoverLookup.Resolution.ACTIONABLE
+                                : SFMSymbolHoverLookup.Resolution.UNRESOLVED;
+                return new SFMSymbolHoverLookup.Query(
+                        CompletableFuture.completedFuture(resolution),
+                        () -> { }
+                );
+            }
         }
         SFMDefinitionLookupService.Submission submission = SFMSymbolNavigationRuntime.get().query(contribution);
         return new SFMSymbolHoverLookup.Query(
@@ -493,7 +588,11 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             SFMSymbolHoverIdentity.EditorOrigin editorOrigin,
             long documentGeneration
     ) {
-        Optional<SFMDrawCanvasScreen.SymbolHit> hit = drawCanvas.symbolHitAtScreen(mouseX, mouseY);
+        Optional<SFMDrawCanvasScreen.SymbolHit> hit = drawCanvas.symbolHitAtScreen(
+                mouseX,
+                mouseY,
+                currentInteractionMap(drawCanvas)
+        );
         if (hit.isEmpty()) return Optional.empty();
         SFMDrawCanvasScreen.SymbolHit symbolHit = hit.orElseThrow();
         SFMContextDocumentProjection projection = drawCanvas.captureContextProjectionAt(
@@ -563,6 +662,39 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         observedDocumentGeneration = generation;
         symbolHover.documentChanged();
         clearHoverTarget();
+        refreshInteractionMap(drawCanvas);
+    }
+
+    private void refreshInteractionMap(SFMDrawCanvasScreen drawCanvas) {
+        if (interactionMapSession == null || panelContext == null) return;
+        SFMContextDocumentProjection projection = drawCanvas.captureContextProjection(
+                openContext.editorId(),
+                openContext.document(),
+                isReadOnly()
+        );
+        long documentGeneration = drawCanvas.documentGeneration();
+        long contributorGeneration = drawCanvas.contextGeneration();
+        observedDocumentContentHash = projection.currentSha256();
+        observedSemanticFingerprint = "";
+        interactionMapSession.refresh(
+                new SFMContextContribution(
+                        contextOrigin(),
+                        new SFMContextGenerationEvidence(
+                                contributorGeneration,
+                                documentGeneration,
+                                contributorGeneration,
+                                0
+                        ),
+                        projection
+                ),
+                documentGeneration,
+                observedDocumentContentHash
+        );
+    }
+
+    private Optional<SFMJavaInteractionMap.Result> currentInteractionMap(SFMDrawCanvasScreen drawCanvas) {
+        if (interactionMapSession == null || observedDocumentContentHash.isBlank()) return Optional.empty();
+        return interactionMapSession.current(drawCanvas.documentGeneration(), observedDocumentContentHash);
     }
 
     private void rememberPointer(double mouseX, double mouseY) {
@@ -613,6 +745,18 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             SFMDrawCanvasScreen.SymbolHit hit,
             SFMSymbolHoverStateMachine.Target target
     ) {
+    }
+
+    public record SpatialCoverageCapture(
+            SFMSpatialSemanticContract.SnapshotIdentity snapshot,
+            SFMSpatialCoverageService.Document document,
+            java.util.List<SFMJavaInteractionMap.FileRow> workspaceInventory
+    ) {
+        public SpatialCoverageCapture {
+            Objects.requireNonNull(snapshot, "snapshot");
+            Objects.requireNonNull(document, "document");
+            workspaceInventory = java.util.List.copyOf(workspaceInventory);
+        }
     }
 
     static ISFMTextEditScreenOpenContext screenContext(

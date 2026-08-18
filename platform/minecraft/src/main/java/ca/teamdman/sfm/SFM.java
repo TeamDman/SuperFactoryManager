@@ -10,6 +10,7 @@ import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
 import ca.teamdman.sfm.client.action.SFMExplorerActions;
 import ca.teamdman.sfm.client.action.SFMSymbolActions;
+import ca.teamdman.sfm.client.action.SFMSpatialActions;
 import ca.teamdman.sfm.client.action.SFMDeveloperActions;
 import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
@@ -90,6 +91,7 @@ public class SFM {
         SFMCommandPaletteActions.register(bus);
         SFMExplorerActions.register(bus);
         SFMSymbolActions.register(bus);
+        SFMSpatialActions.register(bus);
 
         SFMKeyboardUsageSituationRegistrations.register(bus);
 

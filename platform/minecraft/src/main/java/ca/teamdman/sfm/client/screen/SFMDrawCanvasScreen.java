@@ -15,6 +15,7 @@ import ca.teamdman.sfm.client.syntax.SFMSyntaxHighlightResult;
 import ca.teamdman.sfm.client.syntax.SFMSyntaxHighlightRuntime;
 import ca.teamdman.sfm.client.syntax.SFMTextEditorSyntaxSession;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverIdentity;
+import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMap;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
@@ -1046,6 +1047,34 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         return documentGeneration;
     }
 
+    /** Immutable evidence for one exact painted canvas/layout generation. */
+    public SpatialLayoutSnapshot captureSpatialLayout() {
+        loadInitialContent();
+        SFMDrawCanvasDocumentIndex index = model().documentIndex(this.font.width(" "), this.font.lineHeight);
+        long generation = model().contentRevision();
+        StringBuilder fingerprintInput = new StringBuilder(index.projection().text())
+                .append('\u0000').append(generation)
+                .append('\u0000').append(this.font.lineHeight)
+                .append('\u0000').append(this.width).append('x').append(this.height)
+                .append('\u0000').append(cameraX).append(',').append(cameraY).append(',').append(zoom);
+        for (SFMDrawCanvasModel.CanvasGlyph glyph : index.orderedGlyphs()) {
+            fingerprintInput.append('\u0000')
+                    .append(glyph.x()).append(',')
+                    .append(glyph.y()).append(',')
+                    .append(glyph.width()).append(':')
+                    .append(glyph.text());
+        }
+        return new SpatialLayoutSnapshot(
+                index,
+                this.font.lineHeight,
+                generation,
+                ca.teamdman.sfm.client.symbol.SFMDefinitionRequest.sha256(fingerprintInput.toString()),
+                this.width,
+                this.height,
+                new SFMSpatialSemanticContract.Camera(cameraX, cameraY, zoom)
+        );
+    }
+
     public SFMContextDocumentProjection captureContextProjectionAt(
             String editorId,
             SFMTextDocumentSnapshot baseline,
@@ -1106,6 +1135,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     public Optional<SymbolHit> symbolHitAtScreen(double mouseX, double mouseY) {
+        return symbolHitAtScreen(mouseX, mouseY, Optional.empty());
+    }
+
+    public Optional<SymbolHit> symbolHitAtScreen(
+            double mouseX,
+            double mouseY,
+            Optional<SFMJavaInteractionMap.Result> interactionMap
+    ) {
         if (openContext == null) return Optional.empty();
         SFMDrawCanvasDocumentIndex index = model().documentIndex(this.font.width(" "), this.font.lineHeight);
         SFMDrawCanvasModel.CanvasGlyph glyph = index.glyphAt(
@@ -1117,6 +1154,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         int glyphOrdinal = index.glyphOrdinalOf(glyph).orElse(-1);
         if (offset < 0 || glyphOrdinal < 0) return Optional.empty();
         String text = index.projection().text();
+        Optional<SymbolHit> semantic = interactionMap.flatMap(map ->
+                interactionMapHit(index, glyphOrdinal, offset, text, map));
+        if (semantic.isPresent()) return semantic;
         SFMJavaCanvasInteractionRegions.Region region = javaInteractionRegions(text)
                 .atUtf16(offset)
                 .orElse(null);
@@ -1139,7 +1179,53 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 ),
                 glyphOrdinal,
                 region.kind().name().toLowerCase(java.util.Locale.ROOT),
-                region.navigationUtf16Offset()
+                region.navigationUtf16Offset(),
+                Optional.empty(),
+                0
+        ));
+    }
+
+    private Optional<SymbolHit> interactionMapHit(
+            SFMDrawCanvasDocumentIndex index,
+            int glyphOrdinal,
+            int utf16Offset,
+            String text,
+            SFMJavaInteractionMap.Result map
+    ) {
+        if (map.outcome() != SFMJavaInteractionMap.Outcome.SUCCESS
+                || map.documentGeneration() != documentGeneration
+                || !map.document().contentHash().equals(ca.teamdman.sfm.client.symbol.SFMDefinitionRequest.sha256(text))) {
+            return Optional.empty();
+        }
+        long byteOffset = SFMContextTextCoordinates.atUtf16Offset(text, utf16Offset).byteOffset();
+        SFMJavaInteractionMap.Region region = map.mostSpecificRegionAtByte(byteOffset).orElse(null);
+        if (region == null || map.classification(region.id()).isEmpty()) return Optional.empty();
+        int start;
+        int end;
+        try {
+            List<Integer> offsets = SFMContextTextCoordinates.utf16OffsetsAtUtf8Bytes(
+                    text,
+                    List.of(Math.toIntExact(region.startByte()), Math.toIntExact(region.endByte()))
+            );
+            start = offsets.get(0);
+            end = offsets.get(1);
+        } catch (ArithmeticException | IllegalArgumentException invalidProjection) {
+            return Optional.empty();
+        }
+        SFMDrawCanvasModel.CanvasGlyph first = firstGlyph(index, start, end);
+        SFMDrawCanvasModel.CanvasGlyph last = lastGlyph(index, start, end);
+        if (first == null || last == null) return Optional.empty();
+        int firstOrdinal = index.glyphOrdinalOf(first).orElse(-1);
+        int finalOrdinal = index.glyphOrdinalOf(last).orElse(-1);
+        if (firstOrdinal < 0 || finalOrdinal < firstOrdinal) return Optional.empty();
+        return Optional.of(new SymbolHit(
+                SFMSymbolHoverIdentity.TextGlyphRange.fromUtf16(
+                        text, start, end, firstOrdinal, finalOrdinal + 1),
+                glyphOrdinal,
+                region.semanticKind(),
+                start,
+                Optional.of(region.id()),
+                map.semanticGeneration()
         ));
     }
 
@@ -2755,7 +2841,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             SFMSymbolHoverIdentity.TextGlyphRange range,
             int glyphOrdinal,
             String semanticKind,
-            int navigationUtf16Offset
+            int navigationUtf16Offset,
+            Optional<String> semanticRegionId,
+            long semanticGeneration
     ) {
         public SymbolHit {
             Objects.requireNonNull(range, "range");
@@ -2766,10 +2854,49 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             if (navigationUtf16Offset < 0) {
                 throw new IllegalArgumentException("navigationUtf16Offset must not be negative");
             }
+            semanticRegionId = Objects.requireNonNull(semanticRegionId, "semanticRegionId");
+            semanticRegionId.ifPresent(value -> {
+                if (value.isBlank()) throw new IllegalArgumentException("semanticRegionId must not be blank");
+            });
+            if (semanticGeneration < 0) {
+                throw new IllegalArgumentException("semanticGeneration must not be negative");
+            }
         }
 
         public SymbolHit(SFMSymbolHoverIdentity.TextGlyphRange range, int glyphOrdinal) {
-            this(range, glyphOrdinal, "identifier", range.utf16Start());
+            this(range, glyphOrdinal, "identifier", range.utf16Start(), Optional.empty(), 0);
+        }
+
+        public SymbolHit(
+                SFMSymbolHoverIdentity.TextGlyphRange range,
+                int glyphOrdinal,
+                String semanticKind,
+                int navigationUtf16Offset
+        ) {
+            this(range, glyphOrdinal, semanticKind, navigationUtf16Offset, Optional.empty(), 0);
+        }
+    }
+
+    public record SpatialLayoutSnapshot(
+            SFMDrawCanvasDocumentIndex index,
+            int lineHeight,
+            long generation,
+            String fingerprint,
+            int viewportWidth,
+            int viewportHeight,
+            SFMSpatialSemanticContract.Camera camera
+    ) {
+        public SpatialLayoutSnapshot {
+            Objects.requireNonNull(index, "index");
+            if (lineHeight <= 0) throw new IllegalArgumentException("lineHeight must be positive");
+            if (generation < 0) throw new IllegalArgumentException("generation must not be negative");
+            if (fingerprint == null || fingerprint.isBlank()) {
+                throw new IllegalArgumentException("fingerprint must not be blank");
+            }
+            if (viewportWidth <= 0 || viewportHeight <= 0) {
+                throw new IllegalArgumentException("viewport must be positive");
+            }
+            Objects.requireNonNull(camera, "camera");
         }
     }
 
