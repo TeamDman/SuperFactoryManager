@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.symbol;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
 
 import java.util.Objects;
@@ -35,14 +36,66 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
         SFMJavaInteractionMapLookupService.Submission submitted = service.queryInteractionMap(contribution);
         active = submitted;
         submitted.result().whenComplete((lookup, failure) -> {
-            if (failure != null || lookup == null) return;
+            if (failure != null) {
+                SFM.LOGGER.warn(
+                        "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=FAILED epoch={} expected_generation={} failure_type={}",
+                        epoch,
+                        documentGeneration,
+                        failure.getClass().getSimpleName()
+                );
+                return;
+            }
+            if (lookup == null) {
+                SFM.LOGGER.warn(
+                        "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=REJECTED_NULL epoch={} expected_generation={}",
+                        epoch,
+                        documentGeneration
+                );
+                return;
+            }
             synchronized (SFMJavaInteractionMapSession.this) {
-                if (closed || requestEpoch != epoch || active != submitted) return;
+                if (closed || requestEpoch != epoch || active != submitted) {
+                    SFM.LOGGER.info(
+                            "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=REJECTED_STALE epoch={} current_epoch={} closed={}",
+                            epoch,
+                            requestEpoch,
+                            closed
+                    );
+                    return;
+                }
                 SFMJavaInteractionMap.Result result = lookup.result();
-                if (result.outcome() != SFMJavaInteractionMap.Outcome.SUCCESS) return;
-                if (result.documentGeneration() != documentGeneration
-                        || !result.document().contentHash().equals(contentHash)) return;
+                if (result.outcome() != SFMJavaInteractionMap.Outcome.SUCCESS) {
+                    SFM.LOGGER.warn(
+                            "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=REJECTED_OUTCOME epoch={} outcome={}",
+                            epoch,
+                            result.outcome()
+                    );
+                    return;
+                }
+                if (result.documentGeneration() != documentGeneration) {
+                    SFM.LOGGER.warn(
+                            "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=REJECTED_GENERATION epoch={} expected={} actual={}",
+                            epoch,
+                            documentGeneration,
+                            result.documentGeneration()
+                    );
+                    return;
+                }
+                if (!result.document().contentHash().equals(contentHash)) {
+                    SFM.LOGGER.warn(
+                            "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=REJECTED_CONTENT epoch={} generation={}",
+                            epoch,
+                            documentGeneration
+                    );
+                    return;
+                }
                 publication = new Publication(documentGeneration, contentHash, result);
+                SFM.LOGGER.info(
+                        "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=PUBLISHED epoch={} generation={} semantic_generation={}",
+                        epoch,
+                        documentGeneration,
+                        result.semanticGeneration()
+                );
             }
         });
     }

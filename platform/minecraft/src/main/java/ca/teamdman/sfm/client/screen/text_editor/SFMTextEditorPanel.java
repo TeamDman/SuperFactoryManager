@@ -23,6 +23,7 @@ import ca.teamdman.sfm.client.semantic.SFMJavaInteractionMapSpatialAdapter;
 import ca.teamdman.sfm.client.semantic.SFMSpatialCoverageService;
 import ca.teamdman.sfm.client.semantic.SFMSpatialSemanticContract;
 import ca.teamdman.sfm.client.symbol.SFMDefinitionLookupService;
+import ca.teamdman.sfm.client.symbol.SFMDefinitionRequest;
 import ca.teamdman.sfm.client.symbol.SFMDefinitionResult;
 import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMap;
 import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMapSession;
@@ -212,7 +213,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         if (map == null) return Optional.empty();
         SFMContextDocumentProjection projection = drawCanvas.captureContextProjection(
                 openContext.editorId(), openContext.document(), isReadOnly());
-        if (!projection.currentSha256().equals(map.document().contentHash())
+        if (!SFMDefinitionRequest.sha256(projection.currentText()).equals(map.document().contentHash())
                 || map.documentGeneration() != drawCanvas.documentGeneration()) {
             return Optional.empty();
         }
@@ -373,6 +374,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     @Override
     public void tick() {
         screen.tick();
+        observeDocumentMutation();
     }
 
     @Override
@@ -674,7 +676,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         );
         long documentGeneration = drawCanvas.documentGeneration();
         long contributorGeneration = drawCanvas.contextGeneration();
-        observedDocumentContentHash = projection.currentSha256();
+        observedDocumentContentHash = SFMDefinitionRequest.sha256(projection.currentText());
         observedSemanticFingerprint = "";
         interactionMapSession.refresh(
                 new SFMContextContribution(

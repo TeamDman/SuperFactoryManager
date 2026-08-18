@@ -809,11 +809,20 @@ fn build_complete_map(
         &mut synthetic_parent,
     );
 
+    // Java clients currently identify editor snapshots with SHA-256 while the
+    // Rust syntax/index spans retain their established BLAKE3 source hashes.
+    // Both hashes attest to these exact request-owned bytes; comparing tagged
+    // hashes directly would silently discard every semantic usage region.
+    let accepted_source_hashes = BTreeSet::from([
+        request.document.content_hash.clone(),
+        blake3_content_hash(source),
+        sha256_content_hash(source),
+    ]);
     let mut symbol_region_ids = Vec::new();
     for (ordinal, usage) in resolved.usages.iter().enumerate() {
         if usage.span.path != request.document.report_path
             || usage.span.source_set != request.document.source_set
-            || usage.span.source_hash != request.document.content_hash
+            || !accepted_source_hashes.contains(&usage.span.source_hash)
         {
             continue;
         }
@@ -1128,43 +1137,12 @@ fn paginate_complete_map(
     }
 
     // Preserve at least one row from every non-empty requested lane so a
-    // successful bounded page always advances both advertised cursors.
-    // Region rows normally dominate encoded size because they carry their
-    // classifications and outlinks, so trim them before inventory rows. The
-    // old implementation removed one row and re-encoded the multi-megabyte
-    // page after every removal. Large real documents therefore performed
-    // thousands of full serializations. Prefix size is monotonic, so find the
-    // largest fitting prefix in logarithmic probes without changing policy.
-    if selected_regions.len() > 1 {
-        let fitting = largest_fitting_prefix(selected_regions.len() - 1, |count| {
-            install_page_relations(
-                &mut result,
-                &selected_regions[..count],
-                &selected_inventory,
-                &complete.classifications,
-                &complete.outlinks,
-                &complete.reciprocity,
-                &complete.exceptions,
-            );
-            Ok(refresh_encoded_bytes(&mut result)? <= request.window.max_encoded_bytes)
-        })?;
-        if let Some(count) = fitting {
-            selected_regions.truncate(count);
-            install_page_relations(
-                &mut result,
-                &selected_regions,
-                &selected_inventory,
-                &complete.classifications,
-                &complete.outlinks,
-                &complete.reciprocity,
-                &complete.exceptions,
-            );
-            refresh_encoded_bytes(&mut result)?;
-            return Ok(result);
-        }
-        selected_regions.truncate(1);
-    }
-
+    // successful bounded page always advances both advertised cursors. The
+    // current document's semantic regions are the primary payload; workspace
+    // inventory is independently pageable supporting context. Trim inventory
+    // first so a large workspace cannot silently punch holes in the canvas
+    // interaction map. Prefix size is monotonic, so find each largest fitting
+    // prefix in logarithmic serialization probes.
     if selected_inventory.len() > 1 {
         let fitting = largest_fitting_prefix(selected_inventory.len() - 1, |count| {
             install_page_relations(
@@ -1193,6 +1171,36 @@ fn paginate_complete_map(
             return Ok(result);
         }
         selected_inventory.truncate(1);
+    }
+
+    if selected_regions.len() > 1 {
+        let fitting = largest_fitting_prefix(selected_regions.len() - 1, |count| {
+            install_page_relations(
+                &mut result,
+                &selected_regions[..count],
+                &selected_inventory,
+                &complete.classifications,
+                &complete.outlinks,
+                &complete.reciprocity,
+                &complete.exceptions,
+            );
+            Ok(refresh_encoded_bytes(&mut result)? <= request.window.max_encoded_bytes)
+        })?;
+        if let Some(count) = fitting {
+            selected_regions.truncate(count);
+            install_page_relations(
+                &mut result,
+                &selected_regions,
+                &selected_inventory,
+                &complete.classifications,
+                &complete.outlinks,
+                &complete.reciprocity,
+                &complete.exceptions,
+            );
+            refresh_encoded_bytes(&mut result)?;
+            return Ok(result);
+        }
+        selected_regions.truncate(1);
     }
 
     install_page_relations(
@@ -2410,7 +2418,7 @@ mod tests {
                 report_path: document_file.report_path.clone(),
                 source_set: document_file.source_set.clone(),
                 text: text.clone(),
-                content_hash: blake3_content_hash(&text),
+                content_hash: sha256_content_hash(&text),
                 disk_content_hash: Some(blake3_content_hash(&text)),
             },
         );
@@ -2556,6 +2564,35 @@ mod tests {
             largest_fitting_prefix(32, |_| Ok(true)).expect("all prefixes fit"),
             Some(32)
         );
+    }
+
+    #[test]
+    fn encoded_budget_preserves_document_regions_before_inventory() {
+        let (_jdk_directory, workspace, mut request) = semantic_matrix_fixture();
+        let engine = DefinitionAtPositionEngine::new(
+            workspace,
+            None,
+            None,
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("semantic matrix engine");
+
+        request.window.max_inventory_files = 1;
+        let one_inventory = engine
+            .analyze_interaction_map(&request, &CancellationToken::new())
+            .expect("one-inventory interaction map");
+        assert!(one_inventory.page.next_region_offset.is_none());
+        assert!(one_inventory.page.next_inventory_offset.is_some());
+
+        request.window.max_inventory_files = JAVA_INTERACTION_MAP_DEFAULT_MAX_INVENTORY_FILES;
+        request.window.max_encoded_bytes = one_inventory.page.encoded_bytes;
+        let bounded = engine
+            .analyze_interaction_map(&request, &CancellationToken::new())
+            .expect("inventory-bounded interaction map");
+        assert_eq!(bounded.regions, one_inventory.regions);
+        assert!(bounded.page.next_region_offset.is_none());
+        assert_eq!(bounded.files.len(), 1);
+        assert!(bounded.page.next_inventory_offset.is_some());
     }
 
     #[test]

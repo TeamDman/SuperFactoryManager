@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.semantic;
 import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMap;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -11,6 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 
 /** Projects one immutable Rust Java interaction map into the Java canvas oracle. */
 public final class SFMJavaInteractionMapSpatialAdapter
@@ -22,7 +24,7 @@ public final class SFMJavaInteractionMapSpatialAdapter
     private final int[] utf8ByteAtUtf16;
     private final SFMJavaInteractionMap.Region[] regionAtUtf8Byte;
     private final Map<String, SFMJavaInteractionMap.Classification> classificationsByRegion;
-    private final Map<String, List<SFMJavaInteractionMap.Outlink>> outlinksBySourceRegion;
+    private final Map<String, SFMJavaInteractionMap.Outlink> outlinksById;
     private final Set<String> reciprocalOutlinkIds;
     private final Map<String, SFMCanvasSpatialCoverageSnapshot.SemanticResult> semanticsByRegion =
             new HashMap<>();
@@ -42,12 +44,9 @@ public final class SFMJavaInteractionMapSpatialAdapter
         LinkedHashMap<String, SFMJavaInteractionMap.Classification> classifications = new LinkedHashMap<>();
         map.classifications().forEach(value -> classifications.put(value.regionId(), value));
         classificationsByRegion = Map.copyOf(classifications);
-        LinkedHashMap<String, List<SFMJavaInteractionMap.Outlink>> groupedOutlinks = new LinkedHashMap<>();
-        map.outlinks().forEach(outlink -> groupedOutlinks
-                .computeIfAbsent(outlink.sourceRegionId(), ignored -> new ArrayList<>())
-                .add(outlink));
-        groupedOutlinks.replaceAll((ignored, outlinks) -> List.copyOf(outlinks));
-        outlinksBySourceRegion = Map.copyOf(groupedOutlinks);
+        LinkedHashMap<String, SFMJavaInteractionMap.Outlink> indexedOutlinks = new LinkedHashMap<>();
+        map.outlinks().forEach(outlink -> indexedOutlinks.put(outlink.id(), outlink));
+        outlinksById = Map.copyOf(indexedOutlinks);
         LinkedHashSet<String> reciprocalIds = new LinkedHashSet<>();
         map.reciprocity().stream()
                 .filter(value -> value.status() == SFMJavaInteractionMap.ReciprocityStatus.VERIFIED)
@@ -78,8 +77,12 @@ public final class SFMJavaInteractionMapSpatialAdapter
             SFMJavaInteractionMap.Region region,
             SFMJavaInteractionMap.Classification source
     ) {
-        List<SFMJavaInteractionMap.Outlink> sourceOutlinks =
-                outlinksBySourceRegion.getOrDefault(region.id(), List.of());
+        List<SFMJavaInteractionMap.Outlink> sourceOutlinks = source.navigationOutlinkIds().stream()
+                .map(id -> Objects.requireNonNull(
+                        outlinksById.get(id),
+                        () -> "Classification references absent navigation outlink " + id
+                ))
+                .toList();
         List<SFMSpatialSemanticContract.Outlink> outlinks = sourceOutlinks.stream()
                 .map(SFMJavaInteractionMapSpatialAdapter::outlink)
                 .toList();
@@ -125,24 +128,32 @@ public final class SFMJavaInteractionMapSpatialAdapter
                 .filter(domain -> domain.kind().equals("utf8"))
                 .map(SFMJavaInteractionMap.Domain::id)
                 .collect(java.util.stream.Collectors.toUnmodifiableSet());
-        for (SFMJavaInteractionMap.Region region : map.regions()) {
-            if (!utf8Domains.contains(region.domainId())) continue;
-            int start = (int) Math.max(0L, Math.min((long) utf8Bytes, region.startByte()));
-            int end = (int) Math.max(start, Math.min((long) utf8Bytes, region.endByte()));
-            for (int offset = start; offset < end; offset++) {
-                SFMJavaInteractionMap.Region current = result[offset];
-                if (current == null || isMoreSpecific(region, current)) result[offset] = region;
+        Comparator<SFMJavaInteractionMap.Region> specificity = Comparator
+                .comparingLong(SFMJavaInteractionMap.Region::byteLength)
+                .thenComparing(SFMJavaInteractionMap.Region::id);
+        List<SFMJavaInteractionMap.Region> starts = map.regions().stream()
+                .filter(region -> utf8Domains.contains(region.domainId()))
+                .sorted(Comparator.comparingLong(SFMJavaInteractionMap.Region::startByte)
+                        .thenComparing(specificity))
+                .toList();
+        List<SFMJavaInteractionMap.Region> ends = starts.stream()
+                .sorted(Comparator.comparingLong(SFMJavaInteractionMap.Region::endByte)
+                        .thenComparing(specificity))
+                .toList();
+        TreeSet<SFMJavaInteractionMap.Region> active = new TreeSet<>(specificity);
+        int startIndex = 0;
+        int endIndex = 0;
+        for (int offset = 0; offset < utf8Bytes; offset++) {
+            while (endIndex < ends.size() && ends.get(endIndex).endByte() <= offset) {
+                active.remove(ends.get(endIndex++));
             }
+            while (startIndex < starts.size() && starts.get(startIndex).startByte() <= offset) {
+                SFMJavaInteractionMap.Region region = starts.get(startIndex++);
+                if (region.endByte() > offset) active.add(region);
+            }
+            if (!active.isEmpty()) result[offset] = active.first();
         }
         return result;
-    }
-
-    private static boolean isMoreSpecific(
-            SFMJavaInteractionMap.Region candidate,
-            SFMJavaInteractionMap.Region current
-    ) {
-        int length = Long.compare(candidate.byteLength(), current.byteLength());
-        return length < 0 || (length == 0 && candidate.id().compareTo(current.id()) < 0);
     }
 
     private static int[] utf8ByteOffsets(String text) {

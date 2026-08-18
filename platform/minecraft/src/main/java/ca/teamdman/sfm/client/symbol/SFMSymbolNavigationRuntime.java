@@ -260,8 +260,16 @@ public final class SFMSymbolNavigationRuntime
                         definition.workspace(),
                         definition.document()
                 );
-                SFMSymbolServerSupervisor.InteractionMapSubmission submission =
-                        provider.queryInteractionMap(request);
+                SFMJavaInteractionMapPager.Submission submission = SFMJavaInteractionMapPager.collect(
+                        request,
+                        () -> requestSequence.updateAndGet(SFMSymbolNavigationRuntime::incrementRequestId),
+                        pageRequest -> {
+                            SFMSymbolServerSupervisor.InteractionMapSubmission page =
+                                    provider.queryInteractionMap(pageRequest);
+                            return new SFMJavaInteractionMapPager.PageSubmission(
+                                    page.result(), page.cancellation());
+                        }
+                );
                 activeCancellation.set(submission.cancellation());
                 if (cancelled.get()) {
                     submission.cancellation().run();

@@ -1711,9 +1711,15 @@ fn java_interaction_semantic_identity(
     let mut generation_bytes = [0_u8; 8];
     generation_bytes.copy_from_slice(&hash.as_bytes()[..8]);
     (
-        u64::from_le_bytes(generation_bytes),
+        java_wire_generation(generation_bytes),
         format!("blake3:{}", hash.to_hex()),
     )
+}
+
+/// Semantic generations cross the Rust/Java wire as non-negative Java longs.
+/// The full BLAKE3 fingerprint remains the collision-resistant identity.
+fn java_wire_generation(bytes: [u8; 8]) -> u64 {
+    u64::from_le_bytes(bytes) & (i64::MAX as u64)
 }
 
 fn duration_micros(duration: std::time::Duration) -> u64 {
@@ -1752,6 +1758,13 @@ fn percent_encode_component(value: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn java_wire_generations_never_set_the_signed_long_bit() {
+        assert_eq!(java_wire_generation([0; 8]), 0);
+        assert_eq!(java_wire_generation([u8::MAX; 8]), i64::MAX as u64);
+        assert!(java_wire_generation([0, 0, 0, 0, 0, 0, 0, 0x80]) <= i64::MAX as u64);
+    }
     use crate::java_analysis::DefinitionDocumentInput;
     use crate::java_analysis::DefinitionRecoveryActionKind;
     use crate::java_analysis::DefinitionTextPositionInput;

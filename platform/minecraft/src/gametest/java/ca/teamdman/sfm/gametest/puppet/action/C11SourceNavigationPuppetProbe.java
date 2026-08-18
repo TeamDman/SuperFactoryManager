@@ -36,6 +36,8 @@ import java.util.Optional;
 /** C-11-only live probes; no production behavior depends on these reflective witnesses. */
 final class C11SourceNavigationPuppetProbe {
     record Pointer(
+            double canvasX,
+            double canvasY,
             double localX,
             double localY,
             double globalX,
@@ -139,6 +141,8 @@ final class C11SourceNavigationPuppetProbe {
             SFMDrawCanvasModel.CanvasGlyph glyph = index.projection().glyphsByCharIndex().get(utf16);
             if (glyph == null) throw new IllegalStateException("The pointer range does not begin on a glyph");
             double zoom = DRAW_ZOOM.getDouble(draw);
+            double canvasX = glyph.x() + Math.max(0.5D, glyph.width() / 2.0D);
+            double canvasY = glyph.y() + Math.max(0.5D, Minecraft.getInstance().font.lineHeight / 2.0D);
             double localX = (glyph.x() - DRAW_CAMERA_X.getDouble(draw)) * zoom
                     + draw.width / 2.0D + Math.max(0.5D, glyph.width() * zoom / 2.0D);
             double localY = (glyph.y() - DRAW_CAMERA_Y.getDouble(draw)) * zoom
@@ -156,7 +160,7 @@ final class C11SourceNavigationPuppetProbe {
             double globalY = global.y() + global.height() / 2.0D;
             SFMDrawCanvasScreen.SymbolHit hit = draw.symbolHitAtScreen(localX, localY)
                     .orElseThrow(() -> new IllegalStateException("The mapped source pointer does not hit a symbol"));
-            return new Pointer(localX, localY, globalX, globalY, hit);
+            return new Pointer(canvasX, canvasY, localX, localY, globalX, globalY, hit);
         } catch (IllegalAccessException failure) {
             throw new IllegalStateException("Could not inspect the source editor pointer geometry", failure);
         }
@@ -191,7 +195,7 @@ final class C11SourceNavigationPuppetProbe {
         Objects.requireNonNull(pointer, "pointer");
         return spatialCoverage(editor).map(capture -> new SpatialWitness(
                 capture.snapshot(),
-                capture.document().oracle().probe(pointer.localX(), pointer.localY())
+                capture.document().oracle().probe(pointer.canvasX(), pointer.canvasY())
         ));
     }
 
