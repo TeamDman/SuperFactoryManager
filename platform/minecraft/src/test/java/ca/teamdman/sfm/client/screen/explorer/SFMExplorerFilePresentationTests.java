@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerEntry;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.presentation.SFMItemIconResolver;
+import ca.teamdman.sfm.client.symbol.SFMSymbolReferenceResultRepository;
 import ca.teamdman.sfm.client.theme.SFMClientTheme;
 import ca.teamdman.sfm.client.theme.SFMClientThemeLoader;
 import ca.teamdman.sfm.client.theme.SFMClientThemeService;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -183,6 +185,136 @@ public class SFMExplorerFilePresentationTests {
     }
 
     @Test
+    public void symbolReferenceRowsUseTypedThemeBackedIconsWithoutChangingLabels() {
+        SFMExplorerPresentationRegistry registry = SFMExplorerPresentationRegistry.minecraftDefaults();
+
+        SFMExplorerPresentationRegistry.Resolution hierarchy = registry.resolve(referenceRow(
+                "symbol-references://result-1/invocation/",
+                "Invocation (2)",
+                true,
+                SFMSymbolReferenceResultRepository.PresentationKind.HIERARCHY,
+                Optional.empty()
+        ));
+        assertEquals(SFMSymbolReferenceExplorerPresenter.ID, hierarchy.contributorId());
+        assertFileIcon(hierarchy, "Invocation (2)", CHEST);
+        assertEquals("directory", itemIcon(hierarchy).accessibleLabel());
+
+        SFMExplorerPresentationRegistry.Resolution javaFile = registry.resolve(referenceRow(
+                "symbol-references://result-1/invocation/q%2FUse.java/",
+                "q/Use.java (2)",
+                true,
+                SFMSymbolReferenceResultRepository.PresentationKind.JAVA_SOURCE,
+                Optional.of("workspace://main/q/Use.java")
+        ));
+        assertEquals(SFMSymbolReferenceExplorerPresenter.ID, javaFile.contributorId());
+        assertFileIcon(javaFile, "q/Use.java (2)", COCOA_BEANS);
+        assertEquals("Java source", itemIcon(javaFile).accessibleLabel());
+
+        SFMExplorerPresentationRegistry.Resolution javaSpan = registry.resolve(referenceRow(
+                "symbol-references://result-1/invocation/q%2FUse.java/span-000001",
+                "line 4:9–4:15  q.Use  [resolved]",
+                false,
+                SFMSymbolReferenceResultRepository.PresentationKind.JAVA_SOURCE,
+                Optional.of("workspace://main/q/Use.java")
+        ));
+        assertFileIcon(javaSpan, "line 4:9–4:15  q.Use  [resolved]", COCOA_BEANS);
+
+        SFMExplorerPresentationRegistry.Resolution ordinarySpan = registry.resolve(referenceRow(
+                "symbol-references://result-1/invocation/generated.txt/span-000001",
+                "line 1:1–1:4  q.Use  [resolved]",
+                false,
+                SFMSymbolReferenceResultRepository.PresentationKind.FILE_SOURCE,
+                Optional.of("workspace://generated/generated.txt")
+        ));
+        assertFileIcon(ordinarySpan, "line 1:1–1:4  q.Use  [resolved]", PAPER);
+        assertEquals("unknown file", itemIcon(ordinarySpan).accessibleLabel());
+
+        SFMExplorerPresentationRegistry.Resolution information = registry.resolve(referenceRow(
+                "symbol-references://result-1/analysis/outcome",
+                "Outcome: success",
+                false,
+                SFMSymbolReferenceResultRepository.PresentationKind.INFORMATION,
+                Optional.empty()
+        ));
+        assertFileIcon(information, "Outcome: success", PAPER);
+    }
+
+    @Test
+    public void symbolReferencePresenterRequiresRepositoryOwnedMetadataAndRetainsPrecedence() {
+        SFMExplorerProjection.Row withoutMetadata = row(
+                "symbol-references://result-1/invocation/",
+                "Invocation (1)",
+                true,
+                0,
+                false
+        );
+        SFMExplorerPresentationRegistry.Resolution fallback =
+                SFMExplorerPresentationRegistry.minecraftDefaults().resolve(withoutMetadata);
+        assertEquals(SFMExplorerPresentationRegistry.GENERIC_FALLBACK_ID, fallback.contributorId());
+        assertEquals("[D]", assertInstanceOf(
+                SFMExplorerPresentation.MarkerIcon.class,
+                fallback.presentation().icon()
+        ).marker());
+
+        SFMExplorerPresentationRegistry registry = SFMExplorerPresentationRegistry.builder()
+                .register(
+                        "test:reference_override",
+                        SFMSymbolReferenceExplorerPresenter.ORDER - 1,
+                        candidate -> candidate.path().scheme().equals(SFMSymbolReferenceResultRepository.SCHEME)
+                                ? Optional.of(marker(candidate.entry().label(), "[R]"))
+                                : Optional.empty()
+                )
+                .register(
+                        SFMSymbolReferenceExplorerPresenter.ID,
+                        SFMSymbolReferenceExplorerPresenter.ORDER,
+                        new SFMSymbolReferenceExplorerPresenter()
+                )
+                .build();
+        SFMExplorerPresentationRegistry.Resolution overridden = registry.resolve(referenceRow(
+                "symbol-references://result-1/invocation/",
+                "Invocation (1)",
+                true,
+                SFMSymbolReferenceResultRepository.PresentationKind.HIERARCHY,
+                Optional.empty()
+        ));
+        assertEquals("test:reference_override", overridden.contributorId());
+        assertEquals("[R]", assertInstanceOf(
+                SFMExplorerPresentation.MarkerIcon.class,
+                overridden.presentation().icon()
+        ).marker());
+    }
+
+    @Test
+    public void unavailableReferenceThemeItemsRetainDeclaredFallbackAndNarration() {
+        ResourceLocation unavailable = new ResourceLocation("test", "missing_reference_java_icon");
+        SFMClientTheme defaults = SFMClientTheme.defaults();
+        Map<String, SFMItemIcon> icons = new LinkedHashMap<>(defaults.fileIcons());
+        icons.put(".java", new SFMItemIcon(unavailable, PAPER, "custom Java reference"));
+        SFMClientTheme theme = new SFMClientTheme(
+                defaults.colours(), defaults.sfmlSyntax(), icons, defaults.actionIcons()
+        );
+        SFMExplorerPresentationRegistry registry = SFMExplorerPresentationRegistry.builder()
+                .register(
+                        SFMSymbolReferenceExplorerPresenter.ID,
+                        SFMSymbolReferenceExplorerPresenter.ORDER,
+                        new SFMSymbolReferenceExplorerPresenter(() -> theme)
+                )
+                .build();
+
+        SFMExplorerPresentationRegistry.Resolution resolution = registry.resolve(referenceRow(
+                "symbol-references://result-1/invocation/q%2FUse.java/span-000001",
+                "line 4:9–4:15  q.Use  [resolved]",
+                false,
+                SFMSymbolReferenceResultRepository.PresentationKind.JAVA_SOURCE,
+                Optional.of("workspace://main/q/Use.java")
+        ));
+        SFMItemIcon icon = itemIcon(resolution);
+        assertEquals(unavailable, icon.requestedItem());
+        assertEquals(PAPER, SFMItemIconResolver.selectAvailableId(icon, PAPER::equals));
+        assertEquals("custom Java reference", icon.accessibleLabel());
+    }
+
+    @Test
     public void orderedCustomPresentersRetainPrecedenceAroundTheFileDefault() {
         SFMExplorerPresentationRegistry registry = SFMExplorerPresentationRegistry.builder()
                 .register("test:later", SFMFilePathExplorerPresenter.ORDER + 1,
@@ -315,6 +447,13 @@ public class SFMExplorerFilePresentationTests {
         assertEquals(expectedItem, SFMItemIconResolver.selectAvailableId(icon, expectedItem::equals));
     }
 
+    private static SFMItemIcon itemIcon(SFMExplorerPresentationRegistry.Resolution resolution) {
+        return assertInstanceOf(
+                SFMExplorerPresentation.ItemIcon.class,
+                resolution.presentation().icon()
+        ).item();
+    }
+
     private static SFMExplorerPresentation marker(String label, String marker) {
         return new SFMExplorerPresentation(label, new SFMExplorerPresentation.MarkerIcon(marker));
     }
@@ -344,6 +483,36 @@ public class SFMExplorerFilePresentationTests {
                 entry,
                 depth,
                 expanded,
+                false,
+                entry.sortKey(SFMExplorerEntry.SORT_NAME)
+        );
+    }
+
+    private static SFMExplorerProjection.Row referenceRow(
+            String path,
+            String label,
+            boolean expandable,
+            SFMSymbolReferenceResultRepository.PresentationKind kind,
+            Optional<String> sourceAddress
+    ) {
+        SFMPath parsed = SFMPath.parse(path);
+        TreeMap<String, SFMExplorerEntry.SortKey> sortKeys = new TreeMap<>();
+        sortKeys.put(SFMExplorerEntry.SORT_NAME, SFMExplorerEntry.SortKey.available(label));
+        sortKeys.put(SFMExplorerEntry.SORT_ICON, SFMExplorerEntry.SortKey.available("stable-test-icon-key"));
+        sortKeys.put(
+                SFMSymbolReferenceResultRepository.METADATA_PRESENTATION_KIND,
+                SFMExplorerEntry.SortKey.available(kind.wireName())
+        );
+        sourceAddress.ifPresent(address -> sortKeys.put(
+                SFMSymbolReferenceResultRepository.METADATA_SOURCE_ADDRESS,
+                SFMExplorerEntry.SortKey.available(address)
+        ));
+        SFMExplorerEntry entry = new SFMExplorerEntry(parsed, label, expandable, sortKeys, java.util.List.of());
+        return new SFMExplorerProjection.Row(
+                parsed,
+                entry,
+                0,
+                false,
                 false,
                 entry.sortKey(SFMExplorerEntry.SORT_NAME)
         );

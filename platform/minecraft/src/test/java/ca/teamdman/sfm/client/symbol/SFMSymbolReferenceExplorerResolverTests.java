@@ -3,7 +3,13 @@ package ca.teamdman.sfm.client.symbol;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerEntry;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver;
+import ca.teamdman.sfm.client.presentation.SFMItemIcon;
+import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPresentation;
+import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPresentationRegistry;
+import ca.teamdman.sfm.client.screen.explorer.SFMSymbolReferenceExplorerPresenter;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
@@ -15,6 +21,7 @@ import java.util.concurrent.CompletionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -75,10 +82,29 @@ class SFMSymbolReferenceExplorerResolverTests {
 
         SFMExplorerEntry category = fixture.children(stored.rootPath(), generation, 20).get(1);
         assertEquals("Invocation (1)", category.label());
+        assertEquals(
+                SFMSymbolReferenceResultRepository.PresentationKind.HIERARCHY,
+                metadata(category).kind()
+        );
+        assertEquals("symbol-references:category", iconSortKey(category));
         SFMExplorerEntry file = fixture.children(category.path(), generation, 20).get(0);
         assertEquals("q/Use.java (1)", file.label());
+        assertEquals(
+                new SFMSymbolReferenceResultRepository.PresentationMetadata(
+                        SFMSymbolReferenceResultRepository.PresentationKind.JAVA_SOURCE,
+                        Optional.of("workspace://main/q/Use.java")
+                ),
+                metadata(file)
+        );
+        assertEquals("symbol-references:file", iconSortKey(file));
         SFMExplorerEntry leaf = fixture.children(file.path(), generation, 20).get(0);
         assertFalse(leaf.expandable());
+        assertEquals(metadata(file), metadata(leaf));
+        assertEquals("symbol-references:span", iconSortKey(leaf));
+
+        assertReferenceIcon(category, new ResourceLocation("minecraft", "chest"));
+        assertReferenceIcon(file, new ResourceLocation("minecraft", "cocoa_beans"));
+        assertReferenceIcon(leaf, new ResourceLocation("minecraft", "cocoa_beans"));
 
         SFMSymbolReferenceResultRepository.LeafLookup lookup = fixture.resolver.lookupLeaf(leaf.path())
                 .orElseThrow();
@@ -86,6 +112,46 @@ class SFMSymbolReferenceExplorerResolverTests {
         assertSame(usage.span(), lookup.sourceSpan());
         assertSame(fixture.hello, lookup.serverHello());
         assertEquals(stored.id(), lookup.resultId());
+    }
+
+    @Test
+    void ordinarySourceRowsUsePaperWhileAnalysisHierarchyAndInformationRemainTyped() {
+        Fixture fixture = new Fixture();
+        SFMUsageAtPositionResult.Usage usage = fixture.usage(
+                SFMUsageAtPositionResult.UsageKind.TYPE_REFERENCE,
+                "workspace://generated/q/Use.txt",
+                "q/Use.txt",
+                3,
+                6,
+                1,
+                4
+        );
+        SFMSymbolReferenceResultRepository.StoredResult stored = fixture.repository.append(
+                fixture.result(List.of(usage), SFMDefinitionResult.Completeness.COMPLETE, false),
+                fixture.hello
+        );
+        long generation = fixture.repository.generation();
+
+        SFMExplorerEntry analysis = fixture.children(stored.rootPath(), generation, 20).get(0);
+        SFMExplorerEntry information = fixture.children(analysis.path(), generation, 20).get(0);
+        SFMExplorerEntry category = fixture.children(stored.rootPath(), generation, 20).get(1);
+        SFMExplorerEntry file = fixture.children(category.path(), generation, 20).get(0);
+        SFMExplorerEntry leaf = fixture.children(file.path(), generation, 20).get(0);
+
+        assertEquals(SFMSymbolReferenceResultRepository.PresentationKind.HIERARCHY, metadata(analysis).kind());
+        assertEquals(SFMSymbolReferenceResultRepository.PresentationKind.INFORMATION, metadata(information).kind());
+        assertEquals(
+                new SFMSymbolReferenceResultRepository.PresentationMetadata(
+                        SFMSymbolReferenceResultRepository.PresentationKind.FILE_SOURCE,
+                        Optional.of("workspace://generated/q/Use.txt")
+                ),
+                metadata(file)
+        );
+        assertEquals(metadata(file), metadata(leaf));
+        assertReferenceIcon(analysis, new ResourceLocation("minecraft", "chest"));
+        assertReferenceIcon(information, new ResourceLocation("minecraft", "paper"));
+        assertReferenceIcon(file, new ResourceLocation("minecraft", "paper"));
+        assertReferenceIcon(leaf, new ResourceLocation("minecraft", "paper"));
     }
 
     @Test
@@ -238,6 +304,32 @@ class SFMSymbolReferenceExplorerResolverTests {
 
     private static SFMExplorerEntry named(List<SFMExplorerEntry> entries, String label) {
         return entries.stream().filter(entry -> entry.label().equals(label)).findFirst().orElseThrow();
+    }
+
+    private static SFMSymbolReferenceResultRepository.PresentationMetadata metadata(SFMExplorerEntry entry) {
+        return SFMSymbolReferenceResultRepository.presentationMetadata(entry).orElseThrow();
+    }
+
+    private static String iconSortKey(SFMExplorerEntry entry) {
+        return entry.sortKey(SFMExplorerEntry.SORT_ICON).value().orElseThrow();
+    }
+
+    private static void assertReferenceIcon(SFMExplorerEntry entry, ResourceLocation expected) {
+        SFMExplorerPresentationRegistry.Resolution resolution =
+                SFMExplorerPresentationRegistry.minecraftDefaults().resolve(new SFMExplorerProjection.Row(
+                        entry.path(),
+                        entry,
+                        0,
+                        false,
+                        false,
+                        entry.sortKey(SFMExplorerEntry.SORT_NAME)
+                ));
+        assertEquals(SFMSymbolReferenceExplorerPresenter.ID, resolution.contributorId());
+        SFMItemIcon icon = assertInstanceOf(
+                SFMExplorerPresentation.ItemIcon.class,
+                resolution.presentation().icon()
+        ).item();
+        assertEquals(expected, icon.requestedItem());
     }
 
     private static final class Fixture {

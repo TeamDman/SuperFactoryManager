@@ -911,7 +911,22 @@ sfm-propagate-changes.exe puppet run title_screen_editor_location --branch 1.19.
 address, including the address of its address document, without title guessing
 or recursive text-derived authority.
 
-### [ ] NX-3a Adapt reference-result rows to the shared ItemStack presenter
+### [x] NX-3a Adapt reference-result rows to the shared ItemStack presenter
+
+**Completion notes (2026-08-18):** Reference-result nodes now publish typed,
+presentation-only metadata from `SFMSymbolReferenceResultRepository`, and the
+ordered `SFMSymbolReferenceExplorerPresenter` resolves that metadata through
+the existing active theme: hierarchy/category rows use chest, Java file/span
+rows use cocoa beans, and ordinary/unknown source or information rows use
+paper. The source address is retained only as display metadata and does not
+grant resolver/filesystem authority. Unrelated contributed schemes with no
+repository-owned metadata continue through the generic `[D]`/`[F]` fallback,
+and earlier registered presenters retain precedence. Both
+`SFMExplorerFilePresentationTests` and
+`SFMSymbolReferenceExplorerResolverTests` passed before the concurrent NX-4
+lane temporarily made the shared Java tree uncompilable; final integration
+reruns are retained in this goal's validation phase. No dependency or lockfile
+changed, and this Java-only slice requires no CLI installation.
 
 **Dependency/boundary:** Contextual-plan C-4a and its theme-backed
 file/extension presenters are complete. The reference-result schema and source

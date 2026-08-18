@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -23,6 +24,51 @@ import java.util.TreeMap;
  */
 public final class SFMSymbolReferenceResultRepository {
     public static final String SCHEME = "symbol-references";
+    public static final String METADATA_PRESENTATION_KIND = SCHEME + ":presentation-kind";
+    public static final String METADATA_SOURCE_ADDRESS = SCHEME + ":source-address";
+
+    /** Presentation-only classification; it never grants resolver or filesystem authority. */
+    public enum PresentationKind {
+        HIERARCHY("hierarchy"),
+        JAVA_SOURCE("java-source"),
+        FILE_SOURCE("file-source"),
+        INFORMATION("information");
+
+        private final String wireName;
+
+        PresentationKind(String wireName) {
+            this.wireName = wireName;
+        }
+
+        public String wireName() {
+            return wireName;
+        }
+
+        private static Optional<PresentationKind> parse(String wireName) {
+            for (PresentationKind candidate : values()) {
+                if (candidate.wireName.equals(wireName)) return Optional.of(candidate);
+            }
+            return Optional.empty();
+        }
+    }
+
+    /** Typed metadata projected into an explorer entry for the ordered presenter pipeline. */
+    public record PresentationMetadata(PresentationKind kind, Optional<String> sourceAddress) {
+        public PresentationMetadata {
+            Objects.requireNonNull(kind, "kind");
+            Objects.requireNonNull(sourceAddress, "sourceAddress");
+            sourceAddress.ifPresent(address -> {
+                if (address.isBlank()) throw new IllegalArgumentException("Source address must not be blank");
+            });
+            boolean sourceKind = kind == PresentationKind.JAVA_SOURCE
+                    || kind == PresentationKind.FILE_SOURCE;
+            if (sourceKind != sourceAddress.isPresent()) {
+                throw new IllegalArgumentException(
+                        "Only source presentation kinds carry a source address"
+                );
+            }
+        }
+    }
 
     public record ResultId(String value) {
         public ResultId {
@@ -147,6 +193,25 @@ public final class SFMSymbolReferenceResultRepository {
         return Optional.ofNullable(leaves.get(path));
     }
 
+    /**
+     * Decodes repository-owned presentation metadata without interpreting its
+     * source address as an authorization capability.
+     */
+    public static Optional<PresentationMetadata> presentationMetadata(SFMExplorerEntry entry) {
+        Objects.requireNonNull(entry, "entry");
+        if (!SCHEME.equals(entry.path().scheme())) return Optional.empty();
+        Optional<PresentationKind> kind = entry.sortKey(METADATA_PRESENTATION_KIND)
+                .value()
+                .flatMap(PresentationKind::parse);
+        if (kind.isEmpty()) return Optional.empty();
+        Optional<String> sourceAddress = entry.sortKey(METADATA_SOURCE_ADDRESS).value();
+        try {
+            return Optional.of(new PresentationMetadata(kind.orElseThrow(), sourceAddress));
+        } catch (IllegalArgumentException ignored) {
+            return Optional.empty();
+        }
+    }
+
     public static SFMPath rootPath(ResultId id) {
         Objects.requireNonNull(id, "id");
         return SFMPath.parse(SCHEME + "://" + id.value() + "/");
@@ -201,12 +266,14 @@ public final class SFMSymbolReferenceResultRepository {
                     .add(usage));
             for (Map.Entry<String, List<SFMUsageAtPositionResult.Usage>> file : byFile.entrySet()) {
                 SFMPath filePath = child(category, file.getKey(), true);
-                addNode(
+                SFMDefinitionResult.DefinitionSourceSpan fileSpan = file.getValue().get(0).span();
+                addSourceNode(
                         mutable,
                         filePath,
-                        fileLabel(file.getValue().get(0).span()) + " (" + file.getValue().size() + ")",
+                        fileLabel(fileSpan) + " (" + file.getValue().size() + ")",
                         true,
                         "symbol-references:file",
+                        fileSpan,
                         List.of()
                 );
                 addChild(mutable, category, filePath);
@@ -215,12 +282,13 @@ public final class SFMSymbolReferenceResultRepository {
                 for (int index = 0; index < fileUsages.size(); index++) {
                     SFMUsageAtPositionResult.Usage usage = fileUsages.get(index);
                     SFMPath leaf = child(filePath, String.format("span-%06d", index + 1), false);
-                    addNode(
+                    addSourceNode(
                             mutable,
                             leaf,
                             spanLabel(usage),
                             false,
                             "symbol-references:span",
+                            usage.span(),
                             List.of()
                     );
                     addChild(mutable, filePath, leaf);
@@ -350,22 +418,87 @@ public final class SFMSymbolReferenceResultRepository {
             String icon,
             List<String> diagnostics
     ) {
+        addNode(
+                nodes,
+                path,
+                label,
+                expandable,
+                icon,
+                new PresentationMetadata(
+                        expandable ? PresentationKind.HIERARCHY : PresentationKind.INFORMATION,
+                        Optional.empty()
+                ),
+                diagnostics
+        );
+    }
+
+    private static void addSourceNode(
+            Map<SFMPath, MutableNode> nodes,
+            SFMPath path,
+            String label,
+            boolean expandable,
+            String icon,
+            SFMDefinitionResult.DefinitionSourceSpan sourceSpan,
+            List<String> diagnostics
+    ) {
+        Objects.requireNonNull(sourceSpan, "sourceSpan");
+        addNode(
+                nodes,
+                path,
+                label,
+                expandable,
+                icon,
+                new PresentationMetadata(
+                        isJavaSource(sourceSpan)
+                                ? PresentationKind.JAVA_SOURCE
+                                : PresentationKind.FILE_SOURCE,
+                        Optional.of(sourceSpan.address())
+                ),
+                diagnostics
+        );
+    }
+
+    private static void addNode(
+            Map<SFMPath, MutableNode> nodes,
+            SFMPath path,
+            String label,
+            boolean expandable,
+            String icon,
+            PresentationMetadata presentationMetadata,
+            List<String> diagnostics
+    ) {
+        TreeMap<String, SFMExplorerEntry.SortKey> sortKeys = new TreeMap<>();
+        sortKeys.put(SFMExplorerEntry.SORT_NAME, SFMExplorerEntry.SortKey.available(label));
+        sortKeys.put(SFMExplorerEntry.SORT_ICON, SFMExplorerEntry.SortKey.available(icon));
+        sortKeys.put(
+                METADATA_PRESENTATION_KIND,
+                SFMExplorerEntry.SortKey.available(presentationMetadata.kind().wireName())
+        );
+        presentationMetadata.sourceAddress().ifPresent(address -> sortKeys.put(
+                METADATA_SOURCE_ADDRESS,
+                SFMExplorerEntry.SortKey.available(address)
+        ));
         MutableNode previous = nodes.putIfAbsent(
                 path,
                 new MutableNode(new SFMExplorerEntry(
                         path,
                         label,
                         expandable,
-                        Map.of(
-                                SFMExplorerEntry.SORT_NAME,
-                                SFMExplorerEntry.SortKey.available(label),
-                                SFMExplorerEntry.SORT_ICON,
-                                SFMExplorerEntry.SortKey.available(icon)
-                        ),
+                        sortKeys,
                         diagnostics
                 ))
         );
         if (previous != null) throw new IllegalStateException("Duplicate reference explorer node: " + path);
+    }
+
+    private static boolean isJavaSource(SFMDefinitionResult.DefinitionSourceSpan span) {
+        return hasJavaExtension(span.rootRelativePath())
+                || hasJavaExtension(span.reportPath())
+                || hasJavaExtension(span.address());
+    }
+
+    private static boolean hasJavaExtension(String value) {
+        return value.toLowerCase(Locale.ROOT).endsWith(".java");
     }
 
     private static void addChild(Map<SFMPath, MutableNode> nodes, SFMPath parent, SFMPath child) {
