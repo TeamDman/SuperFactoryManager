@@ -1467,9 +1467,9 @@ impl DefinitionAtPositionEngine {
             JavaUsageSourceSnapshot {
                 files: &source_snapshot.files,
                 sources: &source_snapshot.sources,
+                dependencies: self.dependencies.as_ref(),
             },
             request,
-            self.dependencies.as_ref(),
             cancellation_token,
         )?;
         normalize_usage_at_position_context(
@@ -1700,6 +1700,13 @@ impl DefinitionAtPositionEngine {
             return Ok(file);
         }
 
+        self.resolve_dependency_request_document(request)
+    }
+
+    fn resolve_dependency_request_document(
+        &self,
+        request: &DefinitionAtPositionRequest,
+    ) -> eyre::Result<JavaSourceFile> {
         let dependency_roots = self
             .dependency_source_roots
             .iter()

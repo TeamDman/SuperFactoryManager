@@ -1067,17 +1067,14 @@ fn build_complete_map(
     })
 }
 
-fn paginate_complete_map(
+fn select_page_rows(
     request: &JavaInteractionMapRequest,
-    semantic_generation: u64,
-    semantic_fingerprint: String,
-    complete: CompleteMap,
-    mut inventory: Vec<JavaInteractionFileOutput>,
-) -> eyre::Result<JavaInteractionMapResult> {
-    inventory.sort();
-    inventory.dedup();
-    let total_regions = u64::try_from(complete.regions.len()).unwrap_or(u64::MAX);
-    let total_inventory_files = u64::try_from(inventory.len()).unwrap_or(u64::MAX);
+    complete: &CompleteMap,
+    inventory: &[JavaInteractionFileOutput],
+) -> eyre::Result<(
+    Vec<JavaInteractionRegionOutput>,
+    Vec<JavaInteractionFileOutput>,
+)> {
     let region_start = usize::try_from(request.window.region_offset).map_err(|error| {
         eyre::eyre!("interaction-map region offset does not fit usize: {error}")
     })?;
@@ -1096,10 +1093,21 @@ fn paginate_complete_map(
     let inventory_end = inventory_start
         .saturating_add(usize::try_from(request.window.max_inventory_files).unwrap_or(usize::MAX))
         .min(inventory.len());
-    let mut selected_regions = complete.regions[region_start..region_end].to_vec();
-    let mut selected_inventory = inventory[inventory_start..inventory_end].to_vec();
+    Ok((
+        complete.regions[region_start..region_end].to_vec(),
+        inventory[inventory_start..inventory_end].to_vec(),
+    ))
+}
 
-    let mut result = JavaInteractionMapResult {
+fn new_page_result(
+    request: &JavaInteractionMapRequest,
+    semantic_generation: u64,
+    semantic_fingerprint: String,
+    complete: &mut CompleteMap,
+    total_regions: u64,
+    total_inventory_files: u64,
+) -> JavaInteractionMapResult {
+    JavaInteractionMapResult {
         schema: JAVA_INTERACTION_MAP_SCHEMA.to_owned(),
         request_id: request.request_id,
         request_generation: request.request_generation,
@@ -1110,8 +1118,8 @@ fn paginate_complete_map(
         semantic_fingerprint,
         outcome: JavaInteractionMapOutcome::Success,
         document: DefinitionDocumentIdentityOutput::from(&request.document),
-        domains: complete.domains,
-        projections: complete.projections,
+        domains: std::mem::take(&mut complete.domains),
+        projections: std::mem::take(&mut complete.projections),
         regions: Vec::new(),
         classifications: Vec::new(),
         outlinks: Vec::new(),
@@ -1129,8 +1137,38 @@ fn paginate_complete_map(
             next_inventory_offset: None,
             encoded_bytes: 0,
         },
-        diagnostics: complete.diagnostics,
-    };
+        diagnostics: std::mem::take(&mut complete.diagnostics),
+    }
+}
+
+fn normalized_inventory(
+    mut inventory: Vec<JavaInteractionFileOutput>,
+) -> Vec<JavaInteractionFileOutput> {
+    inventory.sort();
+    inventory.dedup();
+    inventory
+}
+
+fn paginate_complete_map(
+    request: &JavaInteractionMapRequest,
+    semantic_generation: u64,
+    semantic_fingerprint: String,
+    mut complete: CompleteMap,
+    inventory: Vec<JavaInteractionFileOutput>,
+) -> eyre::Result<JavaInteractionMapResult> {
+    let inventory = normalized_inventory(inventory);
+    let total_regions = u64::try_from(complete.regions.len()).unwrap_or(u64::MAX);
+    let total_inventory_files = u64::try_from(inventory.len()).unwrap_or(u64::MAX);
+    let (mut selected_regions, mut selected_inventory) =
+        select_page_rows(request, &complete, &inventory)?;
+    let mut result = new_page_result(
+        request,
+        semantic_generation,
+        semantic_fingerprint,
+        &mut complete,
+        total_regions,
+        total_inventory_files,
+    );
 
     install_page_relations(
         &mut result,

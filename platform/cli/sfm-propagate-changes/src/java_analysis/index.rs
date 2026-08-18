@@ -70,6 +70,7 @@ pub(crate) struct JavaUsageResolutionSurface {
 pub(crate) struct JavaUsageSourceSnapshot<'snapshot> {
     pub(crate) files: &'snapshot [super::JavaSourceFile],
     pub(crate) sources: &'snapshot [String],
+    pub(crate) dependencies: Option<&'snapshot DependencyJavaSymbolIndexBody>,
 }
 
 struct CachedUsageTarget {
@@ -721,7 +722,6 @@ impl JavaDefinitionResolutionSurface {
         target: &JavaSourceFile,
         snapshot: JavaUsageSourceSnapshot<'_>,
         request: &UsageAtPositionRequest,
-        dependencies: Option<&DependencyJavaSymbolIndexBody>,
         cancellation_token: &CancellationToken,
     ) -> eyre::Result<(UsageAtPositionResult, JavaUsageResolutionTelemetry)> {
         cancellation_token.bail_if_cancelled()?;
@@ -742,7 +742,7 @@ impl JavaDefinitionResolutionSurface {
             target,
             cancellation_token,
         )?;
-        if let Some(dependencies) = dependencies {
+        if let Some(dependencies) = snapshot.dependencies {
             for usage in &dependencies.usages {
                 if selected.contains(&usage.target) {
                     scanned.record_usage(usage.clone());
