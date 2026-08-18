@@ -12,7 +12,7 @@
       "covered": true
     },
     {
-      "id": "Mod",
+      "id": "@Mod",
       "covered": true
     },
     {
@@ -28,7 +28,7 @@
       "covered": true
     },
     {
-      "id": "Serial",
+      "id": "java.io.Serial",
       "covered": true
     },
     {

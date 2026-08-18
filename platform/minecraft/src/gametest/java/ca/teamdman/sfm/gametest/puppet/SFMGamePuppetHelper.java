@@ -272,6 +272,15 @@ public final class SFMGamePuppetHelper {
         add(new ExerciseActionableToastPuppetAction(Objects.requireNonNull(artifactName, "artifactName")));
     }
 
+    /** Runs spatial coverage through the real short-lived external {@code sfm.exe} remoting client. */
+    public void invokeExternalCliSpatialCoverage(Path sourceFile, Path artifactDirectory, String artifactName) {
+        add(new InvokeExternalCliSpatialCoveragePuppetAction(
+                Objects.requireNonNull(sourceFile, "sourceFile"),
+                Objects.requireNonNull(artifactDirectory, "artifactDirectory"),
+                Objects.requireNonNull(artifactName, "artifactName")
+        ));
+    }
+
     /**
      * Opens the contextual client command palette from the current screen.
      */

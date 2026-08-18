@@ -157,6 +157,171 @@ class SFMDefinitionContextAdapterTests {
     }
 
     @Test
+    void acquiredDependencySourceUsesItsNegotiatedRootPrefixAndContributedAddress() {
+        Path dependencyRoot = Path.of("D:/cache/dependency-sources/forge");
+        Path file = dependencyRoot.resolve("net/minecraftforge/ForgeType.java");
+        String text = "package net.minecraftforge; class ForgeType {}\n";
+        SFMSymbolServerProtocol.DependencySourceRootMapping dependency =
+                new SFMSymbolServerProtocol.DependencySourceRootMapping(
+                        dependencyRoot.toString(),
+                        "dependency-source-0",
+                        "dependency:forge:userdev",
+                        "dependency/forge/userdev/loader-pipeline"
+                );
+
+        var adapted = new SFMDefinitionContextAdapter().adapt(
+                contribution(projection(
+                        dependencyRoot,
+                        file,
+                        text,
+                        text,
+                        new SFMContextPosition.Text(SFMContextTextCoordinates.atLineColumn(text, 0, 38))
+                )),
+                Optional.of(externalHello(12, List.of(), List.of(), List.of(dependency), List.of())),
+                17,
+                10
+        );
+
+        assertTrue(adapted.success());
+        SFMDefinitionRequest.Document document = adapted.request().orElseThrow().document();
+        assertEquals(
+                "dependency-source://dependency-source-0/net/minecraftforge/ForgeType.java",
+                document.address()
+        );
+        assertEquals("dependency-source-0", document.rootId());
+        assertEquals("net/minecraftforge/ForgeType.java", document.rootRelativePath());
+        assertEquals(
+                "dependency/forge/userdev/loader-pipeline/net/minecraftforge/ForgeType.java",
+                document.reportPath()
+        );
+        assertEquals("dependency:forge:userdev", document.sourceSet());
+        assertEquals(Optional.of(SFMDefinitionRequest.sha256(text)), document.diskContentHash());
+        assertEquals(document, new SFMJavaInteractionMap.Request(
+                18,
+                10,
+                adapted.request().orElseThrow().workspace(),
+                document
+        ).document());
+    }
+
+    @Test
+    void managedJdkSourceUsesNegotiatedResolverIdentityWithoutWorkspaceFallback() {
+        Path jdkRoot = Path.of("D:/cache/jdk/java-17/abc123/tree");
+        Path file = jdkRoot.resolve("java.base/java/lang/String.java");
+        String text = "package java.lang; public final class String {}\n";
+        SFMDefinitionRequest.SourceRoot requestRoot = new SFMDefinitionRequest.SourceRoot(
+                "jdk-java-17-abc123",
+                "jdk:java-17",
+                "jdk/java-17/abc123",
+                "jdk",
+                true
+        );
+        SFMSymbolServerProtocol.SourceRootMapping orderedRoot =
+                new SFMSymbolServerProtocol.SourceRootMapping(
+                        jdkRoot.toString(),
+                        requestRoot.id(),
+                        requestRoot.sourceSet(),
+                        requestRoot.path()
+                );
+        SFMSymbolServerProtocol.ManagedSourceRootMapping managedRoot =
+                new SFMSymbolServerProtocol.ManagedSourceRootMapping(
+                        "jdk-source",
+                        "jdk-source",
+                        requestRoot.path(),
+                        jdkRoot.toString(),
+                        requestRoot.id(),
+                        requestRoot.sourceSet(),
+                        Optional.of(requestRoot.path()),
+                        Optional.of("jdk/java-17/abc123")
+                );
+
+        var adapted = new SFMDefinitionContextAdapter().adapt(
+                contribution(projection(
+                        jdkRoot,
+                        file,
+                        text,
+                        text,
+                        new SFMContextPosition.Text(SFMContextTextCoordinates.atLineColumn(text, 0, 38))
+                )),
+                Optional.of(externalHello(
+                        13,
+                        List.of(requestRoot),
+                        List.of(orderedRoot),
+                        List.of(),
+                        List.of(managedRoot)
+                )),
+                19,
+                11
+        );
+
+        assertTrue(adapted.success());
+        SFMDefinitionRequest.Document document = adapted.request().orElseThrow().document();
+        assertEquals(
+                "jdk-source://jdk-java-17-abc123/java.base/java/lang/String.java",
+                document.address()
+        );
+        assertEquals("java.base/java/lang/String.java", document.rootRelativePath());
+        assertEquals(
+                "jdk/java-17/abc123/java.base/java/lang/String.java",
+                document.reportPath()
+        );
+        assertEquals(document, new SFMJavaInteractionMap.Request(
+                20,
+                11,
+                adapted.request().orElseThrow().workspace(),
+                document
+        ).document());
+    }
+
+    @Test
+    void inconsistentManagedJdkIdentityFailsClosedInsteadOfUsingOrderedRoot() {
+        Path jdkRoot = Path.of("D:/cache/jdk/java-17/abc123/tree");
+        Path file = jdkRoot.resolve("java.base/java/lang/String.java");
+        String text = "package java.lang; public final class String {}\n";
+        SFMDefinitionRequest.SourceRoot requestRoot = new SFMDefinitionRequest.SourceRoot(
+                "jdk-java-17-abc123", "jdk:java-17", "jdk/java-17/abc123", "jdk", true);
+        SFMSymbolServerProtocol.SourceRootMapping orderedRoot =
+                new SFMSymbolServerProtocol.SourceRootMapping(
+                        jdkRoot.toString(), requestRoot.id(), requestRoot.sourceSet(), requestRoot.path());
+        SFMSymbolServerProtocol.ManagedSourceRootMapping inconsistent =
+                new SFMSymbolServerProtocol.ManagedSourceRootMapping(
+                        "jdk-source",
+                        "jdk-source",
+                        "jdk/java-17/different",
+                        jdkRoot.toString(),
+                        requestRoot.id(),
+                        requestRoot.sourceSet(),
+                        Optional.of(requestRoot.path()),
+                        Optional.of("jdk/java-17/abc123")
+                );
+
+        var adapted = new SFMDefinitionContextAdapter().adapt(
+                contribution(projection(
+                        jdkRoot,
+                        file,
+                        text,
+                        text,
+                        new SFMContextPosition.Text(SFMContextTextCoordinates.atLineColumn(text, 0, 38))
+                )),
+                Optional.of(externalHello(
+                        14,
+                        List.of(requestRoot),
+                        List.of(orderedRoot),
+                        List.of(),
+                        List.of(inconsistent)
+                )),
+                21,
+                12
+        );
+
+        assertFalse(adapted.success());
+        assertEquals(
+                SFMDefinitionContextAdapter.DiagnosticCode.ROOT_METADATA_MISMATCH,
+                adapted.diagnostics().get(0).code()
+        );
+    }
+
+    @Test
     void equallyDeepMappingsAndOutsideAuthorizationFailClosed() {
         Path repoRoot = Path.of("D:/workspace/sfm");
         Path sourceRoot = repoRoot.resolve("src/main/java");
@@ -304,6 +469,39 @@ class SFMDefinitionContextAdapterTests {
                         generation
                 ),
                 mappings
+        );
+        return new SFMSymbolServerProtocol.ServerHello(
+                SFMSymbolServerProtocol.PROTOCOL_SCHEMA,
+                "sfm-propagate-changes",
+                "test",
+                java.util.Set.copyOf(SFMSymbolServerProtocol.CLIENT_CAPABILITIES),
+                1024 * 1024,
+                8,
+                workspace,
+                "{}"
+        );
+    }
+
+    private static SFMSymbolServerProtocol.ServerHello externalHello(
+            long generation,
+            List<SFMDefinitionRequest.SourceRoot> requestRoots,
+            List<SFMSymbolServerProtocol.SourceRootMapping> mappings,
+            List<SFMSymbolServerProtocol.DependencySourceRootMapping> dependencyMappings,
+            List<SFMSymbolServerProtocol.ManagedSourceRootMapping> managedMappings
+    ) {
+        SFMSymbolServerProtocol.WorkspaceMetadata workspace = new SFMSymbolServerProtocol.WorkspaceMetadata(
+                new SFMDefinitionRequest.Workspace(
+                        "1.19.2",
+                        SFMDefinitionRequest.ClasspathMode.BRANCH,
+                        requestRoots,
+                        "blake3:workspace",
+                        Optional.of("blake3:index"),
+                        "blake3:0000000000000000000000000000000000000000000000000000000000000000",
+                        generation
+                ),
+                mappings,
+                dependencyMappings,
+                managedMappings
         );
         return new SFMSymbolServerProtocol.ServerHello(
                 SFMSymbolServerProtocol.PROTOCOL_SCHEMA,

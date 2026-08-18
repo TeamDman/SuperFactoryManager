@@ -5,6 +5,8 @@ import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
 import ca.teamdman.sfm.client.context.SFMContextGenerationEvidence;
 import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -14,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMJavaInteractionMapSessionTests {
@@ -59,6 +62,34 @@ class SFMJavaInteractionMapSessionTests {
         service.complete(0, lookup(request));
 
         assertTrue(session.current(99, request.document().contentHash()).isEmpty());
+    }
+
+    @Test
+    void invalidRequestDiagnosticsBecomeActionableWithoutRetainingPrivatePaths() {
+        SFMJavaInteractionMap.Request request = SFMJavaInteractionMapProtocolTests.request();
+        JsonObject json = SFMJavaInteractionMapProtocolTests.resultJson(request);
+        json.addProperty("outcome", "invalid-request");
+        JsonObject diagnostic = new JsonObject();
+        diagnostic.addProperty("code", "java.interaction-map-invalid-request");
+        diagnostic.addProperty("severity", "error");
+        diagnostic.addProperty(
+                "message",
+                "definition document `secret-root`:`SecretProject/String.java` has no editable, managed-JDK, or acquired-dependency source authority"
+        );
+        diagnostic.add("span", null);
+        JsonArray diagnostics = new JsonArray();
+        diagnostics.add(diagnostic);
+        json.add("diagnostics", diagnostics);
+
+        SFMJavaInteractionMapSession.FailureSummary summary =
+                SFMJavaInteractionMapSession.failureSummary(
+                        SFMJavaInteractionMapJsonCodec.decodeResult(json.toString()));
+
+        assertEquals("java.interaction-map-invalid-request", summary.diagnosticCodes());
+        assertEquals("document-not-indexed", summary.category());
+        assertEquals("verify-negotiated-root-or-refresh-index", summary.nextAction());
+        assertFalse(summary.toString().contains("SecretProject"));
+        assertFalse(summary.toString().contains("String.java"));
     }
 
     private static SFMContextContribution contribution(String text, long generation) {

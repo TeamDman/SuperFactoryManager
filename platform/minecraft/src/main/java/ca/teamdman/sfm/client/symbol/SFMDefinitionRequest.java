@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.symbol;
 
+import ca.teamdman.sfm.client.explorer.SFMPath;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -170,16 +172,7 @@ public record SFMDefinitionRequest(
         Objects.requireNonNull(workspace, "workspace");
         Objects.requireNonNull(document, "document");
         Objects.requireNonNull(position, "position");
-        SourceRoot root = workspace.sourceRoots().stream()
-                .filter(candidate -> candidate.id().equals(document.rootId()))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Document references unknown source-root id: " + document.rootId()
-                ));
-        if (!root.exists()) throw new IllegalArgumentException("Document source root is unavailable: " + root.id());
-        if (!root.sourceSet().equals(document.sourceSet())) {
-            throw new IllegalArgumentException("Document source set disagrees with its source root");
-        }
+        validateDocumentRootProjection(workspace, document);
         position.validateAgainst(document.text());
     }
 
@@ -206,6 +199,45 @@ public record SFMDefinitionRequest(
             return "sha256:" + HexFormat.of().formatHex(digest);
         } catch (NoSuchAlgorithmException impossible) {
             throw new IllegalStateException("SHA-256 is unavailable", impossible);
+        }
+    }
+
+    /**
+     * Validates ordinary and managed request roots locally while retaining the
+     * negotiated acquired-dependency extension point. Dependency source roots
+     * are intentionally absent from the fingerprinted workspace projection;
+     * their full path/prefix authority is validated by the handshake-aware
+     * context adapter and again by the worker.
+     */
+    static void validateDocumentRootProjection(Workspace workspace, Document document) {
+        Optional<SourceRoot> projectedRoot = workspace.sourceRoots().stream()
+                .filter(candidate -> candidate.id().equals(document.rootId()))
+                .findFirst();
+        if (projectedRoot.isEmpty()) {
+            SFMPath address = SFMPath.parse(document.address());
+            if (address.kind() != SFMPath.Kind.CONTRIBUTED
+                    || !address.scheme().equals("dependency-source")
+                    || !address.authority().equals(document.rootId())
+                    || !address.segments().equals(List.of(document.rootRelativePath().split("/")))
+                    || !document.sourceSet().startsWith("dependency:")) {
+                throw new IllegalArgumentException(
+                        "Document references an unknown or malformed external source-root identity");
+            }
+            return;
+        }
+        SourceRoot root = projectedRoot.orElseThrow();
+        if (!root.exists()) throw new IllegalArgumentException("Document source root is unavailable: " + root.id());
+        if (!root.sourceSet().equals(document.sourceSet())) {
+            throw new IllegalArgumentException("Document source set disagrees with its source root");
+        }
+        if (root.kind().equals("jdk")) {
+            SFMPath address = SFMPath.parse(document.address());
+            if (address.kind() != SFMPath.Kind.CONTRIBUTED
+                    || !address.scheme().equals("jdk-source")
+                    || !address.authority().equals(root.id())
+                    || !address.segments().equals(List.of(document.rootRelativePath().split("/")))) {
+                throw new IllegalArgumentException("JDK document address disagrees with its managed source root");
+            }
         }
     }
 

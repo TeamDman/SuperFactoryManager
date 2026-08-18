@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /** Bounded nonblocking child-process harness for self-orchestrating puppets. */
 public final class SFMExternalCliPuppetProcess implements AutoCloseable {
+    public static final String EXECUTABLE_PROPERTY = "sfm.controlCliExecutable";
     private static final int MAXIMUM_STREAM_BYTES = 1024 * 1024;
     private static final AtomicLong READER_ORDINAL = new AtomicLong(1);
     private static final ExecutorService READERS = Executors.newCachedThreadPool(runnable -> {

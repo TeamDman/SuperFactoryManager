@@ -34,7 +34,8 @@ use super::normalize_usage_at_position_context;
 use super::sha256_content_hash;
 use super::usage_at_position::USAGE_AT_POSITION_MAX_ENCODED_BYTES;
 use super::usage_at_position::USAGE_AT_POSITION_MAX_RESULTS;
-use super::validate_definition_request_workspace;
+use super::validate_definition_document_projection;
+use super::validate_definition_request_workspace_identity;
 use crate::cancellation::CancellationToken;
 use facet::Facet;
 use rayon::prelude::*;
@@ -152,8 +153,8 @@ pub struct JavaInteractionMapEngineOutput {
     pub telemetry: DefinitionAtPositionEngineTelemetry,
 }
 
-struct DefinitionSourceSnapshot<'workspace> {
-    files: Vec<&'workspace JavaSourceFile>,
+struct DefinitionSourceSnapshot {
+    files: Vec<JavaSourceFile>,
     sources: Vec<String>,
     keys: Vec<FactCacheKey>,
     source_snapshot_micros: u64,
@@ -582,7 +583,7 @@ impl DefinitionAtPositionEngine {
     fn acquire_resolution_surface(
         &self,
         workspace_generation: u64,
-        source_snapshot: &DefinitionSourceSnapshot<'_>,
+        source_snapshot: &DefinitionSourceSnapshot,
         cancellation_token: &CancellationToken,
     ) -> eyre::Result<AcquiredResolutionSurface> {
         let surface_key =
@@ -905,8 +906,8 @@ impl DefinitionAtPositionEngine {
                 semantic_fingerprint,
             )
         } else {
-            let resolved =
-                surface.resolve_interaction_document(&self.workspace, &definition_request)?;
+            let target = self.resolve_request_document(&definition_request)?;
+            let resolved = surface.resolve_interaction_document(&target, &definition_request)?;
             cancellation_token.bail_if_cancelled()?;
             let inventory = self.interaction_file_inventory(&source_snapshot, &surface);
             build_java_interaction_map(
@@ -973,7 +974,7 @@ impl DefinitionAtPositionEngine {
     )]
     fn interaction_file_inventory(
         &self,
-        snapshot: &DefinitionSourceSnapshot<'_>,
+        snapshot: &DefinitionSourceSnapshot,
         surface: &JavaDefinitionResolutionSurface,
     ) -> Vec<JavaInteractionFileOutput> {
         let mut files = BTreeMap::<(String, String, String), JavaInteractionFileOutput>::new();
@@ -983,6 +984,12 @@ impl DefinitionAtPositionEngine {
             .zip(&snapshot.sources)
             .zip(&snapshot.keys)
         {
+            if !self.workspace.files.iter().any(|candidate| {
+                candidate.root_id == file.root_id
+                    && candidate.root_relative_path == file.root_relative_path
+            }) {
+                continue;
+            }
             let state = if key.content_hash == blake3_content_hash(source) {
                 JavaInteractionFileState::Covered
             } else {
@@ -1025,6 +1032,8 @@ impl DefinitionAtPositionEngine {
                 .workspace
                 .jdk_sources
                 .report_identity(&fact.report_path, &fact.source_set);
+            let dependency_identity =
+                self.dependency_source_identity(&fact.report_path, &fact.source_set);
             let (address, resolver_id, root_id, root_relative_path, state, diagnostic) =
                 if let Some(identity) = jdk_identity {
                     (
@@ -1036,6 +1045,15 @@ impl DefinitionAtPositionEngine {
                         "jdk-source".to_owned(),
                         identity.root_id,
                         identity.root_relative_path,
+                        JavaInteractionFileState::Covered,
+                        None,
+                    )
+                } else if let Some((root, relative)) = dependency_identity {
+                    (
+                        contributed_address("dependency-source", &root.root_id, &relative),
+                        "dependency-source".to_owned(),
+                        root.root_id.clone(),
+                        relative,
                         JavaInteractionFileState::Covered,
                         None,
                     )
@@ -1121,23 +1139,14 @@ impl DefinitionAtPositionEngine {
         &self,
         span: &super::JavaSourceSpanOutput,
     ) -> JavaInteractionFileOutput {
-        for root in &self.dependency_source_roots {
-            if root.source_set != span.source_set {
-                continue;
-            }
-            let prefix = root.report_prefix.trim_end_matches('/');
-            let Some(relative) = span
-                .path
-                .strip_prefix(prefix)
-                .and_then(|tail| tail.strip_prefix('/'))
-            else {
-                continue;
-            };
+        if let Some((root, relative)) =
+            self.dependency_source_identity(&span.path, &span.source_set)
+        {
             return JavaInteractionFileOutput {
-                address: contributed_address("dependency-source", &root.root_id, relative),
+                address: contributed_address("dependency-source", &root.root_id, &relative),
                 resolver_id: "dependency-source".to_owned(),
                 root_id: root.root_id.clone(),
-                root_relative_path: relative.to_owned(),
+                root_relative_path: relative,
                 report_path: span.path.clone(),
                 source_set: span.source_set.clone(),
                 content_hash: Some(span.source_hash.clone()),
@@ -1159,6 +1168,23 @@ impl DefinitionAtPositionEngine {
                     .to_owned(),
             ),
         }
+    }
+
+    fn dependency_source_identity(
+        &self,
+        report_path: &str,
+        source_set: &str,
+    ) -> Option<(&DefinitionDependencySourceRoot, String)> {
+        self.dependency_source_roots.iter().find_map(|root| {
+            if root.source_set != source_set {
+                return None;
+            }
+            let relative = report_path
+                .strip_prefix(root.report_prefix.trim_end_matches('/'))?
+                .strip_prefix('/')?;
+            (!relative.is_empty() && !relative.split('/').any(str::is_empty))
+                .then(|| (root, relative.to_owned()))
+        })
     }
 
     fn usage_request_rejection(
@@ -1184,7 +1210,8 @@ impl DefinitionAtPositionEngine {
         &self,
         request: &DefinitionAtPositionRequest,
     ) -> eyre::Result<Option<DefinitionAtPositionResult>> {
-        if let Err(error) = validate_definition_request_workspace(&self.workspace, request) {
+        if let Err(error) = validate_definition_request_workspace_identity(&self.workspace, request)
+        {
             return Ok(Some(DefinitionAtPositionResult::invalid_request(
                 request,
                 self.workspace.context.clone(),
@@ -1202,10 +1229,19 @@ impl DefinitionAtPositionEngine {
                 "definition request dependency-index identity does not match the engine",
             )));
         }
+        let target = match self.resolve_request_document(request) {
+            Ok(target) => target,
+            Err(error) => {
+                return Ok(Some(DefinitionAtPositionResult::invalid_request(
+                    request,
+                    self.workspace.context.clone(),
+                    format!("{error:#}"),
+                )));
+            }
+        };
         let Some(expected_disk_hash) = request.document.disk_content_hash.as_deref() else {
             return Ok(None);
         };
-        let target = self.target_file(request)?;
         let Ok(disk_source) = std::fs::read_to_string(&target.absolute_path) else {
             return Ok(Some(DefinitionAtPositionResult::stale_document(
                 request,
@@ -1224,13 +1260,19 @@ impl DefinitionAtPositionEngine {
         }))
     }
 
-    fn collect_source_snapshot<'workspace>(
-        &'workspace self,
+    fn collect_source_snapshot(
+        &self,
         request: &DefinitionAtPositionRequest,
         cancellation_token: &CancellationToken,
-    ) -> eyre::Result<DefinitionSourceSnapshot<'workspace>> {
+    ) -> eyre::Result<DefinitionSourceSnapshot> {
         let snapshot_started = Instant::now();
-        let mut files = self.workspace.files.iter().collect::<Vec<_>>();
+        let mut files = self.workspace.files.clone();
+        let target = self.resolve_request_document(request)?;
+        if !files.iter().any(|file| {
+            file.root_id == target.root_id && file.root_relative_path == target.root_relative_path
+        }) {
+            files.push(target);
+        }
         files.sort_by(|left, right| {
             (&left.report_path, &left.source_set, &left.absolute_path).cmp(&(
                 &right.report_path,
@@ -1259,7 +1301,7 @@ impl DefinitionAtPositionEngine {
 
     fn collect_facts(
         &self,
-        snapshot: &DefinitionSourceSnapshot<'_>,
+        snapshot: &DefinitionSourceSnapshot,
         cancellation_token: &CancellationToken,
     ) -> eyre::Result<DefinitionFactSnapshot> {
         let mut facts = Vec::with_capacity(snapshot.files.len());
@@ -1390,7 +1432,8 @@ impl DefinitionAtPositionEngine {
     ) -> eyre::Result<(DefinitionAtPositionResult, u64)> {
         cancellation_token.bail_if_cancelled()?;
         let started = Instant::now();
-        let mut result = surface.definition_at_position(&self.workspace, request)?;
+        let target = self.resolve_request_document(request)?;
+        let mut result = surface.definition_at_position(&self.workspace, &target, request)?;
         normalize_definition_at_position_context(
             self.workspace.context.clone(),
             self.dependencies.as_ref(),
@@ -1410,14 +1453,17 @@ impl DefinitionAtPositionEngine {
         request: &UsageAtPositionRequest,
         surface: &Arc<JavaDefinitionResolutionSurface>,
         usage_surface: &JavaUsageResolutionSurface,
-        source_snapshot: &DefinitionSourceSnapshot<'_>,
+        source_snapshot: &DefinitionSourceSnapshot,
         cancellation_token: &CancellationToken,
     ) -> eyre::Result<(UsageAtPositionResult, u64, JavaUsageResolutionTelemetry)> {
         cancellation_token.bail_if_cancelled()?;
         let started = Instant::now();
+        let definition_request = request.as_definition_request();
+        let target = self.resolve_request_document(&definition_request)?;
         let (mut result, usage_telemetry) = surface.usages_at_position(
             usage_surface,
             &self.workspace,
+            &target,
             JavaUsageSourceSnapshot {
                 files: &source_snapshot.files,
                 sources: &source_snapshot.sources,
@@ -1619,24 +1665,117 @@ impl DefinitionAtPositionEngine {
         })
     }
 
-    fn target_file<'a>(
-        &'a self,
+    fn resolve_request_document(
+        &self,
         request: &DefinitionAtPositionRequest,
-    ) -> eyre::Result<&'a JavaSourceFile> {
-        self.workspace
+    ) -> eyre::Result<JavaSourceFile> {
+        let workspace_matches = self
+            .workspace
             .files
             .iter()
-            .find(|file| {
+            .filter(|file| {
                 file.root_id == request.document.root_id
                     && file.root_relative_path == request.document.root_relative_path
             })
-            .ok_or_else(|| {
+            .collect::<Vec<_>>();
+        match workspace_matches.as_slice() {
+            [file] => {
+                validate_definition_document_projection(file, request, "workspace")?;
+                return Ok((*file).clone());
+            }
+            [] => {}
+            matches => eyre::bail!(
+                "definition document `{}`:`{}` matched {} editable workspace files",
+                request.document.root_id,
+                request.document.root_relative_path,
+                matches.len()
+            ),
+        }
+
+        if let Some(file) = self.workspace.jdk_sources.addressed_source_file(
+            &request.document.root_id,
+            &request.document.root_relative_path,
+        )? {
+            validate_definition_document_projection(&file, request, "jdk-source")?;
+            return Ok(file);
+        }
+
+        let dependency_roots = self
+            .dependency_source_roots
+            .iter()
+            .filter(|root| root.root_id == request.document.root_id)
+            .collect::<Vec<_>>();
+        let root = match dependency_roots.as_slice() {
+            [root] => *root,
+            [] => eyre::bail!(
+                "definition document `{}`:`{}` has no editable, managed-JDK, or acquired-dependency source authority",
+                request.document.root_id,
+                request.document.root_relative_path
+            ),
+            roots => eyre::bail!(
+                "definition document root `{}` matched {} acquired dependency source authorities",
+                request.document.root_id,
+                roots.len()
+            ),
+        };
+        if request.document.root_relative_path.is_empty()
+            || request.document.root_relative_path.contains('\\')
+            || request
+                .document
+                .root_relative_path
+                .split('/')
+                .any(|segment| segment.is_empty() || matches!(segment, "." | ".."))
+        {
+            eyre::bail!("addressed dependency-source path is not canonical");
+        }
+        let canonical_root =
+            dunce::canonicalize(&root.canonical_absolute_path).map_err(|error| {
                 eyre::eyre!(
-                    "validated definition document `{}`:`{}` is absent from the engine workspace",
-                    request.document.root_id,
-                    request.document.root_relative_path
+                    "failed to resolve acquired dependency source authority `{}`: {error}",
+                    root.root_id
                 )
-            })
+            })?;
+        let candidate = canonical_root.join(&request.document.root_relative_path);
+        let absolute_path = dunce::canonicalize(&candidate).map_err(|error| {
+            eyre::eyre!(
+                "failed to resolve addressed dependency source `{}`:`{}`: {error}",
+                request.document.root_id,
+                request.document.root_relative_path
+            )
+        })?;
+        if !absolute_path.starts_with(&canonical_root) {
+            eyre::bail!(
+                "addressed dependency source `{}`:`{}` escapes its canonical root",
+                request.document.root_id,
+                request.document.root_relative_path
+            );
+        }
+        if !absolute_path.is_file()
+            || absolute_path
+                .extension()
+                .and_then(|extension| extension.to_str())
+                != Some("java")
+        {
+            eyre::bail!(
+                "addressed dependency source `{}`:`{}` is not a Java file",
+                request.document.root_id,
+                request.document.root_relative_path
+            );
+        }
+        let file = JavaSourceFile {
+            absolute_path,
+            root_id: root.root_id.clone(),
+            root_relative_path: request.document.root_relative_path.clone(),
+            report_path: format!(
+                "{}/{}",
+                root.report_prefix.trim_end_matches('/'),
+                request.document.root_relative_path
+            ),
+            source_set: root.source_set.clone(),
+            source_override: None,
+        };
+        validate_definition_document_projection(&file, request, "dependency-source")?;
+        Ok(file)
     }
 
     fn empty_telemetry(&self, started: Instant) -> DefinitionAtPositionEngineTelemetry {
@@ -1772,6 +1911,7 @@ mod tests {
     use crate::java_analysis::DependencySymbolIndexProbeStatus;
     use crate::java_analysis::JavaAnalysisContextOutput;
     use crate::java_analysis::JavaClasspathMode;
+    use crate::java_analysis::JavaInteractionMapOutcome;
     use crate::java_analysis::JavaSourceRootKind;
     use crate::java_analysis::JavaSourceRootOutput;
     use crate::java_analysis::JavaSourceSetOutput;
@@ -2032,6 +2172,88 @@ mod tests {
                     .is_some()
             );
         }
+    }
+
+    #[test]
+    fn interaction_map_accepts_only_exact_acquired_dependency_source_authority() {
+        let (_workspace_directory, workspace) = workspace();
+        let dependency_directory = tempfile::tempdir().expect("dependency source root");
+        let relative = "dep/External.java";
+        let source = "package dep; public class External { int value; }\n";
+        let path = dependency_directory.path().join(relative);
+        std::fs::create_dir_all(path.parent().expect("dependency package"))
+            .expect("dependency package");
+        std::fs::write(&path, source).expect("dependency source");
+        let root = DefinitionDependencySourceRoot {
+            root_id: "dependency-source-fixture".to_owned(),
+            report_prefix: "dependency/fixture".to_owned(),
+            source_set: "dependency:fixture".to_owned(),
+            canonical_absolute_path: dunce::canonicalize(dependency_directory.path())
+                .expect("canonical dependency source root"),
+        };
+        let workspace_fingerprint = definition_workspace_fingerprint(&workspace.context, None)
+            .expect("fixture workspace fingerprint");
+        let document = DefinitionDocumentInput {
+            address: contributed_address("dependency-source", &root.root_id, relative),
+            root_id: root.root_id.clone(),
+            root_relative_path: relative.to_owned(),
+            report_path: format!("{}/{relative}", root.report_prefix),
+            source_set: root.source_set.clone(),
+            text: source.to_owned(),
+            content_hash: blake3_content_hash(source),
+            disk_content_hash: Some(blake3_content_hash(source)),
+        };
+        let request = JavaInteractionMapRequest::new(
+            71,
+            3,
+            DefinitionWorkspaceIdentityInput {
+                branch: workspace.context.branch.clone(),
+                classpath_mode: workspace.context.classpath_mode,
+                source_roots: workspace.context.source_roots.clone(),
+                classpath_fingerprint: workspace.context.classpath_fingerprint.clone(),
+                dependency_index_identity: None,
+                workspace_fingerprint,
+                workspace_generation: 9,
+            },
+            document,
+        );
+        request
+            .validate()
+            .expect("portable dependency-source request");
+        let engine = DefinitionAtPositionEngine::new_with_dependency_source_roots(
+            workspace,
+            None,
+            None,
+            vec![root],
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("dependency-source engine");
+
+        let result = engine
+            .analyze_interaction_map(&request, &CancellationToken::new())
+            .expect("dependency-source interaction map");
+
+        assert_eq!(result.outcome, JavaInteractionMapOutcome::Success);
+        assert_eq!(result.document.root_id, "dependency-source-fixture");
+        assert!(
+            result
+                .regions
+                .iter()
+                .any(|region| region.semantic_kind == "java-class-declaration")
+        );
+
+        let mut forged = request;
+        forged.request_id += 1;
+        forged.document.report_path = "dependency/other/dep/External.java".to_owned();
+        let rejected = engine
+            .analyze_interaction_map(&forged, &CancellationToken::new())
+            .expect("forged request remains a typed result");
+        assert_eq!(rejected.outcome, JavaInteractionMapOutcome::InvalidRequest);
+        assert!(rejected.diagnostics.iter().any(|diagnostic| {
+            diagnostic
+                .message
+                .contains("report path does not match the resolved source file")
+        }));
     }
 
     #[test]

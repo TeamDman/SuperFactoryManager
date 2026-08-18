@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
+import ca.teamdman.sfm.client.screen.text_editor.SFMDeferredTextEditorPanel;
 import ca.teamdman.sfm.client.semantic.SFMSpatialCoverageArtifacts;
 import ca.teamdman.sfm.client.semantic.SFMSpatialCoverageService;
 import ca.teamdman.sfm.client.semantic.SFMSpatialSamplingPolicies;
@@ -16,6 +17,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -45,9 +47,9 @@ final class SFMSpatialCoverageRuntime {
         Objects.requireNonNull(target, "target");
         Objects.requireNonNull(request, "request");
         Objects.requireNonNull(feedback, "feedback");
-        if (!(target.workspace().panelInstance(target.panelId()) instanceof SFMTextEditorPanel focused)) {
-            throw TEXT_EDITOR_REQUIRED.create();
-        }
+        SFMTextEditorPanel focused = resolveTextEditorPanel(
+                target.workspace().panelInstance(target.panelId()))
+                .orElseThrow(TEXT_EDITOR_REQUIRED::create);
         SFMTextEditorPanel.SpatialCoverageCapture focusedCapture =
                 focused.captureSpatialCoverage().orElseThrow(MAP_PENDING::create);
         long runNumber = NEXT_RUN.updateAndGet(value -> {
@@ -91,8 +93,8 @@ final class SFMSpatialCoverageRuntime {
         if (request.scope().equals("document")) return List.of(focused);
         LinkedHashMap<String, SFMTextEditorPanel.SpatialCoverageCapture> byAddress = new LinkedHashMap<>();
         target.workspace().panels().stream()
-                .filter(SFMTextEditorPanel.class::isInstance)
-                .map(SFMTextEditorPanel.class::cast)
+                .map(SFMSpatialCoverageRuntime::resolveTextEditorPanel)
+                .flatMap(Optional::stream)
                 .map(SFMTextEditorPanel::captureSpatialCoverage)
                 .flatMap(java.util.Optional::stream)
                 .filter(capture -> capture.snapshot().workspaceFingerprint()
@@ -101,6 +103,14 @@ final class SFMSpatialCoverageRuntime {
                         capture.document().address(), capture));
         byAddress.putIfAbsent(focused.document().address(), focused);
         return List.copyOf(byAddress.values());
+    }
+
+    static Optional<SFMTextEditorPanel> resolveTextEditorPanel(Object hostedPanel) {
+        if (hostedPanel instanceof SFMTextEditorPanel editor) return Optional.of(editor);
+        if (hostedPanel instanceof SFMDeferredTextEditorPanel deferred) {
+            return deferred.resolvedEditorPanel();
+        }
+        return Optional.empty();
     }
 
     private static SFMSpatialCoverageService.WorkspaceSnapshot workspaceSnapshot(

@@ -2,7 +2,10 @@ package ca.teamdman.sfm.client.symbol;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
+import ca.teamdman.sfm.client.explorer.SFMPath;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -37,11 +40,13 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
         active = submitted;
         submitted.result().whenComplete((lookup, failure) -> {
             if (failure != null) {
+                Throwable rootFailure = unwrap(failure);
                 SFM.LOGGER.warn(
-                        "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=FAILED epoch={} expected_generation={} failure_type={}",
+                        "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=FAILED epoch={} expected_generation={} failure_type={} failure_code={}",
                         epoch,
                         documentGeneration,
-                        failure.getClass().getSimpleName()
+                        rootFailure.getClass().getSimpleName(),
+                        privacySafeFailureCode(rootFailure)
                 );
                 return;
             }
@@ -65,10 +70,17 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
                 }
                 SFMJavaInteractionMap.Result result = lookup.result();
                 if (result.outcome() != SFMJavaInteractionMap.Outcome.SUCCESS) {
+                    FailureSummary summary = failureSummary(result);
                     SFM.LOGGER.warn(
-                            "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=REJECTED_OUTCOME epoch={} outcome={}",
+                            "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=REJECTED_OUTCOME epoch={} outcome={} diagnostic_codes={} failure_category={} next_action={} address_scheme={} root_id={} source_set={}",
                             epoch,
-                            result.outcome()
+                            result.outcome(),
+                            summary.diagnosticCodes(),
+                            summary.category(),
+                            summary.nextAction(),
+                            addressScheme(result.document().address()),
+                            safeLogToken(result.document().rootId()),
+                            safeLogToken(result.document().sourceSet())
                     );
                     return;
                 }
@@ -128,6 +140,109 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
 
     private static void requireText(String value, String label) {
         if (value == null || value.isBlank()) throw new IllegalArgumentException(label + " must not be blank");
+    }
+
+    /**
+     * Reduces worker prose to stable operational categories without retaining
+     * source text, absolute paths, report paths, or the diagnostic message.
+     */
+    static FailureSummary failureSummary(SFMJavaInteractionMap.Result result) {
+        Objects.requireNonNull(result, "result");
+        List<String> codes = result.diagnostics().stream()
+                .map(SFMDefinitionResult.Diagnostic::code)
+                .map(SFMJavaInteractionMapSession::safeLogToken)
+                .distinct()
+                .sorted()
+                .limit(8)
+                .toList();
+        String category = result.diagnostics().stream()
+                .map(SFMDefinitionResult.Diagnostic::message)
+                .map(message -> message.toLowerCase(Locale.ROOT))
+                .map(SFMJavaInteractionMapSession::failureCategory)
+                .filter(value -> !value.equals("worker-rejected-request"))
+                .findFirst()
+                .orElse("worker-rejected-request");
+        String action = switch (category) {
+            case "document-not-indexed" -> "verify-negotiated-root-or-refresh-index";
+            case "document-identity-ambiguous" -> "inspect-negotiated-root-overlap";
+            case "report-path-mismatch", "source-set-mismatch", "source-root-projection-mismatch",
+                    "workspace-fingerprint-mismatch", "classpath-fingerprint-mismatch",
+                    "dependency-index-mismatch" -> "restart-symbol-worker";
+            case "disk-snapshot-stale", "content-hash-mismatch" -> "reload-document-and-retry";
+            default -> "inspect-worker-diagnostic-code";
+        };
+        return new FailureSummary(
+                codes.isEmpty() ? "none" : String.join(",", codes),
+                category,
+                action
+        );
+    }
+
+    private static String failureCategory(String message) {
+        if (message.contains("matched 0 workspace files")
+                || message.contains("has no editable, managed-jdk, or acquired-dependency source authority")) {
+            return "document-not-indexed";
+        }
+        if (message.contains("matched") && message.contains("workspace files")) {
+            return "document-identity-ambiguous";
+        }
+        if (message.contains("report path")) return "report-path-mismatch";
+        if (message.contains("source set")) return "source-set-mismatch";
+        if (message.contains("source-root projection")) return "source-root-projection-mismatch";
+        if (message.contains("workspace fingerprint")) return "workspace-fingerprint-mismatch";
+        if (message.contains("classpath fingerprint")) return "classpath-fingerprint-mismatch";
+        if (message.contains("dependency-index identity")) return "dependency-index-mismatch";
+        if (message.contains("content hash")) return "content-hash-mismatch";
+        if (message.contains("changed on disk") || message.contains("verify the captured document")) {
+            return "disk-snapshot-stale";
+        }
+        return "worker-rejected-request";
+    }
+
+    private static String privacySafeFailureCode(Throwable failure) {
+        if (!(failure instanceof SFMSymbolNavigationRuntime.ContextUnavailableException unavailable)) {
+            return "none";
+        }
+        return unavailable.adaptation().diagnostics().stream()
+                .map(diagnostic -> diagnostic.code().name().toLowerCase(Locale.ROOT))
+                .findFirst()
+                .orElse("context-unavailable");
+    }
+
+    private static String addressScheme(String address) {
+        try {
+            return SFMPath.parse(address).scheme();
+        } catch (RuntimeException ignored) {
+            return "invalid";
+        }
+    }
+
+    private static String safeLogToken(String value) {
+        StringBuilder safe = new StringBuilder(Math.min(value.length(), 128));
+        for (int index = 0; index < value.length() && safe.length() < 128; index++) {
+            char character = value.charAt(index);
+            safe.append(Character.isLetterOrDigit(character)
+                    || character == ':' || character == '.' || character == '_' || character == '-'
+                    ? character
+                    : '_');
+        }
+        return safe.isEmpty() ? "none" : safe.toString();
+    }
+
+    private static Throwable unwrap(Throwable failure) {
+        Throwable current = failure;
+        while ((current instanceof java.util.concurrent.CompletionException
+                || current instanceof java.util.concurrent.ExecutionException)
+                && current.getCause() != null) current = current.getCause();
+        return current;
+    }
+
+    record FailureSummary(String diagnosticCodes, String category, String nextAction) {
+        FailureSummary {
+            requireText(diagnosticCodes, "diagnosticCodes");
+            requireText(category, "category");
+            requireText(nextAction, "nextAction");
+        }
     }
 
     private record Publication(

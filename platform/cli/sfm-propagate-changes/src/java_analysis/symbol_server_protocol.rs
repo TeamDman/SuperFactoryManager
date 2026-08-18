@@ -436,7 +436,10 @@ fn project_workspace_roots(
                 root_id: root.id.clone(),
                 source_set: root.source_set.clone(),
                 portable_root_path: Some(root.path.clone()),
-                report_prefix: None,
+                report_prefix: workspace
+                    .jdk_sources
+                    .report_prefix_for_root(&root.id)
+                    .map(str::to_owned),
             });
         }
     }

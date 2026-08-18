@@ -126,29 +126,42 @@ impl DefinitionDocumentInput {
                 eyre::bail!("definition document {label} path contains a non-canonical segment");
             }
         }
-        let root = workspace
+        if let Some(root) = workspace
             .source_roots
             .iter()
             .find(|root| root.id == self.root_id)
-            .ok_or_else(|| {
-                eyre::eyre!(
+        {
+            if !root.exists {
+                eyre::bail!(
+                    "definition document source root `{}` is unavailable",
+                    root.id
+                );
+            }
+            if root.source_set != self.source_set {
+                eyre::bail!(
+                    "definition document source set `{}` disagrees with root `{}` source set `{}`",
+                    self.source_set,
+                    root.id,
+                    root.source_set
+                );
+            }
+        } else {
+            // Acquired dependency source roots are negotiated beside the
+            // editable workspace projection. Portable validation can prove
+            // only their canonical contributed address; the worker session
+            // must still authorize the exact root, source set, report prefix,
+            // canonical containment, and current bytes before parsing.
+            let expected = super::contributed_address(
+                "dependency-source",
+                &self.root_id,
+                &self.root_relative_path,
+            );
+            if self.address != expected {
+                eyre::bail!(
                     "definition document references unknown source-root id `{}`",
                     self.root_id
-                )
-            })?;
-        if !root.exists {
-            eyre::bail!(
-                "definition document source root `{}` is unavailable",
-                root.id
-            );
-        }
-        if root.source_set != self.source_set {
-            eyre::bail!(
-                "definition document source set `{}` disagrees with root `{}` source set `{}`",
-                self.source_set,
-                root.id,
-                root.source_set
-            );
+                );
+            }
         }
         validate_content_hash(&self.text, &self.content_hash)?;
         if let Some(disk_hash) = &self.disk_content_hash {

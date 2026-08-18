@@ -853,6 +853,15 @@ fn build_complete_map(
             .unwrap_or_else(|| root_region_id.clone());
         synthetic_parent.insert(id.clone(), parent);
         symbol_region_ids.push((id.clone(), usage));
+        if let Some(annotation_region_id) =
+            enclosing_annotation_region_id(start, end, &raw, &raw_region_ids)
+        {
+            // An annotation is one deliberate interaction surface. Clicking
+            // `@`, the name, or an argument-bearing annotation's remaining
+            // syntax must offer the same resolved symbol relation; this is
+            // not a nearest-token recovery rule.
+            symbol_region_ids.push((annotation_region_id, usage));
+        }
         regions.push(region(
             id,
             &utf8_domain_id,
@@ -2069,6 +2078,24 @@ fn smallest_containing_raw_region(
         .cloned()
 }
 
+fn enclosing_annotation_region_id(
+    start: usize,
+    end: usize,
+    raw: &[RawSyntaxRegion],
+    raw_region_ids: &BTreeMap<usize, String>,
+) -> Option<String> {
+    raw.iter()
+        .filter(|node| {
+            matches!(node.kind.as_str(), "marker_annotation" | "annotation")
+                && node.start <= start
+                && end <= node.end
+                && (node.start < start || end < node.end)
+        })
+        .min_by_key(|node| (node.end.saturating_sub(node.start), node.ordinal))
+        .and_then(|node| raw_region_ids.get(&node.ordinal))
+        .cloned()
+}
+
 fn containing_region_id(
     target: &JavaInteractionRegionOutput,
     regions: &[JavaInteractionRegionOutput],
@@ -2307,6 +2334,8 @@ mod tests {
     use crate::java_analysis::JavaSourceRootOutput;
     use crate::java_analysis::JavaSourceSetOutput;
     use crate::java_analysis::JdkSourceDomainState;
+    use crate::java_analysis::SymbolServerWorkspaceOutput;
+    use crate::java_analysis::UsageAtPositionRequest;
     use crate::java_analysis::definition_workspace_fingerprint;
     use std::path::PathBuf;
 
@@ -2352,6 +2381,18 @@ mod tests {
             (
                 "java.base/java/io/Serial.java",
                 "package java.io; public @interface Serial {}\n",
+            ),
+            (
+                "java.base/java/io/IOException.java",
+                "package java.io; public class IOException {}\n",
+            ),
+            (
+                "java.base/java/lang/StringBuilder.java",
+                concat!(
+                    "package java.lang;\n",
+                    "import java.io.IOException;\n",
+                    "public final class StringBuilder { IOException value; }\n",
+                ),
             ),
         ] {
             let path = jdk_directory
@@ -2679,6 +2720,187 @@ mod tests {
                     != JavaInteractionClassificationStatus::Unclassified)
         );
         assert!(result.page.encoded_bytes <= JAVA_INTERACTION_MAP_DEFAULT_MAX_ENCODED_BYTES);
+    }
+
+    #[test]
+    fn semantic_map_accepts_an_addressed_jdk_document_without_eager_workspace_admission() {
+        let (_jdk_directory, workspace, base_request) = semantic_matrix_fixture();
+        let jdk_root = workspace
+            .context
+            .source_roots
+            .iter()
+            .find(|root| root.kind == JavaSourceRootKind::Jdk && root.exists)
+            .expect("managed JDK source root");
+        let relative = "java.base/java/lang/String.java";
+        let file = workspace
+            .jdk_sources
+            .addressed_source_file(&jdk_root.id, relative)
+            .expect("addressed JDK source lookup")
+            .expect("addressed JDK source");
+        let served = SymbolServerWorkspaceOutput::from_workspace(&workspace, None, 12)
+            .expect("served workspace with managed JDK root");
+        let served_root = served
+            .managed_source_roots
+            .iter()
+            .find(|root| root.root_id == file.root_id)
+            .expect("served managed JDK root");
+        assert_eq!(
+            served_root.report_prefix.as_deref(),
+            file.report_path.strip_suffix(&format!("/{relative}"))
+        );
+        assert!(
+            workspace.files.iter().all(|workspace_file| {
+                workspace_file.root_id != file.root_id
+                    || workspace_file.root_relative_path != file.root_relative_path
+            }),
+            "managed JDK source must remain outside the eager workspace inventory"
+        );
+        let text = std::fs::read_to_string(&file.absolute_path).expect("JDK source text");
+        let request = JavaInteractionMapRequest::new(
+            42,
+            8,
+            base_request.workspace,
+            DefinitionDocumentInput {
+                address: contributed_address("jdk-source", &file.root_id, relative),
+                root_id: file.root_id.clone(),
+                root_relative_path: relative.to_owned(),
+                report_path: file.report_path.clone(),
+                source_set: file.source_set.clone(),
+                text: text.clone(),
+                content_hash: blake3_content_hash(&text),
+                disk_content_hash: Some(blake3_content_hash(&text)),
+            },
+        );
+        let engine = DefinitionAtPositionEngine::new(
+            workspace,
+            None,
+            None,
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("semantic matrix engine");
+
+        let result = engine
+            .analyze_interaction_map(&request, &CancellationToken::new())
+            .expect("JDK interaction map");
+
+        assert_eq!(result.outcome, JavaInteractionMapOutcome::Success);
+        assert_eq!(result.document.root_id, file.root_id);
+        assert_eq!(result.document.root_relative_path, relative);
+        assert!(
+            result
+                .regions
+                .iter()
+                .any(|region| region.semantic_kind == "java-class-declaration")
+        );
+        assert!(
+            result
+                .outlinks
+                .iter()
+                .any(|outlink| outlink.relation_kind == "definition")
+        );
+
+        let string_offset = text.find("String").expect("String declaration");
+        let string_column = text[..string_offset].chars().count() + 1;
+        let definition_request = DefinitionAtPositionRequest::new(
+            43,
+            9,
+            request.workspace.clone(),
+            request.document.clone(),
+            DefinitionTextPositionInput::from_line_column(
+                &text,
+                1,
+                string_column.try_into().expect("String column"),
+            )
+            .expect("String cursor"),
+        );
+        let definition = engine
+            .analyze(&definition_request, &CancellationToken::new())
+            .expect("JDK definition lookup");
+        assert_eq!(
+            definition.outcome,
+            crate::java_analysis::DefinitionAtPositionOutcome::Success
+        );
+        let references = engine
+            .analyze_usages(
+                &UsageAtPositionRequest::new(
+                    44,
+                    10,
+                    definition_request.workspace,
+                    definition_request.document,
+                    definition_request.position,
+                ),
+                &CancellationToken::new(),
+            )
+            .expect("JDK reference lookup");
+        assert_eq!(
+            references.outcome,
+            crate::java_analysis::UsageAtPositionOutcome::Success
+        );
+    }
+
+    #[test]
+    fn addressed_jdk_document_seeds_its_own_unseen_import_definitions() {
+        let (_jdk_directory, workspace, base_request) = semantic_matrix_fixture();
+        let jdk_root = workspace
+            .context
+            .source_roots
+            .iter()
+            .find(|root| root.kind == JavaSourceRootKind::Jdk && root.exists)
+            .expect("managed JDK source root");
+        let relative = "java.base/java/lang/StringBuilder.java";
+        let file = workspace
+            .jdk_sources
+            .addressed_source_file(&jdk_root.id, relative)
+            .expect("addressed JDK source lookup")
+            .expect("addressed JDK source");
+        let text = std::fs::read_to_string(&file.absolute_path).expect("JDK source text");
+        let request = JavaInteractionMapRequest::new(
+            45,
+            11,
+            base_request.workspace,
+            DefinitionDocumentInput {
+                address: contributed_address("jdk-source", &file.root_id, relative),
+                root_id: file.root_id.clone(),
+                root_relative_path: relative.to_owned(),
+                report_path: file.report_path.clone(),
+                source_set: file.source_set.clone(),
+                text: text.clone(),
+                content_hash: blake3_content_hash(&text),
+                disk_content_hash: Some(blake3_content_hash(&text)),
+            },
+        );
+        let engine = DefinitionAtPositionEngine::new(
+            workspace,
+            None,
+            None,
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("semantic matrix engine");
+
+        let result = engine
+            .analyze_interaction_map(&request, &CancellationToken::new())
+            .expect("JDK interaction map");
+
+        assert_eq!(result.outcome, JavaInteractionMapOutcome::Success);
+        let import = result
+            .regions
+            .iter()
+            .find(|region| region_text(&text, region) == Some("java.io.IOException"))
+            .expect("full qualified import region");
+        assert!(result.outlinks.iter().any(|outlink| {
+            outlink.source_region_id == import.id && outlink.relation_kind == "definition"
+        }));
+        assert!(result.files.iter().any(|candidate| {
+            candidate.resolver_id == "jdk-source"
+                && candidate.root_relative_path == "java.base/java/io/IOException.java"
+                && candidate.state == JavaInteractionFileState::Covered
+        }));
+        assert!(result.files.iter().any(|candidate| {
+            candidate.resolver_id == "jdk-source"
+                && candidate.root_id == file.root_id
+                && candidate.root_relative_path == relative
+                && candidate.state == JavaInteractionFileState::Covered
+        }));
     }
 
     #[test]

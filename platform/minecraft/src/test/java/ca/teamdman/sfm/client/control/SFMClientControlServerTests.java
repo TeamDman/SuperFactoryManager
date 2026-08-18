@@ -15,5 +15,7 @@ class SFMClientControlServerTests {
     void whitespaceAndQuotesAreEscapedForBrigadier() {
         assertEquals("\"text with spaces\"", SFMClientControlServer.escapeCommandToken("text with spaces"));
         assertEquals("\"say \\\"hi\\\"\"", SFMClientControlServer.escapeCommandToken("say \"hi\""));
+        assertEquals("\"D:\\\\Repos\\\\Minecraft SFM\"",
+                SFMClientControlServer.escapeCommandToken("D:\\Repos\\Minecraft SFM"));
     }
 }

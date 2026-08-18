@@ -10,6 +10,7 @@ use super::DiagnosticSeverity;
 use super::JavaAnalysisContextOutput;
 use super::JavaAnalysisDiagnosticOutput;
 use super::JavaFileFactIdentity;
+use super::JavaSourceFile;
 use super::JavaSourceSpanOutput;
 use super::JavaSourceWorkspace;
 use super::JavaSymbolDefinitionOutput;
@@ -66,8 +67,8 @@ pub(crate) struct JavaUsageResolutionSurface {
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct JavaUsageSourceSnapshot<'snapshot, 'workspace> {
-    pub(crate) files: &'snapshot [&'workspace super::JavaSourceFile],
+pub(crate) struct JavaUsageSourceSnapshot<'snapshot> {
+    pub(crate) files: &'snapshot [super::JavaSourceFile],
     pub(crate) sources: &'snapshot [String],
 }
 
@@ -166,7 +167,7 @@ impl JavaUsageResolutionSurface {
     fn selected_or_build(
         &self,
         resolution: &Arc<JavaDefinitionResolutionSurface>,
-        files: &[&super::JavaSourceFile],
+        files: &[super::JavaSourceFile],
         sources: &[String],
         target: &JavaSymbolIdentityOutput,
         cancellation_token: &CancellationToken,
@@ -577,9 +578,10 @@ impl JavaDefinitionResolutionSurface {
     pub(crate) fn definition_at_position(
         self: &Arc<Self>,
         workspace: &JavaSourceWorkspace,
+        target: &JavaSourceFile,
         request: &DefinitionAtPositionRequest,
     ) -> eyre::Result<DefinitionAtPositionResult> {
-        let resolved = self.resolve_interaction_document(workspace, request)?;
+        let resolved = self.resolve_interaction_document(target, request)?;
         Ok(definition_at_position_from_parts(
             self.context.clone(),
             |selected_symbols| {
@@ -608,24 +610,10 @@ impl JavaDefinitionResolutionSurface {
     /// the complete interaction map.
     pub(crate) fn resolve_interaction_document(
         self: &Arc<Self>,
-        workspace: &JavaSourceWorkspace,
+        target: &JavaSourceFile,
         request: &DefinitionAtPositionRequest,
     ) -> eyre::Result<JavaResolvedInteractionDocument> {
-        let mut target = workspace
-            .files
-            .iter()
-            .find(|file| {
-                file.root_id == request.document.root_id
-                    && file.root_relative_path == request.document.root_relative_path
-            })
-            .cloned()
-            .ok_or_else(|| {
-                eyre::eyre!(
-                    "validated definition document `{}`:`{}` is absent from the resolution workspace",
-                    request.document.root_id,
-                    request.document.root_relative_path
-                )
-            })?;
+        let mut target = target.clone();
         target.source_override = Some(request.document.text.clone());
         let parsed = JavaSyntaxFile::parse_with_diagnostic_limit(&target, None)?;
         let mut diagnostics = parsed.diagnostics.clone();
@@ -730,14 +718,15 @@ impl JavaDefinitionResolutionSurface {
         self: &Arc<Self>,
         usage_surface: &JavaUsageResolutionSurface,
         workspace: &JavaSourceWorkspace,
-        snapshot: JavaUsageSourceSnapshot<'_, '_>,
+        target: &JavaSourceFile,
+        snapshot: JavaUsageSourceSnapshot<'_>,
         request: &UsageAtPositionRequest,
         dependencies: Option<&DependencyJavaSymbolIndexBody>,
         cancellation_token: &CancellationToken,
     ) -> eyre::Result<(UsageAtPositionResult, JavaUsageResolutionTelemetry)> {
         cancellation_token.bail_if_cancelled()?;
         let definition_request = request.as_definition_request();
-        let definition = self.definition_at_position(workspace, &definition_request)?;
+        let definition = self.definition_at_position(workspace, target, &definition_request)?;
         let mut result = UsageAtPositionResult::from_definition(definition);
         if result.outcome != super::UsageAtPositionOutcome::Success || result.targets.len() != 1 {
             result.refresh_index_fingerprint();
@@ -782,7 +771,7 @@ impl JavaDefinitionResolutionSurface {
         diagnostics.dedup();
         result.diagnostics = diagnostics;
         let mut span_resolver =
-            SnapshotDefinitionSpanResolver::new(snapshot.files, snapshot.sources);
+            SnapshotDefinitionSpanResolver::new(workspace, snapshot.files, snapshot.sources);
         result.usages = raw_usages
             .into_iter()
             .map(|usage| UsageAtPositionUsageOutput {
@@ -1480,6 +1469,30 @@ pub(crate) fn validate_definition_request_workspace(
     workspace: &JavaSourceWorkspace,
     request: &DefinitionAtPositionRequest,
 ) -> eyre::Result<()> {
+    validate_definition_request_workspace_identity(workspace, request)?;
+    let matches = workspace
+        .files
+        .iter()
+        .filter(|file| {
+            file.root_id == request.document.root_id
+                && file.root_relative_path == request.document.root_relative_path
+        })
+        .collect::<Vec<_>>();
+    let [file] = matches.as_slice() else {
+        eyre::bail!(
+            "definition document `{}`:`{}` matched {} workspace files",
+            request.document.root_id,
+            request.document.root_relative_path,
+            matches.len()
+        );
+    };
+    validate_definition_document_projection(file, request, "workspace")
+}
+
+pub(crate) fn validate_definition_request_workspace_identity(
+    workspace: &JavaSourceWorkspace,
+    request: &DefinitionAtPositionRequest,
+) -> eyre::Result<()> {
     request.validate()?;
     let requested = &request.workspace;
     let actual = &workspace.context;
@@ -1504,27 +1517,28 @@ pub(crate) fn validate_definition_request_workspace(
     if requested.workspace_fingerprint != expected_workspace_fingerprint {
         eyre::bail!("definition request workspace fingerprint does not match the workspace");
     }
-    let matches = workspace
-        .files
-        .iter()
-        .filter(|file| {
-            file.root_id == request.document.root_id
-                && file.root_relative_path == request.document.root_relative_path
-        })
-        .collect::<Vec<_>>();
-    let [file] = matches.as_slice() else {
-        eyre::bail!(
-            "definition document `{}`:`{}` matched {} workspace files",
-            request.document.root_id,
-            request.document.root_relative_path,
-            matches.len()
-        );
-    };
+    Ok(())
+}
+
+pub(crate) fn validate_definition_document_projection(
+    file: &JavaSourceFile,
+    request: &DefinitionAtPositionRequest,
+    resolver_id: &str,
+) -> eyre::Result<()> {
     if file.report_path != request.document.report_path {
-        eyre::bail!("definition document report path does not match the workspace file");
+        eyre::bail!("definition document report path does not match the resolved source file");
     }
     if file.source_set != request.document.source_set {
-        eyre::bail!("definition document source set does not match the workspace file");
+        eyre::bail!("definition document source set does not match the resolved source file");
+    }
+    if resolver_id != "workspace" {
+        let expected_address =
+            super::contributed_address(resolver_id, &file.root_id, &file.root_relative_path);
+        if request.document.address != expected_address {
+            eyre::bail!(
+                "definition document address does not match the resolved `{resolver_id}` source file"
+            );
+        }
     }
     Ok(())
 }
@@ -1551,15 +1565,18 @@ pub(crate) fn definition_at_position_definition(
 }
 
 struct SnapshotDefinitionSpanResolver<'source> {
-    files: BTreeMap<(String, String), (&'source super::JavaSourceFile, &'source str)>,
+    files: BTreeMap<(String, String), (&'source super::JavaSourceFile, &'source str, bool)>,
     witnesses: BTreeMap<(String, String, String), Option<String>>,
 }
 
 impl<'source> SnapshotDefinitionSpanResolver<'source> {
-    fn new(files: &[&'source super::JavaSourceFile], sources: &'source [String]) -> Self {
+    fn new(
+        workspace: &super::JavaSourceWorkspace,
+        files: &'source [super::JavaSourceFile],
+        sources: &'source [String],
+    ) -> Self {
         let mut ordered = files
             .iter()
-            .copied()
             .zip(sources.iter().map(String::as_str))
             .collect::<Vec<_>>();
         ordered.sort_by(|(left, _), (right, _)| {
@@ -1571,9 +1588,13 @@ impl<'source> SnapshotDefinitionSpanResolver<'source> {
         });
         let mut by_report_identity = BTreeMap::new();
         for (file, source) in ordered {
+            let editable = workspace.files.iter().any(|candidate| {
+                candidate.root_id == file.root_id
+                    && candidate.root_relative_path == file.root_relative_path
+            });
             by_report_identity
                 .entry((file.report_path.clone(), file.source_set.clone()))
-                .or_insert((file, source));
+                .or_insert((file, source, editable));
         }
         Self {
             files: by_report_identity,
@@ -1583,7 +1604,7 @@ impl<'source> SnapshotDefinitionSpanResolver<'source> {
 
     fn resolve(&mut self, span: &JavaSourceSpanOutput) -> DefinitionSourceSpanOutput {
         let key = (span.path.clone(), span.source_set.clone());
-        if let Some((file, source)) = self.files.get(&key).copied() {
+        if let Some((file, source, editable)) = self.files.get(&key).copied() {
             let witness_key = (
                 span.path.clone(),
                 span.source_set.clone(),
@@ -1594,12 +1615,22 @@ impl<'source> SnapshotDefinitionSpanResolver<'source> {
                 .entry(witness_key)
                 .or_insert_with(|| sha256_witness_for_blake3(&span.source_hash, source))
                 .clone();
+            if editable {
+                return DefinitionSourceSpanOutput::from_report_span(
+                    span,
+                    "workspace",
+                    file.root_id.clone(),
+                    file.root_relative_path.clone(),
+                    format!("workspace://{}/{}", file.root_id, file.root_relative_path),
+                    source_sha256,
+                );
+            }
             return DefinitionSourceSpanOutput::from_report_span(
                 span,
-                "workspace",
-                file.root_id.clone(),
-                file.root_relative_path.clone(),
-                format!("workspace://{}/{}", file.root_id, file.root_relative_path),
+                "dependency-index",
+                "dependency-index",
+                span.path.clone(),
+                format!("dependency-index://dependency-index/{}", span.path),
                 source_sha256,
             );
         }
@@ -4407,7 +4438,6 @@ mod tests {
     use crate::java_analysis::DefinitionTextPositionInput;
     use crate::java_analysis::DefinitionWorkspaceIdentityInput;
     use crate::java_analysis::JavaClasspathMode;
-    use crate::java_analysis::JavaSourceFile;
     use crate::java_analysis::JavaSourceRootKind;
     use crate::java_analysis::JavaSourceRootOutput;
     use crate::java_analysis::JavaSourceSetOutput;

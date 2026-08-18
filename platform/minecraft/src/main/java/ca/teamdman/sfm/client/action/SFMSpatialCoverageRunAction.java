@@ -75,7 +75,7 @@ public final class SFMSpatialCoverageRunAction
                 RequiredArgumentBuilder
                         .<SFMClientActionSource, String>argument(
                                 "artifact-destination",
-                                StringArgumentType.greedyString()
+                                StringArgumentType.string()
                         )
                         .suggests((context, builder) ->
                                 builder.suggest(AUTO_DESTINATION).buildFuture())

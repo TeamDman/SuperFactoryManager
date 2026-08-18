@@ -6,8 +6,11 @@ import ca.teamdman.sfm.client.symbol.SFMSymbolServerSupervisor;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppet;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetViewportProfile;
+import ca.teamdman.sfm.gametest.puppet.SFMExternalCliPuppetProcess;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.LoadingOverlay;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;
@@ -37,8 +40,15 @@ public final class TitleScreenOutputStatementSourceNavigationGamePuppet {
         Path branchRoot = sourceRoot.getParent().getParent().getParent();
         Path symbolCliRoot = branchRoot.resolve("platform/cli/sfm-propagate-changes");
         Path symbolWorker = symbolCliRoot.resolve("target/release/sfm-propagate-changes.exe");
-        requireCurrentSymbolWorker(symbolCliRoot, symbolWorker);
+        requireCurrentRustExecutable(symbolCliRoot, symbolWorker, "symbol worker");
         System.setProperty(SFMSymbolServerSupervisor.EXECUTABLE_PROPERTY, symbolWorker.toString());
+        boolean autoScale = Minecraft.getInstance().options.guiScale().get() == 0;
+        if (autoScale) {
+            Path controlCliRoot = branchRoot.resolve("platform/cli/sfm");
+            Path controlCli = controlCliRoot.resolve("target/release/sfm.exe");
+            requireCurrentRustExecutable(controlCliRoot, controlCli, "control CLI");
+            System.setProperty(SFMExternalCliPuppetProcess.EXECUTABLE_PROPERTY, controlCli.toString());
+        }
         List<Path> directories = List.of(
                 sourceRoot.resolve("main"),
                 sourceRoot.resolve("main/java"),
@@ -67,18 +77,43 @@ public final class TitleScreenOutputStatementSourceNavigationGamePuppet {
                 outputStatement,
                 "output-statement-source-navigation"
         );
+        if (autoScale) {
+            puppet.invokeExternalCliSpatialCoverage(
+                    outputStatement,
+                    Minecraft.getInstance().gameDirectory.toPath()
+                            .resolve("sfm-artifacts")
+                            .resolve("spatial-coverage")
+                            .resolve("remoting-output-statement-auto"),
+                    "output-statement-source-navigation-remoting-coverage"
+            );
+        }
+        puppet.openCommandPalette();
+        puppet.executeCommandPaletteAndWaitForScreen(
+                "sfm action invoke sfm:panel/open sfm:text_editor sfm:text_editor_v3",
+                SFMScreenMultiplexer.class
+        );
+        puppet.pressScreenKey(GLFW.GLFW_KEY_F12, 0);
+        puppet.exerciseActionableToast("output-statement-source-navigation-actionable-toast");
+        puppet.capture(
+                "output-statement-source-navigation-actionable-toast",
+                Component.literal("SFM Source Navigation: ")
+                        .withStyle(ChatFormatting.GOLD)
+                        .append(Component.literal(
+                                "A later failed lookup remains visible after copy, pin, resume, and exact dismiss."
+                        ).withStyle(ChatFormatting.BLACK))
+        );
         puppet.closeScreenNaturally();
     }
 
-    private static void requireCurrentSymbolWorker(Path cliRoot, Path worker) {
-        if (!Files.isRegularFile(worker)) {
+    private static void requireCurrentRustExecutable(Path cliRoot, Path executable, String label) {
+        if (!Files.isRegularFile(executable)) {
             throw new IllegalStateException(
-                    "C-11 requires the current worktree symbol worker; build "
-                            + worker + " before launching the puppet"
+                    "C-11 requires the current worktree " + label + "; build "
+                            + executable + " before launching the puppet"
             );
         }
         try {
-            long workerModified = Files.getLastModifiedTime(worker).toMillis();
+            long workerModified = Files.getLastModifiedTime(executable).toMillis();
             long sourceModified;
             try (Stream<Path> files = Files.walk(cliRoot.resolve("src"))) {
                 sourceModified = files
@@ -96,12 +131,12 @@ public final class TitleScreenOutputStatementSourceNavigationGamePuppet {
             }
             if (workerModified < sourceModified) {
                 throw new IllegalStateException(
-                        "C-11 refuses the stale worktree symbol worker " + worker
+                        "C-11 refuses the stale worktree " + label + " " + executable
                                 + "; rebuild it after the newest Rust source change"
                 );
             }
         } catch (IOException failure) {
-            throw new IllegalStateException("Could not validate the C-11 worktree symbol worker", failure);
+            throw new IllegalStateException("Could not validate the C-11 worktree " + label, failure);
         }
     }
 

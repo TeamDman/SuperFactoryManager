@@ -1,10 +1,13 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.client.screen.text_editor.SFMDeferredTextEditorPanel;
+import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceLayout;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -18,6 +21,7 @@ import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMSpatialCoverageRunActionTests {
@@ -97,6 +101,32 @@ class SFMSpatialCoverageRunActionTests {
         );
     }
 
+    @Test
+    void transportedQuotedWindowsDestinationDecodesToTheExactSingleArgument() throws Exception {
+        RecordingHandler handler = new RecordingHandler();
+        TestRig rig = rig(handler);
+        String destination = "D:\\Repos\\Minecraft SFM\\coverage";
+        String command = PREFIX
+                + "document focused sfm:strict_java_navigation sfm:auto_1_through_8 0 4096 "
+                + StringArgumentType.escapeIfRequired(destination);
+
+        assertEquals(37, rig.tree().execute(command, rig.source()));
+        assertEquals(destination, handler.requests.get(0).artifactDestination());
+    }
+
+    @Test
+    void productionCoverageRuntimeResolvesTheLoadedEditorInsideItsDeferredHost() throws Exception {
+        SFMDeferredTextEditorPanel deferred = allocateWithoutConstructor(SFMDeferredTextEditorPanel.class);
+        SFMTextEditorPanel editor = allocateWithoutConstructor(SFMTextEditorPanel.class);
+        Field delegate = SFMDeferredTextEditorPanel.class.getDeclaredField("delegate");
+        delegate.setAccessible(true);
+        delegate.set(deferred, editor);
+
+        assertSame(editor, SFMSpatialCoverageRuntime.resolveTextEditorPanel(deferred).orElseThrow());
+        assertSame(editor, SFMSpatialCoverageRuntime.resolveTextEditorPanel(editor).orElseThrow());
+        assertTrue(SFMSpatialCoverageRuntime.resolveTextEditorPanel(new Object()).isEmpty());
+    }
+
     private static void assertSuggestionsContain(TestRig rig, String command, String... expected)
             throws ExecutionException, InterruptedException {
         List<String> actual = rig.tree().getCompletionSuggestions(
@@ -143,15 +173,18 @@ class SFMSpatialCoverageRunActionTests {
     }
 
     private static SFMScreenMultiplexer headlessWorkspace(SFMWorkspaceLayout layout) throws Exception {
-        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
-        unsafeField.setAccessible(true);
-        Unsafe unsafe = (Unsafe) unsafeField.get(null);
-        SFMScreenMultiplexer workspace =
-                (SFMScreenMultiplexer) unsafe.allocateInstance(SFMScreenMultiplexer.class);
+        SFMScreenMultiplexer workspace = allocateWithoutConstructor(SFMScreenMultiplexer.class);
         Field layoutField = SFMScreenMultiplexer.class.getDeclaredField("layout");
         layoutField.setAccessible(true);
         layoutField.set(workspace, layout);
         return workspace;
+    }
+
+    private static <T> T allocateWithoutConstructor(Class<T> type) throws Exception {
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        Unsafe unsafe = (Unsafe) unsafeField.get(null);
+        return type.cast(unsafe.allocateInstance(type));
     }
 
     private static final class RecordingHandler implements SFMSpatialCoverageRunAction.Handler {

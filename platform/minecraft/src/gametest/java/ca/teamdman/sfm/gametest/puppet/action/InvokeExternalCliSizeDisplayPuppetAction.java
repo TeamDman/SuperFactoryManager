@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMSizeDisplayPanel;
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
+import ca.teamdman.sfm.gametest.puppet.SFMExternalCliPuppetProcess;
 import net.minecraft.client.Minecraft;
 
 import java.io.IOException;
@@ -18,7 +19,7 @@ import java.util.List;
  * action.</p>
  */
 public final class InvokeExternalCliSizeDisplayPuppetAction implements SFMPuppetAction {
-    public static final String EXECUTABLE_PROPERTY = "sfm.controlCliExecutable";
+    public static final String EXECUTABLE_PROPERTY = SFMExternalCliPuppetProcess.EXECUTABLE_PROPERTY;
     private static final int TIMEOUT_TICKS = 1200;
 
     private Process process;

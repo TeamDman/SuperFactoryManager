@@ -183,14 +183,7 @@ public final class SFMJavaInteractionMap {
             knownSemanticFingerprint = Objects.requireNonNull(
                     knownSemanticFingerprint, "knownSemanticFingerprint");
             knownSemanticFingerprint.ifPresent(value -> taggedHash(value, "known semantic fingerprint", "blake3"));
-            SFMDefinitionRequest.SourceRoot sourceRoot = workspace.sourceRoots().stream()
-                    .filter(root -> root.id().equals(document.rootId()))
-                    .findFirst()
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Interaction-map document references an unknown source root"));
-            if (!sourceRoot.sourceSet().equals(document.sourceSet())) {
-                throw new IllegalArgumentException("Interaction-map document source set disagrees with its root");
-            }
+            SFMDefinitionRequest.validateDocumentRootProjection(workspace, document);
         }
 
         public Request(

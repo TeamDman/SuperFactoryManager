@@ -87,6 +87,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         WAIT_DEFINITION_LOOKUP,
         INVOKE_F12,
         WAIT_DEFINITION_TARGET,
+        WAIT_JDK_INTERACTION_MAP,
         CAPTURE_DEFINITION,
         PREPARE_ALT_ENTER,
         WAIT_ALT_ENTER,
@@ -127,6 +128,13 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
             requireNonBlank(expectedKind, "expected symbol kind");
             requireNonBlank(expectedResolver, "expected resolver");
             expectedRootRelativeSuffix = normalizeSuffix(expectedRootRelativeSuffix);
+        }
+    }
+
+    private record JdkInteractionFixture(String token, int occurrence) {
+        JdkInteractionFixture {
+            requireNonBlank(token, "JDK interaction token");
+            if (occurrence < 0) throw new IllegalArgumentException("JDK interaction occurrence must be non-negative");
         }
     }
 
@@ -260,6 +268,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
             case WAIT_DEFINITION_LOOKUP -> waitDefinitionLookup();
             case INVOKE_F12 -> invokeF12(runtime);
             case WAIT_DEFINITION_TARGET -> waitDefinitionTarget();
+            case WAIT_JDK_INTERACTION_MAP -> waitJdkInteractionMap();
             case CAPTURE_DEFINITION -> captureDefinition(runtime);
             case PREPARE_ALT_ENTER -> prepareAltEnter(runtime);
             case WAIT_ALT_ENTER -> waitAltEnter();
@@ -562,13 +571,53 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         fixture.add("navigation", navigation);
         if (currentFixture.id().equals("member-method")) methodDefinitionProven = true;
         if (currentFixture.id().equals("jdk-string-builder")) {
-            advance(Phase.CAPTURE_DEFINITION);
+            advance(Phase.WAIT_JDK_INTERACTION_MAP);
         } else {
             fixtureIndex++;
             definitionSubmission = null;
             definitionLookup = null;
             advance(Phase.PREPARE_DEFINITION);
         }
+        return false;
+    }
+
+    private boolean waitJdkInteractionMap() {
+        SFMScreenMultiplexer workspace = requireWorkspace();
+        SFMDefinitionResult.Definition definition = definitionLookup.result().definitions().get(0);
+        SFMTextDocumentRange expectedRange = range(definition.identifierSpan());
+        SFMSourcePuppetProbe.EditorHandle target = focusedTarget(
+                workspace,
+                definition.identifierSpan().rootRelativePath(),
+                definition.symbol().name(),
+                Optional.of(expectedRange)
+        ).orElse(null);
+        if (target == null || C11SourceNavigationPuppetProbe.spatialCoverage(target).isEmpty()) {
+            failOnNavigationToast(workspace, "JDK interaction map");
+            return false;
+        }
+        SFMTextDocumentSnapshot document = target.state().documentSnapshot().orElseThrow();
+        JsonArray relations = new JsonArray();
+        for (JdkInteractionFixture witness : List.of(
+                new JdkInteractionFixture("java.io.Serializable", 0),
+                new JdkInteractionFixture("java.io.Serial", 0),
+                new JdkInteractionFixture("serialVersionUID", 1)
+        )) {
+            String token = witness.token();
+            SFMTextDocumentRange tokenRange = SFMSourcePuppetProbe.symbolRange(
+                    document.text(), token, witness.occurrence());
+            C11SourceNavigationPuppetProbe.Pointer pointer = C11SourceNavigationPuppetProbe.pointer(
+                    workspace, target, tokenRange);
+            C11SourceNavigationPuppetProbe.SpatialWitness semantic =
+                    C11SourceNavigationPuppetProbe.spatialWitness(target, pointer)
+                            .orElseThrow(() -> new IllegalStateException(
+                                    "The JDK document has no generation-consistent semantic witness for " + token));
+            relations.add(semanticRelation(semantic, "jdk-document/" + token, "definition"));
+        }
+        require(target.resolvedPanel().orElseThrow().navigateToRange(expectedRange),
+                "The JDK editor could not restore the StringBuilder definition framing");
+        JsonObject fixture = definitionEvidence.get(definitionEvidence.size() - 1).getAsJsonObject();
+        fixture.add("jdk_document_interaction_map", relations);
+        advance(Phase.CAPTURE_DEFINITION);
         return false;
     }
 

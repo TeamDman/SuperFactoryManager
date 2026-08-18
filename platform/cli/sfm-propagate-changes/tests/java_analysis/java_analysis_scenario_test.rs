@@ -220,11 +220,11 @@ fn java_interaction_map_semantic_matrix_scenario() -> eyre::Result<()> {
     let workspace_inventory_complete = expected_workspace_files == actual_workspace_files;
     let exact_regressions = [
         "LexerAdapter",
-        "Mod",
+        "@Mod",
         "LocalizationEntry",
         "String",
         "java.io.Serializable",
-        "Serial",
+        "java.io.Serial",
         "serialVersionUID",
     ]
     .into_iter()
@@ -237,9 +237,9 @@ fn java_interaction_map_semantic_matrix_scenario() -> eyre::Result<()> {
                 return false;
             };
             text.get(start..end).is_some_and(|value| value == needle)
-                && (result.outlinks.iter().any(|outlink| {
+                && result.outlinks.iter().any(|outlink| {
                     outlink.source_region_id == region.id && outlink.relation_kind == "definition"
-                }) || exceptions.contains(region.id.as_str()))
+                })
         });
         JavaInteractionMapScenarioRegression {
             id: needle.to_owned(),

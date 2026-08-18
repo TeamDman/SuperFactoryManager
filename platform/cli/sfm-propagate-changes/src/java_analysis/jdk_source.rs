@@ -7,6 +7,7 @@ use super::JavaDependencyResolutionDefinition;
 use super::JavaFileFactDetail;
 use super::JavaFileFacts;
 use super::JavaFileFactsInput;
+use super::JavaSourceFile;
 use super::JavaSourceRootKind;
 use super::JavaSourceRootOutput;
 use super::JavaSourceSetOutput;
@@ -152,6 +153,26 @@ impl JdkSourceDomainState {
         domain.report_identity(report_path, source_set)
     }
 
+    pub(crate) fn report_prefix_for_root(&self, root_id: &str) -> Option<&str> {
+        let Self::Ready(domain) = self else {
+            return None;
+        };
+        (domain.root_id == root_id).then_some(domain.report_prefix.as_str())
+    }
+
+    /// Resolve one caller-addressed JDK document without admitting the JDK
+    /// tree to the eager editable-workspace inventory.
+    pub(crate) fn addressed_source_file(
+        &self,
+        root_id: &str,
+        root_relative_path: &str,
+    ) -> eyre::Result<Option<JavaSourceFile>> {
+        let Self::Ready(domain) = self else {
+            return Ok(None);
+        };
+        domain.addressed_source_file(root_id, root_relative_path)
+    }
+
     pub(crate) fn syntax_files_for_project(
         &self,
         project_files: &[JavaSyntaxFile],
@@ -170,7 +191,7 @@ impl JdkSourceDomainState {
         Ok(Self::Ready(Arc::new(JdkSourceDomain::from_tree(
             java_release,
             "fixture-jdk-source-identity".to_owned(),
-            PathBuf::from("$fixture/jdk/tree"),
+            canonical_tree.to_path_buf(),
             canonical_tree,
         )?)))
     }
@@ -310,6 +331,19 @@ impl JdkSourceDomain {
         for candidate in candidate_names {
             relative_paths.extend(self.source_entries(&candidate));
         }
+        let existing_paths = project_facts
+            .iter()
+            .filter(|facts| facts.file.source_set == self.source_set)
+            .filter_map(|facts| {
+                facts
+                    .file
+                    .report_path
+                    .strip_prefix(self.report_prefix.trim_end_matches('/'))
+                    .and_then(|tail| tail.strip_prefix('/'))
+                    .map(ToOwned::to_owned)
+            })
+            .collect::<BTreeSet<_>>();
+        relative_paths.retain(|relative| !existing_paths.contains(relative));
         let relative_paths = relative_paths.into_iter().collect::<Vec<_>>();
         let mut visible = visible_source_sets.to_vec();
         visible.push(self.source_set.clone());
@@ -463,6 +497,61 @@ impl JdkSourceDomain {
             root_relative_path: relative.to_owned(),
         })
     }
+
+    fn addressed_source_file(
+        &self,
+        root_id: &str,
+        root_relative_path: &str,
+    ) -> eyre::Result<Option<JavaSourceFile>> {
+        if root_id != self.root_id {
+            return Ok(None);
+        }
+        validate_addressed_relative_path(root_relative_path)?;
+        let canonical_root = dunce::canonicalize(&self.canonical_tree).wrap_err_with(|| {
+            format!("failed to normalize addressed JDK source root `{root_id}`")
+        })?;
+        let candidate = join_slash_path(&canonical_root, root_relative_path);
+        let absolute_path = dunce::canonicalize(&candidate).wrap_err_with(|| {
+            format!("failed to resolve addressed JDK source `{root_id}:{root_relative_path}`")
+        })?;
+        if !absolute_path.starts_with(&canonical_root) {
+            eyre::bail!(
+                "addressed JDK source `{root_id}:{root_relative_path}` escapes its canonical root"
+            );
+        }
+        if !absolute_path.is_file()
+            || absolute_path
+                .extension()
+                .and_then(|extension| extension.to_str())
+                != Some("java")
+        {
+            eyre::bail!("addressed JDK source `{root_id}:{root_relative_path}` is not a Java file");
+        }
+        Ok(Some(JavaSourceFile {
+            absolute_path,
+            root_id: self.root_id.clone(),
+            root_relative_path: root_relative_path.to_owned(),
+            report_path: format!(
+                "{}/{}",
+                self.report_prefix.trim_end_matches('/'),
+                root_relative_path
+            ),
+            source_set: self.source_set.clone(),
+            source_override: None,
+        }))
+    }
+}
+
+fn validate_addressed_relative_path(path: &str) -> eyre::Result<()> {
+    if path.is_empty()
+        || path.contains('\\')
+        || path
+            .split('/')
+            .any(|segment| segment.is_empty() || matches!(segment, "." | ".."))
+    {
+        eyre::bail!("addressed managed-source path is not canonical");
+    }
+    Ok(())
 }
 
 /// The exact Java provider persisted by the branch's most recent SFM

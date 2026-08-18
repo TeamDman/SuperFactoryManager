@@ -94,6 +94,13 @@ public final class SFMDeferredTextEditorPanel
                 : java.util.List.of();
     }
 
+    /** Returns the loaded EditorV3 delegate without exposing unrelated panel implementations. */
+    public Optional<SFMTextEditorPanel> resolvedEditorPanel() {
+        return delegate instanceof SFMTextEditorPanel editor
+                ? Optional.of(editor)
+                : Optional.empty();
+    }
+
     @Override
     public void opened(Minecraft minecraft, SFMScreenPanelBounds bounds, SFMWorkspacePanelContext context) {
         this.bounds = Objects.requireNonNull(bounds, "bounds");
