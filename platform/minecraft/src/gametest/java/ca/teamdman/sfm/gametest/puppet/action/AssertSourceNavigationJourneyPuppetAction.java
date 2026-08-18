@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
@@ -156,6 +157,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private final JsonArray openedReferenceEvidence = new JsonArray();
     private final JsonArray framingEvidence = new JsonArray();
     private Phase phase = Phase.WAIT_SOURCE;
+    private long phaseStartedNanos = System.nanoTime();
     private int totalTicks;
     private int phaseTicks;
     private SFMWorkspacePanelId sourcePanelId;
@@ -1200,6 +1202,12 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
                         artifactName + "-spatial-coverage",
                         capture.snapshot()
                 );
+        long coverageStartedNanos = System.nanoTime();
+        SFM.LOGGER.info(
+                "SFM_SOURCE_NAVIGATION_PUPPET_COVERAGE status=STARTED request={} budget={}",
+                requestId,
+                SPATIAL_COVERAGE_BUDGET
+        );
         SFMSpatialCoverageService.Run run = new SFMSpatialCoverageService().run(
                 request,
                 new SFMSpatialCoverageService.WorkspaceSnapshot(
@@ -1207,6 +1215,13 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
                         List.of(capture.document())
                 ),
                 SFMSpatialSamplingPolicies.adaptiveFailureSeeking()
+        );
+        long coverageMicros = microsSince(coverageStartedNanos);
+        SFM.LOGGER.info(
+                "SFM_SOURCE_NAVIGATION_PUPPET_COVERAGE status=COMPLETED request={} duration_micros={} queries={}",
+                requestId,
+                coverageMicros,
+                run.report().semanticQueryCount()
         );
         long uncovered = run.exceptions().stream()
                 .filter(exception -> exception.kind().equals("unclassified")
@@ -1240,6 +1255,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         report.addProperty("window_height", minecraft.getWindow().getScreenHeight());
         report.addProperty("unclassified_or_navigation_uncovered", uncovered);
         report.addProperty("typed_exception_count", run.exceptions().size());
+        report.addProperty("coverage_duration_micros", coverageMicros);
         JsonObject artifactPaths = new JsonObject();
         artifactPaths.addProperty("directory", artifactDirectory.toString());
         artifactPaths.addProperty("report", written.report().toString());
@@ -1607,8 +1623,18 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     }
 
     private void advance(Phase next) {
+        long elapsedMicros = microsSince(phaseStartedNanos);
+        SFM.LOGGER.info(
+                "SFM_SOURCE_NAVIGATION_PUPPET_PHASE from={} to={} phase_ticks={} total_ticks={} duration_micros={}",
+                phase,
+                next,
+                phaseTicks,
+                totalTicks,
+                elapsedMicros
+        );
         phase = next;
         phaseTicks = 0;
+        phaseStartedNanos = System.nanoTime();
     }
 
     private static long microsSince(long startedNanos) {

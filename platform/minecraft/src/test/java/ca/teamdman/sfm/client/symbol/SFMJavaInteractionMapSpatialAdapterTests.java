@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.semantic.SFMSpatialSemanticContract;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -26,6 +27,8 @@ class SFMJavaInteractionMapSpatialAdapterTests {
         assertEquals("definition", semantic.outlinks().get(0).relationKind());
         assertEquals(result.semanticGeneration(), semantic.semanticGeneration());
         assertTrue(semantic.reciprocityExpected());
+        assertSame(semantic, adapter.atUtf16(3).orElseThrow(),
+                "Offsets in one semantic region should reuse the indexed result");
     }
 
     @Test

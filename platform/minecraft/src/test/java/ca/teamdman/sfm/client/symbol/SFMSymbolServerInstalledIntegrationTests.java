@@ -20,12 +20,14 @@ class SFMSymbolServerInstalledIntegrationTests {
             "ca/teamdman/sfm/common/item/DiskItem.java";
     private static final String DISK_ITEM_QUALIFIED_NAME =
             "ca.teamdman.sfm.common.item.DiskItem";
+    private static final String OUTPUT_STATEMENT_RELATIVE_PATH =
+            "ca/teamdman/sfml/ast/OutputStatement.java";
     private static final Duration HANDSHAKE_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(30);
     private static final Duration SHUTDOWN_TIMEOUT = Duration.ofSeconds(5);
 
     @Test
-    void installedWorkerResolvesDiskItemTwiceThroughProductionProvider() throws Exception {
+    void installedWorkerResolvesDefinitionsAndDecodesTheLargeInteractionMap() throws Exception {
         String executable = System.getProperty(SFMSymbolServerSupervisor.EXECUTABLE_PROPERTY, "").trim();
         String branch = System.getProperty(BRANCH_PROPERTY, "").trim();
         assumeTrue(
@@ -103,14 +105,50 @@ class SFMSymbolServerInstalledIntegrationTests {
                     .get(REQUEST_TIMEOUT.plusSeconds(5).toSeconds(), TimeUnit.SECONDS);
             assertResolvedDiskItem(secondRequest, secondResult);
 
+            Path outputStatementPath = Path.of(mainRoot.canonicalAbsolutePath())
+                    .resolve(OUTPUT_STATEMENT_RELATIVE_PATH)
+                    .toAbsolutePath()
+                    .normalize();
+            String outputStatementText = Files.readString(outputStatementPath);
+            String outputStatementReportPath = mainRoot.reportRootPath().isEmpty()
+                    ? OUTPUT_STATEMENT_RELATIVE_PATH
+                    : mainRoot.reportRootPath() + "/" + OUTPUT_STATEMENT_RELATIVE_PATH;
+            SFMDefinitionRequest.Document outputStatementDocument = SFMDefinitionRequest.Document.sha256(
+                    SFMPath.fromNative(outputStatementPath).canonical(),
+                    mainRoot.rootId(),
+                    OUTPUT_STATEMENT_RELATIVE_PATH,
+                    outputStatementReportPath,
+                    mainRoot.sourceSet(),
+                    outputStatementText,
+                    Optional.of(SFMDefinitionRequest.sha256(outputStatementText))
+            );
+            SFMJavaInteractionMap.Request interactionMapRequest = new SFMJavaInteractionMap.Request(
+                    3,
+                    3,
+                    hello.workspace().workspace(),
+                    outputStatementDocument
+            );
+            SFMJavaInteractionMap.Result interactionMap = provider
+                    .queryInteractionMap(interactionMapRequest)
+                    .result()
+                    .get(REQUEST_TIMEOUT.plusSeconds(5).toSeconds(), TimeUnit.SECONDS);
+            assertEquals(SFMJavaInteractionMap.Outcome.SUCCESS, interactionMap.outcome());
+            assertTrue(interactionMap.matches(interactionMapRequest));
+            assertTrue(interactionMap.regions().size() > 1_000,
+                    () -> "OutputStatement interaction map was unexpectedly small: "
+                            + interactionMap.regions().size());
+            assertTrue(interactionMap.outlinks().size() > 1_000,
+                    () -> "OutputStatement interaction-map outlinks were unexpectedly small: "
+                            + interactionMap.outlinks().size());
+
             SFMSymbolServerSupervisor.Telemetry telemetry = provider.telemetry();
             assertEquals(SFMSymbolServerSupervisor.Lifecycle.READY, telemetry.lifecycle());
             assertEquals(1, telemetry.launchAttempts());
             assertEquals(1, telemetry.sessionsReady());
             assertEquals(0, telemetry.launchFailures());
             assertEquals(0, telemetry.restarts());
-            assertEquals(2, telemetry.submitted());
-            assertEquals(2, telemetry.completed());
+            assertEquals(3, telemetry.submitted());
+            assertEquals(3, telemetry.completed());
             assertEquals(0, telemetry.pendingDefinitions());
             assertTrue(telemetry.processAlive());
         } finally {
