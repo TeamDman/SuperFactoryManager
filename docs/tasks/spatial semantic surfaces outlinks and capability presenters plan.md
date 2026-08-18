@@ -786,7 +786,32 @@ optimized partition agrees with exhaustive fixture truth; records query-cost
 evidence; and chooses the same next candidate for the same
 source/layout/index/seed/policy.
 
-### [ ] SS-3 Publish Java semantic regions and reciprocal outlinks
+### [x] SS-3 Publish Java semantic regions and reciprocal outlinks
+
+**Completion notes (2026-08-18):** `sfm-propagate-changes` now owns the
+versioned `sfm.java-interaction-map/1` semantic authority and serves compact,
+generation-tagged, fingerprinted pages containing nested Java regions,
+classifications, definitions, references, delimiter/containment relations,
+action drafts, typed exceptions, workspace inventory, and reciprocal static
+edge evidence. The semantic-matrix scenario deliberately covers
+`LexerAdapter`, `@Mod`, `LocalizationEntry`, imports, qualified names, both
+delimiter ends, punctuation, literals, comments, malformed recovery, Unicode,
+and CRLF. JDK and acquired-dependency documents use the same resolver-issued
+span contract as SFM source; the live JDK `StringBuilder.java` interaction map
+proved reciprocal definition relations for `java.io.Serializable`,
+`java.io.Serial`, and `serialVersionUID`.
+
+The Java bridge pages large maps without unbounded messages, rejects stale
+generation/layout identity, and projects semantic byte regions into the real
+EditorV3 canvas. The final `sfm-propagate-changes/check-all.ps1` run passed
+dependency policy, format, Clippy, build, 620 runnable unit tests (3 explicitly
+ignored) and all 10 Java-analysis scenario tests. The installed-worker JUnit
+was separately supplied the final release worker and branch properties so it
+executed rather than skipped; it resolved definitions and decoded the paged
+large `OutputStatement.java` map. Reference incompleteness and the partial
+dependency index remain typed diagnostics rather than a false complete-Java
+claim. Rust-language navigation remains deliberately deferred to SS-8. No
+dependency declaration or lockfile changed.
 
 **Work:**
 
@@ -814,8 +839,9 @@ reciprocity property tests; exact regressions for `LexerAdapter`, `@Mod`,
 ```pwsh
 cd platform\cli\sfm-propagate-changes
 .\check-all.ps1
-sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMJavaSemanticRegionTests --wait-for-build-lock
-sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMJavaOutlinkReciprocityTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMJavaInteractionMapProtocolTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMJavaInteractionMapSpatialAdapterTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMJavaCanvasInteractionRegionsTests --wait-for-build-lock
 ```
 
 **Completion criteria:** Every strict-profile glyph in the scenario matrix has
@@ -825,7 +851,39 @@ definition/reference edges pass reciprocal checks; every selected workspace
 Java file has a terminal report row; and JDK/dependency and SFM-source regions
 share the same result contract.
 
-### [ ] SS-4 Integrate region-aware hover, gestures, palette choices, and framing
+### [x] SS-4 Integrate region-aware hover, gestures, palette choices, and framing
+
+**Completion notes (2026-08-18):** EditorV3 now captures the exact painted
+canvas region and provider generation for Ctrl-hover, Ctrl+click, right-click,
+Alt+Enter, F12, and Alt+F7. The full region is underlined with link-cursor
+feedback, pending Ctrl+click is consumed rather than becoming a multi-cursor
+edit, one definition follows directly, genuine ambiguity uses the constrained
+palette, and references remain in a persistent explorer. Region destinations
+use `SFMNavigationFramingPolicy` and emit machine-readable observations: every
+one of the 90 observations across Auto plus GUI scales 1 through 8 kept its
+landmark visible; all 88 fit-capable cases retained the line/document left
+edge, while Auto and scale 8 each emitted one explicit
+`line-left-does-not-fit` fallback.
+
+The canonical Java-owned `sfm:spatial/coverage/run` action is shared by tests,
+puppets, and `sfm.exe` remoting. The final declared source-navigation puppet
+completed all nine layouts. Every layout exercised nine definition fixtures,
+three persistent reference-row opens, actual Minecraft mouse-callback input,
+context actions, reveal, coverage, performance, and actionable toasts. The
+isolated desktop could not update GLFW's polled cursor, but the posted native
+mouse message updated Minecraft's real callback coordinates exactly; the
+artifact records both observations rather than claiming GLFW evidence. Every
+layout met its frame/input/allocation budgets.
+
+The Auto coverage report sampled 1,203 rendered points and recorded
+classification 1203/1203, navigation 495/495, real gesture 1203/1203,
+provider branch 15/15, boundary 1203/1203, and reciprocity 272/272, with zero
+unclassified/navigation gaps and zero typed exceptions. Its file state is
+honestly `partial` only because the configured 4,096-semantic-query budget left
+ranked next candidates; it records 322 certified-region reuses/cache hits and
+does not relabel budget incompleteness as complete corpus proof. Auto also ran
+the out-of-process control CLI successfully and wrote
+`platform/minecraft/runGameTestPreview/sfm-artifacts/spatial-coverage/remoting-output-statement-auto/{coverage-report.json,coverage-map.json,coverage-heatmap.png}`.
 
 **Work:**
 
@@ -864,8 +922,9 @@ viewport. The puppet exports its spatial coverage report, exact chosen
 relations, and framing observations.
 
 ```pwsh
-sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTextEditorSemanticInteractionTests --wait-for-build-lock
-sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMDrawCanvasDocumentIndexTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMJavaCanvasInteractionRegionsTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMCanvasSpatialCoverageSnapshotTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMNavigationFramingPolicyTests --wait-for-build-lock
 sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMSymbolHoverStateMachineTests --wait-for-build-lock
 sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMJumpToDefinitionActionTests --wait-for-build-lock
 sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
@@ -941,10 +1000,12 @@ grant resolver/filesystem authority. Unrelated contributed schemes with no
 repository-owned metadata continue through the generic `[D]`/`[F]` fallback,
 and earlier registered presenters retain precedence. Both
 `SFMExplorerFilePresentationTests` and
-`SFMSymbolReferenceExplorerResolverTests` passed before the concurrent NX-4
-lane temporarily made the shared Java tree uncompilable; final integration
-reruns are retained in this goal's validation phase. No dependency or lockfile
-changed, and this Java-only slice requires no CLI installation.
+`SFMSymbolReferenceExplorerResolverTests` passed, and the final complete JUnit
+suite retained them. All nine source-navigation layouts captured a persistent
+references panel; visual inspection of the Auto artifact confirmed cocoa-bean
+ItemStacks on Java rows with no `[D]`/`[F]` marker, while focused tests retain
+the exact chest/container and paper/ordinary fallback ids and presenter
+precedence. No dependency or lockfile changed.
 
 **Dependency/boundary:** Contextual-plan C-4a and its theme-backed
 file/extension presenters are complete. The reference-result schema and source
@@ -1005,7 +1066,22 @@ sfm-propagate-changes.exe puppet run title_screen_java_semantic_explorer --branc
 filesystem-only leaf list; actions target exactly what was clicked; and Java
 structure appears lazily with themed icons and navigable region addresses.
 
-### [ ] NX-4 Replace transient feedback with actionable toasts
+### [x] NX-4 Replace transient feedback with actionable toasts
+
+**Completion notes (2026-08-18):** The former transient workspace message is
+now one addressable queue with stable non-reused ids, bounded text, reverse
+lifetime progress, hover/choice leases, exact copy text, per-instance pin and
+resume-from-remaining-time, action-backed exact dismiss, stale-id safety,
+keyboard/narration routes, and workspace-close disposal. Scale feedback was
+migrated into this queue and retains effective-auto text, fade, boundary repeat,
+and shake instead of using a second renderer. `SFMWorkspaceToastTests` passed
+inside the complete JUnit suite. In every Auto/1..8 live journey,
+`copied_exact_text`, positive preserved pinned lifetime,
+`dismissed_exact_instance`, and `later_message_visible` were all true; the
+later failed lookup remained independently readable after dismissal. Nine JSON
+artifacts and nine screenshots are colocated under
+`platform/minecraft/runGameTestPreview/{puppet-artifacts,screenshots}` with the
+`output-statement-source-navigation-actionable-toast` stem.
 
 **Work:** Introduce a generic toast queue/model with stable ids, bounded text,
 visible reverse-lifetime bar along the bottom edge, hover pause, left-click
@@ -1180,10 +1256,10 @@ sfm-propagate-changes.exe audit --branch 1.19.2
 artifacts retain the reports, and no missing adapter is hidden as an empty
 successful result.
 
-## Recommended expanded next implementation goal
+## Completed expanded implementation goal — 2026-08-18
 
-The next executable goal should complete **SS-0 through SS-4, NX-3a, and
-NX-4** in this plan. The precise goal objective is:
+The completed goal covered **SS-0 through SS-4, NX-3a, and NX-4** in this plan.
+Its precise objective was:
 
 > Complete SS-0, SS-1, SS-2, SS-3, SS-4, NX-3a, and NX-4 in
 > `docs/tasks/spatial semantic surfaces outlinks and capability presenters plan.md`:
@@ -1247,6 +1323,50 @@ coordinator-owned integration lane. Completion requires all of the following:
     compilation, plan/changelog bookkeeping, final affected-tool installation,
     and operational-readiness evidence pass. Scoped changes are committed and
     the worktree is clean.
+
+**Completion evidence:** Production and test work is retained by commit range
+`56ecccc8b^..11508e519`; this plan/changelog ledger follows as a docs/resource
+checkpoint. The complete Java JUnit command exited 0, and the installed-worker
+integration was then explicitly executed against the final release worker
+rather than counted as its default assumption skip. Canonical 1.19.2 compile
+exited 0. `platform/cli/sfm/check-all.ps1` passed 47 tests plus generated-Java
+verification. `platform/cli/sfm-propagate-changes/check-all.ps1` passed direct
+dependency policy, format, Clippy, build, 620 runnable tests (3 intentionally
+ignored), and all 10 Java-analysis scenario tests. The final installed-binary
+audit exited 0 with 99 known unresolved audit-rule warnings in the two existing
+`GuiGraphicsExtractor.text` and `Font.draw` groups; no audit error was hidden.
+
+The dependency graph remained frozen: the goal range contains no changed
+Cargo manifest/lock, Gradle dependency declaration/lock, or SFM toolchain
+lockfile, and no new repository was cloned or unpinned source acquired.
+Deterministic materialization used only existing locked Java/JDK/dependency
+sources and caches.
+
+Both affected tools were installed after the final CLI-source commit:
+
+- `G:/Programming/Caches/CARGO_HOME/bin/sfm-propagate-changes.exe` reports
+  `0.1.1 (rev 11508e519, built 2026-08-18 09:19:24 -04:00)` and has SHA-256
+  `99a952881c5c19b23986bfca8f97371782256cf44a7708302ff01a1d5908dc66`,
+  exactly matching the worktree release binary.
+- `G:/Programming/Caches/CARGO_HOME/bin/sfm.exe` reports `0.1.0` and has
+  SHA-256
+  `ceaccf5cfeaa4f9e0a7c554eed219d0cf376dc1a69d2bcc7b191a02fead6c569`,
+  exactly matching the worktree release binary.
+
+The user does **not** need to run either installer. To begin manual visual
+approval from a closed-game state, run:
+
+```pwsh
+sfm-propagate-changes.exe run client --branch 1.19.2 --wait-for-build-lock
+```
+
+At the title screen, open an SFM source explorer, open a Java document in
+Text Editor v3, then exercise Ctrl-hover/Ctrl+click, F12, Alt+Enter, Alt+F7,
+reference rows, and a failed lookup toast. Automation proves routing and
+artifacts; subjective readability, icon appearance, pointer feel, and final
+human release approval remain intentionally manual. The unresolved next-plan
+surface begins with NX-1/NX-2/full NX-3, CP-1+, SS-7, and SS-8; this completed
+goal does not silently advance any of them.
 
 **Explicit exclusions:** This goal does not complete X-10, branching Back/
 Forward history (NX-1), editor-address chrome (NX-2), full explorer contextual/

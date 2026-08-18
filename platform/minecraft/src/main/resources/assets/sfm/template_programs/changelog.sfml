@@ -60,6 +60,10 @@ NAME "Changelog"
 -- Add Ctrl-hover link affordances, Ctrl+click definition navigation, and shared Alt+Enter/right-click contextual actions
 -- Preserve EditorV3 multi-cursor clicks when no current actionable definition-hover target owns the gesture
 -- Add Alt+F7 persistent reference explorers and reveal-in-explorer for focused source documents
+-- Add versioned Java semantic interaction maps with deliberate punctuation, delimiter, JDK, dependency-source, and reciprocal definition/reference navigation
+-- Add a canonical spatial-navigation coverage action with reproducible JSON, compact map, heatmap, framing, and GUI-scale-matrix evidence
+-- Show Java reference-result rows with themed cocoa-bean, chest, and paper ItemStack presentations instead of legacy text markers
+-- Replace transient workspace failures with readable actionable toasts that can be paused, copied, pinned, resumed, and exactly dismissed
 -- Make large Text Editor v3 documents responsive with viewport indexes and reusable projection, style, and selection state
 -- Avoid reinitializing large editor panels when focus is already unchanged, preserving responsive input-to-frame latency
 -- Add extension-aware explorer icons, discoverable view/path modes, fuzzy filtering, immediate wheel scrolling, and corrected focus borders
