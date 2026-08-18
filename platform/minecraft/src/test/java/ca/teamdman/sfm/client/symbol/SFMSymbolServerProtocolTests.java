@@ -36,7 +36,7 @@ class SFMSymbolServerProtocolTests {
                         + "{\"protocol_schema\":\"sfm.symbol-server/1\",\"client_name\":\"minecraft\","
                         + "\"client_version\":\"1\",\"capabilities\":[\"definition-at-position\","
                         + "\"cancellation\",\"workspace-generation\",\"ping\",\"shutdown\","
-                        + "\"usage-at-position\"],"
+                        + "\"usage-at-position\",\"java-interaction-map\"],"
                         + "\"max_frame_bytes\":16777216}}",
                 SFMSymbolServerProtocol.hello("minecraft", "1", 16_777_216)
         );

@@ -2,6 +2,10 @@ package ca.teamdman.sfm.client.symbol;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
+import ca.teamdman.sfm.client.context.SFMContextCursorProjection;
+import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
+import ca.teamdman.sfm.client.context.SFMContextPosition;
+import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
 import net.minecraft.SharedConstants;
 
 import java.time.Duration;
@@ -18,7 +22,8 @@ import java.util.function.LongSupplier;
 
 /** Lazily owns the one supervised symbol worker used by client navigation. */
 public final class SFMSymbolNavigationRuntime
-        implements SFMDefinitionLookupService, SFMReferenceLookupService, AutoCloseable {
+        implements SFMDefinitionLookupService, SFMReferenceLookupService,
+        SFMJavaInteractionMapLookupService, AutoCloseable {
     public static final String BRANCH_PROPERTY = "sfm.symbol.workerBranch";
     private static final Duration HANDSHAKE_TIMEOUT = Duration.ofSeconds(10);
     // A fresh worker parses the complete branch surface before its reusable
@@ -34,6 +39,7 @@ public final class SFMSymbolNavigationRuntime
     private final SFMUsageQueryCoordinator usageCoordinator;
     private final SFMDefinitionContextAdapter adapter = new SFMDefinitionContextAdapter();
     private final AtomicBoolean closed = new AtomicBoolean();
+    private final AtomicLong requestSequence = new AtomicLong();
 
     private SFMSymbolNavigationRuntime() {
         String configuredBranch = System.getProperty(BRANCH_PROPERTY, "").trim();
@@ -46,7 +52,6 @@ public final class SFMSymbolNavigationRuntime
         providers = new SFMSymbolNavigationProviderRegistry();
         providers.register(100, provider);
         scheduler = Executors.newSingleThreadScheduledExecutor(daemonThreads("sfm-definition-query"));
-        AtomicLong requestSequence = new AtomicLong();
         LongSupplier requestIds = () -> requestSequence.updateAndGet(SFMSymbolNavigationRuntime::incrementRequestId);
         coordinator = new SFMDefinitionQueryCoordinator(providers, scheduler, System::nanoTime, requestIds);
         usageCoordinator = new SFMUsageQueryCoordinator(provider, scheduler, System::nanoTime, requestIds);
@@ -206,6 +211,98 @@ public final class SFMSymbolNavigationRuntime
             activeCancellation.get().run();
             answer.cancel(false);
         });
+    }
+
+    @Override
+    public SFMJavaInteractionMapLookupService.Submission queryInteractionMap(
+            SFMContextContribution contribution
+    ) {
+        Objects.requireNonNull(contribution, "contribution");
+        if (closed.get()) {
+            return new SFMJavaInteractionMapLookupService.Submission(CompletableFuture.failedFuture(
+                    new IllegalStateException("SFM symbol navigation is closed")), () -> { });
+        }
+        if (!(contribution.projection() instanceof SFMContextDocumentProjection document)) {
+            return new SFMJavaInteractionMapLookupService.Submission(CompletableFuture.failedFuture(
+                    new IllegalArgumentException("Java interaction maps require a text document")), () -> { });
+        }
+
+        long requestId = requestSequence.updateAndGet(SFMSymbolNavigationRuntime::incrementRequestId);
+        long requestGeneration = contribution.generations().contentGeneration();
+        SFMContextContribution documentContribution = withDocumentOriginCursor(contribution, document);
+        CompletableFuture<SFMJavaInteractionMapLookupService.Lookup> answer = new CompletableFuture<>();
+        AtomicBoolean cancelled = new AtomicBoolean();
+        AtomicReference<Runnable> activeCancellation = new AtomicReference<>(() -> { });
+        provider.start(HANDSHAKE_TIMEOUT).whenComplete((hello, startupFailure) -> {
+            try {
+                if (cancelled.get()) {
+                    answer.cancel(false);
+                    return;
+                }
+                if (startupFailure != null) {
+                    answer.completeExceptionally(unwrap(startupFailure));
+                    return;
+                }
+                SFMDefinitionContextAdapter.Adaptation adaptation = adapter.adapt(
+                        documentContribution,
+                        Optional.of(hello),
+                        requestId,
+                        requestGeneration
+                );
+                if (!adaptation.success()) {
+                    answer.completeExceptionally(new ContextUnavailableException(adaptation));
+                    return;
+                }
+                SFMDefinitionRequest definition = adaptation.request().orElseThrow();
+                SFMJavaInteractionMap.Request request = new SFMJavaInteractionMap.Request(
+                        requestId,
+                        requestGeneration,
+                        definition.workspace(),
+                        definition.document()
+                );
+                SFMSymbolServerSupervisor.InteractionMapSubmission submission =
+                        provider.queryInteractionMap(request);
+                activeCancellation.set(submission.cancellation());
+                if (cancelled.get()) {
+                    submission.cancellation().run();
+                    answer.cancel(false);
+                    return;
+                }
+                submission.result().whenComplete((result, queryFailure) -> {
+                    if (queryFailure != null) answer.completeExceptionally(unwrap(queryFailure));
+                    else answer.complete(new SFMJavaInteractionMapLookupService.Lookup(hello, result));
+                });
+            } catch (RuntimeException failure) {
+                answer.completeExceptionally(failure);
+            }
+        });
+        return new SFMJavaInteractionMapLookupService.Submission(answer, () -> {
+            if (!cancelled.compareAndSet(false, true)) return;
+            activeCancellation.get().run();
+            answer.cancel(false);
+        });
+    }
+
+    private static SFMContextContribution withDocumentOriginCursor(
+            SFMContextContribution contribution,
+            SFMContextDocumentProjection document
+    ) {
+        var origin = SFMContextTextCoordinates.atUtf16Offset(document.currentText(), 0);
+        SFMContextDocumentProjection projected = SFMContextDocumentProjection.capture(
+                document.editorId(),
+                document.baseline(),
+                document.currentText(),
+                document.dirty(),
+                document.readOnly(),
+                java.util.List.of(new SFMContextCursorProjection(
+                        "interaction-map-origin",
+                        new SFMContextPosition.Text(origin),
+                        true,
+                        true
+                )),
+                document.selections()
+        );
+        return new SFMContextContribution(contribution.originId(), contribution.generations(), projected);
     }
 
     @Override

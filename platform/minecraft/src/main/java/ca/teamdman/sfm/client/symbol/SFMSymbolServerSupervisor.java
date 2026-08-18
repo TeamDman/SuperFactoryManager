@@ -147,6 +147,18 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         }
     }
 
+    public record InteractionMapSubmission(
+            SFMJavaInteractionMap.Request request,
+            CompletableFuture<SFMJavaInteractionMap.Result> result,
+            Runnable cancellation
+    ) {
+        public InteractionMapSubmission {
+            Objects.requireNonNull(request, "request");
+            Objects.requireNonNull(result, "result");
+            Objects.requireNonNull(cancellation, "cancellation");
+        }
+    }
+
     /** Content-free bounded evidence suitable for logs and diagnostics. */
     public record Telemetry(
             Lifecycle lifecycle,
@@ -343,6 +355,30 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         return new UsageSubmission(request, result, cancellationAction);
     }
 
+    public InteractionMapSubmission submit(SFMJavaInteractionMap.Request request) {
+        return submit(request, configuration.requestTimeout());
+    }
+
+    public InteractionMapSubmission submit(SFMJavaInteractionMap.Request request, Duration timeout) {
+        Objects.requireNonNull(request, "request");
+        positive(timeout, "timeout");
+        CompletableFuture<SFMJavaInteractionMap.Result> result = new CompletableFuture<>();
+        AtomicBoolean cancellationRequested = new AtomicBoolean();
+        Runnable cancellationAction = () -> {
+            if (cancellationRequested.compareAndSet(false, true)) {
+                executeState(() -> cancelPending(
+                        request.requestId(),
+                        request.requestGeneration(),
+                        new CancellationException("Java interaction-map request cancelled"),
+                        CancellationKind.EXPLICIT
+                ), result);
+            }
+        };
+        executeState(() -> accept(
+                new PendingInteractionMap(request, result), timeout, cancellationRequested), result);
+        return new InteractionMapSubmission(request, result, cancellationAction);
+    }
+
     /** Start lazily and complete asynchronously after the validated hello. */
     public CompletableFuture<SFMSymbolServerProtocol.ServerHello> start(Duration timeout) {
         positive(timeout, "timeout");
@@ -519,6 +555,12 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
             completeUsageCancelled(usage);
         } else if (frame instanceof SFMSymbolServerProtocol.UsageAtPositionFailedFrame usage) {
             completeUsageFailed(usage);
+        } else if (frame instanceof SFMSymbolServerProtocol.JavaInteractionMapResultFrame interactionMap) {
+            completeInteractionMap(interactionMap.result());
+        } else if (frame instanceof SFMSymbolServerProtocol.JavaInteractionMapCancelledFrame interactionMap) {
+            completeInteractionMapCancelled(interactionMap);
+        } else if (frame instanceof SFMSymbolServerProtocol.JavaInteractionMapFailedFrame interactionMap) {
+            completeInteractionMapFailed(interactionMap);
         } else if (frame instanceof SFMSymbolServerProtocol.CancelledFrame) {
             // Cancellation acknowledgements are intentionally not retained.
         } else if (frame instanceof SFMSymbolServerProtocol.WorkspaceGenerationFrame update) {
@@ -670,6 +712,25 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         flushPending();
     }
 
+    private void completeInteractionMap(SFMJavaInteractionMap.Result result) {
+        PendingRequest<?> pendingValue = pending.get(result.requestId());
+        if (!(pendingValue instanceof PendingInteractionMap value)) {
+            lateResponses.incrementAndGet();
+            return;
+        }
+        if (!result.matches(value.request)) {
+            failSession(session, new ProtocolMismatchException("Java interaction-map response identity mismatch"),
+                    FailureKind.PROTOCOL);
+            return;
+        }
+        removePending(value);
+        completed.incrementAndGet();
+        SFM.LOGGER.info("SFM_SYMBOL_REQUEST_COMPLETED request={} kind=java-interaction-map outcome={}",
+                result.requestId(), result.outcome());
+        value.result.complete(result);
+        flushPending();
+    }
+
     private void completeCancelled(SFMSymbolServerProtocol.DefinitionCancelledFrame frame) {
         PendingRequest<?> pendingValue = pending.get(frame.requestId());
         if (!(pendingValue instanceof PendingDefinition value)) {
@@ -732,6 +793,44 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         if (!matches(value.request, frame.requestId(), frame.requestGeneration(), frame.workspaceGeneration())) {
             failSession(session, new ProtocolMismatchException("Usage failure response identity mismatch"),
                     FailureKind.PROTOCOL);
+            return;
+        }
+        removePending(value);
+        remoteFailures.incrementAndGet();
+        value.result.completeExceptionally(new RemoteDefinitionException(
+                frame.code(), frame.message(), frame.retryable()
+        ));
+        flushPending();
+    }
+
+    private void completeInteractionMapCancelled(
+            SFMSymbolServerProtocol.JavaInteractionMapCancelledFrame frame
+    ) {
+        PendingRequest<?> pendingValue = pending.get(frame.requestId());
+        if (!(pendingValue instanceof PendingInteractionMap value)) {
+            lateResponses.incrementAndGet();
+            return;
+        }
+        if (!matches(value.request, frame.requestId(), frame.requestGeneration(), frame.workspaceGeneration())) {
+            failSession(session, new ProtocolMismatchException(
+                    "Java interaction-map cancellation response identity mismatch"), FailureKind.PROTOCOL);
+            return;
+        }
+        removePending(value);
+        cancelled.incrementAndGet();
+        value.result.completeExceptionally(new CancellationException("Java interaction map cancelled by worker"));
+        flushPending();
+    }
+
+    private void completeInteractionMapFailed(SFMSymbolServerProtocol.JavaInteractionMapFailedFrame frame) {
+        PendingRequest<?> pendingValue = pending.get(frame.requestId());
+        if (!(pendingValue instanceof PendingInteractionMap value)) {
+            lateResponses.incrementAndGet();
+            return;
+        }
+        if (!matches(value.request, frame.requestId(), frame.requestGeneration(), frame.workspaceGeneration())) {
+            failSession(session, new ProtocolMismatchException(
+                    "Java interaction-map failure response identity mismatch"), FailureKind.PROTOCOL);
             return;
         }
         removePending(value);
@@ -1140,6 +1239,17 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
                 && request.workspace().workspaceGeneration() == workspaceGeneration;
     }
 
+    private static boolean matches(
+            SFMJavaInteractionMap.Request request,
+            long requestId,
+            long requestGeneration,
+            long workspaceGeneration
+    ) {
+        return request.requestId() == requestId
+                && request.requestGeneration() == requestGeneration
+                && request.workspace().workspaceGeneration() == workspaceGeneration;
+    }
+
     private static void cancelTimer(ScheduledFuture<?> future) {
         if (future != null) future.cancel(false);
     }
@@ -1195,7 +1305,7 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
     }
 
     private abstract static sealed class PendingRequest<T>
-            permits PendingDefinition, PendingUsage {
+            permits PendingDefinition, PendingUsage, PendingInteractionMap {
         protected final CompletableFuture<T> result;
         protected long sentEpoch;
         protected ScheduledFuture<?> timeout;
@@ -1259,6 +1369,26 @@ public final class SFMSymbolServerSupervisor implements AutoCloseable {
         @Override String encodedFrame() { return SFMSymbolServerProtocol.usageAtPosition(request); }
         @Override String cancelFrame(String reason) { return SFMSymbolServerProtocol.cancel(request, reason); }
         @Override String kind() { return "usage-at-position"; }
+    }
+
+    private static final class PendingInteractionMap extends PendingRequest<SFMJavaInteractionMap.Result> {
+        private final SFMJavaInteractionMap.Request request;
+
+        private PendingInteractionMap(
+                SFMJavaInteractionMap.Request request,
+                CompletableFuture<SFMJavaInteractionMap.Result> result
+        ) {
+            super(result);
+            this.request = Objects.requireNonNull(request, "request");
+        }
+
+        @Override long requestId() { return request.requestId(); }
+        @Override long requestGeneration() { return request.requestGeneration(); }
+        @Override long workspaceGeneration() { return request.workspace().workspaceGeneration(); }
+        @Override SFMDefinitionRequest.Workspace workspace() { return request.workspace(); }
+        @Override String encodedFrame() { return SFMSymbolServerProtocol.javaInteractionMap(request); }
+        @Override String cancelFrame(String reason) { return SFMSymbolServerProtocol.cancel(request, reason); }
+        @Override String kind() { return "java-interaction-map"; }
     }
 
     private static final class PendingPing {

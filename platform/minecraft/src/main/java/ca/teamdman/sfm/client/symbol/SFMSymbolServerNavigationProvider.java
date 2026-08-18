@@ -45,6 +45,12 @@ public final class SFMSymbolServerNavigationProvider
         return new ReferenceQuery(request, submission.result(), submission.cancellation());
     }
 
+    public SFMSymbolServerSupervisor.InteractionMapSubmission queryInteractionMap(
+            SFMJavaInteractionMap.Request request
+    ) {
+        return supervisor.submit(request);
+    }
+
     public CompletableFuture<SFMSymbolServerProtocol.ServerHello> start(Duration timeout) {
         return supervisor.start(timeout);
     }

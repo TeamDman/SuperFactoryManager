@@ -22,6 +22,7 @@ public final class SFMSymbolServerProtocol {
     public static final String HELLO_SCHEMA = "sfm.symbol-server.hello/1";
     public static final String DEFINITION_SCHEMA = "sfm.symbol-server.definition/1";
     public static final String USAGE_AT_POSITION_SCHEMA = "sfm.symbol-server.usage-at-position/1";
+    public static final String JAVA_INTERACTION_MAP_SCHEMA = "sfm.symbol-server.java-interaction-map/1";
     public static final String CANCEL_SCHEMA = "sfm.symbol-server.cancel/1";
     public static final String WORKSPACE_GENERATION_SCHEMA = "sfm.symbol-server.workspace-generation/1";
     public static final String PING_SCHEMA = "sfm.symbol-server.ping/1";
@@ -30,6 +31,7 @@ public final class SFMSymbolServerProtocol {
 
     public static final String CAPABILITY_DEFINITION = "definition-at-position";
     public static final String CAPABILITY_USAGE_AT_POSITION = "usage-at-position";
+    public static final String CAPABILITY_JAVA_INTERACTION_MAP = "java-interaction-map";
     public static final String CAPABILITY_CANCELLATION = "cancellation";
     public static final String CAPABILITY_WORKSPACE_GENERATION = "workspace-generation";
     public static final String CAPABILITY_PING = "ping";
@@ -40,7 +42,8 @@ public final class SFMSymbolServerProtocol {
             CAPABILITY_WORKSPACE_GENERATION,
             CAPABILITY_PING,
             CAPABILITY_SHUTDOWN,
-            CAPABILITY_USAGE_AT_POSITION
+            CAPABILITY_USAGE_AT_POSITION,
+            CAPABILITY_JAVA_INTERACTION_MAP
     );
     private static final Set<String> CANCELLATION_STATUSES = Set.of(
             "recorded-before-request",
@@ -248,7 +251,9 @@ public final class SFMSymbolServerProtocol {
 
     public sealed interface ServerFrame permits HelloFrame, DefinitionResultFrame,
             DefinitionCancelledFrame, DefinitionFailedFrame, UsageAtPositionResultFrame,
-            UsageAtPositionCancelledFrame, UsageAtPositionFailedFrame, CancelledFrame,
+            UsageAtPositionCancelledFrame, UsageAtPositionFailedFrame,
+            JavaInteractionMapResultFrame, JavaInteractionMapCancelledFrame,
+            JavaInteractionMapFailedFrame, CancelledFrame,
             WorkspaceGenerationFrame, PongFrame, ShutdownFrame, ErrorFrame {
     }
 
@@ -305,6 +310,33 @@ public final class SFMSymbolServerProtocol {
             boolean retryable
     ) implements ServerFrame {
         public UsageAtPositionFailedFrame {
+            code = nonBlank(code, "code");
+            message = Objects.requireNonNull(message, "message");
+        }
+    }
+
+    public record JavaInteractionMapResultFrame(SFMJavaInteractionMap.Result result) implements ServerFrame {
+        public JavaInteractionMapResultFrame { Objects.requireNonNull(result, "result"); }
+    }
+
+    public record JavaInteractionMapCancelledFrame(
+            long requestId,
+            long requestGeneration,
+            long workspaceGeneration,
+            String reason
+    ) implements ServerFrame {
+        public JavaInteractionMapCancelledFrame { reason = Objects.requireNonNull(reason, "reason"); }
+    }
+
+    public record JavaInteractionMapFailedFrame(
+            long requestId,
+            long requestGeneration,
+            long workspaceGeneration,
+            String code,
+            String message,
+            boolean retryable
+    ) implements ServerFrame {
+        public JavaInteractionMapFailedFrame {
             code = nonBlank(code, "code");
             message = Objects.requireNonNull(message, "message");
         }
@@ -392,6 +424,16 @@ public final class SFMSymbolServerProtocol {
         ).toString();
     }
 
+    public static String javaInteractionMap(SFMJavaInteractionMap.Request request) {
+        Objects.requireNonNull(request, "request");
+        return envelope(
+                "java-interaction-map",
+                JAVA_INTERACTION_MAP_SCHEMA,
+                "request",
+                SFMJavaInteractionMapJsonCodec.encodeRequestObject(request)
+        ).toString();
+    }
+
     public static String cancel(SFMDefinitionRequest request, String reason) {
         Objects.requireNonNull(request, "request");
         JsonObject frame = base("cancel", CANCEL_SCHEMA);
@@ -403,6 +445,16 @@ public final class SFMSymbolServerProtocol {
     }
 
     public static String cancel(SFMUsageAtPositionRequest request, String reason) {
+        Objects.requireNonNull(request, "request");
+        return cancel(
+                request.requestId(),
+                request.requestGeneration(),
+                request.workspace().workspaceGeneration(),
+                reason
+        );
+    }
+
+    public static String cancel(SFMJavaInteractionMap.Request request, String reason) {
         Objects.requireNonNull(request, "request");
         return cancel(
                 request.requestId(),
@@ -502,6 +554,34 @@ public final class SFMSymbolServerProtocol {
                     requireSchema(schema, USAGE_AT_POSITION_SCHEMA);
                     JsonObject value = requiredObject(frame, "error");
                     yield new UsageAtPositionFailedFrame(
+                            nonNegativeLong(value, "request_id"),
+                            nonNegativeLong(value, "request_generation"),
+                            nonNegativeLong(value, "workspace_generation"),
+                            string(value, "code"),
+                            string(value, "message"),
+                            bool(value, "retryable")
+                    );
+                }
+                case "java-interaction-map-result" -> {
+                    requireSchema(schema, JAVA_INTERACTION_MAP_SCHEMA);
+                    yield new JavaInteractionMapResultFrame(SFMJavaInteractionMapJsonCodec.decodeResultObject(
+                            requiredObject(frame, "result")
+                    ));
+                }
+                case "java-interaction-map-cancelled" -> {
+                    requireSchema(schema, JAVA_INTERACTION_MAP_SCHEMA);
+                    JsonObject value = requiredObject(frame, "cancellation");
+                    yield new JavaInteractionMapCancelledFrame(
+                            nonNegativeLong(value, "request_id"),
+                            nonNegativeLong(value, "request_generation"),
+                            nonNegativeLong(value, "workspace_generation"),
+                            string(value, "reason")
+                    );
+                }
+                case "java-interaction-map-failed" -> {
+                    requireSchema(schema, JAVA_INTERACTION_MAP_SCHEMA);
+                    JsonObject value = requiredObject(frame, "error");
+                    yield new JavaInteractionMapFailedFrame(
                             nonNegativeLong(value, "request_id"),
                             nonNegativeLong(value, "request_generation"),
                             nonNegativeLong(value, "workspace_generation"),

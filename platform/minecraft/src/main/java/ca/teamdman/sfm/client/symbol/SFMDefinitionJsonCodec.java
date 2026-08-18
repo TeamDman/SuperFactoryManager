@@ -65,6 +65,31 @@ public final class SFMDefinitionJsonCodec {
         return readUsageResult(json);
     }
 
+    /** Package-local structural hooks reused by additive symbol-worker protocols. */
+    static JsonObject encodeWorkspaceObject(SFMDefinitionRequest.Workspace workspace) {
+        return writeWorkspace(workspace);
+    }
+
+    static JsonObject encodeDocumentObject(SFMDefinitionRequest.Document document) {
+        return writeDocument(document);
+    }
+
+    static SFMDefinitionRequest.Workspace decodeWorkspaceObject(JsonObject json) {
+        return readWorkspace(json);
+    }
+
+    static SFMDefinitionRequest.Document decodeDocumentObject(JsonObject json) {
+        return readDocument(json);
+    }
+
+    static SFMDefinitionResult.DocumentIdentity decodeDocumentIdentityObject(JsonObject json) {
+        return readDocumentIdentity(json);
+    }
+
+    static SFMDefinitionResult.Diagnostic decodeDiagnosticObject(JsonObject json) {
+        return readDiagnostic(json);
+    }
+
     private static JsonObject writeRequest(SFMDefinitionRequest value) {
         JsonObject json = new JsonObject();
         json.addProperty("schema", value.schema());
