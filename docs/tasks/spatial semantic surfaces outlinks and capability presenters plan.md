@@ -603,7 +603,23 @@ parallel workers edit the same contract file after the freeze.
 
 ## Phase SS — Spatial semantic navigation
 
-### [ ] SS-0 Freeze the executable contract and reference evidence
+### [x] SS-0 Freeze the executable contract and reference evidence
+
+**Completion notes (2026-08-18):** The executable v1 freeze is recorded in
+`docs/architecture/spatial-semantic-contract-v1.md`. The production Java
+mirror and explicit Gson-2.8.9-compatible codec live under
+`platform/minecraft/src/main/java/ca/teamdman/sfm/client/semantic/`; their
+constructors enforce schema identity, half-open finite bounds, exact one-of
+outlink destinations, intent/classification separation, generation identity,
+per-file terminal states, separate coverage dimensions, and framing evidence.
+The adjacent `docs/architecture/fixtures/spatial-semantic-v1/` corpus freezes
+the hand-authored Java/malformed/layout/golden JSON witnesses and ignores only
+generated `*-actual.json`/heatmaps. `SFMSpatialSemanticContractTests` passed
+through `sfm-propagate-changes.exe test run --branch 1.19.2 --filter
+SFMSpatialSemanticContractTests --wait-for-build-lock` after the expected Codex
+artifact-lock denial was rerun with normal access to the existing pinned cache.
+No dependency declaration or lockfile changed. Any incompatible contract
+change now requires a schema bump and golden-fixture migration.
 
 **Work:**
 

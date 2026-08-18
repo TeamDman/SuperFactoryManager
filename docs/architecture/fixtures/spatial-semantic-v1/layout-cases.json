@@ -1,0 +1,13 @@
+{
+  "schema": "sfm.spatial-layout-cases/1",
+  "source": "package example;\r\n\tfinal class Café {\r\n\t\tString wide = \"界🦀\";\r\n\t}\r\n",
+  "newline": "crlf",
+  "cases": [
+    {"id": "first-line-auto", "gui_scale": "auto", "panel": [960, 540], "pan": [0, 0], "zoom": 1.0},
+    {"id": "mid-file-scale-1", "gui_scale": "1", "panel": [1280, 720], "pan": [40, 18], "zoom": 1.25},
+    {"id": "narrow-long-line-scale-8", "gui_scale": "8", "panel": [120, 80], "pan": [300, 40], "zoom": 2.0},
+    {"id": "wide-scale-2", "gui_scale": "2", "panel": [1920, 1080], "pan": [0, 0], "zoom": 0.75}
+  ],
+  "required_gui_scales": ["auto", "1", "2", "3", "4", "5", "6", "7", "8"]
+}
+
