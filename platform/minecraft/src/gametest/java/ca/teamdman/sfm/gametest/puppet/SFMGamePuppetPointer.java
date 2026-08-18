@@ -1,14 +1,21 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import com.sun.jna.Pointer;
+import com.sun.jna.platform.win32.User32;
+import com.sun.jna.platform.win32.WinDef;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWNativeWin32;
 import org.lwjgl.system.MemoryStack;
+import org.lwjgl.system.Platform;
 
 import java.nio.DoubleBuffer;
 
 /** Keeps native GLFW pointer movement and logical workspace injection explicit and independently observable. */
 public final class SFMGamePuppetPointer {
+    private static final int WINDOWS_MESSAGE_MOUSE_MOVE = 0x0200;
+
     public record Position(
             double nativeX,
             double nativeY,
@@ -19,10 +26,13 @@ public final class SFMGamePuppetPointer {
             double cachedLogicalX,
             double cachedLogicalY
     ) {
-        public boolean isWithin(double expectedLogicalX, double expectedLogicalY, double tolerance) {
+        public boolean glfwIsWithin(double expectedLogicalX, double expectedLogicalY, double tolerance) {
             return Math.abs(logicalX - expectedLogicalX) <= tolerance
-                    && Math.abs(logicalY - expectedLogicalY) <= tolerance
-                    && Math.abs(cachedLogicalX - expectedLogicalX) <= tolerance
+                    && Math.abs(logicalY - expectedLogicalY) <= tolerance;
+        }
+
+        public boolean callbackIsWithin(double expectedLogicalX, double expectedLogicalY, double tolerance) {
+            return Math.abs(cachedLogicalX - expectedLogicalX) <= tolerance
                     && Math.abs(cachedLogicalY - expectedLogicalY) <= tolerance;
         }
     }
@@ -30,7 +40,13 @@ public final class SFMGamePuppetPointer {
     private SFMGamePuppetPointer() {
     }
 
-    /** Moves only the real GLFW pointer. Minecraft's callback updates its own cache asynchronously. */
+    /**
+     * Moves only the native pointer route. Minecraft's callback updates its
+     * own cache asynchronously. Windows receives an explicit client-area
+     * mouse-move message as well, because isolated desktops can reject the OS
+     * foreground transfer required by GLFW's cursor setter while still
+     * dispatching messages to the target game window.
+     */
     public static void moveNative(SFMScreenMultiplexer workspace, double logicalX, double logicalY) {
         requireTarget(workspace, logicalX, logicalY);
         Minecraft minecraft = Minecraft.getInstance();
@@ -42,6 +58,20 @@ public final class SFMGamePuppetPointer {
                 * Math.max(1, window.getScreenHeight())
                 / Math.max(1, window.getGuiScaledHeight());
         GLFW.glfwSetCursorPos(window.getWindow(), nativeX, nativeY);
+        if (Platform.get() == Platform.WINDOWS) {
+            long nativeWindow = GLFWNativeWin32.glfwGetWin32Window(window.getWindow());
+            if (nativeWindow != 0L) {
+                int x = (int) Math.round(nativeX);
+                int y = (int) Math.round(nativeY);
+                long packedCoordinates = (x & 0xffffL) | ((y & 0xffffL) << 16);
+                User32.INSTANCE.PostMessage(
+                        new WinDef.HWND(new Pointer(nativeWindow)),
+                        WINDOWS_MESSAGE_MOUSE_MOVE,
+                        new WinDef.WPARAM(0L),
+                        new WinDef.LPARAM(packedCoordinates)
+                );
+            }
+        }
     }
 
     /** Injects only the logical workspace event; it never claims to move the OS pointer. */

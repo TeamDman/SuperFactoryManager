@@ -165,6 +165,7 @@ public final class ExerciseActionableToastPuppetAction implements SFMPuppetActio
         Optional<SFMWorkspaceToastQueue.Snapshot> candidate = workspace.latestWorkspaceToast();
         if (candidate.isEmpty() || candidate.orElseThrow().id().equals(firstId)) return false;
         SFMWorkspaceToastQueue.Snapshot replacement = candidate.orElseThrow();
+        if (replacement.text().equals("Looking up definition...")) return false;
         if (!isDefinitionFailure(replacement.text())) {
             throw new IllegalStateException("Later definition failure had unexpected text: " + replacement.text());
         }

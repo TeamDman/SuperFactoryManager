@@ -42,8 +42,8 @@ public final class SFMGamePuppetForegroundWindow {
         boolean attached = false;
         long nativeWindow = 0L;
         long foregroundWindow = 0L;
-        boolean platformProbeAvailable = Platform.get() == Platform.WINDOWS;
-        if (platformProbeAvailable) {
+        boolean windows = Platform.get() == Platform.WINDOWS;
+        if (windows) {
             nativeWindow = GLFWNativeWin32.glfwGetWin32Window(window);
             WinDef.HWND target = new WinDef.HWND(new Pointer(nativeWindow));
             WinDef.HWND previousForeground = User32.INSTANCE.GetForegroundWindow();
@@ -74,6 +74,13 @@ public final class SFMGamePuppetForegroundWindow {
             }
             foregroundWindow = handleValue(User32.INSTANCE.GetForegroundWindow());
         }
+
+        // GetForegroundWindow can legitimately be unavailable in an isolated
+        // desktop/session even though GLFW has a focused, visible window. A
+        // zero handle is therefore absence of platform evidence, not negative
+        // foreground evidence. The following native pointer checkpoint still
+        // proves whether GLFW actually delivers interaction to Minecraft.
+        boolean platformProbeAvailable = windows && nativeWindow != 0L && foregroundWindow != 0L;
 
         boolean glfwFocused = GLFW.glfwGetWindowAttrib(window, GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
         boolean iconified = GLFW.glfwGetWindowAttrib(window, GLFW.GLFW_ICONIFIED) == GLFW.GLFW_TRUE;

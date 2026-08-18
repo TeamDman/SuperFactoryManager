@@ -375,9 +375,9 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private boolean waitHoverPointer() {
         SFMScreenMultiplexer workspace = requireWorkspace();
         SFMGamePuppetPointer.Position current = SFMGamePuppetPointer.current();
-        if (!current.isWithin(hoverPointer.globalX(), hoverPointer.globalY(), 1.0D)) {
+        if (!current.callbackIsWithin(hoverPointer.globalX(), hoverPointer.globalY(), 1.0D)) {
             if (phaseTicks > 20) {
-                fail("Native puppet pointer did not settle at the Ctrl-hover target: expected="
+                fail("Native mouse callback did not settle at the Ctrl-hover target: expected="
                         + hoverPointer.globalX() + "," + hoverPointer.globalY()
                         + " glfwLogical=" + current.logicalX() + "," + current.logicalY()
                         + " cachedLogical=" + current.cachedLogicalX() + "," + current.cachedLogicalY()
@@ -386,6 +386,17 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
             }
             return false;
         }
+        JsonObject pointerDelivery = new JsonObject();
+        pointerDelivery.addProperty("minecraft_callback_confirmed", true);
+        pointerDelivery.addProperty("glfw_polled_position_confirmed",
+                current.glfwIsWithin(hoverPointer.globalX(), hoverPointer.globalY(), 1.0D));
+        pointerDelivery.addProperty("expected_logical_x", hoverPointer.globalX());
+        pointerDelivery.addProperty("expected_logical_y", hoverPointer.globalY());
+        pointerDelivery.addProperty("glfw_logical_x", current.logicalX());
+        pointerDelivery.addProperty("glfw_logical_y", current.logicalY());
+        pointerDelivery.addProperty("minecraft_cached_logical_x", current.cachedLogicalX());
+        pointerDelivery.addProperty("minecraft_cached_logical_y", current.cachedLogicalY());
+        evidence.add("native_pointer_delivery", pointerDelivery);
         SFMGamePuppetPointer.moveWorkspace(workspace, hoverPointer.globalX(), hoverPointer.globalY());
         workspace.keyPressed(GLFW.GLFW_KEY_LEFT_CONTROL, 0, GLFW.GLFW_MOD_CONTROL);
         advance(Phase.WAIT_HOVER);
