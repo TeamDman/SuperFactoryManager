@@ -41,6 +41,36 @@ public class SFMFontUtils {
     }
 
     /**
+     * Draws coloured component text into a caller-owned batch. The caller is
+     * responsible for flushing the buffer after all related text is queued.
+     */
+    @MCVersionDependentBehaviour
+    public static int drawInBatch(
+            Component text,
+            Font font,
+            float x,
+            float y,
+            int colour,
+            boolean dropShadow,
+            boolean transparent,
+            Matrix4f matrix4f,
+            MultiBufferSource bufferSource
+    ) {
+        return font.drawInBatch(
+                text,
+                x,
+                y,
+                colour,
+                dropShadow,
+                matrix4f,
+                bufferSource,
+                transparent,
+                0,
+                LightTexture.FULL_BRIGHT
+        );
+    }
+
+    /**
      * Draws text to the screen
      * @return the width of the drawn text
      */
@@ -61,6 +91,36 @@ public class SFMFontUtils {
                 x,
                 y,
                 -1,
+                dropShadow,
+                matrix4f,
+                bufferSource,
+                transparent,
+                0,
+                LightTexture.FULL_BRIGHT
+        );
+    }
+
+    /**
+     * Draws coloured plain text into a caller-owned batch. The caller is
+     * responsible for flushing the buffer after all related text is queued.
+     */
+    @MCVersionDependentBehaviour
+    public static int drawInBatch(
+            String text,
+            Font font,
+            float x,
+            float y,
+            int colour,
+            boolean dropShadow,
+            boolean transparent,
+            Matrix4f matrix4f,
+            MultiBufferSource bufferSource
+    ) {
+        return font.drawInBatch(
+                text,
+                x,
+                y,
+                colour,
                 dropShadow,
                 matrix4f,
                 bufferSource,

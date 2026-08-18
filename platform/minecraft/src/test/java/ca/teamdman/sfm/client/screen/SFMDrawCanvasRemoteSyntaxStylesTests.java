@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SFMDrawCanvasRemoteSyntaxStylesTests {
@@ -52,6 +53,10 @@ class SFMDrawCanvasRemoteSyntaxStylesTests {
                         .getColor()
                         .getValue()
         );
+        var styledGlyphs = SFMDrawCanvasRemoteSyntaxStyles.styledGlyphs(styles);
+        assertSame(styledGlyphs.get(emoji), styledGlyphs.get(emoji));
+        assertEquals(ChatFormatting.GREEN.getColor(),
+                styledGlyphs.get(emoji).getStyle().getColor().getValue());
     }
 
     @Test

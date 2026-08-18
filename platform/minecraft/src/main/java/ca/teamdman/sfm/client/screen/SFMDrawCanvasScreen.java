@@ -25,11 +25,13 @@ import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.Tesselator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -154,7 +156,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private long javaInteractionRegionRevision = -1L;
     private SFMJavaCanvasInteractionRegions.Index javaInteractionRegionIndex;
     private Map<SFMDrawCanvasModel.CanvasGlyph, Integer> localSyntaxColours = Map.of();
-    private Map<SFMDrawCanvasModel.CanvasGlyph, List<ChatFormatting>> remoteSyntaxStyles = Map.of();
+    private Map<SFMDrawCanvasModel.CanvasGlyph, Component> remoteStyledGlyphs = Map.of();
     private long documentGeneration;
     private final String syntaxOriginId = "sfm:text-editor:" + NEXT_SYNTAX_ORIGIN.incrementAndGet();
     private SFMTextEditorSyntaxSession syntaxSession;
@@ -1590,33 +1592,43 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             PoseStack poseStack,
             List<SFMDrawCanvasModel.CanvasGlyph> visibleGlyphs
     ) {
+        poseStack.pushPose();
+        poseStack.translate(canvasToScreenX(0), canvasToScreenY(0), 0.0D);
+        poseStack.scale((float) zoom, (float) zoom, 1.0F);
+        MultiBufferSource.BufferSource buffer = MultiBufferSource.immediate(
+                Tesselator.getInstance().getBuilder()
+        );
+        var matrix = poseStack.last().pose();
         for (SFMDrawCanvasModel.CanvasGlyph glyph : visibleGlyphs) {
-            poseStack.pushPose();
-            poseStack.translate(canvasToScreenX(glyph.x()), canvasToScreenY(glyph.y()), 0.0D);
-            poseStack.scale((float) zoom, (float) zoom, 1.0F);
-            if (remoteSyntaxStyles.containsKey(glyph)) {
-                SFMFontUtils.draw(
-                        poseStack,
+            Component styled = remoteStyledGlyphs.get(glyph);
+            if (styled != null) {
+                SFMFontUtils.drawInBatch(
+                        styled,
                         this.font,
-                        SFMDrawCanvasRemoteSyntaxStyles.styledGlyph(glyph, remoteSyntaxStyles),
-                        0,
-                        0,
+                        (int) glyph.x(),
+                        (int) glyph.y(),
                         GLYPH,
-                        true
+                        true,
+                        false,
+                        matrix,
+                        buffer
                 );
             } else {
-                SFMFontUtils.draw(
-                        poseStack,
-                        this.font,
+                SFMFontUtils.drawInBatch(
                         glyph.text(),
-                        0,
-                        0,
+                        this.font,
+                        (int) glyph.x(),
+                        (int) glyph.y(),
                         localSyntaxColours.getOrDefault(glyph, GLYPH),
-                        true
+                        true,
+                        false,
+                        matrix,
+                        buffer
                 );
             }
-            poseStack.popPose();
         }
+        buffer.endBatch();
+        poseStack.popPose();
     }
 
     private void renderSymbolHoverUnderline(
@@ -1961,7 +1973,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
 
     private void documentChanged() {
         documentGeneration = incrementGeneration(documentGeneration);
-        remoteSyntaxStyles = Map.of();
+        clearRemoteSyntaxStyles();
         syntaxPresentationEvidence = Optional.empty();
         refreshLocalSyntaxColours();
         requestRemoteSyntaxStyles();
@@ -2028,7 +2040,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 || !publication.request().source().equals(getCurrentText())) return;
         SFMSyntaxHighlightResult result = publication.result();
         if (result.outcome() != SFMSyntaxHighlightResult.Outcome.HIGHLIGHTED) {
-            remoteSyntaxStyles = Map.of();
+            clearRemoteSyntaxStyles();
             syntaxDiagnostic = Optional.of(Component.literal(
                     "Java syntax highlighting unavailable: " + result.outcome().wireName()
             ));
@@ -2044,13 +2056,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                     .toList();
             long projectionStartedNanos = System.nanoTime();
             try {
-                remoteSyntaxStyles = SFMDrawCanvasRemoteSyntaxStyles.project(
+                setRemoteSyntaxStyles(SFMDrawCanvasRemoteSyntaxStyles.project(
                         model().glyphs(),
                         this.font.width(" "),
                         this.font.lineHeight,
                         publication.request().source(),
                         spans
-                );
+                ));
             } finally {
                 performanceTracker.styleProjection(System.nanoTime() - projectionStartedNanos);
             }
@@ -2076,14 +2088,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                     Math.max(0L, (System.nanoTime() - syntaxRequestStartedNanos) / 1_000L)
             ));
         } catch (RuntimeException invalid) {
-            remoteSyntaxStyles = Map.of();
+            clearRemoteSyntaxStyles();
             syntaxPresentationEvidence = Optional.empty();
             publishRemoteSyntaxFailure(invalid);
         }
     }
 
     private void publishRemoteSyntaxFailure(Throwable failure) {
-        remoteSyntaxStyles = Map.of();
+        clearRemoteSyntaxStyles();
         syntaxPresentationEvidence = Optional.empty();
         Throwable current = failure;
         while ((current instanceof java.util.concurrent.CompletionException
@@ -2093,6 +2105,16 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (detail == null || detail.isBlank()) detail = current.getClass().getSimpleName();
         if (detail.length() > 160) detail = detail.substring(0, 160);
         syntaxDiagnostic = Optional.of(Component.literal("Java syntax highlighting unavailable: " + detail));
+    }
+
+    private void setRemoteSyntaxStyles(
+            Map<SFMDrawCanvasModel.CanvasGlyph, List<ChatFormatting>> styles
+    ) {
+        remoteStyledGlyphs = SFMDrawCanvasRemoteSyntaxStyles.styledGlyphs(styles);
+    }
+
+    private void clearRemoteSyntaxStyles() {
+        remoteStyledGlyphs = Map.of();
     }
 
     private void renderSyntaxDiagnostic(PoseStack poseStack) {

@@ -92,6 +92,15 @@ public final class SFMDrawCanvasRemoteSyntaxStyles {
         return Component.literal(glyph.text()).withStyle(formatting.toArray(ChatFormatting[]::new));
     }
 
+    /** Materializes immutable styled glyphs once when a syntax publication arrives. */
+    public static Map<SFMDrawCanvasModel.CanvasGlyph, Component> styledGlyphs(
+            Map<SFMDrawCanvasModel.CanvasGlyph, List<ChatFormatting>> styles
+    ) {
+        IdentityHashMap<SFMDrawCanvasModel.CanvasGlyph, Component> answer = new IdentityHashMap<>();
+        styles.forEach((glyph, ignored) -> answer.put(glyph, styledGlyph(glyph, styles)));
+        return Collections.unmodifiableMap(answer);
+    }
+
     public static List<ChatFormatting> parseFormattingNames(List<String> names) {
         ArrayList<ChatFormatting> answer = new ArrayList<>(names.size());
         for (String name : names) {
