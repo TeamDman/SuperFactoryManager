@@ -42,6 +42,10 @@ public final class SFMSpatialSemanticJsonCodec {
         return PRETTY_GSON.toJson(value) + "\n";
     }
 
+    public static String encodeFramingObservation(SFMSpatialSemanticContract.FramingObservation value) {
+        return PRETTY_GSON.toJson(value) + "\n";
+    }
+
     public static SFMSpatialSemanticContract.Bundle decode(String json) {
         return readBundle(object(JsonParser.parseString(json), "spatial semantic bundle"));
     }

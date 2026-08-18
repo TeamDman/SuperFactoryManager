@@ -83,8 +83,10 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
             if (ownsLinkCursor != underlineRange.isPresent()) {
                 throw new IllegalArgumentException("Underline and link-cursor ownership must agree");
             }
-            if (ownsLinkCursor && phase != Phase.ACTIONABLE) {
-                throw new IllegalArgumentException("Only an actionable hover may own the link cursor");
+            if (ownsLinkCursor && phase != Phase.LOOKING_UP
+                    && phase != Phase.ACTIONABLE
+                    && phase != Phase.AMBIGUOUS) {
+                throw new IllegalArgumentException("Only a viable navigation hover may own the link cursor");
             }
         }
 
@@ -106,7 +108,7 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
     private record ActiveLookup(long generation, SFMSymbolHoverIdentity identity, SFMSymbolHoverLookup.Query query) {
     }
 
-    private record Press(double x, double y, Optional<SFMSymbolHoverIdentity> actionableIdentity) {
+    private record Press(double x, double y, Optional<SFMSymbolHoverIdentity> navigationIdentity) {
     }
 
     private final SFMSymbolHoverLookup lookup;
@@ -170,9 +172,9 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
         clear(true, CancellationCause.POINTER_EXITED);
     }
 
-    /** Captures the currently actionable identity, but leaves final click/drag policy to release. */
+    /** Captures the exact viable navigation identity, but leaves final click/drag policy to release. */
     public synchronized void primaryPressed(double x, double y) {
-        press = new Press(x, y, snapshot.phase() == Phase.ACTIONABLE ? snapshot.identity() : Optional.empty());
+        press = new Press(x, y, snapshot.ownsLinkCursor() ? snapshot.identity() : Optional.empty());
     }
 
     public synchronized GestureDecision primaryReleased(double x, double y) {
@@ -182,11 +184,10 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
         if (dragThreshold.isDrag(captured.x(), captured.y(), x, y)) {
             return fallback(GestureKind.FALLBACK_DRAG);
         }
-        if (captured.actionableIdentity().isPresent()
-                && captured.actionableIdentity().equals(snapshot.identity())
-                && snapshot.phase() == Phase.ACTIONABLE
+        if (captured.navigationIdentity().isPresent()
+                && captured.navigationIdentity().equals(snapshot.identity())
                 && snapshot.identity().orElseThrow().requestsDefinitionNavigation()) {
-            return new GestureDecision(GestureKind.ACTIVATE_DEFINITION, captured.actionableIdentity());
+            return new GestureDecision(GestureKind.ACTIVATE_DEFINITION, captured.navigationIdentity());
         }
         return fallback(GestureKind.FALLBACK_CLICK);
     }
@@ -228,7 +229,12 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
         SFMSymbolHoverLookup.Query query = Objects.requireNonNull(lookup.submit(identity), "lookup query");
         activeLookup = new ActiveLookup(generation, identity, query);
         lastCancellationCause = CancellationCause.NONE;
-        snapshot = new Snapshot(Phase.LOOKING_UP, Optional.of(identity), Optional.empty(), false);
+        snapshot = new Snapshot(
+                Phase.LOOKING_UP,
+                Optional.of(identity),
+                Optional.of(identity.range()),
+                true
+        );
         query.result().whenComplete((resolution, failure) -> complete(generation, identity, resolution, failure));
     }
 
@@ -255,18 +261,18 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
             SFMSymbolHoverIdentity identity,
             SFMSymbolHoverLookup.Resolution resolution
     ) {
-        if (resolution == SFMSymbolHoverLookup.Resolution.ACTIONABLE) {
+        if (resolution == SFMSymbolHoverLookup.Resolution.ACTIONABLE
+                || resolution == SFMSymbolHoverLookup.Resolution.AMBIGUOUS) {
             return new Snapshot(
-                    Phase.ACTIONABLE,
+                    resolution == SFMSymbolHoverLookup.Resolution.ACTIONABLE ? Phase.ACTIONABLE : Phase.AMBIGUOUS,
                     Optional.of(identity),
                     Optional.of(identity.range()),
                     true
             );
         }
         Phase phase = switch (resolution) {
-            case ACTIONABLE -> throw new IllegalStateException("handled above");
+            case ACTIONABLE, AMBIGUOUS -> throw new IllegalStateException("handled above");
             case UNRESOLVED -> Phase.UNRESOLVED;
-            case AMBIGUOUS -> Phase.AMBIGUOUS;
             case UNAVAILABLE -> Phase.UNAVAILABLE;
         };
         return new Snapshot(phase, Optional.of(identity), Optional.empty(), false);

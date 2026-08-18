@@ -32,6 +32,8 @@ class SFMSymbolHoverStateMachineTests {
         machine.modifiersChanged(CTRL);
         assertEquals(SFMSymbolHoverStateMachine.Phase.LOOKING_UP, machine.snapshot().phase());
         assertEquals(1, lookup.submissions.size());
+        assertEquals(Optional.of(target.range()), machine.snapshot().underlineRange());
+        assertTrue(machine.snapshot().ownsLinkCursor());
         lookup.complete(0, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
 
         assertEquals(SFMSymbolHoverStateMachine.Phase.ACTIONABLE, machine.snapshot().phase());
@@ -93,10 +95,9 @@ class SFMSymbolHoverStateMachineTests {
     }
 
     @Test
-    void unresolvedAmbiguousAndUnavailableAreTerminalNonLinks() {
+    void unresolvedAndUnavailableAreTerminalNonLinks() {
         for (SFMSymbolHoverLookup.Resolution resolution : List.of(
                 SFMSymbolHoverLookup.Resolution.UNRESOLVED,
-                SFMSymbolHoverLookup.Resolution.AMBIGUOUS,
                 SFMSymbolHoverLookup.Resolution.UNAVAILABLE
         )) {
             LookupHarness lookup = new LookupHarness();
@@ -109,6 +110,54 @@ class SFMSymbolHoverStateMachineTests {
             assertFalse(machine.snapshot().ownsLinkCursor());
             assertEquals(1, machine.cachedIdentityCount());
         }
+    }
+
+    @Test
+    void ambiguousResultRemainsALinkBecauseReleaseOpensTheChoicePalette() {
+        LookupHarness lookup = new LookupHarness();
+        var machine = machine(lookup);
+        var target = target("name", 0, 4, 0, 4, 1);
+        machine.modifiersChanged(CTRL);
+        machine.observe(Optional.of(target));
+        lookup.complete(0, SFMSymbolHoverLookup.Resolution.AMBIGUOUS);
+
+        assertEquals(SFMSymbolHoverStateMachine.Phase.AMBIGUOUS, machine.snapshot().phase());
+        assertEquals(Optional.of(target.range()), machine.snapshot().underlineRange());
+        assertTrue(machine.snapshot().ownsLinkCursor());
+        machine.primaryPressed(10, 10);
+        assertEquals(
+                SFMSymbolHoverStateMachine.GestureKind.ACTIVATE_DEFINITION,
+                machine.primaryReleased(10, 10).kind()
+        );
+    }
+
+    @Test
+    void pendingCtrlClickIsOwnedBeforeLookupCompletes() {
+        LookupHarness lookup = new LookupHarness();
+        var machine = machine(lookup);
+        machine.modifiersChanged(CTRL);
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
+
+        machine.primaryPressed(10, 10);
+        assertEquals(
+                SFMSymbolHoverStateMachine.GestureKind.ACTIVATE_DEFINITION,
+                machine.primaryReleased(10, 10).kind()
+        );
+    }
+
+    @Test
+    void pendingCtrlClickNeverBecomesAnEditorClickWhenLookupResolvesNonAction() {
+        LookupHarness lookup = new LookupHarness();
+        var machine = machine(lookup);
+        machine.modifiersChanged(CTRL);
+        machine.observe(Optional.of(target("name", 0, 4, 0, 4, 1)));
+
+        machine.primaryPressed(10, 10);
+        lookup.complete(0, SFMSymbolHoverLookup.Resolution.UNRESOLVED);
+        assertEquals(
+                SFMSymbolHoverStateMachine.GestureKind.ACTIVATE_DEFINITION,
+                machine.primaryReleased(10, 10).kind()
+        );
     }
 
     @Test

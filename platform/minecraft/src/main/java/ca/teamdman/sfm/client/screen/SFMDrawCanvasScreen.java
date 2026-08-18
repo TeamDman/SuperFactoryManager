@@ -8,6 +8,9 @@ import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
+import ca.teamdman.sfm.client.semantic.SFMNavigationFramingPolicy;
+import ca.teamdman.sfm.client.semantic.SFMJavaCanvasInteractionRegions;
+import ca.teamdman.sfm.client.semantic.SFMSpatialSemanticContract;
 import ca.teamdman.sfm.client.syntax.SFMSyntaxHighlightResult;
 import ca.teamdman.sfm.client.syntax.SFMSyntaxHighlightRuntime;
 import ca.teamdman.sfm.client.syntax.SFMTextEditorSyntaxSession;
@@ -146,6 +149,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private boolean draggingGrammarInsert;
     private Optional<Component> saveDiagnostic = Optional.empty();
     private Optional<SFMTextDocumentRange> openTargetRange = Optional.empty();
+    private Optional<SFMSpatialSemanticContract.FramingObservation> navigationFramingObservation = Optional.empty();
+    private long javaInteractionRegionRevision = -1L;
+    private SFMJavaCanvasInteractionRegions.Index javaInteractionRegionIndex;
     private Map<SFMDrawCanvasModel.CanvasGlyph, Integer> localSyntaxColours = Map.of();
     private Map<SFMDrawCanvasModel.CanvasGlyph, List<ChatFormatting>> remoteSyntaxStyles = Map.of();
     private long documentGeneration;
@@ -892,13 +898,102 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         long geometryStartedNanos = System.nanoTime();
         CanvasTextPoint point = canvasPoint(openContext.initialValue(), range.start());
         model().setCursor(point.x(), point.y());
-        cameraX = point.x() + (this.width / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
-        cameraY = point.y() + (this.height / 2.0D - DEFAULT_ORIGIN_MARGIN) / zoom;
+        SFMNavigationFramingPolicy.Result framing = frameDestination(openContext.initialValue(), range);
+        cameraX = framing.camera().x();
+        cameraY = framing.camera().y();
+        navigationFramingObservation = Optional.of(framing.observation());
         cameraInitialized = true;
         cameraViewportWidth = this.width;
         cameraViewportHeight = this.height;
         performanceTracker.openTargetGeometry(System.nanoTime() - geometryStartedNanos);
         rememberCursorPosition();
+    }
+
+    /** Latest machine-readable decision made while revealing a navigation destination. */
+    public Optional<SFMSpatialSemanticContract.FramingObservation> navigationFramingObservation() {
+        return navigationFramingObservation;
+    }
+
+    private SFMNavigationFramingPolicy.Result frameDestination(String text, SFMTextDocumentRange range) {
+        SFMDrawCanvasDocumentIndex index = model().documentIndex(this.font.width(" "), this.font.lineHeight);
+        int lineCount = documentLineCount(text);
+        double documentRight = index.bounds().map(SFMDrawCanvasDocumentIndex.ContentBounds::right).orElse(0.0D);
+        var documentBounds = new SFMSpatialSemanticContract.Rectangle(
+                0.0D,
+                0.0D,
+                Math.max(0.0D, documentRight),
+                Math.max(this.font.lineHeight, (double) lineCount * this.font.lineHeight)
+        );
+        String targetLine = lineText(text, range.start().line());
+        var lineBounds = new SFMSpatialSemanticContract.Rectangle(
+                0.0D,
+                (double) range.start().line() * this.font.lineHeight,
+                Math.max(0.0D, this.font.width(targetLine)),
+                (double) (range.start().line() + 1) * this.font.lineHeight
+        );
+        var destinationBounds = canvasBounds(text, range);
+        SFMTextDocumentSnapshot snapshot = openContext.documentSnapshot()
+                .orElseGet(() -> SFMTextDocumentSnapshot.literal(text));
+        String address = snapshot.path().map(path -> path.canonical()).orElse("editor://text-editor-v3");
+        String hash = snapshot.sha256().orElseGet(() -> SFMContextTextCoordinates.sha256(text));
+        return SFMNavigationFramingPolicy.choose(new SFMNavigationFramingPolicy.Request(
+                "sfm:text-editor-v3",
+                address,
+                hash,
+                "utf8:" + range.start().byteOffset() + ".." + range.end().byteOffset(),
+                "start",
+                documentBounds,
+                lineBounds,
+                destinationBounds,
+                Math.max(1, this.width),
+                Math.max(1, this.height),
+                DEFAULT_ORIGIN_MARGIN,
+                new SFMSpatialSemanticContract.Camera(cameraX, cameraY, zoom)
+        ));
+    }
+
+    private SFMSpatialSemanticContract.Rectangle canvasBounds(String text, SFMTextDocumentRange range) {
+        double left = Double.POSITIVE_INFINITY;
+        double top = Double.POSITIVE_INFINITY;
+        double right = Double.NEGATIVE_INFINITY;
+        double bottom = Double.NEGATIVE_INFINITY;
+        for (int line = range.start().line(); line <= range.end().line(); line++) {
+            String value = lineText(text, line);
+            int codePoints = value.codePointCount(0, value.length());
+            int startColumn = line == range.start().line() ? range.start().column() : 0;
+            int endColumn = line == range.end().line() ? range.end().column() : codePoints;
+            int startIndex = value.offsetByCodePoints(0, Math.min(startColumn, codePoints));
+            int endIndex = value.offsetByCodePoints(0, Math.min(endColumn, codePoints));
+            double rowLeft = this.font.width(value.substring(0, startIndex));
+            double rowRight = this.font.width(value.substring(0, endIndex));
+            double rowTop = (double) line * this.font.lineHeight;
+            left = Math.min(left, rowLeft);
+            top = Math.min(top, rowTop);
+            right = Math.max(right, Math.max(rowLeft, rowRight));
+            bottom = Math.max(bottom, rowTop + this.font.lineHeight);
+        }
+        if (!Double.isFinite(left)) {
+            CanvasTextPoint point = canvasPoint(text, range.start());
+            left = point.x();
+            top = point.y();
+            right = point.x();
+            bottom = point.y() + this.font.lineHeight;
+        }
+        return new SFMSpatialSemanticContract.Rectangle(left, top, right, bottom);
+    }
+
+    private static int documentLineCount(String text) {
+        int lines = 1;
+        for (int index = 0; index < text.length(); index++) {
+            char value = text.charAt(index);
+            if (value == '\r') {
+                if (index + 1 < text.length() && text.charAt(index + 1) == '\n') index++;
+                lines++;
+            } else if (value == '\n') {
+                lines++;
+            }
+        }
+        return lines;
     }
 
     /** Captures exact current text plus immutable 2D cursor projections for one panel origin. */
@@ -966,10 +1061,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         String projectedText = canvas.text();
         boolean dirty = !projectedText.equals(initialCanvasProjectionText);
         String currentText = !dirty && baseline.ready() ? baseline.text() : projectedText;
-        SFMDrawCanvasModel.CanvasGlyph glyph = index.orderedGlyphs().get(hit.range().glyphStart());
+        int navigationOffset = Math.min(hit.navigationUtf16Offset(), currentText.length());
+        SFMDrawCanvasModel.CanvasGlyph glyph = navigationOffset < canvas.glyphsByCharIndex().size()
+                ? canvas.glyphsByCharIndex().get(navigationOffset)
+                : null;
+        if (glyph == null) glyph = index.orderedGlyphs().get(hit.range().glyphStart());
         SFMTextDocumentPosition position = SFMContextTextCoordinates.atUtf16Offset(
                 currentText,
-                hit.range().utf16Start()
+                navigationOffset
         );
         SFMContextDocumentProjection captured = SFMContextDocumentProjection.capture(
                 editorId,
@@ -1018,29 +1117,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         int glyphOrdinal = index.glyphOrdinalOf(glyph).orElse(-1);
         if (offset < 0 || glyphOrdinal < 0) return Optional.empty();
         String text = index.projection().text();
-        int probe = offset;
-        int codePoint = text.codePointAt(probe);
-        if (!Character.isJavaIdentifierPart(codePoint)) {
-            int next = probe + Character.charCount(codePoint);
-            if (codePoint != '@' || next >= text.length()
-                    || !Character.isJavaIdentifierPart(text.codePointAt(next))) return Optional.empty();
-            probe = next;
-        }
-        int start = probe;
-        while (start > 0) {
-            int previous = text.codePointBefore(start);
-            if (!Character.isJavaIdentifierPart(previous)) break;
-            start -= Character.charCount(previous);
-        }
-        int end = probe;
-        while (end < text.length()) {
-            int current = text.codePointAt(end);
-            if (!Character.isJavaIdentifierPart(current)) break;
-            end += Character.charCount(current);
-        }
-        if (start >= end) return Optional.empty();
-        SFMDrawCanvasModel.CanvasGlyph first = index.projection().glyphsByCharIndex().get(start);
-        SFMDrawCanvasModel.CanvasGlyph last = index.projection().glyphsByCharIndex().get(end - 1);
+        SFMJavaCanvasInteractionRegions.Region region = javaInteractionRegions(text)
+                .atUtf16(offset)
+                .orElse(null);
+        if (region == null) return Optional.empty();
+        int start = region.utf16Start();
+        int end = region.utf16End();
+        SFMDrawCanvasModel.CanvasGlyph first = firstGlyph(index, start, end);
+        SFMDrawCanvasModel.CanvasGlyph last = lastGlyph(index, start, end);
         if (first == null || last == null) return Optional.empty();
         int firstOrdinal = index.glyphOrdinalOf(first).orElse(-1);
         int finalOrdinal = index.glyphOrdinalOf(last).orElse(-1);
@@ -1053,8 +1137,47 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                         firstOrdinal,
                         finalOrdinal + 1
                 ),
-                glyphOrdinal
+                glyphOrdinal,
+                region.kind().name().toLowerCase(java.util.Locale.ROOT),
+                region.navigationUtf16Offset()
         ));
+    }
+
+    private SFMJavaCanvasInteractionRegions.Index javaInteractionRegions(String text) {
+        long revision = model().contentRevision();
+        if (javaInteractionRegionIndex == null
+                || javaInteractionRegionRevision != revision
+                || !javaInteractionRegionIndex.text().equals(text)) {
+            javaInteractionRegionIndex = SFMJavaCanvasInteractionRegions.index(text);
+            javaInteractionRegionRevision = revision;
+        }
+        return javaInteractionRegionIndex;
+    }
+
+    private static SFMDrawCanvasModel.CanvasGlyph firstGlyph(
+            SFMDrawCanvasDocumentIndex index,
+            int start,
+            int end
+    ) {
+        List<SFMDrawCanvasModel.CanvasGlyph> byChar = index.projection().glyphsByCharIndex();
+        for (int offset = start; offset < end; offset++) {
+            SFMDrawCanvasModel.CanvasGlyph glyph = byChar.get(offset);
+            if (glyph != null) return glyph;
+        }
+        return null;
+    }
+
+    private static SFMDrawCanvasModel.CanvasGlyph lastGlyph(
+            SFMDrawCanvasDocumentIndex index,
+            int start,
+            int end
+    ) {
+        List<SFMDrawCanvasModel.CanvasGlyph> byChar = index.projection().glyphsByCharIndex();
+        for (int offset = end - 1; offset >= start; offset--) {
+            SFMDrawCanvasModel.CanvasGlyph glyph = byChar.get(offset);
+            if (glyph != null) return glyph;
+        }
+        return null;
     }
 
     public void setSymbolHoverUnderline(Optional<SFMSymbolHoverIdentity.TextGlyphRange> range) {
@@ -2630,11 +2753,23 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
 
     public record SymbolHit(
             SFMSymbolHoverIdentity.TextGlyphRange range,
-            int glyphOrdinal
+            int glyphOrdinal,
+            String semanticKind,
+            int navigationUtf16Offset
     ) {
         public SymbolHit {
             Objects.requireNonNull(range, "range");
             if (glyphOrdinal < 0) throw new IllegalArgumentException("glyphOrdinal must not be negative");
+            if (semanticKind == null || semanticKind.isBlank()) {
+                throw new IllegalArgumentException("semanticKind must not be blank");
+            }
+            if (navigationUtf16Offset < 0) {
+                throw new IllegalArgumentException("navigationUtf16Offset must not be negative");
+            }
+        }
+
+        public SymbolHit(SFMSymbolHoverIdentity.TextGlyphRange range, int glyphOrdinal) {
+            this(range, glyphOrdinal, "identifier", range.utf16Start());
         }
     }
 

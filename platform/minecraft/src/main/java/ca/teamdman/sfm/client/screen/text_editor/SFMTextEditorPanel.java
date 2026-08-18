@@ -342,8 +342,16 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         }
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT
                 && hoverModifiers.requestsDefinitionNavigation()
+                && symbolHover != null) {
+            // A pointer press may arrive before the render/move loop has observed this exact
+            // location. Resolve the canvas hit synchronously so a fast Ctrl+click cannot leak
+            // through as a multi-cursor edit while the asynchronous definition query is pending.
+            refreshHoverTarget(mouseX, mouseY);
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT
+                && hoverModifiers.requestsDefinitionNavigation()
                 && symbolHover != null
-                && symbolHover.snapshot().phase() == SFMSymbolHoverStateMachine.Phase.ACTIONABLE) {
+                && symbolHover.snapshot().ownsLinkCursor()) {
             symbolHover.primaryPressed(mouseX, mouseY);
             capturedHoverClick = true;
             capturedHoverHit = hoverHit;
