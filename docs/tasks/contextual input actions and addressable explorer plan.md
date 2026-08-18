@@ -1,10 +1,13 @@
 # Contextual input, action ownership, and addressable explorer plan
 
-**Plan status:** Active; C-4a through C-11 and linked CLI-AST Phases 0.11 through 0.12 are complete; the bounded REVEAL-3 subset of B-4 and CTXREF subset of B-5 are complete, while independent fuzzy/contextual Phase B and broader address/action work remain
+**Plan status:** Active; C-4a through C-11 and linked CLI-AST Phases 0.11
+through 0.12.3 are complete; the bounded REVEAL-3 subset of B-4 and CTXREF
+subset of B-5 are complete; B-5a mouse dismissal and broader Phase B work
+remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-18
 **Intent audit:** Passed and post-compaction re-audited 2026-08-16 against the user's verbatim 16-bullet report, including the symbol-hover/reference, definition-correctness, placement, reveal, explorer interaction, divider-resize, and large-document-performance work recorded below
 
 ## How to update this plan
@@ -2549,6 +2552,40 @@ longer owns a separate one-to-one callback system.
 provider, the shared Alt+Enter/right-click constrained palette, and the direct
 reference gestures. General token-callback migration, path/item providers,
 Ctrl+Space migration, and every other B-5 requirement remain incomplete.
+
+### [ ] B-5a Add explicit mouse-accessible cancellation to every palette surface
+
+**Manual evidence (2026-08-18):** The full command palette and constrained
+Alt+Enter/right-click choice surface close with Escape but expose no visible
+mouse target for dismissal.
+
+**Work:** Add a Vanilla-like, narrated, Tab-focusable `Cancel` button to the
+shared `SFMCommandPaletteScreen` layout. The button must invoke the already
+registered canonical `sfm:palette/close` action against the active action
+surface rather than directly mutating screen state. Use the same widget and
+lifecycle path for full command entry, bounded choices, toast choices, and
+definition ambiguity. Preserve the input, Execute button, list scrollbar,
+suggestion selection, and narrow/low-scale layouts. Escape, Cancel activation,
+screen removal, external dismissal, and successful command execution must each
+close a choice session and its interaction lease exactly once.
+
+**Validation:** Extend palette/choice tests for mouse click, Tab/Shift+Tab,
+Enter/Space activation, narration, all opening modes, narrow panels and Auto
+plus GUI scales 1..8, lease/listener exactly-once semantics, no command-history
+entry for cancellation, and no accidental execution of the selected action.
+The contextual-actions puppet must open by right-click, dismiss by clicking
+Cancel, reopen, and execute a real action.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMCommandPaletteScreenTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMChoiceSessionTests --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_contextual_actions --branch 1.19.2 --variant declared --wait-for-build-lock
+```
+
+**Completion criteria:** Every palette-derived surface has an obvious mouse and
+keyboard Cancel route backed by `sfm:palette/close`; all close paths clean up
+exactly once; cancellation never executes or records another action; and the
+button remains fully visible and reachable at every supported GUI scale.
 
 ### [ ] B-6 Prove contextual search/actions live and record the release boundary
 

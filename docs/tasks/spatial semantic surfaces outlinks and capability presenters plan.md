@@ -1,7 +1,7 @@
 # Spatial semantic surfaces, outlinks, and capability presenters plan
 
-**Plan status:** Active; planning contract and CP-3 reference research complete,
-production implementation not started
+**Plan status:** Active; SS-0 through SS-4, NX-3a, NX-4, and CP-3 are complete;
+the bounded SS-5/SS-6/NX-4a post-goal repair work is next
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Primary implementation target:** Minecraft 1.19.2
 **Last updated:** 2026-08-18
@@ -939,6 +939,94 @@ fallback when it cannot, and never hides a fit-capable left edge; and the live
 coverage artifact has zero unclassified or navigation-uncovered strict-Java
 glyphs for its fixtures.
 
+### [ ] SS-5 Repair the exact post-goal Java navigation and stale-result regressions
+
+**Ownership join:** CLI-AST 0.12.4 owns corrected Java facts, locked Forge
+source derivation, and direct/worker parity. This item owns Java consumption,
+request-validity policy, real EditorV3 behavior, and natural-use evidence. It
+does not duplicate the Rust parser/index.
+
+**Work:** Add the exact `TranslatableContents`, fully qualified
+`SFMModCompat.isComputerCraftLoaded()`, and `FMLJavaModLoadingContext` locations
+from the 2026-08-18 manual report to the live source-navigation matrix. Require
+Ctrl-hover, Ctrl+click, F12, Alt+Enter, and right-click to use the corrected
+region target over every target glyph and to open the same canonical
+definition.
+
+Replace whole-`SFMContextContribution` equality as the asynchronous result
+validity test. Capture one immutable request witness containing originating
+workspace/panel entry, document resolver/address/content hash, semantic region
+and provider generation, and request generation. Ordinary cursor movement,
+selection change, hover repaint, or mouse release after submission must not
+invalidate an explicit request over the unchanged witness. Panel removal,
+document/address/content replacement, provider-generation mismatch, or a newer
+superseding request must still cancel/reject the old result. The message
+`Jump to definition ignored because the editor document or cursor changed`
+must be replaced with precise typed reasons that do not blame the cursor when
+the document changed.
+
+**Validation:** Focused Java tests cover cursor/selection movement, unchanged
+document, changed bytes at the same path, panel-stack replacement, removed
+panel, stale semantic generation, out-of-order completions, and exact
+supersession. A natural-use puppet opens both production files and proves all
+three targets plus a deliberate stale-document rejection through actual canvas
+input.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMJumpToDefinitionActionTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMJavaCanvasInteractionRegionsTests --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_manual_symbol_regressions --branch 1.19.2 --variant declared --wait-for-build-lock
+```
+
+**Completion criteria:** All reported expressions navigate in game; harmless
+cursor/selection movement cannot discard a valid result; genuinely stale
+results cannot navigate; every rejection names the changed witness dimension;
+and the puppet records source/destination addresses, regions, bounds, request
+identity, and final framing.
+
+### [ ] SS-6 Add action-backed symbol inspection and deterministic copy projections
+
+**Work:** Capture one immutable `SymbolInspectionSnapshot` from the exact
+clicked/cursor semantic region. It must remain useful even when definition
+resolution is incomplete and contain, where available: document
+resolver/address/root/source set/path/content hash; line, Unicode column, byte
+offset, text span and selected glyphs; document/canvas/screen 2D bounds;
+semantic region id/kind and logical ancestor path; symbol kind/owner/name/
+descriptor/canonical selector; confidence/completeness/diagnostics; definition
+and reference outlinks; and a copyable direct CLI replay command.
+
+Register hierarchical contextual actions that format projections from that one
+snapshot rather than recapturing mutable focus:
+
+- `sfm:symbol/copy/details`
+- `sfm:symbol/copy/file`
+- `sfm:symbol/copy/line`
+- `sfm:symbol/copy/column`
+- `sfm:symbol/copy/bounds`
+- `sfm:symbol/copy/logical-path`
+- `sfm:symbol/copy/access-transformer-reference`
+
+The aggregate details report composes those same projections in a versioned,
+deterministic, paste-friendly format. Access Transformer output uses the
+existing typed selector grammar only for representable static symbols;
+locals/punctuation/unresolved syntax report an explicit unavailable reason and
+are never guessed. Right-click and Alt+Enter offer the same actions for the
+captured region. Clipboard success flows through NX-4a feedback.
+
+**Validation:** Unit and context-provider tests cover resolved types/fields/
+methods/constructors, overloaded descriptors, locals, punctuation, Unicode,
+CRLF, unresolved and ambiguous targets, logical ancestors, all coordinate
+projections, exact clicked-versus-later-focused races, AT representability,
+stable aggregate ordering, replay command quoting, and clipboard bytes. The
+manual-regression puppet copies and artifacts details for each of the three
+reported failures before and after resolution.
+
+**Completion criteria:** A user can right-click any captured Java semantic
+region and copy a truthful diagnostic/replay report; every granular action and
+the aggregate agree byte-for-byte on shared fields; AT references are exact or
+explicitly unavailable; and unresolved symbols remain inspectable rather than
+becoming information-free `NO_SYMBOL` toasts.
+
 ## Phase NX — Navigation and explorer experience
 
 ### [ ] NX-1 Add spatially targetable branching navigation history
@@ -1122,6 +1210,30 @@ frame; a user can pause, copy, pin, inspect, and immediately dismiss exactly
 the intended toast; dismiss never becomes persistent silence or targets a
 replacement; existing scale feedback retains its proven behavior; and future
 silence preferences can be added without replacing the toast contract.
+
+### [ ] NX-4a Confirm clipboard-copy actions through the shared toast queue
+
+**Work:** Route a toast's direct left-click through the registered
+`sfm:toast/copy <toast-id>` action instead of bypassing action feedback with a
+raw clipboard call. On success, enqueue a distinct bounded confirmation such as
+`Copied notification <id> to the clipboard`; do not replace, dismiss, repin, or
+reset the copied source toast. Use a dedicated replacement/coalescing key for
+repeated clipboard confirmations so rapid copies remain readable without an
+unbounded confirmation pile. Programmatic rendering or toast publication must
+never recursively trigger a copy; copying a confirmation is merely another
+explicit user action. Apply the same confirmation contract to SS-6 symbol-copy
+actions.
+
+**Validation:** Test pointer/action/keyboard parity, exact clipboard bytes,
+source-toast lifetime and pin state, stale ids, repeated copies, confirmation
+replacement, copying the confirmation itself, later unrelated messages,
+narration, and workspace disposal. Extend the natural puppet to visibly click
+a failure toast, assert the clipboard, and capture both source and confirmation.
+
+**Completion criteria:** Every successful user-initiated toast or symbol copy
+produces one readable confirmation through the same queue; failures do not
+claim success; the source notification is untouched; and no recursive or
+unbounded toast behavior exists.
 
 ## Phase CP — General capability selection and previews
 
@@ -1374,6 +1486,59 @@ semantic hierarchy (NX-3), capability previews (CP-1/CP-2/CP-4), shared comment
 adapters (SS-7), Rust-language navigation/release closure (SS-8), propagation,
 publication, release tagging, or human visual approval. A cheap painted editor
 path is not substituted for the truthful NX-2 design.
+
+## Recommended post-goal manual-testing repair batch — 2026-08-18
+
+The next executable goal is:
+
+> Complete CLI-AST 0.12.4, SS-5, SS-6, X-8c, B-5a, and NX-4a: repair the
+> exact `TranslatableContents`, fully qualified `SFMModCompat`, and
+> `FMLJavaModLoadingContext` definition failures; make asynchronous navigation
+> survive harmless cursor/selection movement while rejecting truly stale
+> witnesses; add action-backed aggregate and granular symbol-detail copying;
+> preserve materialized root-to-match ancestry in explorer filtering; add a
+> visible action-backed Cancel button to every palette-derived surface; and
+> confirm clipboard copies through the shared toast queue. Prove the behavior
+> with direct CLI scenarios, focused Rust/Java tests, natural in-game puppets,
+> GUI-scale evidence, final tool installation, committed bookkeeping, and a
+> clean handoff. Keep the dependency graph and checked-in lockfiles frozen;
+> use only already-pinned artifacts/source machinery and do not clone new
+> repositories or run lockfile-mutating commands.
+
+Observable completion requires all of the following:
+
+1. The three exact one-based production probes navigate through direct CLI,
+   reusable engine, supervised worker, interaction map, and natural EditorV3
+   input; target spans are actionable across all their glyphs.
+2. `FMLJavaModLoadingContext` opens reproducible source derived from the
+   already-locked `javafmllanguage` artifact, with artifact/tool/source/index
+   identity and no ambient-cache guessing.
+3. Moving a cursor or selection after submission does not discard a valid
+   explicit request; changed document bytes/address, removed/replaced panel,
+   stale provider generation, and superseding requests remain safely rejected
+   with precise reasons.
+4. Right-click/Alt+Enter offers `sfm:symbol/copy/*`; the aggregate details and
+   granular projections share one captured snapshot, include replay evidence,
+   and remain informative for unresolved/ambiguous syntax.
+5. Filtering for `SFM` visibly retains the complete already-materialized
+   ancestry of `SFM.java`, distinguishes context rows from matches, reports
+   honest counts, performs zero resolver I/O, and restores pre-filter state.
+6. Full and constrained palettes expose one Vanilla-like mouse/keyboard Cancel
+   button backed by `sfm:palette/close`, with exactly-once cleanup and no action
+   execution/history mutation.
+7. Clicking a toast to copy uses `sfm:toast/copy`, preserves the source toast,
+   and emits one bounded copy-confirmation toast; symbol-copy actions use the
+   same confirmation path.
+8. The final relevant CLIs are rebuilt and installed after their last source
+   mutation; the handoff explicitly says no manual install is required. All
+   scoped changes and plan/changelog evidence are committed and the worktree is
+   clean.
+
+Parallel lanes are intentionally available after fixtures freeze the expected
+contracts: CLI-AST 0.12.4 owns Rust analysis/source derivation; X-8c owns lazy
+projection; B-5a/NX-4a own small Java UI surfaces; SS-6 owns the pure snapshot
+and formatters. One integration owner joins action registration, SS-5 request
+validity, puppets, validation, installation, and bookkeeping.
 
 ## Operational readiness for each implementation goal
 

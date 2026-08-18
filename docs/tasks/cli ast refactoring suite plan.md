@@ -1,8 +1,10 @@
 # CLI AST refactoring suite plan
 
-**Plan status:** Active; Phase 0 through Phase 0.12 are complete; mutation-capable Phase 1 remains deferred and unstarted
+**Plan status:** Active; Phase 0 through Phase 0.12.3 are complete; the bounded
+0.12.4 manual-navigation repair is next; mutation-capable Phase 1 remains
+deferred and unstarted
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-18
 **Intent audit:** Passed 2026-08-09 for Phase 0; extended 2026-08-09 for Phase 0.8, 2026-08-10 for Phase 0.9, 2026-08-11 for the in-game definition-at-location bridge, reconciled 2026-08-15 at Phase 0.10 completion, extended 2026-08-15 for Rust-owned Arborium Java highlighting, extended 2026-08-16 for JDK/local/member/import definition coverage plus location-aware usages, and post-compaction re-audited 2026-08-16 against the user's verbatim report
 
 ## How to update this plan
@@ -2161,6 +2163,74 @@ Canonical Java integration passed. The fresh C-11 run consumed this installed
 worker lane through nine definitions and one 76-usage result; all navigation,
 retention, and responsiveness assertions passed. No mutation request/command
 was introduced, and Phase 1 remains untouched.
+
+### [ ] 0.12.4 Close exact manual-test constructor, qualified-receiver, and locked Forge-source gaps
+
+**Manual evidence and diagnosis (2026-08-18):** The following direct
+`symbol show-definition --source-path ... --line ... --column ...` probes
+reproduce the in-game `NO_SYMBOL` outcomes, so they are Rust analysis/index
+defects rather than canvas hit-test failures:
+
+- `ca/teamdman/sfm/common/util/SFMTranslationUtils.java:64:20`, over
+  `new TranslatableContents(key, args)`. The source/index can resolve the
+  `TranslatableContents` type and its acquired source contains constructors
+  `(String)` and `(String, Object...)`, but `symbol list` incorrectly publishes
+  two duplicate `(Ljava/lang/String;)V` constructors and omits the varargs
+  descriptor. Constructor-call resolution consequently reports unresolved
+  `<init>`.
+- `ca/teamdman/sfm/SFM.java:51:43` and `:51:56`, over the owner and member in
+  `ca.teamdman.sfm.common.compat.SFMModCompat.isComputerCraftLoaded()`. Direct
+  type/member selectors resolve, but the position extractor does not interpret
+  the fully qualified receiver expression as a type path and emits no usage
+  fact.
+- `ca/teamdman/sfm/SFM.java:58:19`, over
+  `FMLJavaModLoadingContext`. The direct selector is absent because the current
+  dependency-source index does not include this Forge loader class. The
+  existing checked-in toolchain lock already pins
+  `net.minecraftforge:javafmllanguage:1.19.2-43.4.0`, the artifact is already
+  materialized, and its JAR contains
+  `net/minecraftforge/fml/javafmlmod/FMLJavaModLoadingContext.class`; no new
+  dependency, lock mutation, repository, or ambient machine artifact is needed.
+
+**Work:** Correct varargs formal-parameter extraction and descriptor
+normalization so declaration, direct selector, constructor invocation, usage,
+and interaction-map identities agree. Teach expression/usage resolution to
+recognize fully qualified type receivers without treating package/type segments
+as field access or guessing unresolved variables. Extend the existing
+lockfile-derived dependency-source/index pipeline to derive navigable source
+for locked Forge loader artifacts such as `javafmllanguage` using only the
+already-pinned artifact and existing pinned decompiler/source machinery. The
+derived source identity must include artifact hash, tool identity, parser/index
+format, and branch visibility; it must never search ambient Maven/Gradle caches
+or silently invent source.
+
+Keep position resolution region-wide: every glyph in the visible owner/member
+or constructed-type region returns the same justified target. Direct CLI,
+reusable engine, worker, interaction-map, definition, and usage paths must share
+the corrected facts. Preserve typed ambiguity and incompleteness for genuinely
+unsupported cases rather than introducing a first-match fallback.
+
+**Validation:** Add adjacent scenarios for the three exact production snippets,
+varargs versus array and competing overloads, imported and fully qualified
+static receivers, package/field name collisions, locked binary-only Forge
+source derivation, stale/missing artifact, direct/worker/interaction-map parity,
+and all one-based columns across each target span. Assert that source trees and
+lockfiles remain byte-identical.
+
+```pwsh
+cd platform\cli\sfm-propagate-changes
+.\check-all.ps1
+sfm-propagate-changes.exe symbol show-definition --branch 1.19.2 --source-path ca/teamdman/sfm/common/util/SFMTranslationUtils.java --line 64 --column 20 --output-format json
+sfm-propagate-changes.exe symbol show-definition --branch 1.19.2 --source-path ca/teamdman/sfm/SFM.java --line 51 --column 56 --output-format json
+sfm-propagate-changes.exe symbol show-definition --branch 1.19.2 --source-path ca/teamdman/sfm/SFM.java --line 58 --column 19 --output-format json
+```
+
+**Completion criteria:** All three exact probes return navigable definitions;
+the constructor descriptor is unique and correct; qualified owner and method
+regions agree; `FMLJavaModLoadingContext` opens source derived from the pinned
+locked artifact; no unrelated partial-index warning suppresses a known match;
+all CLI gates pass; the final CLI is installed after its last mutation; and no
+dependency declaration or lockfile changes.
 
 ### Phase 0.12 parallel work map
 

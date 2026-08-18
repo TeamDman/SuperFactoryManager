@@ -1,13 +1,15 @@
 # Typed selections, relations, and lazy explorers plan
 
-**Plan status:** Active; X-1 through X-7, X-8a, and the bounded X-8b interaction-repair slice are complete; picker X-8 and X-9 through X-11 remain
+**Plan status:** Active; X-1 through X-7, X-8a, and X-8b are complete; the
+bounded X-8c hierarchy-preserving filter follow-up is next; picker X-8 and X-9
+through X-11 remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Primary implementation target:** Minecraft 1.19.2
 **Related control plan:** `docs/tasks/sfm in-game control cli plan.md`
 **Related UI plan:** `docs/tasks/contextual input actions and addressable explorer plan.md`
 **Related comment plan:** `docs/tasks/global comment selection and review sessions plan.md`
 **Related editor plan:** `docs/tasks/draw editor document regions and commands plan.md`
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-18
 **Intent audit:** Passed and post-compaction re-audited 2026-08-16 against the complete 2026-08-12 through 2026-08-16
 CLI/explorer/path/selection/relation/picker/layout design discussion, the latest
 projection/icon/filter/focus/scroll observations, and the linked plans' existing
@@ -1250,6 +1252,49 @@ frames were visually inspected. Picker X-8 remains unstarted.
 complete in the contextual plan's 35-requirement acceptance ledger. Their
 independent EXP matrix remains the authoritative live proof; the completed
 source-navigation SRC run does not broaden X-8b or begin picker X-8.
+
+### [ ] X-8c Preserve root-to-match ancestry during lazy explorer filtering
+
+**Manual evidence and changed requirement (2026-08-18):** Filtering the SFM
+source explorer for `SFM` currently shows a flat fuzzy-ranked list containing
+rows such as `sfml`, `sfm`, and `SFM.java`, while hiding the materialized parent
+chain that explains where each result lives. This matches X-8b's explicit flat
+ranking implementation, but natural testing established that preserving
+hierarchical context is more useful. X-8b remains complete for its original
+contract; X-8c owns this intentional projection change.
+
+**Work:** Continue matching only the current lazy materialization: changing a
+query must cause zero resolver reads, must not recurse an arbitrary filesystem,
+and must retain the existing incomplete-materialization disclosure. Project a
+minimal hierarchy containing every fuzzy match plus every already-published
+ancestor connecting it to an explorer root. Ancestors are force-revealed only
+in the filtered projection and do not mutate persisted expansion state. Merge
+shared ancestry without duplicates or cycles; distinguish actual matches from
+context rows visually and in narration; retain original depths; and use each
+subtree's best descendant score plus canonical path as deterministic ordering.
+
+Track `matchCount`, `visibleRowCount`, and `contextAncestorCount` separately so
+status text does not call ancestors matches. Preserve selected path even when
+temporarily hidden, keep hoist/group/path-display/view axes composable, and
+restore the exact pre-filter hierarchy/scroll/selection when the filter clears.
+
+**Validation:** Extend `SFMExplorerFilterTests` with the screenshot topology:
+the `SFM.java` match must include its complete materialized root-to-file chain,
+while `sfml` and `sfm` matches retain their own ancestry. Cover shared parents,
+multiple roots, ancestor also matching, cycles, collapsed parents, hoisted
+single root, flat group mode, deterministic ranking, selection/scroll restore,
+newly published pages, truthful counts, and zero filter-caused resolver I/O.
+Extend the explorer puppet and visually inspect Auto plus GUI scales 1..8.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerFilterTests --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_explorer_interaction_fidelity --branch 1.19.2 --variant declared --wait-for-build-lock
+```
+
+**Completion criteria:** A filtered hierarchy always explains each visible
+match's location using materialized ancestors; actual-match and context counts
+are honest; filtering performs no resolver I/O; and clearing restores the
+unfiltered explorer state exactly.
 
 ### [ ] X-8 Compose pickers as selection destinations
 
