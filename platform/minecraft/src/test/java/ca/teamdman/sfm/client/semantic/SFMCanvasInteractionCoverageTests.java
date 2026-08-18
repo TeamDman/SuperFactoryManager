@@ -2,10 +2,14 @@ package ca.teamdman.sfm.client.semantic;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMCanvasInteractionCoverageTests {
@@ -31,6 +35,48 @@ class SFMCanvasInteractionCoverageTests {
                 SFMSpatialSamplingPolicies.maximin().select(100, 100, 0, 4);
         assertTrue(minimumPairDistance(maximin) > minimumPairDistance(exhaustivePrefix));
         assertEquals(maximin, SFMSpatialSamplingPolicies.maximin().select(100, 100, 0, 4));
+    }
+
+    @Test
+    void incrementalMaximinPreservesTheFrozenReferenceOrder() {
+        for (long seed : List.of(0L, 1L, 17L, 53L)) {
+            assertEquals(
+                    referenceMaximin(13, 7, seed, 41),
+                    SFMSpatialSamplingPolicies.maximin().select(13, 7, seed, 41),
+                    "seed=" + seed
+            );
+        }
+    }
+
+    @Test
+    void declaredAutoScaleCoverageBudgetIsComputationallyBounded() {
+        assertTimeout(Duration.ofSeconds(15), () ->
+                assertEquals(4_096, SFMSpatialSamplingPolicies.adaptiveFailureSeeking()
+                        .select(480, 267, 0, 4_096)
+                        .size()));
+    }
+
+    private static List<SFMSpatialSamplingPolicies.Cell> referenceMaximin(
+            int width,
+            int height,
+            long seed,
+            int budget
+    ) {
+        ArrayList<SFMSpatialSamplingPolicies.Cell> remaining = new ArrayList<>();
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) remaining.add(new SFMSpatialSamplingPolicies.Cell(x, y));
+        }
+        ArrayList<SFMSpatialSamplingPolicies.Cell> selected = new ArrayList<>();
+        selected.add(remaining.remove((int) Math.floorMod(seed, remaining.size())));
+        while (selected.size() < budget) {
+            SFMSpatialSamplingPolicies.Cell next = remaining.stream().max(Comparator
+                    .comparingDouble((SFMSpatialSamplingPolicies.Cell cell) -> selected.stream()
+                            .mapToDouble(cell::distanceSquared).min().orElse(0))
+                    .thenComparingLong(cell -> -cell.ordinal(width))).orElseThrow();
+            remaining.remove(next);
+            selected.add(next);
+        }
+        return List.copyOf(selected);
     }
 
     private static double minimumPairDistance(List<SFMSpatialSamplingPolicies.Cell> cells) {

@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.client.semantic;
 
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
@@ -77,22 +77,59 @@ public final class SFMSpatialSamplingPolicies {
 
     public static Policy maximin() {
         return policy("maximin", (width, height, seed, budget) -> {
-            int limit = Math.min(checkedBudget(budget), Math.multiplyExact(width, height));
+            int cellCount = Math.multiplyExact(width, height);
+            int limit = Math.min(checkedBudget(budget), cellCount);
             if (limit == 0) return List.of();
-            ArrayList<Cell> remaining = allCells(width, height);
-            ArrayList<Cell> selected = new ArrayList<>();
-            Cell first = remaining.remove((int) Math.floorMod(seed, remaining.size()));
-            selected.add(first);
-            while (selected.size() < limit) {
-                Cell next = remaining.stream().max(Comparator
-                        .comparingDouble((Cell cell) -> selected.stream()
-                                .mapToDouble(cell::distanceSquared).min().orElse(0))
-                        .thenComparingLong(cell -> -cell.ordinal(width))).orElseThrow();
-                remaining.remove(next);
-                selected.add(next);
+            boolean[] selected = new boolean[cellCount];
+            double[] nearestDistanceSquared = new double[cellCount];
+            Arrays.fill(nearestDistanceSquared, Double.POSITIVE_INFINITY);
+            int[] selectedOrdinals = new int[limit];
+            int first = (int) Math.floorMod(seed, cellCount);
+            selected[first] = true;
+            selectedOrdinals[0] = first;
+            updateNearestDistances(width, first, selected, nearestDistanceSquared);
+            for (int selectedCount = 1; selectedCount < limit; selectedCount++) {
+                int next = -1;
+                double farthestDistanceSquared = -1;
+                for (int ordinal = 0; ordinal < cellCount; ordinal++) {
+                    if (selected[ordinal]) continue;
+                    double candidateDistanceSquared = nearestDistanceSquared[ordinal];
+                    // Ascending traversal retains the original lower-ordinal tie-break.
+                    if (candidateDistanceSquared > farthestDistanceSquared) {
+                        next = ordinal;
+                        farthestDistanceSquared = candidateDistanceSquared;
+                    }
+                }
+                if (next < 0) throw new IllegalStateException("maximin exhausted candidates early");
+                selected[next] = true;
+                selectedOrdinals[selectedCount] = next;
+                updateNearestDistances(width, next, selected, nearestDistanceSquared);
             }
-            return List.copyOf(selected);
+            ArrayList<Cell> result = new ArrayList<>(limit);
+            for (int ordinal : selectedOrdinals) {
+                result.add(new Cell(ordinal % width, ordinal / width));
+            }
+            return List.copyOf(result);
         });
+    }
+
+    private static void updateNearestDistances(
+            int width,
+            int selectedOrdinal,
+            boolean[] selected,
+            double[] nearestDistanceSquared
+    ) {
+        int selectedX = selectedOrdinal % width;
+        int selectedY = selectedOrdinal / width;
+        for (int ordinal = 0; ordinal < selected.length; ordinal++) {
+            if (selected[ordinal]) continue;
+            long dx = (long) (ordinal % width) - selectedX;
+            long dy = (long) (ordinal / width) - selectedY;
+            double distanceSquared = (double) dx * dx + (double) dy * dy;
+            if (distanceSquared < nearestDistanceSquared[ordinal]) {
+                nearestDistanceSquared[ordinal] = distanceSquared;
+            }
+        }
     }
 
     /**
