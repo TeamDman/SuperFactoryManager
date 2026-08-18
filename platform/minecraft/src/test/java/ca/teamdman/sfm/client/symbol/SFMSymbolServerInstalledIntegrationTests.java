@@ -169,6 +169,10 @@ class SFMSymbolServerInstalledIntegrationTests {
                     "amountAvailableToMove",
                     1
             );
+            assertDefinitionRelation(interactionMap, adapter, outputStatementText, "lastInputCapacity", 1);
+            assertDefinitionRelation(interactionMap, adapter, outputStatementText, "toStringPretty", 0);
+            assertDefinitionRelation(interactionMap, adapter, outputStatementText, "SFMLocalizationDatagen", 1);
+            assertDefinitionRelation(interactionMap, adapter, outputStatementText, "SFMConfig", 0);
             assertTrue(adapterMillis < 5_000,
                     () -> "OutputStatement spatial adapter construction froze for " + adapterMillis + "ms");
 

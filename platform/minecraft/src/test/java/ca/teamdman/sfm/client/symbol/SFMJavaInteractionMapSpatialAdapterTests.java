@@ -46,6 +46,32 @@ class SFMJavaInteractionMapSpatialAdapterTests {
     @Test
     void equalSpanSemanticReferenceOutranksRawSyntaxRegion() {
         SFMJavaInteractionMap.Request request = SFMJavaInteractionMapProtocolTests.request();
+        SFMJavaInteractionMap.Result result = competingRegionsResult(request, 0, 5);
+        SFMJavaInteractionMapSpatialAdapter adapter =
+                new SFMJavaInteractionMapSpatialAdapter(request.document().text(), result);
+
+        var semantic = adapter.atUtf16(2).orElseThrow();
+        assertEquals("definition", semantic.outlinks().get(0).relationKind());
+        assertEquals("sfm:java-interaction-map/java-local-reference", semantic.providerBranch());
+    }
+
+    @Test
+    void broaderSemanticImportOutranksItsNarrowRawIdentifier() {
+        SFMJavaInteractionMap.Request request = SFMJavaInteractionMapProtocolTests.request();
+        SFMJavaInteractionMap.Result result = competingRegionsResult(request, 2, 3);
+        SFMJavaInteractionMapSpatialAdapter adapter =
+                new SFMJavaInteractionMapSpatialAdapter(request.document().text(), result);
+
+        var semantic = adapter.atUtf16(2).orElseThrow();
+        assertEquals("definition", semantic.outlinks().get(0).relationKind());
+        assertEquals("sfm:java-interaction-map/java-local-reference", semantic.providerBranch());
+    }
+
+    private static SFMJavaInteractionMap.Result competingRegionsResult(
+            SFMJavaInteractionMap.Request request,
+            int rawStart,
+            int rawEnd
+    ) {
         JsonObject json = SFMJavaInteractionMapProtocolTests.resultJson(request);
 
         JsonArray regions = json.getAsJsonArray("regions");
@@ -55,6 +81,9 @@ class SFMJavaInteractionMapSpatialAdapterTests {
         JsonObject rawRegion = semanticRegion.deepCopy();
         rawRegion.addProperty("id", "region:a-raw-identifier");
         rawRegion.addProperty("semantic_kind", "java-identifier");
+        JsonObject rawAxis = rawRegion.getAsJsonArray("bounds").get(0).getAsJsonObject();
+        rawAxis.addProperty("start_inclusive", rawStart);
+        rawAxis.addProperty("end_exclusive", rawEnd);
         regions.add(rawRegion);
 
         JsonArray classifications = json.getAsJsonArray("classifications");
@@ -76,12 +105,6 @@ class SFMJavaInteractionMapSpatialAdapterTests {
         outlinks.get(1).getAsJsonObject()
                 .addProperty("destination_region_id", "region:z-semantic-reference");
 
-        SFMJavaInteractionMap.Result result = SFMJavaInteractionMapJsonCodec.decodeResult(json.toString());
-        SFMJavaInteractionMapSpatialAdapter adapter =
-                new SFMJavaInteractionMapSpatialAdapter(request.document().text(), result);
-
-        var semantic = adapter.atUtf16(2).orElseThrow();
-        assertEquals("definition", semantic.outlinks().get(0).relationKind());
-        assertEquals("sfm:java-interaction-map/java-local-reference", semantic.providerBranch());
+        return SFMJavaInteractionMapJsonCodec.decodeResult(json.toString());
     }
 }

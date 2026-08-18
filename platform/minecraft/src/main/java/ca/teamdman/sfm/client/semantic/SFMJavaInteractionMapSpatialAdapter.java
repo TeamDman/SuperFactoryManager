@@ -141,7 +141,9 @@ public final class SFMJavaInteractionMapSpatialAdapter
                 interactionRank(region, classificationsByRegion, outlinksById)
         ));
         Comparator<SFMJavaInteractionMap.Region> specificity = Comparator
-                .comparingLong(SFMJavaInteractionMap.Region::byteLength)
+                .comparingInt((SFMJavaInteractionMap.Region region) ->
+                        interactionRanks.getOrDefault(region.id(), 8) <= 3 ? 0 : 1)
+                .thenComparingLong(SFMJavaInteractionMap.Region::byteLength)
                 .thenComparingInt(region -> interactionRanks.getOrDefault(region.id(), 8))
                 .thenComparing(SFMJavaInteractionMap.Region::id);
         List<SFMJavaInteractionMap.Region> starts = map.regions().stream()
@@ -170,9 +172,10 @@ public final class SFMJavaInteractionMapSpatialAdapter
     }
 
     /**
-     * Equal source intervals can represent both raw syntax and a resolved semantic
-     * projection. Prefer the region carrying the strongest navigation contract;
-     * region identity is only the final deterministic tie-breaker.
+     * Raw syntax can be narrower than the resolved semantic span (notably the
+     * terminal identifier inside a qualified import). Exact definition/reference
+     * relations form the first tier, then source specificity applies within a
+     * tier; region identity is only the final deterministic tie-breaker.
      */
     private static int interactionRank(
             SFMJavaInteractionMap.Region region,
