@@ -15,6 +15,7 @@ import ca.teamdman.sfm.client.text_editor.SFMTextDocumentPosition;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSourceRootIdentity;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
 import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
@@ -123,37 +124,67 @@ public final class SFMDefinitionNavigation {
                         .filter(candidate -> candidate.sourceSet().equals(span.sourceSet()))
                         .toList();
         boolean managedSourceRoot = managedMappings.size() == 1;
-        List<String> rootPaths;
+        List<SourceRootSelection> rootSelections;
         if (span.resolverId().equals("workspace")) {
-            rootPaths = hello.workspace().rootMappings().stream()
+            rootSelections = hello.workspace().rootMappings().stream()
                     .filter(candidate -> candidate.rootId().equals(span.rootId()))
                     .filter(candidate -> candidate.sourceSet().equals(span.sourceSet()))
-                    .map(SFMSymbolServerProtocol.SourceRootMapping::canonicalAbsolutePath)
-                    .sorted()
+                    .map(candidate -> new SourceRootSelection(
+                            candidate.canonicalAbsolutePath(),
+                            new SFMTextDocumentSourceRootIdentity(
+                                    "workspace",
+                                    "file",
+                                    candidate.rootId(),
+                                    candidate.sourceSet(),
+                                    candidate.reportRootPath()
+                            )
+                    ))
+                    .sorted(Comparator.comparing(SourceRootSelection::canonicalAbsolutePath))
                     .toList();
         } else if (dependencySourceRoot) {
-            rootPaths = hello.workspace().dependencySourceRootMappings().stream()
+            rootSelections = hello.workspace().dependencySourceRootMappings().stream()
                     .filter(candidate -> candidate.rootId().equals(span.rootId()))
                     .filter(candidate -> candidate.sourceSet().equals(span.sourceSet()))
                     .filter(candidate -> dependencyReportPathMatches(candidate, span))
-                    .map(SFMSymbolServerProtocol.DependencySourceRootMapping::canonicalAbsolutePath)
-                    .sorted()
+                    .map(candidate -> new SourceRootSelection(
+                            candidate.canonicalAbsolutePath(),
+                            new SFMTextDocumentSourceRootIdentity(
+                                    "dependency-source",
+                                    "dependency-source",
+                                    candidate.rootId(),
+                                    candidate.sourceSet(),
+                                    candidate.reportPrefix()
+                            )
+                    ))
+                    .sorted(Comparator.comparing(SourceRootSelection::canonicalAbsolutePath))
                     .toList();
         } else if (managedSourceRoot) {
-            rootPaths = managedMappings.stream()
-                    .map(SFMSymbolServerProtocol.ManagedSourceRootMapping::canonicalAbsolutePath)
-                    .sorted()
+            rootSelections = managedMappings.stream()
+                    .map(candidate -> new SourceRootSelection(
+                            candidate.canonicalAbsolutePath(),
+                            new SFMTextDocumentSourceRootIdentity(
+                                    candidate.resolverId(),
+                                    candidate.addressScheme(),
+                                    candidate.rootId(),
+                                    candidate.sourceSet(),
+                                    candidate.reportPrefix()
+                                            .or(() -> candidate.portableRootPath())
+                                            .orElse("")
+                            )
+                    ))
+                    .sorted(Comparator.comparing(SourceRootSelection::canonicalAbsolutePath))
                     .toList();
         } else {
             return unavailable("Definition target uses unsupported resolver: " + span.resolverId());
         }
-        if (rootPaths.size() != 1) {
+        if (rootSelections.size() != 1) {
             return unavailable("Definition root is unavailable or ambiguous: " + span.rootId());
         }
+        SourceRootSelection rootSelection = rootSelections.get(0);
         SFMPath analysisRoot;
         try {
             analysisRoot = SFMPath.fromNative(
-                    java.nio.file.Path.of(rootPaths.get(0)));
+                    java.nio.file.Path.of(rootSelection.canonicalAbsolutePath()));
         } catch (IllegalArgumentException failure) {
             return unavailable("Definition root path is invalid: " + rootMessage(failure));
         }
@@ -194,7 +225,8 @@ public final class SFMDefinitionNavigation {
                     target,
                     expectedSha256,
                     range,
-                    definition.symbol().name()
+                    definition.symbol().name(),
+                    rootSelection.identity()
             )) continue;
             // Once an exact immutable document is found, never fall through
             // to opening a duplicate. Focus it first, then update and verify
@@ -233,7 +265,12 @@ public final class SFMDefinitionNavigation {
             return unavailable("The originating document no longer grants the definition target");
         }
         SFMTextDocumentSource.PathAddress source = pinnedSource(
-                target, readAuthority.orElseThrow(), expectedSha256, range);
+                target,
+                readAuthority.orElseThrow(),
+                expectedSha256,
+                range,
+                rootSelection.identity()
+        );
         ResourceLocation editorId = Objects.requireNonNull(
                 editorIdSupplier.get(),
                 "editorIdSupplier returned null"
@@ -333,12 +370,45 @@ public final class SFMDefinitionNavigation {
             SFMTextDocumentRange range,
             String symbolName
     ) {
+        return exactOpenDocumentMatches(
+                document,
+                target,
+                expectedSha256,
+                range,
+                symbolName,
+                null
+        );
+    }
+
+    static boolean exactOpenDocumentMatches(
+            SFMTextDocumentSnapshot document,
+            SFMPath target,
+            String expectedSha256,
+            SFMTextDocumentRange range,
+            String symbolName,
+            @Nullable SFMTextDocumentSourceRootIdentity expectedRootIdentity
+    ) {
         return document.ready()
                 && document.path().isPresent()
                 && document.path().orElseThrow().equals(target)
                 && document.sha256().isPresent()
                 && document.sha256().orElseThrow().equals(expectedSha256)
+                && rootIdentityMatches(document, expectedRootIdentity)
                 && rangeStillNamesSymbol(document.text(), range, symbolName);
+    }
+
+    private static boolean rootIdentityMatches(
+            SFMTextDocumentSnapshot document,
+            @Nullable SFMTextDocumentSourceRootIdentity expectedRootIdentity
+    ) {
+        if (expectedRootIdentity == null) return true;
+        if (document.sourceRootIdentity().isPresent()) {
+            return document.sourceRootIdentity().orElseThrow().equals(expectedRootIdentity);
+        }
+        // Ordinary workspace files can be opened directly from an explorer,
+        // before any symbol worker has supplied provenance. Managed and
+        // dependency documents must never be reused without exact provenance.
+        return expectedRootIdentity.resolverId().equals("workspace");
     }
 
     static SFMTextDocumentSource.PathAddress pinnedSource(
@@ -347,12 +417,23 @@ public final class SFMDefinitionNavigation {
             String expectedSha256,
             SFMTextDocumentRange range
     ) {
+        return pinnedSource(target, authorizedRoot, expectedSha256, range, null);
+    }
+
+    static SFMTextDocumentSource.PathAddress pinnedSource(
+            SFMPath target,
+            SFMPath authorizedRoot,
+            String expectedSha256,
+            SFMTextDocumentRange range,
+            @Nullable SFMTextDocumentSourceRootIdentity sourceRootIdentity
+    ) {
         return new SFMTextDocumentSource.PathAddress(
                 target,
                 authorizedRoot,
                 Optional.of(expectedSha256),
                 SFMTextDocumentSource.DEFAULT_MAXIMUM_BYTES,
-                Optional.of(range)
+                Optional.of(range),
+                Optional.ofNullable(sourceRootIdentity)
         );
     }
 
@@ -396,6 +477,16 @@ public final class SFMDefinitionNavigation {
         Throwable current = failure;
         while (current.getCause() != null) current = current.getCause();
         return current.getMessage() == null ? current.getClass().getSimpleName() : current.getMessage();
+    }
+
+    private record SourceRootSelection(
+            String canonicalAbsolutePath,
+            SFMTextDocumentSourceRootIdentity identity
+    ) {
+        private SourceRootSelection {
+            Objects.requireNonNull(canonicalAbsolutePath, "canonicalAbsolutePath");
+            Objects.requireNonNull(identity, "identity");
+        }
     }
 
     private record MultiplexerWorkspace(SFMScreenMultiplexer delegate) implements Workspace {

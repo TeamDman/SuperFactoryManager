@@ -7,6 +7,8 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Fix Ctrl-hover crashing on CRLF-backed Java source after the first line
+-- Keep exact semantic dependency-source identity so Find References works when indexed roots share one physical tree
 -- Fix Java definition navigation for varargs constructors, fully qualified static receivers, and locked Forge loader source
 -- Keep asynchronous source navigation valid across harmless cursor changes while rejecting changed documents with precise reasons
 -- Add action-backed aggregate and granular symbol-detail copying with deterministic replay evidence

@@ -172,7 +172,8 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 document.lastModified(),
                 document.lineEndingKind(),
                 Optional.of(range),
-                document.diagnostics()
+                document.diagnostics(),
+                document.sourceRootIdentity()
         );
     }
 

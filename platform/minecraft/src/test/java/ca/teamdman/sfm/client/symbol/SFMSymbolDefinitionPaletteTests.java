@@ -15,6 +15,7 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSourceRootIdentity;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
@@ -292,6 +293,75 @@ class SFMSymbolDefinitionPaletteTests {
     }
 
     @Test
+    void dependencyNavigationRetainsExactSemanticRootWhenPhysicalSourceTreeIsShared() {
+        SFMPath sharedRoot = SFMPath.parse("file:///D:/managed/forge/combined-deobfuscated.filetree");
+        SFMPath target = SFMPath.parse(
+                "file:///D:/managed/forge/combined-deobfuscated.filetree/"
+                        + "net/minecraft/network/chat/contents/TranslatableContents.java"
+        );
+        String text = "class TranslatableContents {}\n";
+        SFMDefinitionResult.SymbolIdentity symbol = new SFMDefinitionResult.SymbolIdentity(
+                "class",
+                "net.minecraft.network.chat.contents.TranslatableContents",
+                "TranslatableContents",
+                Optional.empty(),
+                "net.minecraft.network.chat.contents.TranslatableContents"
+        );
+        SFMDefinitionResult.DefinitionSourceSpan span = new SFMDefinitionResult.DefinitionSourceSpan(
+                "dependency-source://dependency-source-3/"
+                        + "net/minecraft/network/chat/contents/TranslatableContents.java",
+                "dependency-source",
+                "dependency-source-3",
+                "net/minecraft/network/chat/contents/TranslatableContents.java",
+                "dependency/forge/userdev/loader-pipeline/"
+                        + "net/minecraft/network/chat/contents/TranslatableContents.java",
+                "dependency:forge:userdev",
+                "blake3:" + "a".repeat(64),
+                Optional.of(SFMJumpToDefinitionActionTests.sha256Witness(text)),
+                6, 26, 1, 7, 1, 27
+        );
+        SFMDefinitionResult.Definition definition = new SFMDefinitionResult.Definition(
+                symbol, span, span, "resolved");
+        SFMTextDocumentSourceRootIdentity wrongIdentity = new SFMTextDocumentSourceRootIdentity(
+                "dependency-source",
+                "dependency-source",
+                "dependency-source-6",
+                "dependency:minecraft:main",
+                "dependency/minecraft/main/minecraft-pipeline"
+        );
+        SFMTextDocumentSnapshot wrongSemanticDocument = snapshot(text, target, sharedRoot, wrongIdentity);
+        TrackingWorkspace workspace = new TrackingWorkspace(
+                new SFMWorkspacePanelId(3),
+                new TrackingDocumentPanel(wrongSemanticDocument),
+                true
+        );
+
+        SFMDefinitionNavigation.Result result = SFMDefinitionNavigation.open(
+                workspace,
+                new SFMWorkspacePanelId(1),
+                helloWithSharedDependencyRoots(),
+                definition,
+                () -> TEST_EDITOR_ID
+        );
+
+        assertEquals(SFMDefinitionNavigation.Status.OPENED_IN_SOURCE_STACK, result.status(),
+                "the same physical bytes under a different semantic root must not be reused");
+        SFMTextEditorPanelRecipe recipe = (SFMTextEditorPanelRecipe) workspace.openedRecipe;
+        SFMTextDocumentSource.PathAddress source =
+                (SFMTextDocumentSource.PathAddress) recipe.documentSource();
+        assertEquals(
+                Optional.of(new SFMTextDocumentSourceRootIdentity(
+                        "dependency-source",
+                        "dependency-source",
+                        "dependency-source-3",
+                        "dependency:forge:userdev",
+                        "dependency/forge/userdev/loader-pipeline"
+                )),
+                source.sourceRootIdentity()
+        );
+    }
+
+    @Test
     void workspaceTargetWithMismatchedRootIdentityFailsBeforePanelMutation() {
         SFMDefinitionResult.Definition fileDefinition = SFMJumpToDefinitionActionTests.definition(
                 "example.Target", "Target.java", 6, "Target");
@@ -471,6 +541,39 @@ class SFMSymbolDefinitionPaletteTests {
         );
     }
 
+    private static SFMSymbolServerProtocol.ServerHello helloWithSharedDependencyRoots() {
+        SFMSymbolServerProtocol.ServerHello base = hello();
+        String shared = "D:\\managed\\forge\\combined-deobfuscated.filetree";
+        return new SFMSymbolServerProtocol.ServerHello(
+                SFMSymbolServerProtocol.PROTOCOL_SCHEMA,
+                "sfm-symbol-server",
+                "1",
+                Set.copyOf(SFMSymbolServerProtocol.CLIENT_CAPABILITIES),
+                1024 * 1024,
+                8,
+                new SFMSymbolServerProtocol.WorkspaceMetadata(
+                        base.workspace().workspace(),
+                        base.workspace().rootMappings(),
+                        List.of(
+                                new SFMSymbolServerProtocol.DependencySourceRootMapping(
+                                        shared,
+                                        "dependency-source-3",
+                                        "dependency:forge:userdev",
+                                        "dependency/forge/userdev/loader-pipeline"
+                                ),
+                                new SFMSymbolServerProtocol.DependencySourceRootMapping(
+                                        shared,
+                                        "dependency-source-6",
+                                        "dependency:minecraft:main",
+                                        "dependency/minecraft/main/minecraft-pipeline"
+                                )
+                        ),
+                        List.of()
+                ),
+                "{}"
+        );
+    }
+
     private static SFMTextDocumentSnapshot snapshot(String text, SFMPath path, SFMPath root) {
         String sha256 = SFMTextDocumentSnapshot.literal(text).sha256().orElseThrow();
         return new SFMTextDocumentSnapshot(
@@ -482,6 +585,29 @@ class SFMSymbolDefinitionPaletteTests {
                 Optional.of(Instant.EPOCH),
                 Optional.of(SFMResolverTextResult.LineEndingKind.LF),
                 Optional.empty(), List.of()
+        );
+    }
+
+    private static SFMTextDocumentSnapshot snapshot(
+            String text,
+            SFMPath path,
+            SFMPath root,
+            SFMTextDocumentSourceRootIdentity sourceRootIdentity
+    ) {
+        SFMTextDocumentSnapshot snapshot = snapshot(text, path, root);
+        return new SFMTextDocumentSnapshot(
+                snapshot.state(),
+                snapshot.text(),
+                snapshot.mutationCapability(),
+                snapshot.path(),
+                snapshot.authorizedRoot(),
+                snapshot.sha256(),
+                snapshot.byteLength(),
+                snapshot.lastModified(),
+                snapshot.lineEndingKind(),
+                snapshot.targetRange(),
+                snapshot.diagnostics(),
+                Optional.of(sourceRootIdentity)
         );
     }
 
@@ -521,6 +647,7 @@ class SFMSymbolDefinitionPaletteTests {
         private final SFMScreenPanel targetPanel;
         private boolean openedInSourceStack;
         private SFMWorkspacePanelId openedIntoSourcePanelId;
+        private SFMPanelReopenRecipe openedRecipe;
         private SFMWorkspacePanelId focused;
         private final boolean allowManagedRoot;
         private boolean managedRootAuthorized;
@@ -551,6 +678,7 @@ class SFMSymbolDefinitionPaletteTests {
         ) {
             openedInSourceStack = true;
             openedIntoSourcePanelId = sourcePanelId;
+            openedRecipe = recipe;
             return SFMWorkspacePanelIntentResult.APPLIED;
         }
         @Override public SFMWorkspacePanelId focusedPanelId() { return new SFMWorkspacePanelId(9); }

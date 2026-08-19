@@ -25,7 +25,8 @@ public record SFMTextDocumentSnapshot(
         Optional<Instant> lastModified,
         Optional<SFMResolverTextResult.LineEndingKind> lineEndingKind,
         Optional<SFMTextDocumentRange> targetRange,
-        List<String> diagnostics
+        List<String> diagnostics,
+        Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
 ) {
     public enum State {
         READY,
@@ -60,6 +61,7 @@ public record SFMTextDocumentSnapshot(
         lineEndingKind = Objects.requireNonNull(lineEndingKind, "lineEndingKind");
         targetRange = Objects.requireNonNull(targetRange, "targetRange");
         diagnostics = List.copyOf(diagnostics);
+        sourceRootIdentity = Objects.requireNonNull(sourceRootIdentity, "sourceRootIdentity");
         if (state == State.READY) {
             if (sha256.isEmpty() || byteLength.isEmpty() || lineEndingKind.isEmpty()) {
                 throw new IllegalArgumentException("A ready document requires hash, byte length, and line endings");
@@ -71,6 +73,36 @@ public record SFMTextDocumentSnapshot(
             // document and must never escape into the editor presentation.
             targetRange = Optional.empty();
         }
+    }
+
+    /** Backwards-compatible construction for documents without worker provenance. */
+    public SFMTextDocumentSnapshot(
+            State state,
+            String text,
+            MutationCapability mutationCapability,
+            Optional<SFMPath> path,
+            Optional<SFMPath> authorizedRoot,
+            Optional<String> sha256,
+            OptionalLong byteLength,
+            Optional<Instant> lastModified,
+            Optional<SFMResolverTextResult.LineEndingKind> lineEndingKind,
+            Optional<SFMTextDocumentRange> targetRange,
+            List<String> diagnostics
+    ) {
+        this(
+                state,
+                text,
+                mutationCapability,
+                path,
+                authorizedRoot,
+                sha256,
+                byteLength,
+                lastModified,
+                lineEndingKind,
+                targetRange,
+                diagnostics,
+                Optional.empty()
+        );
     }
 
     public boolean ready() {
@@ -107,7 +139,8 @@ public record SFMTextDocumentSnapshot(
                 Optional.empty(),
                 Optional.of(detectLineEndings(text)),
                 Optional.empty(),
-                List.of()
+                List.of(),
+                Optional.empty()
         );
     }
 
@@ -115,8 +148,17 @@ public record SFMTextDocumentSnapshot(
             SFMResolverTextResult result,
             Optional<SFMTextDocumentRange> targetRange
     ) {
+        return fromResolver(result, targetRange, Optional.empty());
+    }
+
+    public static SFMTextDocumentSnapshot fromResolver(
+            SFMResolverTextResult result,
+            Optional<SFMTextDocumentRange> targetRange,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
+    ) {
         Objects.requireNonNull(result, "result");
         Objects.requireNonNull(targetRange, "targetRange");
+        Objects.requireNonNull(sourceRootIdentity, "sourceRootIdentity");
         State mapped = State.valueOf(result.status().name());
         if (result.status() == SFMResolverTextResult.Status.READY) {
             String text = result.text().orElseThrow();
@@ -127,7 +169,8 @@ public record SFMTextDocumentSnapshot(
                         State.INVALID_RANGE,
                         result.path(),
                         result.authorizedRoot(),
-                        List.of(invalidRange.getMessage())
+                        List.of(invalidRange.getMessage()),
+                        sourceRootIdentity
                 );
             }
             return new SFMTextDocumentSnapshot(
@@ -141,7 +184,8 @@ public record SFMTextDocumentSnapshot(
                     result.lastModified(),
                     result.lineEndingKind(),
                     targetRange,
-                    List.of()
+                    List.of(),
+                    sourceRootIdentity
             );
         }
         return new SFMTextDocumentSnapshot(
@@ -155,7 +199,8 @@ public record SFMTextDocumentSnapshot(
                 result.lastModified(),
                 Optional.empty(),
                 Optional.empty(),
-                result.diagnostic().stream().toList()
+                result.diagnostic().stream().toList(),
+                sourceRootIdentity
         );
     }
 
@@ -164,6 +209,16 @@ public record SFMTextDocumentSnapshot(
             SFMPath path,
             SFMPath root,
             List<String> diagnostics
+    ) {
+        return failure(state, path, root, diagnostics, Optional.empty());
+    }
+
+    public static SFMTextDocumentSnapshot failure(
+            State state,
+            SFMPath path,
+            SFMPath root,
+            List<String> diagnostics,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
     ) {
         if (state == State.READY) throw new IllegalArgumentException("Use a ready factory for ready documents");
         return new SFMTextDocumentSnapshot(
@@ -177,7 +232,8 @@ public record SFMTextDocumentSnapshot(
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
-                diagnostics
+                diagnostics,
+                sourceRootIdentity
         );
     }
 

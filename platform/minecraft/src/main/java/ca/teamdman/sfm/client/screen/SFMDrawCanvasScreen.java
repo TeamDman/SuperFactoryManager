@@ -1093,11 +1093,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         boolean dirty = !projectedText.equals(initialCanvasProjectionText);
         String currentText = !dirty && baseline.ready() ? baseline.text() : projectedText;
         SFMDrawCanvasModel.CanvasGlyph glyph = index.orderedGlyphs().get(hit.glyphOrdinal());
-        int capturedOffset = index.utf16OffsetOf(glyph)
-                .orElse(Math.min(hit.navigationUtf16Offset(), currentText.length()));
-        SFMTextDocumentPosition position = SFMContextTextCoordinates.atUtf16Offset(
+        int projectedOffset = index.utf16OffsetOf(glyph)
+                .orElse(Math.min(hit.navigationUtf16Offset(), projectedText.length()));
+        Optional<SFMTextDocumentPosition> position = contextPositionAtProjectedUtf16Offset(
+                projectedText,
                 currentText,
-                capturedOffset
+                projectedOffset
         );
         SFMContextDocumentProjection captured = SFMContextDocumentProjection.capture(
                 editorId,
@@ -1107,7 +1108,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 readOnly,
                 List.of(new SFMContextCursorProjection(
                         "hover-cursor",
-                        new SFMContextPosition.Canvas(glyph.x(), glyph.y(), Optional.of(position)),
+                        new SFMContextPosition.Canvas(glyph.x(), glyph.y(), position),
                         true,
                         true
                 )),
@@ -1115,6 +1116,33 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         );
         performanceTracker.contextCapture(System.nanoTime() - captureStartedNanos);
         return captured;
+    }
+
+    /**
+     * Maps the canvas's normalized-LF projection into the exact baseline text.
+     * Offsets are not interchangeable because the baseline may retain CRLF;
+     * line plus Unicode-scalar column is the shared logical coordinate space.
+     */
+    static Optional<SFMTextDocumentPosition> contextPositionAtProjectedUtf16Offset(
+            String projectedText,
+            String currentText,
+            int projectedOffset
+    ) {
+        Objects.requireNonNull(projectedText, "projectedText");
+        Objects.requireNonNull(currentText, "currentText");
+        try {
+            SFMTextDocumentPosition projected = SFMContextTextCoordinates.atUtf16Offset(
+                    projectedText,
+                    projectedOffset
+            );
+            return Optional.of(SFMContextTextCoordinates.atLineColumn(
+                    currentText,
+                    projected.line(),
+                    projected.column()
+            ));
+        } catch (IllegalArgumentException incompatibleProjection) {
+            return Optional.empty();
+        }
     }
 
     public void focusSymbolHit(SymbolHit hit) {

@@ -72,13 +72,15 @@ public sealed interface SFMTextDocumentSource permits
             SFMPath authorizedRoot,
             Optional<String> expectedSha256,
             int maximumBytes,
-            Optional<SFMTextDocumentRange> targetRange
+            Optional<SFMTextDocumentRange> targetRange,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
     ) implements SFMTextDocumentSource {
         public PathAddress {
             Objects.requireNonNull(path, "path");
             Objects.requireNonNull(authorizedRoot, "authorizedRoot");
             expectedSha256 = Objects.requireNonNull(expectedSha256, "expectedSha256");
             targetRange = Objects.requireNonNull(targetRange, "targetRange");
+            sourceRootIdentity = Objects.requireNonNull(sourceRootIdentity, "sourceRootIdentity");
             // Reuse request validation now so malformed immutable recipes fail
             // before they can be attached to a panel host.
             new SFMResolverTextRequest(
@@ -91,12 +93,29 @@ public sealed interface SFMTextDocumentSource permits
             );
         }
 
+        public PathAddress(
+                SFMPath path,
+                SFMPath authorizedRoot,
+                Optional<String> expectedSha256,
+                int maximumBytes,
+                Optional<SFMTextDocumentRange> targetRange
+        ) {
+            this(path, authorizedRoot, expectedSha256, maximumBytes, targetRange, Optional.empty());
+        }
+
         public PathAddress(SFMPath path, SFMPath authorizedRoot) {
-            this(path, authorizedRoot, Optional.empty(), DEFAULT_MAXIMUM_BYTES, Optional.empty());
+            this(path, authorizedRoot, Optional.empty(), DEFAULT_MAXIMUM_BYTES, Optional.empty(), Optional.empty());
         }
 
         public PathAddress withExpectedSha256(String sha256) {
-            return new PathAddress(path, authorizedRoot, Optional.of(sha256), maximumBytes, targetRange);
+            return new PathAddress(
+                    path,
+                    authorizedRoot,
+                    Optional.of(sha256),
+                    maximumBytes,
+                    targetRange,
+                    sourceRootIdentity
+            );
         }
 
         @Override
@@ -109,7 +128,8 @@ public sealed interface SFMTextDocumentSource permits
                         SFMTextDocumentSnapshot.State.UNSUPPORTED_RESOLVER,
                         path,
                         authorizedRoot,
-                        java.util.List.of("No explorer resolver is registered for scheme `" + path.scheme() + "`")
+                        java.util.List.of("No explorer resolver is registered for scheme `" + path.scheme() + "`"),
+                        sourceRootIdentity
                 ));
             }
             SFMResolverTextRequest request = new SFMResolverTextRequest(
@@ -121,7 +141,7 @@ public sealed interface SFMTextDocumentSource permits
                     cancellation
             );
             return runtime.readText(request).thenApply(result ->
-                    SFMTextDocumentSnapshot.fromResolver(result, targetRange));
+                    SFMTextDocumentSnapshot.fromResolver(result, targetRange, sourceRootIdentity));
         }
     }
 }

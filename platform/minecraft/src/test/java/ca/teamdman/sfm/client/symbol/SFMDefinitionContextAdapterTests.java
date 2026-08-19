@@ -10,6 +10,7 @@ import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextResult;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSourceRootIdentity;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -202,6 +203,127 @@ class SFMDefinitionContextAdapterTests {
                 adapted.request().orElseThrow().workspace(),
                 document
         ).document());
+    }
+
+    @Test
+    void retainedDependencyRootIdentityDisambiguatesOnePhysicalTreeWithMultipleSemanticRoots() {
+        Path sharedRoot = Path.of("D:/cache/forge/combined-deobfuscated.filetree");
+        Path file = sharedRoot.resolve("net/minecraft/network/chat/contents/TranslatableContents.java");
+        String text = "package net.minecraft.network.chat.contents; class TranslatableContents {}\n";
+        SFMSymbolServerProtocol.DependencySourceRootMapping forge =
+                new SFMSymbolServerProtocol.DependencySourceRootMapping(
+                        sharedRoot.toString(),
+                        "dependency-source-3",
+                        "dependency:forge:userdev",
+                        "dependency/forge/userdev/loader-pipeline"
+                );
+        SFMSymbolServerProtocol.DependencySourceRootMapping minecraft =
+                new SFMSymbolServerProtocol.DependencySourceRootMapping(
+                        sharedRoot.toString(),
+                        "dependency-source-6",
+                        "dependency:minecraft:main",
+                        "dependency/minecraft/main/minecraft-pipeline"
+                );
+        SFMTextDocumentSourceRootIdentity identity = new SFMTextDocumentSourceRootIdentity(
+                "dependency-source",
+                "dependency-source",
+                forge.rootId(),
+                forge.sourceSet(),
+                forge.reportPrefix()
+        );
+        SFMSymbolServerProtocol.ServerHello hello = externalHello(
+                13,
+                List.of(),
+                List.of(),
+                List.of(forge, minecraft),
+                List.of()
+        );
+
+        var adapted = new SFMDefinitionContextAdapter().adapt(
+                contribution(projection(
+                        sharedRoot,
+                        file,
+                        text,
+                        text,
+                        new SFMContextPosition.Text(SFMContextTextCoordinates.atLineColumn(
+                                text, 0, text.indexOf("TranslatableContents"))),
+                        Optional.of(identity)
+                )),
+                Optional.of(hello),
+                18,
+                10
+        );
+
+        assertTrue(adapted.success());
+        SFMDefinitionRequest.Document document = adapted.request().orElseThrow().document();
+        assertEquals("dependency-source-3", document.rootId());
+        assertEquals("dependency:forge:userdev", document.sourceSet());
+        assertEquals(
+                "dependency/forge/userdev/loader-pipeline/"
+                        + "net/minecraft/network/chat/contents/TranslatableContents.java",
+                document.reportPath()
+        );
+
+        var withoutIdentity = new SFMDefinitionContextAdapter().adapt(
+                contribution(projection(
+                        sharedRoot,
+                        file,
+                        text,
+                        text,
+                        new SFMContextPosition.Text(SFMContextTextCoordinates.atLineColumn(
+                                text, 0, text.indexOf("TranslatableContents")))
+                )),
+                Optional.of(hello),
+                19,
+                10
+        );
+        assertEquals(
+                SFMDefinitionContextAdapter.DiagnosticCode.AUTHORIZED_ROOT_AMBIGUOUS,
+                withoutIdentity.diagnostics().get(0).code(),
+                "an unproven semantic identity must still fail closed"
+        );
+    }
+
+    @Test
+    void staleRetainedDependencyRootIdentityFailsClosed() {
+        Path sharedRoot = Path.of("D:/cache/forge/combined-deobfuscated.filetree");
+        Path file = sharedRoot.resolve("net/minecraft/network/chat/contents/TranslatableContents.java");
+        String text = "package net.minecraft.network.chat.contents; class TranslatableContents {}\n";
+        SFMSymbolServerProtocol.DependencySourceRootMapping forge =
+                new SFMSymbolServerProtocol.DependencySourceRootMapping(
+                        sharedRoot.toString(),
+                        "dependency-source-3",
+                        "dependency:forge:userdev",
+                        "dependency/forge/userdev/loader-pipeline"
+                );
+        SFMTextDocumentSourceRootIdentity stale = new SFMTextDocumentSourceRootIdentity(
+                "dependency-source",
+                "dependency-source",
+                forge.rootId(),
+                forge.sourceSet(),
+                "dependency/forge/userdev/stale"
+        );
+
+        var adapted = new SFMDefinitionContextAdapter().adapt(
+                contribution(projection(
+                        sharedRoot,
+                        file,
+                        text,
+                        text,
+                        new SFMContextPosition.Text(SFMContextTextCoordinates.atLineColumn(
+                                text, 0, text.indexOf("TranslatableContents"))),
+                        Optional.of(stale)
+                )),
+                Optional.of(externalHello(
+                        13, List.of(), List.of(), List.of(forge), List.of())),
+                20,
+                10
+        );
+
+        assertEquals(
+                SFMDefinitionContextAdapter.DiagnosticCode.ROOT_METADATA_MISMATCH,
+                adapted.diagnostics().get(0).code()
+        );
     }
 
     @Test
@@ -417,6 +539,24 @@ class SFMDefinitionContextAdapterTests {
             String currentText,
             SFMContextPosition position
     ) {
+        return projection(
+                authorizedRoot,
+                path,
+                baselineText,
+                currentText,
+                position,
+                Optional.empty()
+        );
+    }
+
+    private static SFMContextDocumentProjection projection(
+            Path authorizedRoot,
+            Path path,
+            String baselineText,
+            String currentText,
+            SFMContextPosition position,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
+    ) {
         SFMPath baselinePath = SFMPath.fromNative(path);
         SFMPath baselineRoot = SFMPath.fromNative(authorizedRoot);
         String baselineHash = rawSha256(baselineText);
@@ -431,7 +571,8 @@ class SFMDefinitionContextAdapterTests {
                 Optional.empty(),
                 Optional.of(lineEndings(baselineText)),
                 Optional.empty(),
-                List.of()
+                List.of(),
+                sourceRootIdentity
         );
         return SFMContextDocumentProjection.capture(
                 "editor-7",

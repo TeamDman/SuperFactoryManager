@@ -8,6 +8,7 @@ import ca.teamdman.sfm.client.context.SFMContextPosition;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentPosition;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSourceRootIdentity;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -188,7 +189,14 @@ public final class SFMDefinitionContextAdapter {
         SFMSymbolServerProtocol.WorkspaceMetadata workspaceMetadata = metadata;
         List<ResolvedSourceRoot> mappings;
         try {
-            mappings = deepestContainingMappings(workspaceMetadata, authorizedRoot, path);
+            mappings = baseline.sourceRootIdentity().isPresent()
+                    ? exactSourceRootMapping(
+                            workspaceMetadata,
+                            authorizedRoot,
+                            path,
+                            baseline.sourceRootIdentity().orElseThrow()
+                    )
+                    : deepestContainingMappings(workspaceMetadata, authorizedRoot, path);
         } catch (IllegalArgumentException invalidMetadata) {
             return rejected(
                     originId,
@@ -307,6 +315,55 @@ public final class SFMDefinitionContextAdapter {
             SFMPath authorizedRoot,
             SFMPath documentPath
     ) {
+        List<ResolvedSourceRoot> candidates = resolvedSourceRoots(workspace);
+        int deepest = -1;
+        ArrayList<ResolvedSourceRoot> matches = new ArrayList<>();
+        for (ResolvedSourceRoot mapping : candidates) {
+            // The resolver grant and worker root may be nested in either direction.
+            // Their safe composition is the concrete document, which must be
+            // contained by both. Requiring the grant to contain the complete
+            // worker root rejected legitimate package/subtree grants.
+            if (relativeSegments(authorizedRoot, documentPath).isEmpty()
+                    || relativeSegments(mapping.analysisRoot(), documentPath).isEmpty()) {
+                continue;
+            }
+            int depth = mapping.analysisRoot().segments().size();
+            if (depth > deepest) {
+                deepest = depth;
+                matches.clear();
+            }
+            if (depth == deepest) matches.add(mapping);
+        }
+        return List.copyOf(matches);
+    }
+
+    private static List<ResolvedSourceRoot> exactSourceRootMapping(
+            SFMSymbolServerProtocol.WorkspaceMetadata workspace,
+            SFMPath authorizedRoot,
+            SFMPath documentPath,
+            SFMTextDocumentSourceRootIdentity identity
+    ) {
+        List<ResolvedSourceRoot> matches = resolvedSourceRoots(workspace).stream()
+                .filter(mapping -> mapping.resolverId().equals(identity.resolverId()))
+                .filter(mapping -> mapping.addressScheme().equals(identity.addressScheme()))
+                .filter(mapping -> mapping.rootId().equals(identity.rootId()))
+                .filter(mapping -> mapping.sourceSet().equals(identity.sourceSet()))
+                .filter(mapping -> mapping.reportPrefix().equals(identity.reportPrefix()))
+                .toList();
+        if (matches.size() != 1) {
+            throw new IllegalArgumentException("Retained document source-root identity is stale or ambiguous");
+        }
+        ResolvedSourceRoot match = matches.get(0);
+        if (relativeSegments(authorizedRoot, documentPath).isEmpty()
+                || relativeSegments(match.analysisRoot(), documentPath).isEmpty()) {
+            throw new IllegalArgumentException("Retained document source-root identity no longer contains document");
+        }
+        return List.of(match);
+    }
+
+    private static List<ResolvedSourceRoot> resolvedSourceRoots(
+            SFMSymbolServerProtocol.WorkspaceMetadata workspace
+    ) {
         ArrayList<ResolvedSourceRoot> candidates = new ArrayList<>();
         HashSet<String> managedRootKeys = new HashSet<>();
         for (SFMSymbolServerProtocol.ManagedSourceRootMapping mapping
@@ -334,26 +391,7 @@ public final class SFMDefinitionContextAdapter {
             if (managedRootKeys.contains(rootKey(mapping.rootId(), mapping.sourceSet()))) continue;
             candidates.add(workspaceSourceRoot(workspace, mapping));
         }
-
-        int deepest = -1;
-        ArrayList<ResolvedSourceRoot> matches = new ArrayList<>();
-        for (ResolvedSourceRoot mapping : candidates) {
-            // The resolver grant and worker root may be nested in either direction.
-            // Their safe composition is the concrete document, which must be
-            // contained by both. Requiring the grant to contain the complete
-            // worker root rejected legitimate package/subtree grants.
-            if (relativeSegments(authorizedRoot, documentPath).isEmpty()
-                    || relativeSegments(mapping.analysisRoot(), documentPath).isEmpty()) {
-                continue;
-            }
-            int depth = mapping.analysisRoot().segments().size();
-            if (depth > deepest) {
-                deepest = depth;
-                matches.clear();
-            }
-            if (depth == deepest) matches.add(mapping);
-        }
-        return List.copyOf(matches);
+        return List.copyOf(candidates);
     }
 
     private static ResolvedSourceRoot workspaceSourceRoot(

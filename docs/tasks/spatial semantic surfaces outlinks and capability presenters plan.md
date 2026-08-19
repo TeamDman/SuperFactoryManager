@@ -1007,6 +1007,45 @@ results cannot navigate; every rejection names the changed witness dimension;
 and the puppet records source/destination addresses, regions, bounds, request
 identity, and final framing.
 
+### [x] SS-5a Preserve exact reopened source identity and CRLF hover coordinates
+
+**Completion notes (2026-08-19):** Manual follow-up found two post-navigation
+regressions. Opening the acquired `TranslatableContents` source discarded its
+worker root identity, so Alt+F7/Find References saw the same Forge/Minecraft
+combined-deobfuscated physical tree through two equally deep semantic roots
+and correctly refused to guess. Holding Ctrl over source after a normalized
+line break also applied an LF-projection UTF-16 offset directly to the exact
+CRLF baseline, allowing the offset to land inside the CRLF pair and crash the
+key handler.
+
+Addressed text documents now retain the exact worker-negotiated resolver,
+address scheme, root id, source set, and report prefix selected while opening
+a definition. Later definition/reference requests authenticate that identity
+against the current handshake and use only the exact matching semantic root;
+stale identity fails with `ROOT_METADATA_MISMATCH`, and documents that truly
+lack provenance remain ambiguous rather than guessing. Navigation refuses to
+reuse the same physical dependency document under a different semantic root.
+Canvas hover capture now translates normalized projection offsets through
+logical line plus Unicode-scalar column before addressing the exact baseline;
+an actually incompatible projection yields an absent text hit instead of an
+input-handler exception.
+
+**Validation:** `SFMDrawCanvasScreenTests` covers the historical first glyph
+after LF-to-CRLF normalization, astral Unicode, and incompatible projection.
+`SFMDefinitionContextAdapterTests` models the real Forge userdev and Minecraft
+roots sharing one physical source tree, proves exact retained selection,
+identity-less ambiguity, and stale-identity rejection.
+`SFMSymbolDefinitionPaletteTests` proves navigation carries the identity into
+the deferred read and will not reuse bytes opened under the other semantic
+root. The full Java suite passes with only its intentional property-gated
+installed-worker test aborted. No dependency or lockfile changed.
+
+**Completion criteria:** Ctrl-hover cannot address the interior of CRLF or
+crash key handling; a definition-opened acquired source can immediately drive
+Find References through its original semantic root; stale/missing provenance
+is rejected explicitly; and equal physical paths never authorize a semantic
+guess.
+
 ### [x] SS-6 Add action-backed symbol inspection and deterministic copy projections
 
 **Completion notes (2026-08-18):** One immutable symbol-inspection
