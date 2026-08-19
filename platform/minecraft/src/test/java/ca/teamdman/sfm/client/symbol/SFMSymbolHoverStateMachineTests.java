@@ -179,6 +179,52 @@ class SFMSymbolHoverStateMachineTests {
     }
 
     @Test
+    void semanticMapUpgradeCannotReuseLexicalMissAndReturningRestoresPositiveUnderline() {
+        LookupHarness lookup = new LookupHarness();
+        var machine = machine(lookup);
+        machine.modifiersChanged(CTRL);
+        String text = "alpha beta";
+        var lexicalAlpha = target(text, 0, 5, 0, 5, 1);
+        var lexicalBeta = target(text, 6, 10, 6, 10, 1);
+        var semanticAlpha = target(
+                text, 0, 5, 0, 5, 1,
+                new SFMSymbolHoverIdentity.SemanticContext(
+                        "type-reference", 0, Optional.of("region-alpha"), Optional.of("map-7"), 7));
+        var semanticBeta = target(
+                text, 6, 10, 6, 10, 1,
+                new SFMSymbolHoverIdentity.SemanticContext(
+                        "method-reference", 6, Optional.of("region-beta"), Optional.of("map-7"), 7));
+
+        machine.observe(Optional.of(lexicalAlpha));
+        lookup.complete(0, SFMSymbolHoverLookup.Resolution.UNRESOLVED);
+        machine.observe(Optional.of(lexicalBeta));
+        lookup.complete(1, SFMSymbolHoverLookup.Resolution.UNRESOLVED);
+
+        // The interaction map arrived while hovering beta. Its richer identity must bypass the
+        // lexical negative cache even though the document and glyph range are unchanged.
+        machine.observe(Optional.of(semanticBeta));
+        assertEquals(3, lookup.submissions.size());
+        assertEquals(SFMSymbolHoverStateMachine.Phase.LOOKING_UP, machine.snapshot().phase());
+        assertTrue(machine.snapshot().ownsLinkCursor());
+        lookup.complete(2, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
+
+        // Returning to alpha must likewise perform a semantic lookup instead of restoring its
+        // lexical miss. Once both semantic hits are known, revisiting either restores its link.
+        machine.observe(Optional.of(semanticAlpha));
+        assertEquals(4, lookup.submissions.size());
+        assertEquals(SFMSymbolHoverStateMachine.Phase.LOOKING_UP, machine.snapshot().phase());
+        assertTrue(machine.snapshot().ownsLinkCursor());
+        lookup.complete(3, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
+        machine.observe(Optional.of(semanticBeta));
+        machine.observe(Optional.of(semanticAlpha));
+
+        assertEquals(4, lookup.submissions.size());
+        assertEquals(SFMSymbolHoverStateMachine.Phase.ACTIONABLE, machine.snapshot().phase());
+        assertTrue(machine.snapshot().ownsLinkCursor());
+        assertEquals(semanticAlpha.range(), machine.snapshot().underlineRange().orElseThrow());
+    }
+
+    @Test
     void terminalCacheIsBoundedAcrossDocumentAndPointerIdentities() {
         LookupHarness lookup = new LookupHarness();
         var machine = machine(lookup);
@@ -333,6 +379,32 @@ class SFMSymbolHoverStateMachineTests {
             int glyphEnd,
             long documentGeneration
     ) {
+        return target(
+                text,
+                utf16Start,
+                utf16End,
+                glyphStart,
+                glyphEnd,
+                documentGeneration,
+                new SFMSymbolHoverIdentity.SemanticContext(
+                        "lexical-identifier",
+                        utf16Start,
+                        Optional.empty(),
+                        Optional.empty(),
+                        0
+                )
+        );
+    }
+
+    private static SFMSymbolHoverStateMachine.Target target(
+            String text,
+            int utf16Start,
+            int utf16End,
+            int glyphStart,
+            int glyphEnd,
+            long documentGeneration,
+            SFMSymbolHoverIdentity.SemanticContext semanticContext
+    ) {
         return new SFMSymbolHoverStateMachine.Target(
                 new SFMSymbolHoverIdentity.EditorOrigin("screen-1", "workspace-1", "stack-1", "panel-1", "editor-1", 3),
                 new SFMSymbolHoverIdentity.DocumentVersion(
@@ -346,7 +418,8 @@ class SFMSymbolHoverStateMachineTests {
                         utf16End,
                         glyphStart,
                         glyphEnd
-                )
+                ),
+                semanticContext
         );
     }
 

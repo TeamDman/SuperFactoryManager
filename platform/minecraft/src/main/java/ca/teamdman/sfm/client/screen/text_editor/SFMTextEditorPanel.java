@@ -946,7 +946,14 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                         projection.currentSha256(),
                         documentGeneration
                 ),
-                symbolHit.range()
+                symbolHit.range(),
+                new SFMSymbolHoverIdentity.SemanticContext(
+                        symbolHit.semanticKind(),
+                        symbolHit.navigationUtf16Offset(),
+                        symbolHit.semanticRegionId(),
+                        symbolHit.semanticFingerprint(),
+                        symbolHit.semanticGeneration()
+                )
         );
         return Optional.of(new HoverCapture(contribution, symbolHit, target));
     }

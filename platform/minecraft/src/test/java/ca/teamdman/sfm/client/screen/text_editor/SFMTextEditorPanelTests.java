@@ -241,7 +241,14 @@ class SFMTextEditorPanelTests {
                         "content-hash:name",
                         1L
                 ),
-                SFMSymbolHoverIdentity.TextGlyphRange.fromUtf16("name", 0, 4, 0, 4)
+                SFMSymbolHoverIdentity.TextGlyphRange.fromUtf16("name", 0, 4, 0, 4),
+                new SFMSymbolHoverIdentity.SemanticContext(
+                        "lexical-identifier",
+                        0,
+                        Optional.empty(),
+                        Optional.empty(),
+                        0
+                )
         );
     }
 

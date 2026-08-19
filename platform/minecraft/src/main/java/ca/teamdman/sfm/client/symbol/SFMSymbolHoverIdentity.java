@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.symbol;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Immutable identity for one symbol-hover observation.
@@ -13,17 +14,51 @@ public record SFMSymbolHoverIdentity(
         EditorOrigin editorOrigin,
         DocumentVersion document,
         TextGlyphRange range,
+        SemanticContext semanticContext,
         Modifiers modifiers
 ) {
     public SFMSymbolHoverIdentity {
         Objects.requireNonNull(editorOrigin, "editorOrigin");
         Objects.requireNonNull(document, "document");
         Objects.requireNonNull(range, "range");
+        Objects.requireNonNull(semanticContext, "semanticContext");
         Objects.requireNonNull(modifiers, "modifiers");
     }
 
     public boolean requestsDefinitionNavigation() {
         return modifiers.requestsDefinitionNavigation();
+    }
+
+    /**
+     * Semantic evidence which selected both the range and the definition-query position.
+     *
+     * <p>A lexical hit captured while the Java interaction map is cold must not share a cached
+     * negative answer with the richer semantic region that replaces it. The navigation offset is
+     * also identity-bearing: two explicitly modelled surfaces may cover the same glyph range while
+     * intentionally navigating from different points.</p>
+     */
+    public record SemanticContext(
+            String kind,
+            int navigationUtf16Offset,
+            Optional<String> regionId,
+            Optional<String> fingerprint,
+            long generation
+    ) {
+        public SemanticContext {
+            requireNonBlank(kind, "kind");
+            if (navigationUtf16Offset < 0) {
+                throw new IllegalArgumentException("navigationUtf16Offset must not be negative");
+            }
+            regionId = Objects.requireNonNull(regionId, "regionId");
+            regionId.ifPresent(value -> requireNonBlank(value, "regionId"));
+            fingerprint = Objects.requireNonNull(fingerprint, "fingerprint");
+            fingerprint.ifPresent(value -> requireNonBlank(value, "fingerprint"));
+            if (regionId.isPresent() != fingerprint.isPresent()) {
+                throw new IllegalArgumentException(
+                        "A semantic-map region and fingerprint must either both be present or both be absent");
+            }
+            requireNonNegative(generation, "generation");
+        }
     }
 
     /** Stable editor ownership, independent of mutable screen object identity. */

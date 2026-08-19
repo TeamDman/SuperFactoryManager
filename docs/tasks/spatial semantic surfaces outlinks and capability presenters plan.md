@@ -1046,6 +1046,39 @@ Find References through its original semantic root; stale/missing provenance
 is rejected explicitly; and equal physical paths never authorize a semantic
 guess.
 
+### [x] SS-5b Invalidate provisional hover answers when semantic evidence changes
+
+**Completion notes (2026-08-19):** Manual follow-up found that holding Ctrl,
+visiting several symbols, and returning to an earlier symbol could lose both
+its underline and Ctrl+click route even though a fresh right-click definition
+action could succeed. A cold Java interaction map allowed the first hover to
+query from a lexical fallback region and cache `UNRESOLVED`; when the richer
+map arrived, the hover identity still contained only document plus glyph
+range, so the provisional negative answer was incorrectly terminal for the
+mapped region.
+
+Hover identity now includes the semantic kind, navigation offset, optional map
+region id, map fingerprint, and semantic generation. Lexical fallback and a
+mapped semantic region therefore cannot share a terminal result merely because
+they paint the same glyphs. A changed map fingerprint/generation also rejects
+answers from older semantic evidence, while revisiting an unchanged mapped
+symbol still restores its bounded cached positive result immediately.
+
+**Validation:** `SFMSymbolHoverStateMachineTests` reproduces lexical misses on
+two symbols, upgrades both to one semantic-map snapshot, leaves and revisits
+them, and proves that mapped evidence bypasses the negative cache while later
+revisits restore the actionable underline without another lookup. The focused
+state-machine and text-editor-panel suites pass. The complete Java suite exits
+successfully with only its intentional property-gated installed-worker test
+aborted, and canonical 1.19.2 compilation passes. No CLI/Rust tool, dependency,
+or lockfile changed; user installation is not required.
+
+**Completion criteria:** An answer derived from lexical fallback cannot hide a
+later interaction-map link over the same glyph range; changing any semantic
+map identity dimension invalidates the old terminal answer; revisiting a known
+mapped link restores its underline and Ctrl+click ownership; and cancelled or
+stale completions remain unable to repaint the current target.
+
 ### [x] SS-6 Add action-backed symbol inspection and deterministic copy projections
 
 **Completion notes (2026-08-18):** One immutable symbol-inspection

@@ -1209,6 +1209,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 region.kind().name().toLowerCase(java.util.Locale.ROOT),
                 region.navigationUtf16Offset(),
                 Optional.empty(),
+                Optional.empty(),
                 0
         ));
     }
@@ -1253,6 +1254,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 region.semanticKind(),
                 start,
                 Optional.of(region.id()),
+                Optional.of(map.semanticFingerprint()),
                 map.semanticGeneration()
         ));
     }
@@ -2891,6 +2893,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             String semanticKind,
             int navigationUtf16Offset,
             Optional<String> semanticRegionId,
+            Optional<String> semanticFingerprint,
             long semanticGeneration
     ) {
         public SymbolHit {
@@ -2906,13 +2909,21 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             semanticRegionId.ifPresent(value -> {
                 if (value.isBlank()) throw new IllegalArgumentException("semanticRegionId must not be blank");
             });
+            semanticFingerprint = Objects.requireNonNull(semanticFingerprint, "semanticFingerprint");
+            semanticFingerprint.ifPresent(value -> {
+                if (value.isBlank()) throw new IllegalArgumentException("semanticFingerprint must not be blank");
+            });
+            if (semanticRegionId.isPresent() != semanticFingerprint.isPresent()) {
+                throw new IllegalArgumentException(
+                        "A semantic-map region and fingerprint must either both be present or both be absent");
+            }
             if (semanticGeneration < 0) {
                 throw new IllegalArgumentException("semanticGeneration must not be negative");
             }
         }
 
         public SymbolHit(SFMSymbolHoverIdentity.TextGlyphRange range, int glyphOrdinal) {
-            this(range, glyphOrdinal, "identifier", range.utf16Start(), Optional.empty(), 0);
+            this(range, glyphOrdinal, "identifier", range.utf16Start(), Optional.empty(), Optional.empty(), 0);
         }
 
         public SymbolHit(
@@ -2921,7 +2932,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 String semanticKind,
                 int navigationUtf16Offset
         ) {
-            this(range, glyphOrdinal, semanticKind, navigationUtf16Offset, Optional.empty(), 0);
+            this(range, glyphOrdinal, semanticKind, navigationUtf16Offset, Optional.empty(), Optional.empty(), 0);
         }
     }
 

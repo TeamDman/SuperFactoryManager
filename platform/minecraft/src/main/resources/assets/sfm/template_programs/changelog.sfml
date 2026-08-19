@@ -8,6 +8,7 @@ NAME "Changelog"
 
 ---- 4.35.0 PRE ----
 -- Fix Ctrl-hover crashing on CRLF-backed Java source after the first line
+-- Keep Ctrl-hover and Ctrl+click available when a cold lexical result is replaced by richer Java semantic-map evidence
 -- Keep exact semantic dependency-source identity so Find References works when indexed roots share one physical tree
 -- Fix Java definition navigation for varargs constructors, fully qualified static receivers, and locked Forge loader source
 -- Keep asynchronous source navigation valid across harmless cursor changes while rejecting changed documents with precise reasons
