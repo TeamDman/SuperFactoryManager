@@ -64,6 +64,7 @@ import { SetOpContext } from "./SFMLParser";
 import { LabelAccessContext } from "./SFMLParser";
 import { RoundrobinContext } from "./SFMLParser";
 import { LabelContext } from "./SFMLParser";
+import { EmptyslotsContext } from "./SFMLParser";
 import { IdentifierContext } from "./SFMLParser";
 import { StringContext } from "./SFMLParser";
 import { NumberContext } from "./SFMLParser";
@@ -529,6 +530,13 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitLabel?: (ctx: LabelContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.emptyslots`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitEmptyslots?: (ctx: EmptyslotsContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `SFMLParser.identifier`.

@@ -16,10 +16,23 @@ const TOOLTIP_DEFINITIONS: Record<number, { description: string; examples: strin
             "if chest has lt 10 coal then ... end"
         ]
     },
+    [SFMLLexer.THEN]: {
+        description: "**THEN**\n\nMarks the start of the action block in a conditional statement",
+        examples: [
+            "if redstone > 5 then ... end"
+        ]
+    },
     [SFMLLexer.ELSE]: {
         description: "**ELSE**\n\nOptional branch for IF statements when the condition is false",
         examples: [
             "if redstone > 5 then ... else ... end"
+        ]
+    },
+    [SFMLLexer.HAS]: {
+        description: "**HAS**\n\nChecks if an inventory or target contains specific items, fluids, or quantities",
+        examples: [
+            "if chest has > 10 coal then ... end",
+            "if chest has fluid::lava then ... end"
         ]
     },
     [SFMLLexer.OVERALL]: {
@@ -38,6 +51,24 @@ const TOOLTIP_DEFINITIONS: Record<number, { description: string; examples: strin
         description: "**ONE**\n\nChecks if one label meets the conditions",
         examples: [
             "if one chest has < 64 coal then ... end"
+        ]
+    },
+    [SFMLLexer.LONE]: {
+        description: "**LONE**\n\nChecks if exactly one or zero elements match the condition",
+        examples: [
+            "if lone chest has > 64 coal then ... end"
+        ]
+    },
+    [SFMLLexer.TRUE]: {
+        description: "**TRUE**\n\nBoolean constant representing a true value",
+        examples: [
+            "if true then ... end"
+        ]
+    },
+    [SFMLLexer.FALSE]: {
+        description: "**FALSE**\n\nBoolean constant representing a false value",
+        examples: [
+            "if false then ... end"
         ]
     },
     [SFMLLexer.NOT]: {
@@ -82,73 +113,98 @@ const TOOLTIP_DEFINITIONS: Record<number, { description: string; examples: strin
     [SFMLLexer.LT_SYMBOL]: {
         description: "**< (LT)**\n\nLess than comparison",
         examples: [
-            "if redstone < 15 then",
-            "if chest has < 64 coal then"
+            "if redstone < 15 then ... end",
+            "if chest has < 64 coal then ... end"
         ]
     },
     [SFMLLexer.EQ]: {
         description: "**= (EQ)**\n\nEquality comparison",
         examples: [
-            "if redstone eq 10 then",
-            "if chest has eq 0 coal then"
+            "if redstone eq 10 then ... end",
+            "if chest has eq 0 coal then ... end"
         ]
     },
     [SFMLLexer.EQ_SYMBOL]: {
         description: "**= (EQ)**\n\nEquality comparison",
         examples: [
-            "if redstone = 10 then",
-            "if chest has = 0 coal then"
+            "if redstone = 10 then ... end",
+            "if chest has = 0 coal then ... end"
         ]
     },
     [SFMLLexer.LE]: {
         description: "**<= (LE)**\n\nLess than or equal comparison",
         examples: [
-            "if redstone le 7 then",
-            "if chest has le 32 coal then"
+            "if redstone le 7 then ... end",
+            "if chest has le 32 coal then ... end"
         ]
     },
     [SFMLLexer.LE_SYMBOL]: {
         description: "**<= (LE)**\n\nLess than or equal comparison",
         examples: [
-            "if redstone <= 7 then",
-            "if chest has <= 32 coal then"
+            "if redstone <= 7 then ... end",
+            "if chest has <= 32 coal then ... end"
         ]
     },
     [SFMLLexer.GE]: {
         description: "**>= (GE)**\n\nGreater than or equal comparison",
         examples: [
-            "if redstone ge 12 then",
-            "if chest has ge 64 coal then"
+            "if redstone ge 12 then ... end",
+            "if chest has ge 64 coal then ... end"
         ]
     },
     [SFMLLexer.GE_SYMBOL]: {
         description: "**>= (GE)**\n\nGreater than or equal comparison",
         examples: [
-            "if redstone >= 12 then",
-            "if chest has >= 64 coal then"
+            "if redstone >= 12 then ... end",
+            "if chest has >= 64 coal then ... end"
+        ]
+    },
+    [SFMLLexer.FROM]: {
+        description: "**FROM**\n\nSpecifies the source inventory or container for an extraction operation",
+        examples: [
+            "input from chest",
+            "from chest input coal"
+        ]
+    },
+    [SFMLLexer.TO]: {
+        description: "**TO**\n\nSpecifies the destination inventory or container for an insertion operation",
+        examples: [
+            "output to chest",
+            "to furnace output coal"
         ]
     },
     [SFMLLexer.INPUT]: {
         description: "**INPUT**\n\nExtracts contents from an inventory",
         examples: [
             "input from chest",
-            "input fluid::, item::, gas:: from interface",
-            "input fe:: from \"mek_cube™️\" top side"
+            "input 64 coal from chest"
         ]
     },
     [SFMLLexer.OUTPUT]: {
         description: "**OUTPUT**\n\nSends contents to an inventory",
         examples: [
             "output to chest",
-            "output fluid::, item::, gas:: to interface",
-            "output fe:: to \"mek_cube™️\" top side"
+            "output retain 4 coal to furnace"
+        ]
+    },
+    [SFMLLexer.WHERE]: {
+        description: "**WHERE**\n\nReserved filter keyword",
+        examples: [
+            "input where item = minecraft:dirt"
         ]
     },
     [SFMLLexer.SLOTS]: {
-        description: "**SLOTS**\n\nSpecifies a particular inventory slots (not all slots are available)",
+        description: "**SLOTS**\n\nSpecifies a range or list of inventory slots",
         examples: [
-            "output fluid:: to furnace slots 1-3",
+            "output to furnace slots 1-3",
             "input from chest slots 5,9,13"
+        ]
+    },
+    [SFMLLexer.SLOT]: {
+        description: "**SLOT**\n\nSpecifies a single inventory slot",
+        examples: [
+            "output to furnace slot 1",
+            "input from chest slot 0"
         ]
     },
     [SFMLLexer.RETAIN]: {
@@ -159,24 +215,39 @@ const TOOLTIP_DEFINITIONS: Record<number, { description: string; examples: strin
         ]
     },
     [SFMLLexer.EACH]: {
-        description: "**EACH**\n\nApplies the operation to every matching element",
+        description: "**EACH**\n\nApplies the operation to every matching element or side",
         examples: [
             "input from each chest",
-            "if each chest has > 0 then ... end"
+            "input from machine each side"
         ]
     },
     [SFMLLexer.EXCEPT]: {
-        description: "**EXCEPT**\n\nExcludes specific items, fluids, gas, energy from the operation",
+        description: "**EXCEPT**\n\nExcludes specific items, fluids, gas, or energy from the operation",
         examples: [
             "input * except cobblestone, dirt from chest",
             "output fluid:: except fluid::lava to interface"
         ]
     },
     [SFMLLexer.FORGET]: {
-        description: "**FORGET**\n\nClears the previous inputs, can be used to forget labels too",
+        description: "**FORGET**\n\nClears previous inputs or specific labels",
         examples: [
             "forget",
-            "forget chest"
+            "forget chest",
+            "forget chest, furnace"
+        ]
+    },
+    [SFMLLexer.EMPTY]: {
+        description: "**EMPTY**\n\nUsed with `IN` to target empty inventory slots",
+        examples: [
+            "output to empty slots in chest",
+            "output to empty slot in furnace"
+        ]
+    },
+    [SFMLLexer.IN]: {
+        description: "**IN**\n\nSpecifies the container for empty slots target",
+        examples: [
+            "output to empty slots in chest",
+            "output to empty slot in furnace"
         ]
     },
     [SFMLLexer.WITHOUT]: {
@@ -187,31 +258,57 @@ const TOOLTIP_DEFINITIONS: Record<number, { description: string; examples: strin
         ]
     },
     [SFMLLexer.WITH]: {
-        description: "**WITH**\n\nFilters items having the specified tags",
+        description: "**WITH**\n\nFilters items having the specified tags or conditions",
         examples: [
             "input with #minecraft:logs",
             "output with #c:my_super_dupper_tag"
         ]
     },
+    [SFMLLexer.TAG]: {
+        description: "**TAG**\n\nKeyword used to filter by tag matcher",
+        examples: [
+            "input with tag #minecraft:logs",
+            "input with tag minecraft:logs"
+        ]
+    },
+    [SFMLLexer.HASHTAG]: {
+        description: "**# (HASHTAG)**\n\nPrefix character used to declare tag matchers",
+        examples: [
+            "input with #minecraft:logs",
+            "output with tag #c:ores"
+        ]
+    },
     [SFMLLexer.ROUND]: {
-        description: "**ROUND ROBIN BY**\n\nDistribute items (only to one output at the time, slow) depending if its by block or label",
+        description: "**ROUND ROBIN BY**\n\nDistributes items sequentially by label or block",
         examples: [
             "output to chest round robin by block",
             "input from interface1, interface2 round robin by label"
         ]
     },
     [SFMLLexer.ROBIN]: {
-        description: "**ROUND ROBIN BY**\n\nDistribute items (only to one output at the time, slow) depending if its by block or label",
+        description: "**ROUND ROBIN BY**\n\nDistributes items sequentially by label or block",
         examples: [
             "output to chest round robin by block",
             "input from interface1, interface2 round robin by label"
         ]
     },
     [SFMLLexer.BY]: {
-        description: "**ROUND ROBIN BY**\n\nDistribute items (only to one output at the time, slow) depending if its by block or label",
+        description: "**ROUND ROBIN BY**\n\nDistributes items sequentially by label or block",
         examples: [
             "output to chest round robin by block",
             "input from interface1, interface2 round robin by label"
+        ]
+    },
+    [SFMLLexer.LABEL]: {
+        description: "**LABEL**\n\nSpecifies distribution mode by label",
+        examples: [
+            "output to chest round robin by label"
+        ]
+    },
+    [SFMLLexer.BLOCK]: {
+        description: "**BLOCK**\n\nSpecifies distribution mode by block",
+        examples: [
+            "output to chest round robin by block"
         ]
     },
     [SFMLLexer.TOP]: {
@@ -256,12 +353,46 @@ const TOOLTIP_DEFINITIONS: Record<number, { description: string; examples: strin
             "output to furnace west slots 1-3"
         ]
     },
+    [SFMLLexer.LEFT]: {
+        description: "**LEFT**\n\nSpecifies the left side of a block",
+        examples: [
+            "input from machine left side",
+            "output to furnace left slots 1-3"
+        ]
+    },
+    [SFMLLexer.RIGHT]: {
+        description: "**RIGHT**\n\nSpecifies the right side of a block",
+        examples: [
+            "input from machine right side",
+            "output to furnace right slots 1-3"
+        ]
+    },
+    [SFMLLexer.FRONT]: {
+        description: "**FRONT**\n\nSpecifies the front side of a block",
+        examples: [
+            "input from machine front side",
+            "output to furnace front slots 1-3"
+        ]
+    },
+    [SFMLLexer.BACK]: {
+        description: "**BACK**\n\nSpecifies the back side of a block",
+        examples: [
+            "input from machine back side",
+            "output to furnace back slots 1-3"
+        ]
+    },
     [SFMLLexer.SIDE]: {
-        description: "**SIDE**\n\nSpecifies a direction to do the operation or all directions",
+        description: "**SIDE**\n\nSpecifies direction(s) for the operation",
         examples: [
             "input from machine top side",
             "output to furnace bottom slots 1-3",
             "input from interface each side"
+        ]
+    },
+    [SFMLLexer.NULL]: {
+        description: "**NULL**\n\nSpecifies an unassigned or null side",
+        examples: [
+            "input from machine null side"
         ]
     },
     [SFMLLexer.TICKS]: {
@@ -272,51 +403,79 @@ const TOOLTIP_DEFINITIONS: Record<number, { description: string; examples: strin
         ]
     },
     [SFMLLexer.TICK]: {
-        description: "**TICK**\n\nRepresent one tick, can only be used with energy (without configuration changes) ",
+        description: "**TICK**\n\nRepresents one tick",
         examples: [
-            "every tick do"
+            "every 1 tick do ... end",
+            "every tick do ... end"
         ]
     },
     [SFMLLexer.SECOND]: {
         description: "**SECOND**\n\nTime unit (represents 20 ticks)",
         examples: [
-            "every second do"
+            "every 1 second do ... end",
+            "every second do ... end"
         ]
     },
     [SFMLLexer.SECONDS]: {
-        description: "**SECONDS**\n\nTime unit",
+        description: "**SECONDS**\n\nTime unit in seconds",
         examples: [
-            "every 2 seconds do",
-            "every 50 seconds output *"
+            "every 2 seconds do ... end",
+            "every 50 seconds do ... end"
+        ]
+    },
+    [SFMLLexer.GLOBAL]: {
+        description: "**GLOBAL (o G)**\n\nModificador opcional para intervalos de tiempo globales",
+        examples: [
+            "every 5 global ticks do ... end",
+            "every 10g seconds do ... end"
+        ]
+    },
+    [SFMLLexer.PLUS]: {
+        description: "**PLUS (o +)**\n\nSuma un desplazamiento numérico adicional al intervalo del timer",
+        examples: [
+            "every 10 + 2 ticks do ... end",
+            "every 5 plus 1 second do ... end"
         ]
     },
     [SFMLLexer.REDSTONE]: {
-        description: "**REDSTONE**\n\nReferences redstone power level on the manager block",
+        description: "**REDSTONE**\n\nReferences redstone power level or trigger on the manager block",
         examples: [
-            "if redstone > 0 then",
-            "every redstone pulse do"
+            "if redstone > 0 then ... end",
+            "every redstone pulse do ... end"
         ]
     },
     [SFMLLexer.PULSE]: {
         description: "**PULSE**\n\nTriggers on redstone signal changes on the manager block",
         examples: [
-            "every redstone pulse do"
+            "every redstone pulse do ... end"
+        ]
+    },
+    [SFMLLexer.DO]: {
+        description: "**DO**\n\nMarks the beginning of an executable trigger block",
+        examples: [
+            "every 5 ticks do ... end",
+            "every redstone pulse do ... end"
+        ]
+    },
+    [SFMLLexer.END]: {
+        description: "**END**\n\nCloses an open block (IF, EVERY, etc.)",
+        examples: [
+            "if redstone > 0 then ... end",
+            "every 5 ticks do ... end"
         ]
     },
     [SFMLLexer.NAME]: {
-        description: "**NAME**\n\nNames the current program (optional)",
+        description: "**NAME**\n\nNames the current program (optional header)",
         examples: [
             "name \"My super dupper laggy program\"",
             "name \"Redstone factory v3\""
         ]
     },
     [SFMLLexer.EVERY]: {
-        description: "**EVERY**\n\nCreates a timed trigger",
+        description: "**EVERY**\n\nCreates a timed or event trigger block",
         examples: [
             "every 5 ticks do ... end",
-            "every 10 ticks do ... end",
-            "every redstone pulse do ... end",
-            "every second do ... end"
+            "every redstone pulse do ... end"
         ]
     }
 };

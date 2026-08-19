@@ -86,12 +86,17 @@ export class SemanticTokensProvider implements vscode.DocumentSemanticTokensProv
         [SFMLLexer.OUTPUT, 'keyword'],
         [SFMLLexer.WHERE, 'keyword'],
         [SFMLLexer.SLOTS, 'keyword'],
+        [SFMLLexer.SLOT, 'keyword'],
         [SFMLLexer.RETAIN, 'keyword'],
         [SFMLLexer.EACH, 'keyword'],
         [SFMLLexer.EXCEPT, 'keyword'],
-        [SFMLLexer.WITH, 'keyword'],
+        [SFMLLexer.EMPTY, 'keyword'],
+        [SFMLLexer.IN, 'keyword'],
         [SFMLLexer.WITHOUT, 'keyword'],
+        [SFMLLexer.WITH, 'keyword'],
+        [SFMLLexer.TAG, 'keyword'],
         [SFMLLexer.SIDE, 'keyword'],
+        [SFMLLexer.REDSTONE, 'keyword'],
         [SFMLLexer.PULSE, 'keyword'],
         [SFMLLexer.DO, 'keyword'],
         [SFMLLexer.END, 'keyword'],
@@ -100,12 +105,14 @@ export class SemanticTokensProvider implements vscode.DocumentSemanticTokensProv
 
         //number zone
         [SFMLLexer.NUMBER, 'number'],
+        [SFMLLexer.NUMBER_WITH_G_SUFFIX, 'number'],
         [SFMLLexer.OVERALL, 'number'],
         [SFMLLexer.SOME, 'number'],
         [SFMLLexer.ONE, 'number'],
         [SFMLLexer.LONE, 'number'],
         [SFMLLexer.TRUE, 'number'],
         [SFMLLexer.FALSE, 'number'],
+        [SFMLLexer.NULL, 'number'],
         [SFMLLexer.NOT, 'number'],
         [SFMLLexer.AND, 'number'],
         [SFMLLexer.OR, 'number'],
@@ -128,6 +135,10 @@ export class SemanticTokensProvider implements vscode.DocumentSemanticTokensProv
         [SFMLLexer.EAST, 'number'],
         [SFMLLexer.SOUTH, 'number'],
         [SFMLLexer.WEST, 'number'],
+        [SFMLLexer.LEFT, 'number'],
+        [SFMLLexer.RIGHT, 'number'],
+        [SFMLLexer.FRONT, 'number'],
+        [SFMLLexer.BACK, 'number'],
 
         //string zone
         [SFMLLexer.STRING, 'string'],
@@ -140,6 +151,7 @@ export class SemanticTokensProvider implements vscode.DocumentSemanticTokensProv
         [SFMLLexer.SECOND, 'string'],
         [SFMLLexer.GLOBAL, 'string'],
         [SFMLLexer.PLUS, 'string'],
+
         //comments zone
         [SFMLLexer.LINE_COMMENT, 'comment'],
 
