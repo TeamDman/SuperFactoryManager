@@ -31,6 +31,11 @@ public final class SFMWorkspaceScreenTypes {
             SFMTerminalPropertiesScreenType::new
     );
 
+    public static final SFMRegistryObject<SFMClientScreenType, SFMHistoryGraphScreenType> HISTORY_GRAPH = REGISTERER.register(
+            "episode/history",
+            SFMHistoryGraphScreenType::new
+    );
+
     public static final SFMRegistryObject<SFMClientScreenType, SFMTextEditorScreenType> TEXT_EDITOR = REGISTERER.register(
             "text_editor",
             SFMTextEditorScreenType::new

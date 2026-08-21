@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.screen.review.explorer.SFMReviewExplorerPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMExplorerScreenType;
+import ca.teamdman.sfm.client.screen.workspace.SFMHistoryGraphScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
 import ca.teamdman.sfm.client.screen.workspace.SFMReviewExplorerScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMTestScreenType;
@@ -124,6 +125,31 @@ class OpenPanelActionTests {
         assertFalse(isExecutable(tree.parse(query, source)));
         assertTrue(isExecutable(tree.parse(
                 "sfm action invoke sfm:panel/open " + terminal, source)));
+    }
+
+    @Test
+    void historyGraphSceneIsFuzzyDiscoverableAndExecutableWithoutArguments() throws Exception {
+        ResourceLocation history = new ResourceLocation("sfm", "episode/history");
+        OpenPanelAction action = new OpenPanelAction(
+                OpenPanelAction.Direction.RIGHT,
+                () -> List.of(Map.entry(history, new SFMHistoryGraphScreenType()))
+        );
+        ResourceLocation actionId = new ResourceLocation("sfm", "panel/open/right");
+        SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(List.of(
+                Map.entry(actionId, action)
+        ));
+        SFMClientActionSource source = new SFMClientActionSource(
+                SFMClientActionContext.create(null, () -> true));
+        String query = "sfm action invoke sfm:panel/open/right hist";
+
+        var suggestions = tree.getPaletteSuggestions(query, tree.parse(query, source)).get();
+
+        assertTrue(suggestions.getList().stream()
+                .anyMatch(suggestion -> suggestion.getText().equals(history.toString())));
+        assertTrue(isExecutable(tree.parse(
+                "sfm action invoke sfm:panel/open/right " + history,
+                source
+        )));
     }
 
     @Test

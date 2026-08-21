@@ -24,6 +24,11 @@ public final class SFMHistoryGraphPresentationModel {
                 "Committed / executed",
                 "Materialized history that has been committed or executed."
         ),
+        SELECTED_EXECUTED_PREFIX(
+                "selected-executed-prefix",
+                "Selected executed prefix",
+                "A selected trajectory step before the machine instruction pointer."
+        ),
         SELECTED_PROJECTED_SUFFIX(
                 "selected-projected-suffix",
                 "Selected projected suffix",
@@ -99,18 +104,23 @@ public final class SFMHistoryGraphPresentationModel {
     public enum NodeOrigin {
         HISTORY,
         TRAJECTORY,
-        SEARCH
+        SEARCH,
+        ACTION_INTENT,
+        ACTION_EVALUATION,
+        ACTION_OUTCOME
     }
 
     public enum EdgeOrigin {
         HISTORY,
         TRAJECTORY,
-        SEARCH
+        SEARCH,
+        SEMANTIC
     }
 
     public enum EdgeCommitment {
         COMMITTED_HISTORY,
-        PROJECTED_CANDIDATE
+        PROJECTED_CANDIDATE,
+        SEMANTIC_RELATION
     }
 
     public enum MarkerKind {
@@ -142,12 +152,21 @@ public final class SFMHistoryGraphPresentationModel {
         }
     }
 
+    /** Stable key/value evidence shown only when a graph entity is inspected. */
+    public record Detail(String key, String value) {
+        public Detail {
+            key = text(key, "detail.key");
+            value = text(value, "detail.value");
+        }
+    }
+
     public record Node(
             String id,
             List<NodeOrigin> origins,
             List<LegendRole> roles,
             String label,
-            String narration
+            String narration,
+            List<Detail> details
     ) {
         public Node {
             id = text(id, "node.id");
@@ -156,6 +175,7 @@ public final class SFMHistoryGraphPresentationModel {
             roles = canonicalEnums(roles, "node.roles");
             label = text(label, "node.label");
             narration = text(narration, "node.narration");
+            details = canonicalDetails(details, "node.details");
         }
     }
 
@@ -168,7 +188,8 @@ public final class SFMHistoryGraphPresentationModel {
             EdgeCommitment commitment,
             List<LegendRole> roles,
             String label,
-            String narration
+            String narration,
+            List<Detail> details
     ) {
         public Edge {
             id = text(id, "edge.id");
@@ -180,19 +201,28 @@ public final class SFMHistoryGraphPresentationModel {
             roles = canonicalEnums(roles, "edge.roles");
             label = text(label, "edge.label");
             narration = text(narration, "edge.narration");
-            if (commitment == EdgeCommitment.COMMITTED_HISTORY) {
-                if (origin != EdgeOrigin.HISTORY || !roles.contains(LegendRole.COMMITTED_EXECUTED)) {
-                    throw new IllegalArgumentException(
-                            "Committed presentation edges must be committed history with the committed role"
-                    );
+            details = canonicalDetails(details, "edge.details");
+            switch (commitment) {
+                case COMMITTED_HISTORY -> {
+                    if (origin != EdgeOrigin.HISTORY || !roles.contains(LegendRole.COMMITTED_EXECUTED)) {
+                        throw new IllegalArgumentException(
+                                "Committed presentation edges must be committed history with the committed role"
+                        );
+                    }
                 }
-            } else {
-                if (roles.contains(LegendRole.COMMITTED_EXECUTED)) {
-                    throw new IllegalArgumentException("Projected candidate edges cannot carry the committed role");
+                case PROJECTED_CANDIDATE -> {
+                    if (roles.contains(LegendRole.COMMITTED_EXECUTED)) {
+                        throw new IllegalArgumentException("Projected candidate edges cannot carry the committed role");
+                    }
+                    String accessibleText = (label + " " + narration).toLowerCase(java.util.Locale.ROOT);
+                    if (accessibleText.contains("committed")) {
+                        throw new IllegalArgumentException("Projected candidate edges cannot be narrated as committed");
+                    }
                 }
-                String accessibleText = (label + " " + narration).toLowerCase(java.util.Locale.ROOT);
-                if (accessibleText.contains("committed")) {
-                    throw new IllegalArgumentException("Projected candidate edges cannot be narrated as committed");
+                case SEMANTIC_RELATION -> {
+                    if (origin != EdgeOrigin.SEMANTIC) {
+                        throw new IllegalArgumentException("Semantic relation edges require the semantic origin");
+                    }
                 }
             }
         }
@@ -335,6 +365,21 @@ public final class SFMHistoryGraphPresentationModel {
             answer.add(value);
         }
         answer.sort(Comparator.comparing(id));
+        return List.copyOf(answer);
+    }
+
+    private static List<Detail> canonicalDetails(List<Detail> values, String label) {
+        Objects.requireNonNull(values, label);
+        ArrayList<Detail> answer = new ArrayList<>();
+        HashSet<String> identities = new HashSet<>();
+        for (Detail value : values) {
+            Objects.requireNonNull(value, label + " item");
+            if (!identities.add(value.key())) {
+                throw new IllegalArgumentException("Duplicate " + label + " key: " + value.key());
+            }
+            answer.add(value);
+        }
+        answer.sort(Comparator.comparing(Detail::key));
         return List.copyOf(answer);
     }
 }

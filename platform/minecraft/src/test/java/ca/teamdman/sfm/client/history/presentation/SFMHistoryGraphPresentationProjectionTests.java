@@ -18,6 +18,7 @@ class SFMHistoryGraphPresentationProjectionTests {
         assertEquals(
                 List.of(
                         "committed-executed",
+                        "selected-executed-prefix",
                         "selected-projected-suffix",
                         "retained-alternative",
                         "open-frontier",
@@ -53,7 +54,11 @@ class SFMHistoryGraphPresentationProjectionTests {
                 presentation,
                 SFMHistoryGraphPresentationModel.MarkerKind.INSTRUCTION_POINTER
         );
-        SFMHistoryGraphPresentationModel.Node frontier = node(presentation, "frontier-open");
+        SFMHistoryGraphPresentationModel.Node frontier = nodeWithDetails(
+                presentation,
+                "search.plan-revision", "plan-1",
+                "search.state-id", "frontier-open"
+        );
         SFMHistoryGraphPresentationModel.Node target = node(presentation, "plan-target");
 
         assertEquals(SFMHistoryGraphPresentationModel.MarkerSubjectKind.NODE, actual.subjectKind());
@@ -75,12 +80,22 @@ class SFMHistoryGraphPresentationProjectionTests {
                         && edge.roles().contains(
                                 SFMHistoryGraphPresentationModel.LegendRole.SELECTED_PROJECTED_SUFFIX
                         )));
-        assertFalse(presentation.edges().stream().anyMatch(edge ->
-                edge.sourceContractId().equals("step-prepare")),
-                "The selected route prefix before the instruction pointer is represented by history, not as a candidate");
+        assertTrue(presentation.edges().stream().anyMatch(edge ->
+                edge.sourceContractId().equals("step-prepare")
+                        && edge.roles().contains(
+                                SFMHistoryGraphPresentationModel.LegendRole.SELECTED_EXECUTED_PREFIX
+                        )), "The selected route prefix must remain inspectable as machine progress");
         assertTrue(presentation.nodes().stream().allMatch(node -> !node.narration().isBlank()));
         assertTrue(presentation.edges().stream().allMatch(edge -> !edge.narration().isBlank()));
         assertTrue(presentation.markers().stream().allMatch(marker -> !marker.narration().isBlank()));
+        SFMHistoryGraphPresentationModel.Edge nextStep = edge(presentation, pointer.subjectId());
+        assertEquals("2", detail(nextStep.details(), "trajectory.g"));
+        assertEquals("0", detail(nextStep.details(), "trajectory.h"));
+        assertEquals("2", detail(nextStep.details(), "trajectory.f"));
+        assertEquals("fixture-cost@v1", detail(nextStep.details(), "trajectory.cost-policy"));
+        assertEquals("fixture-heuristic@v1", detail(nextStep.details(), "trajectory.heuristic"));
+        assertEquals("fixture-generator@v1", detail(nextStep.details(), "trajectory.generator"));
+        assertEquals("fixture candidate", detail(frontier.details(), "search.reason"));
     }
 
     @Test
@@ -110,6 +125,201 @@ class SFMHistoryGraphPresentationProjectionTests {
         assertEquals(SFMHistoryGraphPresentationModel.EdgeCommitment.COMMITTED_HISTORY,
                 committed.commitment());
         assertTrue(committed.roles().contains(SFMHistoryGraphPresentationModel.LegendRole.COMMITTED_EXECUTED));
+    }
+
+    @Test
+    void retainedReplansKeepSharedSearchStateEvidencePlanScoped() {
+        Fixture fixture = fixture();
+        SFMTrajectoryContract.TrajectoryPlanRevision original = fixture.planBook().plans().get(0);
+        SFMTrajectoryContract.TrajectoryPlanRevision first = new SFMTrajectoryContract.TrajectoryPlanRevision(
+                original.id(),
+                original.parentPlanRevisionId(),
+                original.startStateId(),
+                original.supervisionContractRevision(),
+                original.actionGenerator(),
+                original.costPolicy(),
+                original.heuristic(),
+                original.algorithm(),
+                original.budget(),
+                original.result(),
+                original.optimalityClaim(),
+                original.routes(),
+                original.selectedRouteId(),
+                append(original.exploredCandidates(), new SFMTrajectoryContract.SearchCandidate(
+                        "shared-domain-state",
+                        2,
+                        5,
+                        SFMTrajectoryContract.SearchCandidateStatus.OPEN,
+                        Optional.of("plan-mid"),
+                        Optional.of("intent-shared-first"),
+                        "first-plan evidence"
+                )),
+                original.resultExplanation()
+        );
+        SFMTrajectoryContract.TrajectoryRoute secondRoute = new SFMTrajectoryContract.TrajectoryRoute(
+                "route-second",
+                "plan-start",
+                List.of(step(
+                        "step-second",
+                        "plan-start",
+                        "second-target",
+                        intent("intent-second", "second"),
+                        4
+                )),
+                4,
+                SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED
+        );
+        SFMTrajectoryContract.TrajectoryPlanRevision second = new SFMTrajectoryContract.TrajectoryPlanRevision(
+                "plan-2",
+                Optional.of(first.id()),
+                "plan-start",
+                "supervision-v2",
+                new SFMTrajectoryContract.ActionGeneratorIdentity("other-generator", "v9", true),
+                new SFMTrajectoryContract.CostPolicyIdentity("other-cost", "v4"),
+                new SFMTrajectoryContract.HeuristicIdentity("other-heuristic", "v3", true),
+                SFMTrajectoryContract.SearchAlgorithm.DIJKSTRA,
+                new SFMTrajectoryContract.SearchBudget(64, 128, 2_000),
+                SFMTrajectoryContract.PlanResult.FOUND,
+                SFMTrajectoryContract.OptimalityClaim.NONE,
+                List.of(secondRoute),
+                Optional.of(secondRoute.id()),
+                List.of(new SFMTrajectoryContract.SearchCandidate(
+                        "shared-domain-state",
+                        11,
+                        0,
+                        SFMTrajectoryContract.SearchCandidateStatus.CLOSED,
+                        Optional.of("plan-mid"),
+                        Optional.of("intent-shared-second"),
+                        "second-plan evidence"
+                )),
+                "retained replan"
+        );
+        SFMTrajectoryContract.PlanBook retainedPlans = new SFMTrajectoryContract.PlanBook(
+                SFMTrajectoryContract.SCHEMA,
+                List.of(first, second),
+                Optional.of(first.id())
+        );
+
+        SFMHistoryGraphPresentationModel.Presentation presentation =
+                SFMHistoryGraphPresentationProjection.project(
+                        fixture.history(),
+                        retainedPlans,
+                        fixture.machine()
+                );
+        List<SFMHistoryGraphPresentationModel.Node> shared = presentation.nodes().stream()
+                .filter(node -> hasDetail(node.details(), "search.state-id", "shared-domain-state"))
+                .toList();
+
+        assertEquals(2, shared.size());
+        assertNotEquals(shared.get(0).id(), shared.get(1).id());
+        SFMHistoryGraphPresentationModel.Node firstEvidence = nodeWithDetails(
+                presentation,
+                "search.plan-revision", "plan-1",
+                "search.state-id", "shared-domain-state"
+        );
+        SFMHistoryGraphPresentationModel.Node secondEvidence = nodeWithDetails(
+                presentation,
+                "search.plan-revision", "plan-2",
+                "search.state-id", "shared-domain-state"
+        );
+        assertEquals("2", detail(firstEvidence.details(), "search.g"));
+        assertEquals("5", detail(firstEvidence.details(), "search.h"));
+        assertEquals("OPEN", detail(firstEvidence.details(), "search.status"));
+        assertEquals("fixture-cost@v1", detail(firstEvidence.details(), "search.cost-policy"));
+        assertEquals("fixture-generator@v1", detail(firstEvidence.details(), "search.generator"));
+        assertEquals("fixture-heuristic@v1", detail(firstEvidence.details(), "search.heuristic"));
+        assertEquals("A_STAR", detail(firstEvidence.details(), "search.algorithm"));
+        assertEquals("11", detail(secondEvidence.details(), "search.g"));
+        assertEquals("0", detail(secondEvidence.details(), "search.h"));
+        assertEquals("CLOSED", detail(secondEvidence.details(), "search.status"));
+        assertEquals("other-cost@v4", detail(secondEvidence.details(), "search.cost-policy"));
+        assertEquals("other-generator@v9", detail(secondEvidence.details(), "search.generator"));
+        assertEquals("other-heuristic@v3", detail(secondEvidence.details(), "search.heuristic"));
+        assertEquals("DIJKSTRA", detail(secondEvidence.details(), "search.algorithm"));
+        assertEquals(
+                presentation,
+                SFMHistoryGraphPresentationProjection.project(
+                        fixture.history(),
+                        retainedPlans,
+                        fixture.machine()
+                )
+        );
+    }
+
+    @Test
+    void executedPrefixAndSemanticEvidenceRemainDistinctAndInspectable() {
+        Fixture fixture = fixture();
+        SFMHistoryGraphPresentationModel.Presentation presentation =
+                SFMHistoryGraphPresentationProjection.project(
+                        fixture.history(),
+                        fixture.planBook(),
+                        fixture.machine()
+                );
+
+        SFMHistoryGraphPresentationModel.Edge executedPrefix = edgeBySource(presentation, "step-prepare");
+        assertEquals(
+                SFMHistoryGraphPresentationModel.EdgeCommitment.PROJECTED_CANDIDATE,
+                executedPrefix.commitment()
+        );
+        assertTrue(executedPrefix.roles().contains(
+                SFMHistoryGraphPresentationModel.LegendRole.SELECTED_EXECUTED_PREFIX));
+        assertFalse(executedPrefix.roles().contains(
+                SFMHistoryGraphPresentationModel.LegendRole.COMMITTED_EXECUTED));
+        assertFalse(executedPrefix.narration().toLowerCase(java.util.Locale.ROOT).contains("committed"));
+        assertEquals("EXECUTED_PREFIX", detail(executedPrefix.details(), "trajectory.machine-progress"));
+        assertEquals("NOT_ASSERTED", detail(executedPrefix.details(), "trajectory.history-commitment"));
+        assertEquals("plan-start", detail(executedPrefix.details(), "trajectory.pre-state"));
+        assertEquals("plan-mid", detail(executedPrefix.details(), "trajectory.post-state"));
+
+        SFMHistoryGraphPresentationModel.Edge projectedSuffix = edgeBySource(presentation, "step-finish");
+        assertTrue(projectedSuffix.roles().contains(
+                SFMHistoryGraphPresentationModel.LegendRole.SELECTED_PROJECTED_SUFFIX));
+        assertEquals("PROJECTED_SUFFIX", detail(projectedSuffix.details(), "trajectory.machine-progress"));
+
+        SFMHistoryGraphPresentationModel.Node intent = nodeWithDetail(
+                presentation, "semantic.kind", "ACTION_INTENT");
+        SFMHistoryGraphPresentationModel.Node evaluation = nodeWithDetail(
+                presentation, "semantic.kind", "ACTION_EVALUATION");
+        SFMHistoryGraphPresentationModel.Node outcome = nodeWithDetail(
+                presentation, "semantic.kind", "ACTION_OUTCOME");
+        assertEquals("sfm:fixture/history", detail(intent.details(), "intent.action-id"));
+        assertEquals("alpha", detail(intent.details(), "intent.argument.000000"));
+        assertEquals("two words", detail(intent.details(), "intent.argument.000001"));
+        assertEquals(
+                "sfm:fixture/history \"alpha\" \"two words\"",
+                detail(intent.details(), "intent.query")
+        );
+        assertEquals("history.intents/history-intent", detail(intent.details(), "semantic.provenance"));
+        assertEquals("fixture-evaluator@v7", detail(evaluation.details(), "evaluation.evaluator-revision"));
+        assertEquals("state-root", detail(evaluation.details(), "evaluation.expected-parent-state"));
+        assertEquals("FROZEN_WITNESS_REEXECUTION", detail(evaluation.details(), "evaluation.policy"));
+        assertEquals("classpath", detail(evaluation.details(), "evaluation.witness.000000.kind"));
+        assertEquals("fixture.jar", detail(evaluation.details(), "evaluation.witness.000000.identity"));
+        assertEquals("sha256:fixture", detail(evaluation.details(), "evaluation.witness.000000.revision"));
+        assertEquals("history-outcome", detail(evaluation.details(), "evaluation.predicted-outcome-id"));
+        assertEquals("SUCCEEDED", detail(outcome.details(), "outcome.status"));
+        assertEquals("state-live", detail(outcome.details(), "outcome.resulting-state"));
+        assertEquals("alpha evidence", detail(outcome.details(), "outcome.evidence.000000"));
+        assertEquals("zeta evidence", detail(outcome.details(), "outcome.evidence.000001"));
+
+        List<SFMHistoryGraphPresentationModel.Edge> semanticRelations = presentation.edges().stream()
+                .filter(edge -> edge.origin() == SFMHistoryGraphPresentationModel.EdgeOrigin.SEMANTIC)
+                .filter(edge -> edge.sourceContractId().equals("edge-root-live"))
+                .toList();
+        assertEquals(4, semanticRelations.size());
+        assertSemanticRelation(presentation, "state-root", intent.id());
+        assertSemanticRelation(presentation, intent.id(), evaluation.id());
+        assertSemanticRelation(presentation, evaluation.id(), outcome.id());
+        SFMHistoryGraphPresentationModel.Edge finalRelation =
+                assertSemanticRelation(presentation, outcome.id(), "state-live");
+        assertEquals(
+                SFMHistoryGraphPresentationModel.EdgeCommitment.SEMANTIC_RELATION,
+                finalRelation.commitment()
+        );
+        assertEquals("state-root", detail(finalRelation.details(), "history.pre-state"));
+        assertEquals("state-live", detail(finalRelation.details(), "history.post-state"));
+        assertEquals("PURE", detail(finalRelation.details(), "history.effect-class"));
+        assertEquals("history.edges/edge-root-live", detail(finalRelation.details(), "semantic.provenance"));
     }
 
     @Test
@@ -201,11 +411,46 @@ class SFMHistoryGraphPresentationProjectionTests {
     }
 
     private static Fixture fixture() {
+        SFMHistoryGraphContract.ActionIntent historyIntent = new SFMHistoryGraphContract.ActionIntent(
+                "history-intent",
+                "sfm:fixture/history",
+                List.of("alpha", "two words"),
+                "sha256:history-intent"
+        );
+        SFMHistoryGraphContract.ActionEvaluation historyEvaluation =
+                new SFMHistoryGraphContract.ActionEvaluation(
+                        "history-evaluation",
+                        historyIntent.id(),
+                        "state-root",
+                        "fixture-evaluator@v7",
+                        SFMHistoryGraphContract.EvaluationPolicy.FROZEN_WITNESS_REEXECUTION,
+                        List.of(
+                                new SFMHistoryGraphContract.DependencyWitness(
+                                        "workspace",
+                                        "fixture-workspace",
+                                        "revision-42"
+                                ),
+                                new SFMHistoryGraphContract.DependencyWitness(
+                                        "classpath",
+                                        "fixture.jar",
+                                        "sha256:fixture"
+                                )
+                        ),
+                        "history-outcome",
+                        SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED
+                );
+        SFMHistoryGraphContract.ActionOutcome historyOutcome = new SFMHistoryGraphContract.ActionOutcome(
+                "history-outcome",
+                historyEvaluation.id(),
+                SFMHistoryGraphContract.OutcomeStatus.SUCCEEDED,
+                Optional.of("state-live"),
+                List.of("zeta evidence", "alpha evidence")
+        );
         SFMHistoryGraphContract.Graph history = new SFMHistoryGraphContract.Graph(
                 SFMHistoryGraphContract.SCHEMA,
-                List.of(),
-                List.of(),
-                List.of(),
+                List.of(historyIntent),
+                List.of(historyEvaluation),
+                List.of(historyOutcome),
                 List.of(
                         state("state-root", List.of(), true,
                                 SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED),
@@ -227,9 +472,17 @@ class SFMHistoryGraphPresentationProjectionTests {
                 )),
                 List.of(),
                 List.of(
-                        edge("edge-root-live", "state-root", "state-live",
+                        new SFMHistoryGraphContract.BranchEdge(
+                                "edge-root-live",
+                                "state-root",
+                                "state-live",
+                                Optional.of(historyIntent.id()),
+                                Optional.of(historyEvaluation.id()),
+                                Optional.of(historyOutcome.id()),
                                 SFMHistoryGraphContract.EffectClass.PURE,
-                                SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED, true),
+                                SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED,
+                                true
+                        ),
                         edge("edge-root-alternative", "state-root", "state-alternative",
                                 SFMHistoryGraphContract.EffectClass.PURE,
                                 SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED, true),
@@ -388,6 +641,62 @@ class SFMHistoryGraphPresentationProjectionTests {
         );
     }
 
+    private static <T> List<T> append(List<T> values, T value) {
+        java.util.ArrayList<T> answer = new java.util.ArrayList<>(values);
+        answer.add(value);
+        return List.copyOf(answer);
+    }
+
+    private static SFMHistoryGraphPresentationModel.Node nodeWithDetail(
+            SFMHistoryGraphPresentationModel.Presentation presentation,
+            String key,
+            String value
+    ) {
+        return presentation.nodes().stream()
+                .filter(node -> hasDetail(node.details(), key, value))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static SFMHistoryGraphPresentationModel.Node nodeWithDetails(
+            SFMHistoryGraphPresentationModel.Presentation presentation,
+            String firstKey,
+            String firstValue,
+            String secondKey,
+            String secondValue
+    ) {
+        return presentation.nodes().stream()
+                .filter(node -> hasDetail(node.details(), firstKey, firstValue))
+                .filter(node -> hasDetail(node.details(), secondKey, secondValue))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static SFMHistoryGraphPresentationModel.Edge edgeBySource(
+            SFMHistoryGraphPresentationModel.Presentation presentation,
+            String sourceContractId
+    ) {
+        return presentation.edges().stream()
+                .filter(edge -> edge.sourceContractId().equals(sourceContractId))
+                .filter(edge -> edge.origin() != SFMHistoryGraphPresentationModel.EdgeOrigin.SEMANTIC)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static SFMHistoryGraphPresentationModel.Edge assertSemanticRelation(
+            SFMHistoryGraphPresentationModel.Presentation presentation,
+            String from,
+            String to
+    ) {
+        SFMHistoryGraphPresentationModel.Edge answer = presentation.edges().stream()
+                .filter(edge -> edge.origin() == SFMHistoryGraphPresentationModel.EdgeOrigin.SEMANTIC)
+                .filter(edge -> edge.fromNodeId().equals(from) && edge.toNodeId().equals(to))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(SFMHistoryGraphPresentationModel.EdgeCommitment.SEMANTIC_RELATION, answer.commitment());
+        return answer;
+    }
+
     private static SFMHistoryGraphPresentationModel.Marker marker(
             SFMHistoryGraphPresentationModel.Presentation presentation,
             SFMHistoryGraphPresentationModel.MarkerKind kind
@@ -415,6 +724,22 @@ class SFMHistoryGraphPresentationProjectionTests {
 
     private static boolean edgeExists(SFMHistoryGraphPresentationModel.Presentation presentation, String id) {
         return presentation.edges().stream().anyMatch(edge -> edge.id().equals(id));
+    }
+
+    private static String detail(List<SFMHistoryGraphPresentationModel.Detail> details, String key) {
+        return details.stream()
+                .filter(detail -> detail.key().equals(key))
+                .map(SFMHistoryGraphPresentationModel.Detail::value)
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private static boolean hasDetail(
+            List<SFMHistoryGraphPresentationModel.Detail> details,
+            String key,
+            String value
+    ) {
+        return details.stream().anyMatch(detail -> detail.key().equals(key) && detail.value().equals(value));
     }
 
     private record Fixture(

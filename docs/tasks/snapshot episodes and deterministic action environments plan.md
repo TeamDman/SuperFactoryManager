@@ -1719,6 +1719,85 @@ does not mutate chamber state, history heads, plan selection, or instruction
 pointers. The independently developed History Graph projection and chamber
 domain can now integrate against this frozen M2 API.
 
+**M3 completion evidence (2026-08-21):** The bounded 2.8/2.10 machine-exposure
+seam is implemented. `sfm:episode/history` is a registered panel scene;
+episode selectors and selector-explicit Plan, Step, bounded Run, Pause,
+Replan, Select Route, and Inspect Cost actions address trajectory machines
+without panel-private mutation. The push-fed runtime replays a baseline to a
+late subscriber, preserves per-listener FIFO order, isolates blocked/failing
+listeners on daemon delivery workers, and never invokes listener code while
+holding the runtime monitor. Immutable snapshots lazily prepare exactly one
+memoized presentation on a bounded daemon executor; panel ticks observe
+pending/ready/failure states without waiting or recomputing the graph.
+
+The presentation contains the semantic
+state → intent → evaluation → outcome → state narrative, typed details and
+provenance, actual head, instruction pointer, selected executed prefix,
+selected projected suffix, target, plan-scoped search frontier/open/closed
+evidence, retained plans, and barriers. It never relabels an executed
+candidate as committed history. Default panel opening pins the originating
+episode when one exists, broad route choices narrow to an exact machine, live
+pushes coalesce without a lost-update race, keyboard narration follows stable
+row identities, and narrow panels wrap all seven action controls into reachable
+positive-sized rows.
+
+The first and final adversarial reviews found and closed applied-result
+reclassification after publication failure, baseline/live ordering, callback
+lock/reentrancy, cross-plan search identity, omitted semantic evidence,
+executed-prefix styling, origin leakage, broad route choice, render-thread
+projection, blocking subscriber delivery, and narrow-control reachability.
+The following passed from the final tree with the installed locked CLI:
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMHistoryGraph --wait-for-build-lock --no-capture
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTrajectoryMachineActionTests --wait-for-build-lock --no-capture
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter OpenPanelActionTests --wait-for-build-lock --no-capture
+sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
+```
+
+M3 intentionally completes only TE-S1M's minimal History Graph seam, not every
+generic 2.8 action or validation item. Chamber-owned mutation, checkout/undo
+journey controls, supervision readiness, and natural in-game proof remain M4
+and M5 work. No dependency declaration, checked-in lockfile, or CLI source
+changed; the installed CLI remains current and the user need not run
+`install.ps1` for this checkpoint.
+
+**M4 chamber integration guardrails from the pre-integration audit
+(2026-08-21):** The current chamber-domain files are exploratory input, not a
+safe checkpoint. M4 must close every item below before treating chamber tests
+or supervision evidence as authoritative:
+
+- Bind exact-target supervision to the canonical start, target derivation,
+  replacement set, executed transition chain, and resulting document. A caller
+  supplying only matching `expectedText` must not be able to forge readiness.
+- Measure ambient-checkout unchanged and retained-parent immutability from
+  before/after evidence; do not assert either fact as a constant supplied by
+  the chamber itself.
+- Keep stable semantic intent identity independent from parent revision,
+  frozen witness, and evaluation result. Those belong to evaluation/execution
+  evidence so the same intent can be re-evaluated on a later branch.
+- Prove the exact fork `initial -> selected -> numbered`, then Ctrl+Z from
+  `numbered` back to `selected`, followed by third-item insertion from that
+  selected parent. The old numbered child and the new insertion child must
+  remain siblings and both remain reachable.
+- Feed chamber candidates to the planner using the planner's canonical
+  `Transition.orderingKey`; do not substitute chamber-local string sorting.
+  Reject malformed UTF-16 rather than hashing replacement characters, and
+  namespace every externally visible revision/action/evidence identity by
+  episode and document.
+- Execute through a typed, plan-scoped manifest that retains the exact action
+  payload for each trajectory step. Never reconstruct executable chamber
+  actions from labels or display arguments.
+- Start the chamber adapter with admissible `h = 0`, allow only `PURE` effects,
+  keep all candidates outside committed history, validate a freshly read
+  authoritative parent before each step, and update document/head/instruction
+  pointer atomically. Replan creates a retained child plan revision rather than
+  mutating or deleting the old route.
+- Add A*, Dijkstra, and bounded exhaustive-oracle evidence for the declared
+  finite catalog, including malformed input, stale parent, cancellation,
+  budget exhaustion, and the exact two-branch journey. No shortest-path or
+  supervision-ready claim is accepted from the existing happy-path tests.
+
 #### Observable completion state
 
 1. From the title screen, the command palette opens a writable temporal
