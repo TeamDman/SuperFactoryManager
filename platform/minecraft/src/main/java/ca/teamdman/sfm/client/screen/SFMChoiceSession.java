@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.screen;
 import ca.teamdman.sfm.client.action.SFMClientAction;
 import ca.teamdman.sfm.client.action.SFMClientActionCommandTree;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
+import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -131,9 +132,12 @@ public final class SFMChoiceSession {
             choice = choicesBySurfaceCommand.get(surfaceCommand);
             if (choice == null) throw UNKNOWN.create();
         }
-        int result = actionTree.execute(
+        int result = SFMClientActionExecutor.execute(
+                actionTree,
                 choice.command(),
-                new SFMClientActionSource(actionContext, source.feedback()));
+                actionContext,
+                source.feedback()
+        );
         if (result > 0) SFMChoiceSessionService.consume(this);
         return result;
     }

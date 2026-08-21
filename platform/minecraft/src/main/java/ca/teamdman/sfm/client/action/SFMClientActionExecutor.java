@@ -23,13 +23,27 @@ public final class SFMClientActionExecutor {
             SFMClientActionContext context,
             Consumer<Component> feedback
     ) throws CommandSyntaxException {
+        return execute(SFMClientActions.commandTree(), command, context, feedback);
+    }
+
+    /**
+     * Executes against an explicit registered-action surface while preserving
+     * the same provenance scope as the global dispatcher.
+     */
+    public static int execute(
+            SFMClientActionCommandTree commandTree,
+            String command,
+            SFMClientActionContext context,
+            Consumer<Component> feedback
+    ) throws CommandSyntaxException {
+        java.util.Objects.requireNonNull(commandTree, "commandTree");
         if (SFMClientActionInvocationTrace.current().isPresent()) {
-            return SFMClientActions.commandTree().execute(command, new SFMClientActionSource(context, feedback));
+            return commandTree.execute(command, new SFMClientActionSource(context, feedback));
         }
         try (SFMClientActionInvocationTrace.Scope traceScope = SFMClientActionInvocationTrace.activate(
                 new SFMClientActionInvocationTrace.RegisteredActionProvenance(command)
         )) {
-            return SFMClientActions.commandTree().execute(command, new SFMClientActionSource(context, feedback));
+            return commandTree.execute(command, new SFMClientActionSource(context, feedback));
         }
     }
 }

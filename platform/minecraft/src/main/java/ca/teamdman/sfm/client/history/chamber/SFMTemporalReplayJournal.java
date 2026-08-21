@@ -188,8 +188,74 @@ final class SFMTemporalReplayJournal {
             Optional<String> resultingStateId,
             List<String> diagnostics
     ) {
+        String actionId = mode == SFMTemporalReplayArchive.ReplayMode.EXACT_REPLAY
+                ? "sfm:episode/replay/exact"
+                : "sfm:episode/replay/semantic_rebase";
+        SFMTemporalReplayArchive.EventOrigin origin =
+                mode == SFMTemporalReplayArchive.ReplayMode.EXACT_REPLAY
+                        ? SFMTemporalReplayArchive.EventOrigin.EXACT_REPLAY
+                        : SFMTemporalReplayArchive.EventOrigin.SEMANTIC_REBASE;
+        String command = actionId + " " + sourceBoundaryStateId + " " + targetParentStateId;
+        String eventId = scoped("source-event", Long.toString(logicalSequence + 1));
+        sourceEvents.put(eventId, new SFMTemporalReplayArchive.SourceEvent(
+                eventId,
+                nextSequence(),
+                SFMTemporalReplayArchive.EventKind.REPLAY_OPERATION,
+                origin,
+                0,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                List.of(),
+                Optional.of(command)
+        ));
+        String decisionId = scoped("binding-decision", Long.toString(logicalSequence + 1));
+        String invocationId = scoped("invocation", Long.toString(logicalSequence + 2));
+        bindingDecisions.add(new SFMTemporalReplayArchive.BindingDecision(
+                decisionId,
+                nextSequence(),
+                List.of(eventId),
+                SFMTemporalReplayArchive.BindingDecisionStatus.NOT_APPLICABLE,
+                Optional.empty(),
+                Optional.empty(),
+                List.of(),
+                List.of(invocationId),
+                true,
+                List.of("binding-not-applicable: replay used an explicit registered operation")
+        ));
+        invocations.add(new SFMTemporalReplayArchive.ActionInvocation(
+                invocationId,
+                nextSequence(),
+                origin,
+                actionId,
+                command,
+                List.of(
+                        new SFMTemporalReplayArchive.TypedArgument(
+                                "source-boundary-state-id",
+                                "state-id",
+                                sourceBoundaryStateId
+                        ),
+                        new SFMTemporalReplayArchive.TypedArgument(
+                                "target-parent-state-id",
+                                "state-id",
+                                targetParentStateId
+                        ),
+                        new SFMTemporalReplayArchive.TypedArgument(
+                                "replay-status",
+                                "enum",
+                                status.name()
+                        )
+                ),
+                Optional.of(decisionId),
+                List.of(eventId),
+                SFMTemporalReplayArchive.AvailabilityStatus.AVAILABLE,
+                SFMTemporalReplayArchive.AuthorizationStatus.AUTHORIZED,
+                SFMTemporalReplayArchive.InvocationStatus.DISPATCHED,
+                diagnostics
+        ));
+        String reportId = scoped("replay-report", Long.toString(logicalSequence + 1));
         replayReports.add(new SFMTemporalReplayArchive.ReplayReport(
-                scoped("replay-report", Long.toString(logicalSequence + 1)),
+                reportId,
                 nextSequence(),
                 mode,
                 status,
@@ -200,6 +266,13 @@ final class SFMTemporalReplayJournal {
                 lineage,
                 resultingStateId,
                 diagnostics
+        ));
+        observations.add(new SFMTemporalReplayArchive.Observation(
+                scoped("observation", Long.toString(logicalSequence + 1)),
+                nextSequence(),
+                "replay-operation-invocation-id",
+                reportId,
+                invocationId
         ));
         generation++;
     }

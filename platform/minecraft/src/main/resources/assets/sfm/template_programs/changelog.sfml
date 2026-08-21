@@ -10,6 +10,7 @@ NAME "Changelog"
 -- Add a read-only Candidate History timeline with immutable plan pinning, exact projected document frames, and explicit unavailable, invalidated, external-barrier, and unknown states
 -- Add a supervised temporal-numbering chamber with natural Text Editor v3 edits, non-destructive Ctrl+Z branches, retained replans, and exact checkout-safe puppet evidence
 -- Add canonical temporal causal archives with raw keybinding provenance, immutable restoration, exact replay, semantic rebase, and retained two-/three-item sibling histories
+-- Preserve canonical registered-action provenance through ordinary and constrained command-palette execution
 -- Expose trajectory plans through a live History Graph with explicit committed, executed, projected, frontier, head, and instruction-pointer states
 -- Add a deterministic bounded A*/Dijkstra trajectory planner with oracle-proven costs, typed barriers, immutable replans, and exact stale-parent guards
 -- Preserve undo-undo-do selection branches with explicit ambiguous redo, named heads, checkout, and deterministic history archives

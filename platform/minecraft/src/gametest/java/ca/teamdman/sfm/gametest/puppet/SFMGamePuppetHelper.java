@@ -374,6 +374,38 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    /** Validates and artifacts one natural exact-replay/semantic-rebase checkpoint. */
+    public void assertTemporalReplayRebase(
+            AssertTemporalReplayRebasePuppetAction.Stage stage,
+            String artifactName,
+            String screenshotCaptureId
+    ) {
+        add(new AssertTemporalReplayRebasePuppetAction(
+                Objects.requireNonNull(stage, "stage"),
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(screenshotCaptureId, "screenshotCaptureId")
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Chooses exact source/source replay from its visible constrained action palette. */
+    public void clickTemporalExactReplayChoice() {
+        add(new ClickTemporalExactReplayChoicePuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Resolves retained state ids and types an ordinary selector-explicit replay action. */
+    public void invokeTemporalReplay(
+            ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive.ReplayMode mode,
+            InvokeTemporalReplayPuppetAction.Target target
+    ) {
+        add(new InvokeTemporalReplayPuppetAction(
+                Objects.requireNonNull(mode, "mode"),
+                Objects.requireNonNull(target, "target")
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void exerciseCommandPaletteViewport() {
         add(new ExerciseCommandPaletteViewportPuppetAction());
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));

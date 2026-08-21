@@ -82,9 +82,11 @@ class SFMDecimalNumberingTrajectoryControllerTests {
                 lineage.sourceWitnessId().isPresent()
                         && lineage.resultingWitnessId().isPresent()
                         && !lineage.sourceWitnessId().equals(lineage.resultingWitnessId())));
-        assertEquals(2, firstRebaseArchive.sourceEvents().stream()
+        assertEquals(3, firstRebaseArchive.sourceEvents().stream()
                 .filter(event -> event.origin() == SFMTemporalReplayArchive.EventOrigin.SEMANTIC_REBASE)
                 .count());
+        assertTrue(firstRebaseArchive.sourceEvents().stream().anyMatch(event ->
+                event.origin() == SFMTemporalReplayArchive.EventOrigin.EXACT_REPLAY));
 
         int transitionCount = firstRebaseArchive.transitions().size();
         SFMHistoryGraphRuntime.OperationResult repeated = controller.apply(

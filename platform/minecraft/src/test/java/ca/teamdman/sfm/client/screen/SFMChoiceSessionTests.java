@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.action.SFMClientActionCommandTree;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionDispatcherCompiler;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
+import ca.teamdman.sfm.client.action.SFMClientActionInvocationTrace;
 import ca.teamdman.sfm.client.action.SFMClientActionRequirement;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
@@ -31,6 +32,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -102,6 +104,37 @@ class SFMChoiceSessionTests {
         assertTrue(session.invalidated());
         assertThrows(CommandSyntaxException.class,
                 () -> surface.execute(session.prefix() + "sfm:required fixed", source));
+    }
+
+    @Test
+    void constrainedExecutionRecordsTheCanonicalActionRatherThanTheEphemeralChoiceWrapper()
+            throws Exception {
+        ResourceLocation actionId = new ResourceLocation("sfm", "trace-choice");
+        AtomicReference<SFMClientActionInvocationTrace.Provenance> observed = new AtomicReference<>();
+        Map<ResourceLocation, SFMClientAction<?>> actions = Map.of(
+                actionId,
+                new TraceCapturingAction(observed)
+        );
+        SFMClientActionCommandTree global = SFMClientActionDispatcherCompiler.compileCommandTree(
+                actions.entrySet()
+        );
+        SFMClientActionContext captured = SFMClientActionContext.create("captured", () -> true);
+        SFMChoiceSession session = SFMChoiceSessionService.create(
+                List.of(SFMActionChoice.invoke(actionId, "")),
+                captured,
+                actions::get,
+                global
+        );
+
+        assertEquals(1, session.activate().execute(
+                session.prefix() + actionId,
+                new SFMClientActionSource(SFMClientActionContext.create("ambient", () -> true))
+        ));
+        assertTrue(observed.get() instanceof SFMClientActionInvocationTrace.RegisteredActionProvenance);
+        assertEquals(
+                "sfm action invoke sfm:trace-choice",
+                observed.get().commandDraft()
+        );
     }
 
     @Test
@@ -218,6 +251,31 @@ class SFMChoiceSessionTests {
         @Override
         public int execute(Object target, CommandContext<SFMClientActionSource> context) {
             executions.incrementAndGet();
+            return 1;
+        }
+    }
+
+    private record TraceCapturingAction(
+            AtomicReference<SFMClientActionInvocationTrace.Provenance> observed
+    ) implements SFMClientAction<Object> {
+        @Override
+        public Component title() {
+            return Component.literal("trace choice");
+        }
+
+        @Override
+        public Component description() {
+            return Component.literal("capture registered action provenance");
+        }
+
+        @Override
+        public SFMClientActionRequirement<Object> requirement() {
+            return context -> SFMClientActionAvailability.available(context.originatingHost());
+        }
+
+        @Override
+        public int execute(Object target, CommandContext<SFMClientActionSource> context) {
+            observed.set(SFMClientActionInvocationTrace.current().orElseThrow());
             return 1;
         }
     }

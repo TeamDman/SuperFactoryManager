@@ -1086,9 +1086,19 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     private int executeCommand(String command) throws CommandSyntaxException {
         this.feedback.clear();
-        int result = commandTree.execute(
-                command,
-                new SFMClientActionSource(this.actionContext, this.feedback::add));
+        int result = choiceSession == null
+                ? SFMClientActionExecutor.execute(
+                        commandTree,
+                        command,
+                        this.actionContext,
+                        this.feedback::add
+                )
+                // The choice surface delegates to its canonical action through
+                // SFMClientActionExecutor, so it owns the useful provenance
+                // rather than recording the ephemeral `sfm choose` wrapper.
+                : commandTree.execute(
+                        command,
+                        new SFMClientActionSource(this.actionContext, this.feedback::add));
         this.error = "";
         if (result > 0 && SFMCommandHistoryService.isRecordable(command)) {
             SFMCommandHistoryService.recordSuccessful(command);
@@ -1127,6 +1137,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             throw new IllegalStateException("Command palette is not constrained by a choice session");
         }
         return choiceSession.canonicalCommands();
+    }
+
+    /** Immutable originating context retained while automation drives a pushed palette. */
+    public SFMClientActionContext actionContextForAutomation() {
+        return actionContext;
     }
 
     /**
