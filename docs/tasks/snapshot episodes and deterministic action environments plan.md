@@ -1934,10 +1934,49 @@ reported precisely; no partial item is relabelled complete to reach the next.
 | --- | --- | --- | --- | --- |
 | S1M-X1 | `[x]` | Complete 2.12 candidate-history scrubbing. | The user scrubs every projected route frame, including unavailable/barrier states, while actual head and instruction pointer remain unchanged; old-plan frames survive replan. | Completed and checkpointed as `a99ca3db7`; reuses its trajectory/state projections; no comments yet. |
 | S1M-X2 | `[x]` | Complete 2.13 and comment Phase 6b candidate targeting. | A comment can target a candidate glyph, action, state, or route; replan preserves it; exact execution permits explicit promotion; divergence transfers neither target nor approval. | Completed against passing X1 checkpoint `a99ca3db7`; uses the existing comment persistence/selection adapter seam; no release-approval workflow. |
-| S1M-X3 | `[ ]` | Add side-by-side route comparison and review disposition. | Two retained trajectories can be scrubbed in lockstep or independently, their costs/outcomes/comments compared, and one selected/rejected without deleting either. | Uses existing panels and comments; no generalized graphical markup requirement. |
+| S1M-X3 | `[~]` | Add side-by-side route comparison and review disposition. | Two retained trajectories can be scrubbed in lockstep or independently, their costs/outcomes/comments compared, and one selected/rejected without deleting either. | Claimed from passing X2 checkpoint `2583b573f`; uses existing panels and comments; no generalized graphical markup requirement. |
 | S1M-X4 | `[ ]` | Finish the remaining TE-S1 exact-replay/semantic-rebase artifacts around the chamber. | Raw event → binding → semantic action → transition layers round-trip; exact replay and rebase produce the documented two- versus three-item histories. | Java-local first; cross-runtime Rust interchange remains a separately checkpointed sub-item if it fits existing dependencies. |
 | S1M-X5 | `[ ]` | Complete 2.9's whole-workspace `A.java`/`B.java` counterfactual journey. | The visible graph compares checkout, frozen witness, and re-evaluated intent after changing the earlier explorer selection, with typed barriers and retained original history. | Uses only restorable UI/document state; never writes the ambient checkout. |
 | S1M-X6 | `[ ]` | Adapt the proven History Graph to workspace Track 1c's passive overlay seam. | The same history content remains visible while a test world ticks; passive mode consumes no gameplay input and interactive mode has explicit focus/release. | Starts only if Track 1c's independent placement/input contract still matches; no one-off overlay implementation. |
+
+#### S1M-X3 claim boundary — retained-route comparison and disposition
+
+X3 introduces one bounded, versioned comparison model and one ordinary
+workspace panel that owns two immutable route addresses. It reuses candidate
+projection and comment-query seams rather than copying route states or comments.
+The panel presents left and right frame views side by side, with route identity,
+accumulated/total cost, terminal outcome/status/hash, and comment summaries.
+
+- Comparison starts in lockstep mode. Seeking either side maps the requested
+  progress deterministically onto both routes, including unequal route lengths;
+  independent mode lets each cursor move without moving the other. Neither mode
+  changes actual history head, instruction pointer, selected plan, or selected
+  route.
+- Review disposition is typed metadata keyed by immutable plan-revision/route
+  identity: `UNDECIDED`, `PREFERRED`, or `REJECTED`. At most one compared route
+  is preferred in a comparison session, but zero, one, or both may be rejected.
+  Disposition does not masquerade as a comment, approval, or trajectory-machine
+  selection and does not alter either retained route or its comments.
+- Registered actions open a comparison, switch lockstep/independent mode, seek
+  either/both cursors, set/clear disposition, and explicitly select a retained
+  route in the trajectory machine. Only that last explicit selection action may
+  mutate the machine's selected route; it must fail visibly if the immutable
+  route address is no longer selectable.
+- The comparison session and dispositions round-trip deterministically. Reopen
+  resolves the same immutable routes and comment summaries; missing/unavailable
+  frames remain inspectable statuses rather than causing route substitution.
+- Focused tests cover unequal lengths, lockstep mapping, independent seeking,
+  cost/outcome/comment comparison, disposition invariants, persistence, stale
+  route failure, and non-mutation. A natural title-screen puppet creates and
+  comments on two retained alternatives, compares/scrubs them in both modes,
+  rejects one and prefers the other, proves both routes/comments remain, proves
+  comparison alone leaves actual head/instruction pointer/selection unchanged,
+  then invokes explicit route selection and records visible PNG plus structured
+  JSON evidence.
+
+The slice does not add generalized graphical review markup, a general-purpose
+comparison framework, route deletion, approval derivation, new dependencies, or
+cross-runtime interchange.
 
 **S1M-X1 completion evidence (2026-08-21):** Added the versioned
 `sfm.candidate-history/1` frame/address contract, a bounded off-render-thread
