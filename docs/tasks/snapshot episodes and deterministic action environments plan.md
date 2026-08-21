@@ -1,6 +1,6 @@
 # Snapshot episodes, action traces, and deterministic environments plan
 
-**Plan status:** Active design; the first temporal-document vertical slice now has a bounded supervised-trajectory milestone ready for approval
+**Plan status:** Active implementation; TE-S1M core and S1M-X1 through X3 are complete, and S1M-X4 is the sole claimed continuation
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Last updated:** 2026-08-21
 **Intent audit:** Passed and re-audited 2026-08-21 against both complete attached source messages plus the undo-tree/frontline-UI and trajectory-machine follow-ups
@@ -1935,7 +1935,7 @@ reported precisely; no partial item is relabelled complete to reach the next.
 | S1M-X1 | `[x]` | Complete 2.12 candidate-history scrubbing. | The user scrubs every projected route frame, including unavailable/barrier states, while actual head and instruction pointer remain unchanged; old-plan frames survive replan. | Completed and checkpointed as `a99ca3db7`; reuses its trajectory/state projections; no comments yet. |
 | S1M-X2 | `[x]` | Complete 2.13 and comment Phase 6b candidate targeting. | A comment can target a candidate glyph, action, state, or route; replan preserves it; exact execution permits explicit promotion; divergence transfers neither target nor approval. | Completed against passing X1 checkpoint `a99ca3db7`; uses the existing comment persistence/selection adapter seam; no release-approval workflow. |
 | S1M-X3 | `[x]` | Add side-by-side route comparison and review disposition. | Two retained trajectories can be scrubbed in lockstep or independently, their costs/outcomes/comments compared, and one selected/rejected without deleting either. | Completed and checkpointed as `a03800dff` from passing X2 checkpoint `2583b573f`; uses existing panels and comments; no generalized graphical markup requirement. |
-| S1M-X4 | `[ ]` | Finish the remaining TE-S1 exact-replay/semantic-rebase artifacts around the chamber. | Raw event → binding → semantic action → transition layers round-trip; exact replay and rebase produce the documented two- versus three-item histories. | Java-local first; cross-runtime Rust interchange remains a separately checkpointed sub-item if it fits existing dependencies. |
+| S1M-X4 | `[~]` | Finish the remaining TE-S1 exact-replay/semantic-rebase artifacts around the chamber. | Raw event → binding → semantic action → transition layers round-trip; exact replay and rebase produce the documented two- versus three-item histories. | Claimed from clean passing checkpoint `2929561ee`; Java-local only in this checkpoint, with Rust/shared interchange left explicitly open. |
 | S1M-X5 | `[ ]` | Complete 2.9's whole-workspace `A.java`/`B.java` counterfactual journey. | The visible graph compares checkout, frozen witness, and re-evaluated intent after changing the earlier explorer selection, with typed barriers and retained original history. | Uses only restorable UI/document state; never writes the ambient checkout. |
 | S1M-X6 | `[ ]` | Adapt the proven History Graph to workspace Track 1c's passive overlay seam. | The same history content remains visible while a test world ticks; passive mode consumes no gameplay input and interactive mode has explicit focus/release. | Starts only if Track 1c's independent placement/input contract still matches; no one-off overlay implementation. |
 
@@ -1977,6 +1977,143 @@ accumulated/total cost, terminal outcome/status/hash, and comment summaries.
 The slice does not add generalized graphical review markup, a general-purpose
 comparison framework, route deletion, approval derivation, new dependencies, or
 cross-runtime interchange.
+
+#### S1M-X4 claim boundary — causal archive, exact replay, and semantic rebase
+
+X4 was claimed on 2026-08-21 from clean passing checkpoint `2929561ee`. It
+extends the existing temporal decimal-numbering chamber and History Graph; it
+does not create a parallel demo or relabel trajectory `Replan` as semantic
+rebase. The implementation is Java-local and bounded to pure/snapshot-restorable
+chamber state. Full Rust/shared-schema conformance for Phase 0/1 remains open.
+
+##### [~] S1M-X4-A Freeze the Java-local causal archive contract
+
+**Work:**
+
+- Add one versioned, validated archive containing complete chamber frames and
+  immutable branch edges plus ordered raw/source events, binding decisions,
+  semantic invocations, evaluations, ordered selection witnesses, outcomes,
+  transitions, observations, and replay/rebase reports.
+- Preserve honest event origin. Physical keyboard/character/focus events retain
+  their real input data; command-palette, registered-action, controller/test API,
+  and replay-generated operations use explicit typed origins and must never be
+  fabricated as keystrokes.
+- Persist a canonical effective-binding snapshot digest and the binding id,
+  revision, active context, match/conflict/consumption result, and exact source
+  event range whenever a binding participated. A non-binding origin records an
+  explicit not-applicable decision rather than omitting provenance ambiguously.
+- Give records monotonic logical sequence identities and bounded validation.
+  Retain typed target document, selection expression, evaluator/order/geometry
+  revisions, `source_order` or `canvas_reading_order_yx`, and every exact ordered
+  witness region rather than only a witness hash.
+
+**Completion criteria:** Two traces with the same semantic action count but
+different raw provenance remain distinguishable, every transition is reachable
+through its causal links, and no archive consumer must infer that a controller
+operation was a physical input event.
+
+##### [ ] S1M-X4-B Add deterministic codec and restoration proof
+
+**Work:**
+
+- Add a strict canonical JSON codec following the selection-archive precedent,
+  with stable ordering, schema/version validation, bounded counts/bytes, and
+  explicit malformed/reference/hash diagnostics.
+- Round-trip a checked-in canonical fixture and a captured chamber archive as
+  encode → decode → encode with byte-identical canonical output.
+- Restore the complete immutable state/edge/head graph into a fresh Java-local
+  replay runtime; random-seek every restored frame and prove the parent frame
+  bytes and hashes did not change.
+
+**Completion criteria:** A fresh runtime can import the archive, address every
+recorded frame and causal record, and export the same canonical bytes; corrupt,
+unsupported, oversized, dangling, and hash-invalid input fails closed.
+
+##### [ ] S1M-X4-C Implement explicit replay operations
+
+**Work:**
+
+- Add typed `ExactReplay` and `SemanticRebase` requests/reports. Exact replay
+  starts from an explicitly identified recorded parent, reuses the recorded
+  action/evaluation/witness, and either creates/verifies the same two-item result
+  or returns a structured precondition mismatch without partial mutation.
+- Semantic rebase starts at an explicit historical boundary and re-evaluates
+  only suffix actions whose policy permits deterministic intent re-evaluation.
+  It records old/new evaluation and witness lineage per action, creates a new
+  child branch with the three-item result, and preserves the original two-item
+  state, edge, witness, and parent hash.
+- Conflicts, stale parents, ineligible frozen actions, and cancelled/budgeted
+  work remain typed inspectable results. Neither operation silently chooses a
+  branch, mutates an existing revision, or promotes human approval.
+
+**Completion criteria:** Focused tests prove exact two-region replay, changed-
+prefix mismatch, three-region semantic rebase, action-level lineage, sibling
+retention, deterministic repeated execution, and zero partial mutation on every
+failure path.
+
+##### [ ] S1M-X4-D Join runtime input, registered actions, and presentation
+
+**Work:**
+
+- Record the narrow real-input seam where the dynamic keybinding service knows
+  the input event, effective binding, decision, and invocation; correlate the
+  resulting registered chamber action with its evaluation/outcome/transition.
+- Register the chamber's select-all-matching-hyphen action and default
+  Ctrl+Alt+J binding, decimal-sequence replacement, exact replay, semantic
+  rebase, and causal-detail inspection through ordinary selector-explicit SFM
+  actions. Programmatic chamber/test operations record their actual origin.
+- Extend History Graph detail/projection so a user can follow raw event →
+  binding decision/revision → semantic invocation → evaluation/witness →
+  transition/outcome, and can visibly distinguish exact replay, frozen-witness
+  mismatch, and semantic rebase. Candidate History remains a read-only
+  projection of the retained two- and three-item endpoints, never replay
+  authority.
+- Keep recording, codec, replay, and projection work off the render thread;
+  publish generation-checked immutable snapshots and preserve ordinary editor
+  focus/navigation behavior.
+
+**Completion criteria:** Natural in-game use exposes the complete causal chain
+and both replay modes through registered actions, with distinct visible two-
+item exact and three-item rebased outcomes and no render-thread wait.
+
+##### [ ] S1M-X4-E Prove the natural journey and checkpoint X4
+
+**Work:**
+
+- Add a focused title-screen puppet using the real dynamic-keybinding path for
+  Ctrl+Alt+J and ordinary registered actions for numbering, exact replay, undo,
+  historical insertion, and semantic rebase.
+- Capture readable PNG checkpoints plus canonical JSON/text artifacts for raw
+  events/modifiers, effective binding digest/id/revision/source range, semantic
+  action links, complete old/new witnesses, replay reports, retained states and
+  edges, exact two-item and rebased three-item documents, and ambient-checkout
+  before/after hashes. Pause long enough for a watching human to follow it.
+- Parse the generated artifact in an automated test and cross-check its visible
+  labels/state against the structured evidence. Run focused tests, full Java
+  suite, 1.19.2 compile, natural puppet, and visual artifact inspection.
+
+**Validation:**
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTemporalReplay --wait-for-build-lock --no-capture
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMHistoryGraph --wait-for-build-lock --no-capture
+sfm-propagate-changes.exe test run --branch 1.19.2 --wait-for-build-lock
+sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_temporal_replay_rebase --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
+```
+
+**Completion criteria:** The canonical artifact and inspected screenshots agree
+that one real input history led through its recorded binding and semantic action
+to the retained two-item exact history, while an explicit historical insertion
+and semantic rebase produced a distinct retained three-item child; the checkout
+is byte-identical, dependencies/lockfiles are unchanged, tooling freshness and
+final process state are recorded, and X4 is committed before X5 is claimed.
+
+**X4 exclusions:** This checkpoint does not add pointer/controller episode
+coverage, a general snapshot repository format, Rust/shared-schema interchange,
+arbitrary suffix merges, CRDT/concurrent editing, recipe promotion, checkout
+writes, graphical markup, or release approval. These omissions prevent X4 from
+marking Phase 0.1–1.4 or all TE-S1 complete.
 
 **S1M-X1 completion evidence (2026-08-21):** Added the versioned
 `sfm.candidate-history/1` frame/address contract, a bounded off-render-thread
