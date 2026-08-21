@@ -142,6 +142,28 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         return drawCanvas.syntaxPresentationEvidence();
     }
 
+    /** Exact current projection used by controller-backed editable overlays. */
+    public String currentText() {
+        if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) {
+            return presentedDocument.displayText();
+        }
+        return drawCanvas.currentDocumentText();
+    }
+
+    /** Programmatic revision checkout; callers must suppress their own feedback loop. */
+    public void checkoutDocument(
+            String text,
+            List<SFMTextDocumentRange> selectionRanges
+    ) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(selectionRanges, "selectionRanges");
+        if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) {
+            throw new UnsupportedOperationException("This editor does not expose a document checkout surface");
+        }
+        drawCanvas.checkoutDocument(text, selectionRanges);
+        presentedDocument = SFMTextDocumentSnapshot.literal(text);
+    }
+
     @Override
     public Optional<SFMTextDocumentSnapshot> documentSnapshot() {
         return Optional.of(presentedDocument);

@@ -1798,6 +1798,55 @@ or supervision evidence as authoritative:
   budget exhaustion, and the exact two-branch journey. No shortest-path or
   supervision-ready claim is accepted from the existing happy-path tests.
 
+**M4 completion evidence (2026-08-21):** The temporal decimal-numbering
+chamber is now a registered ordinary panel scene backed by writable Text Editor
+V3 state and the frozen trajectory contracts. Its typed finite catalog keeps
+stable semantic intent separate from plan-scoped witnesses and payloads, uses
+the planner's canonical ordering, permits only pure effects, validates a fresh
+authoritative parent before each step, and atomically advances document head
+and instruction pointer. Exact supervision derives its target and evidence
+from the canonical start plus executed chain; it reaches
+`SUPERVISION_READY` with a human approval requirement and never manufactures
+approval. The A*, Dijkstra, and bounded exhaustive oracle tests agree on cost
+2 for both the two-item and three-item routes and cover malformed input,
+cancellation, exhausted bounds, stale parents, and retained replans.
+
+Natural Text Editor V3 input participates in the same immutable history. The
+proved journey is initial → selected → numbered, Ctrl+Z to selected, then
+ordinary character input inserts `- apricots` as a sibling while retaining the
+old numbered child. A stale step reports `STALE_PRECONDITION` without adding a
+state, and Replan retains plan 1 while selecting plan 2 from the new
+authoritative branch. `sfm:document/history/undo` is registered and defaults to
+Ctrl+Z only in the temporal-document keyboard situation.
+
+**M5 core checkpoint evidence (2026-08-21):** The self-orchestrating
+`title_screen_temporal_trajectory_machine` puppet passes at
+`1280x720@auto`. It opens the chamber and History Graph through command-palette
+actions, pauses at nine meaningful checkpoints, types the third item through
+the real editor input path, and emits exact document, episode, trajectory,
+search, supervision, transcript, stage, and checkout artifacts under
+`platform/minecraft/runGameTestPreview/puppet-artifacts`. The corresponding
+nine screenshots under `platform/minecraft/runGameTestPreview/screenshots`
+were visually inspected: the two- and three-item documents are readable, the
+old branch survives undo, committed/executed/projected/head/frontier/IP states
+remain distinguishable, and the final document is exact 1/2/3 numbering.
+Machine evidence records two cost-2 A* plans and explicit replan lineage;
+supervision remains `SUPERVISION_READY`; before/after ambient-checkout SHA-256
+values are byte-identical.
+
+The focused chamber/history/action/editor/keybinding/source tests pass, the
+complete 1.19.2 JUnit invocation exits successfully (with only the documented
+opt-in installed-worker integration assumption-aborted when its two `-D`
+properties are omitted), and `sfm-propagate-changes.exe run compile --branch
+1.19.2 --wait-for-build-lock` passes. No dependency declaration or checked-in
+lockfile changed and no cache acquisition or repository clone was needed. This
+stage changes only Java, tests, docs, and game resources, so the installed CLI
+remains the verified `728694ad7` executable at
+`G:\Programming\Caches\CARGO_HOME\bin\sfm-propagate-changes.exe`; user install
+required: no. The puppet and its game/helper processes exited, and process
+inspection found no in-scope runtime intentionally left running. The core is
+ready for its local checkpoint before S1M-X1 is claimed.
+
 #### Observable completion state
 
 1. From the title screen, the command palette opens a writable temporal

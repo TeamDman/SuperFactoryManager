@@ -137,6 +137,20 @@ public class SFMDrawCanvasModel {
         collapseDuplicateCursors();
     }
 
+    /** Replaces the complete cursor/selection projection in one deterministic operation. */
+    public void replaceCursors(List<CursorPosition> positions) {
+        Objects.requireNonNull(positions, "positions");
+        cursors = new ArrayList<>();
+        for (CursorPosition position : positions) {
+            Objects.requireNonNull(position, "cursor position");
+            int color = cursors.isEmpty() ? PRIMARY_CURSOR_COLOR : nextCursorColor();
+            cursors.add(new CanvasCursor(position.x(), position.y(), color, true));
+        }
+        focusedCursorIndex = 0;
+        ensureCursors();
+        collapseDuplicateCursors();
+    }
+
     public void addCursorAvoidingCrowding(
             double cursorCanvasX,
             double cursorCanvasY,
@@ -1884,6 +1898,14 @@ public class SFMDrawCanvasModel {
 
         public void setActive(boolean active) {
             this.active = active;
+        }
+    }
+
+    public record CursorPosition(double x, double y) {
+        public CursorPosition {
+            if (!Double.isFinite(x) || !Double.isFinite(y)) {
+                throw new IllegalArgumentException("Cursor coordinates must be finite");
+            }
         }
     }
 

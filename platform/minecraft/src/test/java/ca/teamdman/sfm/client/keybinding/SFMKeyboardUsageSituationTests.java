@@ -28,6 +28,13 @@ class SFMKeyboardUsageSituationTests {
                         SFMKeyboardUsageSituations.GLOBAL),
                 catalog.ancestry(SFMKeyboardUsageSituations.TERMINAL));
         assertEquals(List.of(
+                        SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT,
+                        SFMKeyboardUsageSituations.TEXT_EDITOR,
+                        SFMKeyboardUsageSituations.DEFAULT,
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyboardUsageSituations.GLOBAL),
+                catalog.ancestry(SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT));
+        assertEquals(List.of(
                         SFMKeyboardUsageSituations.WORKSPACE,
                         SFMKeyboardUsageSituations.GLOBAL),
                 catalog.ancestry(SFMKeyboardUsageSituations.WORKSPACE));

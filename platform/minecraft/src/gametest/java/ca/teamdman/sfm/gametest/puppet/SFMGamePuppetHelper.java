@@ -354,6 +354,26 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    /** Types printable BMP text one character per client tick through the real screen callback. */
+    public void typeScreenText(String text) {
+        Objects.requireNonNull(text, "text");
+        if (text.isEmpty()) return;
+        add(new TypeScreenTextPuppetAction(text));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Validates and artifacts one natural temporal-numbering journey checkpoint. */
+    public void assertTemporalTrajectoryMachine(
+            AssertTemporalTrajectoryMachinePuppetAction.Stage stage,
+            String artifactName
+    ) {
+        add(new AssertTemporalTrajectoryMachinePuppetAction(
+                Objects.requireNonNull(stage, "stage"),
+                Objects.requireNonNull(artifactName, "artifactName")
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void exerciseCommandPaletteViewport() {
         add(new ExerciseCommandPaletteViewportPuppetAction());
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));

@@ -238,6 +238,22 @@ class SFMKeyBindingStorageTests {
     }
 
     @Test
+    void temporalDocumentUndoHasOneExactContextualDefault() {
+        List<SFMKeyBinding> undo = SFMKeyBindingDefaults.definitions().stream()
+                .filter(binding -> binding.actionId().equals("sfm:document/history/undo"))
+                .toList();
+
+        assertEquals(1, undo.size());
+        SFMKeyBinding binding = undo.get(0);
+        assertEquals("builtin/temporal-document/history/undo", binding.bindingId());
+        assertEquals(SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT, binding.situationId());
+        assertEquals("sfm action invoke sfm:document/history/undo", binding.commandDraft());
+        SFMKeyStroke stroke = binding.sequence().strokes().get(0);
+        assertEquals(GLFW.GLFW_KEY_Z, stroke.keyCode());
+        assertEquals(Set.of(SFMKeyModifier.CONTROL), stroke.modifiers());
+    }
+
+    @Test
     void microsoftTerminalPanelDefaultsUseExactSixContextualRelationships() {
         List<SFMKeyBinding> defaults = SFMKeyBindingDefaults.definitions();
         List<SFMKeyBinding> resize = defaults.stream()

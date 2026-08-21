@@ -151,6 +151,12 @@ public final class SFMKeyBindingDefaults {
                         SFMKeyStroke.of(GLFW.GLFW_KEY_MINUS,
                                 SFMKeyModifier.ALT, SFMKeyModifier.SHIFT)),
                 binding(
+                        "builtin/temporal-document/history/undo",
+                        "sfm:document/history/undo",
+                        "sfm action invoke sfm:document/history/undo",
+                        SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_Z, SFMKeyModifier.CONTROL)),
+                binding(
                         "builtin/text-editor/symbol/definition/open",
                         "sfm:symbol/definition/open",
                         "sfm action invoke sfm:symbol/definition/open",

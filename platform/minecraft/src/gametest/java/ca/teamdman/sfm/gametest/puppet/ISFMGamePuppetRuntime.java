@@ -38,6 +38,9 @@ public interface ISFMGamePuppetRuntime {
 
     void pressScreenKey(int keyCode, int modifiers);
 
+    /** Delivers one BMP character through Forge's ordinary screen-character event path. */
+    void typeScreenCharacter(char character, int modifiers);
+
     void exerciseCommandPaletteViewport();
 
     void assertFormerTerminalStartButtonRoutesToTerminal();

@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.screen.review.explorer.SFMReviewExplorerPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMExplorerScreenType;
+import ca.teamdman.sfm.client.screen.workspace.SFMDecimalNumberingChamberScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMHistoryGraphScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
 import ca.teamdman.sfm.client.screen.workspace.SFMReviewExplorerScreenType;
@@ -148,6 +149,30 @@ class OpenPanelActionTests {
                 .anyMatch(suggestion -> suggestion.getText().equals(history.toString())));
         assertTrue(isExecutable(tree.parse(
                 "sfm action invoke sfm:panel/open/right " + history,
+                source
+        )));
+    }
+
+    @Test
+    void temporalNumberingChamberIsFuzzyDiscoverableAndExecutableWithoutArguments() throws Exception {
+        ResourceLocation chamber = new ResourceLocation("sfm", "chamber/temporal-decimal-numbering");
+        OpenPanelAction action = new OpenPanelAction(
+                OpenPanelAction.Direction.FOCUSED,
+                () -> List.of(Map.entry(chamber, new SFMDecimalNumberingChamberScreenType()))
+        );
+        SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(List.of(
+                Map.entry(ACTION_ID, action)
+        ));
+        SFMClientActionSource source = new SFMClientActionSource(
+                SFMClientActionContext.create(null, () -> true));
+        String query = "sfm action invoke sfm:panel/open decimal number";
+
+        var suggestions = tree.getPaletteSuggestions(query, tree.parse(query, source)).get();
+
+        assertTrue(suggestions.getList().stream()
+                .anyMatch(suggestion -> suggestion.getText().equals(chamber.toString())));
+        assertTrue(isExecutable(tree.parse(
+                "sfm action invoke sfm:panel/open " + chamber,
                 source
         )));
     }

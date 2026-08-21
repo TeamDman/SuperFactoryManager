@@ -1474,6 +1474,46 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         return model().documentIndex(this.font.width(" "), this.font.lineHeight).projection().text();
     }
 
+    /** Exact current Text Editor V3 projection for controller-backed panel hosts. */
+    public String currentDocumentText() {
+        loadInitialContent();
+        return getCurrentText();
+    }
+
+    /**
+     * Checks out one authoritative immutable revision without replaying it as
+     * synthetic keystrokes. Selection ranges become the editor's ordinary
+     * multi-cursor glyph selection, so controller and user presentations share
+     * the same rendering/input surface.
+     */
+    public void checkoutDocument(
+            String text,
+            List<SFMTextDocumentRange> selectionRanges
+    ) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(selectionRanges, "selectionRanges");
+        loadInitialContent();
+        boolean changed = !getCurrentText().equals(text);
+        if (changed) {
+            model().replaceText(text, this.font::width, this.font.lineHeight);
+            openTargetRange = Optional.empty();
+            documentChanged();
+        }
+        ArrayList<SFMDrawCanvasModel.CursorPosition> cursors = new ArrayList<>();
+        for (SFMTextDocumentRange range : selectionRanges) {
+            Objects.requireNonNull(range, "selection range").validateAgainst(text);
+            CanvasTextPoint point = canvasPoint(text, range.start());
+            cursors.add(new SFMDrawCanvasModel.CursorPosition(point.x(), point.y()));
+        }
+        if (cursors.isEmpty()) {
+            SFMTextDocumentPosition end = SFMContextTextCoordinates.atUtf16Offset(text, text.length());
+            CanvasTextPoint point = canvasPoint(text, end);
+            cursors.add(new SFMDrawCanvasModel.CursorPosition(point.x(), point.y()));
+        }
+        model().replaceCursors(cursors);
+        rememberCursorPosition();
+    }
+
     public SFMDrawCanvasPerformanceTracker.Snapshot performanceEvidence() {
         return performanceTracker.snapshot();
     }

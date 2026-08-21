@@ -88,6 +88,7 @@ public class SFM {
         SFMWorkspaceScreenTypes.register(bus);
 
         SFMDocumentActionTarget.Actions.register(bus);
+        ca.teamdman.sfm.client.action.SFMDocumentHistoryActions.register(bus);
 
         SFMCommandPaletteActions.register(bus);
         SFMExplorerActions.register(bus);

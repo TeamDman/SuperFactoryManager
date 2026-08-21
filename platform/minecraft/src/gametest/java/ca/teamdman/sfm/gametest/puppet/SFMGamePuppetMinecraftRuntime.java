@@ -289,6 +289,29 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    @MCVersionDependentBehaviour
+    public void typeScreenCharacter(char character, int modifiers) {
+        if (Character.isSurrogate(character)) {
+            throw new IllegalArgumentException("Screen character automation accepts BMP characters only");
+        }
+        Screen screen = minecraft.screen;
+        if (screen == null) {
+            throw new IllegalStateException("Expected a screen before injecting a character");
+        }
+        var event = new net.minecraftforge.client.event.ScreenEvent.CharacterTyped.Pre(
+                screen,
+                character,
+                modifiers
+        );
+        ca.teamdman.sfm.client.handler.SFMDynamicKeyBindingHandler.onScreenCharacterTyped(event);
+        SFM.LOGGER.info("SFM_PUPPET_SCREEN_CHARACTER codepoint={} modifiers={} consumed={}",
+                (int) character, modifiers, event.isCanceled());
+        if (!event.isCanceled() && !screen.charTyped(character, modifiers)) {
+            throw new IllegalStateException("Screen rejected typed character " + (int) character);
+        }
+    }
+
+    @Override
     public void exerciseCommandPaletteViewport() {
         if (!(minecraft.screen instanceof SFMCommandPaletteScreen palette)) {
             throw new IllegalStateException("Expected command palette before viewport exercise");
