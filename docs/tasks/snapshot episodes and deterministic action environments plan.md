@@ -1935,7 +1935,7 @@ reported precisely; no partial item is relabelled complete to reach the next.
 | S1M-X1 | `[x]` | Complete 2.12 candidate-history scrubbing. | The user scrubs every projected route frame, including unavailable/barrier states, while actual head and instruction pointer remain unchanged; old-plan frames survive replan. | Completed and checkpointed as `a99ca3db7`; reuses its trajectory/state projections; no comments yet. |
 | S1M-X2 | `[x]` | Complete 2.13 and comment Phase 6b candidate targeting. | A comment can target a candidate glyph, action, state, or route; replan preserves it; exact execution permits explicit promotion; divergence transfers neither target nor approval. | Completed against passing X1 checkpoint `a99ca3db7`; uses the existing comment persistence/selection adapter seam; no release-approval workflow. |
 | S1M-X3 | `[x]` | Add side-by-side route comparison and review disposition. | Two retained trajectories can be scrubbed in lockstep or independently, their costs/outcomes/comments compared, and one selected/rejected without deleting either. | Completed and checkpointed as `a03800dff` from passing X2 checkpoint `2583b573f`; uses existing panels and comments; no generalized graphical markup requirement. |
-| S1M-X4 | `[~]` | Finish the remaining TE-S1 exact-replay/semantic-rebase artifacts around the chamber. | Raw event → binding → semantic action → transition layers round-trip; exact replay and rebase produce the documented two- versus three-item histories. | Claimed from clean passing checkpoint `2929561ee`; Java-local only in this checkpoint, with Rust/shared interchange left explicitly open. |
+| S1M-X4 | `[x]` | Finish the remaining TE-S1 exact-replay/semantic-rebase artifacts around the chamber. | Raw event → binding → semantic action → transition layers round-trip; exact replay and rebase produce the documented two- versus three-item histories. | Completed in core checkpoint `d8b55251e` and natural-proof checkpoint `8a98063e5`; Java-local only in this checkpoint, with Rust/shared interchange left explicitly open. |
 | S1M-X5 | `[ ]` | Complete 2.9's whole-workspace `A.java`/`B.java` counterfactual journey. | The visible graph compares checkout, frozen witness, and re-evaluated intent after changing the earlier explorer selection, with typed barriers and retained original history. | Uses only restorable UI/document state; never writes the ambient checkout. |
 | S1M-X6 | `[ ]` | Adapt the proven History Graph to workspace Track 1c's passive overlay seam. | The same history content remains visible while a test world ticks; passive mode consumes no gameplay input and interactive mode has explicit focus/release. | Starts only if Track 1c's independent placement/input contract still matches; no one-off overlay implementation. |
 
@@ -2051,7 +2051,7 @@ prefix mismatch, three-region semantic rebase, action-level lineage, sibling
 retention, deterministic repeated execution, and zero partial mutation on every
 failure path.
 
-##### [~] S1M-X4-D Join runtime input, registered actions, and presentation
+##### [x] S1M-X4-D Join runtime input, registered actions, and presentation
 
 **Work:**
 
@@ -2076,7 +2076,7 @@ failure path.
 and both replay modes through registered actions, with distinct visible two-
 item exact and three-item rebased outcomes and no render-thread wait.
 
-##### [ ] S1M-X4-E Prove the natural journey and checkpoint X4
+##### [x] S1M-X4-E Prove the natural journey and checkpoint X4
 
 **Work:**
 
@@ -2188,6 +2188,34 @@ only after explicit left-route selection. No dependency declaration or
 checked-in lockfile changed, no cache acquisition or repository clone was
 needed, and no CLI source changed, so the installed `728694ad7` CLI remains
 current and no user install is required.
+
+**S1M-X4 completion evidence (2026-08-21):** Added the versioned complete
+Java-local causal archive, strict canonical JSON codec, fresh-runtime restore,
+pure exact-replay/semantic-rebase engine, atomic controller publication, and
+History Graph causal presentation in core checkpoint `d8b55251e`. Exact replay
+records its own typed non-keystroke operation even when it only verifies an
+already retained transition chain. Ordinary and constrained command-palette
+execution share the canonical registered-action provenance seam, while the
+real Ctrl+Alt+J dynamic binding retains its physical key event, modifier set,
+effective binding snapshot digest/id/revision, decision, source range, semantic
+invocation, two-region witness, outcome, and transition.
+
+Focused temporal-replay, trajectory-controller, choice-session, puppet-source,
+and History Graph tests pass. The full 1.19.2 Java suite exits 0 with `1348`
+found, `1347` passed, `0` failed, and only the installed-worker integration test
+intentionally aborted without its opt-in properties; the canonical 1.19.2
+compile also passes. Natural puppet run
+`title_screen_tem-20260821-115250-943`, checkpointed in `8a98063e5`, produced
+seven inspected PNG stages plus canonical archive, UTF-8 transcript, per-stage
+JSON, and aggregate evidence. The artifact parses and restores byte-identically
+into a fresh runtime and proves `EXACT_REPLAY:SUCCEEDED` for the retained 1/2
+route, `EXACT_REPLAY:PRECONDITION_MISMATCH` with no partial result on the changed
+prefix, and `SEMANTIC_REBASE:SUCCEEDED` for the retained 1/2/3 sibling. Ambient
+checkout before/after hashes are identical. No dependency declaration or
+checked-in lockfile changed, no cache acquisition or repository clone was
+needed, and no CLI source changed, so the installed `728694ad7` CLI remains
+current and no user install is required. The puppet-owned game and helper
+processes exited cleanly.
 
 S1M-X4 through X6 may receive plan-detail amendments at their claim boundary if
 implementation evidence reveals a missing seam, but those amendments cannot
