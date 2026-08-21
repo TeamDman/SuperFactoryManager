@@ -475,6 +475,30 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    /** Restores default cursors/mode/dispositions for the focused persisted comparison. */
+    public void resetRouteComparisonSession() {
+        add(new RouteComparisonSessionPuppetAction(RouteComparisonSessionPuppetAction.Operation.RESET));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Evicts and reloads the focused comparison from its production store. */
+    public void reloadRouteComparisonSession() {
+        add(new RouteComparisonSessionPuppetAction(RouteComparisonSessionPuppetAction.Operation.RELOAD));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Validates and artifacts one natural retained-route comparison checkpoint. */
+    public void assertRouteComparison(
+            AssertRouteComparisonPuppetAction.Stage stage,
+            String artifactName
+    ) {
+        add(new AssertRouteComparisonPuppetAction(
+                Objects.requireNonNull(stage, "stage"),
+                Objects.requireNonNull(artifactName, "artifactName")
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void assertFormerTerminalStartButtonRoutesToTerminal() {
         add(new AssertFormerTerminalStartButtonPuppetAction());
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
