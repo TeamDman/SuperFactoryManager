@@ -103,11 +103,11 @@ If we have a concept of virtual desktop-like things, then does that mean we have
 
 # In-game code review workspace and window manager plan
 
-**Plan status:** Active; multiplexer/explorer foundation and Track 1b pointer-driven divider resizing are complete; review-surface and later relocation/workspace slices remain
+**Plan status:** Active; multiplexer/explorer foundation and Track 1b pointer-driven divider resizing are complete; Track 1c overlay/declarative-scene state, review-surface, and later relocation/workspace slices remain
 **Primary planning root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Related reference worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`  
-**Last updated:** 2026-08-17
-**Intent audit:** Passed and post-compaction re-audited 2026-08-16 for the divider-border/intersection/cursor extension while preserving the prior layout-algebra constraints and the user's verbatim VS Code-like resize expectations
+**Last updated:** 2026-08-21
+**Intent audit:** Passed and post-compaction re-audited 2026-08-21 for divider behavior plus the complete temporal-history/frontline-overlay/layout-state guidance
 
 ## How to update this plan
 
@@ -192,6 +192,116 @@ The versioned snapshot, episode, raw-event, action-trace, replay, calculator
 environment, and future amalgamation contracts are owned by the separate
 [snapshot episodes and deterministic action environments plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md).
 This workspace is a consumer of those models rather than their only host.
+
+## Temporal history and overlay guidance ledger — 2026-08-21
+
+| ID | Active guidance | Required consequence | Coverage |
+| --- | --- | --- | --- |
+| WOVER-1 | The frontline action history should be openable from the command palette and update while actions occur. | Snapshot/episode 2.8 registers `sfm:episode/history` as ordinary panel content with incremental subscription; Track 7 records/routs actions without child-panel coupling. | Track 7 + snapshot 2.8/TE-S1 |
+| WOVER-2 | The same kind of history/FPS/diagnostic information should eventually remain visible while the user plays, instead of requiring a full-screen consuming `Screen`. | Track 1c introduces an SFM-owned non-pausing overlay layer distinct from the multiplexer screen, Forge modal GUI layers, and Minecraft's loading overlay. | Track 1c |
+| WOVER-3 | Overlay rendering and overlay interaction have different input expectations. | Every overlay has `PASSIVE` or `INTERACTIVE` input mode, explicit focus, hit bounds, cursor policy, narration, and Escape/focus-loss behavior. Passive overlays never consume gameplay input. | Track 1c |
+| WOVER-4 | Layout and overlay behavior must remain expressible as typed actions so command palette, puppets, `sfm.exe`, and agents have parity. | Visibility, focus, placement, z-order, and preset operations target explicit set-valued selectors through the client-action dispatcher; pointer gestures emit equivalent intents. | Track 1c + Track 7 |
+| WOVER-5 | “Show FPS overlay” and “move that overlay” are separate composable operations; do not register one show action for every corner. | Visibility actions preserve current/default placement. Placement uses a general `SFMPlacement`; F3 choice sessions offer ordinary action drafts. | Track 1c |
+| WOVER-6 | Position needs a general addressable model rather than feature-specific top-left/top-right enums. | `SFMPlacement` names a reference-frame selector, reference/content normalized anchors, logical offsets, optional size constraints, clipping/safe-area policy, and z-order. Common corners are values/presets, not action kinds. | Track 1c contract |
+| WOVER-7 | Layout presets should be durable, but restoring one should not require replaying every historical manipulation. | Authoritative current UI is a versioned declarative scene graph. Actions mutate and are recorded against it; a preset serializes canonical state plus optional provenance. | Track 1c persistence |
+| WOVER-8 | Showing an overlay should normally reuse its last persisted or registered intrinsic placement. | Visibility/show resolves explicit instance state, then user preset, then scene default. History may explain the state but is not scanned as the persistence mechanism. | Track 1c persistence/UI |
+| WOVER-9 | The undo/action history must show non-linear branches and projected alternatives without claiming arbitrary live-world effects can be rewound. | The History Graph consumes snapshot/episode effect classes and projection statuses. Workspace/UI layout is restorable; external barriers remain visible. | Track 7 + snapshot 0.5/1.5/2.8 |
+
+### Confirmed frontline design
+
+The first usable surface is a normal split panel, not a new overlay dependency:
+
+```text
+sfm action invoke sfm:panel/open/right sfm:episode/history
+```
+
+It can sit beside Text Editor V3 or an explorer inside the existing
+multiplexer, remain unfocused while following the active episode head, and use
+the existing panel resize/stack/focus machinery. This is TE-S1's UI because it
+is implementable on the proven host and directly supports the editing chamber.
+
+Track 1c then adapts the same panel content into an SFM overlay so it can appear
+over an active world without pausing or replacing the global screen. This is a
+host/lifecycle/input extension, not a second History Graph implementation.
+
+No general textual layout DSL is required for Track 1c. The canonical contract
+is a typed, versioned scene graph plus typed actions and deterministic
+serialization. A human-editable textual projection/parser may follow once that
+model is stable; command palette, CLI, puppet, and agent automation already use
+the action surface in the meantime.
+
+### UI state and placement contract
+
+The working state shape is:
+
+```text
+SFMClientSceneState {
+  workspace_set?,
+  overlays: Map<OverlayInstanceId, SFMOverlayState>,
+  focus,
+  schema_version
+}
+
+SFMOverlayState {
+  scene_recipe,
+  visible,
+  placement,
+  input_mode: PASSIVE | INTERACTIVE,
+  z_order,
+  persisted_state
+}
+
+SFMPlacement {
+  reference_frame_selector,
+  reference_anchor_uv,
+  content_anchor_uv,
+  logical_offset,
+  optional_size_constraints,
+  safe_area_and_clipping_policy
+}
+```
+
+Normalized anchors are finite `[0,1]` values; offsets and constraints use
+Minecraft logical GUI units. For example, top-right is reference anchor `(1,0)`
+plus content anchor `(1,0)`, not a unique positioning API. Reference frames may
+initially be the GUI safe viewport or one exact panel/overlay; adding world/entity
+frames requires a later projection/authority contract.
+
+Provisional canonical actions are hierarchical and selector-explicit:
+
+```text
+sfm:overlay/visibility/set <overlay-selector> <true|false>
+sfm:overlay/visibility/toggle <overlay-selector>
+sfm:overlay/placement/set <overlay-selector> <placement>
+sfm:overlay/input-mode/set <overlay-selector> <passive|interactive>
+sfm:overlay/focus <overlay-selector>
+sfm:ui/layout/preset/save <name>
+sfm:ui/layout/preset/load <name>
+```
+
+F3 may present `show/toggle FPS`, `show/toggle size display`, and `show/toggle
+history` through its constrained command-palette choice session. Repositioning
+is discoverable context/action work performed separately.
+
+### Intent-audit evidence — 2026-08-21
+
+- **Pass 1 — extraction:** Preserved live history visibility, non-linear undo
+  branches, active-game overlays, screen-versus-overlay input differences,
+  tiling/layout programmability, action/CLI/agent parity, FPS and size-display
+  examples, visibility/position separation, generalized coordinates, previous
+  placement, and preset persistence as independent requirements.
+- **Pass 2 — traceability:** Routed history semantics to snapshot/episode and
+  Track 7, retained `SFMWorkspaceLayout` as tiled-layout authority, and added
+  Track 1c for the genuinely missing overlay/declarative-scene host. Every
+  WOVER id maps to a task and live/pure proof.
+- **Pass 3 — adversarial omission:** Explicitly avoided treating Forge modal
+  GUI layers or Minecraft's loading overlay as the desired HUD surface, replaying
+  action history to restore a preset, coupling show with position, consuming
+  gameplay input from passive overlays, introducing a premature CSS-like DSL,
+  or claiming live-world rewind from UI-state history.
+- **Known source limitation:** None. The full source messages, current layout
+  plan/algebra, `SFMWorkspaceLayout`, `SFMScreenMultiplexer`, and Track 7 design
+  were available.
 
 ## User-testing checkpoint — 2026-08-02
 
@@ -359,6 +469,18 @@ approval, and colorization. Execute the numbered release-plan batches in order:
 The historical track records below remain evidence about code already present;
 they are not instructions to restore deleted bundle or `workspace/open_to_side`
 surfaces.
+
+For the temporal-history trajectory added on 2026-08-21, the execution order is:
+
+1. snapshot/episode TE-S1 proves the live History Graph as ordinary split-panel
+   content, non-destructive undo branching, and the numbering chamber;
+2. selection X-3a supplies shared parent/child history navigation instead of a
+   linear redo stack; and
+3. Track 1c adapts the proven view to passive/interactive gameplay overlays and
+   adds declarative scene/preset persistence.
+
+Track 1c is not a prerequisite for TE-S1. Whole-workspace counterfactual replay
+and externally visible effects remain later snapshot/episode 2.9 work.
 
 ## Parallel experiment tracks
 
@@ -619,6 +741,76 @@ interfaces are frozen, a pure layout/test lane, a GLFW cursor-lifecycle lane,
 and a puppet/artifact lane may proceed in parallel. One integration owner alone
 edits `SFMScreenMultiplexer`, central action registration, shared layout wiring,
 plan/changelog bookkeeping, and final live proof.
+
+### [ ] Track 1c — Non-pausing SFM overlay host and declarative scene state
+
+**Work — contract and state:**
+
+- Introduce versioned `SFMClientSceneState`, `SFMOverlayInstanceId`,
+  `SFMOverlayState`, `SFMPlacement`, input mode, focus, z-order, and scene-recipe
+  DTOs. Keep them independent from transient Minecraft widgets, rectangles,
+  GLFW handles, and Java object identity.
+- Extend the existing panel-content boundary or add one narrow adapter so the
+  same History Graph/FPS/size-display content can render in a multiplexer leaf
+  and in an overlay. Do not duplicate application state per host.
+- Render overlays through a version-adapted SFM HUD seam distinct from
+  `Minecraft.overlay` loading state and Forge's full-screen modal GUI-layer
+  stack. Dedicated-server loading must not touch client classes.
+- Keep the active world ticking. `PASSIVE` overlays render/narrate according to
+  policy but never consume pointer/keyboard/gameplay input. `INTERACTIVE` mode
+  has explicit focus acquisition/release, hit routing, cursor ownership,
+  narration, Escape, screen transition, focus-loss, and stale-instance rules.
+
+**Work — actions, placement, and persistence:**
+
+- Register the WOVER-4 action families with explicit set-valued overlay
+  selectors and typed results. Pointer drag/resize produces the same placement
+  intent/result as command invocation; no hidden direct state mutation remains.
+- Implement finite normalized reference/content anchors, logical offsets,
+  bounded size constraints, safe-area/clipping policy, and deterministic
+  viewport-resize behavior. Corners/centres are convenience values.
+- Separate visibility, placement, input mode, focus, z-order, and content state.
+  Showing resolves existing instance → saved preset → scene default and never
+  resets placement merely because visibility changed.
+- Serialize one canonical versioned scene/layout snapshot atomically with
+  unknown-scene placeholders and validation for duplicate ids, invalid
+  selectors/anchors, cycles/references, non-finite geometry, and unsupported
+  scene-state versions. Store optional action/revision provenance, but load the
+  state directly instead of replaying history.
+- Make F3 choices ordinary constrained command-palette drafts for history, FPS,
+  and size overlays. Preserve existing panel actions; an overlay is a new host,
+  not a rename that silently changes panel behavior.
+- Expose structured scene state through the local `sfm.exe` invocation path so
+  puppets and later agents can show/move/focus/save/load with exact instance and
+  game targeting.
+
+**Validation:**
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMOverlay --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMWorkspace --wait-for-build-lock
+sfm-propagate-changes.exe run compile --branch 1.19.2
+```
+
+Pure tests cover placement anchors/offsets, viewport/GUI-scale changes,
+selector set semantics, visibility-position independence, action/pointer parity,
+preset canonical round trip/malformed recovery, unknown scene placeholders,
+and no replay requirement. Host tests prove passive input transparency,
+interactive focus/cursor release, z-order/hit routing, world tick continuity,
+screen/modal transitions, stale ids, and dedicated-server class isolation.
+
+A self-orchestrating in-world puppet walks while passive FPS and History Graph
+overlays update, proves movement keys still reach gameplay, enters interactive
+history mode, moves it via the registered placement action, exits focus, hides
+and re-shows it at the retained position, saves/loads a preset, and invokes the
+same operations once through `sfm.exe`. Screenshots and structured artifacts
+record world tick, focus, bounds, placement, z-order, input consumption, action
+ids, and persisted scene state.
+
+**Completion criteria:** A reusable panel view can be shown non-pausing over
+gameplay, passive/interactive behavior is predictable, every state change is
+action-addressable, visibility never smuggles positioning, and a versioned
+layout preset restores directly without replaying its creation history.
 
 ### [x] Track 2 — Native file drag-and-drop feasibility
 
@@ -1343,6 +1535,32 @@ Use “read lock” only as user-facing shorthand if desired; internally this is
 interaction/input ownership lease, not a Java read/write lock. Human viewing is
 allowed while human mutation input is gated.
 
+#### Live temporal History Graph integration
+
+The snapshot/episode plan owns ActionIntent, ActionEvaluation, ActionOutcome,
+StateRevision, immutable parent/child history, head movement, exact/frozen/
+recomputed policies, effect classes, and lazy projection status. Track 7 owns
+their live projection into the multiplexer and input/observation envelope.
+
+Register `sfm:episode/history` as reusable panel content. It subscribes to an
+active/selected episode and renders branch lanes with state, intent/evaluation,
+and outcome nodes; current/named/pinned heads; materialized versus projected
+children; and conflict/cancel/unknown/external-barrier states. It may follow the
+mutation head without taking focus. Inspection has a separate cursor from the
+mutation head; only explicit checkout/undo/redo/fork/recompute actions move or
+extend history.
+
+Ctrl+Z is routed by the focused undo domain. An editor-local undo moves that
+document's history head and is recorded in the containing episode; it does not
+silently rewind workspace layout, terminal sessions, or live-world effects.
+Redo with more than one child invokes the shared constrained command-palette
+choice rather than truncating or guessing a branch.
+
+TE-S1 proves the History Graph as an ordinary split panel beside Text Editor V3.
+Track 1c later hosts the same content as a passive/interactive gameplay overlay;
+no duplicate history model, branch store, or renderer-specific action surface
+is permitted.
+
 #### Reusable timeline-panel direction
 
 Add a generic timeline host to the composable panel surface. It accepts one
@@ -1416,6 +1634,10 @@ Tracks 1 + 3 ───────────> multiplexer + explorer + source 
 Track 1 multiplexer/input router ──> Track 7 observation + ownership envelope
 Snapshot/episode plan ─────────────> Track 7 recording/replay interchange
 Normal calculator panel ───────────> first Track 7 proving application
+
+Track 1 + Track 7 History Graph ───> Track 1c reusable overlay adapter
+Typed action/selector system ──────> Track 1c placement/focus/preset actions
+Snapshot/episode effect model ─────> Track 1c honest projected/barrier display
 ```
 
 Tracks 1 and 3 are intentionally parallel: Track 3 targets a normal `Screen`
@@ -1433,6 +1655,11 @@ comparison, episode compression, or Vox.
 Track 7 belongs above the multiplexer routing seam and below application
 panels. It can begin independently of semantic source comparison and Vox; the
 Episode Inspector consumes its recordings.
+
+Track 1c follows the split-panel TE-S1 History Graph proof. Its placement/state
+model may be designed and pure-tested in parallel, but live overlay integration
+waits for one reusable History Graph content seam and remains independent from
+terminal sharing, Codex, release review, or branch-merge semantics.
 
 ### Historical Track 6 real-repository bundle slice — 2026-07-22 (superseded)
 

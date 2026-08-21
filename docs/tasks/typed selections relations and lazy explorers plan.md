@@ -1,19 +1,21 @@
 # Typed selections, relations, and lazy explorers plan
 
 **Plan status:** Active; X-1 through X-7 and X-8a through X-8c are complete;
-picker X-8 and X-9 through X-11 remain
+X-3a, picker X-8, and X-9 through X-11 remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Primary implementation target:** Minecraft 1.19.2
 **Related control plan:** `docs/tasks/sfm in-game control cli plan.md`
 **Related UI plan:** `docs/tasks/contextual input actions and addressable explorer plan.md`
 **Related comment plan:** `docs/tasks/global comment selection and review sessions plan.md`
 **Related editor plan:** `docs/tasks/draw editor document regions and commands plan.md`
-**Last updated:** 2026-08-18
-**Intent audit:** Passed and post-compaction re-audited 2026-08-16 against the complete 2026-08-12 through 2026-08-16
+**Last updated:** 2026-08-21
+**Intent audit:** Passed and post-compaction re-audited 2026-08-21 against the complete 2026-08-12 through 2026-08-16
 CLI/explorer/path/selection/relation/picker/layout design discussion, the latest
 projection/icon/filter/focus/scroll observations, and the linked plans' existing
-ledgers; implementation closure audit remains valid for completed X-1 through
-X-7/X-8a/X-8b code, tests, protocol, and live artifacts
+ledgers, plus the explicit non-destructive undo-tree follow-up; implementation
+closure audit remains valid for completed X-1 through X-7/X-8a/X-8b code,
+tests, protocol, and live artifacts while X-3a supersedes the linear redo-head
+limitation without marking X-3 incomplete
 
 ## How to update this plan
 
@@ -118,6 +120,7 @@ reuse this plan's lazy relation/revision/publication rules.
 | XSEL-8 | Text Editor v3's multiple cursors are trying to cover part of this selection problem, but cursor order, primary identity, anchor/head direction, and insertion behavior still matter. | X-9 projects cursor ranges into shared document-region selections while retaining the editor's ordered operational cursor model. | — |
 | XSEL-9 | The global comment/review system already needs selectors spanning regions and documents; it should reuse the shared algebra rather than grow another incompatible selection engine. | X-9 adds an adapter between shared selection expressions and review-session rules while preserving pinned snapshot/hash semantics. | — |
 | XSEL-10 | Different named selections should be independently visible/manipulable and able to contribute overlays. | X-4 reserves overlay/style contributions keyed by selection id; the first slice proves independent membership, while editor/comment styling remains later. | — |
+| XSEL-11 | Undo-undo-do must not clobber access to the old redo descendant or any alternative/projected history. | X-3a replaces the head's single linear undo/redo stacks with parent/child adjacency plus movable/named heads. Undo follows a parent; redo selects a child; new mutation appends a sibling and preserves all existing revisions. | — |
 
 ### Lazy relations and refresh
 
@@ -184,6 +187,7 @@ reuse this plan's lazy relation/revision/publication rules.
 | XSEL-1 through XSEL-4 | Selection contract; X-3 | Revision/algebra/live/pinned/undo tests |
 | XSEL-5 through XSEL-7 | Explorer navigation and destination contracts; X-4, X-8 | Navigation-retention and pick-cardinality puppets/tests |
 | XSEL-8 through XSEL-10 | X-9 | Editor cursor-projection and review-rule adapter evidence |
+| XSEL-11 | X-3a and snapshot/episode 0.5/1.5/2.8 | Undo-undo-do branch fixture, retained child enumeration/checkout, ambiguous-redo chooser, export/import, and no orphaned pinned revisions |
 | XREL-1 through XREL-8 | Child-relation contract; X-3, X-4, X-5, X-7 | IO-count/paging/cancel/generation/atomic-refresh tests and before/during/after artifacts |
 | XEXP-1 through XEXP-5 | Explorer session/projection contract; X-4 | Heterogeneous root, hoist, view/sort/group tests and visual proof |
 | XEXP-6 through XEXP-14 | Action/target/remoting contract; X-5, X-6, X-7 | Registry/action parity tests plus direct CLI puppet |
@@ -289,6 +293,25 @@ reuse this plan's lazy relation/revision/publication rules.
   report were available. The exact Java icon, path-display axis spelling, and
   local-filter recursion policy remain XD-9 through XD-11 rather than silently
   frozen.
+
+### Intent-audit extension — 2026-08-21 non-destructive undo trees
+
+- **Pass 1 — extraction:** Preserved the explicit requirement that undoing more
+  than once and then performing new work must not clobber prior materialized or
+  projected descendants. Added XSEL-11 rather than weakening XSEL-3's immutable
+  revision promise.
+- **Pass 2 — traceability:** Mapped XSEL-11 to new X-3a, the snapshot/episode
+  ActionIntent/ActionEvaluation/StateRevision graph, History Graph UI, pure
+  repository tests, constrained command-palette child choice, and export/import
+  evidence.
+- **Pass 3 — adversarial omission:** Inspected current source and tests. The
+  repository retains immutable revision objects, but `SFMSelection` stores
+  linear `undoRevisionIds`/`redoRevisionIds`, a mutation replaces the redo list
+  with empty, and the current branch test expects redo to become unavailable.
+  Therefore the old descendant is not adequately discoverable as a redo branch;
+  X-3a is real work rather than a documentation-only rename.
+- **Known source limitation:** None. The current Java model/tests and complete
+  user follow-up were available.
 
 ## Established foundation
 
@@ -830,6 +853,47 @@ parent/child relation revisions with staged multi-parent replacement,
 continuation pages, cancellation, stale-request rejection, and failure
 diagnostics that retain published rows. `SFMSelectionRepositoryTests` and
 `SFMChildRelationRepositoryTests` passed through the canonical test harness.
+
+### [ ] X-3a Upgrade selection-head navigation from linear stacks to an undo tree
+
+**Work:**
+
+- Preserve the completed immutable `SFMSelectionRevision` model and existing
+  pinned `selection://...@<revision>` identities.
+- Replace `undoRevisionIds`/`redoRevisionIds` as the authoritative topology with
+  parent/child adjacency and one current/named head per selection history.
+- Undo follows an explicitly chosen/default parent. Redo enumerates children;
+  one child may be selected directly, while several children require an
+  explicit revision or the shared constrained command-palette chooser.
+- Creating a revision from an ancestor appends a child and never clears/removes
+  siblings. Keep the last-traversed child only as a convenience preference, not
+  as the sole surviving redo path.
+- Record head movements and branch naming/pinning with actor/request provenance.
+  Keep request-idempotence and deterministic ordering.
+- Add enumerate-history, checkout-revision, undo, and redo-child operations to
+  the typed action surface consumed by Text Editor v3/episode history. Do not
+  invent an independent editor-only tree format.
+- Since selections are session-scoped and this behavior is unreleased, perform
+  a full internal cutover rather than preserving the misleading linear DTO as a
+  public compatibility layer.
+
+**Validation:**
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMSelectionRepositoryTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMPathExpressionResolverTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTextEditorPanelTests --wait-for-build-lock
+```
+
+Add a deterministic graph fixture: create A→B→C, undo twice to A, create D,
+then prove B/C/D remain enumerable and pinned-resolvable; redo at A reports B
+and D, explicit checkout reaches C, branch naming survives export/import, and
+deleting/closing a view does not delete revisions.
+
+**Completion criteria:** Undo-undo-do yields a visible branch rather than a
+destroyed redo stack, all previously reachable revisions remain addressable,
+ambiguous redo is explicit, and the shared snapshot/episode History Graph can
+consume the same topology without translating from a second history model.
 
 ### [x] X-4 Replace recursive snapshots with a heterogeneous lazy explorer session
 
@@ -1399,6 +1463,9 @@ every drag gesture has an equivalent registered semantic action.
 - [x] Refresh never blanks old children before successful replacement data and
   cannot apply stale generations.
 - [x] Versioned selection set algebra and undo-capable history are proven.
+- [ ] X-3a makes that immutable history fully navigable as a non-destructive
+  undo tree: new work after undo retains all old children, ambiguous redo is
+  explicit, and pinned descendants remain reachable.
 - [x] Multi-target mutations are all-or-none and return per-target evidence.
 - [x] The live puppet proves open-if-none, exact-id failure, single-root hoist,
   heterogeneous roots, lazy expansion, atomic refresh, and `all` targeting.
@@ -1420,6 +1487,7 @@ every drag gesture has an equivalent registered semantic action.
 | Paging undermines atomic refresh | Retain old generation until fresh first page; atomically publish prefix+continuation; append pages by revision |
 | Explorer navigation destroys picked values | Destination selection is separate from navigation cursor/expansion; retention tests |
 | Selection undo destroys provenance needed by comments/collaboration | Immutable revision ledger and explicit heads; pinned addresses for reproducible consumers |
+| A linear redo stack hides an old branch after undo-then-mutate even though revision objects still exist | X-3a parent/child adjacency, child enumeration, named/pinned heads, explicit checkout, undo-undo-do fixture, and no implicit GC |
 | Selection set loses hierarchy parent ownership | Store parent/child relation separately; derive child path sets from relation range |
 | View/sort/group choices mutate semantic membership | Separate projection object and membership/relation repositories |
 | Extension icons replace domain presentation or make every file a special case | Ordered contributed extension/theme presenter after domain-specific handlers and before paper fallback; assert actual ItemStack ids and precedence |

@@ -1079,6 +1079,98 @@ map identity dimension invalidates the old terminal answer; revisiting a known
 mapped link restores its underline and Ctrl+click ownership; and cancelled or
 stale completions remain unable to repaint the current target.
 
+### [ ] SS-5c Recover after hover cancellation storms and expose exact lookup evidence
+
+**Implementation checkpoint (2026-08-19):** The state machine now retains only
+positive actionable/ambiguous terminal answers. Exact unresolved, unavailable,
+failed, and cancelled answers are retryable, including after an A -> B -> C
+cancellation storm and return to A; stale completions still cannot repaint the
+new target. Symbol inspection retains exact interaction-map diagnostics at the
+captured byte when no semantic region exists, and Java worker submission,
+completion, map-publication, and presentation logs now include the captured
+branch/address/root/report/source-set/line/column/byte/hash and diagnostic codes.
+
+CLI-AST 1.4a is complete and the release-installed CLI resolves the reported
+`SFM.java:38:28` `Logger` location to the authenticated generated Log4j 2.17.0
+declaration. Focused hover/panel tests, canonical 1.19.2 compile, and the final
+CLI gate passed at that checkpoint.
+
+**Follow-up checkpoint (2026-08-20):** Natural testing supplied the exact
+semantic identity for two acquired Forge documents and proved that the
+remaining disappearing underline was the visible consequence of two analyzer
+failures, not another hover-cache state. A short `Mod.java` request reached the
+worker but rejected `java.util.function.Supplier` as an inaccessible source-set
+reference because the warm lookup rebuilt visibility from the pre-dependency
+workspace. A longer `FMLJavaModLoadingContext.java` request was rejected before
+analysis because its 283-character canonical path retained Windows' `\\?\`
+prefix while its shorter root lost that prefix, making two spellings of the
+same path fail `starts_with` containment. The warm surface now consumes the
+post-normalization visibility relation, and dependency containment canonicalizes
+root and child in one native namespace. Engine regressions resolve an imported
+managed-JDK `Supplier` from dependency source and a self type in a real Java
+file beyond 260 characters. The complete CLI gate, final install/hash proof,
+focused Java Explorer/hover/editor tests, and canonical 1.19.2 compile now pass;
+CLI-AST 0.12.5 owns those details. This item remains open only for the natural
+in-game Forge-source confirmation.
+
+**Trigger:** The 2026-08-19 manual trace reproduced a second, distinct dead
+hover state after SS-5b: while the first Java interaction map was warming,
+rapidly visiting symbols cancelled requests 2 through 9. Returning to a glyph
+whose most recent lookup ended `UNRESOLVED` or `UNAVAILABLE` could retain no
+underline and no Ctrl+click route even though a fresh right-click definition
+lookup could resolve it. The same test session showed that `Logger` lacked an
+external definition because the dependency index covered available sources but
+not Minecraft-version-JSON libraries without a source provider.
+
+The 2026-08-20 follow-up then reproduced two deterministic negative completions
+after navigating into acquired Forge source: `Supplier` in `Mod.java` returned
+`NO_SYMBOL` with inaccessible-source-set diagnostics, while
+`FMLJavaModLoadingContext.java` returned `INVALID_REQUEST` only after its full
+path crossed the legacy Windows path boundary. In both cases hover correctly
+withdrew its provisional underline after the negative semantic answer.
+
+**Work:** Cache only positive (`ACTIONABLE` or `AMBIGUOUS`) hover answers for an
+exact semantic identity. Treat unresolved, unavailable, failed, and cancelled
+answers as retryable; stale completions must remain unable to repaint the
+current target. Preserve exact interaction-map diagnostics at the captured byte
+even when no semantic region was emitted. Include branch, document address,
+worker root/report path, source set, line, column, byte offset, content hash,
+outcome/completeness, and diagnostic codes in development lookup/publication
+logs so copied console evidence identifies the failing location without a
+second reproduction.
+
+Join this UI repair to CLI-AST 1.4a's source-first classfile type fallback so
+`org.apache.logging.log4j.Logger` and equivalent authenticated Minecraft
+classpath types can publish navigable type regions instead of a false terminal
+miss. Do not weaken exact-root authorization or guess a type by spelling.
+
+For acquired documents, derive the warm `TypeLookup` visibility relation from
+the normalized context after dependency source sets are introduced, including
+dependency-to-managed-JDK edges. Canonicalize an authorized dependency root and
+its addressed child in the same native namespace before the fail-closed
+containment check so crossing Windows MAX_PATH cannot manufacture a root
+escape. Keep both repairs generic; do not special-case Forge class names,
+`Supplier`, or a fixed cache path.
+
+**Validation:** State-machine tests reproduce A -> B -> C cancellation while a
+cold map warms, complete stale requests out of order, return to A, and require a
+fresh actionable underline and Ctrl+click owner. Panel tests retain an exact
+unresolved diagnostic at `Logger`'s captured byte. After installing the final
+CLI, refresh the immutable dependency index and prove the exact `SFM.java`
+`Logger` location resolves to the authenticated generated declaration. Run the
+focused tests, the dependency-to-JDK and long-Windows-path engine regressions,
+canonical CLI checks, 1.19.2 compile, and a manual in-game pass that navigates
+from `SFM.java` into `FMLJavaModLoadingContext.java`, then resolves its own
+symbols and `Supplier` in `Mod.java` while Ctrl remains held.
+
+**Completion criteria:** No negative or cancelled hover answer can create a
+permanent dead glyph; positive cache reuse remains bounded and immediate;
+`Logger` has a navigable definition after the canonical index refresh; and both
+console logs and Copy Symbol Details expose enough exact location and diagnostic
+evidence to replay a remaining miss. Acquired dependency documents retain exact
+root containment beyond 260-character Windows paths and can resolve managed-JDK
+imports without a false inaccessible-source-set result.
+
 ### [x] SS-6 Add action-backed symbol inspection and deterministic copy projections
 
 **Completion notes (2026-08-18):** One immutable symbol-inspection
@@ -1242,6 +1334,23 @@ ItemStack icons for every visible built-in reference-result row, including the
 reported `MutableComponentType` journey, without changing the generic fallback
 for unrelated contributed domains or introducing a parallel presentation
 system.
+
+### [x] NX-3b Make Explorer Left Arrow collapse the revealing parent
+
+**Completion notes (2026-08-20):** Explorer tree navigation now treats one
+Left Arrow operation as a semantic collapse request. An expanded selected row
+collapses in place. A non-expanded child moves selection to its nearest
+projected parent and collapses that parent when it is the expanded row revealing
+the child. Hoisted top-level rows do not invent a hidden parent. The panel emits
+the existing registered `sfm:explorer/node/collapse` action instead of mutating
+expansion state through a keyboard-only path.
+
+**Validation:** `SFMExplorerPanelActionEmissionTests` covers expanded selection,
+child-to-parent movement and collapse in one keypress, and a hoisted top-level
+leaf. The broader Explorer panel/action suites pass.
+
+**Completion criteria:** Left Arrow follows familiar tree behavior while mouse,
+keyboard, palette, and automation retain one action-backed expansion model.
 
 ### [ ] NX-3 Add explorer contextual actions and semantic Java children
 

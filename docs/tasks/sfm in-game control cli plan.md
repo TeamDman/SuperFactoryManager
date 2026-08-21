@@ -69,6 +69,21 @@ This establishes a reusable local control plane for later commands such as
 text into Minecraft chat, clicks screen coordinates, edits the game's config
 files behind its back, or guesses a process from a window title.
 
+### Temporal/agent handoff recorded 2026-08-20
+
+The [snapshot/episode plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md)
+now plans branch-backed document episodes, structured Java/Rust observations,
+shared terminal attachment, and optional external-agent participation. Their
+future shell surface must extend this existing typed multi-instance control
+plane with explicit long-form commands such as `sfm episode ...`,
+`sfm logs ...`, and `sfm agent ...`; it must not add another descriptor
+directory, hide ordinary operations beneath generic `invoke`, or make Teamy
+Terminal the transport. Every mutation names/resolves an exact game plus the
+episode/branch/document/selection and capability context required by the
+operation. The snapshot plan owns those domain contracts; this plan owns game
+discovery, authentication, typed request transport, and Minecraft-thread
+handoff.
+
 ## Authoritative user guidance ledger
 
 | ID | Active guidance | Required plan consequence | Superseded by |
@@ -90,6 +105,7 @@ files behind its back, or guesses a process from a window title.
 | ICLI-15 | Every explorer operation carries an explicit set-valued explorer selector such as `focused`, exact id, or `all`; no action silently depends on ambient focus or first-matches. | I-4 transports the typed selector AST and returns captured target ids/per-target outcomes. | — |
 | ICLI-16 | A non-exact request may explicitly open a generic explorer when none matches, while a missing exact explorer id must fail without replacement. Explorer locations are panel-local/session-local rather than one persisted workspace. | I-4 uses `--if-no-match fail|open-new`, rejects exact-id plus open-new, and introduces no workspace persistence schema. | — |
 | ICLI-17 | Native filesystem paths are strict UTF-8 typed content paths, not Minecraft resource locations; explorer roots may be heterogeneous and lazily resolved. | The shared selection/explorer X-1 through X-7 foundation owns path/expression/relation semantics; I-4 reuses its generated DTOs and game-side authority checks. | — |
+| ICLI-18 | Temporal episodes, combined observations, shared terminals, and optional coding agents should be controllable from ordinary shells and the in-game terminal without inventing another game-discovery path. | Future direct `episode`, `logs`, and `agent` command families reuse this plan's descriptor/authentication/selection/Vox/client-thread contracts and the domain DTOs owned by their linked plans. Teamy Terminal remains one caller. | — |
 
 ## Guidance traceability
 
@@ -104,6 +120,7 @@ files behind its back, or guesses a process from a window title.
 | ICLI-12 | Entire plan | Three-pass audit and fresh-agent resumption review |
 | ICLI-13 | I-1, I-2, I-3, I-3a | Exact CLI grammar/round trip, Minecraft-thread assertion, registered action execution result, size-display panel state, and screenshot/puppet witness |
 | ICLI-14, ICLI-15, ICLI-16, ICLI-17 | Selection/explorer X-1 through X-7; I-4/I-5 | Direct help/`ToArgs`, selector/path round trips, exact/focused/all/empty-target tests, heterogeneous lazy explorer artifacts, and absence of built-in aliases/global persistence |
+| ICLI-18 | Snapshot/episode Phase 8/9; future post-I-5 CLI slices | Direct long-form help, typed round trips, exact-game selection, bounded capability context, and invocation from both an external shell and Teamy Terminal with no second descriptor registry |
 
 ## Intent audit evidence
 

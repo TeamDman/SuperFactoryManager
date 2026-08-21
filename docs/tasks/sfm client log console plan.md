@@ -66,6 +66,62 @@ keybinding configuration are not converted into ordinary log lines merely to
 reuse the widget. Conversely, the console plan does not become responsible for
 snapshot rehydration, action replay, or review-ledger persistence.
 
+## Cross-runtime observation extension recorded 2026-08-20
+
+The [snapshot/episode plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md)
+now owns one temporal spine across Java actions, Rust tools, editor sessions,
+terminal sessions, guided studies, and optional external agents. This log plan
+owns the capture adapters and read-only presentation that project runtime
+records into that spine as **observations**. Log records never become canonical
+input actions or state transitions merely because they are correlated with an
+episode.
+
+### [ ] LOG-X1 Define a versioned cross-runtime observation envelope
+
+- Preserve source runtime/process/thread/task, logger or `tracing` target,
+  level, per-source monotonic sequence, optional zoned wall time, span and
+  correlation ids, structured fields, translatable content, rendered fallback,
+  and bounded error/throwable details.
+- Permit optional episode, branch, event, action, request, terminal-session,
+  and panel identities without requiring every producer to know all of them.
+- Do not impose a false total order by wall clock across processes. Preserve
+  source ordering and explicit causal/correlation links; expose unknown clock
+  skew in inspection/export.
+- Version/bound every record and count dropped or redacted records.
+
+### [ ] LOG-X2 Adapt Java Log4j/translatable and Rust `tracing` sources
+
+- Reuse `SFMClientLogSink` for ordinary Java Log4j and
+  `TranslatableLogEvent` sources while preserving their different localization
+  semantics.
+- Add a Rust-side adapter at the local Vox/tool boundary that forwards
+  structured `tracing` events rather than parsing terminal-rendered text.
+- Correlate request/span/session ids across Java and Rust where the protocol
+  already has them. Adapter failure must not recurse through either logger or
+  block the Minecraft render thread.
+- Keep retention, filtering, and transport opt-in/bounded; do not turn this into
+  an unrestricted Forge-wide remote log collector.
+
+### [ ] LOG-X3 Build an addressable in-game observation panel
+
+- Open through the ordinary panel/action surface without requiring a terminal.
+- Subscribe incrementally and filter by runtime, episode/branch/action/request,
+  terminal session, level, target/logger, and correlation id.
+- Expose structured details and jump links to resolvable documents, selections,
+  actions, requests, or terminal sessions; retain copyable rendered text as a
+  projection.
+- Make pause/follow-tail, clear-view, retention/drop indicators, and export
+  keyboard navigable. Clearing a view does not erase authoritative episode
+  state or another sink's retained records.
+
+### [ ] LOG-X4 Prove end-to-end correlation without terminal dependence
+
+A puppet invokes an action that crosses Java→Rust→Java, opens the observation
+panel, and shows correlated Java and Rust records under one request/action id.
+The episode artifact retains those records as observations while exact replay
+remains driven by recorded events/actions. The proof runs with no terminal
+panel or external Windows Terminal window open.
+
 ## Current architecture and constraints
 
 - `SFM.LOGGER` is the normal Log4j logger used throughout client, common, and
@@ -325,6 +381,11 @@ level/timestamp/multiline treatment, with clear provenance showing their source.
   and exceptions render predictably and copy correctly.
 - The collector is bounded, thread-safe, client-safe, and does not recurse or
   crash when logging itself encounters an error.
+- Java Log4j/translatable and Rust `tracing` records can share one versioned,
+  correlated observation view without claiming wall-clock total ordering or
+  turning logs into replay authority.
+- The combined observation stream is inspectable in-game without opening a
+  terminal and can jump to correlated episode/action/request context.
 - The standalone console works from the title screen and in-world; Draw
   embedding is optional until its ephemeral-layer semantics are proven.
 - Supported-version audits, tests, and live captures pass before release scope

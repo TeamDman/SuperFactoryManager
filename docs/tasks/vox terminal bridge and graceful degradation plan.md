@@ -3,8 +3,8 @@
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Teamy implementation root:** `G:\Programming\Repos\teamy-terminal`
-**Last updated:** 2026-08-06
-**Intent audit:** Passed 2026-08-05 for the selection/copy/paste follow-up
+**Last updated:** 2026-08-20
+**Intent audit:** Passed 2026-08-20 including the shared presentation-device/episode handoff
 
 ## How to update this plan
 
@@ -28,6 +28,7 @@ not propagate or publish merely because a canonical slice passes.
 | T-PASTE-1 | CR/LF paste requires an exact warning, bounded preview, `Paste anyway`, and `Cancel`; no command bytes may be written before confirmation. | Add guarded/bypass policy and confirmation-required result, with exact UI copy and PTY mutation tests. | V-4.2e.1–V-4.2e.4 |
 | T-PASTE-2 | Native Teamy Terminal and SFM/Java have separate clipboard adapters, while the Teamy service exposes supplied/automatic paste bodies. | Resolve `Auto` at the invoking UI adapter; Vox/SFM supplies Java clipboard text explicitly so a headless or remote server never guesses the caller's clipboard. | V-4.2e.1–V-4.2e.4 |
 | T-LIFE-1 | The disconnected terminal must be a real landing scene with stable status, not a connected widget tree with pieces hidden. A later lifecycle surface must also make stopping an SFM-owned Rust server discoverable without implying authority over an externally started server. | The 2026-08-06 scene correction gives landing and terminal disjoint child trees and retained event history. V-3.5 adds the still-open owned-server lifecycle action/surface after defining how a connected terminal reaches it. | K-2 scene correction; V-3.5 |
+| T-SHARED-1 | A Teamy Terminal that launches Minecraft should be attachable from inside the game so the external window and game are devices presenting/manipulating one terminal session. | Extend attachment identity/capabilities and separate observer subscription from input/resize lease. Record attachment lifecycle through the snapshot/episode contract; never create a second PTY merely to mirror it. | Shared-device extension below; snapshot/episode Phase 9.3 |
 
 ### Terminal interaction intent audit evidence
 
@@ -1433,6 +1434,35 @@ transport/ownership implementation of the same typed actions.
 The first version should support exact key-down/key-up ordering as well as
 ordinary text input. This keeps the action stream replayable and lets the
 Minecraft screen use the same input model as a future agent or puppet.
+
+### Shared presentation-device extension — 2026-08-20
+
+Treat every native window, in-game panel, puppet, and observer as an explicit
+attachment to one addressable terminal session. Attachment metadata includes a
+stable device/connection identity, presentation capabilities, observer versus
+input intent, focus/lease epoch, requested viewport, and last acknowledged
+terminal sequence.
+
+- Several devices may observe the same session concurrently without owning
+  input or resize.
+- Mutation input uses an explicit lease by default. Collaborative/multi-writer
+  mode is a separately selected policy with deterministic source ordering,
+  visible ownership, and emergency human revoke.
+- Resize authority is distinct from keyboard/mouse authority; one panel opening
+  must not silently resize every other presentation device.
+- A game launched from a Teamy Terminal may receive/discover the originating
+  session id through typed local control and attach back to it. Process ancestry
+  alone is not authorization.
+- Attach/detach/focus/lease/input/output events can be projected into the
+  versioned snapshot/episode stream. Terminal output remains subject to an
+  explicit privacy/redaction/retention policy.
+- The external native window and Minecraft panel render from the same Rust-owned
+  PTY/VT state. Closing one presentation does not close the session unless it
+  also owns and explicitly invokes the lifecycle capability.
+
+This extension is future work after the temporal episode contracts are frozen;
+it is explicitly excluded from TE-S1. It reuses the existing terminal service
+and does not introduce another terminal or game-instance discovery registry.
 
 ### Published terminal state
 

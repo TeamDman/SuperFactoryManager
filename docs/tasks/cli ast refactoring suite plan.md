@@ -2266,6 +2266,64 @@ locked artifact; no unrelated partial-index warning suppresses a known match;
 all CLI gates pass; the final CLI is installed after its last mutation; and no
 dependency declaration or lockfile changes.
 
+### [x] 0.12.5 Preserve warm navigation inside acquired dependency documents
+
+**Trigger:** Natural in-game navigation successfully opened the locked Forge
+sources but exposed two worker-only failures. `Supplier` in the shorter
+`Mod.java` document returned `NO_SYMBOL` with
+`java.inaccessible-source-set-reference`, even though the managed JDK contained
+the exact declaration. The longer 283-character
+`FMLJavaModLoadingContext.java` document returned `INVALID_REQUEST` because
+Windows canonicalization represented its child with a verbatim `\\?\` prefix
+and its shorter root without one, falsely reporting a canonical-root escape.
+Both negative answers caused the provisional Ctrl-hover underline to retract.
+
+**Implementation checkpoint (2026-08-20):** The warm definition surface now
+builds `TypeLookup` visibility from the post-normalization context produced
+after dependency source sets are added, preserving dependency-to-managed-JDK
+visibility. Addressed dependency root and child paths are canonicalized through
+the same native filesystem API before the fail-closed containment check. The
+implementation remains generic and does not special-case Forge, `Supplier`, or
+one cache location.
+
+**Completion notes (2026-08-20):** All 17 definition-engine tests pass,
+including the dependency-to-managed-JDK and beyond-MAX_PATH regressions. The
+canonical unsandboxed `check-all.ps1` pass completed dependency policy,
+formatting, Clippy, build, 634 active Rust library tests (three intentional
+ignores), and all ten Java-analysis scenarios. The first sandboxed pass had one
+environmental `os error 5` because its test child could not start `rg.exe`; the
+normal-Windows rerun passed that test without a source change.
+
+After the final Rust mutation and implementation checkpoint, `install.ps1`
+replaced `G:\Programming\Caches\CARGO_HOME\bin\sfm-propagate-changes.exe`.
+The installed binary reports
+`0.1.1 (rev 728694ad7, built 2026-08-21 00:46:54 -04:00)` and has SHA-256
+`931766D833441446EEC7BFE1D1BF52C71BDD459D40270269FEF1BF77A9EED857`.
+Focused Explorer, hover-state-machine, and Text Editor v3 JUnit commands,
+canonical 1.19.2 compile/full tests, and the opt-in Java-to-installed-Rust
+`SFMSymbolServerInstalledIntegrationTests` all exited successfully through that
+binary. No checked-in
+dependency declaration or lockfile changed, no cache rehydration or source
+acquisition was needed, and no repository was cloned. User install required:
+no. Natural in-game confirmation remains owned by spatial item SS-5c rather
+than being misreported as automated evidence here.
+
+**Validation:** An engine regression opens an acquired dependency document,
+imports `java.util.function.Supplier` from a synthetic managed JDK tree, and
+requires the exact `jdk-source` definition without an inaccessible-source-set
+diagnostic. A Windows regression creates and addresses a real Java file beyond
+the legacy 260-character path boundary and requires an exact self-type
+definition. Run all definition-engine tests, `check-all.ps1`, install the final
+CLI after the last Rust mutation, run the canonical 1.19.2 compile and focused
+Java Explorer/hover suites, then manually repeat the exact Forge-source journey.
+
+**Completion criteria:** Warm definition, usage, and interaction-map requests
+retain exact acquired-source authority at both short and long Windows paths;
+dependency documents resolve managed-JDK imports under the normalized directed
+visibility graph; all CLI gates pass; the installed executable matches final
+source; no dependency or lockfile changes occur; and the remaining manual check
+is clearly separated from automated proof.
+
 ### Phase 0.12 parallel work map
 
 After the request/result and JDK-source identity are frozen by one integration
@@ -2357,6 +2415,73 @@ the same method invocation and declaration spans used by the audit.
 **Validation:** retain the Phase 0.8 `MultiLineEditBox` source-backed proof,
 then report overloads and inheritance for one source-unavailable external type
 without launching Gradle or the game.
+
+#### [x] 1.4a Materialize source-first type declarations from locked Minecraft classfiles
+
+**Completion notes (2026-08-19):** `symbol index refresh` now attaches one
+in-memory source component derived from the checked-in Minecraft component and
+its exact locked version-JSON hash. It acquires only nested library artifacts
+carrying that JSON's SHA-1, selects Java-17-visible multi-release class entries,
+parses class headers, and atomically publishes compact navigable type
+declarations. The generator identity is relocatable and content-addressed; the
+set of real source-backed top-level types participates in the completion
+fingerprint and suppresses corresponding binary fallbacks.
+
+The release-installed CLI at
+`G:\Programming\Caches\CARGO_HOME\bin\sfm-propagate-changes.exe` (source HEAD
+`34f6fac81`, SHA-256
+`A04B2EB1CBF09C43FFEBC87896910B0719EB103A00879B9C4089CFF3D1590A29`)
+published dependency-index identity
+`blake3:bba5ba852890ddb15e472ff5087d631f352a314b496f3221a3031bb4bc5634cd`
+with 8,093 source files, 142,914 definitions, and 1,409,670 usages. The exact
+installed query at `ca/teamdman/sfm/SFM.java:38:28` returned `outcome: success`
+for `org.apache.logging.log4j.Logger` at the generated source backed by
+`org.apache.logging.log4j:log4j-api:2.17.0`. The index remains honestly partial
+for unrelated missing member/source coverage.
+
+Canonical `check-all.ps1` passed dependency policy, nightly format, Clippy,
+build, 632 Rust library tests (three ignored), and all ten Java-analysis
+scenarios. Canonical 1.19.2 compile and focused Java hover/inspection suites
+pass. No checked-in dependency declaration or lockfile changed, and no new
+repository was cloned. User install required: no.
+
+- Derive an in-memory dependency-source component from the already-locked
+  Minecraft version JSON; do not mutate `sfm-toolchain.lock.json`, Cargo
+  dependencies, or Gradle declarations.
+- Read only library artifacts carrying a SHA-1 in that exact authenticated
+  version JSON. Acquire missing bytes through the existing hash-verifying cache
+  path, honor Java 17 multi-release entries, and make the generator/index
+  identity relocatable and content-addressed.
+- Generate compact navigable Java type declarations containing exact binary
+  name and binary-origin evidence. A real source/decompile provider is
+  authoritative and suppresses a same-named generated type; the fallback must
+  never shadow source-backed definitions.
+- Keep this slice type-only. Fields, methods, descriptors, generic signatures,
+  richer inheritance, non-version-JSON compile inputs, and explicit binary
+  provenance in public symbol reports remain in 1.4b/1.4c rather than being
+  silently claimed complete.
+
+**Validation:** Unit tests cover class-header parsing, Java 17 multi-release
+selection, source shadowing in the materialization identity, and machine-path
+relocatability. A release-installed `symbol index refresh --branch 1.19.2`
+must publish the generated source into the immutable index, after which an exact
+location query for the imported `org.apache.logging.log4j.Logger` in `SFM.java`
+must resolve to its authenticated generated declaration without Gradle, a game
+launch, lockfile mutation, or a new dependency.
+
+#### [ ] 1.4b Add member/signature fidelity and typed binary provenance
+
+Decode fields, methods, descriptors, generic signatures, annotations, complete
+inheritance edges, and source/binary provenance into public symbol reports.
+Preserve source-first precedence and distinguish binary-type-only evidence from
+a complete source definition.
+
+#### [ ] 1.4c Cover remaining declared compile-classpath inputs
+
+Inventory source-unavailable compile inputs not represented by Minecraft's
+version JSON (including relevant loader/userdev and optional feature surfaces),
+derive each only from existing lockfile authority, and prove branch versus
+isolated classpath behavior without ambient classpath guessing.
 
 ## Phase 2 — Parser, resolver, and edit engine
 

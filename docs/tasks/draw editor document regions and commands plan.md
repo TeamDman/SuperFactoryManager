@@ -3,7 +3,7 @@
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Reference-only worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-21
 
 ## How to update this plan
 
@@ -76,6 +76,34 @@ overlapping operational ranges without an explicit editor rule, or makes
 navigation row focus clobber semantic selection. Review/comment conversion
 also preserves pinned snapshot/hash semantics owned by the global-comment
 plan. X-1 through X-7 therefore introduce no editor persistence migration.
+
+## Temporal undo-tree relationship — 2026-08-21
+
+The [snapshot/episode plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md)
+owns immutable ActionIntent/ActionEvaluation/ActionOutcome/StateRevision
+history, exact versus recomputed evaluation, named heads, branch projection,
+and the live History Graph. Selection plan X-3a owns non-destructive shared
+selection-history topology. Text Editor v3 continues to own operational cursor
+order, document mutation semantics, save projection, and editor-focused undo
+availability.
+
+Ctrl+Z in a focused writable editor submits the registered history undo action
+against that document's explicit/focused history selector. It moves the
+document head; it does not erase the departed child or implicitly rewind the
+whole workspace/game. A subsequent edit creates another child. Ctrl+Shift+Z or
+redo selects the sole child when unambiguous and otherwise invokes the shared
+constrained command-palette child chooser. The containing episode records these
+head movements and actions so the History Graph can update live.
+
+Every editor action that resolves contextual state publishes both intent and
+witness. For example, select-all-occurrences retains the seed/query/order and
+the concrete ordered ranges. Historical checkout, frozen-witness execution, and
+query re-evaluation remain distinguishable. Editor source opened from the real
+checkout stays read-only; TE-S1's explicit branch-backed overlay supplies the
+first writable/replayable document.
+
+The first proof is snapshot/episode TE-S1. It must use the ordinary Text Editor
+v3 panel and registered actions rather than a chamber-only editor executor.
 
 ## Spatial semantic interaction relationship — 2026-08-17
 

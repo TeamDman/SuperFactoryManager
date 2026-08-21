@@ -2,7 +2,7 @@
 
 **Document status:** Active
 **Scope:** Every autonomous implementation goal that builds, launches, or tests SFM, Minecraft, Rust tooling, Teamy Terminal, or related local helpers
-**Last updated:** 2026-08-18
+**Last updated:** 2026-08-21
 **Authority:** Repository-wide operational guidance; feature plans still own feature scope and acceptance criteria
 
 This document records the operating promises that make a completed goal useful
@@ -25,6 +25,7 @@ be launched immediately, and whether any process or cache state was reset.
 | OPS-8 | Autonomous process recovery should not leave the human guessing whether a game/helper remains running or whether another restart is required. | The completion handoff records the final state and identity of every in-scope game/server/worker/helper changed by the goal, whether it was intentionally left running or stopped, and the exact next command when manual testing requires a launch. | — |
 | OPS-9 | Dependency authority must be as explicit and bounded as process-lifecycle authority. | Every implementation goal declares either the frozen dependency posture below or a goal-specific mutable posture naming the dependency declarations, lockfiles, repositories, and changes it authorizes. If dependency mutation is not explicit, the frozen posture applies. | — |
 | OPS-10 | A frozen dependency graph must not turn a recoverable cache miss into an artificial blocker. | Deterministic rehydration from existing checked-in lockfiles is permitted without further goal approval, but dependency declarations and lockfiles remain unchanged and unpinned substitutes, arbitrary local artifacts, and new developer/reference clones remain prohibited. | — |
+| OPS-11 | Duration estimates for long autonomous goals are uncertain and must not become either a premature stopping point or permission to improvise unrelated work. | A long/unattended goal defines a required core plus an ordered elastic continuation ladder. Complete and checkpoint the core first, then claim one testable/reversible stretch item at a time while capacity remains. Never weaken core acceptance, skip ahead, or invent unplanned work merely to consume time. | — |
 
 ## Intent audit evidence — 2026-08-17
 
@@ -48,7 +49,10 @@ be launched immediately, and whether any process or cache state was reset.
   a lockfile-pinned managed Git/source-build materialization from cloning a new
   developer/reference repository, and cache repair from lockfile mutation or
   arbitrary local-artifact substitution. None was collapsed into a broader
-  permission.
+  permission. The long-goal follow-up also distinguishes estimated duration
+  from acceptance, required core from ordered continuation, an unstarted
+  stretch item from a claimed obligation, and useful persistence from
+  improvised scope growth.
 - **Known source limitation:** None for this guidance request.
 
 ## Confirmed operational contract
@@ -183,6 +187,33 @@ remain inspectable. Do not leave the user with an unexplained several-hour
 wait. After a bounded retry window, inspect the owner and recover an in-scope
 process or surface the exact blocker.
 
+### Elastic continuation for long autonomous goals
+
+For an overnight, multi-hour, or otherwise unattended goal, predicted duration
+is scheduling evidence only. The plan must identify:
+
+1. a required core with ordinary observable acceptance and operational gates;
+2. a complete tested local checkpoint after that core;
+3. an ordered list of independent stretch items, each with prerequisites,
+   observable completion, focused validation, exclusions, and a reversible
+   commit boundary; and
+4. the currently claimed item, if any.
+
+After the core passes, continue with the first eligible stretch item instead of
+stopping because an estimate was pessimistic. Mark only one item in progress.
+Do not begin the next until the current item passes and is checkpointed. If the
+work window ends or the user returns, unstarted stretch items remain future
+work and do not retroactively invalidate the core; a claimed incomplete item is
+reported as active rather than relabelled complete. If the ladder is exhausted,
+stop at a clean verified checkpoint and report that fact instead of inventing
+new scope.
+
+Stretch items inherit the goal's dependency, repository, process, push,
+publication, and destructive-action authority. Entering a stretch item does not
+silently broaden any of those boundaries. A newly discovered need outside that
+authority is a reason to stop at the last passing checkpoint and request a plan
+amendment, not a reason to improvise.
+
 ## Required goal metadata
 
 Every future goal that can launch or build something should add this compact
@@ -207,6 +238,7 @@ section to its plan or completion record:
 - Exact manual test command:
 - Expected initial state and artifacts:
 - Known manual-only or external limitation:
+- Autonomous continuation ladder and currently claimed item:
 ```
 
 The plan's feature acceptance remains authoritative for whether the behavior is
@@ -233,6 +265,9 @@ Before marking a goal complete, verify:
 - [ ] The final running/stopped state of every changed in-scope process and any
   needed next launch command are explicit.
 - [ ] No unbounded lock/build wait remains unexplained.
+- [ ] Long/unattended work completed and checkpointed its core before claiming
+      at most one next stretch item; no estimated duration was used as evidence
+      of completion or as authority for improvised scope.
 - [ ] The manual testing path is a copyable command with expected state and
   artifact locations.
 - [ ] The final report states what was not changed and what remains for a later

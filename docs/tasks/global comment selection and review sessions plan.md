@@ -1,7 +1,7 @@
 # Global comment selection and review sessions plan
 
 **Plan status:** Active
-**Last updated:** 2026-08-17
+**Last updated:** 2026-08-21
 
 ## Purpose
 
@@ -63,6 +63,133 @@ Selection X-9 plus spatial SS-7 must adapt a resolved region into a pinned
 comment selector with document snapshot/hash, domain, projection, and
 selection-revision provenance; neither plan may replace comments with a moving
 live region or store a region as an unbounded pixel list.
+
+## Graphical review markup extension — 2026-08-21
+
+| ID | Active guidance | Required consequence | Coverage |
+| --- | --- | --- | --- |
+| RCMARK-1 | Historical source review should support Excalidraw/ShareX-like text, rectangle/polygon, line/arrow, and freehand annotation. | Reuse Text Editor v3/Draw primitives and bind them to ordinary comments; do not create a competing markup/comment engine. | Phase 6a |
+| RCMARK-2 | One markup/comment may cover surfaces in several laid-out documents and revisions. | Persist a versioned multi-document layout projection plus pinned multi-document selection/evaluation. | Phase 6a + Phase 7 |
+| RCMARK-3 | Drawing a rectangle means selecting/annotating what lies inside, but screen geometry must not become the only durable source address. | Resolve geometry to literal/semantic selector candidates and retain exact spatial/source witnesses; the user chooses the selector meaning. | Phase 3/4/6a |
+| RCMARK-4 | Rearranging the canvas must not silently retarget an existing review decision. | Source selection remains pinned; markup uses its historical projection or an explicit witnessed projection migration. | Phase 4/6a |
+
+The complete source-message re-audit restored one requirement that was only
+implicit: a reviewer should be able to annotate historical source using an
+Excalidraw/ShareX-like graphical language—text callouts, rectangles/polygons,
+lines/arrows, and freehand marks—while the associated comment still targets a
+durable selection that may span documents and revisions.
+
+Ownership remains split deliberately:
+
+- Text Editor v3/Draw owns versioned points, edges, shapes, freehand paths,
+  global canvas coordinates, layers, and drawing tools.
+- Spatial semantic surfaces owns document-layout projections, glyph bounds,
+  point/shape-to-region queries, and coordinate witnesses.
+- This plan owns the durable association among comment id, pinned selection
+  rule/evaluation, markup projection, author/provenance, and style.
+
+A review canvas may lay out revision-qualified documents at explicit origins,
+for example document X at `(0,0)` and Y at `(100,0)`. That placement is a
+versioned **view projection**, not the identity of either document or glyph.
+Moving/reflowing a document cannot retarget an approved comment silently.
+
+```text
+ReviewMarkup {
+  id,
+  comment_id,
+  pinned_selection_rule_and_evaluation,
+  document_layout_projection_revision,
+  draw_primitive_projection,
+  style,
+  provenance
+}
+```
+
+Drawing a rectangle/freehand path first resolves the intersected glyph/semantic
+regions against the exact layout/snapshot. The UI then offers literal and
+structural selector candidates through the ordinary constrained action palette.
+The accepted selector and exact witness are persisted. The primitive remains a
+visual explanation/callout; transient screen pixels are never the only record
+of what was annotated. A text callout displays the authoritative comment text
+or an explicit presentation label rather than creating an accidental second
+comment store.
+
+Markup may span several laid-out documents. If a later layout projection moves
+them, the markup can be transformed with a witnessed projection migration or
+shown against its historical layout; its selected source ranges do not change
+merely because the canvas was rearranged.
+
+### Markup intent-audit evidence
+
+- **Pass 1 — extraction:** Reread the complete attached review message and
+  separated freehand/text/shape language, cross-document layout, historical
+  revision identity, rectangle containment, semantic selector suggestions, and
+  durable storage into RCMARK-1 through RCMARK-4.
+- **Pass 2 — traceability:** Routed primitive geometry to Draw, spatial
+  resolution to semantic surfaces, selection identity to this plan/X-9, and
+  implementation/puppet evidence to Phase 6a.
+- **Pass 3 — adversarial omission:** Checked that moving a document does not
+  move its source identity, a transient screen rectangle is not the sole
+  approval witness, callout text does not become a second comment authority,
+  and multi-document gestures do not collapse to one file.
+- **Known source limitation:** None; the complete attached source message and
+  all three owning plans were available.
+
+## Candidate-trajectory comment extension — 2026-08-21
+
+| ID | Active guidance | Required consequence | Coverage |
+| --- | --- | --- | --- |
+| RCTEMP-1 | A projected/candidate history should be commentable while it is scrubbed, before its actions are executed. | Add a typed candidate target for trajectory plan revision, route, step/action/state, predicted hash/status, and optional projected source selection. | Phase 6b + snapshot 2.12/2.13 |
+| RCTEMP-2 | Candidate comments may explain a whole route, one action/cost/barrier, one predicted state, or glyph regions within a predicted document. | Comment target is a tagged union rather than forcing every observation into a source range; region targets still retain pinned document/selection witnesses. | Phase 6b |
+| RCTEMP-3 | Replanning must not silently move comments from an old proposed future to a new one. | Candidate targets pin immutable trajectory revisions. Replan leaves old comments inspectable; migration requires explicit correspondence evidence and a witnessed decision. | Phase 6b |
+| RCTEMP-4 | Executing exactly what was predicted may connect a candidate comment to committed history, but must not rewrite provenance or manufacture approval. | Exact state/witness correspondence offers an explicit link/promote operation that creates a committed target and retains the candidate origin. Divergence or ambiguity suspends migration; human approval remains separate. | Phase 6b |
+| RCTEMP-5 | Scrubbing a candidate is read-only and comment creation must not materialize/execute it as a side effect. | The comment UI consumes snapshot-plan candidate-frame addresses and statuses; unavailable frames may accept route/action comments but cannot invent source-region witnesses. | Phase 6b + snapshot 2.12 |
+
+The [snapshot/episode plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md)
+owns candidate trajectory identities, projected state hashes/statuses, route
+positions, and the read-only timeline. This plan owns comment identity, body,
+tags, authorship, approval semantics, persistence, and migration. The adapter is
+conceptually:
+
+```text
+CommentTarget =
+    CommittedReviewTarget(...)
+  | CandidateTrajectoryTarget {
+      trajectory_plan_revision,
+      route_id,
+      step_or_action_or_state,
+      predicted_state_hash_and_status,
+      projected_document_and_pinned_selection?,
+      candidate_provenance
+    }
+```
+
+A candidate target is never “current plan head.” It names an immutable plan
+revision. The UI labels it as candidate in editor, timeline, explorer, and
+comment views. If the predicted frame is unavailable, blocked, or invalidated,
+route/action-level comments remain valid, but no glyph-range target is created
+without exact projected document bytes and layout/selection witnesses.
+
+Executing a plan does not mutate the original comment. When committed state
+hash, document identity, and selected witnesses agree exactly, an explicit
+promotion creates a linked committed target/comment revision and records the
+candidate source. Changed or ambiguous correspondence uses the same
+conservative migration machinery as historical source changes. Direct human
+approval and any candidate discussion remain distinguishable.
+
+### Candidate-comment intent-audit evidence
+
+- **Pass 1 — extraction:** Preserved candidate timeline scrubbing, comments on
+  proposed alternatives, route/action/state/region granularity, immutable
+  replans, and eventual execution as separate requirements.
+- **Pass 2 — traceability:** Routed candidate state/seek identity to snapshot
+  2.12/2.13 and comment persistence/migration/approval to Phase 6b.
+- **Pass 3 — adversarial omission:** Prevented scrubbing/commenting from
+  executing a candidate, “current plan” from acting as a moving target,
+  replanning from retargeting old comments, unavailable frames from inventing
+  ranges, and exact execution from silently converting discussion into human
+  approval.
+- **Known source limitation:** None for this follow-up.
 
 ## Release code-review profile — 2026-08-08
 
@@ -946,6 +1073,61 @@ Both Java and Rust now consume and deterministically round-trip the fixture.
   removed, modified, and ambiguous states.
 - Integrate the rule editor with Theme Settings and the colour picker.
 - Add hover/details and non-color indicators for overlapping comments.
+
+### [ ] Phase 6a — Bind graphical markups to pinned review selections
+
+- Reuse the Text Editor v3/Draw primitive schema through an explicit adapter;
+  do not create comment-private rectangle/freehand implementations.
+- Add versioned multi-document review-layout projections with exact document
+  revision, origin/transform, glyph-layout fingerprint, and bounds evidence.
+- Resolve rectangle, polygon, arrow endpoint, freehand, and text-callout gestures
+  into literal/semantic selector candidates through the spatial-region system.
+- Persist accepted comment selection/evaluation and markup projection together
+  while keeping source identity independent from canvas placement.
+- Support historical-layout display and explicit witnessed migration when a
+  review canvas is rearranged. Ambiguous/missing projection migration leaves
+  the old markup inspectable and requests a decision.
+- Add action/command-palette creation, edit, style, hide/show, delete/archive,
+  and jump-to-comment operations with keyboard and puppet parity.
+
+**Validation:** Pure fixtures lay two document revisions at independent origins,
+draw one rectangle spanning both, resolve disjoint glyph ranges, move/reflow the
+documents, and prove source selection remains pinned while markup either
+transforms through an explicit witness or remains on the historical projection.
+A live puppet adds a rectangle, arrow, freehand mark, and text callout to a
+review comment and reopens the session with identical source targets and visual
+primitives.
+
+**Completion criteria:** Graphical review markup is expressive and persistent,
+but no comment or approval depends solely on transient pixels or current canvas
+placement.
+
+### [ ] Phase 6b — Comment on scrubbed candidate trajectories
+
+- Implement `CandidateTrajectoryTarget` against snapshot-plan 2.12/2.13 without
+  duplicating trajectory, frame, or projected-state storage in the comment
+  subsystem.
+- Support comments on whole route, action/evaluation/transition, candidate
+  state, and pinned source/glyph regions in a materialized candidate document.
+- Label and filter candidate comments in the timeline, editor, explorer, and
+  comment explorer. Navigation returns to the exact plan revision/route/step;
+  it never follows whichever plan is currently selected.
+- Preserve candidate comments after replan, invalidation, cancellation, and
+  budget exhaustion. Allow route/action comments on unavailable frames while
+  refusing fabricated region witnesses.
+- Add explicit exact-execution promotion/link with candidate provenance and
+  conservative witnessed migration for changed/ambiguous results. Never carry
+  human approval implicitly.
+
+**Validation:** A fixture comments on a candidate glyph and a route cost,
+scrubs away/back, replans, and round-trips persistence. Exact execution offers
+and performs explicit promotion while retaining provenance. A divergent
+execution and ambiguous correspondence preserve the candidate comments,
+suspend migration, and transfer no approval. Commenting/scrubbing leaves actual
+history head and instruction pointer unchanged.
+
+**Completion criteria:** Proposed futures can participate in the ordinary
+comment workflow without becoming committed facts or moving targets.
 
 ### [ ] Phase 7 — Multi-version release review and derived approval
 
