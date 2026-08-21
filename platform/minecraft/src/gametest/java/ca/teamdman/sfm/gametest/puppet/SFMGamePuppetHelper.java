@@ -388,6 +388,20 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    /** Validates and artifacts one natural whole-workspace counterfactual checkpoint. */
+    public void assertWorkspaceCounterfactual(
+            AssertWorkspaceCounterfactualPuppetAction.Stage stage,
+            String artifactName,
+            String screenshotCaptureId
+    ) {
+        add(new AssertWorkspaceCounterfactualPuppetAction(
+                Objects.requireNonNull(stage, "stage"),
+                Objects.requireNonNull(artifactName, "artifactName"),
+                Objects.requireNonNull(screenshotCaptureId, "screenshotCaptureId")
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     /** Chooses exact source/source replay from its visible constrained action palette. */
     public void clickTemporalExactReplayChoice() {
         add(new ClickTemporalExactReplayChoicePuppetAction());

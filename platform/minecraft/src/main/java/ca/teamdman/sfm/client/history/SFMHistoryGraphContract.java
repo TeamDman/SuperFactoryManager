@@ -245,6 +245,47 @@ public final class SFMHistoryGraphContract {
         }
     }
 
+    /**
+     * One evaluated action that deliberately has no child workspace state.
+     *
+     * <p>This is distinct from {@link BranchEdge}: cancelled, rejected, and
+     * irreversible-barrier attempts terminate at their outcome and must never
+     * fabricate a state revision merely to make the graph drawable.</p>
+     */
+    public record ActionAttempt(
+            String id,
+            String parentStateRevisionId,
+            String intentId,
+            String evaluationId,
+            String outcomeId,
+            EffectClass effectClass,
+            ProjectionStatus status
+    ) {
+        public ActionAttempt {
+            id = SFMHistoryGraphContract.id(id, "attempt.id");
+            parentStateRevisionId = SFMHistoryGraphContract.id(
+                    parentStateRevisionId,
+                    "attempt.parentStateRevisionId"
+            );
+            intentId = SFMHistoryGraphContract.id(intentId, "attempt.intentId");
+            evaluationId = SFMHistoryGraphContract.id(evaluationId, "attempt.evaluationId");
+            outcomeId = SFMHistoryGraphContract.id(outcomeId, "attempt.outcomeId");
+            Objects.requireNonNull(effectClass, "effectClass");
+            Objects.requireNonNull(status, "status");
+            if (status == ProjectionStatus.MATERIALIZED) {
+                throw new IllegalArgumentException("A materialized action belongs on a state-to-state branch edge");
+            }
+            if (effectClass == EffectClass.EXTERNAL_IRREVERSIBLE
+                    && status != ProjectionStatus.EXTERNAL_BARRIER) {
+                throw new IllegalArgumentException("Irreversible action attempts must be explicit barriers");
+            }
+            if (status == ProjectionStatus.EXTERNAL_BARRIER
+                    && effectClass != EffectClass.EXTERNAL_IRREVERSIBLE) {
+                throw new IllegalArgumentException("External barriers require an irreversible effect class");
+            }
+        }
+    }
+
     public record RetentionPin(String id, RetentionKind kind, String targetId, String owner) {
         public RetentionPin {
             id = SFMHistoryGraphContract.id(id, "pin.id");
@@ -263,8 +304,35 @@ public final class SFMHistoryGraphContract {
             List<HistoryHead> heads,
             List<HeadMovement> headMovements,
             List<BranchEdge> edges,
+            List<ActionAttempt> actionAttempts,
             List<RetentionPin> retentionPins
     ) {
+        /** Source-compatible constructor for graphs with only state-to-state transitions. */
+        public Graph(
+                String schema,
+                List<ActionIntent> intents,
+                List<ActionEvaluation> evaluations,
+                List<ActionOutcome> outcomes,
+                List<StateRevision> states,
+                List<HistoryHead> heads,
+                List<HeadMovement> headMovements,
+                List<BranchEdge> edges,
+                List<RetentionPin> retentionPins
+        ) {
+            this(
+                    schema,
+                    intents,
+                    evaluations,
+                    outcomes,
+                    states,
+                    heads,
+                    headMovements,
+                    edges,
+                    List.of(),
+                    retentionPins
+            );
+        }
+
         public Graph {
             if (!SCHEMA.equals(schema)) {
                 throw new IllegalArgumentException("Unsupported history graph schema: " + schema);
@@ -276,6 +344,7 @@ public final class SFMHistoryGraphContract {
             heads = canonical(heads, HistoryHead::id, "heads");
             headMovements = canonical(headMovements, HeadMovement::id, "headMovements");
             edges = canonical(edges, BranchEdge::id, "edges");
+            actionAttempts = canonical(actionAttempts, ActionAttempt::id, "actionAttempts");
             retentionPins = canonical(retentionPins, RetentionPin::id, "retentionPins");
 
             Map<String, ActionIntent> intentIndex = index(intents, ActionIntent::id);
@@ -318,6 +387,31 @@ public final class SFMHistoryGraphContract {
                 edge.evaluationId().ifPresent(evaluation ->
                         requireReference(evaluationIndex, evaluation, "edge evaluation"));
                 edge.outcomeId().ifPresent(outcome -> requireReference(outcomeIndex, outcome, "edge outcome"));
+            }
+            for (ActionAttempt attempt : actionAttempts) {
+                requireReference(stateIndex, attempt.parentStateRevisionId(), "action attempt parent");
+                requireReference(intentIndex, attempt.intentId(), "action attempt intent");
+                ActionEvaluation evaluation = requireReference(
+                        evaluationIndex,
+                        attempt.evaluationId(),
+                        "action attempt evaluation"
+                );
+                ActionOutcome outcome = requireReference(outcomeIndex, attempt.outcomeId(), "action attempt outcome");
+                if (!evaluation.intentId().equals(attempt.intentId())
+                        || !evaluation.predictedOutcomeId().equals(attempt.outcomeId())
+                        || !evaluation.expectedParentStateId().equals(attempt.parentStateRevisionId())) {
+                    throw new IllegalArgumentException("Action attempt semantic identities disagree");
+                }
+                if (!outcome.evaluationId().equals(attempt.evaluationId())) {
+                    throw new IllegalArgumentException("Action attempt outcome belongs to another evaluation");
+                }
+                if (outcome.resultingStateId().isPresent()) {
+                    throw new IllegalArgumentException("A childless action attempt cannot publish a result state");
+                }
+                if (attempt.status() == ProjectionStatus.EXTERNAL_BARRIER
+                        && outcome.status() != OutcomeStatus.EXTERNAL_BARRIER) {
+                    throw new IllegalArgumentException("External action attempts require an external-barrier outcome");
+                }
             }
         }
     }

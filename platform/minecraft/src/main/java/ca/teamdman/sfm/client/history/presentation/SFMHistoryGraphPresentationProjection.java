@@ -186,6 +186,23 @@ public final class SFMHistoryGraphPresentationProjection {
             );
         }
 
+        for (SFMHistoryGraphContract.ActionAttempt attempt : history.actionAttempts()) {
+            EnumSet<SFMHistoryGraphPresentationModel.LegendRole> roles = EnumSet.of(
+                    SFMHistoryGraphPresentationModel.LegendRole.RETAINED_ALTERNATIVE
+            );
+            addProjectionStatus(roles, attempt.status());
+            requiredNodeIds.add(attempt.parentStateRevisionId());
+            addSemanticActionAttemptChain(
+                    nodes,
+                    edges,
+                    attempt,
+                    roles,
+                    historyIntents,
+                    historyEvaluations,
+                    historyOutcomes
+            );
+        }
+
         for (SFMHistoryGraphContract.RetentionPin pin : history.retentionPins()) {
             NodeDraft retainedNode = nodes.get(pin.targetId());
             if (retainedNode != null) {
@@ -215,6 +232,56 @@ public final class SFMHistoryGraphPresentationProjection {
                 "Actual head " + actualHead.id(),
                 "Actual history head " + actualHead.id() + " points to state " + actualHeadNode.id + "."
         ));
+
+        for (SFMHistoryGraphContract.HeadMovement movement : history.headMovements()) {
+            String movementNodeId = compositeId("head-movement", movement.id());
+            NodeDraft movementNode = namedNode(
+                    nodes,
+                    movementNodeId,
+                    SFMHistoryGraphPresentationModel.NodeOrigin.HEAD_MOVEMENT,
+                    movement.kind() + " · " + movement.requestId(),
+                    "History head movement " + movement.id() + " moved " + movement.headId()
+                            + " from " + movement.fromStateRevisionId() + " to "
+                            + movement.toStateRevisionId() + "."
+            );
+            movementNode.roles.add(SFMHistoryGraphPresentationModel.LegendRole.RETAINED_ALTERNATIVE);
+            movementNode.detail("head-movement.actor", movement.actor());
+            movementNode.detail("head-movement.candidates", String.join(", ", movement.candidateStateRevisionIds()));
+            movementNode.detail("head-movement.from", movement.fromStateRevisionId());
+            movementNode.detail("head-movement.head", movement.headId());
+            movementNode.detail("head-movement.kind", movement.kind().name());
+            movementNode.detail("head-movement.request", movement.requestId());
+            movementNode.detail("head-movement.to", movement.toStateRevisionId());
+            EnumSet<SFMHistoryGraphPresentationModel.LegendRole> roles = EnumSet.of(
+                    SFMHistoryGraphPresentationModel.LegendRole.RETAINED_ALTERNATIVE
+            );
+            addEdge(edges, semanticRelation(
+                    compositeId("head-movement-enter", movement.id()),
+                    movement.id(),
+                    movement.fromStateRevisionId(),
+                    movementNodeId,
+                    roles,
+                    "Head movement begins " + movement.id(),
+                    "Head movement " + movement.id() + " leaves " + movement.fromStateRevisionId() + ".",
+                    Map.of(
+                            "head-movement.kind", movement.kind().name(),
+                            "head-movement.request", movement.requestId()
+                    )
+            ));
+            addEdge(edges, semanticRelation(
+                    compositeId("head-movement-exit", movement.id()),
+                    movement.id(),
+                    movementNodeId,
+                    movement.toStateRevisionId(),
+                    roles,
+                    "Head movement completes " + movement.id(),
+                    "Head movement " + movement.id() + " arrives at " + movement.toStateRevisionId() + ".",
+                    Map.of(
+                            "head-movement.kind", movement.kind().name(),
+                            "head-movement.request", movement.requestId()
+                    )
+            ));
+        }
 
         Map<String, SFMTrajectoryContract.TrajectoryPlanRevision> plans = index(
                 planBook.plans(),
@@ -1192,6 +1259,75 @@ public final class SFMHistoryGraphPresentationProjection {
                     )
             ));
         }
+    }
+
+    private static void addSemanticActionAttemptChain(
+            Map<String, NodeDraft> nodes,
+            Map<String, EdgeDraft> edges,
+            SFMHistoryGraphContract.ActionAttempt attempt,
+            EnumSet<SFMHistoryGraphPresentationModel.LegendRole> roles,
+            Map<String, SFMHistoryGraphContract.ActionIntent> intents,
+            Map<String, SFMHistoryGraphContract.ActionEvaluation> evaluations,
+            Map<String, SFMHistoryGraphContract.ActionOutcome> outcomes
+    ) {
+        addIntentNode(nodes, require(intents, attempt.intentId(), "action-attempt intent"))
+                .roles.addAll(roles);
+        addEvaluationNode(nodes, require(evaluations, attempt.evaluationId(), "action-attempt evaluation"))
+                .roles.addAll(roles);
+        addOutcomeNode(nodes, require(outcomes, attempt.outcomeId(), "action-attempt outcome"))
+                .roles.addAll(roles);
+        List<String> chain = List.of(
+                attempt.parentStateRevisionId(),
+                semanticNodeId("intent", attempt.intentId()),
+                semanticNodeId("evaluation", attempt.evaluationId()),
+                semanticNodeId("outcome", attempt.outcomeId())
+        );
+        for (int index = 0; index + 1 < chain.size(); index++) {
+            String from = chain.get(index);
+            String to = chain.get(index + 1);
+            addEdge(edges, semanticRelation(
+                    compositeId("semantic-attempt", attempt.id(), Integer.toString(index)),
+                    attempt.id(),
+                    from,
+                    to,
+                    roles,
+                    "Childless action attempt " + attempt.id(),
+                    "Action attempt " + attempt.id() + " relation " + (index + 1)
+                            + " of " + (chain.size() - 1) + " from " + from + " to " + to + ".",
+                    Map.ofEntries(
+                            Map.entry("history.effect-class", attempt.effectClass().name()),
+                            Map.entry("history.pre-state", attempt.parentStateRevisionId()),
+                            Map.entry("history.result-state", "(none)"),
+                            Map.entry("history.status", attempt.status().name()),
+                            Map.entry("semantic.position", Integer.toString(index)),
+                            Map.entry("semantic.provenance", "history.actionAttempts/" + attempt.id())
+                    )
+            ));
+        }
+    }
+
+    private static EdgeDraft semanticRelation(
+            String id,
+            String sourceContractId,
+            String from,
+            String to,
+            EnumSet<SFMHistoryGraphPresentationModel.LegendRole> roles,
+            String label,
+            String narration,
+            Map<String, String> details
+    ) {
+        return new EdgeDraft(
+                id,
+                sourceContractId,
+                from,
+                to,
+                SFMHistoryGraphPresentationModel.EdgeOrigin.SEMANTIC,
+                SFMHistoryGraphPresentationModel.EdgeCommitment.SEMANTIC_RELATION,
+                roles,
+                label,
+                narration,
+                details
+        );
     }
 
     private static String semanticNodeId(String kind, String contractId) {

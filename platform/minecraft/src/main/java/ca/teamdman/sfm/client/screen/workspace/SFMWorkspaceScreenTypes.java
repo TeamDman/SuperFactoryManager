@@ -48,6 +48,12 @@ public final class SFMWorkspaceScreenTypes {
                     SFMDecimalNumberingChamberScreenType::new
             );
 
+    public static final SFMRegistryObject<SFMClientScreenType, SFMWorkspaceCounterfactualScreenType>
+            WORKSPACE_COUNTERFACTUAL_CHAMBER = REGISTERER.register(
+                    "chamber/workspace-counterfactual",
+                    SFMWorkspaceCounterfactualScreenType::new
+            );
+
     public static final SFMRegistryObject<SFMClientScreenType, SFMTextEditorScreenType> TEXT_EDITOR = REGISTERER.register(
             "text_editor",
             SFMTextEditorScreenType::new

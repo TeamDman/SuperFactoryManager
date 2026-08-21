@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.explorer.SFMExplorerRuntime;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMPathExpression;
+import ca.teamdman.sfm.client.history.workspace.SFMWorkspaceCounterfactualRuntime;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPreviewPlacement;
@@ -76,6 +77,18 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
             SFMPath path = concretePath(SFMCanonicalTokenArgument.get(commandContext, "concrete_path"));
             if (path.scheme().equals(SFMSymbolReferenceResultRepository.SCHEME)) {
                 return openReferenceLeaf(commandContext, path);
+            }
+            if (path.scheme().equals(SFMWorkspaceCounterfactualRuntime.PATH_SCHEME)) {
+                int opened = SFMWorkspaceCounterfactualRuntime.get().openDocument(
+                        commandContext.getSource().context(),
+                        path,
+                        mode
+                );
+                commandContext.getSource().sendFeedback(Component.literal(
+                        "Opening " + path.canonical() + " as "
+                                + mode.name().toLowerCase(java.util.Locale.ROOT)
+                ));
+                return opened;
             }
             if (path.kind() != SFMPath.Kind.FILE) {
                 throw new IllegalArgumentException("The first addressed editor slice supports file:// paths only");

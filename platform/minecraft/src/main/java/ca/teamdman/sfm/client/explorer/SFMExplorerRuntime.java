@@ -364,6 +364,35 @@ public final class SFMExplorerRuntime implements AutoCloseable {
         return resolvers.find(scheme).map(ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver::generation);
     }
 
+    /**
+     * Installs one contributed resolver without replacing an authority that is
+     * already live for the same scheme.
+     *
+     * <p>Feature-owned, in-memory scenes use this seam so their ordinary
+     * explorer panels still share the process-wide lazy loader and registered
+     * semantic actions. Re-registering the same resolver instance is
+     * idempotent; a competing resolver fails closed.</p>
+     */
+    public synchronized boolean registerResolverIfAbsent(
+            ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver resolver
+    ) {
+        ensureOpen();
+        Objects.requireNonNull(resolver, "resolver");
+        Optional<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver> existing =
+                resolvers.find(resolver.scheme());
+        if (existing.isPresent()) {
+            if (existing.orElseThrow() != resolver) {
+                throw new IllegalArgumentException(
+                        "A different explorer resolver is already registered for scheme `"
+                                + resolver.scheme() + "`"
+                );
+            }
+            return false;
+        }
+        resolvers.register(resolver);
+        return true;
+    }
+
     public SFMGatedExplorerResolver.Gate armFilesystemPublicationGate(SFMPath parent) {
         return gatedFilesystem.armNext(parent);
     }
