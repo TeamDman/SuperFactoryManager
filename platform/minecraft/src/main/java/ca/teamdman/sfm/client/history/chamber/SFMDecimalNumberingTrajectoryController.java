@@ -28,7 +28,8 @@ import java.util.function.Supplier;
  * in one monitor transaction.</p>
  */
 public final class SFMDecimalNumberingTrajectoryController
-        implements SFMHistoryGraphRuntime.CandidateFrameController {
+        implements SFMHistoryGraphRuntime.CandidateFrameController,
+        SFMHistoryGraphRuntime.CommittedDocumentController {
     public static final String INITIAL_TEXT = "- apples\n- bananas\n";
     public static final String THIRD_ITEM_TEXT = "- apricots\n";
 
@@ -106,6 +107,20 @@ public final class SFMDecimalNumberingTrajectoryController
 
     public synchronized long revision() {
         return revision;
+    }
+
+    @Override
+    public synchronized SFMHistoryGraphRuntime.CommittedDocument committedDocument() {
+        SFMChamberDocumentState current = currentState();
+        return new SFMHistoryGraphRuntime.CommittedDocument(
+                machineId(),
+                revision,
+                machine.actualHistoryHeadId(),
+                current.revisionId(),
+                current.stateHash(),
+                scope.documentId(),
+                current.text()
+        );
     }
 
     public synchronized List<ReplanLineage> replanLineage() {

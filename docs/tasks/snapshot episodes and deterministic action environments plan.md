@@ -1270,7 +1270,7 @@ JSON identify candidate versus committed state consistently.
 **Completion criteria:** A user can scrub the proposed future, inspect exactly
 what each step would show, and return to the actual state without changing it.
 
-### [ ] 2.13 Integrate candidate histories with the comment system
+### [x] 2.13 Integrate candidate histories with the comment system
 
 - Implement the candidate-target adapter owned jointly with comment Phase 6b:
   plan revision, route, step/action/state, predicted hash/status, projected
@@ -1932,8 +1932,8 @@ reported precisely; no partial item is relabelled complete to reach the next.
 
 | ID | Status | Stretch item | Observable completion | Gate/exclusion |
 | --- | --- | --- | --- | --- |
-| S1M-X1 | `[x]` | Complete 2.12 candidate-history scrubbing. | The user scrubs every projected route frame, including unavailable/barrier states, while actual head and instruction pointer remain unchanged; old-plan frames survive replan. | Claimed from passing core checkpoint `6545b0cd2`; reuses its trajectory/state projections; no comments yet. |
-| S1M-X2 | `[ ]` | Complete 2.13 and comment Phase 6b candidate targeting. | A comment can target a candidate glyph, action, state, or route; replan preserves it; exact execution permits explicit promotion; divergence transfers neither target nor approval. | Requires X1 and the existing comment persistence/selection adapter seam; no release-approval workflow. |
+| S1M-X1 | `[x]` | Complete 2.12 candidate-history scrubbing. | The user scrubs every projected route frame, including unavailable/barrier states, while actual head and instruction pointer remain unchanged; old-plan frames survive replan. | Completed and checkpointed as `a99ca3db7`; reuses its trajectory/state projections; no comments yet. |
+| S1M-X2 | `[x]` | Complete 2.13 and comment Phase 6b candidate targeting. | A comment can target a candidate glyph, action, state, or route; replan preserves it; exact execution permits explicit promotion; divergence transfers neither target nor approval. | Completed against passing X1 checkpoint `a99ca3db7`; uses the existing comment persistence/selection adapter seam; no release-approval workflow. |
 | S1M-X3 | `[ ]` | Add side-by-side route comparison and review disposition. | Two retained trajectories can be scrubbed in lockstep or independently, their costs/outcomes/comments compared, and one selected/rejected without deleting either. | Uses existing panels and comments; no generalized graphical markup requirement. |
 | S1M-X4 | `[ ]` | Finish the remaining TE-S1 exact-replay/semantic-rebase artifacts around the chamber. | Raw event → binding → semantic action → transition layers round-trip; exact replay and rebase produce the documented two- versus three-item histories. | Java-local first; cross-runtime Rust interchange remains a separately checkpointed sub-item if it fits existing dependencies. |
 | S1M-X5 | `[ ]` | Complete 2.9's whole-workspace `A.java`/`B.java` counterfactual journey. | The visible graph compares checkout, frozen witness, and re-evaluated intent after changing the earlier explorer selection, with typed barriers and retained original history. | Uses only restorable UI/document state; never writes the ambient checkout. |
@@ -1955,6 +1955,34 @@ Focused candidate-history/controller/dynamic-timeline/source-journey tests and
 the 1.19.2 compile pass; the final puppet screenshots and JSON were visually and
 structurally cross-checked in artifact run
 `title_screen_can-20260821-072754-848`. No dependency declaration or checked-in lockfile
+changed, no cache acquisition or repository clone was needed, and no CLI source
+changed, so the installed `728694ad7` CLI remains current and no user install is
+required.
+
+**S1M-X2 completion evidence (2026-08-21):** Added the versioned
+`sfm.review-comment-session/2` model, deterministic codec/store, v1 migration,
+candidate-target adapter, review runtime, registered comment/promotion/
+migration actions, candidate-history labels, and review-explorer projection.
+Candidate route, action, state, and pinned materialized-glyph targets retain
+their immutable plan/route/frame identity through replan and persistence;
+unavailable frames accept route/action observations while rejecting fabricated
+glyph witnesses. Exact execution creates a distinct committed revision and an
+explicit provenance-preserving promoted comment only after the user invokes
+promotion. Divergence creates no committed target, while witnessed migration
+requires explicit evidence and remains separate from human approval.
+
+The candidate navigation seam now defers pinned seeks until asynchronously
+projected timeline bounds include the requested frame, while a subsequent
+ordinary user seek cancels that pending request. Focused model, codec, adapter,
+grammar, explorer, runtime, promotion-identity, dynamic-timeline, and puppet
+source tests pass. The full 1.19.2 Java suite exits 0 after that repair (the
+installed-worker integration test is intentionally aborted without its opt-in
+JVM properties), and the natural title-screen puppet passes as artifact run
+`title_screen_can-20260821-085216-878`. Its screenshots and structured artifacts
+prove route/action/glyph comments, exact reopen navigation, replan retention,
+explicit exact promotion, no implicit divergent migration, explicit witnessed
+migration with evidence, unavailable-frame behavior, persistence reload, and
+zero effective approvals. No dependency declaration or checked-in lockfile
 changed, no cache acquisition or repository clone was needed, and no CLI source
 changed, so the installed `728694ad7` CLI remains current and no user install is
 required.

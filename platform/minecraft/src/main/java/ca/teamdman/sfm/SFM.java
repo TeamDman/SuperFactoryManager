@@ -11,6 +11,7 @@ import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
 import ca.teamdman.sfm.client.action.SFMExplorerActions;
 import ca.teamdman.sfm.client.action.SFMSymbolActions;
 import ca.teamdman.sfm.client.action.SFMSpatialActions;
+import ca.teamdman.sfm.client.action.SFMReviewActions;
 import ca.teamdman.sfm.client.action.SFMTrajectoryActions;
 import ca.teamdman.sfm.client.action.SFMDeveloperActions;
 import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
@@ -95,6 +96,7 @@ public class SFM {
         SFMSymbolActions.register(bus);
         SFMSpatialActions.register(bus);
         SFMTrajectoryActions.register(bus);
+        SFMReviewActions.register(bus);
 
         SFMKeyboardUsageSituationRegistrations.register(bus);
 

@@ -6,6 +6,8 @@ import ca.teamdman.sfm.client.history.SFMEpisodeContext;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphContract;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.SFMTrajectoryContract;
+import ca.teamdman.sfm.client.review.session.SFMReviewSessionRuntime;
+import ca.teamdman.sfm.client.review.session.SFMReviewSessionV2;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
@@ -69,6 +71,7 @@ public final class SFMCandidateHistoryPanel implements SFMSeekableTimelinePanel,
     private final Optional<String> requestedPlanRevisionId;
     private final Optional<String> requestedRouteId;
     private final Executor projectionExecutor;
+    private final SFMReviewSessionRuntime reviewRuntime;
     private final AtomicReference<SFMHistoryGraphRuntime.CatalogEvent> pendingCatalogEvent =
             new AtomicReference<>();
     private final ConcurrentLinkedQueue<ProjectionUpdate> pendingProjectionUpdates =
@@ -99,7 +102,8 @@ public final class SFMCandidateHistoryPanel implements SFMSeekableTimelinePanel,
                 episodeSelector,
                 requestedPlanRevisionId,
                 requestedRouteId,
-                PROJECTION_EXECUTOR
+                PROJECTION_EXECUTOR,
+                SFMReviewSessionRuntime.get()
         );
     }
 
@@ -109,6 +113,24 @@ public final class SFMCandidateHistoryPanel implements SFMSeekableTimelinePanel,
             Optional<String> requestedPlanRevisionId,
             Optional<String> requestedRouteId,
             Executor projectionExecutor
+    ) {
+        this(
+                runtime,
+                episodeSelector,
+                requestedPlanRevisionId,
+                requestedRouteId,
+                projectionExecutor,
+                SFMReviewSessionRuntime.get()
+        );
+    }
+
+    SFMCandidateHistoryPanel(
+            SFMHistoryGraphRuntime runtime,
+            SFMEntitySelector episodeSelector,
+            Optional<String> requestedPlanRevisionId,
+            Optional<String> requestedRouteId,
+            Executor projectionExecutor,
+            SFMReviewSessionRuntime reviewRuntime
     ) {
         this.runtime = Objects.requireNonNull(runtime, "runtime");
         this.episodeSelector = Objects.requireNonNull(episodeSelector, "episodeSelector");
@@ -124,6 +146,7 @@ public final class SFMCandidateHistoryPanel implements SFMSeekableTimelinePanel,
             throw new IllegalArgumentException("An explicit candidate route requires an explicit plan revision");
         }
         this.projectionExecutor = Objects.requireNonNull(projectionExecutor, "projectionExecutor");
+        this.reviewRuntime = Objects.requireNonNull(reviewRuntime, "reviewRuntime");
     }
 
     @Override
@@ -282,6 +305,19 @@ public final class SFMCandidateHistoryPanel implements SFMSeekableTimelinePanel,
             }
             y += line;
         }
+        List<SFMReviewSessionV2.Comment> comments = currentComments();
+        drawClipped(poseStack, minecraft, bounds, x, y,
+                "candidate comments " + comments.size(), comments.isEmpty() ? MUTED : UNAVAILABLE);
+        y += line;
+        for (int index = 0; index < Math.min(2, comments.size()); index++) {
+            SFMReviewSessionV2.Comment comment = comments.get(index);
+            SFMReviewSessionV2.CandidateTrajectoryTarget target =
+                    (SFMReviewSessionV2.CandidateTrajectoryTarget) comment.target();
+            drawClipped(poseStack, minecraft, bounds, x + 8, y,
+                    "[candidate " + target.targetKind().name().toLowerCase(java.util.Locale.ROOT)
+                            + "] " + comment.id() + " · " + comment.text(), UNAVAILABLE);
+            y += line;
+        }
         drawLiveInvariants(poseStack, minecraft, bounds, x, y + 2, line);
     }
 
@@ -310,6 +346,22 @@ public final class SFMCandidateHistoryPanel implements SFMSeekableTimelinePanel,
 
     public Optional<String> pinnedRouteId() {
         return Optional.ofNullable(pinnedRouteId);
+    }
+
+    public Optional<String> pinnedMachineId() {
+        return Optional.ofNullable(pinnedMachineId);
+    }
+
+    public List<SFMReviewSessionV2.Comment> currentComments() {
+        SFMCandidateHistoryContract.CandidateRouteProjection current = projection;
+        if (current == null || pinnedMachineId == null || currentPosition > current.lastPosition()) return List.of();
+        SFMCandidateHistoryContract.CandidateFrame frame = current.frame(currentPosition);
+        return reviewRuntime.commentsForFrame(
+                pinnedMachineId,
+                frame.address().trajectoryPlanRevisionId(),
+                frame.address().routeId(),
+                frame.address().routeStepPosition()
+        );
     }
 
     void applyCatalog(SFMHistoryGraphRuntime.CatalogEvent event) {

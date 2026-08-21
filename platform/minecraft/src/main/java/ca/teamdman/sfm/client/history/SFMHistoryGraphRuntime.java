@@ -319,6 +319,31 @@ public final class SFMHistoryGraphRuntime {
         );
     }
 
+    /** Optional exact committed document projection used by explicit candidate-comment promotion. */
+    public interface CommittedDocumentController extends Controller {
+        CommittedDocument committedDocument();
+    }
+
+    public record CommittedDocument(
+            String machineId,
+            long machineRevision,
+            String actualHistoryHeadId,
+            String stateId,
+            String stateHash,
+            String documentId,
+            String text
+    ) {
+        public CommittedDocument {
+            machineId = requireText(machineId, "committedDocument.machineId");
+            if (machineRevision < 0) throw new IllegalArgumentException("machineRevision must not be negative");
+            actualHistoryHeadId = requireText(actualHistoryHeadId, "committedDocument.actualHistoryHeadId");
+            stateId = requireText(stateId, "committedDocument.stateId");
+            stateHash = requireText(stateHash, "committedDocument.stateHash");
+            documentId = requireText(documentId, "committedDocument.documentId");
+            Objects.requireNonNull(text, "text");
+        }
+    }
+
     public record CatalogEvent(
             long revision,
             Optional<String> activeMachineId,
@@ -523,6 +548,20 @@ public final class SFMHistoryGraphRuntime {
                 source.projectCandidateRoute(planRevisionId, routeId),
                 "candidate route projection"
         ));
+    }
+
+    public Optional<CommittedDocument> committedDocument(String machineId) {
+        machineId = requireText(machineId, "machineId");
+        Controller controller;
+        synchronized (this) {
+            controller = controllers.get(machineId);
+        }
+        if (!(controller instanceof CommittedDocumentController source)) return Optional.empty();
+        CommittedDocument document = Objects.requireNonNull(source.committedDocument(), "committed document");
+        if (!machineId.equals(document.machineId())) {
+            throw new IllegalArgumentException("Committed document belongs to another trajectory machine");
+        }
+        return Optional.of(document);
     }
 
     public synchronized List<MachineSnapshot> resolveSnapshots(

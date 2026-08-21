@@ -1,0 +1,207 @@
+{
+  "schema": "sfm.review-session/2",
+  "id": "sfm:fixture/candidate-comment-promotion",
+  "title": "Candidate comment targets and exact promotion fixture",
+  "coordinate_system": "utf8_byte_half_open",
+  "revision_lanes": [
+    {
+      "id": "candidate-execution/sfm:fixture/numbering",
+      "repository": {
+        "id": "candidate-execution",
+        "root_hint": "candidate-history"
+      },
+      "before": {
+        "id": "before",
+        "documents": []
+      },
+      "after": {
+        "id": "after",
+        "documents": [
+          {
+            "id": "candidate:document:numbered@dbe5d232a0fda61e",
+            "path": "candidate/Numbered.txt",
+            "encoding": "utf-8",
+            "sha256": "dbe5d232a0fda61ebe192c478ec1aebeda62be4fec18bd89e24395848843a59e",
+            "text": "1. café\n2. tea\n"
+          }
+        ]
+      }
+    }
+  ],
+  "comments": [
+    {
+      "id": "candidate-route",
+      "text": "Review the complete proposed numbering route.",
+      "provenance": {
+        "kind": "human",
+        "producer": "fixture-reviewer",
+        "version": "1",
+        "parent_comment_ids": []
+      },
+      "target": {
+        "kind": "candidate_trajectory",
+        "machine_id": "sfm:fixture/numbering",
+        "machine_revision": 7,
+        "trajectory_plan_revision_id": "plan-fixture-1",
+        "route_id": "route-main",
+        "route_step_position": 0,
+        "predicted_state_id": "state-start",
+        "predicted_state_hash": "state-hash-start",
+        "projection_status": "materialized",
+        "target_kind": "route",
+        "evaluator_revision": "sfm-evaluator/1",
+        "evaluator_evidence": [
+          {
+            "key": "projection",
+            "value": "deterministic"
+          }
+        ]
+      }
+    },
+    {
+      "id": "candidate-action",
+      "text": "Review the numbering action before execution.",
+      "provenance": {
+        "kind": "human",
+        "producer": "fixture-reviewer",
+        "version": "1",
+        "parent_comment_ids": []
+      },
+      "target": {
+        "kind": "candidate_trajectory",
+        "machine_id": "sfm:fixture/numbering",
+        "machine_revision": 7,
+        "trajectory_plan_revision_id": "plan-fixture-1",
+        "route_id": "route-main",
+        "route_step_position": 1,
+        "trajectory_step_id": "step-number",
+        "predicted_state_id": "state-numbered",
+        "predicted_state_hash": "state-hash-exact",
+        "projection_status": "materialized",
+        "target_kind": "action",
+        "action_intent_id": "sfm:insert_decimal_number_sequence",
+        "evaluator_revision": "sfm-evaluator/1",
+        "evaluator_evidence": [
+          {
+            "key": "projection",
+            "value": "deterministic"
+          }
+        ]
+      }
+    },
+    {
+      "id": "candidate-state-unavailable",
+      "text": "Discuss the release state even though projection stopped at an external barrier.",
+      "provenance": {
+        "kind": "human",
+        "producer": "fixture-reviewer",
+        "version": "1",
+        "parent_comment_ids": []
+      },
+      "target": {
+        "kind": "candidate_trajectory",
+        "machine_id": "sfm:fixture/numbering",
+        "machine_revision": 7,
+        "trajectory_plan_revision_id": "plan-fixture-1",
+        "route_id": "route-main",
+        "route_step_position": 2,
+        "trajectory_step_id": "step-release",
+        "predicted_state_id": "state-release-pending",
+        "projection_status": "external_barrier",
+        "target_kind": "state",
+        "evaluator_revision": "sfm-evaluator/1",
+        "evaluator_evidence": [
+          {
+            "key": "barrier",
+            "value": "release-capability-unavailable"
+          }
+        ]
+      }
+    },
+    {
+      "id": "candidate-document-region",
+      "text": "#approved Candidate prediction only; verify the café rewrite.",
+      "provenance": {
+        "kind": "human",
+        "producer": "fixture-reviewer",
+        "version": "1",
+        "parent_comment_ids": []
+      },
+      "target": {
+        "kind": "candidate_trajectory",
+        "machine_id": "sfm:fixture/numbering",
+        "machine_revision": 7,
+        "trajectory_plan_revision_id": "plan-fixture-1",
+        "route_id": "route-main",
+        "route_step_position": 1,
+        "trajectory_step_id": "step-number",
+        "predicted_state_id": "state-numbered",
+        "predicted_state_hash": "state-hash-exact",
+        "projection_status": "materialized",
+        "target_kind": "document_region",
+        "action_intent_id": "sfm:insert_decimal_number_sequence",
+        "projected_document_selection": {
+          "document_id": "candidate:document:numbered",
+          "document_state_hash": "state-hash-exact",
+          "document_text_sha256": "dbe5d232a0fda61ebe192c478ec1aebeda62be4fec18bd89e24395848843a59e",
+          "start_byte": 3,
+          "end_byte": 8,
+          "selected_text_sha256": "850f7dc43910ff890f8879c0ed26fe697c93a067ad93a7d50f466a7028a9bf4e"
+        },
+        "evaluator_revision": "sfm-evaluator/1",
+        "evaluator_evidence": [
+          {
+            "key": "document-source",
+            "value": "candidate-history"
+          },
+          {
+            "key": "projection",
+            "value": "deterministic"
+          }
+        ]
+      }
+    },
+    {
+      "id": "candidate-document-region/committed/decision-exact-1",
+      "text": "#approved Candidate prediction only; verify the café rewrite.",
+      "provenance": {
+        "kind": "candidate_promotion",
+        "producer": "sfm-review-v2",
+        "version": "1",
+        "parent_comment_ids": [
+          "candidate-document-region"
+        ]
+      },
+      "target": {
+        "kind": "committed_selection",
+        "selection_rule": {
+          "kind": "literal_utf8_range",
+          "document_revision_id": "candidate:document:numbered@dbe5d232a0fda61e",
+          "start_byte": 3,
+          "end_byte": 8,
+          "document_sha256": "dbe5d232a0fda61ebe192c478ec1aebeda62be4fec18bd89e24395848843a59e",
+          "selected_text_sha256": "850f7dc43910ff890f8879c0ed26fe697c93a067ad93a7d50f466a7028a9bf4e"
+        },
+        "candidate_promotion": {
+          "source_candidate_comment_id": "candidate-document-region",
+          "source_candidate_target_sha256": "acd41abf873ab777fcf8f0ef2a6427dc235e1be7ab45f74dd62e1b3e54387300",
+          "decision_id": "decision-exact-1",
+          "executed_history_head_id": "history-head-42",
+          "executed_state_id": "state-numbered-committed",
+          "executed_state_hash": "state-hash-exact",
+          "correspondence": "exact",
+          "correspondence_evidence": []
+        }
+      }
+    }
+  ],
+  "style_rules": [],
+  "completion_policy": {
+    "coverage_mode": "changed_surface",
+    "approval_hashtag": "#approved",
+    "blocking_hashtags": [
+      "#problem",
+      "#needs-change"
+    ]
+  }
+}

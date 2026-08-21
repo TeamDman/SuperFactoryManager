@@ -1102,7 +1102,7 @@ primitives.
 but no comment or approval depends solely on transient pixels or current canvas
 placement.
 
-### [ ] Phase 6b — Comment on scrubbed candidate trajectories
+### [x] Phase 6b — Comment on scrubbed candidate trajectories
 
 - Implement `CandidateTrajectoryTarget` against snapshot-plan 2.12/2.13 without
   duplicating trajectory, frame, or projected-state storage in the comment
@@ -1128,6 +1128,19 @@ history head and instruction pointer unchanged.
 
 **Completion criteria:** Proposed futures can participate in the ordinary
 comment workflow without becoming committed facts or moving targets.
+
+**Completion evidence (2026-08-21):** Implemented
+`sfm.review-comment-session/2`, its deterministic persisted codec/store and v1
+migration, typed candidate route/action/state/glyph targets, ordinary review
+data-source/explorer projection, exact navigation, and explicit promotion and
+witnessed-migration operations. Replanning retains old-plan comments;
+unavailable candidate frames accept route/action comments but reject glyph
+targets; exact execution may create an additive committed target with candidate
+provenance; divergence creates none; and neither promotion nor migration grants
+human approval. Focused tests and the complete Java suite pass, and natural
+puppet run `title_screen_can-20260821-085216-878` round-trips and reopens all
+seven exercised targets while reporting zero effective approvals. No dependency
+or lockfile changed, and no CLI reinstall is required.
 
 ### [ ] Phase 7 — Multi-version release review and derived approval
 

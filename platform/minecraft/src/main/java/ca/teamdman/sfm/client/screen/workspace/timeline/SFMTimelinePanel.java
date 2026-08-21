@@ -28,6 +28,7 @@ public final class SFMTimelinePanel implements SFMScreenPanel, SFMEpisodeContext
     private final SFMSeekableTimelinePanel child;
     private final int defaultTicksPerTransition;
     private SFMTimelineModel model;
+    private Double pendingKeyframeSeek;
     private SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 1, 1);
     private SFMScreenPanelBounds childBounds = bounds;
     private DragTrack draggingTrack = DragTrack.NONE;
@@ -46,6 +47,18 @@ public final class SFMTimelinePanel implements SFMScreenPanel, SFMEpisodeContext
     public SFMTimelineModel model() { return model; }
     public SFMSeekableTimelinePanel child() { return child; }
     public void seek(int keyframe) { applyKeyframeSeek(keyframe); }
+    /**
+     * Pins a requested keyframe across asynchronous timeline materialization.
+     *
+     * <p>Ordinary {@link #seek(int)} retains its immediate clamping semantics.
+     * Reopen/navigation flows use this method because a lazy child may expose
+     * only its provisional frame-zero bounds until a later tick.</p>
+     */
+    public void seekWhenAvailable(int keyframe) {
+        model.pause();
+        pendingKeyframeSeek = (double) keyframe;
+        applyPendingKeyframeSeek();
+    }
     public void seekKeyframePosition(double position) { applyKeyframeSeek(position); }
     public void seekElapsedTicks(double ticks) { applyTimeSeek(ticks); }
     public void jumpKeyframe(int direction) { applyKeyframeJump(direction); }
@@ -208,26 +221,39 @@ public final class SFMTimelinePanel implements SFMScreenPanel, SFMEpisodeContext
 
     private void refreshTimelineBounds() {
         SFMTimelineBounds nextBounds = child.timelineBounds();
-        if (nextBounds.equals(model.bounds())) return;
-        double retainedPosition = nextBounds.clamp(model.keyframePosition());
-        model = new SFMTimelineModel(
-                nextBounds,
-                retainedPosition,
-                child.animationTimeline(defaultTicksPerTransition)
-        );
-        child.setTimelinePosition(retainedPosition);
+        if (!nextBounds.equals(model.bounds())) {
+            double retainedPosition = nextBounds.clamp(model.keyframePosition());
+            model = new SFMTimelineModel(
+                    nextBounds,
+                    retainedPosition,
+                    child.animationTimeline(defaultTicksPerTransition)
+            );
+            child.setTimelinePosition(retainedPosition);
+        }
+        applyPendingKeyframeSeek();
     }
 
     private void applyKeyframeJump(int direction) {
+        pendingKeyframeSeek = null;
         if (model.jumpKeyframe(direction)) child.setTimelinePosition(model.keyframePosition());
     }
     private void applyKeyframeSeek(double position) {
+        pendingKeyframeSeek = null;
         model.pause();
         if (model.seekKeyframePosition(position)) child.setTimelinePosition(model.keyframePosition());
     }
     private void applyTimeSeek(double ticks) {
+        pendingKeyframeSeek = null;
         model.pause();
         if (model.seekElapsedTicks(ticks)) child.setTimelinePosition(model.keyframePosition());
+    }
+    private void applyPendingKeyframeSeek() {
+        if (pendingKeyframeSeek == null
+                || pendingKeyframeSeek < model.bounds().first()
+                || pendingKeyframeSeek > model.bounds().last()) return;
+        double requested = pendingKeyframeSeek;
+        pendingKeyframeSeek = null;
+        if (model.seekKeyframePosition(requested)) child.setTimelinePosition(model.keyframePosition());
     }
     private void seekKeyframeFromTrack(double mouseX) {
         double share = trackShare(mouseX);

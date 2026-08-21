@@ -32,6 +32,35 @@ class SFMTimelineDynamicBoundsTests {
         assertEquals(1, child.position);
     }
 
+    @Test
+    void pinnedNavigationSeekWaitsForLazyCandidateBounds() {
+        DynamicChild child = new DynamicChild();
+        SFMTimelinePanel panel = new SFMTimelinePanel(child, 12);
+
+        panel.seekWhenAvailable(2);
+        assertEquals(0D, panel.model().keyframePosition());
+        assertEquals(0, child.position);
+
+        child.last = 3;
+        panel.tick();
+        assertEquals(2D, panel.model().keyframePosition());
+        assertEquals(2, child.position);
+    }
+
+    @Test
+    void ordinaryUserSeekDoesNotBecomeADeferredNavigationRequest() {
+        DynamicChild child = new DynamicChild();
+        SFMTimelinePanel panel = new SFMTimelinePanel(child, 12);
+
+        panel.seekWhenAvailable(3);
+        panel.seek(0);
+        child.last = 4;
+        panel.tick();
+
+        assertEquals(0D, panel.model().keyframePosition());
+        assertEquals(0, child.position);
+    }
+
     private static final class DynamicChild implements SFMSeekableTimelinePanel {
         private int last;
         private int position;

@@ -36,8 +36,8 @@ public final class SFMFixtureReviewCommentDataSource implements SFMReviewComment
                         new LegacyRow("body","REVIEWED","APPROVED","FORBIDDEN")));
     }
     @Override public String createLiteralComment(String text,List<RangeView> ranges){String id="human-"+nextId++;comments.add(comment(id,text,"human · in-game reviewer",List.copyOf(ranges),EvaluationStatus.RESOLVED_EXACTLY));return id;}
-    @Override public void editComment(String id,String text){replace(id,c->new CommentView(c.id(),text,c.provenance(),c.archived(),c.ranges(),c.evaluationStatus()));}
-    @Override public void archiveComment(String id){replace(id,c->new CommentView(c.id(),c.text(),c.provenance(),true,c.ranges(),c.evaluationStatus()));}
+    @Override public void editComment(String id,String text){replace(id,c->new CommentView(c.id(),text,c.provenance(),c.archived(),c.candidate(),c.targetLabel(),c.ranges(),c.evaluationStatus()));}
+    @Override public void archiveComment(String id){replace(id,c->new CommentView(c.id(),c.text(),c.provenance(),true,c.candidate(),c.targetLabel(),c.ranges(),c.evaluationStatus()));}
     @Override public void updateStyleColour(String id,StyleChannel channel,int argb){
         for(int i=0;i<styles.size();i++) if(styles.get(i).id().equals(id)){StyleRuleView s=styles.get(i);styles.set(i,new StyleRuleView(s.id(),s.requiredHashtags(),s.priority(),replace(channel,StyleChannel.FOREGROUND,s.foreground(),argb),replace(channel,StyleChannel.BACKGROUND,s.background(),argb),replace(channel,StyleChannel.UNDERLINE,s.underline(),argb),replace(channel,StyleChannel.GUTTER,s.gutter(),argb),s.enabled()));return;}
         throw new IllegalArgumentException("Unknown style rule "+id);

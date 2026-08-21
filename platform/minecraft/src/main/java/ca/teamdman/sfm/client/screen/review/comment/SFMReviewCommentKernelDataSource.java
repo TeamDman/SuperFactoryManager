@@ -2,7 +2,10 @@ package ca.teamdman.sfm.client.screen.review.comment;
 
 import ca.teamdman.sfm.client.review.session.SFMReviewSessionV1;
 import ca.teamdman.sfm.client.review.session.SFMReviewSessionV1Kernel;
-import ca.teamdman.sfm.client.review.session.SFMReviewSessionV1Store;
+import ca.teamdman.sfm.client.review.session.SFMReviewSessionStore;
+import ca.teamdman.sfm.client.review.session.SFMReviewSessionV2;
+import ca.teamdman.sfm.client.review.session.SFMReviewSessionV2Codec;
+import ca.teamdman.sfm.client.review.session.SFMReviewSessionV2Kernel;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -14,25 +17,34 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** Mutable UI adapter over the authoritative immutable v1 session model. */
+/** Mutable UI adapter over the authoritative immutable v2 session model. */
 public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentDataSource {
-    private final SFMReviewSessionV1Store store;
+    private final SFMReviewSessionStore store;
     private final List<LegacyRow> legacyRows;
-    private SFMReviewSessionV1 session;
+    private SFMReviewSessionV2 session;
 
+    /** Convenience import for callers that still hold a frozen v1 session. */
     public SFMReviewCommentKernelDataSource(SFMReviewSessionV1 session) {
+        this(SFMReviewSessionV2Codec.migrate(session));
+    }
+
+    public SFMReviewCommentKernelDataSource(SFMReviewSessionV2 session) {
         this(session, null, List.of());
     }
 
+    public SFMReviewCommentKernelDataSource(SFMReviewSessionV2 session, SFMReviewSessionStore store) {
+        this(session, store, List.of());
+    }
+
     public SFMReviewCommentKernelDataSource(
-            SFMReviewSessionV1 session,
-            SFMReviewSessionV1Store store,
+            SFMReviewSessionV2 session,
+            SFMReviewSessionStore store,
             List<LegacyRow> legacyRows
     ) {
         this.session = Objects.requireNonNull(session, "session");
         this.store = store;
         this.legacyRows = List.copyOf(legacyRows);
-        SFMReviewSessionV1Kernel.evaluateAll(session);
+        SFMReviewSessionV2Kernel.evaluateAll(session);
     }
 
     @Override
@@ -44,15 +56,18 @@ public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentD
             appendDocuments(documents, documentIds, lane.after().documents(), Side.AFTER);
         }
 
-        List<SFMReviewSessionV1Kernel.Evaluation> evaluations = SFMReviewSessionV1Kernel.evaluateAll(session);
-        Map<String, SFMReviewSessionV1Kernel.Evaluation> evaluationByComment = new LinkedHashMap<>();
+        List<SFMReviewSessionV2Kernel.Evaluation> evaluations = SFMReviewSessionV2Kernel.evaluateAll(session);
+        Map<String, SFMReviewSessionV2Kernel.Evaluation> evaluationByComment = new LinkedHashMap<>();
         evaluations.forEach(evaluation -> evaluationByComment.put(evaluation.commentId(), evaluation));
         List<CommentView> comments = session.comments().stream().map(comment -> {
-            SFMReviewSessionV1Kernel.Evaluation evaluation = evaluationByComment.get(comment.id());
+            SFMReviewSessionV2Kernel.Evaluation evaluation = evaluationByComment.get(comment.id());
             Set<String> hashtags = Set.copyOf(SFMReviewSessionV1Kernel.derivedHashtags(comment.text()));
+            boolean candidate = comment.target() instanceof SFMReviewSessionV2.CandidateTrajectoryTarget;
             return new CommentView(comment.id(), comment.text(),
                     comment.provenance().kind() + " · " + comment.provenance().producer(),
                     hashtags.contains("#archived"),
+                    candidate,
+                    targetLabel(comment.target()),
                     evaluation.ranges().stream().map(SFMReviewCommentKernelDataSource::rangeView).toList(),
                     status(evaluation.status()));
         }).toList();
@@ -78,9 +93,10 @@ public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentD
         SFMReviewSessionV1.SelectionRule rule = rules.size() == 1
                 ? rules.get(0) : new SFMReviewSessionV1.Union(rules);
         String id = nextHumanId();
-        List<SFMReviewSessionV1.Comment> comments = new ArrayList<>(session.comments());
-        comments.add(new SFMReviewSessionV1.Comment(id, text,
-                new SFMReviewSessionV1.Provenance("human", "in-game-reviewer", "1", List.of()), rule));
+        List<SFMReviewSessionV2.Comment> comments = new ArrayList<>(session.comments());
+        comments.add(new SFMReviewSessionV2.Comment(id, text,
+                new SFMReviewSessionV1.Provenance("human", "in-game-reviewer", "1", List.of()),
+                new SFMReviewSessionV2.CommittedReviewTarget(rule)));
         replaceComments(comments);
         return id;
     }
@@ -88,16 +104,16 @@ public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentD
     @Override
     public void editComment(String id, String text) {
         if (text.isBlank()) throw new IllegalArgumentException("Comment text must not be blank");
-        replaceComment(id, comment -> new SFMReviewSessionV1.Comment(
-                comment.id(), text, comment.provenance(), comment.selectionRule()));
+        replaceComment(id, comment -> new SFMReviewSessionV2.Comment(
+                comment.id(), text, comment.provenance(), comment.target()));
     }
 
     @Override
     public void archiveComment(String id) {
         replaceComment(id, comment -> {
             if (SFMReviewSessionV1Kernel.derivedHashtags(comment.text()).contains("#archived")) return comment;
-            return new SFMReviewSessionV1.Comment(comment.id(), "#archived " + comment.text(),
-                    comment.provenance(), comment.selectionRule());
+            return new SFMReviewSessionV2.Comment(comment.id(), "#archived " + comment.text(),
+                    comment.provenance(), comment.target());
         });
     }
 
@@ -119,12 +135,12 @@ public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentD
         throw new IllegalArgumentException("Unknown style rule " + id);
     }
 
-    public SFMReviewSessionV1 session() {
+    public SFMReviewSessionV2 session() {
         return session;
     }
 
-    private void replaceComment(String id, java.util.function.UnaryOperator<SFMReviewSessionV1.Comment> update) {
-        List<SFMReviewSessionV1.Comment> comments = new ArrayList<>(session.comments());
+    private void replaceComment(String id, java.util.function.UnaryOperator<SFMReviewSessionV2.Comment> update) {
+        List<SFMReviewSessionV2.Comment> comments = new ArrayList<>(session.comments());
         for (int index = 0; index < comments.size(); index++) {
             if (!comments.get(index).id().equals(id)) continue;
             comments.set(index, update.apply(comments.get(index)));
@@ -134,20 +150,20 @@ public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentD
         throw new IllegalArgumentException("Unknown comment " + id);
     }
 
-    private void replaceComments(List<SFMReviewSessionV1.Comment> comments) {
-        session = new SFMReviewSessionV1(session.schema(), session.id(), session.title(), session.coordinateSystem(),
+    private void replaceComments(List<SFMReviewSessionV2.Comment> comments) {
+        session = new SFMReviewSessionV2(session.schema(), session.id(), session.title(), session.coordinateSystem(),
                 session.revisionLanes(), comments, session.styleRules(), session.completionPolicy());
         persist();
     }
 
     private void replaceStyles(List<SFMReviewSessionV1.StyleRule> styles) {
-        session = new SFMReviewSessionV1(session.schema(), session.id(), session.title(), session.coordinateSystem(),
+        session = new SFMReviewSessionV2(session.schema(), session.id(), session.title(), session.coordinateSystem(),
                 session.revisionLanes(), session.comments(), styles, session.completionPolicy());
         persist();
     }
 
     private void persist() {
-        SFMReviewSessionV1Kernel.evaluateAll(session);
+        SFMReviewSessionV2Kernel.evaluateAll(session);
         if (store == null) return;
         try {
             store.save(session);
@@ -174,7 +190,7 @@ public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentD
     }
 
     private String nextHumanId() {
-        Set<String> ids = session.comments().stream().map(SFMReviewSessionV1.Comment::id)
+        Set<String> ids = session.comments().stream().map(SFMReviewSessionV2.Comment::id)
                 .collect(java.util.stream.Collectors.toSet());
         for (int candidate = 1; ; candidate++) {
             String id = "human-" + candidate;
@@ -207,8 +223,60 @@ public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentD
         return new RangeView(range.documentRevisionId(), range.startByte(), range.endByte());
     }
 
-    private static EvaluationStatus status(SFMReviewSessionV1Kernel.Status status) {
+    private static EvaluationStatus status(SFMReviewSessionV2Kernel.Status status) {
         return EvaluationStatus.valueOf(status.name());
+    }
+
+    private static String targetLabel(SFMReviewSessionV2.CommentTarget target) {
+        if (target instanceof SFMReviewSessionV2.CommittedReviewTarget committed) {
+            String label = "committed " + selectionRuleLabel(committed.selectionRule());
+            if (committed.candidatePromotion().isPresent()) {
+                label += " · promoted-from="
+                        + committed.candidatePromotion().orElseThrow().sourceCandidateCommentId()
+                        + " · correspondence="
+                        + committed.candidatePromotion().orElseThrow().correspondence();
+            }
+            return label;
+        }
+        SFMReviewSessionV2.CandidateTrajectoryTarget candidate =
+                (SFMReviewSessionV2.CandidateTrajectoryTarget) target;
+        StringBuilder label = new StringBuilder("candidate ")
+                .append(candidate.targetKind().name().toLowerCase(Locale.ROOT))
+                .append(" · machine=").append(candidate.machineId()).append('@').append(candidate.machineRevision())
+                .append(" · plan=").append(candidate.trajectoryPlanRevisionId())
+                .append(" · route=").append(candidate.routeId())
+                .append(" · position=").append(candidate.routeStepPosition())
+                .append(" · step=").append(candidate.trajectoryStepId().orElse("route-start"));
+        candidate.actionIntentId().ifPresent(action -> label.append(" · action=").append(action));
+        label.append(" · state=").append(candidate.predictedStateId());
+        candidate.predictedStateHash().ifPresent(hash -> label.append(" · state-hash=").append(hash));
+        label.append(" · status=").append(candidate.projectionStatus().name().toLowerCase(Locale.ROOT));
+        candidate.projectedDocumentSelection().ifPresent(selection -> label
+                .append(" · document=").append(selection.documentId())
+                .append('[').append(selection.startByte()).append(',').append(selection.endByte()).append(')')
+                .append("@").append(selection.documentTextSha256()));
+        return label.toString();
+    }
+
+    private static String selectionRuleLabel(SFMReviewSessionV1.SelectionRule rule) {
+        if (rule instanceof SFMReviewSessionV1.LiteralUtf8Range literal) {
+            return literal.documentRevisionId() + '[' + literal.startByte() + ',' + literal.endByte() + ')';
+        }
+        if (rule instanceof SFMReviewSessionV1.Union union) {
+            return "union(" + union.rules().stream()
+                    .map(SFMReviewCommentKernelDataSource::selectionRuleLabel)
+                    .collect(java.util.stream.Collectors.joining(", ")) + ')';
+        }
+        if (rule instanceof SFMReviewSessionV1.Intersection intersection) {
+            return "intersection(" + intersection.rules().stream()
+                    .map(SFMReviewCommentKernelDataSource::selectionRuleLabel)
+                    .collect(java.util.stream.Collectors.joining(", ")) + ')';
+        }
+        SFMReviewSessionV1.Difference difference = (SFMReviewSessionV1.Difference) rule;
+        return "difference(" + selectionRuleLabel(difference.include()) + "; exclude="
+                + difference.exclude().stream()
+                .map(SFMReviewCommentKernelDataSource::selectionRuleLabel)
+                .collect(java.util.stream.Collectors.joining(", ")) + ')';
     }
 
     private static Integer colour(String value) {

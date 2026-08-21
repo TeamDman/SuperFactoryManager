@@ -427,6 +427,54 @@ public final class SFMGamePuppetHelper {
         add(CandidateHistoryStatusFixturePuppetAction.unregister());
     }
 
+    /** Resets one persisted candidate-comment session before a deterministic puppet journey. */
+    public void resetCandidateCommentSession(CandidateCommentSessionPuppetAction.SessionRole role) {
+        add(new CandidateCommentSessionPuppetAction(
+                CandidateCommentSessionPuppetAction.Operation.RESET,
+                Objects.requireNonNull(role, "role")
+        ));
+    }
+
+    /** Reloads one candidate-comment session from its production V2 store. */
+    public void reloadCandidateCommentSession(CandidateCommentSessionPuppetAction.SessionRole role) {
+        add(new CandidateCommentSessionPuppetAction(
+                CandidateCommentSessionPuppetAction.Operation.RELOAD,
+                Objects.requireNonNull(role, "role")
+        ));
+    }
+
+    /** Validates and artifacts one natural candidate-comment journey checkpoint. */
+    public void assertCandidateCommentReview(
+            AssertCandidateCommentReviewPuppetAction.Stage stage,
+            String artifactName
+    ) {
+        add(new AssertCandidateCommentReviewPuppetAction(
+                Objects.requireNonNull(stage, "stage"),
+                Objects.requireNonNull(artifactName, "artifactName")
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Selects a retained trajectory through the visible constrained command palette. */
+    public void clickCandidateCommentRouteChoice(String commentId) {
+        add(new ClickCandidateCommentRouteChoicePuppetAction(Objects.requireNonNull(commentId, "commentId")));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Proves one persisted candidate target reopened its exact immutable route frame. */
+    public void assertCandidateCommentNavigation(
+            CandidateCommentSessionPuppetAction.SessionRole role,
+            String commentId,
+            String artifactName
+    ) {
+        add(new AssertCandidateCommentNavigationPuppetAction(
+                Objects.requireNonNull(role, "role"),
+                Objects.requireNonNull(commentId, "commentId"),
+                Objects.requireNonNull(artifactName, "artifactName")
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     public void assertFormerTerminalStartButtonRoutesToTerminal() {
         add(new AssertFormerTerminalStartButtonPuppetAction());
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));

@@ -1,22 +1,26 @@
 package ca.teamdman.sfm.client.screen.review.explorer;
 
+import ca.teamdman.sfm.client.review.session.SFMReviewSessionV2;
 import ca.teamdman.sfm.client.screen.review.comment.SFMCommentHashtags;
 import ca.teamdman.sfm.client.screen.review.comment.SFMFixtureReviewCommentDataSource;
 import ca.teamdman.sfm.client.screen.review.comment.SFMReviewCommentDataSource;
+import ca.teamdman.sfm.client.screen.review.comment.SFMReviewCommentKernelDataSource;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 
 /** Pure tree/navigation model shared by changes, comments, and hashtag explorers. */
 public final class SFMReviewExplorerModel {
-    public enum Kind { ROOT, FILE, LANE, REVISION, COMMENT, HASHTAG, REGION }
+    public enum Kind { ROOT, FILE, LANE, REVISION, COMMENT, HASHTAG, REGION, CANDIDATE_TARGET }
 
     public record SourceLeaf(String id, String title, String path, String text, boolean missing) {
         public SourceLeaf {
@@ -27,20 +31,46 @@ public final class SFMReviewExplorerModel {
         }
     }
 
+    /** Typed action payload retained independently from the human-readable row label. */
+    public sealed interface NodeAction permits CandidateNavigation {
+    }
+
+    /** Exact immutable candidate identity used to reopen the pinned plan/route/frame. */
+    public record CandidateNavigation(
+            String commentId,
+            SFMReviewSessionV2.CandidateTrajectoryTarget target
+    ) implements NodeAction {
+        public CandidateNavigation {
+            Objects.requireNonNull(commentId, "commentId");
+            Objects.requireNonNull(target, "target");
+            if (commentId.isBlank()) throw new IllegalArgumentException("commentId must not be blank");
+        }
+    }
+
     public static final class Node {
         private final String id;
         private final String label;
         private final Kind kind;
         private final List<Node> children;
         private final SourceLeaf leaf;
+        private final NodeAction action;
         private boolean expanded;
 
-        private Node(String id, String label, Kind kind, List<Node> children, SourceLeaf leaf, boolean expanded) {
+        private Node(
+                String id,
+                String label,
+                Kind kind,
+                List<Node> children,
+                SourceLeaf leaf,
+                NodeAction action,
+                boolean expanded
+        ) {
             this.id = Objects.requireNonNull(id);
             this.label = Objects.requireNonNull(label);
             this.kind = Objects.requireNonNull(kind);
             this.children = new ArrayList<>(children);
             this.leaf = leaf;
+            this.action = action;
             this.expanded = expanded;
         }
 
@@ -49,6 +79,7 @@ public final class SFMReviewExplorerModel {
         public Kind kind() { return kind; }
         public List<Node> children() { return List.copyOf(children); }
         public SourceLeaf leaf() { return leaf; }
+        public Optional<NodeAction> action() { return Optional.ofNullable(action); }
         public boolean expanded() { return expanded; }
         public boolean expandable() { return !children.isEmpty(); }
         public void setExpanded(boolean expanded) { this.expanded = expanded; }
@@ -112,32 +143,67 @@ public final class SFMReviewExplorerModel {
     }
 
     public static SFMReviewExplorerModel comments() {
-        return comments(false);
+        return fixtureComments(false);
     }
 
     public static SFMReviewExplorerModel hashtags() {
-        return comments(true);
+        return fixtureComments(true);
     }
 
-    private static SFMReviewExplorerModel comments(boolean hashtags) {
+    /** Production projection over the canonical immutable V2 review session. */
+    public static SFMReviewExplorerModel comments(SFMReviewSessionV2 session) {
+        return sessionComments(session, false);
+    }
+
+    /** Production hashtag projection over the canonical immutable V2 review session. */
+    public static SFMReviewExplorerModel hashtags(SFMReviewSessionV2 session) {
+        return sessionComments(session, true);
+    }
+
+    private static SFMReviewExplorerModel fixtureComments(boolean hashtags) {
         SFMReviewCommentDataSource.SessionView session = new SFMFixtureReviewCommentDataSource().refresh();
+        return comments(session, Map.of(), hashtags);
+    }
+
+    private static SFMReviewExplorerModel sessionComments(SFMReviewSessionV2 session, boolean hashtags) {
+        Objects.requireNonNull(session, "session");
+        SFMReviewCommentDataSource.SessionView view = new SFMReviewCommentKernelDataSource(session).refresh();
+        Map<String, CandidateNavigation> candidateTargets = new LinkedHashMap<>();
+        for (SFMReviewSessionV2.Comment comment : session.comments()) {
+            if (comment.target() instanceof SFMReviewSessionV2.CandidateTrajectoryTarget target) {
+                candidateTargets.put(comment.id(), new CandidateNavigation(comment.id(), target));
+            }
+        }
+        return comments(view, candidateTargets, hashtags);
+    }
+
+    private static SFMReviewExplorerModel comments(
+            SFMReviewCommentDataSource.SessionView session,
+            Map<String, CandidateNavigation> candidateTargets,
+            boolean hashtags
+    ) {
         Map<String, SFMReviewCommentDataSource.DocumentView> documents = new LinkedHashMap<>();
         for (SFMReviewCommentDataSource.DocumentView document : session.documents()) {
             documents.put(document.id(), document);
         }
         Node root = hashtags
-                ? hashtagTree(session, documents)
-                : commentTree(session, documents);
+                ? hashtagTree(session, documents, candidateTargets)
+                : commentTree(session, documents, candidateTargets);
         return new SFMReviewExplorerModel(root);
     }
 
     private static Node commentTree(
             SFMReviewCommentDataSource.SessionView session,
-            Map<String, SFMReviewCommentDataSource.DocumentView> documents
+            Map<String, SFMReviewCommentDataSource.DocumentView> documents,
+            Map<String, CandidateNavigation> candidateTargets
     ) {
         List<Node> comments = new ArrayList<>();
         for (SFMReviewCommentDataSource.CommentView comment : session.comments()) {
             List<Node> regions = new ArrayList<>();
+            CandidateNavigation candidateTarget = candidateTargets.get(comment.id());
+            if (candidateTarget != null) {
+                regions.add(candidateTargetNode("comment/" + comment.id() + "/candidate", candidateTarget));
+            }
             int index = 0;
             for (SFMReviewCommentDataSource.RangeView range : comment.ranges()) {
                 SFMReviewCommentDataSource.DocumentView document = documents.get(range.documentRevisionId());
@@ -148,19 +214,35 @@ public final class SFMReviewExplorerModel {
                         List.of(), leaf, true));
                 index++;
             }
-            comments.add(node("comment/" + comment.id(), comment.id() + "  " + comment.text(), Kind.COMMENT,
-                    regions, null, true));
+            String label = candidateTarget == null
+                    ? comment.id() + "  " + comment.text()
+                    : "[candidate · " + projectionStatusLabel(candidateTarget.target()) + "] "
+                            + comment.id() + "  " + comment.text();
+            comments.add(node("comment/" + comment.id(), label, Kind.COMMENT,
+                    regions, null, candidateTarget, true));
         }
         return node("comments", "Comments · " + session.title(), Kind.ROOT, comments, null, true);
     }
 
     private static Node hashtagTree(
             SFMReviewCommentDataSource.SessionView session,
-            Map<String, SFMReviewCommentDataSource.DocumentView> documents
+            Map<String, SFMReviewCommentDataSource.DocumentView> documents,
+            Map<String, CandidateNavigation> candidateTargets
     ) {
         Map<String, Map<String, List<Node>>> grouped = new TreeMap<>();
+        Map<String, List<Node>> candidateGrouped = new TreeMap<>();
         for (SFMReviewCommentDataSource.CommentView comment : session.comments()) {
             Set<String> tags = new LinkedHashSet<>(SFMCommentHashtags.derive(comment.text()));
+            CandidateNavigation candidateTarget = candidateTargets.get(comment.id());
+            if (candidateTarget != null) {
+                for (String tag : tags) {
+                    candidateGrouped.computeIfAbsent(tag, ignored -> new ArrayList<>())
+                            .add(candidateTargetNode(
+                                    "hashtag/" + tag + "/candidate/" + comment.id(),
+                                    candidateTarget
+                            ));
+                }
+            }
             int index = 0;
             for (SFMReviewCommentDataSource.RangeView range : comment.ranges()) {
                 SFMReviewCommentDataSource.DocumentView document = documents.get(range.documentRevisionId());
@@ -178,14 +260,43 @@ public final class SFMReviewExplorerModel {
             }
         }
         List<Node> tags = new ArrayList<>();
-        for (Map.Entry<String, Map<String, List<Node>>> tag : grouped.entrySet()) {
-            List<Node> files = tag.getValue().entrySet().stream()
-                    .map(file -> node("hashtag/" + tag.getKey() + "/" + file.getKey(), file.getKey(), Kind.FILE,
+        Set<String> allTags = new java.util.TreeSet<>(grouped.keySet());
+        allTags.addAll(candidateGrouped.keySet());
+        for (String tag : allTags) {
+            List<Node> files = grouped.getOrDefault(tag, Map.<String, List<Node>>of()).entrySet().stream()
+                    .map(file -> node("hashtag/" + tag + "/" + file.getKey(), file.getKey(), Kind.FILE,
                             file.getValue(), null, true))
-                    .toList();
-            tags.add(node("hashtag/" + tag.getKey(), tag.getKey(), Kind.HASHTAG, files, null, true));
+                    .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+            files.addAll(candidateGrouped.getOrDefault(tag, List.of()));
+            tags.add(node("hashtag/" + tag, tag, Kind.HASHTAG, files, null, true));
         }
         return node("hashtags", "Hashtags · " + session.title(), Kind.ROOT, tags, null, true);
+    }
+
+    private static Node candidateTargetNode(String id, CandidateNavigation navigation) {
+        return node(id, candidateTargetLabel(navigation), Kind.CANDIDATE_TARGET,
+                List.of(), null, navigation, true);
+    }
+
+    private static String candidateTargetLabel(CandidateNavigation navigation) {
+        SFMReviewSessionV2.CandidateTrajectoryTarget target = navigation.target();
+        StringBuilder label = new StringBuilder("candidate ")
+                .append(target.targetKind().name().toLowerCase(Locale.ROOT))
+                .append(" · plan=").append(target.trajectoryPlanRevisionId())
+                .append(" · route=").append(target.routeId())
+                .append(" · frame=").append(target.routeStepPosition());
+        target.trajectoryStepId().ifPresent(step -> label.append(" · step=").append(step));
+        target.actionIntentId().ifPresent(action -> label.append(" · action=").append(action));
+        label.append(" · state=").append(target.predictedStateId())
+                .append(" · status=").append(projectionStatusLabel(target));
+        target.projectedDocumentSelection().ifPresent(selection -> label
+                .append(" · document=").append(selection.documentId())
+                .append('[').append(selection.startByte()).append(',').append(selection.endByte()).append(')'));
+        return label.toString();
+    }
+
+    private static String projectionStatusLabel(SFMReviewSessionV2.CandidateTrajectoryTarget target) {
+        return target.projectionStatus().name().toLowerCase(Locale.ROOT);
     }
 
     private static SourceLeaf revisionLeaf(LaneData lane, FileData file, boolean before) {
@@ -209,7 +320,19 @@ public final class SFMReviewExplorerModel {
     }
 
     private static Node node(String id, String label, Kind kind, List<Node> children, SourceLeaf leaf, boolean expanded) {
-        return new Node(id, label, kind, children, leaf, expanded);
+        return node(id, label, kind, children, leaf, null, expanded);
+    }
+
+    private static Node node(
+            String id,
+            String label,
+            Kind kind,
+            List<Node> children,
+            SourceLeaf leaf,
+            NodeAction action,
+            boolean expanded
+    ) {
+        return new Node(id, label, kind, children, leaf, action, expanded);
     }
 
     public Node root() { return root; }

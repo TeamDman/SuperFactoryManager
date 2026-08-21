@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.client.screen.review.explorer;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
+import ca.teamdman.sfm.client.screen.workspace.SFMCandidateHistoryScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
@@ -13,6 +15,7 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntentResult;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetadata;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceSide;
+import ca.teamdman.sfm.client.screen.workspace.timeline.SFMTimelinePanel;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
@@ -103,7 +106,7 @@ public final class SFMReviewExplorerPanel implements SFMScreenPanel {
         model.select(index);
         if (mouseX < 18 + model.visibleNodes().get(index).depth() * 14) {
             model.toggleSelection();
-        } else if (model.selectedLeaf() != null) {
+        } else if (model.selectedLeaf() != null || model.selected().action().isPresent()) {
             openSelected(false);
         }
         keepSelectionVisible();
@@ -156,6 +159,11 @@ public final class SFMReviewExplorerPanel implements SFMScreenPanel {
     }
 
     private void openSelected(boolean newStack) {
+        SFMReviewExplorerModel.NodeAction action = model.selected().action().orElse(null);
+        if (action instanceof SFMReviewExplorerModel.CandidateNavigation candidateNavigation) {
+            openCandidateTarget(candidateNavigation);
+            return;
+        }
         SFMReviewExplorerModel.SourceLeaf leaf = model.selectedLeaf();
         if (leaf == null) {
             status = "Selected node is a group; expand it and choose a source leaf";
@@ -207,6 +215,35 @@ public final class SFMReviewExplorerPanel implements SFMScreenPanel {
         } else {
             status = "Preview unavailable: " + result;
         }
+    }
+
+    private void openCandidateTarget(SFMReviewExplorerModel.CandidateNavigation navigation) {
+        if (hostContext == null) {
+            status = "Candidate navigation unavailable: explorer is not hosted";
+            return;
+        }
+        var target = navigation.target();
+        ResourceLocation scene = new ResourceLocation(SFM.MOD_ID, "episode/candidate-history");
+        String exactMachine = SFMEntitySelector.exact(
+                SFMEntitySelector.Domain.EPISODE,
+                target.machineId()
+        ).canonical();
+        SFMCandidateHistoryScreenType.Recipe recipe = new SFMCandidateHistoryScreenType.Recipe(
+                scene,
+                exactMachine,
+                java.util.Optional.of(target.trajectoryPlanRevisionId()),
+                java.util.Optional.of(target.routeId())
+        );
+        SFMTimelinePanel panel = recipe.reopen();
+        panel.seek(target.routeStepPosition());
+        SFMWorkspacePanelIntentResult result = hostContext.submit(new SFMWorkspacePanelIntent.OpenAsTab(
+                panel,
+                SFMWorkspacePanelMetadata.ordinary(),
+                recipe
+        ));
+        status = result == SFMWorkspacePanelIntentResult.APPLIED
+                ? "Opened candidate " + target.canonicalAddress() + " for " + navigation.commentId()
+                : "Candidate navigation unavailable: " + result;
     }
 
     private void resize(SFMScreenPanelBounds bounds) {
