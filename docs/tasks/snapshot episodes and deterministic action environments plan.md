@@ -1,6 +1,6 @@
 # Snapshot episodes, action traces, and deterministic environments plan
 
-**Plan status:** Active implementation; TE-S1M core and S1M-X1 through X5 are complete, and S1M-X6 is the sole claimed continuation
+**Plan status:** TE-S1M core and the ordered S1M-X1 through S1M-X6 elastic continuation ladder are complete and locally checkpointed; no continuation is currently claimed
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Last updated:** 2026-08-21
 **Intent audit:** Passed and re-audited 2026-08-21 against both complete attached source messages plus the undo-tree/frontline-UI and trajectory-machine follow-ups
@@ -1937,7 +1937,7 @@ reported precisely; no partial item is relabelled complete to reach the next.
 | S1M-X3 | `[x]` | Add side-by-side route comparison and review disposition. | Two retained trajectories can be scrubbed in lockstep or independently, their costs/outcomes/comments compared, and one selected/rejected without deleting either. | Completed and checkpointed as `a03800dff` from passing X2 checkpoint `2583b573f`; uses existing panels and comments; no generalized graphical markup requirement. |
 | S1M-X4 | `[x]` | Finish the remaining TE-S1 exact-replay/semantic-rebase artifacts around the chamber. | Raw event → binding → semantic action → transition layers round-trip; exact replay and rebase produce the documented two- versus three-item histories. | Completed in core checkpoint `d8b55251e` and natural-proof checkpoint `8a98063e5`; Java-local only in this checkpoint, with Rust/shared interchange left explicitly open. |
 | S1M-X5 | `[x]` | Complete 2.9's whole-workspace `A.java`/`B.java` counterfactual journey. | The visible graph compares checkout, frozen witness, and re-evaluated intent after changing the earlier explorer selection, with typed barriers and retained original history. | Completed and checkpointed as `f0ccc3c81` from clean passing checkpoint `4922fc713`; uses only restorable UI/document state and never writes the ambient checkout. |
-| S1M-X6 | `[~]` | Adapt the proven History Graph to workspace Track 1c's passive overlay seam. | The same history content remains visible while a test world ticks; passive mode consumes no gameplay input and interactive mode has explicit focus/release. | Claimed from clean passing checkpoint `7995a0761`; the Track 1c placement/input contract still matches and requires a reusable host rather than a one-off overlay. |
+| S1M-X6 | `[x]` | Adapt the proven History Graph to workspace Track 1c's passive overlay seam. | The same history content remains visible while a test world ticks; passive mode consumes no gameplay input and interactive mode has explicit focus/release. | Completed and checkpointed as `a8d7d3fd9` from clean passing checkpoint `7995a0761`; it uses a reusable scene/host/action substrate rather than a one-off History Graph HUD. |
 
 #### S1M-X3 claim boundary — retained-route comparison and disposition
 
@@ -2228,7 +2228,7 @@ new dependency or repository was introduced, and no CLI source changed, so the
 installed `728694ad7` CLI remains current and no user install is required. The
 puppet-owned game and helper processes exited cleanly.
 
-#### [~] S1M-X6 claim boundary — reusable non-pausing gameplay overlay
+#### [x] S1M-X6 claim boundary — reusable non-pausing gameplay overlay
 
 X6 was claimed on 2026-08-21 from clean passing X5 bookkeeping checkpoint
 `7995a0761`. It implements the first complete workspace Track 1c vertical slice:
@@ -2236,7 +2236,7 @@ one reusable overlay substrate and the existing History Graph as its first
 content consumer. It does not create a History Graph-specific Forge HUD, a
 second history model, or an overlay-shaped full-screen `Screen`.
 
-##### [~] S1M-X6-A Freeze scene, placement, and direct-restore contracts
+##### [x] S1M-X6-A Freeze scene, placement, and direct-restore contracts
 
 - Add versioned immutable DTOs for client scene state, stable overlay instance
   id, content recipe/state, visibility, `PASSIVE`/`INTERACTIVE` input mode,
@@ -2252,7 +2252,7 @@ second history model, or an overlay-shaped full-screen `Screen`.
   directly before its first render and byte-identically re-encodes it; restore
   never replays historical layout actions.
 
-##### [~] S1M-X6-B Implement a reusable host and honest input lifecycle
+##### [x] S1M-X6-B Implement a reusable host and honest input lifecycle
 
 - Define one narrow host-independent overlay-content/render boundary so the
   same History Graph projection/state can render in a multiplexer leaf or HUD
@@ -2266,7 +2266,7 @@ second history model, or an overlay-shaped full-screen `Screen`.
   cursor while focused, and has explicit release through Escape/action, focus
   loss, screen/modal transition, stale instance, world unload, and disconnect.
 
-##### [~] S1M-X6-C Register selector-explicit actions and remote parity
+##### [x] S1M-X6-C Register selector-explicit actions and remote parity
 
 - Add stable set-valued overlay selectors/runtime operations and registered
   actions for visibility set/toggle, placement set, input-mode set, focus,
@@ -2280,7 +2280,7 @@ second history model, or an overlay-shaped full-screen `Screen`.
   and scene runtime as command-palette and puppet invocation; no special test
   socket or helper-side state mutation is accepted.
 
-##### [~] S1M-X6-D Adapt the existing History Graph as the first consumer
+##### [x] S1M-X6-D Adapt the existing History Graph as the first consumer
 
 - Register one stable History Graph overlay recipe/instance that resolves the
   same authoritative `SFMHistoryGraphRuntime` snapshot and presentation
@@ -2293,7 +2293,7 @@ second history model, or an overlay-shaped full-screen `Screen`.
   screenshots and structured evidence to agree without relying on transient
   object identity.
 
-##### [~] S1M-X6-E Prove the in-world journey and checkpoint X6
+##### [x] S1M-X6-E Prove the in-world journey and checkpoint X6
 
 - Add pure tests for canonical scene round-trip/direct restore, malformed and
   bounded recovery, anchors/offsets/constraints, viewport changes, selector set
@@ -2331,6 +2331,59 @@ reference frames, arbitrary third-party widget hosting, live-world rewind,
 cross-runtime history interchange, graphical review markup, or release
 approval. Those omissions do not weaken the reusable host, placement, input,
 action, persistence, and History Graph seams proved here.
+
+**S1M-X6 completion evidence (2026-08-21):** Implementation checkpoint
+`a8d7d3fd9` adds the strict versioned `sfm.client-scene/1` scene contract,
+stable overlay/content identities, normalized anchor/offset/size/clipping
+placement, canonical direct restore, selector-set controller, generic Forge HUD
+host, and registered visibility, placement, input-mode, focus/release, and
+z-order actions. Passive content is absent from every input-consumption path;
+interactive content requires explicit single-target focus, raw keyboard,
+character, pointer, and scroll routing honors topmost hit bounds, held pointer
+presses retain capture through release, and Escape, screen/modal transitions,
+focus loss, stale content, world unload, and disconnect release ownership. The
+first recipe instantiates the ordinary `SFMHistoryGraphPanel` against the same
+singleton `SFMHistoryGraphRuntime`; it does not copy history state or add a
+History Graph-specific HUD.
+
+Eighteen focused overlay action/contract/controller/codec tests pass via
+`sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMOverlay
+--no-capture --wait-for-build-lock`. The full parallel 1.19.2 Java suite exits
+zero; its existing installed-symbol-worker integration test is explicitly
+assumption-aborted because that opt-in run did not supply
+`sfm.symbol.workerExecutable`/`sfm.symbol.workerBranch`. The canonical
+`sfm-propagate-changes.exe run compile --branch 1.19.2
+--wait-for-build-lock` passes. The final natural puppet
+`sfm:in_world_history_graph_overlay` passes at `1280x720@auto`, exits cleanly,
+and emits seven inspected PNGs plus six JSON reports under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/
+sfm-in_world_his-20260821-145713-301/in_world_history_graph_overlay/
+1280x720_auto`.
+
+The puppet records 30 passive world ticks with 6.216 blocks of movement and two
+forwarded W events, then 30 interactive ticks with zero movement, four consumed
+keys, and a changed History Graph selection, followed by explicit release and
+another 6.216-block movement interval. Registered placement moves the retained
+graph from upper-right to lower-left; hide/show retains placement and host-local
+selection. A short-lived external `sfm.exe` process invokes canonical action
+`sfm action invoke sfm:overlay/z-order/set id(sfm%3Ahistory) 321`, exits zero,
+reports one applied target, and advances the same runtime action counter. Direct
+restore is byte-identical before render, replays no layout actions, and retains
+bounds `(8,42,320,190)` after render. Natural world unload leaves no focus or
+hosted overlay and suppresses the stale held-W release. Final screenshots make
+passive, focused, released, moved, hidden/re-shown, CLI-mutated, and restored
+states visually distinguishable while leaving substantial live-world context
+visible.
+
+`git diff --check` passes. The staged path audit contains no Cargo/SFM lockfile,
+dependency declaration, Gradle manifest, or toolchain-lock change; no cache
+mutation, new dependency, or repository clone was required. No Rust CLI source
+changed, so installed CLI epoch `728694ad7` remains current and the user does
+not need to run `install.ps1`. All puppet-owned game/helper/CLI processes exited
+normally. Manual testing is ready by launching the 1.19.2 client with the
+installed CLI, entering a world, and invoking the documented
+`sfm:overlay/*` actions against `id(sfm%3Ahistory)`; no preparatory install or
+cleanup step remains.
 
 **S1M-X1 completion evidence (2026-08-21):** Added the versioned
 `sfm.candidate-history/1` frame/address contract, a bounded off-render-thread
