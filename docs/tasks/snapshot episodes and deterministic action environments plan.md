@@ -787,7 +787,7 @@ historical insertion without changing any parent hash.
 second fixture rebases the same semantic query over a changed prefix and
 produces a different, explicitly witnessed target set.
 
-### [ ] 0.5 Freeze action-graph, undo-domain, and effect-class contracts
+### [~] 0.5 Freeze action-graph, undo-domain, and effect-class contracts
 
 **Work:**
 
@@ -809,7 +809,7 @@ choice, a pure projected suffix, and an irreversible barrier.
 **Completion criteria:** Rust and Java agree on graph identity/order and no API
 can represent “redo after a fork” only as one destructively replaced stack.
 
-### [ ] 0.6 Freeze trajectory-machine and supervision contracts
+### [~] 0.6 Freeze trajectory-machine and supervision contracts
 
 **Work:**
 
@@ -833,6 +833,26 @@ unapproved human gate.
 committed transition, advance the instruction pointer by moving the history
 head, destroy an old plan during replan, or claim global shortest-path status
 without a declared finite graph and valid proof policy.
+
+**TE-S1M Java-local contract checkpoint (2026-08-21):** Added validated
+`sfm.history-graph/1` and `sfm.trajectory-machine/1` records for intents,
+evaluations, outcomes, committed/projected states and edges, undo domains,
+heads/movements, retention pins, effect/projection classes, finite generator,
+cost/heuristic identity, supervision predicates/evidence/approval, immutable
+plan revisions/routes/search candidates, instruction pointer, projection
+frontier, and remaining budget. Constructors reject projected irreversible
+effects without barriers, committed non-materialized states, negative costs,
+discontinuous routes, invalid selected routes, unbounded/inadmissible
+minimum-cost claims, and `APPROVED` without authority evidence.
+
+The language-neutral `trajectory-contract-v1.json` fixture contains one
+committed fork with ambiguous redo, two retained plan revisions, independent
+actual head/instruction pointer/frontier, open/closed candidates, one pure
+projected suffix, one external barrier, a stale-parent machine state, and a
+`SUPERVISION_READY` human gate with no fabricated approval. Java-local tests
+pass. These items remain `[~]` because the later full TE-S1 interchange still
+owes Rust/shared-schema conformance; TE-S1M intentionally freezes and consumes
+the Java seam first rather than falsely claiming cross-runtime completion.
 
 ## Phase 1 — Implement the dumb adapters
 
@@ -1642,7 +1662,18 @@ branch properties supplied. The canonical installed CLI reports revision
 `728694ad7` and SHA-256
 `931766D833441446EEC7BFE1D1BF52C71BDD459D40270269FEF1BF77A9EED857`.
 No dependency declaration or lockfile changed, no repository was cloned, and
-the user does not need to run `install.ps1`. M1 is the active stage.
+the user does not need to run `install.ps1`. M1 began from this checkpoint.
+
+**M1 completion evidence (2026-08-21):** Completed selection X-3a and froze the
+TE-S1M Java-local 0.5/0.6 seam. Selection history now retains undo-undo-do
+siblings, exposes explicit ambiguous redo candidates, round-trips named heads
+through deterministic JSON, and projects the same topology into the shared
+history graph through hierarchical typed operations. The trajectory fixture
+separates actual head, selected plan, instruction pointer, frontier, candidate
+edges, and approval state and rejects dishonest effect/optimality claims.
+Focused selection repository, selection projection/action, trajectory
+contract, path-expression, and Text Editor v3 tests pass. Checkpoint M2 may now
+implement the pure bounded planner without changing these contracts.
 
 M1's contract is the synchronization point. After it is frozen, the pure
 planner, History Graph presentation skeleton, and puppet fixture definitions

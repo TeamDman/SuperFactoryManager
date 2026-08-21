@@ -854,7 +854,7 @@ continuation pages, cancellation, stale-request rejection, and failure
 diagnostics that retain published rows. `SFMSelectionRepositoryTests` and
 `SFMChildRelationRepositoryTests` passed through the canonical test harness.
 
-### [ ] X-3a Upgrade selection-head navigation from linear stacks to an undo tree
+### [x] X-3a Upgrade selection-head navigation from linear stacks to an undo tree
 
 **Work:**
 
@@ -894,6 +894,26 @@ deleting/closing a view does not delete revisions.
 destroyed redo stack, all previously reachable revisions remain addressable,
 ambiguous redo is explicit, and the shared snapshot/episode History Graph can
 consume the same topology without translating from a second history model.
+
+**Completion evidence (2026-08-21):** `SFMSelection` no longer contains linear
+undo/redo stacks. The repository derives deterministic parent/child adjacency
+from immutable revisions, exposes current and named heads, explicit checkout,
+default/explicit undo, ambiguous/single/explicit-child redo, history
+enumeration, and last-traversed-child preference without using that preference
+to resolve ambiguity. Head movement and naming retain actor/request provenance.
+
+The A→B→C, undo twice, then A→D fixture proves both B→C and D remain
+enumerable and pinned-resolvable; redo at A reports B and D; explicit traversal
+reaches C; `old-route` survives a deterministic
+`sfm.selection-history/1` JSON encode/decode/repository restore; and the encoded
+archive is byte-stable after round trip. `SFMSelectionHistoryActions` supplies
+hierarchical typed operation ids for enumerate, checkout, undo, redo,
+redo-child, and name-head. `SFMSelectionHistoryGraphProjection` consumes the
+repository archive directly and publishes the same branch topology through
+`sfm.history-graph/1`, with named heads represented as retention pins rather
+than a second redo model. Repository, path-expression, Text Editor v3,
+trajectory-contract, and projection focused tests pass through the canonical
+SFM test harness. No dependency or lockfile changed.
 
 ### [x] X-4 Replace recursive snapshots with a heterogeneous lazy explorer session
 

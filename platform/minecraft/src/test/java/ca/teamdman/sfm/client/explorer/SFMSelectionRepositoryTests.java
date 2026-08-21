@@ -19,6 +19,7 @@ public class SFMSelectionRepositoryTests {
     private static final SFMPath A = SFMPath.parse("file:///C:/a.txt");
     private static final SFMPath B = SFMPath.parse("file:///C:/b.txt");
     private static final SFMPath C = SFMPath.parse("registry://minecraft/item/stone");
+    private static final SFMPath D = SFMPath.parse("file:///C:/d.txt");
     private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-08-12T00:00:00Z"), ZoneOffset.UTC);
 
     @Test
@@ -100,10 +101,12 @@ public class SFMSelectionRepositoryTests {
 
         SFMSelectionRepository.MutationResult undone = repository.undo(id, "test", "undo");
         assertEquals(SFMSelectionHeadEvent.Kind.UNDO, undone.headEvent().orElseThrow().kind());
+        assertEquals(SFMSelectionRepository.HeadNavigationStatus.MOVED, undone.headNavigationStatus());
         assertEquals(Set.of(A), members(repository, id));
         assertEquals(Set.of(A, B), repository.resolve(changedRevision).members());
         SFMSelectionRepository.MutationResult redone = repository.redo(id, "test", "redo");
         assertEquals(SFMSelectionHeadEvent.Kind.REDO, redone.headEvent().orElseThrow().kind());
+        assertEquals(SFMSelectionRepository.HeadNavigationStatus.MOVED, redone.headNavigationStatus());
         assertEquals(Set.of(A, B), members(repository, id));
         assertTrue(repository.revision(created.revision().id()).isPresent());
     }
@@ -133,22 +136,64 @@ public class SFMSelectionRepositoryTests {
     }
 
     @Test
-    public void mutationAfterUndoClearsRedoWithoutDeletingOldBranch() {
+    public void undoUndoDoRetainsBothRedoBranchesNamedHeadsAndCanonicalArchive() {
         SFMSelectionRepository repository = new SFMSelectionRepository(CLOCK);
         SFMSelectionRepository.MutationResult created = repository.create(
                 Optional.of("branch"), Set.of(A), "test", "create"
         );
         SFMSelectionId id = created.selection().id();
-        SFMSelectionRepository.MutationResult oldBranch = repository.add(
-                id, Set.of(B), "test", "old-branch"
+        SFMSelectionRepository.MutationResult oldB = repository.add(
+                id, Set.of(B), "test", "old-b"
         );
-        SFMPath oldPinned = repository.pinnedPath(id, oldBranch.revision().id());
-        repository.undo(id, "test", "undo");
-        repository.add(id, Set.of(C), "test", "new-branch");
+        SFMSelectionRepository.MutationResult oldC = repository.add(
+                id, Set.of(C), "test", "old-c"
+        );
+        SFMPath oldCPinned = repository.pinnedPath(id, oldC.revision().id());
+        repository.undo(id, "test", "undo-c-to-b");
+        repository.undo(id, "test", "undo-b-to-a");
+        SFMSelectionRepository.MutationResult newD = repository.add(
+                id, Set.of(D), "test", "new-d"
+        );
+        SFMPath newDPinned = repository.pinnedPath(id, newD.revision().id());
 
-        assertFalse(repository.redo(id, "test", "redo-after-branch").changed());
-        assertEquals(Set.of(A, C), members(repository, id));
-        assertEquals(Set.of(A, B), repository.resolve(oldPinned).members());
+        repository.checkout(id, created.revision().id(), "test", "checkout-a");
+        SFMSelectionRepository.MutationResult ambiguous = repository.redo(
+                id, "test", "redo-ambiguous"
+        );
+
+        assertFalse(ambiguous.changed());
+        assertEquals(SFMSelectionRepository.HeadNavigationStatus.AMBIGUOUS,
+                ambiguous.headNavigationStatus());
+        assertEquals(List.of(oldB.revision().id(), newD.revision().id()),
+                ambiguous.candidateRevisionIds());
+        assertEquals(List.of(oldB.revision().id(), newD.revision().id()),
+                repository.redoCandidates(id));
+        assertEquals(4, repository.history(id).size());
+        assertEquals(Set.of(A, B, C), repository.resolve(oldCPinned).members());
+        assertEquals(Set.of(A, D), repository.resolve(newDPinned).members());
+
+        repository.redo(id, oldB.revision().id(), "test", "redo-old-b");
+        repository.redo(id, oldC.revision().id(), "test", "redo-old-c");
+        repository.nameHead(id, "old-route", oldC.revision().id(), "test", "name-old-route");
+        repository.checkout(id, newD.revision().id(), "test", "checkout-new-d");
+
+        SFMSelectionRepository.Archive archive = repository.exportArchive();
+        assertEquals(List.of(created.revision().id(), oldB.revision().id(), oldC.revision().id(),
+                        newD.revision().id()),
+                archive.revisions().stream().map(SFMSelectionRevision::id).toList());
+        SFMSelectionRepository restored = new SFMSelectionRepository(CLOCK);
+        String encoded = SFMSelectionArchiveJsonCodec.write(archive);
+        SFMSelectionRepository.Archive decoded = SFMSelectionArchiveJsonCodec.read(encoded);
+        assertEquals(encoded, SFMSelectionArchiveJsonCodec.write(decoded));
+        restored.restoreArchive(decoded);
+
+        assertEquals(archive, restored.exportArchive());
+        assertEquals(Set.of(A, D), members(restored, id));
+        assertEquals(Optional.of(oldC.revision().id()),
+                restored.selection(id).orElseThrow().namedHead("old-route"));
+        assertEquals(List.of(oldB.revision().id(), newD.revision().id()),
+                restored.stateSnapshot().childRevisionIds().get(created.revision().id()).stream().toList());
+        assertEquals(Set.of(A, B, C), restored.resolve(oldCPinned).members());
     }
 
     @Test

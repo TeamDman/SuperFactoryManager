@@ -7,6 +7,8 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Preserve undo-undo-do selection branches with explicit ambiguous redo, named heads, checkout, and deterministic history archives
+-- Add validated history-graph, trajectory-machine, supervision, and bounded-optimality contracts for the temporal numbering chamber
 -- Make Explorer Left Arrow move to and collapse the expanded parent that reveals the selected child
 -- Fix Ctrl-hover crashing on CRLF-backed Java source after the first line
 -- Keep Ctrl-hover and Ctrl+click available when a cold lexical result is replaced by richer Java semantic-map evidence

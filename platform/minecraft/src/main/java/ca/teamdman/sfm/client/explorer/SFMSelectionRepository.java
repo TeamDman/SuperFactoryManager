@@ -21,6 +21,7 @@ import java.util.TreeSet;
  * explicit selection head and append a separate provenance event.</p>
  */
 public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSelectionId> {
+    public static final String ARCHIVE_SCHEMA = "sfm.selection-history/1";
     /**
      * Opaque, complete repository state used by a caller that already holds this
      * repository's monitor while publishing a larger all-or-none transaction.
@@ -29,6 +30,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
         private final Map<SFMSelectionId, SFMSelection> selections;
         private final Map<String, SFMSelectionId> selectionIdsByName;
         private final Map<Long, SFMSelectionRevision> revisions;
+        private final Map<Long, Set<Long>> childRevisionIds;
         private final List<SFMSelectionHeadEvent> headEvents;
         private final Map<RequestKey, AppliedRequest> requests;
         private final long generation;
@@ -40,6 +42,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             selections = Map.copyOf(repository.selections);
             selectionIdsByName = Map.copyOf(repository.selectionIdsByName);
             revisions = Map.copyOf(repository.revisions);
+            childRevisionIds = immutableChildren(repository.childRevisionIds);
             headEvents = List.copyOf(repository.headEvents);
             requests = Map.copyOf(repository.requests);
             generation = repository.generation;
@@ -53,6 +56,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             long generation,
             Map<SFMSelectionId, SFMSelection> selections,
             Map<Long, SFMSelectionRevision> revisions,
+            Map<Long, Set<Long>> childRevisionIds,
             List<SFMSelectionHeadEvent> headEvents
     ) {
         public StateSnapshot {
@@ -62,8 +66,45 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             immutableSelections.putAll(selections);
             selections = Collections.unmodifiableMap(immutableSelections);
             revisions = Collections.unmodifiableMap(new TreeMap<>(revisions));
+            childRevisionIds = immutableChildren(childRevisionIds);
             headEvents = List.copyOf(headEvents);
         }
+    }
+
+    /** Canonically ordered, request-cache-free session interchange. */
+    public record Archive(
+            String schema,
+            long generation,
+            List<SFMSelection> selections,
+            List<SFMSelectionRevision> revisions,
+            List<SFMSelectionHeadEvent> headEvents
+    ) {
+        public Archive {
+            if (!ARCHIVE_SCHEMA.equals(schema)) {
+                throw new IllegalArgumentException("Unsupported selection archive schema: " + schema);
+            }
+            if (generation < 0) throw new IllegalArgumentException("Generation must not be negative");
+            Objects.requireNonNull(selections, "selections");
+            Objects.requireNonNull(revisions, "revisions");
+            Objects.requireNonNull(headEvents, "headEvents");
+            selections = selections.stream()
+                    .sorted(Comparator.comparing(selection -> selection.id().value()))
+                    .toList();
+            revisions = revisions.stream()
+                    .sorted(Comparator.comparingLong(SFMSelectionRevision::id))
+                    .toList();
+            headEvents = headEvents.stream()
+                    .sorted(Comparator.comparingLong(SFMSelectionHeadEvent::id))
+                    .toList();
+        }
+    }
+
+    public enum HeadNavigationStatus {
+        NOT_HEAD_NAVIGATION,
+        MOVED,
+        NO_CANDIDATE,
+        AMBIGUOUS,
+        ALREADY_CURRENT
     }
 
     public record MutationResult(
@@ -72,7 +113,9 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             long repositoryGeneration,
             SFMSelection selection,
             SFMSelectionRevision revision,
-            Optional<SFMSelectionHeadEvent> headEvent
+            Optional<SFMSelectionHeadEvent> headEvent,
+            HeadNavigationStatus headNavigationStatus,
+            List<Long> candidateRevisionIds
     ) {
         public MutationResult {
             if (repositoryGeneration < 0) {
@@ -81,6 +124,13 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             Objects.requireNonNull(selection, "selection");
             Objects.requireNonNull(revision, "revision");
             Objects.requireNonNull(headEvent, "headEvent");
+            Objects.requireNonNull(headNavigationStatus, "headNavigationStatus");
+            Objects.requireNonNull(candidateRevisionIds, "candidateRevisionIds");
+            candidateRevisionIds = List.copyOf(candidateRevisionIds);
+            if (candidateRevisionIds.stream().anyMatch(value -> value == null || value <= 0)) {
+                throw new IllegalArgumentException("Candidate revision ids must be positive");
+            }
+            candidateRevisionIds = candidateRevisionIds.stream().sorted().distinct().toList();
             if (!selection.id().equals(revision.selectionId())) {
                 throw new IllegalArgumentException("Mutation result selection and revision must agree");
             }
@@ -93,7 +143,9 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
                     repositoryGeneration,
                     selection,
                     revision,
-                    headEvent
+                    headEvent,
+                    headNavigationStatus,
+                    candidateRevisionIds
             );
         }
     }
@@ -106,13 +158,16 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
         INTERSECTION,
         DIFFERENCE,
         UNDO,
-        REDO
+        REDO,
+        CHECKOUT,
+        NAME_HEAD
     }
 
     private record RequestSignature(
             RequestKind kind,
             Optional<SFMSelectionId> target,
             Optional<String> name,
+            Optional<Long> revisionId,
             List<SFMSelectionId> sources,
             Set<SFMPath> paths
     ) {
@@ -120,6 +175,10 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             Objects.requireNonNull(kind, "kind");
             Objects.requireNonNull(target, "target");
             Objects.requireNonNull(name, "name");
+            Objects.requireNonNull(revisionId, "revisionId");
+            revisionId.ifPresent(value -> {
+                if (value <= 0) throw new IllegalArgumentException("Revision id must be positive");
+            });
             Objects.requireNonNull(sources, "sources");
             Objects.requireNonNull(paths, "paths");
             sources = List.copyOf(sources);
@@ -140,6 +199,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
     private final Map<SFMSelectionId, SFMSelection> selections = new HashMap<>();
     private final Map<String, SFMSelectionId> selectionIdsByName = new HashMap<>();
     private final Map<Long, SFMSelectionRevision> revisions = new HashMap<>();
+    private final Map<Long, Set<Long>> childRevisionIds = new HashMap<>();
     private final List<SFMSelectionHeadEvent> headEvents = new ArrayList<>();
     private final Map<RequestKey, AppliedRequest> requests = new HashMap<>();
     private long generation;
@@ -161,7 +221,114 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
     }
 
     public synchronized StateSnapshot stateSnapshot() {
-        return new StateSnapshot(generation, selections, revisions, headEvents);
+        return new StateSnapshot(generation, selections, revisions, childRevisionIds, headEvents);
+    }
+
+    public synchronized Archive exportArchive() {
+        return new Archive(
+                ARCHIVE_SCHEMA,
+                generation,
+                List.copyOf(selections.values()),
+                List.copyOf(revisions.values()),
+                headEvents
+        );
+    }
+
+    public synchronized void restoreArchive(Archive archive) {
+        Objects.requireNonNull(archive, "archive");
+        HashMap<Long, SFMSelectionRevision> importedRevisions = new HashMap<>();
+        for (SFMSelectionRevision revision : archive.revisions()) {
+            if (importedRevisions.put(revision.id(), revision) != null) {
+                throw new IllegalArgumentException("Duplicate selection revision: " + revision.id());
+            }
+        }
+        for (SFMSelectionRevision revision : archive.revisions()) {
+            for (long parentId : revision.parentRevisionIds()) {
+                SFMSelectionRevision parent = importedRevisions.get(parentId);
+                if (parent == null) {
+                    throw new IllegalArgumentException("Selection revision has missing parent: " + parentId);
+                }
+                if (parent.id() >= revision.id()) {
+                    throw new IllegalArgumentException("Selection archive history must be acyclic and parent-first");
+                }
+            }
+        }
+
+        HashMap<SFMSelectionId, SFMSelection> importedSelections = new HashMap<>();
+        HashMap<String, SFMSelectionId> importedNames = new HashMap<>();
+        for (SFMSelection selection : archive.selections()) {
+            if (importedSelections.put(selection.id(), selection) != null) {
+                throw new IllegalArgumentException("Duplicate selection id: " + selection.id().value());
+            }
+            selection.name().ifPresent(name -> {
+                if (importedNames.put(name, selection.id()) != null) {
+                    throw new IllegalArgumentException("Duplicate selection name: " + name);
+                }
+            });
+            validateSelectionHeads(selection, importedRevisions);
+        }
+
+        TreeMap<Long, Set<Long>> importedChildren = new TreeMap<>();
+        importedRevisions.keySet().forEach(id -> importedChildren.put(id, new TreeSet<>()));
+        for (SFMSelectionRevision revision : importedRevisions.values()) {
+            for (long parentId : revision.parentRevisionIds()) {
+                SFMSelectionRevision parent = importedRevisions.get(parentId);
+                if (parent.selectionId().equals(revision.selectionId())) {
+                    importedChildren.get(parentId).add(revision.id());
+                }
+            }
+        }
+        for (SFMSelection selection : importedSelections.values()) {
+            selection.preferredChildRevisionIds().forEach((parent, child) -> {
+                if (!importedChildren.getOrDefault(parent, Set.of()).contains(child)) {
+                    throw new IllegalArgumentException("Preferred child is not a history edge: " + parent + " -> " + child);
+                }
+            });
+        }
+
+        TreeSet<Long> eventIds = new TreeSet<>();
+        for (SFMSelectionHeadEvent event : archive.headEvents()) {
+            if (!eventIds.add(event.id())) {
+                throw new IllegalArgumentException("Duplicate selection head event: " + event.id());
+            }
+            SFMSelection selection = importedSelections.get(event.selectionId());
+            if (selection == null) throw new IllegalArgumentException("Head event has unknown selection");
+            for (long revisionId : List.of(event.fromRevisionId(), event.toRevisionId())) {
+                SFMSelectionRevision revision = importedRevisions.get(revisionId);
+                if (revision == null || !revision.selectionId().equals(selection.id())) {
+                    throw new IllegalArgumentException("Head event revision does not belong to its selection");
+                }
+            }
+        }
+
+        selections.clear();
+        selections.putAll(importedSelections);
+        selectionIdsByName.clear();
+        selectionIdsByName.putAll(importedNames);
+        revisions.clear();
+        revisions.putAll(importedRevisions);
+        childRevisionIds.clear();
+        importedChildren.forEach((parent, children) ->
+                childRevisionIds.put(parent, new TreeSet<>(children)));
+        headEvents.clear();
+        headEvents.addAll(archive.headEvents());
+        requests.clear();
+        generation = archive.generation();
+        nextRevisionId = importedRevisions.keySet().stream().mapToLong(Long::longValue).max().orElse(0L) + 1;
+        nextHeadEventId = eventIds.stream().mapToLong(Long::longValue).max().orElse(0L) + 1;
+        nextSelectionOrdinal = importedSelections.keySet().stream()
+                .map(SFMSelectionId::value)
+                .filter(value -> value.startsWith("selection-"))
+                .map(value -> value.substring("selection-".length()))
+                .mapToLong(value -> {
+                    try {
+                        return Long.parseLong(value);
+                    } catch (NumberFormatException ignored) {
+                        return 0L;
+                    }
+                })
+                .max()
+                .orElse(0L) + 1;
     }
 
     public synchronized TransactionSnapshot transactionSnapshot() {
@@ -176,6 +343,9 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
         selectionIdsByName.putAll(snapshot.selectionIdsByName);
         revisions.clear();
         revisions.putAll(snapshot.revisions);
+        childRevisionIds.clear();
+        snapshot.childRevisionIds.forEach((parent, children) ->
+                childRevisionIds.put(parent, new TreeSet<>(children)));
         headEvents.clear();
         headEvents.addAll(snapshot.headEvents);
         requests.clear();
@@ -204,6 +374,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
                 RequestKind.CREATE,
                 Optional.empty(),
                 name,
+                Optional.empty(),
                 List.of(),
                 initialMembers
         );
@@ -228,6 +399,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
                 RequestKind.CREATE,
                 Optional.of(id),
                 name,
+                Optional.empty(),
                 List.of(),
                 initialMembers
         );
@@ -317,7 +489,22 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             String actor,
             String requestId
     ) {
-        return moveHead(SFMSelectionHeadEvent.Kind.UNDO, id, actor, requestId);
+        return moveHead(SFMSelectionHeadEvent.Kind.UNDO, id, Optional.empty(), actor, requestId);
+    }
+
+    public synchronized MutationResult undo(
+            SFMSelectionId id,
+            long parentRevisionId,
+            String actor,
+            String requestId
+    ) {
+        return moveHead(
+                SFMSelectionHeadEvent.Kind.UNDO,
+                id,
+                Optional.of(parentRevisionId),
+                actor,
+                requestId
+        );
     }
 
     public synchronized MutationResult redo(
@@ -325,7 +512,65 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             String actor,
             String requestId
     ) {
-        return moveHead(SFMSelectionHeadEvent.Kind.REDO, id, actor, requestId);
+        return moveHead(SFMSelectionHeadEvent.Kind.REDO, id, Optional.empty(), actor, requestId);
+    }
+
+    public synchronized MutationResult redo(
+            SFMSelectionId id,
+            long childRevisionId,
+            String actor,
+            String requestId
+    ) {
+        return moveHead(
+                SFMSelectionHeadEvent.Kind.REDO,
+                id,
+                Optional.of(childRevisionId),
+                actor,
+                requestId
+        );
+    }
+
+    public synchronized MutationResult checkout(
+            SFMSelectionId id,
+            long revisionId,
+            String actor,
+            String requestId
+    ) {
+        return moveHead(
+                SFMSelectionHeadEvent.Kind.CHECKOUT,
+                id,
+                Optional.of(revisionId),
+                actor,
+                requestId
+        );
+    }
+
+    public synchronized MutationResult nameHead(
+            SFMSelectionId id,
+            String headName,
+            long revisionId,
+            String actor,
+            String requestId
+    ) {
+        return nameHeadLocked(id, headName, revisionId, actor, requestId);
+    }
+
+    public synchronized List<Long> undoCandidates(SFMSelectionId id) {
+        SFMSelection selection = requireSelection(id);
+        return historyParents(selection.id(), selection.headRevisionId());
+    }
+
+    public synchronized List<Long> redoCandidates(SFMSelectionId id) {
+        SFMSelection selection = requireSelection(id);
+        return historyChildren(selection.id(), selection.headRevisionId());
+    }
+
+    public synchronized List<SFMSelectionRevision> history(SFMSelectionId id) {
+        requireSelection(id);
+        return revisions.values().stream()
+                .filter(revision -> revision.selectionId().equals(id))
+                .sorted(Comparator.comparingLong(SFMSelectionRevision::id))
+                .toList();
     }
 
     public synchronized SFMSelectionMembersResolution resolveMembers(SFMEntitySelector selector) {
@@ -470,12 +715,12 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
                 name,
                 SFMSelection.Lifetime.SESSION,
                 revision.id(),
-                List.of(),
-                List.of()
+                Map.of(),
+                Map.of()
         );
         selections.put(id, selection);
         name.ifPresent(value -> selectionIdsByName.put(value, id));
-        revisions.put(revision.id(), revision);
+        publishRevision(revision);
         generation++;
         return remember(actor, requestId, signature, result(true, selection, revision, Optional.empty()));
     }
@@ -492,6 +737,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
         RequestSignature signature = signature(
                 kind,
                 Optional.of(id),
+                Optional.empty(),
                 Optional.empty(),
                 List.of(id),
                 operands
@@ -526,18 +772,18 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
                 actor,
                 requestId
         );
-        ArrayList<Long> undo = new ArrayList<>(selection.undoRevisionIds());
-        undo.add(previous.id());
+        TreeMap<Long, Long> preferredChildren = new TreeMap<>(selection.preferredChildRevisionIds());
+        preferredChildren.put(previous.id(), revision.id());
         SFMSelection updated = new SFMSelection(
                 id,
                 selection.name(),
                 selection.lifetime(),
                 revision.id(),
-                undo,
-                List.of()
+                selection.namedHeadRevisionIds(),
+                preferredChildren
         );
         selections.put(id, updated);
-        revisions.put(revision.id(), revision);
+        publishRevision(revision);
         generation++;
         return remember(actor, requestId, signature, result(true, updated, revision, Optional.empty()));
     }
@@ -555,6 +801,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
                 kind,
                 Optional.of(resultId),
                 resultName,
+                Optional.empty(),
                 sources,
                 Set.of()
         );
@@ -593,12 +840,12 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
                 resultName,
                 SFMSelection.Lifetime.SESSION,
                 revision.id(),
-                List.of(),
-                List.of()
+                Map.of(),
+                Map.of()
         );
         selections.put(resultId, selection);
         resultName.ifPresent(value -> selectionIdsByName.put(value, resultId));
-        revisions.put(revision.id(), revision);
+        publishRevision(revision);
         generation++;
         return remember(actor, requestId, signature, result(true, selection, revision, Optional.empty()));
     }
@@ -606,17 +853,23 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
     private MutationResult moveHead(
             SFMSelectionHeadEvent.Kind kind,
             SFMSelectionId id,
+            Optional<Long> requestedRevisionId,
             String actor,
             String requestId
     ) {
         Objects.requireNonNull(id, "id");
-        RequestKind requestKind = kind == SFMSelectionHeadEvent.Kind.UNDO
-                ? RequestKind.UNDO
-                : RequestKind.REDO;
+        Objects.requireNonNull(requestedRevisionId, "requestedRevisionId");
+        RequestKind requestKind = switch (kind) {
+            case UNDO -> RequestKind.UNDO;
+            case REDO -> RequestKind.REDO;
+            case CHECKOUT -> RequestKind.CHECKOUT;
+            case NAME_HEAD -> throw new IllegalArgumentException("Named heads use nameHead");
+        };
         RequestSignature signature = signature(
                 requestKind,
                 Optional.of(id),
                 Optional.empty(),
+                requestedRevisionId,
                 List.of(id),
                 Set.of()
         );
@@ -624,31 +877,65 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
         if (replay != null) return replay;
         requireRequest(actor, requestId);
         SFMSelection selection = requireSelection(id);
-        List<Long> source = kind == SFMSelectionHeadEvent.Kind.UNDO
-                ? selection.undoRevisionIds()
-                : selection.redoRevisionIds();
         SFMSelectionRevision current = requireRevision(selection.headRevisionId());
-        if (source.isEmpty()) {
-            return remember(actor, requestId, signature, result(false, selection, current, Optional.empty()));
+        List<Long> candidates = switch (kind) {
+            case UNDO -> historyParents(id, current.id());
+            case REDO -> historyChildren(id, current.id());
+            case CHECKOUT -> requestedRevisionId.map(List::of).orElseGet(List::of);
+            case NAME_HEAD -> throw new IllegalArgumentException("Named heads use nameHead");
+        };
+        if (requestedRevisionId.isEmpty()) {
+            if (candidates.isEmpty()) {
+                return remember(
+                        actor,
+                        requestId,
+                        signature,
+                        headResult(false, selection, current, Optional.empty(),
+                                HeadNavigationStatus.NO_CANDIDATE, candidates)
+                );
+            }
+            if (candidates.size() > 1) {
+                return remember(
+                        actor,
+                        requestId,
+                        signature,
+                        headResult(false, selection, current, Optional.empty(),
+                                HeadNavigationStatus.AMBIGUOUS, candidates)
+                );
+            }
         }
 
-        long targetRevisionId = source.get(source.size() - 1);
-        ArrayList<Long> undo = new ArrayList<>(selection.undoRevisionIds());
-        ArrayList<Long> redo = new ArrayList<>(selection.redoRevisionIds());
-        if (kind == SFMSelectionHeadEvent.Kind.UNDO) {
-            undo.remove(undo.size() - 1);
-            redo.add(current.id());
-        } else {
-            redo.remove(redo.size() - 1);
-            undo.add(current.id());
+        long targetRevisionId = requestedRevisionId.orElseGet(() -> candidates.get(0));
+        SFMSelectionRevision target = requireRevision(targetRevisionId);
+        if (!target.selectionId().equals(id)) {
+            throw new IllegalArgumentException("Target revision does not belong to selection " + id.value());
         }
+        if (kind != SFMSelectionHeadEvent.Kind.CHECKOUT && !candidates.contains(targetRevisionId)) {
+            throw new IllegalArgumentException(
+                    "Revision " + targetRevisionId + " is not a "
+                            + kind.name().toLowerCase() + " candidate from " + current.id()
+            );
+        }
+        if (targetRevisionId == current.id()) {
+            return remember(
+                    actor,
+                    requestId,
+                    signature,
+                    headResult(false, selection, current, Optional.empty(),
+                            HeadNavigationStatus.ALREADY_CURRENT, List.of(current.id()))
+            );
+        }
+
+        TreeMap<Long, Long> preferredChildren = new TreeMap<>(selection.preferredChildRevisionIds());
+        if (kind == SFMSelectionHeadEvent.Kind.UNDO) preferredChildren.put(targetRevisionId, current.id());
+        if (kind == SFMSelectionHeadEvent.Kind.REDO) preferredChildren.put(current.id(), targetRevisionId);
         SFMSelection updated = new SFMSelection(
                 id,
                 selection.name(),
                 selection.lifetime(),
                 targetRevisionId,
-                undo,
-                redo
+                selection.namedHeadRevisionIds(),
+                preferredChildren
         );
         SFMSelectionHeadEvent event = new SFMSelectionHeadEvent(
                 nextHeadEventId++,
@@ -656,6 +943,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
                 current.id(),
                 targetRevisionId,
                 kind,
+                Optional.empty(),
                 actor,
                 requestId,
                 clock.instant()
@@ -667,8 +955,68 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
                 actor,
                 requestId,
                 signature,
-                result(true, updated, requireRevision(targetRevisionId), Optional.of(event))
+                headResult(true, updated, target, Optional.of(event),
+                        HeadNavigationStatus.MOVED, candidates)
         );
+    }
+
+    private MutationResult nameHeadLocked(
+            SFMSelectionId id,
+            String headName,
+            long revisionId,
+            String actor,
+            String requestId
+    ) {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(headName, "headName");
+        SFMCanonicalText.requireValidUnicode(headName, "selection.invalid-head-name");
+        if (headName.isEmpty()) throw new IllegalArgumentException("Head name must not be empty");
+        RequestSignature signature = signature(
+                RequestKind.NAME_HEAD,
+                Optional.of(id),
+                Optional.of(headName),
+                Optional.of(revisionId),
+                List.of(id),
+                Set.of()
+        );
+        MutationResult replay = replay(actor, requestId, signature);
+        if (replay != null) return replay;
+        requireRequest(actor, requestId);
+        SFMSelection selection = requireSelection(id);
+        SFMSelectionRevision revision = requireRevision(revisionId);
+        if (!revision.selectionId().equals(id)) {
+            throw new IllegalArgumentException("Named-head revision does not belong to selection " + id.value());
+        }
+        if (selection.namedHead(headName).filter(value -> value == revisionId).isPresent()) {
+            return remember(actor, requestId, signature,
+                    result(false, selection, revision, Optional.empty()));
+        }
+        TreeMap<String, Long> namedHeads = new TreeMap<>(selection.namedHeadRevisionIds());
+        namedHeads.put(headName, revisionId);
+        SFMSelection updated = new SFMSelection(
+                id,
+                selection.name(),
+                selection.lifetime(),
+                selection.headRevisionId(),
+                namedHeads,
+                selection.preferredChildRevisionIds()
+        );
+        SFMSelectionHeadEvent event = new SFMSelectionHeadEvent(
+                nextHeadEventId++,
+                id,
+                selection.headRevisionId(),
+                revisionId,
+                SFMSelectionHeadEvent.Kind.NAME_HEAD,
+                Optional.of(headName),
+                actor,
+                requestId,
+                clock.instant()
+        );
+        selections.put(id, updated);
+        headEvents.add(event);
+        generation++;
+        return remember(actor, requestId, signature,
+                result(true, updated, revision, Optional.of(event)));
     }
 
     private SFMSelectionRevision newRevision(
@@ -691,13 +1039,75 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
         );
     }
 
+    private void publishRevision(SFMSelectionRevision revision) {
+        if (revisions.containsKey(revision.id())) {
+            throw new IllegalStateException("Selection revision already exists: " + revision.id());
+        }
+        for (long parentId : revision.parentRevisionIds()) {
+            SFMSelectionRevision parent = revisions.get(parentId);
+            if (parent == null) {
+                throw new IllegalStateException("Unknown parent selection revision: " + parentId);
+            }
+            if (parent.selectionId().equals(revision.selectionId())) {
+                childRevisionIds
+                        .computeIfAbsent(parentId, ignored -> new TreeSet<>())
+                        .add(revision.id());
+            }
+        }
+        revisions.put(revision.id(), revision);
+        childRevisionIds.computeIfAbsent(revision.id(), ignored -> new TreeSet<>());
+    }
+
+    private List<Long> historyParents(SFMSelectionId selectionId, long revisionId) {
+        return requireRevision(revisionId).parentRevisionIds().stream()
+                .filter(parentId -> requireRevision(parentId).selectionId().equals(selectionId))
+                .sorted()
+                .toList();
+    }
+
+    private List<Long> historyChildren(SFMSelectionId selectionId, long revisionId) {
+        return childRevisionIds.getOrDefault(revisionId, Set.of()).stream()
+                .filter(childId -> requireRevision(childId).selectionId().equals(selectionId))
+                .sorted()
+                .toList();
+    }
+
     private MutationResult result(
             boolean changed,
             SFMSelection selection,
             SFMSelectionRevision revision,
             Optional<SFMSelectionHeadEvent> headEvent
     ) {
-        return new MutationResult(changed, false, generation, selection, revision, headEvent);
+        return new MutationResult(
+                changed,
+                false,
+                generation,
+                selection,
+                revision,
+                headEvent,
+                HeadNavigationStatus.NOT_HEAD_NAVIGATION,
+                List.of()
+        );
+    }
+
+    private MutationResult headResult(
+            boolean changed,
+            SFMSelection selection,
+            SFMSelectionRevision revision,
+            Optional<SFMSelectionHeadEvent> headEvent,
+            HeadNavigationStatus status,
+            List<Long> candidates
+    ) {
+        return new MutationResult(
+                changed,
+                false,
+                generation,
+                selection,
+                revision,
+                headEvent,
+                status,
+                candidates
+        );
     }
 
     private MutationResult replay(String actor, String requestId, RequestSignature signature) {
@@ -773,6 +1183,23 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
         return selection;
     }
 
+    private static void validateSelectionHeads(
+            SFMSelection selection,
+            Map<Long, SFMSelectionRevision> availableRevisions
+    ) {
+        ArrayList<Long> heads = new ArrayList<>();
+        heads.add(selection.headRevisionId());
+        heads.addAll(selection.namedHeadRevisionIds().values());
+        for (long revisionId : heads) {
+            SFMSelectionRevision revision = availableRevisions.get(revisionId);
+            if (revision == null || !revision.selectionId().equals(selection.id())) {
+                throw new IllegalArgumentException(
+                        "Selection head revision does not belong to " + selection.id().value()
+                );
+            }
+        }
+    }
+
     private void assertAvailableIdentity(SFMSelectionId id, Optional<String> name) {
         if (selections.containsKey(id) || selectionIdsByName.containsKey(id.value())) {
             throw new IllegalArgumentException("Selection id already exists or is used as a name: " + id);
@@ -798,6 +1225,26 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
         return answer;
     }
 
+    private static Map<Long, Set<Long>> immutableChildren(Map<Long, ? extends Collection<Long>> values) {
+        Objects.requireNonNull(values, "childRevisionIds");
+        TreeMap<Long, Set<Long>> answer = new TreeMap<>();
+        values.forEach((parent, children) -> {
+            if (parent == null || parent <= 0) {
+                throw new IllegalArgumentException("Child adjacency parent ids must be positive");
+            }
+            Objects.requireNonNull(children, "child revision ids");
+            TreeSet<Long> ordered = new TreeSet<>();
+            for (Long child : children) {
+                if (child == null || child <= 0) {
+                    throw new IllegalArgumentException("Child adjacency revision ids must be positive");
+                }
+                ordered.add(child);
+            }
+            answer.put(parent, Collections.unmodifiableSet(ordered));
+        });
+        return Collections.unmodifiableMap(answer);
+    }
+
     private static List<SFMSelectionId> requireSources(
             List<SFMSelectionId> sources,
             int minimum,
@@ -816,6 +1263,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             RequestKind kind,
             Optional<SFMSelectionId> target,
             Optional<String> name,
+            Optional<Long> revisionId,
             List<SFMSelectionId> sources,
             Collection<SFMPath> paths
     ) {
@@ -824,7 +1272,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             SFMCanonicalText.requireValidUnicode(value, "selection.invalid-name");
             if (value.isEmpty()) throw new IllegalArgumentException("Selection name must not be empty");
         });
-        return new RequestSignature(kind, target, name, sources, immutablePaths(paths));
+        return new RequestSignature(kind, target, name, revisionId, sources, immutablePaths(paths));
     }
 
     private static SFMSelectionRevision.OperationKind operationKind(RequestKind kind) {
