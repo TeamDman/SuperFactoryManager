@@ -9,6 +9,7 @@ import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
 import ca.teamdman.sfm.client.action.SFMExplorerActions;
+import ca.teamdman.sfm.client.action.SFMOverlayActions;
 import ca.teamdman.sfm.client.action.SFMSymbolActions;
 import ca.teamdman.sfm.client.action.SFMSpatialActions;
 import ca.teamdman.sfm.client.action.SFMReviewActions;
@@ -97,6 +98,7 @@ public class SFM {
 
         SFMCommandPaletteActions.register(bus);
         SFMExplorerActions.register(bus);
+        SFMOverlayActions.register(bus);
         SFMSymbolActions.register(bus);
         SFMSpatialActions.register(bus);
         SFMTrajectoryActions.register(bus);

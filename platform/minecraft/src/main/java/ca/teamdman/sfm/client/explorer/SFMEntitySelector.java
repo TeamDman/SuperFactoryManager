@@ -13,6 +13,7 @@ public record SFMEntitySelector(Domain domain, Node node) {
         PANEL_ENTRY(true, false),
         EXPLORER(true, false),
         EPISODE(true, false),
+        OVERLAY(true, false),
         SELECTION(false, true);
 
         private final boolean focusCapable;

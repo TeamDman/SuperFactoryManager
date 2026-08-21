@@ -9,7 +9,8 @@
   ],
   "client": [
     "MouseHandlerMixin",
-    "KeyboardHandlerMixin"
+    "KeyboardHandlerMixin",
+    "KeyboardHandlerInvoker"
   ],
   "server": [],
   "injectors": {

@@ -402,6 +402,11 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    /** Runs X6's complete in-world History Graph overlay journey and writes its durable evidence. */
+    public void exerciseHistoryGraphOverlay() {
+        add(new ExerciseHistoryOverlayPuppetAction());
+    }
+
     /** Chooses exact source/source replay from its visible constrained action palette. */
     public void clickTemporalExactReplayChoice() {
         add(new ClickTemporalExactReplayChoicePuppetAction());
@@ -1007,6 +1012,14 @@ public final class SFMGamePuppetHelper {
      */
     public void capture(String captureName, Component caption) {
         add(new CapturePuppetAction(captureName, Objects.requireNonNull(caption, "caption").copy()));
+    }
+
+    /** Captures the rendered client frame while retaining HUD and Forge overlays. */
+    public void captureWithHud(String captureName, Component caption) {
+        add(new CaptureWithHudPuppetAction(
+                captureName,
+                Objects.requireNonNull(caption, "caption").copy()
+        ));
     }
 
     /** Stages a bounded UTF-8 text artifact for publication beside this puppet's screenshots. */

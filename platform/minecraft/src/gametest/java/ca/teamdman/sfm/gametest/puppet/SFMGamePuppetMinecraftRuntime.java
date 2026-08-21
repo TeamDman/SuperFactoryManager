@@ -1427,6 +1427,24 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             Component caption
     ) {
 
+        return capture(captureName, caption, false);
+    }
+
+    @Override
+    public boolean captureWithHud(
+            String captureName,
+            Component caption
+    ) {
+
+        return capture(captureName, caption, true);
+    }
+
+    private boolean capture(
+            String captureName,
+            Component caption,
+            boolean preserveHud
+    ) {
+
         String safeCaptureName = validateCaptureName(captureName);
         PuppetCaptureState state = active.captures.computeIfAbsent(
                 safeCaptureName, name -> {
@@ -1451,8 +1469,12 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             );
         }
         if (!state.hudPrepared) {
-            // The source frame must first render with the clean HUD profile.
-            prepareCleanCaptureHud();
+            // The source frame must first render with the requested HUD profile.
+            if (preserveHud) {
+                prepareOverlayPreservingCaptureHud();
+            } else {
+                prepareCleanCaptureHud();
+            }
             state.hudPrepared = true;
             return false;
         }
@@ -1861,6 +1883,15 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         // This setting is scoped to the isolated preview run directory and is
         // never persisted to a developer's normal game options.
         minecraft.options.hideGui = true;
+        minecraft.getToasts().clear();
+        minecraft.gui.getChat().clearMessages(false);
+    }
+
+    private void prepareOverlayPreservingCaptureHud() {
+        // HUD-backed SFM overlays are skipped whenever hideGui is true. Keep the
+        // deterministic toast/chat cleanup from ordinary captures while making
+        // the HUD renderable for the next source frame.
+        minecraft.options.hideGui = false;
         minecraft.getToasts().clear();
         minecraft.gui.getChat().clearMessages(false);
     }

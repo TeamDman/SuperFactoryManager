@@ -77,6 +77,14 @@ public final class SFMHistoryGraphPanel implements SFMScreenPanel, SFMEpisodeCon
         this(SFMHistoryGraphRuntime.get(), episodeSelector, null, Runnable::run);
     }
 
+    /** Reuses this content in hosts whose action-currentness is not a workspace {@code Screen}. */
+    public SFMHistoryGraphPanel(
+            SFMEntitySelector episodeSelector,
+            @Nullable Consumer<String> actionOverride
+    ) {
+        this(SFMHistoryGraphRuntime.get(), episodeSelector, actionOverride, Runnable::run);
+    }
+
     SFMHistoryGraphPanel(
             SFMHistoryGraphRuntime runtime,
             SFMEntitySelector episodeSelector,

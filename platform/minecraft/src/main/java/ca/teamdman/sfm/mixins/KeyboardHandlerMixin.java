@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.mixins;
 
 import ca.teamdman.sfm.client.handler.SFMDynamicKeyBindingHandler;
+import ca.teamdman.sfm.client.overlay.scene.SFMClientOverlayRuntime;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.Minecraft;
@@ -23,6 +24,10 @@ public final class KeyboardHandlerMixin {
             int modifiers,
             CallbackInfo callback
     ) {
+        if (SFMClientOverlayRuntime.get().key(window, keyCode, scanCode, action, modifiers)) {
+            callback.cancel();
+            return;
+        }
         if (action != GLFW.GLFW_PRESS) return;
         Minecraft minecraft = Minecraft.getInstance();
         if (window != minecraft.getWindow().getWindow()) return;
@@ -34,5 +39,16 @@ public final class KeyboardHandlerMixin {
                 modifiers)) {
             callback.cancel();
         }
+    }
+
+    @Inject(method = "charTyped", at = @At("HEAD"), cancellable = true)
+    @MCVersionDependentBehaviour
+    private void handleSfmOverlayCharacter(
+            long window,
+            int codePoint,
+            int modifiers,
+            CallbackInfo callback
+    ) {
+        if (SFMClientOverlayRuntime.get().character(window, codePoint, modifiers)) callback.cancel();
     }
 }

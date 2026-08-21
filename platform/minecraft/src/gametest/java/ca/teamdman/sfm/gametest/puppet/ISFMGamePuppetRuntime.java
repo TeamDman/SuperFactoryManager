@@ -196,6 +196,9 @@ public interface ISFMGamePuppetRuntime {
 
     boolean capture(String captureName, Component caption);
 
+    /** Captures the rendered frame without suppressing HUD and Forge overlay rendering. */
+    boolean captureWithHud(String captureName, Component caption);
+
     /** Stages one bounded, portable evidence artifact for durable preview publication. */
     void writeArtifact(
             String artifactName,

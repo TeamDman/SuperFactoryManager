@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Add a reusable selector-addressed non-pausing gameplay overlay scene with canonical direct restore, explicit passive/interactive focus, action/CLI parity, and the live History Graph as its first consumer
 -- Add a read-only Candidate History timeline with immutable plan pinning, exact projected document frames, and explicit unavailable, invalidated, external-barrier, and unknown states
 -- Add a supervised temporal-numbering chamber with natural Text Editor v3 edits, non-destructive Ctrl+Z branches, retained replans, and exact checkout-safe puppet evidence
 -- Add canonical temporal causal archives with raw keybinding provenance, immutable restoration, exact replay, semantic rebase, and retained two-/three-item sibling histories
