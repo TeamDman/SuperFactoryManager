@@ -390,7 +390,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             case GLFW.GLFW_KEY_HOME -> model.selectFirst(bounds);
             case GLFW.GLFW_KEY_END -> model.selectLast(bounds);
             case GLFW.GLFW_KEY_RIGHT -> model.emitExpandSelected(bounds);
-            case GLFW.GLFW_KEY_LEFT -> model.emitCollapseSelected(bounds);
+            case GLFW.GLFW_KEY_LEFT -> model.emitCollapseSelectedOrParent(bounds);
             case GLFW.GLFW_KEY_SPACE -> activateSelected(SFMExplorerPreviewPlacement.Mode.PREVIEW);
             case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> activateSelected(
                     control

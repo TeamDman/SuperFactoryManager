@@ -106,10 +106,19 @@ public final class SFMSymbolNavigationRuntime
                         QUERY_TIMEOUT
                 );
                 SFM.LOGGER.info(
-                        "SFM_DEFINITION_RUNTIME_SUBMITTED request={} generation={} workspace_generation={}",
+                        "SFM_DEFINITION_RUNTIME_SUBMITTED request={} generation={} workspace_generation={} branch={} address={} root_id={} report_path={} source_set={} line={} column={} byte={} content_hash={}",
                         handle.request().requestId(),
                         handle.request().requestGeneration(),
-                        handle.request().workspace().workspaceGeneration()
+                        handle.request().workspace().workspaceGeneration(),
+                        handle.request().workspace().branch(),
+                        handle.request().document().address(),
+                        handle.request().document().rootId(),
+                        handle.request().document().reportPath(),
+                        handle.request().document().sourceSet(),
+                        handle.request().position().line(),
+                        handle.request().position().column(),
+                        handle.request().position().byteOffset(),
+                        handle.request().document().contentHash()
                 );
                 activeCancellation.set(handle::cancel);
                 if (cancelled.get()) {
@@ -118,12 +127,34 @@ public final class SFMSymbolNavigationRuntime
                     return;
                 }
                 handle.result().whenComplete((result, queryFailure) -> {
-                    SFM.LOGGER.info(
-                            "SFM_DEFINITION_RUNTIME_COMPLETED request={} success={} failure_type={}",
-                            handle.request().requestId(),
-                            queryFailure == null,
-                            queryFailure == null ? "none" : unwrap(queryFailure).getClass().getSimpleName()
-                    );
+                    if (queryFailure == null && result != null) {
+                        SFM.LOGGER.info(
+                                "SFM_DEFINITION_RUNTIME_COMPLETED request={} success=true outcome={} definitions={} completeness={} diagnostic_codes={} report_path={} line={} column={} byte={}",
+                                handle.request().requestId(),
+                                result.outcome(),
+                                result.definitions().size(),
+                                result.completeness(),
+                                String.join(",", result.diagnostics().stream()
+                                        .map(SFMDefinitionResult.Diagnostic::code)
+                                        .distinct()
+                                        .limit(8)
+                                        .toList()),
+                                handle.request().document().reportPath(),
+                                handle.request().position().line(),
+                                handle.request().position().column(),
+                                handle.request().position().byteOffset()
+                        );
+                    } else {
+                        SFM.LOGGER.info(
+                                "SFM_DEFINITION_RUNTIME_COMPLETED request={} success=false failure_type={} report_path={} line={} column={} byte={}",
+                                handle.request().requestId(),
+                                queryFailure == null ? "null-result" : unwrap(queryFailure).getClass().getSimpleName(),
+                                handle.request().document().reportPath(),
+                                handle.request().position().line(),
+                                handle.request().position().column(),
+                                handle.request().position().byteOffset()
+                        );
+                    }
                     if (queryFailure != null) answer.completeExceptionally(unwrap(queryFailure));
                     else answer.complete(new SFMDefinitionLookupService.Lookup(hello, result));
                 });

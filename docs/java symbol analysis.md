@@ -85,6 +85,21 @@ the target document against the retained resolution surface instead of
 relinking the workspace or re-expanding dependency declarations. A cancelled
 or failed rebuild is never published, and no live cache persists after exit.
 
+The warm surface derives directed source-set visibility from its normalized
+analysis context after dependency source sets have been added. This is a
+semantic invariant: live project sets may see their indexed dependency sets,
+acquired dependency documents may see each other and the managed JDK sets, and
+the original branch visibility still governs live source sets. Reconstructing
+visibility from the pre-normalized editable workspace is invalid because that
+workspace cannot yet name an acquired dependency source set.
+
+Addressed dependency documents remain fail-closed under their authenticated
+source root. Root and child are canonicalized in the same native filesystem
+namespace before containment is checked. In particular, Windows must not
+compare an ordinary `C:\...` root against an equivalent verbatim
+`\\?\C:\...` child when only the child crosses the legacy 260-character
+boundary; that spelling difference is not a root escape.
+
 Minecraft consumes this protocol through `SFMSymbolNavigationProvider`, not by
 parsing Java in a screen. `SFMSymbolServerSupervisor` launches the branch-
 configured command above, defaults to `sfm-propagate-changes.exe`, and permits
@@ -243,6 +258,22 @@ and index format. It excludes machine-local worktree/cache paths and lockfile
 formatting. A semantic change therefore reports the old index as stale and
 prints an exact typed refresh recommendation. `index show` never acquires or
 writes anything.
+
+`index refresh` also derives a source-first type fallback for libraries listed
+by the exact locked Minecraft version JSON when no usable source declaration is
+available. It accepts only version-JSON artifacts with their recorded SHA-1,
+selects classfile entries visible to Java 17 (including matching multi-release
+entries), and writes compact generated Java declarations beneath the managed,
+content-addressed source cache. A real source/decompile provider always wins and
+suppresses the same binary type from the fallback. This does not mutate the
+checked-in lockfile or add a dependency, and ordinary read-only queries still
+perform no acquisition.
+
+The initial fallback intentionally guarantees navigable external *type*
+declarations, such as `org.apache.logging.log4j.Logger`; it does not yet claim
+complete binary fields, methods, generic signatures, or source bodies. Exact
+binary names and authenticated artifact origins are retained in the generated
+source comments, while incomplete member evidence remains a typed diagnostic.
 
 The v3 store contains a typed `manifest.json` and authenticated
 `payload.ndjson` beneath `$sfm-cache/symbol-index/v3/<identity>/`. Its routed

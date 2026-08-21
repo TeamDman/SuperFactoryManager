@@ -1735,15 +1735,20 @@ impl DefinitionAtPositionEngine {
         {
             eyre::bail!("addressed dependency-source path is not canonical");
         }
+        // Keep the root and child in the same canonical Windows namespace.
+        // `dunce::canonicalize` intentionally removes the verbatim `\\?\`
+        // prefix when a path is short enough, but retains it for paths beyond
+        // MAX_PATH. Comparing such mixed spellings made a legitimate long
+        // dependency document appear to escape its own root.
         let canonical_root =
-            dunce::canonicalize(&root.canonical_absolute_path).map_err(|error| {
+            std::fs::canonicalize(&root.canonical_absolute_path).map_err(|error| {
                 eyre::eyre!(
                     "failed to resolve acquired dependency source authority `{}`: {error}",
                     root.root_id
                 )
             })?;
         let candidate = canonical_root.join(&request.document.root_relative_path);
-        let absolute_path = dunce::canonicalize(&candidate).map_err(|error| {
+        let absolute_path = std::fs::canonicalize(&candidate).map_err(|error| {
             eyre::eyre!(
                 "failed to resolve addressed dependency source `{}`:`{}`: {error}",
                 request.document.root_id,
@@ -2070,6 +2075,52 @@ mod tests {
         )
     }
 
+    fn dependency_request_at(
+        workspace: &JavaSourceWorkspace,
+        root: &DefinitionDependencySourceRoot,
+        relative: &str,
+        text: &str,
+        generation: u64,
+        needle: &str,
+    ) -> DefinitionAtPositionRequest {
+        let byte_offset = text.find(needle).expect("dependency request needle");
+        let prefix = &text[..byte_offset];
+        let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+        let line_prefix = prefix.rsplit_once('\n').map_or(prefix, |(_, tail)| tail);
+        let column = line_prefix.chars().count() + 1;
+        let workspace_fingerprint = definition_workspace_fingerprint(&workspace.context, None)
+            .expect("fixture workspace fingerprint");
+        DefinitionAtPositionRequest::new(
+            1,
+            1,
+            DefinitionWorkspaceIdentityInput {
+                branch: workspace.context.branch.clone(),
+                classpath_mode: workspace.context.classpath_mode,
+                source_roots: workspace.context.source_roots.clone(),
+                classpath_fingerprint: workspace.context.classpath_fingerprint.clone(),
+                dependency_index_identity: None,
+                workspace_fingerprint,
+                workspace_generation: generation,
+            },
+            DefinitionDocumentInput {
+                address: contributed_address("dependency-source", &root.root_id, relative),
+                root_id: root.root_id.clone(),
+                root_relative_path: relative.to_owned(),
+                report_path: format!("{}/{relative}", root.report_prefix),
+                source_set: root.source_set.clone(),
+                text: text.to_owned(),
+                content_hash: blake3_content_hash(text),
+                disk_content_hash: Some(blake3_content_hash(text)),
+            },
+            DefinitionTextPositionInput::from_line_column(
+                text,
+                line.try_into().expect("fixture line"),
+                column.try_into().expect("fixture column"),
+            )
+            .expect("dependency fixture cursor"),
+        )
+    }
+
     fn usage_request(definition: DefinitionAtPositionRequest) -> UsageAtPositionRequest {
         UsageAtPositionRequest::new(
             definition.request_id,
@@ -2179,6 +2230,137 @@ mod tests {
                     .is_some()
             );
         }
+    }
+
+    #[test]
+    fn dependency_source_documents_resolve_imported_jdk_types() {
+        let (_workspace_directory, mut workspace) = workspace_from_sources(&[]);
+        let jdk_directory = tempfile::tempdir().expect("synthetic JDK source tree");
+        let supplier_path = jdk_directory
+            .path()
+            .join("java.base")
+            .join("java")
+            .join("util")
+            .join("function")
+            .join("Supplier.java");
+        std::fs::create_dir_all(supplier_path.parent().expect("JDK package")).expect("JDK package");
+        std::fs::write(
+            &supplier_path,
+            "package java.util.function; public interface Supplier<T> {}\n",
+        )
+        .expect("JDK Supplier source");
+        workspace.jdk_sources = JdkSourceDomainState::ready_from_tree("17", jdk_directory.path())
+            .expect("JDK source domain");
+        workspace
+            .jdk_sources
+            .apply_to_context(&mut workspace.context);
+
+        let dependency_directory = tempfile::tempdir().expect("dependency source root");
+        let relative = "dep/External.java";
+        let source = concat!(
+            "package dep;\n",
+            "import java.util.function.Supplier;\n",
+            "public class External { Supplier supplier; }\n",
+        );
+        let path = dependency_directory.path().join(relative);
+        std::fs::create_dir_all(path.parent().expect("dependency package"))
+            .expect("dependency package");
+        std::fs::write(&path, source).expect("dependency source");
+        let root = DefinitionDependencySourceRoot {
+            root_id: "dependency-source-fixture".to_owned(),
+            report_prefix: "dependency/minecraft/main/pipeline".to_owned(),
+            source_set: "dependency:minecraft:main".to_owned(),
+            canonical_absolute_path: dunce::canonicalize(dependency_directory.path())
+                .expect("canonical dependency source root"),
+        };
+        let request =
+            dependency_request_at(&workspace, &root, relative, source, 9, "Supplier supplier");
+        let engine = DefinitionAtPositionEngine::new_with_dependency_source_roots(
+            workspace,
+            Some(dependency_type("dep.External")),
+            None,
+            vec![root],
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("dependency-source engine");
+
+        let result = engine
+            .analyze(&request, &CancellationToken::new())
+            .expect("dependency-to-JDK definition");
+
+        assert_eq!(result.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(
+            result.symbols[0].canonical_selector(),
+            "java.util.function.Supplier"
+        );
+        assert_eq!(
+            result.definitions[0].identifier_span.resolver_id,
+            "jdk-source"
+        );
+        assert!(
+            !result
+                .diagnostics
+                .iter()
+                .any(|diagnostic| { diagnostic.code == "java.inaccessible-source-set-reference" })
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn dependency_source_request_accepts_a_file_beyond_legacy_windows_max_path() {
+        let (_workspace_directory, workspace) = workspace_from_sources(&[]);
+        let dependency_directory = tempfile::tempdir().expect("dependency source root");
+        let canonical_root = dunce::canonicalize(dependency_directory.path())
+            .expect("canonical dependency source root");
+        let directory_part = ["long-dependency-segment"; 12].join("/");
+        let relative = format!("{directory_part}/LongDependency.java");
+        let source = concat!(
+            "package deep;\n",
+            "public class LongDependency { LongDependency self; }\n",
+        );
+        let verbatim_root = std::fs::canonicalize(dependency_directory.path())
+            .expect("verbatim dependency source root");
+        let path = verbatim_root.join(&relative);
+        assert!(
+            path.to_string_lossy().len() > 260,
+            "fixture must cross the legacy Windows path boundary: {}",
+            path.display()
+        );
+        std::fs::create_dir_all(path.parent().expect("long dependency package"))
+            .expect("long dependency package");
+        std::fs::write(&path, source).expect("long dependency source");
+        let root = DefinitionDependencySourceRoot {
+            root_id: "dependency-source-long-path".to_owned(),
+            report_prefix: "dependency/fixture".to_owned(),
+            source_set: "dependency:fixture".to_owned(),
+            canonical_absolute_path: canonical_root,
+        };
+        let request = dependency_request_at(
+            &workspace,
+            &root,
+            &relative,
+            source,
+            11,
+            "LongDependency self",
+        );
+        let engine = DefinitionAtPositionEngine::new_with_dependency_source_roots(
+            workspace,
+            None,
+            None,
+            vec![root],
+            DefinitionAtPositionEngineLimits::default(),
+        )
+        .expect("long dependency-source engine");
+
+        let result = engine
+            .analyze(&request, &CancellationToken::new())
+            .expect("long dependency-source definition");
+
+        assert_eq!(result.outcome, DefinitionAtPositionOutcome::Success);
+        assert_eq!(
+            result.symbols[0].canonical_selector(),
+            "deep.LongDependency"
+        );
     }
 
     #[test]

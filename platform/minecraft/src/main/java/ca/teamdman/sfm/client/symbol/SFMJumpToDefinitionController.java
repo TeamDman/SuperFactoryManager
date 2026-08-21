@@ -219,8 +219,24 @@ public final class SFMJumpToDefinitionController {
     ) {
         SFMDefinitionResult result = lookup.result();
         SFMDefinitionOutcomeRouter.Decision decision = SFMDefinitionOutcomeRouter.route(result);
-        SFM.LOGGER.info("SFM_DEFINITION_ACTION_PRESENT outcome={} definitions={} decision={}",
-                result.outcome(), result.definitions().size(), decision.getClass().getSimpleName());
+        SFM.LOGGER.info(
+                "SFM_DEFINITION_ACTION_PRESENT outcome={} definitions={} decision={} address={} root_id={} report_path={} source_set={} line={} column={} byte={} diagnostic_codes={}",
+                result.outcome(),
+                result.definitions().size(),
+                decision.getClass().getSimpleName(),
+                result.document().address(),
+                result.document().rootId(),
+                result.document().reportPath(),
+                result.document().sourceSet(),
+                result.position().line(),
+                result.position().column(),
+                result.position().byteOffset(),
+                String.join(",", result.diagnostics().stream()
+                        .map(SFMDefinitionResult.Diagnostic::code)
+                        .distinct()
+                        .limit(8)
+                        .toList())
+        );
         if (decision instanceof SFMDefinitionOutcomeRouter.Open open) {
             SFMDefinitionNavigation.Result navigation = navigator.open(
                     workspace, sourcePanelId, lookup.hello(), open.definition());

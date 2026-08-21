@@ -255,7 +255,16 @@ public final class SFMSymbolHoverStateMachine implements AutoCloseable {
         SFMSymbolHoverLookup.Resolution accepted = failure == null && resolution != null
                 ? resolution
                 : SFMSymbolHoverLookup.Resolution.UNAVAILABLE;
-        terminalCache.put(identity, accepted);
+        // A positive answer is stable for this exact document/semantic identity. A negative
+        // lexical answer is not: the worker may have answered while a richer interaction map or
+        // dependency index was still becoming available. Caching that miss made revisiting a
+        // glyph permanently suppress its underline even when a fresh context-menu lookup could
+        // already resolve it. Semantic-map misses are cheap to recompute in-process, so retaining
+        // only positive navigation answers gives every revisit a path to recovery.
+        if (accepted == SFMSymbolHoverLookup.Resolution.ACTIONABLE
+                || accepted == SFMSymbolHoverLookup.Resolution.AMBIGUOUS) {
+            terminalCache.put(identity, accepted);
+        }
         snapshot = snapshot(identity, accepted);
     }
 

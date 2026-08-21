@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.screen.text_editor;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasModel;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasScreen;
 import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
+import ca.teamdman.sfm.client.symbol.SFMDefinitionResult;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverLookup;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverStateMachine;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
@@ -85,6 +86,47 @@ class SFMTextEditorPanelTests {
         assertFalse(SFMTextEditorPanel.inspectionProjectionMatches("class A { }\n", "class A {}"));
         assertFalse(SFMTextEditorPanel.inspectionProjectionMatches("class A {} ", "class A {}"));
         assertFalse(SFMTextEditorPanel.inspectionProjectionMatches("class A {}", "class B {}"));
+    }
+
+    @Test
+    void lexicalInspectionRetainsDiagnosticsCoveringTheCapturedByte() {
+        var logger = new SFMDefinitionResult.Diagnostic(
+                "java.unresolved-type",
+                "warning",
+                "Could not resolve type reference `Logger` without guessing",
+                Optional.of(new SFMDefinitionResult.SourceSpan(
+                        "platform/minecraft/src/main/java/ca/teamdman/sfm/SFM.java",
+                        "main",
+                        "blake3:source",
+                        1868,
+                        1874,
+                        38,
+                        25,
+                        38,
+                        31
+                ))
+        );
+        var unrelated = new SFMDefinitionResult.Diagnostic(
+                "java.unresolved-type",
+                "warning",
+                "Unrelated",
+                Optional.of(new SFMDefinitionResult.SourceSpan(
+                        "platform/minecraft/src/main/java/ca/teamdman/sfm/SFM.java",
+                        "main",
+                        "blake3:source",
+                        2000,
+                        2001,
+                        40,
+                        1,
+                        40,
+                        2
+                ))
+        );
+
+        assertEquals(
+                List.of("java.unresolved-type [warning]: Could not resolve type reference `Logger` without guessing"),
+                SFMTextEditorPanel.interactionMapDiagnosticsAtByte(List.of(unrelated, logger), 1871)
+        );
     }
 
     @Test

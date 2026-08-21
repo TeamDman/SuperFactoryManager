@@ -103,10 +103,22 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
                 }
                 publication = new Publication(documentGeneration, contentHash, result);
                 SFM.LOGGER.info(
-                        "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=PUBLISHED epoch={} generation={} semantic_generation={}",
+                        "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=PUBLISHED epoch={} generation={} semantic_generation={} address={} root_id={} report_path={} source_set={} regions={} classifications={} outlinks={} diagnostic_codes={}",
                         epoch,
                         documentGeneration,
-                        result.semanticGeneration()
+                        result.semanticGeneration(),
+                        result.document().address(),
+                        result.document().rootId(),
+                        result.document().reportPath(),
+                        result.document().sourceSet(),
+                        result.regions().size(),
+                        result.classifications().size(),
+                        result.outlinks().size(),
+                        String.join(",", result.diagnostics().stream()
+                                .map(SFMDefinitionResult.Diagnostic::code)
+                                .distinct()
+                                .limit(8)
+                                .toList())
                 );
             }
         });

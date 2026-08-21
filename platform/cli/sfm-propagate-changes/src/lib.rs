@@ -4,6 +4,7 @@ pub mod cancellation;
 pub mod cli;
 pub mod colour;
 pub mod curseforge;
+pub(crate) mod dependency_classfile_stubs;
 pub(crate) mod dependency_inventory;
 pub(crate) mod dependency_locked_sources;
 pub(crate) mod dependency_sources;

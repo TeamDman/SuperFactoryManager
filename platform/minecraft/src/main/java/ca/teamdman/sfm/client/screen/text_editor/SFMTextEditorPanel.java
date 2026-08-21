@@ -291,13 +291,39 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         Objects.requireNonNull(point, "point");
         if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) return Optional.empty();
         SFMJavaInteractionMap.Result map = currentInteractionMap(drawCanvas).orElse(null);
-        if (map == null
-                || !map.document().contentHash().equals(SFMDefinitionRequest.sha256(document.currentText()))) {
-            return Optional.of(lexicalInspectionEvidence(drawCanvas, document, point));
+        if (map == null) {
+            return Optional.of(lexicalInspectionEvidence(
+                    drawCanvas,
+                    document,
+                    point,
+                    SFMSymbolInspectionSnapshot.DocumentEvidence.empty(),
+                    List.of("java.semantic-map-unavailable: no current semantic publication matched the editor document")
+            ));
+        }
+        if (!map.document().contentHash().equals(SFMDefinitionRequest.sha256(document.currentText()))) {
+            return Optional.of(lexicalInspectionEvidence(
+                    drawCanvas,
+                    document,
+                    point,
+                    interactionMapDocumentEvidence(map),
+                    List.of("java.semantic-map-stale: the semantic publication content hash did not match the captured editor text")
+            ));
         }
         long probe = SFMSymbolInspectionSnapshot.semanticProbeByte(document.currentText(), point.position());
         SFMJavaInteractionMap.Region target = map.mostSpecificRegionAtByte(probe).orElse(null);
-        if (target == null) return Optional.empty();
+        if (target == null) {
+            ArrayList<String> diagnostics = new ArrayList<>();
+            diagnostics.add("java.semantic-region-unavailable: the current semantic map contains no exact region at byte "
+                    + probe);
+            diagnostics.addAll(interactionMapDiagnosticsAtByte(map.diagnostics(), probe));
+            return Optional.of(lexicalInspectionEvidence(
+                    drawCanvas,
+                    document,
+                    point,
+                    interactionMapDocumentEvidence(map),
+                    diagnostics
+            ));
+        }
 
         ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange textRange;
         try {
@@ -347,20 +373,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                         .thenComparing(SFMJavaInteractionMap.Region::id))
                 .map(value -> value.semanticKind() + "[" + value.id() + "]")
                 .toList();
-        SFMJavaInteractionMap.FileRow sourceFile = map.files().stream()
-                .filter(value -> value.address().equals(map.document().address())
-                        && value.rootId().equals(map.document().rootId()))
-                .findFirst()
-                .orElse(null);
-        SFMSymbolInspectionSnapshot.DocumentEvidence documentEvidence =
-                new SFMSymbolInspectionSnapshot.DocumentEvidence(
-                        Optional.of(map.document().address()),
-                        sourceFile == null ? Optional.empty() : Optional.of(sourceFile.resolverId()),
-                        Optional.of(map.document().rootId()),
-                        Optional.of(map.document().rootRelativePath()),
-                        Optional.of(map.document().reportPath()),
-                        Optional.of(map.document().sourceSet())
-                );
+        SFMSymbolInspectionSnapshot.DocumentEvidence documentEvidence = interactionMapDocumentEvidence(map);
 
         SFMDrawCanvasScreen.SpatialLayoutSnapshot layout = drawCanvas.captureSpatialLayout();
         InspectionGeometry geometry = inspectionGeometry(layout, document.currentText(), textRange);
@@ -390,14 +403,18 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     private SFMSymbolInspectionSnapshot.SemanticEvidence lexicalInspectionEvidence(
             SFMDrawCanvasScreen drawCanvas,
             SFMContextDocumentProjection document,
-            SFMSymbolInspectionSnapshot.CapturedPoint point
+            SFMSymbolInspectionSnapshot.CapturedPoint point,
+            SFMSymbolInspectionSnapshot.DocumentEvidence documentEvidence,
+            List<String> diagnostics
     ) {
+        Objects.requireNonNull(documentEvidence, "documentEvidence");
+        diagnostics = List.copyOf(diagnostics);
         SFMDrawCanvasScreen.SpatialLayoutSnapshot layout = drawCanvas.captureSpatialLayout();
         InspectionGeometry geometry = inspectionGeometry(layout, document.currentText(), point.localRange());
         return new SFMSymbolInspectionSnapshot.SemanticEvidence(
                 document.currentSha256(),
                 point.position(),
-                SFMSymbolInspectionSnapshot.DocumentEvidence.empty(),
+                documentEvidence,
                 point.localRange(),
                 Optional.empty(),
                 point.localKind(),
@@ -407,7 +424,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 "unresolved",
                 "incomplete",
                 List.of(),
-                List.of("java.semantic-map-unavailable: selected glyph geometry was captured without guessing a symbol"),
+                diagnostics,
                 geometry.canvasBounds(),
                 geometry.localScreenBounds(),
                 geometry.globalScreenBounds(),
@@ -415,6 +432,39 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 Optional.of(new SFMSymbolInspectionSnapshot.Rectangle(
                         0, 0, layout.viewportWidth(), layout.viewportHeight()))
         );
+    }
+
+    private static SFMSymbolInspectionSnapshot.DocumentEvidence interactionMapDocumentEvidence(
+            SFMJavaInteractionMap.Result map
+    ) {
+        SFMJavaInteractionMap.FileRow sourceFile = map.files().stream()
+                .filter(value -> value.address().equals(map.document().address())
+                        && value.rootId().equals(map.document().rootId()))
+                .findFirst()
+                .orElse(null);
+        return new SFMSymbolInspectionSnapshot.DocumentEvidence(
+                Optional.of(map.document().address()),
+                sourceFile == null ? Optional.empty() : Optional.of(sourceFile.resolverId()),
+                Optional.of(map.document().rootId()),
+                Optional.of(map.document().rootRelativePath()),
+                Optional.of(map.document().reportPath()),
+                Optional.of(map.document().sourceSet())
+        );
+    }
+
+    static List<String> interactionMapDiagnosticsAtByte(
+            List<SFMDefinitionResult.Diagnostic> diagnostics,
+            long byteOffset
+    ) {
+        return diagnostics.stream()
+                .filter(diagnostic -> diagnostic.span()
+                        .filter(span -> span.startByte() <= byteOffset && byteOffset < span.endByte())
+                        .isPresent())
+                .map(diagnostic -> diagnostic.code() + " [" + diagnostic.severity() + "]: "
+                        + diagnostic.message())
+                .distinct()
+                .sorted()
+                .toList();
     }
 
     private static SFMSymbolInspectionSnapshot.Outlink inspectionOutlink(SFMJavaInteractionMap.Outlink value) {

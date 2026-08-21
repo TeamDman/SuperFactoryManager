@@ -5,6 +5,10 @@ use crate::cli::Command as CliCommand;
 use crate::cli::global_args::GlobalArgs;
 use crate::cli::jar::BranchSelector;
 use crate::cli::output::CliOutput;
+use crate::dependency_classfile_stubs::LockedMinecraftClassfileStubSource;
+use crate::dependency_classfile_stubs::attach_locked_minecraft_classfile_stub_source;
+use crate::dependency_classfile_stubs::is_minecraft_classfile_stub_target;
+use crate::dependency_classfile_stubs::materialize_locked_minecraft_classfile_stubs;
 use crate::dependency_inventory::DependencyInventory;
 use crate::dependency_inventory::SourceStatus;
 use crate::dependency_locked_sources::LockedArtifactSource;
@@ -145,7 +149,8 @@ impl SymbolIndexRefreshArgs {
         let resolved = resolve_index_context(&self.branch, invocation_dir)?;
         acquire_locked_index_artifact_sources(&resolved, cancellation_token)?;
         let filter = SourceProviderFilter::default();
-        let mut preflight = preflight_resolved_index_sources(&resolved, &filter)?;
+        let mut preflight =
+            materialize_classfile_stub_source(&resolved, &filter, cancellation_token)?;
         let missing_targets = preflight
             .missing
             .iter()
@@ -241,6 +246,29 @@ impl SymbolIndexRefreshArgs {
     }
 }
 
+fn materialize_classfile_stub_source(
+    resolved: &ResolvedIndexContext,
+    filter: &SourceProviderFilter,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<SourcePreflight> {
+    let preflight = preflight_resolved_index_sources(resolved, filter)?;
+    let classfile_stubs = materialize_locked_minecraft_classfile_stubs(
+        &resolved.inventory,
+        &resolved.minecraft_classfile_stub_source,
+        &preflight,
+        cancellation_token,
+        &http_fetcher()?,
+    )?;
+    tracing::info!(
+        libraries = classfile_stubs.libraries,
+        types = classfile_stubs.types,
+        shadowed_types = classfile_stubs.shadowed_types,
+        reused = classfile_stubs.reused,
+        "materialized locked Minecraft classfile type stubs"
+    );
+    preflight_resolved_index_sources(resolved, filter)
+}
+
 fn apply_portable_origins(
     workspace: &mut JavaSourceWorkspace,
     origins: &[DependencyJavaSourceOrigin],
@@ -306,6 +334,7 @@ struct ResolvedIndexContext {
     identity: DependencySymbolIndexIdentity,
     store: DependencySymbolIndexStore,
     locked_artifact_sources: Vec<LockedArtifactSource>,
+    minecraft_classfile_stub_source: LockedMinecraftClassfileStubSource,
 }
 
 fn acquire_locked_index_artifact_sources(
@@ -339,7 +368,10 @@ fn resolve_index_context_from_analysis(
     analysis_context: &crate::java_analysis::JavaAnalysisContextOutput,
     cache_home: CacheHome,
 ) -> eyre::Result<ResolvedIndexContext> {
-    let inventory = DependencyInventory::load(&branch.clone().into_query()?, cache_home.clone())?;
+    let mut inventory =
+        DependencyInventory::load(&branch.clone().into_query()?, cache_home.clone())?;
+    let minecraft_classfile_stub_source =
+        attach_locked_minecraft_classfile_stub_source(&mut inventory)?;
     let locked_artifact_sources = derive_locked_loader_artifact_sources(&inventory)?;
     let inputs = derive_dependency_symbol_index_projection_inputs(&inventory, analysis_context)?;
     let projection = project_dependency_symbol_index_identity_with_locked_sources(
@@ -353,6 +385,7 @@ fn resolve_index_context_from_analysis(
         identity,
         store: DependencySymbolIndexStore::new(cache_home),
         locked_artifact_sources,
+        minecraft_classfile_stub_source,
     })
 }
 
@@ -902,7 +935,9 @@ fn acquisition_commands(
     let commands = preflight
         .missing
         .iter()
-        .filter(|missing| missing.acquirable)
+        .filter(|missing| {
+            missing.acquirable && !is_minecraft_classfile_stub_target(&missing.target)
+        })
         .map(|missing| {
             SourceAcquisitionRecommendation::target(
                 missing.target.clone(),

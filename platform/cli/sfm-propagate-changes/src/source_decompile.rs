@@ -154,7 +154,7 @@ fn acquire_with_runner(
     )
 }
 
-fn acquire_locked_artifact(
+pub(crate) fn acquire_locked_artifact(
     inventory: &DependencyInventory,
     artifact: &ArtifactV3,
     cancellation_token: &CancellationToken,

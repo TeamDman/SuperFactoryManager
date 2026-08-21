@@ -29,6 +29,7 @@ The `sfm-propagate-changes` source code is [here](../platform/cli/sfm-propagate-
 After making changes to rust code, run [`check-all.ps1`](../platform/cli/sfm-propagate-changes/check-all.ps1).
 
 The codex harness buffers stdio by default, so if a `sfm-propagate-changes.exe` command is hanging without exiting you can use the `--log-file` argument to write to a file that can be inspected while the program is running to diagnose problems.
+The log file obeys `RUST_LOG`; on this machine `RUST_LOG=warn` suppresses healthy INFO progress and can leave the file empty. Add `--log-filter info` with `--log-file` when progress evidence is required, which explicitly overrides the environment filter.
 
 When the CLI reports `os_error=5` while opening a lock under the user-level artifact cache, first treat it as a Codex sandbox access-denial case. The sandbox may be unable to open the lock even when no other process owns it; rerun the command with normal Windows cache access or outside the sandbox before investigating stale locks. A real concurrent process can produce the same Windows error, so the CLI still retries briefly and reports both possibilities.
 

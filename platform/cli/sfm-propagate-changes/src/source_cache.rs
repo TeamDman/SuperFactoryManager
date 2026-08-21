@@ -65,6 +65,22 @@ impl SourceCacheLayout {
             .join("tree")
     }
 
+    /// Return the portable, content-addressed source-stub location for the
+    /// libraries authenticated by one exact Minecraft version JSON.
+    #[must_use]
+    pub fn minecraft_classfile_stubs(
+        minecraft_version: &str,
+        version_json_hash: ContentHash,
+        generator_fingerprint: &str,
+    ) -> PathBuf {
+        PathBuf::from(SOURCE_CACHE_ROOT)
+            .join("classfile-stubs/minecraft")
+            .join(stable_key(minecraft_version))
+            .join(version_json_hash.hex())
+            .join(stable_key(generator_fingerprint))
+            .join("tree")
+    }
+
     /// Return the portable, content-addressed extraction location for one
     /// exact JDK source archive and parser/index consumer.
     #[must_use]
@@ -140,6 +156,15 @@ mod tests {
         assert!(jdk.tree.starts_with(SOURCE_CACHE_ROOT));
         assert_eq!(jdk.tree.file_name().unwrap(), "tree");
         assert!(!jdk.tree.is_absolute());
+
+        let stubs = SourceCacheLayout::minecraft_classfile_stubs(
+            "1.19.2",
+            source_hash,
+            "sfm.minecraft-classfile-type-stubs/1",
+        );
+        assert!(stubs.starts_with(SOURCE_CACHE_ROOT));
+        assert_eq!(stubs.file_name().unwrap(), "tree");
+        assert!(!stubs.is_absolute());
     }
 
     #[test]

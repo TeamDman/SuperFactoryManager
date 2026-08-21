@@ -95,7 +95,7 @@ class SFMSymbolHoverStateMachineTests {
     }
 
     @Test
-    void unresolvedAndUnavailableAreTerminalNonLinks() {
+    void unresolvedAndUnavailableAreNonLinksButAreNotCached() {
         for (SFMSymbolHoverLookup.Resolution resolution : List.of(
                 SFMSymbolHoverLookup.Resolution.UNRESOLVED,
                 SFMSymbolHoverLookup.Resolution.UNAVAILABLE
@@ -108,8 +108,63 @@ class SFMSymbolHoverStateMachineTests {
             assertEquals(resolution.name(), machine.snapshot().phase().name());
             assertTrue(machine.snapshot().underlineRange().isEmpty());
             assertFalse(machine.snapshot().ownsLinkCursor());
-            assertEquals(1, machine.cachedIdentityCount());
+            assertEquals(0, machine.cachedIdentityCount());
         }
+    }
+
+    @Test
+    void returningToAPreviouslyUnresolvedGlyphRetriesAndCanRecover() {
+        LookupHarness lookup = new LookupHarness();
+        var machine = machine(lookup);
+        var first = target("first second", 0, 5, 0, 5, 1);
+        var second = target("first second", 6, 12, 6, 12, 1);
+        machine.modifiersChanged(CTRL);
+
+        machine.observe(Optional.of(first));
+        lookup.complete(0, SFMSymbolHoverLookup.Resolution.UNRESOLVED);
+        assertFalse(machine.snapshot().ownsLinkCursor());
+
+        machine.observe(Optional.of(second));
+        lookup.complete(1, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
+        machine.observe(Optional.of(first));
+
+        assertEquals(3, lookup.submissions.size(),
+                "A stale lexical miss must not become a permanent hover dead zone");
+        assertEquals(SFMSymbolHoverStateMachine.Phase.LOOKING_UP, machine.snapshot().phase());
+        assertTrue(machine.snapshot().ownsLinkCursor());
+        lookup.complete(2, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
+        assertEquals(SFMSymbolHoverStateMachine.Phase.ACTIONABLE, machine.snapshot().phase());
+        assertTrue(machine.snapshot().ownsLinkCursor());
+    }
+
+    @Test
+    void returningAfterACancellationStormStartsAFreshLookupAndRecoversTheLink() {
+        LookupHarness lookup = new LookupHarness();
+        var machine = machine(lookup);
+        var first = target("first second third", 0, 5, 0, 5, 1);
+        var second = target("first second third", 6, 12, 6, 12, 1);
+        var third = target("first second third", 13, 18, 13, 18, 1);
+        machine.modifiersChanged(CTRL);
+
+        machine.observe(Optional.of(first));
+        machine.observe(Optional.of(second));
+        machine.observe(Optional.of(third));
+
+        assertEquals(3, lookup.submissions.size());
+        assertEquals(2, lookup.cancellations.get());
+        lookup.fail(0);
+        lookup.fail(1);
+        lookup.complete(2, SFMSymbolHoverLookup.Resolution.UNAVAILABLE);
+        assertFalse(machine.snapshot().ownsLinkCursor());
+
+        machine.observe(Optional.of(first));
+
+        assertEquals(4, lookup.submissions.size());
+        assertEquals(SFMSymbolHoverStateMachine.Phase.LOOKING_UP, machine.snapshot().phase());
+        assertTrue(machine.snapshot().ownsLinkCursor());
+        lookup.complete(3, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
+        assertEquals(SFMSymbolHoverStateMachine.Phase.ACTIONABLE, machine.snapshot().phase());
+        assertTrue(machine.snapshot().ownsLinkCursor());
     }
 
     @Test
@@ -232,7 +287,7 @@ class SFMSymbolHoverStateMachineTests {
 
         for (int i = 0; i < 300; i++) {
             machine.observe(Optional.of(target("name" + i, 0, 4, 0, 4, i + 1L)));
-            lookup.complete(i, SFMSymbolHoverLookup.Resolution.UNRESOLVED);
+            lookup.complete(i, SFMSymbolHoverLookup.Resolution.ACTIONABLE);
         }
 
         assertEquals(256, machine.cachedIdentityCount());
@@ -436,6 +491,10 @@ class SFMSymbolHoverStateMachineTests {
 
         void complete(int index, Resolution resolution) {
             submissions.get(index).complete(resolution);
+        }
+
+        void fail(int index) {
+            submissions.get(index).completeExceptionally(new java.util.concurrent.CancellationException());
         }
     }
 }

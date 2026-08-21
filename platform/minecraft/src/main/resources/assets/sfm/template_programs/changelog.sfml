@@ -7,8 +7,14 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Make Explorer Left Arrow move to and collapse the expanded parent that reveals the selected child
 -- Fix Ctrl-hover crashing on CRLF-backed Java source after the first line
 -- Keep Ctrl-hover and Ctrl+click available when a cold lexical result is replaced by richer Java semantic-map evidence
+-- Keep Ctrl-hover and Ctrl+click retryable after rapid-hover cancellation storms instead of retaining a dead negative answer
+-- Keep Java navigation working in acquired dependency sources whose Windows paths exceed the legacy MAX_PATH boundary
+-- Resolve managed JDK imports from acquired dependency sources so successful Ctrl-hover underlines remain actionable
+-- Resolve authenticated Minecraft classpath types such as Log4j Logger through source-first generated type declarations
+-- Include exact source location, root, hash, outcome, and diagnostic codes in Java navigation development logs
 -- Keep exact semantic dependency-source identity so Find References works when indexed roots share one physical tree
 -- Fix Java definition navigation for varargs constructors, fully qualified static receivers, and locked Forge loader source
 -- Keep asynchronous source navigation valid across harmless cursor changes while rejecting changed documents with precise reasons

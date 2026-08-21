@@ -223,6 +223,39 @@ public final class SFMExplorerPanelModel {
         return emitSelected(bounds, NodeOperation.COLLAPSE);
     }
 
+    /**
+     * Handles one tree-navigation Left Arrow operation.
+     *
+     * <p>An expanded selection collapses in place. Otherwise, when the
+     * selected row is visible because its projected parent is expanded, the
+     * same operation moves the cursor to that parent and emits its collapse
+     * action. Selection remains panel-local state while the collapse continues
+     * through the registered semantic action surface.</p>
+     */
+    public boolean emitCollapseSelectedOrParent(SFMScreenPanelBounds bounds) {
+        State state = state(bounds);
+        Optional<SFMExplorerProjection.Row> selected = state.selectedRow();
+        if (selected.isEmpty()) return false;
+        SFMExplorerProjection.Row selectedRow = selected.orElseThrow();
+        if (state.session().expanded().contains(selectedRow.path())) {
+            return emitNode(state, selectedRow, NodeOperation.COLLAPSE);
+        }
+
+        List<SFMExplorerProjection.Row> rows = state.projection().rows();
+        int selectedIndex = indexOf(rows, selectedRow.path());
+        int parentIndex = projectedParentIndex(rows, selectedIndex);
+        if (parentIndex >= 0) {
+            SFMExplorerProjection.Row parent = rows.get(parentIndex);
+            if (state.session().expanded().contains(parent.path())) {
+                session.navigateTo(parent.path());
+                revealIndex(parentIndex, state.viewport());
+                return emitNode(state, parent, NodeOperation.COLLAPSE);
+            }
+        }
+
+        return emitNode(state, selectedRow, NodeOperation.COLLAPSE);
+    }
+
     public boolean emitToggleSelected(SFMScreenPanelBounds bounds) {
         return emitSelected(bounds, NodeOperation.TOGGLE);
     }
@@ -299,8 +332,17 @@ public final class SFMExplorerPanelModel {
     private boolean emitSelected(SFMScreenPanelBounds bounds, NodeOperation operation) {
         State state = state(bounds);
         Optional<SFMExplorerProjection.Row> selected = state.selectedRow();
-        if (selected.isEmpty() || !selected.orElseThrow().entry().expandable()) return false;
-        SFMPath path = selected.orElseThrow().path();
+        if (selected.isEmpty()) return false;
+        return emitNode(state, selected.orElseThrow(), operation);
+    }
+
+    private boolean emitNode(
+            State state,
+            SFMExplorerProjection.Row row,
+            NodeOperation operation
+    ) {
+        if (!row.entry().expandable()) return false;
+        SFMPath path = row.path();
         String action = switch (operation) {
             case EXPAND -> SFMExplorerPanelActions.nodeExpand(state.session().id(), path);
             case COLLAPSE -> SFMExplorerPanelActions.nodeCollapse(state.session().id(), path);
@@ -308,6 +350,18 @@ public final class SFMExplorerPanelModel {
         };
         actionSink.submit(action);
         return true;
+    }
+
+    private static int projectedParentIndex(List<SFMExplorerProjection.Row> rows, int selectedIndex) {
+        if (selectedIndex <= 0) return -1;
+        int parentDepth = rows.get(selectedIndex).depth() - 1;
+        if (parentDepth < 0) return -1;
+        for (int index = selectedIndex - 1; index >= 0; index--) {
+            int candidateDepth = rows.get(index).depth();
+            if (candidateDepth == parentDepth) return index;
+            if (candidateDepth < parentDepth) return -1;
+        }
+        return -1;
     }
 
     private void selectBoundary(SFMScreenPanelBounds bounds, boolean last) {

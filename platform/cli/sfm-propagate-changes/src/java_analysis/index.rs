@@ -521,26 +521,24 @@ impl JavaDefinitionResolutionSurface {
             add_dependency_source_sets(&mut context, dependencies);
         }
 
-        let live_source_sets = live.source_sets();
-        let mut visibility = BTreeSet::new();
-        for from in &live_source_sets {
-            for to in &live_source_sets {
-                if workspace.is_visible(from, to) {
-                    visibility.insert((from.clone(), to.clone()));
-                }
-            }
-        }
-        let dependency_sets = dependencies.map_or_else(BTreeSet::new, dependency_source_sets);
-        for from in &live_source_sets {
-            for target in &dependency_sets {
-                visibility.insert((from.clone(), target.clone()));
-            }
-        }
-        for from in &dependency_sets {
-            for target in &dependency_sets {
-                visibility.insert((from.clone(), target.clone()));
-            }
-        }
+        // Build lookup visibility from the normalized context, not the
+        // original workspace. `add_dependency_source_sets` teaches that
+        // context both directions which are absent from an editable-workspace
+        // snapshot: live sources may see indexed dependencies, and acquired
+        // dependency documents may see the managed JDK. Reconstructing this
+        // relation from `workspace.is_visible` silently discarded the latter
+        // edge and made imports such as `java.util.function.Supplier`
+        // inaccessible only after navigation entered dependency source.
+        let visibility = context
+            .source_sets
+            .iter()
+            .flat_map(|source_set| {
+                source_set
+                    .visible_source_sets
+                    .iter()
+                    .map(|target| (source_set.id.clone(), target.clone()))
+            })
+            .collect::<BTreeSet<_>>();
 
         let mut diagnostics = live.diagnostics.clone();
         let mut types = Vec::new();

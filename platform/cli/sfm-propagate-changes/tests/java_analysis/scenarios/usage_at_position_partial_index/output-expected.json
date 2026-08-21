@@ -36,6 +36,7 @@
           "dependency:forge:userdev",
           "dependency:mekanism:api",
           "dependency:mekanism:main",
+          "dependency:minecraft:classpath-type-stubs",
           "jdk:java-17"
         ]
       },
@@ -47,6 +48,7 @@
           "dependency:forge:userdev",
           "dependency:mekanism:api",
           "dependency:mekanism:main",
+          "dependency:minecraft:classpath-type-stubs",
           "jdk:java-17"
         ]
       },
@@ -58,6 +60,7 @@
           "dependency:forge:userdev",
           "dependency:mekanism:api",
           "dependency:mekanism:main",
+          "dependency:minecraft:classpath-type-stubs",
           "jdk:java-17"
         ]
       },
@@ -69,6 +72,7 @@
           "dependency:forge:userdev",
           "dependency:mekanism:api",
           "dependency:mekanism:main",
+          "dependency:minecraft:classpath-type-stubs",
           "jdk:java-17"
         ]
       },
@@ -80,6 +84,7 @@
           "dependency:forge:userdev",
           "dependency:mekanism:api",
           "dependency:mekanism:main",
+          "dependency:minecraft:classpath-type-stubs",
           "jdk:java-17"
         ]
       },
@@ -91,6 +96,19 @@
           "dependency:forge:userdev",
           "dependency:mekanism:api",
           "dependency:mekanism:main",
+          "dependency:minecraft:classpath-type-stubs",
+          "jdk:java-17"
+        ]
+      },
+      {
+        "id": "dependency:minecraft:classpath-type-stubs",
+        "visible_source_sets": [
+          "dependency:cc-tweaked:main",
+          "dependency:forge:javafmllanguage",
+          "dependency:forge:userdev",
+          "dependency:mekanism:api",
+          "dependency:mekanism:main",
+          "dependency:minecraft:classpath-type-stubs",
           "jdk:java-17"
         ]
       },
@@ -103,6 +121,7 @@
           "dependency:forge:userdev",
           "dependency:mekanism:api",
           "dependency:mekanism:main",
+          "dependency:minecraft:classpath-type-stubs",
           "jdk:java-17"
         ]
       }
@@ -155,9 +174,9 @@
   "dependency_index": {
     "acquisition_commands": [],
     "completeness": "incomplete",
-    "expected_identity": "blake3:9bd9e49666530b044ab4e5aa88b151e08a9b9ffc8b47b48d4013ba99d92b32ee",
-    "path": "$sfm-cache-local/symbol-index/v3/9bd9e49666530b044ab4e5aa88b151e08a9b9ffc8b47b48d4013ba99d92b32ee",
-    "portable_path": "$sfm-cache/symbol-index/v3/9bd9e49666530b044ab4e5aa88b151e08a9b9ffc8b47b48d4013ba99d92b32ee",
+    "expected_identity": "blake3:bba5ba852890ddb15e472ff5087d631f352a314b496f3221a3031bb4bc5634cd",
+    "path": "$sfm-cache-local/symbol-index/v3/bba5ba852890ddb15e472ff5087d631f352a314b496f3221a3031bb4bc5634cd",
+    "portable_path": "$sfm-cache/symbol-index/v3/bba5ba852890ddb15e472ff5087d631f352a314b496f3221a3031bb4bc5634cd",
     "reason": "manifest and payload are valid but dependency coverage is partial",
     "refresh_command": "sfm-propagate-changes.exe symbol index refresh --branch 1.19.2",
     "status": "partial"

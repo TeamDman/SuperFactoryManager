@@ -68,6 +68,48 @@ public class SFMExplorerPanelActionEmissionTests {
     }
 
     @Test
+    public void leftArrowOnChildMovesToAndCollapsesExpandedProjectedParentInOneOperation() {
+        Fixture fixture = fixture();
+        fixture.session().setHoist(SFMExplorerProjection.Hoist.SHOW_ROOTS);
+        fixture.session().expand(ROOT);
+        fixture.panel().model().select(CHILD, BOUNDS);
+
+        assertTrue(fixture.panel().keyPressed(GLFW.GLFW_KEY_LEFT, 0, 0));
+
+        assertEquals(ROOT, fixture.session().snapshot().navigationCursor().orElseThrow());
+        assertEquals(List.of(
+                "sfm action invoke sfm:explorer/node/collapse id(explorer%20one) " + ROOT.canonical()
+        ), fixture.actions());
+    }
+
+    @Test
+    public void leftArrowCollapsesExpandedSelectionBeforeConsideringItsParent() {
+        Fixture fixture = fixture();
+        fixture.session().setHoist(SFMExplorerProjection.Hoist.SHOW_ROOTS);
+        fixture.session().expand(ROOT);
+        fixture.session().expand(CHILD);
+        fixture.panel().model().select(CHILD, BOUNDS);
+
+        assertTrue(fixture.panel().keyPressed(GLFW.GLFW_KEY_LEFT, 0, 0));
+
+        assertEquals(CHILD, fixture.session().snapshot().navigationCursor().orElseThrow());
+        assertEquals(List.of(
+                "sfm action invoke sfm:explorer/node/collapse id(explorer%20one) " + CHILD.canonical()
+        ), fixture.actions());
+    }
+
+    @Test
+    public void leftArrowDoesNotInventAParentForAHoistedTopLevelLeaf() {
+        Fixture fixture = fileFixture();
+        fixture.panel().model().select(FILE, BOUNDS);
+
+        assertTrue(fixture.panel().keyPressed(GLFW.GLFW_KEY_LEFT, 0, 0));
+
+        assertEquals(FILE, fixture.session().snapshot().navigationCursor().orElseThrow());
+        assertTrue(fixture.actions().isEmpty());
+    }
+
+    @Test
     public void chevronKeyboardLocationViewAndDropEmitExactCanonicalActionsWithoutApplyingMutations() {
         Fixture fixture = fixture();
         SFMExplorerSession.Snapshot before = fixture.session().snapshot();
