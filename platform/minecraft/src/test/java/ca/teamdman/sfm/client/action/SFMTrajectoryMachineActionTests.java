@@ -2,6 +2,9 @@ package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphTestFixture;
+import ca.teamdman.sfm.client.history.chamber.SFMDecimalNumberingChamber;
+import ca.teamdman.sfm.client.history.chamber.SFMDecimalNumberingTrajectoryController;
+import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
 import com.mojang.brigadier.ParseResults;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -15,6 +18,57 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMTrajectoryMachineActionTests {
+    @Test
+    void replayActionsSuggestExplicitRetainedBoundariesAndExecuteThroughTheRegistrySurface() throws Exception {
+        SFMHistoryGraphRuntime runtime = new SFMHistoryGraphRuntime();
+        SFMDecimalNumberingTrajectoryController controller = new SFMDecimalNumberingTrajectoryController(
+                "sfm:test/replay-action",
+                "document-1",
+                SFMDecimalNumberingTrajectoryController.INITIAL_TEXT,
+                () -> "ambient-stable"
+        );
+        String boundary = controller.currentState().revisionId();
+        controller.apply(new SFMHistoryGraphRuntime.InvokeSemanticAction(
+                SFMDecimalNumberingChamber.SELECT_ALL_HYPHENS_ACTION_ID));
+        controller.apply(new SFMHistoryGraphRuntime.InvokeSemanticAction(
+                SFMDecimalNumberingChamber.REPLACE_DECIMAL_SEQUENCE_ACTION_ID));
+        runtime.register(controller);
+        ResourceLocation actionId = new ResourceLocation("sfm", "episode/replay/exact");
+        SFMTrajectoryMachineAction action = new SFMTrajectoryMachineAction(
+                SFMTrajectoryMachineAction.Kind.EXACT_REPLAY,
+                runtime
+        );
+        SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(List.of(
+                Map.entry(actionId, action)
+        ));
+        SFMClientActionSource source = new SFMClientActionSource(
+                SFMClientActionContext.create(null, () -> true));
+        String exactSelector = SFMEntitySelector.exact(
+                SFMEntitySelector.Domain.EPISODE,
+                controller.machineId()
+        ).canonical();
+        String prefix = "sfm action invoke " + actionId + " " + exactSelector + " ";
+
+        var sourceSuggestions = tree.getCompletionSuggestions(tree.parse(prefix, source)).get();
+        assertTrue(sourceSuggestions.getList().stream().anyMatch(suggestion ->
+                suggestion.getText().equals(boundary)));
+        String targetPrefix = prefix + boundary + " ";
+        var targetSuggestions = tree.getCompletionSuggestions(tree.parse(targetPrefix, source)).get();
+        assertTrue(targetSuggestions.getList().stream().anyMatch(suggestion ->
+                suggestion.getText().equals(boundary)));
+        String command = targetPrefix + boundary;
+        assertTrue(executable(tree.parse(command, source)));
+        assertEquals(1, tree.execute(command, source));
+        assertTrue(controller.replayArchive().replayReports().stream().anyMatch(report ->
+                report.mode() == ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive.ReplayMode.EXACT_REPLAY));
+
+        assertEquals(1, SFMTrajectoryMachineAction.replayChoices(
+                actionId,
+                runtime.snapshotEvent().machines(),
+                SFMTrajectoryMachineAction.Kind.EXACT_REPLAY
+        ).size());
+    }
+
     @Test
     void selectorIsRequiredAndBoundedRunInvokesTheExactMachine() throws Exception {
         SFMHistoryGraphRuntime runtime = new SFMHistoryGraphRuntime();

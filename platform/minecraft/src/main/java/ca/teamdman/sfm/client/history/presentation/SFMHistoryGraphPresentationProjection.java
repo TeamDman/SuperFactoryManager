@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.history.presentation;
 
 import ca.teamdman.sfm.client.history.SFMHistoryGraphContract;
 import ca.teamdman.sfm.client.history.SFMTrajectoryContract;
+import ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -25,7 +26,16 @@ public final class SFMHistoryGraphPresentationProjection {
             SFMTrajectoryContract.PlanBook planBook,
             SFMTrajectoryContract.TrajectoryMachineState machine
     ) {
-        return project(history, planBook, machine, SFMHistoryGraphPresentationModel.Bounds.defaults());
+        return project(history, planBook, machine, Optional.empty(), SFMHistoryGraphPresentationModel.Bounds.defaults());
+    }
+
+    public static SFMHistoryGraphPresentationModel.Presentation project(
+            SFMHistoryGraphContract.Graph history,
+            SFMTrajectoryContract.PlanBook planBook,
+            SFMTrajectoryContract.TrajectoryMachineState machine,
+            Optional<SFMTemporalReplayArchive.Archive> replayArchive
+    ) {
+        return project(history, planBook, machine, replayArchive, SFMHistoryGraphPresentationModel.Bounds.defaults());
     }
 
     public static SFMHistoryGraphPresentationModel.Presentation project(
@@ -34,9 +44,20 @@ public final class SFMHistoryGraphPresentationProjection {
             SFMTrajectoryContract.TrajectoryMachineState machine,
             SFMHistoryGraphPresentationModel.Bounds bounds
     ) {
+        return project(history, planBook, machine, Optional.empty(), bounds);
+    }
+
+    public static SFMHistoryGraphPresentationModel.Presentation project(
+            SFMHistoryGraphContract.Graph history,
+            SFMTrajectoryContract.PlanBook planBook,
+            SFMTrajectoryContract.TrajectoryMachineState machine,
+            Optional<SFMTemporalReplayArchive.Archive> replayArchive,
+            SFMHistoryGraphPresentationModel.Bounds bounds
+    ) {
         Objects.requireNonNull(history, "history");
         Objects.requireNonNull(planBook, "planBook");
         Objects.requireNonNull(machine, "machine");
+        Objects.requireNonNull(replayArchive, "replayArchive");
         Objects.requireNonNull(bounds, "bounds");
 
         Map<String, NodeDraft> nodes = new HashMap<>();
@@ -309,6 +330,8 @@ public final class SFMHistoryGraphPresentationProjection {
             ));
         });
 
+        replayArchive.ifPresent(archive -> addReplayArchive(nodes, edges, archive));
+
         List<SFMHistoryGraphPresentationModel.Node> allNodes = nodes.values().stream()
                 .map(NodeDraft::finish)
                 .toList();
@@ -576,6 +599,490 @@ public final class SFMHistoryGraphPresentationProjection {
         node.detail("semantic.kind", "ACTION_INTENT");
         node.detail("semantic.provenance", "history.intents/" + intent.id());
         return node;
+    }
+
+    private static void addReplayArchive(
+            Map<String, NodeDraft> nodes,
+            Map<String, EdgeDraft> edges,
+            SFMTemporalReplayArchive.Archive archive
+    ) {
+        Map<String, SFMTemporalReplayArchive.BindingSnapshot> bindingSnapshots = index(
+                archive.bindingSnapshots(),
+                SFMTemporalReplayArchive.BindingSnapshot::id,
+                "replay binding snapshot"
+        );
+        Map<String, SFMTemporalReplayArchive.SourceEvent> sourceEvents = index(
+                archive.sourceEvents(),
+                SFMTemporalReplayArchive.SourceEvent::id,
+                "replay source event"
+        );
+        Map<String, SFMTemporalReplayArchive.BindingDecision> bindingDecisions = index(
+                archive.bindingDecisions(),
+                SFMTemporalReplayArchive.BindingDecision::id,
+                "replay binding decision"
+        );
+        Map<String, SFMTemporalReplayArchive.ActionInvocation> invocations = index(
+                archive.invocations(),
+                SFMTemporalReplayArchive.ActionInvocation::id,
+                "replay action invocation"
+        );
+        Map<String, SFMTemporalReplayArchive.SelectionExpression> expressions = index(
+                archive.selectionExpressions(),
+                SFMTemporalReplayArchive.SelectionExpression::id,
+                "replay selection expression"
+        );
+        Map<String, SFMTemporalReplayArchive.SelectionWitness> witnesses = index(
+                archive.selectionWitnesses(),
+                SFMTemporalReplayArchive.SelectionWitness::id,
+                "replay selection witness"
+        );
+        Map<String, SFMTemporalReplayArchive.SemanticTransition> transitions = index(
+                archive.transitions(),
+                SFMTemporalReplayArchive.SemanticTransition::id,
+                "replay semantic transition"
+        );
+
+        for (SFMTemporalReplayArchive.SourceEvent event : archive.sourceEvents()) {
+            NodeDraft eventNode = namedNode(
+                    nodes,
+                    causalNodeId("event", event.id()),
+                    SFMHistoryGraphPresentationModel.NodeOrigin.RAW_EVENT,
+                    sourceEventLabel(event),
+                    "Recorded " + event.origin().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ')
+                            + " source event " + event.id() + "."
+            );
+            eventNode.detail("event.deterministic-tick", Long.toString(event.deterministicTick()));
+            eventNode.detail("event.id", event.id());
+            eventNode.detail("event.kind", event.kind().name());
+            eventNode.detail("event.origin", event.origin().name());
+            eventNode.detail("event.sequence", Long.toString(event.sequence()));
+            eventNode.detail("event.key-code", event.keyCode().map(Object::toString).orElse("(none)"));
+            eventNode.detail("event.key-event-type", event.keyEventType().orElse("(none)"));
+            eventNode.detail("event.code-point", event.codePoint().map(Object::toString).orElse("(none)"));
+            eventNode.detail("event.modifiers", event.modifiers().isEmpty()
+                    ? "(none)"
+                    : String.join("+", event.modifiers()));
+            eventNode.detail("event.payload", event.payload().orElse("(none)"));
+        }
+
+        for (SFMTemporalReplayArchive.BindingDecision decision : archive.bindingDecisions()) {
+            NodeDraft decisionNode = namedNode(
+                    nodes,
+                    causalNodeId("binding", decision.id()),
+                    SFMHistoryGraphPresentationModel.NodeOrigin.BINDING_DECISION,
+                    "Binding " + decision.status().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '),
+                    "Effective binding decision " + decision.id() + " finished with " + decision.status() + "."
+            );
+            decisionNode.detail("binding.consumed", Boolean.toString(decision.consumed()));
+            decisionNode.detail("binding.id", decision.id());
+            decisionNode.detail("binding.matched-id", decision.matchedBindingId().orElse("(none)"));
+            decisionNode.detail("binding.sequence", Long.toString(decision.sequence()));
+            decisionNode.detail("binding.situations", decision.activeSituationIds().isEmpty()
+                    ? "(none)"
+                    : String.join(", ", decision.activeSituationIds()));
+            decisionNode.detail("binding.status", decision.status().name());
+            decision.bindingSnapshotId().ifPresent(snapshotId -> {
+                SFMTemporalReplayArchive.BindingSnapshot snapshot = require(
+                        bindingSnapshots,
+                        snapshotId,
+                        "replay binding snapshot"
+                );
+                decisionNode.detail("binding.snapshot-digest", snapshot.digest());
+                decisionNode.detail("binding.snapshot-id", snapshot.id());
+                decisionNode.detail("binding.snapshot-revision", Long.toString(snapshot.revision()));
+            });
+            for (int index = 0; index < decision.diagnostics().size(); index++) {
+                decisionNode.detail(indexedDetailKey("binding.diagnostic", index), decision.diagnostics().get(index));
+            }
+            for (String sourceEventId : decision.sourceEventIds()) {
+                require(sourceEvents, sourceEventId, "binding source event");
+                addCausalEdge(
+                        edges,
+                        "event-binding",
+                        decision.id() + "/" + sourceEventId,
+                        causalNodeId("event", sourceEventId),
+                        decisionNode.id,
+                        "Event produced binding decision",
+                        Map.of("causal.decision-id", decision.id(), "causal.event-id", sourceEventId)
+                );
+            }
+        }
+
+        for (SFMTemporalReplayArchive.ActionInvocation invocation : archive.invocations()) {
+            NodeDraft invocationNode = namedNode(
+                    nodes,
+                    causalNodeId("invocation", invocation.id()),
+                    SFMHistoryGraphPresentationModel.NodeOrigin.ACTION_INVOCATION,
+                    "Invoke " + invocation.actionId(),
+                    "Action invocation " + invocation.id() + " requested " + invocation.actionId() + "."
+            );
+            invocationNode.detail("invocation.action-id", invocation.actionId());
+            invocationNode.detail("invocation.authorization", invocation.authorization().name());
+            invocationNode.detail("invocation.availability", invocation.availability().name());
+            invocationNode.detail("invocation.command", invocation.commandDraft());
+            invocationNode.detail("invocation.id", invocation.id());
+            invocationNode.detail("invocation.origin", invocation.origin().name());
+            invocationNode.detail("invocation.sequence", Long.toString(invocation.sequence()));
+            invocationNode.detail("invocation.status", invocation.status().name());
+            for (int index = 0; index < invocation.arguments().size(); index++) {
+                SFMTemporalReplayArchive.TypedArgument argument = invocation.arguments().get(index);
+                invocationNode.detail(
+                        indexedDetailKey("invocation.argument", index),
+                        argument.name() + ":" + argument.type() + "=" + argument.value()
+                );
+            }
+            invocation.bindingDecisionId().ifPresentOrElse(decisionId -> {
+                require(bindingDecisions, decisionId, "invocation binding decision");
+                addCausalEdge(
+                        edges,
+                        "binding-invocation",
+                        invocation.id(),
+                        causalNodeId("binding", decisionId),
+                        invocationNode.id,
+                        "Binding dispatched action",
+                        Map.of("causal.binding-decision-id", decisionId)
+                );
+            }, () -> {
+                for (String sourceEventId : invocation.sourceEventIds()) {
+                    require(sourceEvents, sourceEventId, "invocation source event");
+                    addCausalEdge(
+                            edges,
+                            "event-invocation",
+                            invocation.id() + "/" + sourceEventId,
+                            causalNodeId("event", sourceEventId),
+                            invocationNode.id,
+                            "Event requested action",
+                            Map.of("causal.event-id", sourceEventId)
+                    );
+                }
+            });
+        }
+
+        for (SFMTemporalReplayArchive.SelectionExpression expression : archive.selectionExpressions()) {
+            NodeDraft expressionNode = namedNode(
+                    nodes,
+                    causalNodeId("selection-expression", expression.id()),
+                    SFMHistoryGraphPresentationModel.NodeOrigin.SELECTION_EXPRESSION,
+                    "Selection expression " + expression.kind(),
+                    "Selection expression " + expression.id() + " evaluates " + expression.kind() + "."
+            );
+            expressionNode.detail("selection-expression.document", expression.documentId());
+            expressionNode.detail("selection-expression.evaluator", expression.evaluatorId());
+            expressionNode.detail("selection-expression.evaluator-revision", expression.evaluatorRevision());
+            expressionNode.detail("selection-expression.geometry-revision", expression.geometryRevision());
+            expressionNode.detail("selection-expression.id", expression.id());
+            expressionNode.detail("selection-expression.kind", expression.kind());
+            expressionNode.detail("selection-expression.ordering", expression.orderingPolicy());
+            expressionNode.detail("selection-expression.seed", expression.seedText());
+        }
+
+        for (SFMTemporalReplayArchive.SelectionWitness witness : archive.selectionWitnesses()) {
+            SFMTemporalReplayArchive.SelectionExpression expression = require(
+                    expressions,
+                    witness.expressionId(),
+                    "selection witness expression"
+            );
+            NodeDraft witnessNode = namedNode(
+                    nodes,
+                    causalNodeId("selection-witness", witness.id()),
+                    SFMHistoryGraphPresentationModel.NodeOrigin.SELECTION_WITNESS,
+                    "Selection witness · " + witness.regions().size() + " regions",
+                    "Materialized selection witness " + witness.id() + " contains "
+                            + witness.regions().size() + " ordered regions."
+            );
+            witnessNode.detail("selection-witness.evaluator", witness.evaluatorId());
+            witnessNode.detail("selection-witness.evaluator-revision", witness.evaluatorRevision());
+            witnessNode.detail("selection-witness.expression-id", expression.id());
+            witnessNode.detail("selection-witness.geometry-revision", witness.geometryRevision());
+            witnessNode.detail("selection-witness.id", witness.id());
+            witnessNode.detail("selection-witness.ordering", witness.orderingPolicy());
+            witnessNode.detail("selection-witness.parent-state", witness.parentStateId());
+            witnessNode.detail("selection-witness.region-count", Integer.toString(witness.regions().size()));
+            witnessNode.detail("selection-witness.source-text-hash", witness.sourceTextHash());
+            addWitnessRegionDetails(witnessNode, witness, "selection-witness.region");
+            addCausalEdge(
+                    edges,
+                    "expression-witness",
+                    witness.id(),
+                    causalNodeId("selection-expression", expression.id()),
+                    witnessNode.id,
+                    "Selection expression produced witness",
+                    Map.of("causal.expression-id", expression.id(), "causal.witness-id", witness.id())
+            );
+        }
+
+        for (SFMTemporalReplayArchive.Frame frame : archive.frames()) {
+            NodeDraft frameNode = node(
+                    nodes,
+                    frame.stateId(),
+                    SFMHistoryGraphPresentationModel.NodeOrigin.SNAPSHOT_FRAME
+            );
+            frameNode.detail("replay.frame.parent-state", frame.parentStateId().orElse("(root)"));
+            frameNode.detail("replay.frame.selection-witness", frame.selectionWitnessId().orElse("(none)"));
+            frameNode.detail("replay.frame.state-hash", frame.stateHash());
+            frameNode.detail("replay.frame.text-hash", frame.textHash());
+            frameNode.detail("replay.frame.text-length", Integer.toString(frame.text().codePointCount(0, frame.text().length())));
+        }
+        node(nodes, archive.currentStateId(), SFMHistoryGraphPresentationModel.NodeOrigin.SNAPSHOT_FRAME)
+                .detail("replay.current-state", "true");
+
+        for (SFMTemporalReplayArchive.SemanticTransition transition : archive.transitions()) {
+            require(invocations, transition.invocationId(), "transition invocation");
+            NodeDraft invocationNode = require(
+                    nodes,
+                    causalNodeId("invocation", transition.invocationId()),
+                    "transition invocation node"
+            );
+            NodeDraft intentNode = require(
+                    nodes,
+                    semanticNodeId("intent", transition.intentId()),
+                    "transition intent node"
+            );
+            NodeDraft evaluationNode = require(
+                    nodes,
+                    semanticNodeId("evaluation", transition.evaluationId()),
+                    "transition evaluation node"
+            );
+            NodeDraft outcomeNode = require(
+                    nodes,
+                    semanticNodeId("outcome", transition.outcomeId()),
+                    "transition outcome node"
+            );
+            addCausalEdge(
+                    edges,
+                    "invocation-intent",
+                    transition.id(),
+                    invocationNode.id,
+                    intentNode.id,
+                    "Invocation produced semantic intent",
+                    Map.of("causal.transition-id", transition.id())
+            );
+            evaluationNode.detail("replay.transition-id", transition.id());
+            evaluationNode.detail("replay.transition-status", transition.status().name());
+            evaluationNode.detail("replay.transition-policy", transition.evaluationPolicy().name());
+            evaluationNode.detail("replay.transition-effect", transition.effectClass().name());
+            for (int index = 0; index < transition.evidence().size(); index++) {
+                outcomeNode.detail(indexedDetailKey("replay.evidence", index), transition.evidence().get(index));
+            }
+            transition.witnessId().ifPresent(witnessId -> {
+                SFMTemporalReplayArchive.SelectionWitness witness = require(
+                        witnesses,
+                        witnessId,
+                        "transition selection witness"
+                );
+                evaluationNode.detail("replay.witness-id", witness.id());
+                evaluationNode.detail("replay.witness-expression", witness.expressionId());
+                evaluationNode.detail("replay.witness-parent-state", witness.parentStateId());
+                evaluationNode.detail("replay.witness-source-text-hash", witness.sourceTextHash());
+                evaluationNode.detail("replay.witness-evaluator", witness.evaluatorId());
+                evaluationNode.detail("replay.witness-evaluator-revision", witness.evaluatorRevision());
+                evaluationNode.detail("replay.witness-ordering", witness.orderingPolicy());
+                evaluationNode.detail("replay.witness-geometry-revision", witness.geometryRevision());
+                evaluationNode.detail("replay.witness-region-count", Integer.toString(witness.regions().size()));
+                addWitnessRegionDetails(evaluationNode, witness, "replay.witness-region");
+                addCausalEdge(
+                        edges,
+                        "witness-evaluation",
+                        transition.id(),
+                        causalNodeId("selection-witness", witness.id()),
+                        evaluationNode.id,
+                        "Selection witness constrained evaluation",
+                        Map.of("causal.transition-id", transition.id(), "causal.witness-id", witness.id())
+                );
+            });
+        }
+
+        for (SFMTemporalReplayArchive.Observation observation : archive.observations()) {
+            NodeDraft observationNode = namedNode(
+                    nodes,
+                    causalNodeId("observation", observation.id()),
+                    SFMHistoryGraphPresentationModel.NodeOrigin.OBSERVATION,
+                    "Observation " + observation.kind(),
+                    "Recorded observation " + observation.id() + " for " + observation.relatedRecordId() + "."
+            );
+            observationNode.detail("observation.id", observation.id());
+            observationNode.detail("observation.kind", observation.kind());
+            observationNode.detail("observation.related-record", observation.relatedRecordId());
+            observationNode.detail("observation.sequence", Long.toString(observation.sequence()));
+            observationNode.detail("observation.value", observation.value());
+            SFMTemporalReplayArchive.SemanticTransition transition = transitions.get(observation.relatedRecordId());
+            if (transition != null) {
+                addCausalEdge(
+                        edges,
+                        "outcome-observation",
+                        observation.id(),
+                        semanticNodeId("outcome", transition.outcomeId()),
+                        observationNode.id,
+                        "Outcome produced ambient observation",
+                        Map.of("causal.transition-id", transition.id())
+                );
+            }
+        }
+
+        for (SFMTemporalReplayArchive.HeadMovement movement : archive.headMovements()) {
+            NodeDraft movementNode = namedNode(
+                    nodes,
+                    causalNodeId("head-movement", movement.id()),
+                    SFMHistoryGraphPresentationModel.NodeOrigin.HEAD_MOVEMENT,
+                    "Head " + movement.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '),
+                    "Head movement " + movement.id() + " moved from " + movement.fromStateId()
+                            + " to " + movement.toStateId() + "."
+            );
+            movementNode.detail("head-movement.actor", movement.actor());
+            movementNode.detail("head-movement.from-state", movement.fromStateId());
+            movementNode.detail("head-movement.id", movement.id());
+            movementNode.detail("head-movement.kind", movement.kind().name());
+            movementNode.detail("head-movement.request-id", movement.requestId());
+            movementNode.detail("head-movement.sequence", Long.toString(movement.sequence()));
+            movementNode.detail("head-movement.to-state", movement.toStateId());
+            addCausalEdge(
+                    edges,
+                    "state-head-movement",
+                    movement.id() + "/from",
+                    movement.fromStateId(),
+                    movementNode.id,
+                    "State preceded head movement",
+                    Map.of("causal.head-movement-id", movement.id())
+            );
+            addCausalEdge(
+                    edges,
+                    "head-movement-state",
+                    movement.id() + "/to",
+                    movementNode.id,
+                    movement.toStateId(),
+                    "Head movement selected state",
+                    Map.of("causal.head-movement-id", movement.id())
+            );
+        }
+
+        for (SFMTemporalReplayArchive.ReplayReport report : archive.replayReports()) {
+            String humanMode = report.mode().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+            String humanStatus = report.status().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+            NodeDraft reportNode = namedNode(
+                    nodes,
+                    causalNodeId("replay-report", report.id()),
+                    SFMHistoryGraphPresentationModel.NodeOrigin.REPLAY_REPORT,
+                    humanMode + " · " + humanStatus,
+                    "Replay report " + report.id() + " records " + humanMode + " as " + humanStatus + "."
+            );
+            reportNode.roles.add(report.status() == SFMTemporalReplayArchive.ReplayStatus.SUCCEEDED
+                    ? SFMHistoryGraphPresentationModel.LegendRole.COMMITTED_EXECUTED
+                    : SFMHistoryGraphPresentationModel.LegendRole.BARRIER);
+            reportNode.detail("replay.id", report.id());
+            reportNode.detail("replay.mode", report.mode().name());
+            reportNode.detail("replay.sequence", Long.toString(report.sequence()));
+            reportNode.detail("replay.source-boundary", report.sourceBoundaryStateId());
+            reportNode.detail("replay.status", report.status().name());
+            reportNode.detail("replay.target-parent", report.targetParentStateId());
+            reportNode.detail("replay.result-state", report.resultingStateId().orElse("(none)"));
+            for (int index = 0; index < report.diagnostics().size(); index++) {
+                reportNode.detail(indexedDetailKey("replay.diagnostic", index), report.diagnostics().get(index));
+            }
+            for (int index = 0; index < report.actionLineage().size(); index++) {
+                SFMTemporalReplayArchive.ActionLineage lineage = report.actionLineage().get(index);
+                String prefix = indexedDetailKey("replay.lineage", index);
+                reportNode.detail(prefix + ".source-transition", lineage.sourceTransitionId());
+                reportNode.detail(prefix + ".source-witness", lineage.sourceWitnessId().orElse("(none)"));
+                reportNode.detail(prefix + ".result-transition", lineage.resultingTransitionId().orElse("(none)"));
+                reportNode.detail(prefix + ".result-witness", lineage.resultingWitnessId().orElse("(none)"));
+                reportNode.detail(prefix + ".status", lineage.status().name());
+            }
+            for (String sourceTransitionId : report.sourceTransitionIds()) {
+                SFMTemporalReplayArchive.SemanticTransition source = require(
+                        transitions,
+                        sourceTransitionId,
+                        "replay source transition"
+                );
+                addCausalEdge(
+                        edges,
+                        "outcome-replay-report",
+                        report.id() + "/" + sourceTransitionId,
+                        semanticNodeId("outcome", source.outcomeId()),
+                        reportNode.id,
+                        "Recorded transition became replay input",
+                        Map.of("causal.source-transition-id", sourceTransitionId)
+                );
+            }
+            for (String resultTransitionId : report.resultingTransitionIds()) {
+                SFMTemporalReplayArchive.SemanticTransition result = require(
+                        transitions,
+                        resultTransitionId,
+                        "replay result transition"
+                );
+                addCausalEdge(
+                        edges,
+                        "replay-report-intent",
+                        report.id() + "/" + resultTransitionId,
+                        reportNode.id,
+                        semanticNodeId("intent", result.intentId()),
+                        "Replay produced semantic transition",
+                        Map.of("causal.result-transition-id", resultTransitionId)
+                );
+            }
+            report.resultingStateId().ifPresent(stateId -> addCausalEdge(
+                    edges,
+                    "replay-report-state",
+                    report.id(),
+                    reportNode.id,
+                    stateId,
+                    "Replay selected resulting state",
+                    Map.of("causal.result-state-id", stateId)
+            ));
+        }
+    }
+
+    private static String sourceEventLabel(SFMTemporalReplayArchive.SourceEvent event) {
+        if (event.kind() == SFMTemporalReplayArchive.EventKind.KEY) {
+            return "Key " + event.keyCode().orElseThrow() + " " + event.keyEventType().orElseThrow();
+        }
+        if (event.kind() == SFMTemporalReplayArchive.EventKind.CHARACTER) {
+            return "Character U+" + Integer.toHexString(event.codePoint().orElseThrow())
+                    .toUpperCase(java.util.Locale.ROOT);
+        }
+        return event.kind().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+    }
+
+    private static void addWitnessRegionDetails(
+            NodeDraft node,
+            SFMTemporalReplayArchive.SelectionWitness witness,
+            String prefix
+    ) {
+        for (int index = 0; index < witness.regions().size(); index++) {
+            SFMTemporalReplayArchive.WitnessRegion region = witness.regions().get(index);
+            node.detail(
+                    indexedDetailKey(prefix, index),
+                    "[" + region.startCodePointOffset() + "," + region.endCodePointOffset() + ")"
+                            + " @ " + region.lineOneBased() + ":" + region.columnCodePointOneBased()
+                            + " text=" + region.expectedText()
+            );
+        }
+    }
+
+    private static String causalNodeId(String kind, String contractId) {
+        return compositeId("causal-" + kind, contractId);
+    }
+
+    private static void addCausalEdge(
+            Map<String, EdgeDraft> edges,
+            String relation,
+            String sourceContractId,
+            String fromNodeId,
+            String toNodeId,
+            String label,
+            Map<String, String> details
+    ) {
+        addEdge(edges, new EdgeDraft(
+                compositeId("causal", relation, sourceContractId),
+                sourceContractId,
+                fromNodeId,
+                toNodeId,
+                SFMHistoryGraphPresentationModel.EdgeOrigin.SEMANTIC,
+                SFMHistoryGraphPresentationModel.EdgeCommitment.SEMANTIC_RELATION,
+                EnumSet.noneOf(SFMHistoryGraphPresentationModel.LegendRole.class),
+                label,
+                label + " from " + fromNodeId + " to " + toNodeId + ".",
+                details
+        ));
     }
 
     private static NodeDraft addEvaluationNode(

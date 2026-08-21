@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.SFMEpisodeContext;
 import ca.teamdman.sfm.client.history.SFMTrajectoryContract;
+import ca.teamdman.sfm.client.history.chamber.SFMDecimalNumberingChamber;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
@@ -31,7 +32,27 @@ public final class SFMTrajectoryMachineAction implements SFMClientAction<SFMClie
         PAUSE("episode/trajectory/pause", "Pause trajectory"),
         REPLAN("episode/trajectory/replan", "Replan trajectory"),
         SELECT_ROUTE("episode/trajectory/route/select", "Select trajectory route"),
-        INSPECT_COST("episode/trajectory/cost/inspect", "Inspect trajectory cost");
+        INSPECT_COST("episode/trajectory/cost/inspect", "Inspect trajectory cost"),
+        SELECT_ALL_HYPHEN_MARKERS(
+                "text/selection/select/all_matching_hyphen_markers",
+                "Select all matching hyphen markers"
+        ),
+        REPLACE_DECIMAL_SEQUENCE(
+                "text/selection/replace/decimal_sequence",
+                "Replace selection with decimal sequence"
+        ),
+        EXACT_REPLAY(
+                "episode/replay/exact",
+                "Replay recorded actions exactly"
+        ),
+        SEMANTIC_REBASE(
+                "episode/replay/semantic_rebase",
+                "Rebase recorded semantic actions"
+        ),
+        INSPECT_CAUSAL_ARCHIVE(
+                "episode/replay/causal/inspect",
+                "Inspect temporal causal archive"
+        );
 
         private final String path;
         private final String title;
@@ -164,6 +185,23 @@ public final class SFMTrajectoryMachineAction implements SFMClientAction<SFMClie
             case REPLAN -> selector.executes(context -> invokeOperation(context, new SFMHistoryGraphRuntime.Replan()));
             case INSPECT_COST -> selector.executes(
                     context -> invokeOperation(context, new SFMHistoryGraphRuntime.InspectCost()));
+            case SELECT_ALL_HYPHEN_MARKERS -> selector.executes(context -> invokeOperation(
+                    context,
+                    new SFMHistoryGraphRuntime.InvokeSemanticAction(
+                            SFMDecimalNumberingChamber.SELECT_ALL_HYPHENS_ACTION_ID
+                    )
+            ));
+            case REPLACE_DECIMAL_SEQUENCE -> selector.executes(context -> invokeOperation(
+                    context,
+                    new SFMHistoryGraphRuntime.InvokeSemanticAction(
+                            SFMDecimalNumberingChamber.REPLACE_DECIMAL_SEQUENCE_ACTION_ID
+                    )
+            ));
+            case EXACT_REPLAY, SEMANTIC_REBASE -> configureReplayNode(selector);
+            case INSPECT_CAUSAL_ARCHIVE -> selector.executes(context -> invokeOperation(
+                    context,
+                    new SFMHistoryGraphRuntime.InspectCausalArchive()
+            ));
         }
         node.then(selector);
     }
@@ -219,6 +257,117 @@ public final class SFMTrajectoryMachineAction implements SFMClientAction<SFMClie
                 choices
         );
         return 1;
+    }
+
+    private void configureReplayNode(RequiredArgumentBuilder<SFMClientActionSource, String> selector) {
+        selector.executes(this::openReplayCompletion);
+        RequiredArgumentBuilder<SFMClientActionSource, String> sourceBoundary = RequiredArgumentBuilder
+                .<SFMClientActionSource, String>argument(
+                        "source_boundary_state_id",
+                        SFMCanonicalTokenArgument.token()
+                )
+                .suggests((context, builder) -> {
+                    matchingSnapshots(context).stream()
+                            .flatMap(snapshot -> eligibleSourceBoundaries(snapshot).stream())
+                            .distinct()
+                            .sorted()
+                            .forEach(builder::suggest);
+                    return builder.buildFuture();
+                });
+        sourceBoundary.then(RequiredArgumentBuilder
+                .<SFMClientActionSource, String>argument(
+                        "target_parent_state_id",
+                        SFMCanonicalTokenArgument.token()
+                )
+                .suggests((context, builder) -> {
+                    matchingSnapshots(context).stream()
+                            .flatMap(snapshot -> snapshot.replayArchive().stream())
+                            .flatMap(archive -> archive.frames().stream())
+                            .map(ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive.Frame::stateId)
+                            .distinct()
+                            .sorted()
+                            .forEach(builder::suggest);
+                    return builder.buildFuture();
+                })
+                .executes(context -> invokeOperation(
+                        context,
+                        kind == Kind.EXACT_REPLAY
+                                ? new SFMHistoryGraphRuntime.ExactReplay(
+                                        SFMCanonicalTokenArgument.get(context, "source_boundary_state_id"),
+                                        SFMCanonicalTokenArgument.get(context, "target_parent_state_id")
+                                )
+                                : new SFMHistoryGraphRuntime.SemanticRebase(
+                                        SFMCanonicalTokenArgument.get(context, "source_boundary_state_id"),
+                                        SFMCanonicalTokenArgument.get(context, "target_parent_state_id")
+                                )
+                )));
+        selector.then(sourceBoundary);
+    }
+
+    private int openReplayCompletion(CommandContext<SFMClientActionSource> context) throws CommandSyntaxException {
+        ResourceLocation actionId = new ResourceLocation("sfm", kind.path());
+        List<SFMActionChoice> choices = replayChoices(actionId, matchingSnapshots(context), kind);
+        if (choices.isEmpty()) {
+            throw new SimpleCommandExceptionType(Component.literal(
+                    "No eligible temporal replay route matched the selected episode")).create();
+        }
+        SFMCommandPaletteScreen.openChoices(
+                context.getSource().context(),
+                Component.literal(kind == Kind.EXACT_REPLAY
+                        ? "Choose exact replay"
+                        : "Choose semantic rebase"),
+                choices
+        );
+        return 1;
+    }
+
+    static List<SFMActionChoice> replayChoices(
+            ResourceLocation actionId,
+            List<SFMHistoryGraphRuntime.MachineSnapshot> snapshots,
+            Kind kind
+    ) {
+        if (kind != Kind.EXACT_REPLAY && kind != Kind.SEMANTIC_REBASE) return List.of();
+        ArrayList<SFMActionChoice> choices = new ArrayList<>();
+        snapshots.stream()
+                .sorted(java.util.Comparator.comparing(SFMHistoryGraphRuntime.MachineSnapshot::machineId))
+                .forEach(snapshot -> {
+                    String selector = SFMEntitySelector.exact(
+                            SFMEntitySelector.Domain.EPISODE,
+                            snapshot.machineId()
+                    ).canonical();
+                    List<String> sources = eligibleSourceBoundaries(snapshot);
+                    List<String> targets = snapshot.replayArchive().stream()
+                            .flatMap(archive -> archive.frames().stream())
+                            .filter(frame -> frame.selectionWitnessId().isEmpty())
+                            .map(ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive.Frame::stateId)
+                            .sorted()
+                            .toList();
+                    for (String source : sources) {
+                        if (kind == Kind.EXACT_REPLAY) {
+                            choices.add(SFMActionChoice.invoke(actionId, selector + " " + source + " " + source));
+                            continue;
+                        }
+                        for (String target : targets) {
+                            if (choices.size() >= 256) return;
+                            choices.add(SFMActionChoice.invoke(
+                                    actionId,
+                                    selector + " " + source + " " + target
+                            ));
+                        }
+                    }
+                });
+        return List.copyOf(choices);
+    }
+
+    private static List<String> eligibleSourceBoundaries(SFMHistoryGraphRuntime.MachineSnapshot snapshot) {
+        return snapshot.replayArchive().stream()
+                .flatMap(archive -> archive.transitions().stream())
+                .filter(transition -> transition.actionId().equals(
+                        SFMDecimalNumberingChamber.SELECT_ALL_HYPHENS_ACTION_ID))
+                .map(ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive.SemanticTransition::parentStateId)
+                .distinct()
+                .sorted()
+                .toList();
     }
 
     static List<SFMActionChoice> routeChoices(

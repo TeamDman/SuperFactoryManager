@@ -25,6 +25,16 @@ public final class SFMTrajectoryActions {
             SFMTrajectoryMachineAction.Kind.SELECT_ROUTE);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMTrajectoryMachineAction> INSPECT_COST = register(
             SFMTrajectoryMachineAction.Kind.INSPECT_COST);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMTrajectoryMachineAction>
+            SELECT_ALL_HYPHEN_MARKERS = register(SFMTrajectoryMachineAction.Kind.SELECT_ALL_HYPHEN_MARKERS);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMTrajectoryMachineAction>
+            REPLACE_DECIMAL_SEQUENCE = register(SFMTrajectoryMachineAction.Kind.REPLACE_DECIMAL_SEQUENCE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMTrajectoryMachineAction> EXACT_REPLAY = register(
+            SFMTrajectoryMachineAction.Kind.EXACT_REPLAY);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMTrajectoryMachineAction> SEMANTIC_REBASE = register(
+            SFMTrajectoryMachineAction.Kind.SEMANTIC_REBASE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMTrajectoryMachineAction>
+            INSPECT_CAUSAL_ARCHIVE = register(SFMTrajectoryMachineAction.Kind.INSPECT_CAUSAL_ARCHIVE);
 
     private SFMTrajectoryActions() {
     }

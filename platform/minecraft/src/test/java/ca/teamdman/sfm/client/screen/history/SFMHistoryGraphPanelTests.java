@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.screen.history;
 
+import ca.teamdman.sfm.client.action.SFMTrajectoryMachineAction;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphTestFixture;
 import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
@@ -57,8 +58,10 @@ class SFMHistoryGraphPanelTests {
         assertTrue(panel.model().selected().orElseThrow().instructionPointer());
         SFMPanelWidgetHost host = panel.widgetHost().orElseThrow();
         List<SFMPanelWidget> controls = host.children();
-        assertEquals(7, controls.size());
-        assertEquals(7, new HashSet<>(controls.stream().map(SFMPanelWidget::elementId).toList()).size());
+        int actionCount = SFMTrajectoryMachineAction.Kind.values().length;
+        assertEquals(actionCount, controls.size());
+        assertEquals(actionCount,
+                new HashSet<>(controls.stream().map(SFMPanelWidget::elementId).toList()).size());
         controls.forEach(control -> assertTrue(control.actionDraft().orElseThrow()
                 .contains("id(episode-a)")));
 
@@ -244,7 +247,7 @@ class SFMHistoryGraphPanelTests {
         List<SFMScreenPanelBounds> layout = SFMHistoryGraphPanel.controlBounds(
                 minimumPanel,
                 50,
-                7
+                SFMTrajectoryMachineAction.Kind.values().length
         );
         panel.layoutControls(minimumPanel, 50);
         SFMPanelWidgetHost host = panel.widgetHost().orElseThrow();
@@ -254,7 +257,7 @@ class SFMHistoryGraphPanelTests {
             assertTrue(host.changeFocus(true));
             keyboardVisited.add(host.focusedElementId().orElseThrow());
         }
-        assertEquals(7, keyboardVisited.size());
+        assertEquals(SFMTrajectoryMachineAction.Kind.values().length, keyboardVisited.size());
 
         for (SFMScreenPanelBounds control : layout) {
             assertTrue(host.mouseClicked(
@@ -263,7 +266,7 @@ class SFMHistoryGraphPanelTests {
                     GLFW.GLFW_MOUSE_BUTTON_LEFT
             ));
         }
-        assertEquals(7, actions.size());
+        assertEquals(SFMTrajectoryMachineAction.Kind.values().length, actions.size());
         assertFalse(actions.stream().anyMatch(String::isBlank));
         panel.closed();
     }

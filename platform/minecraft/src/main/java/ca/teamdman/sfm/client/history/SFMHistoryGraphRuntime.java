@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.history;
 import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
 import ca.teamdman.sfm.client.history.presentation.SFMHistoryGraphPresentationModel;
 import ca.teamdman.sfm.client.history.presentation.SFMHistoryGraphPresentationProjection;
+import ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -62,7 +63,8 @@ public final class SFMHistoryGraphRuntime {
         return INSTANCE;
     }
 
-    public sealed interface Operation permits Plan, Step, Run, Pause, Replan, SelectRoute, InspectCost {
+    public sealed interface Operation permits Plan, Step, Run, Pause, Replan, SelectRoute, InspectCost,
+            InvokeSemanticAction, ExactReplay, SemanticRebase, InspectCausalArchive {
     }
 
     public record Plan() implements Operation {
@@ -93,6 +95,33 @@ public final class SFMHistoryGraphRuntime {
     }
 
     public record InspectCost() implements Operation {
+    }
+
+    /** Executes one domain-owned semantic action through the authoritative selected episode. */
+    public record InvokeSemanticAction(String actionId) implements Operation {
+        public InvokeSemanticAction {
+            actionId = requireText(actionId, "actionId");
+        }
+    }
+
+    /** Replays one recorded two-action chamber route only against its exact recorded parent. */
+    public record ExactReplay(String sourceBoundaryStateId, String targetParentStateId) implements Operation {
+        public ExactReplay {
+            sourceBoundaryStateId = requireText(sourceBoundaryStateId, "sourceBoundaryStateId");
+            targetParentStateId = requireText(targetParentStateId, "targetParentStateId");
+        }
+    }
+
+    /** Re-evaluates one eligible recorded two-action route against an explicit retained parent. */
+    public record SemanticRebase(String sourceBoundaryStateId, String targetParentStateId) implements Operation {
+        public SemanticRebase {
+            sourceBoundaryStateId = requireText(sourceBoundaryStateId, "sourceBoundaryStateId");
+            targetParentStateId = requireText(targetParentStateId, "targetParentStateId");
+        }
+    }
+
+    /** Reports the current bounded causal archive without changing the document head. */
+    public record InspectCausalArchive() implements Operation {
     }
 
     public enum OperationStatus {
@@ -176,6 +205,7 @@ public final class SFMHistoryGraphRuntime {
         private final SFMTrajectoryContract.PlanBook planBook;
         private final SFMTrajectoryContract.TrajectoryMachineState machine;
         private final Optional<SFMTrajectoryContract.SupervisionContract> supervision;
+        private final Optional<SFMTemporalReplayArchive.Archive> replayArchive;
         private final String summary;
         private final Executor presentationExecutor;
         private final Supplier<SFMHistoryGraphPresentationModel.Presentation> presentationProjection;
@@ -190,6 +220,19 @@ public final class SFMHistoryGraphRuntime {
                 Optional<SFMTrajectoryContract.SupervisionContract> supervision,
                 String summary
         ) {
+            this(machineId, revision, history, planBook, machine, supervision, Optional.empty(), summary);
+        }
+
+        public MachineSnapshot(
+                String machineId,
+                long revision,
+                SFMHistoryGraphContract.Graph history,
+                SFMTrajectoryContract.PlanBook planBook,
+                SFMTrajectoryContract.TrajectoryMachineState machine,
+                Optional<SFMTrajectoryContract.SupervisionContract> supervision,
+                Optional<SFMTemporalReplayArchive.Archive> replayArchive,
+                String summary
+        ) {
             this(
                     machineId,
                     revision,
@@ -197,9 +240,10 @@ public final class SFMHistoryGraphRuntime {
                     planBook,
                     machine,
                     supervision,
+                    replayArchive,
                     summary,
                     PRESENTATION_EXECUTOR,
-                    () -> SFMHistoryGraphPresentationProjection.project(history, planBook, machine)
+                    () -> SFMHistoryGraphPresentationProjection.project(history, planBook, machine, replayArchive)
             );
         }
 
@@ -214,6 +258,32 @@ public final class SFMHistoryGraphRuntime {
                 Executor presentationExecutor,
                 Supplier<SFMHistoryGraphPresentationModel.Presentation> presentationProjection
         ) {
+            this(
+                    machineId,
+                    revision,
+                    history,
+                    planBook,
+                    machine,
+                    supervision,
+                    Optional.empty(),
+                    summary,
+                    presentationExecutor,
+                    presentationProjection
+            );
+        }
+
+        MachineSnapshot(
+                String machineId,
+                long revision,
+                SFMHistoryGraphContract.Graph history,
+                SFMTrajectoryContract.PlanBook planBook,
+                SFMTrajectoryContract.TrajectoryMachineState machine,
+                Optional<SFMTrajectoryContract.SupervisionContract> supervision,
+                Optional<SFMTemporalReplayArchive.Archive> replayArchive,
+                String summary,
+                Executor presentationExecutor,
+                Supplier<SFMHistoryGraphPresentationModel.Presentation> presentationProjection
+        ) {
             this.machineId = requireText(machineId, "machineId");
             if (revision < 0) throw new IllegalArgumentException("revision must not be negative");
             this.revision = revision;
@@ -221,6 +291,7 @@ public final class SFMHistoryGraphRuntime {
             this.planBook = Objects.requireNonNull(planBook, "planBook");
             this.machine = Objects.requireNonNull(machine, "machine");
             this.supervision = Objects.requireNonNull(supervision, "supervision");
+            this.replayArchive = Objects.requireNonNull(replayArchive, "replayArchive");
             this.summary = requireText(summary, "summary");
             this.presentationExecutor = Objects.requireNonNull(presentationExecutor, "presentationExecutor");
             this.presentationProjection = Objects.requireNonNull(
@@ -231,6 +302,11 @@ public final class SFMHistoryGraphRuntime {
                 if (!contract.revision().equals(machine.supervisionContractRevision())) {
                     throw new IllegalArgumentException(
                             "Snapshot supervision revision must match the trajectory machine");
+                }
+            });
+            replayArchive.ifPresent(archive -> {
+                if (!archive.episodeId().equals(this.machineId)) {
+                    throw new IllegalArgumentException("Snapshot replay archive must belong to its machine");
                 }
             });
         }
@@ -257,6 +333,10 @@ public final class SFMHistoryGraphRuntime {
 
         public Optional<SFMTrajectoryContract.SupervisionContract> supervision() {
             return supervision;
+        }
+
+        public Optional<SFMTemporalReplayArchive.Archive> replayArchive() {
+            return replayArchive;
         }
 
         public String summary() {

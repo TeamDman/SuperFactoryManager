@@ -107,7 +107,16 @@ public final class SFMHistoryGraphPresentationModel {
         SEARCH,
         ACTION_INTENT,
         ACTION_EVALUATION,
-        ACTION_OUTCOME
+        ACTION_OUTCOME,
+        RAW_EVENT,
+        BINDING_DECISION,
+        ACTION_INVOCATION,
+        SELECTION_EXPRESSION,
+        SELECTION_WITNESS,
+        SNAPSHOT_FRAME,
+        OBSERVATION,
+        HEAD_MOVEMENT,
+        REPLAY_REPORT
     }
 
     public enum EdgeOrigin {

@@ -23,6 +23,13 @@ public final class SFMClientActionExecutor {
             SFMClientActionContext context,
             Consumer<Component> feedback
     ) throws CommandSyntaxException {
-        return SFMClientActions.commandTree().execute(command, new SFMClientActionSource(context, feedback));
+        if (SFMClientActionInvocationTrace.current().isPresent()) {
+            return SFMClientActions.commandTree().execute(command, new SFMClientActionSource(context, feedback));
+        }
+        try (SFMClientActionInvocationTrace.Scope traceScope = SFMClientActionInvocationTrace.activate(
+                new SFMClientActionInvocationTrace.RegisteredActionProvenance(command)
+        )) {
+            return SFMClientActions.commandTree().execute(command, new SFMClientActionSource(context, feedback));
+        }
     }
 }

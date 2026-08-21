@@ -157,6 +157,16 @@ public final class SFMKeyBindingDefaults {
                         SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT,
                         SFMKeyStroke.of(GLFW.GLFW_KEY_Z, SFMKeyModifier.CONTROL)),
                 binding(
+                        "builtin/temporal-document/selection/select-all-matching-hyphens",
+                        "sfm:text/selection/select/all_matching_hyphen_markers",
+                        "sfm action invoke sfm:text/selection/select/all_matching_hyphen_markers focused",
+                        SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT,
+                        SFMKeyStroke.of(
+                                GLFW.GLFW_KEY_J,
+                                SFMKeyModifier.CONTROL,
+                                SFMKeyModifier.ALT
+                        )),
+                binding(
                         "builtin/text-editor/symbol/definition/open",
                         "sfm:symbol/definition/open",
                         "sfm action invoke sfm:symbol/definition/open",

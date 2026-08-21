@@ -494,6 +494,11 @@ public final class SFMHistoryGraphPanel implements SFMScreenPanel, SFMEpisodeCon
             case REPLAN -> "Replan";
             case SELECT_ROUTE -> "Route";
             case INSPECT_COST -> "Cost";
+            case SELECT_ALL_HYPHEN_MARKERS -> "Select -";
+            case REPLACE_DECIMAL_SEQUENCE -> "Number";
+            case EXACT_REPLAY -> "Exact";
+            case SEMANTIC_REBASE -> "Rebase";
+            case INSPECT_CAUSAL_ARCHIVE -> "Causal";
         };
     }
 

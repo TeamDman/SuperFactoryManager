@@ -1,0 +1,351 @@
+{
+  "schema": "sfm.temporal-replay-archive/1",
+  "episode_id": "episode:equal-count-distinct-traces",
+  "document_id": "document:numbered-list",
+  "generation": 1,
+  "binding_snapshots": [
+    {
+      "schema": "sfm.effective-binding-snapshot/1",
+      "id": "bindings:7",
+      "revision": 7,
+      "digest": "sha256:eb24e47a6ec85c572685dbf3cc4dc3a65c22453040460fb9a0c53c368fdb9860",
+      "bindings": [
+        {
+          "binding_id": "binding:number-hyphens",
+          "action_id": "sfm:text/selection/replace/decimal_sequence",
+          "command_draft": "sfm action invoke sfm:text/selection/replace/decimal_sequence",
+          "situation_id": "sfm:history-chamber",
+          "sequence": [
+            {
+              "key_code": 74,
+              "modifiers": [
+                "alt",
+                "control"
+              ]
+            }
+          ],
+          "enabled": true
+        }
+      ]
+    }
+  ],
+  "source_events": [
+    {
+      "id": "event:trace-a-control",
+      "sequence": 1,
+      "kind": "key",
+      "origin": "physical-keyboard",
+      "deterministic_tick": 10,
+      "key_code": 341,
+      "key_event_type": "press",
+      "code_point": null,
+      "modifiers": [
+        "control"
+      ],
+      "payload": null
+    },
+    {
+      "id": "event:trace-a-alt",
+      "sequence": 2,
+      "kind": "key",
+      "origin": "physical-keyboard",
+      "deterministic_tick": 10,
+      "key_code": 342,
+      "key_event_type": "press",
+      "code_point": null,
+      "modifiers": [
+        "alt",
+        "control"
+      ],
+      "payload": null
+    },
+    {
+      "id": "event:trace-a-j",
+      "sequence": 3,
+      "kind": "key",
+      "origin": "physical-keyboard",
+      "deterministic_tick": 10,
+      "key_code": 74,
+      "key_event_type": "press",
+      "code_point": null,
+      "modifiers": [
+        "alt",
+        "control"
+      ],
+      "payload": null
+    },
+    {
+      "id": "event:trace-b-aggregated-j",
+      "sequence": 4,
+      "kind": "key",
+      "origin": "test-harness",
+      "deterministic_tick": 20,
+      "key_code": 74,
+      "key_event_type": "press",
+      "code_point": null,
+      "modifiers": [
+        "alt",
+        "control"
+      ],
+      "payload": null
+    }
+  ],
+  "binding_decisions": [
+    {
+      "id": "decision:trace-a",
+      "sequence": 5,
+      "source_event_ids": [
+        "event:trace-a-control",
+        "event:trace-a-alt",
+        "event:trace-a-j"
+      ],
+      "status": "matched",
+      "binding_snapshot_id": "bindings:7",
+      "matched_binding_id": "binding:number-hyphens",
+      "active_situation_ids": [
+        "sfm:history-chamber"
+      ],
+      "invocation_ids": [
+        "invocation:trace-a"
+      ],
+      "consumed": true,
+      "diagnostics": []
+    },
+    {
+      "id": "decision:trace-b",
+      "sequence": 6,
+      "source_event_ids": [
+        "event:trace-b-aggregated-j"
+      ],
+      "status": "matched",
+      "binding_snapshot_id": "bindings:7",
+      "matched_binding_id": "binding:number-hyphens",
+      "active_situation_ids": [
+        "sfm:history-chamber"
+      ],
+      "invocation_ids": [
+        "invocation:trace-b"
+      ],
+      "consumed": true,
+      "diagnostics": []
+    }
+  ],
+  "invocations": [
+    {
+      "id": "invocation:trace-a",
+      "sequence": 7,
+      "origin": "dynamic-key-binding",
+      "action_id": "sfm:text/selection/replace/decimal_sequence",
+      "command_draft": "sfm action invoke sfm:text/selection/replace/decimal_sequence",
+      "arguments": [
+        {
+          "name": "selection",
+          "type": "selection-expression-id",
+          "value": "expression:hyphens"
+        }
+      ],
+      "binding_decision_id": "decision:trace-a",
+      "source_event_ids": [
+        "event:trace-a-control",
+        "event:trace-a-alt",
+        "event:trace-a-j"
+      ],
+      "availability": "available",
+      "authorization": "authorized",
+      "status": "dispatched",
+      "diagnostics": []
+    },
+    {
+      "id": "invocation:trace-b",
+      "sequence": 8,
+      "origin": "dynamic-key-binding",
+      "action_id": "sfm:text/selection/replace/decimal_sequence",
+      "command_draft": "sfm action invoke sfm:text/selection/replace/decimal_sequence",
+      "arguments": [
+        {
+          "name": "selection",
+          "type": "selection-expression-id",
+          "value": "expression:hyphens"
+        }
+      ],
+      "binding_decision_id": "decision:trace-b",
+      "source_event_ids": [
+        "event:trace-b-aggregated-j"
+      ],
+      "availability": "available",
+      "authorization": "authorized",
+      "status": "dispatched",
+      "diagnostics": []
+    }
+  ],
+  "selection_expressions": [
+    {
+      "schema": "sfm.selection-expression/1",
+      "id": "expression:hyphens",
+      "document_id": "document:numbered-list",
+      "kind": "all-matching-text",
+      "seed_text": "-",
+      "evaluator_id": "sfm:text/all-matching",
+      "evaluator_revision": "1",
+      "ordering_policy": "canvas-reading-order-yx",
+      "geometry_revision": "text-code-points/1"
+    }
+  ],
+  "selection_witnesses": [
+    {
+      "id": "witness:two-hyphens",
+      "expression_id": "expression:hyphens",
+      "parent_state_id": "state:root",
+      "source_text_hash": "sha256:3ce507298ee91a0a9a9757f276c32199ddaa987373b919b79e9ae080e586eb6f",
+      "evaluator_id": "sfm:text/all-matching",
+      "evaluator_revision": "1",
+      "ordering_policy": "canvas-reading-order-yx",
+      "geometry_revision": "text-code-points/1",
+      "regions": [
+        {
+          "ordinal": 0,
+          "start_code_point_offset": 0,
+          "end_code_point_offset": 1,
+          "line_one_based": 1,
+          "column_code_point_one_based": 1,
+          "expected_text": "-"
+        },
+        {
+          "ordinal": 1,
+          "start_code_point_offset": 9,
+          "end_code_point_offset": 10,
+          "line_one_based": 2,
+          "column_code_point_one_based": 1,
+          "expected_text": "-"
+        }
+      ]
+    }
+  ],
+  "frames": [
+    {
+      "state_id": "state:exact",
+      "parent_state_id": "state:root",
+      "state_hash": "state-hash:exact",
+      "text_hash": "sha256:cadb47e1adb733d5916c7ab2cedad47803e7beb6a71c8d10c4990c170a6b0cde",
+      "text": "1. apples\n2. bananas\n",
+      "selection_witness_id": "witness:two-hyphens"
+    },
+    {
+      "state_id": "state:replayed",
+      "parent_state_id": "state:root",
+      "state_hash": "state-hash:replayed",
+      "text_hash": "sha256:cadb47e1adb733d5916c7ab2cedad47803e7beb6a71c8d10c4990c170a6b0cde",
+      "text": "1. apples\n2. bananas\n",
+      "selection_witness_id": "witness:two-hyphens"
+    },
+    {
+      "state_id": "state:root",
+      "parent_state_id": null,
+      "state_hash": "state-hash:root",
+      "text_hash": "sha256:3ce507298ee91a0a9a9757f276c32199ddaa987373b919b79e9ae080e586eb6f",
+      "text": "- apples\n- bananas\n",
+      "selection_witness_id": null
+    }
+  ],
+  "transitions": [
+    {
+      "id": "transition:source",
+      "sequence": 9,
+      "invocation_id": "invocation:trace-a",
+      "intent_id": "intent:number-source",
+      "evaluation_id": "evaluation:number-source",
+      "outcome_id": "outcome:number-source",
+      "parent_state_id": "state:root",
+      "result_state_id": "state:exact",
+      "action_id": "sfm:text/selection/replace/decimal_sequence",
+      "arguments": [
+        {
+          "name": "selection",
+          "type": "selection-expression-id",
+          "value": "expression:hyphens"
+        }
+      ],
+      "evaluation_policy": "frozen-witness-reexecution",
+      "effect_class": "pure",
+      "witness_id": "witness:two-hyphens",
+      "status": "succeeded",
+      "evidence": [
+        "two markers replaced atomically"
+      ]
+    },
+    {
+      "id": "transition:replayed",
+      "sequence": 10,
+      "invocation_id": "invocation:trace-b",
+      "intent_id": "intent:number-replayed",
+      "evaluation_id": "evaluation:number-replayed",
+      "outcome_id": "outcome:number-replayed",
+      "parent_state_id": "state:root",
+      "result_state_id": "state:replayed",
+      "action_id": "sfm:text/selection/replace/decimal_sequence",
+      "arguments": [
+        {
+          "name": "selection",
+          "type": "selection-expression-id",
+          "value": "expression:hyphens"
+        }
+      ],
+      "evaluation_policy": "frozen-witness-reexecution",
+      "effect_class": "pure",
+      "witness_id": "witness:two-hyphens",
+      "status": "succeeded",
+      "evidence": [
+        "same semantic action from a distinct raw trace"
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "id": "observation:equal-action-count",
+      "sequence": 11,
+      "kind": "trace-comparison",
+      "related_record_id": "replay:exact",
+      "value": "distinct-raw-traces;equal-action-count=1"
+    }
+  ],
+  "head_movements": [
+    {
+      "id": "head:exact-result",
+      "sequence": 12,
+      "kind": "replay-result",
+      "from_state_id": "state:exact",
+      "to_state_id": "state:replayed",
+      "actor": "fixture",
+      "request_id": "request:exact-replay"
+    }
+  ],
+  "replay_reports": [
+    {
+      "id": "replay:exact",
+      "sequence": 13,
+      "mode": "exact-replay",
+      "status": "succeeded",
+      "source_boundary_state_id": "state:root",
+      "target_parent_state_id": "state:root",
+      "source_transition_ids": [
+        "transition:source"
+      ],
+      "resulting_transition_ids": [
+        "transition:replayed"
+      ],
+      "action_lineage": [
+        {
+          "source_transition_id": "transition:source",
+          "source_witness_id": "witness:two-hyphens",
+          "resulting_transition_id": "transition:replayed",
+          "resulting_witness_id": "witness:two-hyphens",
+          "status": "succeeded",
+          "diagnostics": []
+        }
+      ],
+      "resulting_state_id": "state:replayed",
+      "diagnostics": []
+    }
+  ],
+  "current_state_id": "state:replayed"
+}

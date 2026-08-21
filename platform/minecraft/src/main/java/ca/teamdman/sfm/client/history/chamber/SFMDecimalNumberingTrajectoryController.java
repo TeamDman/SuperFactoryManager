@@ -5,6 +5,8 @@ import ca.teamdman.sfm.client.history.SFMCandidateHistoryContract;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphContract;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.SFMTrajectoryContract;
+import ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive;
+import ca.teamdman.sfm.client.history.replay.SFMTemporalReplayEngine;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -35,6 +37,7 @@ public final class SFMDecimalNumberingTrajectoryController
 
     private final SFMChamberDocumentState.IdentityScope scope;
     private final SFMDecimalNumberingChamber chamber;
+    private final SFMTemporalReplayEngine replayEngine;
     private final Supplier<String> ambientCheckoutProbe;
     private final String ambientCheckoutBaseline;
     private final String historyHeadId;
@@ -52,6 +55,7 @@ public final class SFMDecimalNumberingTrajectoryController
     private final LinkedHashMap<String, SFMTrajectoryContract.SupervisionContract>
             supervisionContractsByPlan = new LinkedHashMap<>();
     private final ArrayList<ReplanLineage> replanLineage = new ArrayList<>();
+    private SFMTemporalReplayJournal replayJournal;
 
     private String currentStateId;
     private SFMTrajectoryContract.PlanBook planBook = new SFMTrajectoryContract.PlanBook(
@@ -74,11 +78,13 @@ public final class SFMDecimalNumberingTrajectoryController
     ) {
         scope = new SFMChamberDocumentState.IdentityScope(episodeId, documentId);
         chamber = new SFMDecimalNumberingChamber(scope);
+        replayEngine = new SFMTemporalReplayEngine(chamber);
         this.ambientCheckoutProbe = Objects.requireNonNull(ambientCheckoutProbe, "ambientCheckoutProbe");
         ambientCheckoutBaseline = measuredAmbientHash();
         historyHeadId = scope.qualify("head", "current");
         SFMChamberDocumentState initial = SFMChamberDocumentState.root(scope, initialText);
         retainState(initial);
+        replayJournal = new SFMTemporalReplayJournal(initial);
         currentStateId = initial.revisionId();
         resetSupervisionFor(initial);
         machine = new SFMTrajectoryContract.TrajectoryMachineState(
@@ -130,6 +136,11 @@ public final class SFMDecimalNumberingTrajectoryController
     /** Immutable retained document revisions in deterministic first-observed order. */
     public synchronized List<SFMChamberDocumentState> retainedStates() {
         return List.copyOf(states.values());
+    }
+
+    /** Complete Java-local causal archive for deterministic replay and puppet artifacts. */
+    public synchronized SFMTemporalReplayArchive.Archive replayArchive() {
+        return replayJournal.snapshot(currentStateId);
     }
 
     /** Fresh byte-level evidence that the chamber has not changed its protected ambient checkout. */
@@ -326,6 +337,7 @@ public final class SFMDecimalNumberingTrajectoryController
                 planBook,
                 machine,
                 Optional.of(activeSupervision),
+                Optional.of(replayArchive()),
                 summary()
         );
     }
@@ -342,7 +354,287 @@ public final class SFMDecimalNumberingTrajectoryController
             return selectRoute(select.planRevisionId(), select.routeId());
         }
         if (operation instanceof SFMHistoryGraphRuntime.InspectCost) return inspectCost();
+        if (operation instanceof SFMHistoryGraphRuntime.InvokeSemanticAction invoke) {
+            return invokeSemanticAction(invoke.actionId());
+        }
+        if (operation instanceof SFMHistoryGraphRuntime.ExactReplay replay) {
+            return replay(
+                    SFMTemporalReplayArchive.ReplayMode.EXACT_REPLAY,
+                    replay.sourceBoundaryStateId(),
+                    replay.targetParentStateId()
+            );
+        }
+        if (operation instanceof SFMHistoryGraphRuntime.SemanticRebase replay) {
+            return replay(
+                    SFMTemporalReplayArchive.ReplayMode.SEMANTIC_REBASE,
+                    replay.sourceBoundaryStateId(),
+                    replay.targetParentStateId()
+            );
+        }
+        if (operation instanceof SFMHistoryGraphRuntime.InspectCausalArchive) {
+            SFMTemporalReplayArchive.Archive archive = replayArchive();
+            return SFMHistoryGraphRuntime.OperationResult.noChange(
+                    "Causal archive generation=" + archive.generation()
+                            + " events=" + archive.sourceEvents().size()
+                            + " bindings=" + archive.bindingDecisions().size()
+                            + " invocations=" + archive.invocations().size()
+                            + " transitions=" + archive.transitions().size()
+                            + " replay-reports=" + archive.replayReports().size()
+                            + " head=" + archive.currentStateId()
+            );
+        }
         return SFMHistoryGraphRuntime.OperationResult.rejected("Unsupported chamber operation");
+    }
+
+    private SFMHistoryGraphRuntime.OperationResult replay(
+            SFMTemporalReplayArchive.ReplayMode mode,
+            String sourceBoundaryStateId,
+            String targetParentStateId
+    ) {
+        Objects.requireNonNull(mode, "mode");
+        SFMChamberDocumentState targetParent;
+        List<SFMDecimalNumberingChamber.Transition> sourceRoute;
+        try {
+            targetParent = requireState(targetParentStateId);
+            sourceRoute = replaySourceRoute(sourceBoundaryStateId);
+        } catch (IllegalArgumentException e) {
+            return SFMHistoryGraphRuntime.OperationResult.rejected(e.getMessage());
+        }
+
+        SFMTemporalReplayEngine.ReplayResult replay = mode == SFMTemporalReplayArchive.ReplayMode.EXACT_REPLAY
+                ? replayEngine.exactReplay(sourceRoute, targetParent, revision + 1)
+                : replayEngine.semanticRebase(sourceRoute, targetParent, revision + 1);
+        if (!replay.succeeded()) {
+            replayJournal.recordReplay(replay.report());
+            revision++;
+            return SFMHistoryGraphRuntime.OperationResult.rejected(
+                    mode + " " + replay.report().status() + ": "
+                            + String.join("; ", replay.report().diagnostics())
+            );
+        }
+
+        ArrayList<StagedTransitionCommit> stagedCommits = new ArrayList<>();
+        String expectedParentId = targetParent.revisionId();
+        for (SFMTemporalReplayEngine.StagedTransition staged : replay.stagedTransitions()) {
+            SFMDecimalNumberingChamber.Transition transition = staged.transition();
+            if (!transition.parent().revisionId().equals(expectedParentId)) {
+                throw new IllegalStateException("Replay staging produced a discontinuous transition chain");
+            }
+            stagedCommits.add(stageTransitionCommitAgainst(
+                    transition,
+                    "replay:" + mode.name().toLowerCase(java.util.Locale.ROOT)
+                            + ":source=" + staged.sourceTransitionId(),
+                    expectedParentId
+            ));
+            expectedParentId = transition.result().revisionId();
+        }
+
+        LinkedHashMap<String, SFMChamberDocumentState> stagedStates = new LinkedHashMap<>(states);
+        LinkedHashMap<String, String> stagedFirstHashes = new LinkedHashMap<>(firstObservedStateHashes);
+        ArrayList<CommittedTransition> stagedHistory = new ArrayList<>(committedTransitions);
+        for (StagedTransitionCommit staged : stagedCommits) {
+            SFMChamberDocumentState result = staged.transition().result();
+            SFMChamberDocumentState previous = stagedStates.putIfAbsent(result.revisionId(), result);
+            if (previous != null && !previous.equals(result)) {
+                throw new IllegalStateException("Replay state identity collided during atomic staging");
+            }
+            String previousHash = stagedFirstHashes.putIfAbsent(result.revisionId(), result.stateHash());
+            if (previousHash != null && !previousHash.equals(result.stateHash())) {
+                throw new IllegalStateException("Replay changed a retained state's first-observed hash");
+            }
+            if (!staged.alreadyCommitted()) stagedHistory.add(staged.committed());
+        }
+
+        SFMTemporalReplayJournal stagedJournal = new SFMTemporalReplayJournal(replayArchive());
+        for (StagedTransitionCommit staged : stagedCommits) {
+            if (!staged.alreadyCommitted()) {
+                stagedJournal.recordReplayTransition(
+                        staged.transition(),
+                        staged.committed().evaluationId(),
+                        staged.committed().edgeId(),
+                        staged.committed().evidence(),
+                        ambientCheckoutBaseline,
+                        mode
+                );
+            }
+        }
+        stagedJournal.recordReplay(replay.report());
+        String resultingStateId = replay.resultingState().orElseThrow().revisionId();
+        SFMTemporalReplayArchive.HeadMovementKind replayMovementKind =
+                mode == SFMTemporalReplayArchive.ReplayMode.EXACT_REPLAY
+                        ? SFMTemporalReplayArchive.HeadMovementKind.REPLAY_RESULT
+                        : SFMTemporalReplayArchive.HeadMovementKind.REBASE_RESULT;
+        stagedJournal.recordHeadMovement(
+                replayMovementKind,
+                currentStateId,
+                resultingStateId,
+                "registered-temporal-replay",
+                replay.report().id()
+        );
+
+        ReplayPostState postState = deriveReplayPostState(
+                replay.resultingState().orElseThrow(),
+                stagedStates,
+                stagedFirstHashes,
+                stagedHistory
+        );
+        long nextMovement = movementSequence + 1;
+        String movementId = scope.qualify("head-movement", Long.toString(nextMovement));
+        SFMHistoryGraphContract.HeadMovement movement = new SFMHistoryGraphContract.HeadMovement(
+                movementId,
+                SFMHistoryGraphContract.HeadMovementKind.SELECT_BRANCH,
+                historyHeadId,
+                currentStateId,
+                resultingStateId,
+                List.of(targetParent.revisionId(), resultingStateId),
+                "registered-temporal-replay",
+                replay.report().id()
+        );
+        SFMHistoryGraphContract.RetentionPin pin = new SFMHistoryGraphContract.RetentionPin(
+                scope.qualify("retention-pin", "replay-" + nextMovement),
+                SFMHistoryGraphContract.RetentionKind.NAMED_BRANCH,
+                currentStateId,
+                movementId
+        );
+
+        states.clear();
+        states.putAll(stagedStates);
+        firstObservedStateHashes.clear();
+        firstObservedStateHashes.putAll(stagedFirstHashes);
+        committedTransitions.clear();
+        committedTransitions.addAll(stagedHistory);
+        replayJournal = stagedJournal;
+        headMovements.add(movement);
+        retentionPins.add(pin);
+        movementSequence = nextMovement;
+        currentStateId = resultingStateId;
+        activeSupervision = postState.supervision();
+        machine = postState.machine();
+        revision++;
+        return SFMHistoryGraphRuntime.OperationResult.applied(
+                mode + " " + replay.report().status()
+                        + "; source=" + sourceBoundaryStateId
+                        + " target=" + targetParentStateId
+                        + " result=" + resultingStateId
+        );
+    }
+
+    private List<SFMDecimalNumberingChamber.Transition> replaySourceRoute(String sourceBoundaryStateId) {
+        requireState(sourceBoundaryStateId);
+        ArrayList<List<SFMDecimalNumberingChamber.Transition>> routes = new ArrayList<>();
+        committedTransitions.stream()
+                .map(CommittedTransition::transition)
+                .filter(transition -> transition.parent().revisionId().equals(sourceBoundaryStateId))
+                .filter(transition -> transition.action()
+                        instanceof SFMDecimalNumberingChamber.SelectAllHyphenMarkersAction)
+                .forEach(select -> committedTransitions.stream()
+                        .map(CommittedTransition::transition)
+                        .filter(replace -> replace.parent().equals(select.result()))
+                        .filter(replace -> replace.action()
+                                instanceof SFMDecimalNumberingChamber.ReplaceOrderedWitnessAction)
+                        .forEach(replace -> routes.add(List.of(select, replace))));
+        if (routes.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "No eligible recorded numbering route starts at " + sourceBoundaryStateId
+            );
+        }
+        if (routes.size() != 1) {
+            throw new IllegalArgumentException(
+                    "More than one eligible recorded numbering route starts at " + sourceBoundaryStateId
+            );
+        }
+        return routes.get(0);
+    }
+
+    private SFMHistoryGraphRuntime.OperationResult invokeSemanticAction(String actionId) {
+        if (!Set.of(
+                SFMDecimalNumberingChamber.SELECT_ALL_HYPHENS_ACTION_ID,
+                SFMDecimalNumberingChamber.REPLACE_DECIMAL_SEQUENCE_ACTION_ID
+        ).contains(actionId)) {
+            return SFMHistoryGraphRuntime.OperationResult.rejected(
+                    "Unsupported temporal-numbering semantic action " + actionId
+            );
+        }
+        SFMChamberDocumentState parent = currentState();
+        SFMDecimalNumberingChamber.TargetDerivation derivation = chamber.deriveTarget(parent);
+        if (derivation.target().isEmpty()) {
+            return SFMHistoryGraphRuntime.OperationResult.rejected(
+                    "Cannot apply " + actionId + ": " + derivation.diagnosticsSummary()
+            );
+        }
+        SFMDecimalNumberingChamber.Transition transition = chamber.transitions(
+                        parent,
+                        derivation.target().orElseThrow()
+                ).stream()
+                .filter(candidate -> candidate.action().actionId().equals(actionId))
+                .findFirst()
+                .orElse(null);
+        if (transition == null) {
+            return SFMHistoryGraphRuntime.OperationResult.noChange(
+                    "Semantic action is not applicable to the current chamber state: " + actionId
+            );
+        }
+        commitTransition(transition, "registered-semantic-action:" + actionId);
+        refreshAfterSemanticTransition();
+        revision++;
+        return SFMHistoryGraphRuntime.OperationResult.applied(
+                "Applied " + actionId + "; witness regions="
+                        + transition.result().selection().map(value -> value.regions().size()).orElse(0)
+        );
+    }
+
+    private void refreshAfterSemanticTransition() {
+        SFMChamberDocumentState current = currentState();
+        if (supervisionDefinition.target().matches(current)) {
+            List<SFMDecimalNumberingChamber.Transition> route = committedRoute(
+                    supervisionDefinition.expectedStartRevisionId(),
+                    current.revisionId()
+            );
+            SFMDecimalNumberingChamber.SupervisionEvidence evidence = chamber.evaluateSupervision(
+                    supervisionDefinition,
+                    requireState(supervisionDefinition.expectedStartRevisionId()),
+                    current,
+                    route,
+                    measuredInvariantEvidenceIncluding(route)
+            );
+            activeSupervision = supervisionDefinition.resolvedContract(evidence);
+            machine = withSupervision(
+                    machine,
+                    activeSupervision,
+                    evidence.status() == SFMTrajectoryContract.SupervisionStatus.SUPERVISION_READY
+                            ? SFMTrajectoryContract.MachineStatus.COMPLETE
+                            : SFMTrajectoryContract.MachineStatus.BLOCKED
+            );
+            return;
+        }
+        activeSupervision = withStatus(activeSupervision, SFMTrajectoryContract.SupervisionStatus.RUNNING);
+        machine = withSupervision(machine, activeSupervision, SFMTrajectoryContract.MachineStatus.PAUSED);
+    }
+
+    private List<SFMDecimalNumberingChamber.Transition> committedRoute(String startStateId, String endStateId) {
+        return committedRoute(startStateId, endStateId, committedTransitions);
+    }
+
+    private static List<SFMDecimalNumberingChamber.Transition> committedRoute(
+            String startStateId,
+            String endStateId,
+            List<CommittedTransition> history
+    ) {
+        ArrayList<SFMDecimalNumberingChamber.Transition> reverse = new ArrayList<>();
+        String cursor = endStateId;
+        while (!cursor.equals(startStateId)) {
+            String child = cursor;
+            CommittedTransition committed = history.stream()
+                    .filter(value -> value.transition().result().revisionId().equals(child))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalStateException(
+                            "No committed route connects supervision start to " + endStateId
+                    ));
+            reverse.add(committed.transition());
+            cursor = committed.transition().parent().revisionId();
+        }
+        java.util.Collections.reverse(reverse);
+        return List.copyOf(reverse);
     }
 
     public synchronized SFMHistoryGraphRuntime.OperationResult undo(String actor, String requestId) {
@@ -370,6 +662,13 @@ public final class SFMDecimalNumberingTrajectoryController
                 movementId
         ));
         currentStateId = parentId;
+        replayJournal.recordHeadMovement(
+                SFMTemporalReplayArchive.HeadMovementKind.UNDO,
+                current.revisionId(),
+                parentId,
+                actor,
+                requestId
+        );
         Optional<SFMTrajectoryContract.InstructionPointer> pointer = pointerForSelectedPlan(parentId);
         machine = new SFMTrajectoryContract.TrajectoryMachineState(
                 historyHeadId,
@@ -745,10 +1044,19 @@ public final class SFMDecimalNumberingTrajectoryController
             SFMDecimalNumberingChamber.Transition transition,
             String evidence
     ) {
+        return stageTransitionCommitAgainst(transition, evidence, currentStateId);
+    }
+
+    private StagedTransitionCommit stageTransitionCommitAgainst(
+            SFMDecimalNumberingChamber.Transition transition,
+            String evidence,
+            String expectedParentStateId
+    ) {
         Objects.requireNonNull(transition, "transition");
-        if (!transition.parent().revisionId().equals(currentStateId)) {
+        expectedParentStateId = requireText(expectedParentStateId, "expectedParentStateId");
+        if (!transition.parent().revisionId().equals(expectedParentStateId)) {
             throw new SFMDecimalNumberingChamber.StaleParentException(
-                    "Authoritative head changed before transition commit"
+                    "Expected replay/authoritative parent changed before transition commit"
             );
         }
         SFMChamberDocumentState existing = states.get(transition.result().revisionId());
@@ -782,11 +1090,73 @@ public final class SFMDecimalNumberingTrajectoryController
         );
     }
 
+    private ReplayPostState deriveReplayPostState(
+            SFMChamberDocumentState resultingState,
+            Map<String, SFMChamberDocumentState> stagedStates,
+            Map<String, String> stagedFirstHashes,
+            List<CommittedTransition> stagedHistory
+    ) {
+        Objects.requireNonNull(resultingState, "resultingState");
+        Objects.requireNonNull(stagedStates, "stagedStates");
+        Objects.requireNonNull(stagedFirstHashes, "stagedFirstHashes");
+        Objects.requireNonNull(stagedHistory, "stagedHistory");
+        if (!supervisionDefinition.target().matches(resultingState)) {
+            SFMTrajectoryContract.SupervisionContract supervision = withStatus(
+                    activeSupervision,
+                    SFMTrajectoryContract.SupervisionStatus.RUNNING
+            );
+            return new ReplayPostState(
+                    supervision,
+                    withSupervision(machine, supervision, SFMTrajectoryContract.MachineStatus.PAUSED)
+            );
+        }
+        List<SFMDecimalNumberingChamber.Transition> route = committedRoute(
+                supervisionDefinition.expectedStartRevisionId(),
+                resultingState.revisionId(),
+                stagedHistory
+        );
+        LinkedHashMap<String, String> currentHashes = new LinkedHashMap<>();
+        stagedStates.forEach((id, state) -> currentHashes.put(id, state.stateHash()));
+        SFMDecimalNumberingChamber.ExternalInvariantEvidence invariants =
+                new SFMDecimalNumberingChamber.ExternalInvariantEvidence(
+                        ambientCheckoutBaseline,
+                        measuredAmbientHash(),
+                        stagedFirstHashes,
+                        currentHashes
+                );
+        SFMChamberDocumentState start = stagedStates.get(supervisionDefinition.expectedStartRevisionId());
+        if (start == null) throw new IllegalStateException("Replay supervision start is not retained");
+        SFMDecimalNumberingChamber.SupervisionEvidence evidence = chamber.evaluateSupervision(
+                supervisionDefinition,
+                start,
+                resultingState,
+                route,
+                invariants
+        );
+        SFMTrajectoryContract.SupervisionContract supervision = supervisionDefinition.resolvedContract(evidence);
+        SFMTrajectoryContract.MachineStatus status =
+                evidence.status() == SFMTrajectoryContract.SupervisionStatus.SUPERVISION_READY
+                        ? SFMTrajectoryContract.MachineStatus.COMPLETE
+                        : SFMTrajectoryContract.MachineStatus.BLOCKED;
+        return new ReplayPostState(supervision, withSupervision(machine, supervision, status));
+    }
+
     private void applyTransitionCommit(StagedTransitionCommit staged) {
         SFMDecimalNumberingChamber.Transition transition = staged.transition();
+        if (!staged.alreadyCommitted()) {
+            replayJournal.recordTransition(
+                    transition,
+                    staged.committed().evaluationId(),
+                    staged.committed().edgeId(),
+                    staged.committed().evidence(),
+                    ambientCheckoutBaseline
+            );
+        }
         states.putIfAbsent(transition.result().revisionId(), transition.result());
         firstObservedStateHashes.putIfAbsent(transition.result().revisionId(), transition.result().stateHash());
-        if (!staged.alreadyCommitted()) committedTransitions.add(staged.committed());
+        if (!staged.alreadyCommitted()) {
+            committedTransitions.add(staged.committed());
+        }
         currentStateId = transition.result().revisionId();
     }
 
@@ -1100,6 +1470,16 @@ public final class SFMDecimalNumberingTrajectoryController
             if (!transition.equals(committed.transition())) {
                 throw new IllegalArgumentException("Staged transition and committed evidence disagree");
             }
+        }
+    }
+
+    private record ReplayPostState(
+            SFMTrajectoryContract.SupervisionContract supervision,
+            SFMTrajectoryContract.TrajectoryMachineState machine
+    ) {
+        private ReplayPostState {
+            Objects.requireNonNull(supervision, "supervision");
+            Objects.requireNonNull(machine, "machine");
         }
     }
 

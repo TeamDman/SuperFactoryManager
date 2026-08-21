@@ -4,6 +4,8 @@ import ca.teamdman.sfm.client.history.SFMBoundedTrajectoryPlanner;
 import ca.teamdman.sfm.client.history.SFMCandidateHistoryContract;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.SFMTrajectoryContract;
+import ca.teamdman.sfm.client.history.presentation.SFMHistoryGraphPresentationModel;
+import ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayDeque;
@@ -22,6 +24,139 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMDecimalNumberingTrajectoryControllerTests {
+    @Test
+    void exactReplayAndSemanticRebasePublishAtomicallyAndRetainSiblingHistories() {
+        SFMDecimalNumberingTrajectoryController controller = controller("sfm:test/replay-rebase");
+        String sourceBoundary = controller.currentState().revisionId();
+        controller.apply(new SFMHistoryGraphRuntime.InvokeSemanticAction(
+                SFMDecimalNumberingChamber.SELECT_ALL_HYPHENS_ACTION_ID));
+        controller.apply(new SFMHistoryGraphRuntime.InvokeSemanticAction(
+                SFMDecimalNumberingChamber.REPLACE_DECIMAL_SEQUENCE_ACTION_ID));
+        String twoItemState = controller.currentState().revisionId();
+        assertEquals("1. apples\n2. bananas\n", controller.currentText());
+
+        controller.undo("test", "replay-undo-numbered");
+        controller.undo("test", "replay-undo-selection");
+        int insertionOffset = "- apples\n".codePointCount(0, "- apples\n".length());
+        controller.insertText(insertionOffset, SFMDecimalNumberingTrajectoryController.THIRD_ITEM_TEXT, "test");
+        String changedParent = controller.currentState().revisionId();
+        int retainedBeforeMismatch = controller.retainedStates().size();
+        int transitionsBeforeMismatch = controller.replayArchive().transitions().size();
+
+        SFMHistoryGraphRuntime.OperationResult mismatch = controller.apply(
+                new SFMHistoryGraphRuntime.ExactReplay(sourceBoundary, changedParent));
+        assertEquals(SFMHistoryGraphRuntime.OperationStatus.REJECTED, mismatch.status());
+        assertTrue(mismatch.message().contains("PRECONDITION_MISMATCH"));
+        assertEquals(changedParent, controller.currentState().revisionId());
+        assertEquals(retainedBeforeMismatch, controller.retainedStates().size());
+        assertEquals(transitionsBeforeMismatch, controller.replayArchive().transitions().size(),
+                "a failed exact replay must not publish a transition prefix");
+        assertEquals(SFMTemporalReplayArchive.ReplayStatus.PRECONDITION_MISMATCH,
+                controller.replayArchive().replayReports().get(0).status());
+
+        SFMHistoryGraphRuntime.OperationResult exact = controller.apply(
+                new SFMHistoryGraphRuntime.ExactReplay(sourceBoundary, sourceBoundary));
+        assertEquals(SFMHistoryGraphRuntime.OperationStatus.APPLIED, exact.status());
+        assertEquals(twoItemState, controller.currentState().revisionId());
+        assertEquals("1. apples\n2. bananas\n", controller.currentText());
+        assertEquals(transitionsBeforeMismatch, controller.replayArchive().transitions().size(),
+                "exact replay verifies the existing immutable route instead of duplicating it");
+
+        SFMHistoryGraphRuntime.OperationResult rebased = controller.apply(
+                new SFMHistoryGraphRuntime.SemanticRebase(sourceBoundary, changedParent));
+        assertEquals(SFMHistoryGraphRuntime.OperationStatus.APPLIED, rebased.status());
+        String threeItemState = controller.currentState().revisionId();
+        assertEquals("1. apples\n2. apricots\n3. bananas\n", controller.currentText());
+        assertNotEquals(twoItemState, threeItemState);
+        assertTrue(controller.retainedStates().stream().anyMatch(state -> state.revisionId().equals(twoItemState)));
+        assertTrue(controller.retainedStates().stream().anyMatch(state -> state.revisionId().equals(changedParent)));
+
+        SFMTemporalReplayArchive.Archive firstRebaseArchive = controller.replayArchive();
+        SFMTemporalReplayArchive.ReplayReport firstRebase = firstRebaseArchive.replayReports().stream()
+                .filter(report -> report.mode() == SFMTemporalReplayArchive.ReplayMode.SEMANTIC_REBASE)
+                .findFirst()
+                .orElseThrow();
+        assertEquals(SFMTemporalReplayArchive.ReplayStatus.SUCCEEDED, firstRebase.status());
+        assertEquals(2, firstRebase.actionLineage().size());
+        assertTrue(firstRebase.actionLineage().stream().allMatch(lineage ->
+                lineage.sourceWitnessId().isPresent()
+                        && lineage.resultingWitnessId().isPresent()
+                        && !lineage.sourceWitnessId().equals(lineage.resultingWitnessId())));
+        assertEquals(2, firstRebaseArchive.sourceEvents().stream()
+                .filter(event -> event.origin() == SFMTemporalReplayArchive.EventOrigin.SEMANTIC_REBASE)
+                .count());
+
+        int transitionCount = firstRebaseArchive.transitions().size();
+        SFMHistoryGraphRuntime.OperationResult repeated = controller.apply(
+                new SFMHistoryGraphRuntime.SemanticRebase(sourceBoundary, changedParent));
+        assertEquals(SFMHistoryGraphRuntime.OperationStatus.APPLIED, repeated.status());
+        assertEquals(threeItemState, controller.currentState().revisionId());
+        assertEquals(transitionCount, controller.replayArchive().transitions().size(),
+                "deterministic repeated rebase must reuse the same immutable result route");
+        assertTrue(controller.snapshot().presentation().nodes().stream().anyMatch(node ->
+                node.origins().contains(SFMHistoryGraphPresentationModel.NodeOrigin.REPLAY_REPORT)));
+    }
+
+    @Test
+    void semanticActionsPublishCompleteReplayArchiveAndCausalPresentation() {
+        SFMDecimalNumberingTrajectoryController controller = controller("sfm:test/replay-archive");
+
+        assertEquals(SFMHistoryGraphRuntime.OperationStatus.APPLIED, controller.apply(
+                new SFMHistoryGraphRuntime.InvokeSemanticAction(
+                        SFMDecimalNumberingChamber.SELECT_ALL_HYPHENS_ACTION_ID
+                )
+        ).status());
+        assertEquals(2, controller.currentState().selection().orElseThrow().regions().size());
+        assertEquals(SFMHistoryGraphRuntime.OperationStatus.APPLIED, controller.apply(
+                new SFMHistoryGraphRuntime.InvokeSemanticAction(
+                        SFMDecimalNumberingChamber.REPLACE_DECIMAL_SEQUENCE_ACTION_ID
+                )
+        ).status());
+        assertEquals("1. apples\n2. bananas\n", controller.currentText());
+
+        SFMTemporalReplayArchive.Archive archive = controller.replayArchive();
+        assertEquals(SFMTemporalReplayArchive.SCHEMA, archive.schema());
+        assertEquals(controller.machineId(), archive.episodeId());
+        assertEquals(controller.currentState().revisionId(), archive.currentStateId());
+        assertEquals(2, archive.sourceEvents().size());
+        assertEquals(2, archive.bindingDecisions().size());
+        assertEquals(2, archive.invocations().size());
+        assertEquals(1, archive.selectionExpressions().size());
+        assertEquals(2, archive.selectionWitnesses().size());
+        assertEquals(2, archive.transitions().size());
+        assertTrue(archive.sourceEvents().stream().allMatch(event ->
+                event.origin() == SFMTemporalReplayArchive.EventOrigin.CONTROLLER_API));
+        assertTrue(archive.bindingDecisions().stream().allMatch(decision ->
+                decision.status() == SFMTemporalReplayArchive.BindingDecisionStatus.NOT_APPLICABLE));
+        assertTrue(archive.transitions().stream().allMatch(transition ->
+                transition.status() == SFMTemporalReplayArchive.TransitionStatus.SUCCEEDED));
+        assertTrue(archive.transitions().stream().allMatch(transition -> transition.witnessId().isPresent()));
+
+        SFMHistoryGraphPresentationModel.Presentation presentation = controller.snapshot().presentation();
+        assertTrue(presentation.nodes().stream().anyMatch(node ->
+                node.origins().contains(SFMHistoryGraphPresentationModel.NodeOrigin.RAW_EVENT)));
+        assertTrue(presentation.nodes().stream().anyMatch(node ->
+                node.origins().contains(SFMHistoryGraphPresentationModel.NodeOrigin.ACTION_INVOCATION)));
+        assertTrue(presentation.nodes().stream().anyMatch(node ->
+                node.origins().contains(SFMHistoryGraphPresentationModel.NodeOrigin.SELECTION_EXPRESSION)));
+        assertTrue(presentation.nodes().stream().anyMatch(node ->
+                node.origins().contains(SFMHistoryGraphPresentationModel.NodeOrigin.SELECTION_WITNESS)));
+        assertTrue(presentation.nodes().stream()
+                .filter(node -> node.origins().contains(
+                        SFMHistoryGraphPresentationModel.NodeOrigin.ACTION_EVALUATION))
+                .allMatch(node -> node.details().stream().anyMatch(detail ->
+                        detail.key().equals("replay.witness-region-count")
+                                && detail.value().equals("2"))));
+        assertTrue(presentation.edges().stream().anyMatch(edge ->
+                edge.label().equals("Event produced binding decision")));
+        assertTrue(presentation.edges().stream().anyMatch(edge ->
+                edge.label().equals("Binding dispatched action")));
+        assertTrue(presentation.edges().stream().anyMatch(edge ->
+                edge.label().equals("Invocation produced semantic intent")));
+        assertTrue(presentation.edges().stream().anyMatch(edge ->
+                edge.label().equals("Selection witness constrained evaluation")));
+    }
+
     @Test
     void candidateFramesAreRandomSeekableReadOnlyAndOldPlanFramesSurviveReplan() {
         SFMDecimalNumberingTrajectoryController controller =

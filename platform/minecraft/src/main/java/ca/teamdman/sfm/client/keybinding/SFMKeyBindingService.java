@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientAction;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
+import ca.teamdman.sfm.client.action.SFMClientActionInvocationTrace;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.action.SFMClientCommandInsertion;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
@@ -17,6 +18,7 @@ import net.minecraft.resources.ResourceLocation;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Optional;
 import java.util.Set;
 
@@ -31,6 +33,7 @@ public final class SFMKeyBindingService {
     private List<String> persistenceDiagnostics;
     private long eventSequence;
     private List<SFMKeyBindingConflict> lastConflicts = List.of();
+    private final LinkedHashMap<Long, SFMKeyInputEvent> recentEvents = new LinkedHashMap<>();
 
     private SFMKeyBindingService() {
         SFMKeyBindingStorage.LoadResult loaded = SFMKeyBindingStorage.load();
@@ -144,6 +147,8 @@ public final class SFMKeyBindingService {
             SFMKeyboardUsageContextSnapshot context
     ) {
         if (dispatchSuspended) return SFMKeyBindingMatchResult.UNMATCHED;
+        remember(event);
+        SFMKeyBindingSnapshot effectiveSnapshot = profile.snapshot();
         SFMClientActionContext actionContext = context.actionContext();
         SFMKeyBindingMatchResult result = engine.accept(
                 event,
@@ -154,7 +159,11 @@ public final class SFMKeyBindingService {
             SFM.LOGGER.warn("Dynamic keybinding conflict at {}: {}",
                     context.activeSituations(), lastConflicts);
         }
-        result.intents().forEach(intent -> dispatch(intent, context));
+        result.intents().forEach(intent -> dispatch(
+                intent,
+                context,
+                provenance(intent, effectiveSnapshot, result, context)
+        ));
         return result;
     }
 
@@ -210,7 +219,8 @@ public final class SFMKeyBindingService {
 
     private void dispatch(
             SFMActionInvocationIntent intent,
-            SFMKeyboardUsageContextSnapshot usageContext
+            SFMKeyboardUsageContextSnapshot usageContext,
+            SFMClientActionInvocationTrace.DynamicBindingProvenance provenance
     ) {
         Minecraft minecraft = Minecraft.getInstance();
         SFMClientActionContext context = usageContext.actionContext();
@@ -233,13 +243,46 @@ public final class SFMKeyBindingService {
             return;
         }
         minecraft.execute(() -> {
-            try {
+            try (SFMClientActionInvocationTrace.Scope traceScope =
+                         SFMClientActionInvocationTrace.activate(provenance)) {
                 SFMClientActionExecutor.execute(command, context, ignored -> {
                 });
             } catch (CommandSyntaxException exception) {
                 SFM.LOGGER.warn("Dynamic binding command failed: {}", command, exception);
             }
         });
+    }
+
+    private void remember(SFMKeyInputEvent event) {
+        recentEvents.put(event.sequenceNumber(), event);
+        while (recentEvents.size() > 256) {
+            recentEvents.remove(recentEvents.keySet().iterator().next());
+        }
+    }
+
+    private SFMClientActionInvocationTrace.DynamicBindingProvenance provenance(
+            SFMActionInvocationIntent intent,
+            SFMKeyBindingSnapshot snapshot,
+            SFMKeyBindingMatchResult result,
+            SFMKeyboardUsageContextSnapshot context
+    ) {
+        List<SFMKeyInputEvent> sourceEvents = recentEvents.values().stream()
+                .filter(event -> event.sequenceNumber() >= intent.firstSourceEvent()
+                        && event.sequenceNumber() <= intent.lastSourceEvent())
+                .toList();
+        if (sourceEvents.isEmpty()) {
+            throw new IllegalStateException("Dynamic binding invocation lost its source event range");
+        }
+        return new SFMClientActionInvocationTrace.DynamicBindingProvenance(
+                sourceEvents,
+                snapshot,
+                intent.bindingId(),
+                intent.actionId(),
+                intent.commandDraft(),
+                context.activeSituations().stream().map(Object::toString).toList(),
+                result.consumed(),
+                result.conflicts()
+        );
     }
 
     private static String stripSlash(String command) {

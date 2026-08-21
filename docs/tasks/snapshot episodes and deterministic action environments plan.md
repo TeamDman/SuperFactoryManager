@@ -1986,7 +1986,7 @@ does not create a parallel demo or relabel trajectory `Replan` as semantic
 rebase. The implementation is Java-local and bounded to pure/snapshot-restorable
 chamber state. Full Rust/shared-schema conformance for Phase 0/1 remains open.
 
-##### [~] S1M-X4-A Freeze the Java-local causal archive contract
+##### [x] S1M-X4-A Freeze the Java-local causal archive contract
 
 **Work:**
 
@@ -2012,7 +2012,7 @@ different raw provenance remain distinguishable, every transition is reachable
 through its causal links, and no archive consumer must infer that a controller
 operation was a physical input event.
 
-##### [ ] S1M-X4-B Add deterministic codec and restoration proof
+##### [x] S1M-X4-B Add deterministic codec and restoration proof
 
 **Work:**
 
@@ -2029,7 +2029,7 @@ operation was a physical input event.
 recorded frame and causal record, and export the same canonical bytes; corrupt,
 unsupported, oversized, dangling, and hash-invalid input fails closed.
 
-##### [ ] S1M-X4-C Implement explicit replay operations
+##### [x] S1M-X4-C Implement explicit replay operations
 
 **Work:**
 
@@ -2051,7 +2051,7 @@ prefix mismatch, three-region semantic rebase, action-level lineage, sibling
 retention, deterministic repeated execution, and zero partial mutation on every
 failure path.
 
-##### [ ] S1M-X4-D Join runtime input, registered actions, and presentation
+##### [~] S1M-X4-D Join runtime input, registered actions, and presentation
 
 **Work:**
 
