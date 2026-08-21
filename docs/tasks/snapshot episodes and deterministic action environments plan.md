@@ -1936,7 +1936,7 @@ reported precisely; no partial item is relabelled complete to reach the next.
 | S1M-X2 | `[x]` | Complete 2.13 and comment Phase 6b candidate targeting. | A comment can target a candidate glyph, action, state, or route; replan preserves it; exact execution permits explicit promotion; divergence transfers neither target nor approval. | Completed against passing X1 checkpoint `a99ca3db7`; uses the existing comment persistence/selection adapter seam; no release-approval workflow. |
 | S1M-X3 | `[x]` | Add side-by-side route comparison and review disposition. | Two retained trajectories can be scrubbed in lockstep or independently, their costs/outcomes/comments compared, and one selected/rejected without deleting either. | Completed and checkpointed as `a03800dff` from passing X2 checkpoint `2583b573f`; uses existing panels and comments; no generalized graphical markup requirement. |
 | S1M-X4 | `[x]` | Finish the remaining TE-S1 exact-replay/semantic-rebase artifacts around the chamber. | Raw event → binding → semantic action → transition layers round-trip; exact replay and rebase produce the documented two- versus three-item histories. | Completed in core checkpoint `d8b55251e` and natural-proof checkpoint `8a98063e5`; Java-local only in this checkpoint, with Rust/shared interchange left explicitly open. |
-| S1M-X5 | `[ ]` | Complete 2.9's whole-workspace `A.java`/`B.java` counterfactual journey. | The visible graph compares checkout, frozen witness, and re-evaluated intent after changing the earlier explorer selection, with typed barriers and retained original history. | Uses only restorable UI/document state; never writes the ambient checkout. |
+| S1M-X5 | `[~]` | Complete 2.9's whole-workspace `A.java`/`B.java` counterfactual journey. | The visible graph compares checkout, frozen witness, and re-evaluated intent after changing the earlier explorer selection, with typed barriers and retained original history. | Claimed from clean passing checkpoint `4922fc713`; uses only restorable UI/document state and never writes the ambient checkout. |
 | S1M-X6 | `[ ]` | Adapt the proven History Graph to workspace Track 1c's passive overlay seam. | The same history content remains visible while a test world ticks; passive mode consumes no gameplay input and interactive mode has explicit focus/release. | Starts only if Track 1c's independent placement/input contract still matches; no one-off overlay implementation. |
 
 #### S1M-X3 claim boundary — retained-route comparison and disposition
@@ -2114,6 +2114,93 @@ coverage, a general snapshot repository format, Rust/shared-schema interchange,
 arbitrary suffix merges, CRDT/concurrent editing, recipe promotion, checkout
 writes, graphical markup, or release approval. These omissions prevent X4 from
 marking Phase 0.1–1.4 or all TE-S1 complete.
+
+#### [~] S1M-X5 claim boundary — whole-workspace counterfactual journey
+
+X5 widens the proven temporal semantics from one document chamber to one
+bounded, isolated workspace fixture. Its `A.java` and `B.java` documents are
+in-memory resolver content, not files in the checkout. The authoritative state
+frame includes panel/layout identity, focused panel, explorer location and
+selection, open document identity, complete document bytes, and the revisions
+needed to reject stale evaluation. Ordinary explorer, Text Editor v3, command-
+palette, and History Graph components project or dispatch this state; none owns
+an independent counterfactual truth.
+
+##### [~] S1M-X5-A Define the workspace state and deterministic artifact
+
+- Add a versioned bounded model for complete restorable workspace frames,
+  dynamic action intent, concrete dependency witnesses, compatible/rejected
+  suffix decisions, typed barriers, retained branches, and recorded head
+  movements. Canonical ordering and hashes must not depend on map iteration,
+  wall-clock time, framebuffer size, or ambient paths.
+- Add strict canonical JSON plus a readable transcript. A fresh runtime must
+  parse, validate, restore, and byte-identically re-encode the artifact. Unknown
+  schemas, duplicate ids, dangling references, over-budget content, or an
+  impossible successful barrier fail closed without partial publication.
+- The fixture captures an ambient-checkout hash before and after but neither
+  checkout nor replay writes a host file. `A.java` and `B.java` remain editable
+  in-memory document values with explicit logical addresses.
+
+##### [~] S1M-X5-B Record and compare the three narratives
+
+- Record the natural title-screen → palette → explorer-open → `A.java` selected
+  → open-selected-document → edit journey, including focus, layout, explorer
+  selection expression, exact `A.java` witness, editor/document identity,
+  complete pre/post text, and action/evaluation/outcome links.
+- Fork at the state immediately before explorer selection and naturally select
+  `B.java`; retain the original A branch and every intermediate state.
+- Expose three separately named operations: checkout the already-recorded A
+  result without execution; re-execute the open/edit suffix using the frozen
+  `A.java` witness; and re-evaluate `open selected document` against the B
+  parent, obtaining a new `B.java` witness before applying only compatible
+  restorable suffix actions.
+- Include one declared external/irreversible suffix operation. Projection stops
+  at a typed `EXTERNAL_BARRIER`, reports the unapplied action and reason, and
+  publishes no fabricated result state or partial external effect.
+
+##### [~] S1M-X5-C Use ordinary frontline surfaces
+
+- Open the fixture through a registered action and the normal command palette.
+  Host a real generic explorer over a fixture-owned in-memory resolver/session;
+  selecting/opening rows uses canonical semantic action drafts. Open editable
+  in-memory documents through the ordinary Text Editor v3 panel/save seam.
+- Display the same authoritative controller in the existing
+  `sfm:episode/history` panel. Labels/details must make selected A versus B,
+  frozen versus re-evaluated witness, compatible edit, recorded checkout,
+  retained original branch, and external barrier understandable without JSON.
+- Counterfactual operations are registered selector-explicit actions. UI
+  controls invoke them rather than mutating controller-private state, and
+  projection/publication never waits on the render thread.
+
+##### [~] S1M-X5-D Prove the natural journey and checkpoint X5
+
+- Add pure tests for state/hash determinism, branch retention, stale-parent
+  rejection, exact checkout non-execution, frozen-witness targeting,
+  intent re-evaluation, compatible suffix filtering, barrier atomicity,
+  canonical round-trip, bounds, and ambient non-mutation.
+- Add a watched title-screen puppet that uses the command palette and ordinary
+  panel input to select/open/edit A, forks before selection, selects B, then
+  invokes and captures all three narratives. Pause at readable stages.
+- Emit inspected PNG stages plus canonical JSON, UTF-8 transcript, per-stage
+  state evidence, visible History Graph labels, and ambient before/after hashes.
+  An automated test parses the artifact and cross-checks the visible lanes with
+  the machine-readable branch/witness/barrier facts.
+- Run focused X5 tests, the full 1.19.2 Java suite, canonical 1.19.2 compile,
+  natural puppet, visual inspection, and `git diff --check`; record dependency,
+  lockfile, tool-installation, process, and manual-test readiness explicitly.
+
+**Completion criteria:** A watching user sees the natural A journey and retained
+A branch, changes the earlier selection to B, and can distinguish recorded A
+checkout, frozen A replay, and re-evaluated B execution in the ordinary History
+Graph. The B suffix visibly identifies what was recomputed, what was compatible,
+and where an external action was stopped. Canonical evidence round-trips and
+agrees with the screenshots, no host file changes, X5 is locally checkpointed,
+and only then may X6 be claimed.
+
+**X5 exclusions:** No ambient-file mutation, live-world rewind, process/network
+replay, arbitrary suffix merge, cross-runtime interchange, generalized snapshot
+repository, graphical markup, release approval, or new explorer/editor
+replacement is introduced by this proving fixture.
 
 **S1M-X1 completion evidence (2026-08-21):** Added the versioned
 `sfm.candidate-history/1` frame/address contract, a bounded off-render-thread
