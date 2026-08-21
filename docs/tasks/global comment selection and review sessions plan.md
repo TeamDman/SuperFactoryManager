@@ -1142,6 +1142,17 @@ puppet run `title_screen_can-20260821-085216-878` round-trips and reopens all
 seven exercised targets while reporting zero effective approvals. No dependency
 or lockfile changed, and no CLI reinstall is required.
 
+**Retained-route comparison integration (2026-08-21):** Snapshot-plan S1M-X3
+now joins two immutable candidate route addresses to this phase's authoritative
+comment session at presentation time. Its side-by-side comparison reports each
+route's existing comments without copying, retargeting, deleting, promoting, or
+approving them. Preferred/rejected comparison disposition is persisted in the
+separate `sfm.route-comparison/1` model and is explicitly not a comment or human
+approval. Natural puppet run `title_screen_rou-20260821-094513-349` retains both
+route comments across mode changes and persistence reload, reports zero
+effective approvals, and changes trajectory selection only through the
+separately invoked explicit selection action.
+
 ### [ ] Phase 7 — Multi-version release review and derived approval
 
 - Build release sessions whose default lane set spans every maintained

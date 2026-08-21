@@ -1934,7 +1934,7 @@ reported precisely; no partial item is relabelled complete to reach the next.
 | --- | --- | --- | --- | --- |
 | S1M-X1 | `[x]` | Complete 2.12 candidate-history scrubbing. | The user scrubs every projected route frame, including unavailable/barrier states, while actual head and instruction pointer remain unchanged; old-plan frames survive replan. | Completed and checkpointed as `a99ca3db7`; reuses its trajectory/state projections; no comments yet. |
 | S1M-X2 | `[x]` | Complete 2.13 and comment Phase 6b candidate targeting. | A comment can target a candidate glyph, action, state, or route; replan preserves it; exact execution permits explicit promotion; divergence transfers neither target nor approval. | Completed against passing X1 checkpoint `a99ca3db7`; uses the existing comment persistence/selection adapter seam; no release-approval workflow. |
-| S1M-X3 | `[~]` | Add side-by-side route comparison and review disposition. | Two retained trajectories can be scrubbed in lockstep or independently, their costs/outcomes/comments compared, and one selected/rejected without deleting either. | Claimed from passing X2 checkpoint `2583b573f`; uses existing panels and comments; no generalized graphical markup requirement. |
+| S1M-X3 | `[x]` | Add side-by-side route comparison and review disposition. | Two retained trajectories can be scrubbed in lockstep or independently, their costs/outcomes/comments compared, and one selected/rejected without deleting either. | Completed and checkpointed as `a03800dff` from passing X2 checkpoint `2583b573f`; uses existing panels and comments; no generalized graphical markup requirement. |
 | S1M-X4 | `[ ]` | Finish the remaining TE-S1 exact-replay/semantic-rebase artifacts around the chamber. | Raw event → binding → semantic action → transition layers round-trip; exact replay and rebase produce the documented two- versus three-item histories. | Java-local first; cross-runtime Rust interchange remains a separately checkpointed sub-item if it fits existing dependencies. |
 | S1M-X5 | `[ ]` | Complete 2.9's whole-workspace `A.java`/`B.java` counterfactual journey. | The visible graph compares checkout, frozen witness, and re-evaluated intent after changing the earlier explorer selection, with typed barriers and retained original history. | Uses only restorable UI/document state; never writes the ambient checkout. |
 | S1M-X6 | `[ ]` | Adapt the proven History Graph to workspace Track 1c's passive overlay seam. | The same history content remains visible while a test world ticks; passive mode consumes no gameplay input and interactive mode has explicit focus/release. | Starts only if Track 1c's independent placement/input contract still matches; no one-off overlay implementation. |
@@ -2026,9 +2026,35 @@ changed, no cache acquisition or repository clone was needed, and no CLI source
 changed, so the installed `728694ad7` CLI remains current and no user install is
 required.
 
-S1M-X3 through X6 may receive plan-detail amendments at their claim boundary if
+**S1M-X3 completion evidence (2026-08-21):** Added the immutable
+`sfm.route-comparison/1` session, pure lockstep/independent cursor kernel,
+deterministic line codec, atomic persistence with last-valid recovery, and a
+runtime that joins two retained route addresses to authoritative trajectory and
+comment data without copying either. The ordinary `sfm:episode/route-comparison`
+panel composes two candidate-history panels and reports route identity, frame,
+cost, outcome, final predicted hash, comments, and typed `UNDECIDED`,
+`PREFERRED`, or `REJECTED` review disposition. Registered actions open explicit
+or latest-route pairs, switch mode, seek either/both sides, set disposition, and
+perform the separately named explicit trajectory selection; comparison-only
+actions never move actual head, document state, instruction pointer, selected
+plan, or selected route.
+
+Focused route-comparison tests pass, and the full 1.19.2 Java suite exits 0 with
+`1327` found, `1326` passed, `0` failed, and only the installed-worker integration
+test intentionally aborted without its opt-in properties. Natural title-screen
+puppet run `title_screen_rou-20260821-094513-349` produced six inspected PNG/JSON
+checkpoints. They prove initial and scrubbed lockstep, independent positions
+`0`/`2`, persisted preferred/rejected disposition, both immutable routes and
+both candidate comments retained, zero effective approvals, machine revision
+unchanged at `2` throughout comparison/reload, and revision advancing to `3`
+only after explicit left-route selection. No dependency declaration or
+checked-in lockfile changed, no cache acquisition or repository clone was
+needed, and no CLI source changed, so the installed `728694ad7` CLI remains
+current and no user install is required.
+
+S1M-X4 through X6 may receive plan-detail amendments at their claim boundary if
 implementation evidence reveals a missing seam, but those amendments cannot
-rewrite completed core/X1/X2 contracts or broaden dependency/process/repository
+rewrite completed core/X1/X2/X3 contracts or broaden dependency/process/repository
 authority. If every item finishes before human attention returns, stop at a
 clean verified checkpoint and report the exhausted queue rather than inventing
 an unplanned X7.
@@ -2161,6 +2187,10 @@ an unplanned X7.
 - [ ] Candidate route/action/state/region comments pin immutable plan revisions;
   replan preserves them and exact execution requires explicit promotion while
   divergent results transfer neither targets nor approval.
+- [ ] Two retained candidate routes can be compared in lockstep or independently
+  with typed review disposition while their comments, actual head, instruction
+  pointer, and selection remain unchanged until a separately explicit route
+  selection action.
 - [ ] A long autonomous run completes/checkpoints its core before claiming one
   ordered stretch item at a time and never uses elapsed estimates as acceptance
   evidence or permission for invented scope.
