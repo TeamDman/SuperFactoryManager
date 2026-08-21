@@ -925,7 +925,7 @@ projection, and stop at an irreversible effect without partial publication.
 something else, and every materialized/projected child has a visible status and
 reproducible evaluation policy.
 
-### [ ] 1.6 Implement the deterministic bounded trajectory planner
+### [x] 1.6 Implement the deterministic bounded trajectory planner
 
 **Work:**
 
@@ -947,6 +947,25 @@ forbidden effects, and two replans from the same start.
 **Completion criteria:** For every bounded fixture, the planner either returns
 a reproducible minimum-cost route under its declared graph/policy or an exact
 non-success result; it never partially commits search candidates.
+
+**Completion evidence (2026-08-21):**
+`SFMBoundedTrajectoryPlanner` is a host-independent pure projection kernel with
+lazy canonical successor iterators, non-negative costs, independently checked
+goal/invariant predicates, typed effect authorization and terminal reasons,
+cooperative cancellation, all three search budgets, deterministic queue/path
+ordering, immutable plan-book append, and exact plan/route/instruction-pointer
+stale-parent validation. Inadmissible or non-zero-at-goal heuristics,
+unbounded/non-canonical/failing generators, colliding immutable state ids, cost
+overflow, forbidden/unknown/irreversible effects, and stale parents all fail
+closed without committing a candidate transition. The focused suite compares
+A* and Dijkstra against exhaustive enumeration for all 64 subsets of a bounded
+DAG and against an independent Bellman–Ford oracle for 32 cyclic graphs with
+zero-cost edges and admissible inconsistent heuristics. It also covers exact,
+one-short, and zero budgets; deadline expiry inside generation and immediately
+before goal acceptance; mid-iterator cancellation; deterministic ties;
+hard-invariant and capability barriers; two retained replans; and cross-plan
+stale-validation rejection. The Java-only change does not alter or require
+reinstallation of `sfm-propagate-changes.exe`.
 
 ## Phase 2 — Build the reusable timeline panel and Episode Inspector
 
@@ -1682,6 +1701,23 @@ edits shared action registration, panel scene registration, generated/shared
 schema files, changelog, and this plan. Parallel work is merged only after its
 focused tests pass; no worker installs a shared PATH executable or edits the
 same contract independently.
+
+**M2 completion evidence (2026-08-21):** The pure planner described by 1.6 is
+implemented and passes its adversarial oracle/boundary suite. A first review
+identified optimistic heuristic handling, weak generator/time boundaries,
+untyped blocking, rejected-state heuristic evaluation, state-id conflation,
+and cross-plan stale-validation risks; each was repaired before checkpointing
+and received explicit regression coverage. A second adversarial pass found the
+step-bounded `(state, depth)` dominance counterexample; depth-labelled search,
+a bounded exhaustive regression, start-heuristic gate ordering, and a freshly
+supplied authoritative-state check repaired it. A final independent audit found
+no remaining path-optimality flaw under the declared finite/canonical generator,
+collision-free immutable identity, non-negative cost, and admissible-heuristic
+contracts. Execution integration must freshly read the authoritative state when
+consuming a stale-parent validation. Search remains projection-only: it
+does not mutate chamber state, history heads, plan selection, or instruction
+pointers. The independently developed History Graph projection and chamber
+domain can now integrate against this frozen M2 API.
 
 #### Observable completion state
 

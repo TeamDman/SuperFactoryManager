@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Add a deterministic bounded A*/Dijkstra trajectory planner with oracle-proven costs, typed barriers, immutable replans, and exact stale-parent guards
 -- Preserve undo-undo-do selection branches with explicit ambiguous redo, named heads, checkout, and deterministic history archives
 -- Add validated history-graph, trajectory-machine, supervision, and bounded-optimality contracts for the temporal numbering chamber
 -- Make Explorer Left Arrow move to and collapse the expanded parent that reveals the selected child
