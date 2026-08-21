@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen.workspace.timeline;
 
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.history.SFMEpisodeContext;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
@@ -16,7 +17,7 @@ import org.lwjgl.glfw.GLFW;
 import java.util.Objects;
 
 /** Composable timeline transport with coupled keyframe-space and elapsed-time tracks. */
-public final class SFMTimelinePanel implements SFMScreenPanel {
+public final class SFMTimelinePanel implements SFMScreenPanel, SFMEpisodeContext {
     public static final int TRANSPORT_HEIGHT = 50;
     private static final int PADDING = 8;
     private static final int BUTTON_WIDTH = 22;
@@ -25,19 +26,25 @@ public final class SFMTimelinePanel implements SFMScreenPanel {
     private static final int READOUT_WIDTH = 108;
 
     private final SFMSeekableTimelinePanel child;
-    private final SFMTimelineModel model;
+    private final int defaultTicksPerTransition;
+    private SFMTimelineModel model;
     private SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 1, 1);
     private SFMScreenPanelBounds childBounds = bounds;
     private DragTrack draggingTrack = DragTrack.NONE;
 
     public SFMTimelinePanel(SFMSeekableTimelinePanel child, int defaultTicksPerTransition) {
         this.child = Objects.requireNonNull(child, "child");
+        if (defaultTicksPerTransition <= 0) {
+            throw new IllegalArgumentException("defaultTicksPerTransition must be positive");
+        }
+        this.defaultTicksPerTransition = defaultTicksPerTransition;
         this.model = new SFMTimelineModel(child.timelineBounds(), child.timelineBounds().first(),
                 child.animationTimeline(defaultTicksPerTransition));
         child.setTimelinePosition(model.keyframePosition());
     }
 
     public SFMTimelineModel model() { return model; }
+    public SFMSeekableTimelinePanel child() { return child; }
     public void seek(int keyframe) { applyKeyframeSeek(keyframe); }
     public void seekKeyframePosition(double position) { applyKeyframeSeek(position); }
     public void seekElapsedTicks(double ticks) { applyTimeSeek(ticks); }
@@ -45,6 +52,11 @@ public final class SFMTimelinePanel implements SFMScreenPanel {
 
     @Override
     public Component title() { return Component.literal("Timeline: ").append(child.title()); }
+
+    @Override
+    public java.util.Optional<String> episodeId() {
+        return child instanceof SFMEpisodeContext context ? context.episodeId() : java.util.Optional.empty();
+    }
 
     @Override
     public Component narration() {
@@ -71,8 +83,9 @@ public final class SFMTimelinePanel implements SFMScreenPanel {
 
     @Override
     public void tick() {
-        if (model.tick()) child.setTimelinePosition(model.keyframePosition());
         child.tick();
+        refreshTimelineBounds();
+        if (model.tick()) child.setTimelinePosition(model.keyframePosition());
     }
 
     @Override
@@ -191,6 +204,18 @@ public final class SFMTimelinePanel implements SFMScreenPanel {
         this.bounds = bounds;
         childBounds = new SFMScreenPanelBounds(bounds.x(), bounds.y(), bounds.width(),
                 Math.max(1, bounds.height() - TRANSPORT_HEIGHT));
+    }
+
+    private void refreshTimelineBounds() {
+        SFMTimelineBounds nextBounds = child.timelineBounds();
+        if (nextBounds.equals(model.bounds())) return;
+        double retainedPosition = nextBounds.clamp(model.keyframePosition());
+        model = new SFMTimelineModel(
+                nextBounds,
+                retainedPosition,
+                child.animationTimeline(defaultTicksPerTransition)
+        );
+        child.setTimelinePosition(retainedPosition);
     }
 
     private void applyKeyframeJump(int direction) {

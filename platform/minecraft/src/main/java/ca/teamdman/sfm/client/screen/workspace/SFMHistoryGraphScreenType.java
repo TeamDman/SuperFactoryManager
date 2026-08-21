@@ -44,7 +44,7 @@ public final class SFMHistoryGraphScreenType implements SFMClientScreenType {
         return node;
     }
 
-    private static String defaultEpisodeSelector(CommandContext<SFMClientActionSource> context) {
+    static String defaultEpisodeSelector(CommandContext<SFMClientActionSource> context) {
         var actionContext = context.getSource().context();
         Optional<String> focusedEpisode = Optional.empty();
         if (actionContext.originatingHost() instanceof SFMScreenMultiplexer workspace

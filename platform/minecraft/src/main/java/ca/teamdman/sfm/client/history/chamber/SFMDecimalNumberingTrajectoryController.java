@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.history.chamber;
 
 import ca.teamdman.sfm.client.history.SFMBoundedTrajectoryPlanner;
+import ca.teamdman.sfm.client.history.SFMCandidateHistoryContract;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphContract;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.SFMTrajectoryContract;
@@ -26,7 +27,8 @@ import java.util.function.Supplier;
  * and only then commits state, edge, head, instruction pointer, and supervision
  * in one monitor transaction.</p>
  */
-public final class SFMDecimalNumberingTrajectoryController implements SFMHistoryGraphRuntime.Controller {
+public final class SFMDecimalNumberingTrajectoryController
+        implements SFMHistoryGraphRuntime.CandidateFrameController {
     public static final String INITIAL_TEXT = "- apples\n- bananas\n";
     public static final String THIRD_ITEM_TEXT = "- apricots\n";
 
@@ -132,12 +134,172 @@ public final class SFMDecimalNumberingTrajectoryController implements SFMHistory
         return Optional.ofNullable(planningBundles.get(planRevisionId));
     }
 
+    @Override
+    public synchronized SFMCandidateHistoryContract.CandidateRouteProjection projectCandidateRoute(
+            String planRevisionId,
+            String routeId
+    ) {
+        SFMTrajectoryContract.TrajectoryPlanRevision plan = planById(planRevisionId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown retained plan " + planRevisionId));
+        SFMTrajectoryContract.TrajectoryRoute route = routeById(plan, routeId);
+        SFMDecimalNumberingPlannerAdapter.ExecutionManifest manifest = Objects.requireNonNull(
+                manifests.get(plan.id()),
+                "retained plan execution manifest"
+        );
+        ArrayList<SFMCandidateHistoryContract.CandidateFrame> frames = new ArrayList<>();
+        SFMChamberDocumentState start = requireState(route.startStateId());
+        frames.add(materializedCandidateFrame(
+                plan.id(),
+                route.id(),
+                0,
+                Optional.empty(),
+                start,
+                Optional.empty(),
+                Optional.empty(),
+                List.of(),
+                "Materialized route start"
+        ));
+        String trustworthyPredecessor = start.revisionId();
+        for (int index = 0; index < route.steps().size(); index++) {
+            SFMTrajectoryContract.TrajectoryStep step = route.steps().get(index);
+            SFMDecimalNumberingChamber.Transition transition = manifest.requireStep(step).executableTransition();
+            SFMHistoryGraphContract.ProjectionStatus status = step.effectClass()
+                    == SFMHistoryGraphContract.EffectClass.EXTERNAL_IRREVERSIBLE
+                    ? SFMHistoryGraphContract.ProjectionStatus.EXTERNAL_BARRIER
+                    : route.status();
+            List<SFMCandidateHistoryContract.EvaluatorEvidence> evidence = candidateEvidence(transition);
+            Optional<String> evaluatorRevision = evaluatorRevision(transition.action());
+            if (status == SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED) {
+                frames.add(materializedCandidateFrame(
+                        plan.id(),
+                        route.id(),
+                        index + 1,
+                        Optional.of(step.id()),
+                        transition.result(),
+                        Optional.of(step.actionIntent().id()),
+                        Optional.of(trustworthyPredecessor),
+                        evidence,
+                        "Materialized prediction after " + step.actionIntent().actionId()
+                ));
+                trustworthyPredecessor = transition.result().revisionId();
+            } else {
+                frames.add(new SFMCandidateHistoryContract.CandidateFrame(
+                        new SFMCandidateHistoryContract.CandidateFrameAddress(
+                                plan.id(),
+                                route.id(),
+                                index + 1,
+                                Optional.of(step.id()),
+                                step.predictedStateId(),
+                                Optional.of(transition.result().stateHash()),
+                                status,
+                                evaluatorRevision,
+                                evidence
+                        ),
+                        Optional.empty(),
+                        Optional.of(step.actionIntent().id()),
+                        Optional.of(trustworthyPredecessor),
+                        "Prediction unavailable: " + status
+                ));
+            }
+        }
+        return new SFMCandidateHistoryContract.CandidateRouteProjection(
+                SFMCandidateHistoryContract.SCHEMA,
+                machineId(),
+                revision,
+                machine.actualHistoryHeadId(),
+                machine.selectedTrajectoryRevisionId(),
+                machine.instructionPointer(),
+                plan.id(),
+                route.id(),
+                frames
+        );
+    }
+
     public synchronized List<String> childRevisionIds(String parentRevisionId) {
         return states.values().stream()
                 .filter(state -> state.parentRevisionId().filter(parentRevisionId::equals).isPresent())
                 .map(SFMChamberDocumentState::revisionId)
                 .sorted()
                 .toList();
+    }
+
+    private SFMCandidateHistoryContract.CandidateFrame materializedCandidateFrame(
+            String planRevisionId,
+            String routeId,
+            int position,
+            Optional<String> stepId,
+            SFMChamberDocumentState state,
+            Optional<String> actionIntentId,
+            Optional<String> trustworthyPredecessor,
+            List<SFMCandidateHistoryContract.EvaluatorEvidence> evidence,
+            String narration
+    ) {
+        return new SFMCandidateHistoryContract.CandidateFrame(
+                new SFMCandidateHistoryContract.CandidateFrameAddress(
+                        planRevisionId,
+                        routeId,
+                        position,
+                        stepId,
+                        state.revisionId(),
+                        Optional.of(state.stateHash()),
+                        SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED,
+                        evaluatorRevisionForState(state),
+                        evidence
+                ),
+                Optional.of(new SFMCandidateHistoryContract.CandidateDocument(
+                        scope.documentId(),
+                        state.text(),
+                        state.stateHash(),
+                        state.selection().map(value -> value.regions().size()).orElse(0)
+                )),
+                actionIntentId,
+                trustworthyPredecessor,
+                narration
+        );
+    }
+
+    private static Optional<String> evaluatorRevisionForState(SFMChamberDocumentState state) {
+        return state.selection().map(SFMChamberDocumentState.SelectionWitness::evaluatorRevision);
+    }
+
+    private static Optional<String> evaluatorRevision(SFMDecimalNumberingChamber.ChamberAction action) {
+        if (action instanceof SFMDecimalNumberingChamber.SelectAllHyphenMarkersAction select) {
+            return Optional.of(select.witness().evaluatorRevision());
+        }
+        if (action instanceof SFMDecimalNumberingChamber.ReplaceOrderedWitnessAction replace) {
+            return Optional.of(replace.witness().evaluatorRevision());
+        }
+        return Optional.empty();
+    }
+
+    private static List<SFMCandidateHistoryContract.EvaluatorEvidence> candidateEvidence(
+            SFMDecimalNumberingChamber.Transition transition
+    ) {
+        ArrayList<SFMCandidateHistoryContract.EvaluatorEvidence> answer = new ArrayList<>();
+        answer.add(new SFMCandidateHistoryContract.EvaluatorEvidence(
+                "action-intent",
+                transition.action().intent().id()
+        ));
+        answer.add(new SFMCandidateHistoryContract.EvaluatorEvidence(
+                "evaluation-policy",
+                transition.action().evaluationPolicy().name()
+        ));
+        answer.add(new SFMCandidateHistoryContract.EvaluatorEvidence(
+                "ordering-key",
+                transition.action().orderingKey()
+        ));
+        if (transition.action() instanceof SFMDecimalNumberingChamber.SelectAllHyphenMarkersAction select) {
+            answer.add(new SFMCandidateHistoryContract.EvaluatorEvidence(
+                    "selection-witness",
+                    select.witness().witnessHash()
+            ));
+        } else if (transition.action() instanceof SFMDecimalNumberingChamber.ReplaceOrderedWitnessAction replace) {
+            answer.add(new SFMCandidateHistoryContract.EvaluatorEvidence(
+                    "selection-witness",
+                    replace.witness().witnessHash()
+            ));
+        }
+        return List.copyOf(answer);
     }
 
     @Override

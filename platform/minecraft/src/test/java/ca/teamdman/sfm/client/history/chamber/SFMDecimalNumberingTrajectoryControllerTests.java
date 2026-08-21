@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.history.chamber;
 
 import ca.teamdman.sfm.client.history.SFMBoundedTrajectoryPlanner;
+import ca.teamdman.sfm.client.history.SFMCandidateHistoryContract;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.SFMTrajectoryContract;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,61 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMDecimalNumberingTrajectoryControllerTests {
+    @Test
+    void candidateFramesAreRandomSeekableReadOnlyAndOldPlanFramesSurviveReplan() {
+        SFMDecimalNumberingTrajectoryController controller =
+                controller("sfm:test/candidate-history");
+        controller.apply(new SFMHistoryGraphRuntime.Plan());
+        SFMHistoryGraphRuntime.MachineSnapshot planned = controller.snapshot();
+        String firstPlan = planned.machine().selectedTrajectoryRevisionId().orElseThrow();
+        SFMTrajectoryContract.TrajectoryRoute firstRoute = selectedRoute(planned, firstPlan);
+        long revisionBeforeProjection = controller.revision();
+        String headBeforeProjection = controller.currentState().revisionId();
+        SFMTrajectoryContract.InstructionPointer pointerBeforeProjection =
+                planned.machine().instructionPointer().orElseThrow();
+
+        SFMCandidateHistoryContract.CandidateRouteProjection firstProjection =
+                controller.projectCandidateRoute(firstPlan, firstRoute.id());
+        assertEquals(List.of(
+                        "1. apples\n2. bananas\n",
+                        SFMDecimalNumberingTrajectoryController.INITIAL_TEXT,
+                        SFMDecimalNumberingTrajectoryController.INITIAL_TEXT
+                ),
+                List.of(2, 0, 1).stream()
+                        .map(firstProjection::frame)
+                        .map(frame -> frame.document().orElseThrow().text())
+                        .toList());
+        assertEquals(List.of(0, 1, 2), firstProjection.frames().stream()
+                .map(frame -> frame.address().routeStepPosition())
+                .toList());
+        assertEquals(revisionBeforeProjection, controller.revision());
+        assertEquals(headBeforeProjection, controller.currentState().revisionId());
+        assertEquals(pointerBeforeProjection, controller.snapshot().machine().instructionPointer().orElseThrow());
+
+        controller.apply(new SFMHistoryGraphRuntime.Run(8));
+        controller.undo("test", "candidate-undo");
+        int insertionOffset = "- apples\n".codePointCount(0, "- apples\n".length());
+        controller.insertText(
+                insertionOffset,
+                SFMDecimalNumberingTrajectoryController.THIRD_ITEM_TEXT,
+                "test"
+        );
+        controller.apply(new SFMHistoryGraphRuntime.Replan());
+        String secondPlan = controller.snapshot().machine().selectedTrajectoryRevisionId().orElseThrow();
+        assertNotEquals(firstPlan, secondPlan);
+
+        SFMCandidateHistoryContract.CandidateRouteProjection retainedFirstProjection =
+                controller.projectCandidateRoute(firstPlan, firstRoute.id());
+        assertEquals(firstProjection.frames(), retainedFirstProjection.frames(),
+                "replanning must not rewrite or discard old candidate frames");
+        SFMTrajectoryContract.TrajectoryRoute secondRoute = selectedRoute(controller.snapshot(), secondPlan);
+        SFMCandidateHistoryContract.CandidateRouteProjection secondProjection =
+                controller.projectCandidateRoute(secondPlan, secondRoute.id());
+        assertEquals("1. apples\n2. apricots\n3. bananas\n",
+                secondProjection.frame(secondProjection.lastPosition()).document().orElseThrow().text());
+        assertEquals(2, secondProjection.lastPosition());
+    }
+
     @Test
     void aStarAndDijkstraAgreeWithExplicitCatalogProofAndBoundedGraphOracle() {
         Fixture fixture = fixture("oracle");

@@ -400,6 +400,33 @@ public final class SFMGamePuppetHelper {
         ));
     }
 
+    /** Validates and artifacts one read-only candidate-history scrub checkpoint. */
+    public void assertCandidateHistory(
+            AssertCandidateHistoryPuppetAction.Stage stage,
+            String artifactName
+    ) {
+        add(new AssertCandidateHistoryPuppetAction(
+                Objects.requireNonNull(stage, "stage"),
+                Objects.requireNonNull(artifactName, "artifactName")
+        ));
+    }
+
+    /** Installs the deterministic non-materialized candidate-status route used by X1's visual proof. */
+    public void registerCandidateHistoryStatusFixture() {
+        add(CandidateHistoryStatusFixturePuppetAction.register());
+    }
+
+    public void assertCandidateHistoryStatus(
+            CandidateHistoryStatusFixturePuppetAction.Stage stage,
+            String artifactName
+    ) {
+        add(CandidateHistoryStatusFixturePuppetAction.assertStage(stage, artifactName));
+    }
+
+    public void unregisterCandidateHistoryStatusFixture() {
+        add(CandidateHistoryStatusFixturePuppetAction.unregister());
+    }
+
     public void assertFormerTerminalStartButtonRoutesToTerminal() {
         add(new AssertFormerTerminalStartButtonPuppetAction());
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));

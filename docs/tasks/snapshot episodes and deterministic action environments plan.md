@@ -1251,7 +1251,7 @@ instruction pointer, reaches `SUPERVISION_READY`, preserves the old route and
 history branch after replan, and emits machine-readable evidence agreeing with
 the visible graph and final document.
 
-### [ ] 2.12 Make candidate trajectories independently seekable
+### [x] 2.12 Make candidate trajectories independently seekable
 
 - Extend the reusable timeline source with a read-only candidate-route domain
   addressed by `CandidateFrameAddress`; do not overload committed branch ids.
@@ -1932,12 +1932,32 @@ reported precisely; no partial item is relabelled complete to reach the next.
 
 | ID | Status | Stretch item | Observable completion | Gate/exclusion |
 | --- | --- | --- | --- | --- |
-| S1M-X1 | `[ ]` | Complete 2.12 candidate-history scrubbing. | The user scrubs every projected route frame, including unavailable/barrier states, while actual head and instruction pointer remain unchanged; old-plan frames survive replan. | Requires passing TE-S1M core and reuses its trajectory/state projections; no comments yet. |
+| S1M-X1 | `[x]` | Complete 2.12 candidate-history scrubbing. | The user scrubs every projected route frame, including unavailable/barrier states, while actual head and instruction pointer remain unchanged; old-plan frames survive replan. | Claimed from passing core checkpoint `6545b0cd2`; reuses its trajectory/state projections; no comments yet. |
 | S1M-X2 | `[ ]` | Complete 2.13 and comment Phase 6b candidate targeting. | A comment can target a candidate glyph, action, state, or route; replan preserves it; exact execution permits explicit promotion; divergence transfers neither target nor approval. | Requires X1 and the existing comment persistence/selection adapter seam; no release-approval workflow. |
 | S1M-X3 | `[ ]` | Add side-by-side route comparison and review disposition. | Two retained trajectories can be scrubbed in lockstep or independently, their costs/outcomes/comments compared, and one selected/rejected without deleting either. | Uses existing panels and comments; no generalized graphical markup requirement. |
 | S1M-X4 | `[ ]` | Finish the remaining TE-S1 exact-replay/semantic-rebase artifacts around the chamber. | Raw event → binding → semantic action → transition layers round-trip; exact replay and rebase produce the documented two- versus three-item histories. | Java-local first; cross-runtime Rust interchange remains a separately checkpointed sub-item if it fits existing dependencies. |
 | S1M-X5 | `[ ]` | Complete 2.9's whole-workspace `A.java`/`B.java` counterfactual journey. | The visible graph compares checkout, frozen witness, and re-evaluated intent after changing the earlier explorer selection, with typed barriers and retained original history. | Uses only restorable UI/document state; never writes the ambient checkout. |
 | S1M-X6 | `[ ]` | Adapt the proven History Graph to workspace Track 1c's passive overlay seam. | The same history content remains visible while a test world ticks; passive mode consumes no gameplay input and interactive mode has explicit focus/release. | Starts only if Track 1c's independent placement/input contract still matches; no one-off overlay implementation. |
+
+**S1M-X1 completion evidence (2026-08-21):** Added the versioned
+`sfm.candidate-history/1` frame/address contract, a bounded off-render-thread
+projection seam, dynamic timeline bounds, and the registered
+`sfm:episode/candidate-history` scene. Materialized frames carry hash-matched
+immutable document bytes; cancelled, conflicted, external-barrier, and unknown
+frames carry no document bytes and identify their last trustworthy predecessor.
+The natural title-screen puppet plans and scrubs the two-item future, executes,
+undoes, edits a third item, replans, proves the still-open old panel remains
+pinned byte-for-byte, and independently scrubs the new route. Its second
+deterministic status route seeks in both directions across materialized,
+unavailable, invalidated, external-barrier, and unknown frames while JSON proves
+controller revision, actual head, and instruction pointer remain unchanged.
+Focused candidate-history/controller/dynamic-timeline/source-journey tests and
+the 1.19.2 compile pass; the final puppet screenshots and JSON were visually and
+structurally cross-checked in artifact run
+`title_screen_can-20260821-072754-848`. No dependency declaration or checked-in lockfile
+changed, no cache acquisition or repository clone was needed, and no CLI source
+changed, so the installed `728694ad7` CLI remains current and no user install is
+required.
 
 S1M-X3 through X6 may receive plan-detail amendments at their claim boundary if
 implementation evidence reveals a missing seam, but those amendments cannot

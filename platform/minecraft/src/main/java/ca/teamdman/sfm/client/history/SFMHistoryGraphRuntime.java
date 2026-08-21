@@ -311,6 +311,14 @@ public final class SFMHistoryGraphRuntime {
         OperationResult apply(Operation operation);
     }
 
+    /** Optional read-only extension for controllers that can materialize projected route frames. */
+    public interface CandidateFrameController extends Controller {
+        SFMCandidateHistoryContract.CandidateRouteProjection projectCandidateRoute(
+                String planRevisionId,
+                String routeId
+        );
+    }
+
     public record CatalogEvent(
             long revision,
             Optional<String> activeMachineId,
@@ -492,6 +500,29 @@ public final class SFMHistoryGraphRuntime {
 
     public synchronized List<String> machineIds() {
         return List.copyOf(controllers.keySet());
+    }
+
+    /**
+     * Captures one immutable candidate route without holding the runtime catalog lock while
+     * domain projection runs. Callers are expected to invoke this from a bounded worker.
+     */
+    public Optional<SFMCandidateHistoryContract.CandidateRouteProjection> projectCandidateRoute(
+            String machineId,
+            String planRevisionId,
+            String routeId
+    ) {
+        machineId = requireText(machineId, "machineId");
+        planRevisionId = requireText(planRevisionId, "planRevisionId");
+        routeId = requireText(routeId, "routeId");
+        Controller controller;
+        synchronized (this) {
+            controller = controllers.get(machineId);
+        }
+        if (!(controller instanceof CandidateFrameController source)) return Optional.empty();
+        return Optional.of(Objects.requireNonNull(
+                source.projectCandidateRoute(planRevisionId, routeId),
+                "candidate route projection"
+        ));
     }
 
     public synchronized List<MachineSnapshot> resolveSnapshots(

@@ -36,6 +36,12 @@ public final class SFMWorkspaceScreenTypes {
             SFMHistoryGraphScreenType::new
     );
 
+    public static final SFMRegistryObject<SFMClientScreenType, SFMCandidateHistoryScreenType> CANDIDATE_HISTORY =
+            REGISTERER.register(
+                    "episode/candidate-history",
+                    SFMCandidateHistoryScreenType::new
+            );
+
     public static final SFMRegistryObject<SFMClientScreenType, SFMDecimalNumberingChamberScreenType>
             TEMPORAL_NUMBERING_CHAMBER = REGISTERER.register(
                     "chamber/temporal-decimal-numbering",
