@@ -2,12 +2,13 @@
 
 **Plan status:** Active; C-4a through C-11 and linked CLI-AST Phases 0.11
 through 0.12.4 are complete; the bounded REVEAL-3 subset of B-4 and CTXREF
-subset of B-5 plus B-5a are complete; broader Phase B and B-6 remain
+subset of B-5 plus B-5a are complete; B-0 is reconciled and implementation-
+ready but unclaimed; broader Phase B and B-6 remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
-**Last updated:** 2026-08-18
-**Intent audit:** Passed and post-compaction re-audited 2026-08-16 against the user's verbatim 16-bullet report, including the symbol-hover/reference, definition-correctness, placement, reveal, explorer interaction, divider-resize, and large-document-performance work recorded below
+**Last updated:** 2026-08-22
+**Intent audit:** Passed and post-compaction re-audited 2026-08-22 against the user's command-boundary/history, argument-frontier, required-usage, ordinary undo/redo, and temporal-canvas report; the 2026-08-16 symbol-navigation audit remains retained below
 
 ## How to update this plan
 
@@ -259,6 +260,19 @@ workspace.
 | F12 reuses an exact visible target or opens a tab/entry in the current pane stack, never an implicit side split | NAVPLACE-1; D-26; C-7 |
 | A focused document contributes an exact resolver-backed `Reveal in Explorer` action | REVEAL-3; B-4; C-11 |
 
+## Authoritative user guidance ledger — 2026-08-22 completion-frontier extension
+
+| ID | Active guidance | Required plan consequence | Superseded by |
+| --- | --- | --- | --- |
+| PALUX-1 | With a recent complete command such as `sfm action invoke sfm:panel/open sfm:chamber/temporal-decimal-numbering`, typing `open` should rank the bare `sfm:panel/open` grammar boundary first. Accepting the likely action should take two deliberate completion steps rather than one Tab unexpectedly committing the historical leaf. | B-0 separates action boundaries from complete historical commands. A blank action slot retains complete-MRU-first behavior; a nonblank action-id query uses history to boost the matching bare boundary and keeps complete historical leaves below it. | — |
+| PALUX-2 | Tab-completing `sfm:panel/open` should not append a space automatically because `/right`, `/left`, `/above`, and `/below` remain valid action-id continuations. Space is the user's explicit decision to enter the scene argument. A second Tab must advance to a strict continuation rather than no-op and move focus away. | B-0 introduces typed insertion intent and frontier-aware Tab cycling. Action-boundary acceptance and deliberate argument entry are distinct from Enter/execution preparation. | — |
+| PALUX-3 | Scene history should be reusable across compatible members of the panel-open family, such as `open`, `open/right`, and `open/below`, when the parameter has the same semantic role. | B-0 preserves raw history and builds a bounded in-memory projection keyed by an explicit completion-history family plus compatible Brigadier slot/grammar; slash-prefix similarity alone never authorizes sharing. | — |
+| PALUX-4 | `focused` for `sfm:episode/trajectory/plan`, exact overlay selectors such as `id(sfm%3Ahistory)`, and `visible|hidden` must be suggested at their argument frontiers instead of requiring hostile manual entry. | B-0 first adds command-tree and palette-level characterization tests. Existing registered providers remain authoritative; fixes land at the palette/frontier/runtime-freshness layer shown to fail rather than hard-coding duplicate values. | — |
+| PALUX-5 | When a command still requires arguments and no concrete value suggestion is available, the palette must visibly explain the expected named argument(s); a grey Execute button is insufficient. | B-0 extracts a shared Brigadier frontier/usage analyzer using parse context and smart usage, with `SFMCommandDraftAnalysis` as the existing named-argument seam. Usage rows are explanatory and cannot execute. | — |
+| PALUX-6 | Candidate acceptance, typing, deletion, paste, and command-history recall in the palette must eventually participate in the same ordinary document history as Text Editor V3, including Ctrl+Z/Ctrl+Shift+Z and exact before/after evidence. | Snapshot/episode TE-S2 owns the event journal and undo graph. B-0 exposes exact candidate kind, replacement range, and insertion policy so TE-S2 records one semantic completion transaction without inventing a second ranker or history engine. | — |
+| PALUX-7 | Pathfinding and temporal chambers are useful proving grounds but must not be the only approachable route to palette completion or input history. | B-0 is proven through the normal title-screen command palette and joins the ordinary editor/history puppet in TE-S2; chamber-only evidence cannot close it. | — |
+| PLAN-7 | Every command-palette atom in the 2026-08-22 report must remain addressable and coordinated with the ordinary-history plan rather than being compressed into “improve suggestions.” | This ledger, B-0, its tests, the cross-plan TE-S2C join, the three-pass audit, and the explicit first-goal boundary are authoritative. | — |
+
 ## Guidance traceability
 
 | Guidance | Plan coverage | Evidence when complete |
@@ -298,6 +312,9 @@ workspace.
 | EDITPERF-1, EDITPERF-2 | D-29; C-10; C-11 | Reproducible `OutputStatement.java` benchmark, stage/frame/input counters, before/after traces, viewport/caching/invalidation tests, allocation bounds, and live responsive interaction evidence |
 | PLAN-5 | Entire 2026-08-16 extension plus linked explorer/CLI/window-manager plans | Three-pass intent audit, exact-id cross-plan map, unresolved-decision register, and fresh-agent resumption review |
 | KUI-4, KDISC-1, KDISC-2, KDISC-3, KDISC-4 | K-8 | Pure capture/ranking/context tests, dispatch-leak tests, and a live command-palette hotkey-lookup artifact showing exact-before-relaxed ordering and no action invocation |
+| PALUX-1 through PALUX-5 | B-0 | Typed candidate/ranking tests, exact Tab/Space frontier tests, parsed compatible-slot history fixtures, trajectory/overlay provider journeys, smart-usage snapshots, and a normal command-palette puppet |
+| PALUX-6, PALUX-7 | B-0 plus snapshot/episode TE-S2B through TE-S2D | Exact candidate replacement transactions, generic palette undo/redo and branch evidence, and a natural title-screen document/history-canvas puppet with no chamber dependency |
+| PLAN-7 | B-0 and the snapshot/episode TE-S2 sequence | Three-pass intent audit, cross-plan ownership check, prepared goal wording, and fresh-agent resumption review |
 
 ## Intent audit evidence — 2026-08-05
 
@@ -588,6 +605,39 @@ workspace.
   remain values to inherit from the tested binding engine rather than duplicate
   as prose constants. K-8a freezes their referenced constants/fixtures before
   implementation.
+
+## Intent audit evidence — 2026-08-22 completion-frontier extension
+
+- **Pass 1 — extraction:** Reread the complete report and both supplied
+  Excalidraw concepts. PALUX-1 through PALUX-7 separately retain nonblank bare-
+  boundary ranking, preservation of blank complete-MRU behavior, deliberate
+  Tab-versus-Space progression, strict-continuation Tab behavior, history
+  sharing across compatible panel-open arguments, the exact missing
+  `focused`/overlay/visibility examples, named required-argument guidance,
+  palette input undo/redo, and the requirement that ordinary UI—not only a
+  chamber—prove the result.
+- **Pass 2 — source/traceability:** Traced the current ranking tie to
+  `SFMClientActionCommandTree`, unconditional separator insertion to
+  `SFMClientCommandInsertion`, and the application path to
+  `SFMCommandPaletteScreen`. Confirmed that trajectory and overlay grammars
+  already register `focused`, `all`, exact ids, and visibility literals;
+  therefore B-0 begins with tree-level and palette-level characterization and
+  does not duplicate those providers. Confirmed that Vanilla's
+  `CommandSuggestions` uses Brigadier suggestion context and smart usage and
+  that `SFMCommandDraftAnalysis` already extracts named missing arguments.
+- **Pass 3 — adversarial omission/conflict:** Checked that typed search does not
+  regress the completed blank-palette MRU contract, common slash ancestry does
+  not accidentally share unrelated argument histories, quoted/greedy values
+  are never split as whitespace, provider work stays bounded and in memory,
+  executable partial tokens do not suppress useful completions, a second Tab
+  cannot become a no-op focus escape, and the future streamed-candidate layer
+  does not become a competing ranker. Cross-checked ownership with snapshot/
+  episode TE-S2: this plan owns candidates/frontiers/usage; TE-S2 owns raw
+  input, semantic transactions, revisions, undo, redo, and the history canvas.
+- **Known source limitation:** The linked Stephen's Sausage Roll video was
+  available only through the user's description during this planning pass.
+  Spectral embedding is preserved as later view-provider research, not as a
+  claimed implementation fact or a dependency in B-0/TE-S2A through TE-S2D.
 
 ## Scope
 
@@ -2374,7 +2424,137 @@ candidate release; no propagation or publication occurs without a later goal.
 
 ## Phase B — Streaming fuzzy search and contextual action discovery
 
+### [ ] B-0 Repair progressive completion boundaries, parameter history, and usage guidance
+
+**User outcome:** The ordinary command palette behaves as a progressive grammar
+browser. With a recently executed full panel-open command in history, typing
+`open` first offers the reusable action boundary `sfm:panel/open`; Tab accepts
+that boundary without prematurely entering its scene argument, a later Tab can
+continue to `/right`, and an explicit Space enters the scene slot. Dynamic
+selector/value suggestions and named required-argument guidance remain visible
+at every real Brigadier frontier.
+
+**Verified starting state — 2026-08-22:**
+
+- `SFMClientActionCommandTree.getPaletteSuggestions()` puts complete history
+  commands and bare action ids in one ranked list. For a nonblank action-id
+  query they receive the same metadata fuzzy score; the newest history row has
+  no recency penalty and lexical tie-breaking makes the complete
+  `sfm action invoke ...` string beat `sfm:panel/open`. The existing test proves
+  only presence, not first position.
+- `SFMCommandPaletteScreen.applySelectedSuggestion()` always calls
+  `SFMClientCommandInsertion.prepare()`. That helper appends a separator after
+  every non-executable resource-location literal with children, so accepting
+  `sfm:panel/open` jumps past still-valid sibling action ids such as
+  `sfm:panel/open/right`. Merely removing the space is insufficient: if the
+  exact no-change boundary remains selected, the next Tab currently yields
+  focus instead of selecting a strict continuation.
+- Executed-command history is consulted only while replacing the action-id
+  range. There is no parameter-history projection after the action separator.
+- `SFMTrajectoryMachineAction` already registers `focused`, `all`, and exact
+  episode ids. `SFMOverlayAction` already registers `focused`, `all`, exact
+  overlay ids, and `visible|hidden` continuations. Missing live suggestions
+  therefore require tree/palette characterization before any provider change.
+- `SFMCommandDraftAnalysis` can name a missing Brigadier argument. Vanilla
+  `CommandSuggestions` additionally derives contextual usage with
+  `findSuggestionContext()` and `getSmartUsage()`; the SFM palette currently
+  reduces this information to a generic “provide the required argument” line.
+
+**Work contract:**
+
+1. Introduce a bounded typed palette-candidate seam that is deliberately
+   compatible with B-1's later streaming accumulator. At minimum distinguish
+   `ACTION_BOUNDARY`, `COMPLETE_HISTORY_COMMAND`, `LITERAL_CONTINUATION`,
+   `ARGUMENT_VALUE`, and non-activatable `USAGE_HINT`; preserve canonical
+   replacement range/text, origin, action identity, completion frontier,
+   history recency, and insertion intent. Do not create a second public
+   suggestion model that B-1 would immediately replace.
+2. Keep the completed blank-palette rule: immediately after
+   `sfm action invoke `, executable complete MRU commands rank first. Once the
+   user enters a nonblank action-id query, history boosts its bare action
+   boundary and that boundary outranks argument-bearing historical leaves.
+   The leaves stay visible below it.
+3. Separate Tab completion from Enter/execution preparation. Tab applies the
+   candidate's exact replacement and no separator unless that candidate's
+   explicit insertion policy says otherwise. At an exact action boundary with
+   strict action-id descendants, another Tab selects/cycles to the first
+   deterministic strict continuation rather than reapplying a no-op or moving
+   focus. Space explicitly enters the argument frontier. Enter may still use
+   preparation when advancing an incomplete command, but it must not fabricate
+   an argument value.
+4. Preserve raw persisted command-history entries. Build a bounded in-memory
+   parsed projection for argument values, keyed by an explicit semantic
+   history-family id plus compatible Brigadier slot/grammar. Prove the first
+   family for the scene argument shared by `sfm:panel/open`, `/left`, `/right`,
+   `/above`, and `/below`. Do not infer compatibility from slash prefixes or
+   split quoted/greedy arguments on whitespace.
+5. Extract one frontier analyzer shared by the palette and
+   `SFMCommandDraftAnalysis`. It reports the current Brigadier parent/range,
+   concrete suggestions, smart usages, named missing arguments/types, parse
+   failures, and command completeness. Render usage/help rows even when no
+   concrete value exists; they are keyboard/mouse-readable but cannot execute.
+   Do not hide suggestions merely because a permissive token argument already
+   makes Execute technically available.
+6. Add exact command-tree and palette-screen characterizations for trajectory
+   and overlay selectors before modifying their action classes. If the tree
+   sees the values and the palette does not, fix palette frontier/application
+   logic. If both unit routes pass but the live puppet fails, diagnose runtime
+   freshness/origin availability rather than copying the values into another
+   table.
+7. Publish exact completion-application metadata for snapshot/episode TE-S2:
+   before value, replacement range/text, optional deliberate separator,
+   candidate kind/origin, and after value. TE-S2 records this as one semantic
+   document transaction while preserving raw Tab/Space events; B-0 does not
+   own undo or revisions.
+
+**Validation:** Add or extend focused tests for all of the following:
+
+- blank palette with recent commands still ranks complete MRU first;
+- typed `open` with the same history ranks `sfm:panel/open` first and retains
+  the complete command below it;
+- first Tab produces exactly `sfm:panel/open` with no trailing space; second
+  Tab advances to a strict descendant such as `/right`; Space produces exactly
+  `sfm:panel/open ` and opens the scene argument frontier;
+- explicit compatible scene history boosts a recent `sfm:text_editor` value
+  across open directions, while unrelated slots and incompatible grammars do
+  not receive it;
+- `sfm:episode/trajectory/plan ` suggests `focused`, `all`, and exact live ids;
+- `sfm:overlay/visibility/set ` suggests `focused`, `all`, and canonical exact
+  ids, and its next frontier suggests `visible|hidden`;
+- a command with an unbounded/unsuggested argument visibly reports its named
+  Brigadier usage and cannot activate that explanatory row;
+- quoted and greedy historical arguments round-trip through Brigadier ranges;
+- Tab cycling never turns an exact no-op candidate into an unintended focus
+  change; mouse acceptance, Up/Down selection, cancellation, and ordinary
+  execution retain existing behavior.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMClientActionPaletteSuggestionTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMClientCommandInsertionTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMCommandPaletteScreenTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTrajectoryMachineActionTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMOverlayActionGrammarTests --wait-for-build-lock
+```
+
+Join the ordinary TE-S2 puppet after its document-history adapter lands. It
+must pause visibly at each frontier and emit a structured candidate artifact
+containing order, candidate kind, replacement range, usage text, history scope,
+and final input after each Tab/Space operation.
+
+**Completion criteria:** PALUX-1 through PALUX-7 have machine evidence and a
+normal title-screen palette witness. The user can progressively discover the
+panel-open family, reuse compatible parameter history, see registered dynamic
+selectors and named missing arguments, and accept a candidate without an
+implicit separator or focus escape. Blank complete-MRU behavior and Brigadier
+execution semantics are unchanged. The candidate seam is directly consumable
+by B-1 and TE-S2 rather than becoming transitional debt.
+
 ### [ ] B-1 Add cancellable streamed palette candidates without replacing Brigadier
+
+**Dependency:** B-0 freezes the one-shot typed candidate kind, replacement,
+frontier, usage, and history-scope fields. B-1 extends that same model with
+source generations and batches; it must not reintroduce a parallel ranker or
+erase B-0's boundary/usage semantics.
 
 **Work:** Close D-7. Introduce the immutable candidate/batch/source contracts,
 provider registry, generation cancellation, accumulator, deterministic ranking,

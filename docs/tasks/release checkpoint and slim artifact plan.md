@@ -1100,6 +1100,14 @@ and action metadata on historical rows.
 successful palette command first without synchronous I/O or loss of existing
 fuzzy/Brigadier correctness.
 
+**Post-completion refinement (planned 2026-08-22):** Contextual-input B-0 keeps
+this exact complete-MRU-first rule for the blank action slot. For a nonblank
+action-id query such as `open`, it repairs the progressive grammar experience:
+history boosts the matching bare action boundary ahead of its complete
+argument-bearing leaf, and compatible argument history is projected separately
+at the actual Brigadier slot. This refines typed-query ordering without
+reopening or weakening P-5.3's persistence and blank-query acceptance.
+
 ### [x] P-5.4 Expose read-only history open and true clear actions
 
 **Work:** Register the hierarchical family:

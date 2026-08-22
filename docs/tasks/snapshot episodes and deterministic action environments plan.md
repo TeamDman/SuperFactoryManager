@@ -1,9 +1,9 @@
 # Snapshot episodes, action traces, and deterministic environments plan
 
-**Plan status:** TE-S1M core and the ordered S1M-X1 through S1M-X6 elastic continuation ladder are complete and locally checkpointed; no continuation is currently claimed
+**Plan status:** TE-S1M core and the ordered S1M-X1 through S1M-X6 elastic continuation ladder are complete and locally checkpointed; TE-S2 is reconciled and implementation-ready but unclaimed
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Last updated:** 2026-08-22
-**Intent audit:** Passed and re-audited 2026-08-21 against both complete attached source messages plus the undo-tree/frontline-UI and trajectory-machine follow-ups
+**Intent audit:** Passed and re-audited 2026-08-22 against the complete temporal-history follow-up, both supplied Excalidraw diagrams, and the earlier undo-tree/frontline-UI and trajectory-machine guidance
 
 ## How to update this plan
 
@@ -64,6 +64,7 @@ This foundation supports several related products:
 - [CLI AST refactoring suite](cli%20ast%20refactoring%20suite%20plan.md)
 - [Draw editor layers, commands, and canvas workspace](draw%20editor%20document%20regions%20and%20commands%20plan.md)
 - [Spatial semantic surfaces, outlinks, and capability presenters](spatial%20semantic%20surfaces%20outlinks%20and%20capability%20presenters%20plan.md)
+- [Contextual input, action ownership, and addressable explorer](contextual%20input%20actions%20and%20addressable%20explorer%20plan.md)
 - [SFM client log console](sfm%20client%20log%20console%20plan.md)
 - [Typed selections, relations, and lazy explorers](typed%20selections%20relations%20and%20lazy%20explorers%20plan.md)
 - [SFM in-game control CLI](sfm%20in-game%20control%20cli%20plan.md)
@@ -127,6 +128,17 @@ terminal protocol; and the in-game CLI owns discovery and remote invocation.
 | TE-37 | The comment system should annotate candidate states, actions, transitions, routes, and document regions so projected alternatives can be reviewed before execution. | Comment targets gain a typed candidate-trajectory anchor while retaining ordinary pinned source/selection witnesses. Candidate comments are visually and semantically distinct from comments on committed history. |
 | TE-38 | Replanning, executing, or invalidating a candidate must not silently move its comments or turn them into approval of committed content. | Candidate comments stay pinned to their plan revision. Exact state-hash correspondence may offer an explicit promotion/link to a committed target; changed or ambiguous correspondence requires witnessed migration and never transfers human approval implicitly. |
 | TE-39 | Time estimates must not become a scope cliff when autonomous work proceeds faster than expected. | TE-S1M has an ordered elastic continuation ladder. The core is completed and checkpointed first; one stretch item is claimed at a time, has its own tests/commit, and cannot weaken or retroactively redefine core acceptance. |
+| TE-40 | Temporal editing must be useful in an ordinary Text Editor V3 and in the command-palette input; it cannot remain a special capability of the decimal-numbering chamber. | TE-S2 extracts one reusable per-document history owner and makes the chamber an adapter/fixture over it. Every writable text surface can opt into the same immutable history and focused-domain actions. |
+| TE-41 | High-fidelity physical events and intuitive undo units are both required. Rapidly typing `open the` must not become one destructive undo unit, but aggregation must not erase key press/release timing or character provenance. | Store an append-only raw ingress journal, immutable mutation/state transitions, and a separately versioned semantic-transaction projection with exact source-event/state witnesses. Initial grouping produces word runs, standalone whitespace/punctuation, and explicit paste/completion/action boundaries. |
+| TE-42 | Ctrl+Z and Ctrl+Shift+Z must work in generic editors and command-palette input, preserve alternate descendants, and expose ambiguous redo instead of deleting or guessing. | Add explicit `sfm:document/history/undo` and `sfm:document/history/redo` actions over a document selector. One eligible child may be followed; several open a constrained choice. The recorded invocation resolves `focused` to an exact document/history identity. |
+| TE-43 | The approachable history view should primarily show the linear append-only sequence the user experienced, even though undo and later edits form a non-linear state graph. | Keep the immutable state DAG as authority and derive an append-only narrative projection. Undo/redo/checkout append head-movement nodes and draw jump edges to the referenced state; they never splice the narrative or hide retained branches. |
+| TE-44 | The frontline history UI should be a tangible 2D canvas with circles, arrows, and readable labels, including an action/state pairing such as `type hello` beside resulting document `hello`. | TE-S2 renders action/head-movement nodes and resulting state nodes in paired lanes, supports pan/zoom/selection/hover, and lets the selected state be inspected without requiring an RL/debug chamber. The supplied Excalidraw diagrams are acceptance references. |
+| TE-45 | Top-down layout should be the readable default because it leaves horizontal room for labels, while users must be able to transpose to left-right and inspect dense candidate graphs without permanent labels on every node. | Layout orientation is a reversible projection preference. A deterministic layered baseline lands first; dense level-of-detail shows labels for selected/hovered/current-route nodes. Spectral embeddings remain a pluggable later strategy, not a prerequisite or authority source. |
+| TE-46 | Document pathfinding is fundamentally a comparison between a current document and a desired document. A user should be able to open two editors and ask how the left document can become the right one. | TE-S2's pairwise planner accepts two explicit document selectors/revisions, derives a supervision target from the desired document, and opens ordinary candidate-history canvases. Test chambers become fixtures supplying those same arguments rather than owning another planner. |
+| TE-47 | A planned route, a committed event history, and the raw input stream are related projections, not one graph with overloaded node meaning. | The schema and UI explicitly distinguish raw-event journal, semantic transactions, committed state DAG, append-only experienced narrative, and candidate search graph. Every derived node carries provenance back to canonical events/states. |
+| TE-48 | Broader multi-document, selection, workspace, and external-process behavior should compose from proven document primitives instead of forcing one monolithic undo manager into the first slice. | After single-document history and pairwise document planning pass, higher-order state can be represented as typed documents whose actions reference other documents/selections. Irreversible effects remain barriers; this is a later adapter slice, not TE-S2's first goal. |
+| TE-49 | Command-palette history should help the user advance through the grammar rather than forcing a complete historical command. Typing `open` should prefer bare `sfm:panel/open`, accepting it must leave `sfm:panel/open/right` discoverable until the user deliberately types a space, related open actions may share compatible argument history, and missing arguments must be named visibly. | The contextual-input plan's B-0 slice owns completion-frontier kinds, boundary-first nonblank history ranking, insertion policy, explicit parameter-history scopes, dynamic selector/value completions, and Vanilla/Brigadier-style smart-usage hints. TE-S2 consumes that repaired palette but does not duplicate it. |
+| TE-50 | Current trajectory/pathfinding behavior is technically interesting but too tucked into an RL-oriented episode surface for ordinary use. | TE-S2's first user journey starts with a normal blank text editor and normal palette; its history canvas follows natural typing/undo/redo. Pairwise planning is introduced only after that ordinary flow is usable. |
 
 ## Guidance routing and non-duplication audit
 
@@ -142,6 +154,7 @@ terminal protocol; and the in-game CLI owns discovery and remote invocation.
 | Graphical review markup | Global comments + Draw/Text Editor V3 + spatial semantic surfaces | Markup references a pinned comment selection and document-layout projection; geometry supplies interaction/presentation but does not replace source identity. |
 | Panel/overlay scene graph, placement, focus, and persistence | In-game workspace/window-manager plan | Layout transitions are episode actions/observations; the workspace model remains authoritative for current UI state. |
 | Trajectory planning, supervision contracts, instruction-pointer execution, and route projection | This plan | Domain plans contribute typed action generators and predicates; they do not independently own a second planner, history graph, or execution cursor. |
+| Command-palette completion, history ranking, insertion, argument hints, and streamed candidate UX | Contextual-input plan | Temporal document history records palette input and invocations; it does not fork Brigadier or maintain a second completion ranker. |
 
 ## Guidance traceability
 
@@ -159,6 +172,10 @@ terminal protocol; and the in-game CLI owns discovery and remote invocation.
 | TE-28 | 2.9 and Track 7 | Two-document full-journey episode proving checkout/frozen-witness/recompute alternatives and typed external barriers |
 | TE-29 through TE-35 | 0.6, 1.6, 2.10/2.11, TE-S1M | Machine-state fixture, A*/oracle minimality tests, route/debug projection, stale-precondition pause/replan, immutable plan branches, and an in-game supervised numbering journey |
 | TE-36 through TE-39 | 2.12/2.13, comment Phase 6b, TE-S1M elastic ladder | Candidate-frame random seek, candidate-target comment round trip, explicit promotion/migration proof, and one-at-a-time reversible stretch checkpoints |
+| TE-40 through TE-45 | TE-S2A through TE-S2D | Generic editor and palette undo/redo, raw-to-semantic witness artifacts, retained redo descendants, and a natural 2D action/state canvas with linear and transposed projections |
+| TE-46 through TE-48 | TE-S2E through TE-S2G | Two ordinary document panels produce a bounded candidate transformation graph; higher-order adapters follow only after single/pairwise proofs |
+| TE-49 | Contextual-input B-0 joined by TE-S2C | Boundary-first `open` completion, deliberate-space insertion, shared compatible argument history, dynamic selector suggestions, and visible smart-usage placeholders |
+| TE-50 | TE-S2 natural puppet | A normal editor/palette journey, not a chamber-only diagnostic, supplies the acceptance screenshots and content/history artifacts |
 
 ## Intent-audit evidence — 2026-08-21 re-audit
 
@@ -214,6 +231,54 @@ terminal protocol; and the in-game CLI owns discovery and remote invocation.
   was not inspected because its required behavior was supplied directly; R1C1
   and Create/Ponder remain design references, not dependencies or normative
   contracts.
+
+## Intent audit evidence — 2026-08-22 ordinary-history usability extension
+
+- **Pass 1 — extraction:** Re-read the complete current user message and both
+  supplied Excalidraw clipboard documents at
+  `C:\Users\Teamy\.codex\attachments\edeacac5-dbfd-4f00-8558-aaa3fcb77ec1\pasted-text.txt`
+  and
+  `C:\Users\Teamy\.codex\attachments\7a12164a-a137-4e3b-a1e6-8fad9d4748ec\pasted-text.txt`.
+  TE-40 through TE-50 separately preserve: ordinary-editor and palette undo;
+  missing redo; non-destructive undo trees; raw key timing; semantic grouping
+  of `open`, space, and `the`; before/after document states; a primary linear
+  experienced history with explicit undo jump arrows; paired action/state
+  lanes; circles/arrows/labels; top-down and transposed layouts; dense
+  labels-on-hover and later spectral layout; two-open-document planning; the
+  chamber-as-parameterized-fixture correction; higher-order document
+  composition; completion-boundary ranking; shared compatible argument
+  history; dynamic `focused`/overlay selector completions; and visible required
+  argument names. Neither diagram was reduced to “add a graph UI.”
+- **Pass 2 — feasibility and reuse:** Source inspection confirmed that
+  `SFMHistoryGraphContract` already retains immutable states, branch edges, and
+  head movements; `SFMHistoryGraphPanel` currently projects them as a nested
+  text row list; `SFMDrawCanvasScreen` already receives key press/release and
+  character events but keeps only a bounded diagnostic string list; and
+  `SFMDecimalNumberingChamberPanel` is the only production
+  `SFMDocumentHistoryTarget`. TE-S2 therefore extracts a general document
+  history owner, retains the chamber as an adapter, and adds projections over
+  the existing graph rather than inventing a second episode or planner model.
+  The current Brigadier providers already offer `focused`, `all`, exact overlay
+  ids, and visibility literals; contextual-input B-0 repairs the palette
+  frontier/insertion/ranking path that prevents those values from being
+  approachable.
+- **Pass 3 — adversarial consistency:** The ordinary append-only view is not a
+  destructive linear history: it is a chronological projection over the same
+  retained DAG, and head movements append narrative events that point backward
+  or forward. Semantic grouping is a versioned projection with raw-event and
+  state witnesses, never irreversible event coalescing. Pairwise planning does
+  not infer “left” and “right” from mutable focus after invocation; interactive
+  shorthand resolves to exact document revisions before recording. Candidate
+  search nodes never masquerade as committed history. Spectral embedding is a
+  future layout provider and conveys no semantic authority. Multi-document and
+  external-process undo are deferred behind typed higher-order documents and
+  effect barriers rather than promised by the first generic editor slice.
+- **Known source limitation:** The referenced YouTube page was not fetchable by
+  the available web reader. Its normative requirement is nevertheless complete
+  in the user's message: support high-volume state-space projections whose
+  labels appear on hover, with spectral embedding as inspiration rather than a
+  mandated dependency or first implementation. No repository clone, package,
+  or video download is required by this plan.
 
 ## Terms and invariants
 
@@ -316,6 +381,41 @@ Minecraft/document-local canvas coordinates use x-right/y-down; Cartesian
 adapters may map y explicitly. Coordinate sign never silently defines semantic
 ordering.
 
+### Canonical event journal and semantic transaction projections
+
+The canonical ingress journal is append-only. It stores physical key
+press/release/repeat/reset events, `charTyped` delivery, paste/completion
+acceptance, pointer/focus events, direct registered-action invocations, and
+their timing/order exactly enough to replay the declared input boundary. It
+does not infer that a programmatic action was a keystroke and it does not throw
+away events after producing a friendlier label.
+
+Every successful document mutation links a before state, after state, cursor/
+selection snapshots, responsible raw-event range, and semantic action when one
+was invoked. A separately versioned `SemanticTransactionProjection` may group
+adjacent mutations for undo and presentation. Its initial deterministic policy
+is deliberately legible:
+
+- consecutive printable non-whitespace word glyphs may form one typing run
+  only while document, history head, cursor/selection topology, insertion
+  direction, and focus remain unchanged and the configured idle bound is not
+  crossed;
+- whitespace and punctuation terminate the prior word run and form their own
+  transactions, so rapidly typing `open the` projects as `type "open"`,
+  `click "<space>"`, and `type "the"` rather than one giant undo unit;
+- paste, completion acceptance, command submission, semantic editing actions,
+  caret/selection changes, focus changes, undo/redo/checkout, and any
+  non-contiguous edit close the current transaction;
+- deletion and key-repeat runs use explicit transaction kinds and cannot be
+  merged across a direction, selection, or intervening action change; and
+- every grouped transaction retains ordered source event ids and the complete
+  chain of before/after state ids, so another grouping policy can be computed
+  without mutating history.
+
+Undo targets semantic transaction boundaries. Exact low-level replay targets
+raw events. A UI may expand a semantic node to its raw key actions; neither
+representation claims the other never existed.
+
 ### Action intent, evaluation, outcome, and state graph
 
 Do not collapse “what the user asked for” into “what happened this time.” The
@@ -382,6 +482,32 @@ Unreferenced branches are retained by default. Comments, recipes, named heads,
 exports, and open inspectors pin revisions. Any future garbage collection is an
 explicit bounded retention operation with preview and pin diagnostics; closing
 a panel or taking another action never silently destroys history.
+
+### Experienced narrative and state-graph projections
+
+One canonical event/state graph supplies several typed projections:
+
+1. the raw ingress journal in receipt order;
+2. the semantic transaction narrative in committed observation order;
+3. the immutable document state DAG with branch edges and movable heads;
+4. the append-only experienced history, including head-movement events; and
+5. separately typed candidate search/trajectory graphs.
+
+The ordinary History Canvas opens in projection 4. Its spine is chronological:
+new observations append below (or to the right after transposition). An undo
+appends an Undo action and the newly current state while a curved jump edge
+points to the earlier state revision. Editing after undo continues the
+chronological spine, but the departed child remains reachable in projection 3.
+Redo similarly appends a head movement; it never rewrites the narrative.
+
+The paired action/state layout uses one lane for action or head-movement nodes
+and one lane for the resulting document state. Selecting either side reveals
+the exact before/after state, raw-event witness, semantic transaction, branch
+identity, and any candidate/committed status. Top-down is the default; a
+transpose operation changes only layout. Dense mode may elide labels except
+for hovered, selected, current-head, instruction-pointer, target, and selected-
+route nodes. Layout coordinates, clustering, and spectral embeddings are
+derived observations and never become state identity.
 
 ### Projection, reducibility, and effect classes
 
@@ -2594,6 +2720,394 @@ an unplanned X7.
   later hosts the same view non-modally over gameplay.
 - No new dependency is justified merely for this slice; use existing locked
   toolchain inputs unless a separately approved plan amendment proves otherwise.
+
+## Next bounded implementation sequence — TE-S2 ordinary document history and transition canvas
+
+TE-S1M proved the immutable graph, chamber actions, candidate routes, comments,
+counterfactual replay, and overlay host. It did **not** make those capabilities
+ordinary editor behavior. TE-S2 closes that product gap in small vertical
+slices. The decimal-numbering chamber remains a regression fixture and a
+specialized action-generator consumer; it ceases to own the only usable
+document history.
+
+### Verified starting state — 2026-08-22
+
+- `SFMHistoryGraphContract` already models immutable states, branch edges,
+  action intent/evaluation/outcome, heads, and head movements.
+- `SFMHistoryGraphPresentationModel` and its projection already provide stable
+  renderer-independent node/edge/marker identities, including explicit head-
+  movement nodes. `SFMHistoryGraphRuntime` already publishes updates and
+  supports late subscribers, but its current `MachineSnapshot` input requires
+  trajectory/plan-book state and must be generalized for ordinary histories.
+- `SFMDecimalNumberingChamberPanel` is the only production implementation of
+  `SFMDocumentHistoryTarget`; its `synchronizeEditorAndController()` copies
+  ordinary Text Editor V3 changes into the chamber controller.
+- Generic `SFMTextEditorPanel` exposes exact text checkout/snapshot seams but
+  does not own an undo history. `SFMDrawCanvasScreen` observes key press,
+  release, and character input but retains only a bounded list of diagnostic
+  strings; it does not publish typed immutable event/mutation records.
+- `SFMDocumentHistoryActions` registers undo only. There is no redo action, and
+  the Ctrl+Z default is scoped to the temporal-chamber situation.
+- `SFMCommandPaletteScreen` uses a Vanilla `EditBox` without document-history
+  ownership. Its Tab insertion calls `SFMClientCommandInsertion.prepare()`,
+  which appends a space after a resource-location literal with required
+  children and thereby skips the still-valid `sfm:panel/open/right` frontier.
+- `SFMClientActionCommandTree` currently injects complete historical commands
+  into the action-id replacement range. This is useful for a blank MRU palette
+  but makes a nonblank `open` query rank an argument-bearing historical leaf
+  against the bare grammar boundary. Brigadier providers already supply
+  `focused`, `all`, exact episode/overlay ids, and operation literals; the
+  palette does not yet expose Vanilla's `findSuggestionContext()` plus
+  `getSmartUsage()` argument-hint behavior.
+- `SFMHistoryGraphPanel` is push-fed and non-blocking but renders a nested text
+  row list; the same panel can already be hosted by workspace and overlay
+  runtimes. `SFMDrawCanvasScreen` proves pan, cursor-anchored zoom, clipping,
+  glyph rendering, and canvas coordinate transforms that a shared graph
+  viewport may reuse without making text-editor glyph state the graph model.
+
+### [ ] TE-S2A Extract the reusable per-document history kernel
+
+**Work:** Introduce one Java-local, UI-independent document-history owner over
+the existing history contract. A document revision contains exact content plus
+edit-relevant 2D cursor/selection state; camera, panel placement, and transient
+hover remain separate observations unless an explicit action targets them.
+The owner appends typed raw events, mutation transitions, semantic transactions,
+head movements, and immutable child revisions. It exposes snapshot, append,
+undo, eligible-redo-children, redo/checkout, and deterministic projection APIs.
+
+Give every session an exact identity independent of its path: two editors that
+open the same file do not silently share one undo head unless an explicit
+shared-document identity says they do. Store caret/selection as logical Unicode
+offsets/ranges and adapt them exactly to the spatial canvas; framebuffer pixels
+and current camera transforms are observations, not revision identity. Define
+one pre-dispatch ingress authority so consumed Ctrl+Z events are captured once
+before binding cancellation, while committed character/IME text remains
+authoritative for inserted Unicode. Stable event ids prevent Forge, screen,
+widget, and automation hooks from double-recording the same input.
+
+Implement the initial versioned semantic grouping policy from
+“Canonical event journal and semantic transaction projections.” Preserve every
+raw event and every intermediate state witness even when several character
+mutations project as one word transaction. Extract/adapt the chamber controller
+to consume this owner; do not maintain a chamber graph and a generic graph in
+parallel.
+
+**Validation:** Add pure tests for Unicode/surrogate input, key down/up/repeat,
+`open` + space + `the` grouping, timeout and cursor/focus/action boundaries,
+paste/completion boundaries, deletion runs, exact raw expansion, before/after
+state hashes, undo-undo-do retained siblings, one-child redo, ambiguous redo,
+checkout, duplicate-ingress rejection, consumed-shortcut capture, same-path
+independent sessions, and projection recomputation under a second grouping
+revision. Run the existing temporal archive/replay/trajectory tests to prove
+the chamber adapter retained its behavior.
+
+**Completion criteria:** A headless test can feed raw events and mutations into
+one ordinary document, obtain the exact three semantic typing transactions for
+`open the`, undo and branch without losing the departed child, export every raw
+event/state witness, and drive the existing chamber through the same kernel.
+
+### [ ] TE-S2B Make Text Editor V3 and command-palette input real history hosts
+
+**Work:** Give every writable Text Editor V3 document session a stable runtime
+history identity and the TE-S2A owner. Route editor mutations through a typed
+event/mutation sink instead of inferring semantic intent from an occasional
+whole-text poll. Programmatic checkout suppresses feedback and restores the
+exact revision's edit-relevant cursor/selection state. Read-only editors remain
+non-mutating and do not fabricate empty history transitions.
+
+Treat the command palette input as an ephemeral document history host with its
+own exact session identity. Typing, deleting, paste, and accepted completions
+produce the same raw/mutation/semantic layers. The first slice retains this
+history for the palette session; closing the palette may archive it into the
+containing episode but reopening a new palette does not silently reuse a live
+undo head. Its root state is the actual initial draft (normally
+`sfm action invoke `), not an artificial empty string. Wrap every programmatic
+`EditBox.setValue` route with an explicit cause—initialization/checkout,
+ordinary edit, history recall, suggestion acceptance, required-separator
+insertion, automation, or post-execution reset—so checkout suppression cannot
+hide a user edit or turn a refresh into another revision.
+
+Replace the chamber-only action seam with selector-explicit commands:
+
+```text
+sfm:document/history/undo <document-selector>
+sfm:document/history/redo <document-selector> [child-revision]
+```
+
+Interactive defaults and keybindings spell `focused`; before recording, focus
+is resolved to an exact document/history identity. Ctrl+Z invokes undo in the
+generic writable-editor and command-palette situations. Ctrl+Shift+Z invokes
+redo. Exactly one eligible child may be followed directly; multiple children
+open the existing constrained choice palette, and no eligible child reports a
+stable non-mutating result. Target resolution accepts either the current screen
+when it is a document-history host or the focused panel inside a workspace;
+the command palette must not need to masquerade as a workspace panel. Add its
+editable-document keyboard situation so the defaults are contextual rather
+than leaked globally. Update action/binding help so both defaults are
+discoverable. Saving updates the saved baseline and dirty calculation; it does
+not erase revisions or alternate branches.
+
+**Validation:** Focused action, keybinding, editor, draw-canvas, and palette
+tests prove ordinary `hi there` undo/redo; `open the` transaction-by-transaction
+undo/redo in the palette; sibling retention after undo then typing; constrained
+ambiguous-redo choices; selection/caret restoration; read-only refusal; close/
+reopen lifetime; exact initial palette-prefix restoration; save-baseline
+preservation; screen-versus-panel target resolution; and no recursion during
+checkout. Existing chamber Ctrl+Z and archive tests remain green through the
+generic path.
+
+**Completion criteria:** Without opening a chamber, a user can type in a blank
+Text Editor V3 or the command palette, use Ctrl+Z/Ctrl+Shift+Z naturally, and
+inspect retained alternative descendants. The action registry contains both
+undo and redo and no screen hard-codes a parallel destructive stack.
+
+### [ ] TE-S2C Join contextual-input B-0's completion-frontier repair
+
+**Work:** Complete the authoritative contextual-input B-0 slice. The temporal
+join adds no second ranker. It only proves that palette input history from
+TE-S2B survives candidate application and that completion acceptance is a
+semantic transaction with its exact Brigadier range and before/after state.
+
+**Validation:** The joined tests and puppet must cover all of these exact
+frontiers:
+
+```text
+open
+sfm:panel/open
+sfm:panel/open␠
+sfm:panel/open/right
+sfm:episode/trajectory/plan␠
+sfm:overlay/visibility/set␠
+sfm:overlay/visibility/set id(sfm%3Ahistory)␠
+```
+
+Here `␠` denotes one deliberate trailing U+0020 space at the argument
+frontier; it is notation for the test vector, not a character entered into the
+command.
+
+They prove bare-boundary ranking for a nonblank query, deliberate-space versus
+Tab continuation, compatible scene-argument history across the open family,
+`focused`/exact overlay selectors and `visible|hidden`, required argument names
+when no value completion exists, and undo/redo around suggestion acceptance.
+
+**Completion criteria:** The user can reach the intended `panel/open` family by
+Tab/Tab or choose Space to enter its scene argument; complete historical leaves
+remain available but do not steal the first nonblank grammar boundary.
+
+### [ ] TE-S2D Add the approachable 2D experienced-history canvas
+
+**Work:** Add a reusable node/edge canvas presentation over the TE-S2A
+projections and register an ordinary scene such as:
+
+```text
+sfm action invoke sfm:panel/open/right sfm:document/history focused
+```
+
+The exact scene spelling is frozen with its screen-type registration before
+implementation; do not add a top-level opening alias. The default view is the
+append-only experienced narrative, not the trajectory search debug tree. Draw
+blue action/head-movement circles, amber resulting-state circles, directed
+edges, and readable labels in paired lanes. Undo appends its own node and uses a
+visually distinct curved jump edge to the state that became current. Selected
+nodes expose before/after content, branch/revision identity, semantic label, and
+expandable raw-event witnesses.
+
+Derive canvas nodes from the existing renderer-independent
+`SFMHistoryGraphPresentationModel`/projection identities rather than creating a
+second graph authority. Generalize the runtime publication input as an explicit
+ordinary-document versus trajectory-machine sum/variant; never satisfy the
+current trajectory-first `MachineSnapshot` shape with a fake empty plan book or
+irrelevant Plan/Replan controls. Keep the existing row-list projection as an
+accessible chronological transcript/fallback while the canvas becomes the
+frontline visual presentation. Stable node ids preserve hover, selection, and
+details across push-fed graph revisions.
+
+Reuse existing panel/canvas pan, zoom, clipping, focus, and cursor affordances
+through a small shared viewport primitive; do not make graph nodes into fake
+text glyphs or put graph topology in `SFMDrawCanvasModel`. Top-down is default.
+A registered transpose action switches to left-right without changing
+selection or graph identity. A selected-document content preview may be
+textual in the first slice; no screenshot-only interpretation is acceptable.
+Chronological narrative/state-parent edges determine layout rank. Curved
+undo/redo/checkout jumps are non-ranking overlay edges, so their graph cycles
+cannot destabilize or recursively expand the layout. The same canvas panel must
+remain hostable in both workspace and overlay runtimes without changing the
+overlay's passive/interactive focus rules.
+
+**Validation:** Pure layout/hit-test tests cover deterministic coordinates,
+paired action/state lanes, long labels, clipping, pan/zoom, transpose,
+selection retained across pushed revisions, curved undo jumps, non-ranking
+jump cycles, sibling retention, and an empty/single-node history. A normal
+title-screen puppet opens a blank editor and history panel,
+types `hello`, space, `world!`, undoes, types `new content`, and captures both
+PNG and structured graph/document artifacts. It proves the timeline remains
+chronological, the jump points to the earlier state, `hello world!` remains a
+reachable descendant, and the canvas updates live without taking editor focus.
+Artifacts include `document-history.json`, `history-canvas-layout.json`, exact
+current/retained document text, screenshots for each milestone/orientation,
+and an accessible chronological transcript. Graph ids and canvas rectangles/
+edge paths must agree across the machine-readable and raster evidence.
+
+**Completion criteria:** A user unfamiliar with the chamber can watch ordinary
+editing appear as the two supplied Excalidraw concepts: an action/state paired
+sequence and an append-only narrative with an undo jump. Keyboard/mouse can
+select, pan, zoom, inspect, and transpose the graph.
+
+### [ ] TE-S2E Plan between two ordinary document revisions
+
+**Work:** Register a selector-explicit pairwise operation, provisionally:
+
+```text
+sfm:document/trajectory/plan <source-document-selector> <desired-document-selector>
+```
+
+Both selectors resolve to exact immutable revisions before planning. A normal
+workspace with two editors can offer a contextual draft that fills those
+selectors; the planner itself never consults later focus or assumes screen-left
+means source. The desired document supplies the target predicate. The existing
+bounded planner and finite action-generator contract produce immutable route
+revisions and an address that the ordinary candidate-history canvas can open.
+The temporal-numbering chamber calls the same operation with fixture documents.
+
+Begin with a deliberately finite edit catalog (typed insertion/deletion/
+replacement plus already registered semantic edits) and report its cost policy
+and incompleteness. Planning is cancellable/off-render-thread and never writes
+either source document. Dijkstra/exhaustive-oracle checks bound any shortest-
+route claim.
+
+**Validation:** A puppet opens source and desired Text Editor V3 panels, edits
+the desired side, invokes the pairwise action through the command palette,
+opens the returned candidate graph beside them, scrubs at least two routes,
+and proves both input heads are unchanged. Machine artifacts contain exact
+input revisions, action-generator/cost revisions, candidate states, route
+costs, and cancellation/budget outcomes.
+
+**Completion criteria:** “Plan how the left document can become the right
+document” is an ordinary in-game workflow using explicit captured documents,
+not a chamber-only button or an implicit mutable-focus guess.
+
+### [ ] TE-S2F Scale graph presentation without changing graph semantics
+
+**Work:** Add a layout-provider registry over immutable graph input. Ship the
+deterministic layered top-down and left-right providers first. Add level-of-
+detail rules that retain labels for hovered, selected, actual-head,
+instruction-pointer, target, and selected-route nodes while allowing dense
+unselected nodes to become compact marks. Preserve stable selection through a
+layout change and expose layout choice through registered actions/intellisense.
+Cache layout by graph/projection/layout revision, cull drawing to the viewport,
+and use a bounded spatial hit index so pointer interaction does not scan every
+node on every frame. Record layout, culling, hit-test, and render costs
+separately before choosing tighter data structures.
+
+Research a spectral-embedding provider against the user's Stephen's Sausage
+Roll state-space reference only after the deterministic providers and density
+tests pass. If it needs a new dependency, that is a separately approved goal/
+lockfile change; TE-S2A through TE-S2E may not acquire one. A spectral layout
+is a view, never a planning heuristic or proof of semantic proximity.
+
+**Validation:** Deterministic snapshot tests cover sparse, branching, cyclic-
+presentation (through head-movement jump edges), disconnected, and 25+/1000+
+node fixtures; labels-on-hover and selected-route visibility remain usable at
+high density. Performance evidence records layout and render time separately.
+
+**Completion criteria:** Users can transpose ordinary graphs and inspect dense
+candidate spaces without a wall of overlapping labels; adding another layout
+does not alter canonical event/state bytes.
+
+### [ ] TE-S2G Compose higher-order histories from document primitives
+
+**Work:** After TE-S2A through TE-S2E are proven, define typed documents for
+selection sets, multi-document action manifests, workspace-layout state, and
+external observation streams. Their actions may reference exact child
+document/selection revisions. Pure/snapshot-restorable compositions can
+participate in undo/planning; irreversible process/network/world effects remain
+typed barriers. Do not introduce one ambient global Ctrl+Z domain.
+
+**Validation:** A bounded two-document selection action records one higher-
+order transition with links to both child revisions, undoes without losing
+either branch, and exports/imports deterministically. A barrier fixture proves
+that an external action remains inspectable but is never optimistically undone.
+
+**Completion criteria:** Multi-document behavior composes from the same single
+and pairwise contracts and no second global history engine appears.
+
+### Proposed first TE-S2 goal boundary
+
+The next implementation goal should be:
+
+> Complete contextual-input B-0 and TE-S2A through TE-S2D in
+> `docs/tasks/contextual input actions and addressable explorer plan.md` and
+> `docs/tasks/snapshot episodes and deterministic action environments plan.md`.
+
+This is the smallest boundary that fixes the user's immediate palette and undo
+friction **and** ends with a natural visible feature rather than only a kernel.
+It deliberately stops before pairwise search so the planner cannot remain the
+only usable part while ordinary editing is still history-blind.
+
+Observable acceptance for that goal:
+
+1. Typing `open` ranks bare `sfm:panel/open` first despite a recent complete
+   chamber command. Tab accepts the boundary without a space; another Tab can
+   continue to `sfm:panel/open/right`, while Space deliberately enters the
+   scene argument and scene history is shared across compatible open actions.
+2. `focused`, exact overlay selectors such as `id(sfm%3Ahistory)`, and
+   `visible|hidden` are suggested at their actual argument frontiers. When no
+   value completion exists, the palette visibly names the expected Brigadier
+   argument(s) rather than only disabling Execute.
+3. Ctrl+Z and Ctrl+Shift+Z work in a generic writable Text Editor V3 and in the
+   palette input. `open the` undoes/redoes as `the`, space, and `open`; every
+   raw key event and intermediate state remains inspectable.
+4. Undo then typing creates a retained sibling. Ambiguous redo opens the normal
+   constrained palette; neither path is deleted.
+5. An ordinary split panel displays live circles/arrows with paired action and
+   state labels. Undo is a chronological node plus a jump edge; transpose,
+   pan, zoom, hover/select, and structured before/after details work.
+6. A title-screen puppet demonstrates this exact flow with human-readable
+   pauses and emits screenshots, current document text, raw events, semantic
+   transactions, immutable state/edge/head-movement data, and layout/hit-test
+   evidence. No decimal-numbering chamber is opened.
+
+### First-goal parallel topology, gates, and exclusions
+
+- **Track A — palette frontier (contextual B-0):** candidate kinds, history
+  scopes/ranking, insertion policy, dynamic completions, and smart usage. It
+  owns `SFMClientActionCommandTree`, `SFMClientCommandInsertion`, and palette
+  candidate/usage tests.
+- **Track B — history kernel (TE-S2A):** immutable document states, raw journal,
+  semantic grouper, branch/head operations, and chamber adapter. It freezes the
+  DTO/event-sink contract before Tracks C/D integrate.
+- **Track C — editor/palette hosts (TE-S2B):** Text Editor V3 and `EditBox`
+  adapters, focused document repository/selectors, actions/default bindings,
+  and natural undo/redo tests. It begins against Track B's frozen interfaces.
+- **Track D — canvas (TE-S2D):** pure projection/layout/hit-test model can begin
+  against checked-in fixtures while Track B runs; runtime wiring waits for the
+  frozen projection DTO.
+- **Integration:** joins candidate acceptance to semantic history, adapts the
+  chamber, runs the natural puppet, inspects PNG/structured artifacts, updates
+  user documentation/changelog for gameplay-visible changes, and records tool
+  installation freshness under the goal-readiness guide.
+
+No new Cargo/SFM/Gradle dependency or lockfile change, repository clone,
+cross-version propagation, release/publish action, generalized spectral
+embedding, pairwise planner, multi-document undo, persistence-across-client-
+restart promise, or ambient-source mutation belongs to this first goal. Use
+only existing locked/cached sources and the current Java implementation. If a
+new dependency appears desirable, finish at the last passing checkpoint and
+amend the later TE-S2F goal instead.
+
+Suggested focused validation commands (exact filters may be split as classes
+land):
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMClientActionPaletteSuggestionTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMClientCommandInsertionTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMDocumentHistory --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTextEditorPanelTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMCommandPaletteScreenTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMHistoryCanvas --wait-for-build-lock
+sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_document_history_canvas --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
+```
 
 ## Overall acceptance criteria
 
