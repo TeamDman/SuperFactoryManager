@@ -20,7 +20,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 
 public final class SFMKeyBindingService {
     public static final SFMKeyBindingService INSTANCE = new SFMKeyBindingService();
@@ -134,17 +136,41 @@ public final class SFMKeyBindingService {
             Set<SFMKeyModifier> modifiers,
             SFMKeyboardUsageContextSnapshot context
     ) {
+        return acceptKey(keyCode, type, modifiers, context, ignored -> { });
+    }
+
+    /**
+     * Observes the final match before any action intent is dispatched. This is
+     * the pre-dispatch authority used by document journals to retain consumed
+     * shortcuts without racing an immediately executed client action.
+     */
+    public SFMKeyBindingMatchResult acceptKey(
+            int keyCode,
+            SFMKeyInputEvent.Type type,
+            Set<SFMKeyModifier> modifiers,
+            SFMKeyboardUsageContextSnapshot context,
+            Consumer<SFMKeyBindingMatchResult> beforeDispatch
+    ) {
+        Objects.requireNonNull(beforeDispatch, "beforeDispatch");
         return accept(new SFMKeyInputEvent(
                 ++eventSequence,
                 engine.currentTick(),
                 keyCode,
                 type,
-                modifiers), context);
+                modifiers), context, beforeDispatch);
     }
 
     public SFMKeyBindingMatchResult accept(
             SFMKeyInputEvent event,
             SFMKeyboardUsageContextSnapshot context
+    ) {
+        return accept(event, context, ignored -> { });
+    }
+
+    private SFMKeyBindingMatchResult accept(
+            SFMKeyInputEvent event,
+            SFMKeyboardUsageContextSnapshot context,
+            Consumer<SFMKeyBindingMatchResult> beforeDispatch
     ) {
         if (dispatchSuspended) return SFMKeyBindingMatchResult.UNMATCHED;
         remember(event);
@@ -159,6 +185,7 @@ public final class SFMKeyBindingService {
             SFM.LOGGER.warn("Dynamic keybinding conflict at {}: {}",
                     context.activeSituations(), lastConflicts);
         }
+        beforeDispatch.accept(result);
         result.intents().forEach(intent -> dispatch(
                 intent,
                 context,

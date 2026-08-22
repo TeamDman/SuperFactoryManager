@@ -19,6 +19,35 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMTrajectoryMachineActionTests {
     @Test
+    void paletteSurfacePreservesDynamicMachineSelectorSuggestions() {
+        SFMHistoryGraphRuntime runtime = new SFMHistoryGraphRuntime();
+        runtime.register(new SFMHistoryGraphTestFixture.MutableController("episode-a"));
+        ResourceLocation actionId = new ResourceLocation("sfm", "episode/trajectory/plan");
+        SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(List.of(
+                Map.entry(actionId, new SFMTrajectoryMachineAction(
+                        SFMTrajectoryMachineAction.Kind.PLAN,
+                        runtime
+                ))
+        ));
+        SFMClientActionSource source = new SFMClientActionSource(
+                SFMClientActionContext.create(null, () -> true));
+        String prefix = "sfm action invoke " + actionId + " ";
+
+        List<String> suggestions = tree.getPaletteCandidates(prefix, tree.parse(prefix, source))
+                .join().stream()
+                .filter(SFMPaletteCandidate::activatable)
+                .map(SFMPaletteCandidate::replacementText)
+                .toList();
+
+        assertTrue(suggestions.contains("focused"));
+        assertTrue(suggestions.contains("all"));
+        assertTrue(suggestions.contains(SFMEntitySelector.exact(
+                SFMEntitySelector.Domain.EPISODE,
+                "episode-a"
+        ).canonical()));
+    }
+
+    @Test
     void replayActionsSuggestExplicitRetainedBoundariesAndExecuteThroughTheRegistrySurface() throws Exception {
         SFMHistoryGraphRuntime runtime = new SFMHistoryGraphRuntime();
         SFMDecimalNumberingTrajectoryController controller = new SFMDecimalNumberingTrajectoryController(

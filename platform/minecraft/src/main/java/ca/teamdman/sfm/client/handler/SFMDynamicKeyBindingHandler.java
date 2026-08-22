@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.handler;
 
+import ca.teamdman.sfm.client.history.SFMDocumentHistoryInputRouting;
+import ca.teamdman.sfm.client.history.document.SFMDocumentHistoryContract;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingEngine;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingMatchResult;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
@@ -20,6 +22,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -66,6 +69,17 @@ public final class SFMDynamicKeyBindingHandler {
     public static void onScreenKeyReleased(ScreenEvent.KeyReleased.Pre event) {
         markScreenEvent(event.getKeyCode(), event.getScanCode(), true, event.getModifiers());
         synchronizeScreen(event.getScreen());
+        boolean consumed = CONSUMED_KEYS.contains(event.getKeyCode());
+        recordDocumentInput(
+                event.getScreen(),
+                SFMDocumentHistoryContract.RawEventKind.KEY_UP,
+                "forge-screen-key",
+                keyCode(event.getKeyCode(), event.getScanCode()),
+                Optional.empty(),
+                event.getModifiers(),
+                consumed,
+                !consumed
+        );
         PRESSED_KEYS.remove(event.getKeyCode());
         CHARACTER_SUPPRESSION_KEYS.remove(event.getKeyCode());
         if (CONSUMED_KEYS.remove(event.getKeyCode())) event.setCanceled(true);
@@ -75,7 +89,19 @@ public final class SFMDynamicKeyBindingHandler {
     @MCVersionDependentBehaviour
     public static void onScreenCharacterTyped(ScreenEvent.CharacterTyped.Pre event) {
         synchronizeScreen(event.getScreen());
-        if (!CHARACTER_SUPPRESSION_KEYS.isEmpty()) event.setCanceled(true);
+        boolean consumed = !CHARACTER_SUPPRESSION_KEYS.isEmpty();
+        String text = Character.toString(event.getCodePoint());
+        recordDocumentInput(
+                event.getScreen(),
+                SFMDocumentHistoryContract.RawEventKind.CHARACTER,
+                "forge-screen-character",
+                String.format("U+%04X", (int) event.getCodePoint()),
+                Optional.of(text),
+                event.getModifiers(),
+                consumed,
+                !consumed
+        );
+        if (consumed) event.setCanceled(true);
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
@@ -131,7 +157,7 @@ public final class SFMDynamicKeyBindingHandler {
         SFMKeyBindingService.INSTANCE.reset(SFMKeyBindingEngine.ResetReason.FOCUS_LOST);
     }
 
-    private static SFMKeyboardUsageContextSnapshot contextFor(@Nullable Screen screen) {
+    static SFMKeyboardUsageContextSnapshot contextFor(@Nullable Screen screen) {
         if (screen instanceof SFMKeyboardUsageContextProvider provider) {
             return provider.keyboardUsageContextSnapshot();
         }
@@ -147,13 +173,65 @@ public final class SFMDynamicKeyBindingHandler {
     ) {
         synchronizeScreen(screen);
         boolean firstPress = PRESSED_KEYS.add(keyCode);
-        if (CONSUMED_KEYS.contains(keyCode)) return true;
-        if (!firstPress) return false;
+        if (CONSUMED_KEYS.contains(keyCode)) {
+            recordDocumentInput(
+                    screen,
+                    SFMDocumentHistoryContract.RawEventKind.KEY_REPEAT,
+                    "forge-screen-key",
+                    keyCode(keyCode, 0),
+                    Optional.empty(),
+                    modifierMask,
+                    true,
+                    false
+            );
+            return true;
+        }
+        if (!firstPress) {
+            recordDocumentInput(
+                    screen,
+                    SFMDocumentHistoryContract.RawEventKind.KEY_REPEAT,
+                    "forge-screen-key",
+                    keyCode(keyCode, 0),
+                    Optional.empty(),
+                    modifierMask,
+                    false,
+                    true
+            );
+            return false;
+        }
+        final SFMKeyBindingMatchResult[] observed = new SFMKeyBindingMatchResult[1];
         SFMKeyBindingMatchResult match = SFMKeyBindingService.INSTANCE.acceptKey(
                 keyCode,
                 SFMKeyInputEvent.Type.PRESS,
                 modifiers(modifierMask),
-                contextFor(screen));
+                contextFor(screen),
+                result -> {
+                    observed[0] = result;
+                    recordDocumentInput(
+                            screen,
+                            SFMDocumentHistoryContract.RawEventKind.KEY_DOWN,
+                            "forge-screen-key",
+                            keyCode(keyCode, 0),
+                            Optional.empty(),
+                            modifierMask,
+                            result.consumed(),
+                            !result.consumed()
+                    );
+                });
+        if (observed[0] == null) {
+            // Dispatch can be suspended during keybinding capture. The raw
+            // event still belongs to the document journal.
+            recordDocumentInput(
+                    screen,
+                    SFMDocumentHistoryContract.RawEventKind.KEY_DOWN,
+                    "forge-screen-key",
+                    keyCode(keyCode, 0),
+                    Optional.empty(),
+                    modifierMask,
+                    false,
+                    true
+            );
+        }
         if (!match.consumed()) return false;
         CONSUMED_KEYS.add(keyCode);
         CHARACTER_SUPPRESSION_KEYS.add(keyCode);
@@ -187,6 +265,33 @@ public final class SFMDynamicKeyBindingHandler {
         if ((mask & GLFW.GLFW_MOD_SHIFT) != 0) result.add(SFMKeyModifier.SHIFT);
         if ((mask & GLFW.GLFW_MOD_SUPER) != 0) result.add(SFMKeyModifier.SUPER);
         return result;
+    }
+
+    private static void recordDocumentInput(
+            @Nullable Screen screen,
+            SFMDocumentHistoryContract.RawEventKind kind,
+            String source,
+            String code,
+            Optional<String> text,
+            int modifiers,
+            boolean consumed,
+            boolean delivered
+    ) {
+        if (screen == null) return;
+        SFMDocumentHistoryInputRouting.resolve(screen).ifPresent(target -> target.recordDocumentRawInput(
+                clientTick,
+                kind,
+                source,
+                code,
+                text,
+                modifiers,
+                consumed,
+                delivered
+        ));
+    }
+
+    private static String keyCode(int keyCode, int scanCode) {
+        return "key=" + keyCode + ",scan=" + scanCode;
     }
 
     private record ScreenEventMarker(int keyCode, int scanCode, boolean release, int modifiers) {

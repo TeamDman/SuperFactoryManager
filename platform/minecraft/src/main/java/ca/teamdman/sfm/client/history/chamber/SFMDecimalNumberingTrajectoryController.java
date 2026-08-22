@@ -5,6 +5,8 @@ import ca.teamdman.sfm.client.history.SFMCandidateHistoryContract;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphContract;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.SFMTrajectoryContract;
+import ca.teamdman.sfm.client.history.document.SFMDocumentHistoryContract;
+import ca.teamdman.sfm.client.history.document.SFMDocumentHistorySession;
 import ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive;
 import ca.teamdman.sfm.client.history.replay.SFMTemporalReplayEngine;
 
@@ -41,11 +43,10 @@ public final class SFMDecimalNumberingTrajectoryController
     private final Supplier<String> ambientCheckoutProbe;
     private final String ambientCheckoutBaseline;
     private final String historyHeadId;
+    private final SFMDocumentHistorySession documentHistory;
     private final LinkedHashMap<String, SFMChamberDocumentState> states = new LinkedHashMap<>();
     private final LinkedHashMap<String, String> firstObservedStateHashes = new LinkedHashMap<>();
     private final ArrayList<CommittedTransition> committedTransitions = new ArrayList<>();
-    private final ArrayList<SFMHistoryGraphContract.HeadMovement> headMovements = new ArrayList<>();
-    private final ArrayList<SFMHistoryGraphContract.RetentionPin> retentionPins = new ArrayList<>();
     private final LinkedHashMap<String, SFMDecimalNumberingPlannerAdapter.ExecutionManifest> manifests =
             new LinkedHashMap<>();
     private final LinkedHashMap<String, SFMDecimalNumberingPlannerAdapter.PlanningBundle> planningBundles =
@@ -57,7 +58,6 @@ public final class SFMDecimalNumberingTrajectoryController
     private final ArrayList<ReplanLineage> replanLineage = new ArrayList<>();
     private SFMTemporalReplayJournal replayJournal;
 
-    private String currentStateId;
     private SFMTrajectoryContract.PlanBook planBook = new SFMTrajectoryContract.PlanBook(
             SFMTrajectoryContract.SCHEMA,
             List.of(),
@@ -68,7 +68,6 @@ public final class SFMDecimalNumberingTrajectoryController
     private SFMTrajectoryContract.TrajectoryMachineState machine;
     private long revision;
     private long planSequence;
-    private long movementSequence;
 
     public SFMDecimalNumberingTrajectoryController(
             String episodeId,
@@ -81,11 +80,22 @@ public final class SFMDecimalNumberingTrajectoryController
         replayEngine = new SFMTemporalReplayEngine(chamber);
         this.ambientCheckoutProbe = Objects.requireNonNull(ambientCheckoutProbe, "ambientCheckoutProbe");
         ambientCheckoutBaseline = measuredAmbientHash();
-        historyHeadId = scope.qualify("head", "current");
         SFMChamberDocumentState initial = SFMChamberDocumentState.root(scope, initialText);
+        documentHistory = SFMDocumentHistorySession.create(
+                new SFMDocumentHistoryContract.SessionIdentity(
+                        scope.episodeId() + "/document/" + scope.documentId(),
+                        scope.documentId(),
+                        Optional.empty()
+                ),
+                new SFMDocumentHistorySession.RootSeed(
+                        initial.revisionId(),
+                        documentState(initial),
+                        initial.stateHash()
+                )
+        );
+        historyHeadId = documentHistory.headId();
         retainState(initial);
         replayJournal = new SFMTemporalReplayJournal(initial);
-        currentStateId = initial.revisionId();
         resetSupervisionFor(initial);
         machine = new SFMTrajectoryContract.TrajectoryMachineState(
                 historyHeadId,
@@ -104,7 +114,7 @@ public final class SFMDecimalNumberingTrajectoryController
     }
 
     public synchronized SFMChamberDocumentState currentState() {
-        return requireState(currentStateId);
+        return requireState(documentHistory.currentRevisionId());
     }
 
     public synchronized String currentText() {
@@ -140,7 +150,22 @@ public final class SFMDecimalNumberingTrajectoryController
 
     /** Complete Java-local causal archive for deterministic replay and puppet artifacts. */
     public synchronized SFMTemporalReplayArchive.Archive replayArchive() {
-        return replayJournal.snapshot(currentStateId);
+        return replayJournal.snapshot(documentHistory.currentRevisionId());
+    }
+
+    /** Generic document-history export consumed by ordinary history presentation adapters. */
+    public synchronized SFMDocumentHistoryContract.Archive documentHistoryArchive() {
+        return documentHistory.exportArchive();
+    }
+
+    /** Deterministic generic document projection; chamber planning policy is intentionally absent. */
+    public synchronized SFMDocumentHistoryContract.Projection documentHistoryProjection() {
+        return documentHistory.projection();
+    }
+
+    /** Shared immutable-history authority used by ordinary history viewers. */
+    public synchronized SFMDocumentHistorySession documentHistorySession() {
+        return documentHistory;
     }
 
     /** Fresh byte-level evidence that the chamber has not changed its protected ambient checkout. */
@@ -242,11 +267,7 @@ public final class SFMDecimalNumberingTrajectoryController
     }
 
     public synchronized List<String> childRevisionIds(String parentRevisionId) {
-        return states.values().stream()
-                .filter(state -> state.parentRevisionId().filter(parentRevisionId::equals).isPresent())
-                .map(SFMChamberDocumentState::revisionId)
-                .sorted()
-                .toList();
+        return documentHistory.childRevisionIds(parentRevisionId);
     }
 
     private SFMCandidateHistoryContract.CandidateFrame materializedCandidateFrame(
@@ -432,6 +453,9 @@ public final class SFMDecimalNumberingTrajectoryController
         LinkedHashMap<String, SFMChamberDocumentState> stagedStates = new LinkedHashMap<>(states);
         LinkedHashMap<String, String> stagedFirstHashes = new LinkedHashMap<>(firstObservedStateHashes);
         ArrayList<CommittedTransition> stagedHistory = new ArrayList<>(committedTransitions);
+        SFMDocumentHistorySession stagedDocumentHistory = SFMDocumentHistorySession.restore(
+                documentHistory.exportArchive()
+        );
         for (StagedTransitionCommit staged : stagedCommits) {
             SFMChamberDocumentState result = staged.transition().result();
             SFMChamberDocumentState previous = stagedStates.putIfAbsent(result.revisionId(), result);
@@ -442,7 +466,10 @@ public final class SFMDecimalNumberingTrajectoryController
             if (previousHash != null && !previousHash.equals(result.stateHash())) {
                 throw new IllegalStateException("Replay changed a retained state's first-observed hash");
             }
-            if (!staged.alreadyCommitted()) stagedHistory.add(staged.committed());
+            if (!staged.alreadyCommitted()) {
+                stagedHistory.add(staged.committed());
+                appendDetachedDocumentTransition(stagedDocumentHistory, staged);
+            }
         }
 
         SFMTemporalReplayJournal stagedJournal = new SFMTemporalReplayJournal(replayArchive());
@@ -466,7 +493,7 @@ public final class SFMDecimalNumberingTrajectoryController
                         : SFMTemporalReplayArchive.HeadMovementKind.REBASE_RESULT;
         stagedJournal.recordHeadMovement(
                 replayMovementKind,
-                currentStateId,
+                documentHistory.currentRevisionId(),
                 resultingStateId,
                 "registered-temporal-replay",
                 replay.report().id()
@@ -478,24 +505,15 @@ public final class SFMDecimalNumberingTrajectoryController
                 stagedFirstHashes,
                 stagedHistory
         );
-        long nextMovement = movementSequence + 1;
-        String movementId = scope.qualify("head-movement", Long.toString(nextMovement));
-        SFMHistoryGraphContract.HeadMovement movement = new SFMHistoryGraphContract.HeadMovement(
-                movementId,
+        stagedDocumentHistory.moveHead(new SFMDocumentHistorySession.HeadMoveRequest(
                 SFMHistoryGraphContract.HeadMovementKind.SELECT_BRANCH,
-                historyHeadId,
-                currentStateId,
                 resultingStateId,
                 List.of(targetParent.revisionId(), resultingStateId),
                 "registered-temporal-replay",
-                replay.report().id()
-        );
-        SFMHistoryGraphContract.RetentionPin pin = new SFMHistoryGraphContract.RetentionPin(
-                scope.qualify("retention-pin", "replay-" + nextMovement),
-                SFMHistoryGraphContract.RetentionKind.NAMED_BRANCH,
-                currentStateId,
-                movementId
-        );
+                replay.report().id(),
+                List.of(),
+                true
+        ));
 
         states.clear();
         states.putAll(stagedStates);
@@ -504,10 +522,7 @@ public final class SFMDecimalNumberingTrajectoryController
         committedTransitions.clear();
         committedTransitions.addAll(stagedHistory);
         replayJournal = stagedJournal;
-        headMovements.add(movement);
-        retentionPins.add(pin);
-        movementSequence = nextMovement;
-        currentStateId = resultingStateId;
+        documentHistory.restoreArchive(stagedDocumentHistory.exportArchive());
         activeSupervision = postState.supervision();
         machine = postState.machine();
         revision++;
@@ -639,29 +654,19 @@ public final class SFMDecimalNumberingTrajectoryController
 
     public synchronized SFMHistoryGraphRuntime.OperationResult undo(String actor, String requestId) {
         SFMChamberDocumentState current = currentState();
-        if (current.parentRevisionId().isEmpty()) {
+        SFMDocumentHistorySession.HeadMoveResult movement = documentHistory.undo(
+                actor,
+                requestId,
+                List.of()
+        );
+        if (movement.status() == SFMDocumentHistorySession.HeadMoveStatus.NO_CHANGE) {
             return SFMHistoryGraphRuntime.OperationResult.noChange("Document head is already at its root");
         }
-        String parentId = current.parentRevisionId().orElseThrow();
+        if (movement.status() != SFMDocumentHistorySession.HeadMoveStatus.APPLIED) {
+            return SFMHistoryGraphRuntime.OperationResult.rejected(movement.message());
+        }
+        String parentId = movement.toRevisionId();
         requireState(parentId);
-        String movementId = scope.qualify("head-movement", Long.toString(++movementSequence));
-        headMovements.add(new SFMHistoryGraphContract.HeadMovement(
-                movementId,
-                SFMHistoryGraphContract.HeadMovementKind.UNDO,
-                historyHeadId,
-                current.revisionId(),
-                parentId,
-                List.of(parentId),
-                requireText(actor, "actor"),
-                requireText(requestId, "requestId")
-        ));
-        retentionPins.add(new SFMHistoryGraphContract.RetentionPin(
-                scope.qualify("retention-pin", "undo-" + movementSequence),
-                SFMHistoryGraphContract.RetentionKind.NAMED_BRANCH,
-                current.revisionId(),
-                movementId
-        ));
-        currentStateId = parentId;
         replayJournal.recordHeadMovement(
                 SFMTemporalReplayArchive.HeadMovementKind.UNDO,
                 current.revisionId(),
@@ -827,7 +832,7 @@ public final class SFMDecimalNumberingTrajectoryController
         SFMTrajectoryContract.TrajectoryPlanRevision plan = planById(selectedPlanId.orElseThrow())
                 .orElseThrow(() -> new IllegalStateException("Selected plan is absent from the retained plan book"));
         SFMTrajectoryContract.InstructionPointer pointer = pointerValue.orElseThrow();
-        SFMChamberDocumentState authoritative = requireState(currentStateId); // fresh read inside lock
+        SFMChamberDocumentState authoritative = currentState(); // fresh read inside lock
         SFMBoundedTrajectoryPlanner.StepValidation validation = SFMBoundedTrajectoryPlanner.validateNextStep(
                 plan,
                 pointer.routeId(),
@@ -981,7 +986,7 @@ public final class SFMDecimalNumberingTrajectoryController
         } catch (IllegalArgumentException missing) {
             return SFMHistoryGraphRuntime.OperationResult.rejected(missing.getMessage());
         }
-        Optional<Integer> nextValue = pointerIndexForState(route, currentStateId);
+        Optional<Integer> nextValue = pointerIndexForState(route, documentHistory.currentRevisionId());
         if (nextValue.isEmpty()) {
             return SFMHistoryGraphRuntime.OperationResult.rejected(
                     "Current document head is not on retained route " + route.id()
@@ -1044,7 +1049,7 @@ public final class SFMDecimalNumberingTrajectoryController
             SFMDecimalNumberingChamber.Transition transition,
             String evidence
     ) {
-        return stageTransitionCommitAgainst(transition, evidence, currentStateId);
+        return stageTransitionCommitAgainst(transition, evidence, documentHistory.currentRevisionId());
     }
 
     private StagedTransitionCommit stageTransitionCommitAgainst(
@@ -1151,80 +1156,108 @@ public final class SFMDecimalNumberingTrajectoryController
                     staged.committed().evidence(),
                     ambientCheckoutBaseline
             );
+            appendDocumentTransition(documentHistory, staged);
+        } else if (!documentHistory.currentRevisionId().equals(transition.result().revisionId())) {
+            documentHistory.moveHead(new SFMDocumentHistorySession.HeadMoveRequest(
+                    SFMHistoryGraphContract.HeadMovementKind.SELECT_BRANCH,
+                    transition.result().revisionId(),
+                    List.of(transition.result().revisionId()),
+                    "chamber-transition-reuse",
+                    staged.committed().edgeId(),
+                    List.of(),
+                    false
+            ));
         }
         states.putIfAbsent(transition.result().revisionId(), transition.result());
         firstObservedStateHashes.putIfAbsent(transition.result().revisionId(), transition.result().stateHash());
         if (!staged.alreadyCommitted()) {
             committedTransitions.add(staged.committed());
         }
-        currentStateId = transition.result().revisionId();
     }
 
     private SFMHistoryGraphContract.Graph historyGraph() {
-        LinkedHashMap<String, SFMHistoryGraphContract.ActionIntent> intents = new LinkedHashMap<>();
-        ArrayList<SFMHistoryGraphContract.ActionEvaluation> evaluations = new ArrayList<>();
-        ArrayList<SFMHistoryGraphContract.ActionOutcome> outcomes = new ArrayList<>();
-        ArrayList<SFMHistoryGraphContract.BranchEdge> edges = new ArrayList<>();
-        for (CommittedTransition committed : committedTransitions) {
-            SFMDecimalNumberingChamber.Transition transition = committed.transition();
-            intents.putIfAbsent(transition.action().intent().id(), transition.action().intent());
-            List<SFMHistoryGraphContract.DependencyWitness> witnesses = dependencyWitnesses(transition);
-            evaluations.add(new SFMHistoryGraphContract.ActionEvaluation(
-                    committed.evaluationId(),
-                    transition.action().intent().id(),
-                    transition.parent().revisionId(),
-                    SFMDecimalNumberingChamber.ACTION_GENERATOR_REVISION,
-                    transition.action().evaluationPolicy(),
-                    witnesses,
-                    transition.outcomeId(),
-                    SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED
-            ));
-            outcomes.add(new SFMHistoryGraphContract.ActionOutcome(
-                    transition.outcomeId(),
-                    committed.evaluationId(),
-                    SFMHistoryGraphContract.OutcomeStatus.SUCCEEDED,
-                    Optional.of(transition.result().revisionId()),
-                    List.of(committed.evidence(), "result-state-hash=" + transition.result().stateHash())
-            ));
-            edges.add(new SFMHistoryGraphContract.BranchEdge(
-                    committed.edgeId(),
-                    transition.parent().revisionId(),
-                    transition.result().revisionId(),
-                    Optional.of(transition.action().intent().id()),
-                    Optional.of(committed.evaluationId()),
-                    Optional.of(transition.outcomeId()),
-                    transition.action().effectClass(),
-                    SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED,
-                    true
+        return documentHistory.projection().graph();
+    }
+
+    private void appendDocumentTransition(
+            SFMDocumentHistorySession target,
+            StagedTransitionCommit staged
+    ) {
+        SFMDocumentHistorySession.AppendResult result = target.append(documentMutationRequest(staged));
+        if (result.status() != SFMDocumentHistorySession.AppendStatus.APPLIED
+                && result.status() != SFMDocumentHistorySession.AppendStatus.DUPLICATE) {
+            throw new IllegalStateException("A chamber transition must materialize a document revision");
+        }
+    }
+
+    private void appendDetachedDocumentTransition(
+            SFMDocumentHistorySession target,
+            StagedTransitionCommit staged
+    ) {
+        SFMDocumentHistorySession.AppendResult result = target.appendDetached(
+                staged.transition().parent().revisionId(),
+                documentMutationRequest(staged)
+        );
+        if (result.status() != SFMDocumentHistorySession.AppendStatus.APPLIED
+                && result.status() != SFMDocumentHistorySession.AppendStatus.DUPLICATE) {
+            throw new IllegalStateException("A replay transition must materialize a document revision");
+        }
+    }
+
+    private SFMDocumentHistoryContract.MutationRequest documentMutationRequest(StagedTransitionCommit staged) {
+        SFMDecimalNumberingChamber.Transition transition = staged.transition();
+        CommittedTransition committed = staged.committed();
+        Optional<String> changedText = transition.action() instanceof SFMDecimalNumberingChamber.LiteralInsertAction insert
+                ? Optional.of(insert.insertedText())
+                : Optional.empty();
+        return new SFMDocumentHistoryContract.MutationRequest(
+                committed.edgeId(),
+                SFMDocumentHistoryContract.MutationKind.ACTION,
+                SFMDocumentHistoryContract.EditDirection.NONE,
+                documentState(transition.result()),
+                Optional.of(transition.result().revisionId()),
+                Optional.of(transition.result().stateHash()),
+                changedText,
+                new SFMDocumentHistoryContract.MutationProvenance(
+                        "sfm:chamber-controller",
+                        committed.edgeId(),
+                        revision,
+                        scope.qualify("focus", "chamber-document"),
+                        List.of()
+                ),
+                Optional.of(new SFMDocumentHistoryContract.GraphIdentity(
+                        transition.action().intent(),
+                        SFMDecimalNumberingChamber.ACTION_GENERATOR_REVISION,
+                        transition.action().evaluationPolicy(),
+                        dependencyWitnesses(transition),
+                        committed.evaluationId(),
+                        transition.outcomeId(),
+                        committed.edgeId(),
+                        transition.action().effectClass(),
+                        List.of(committed.evidence(), "result-state-hash=" + transition.result().stateHash())
+                ))
+        );
+    }
+
+    private static SFMDocumentHistoryContract.DocumentState documentState(SFMChamberDocumentState state) {
+        Objects.requireNonNull(state, "state");
+        if (state.selection().isEmpty()) {
+            return SFMDocumentHistoryContract.DocumentState.withoutSelection(state.text());
+        }
+        ArrayList<SFMDocumentHistoryContract.LogicalSelection> selections = new ArrayList<>();
+        List<SFMChamberDocumentState.SourceRegion> regions = state.selection().orElseThrow().regions();
+        for (int index = 0; index < regions.size(); index++) {
+            SFMChamberDocumentState.SourceRegion region = regions.get(index);
+            selections.add(new SFMDocumentHistoryContract.LogicalSelection(
+                    "chamber-region-" + index,
+                    SFMDocumentHistoryContract.LogicalPoint.at(state.text(), region.startCodePointOffset()),
+                    SFMDocumentHistoryContract.LogicalPoint.at(state.text(), region.endCodePointOffset())
             ));
         }
-        List<SFMHistoryGraphContract.StateRevision> projectedStates = states.values().stream()
-                .map(state -> new SFMHistoryGraphContract.StateRevision(
-                        state.revisionId(),
-                        state.parentRevisionId().stream().toList(),
-                        state.stateHash(),
-                        true,
-                        SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED
-                ))
-                .toList();
-        return new SFMHistoryGraphContract.Graph(
-                SFMHistoryGraphContract.SCHEMA,
-                List.copyOf(intents.values()),
-                evaluations,
-                outcomes,
-                projectedStates,
-                List.of(new SFMHistoryGraphContract.HistoryHead(
-                        historyHeadId,
-                        new SFMHistoryGraphContract.UndoDomain(
-                                SFMHistoryGraphContract.UndoDomainKind.DOCUMENT,
-                                scope.episodeId() + "/document/" + scope.documentId()
-                        ),
-                        currentStateId,
-                        Optional.of("current")
-                )),
-                headMovements,
-                edges,
-                retentionPins
+        return new SFMDocumentHistoryContract.DocumentState(
+                state.text(),
+                selections,
+                Optional.of("chamber-region-0")
         );
     }
 
@@ -1373,7 +1406,7 @@ public final class SFMDecimalNumberingTrajectoryController
         return "Temporal numbering chamber " + scope.documentId()
                 + "; status=" + machine.status()
                 + "; plans=" + planBook.plans().size()
-                + "; head=" + currentStateId
+                + "; head=" + documentHistory.currentRevisionId()
                 + "; document=" + preview;
     }
 

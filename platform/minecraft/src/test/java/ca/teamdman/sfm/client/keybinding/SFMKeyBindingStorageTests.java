@@ -247,10 +247,19 @@ class SFMKeyBindingStorageTests {
         SFMKeyBinding binding = undo.get(0);
         assertEquals("builtin/temporal-document/history/undo", binding.bindingId());
         assertEquals(SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT, binding.situationId());
-        assertEquals("sfm action invoke sfm:document/history/undo", binding.commandDraft());
+        assertEquals("sfm action invoke sfm:document/history/undo focused", binding.commandDraft());
         SFMKeyStroke stroke = binding.sequence().strokes().get(0);
         assertEquals(GLFW.GLFW_KEY_Z, stroke.keyCode());
         assertEquals(Set.of(SFMKeyModifier.CONTROL), stroke.modifiers());
+
+        List<SFMKeyBinding> redo = SFMKeyBindingDefaults.definitions().stream()
+                .filter(candidate -> candidate.actionId().equals("sfm:document/history/redo"))
+                .toList();
+        assertEquals(1, redo.size());
+        SFMKeyBinding redoBinding = redo.get(0);
+        assertEquals("sfm action invoke sfm:document/history/redo focused", redoBinding.commandDraft());
+        assertEquals(Set.of(SFMKeyModifier.CONTROL, SFMKeyModifier.SHIFT),
+                redoBinding.sequence().strokes().get(0).modifiers());
     }
 
     @Test

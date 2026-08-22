@@ -153,9 +153,18 @@ public final class SFMKeyBindingDefaults {
                 binding(
                         "builtin/temporal-document/history/undo",
                         "sfm:document/history/undo",
-                        "sfm action invoke sfm:document/history/undo",
+                        "sfm action invoke sfm:document/history/undo focused",
                         SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT,
                         SFMKeyStroke.of(GLFW.GLFW_KEY_Z, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/temporal-document/history/redo",
+                        "sfm:document/history/redo",
+                        "sfm action invoke sfm:document/history/redo focused",
+                        SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT,
+                        SFMKeyStroke.of(
+                                GLFW.GLFW_KEY_Z,
+                                SFMKeyModifier.CONTROL,
+                                SFMKeyModifier.SHIFT)),
                 binding(
                         "builtin/temporal-document/selection/select-all-matching-hyphens",
                         "sfm:text/selection/select/all_matching_hyphen_markers",

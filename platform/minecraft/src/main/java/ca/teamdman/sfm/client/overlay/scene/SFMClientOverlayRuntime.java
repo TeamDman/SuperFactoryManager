@@ -4,6 +4,7 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
+import ca.teamdman.sfm.client.history.document.runtime.SFMDocumentHistorySelector;
 import ca.teamdman.sfm.client.overlay.scene.SFMOverlaySceneContract.Bounds;
 import ca.teamdman.sfm.client.overlay.scene.SFMOverlaySceneContract.ContentRecipe;
 import ca.teamdman.sfm.client.overlay.scene.SFMOverlaySceneContract.InputMode;
@@ -14,6 +15,7 @@ import ca.teamdman.sfm.client.overlay.scene.SFMOverlaySceneContract.Viewport;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMScissorStack;
 import ca.teamdman.sfm.client.screen.history.SFMHistoryGraphPanel;
+import ca.teamdman.sfm.client.screen.history.document.SFMDocumentHistoryPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelWidgetHost;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
@@ -142,6 +144,9 @@ public final class SFMClientOverlayRuntime {
             );
             return new SFMHistoryGraphPanel(selector, invoker);
         });
+        registerContentFactory(SFMOverlaySceneContract.DOCUMENT_HISTORY_RECIPE_ID, (state, invoker) ->
+                new SFMDocumentHistoryPanel(SFMDocumentHistorySelector.parseCanonical(
+                        state.recipe().argument())));
     }
 
     public static SFMClientOverlayRuntime get() {
@@ -154,6 +159,10 @@ public final class SFMClientOverlayRuntime {
         if (factories.putIfAbsent(contentId, factory) != null) {
             throw new IllegalArgumentException("Duplicate overlay content factory " + contentId);
         }
+    }
+
+    public synchronized List<String> registeredContentIds() {
+        return List.copyOf(factories.keySet());
     }
 
     public synchronized SceneState scene() {

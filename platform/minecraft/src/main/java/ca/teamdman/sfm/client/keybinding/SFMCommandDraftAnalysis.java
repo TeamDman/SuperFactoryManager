@@ -4,14 +4,9 @@ import ca.teamdman.sfm.client.action.SFMClientActionCommandTree;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.action.SFMClientCommandInsertion;
+import ca.teamdman.sfm.client.action.SFMCommandFrontierAnalysis;
 import com.mojang.brigadier.ParseResults;
-import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.tree.ArgumentCommandNode;
-import com.mojang.brigadier.tree.CommandNode;
 import org.jetbrains.annotations.Nullable;
-
-import java.util.Comparator;
-import java.util.List;
 
 /** Pure Brigadier-backed classification for a bound command draft. */
 public record SFMCommandDraftAnalysis(
@@ -33,7 +28,11 @@ public record SFMCommandDraftAnalysis(
         if (SFMClientActionExecutor.isExecutable(parsed)) {
             return new SFMCommandDraftAnalysis(State.COMPLETE, prepared, null, "Ready to confirm");
         }
-        MissingParameter missing = nextArgument(parsed);
+        SFMCommandFrontierAnalysis frontier = tree.analyzeFrontier(prepared, parsed);
+        MissingParameter missing = frontier.missingParameters().stream()
+                .map(parameter -> new MissingParameter(parameter.name(), parameter.displayType()))
+                .findFirst()
+                .orElse(null);
         // Brigadier records the child argument's expected-input exception at EOF.
         // The parsed parent plus a concrete argument child is still a typed incomplete draft.
         boolean onlyTrailingWhitespaceRemains = !parsed.getReader().canRead()
@@ -42,40 +41,12 @@ public record SFMCommandDraftAnalysis(
             return new SFMCommandDraftAnalysis(State.INCOMPLETE, prepared, missing,
                     "Provide " + missing.name() + " (" + missing.displayType() + ")");
         }
-        String diagnostic = parsed.getExceptions().values().stream()
-                .map(exception -> exception.getRawMessage().getString())
-                .sorted()
+        String diagnostic = frontier.diagnostics().stream()
                 .findFirst()
                 .orElseGet(() -> parsed.getReader().canRead()
                         ? "Unexpected input at character " + parsed.getReader().getCursor()
                         : "The command is incomplete, but its next input has no typed editor");
         return new SFMCommandDraftAnalysis(State.INVALID, prepared, null, diagnostic);
-    }
-
-    private static @Nullable MissingParameter nextArgument(ParseResults<SFMClientActionSource> parsed) {
-        List<com.mojang.brigadier.context.ParsedCommandNode<SFMClientActionSource>> nodes =
-                parsed.getContext().getLastChild().getNodes();
-        if (nodes.isEmpty()) return null;
-        CommandNode<SFMClientActionSource> last = nodes.get(nodes.size() - 1).getNode();
-        return last.getChildren().stream()
-                .sorted(Comparator.comparing(CommandNode::getName))
-                .filter(ArgumentCommandNode.class::isInstance)
-                .map(node -> (ArgumentCommandNode<?, ?>) node)
-                .map(node -> new MissingParameter(node.getName(), displayType(node)))
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static String displayType(ArgumentCommandNode<?, ?> node) {
-        if (node.getType() instanceof StringArgumentType string) {
-            return switch (string.getType()) {
-                case SINGLE_WORD -> "word";
-                case QUOTABLE_PHRASE -> "quoted string";
-                case GREEDY_PHRASE -> "string";
-            };
-        }
-        String name = node.getType().getClass().getSimpleName();
-        return name.endsWith("ArgumentType") ? name.substring(0, name.length() - "ArgumentType".length()) : name;
     }
 
     private static String stripSlash(String command) {

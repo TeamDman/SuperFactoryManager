@@ -16,6 +16,7 @@ public final class SFMOverlaySceneContract {
     public static final String SCHEMA = "sfm.client-scene/1";
     public static final String HISTORY_OVERLAY_ID = "sfm:history";
     public static final String HISTORY_RECIPE_ID = "sfm:episode/history";
+    public static final String DOCUMENT_HISTORY_RECIPE_ID = "sfm:document/history";
     public static final int MAX_OVERLAYS = 64;
     public static final int MAX_TEXT_BYTES = 16 * 1024;
     public static final int MAX_SCENE_JSON_BYTES = 1024 * 1024;

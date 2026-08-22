@@ -36,6 +36,11 @@ public final class SFMWorkspaceScreenTypes {
             SFMHistoryGraphScreenType::new
     );
 
+    public static final SFMRegistryObject<SFMClientScreenType, SFMDocumentHistoryScreenType> DOCUMENT_HISTORY = REGISTERER.register(
+            "document/history",
+            SFMDocumentHistoryScreenType::new
+    );
+
     public static final SFMRegistryObject<SFMClientScreenType, SFMCandidateHistoryScreenType> CANDIDATE_HISTORY =
             REGISTERER.register(
                     "episode/candidate-history",

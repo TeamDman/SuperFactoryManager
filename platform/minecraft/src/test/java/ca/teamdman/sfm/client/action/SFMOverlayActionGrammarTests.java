@@ -8,10 +8,12 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,6 +30,40 @@ class SFMOverlayActionGrammarTests {
             .get(0)
             .placement()
             .canonical();
+
+    @Test
+    void paletteSurfacePreservesDynamicOverlaySelectorsAndLiteralVisibilityValues() {
+        FakeRuntime runtime = new FakeRuntime(success());
+        ResourceLocation actionId = new ResourceLocation("sfm", "overlay/visibility/set");
+        SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(List.of(
+                Map.entry(actionId, new SFMOverlayAction(SFMOverlayAction.Kind.VISIBILITY_SET, runtime))
+        ));
+        SFMClientActionSource source = source(new ArrayList<>());
+        String selectorPrefix = "sfm action invoke " + actionId + " ";
+
+        List<String> selectors = tree.getPaletteCandidates(
+                        selectorPrefix,
+                        tree.parse(selectorPrefix, source)
+                ).join().stream()
+                .filter(SFMPaletteCandidate::activatable)
+                .map(SFMPaletteCandidate::replacementText)
+                .toList();
+
+        assertTrue(selectors.contains("focused"));
+        assertTrue(selectors.contains("all"));
+        assertTrue(selectors.contains(EXACT_HISTORY));
+
+        String visibilityPrefix = selectorPrefix + EXACT_HISTORY + " ";
+        List<String> visibility = tree.getPaletteCandidates(
+                        visibilityPrefix,
+                        tree.parse(visibilityPrefix, source)
+                ).join().stream()
+                .filter(SFMPaletteCandidate::activatable)
+                .map(SFMPaletteCandidate::replacementText)
+                .toList();
+        assertTrue(visibility.contains("visible"));
+        assertTrue(visibility.contains("hidden"));
+    }
 
     @Test
     void everyOverlayGrammarRequiresAnExplicitSelectorAndItsTypedArguments() {

@@ -10,18 +10,24 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMClientCommandInsertionTests {
     private static final ResourceLocation ECHO = new ResourceLocation("sfm", "echo");
     private static final ResourceLocation TERMINAL = new ResourceLocation("sfm", "terminal");
     private static final ResourceLocation OPTIONAL = new ResourceLocation("sfm", "optional");
+    private static final ResourceLocation PANEL_OPEN = new ResourceLocation("sfm", "panel/open");
+    private static final ResourceLocation PANEL_OPEN_RIGHT = new ResourceLocation("sfm", "panel/open/right");
     private final SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(
             List.<Map.Entry<ResourceLocation, SFMClientAction<?>>>of(
                     Map.entry(ECHO, new EchoAction()),
                     Map.entry(TERMINAL, new TerminalAction()),
-                    Map.entry(OPTIONAL, new OptionalAction())
+                    Map.entry(OPTIONAL, new OptionalAction()),
+                    Map.entry(PANEL_OPEN, new PanelOpenAction()),
+                    Map.entry(PANEL_OPEN_RIGHT, new PanelOpenAction())
             )
     );
     private final SFMClientActionSource source = new SFMClientActionSource(
@@ -63,6 +69,53 @@ public class SFMClientCommandInsertionTests {
         assertEquals("sfm action invoke", prepare("sfm action invoke"));
     }
 
+    @Test
+    public void paletteTabMustNotUseExecutionPreparationAtAnActionBoundary() {
+        String query = "sfm action invoke open";
+        SFMPaletteCandidate selected = tree.getPaletteCandidates(query, tree.parse(query, source))
+                .join()
+                .get(0);
+        assertEquals("sfm:panel/open", selected.replacementText());
+
+        SFMCompletionApplication application = selected.apply(query);
+
+        assertEquals("sfm action invoke sfm:panel/open", application.afterValue());
+        assertEquals("", application.deliberateSeparator());
+        assertEquals(SFMPaletteCandidate.Kind.ACTION_BOUNDARY, application.candidateKind());
+        assertEquals(SFMPaletteCandidate.Origin.ACTION_REGISTRY, application.candidateOrigin());
+        assertEquals(selected.replacementRange(), application.replacementRange());
+        assertEquals(selected.replacementText(), application.replacementText());
+    }
+
+    @Test
+    public void repeatedTabAtAnExactBoundaryProgressesToAStrictActionDescendant() {
+        String current = "sfm action invoke sfm:panel/open";
+        List<SFMPaletteCandidate> candidates = tree.getPaletteCandidates(current, tree.parse(current, source))
+                .join();
+        assertEquals("sfm:panel/open", candidates.get(0).replacementText());
+        assertEquals(current, candidates.get(0).apply(current).afterValue());
+
+        OptionalInt progressing = SFMPaletteCandidate.progressingIndex(candidates, 0, current);
+
+        assertTrue(progressing.isPresent());
+        assertEquals("sfm:panel/open/right", candidates.get(progressing.getAsInt()).replacementText());
+        assertEquals("sfm action invoke sfm:panel/open/right",
+                candidates.get(progressing.getAsInt()).apply(current).afterValue());
+    }
+
+    @Test
+    public void explicitSpaceEntersTheSceneFrontier() {
+        String command = "sfm action invoke sfm:panel/open ";
+
+        List<String> candidates = tree.getPaletteCandidates(command, tree.parse(command, source))
+                .join().stream()
+                .filter(SFMPaletteCandidate::activatable)
+                .map(SFMPaletteCandidate::replacementText)
+                .toList();
+
+        assertEquals(List.of("sfm:text_editor"), candidates);
+    }
+
     private String prepare(String command) {
         return SFMClientCommandInsertion.prepare(command, tree, source);
     }
@@ -79,6 +132,14 @@ public class SFMClientCommandInsertionTests {
         public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
             node.executes(this::invoke).then(RequiredArgumentBuilder
                     .<SFMClientActionSource, String>argument("optional", StringArgumentType.word())
+                    .executes(this::invoke));
+        }
+    }
+
+    private static final class PanelOpenAction extends TerminalAction {
+        @Override
+        public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
+            node.then(LiteralArgumentBuilder.<SFMClientActionSource>literal("sfm:text_editor")
                     .executes(this::invoke));
         }
     }

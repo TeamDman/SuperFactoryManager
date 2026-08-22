@@ -8,6 +8,7 @@
     "StructureTemplateManagerMixin"
   ],
   "client": [
+    "EditBoxAccessor",
     "MouseHandlerMixin",
     "KeyboardHandlerMixin",
     "KeyboardHandlerInvoker"

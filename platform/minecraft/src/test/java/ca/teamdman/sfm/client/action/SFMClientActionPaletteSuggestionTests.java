@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.client.action;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestion;
@@ -201,8 +203,8 @@ class SFMClientActionPaletteSuggestionTests {
     void typedHistoryUsesActionFuzzyRelevanceAndDoesNotPromoteUnrelatedCommands() {
         SFMClientActionCommandTree tree = treeWithHistory(
                 List.of(
-                        "sfm action invoke sfm:echo newest",
-                        "sfm action invoke sfm:panel/open right"),
+                        "sfm action invoke sfm:panel/open right",
+                        "sfm action invoke sfm:echo newest"),
                 Map.entry(
                         new ResourceLocation("sfm", "echo"),
                         new TestAction("Echo", new AtomicInteger(), true)),
@@ -217,8 +219,151 @@ class SFMClientActionPaletteSuggestionTests {
         List<String> suggestions = tree.getPaletteSuggestions(query, tree.parse(query, source()))
                 .join().getList().stream().map(Suggestion::getText).toList();
 
+        assertEquals("sfm:panel/open", suggestions.get(0));
         assertTrue(suggestions.contains("sfm:panel/open right"));
+        assertTrue(suggestions.indexOf("sfm:panel/open")
+                < suggestions.indexOf("sfm:panel/open right"));
         assertFalse(suggestions.contains("sfm:echo newest"));
+    }
+
+    @Test
+    void compatiblePanelOpenHistoryBoostsTheSceneAcrossDirections() {
+        SFMClientActionCommandTree tree = treeWithHistory(
+                List.of(
+                        "sfm action invoke sfm:panel/open sfm:terminal_properties",
+                        "sfm action invoke sfm:echo unrelated"),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open"),
+                        new SceneAction(new AtomicInteger(), true)),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open/right"),
+                        new SceneAction(new AtomicInteger(), true)),
+                Map.entry(
+                        new ResourceLocation("sfm", "echo"),
+                        new TestAction("Echo", new AtomicInteger(), true)));
+        SFMClientActionSource source = source();
+        String query = "sfm action invoke sfm:panel/open/right ";
+
+        List<String> suggestions = tree.getPaletteSuggestions(query, tree.parse(query, source))
+                .join().getList().stream().map(Suggestion::getText).toList();
+
+        assertEquals("sfm:terminal_properties", suggestions.get(0));
+        assertTrue(suggestions.contains("sfm:terminal"));
+        assertFalse(suggestions.contains("unrelated"));
+    }
+
+    @Test
+    void compatibleArgumentHistorySurvivesUnrelatedSiblingGrammarDifferences() {
+        SFMClientActionCommandTree tree = treeWithHistory(
+                List.of("sfm action invoke sfm:panel/open favourite"),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open"),
+                        new AsymmetricSceneAction(false)),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open/right"),
+                        new AsymmetricSceneAction(true)));
+        String query = "sfm action invoke sfm:panel/open/right ";
+
+        List<SFMPaletteCandidate> candidates = tree.getPaletteCandidates(
+                query, tree.parse(query, source())).join();
+
+        assertTrue(candidates.stream().anyMatch(candidate ->
+                candidate.origin() == SFMPaletteCandidate.Origin.COMMAND_HISTORY
+                        && candidate.replacementText().equals("favourite")));
+    }
+
+    @Test
+    void sharedPaletteFrontierPublishesConcreteSuggestionsAndNamedUsage() {
+        SFMClientActionCommandTree tree = tree(Map.entry(
+                new ResourceLocation("sfm", "panel/open"),
+                new SceneAction(new AtomicInteger(), true)
+        ));
+        String query = "sfm action invoke sfm:panel/open ";
+
+        SFMCommandFrontierAnalysis frontier = tree.analyzePaletteFrontier(
+                query, tree.parse(query, source())).join();
+
+        assertEquals(List.of("sfm:terminal", "sfm:terminal_properties"),
+                frontier.suggestions().stream().map(Suggestion::getText).toList());
+        assertTrue(frontier.usageDisplayRows().isEmpty(),
+                "literal continuations are concrete suggestions, not fake required arguments");
+    }
+
+    @Test
+    void quotedAndGreedyArgumentHistoryUsesBrigadierRangesWithoutWhitespaceSplitting() {
+        assertHistoricalValueRoundTrips(
+                StringArgumentType.string(),
+                "\"scene with spaces\""
+        );
+        assertHistoricalValueRoundTrips(
+                StringArgumentType.greedyString(),
+                "scene with spaces"
+        );
+    }
+
+    @Test
+    void explicitHistoryFamilyStillRejectsIncompatibleArgumentGrammars() {
+        SFMClientActionCommandTree tree = treeWithHistory(
+                List.of("sfm action invoke sfm:panel/open scene with spaces"),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open"),
+                        new StringSceneAction(StringArgumentType.greedyString())),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open/right"),
+                        new StringSceneAction(StringArgumentType.word())));
+        String query = "sfm action invoke sfm:panel/open/right ";
+
+        List<SFMPaletteCandidate> candidates = tree.getPaletteCandidates(query, tree.parse(query, source()))
+                .join();
+
+        assertFalse(candidates.stream().anyMatch(candidate ->
+                candidate.origin() == SFMPaletteCandidate.Origin.COMMAND_HISTORY));
+    }
+
+    @Test
+    void unsuggestedRequiredArgumentPublishesNamedNonActivatableUsage() {
+        SFMClientActionCommandTree tree = tree(Map.entry(
+                new ResourceLocation("sfm", "required"),
+                new RequiredStringAction()
+        ));
+        String query = "sfm action invoke sfm:required ";
+
+        List<SFMPaletteCandidate> candidates = tree.getPaletteCandidates(query, tree.parse(query, source()))
+                .join();
+
+        SFMPaletteCandidate usage = candidates.stream()
+                .filter(candidate -> candidate.kind() == SFMPaletteCandidate.Kind.USAGE_HINT)
+                .findFirst()
+                .orElseThrow();
+        assertFalse(usage.activatable());
+        assertTrue(usage.displayText().contains("message"), usage::displayText);
+        assertTrue(usage.displayText().contains("string"), usage::displayText);
+        assertThrows(IllegalStateException.class, () -> usage.apply(query));
+    }
+
+    private static void assertHistoricalValueRoundTrips(
+            StringArgumentType argumentType,
+            String historicalValue
+    ) {
+        SFMClientActionCommandTree tree = treeWithHistory(
+                List.of("sfm action invoke sfm:panel/open " + historicalValue),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open"),
+                        new StringSceneAction(argumentType)),
+                Map.entry(
+                        new ResourceLocation("sfm", "panel/open/right"),
+                        new StringSceneAction(argumentType)));
+        String query = "sfm action invoke sfm:panel/open/right ";
+
+        SFMPaletteCandidate candidate = tree.getPaletteCandidates(query, tree.parse(query, source()))
+                .join().stream()
+                .filter(value -> value.origin() == SFMPaletteCandidate.Origin.COMMAND_HISTORY)
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(historicalValue, candidate.replacementText());
+        assertEquals(SFMClientActionArgumentHistory.PANEL_OPEN_SCENE_FAMILY, candidate.historyFamily());
+        assertEquals(query + historicalValue, candidate.apply(query).afterValue());
     }
 
     private static SFMClientActionCommandTree tree(
@@ -325,6 +470,112 @@ class SFMClientActionPaletteSuggestionTests {
         @Override
         public int execute(Object target, CommandContext<SFMClientActionSource> context) {
             throw new AssertionError("The scene argument is required");
+        }
+    }
+
+    private static final class AsymmetricSceneAction implements SFMClientAction<Object> {
+        private final boolean extraSibling;
+
+        private AsymmetricSceneAction(boolean extraSibling) {
+            this.extraSibling = extraSibling;
+        }
+
+        @Override
+        public Component title() {
+            return Component.literal("Open scene");
+        }
+
+        @Override
+        public Component description() {
+            return Component.literal("Open one test scene");
+        }
+
+        @Override
+        public SFMClientActionRequirement<Object> requirement() {
+            return ignored -> SFMClientActionAvailability.available(new Object());
+        }
+
+        @Override
+        public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
+            node.then(RequiredArgumentBuilder
+                    .<SFMClientActionSource, String>argument("scene", StringArgumentType.word())
+                    .executes(context -> Command.SINGLE_SUCCESS));
+            if (extraSibling) {
+                node.then(LiteralArgumentBuilder.<SFMClientActionSource>literal("preview")
+                        .then(RequiredArgumentBuilder
+                                .<SFMClientActionSource, String>argument(
+                                        "preview_mode", StringArgumentType.word())
+                                .executes(context -> Command.SINGLE_SUCCESS)));
+            }
+        }
+
+        @Override
+        public int execute(Object target, CommandContext<SFMClientActionSource> context) {
+            return Command.SINGLE_SUCCESS;
+        }
+    }
+
+    private static final class StringSceneAction implements SFMClientAction<Object> {
+        private final StringArgumentType argumentType;
+
+        private StringSceneAction(StringArgumentType argumentType) {
+            this.argumentType = argumentType;
+        }
+
+        @Override
+        public Component title() {
+            return Component.literal("Open string scene");
+        }
+
+        @Override
+        public Component description() {
+            return Component.literal("Test history parsing");
+        }
+
+        @Override
+        public SFMClientActionRequirement<Object> requirement() {
+            return ignored -> SFMClientActionAvailability.available(new Object());
+        }
+
+        @Override
+        public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
+            node.then(RequiredArgumentBuilder
+                    .<SFMClientActionSource, String>argument("scene", argumentType)
+                    .executes(this::invoke));
+        }
+
+        @Override
+        public int execute(Object target, CommandContext<SFMClientActionSource> context) {
+            return Command.SINGLE_SUCCESS;
+        }
+    }
+
+    private static final class RequiredStringAction implements SFMClientAction<Object> {
+        @Override
+        public Component title() {
+            return Component.literal("Required string");
+        }
+
+        @Override
+        public Component description() {
+            return Component.literal("Requires one unsuggested message");
+        }
+
+        @Override
+        public SFMClientActionRequirement<Object> requirement() {
+            return ignored -> SFMClientActionAvailability.available(new Object());
+        }
+
+        @Override
+        public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
+            node.then(RequiredArgumentBuilder
+                    .<SFMClientActionSource, String>argument("message", StringArgumentType.greedyString())
+                    .executes(this::invoke));
+        }
+
+        @Override
+        public int execute(Object target, CommandContext<SFMClientActionSource> context) {
+            return Command.SINGLE_SUCCESS;
         }
     }
 }

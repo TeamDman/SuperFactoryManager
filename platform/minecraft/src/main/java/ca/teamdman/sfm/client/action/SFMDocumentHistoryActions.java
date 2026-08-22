@@ -13,6 +13,10 @@ public final class SFMDocumentHistoryActions {
 
     public static final SFMRegistryObject<SFMClientAction<?>, SFMDocumentHistoryUndoAction> UNDO =
             REGISTERER.register("document/history/undo", SFMDocumentHistoryUndoAction::new);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMDocumentHistoryRedoAction> REDO =
+            REGISTERER.register("document/history/redo", SFMDocumentHistoryRedoAction::new);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMDocumentHistoryViewTransposeAction> TRANSPOSE_VIEW =
+            REGISTERER.register("document/history/view/transpose", SFMDocumentHistoryViewTransposeAction::new);
 
     private SFMDocumentHistoryActions() {
     }

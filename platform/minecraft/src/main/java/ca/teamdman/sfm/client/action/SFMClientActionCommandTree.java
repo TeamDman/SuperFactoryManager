@@ -34,6 +34,7 @@ public final class SFMClientActionCommandTree {
     private static final long SLOW_COMPLETION_NANOS = 100_000_000L;
     private static final int MAX_LITERAL_CONTINUATION_DEPTH = 8;
     private static final int MAX_LITERAL_CONTINUATION_CANDIDATES = 256;
+    private static final float HISTORY_ACTION_BOOST = 0.02f;
 
     private final CommandDispatcher<SFMClientActionSource> dispatcher;
     private final Map<ResourceLocation, SFMClientAction<?>> actions;
@@ -152,19 +153,60 @@ public final class SFMClientActionCommandTree {
                     .stream()
                     .filter(suggestion -> {
                         ResourceLocation id = ResourceLocation.tryParse(suggestion.getText());
-                        return !actions.containsKey(id) || isAvailable(id, source);
+                        return id == null || !actions.containsKey(id) || isAvailable(id, source);
                     })
                     .toList();
             return new Suggestions(suggestions.getRange(), filtered);
         });
     }
 
+    public SFMCommandFrontierAnalysis analyzeFrontier(
+            String command,
+            ParseResults<SFMClientActionSource> parsed
+    ) {
+        return SFMCommandFrontierAnalysis.analyze(command, parsed, dispatcher);
+    }
+
     /**
-     * Returns palette-only suggestions. Brigadier remains authoritative for
-     * parsing and execution; this layer only broadens and ranks the action-id
-     * candidates shown while the user is searching the palette.
+     * Complete semantic frontier used by interactive palette guidance.  The
+     * synchronous form remains useful for parse-only callers; this form adds
+     * the concrete (possibly provider-backed) Brigadier suggestions for the
+     * same parent/range/usage analysis instead of forcing UI callers to build a
+     * parallel interpretation.
      */
+    public CompletableFuture<SFMCommandFrontierAnalysis> analyzePaletteFrontier(
+            String command,
+            ParseResults<SFMClientActionSource> parsed
+    ) {
+        return getCompletionSuggestions(parsed).thenApply(suggestions ->
+                analyzeFrontier(command, parsed).withSuggestions(suggestions));
+    }
+
+    /** Backwards-compatible Brigadier projection of the typed palette seam. */
     public CompletableFuture<Suggestions> getPaletteSuggestions(
+            String command,
+            ParseResults<SFMClientActionSource> parsed
+    ) {
+        return getPaletteCandidates(command, parsed).thenApply(candidates -> {
+            List<Suggestion> suggestions = candidates.stream()
+                    .filter(SFMPaletteCandidate::activatable)
+                    .map(SFMPaletteCandidate::suggestion)
+                    .distinct()
+                    .toList();
+            StringRange range = suggestions.isEmpty()
+                    ? analyzeFrontier(command, parsed).replacementRange()
+                    : suggestions.get(0).getRange();
+            return new Suggestions(range, suggestions);
+        });
+    }
+
+    /**
+     * Returns typed palette candidates. Brigadier remains authoritative for
+     * parsing, dynamic providers, replacement ranges, and execution; this
+     * layer adds bounded fuzzy ranking, history, usage rows, and insertion
+     * metadata for the palette presentation.
+     */
+    public CompletableFuture<List<SFMPaletteCandidate>> getPaletteCandidates(
             String command,
             ParseResults<SFMClientActionSource> parsed
     ) {
@@ -188,26 +230,54 @@ public final class SFMClientActionCommandTree {
                 ranked.sort(Comparator.comparingDouble(RankedChoice::score)
                         .thenComparing(RankedChoice::command));
             }
-            return CompletableFuture.completedFuture(new Suggestions(
-                    choiceRange,
-                    ranked.stream().map(RankedChoice::suggestion).toList()));
+            String frontier = "choice@" + choiceRange.getStart();
+            return CompletableFuture.completedFuture(ranked.stream()
+                    .map(choice -> SFMPaletteCandidate.activatable(
+                            choice.suggestion(),
+                            SFMPaletteCandidate.Kind.ACTION_BOUNDARY,
+                            SFMPaletteCandidate.Origin.CHOICE_SURFACE,
+                            paletteChoiceActions.get(choice.command()),
+                            frontier,
+                            SFMPaletteCandidate.NO_HISTORY,
+                            null
+                    ))
+                    .toList());
         }
         return getCompletionSuggestions(parsed).thenApply(brigadierSuggestions -> {
+            SFMCommandFrontierAnalysis frontier = analyzeFrontier(command, parsed)
+                    .withSuggestions(brigadierSuggestions);
             StringRange actionRange = actionIdRange(command);
             if (actionRange == null) {
-                return fuzzyNestedLiteralSuggestions(command, parsed, brigadierSuggestions);
+                Suggestions fuzzy = fuzzyNestedLiteralSuggestions(command, parsed, brigadierSuggestions);
+                return nestedCandidates(command, parsed, fuzzy, frontier.withSuggestions(fuzzy));
             }
 
             String query = command.substring(actionRange.getStart(), actionRange.getEnd())
                     .toLowerCase(Locale.ROOT);
             SFMClientActionSource source = parsed.getContext().getSource();
-            List<RankedPaletteSuggestion> ranked = new ArrayList<>();
+            List<RankedPaletteCandidate> ranked = new ArrayList<>();
             List<String> recentHistory = availableHistory(source);
+            Map<ResourceLocation, Integer> actionHistoryRecency = new LinkedHashMap<>();
+            for (int index = 0; index < recentHistory.size(); index++) {
+                ResourceLocation actionId = historyActionId(recentHistory.get(index));
+                if (actionId != null) actionHistoryRecency.putIfAbsent(actionId, index);
+            }
+            String frontierId = "action-id@" + actionRange.getStart();
             if (query.isBlank()) {
                 for (int index = 0; index < recentHistory.size(); index++) {
                     String historyCommand = recentHistory.get(index);
-                    ranked.add(new RankedPaletteSuggestion(
-                            new Suggestion(actionRange, historySuffix(historyCommand)),
+                    ResourceLocation actionId = historyActionId(historyCommand);
+                    Suggestion suggestion = new Suggestion(actionRange, historySuffix(historyCommand));
+                    ranked.add(new RankedPaletteCandidate(
+                            SFMPaletteCandidate.activatable(
+                                    suggestion,
+                                    SFMPaletteCandidate.Kind.COMPLETE_HISTORY_COMMAND,
+                                    SFMPaletteCandidate.Origin.COMMAND_HISTORY,
+                                    actionId,
+                                    frontierId,
+                                    index,
+                                    null
+                            ),
                             -1.0f + index * 0.0001f,
                             historyCommand));
                 }
@@ -219,8 +289,17 @@ public final class SFMClientActionCommandTree {
                     if (metadata == null) continue;
                     float score = actionScore(query, metadata);
                     if (score <= 0.65f) {
-                        ranked.add(new RankedPaletteSuggestion(
-                                new Suggestion(actionRange, historySuffix(historyCommand)),
+                        Suggestion suggestion = new Suggestion(actionRange, historySuffix(historyCommand));
+                        ranked.add(new RankedPaletteCandidate(
+                                SFMPaletteCandidate.activatable(
+                                        suggestion,
+                                        SFMPaletteCandidate.Kind.COMPLETE_HISTORY_COMMAND,
+                                        SFMPaletteCandidate.Origin.COMMAND_HISTORY,
+                                        actionId,
+                                        frontierId,
+                                        index,
+                                        null
+                                ),
                                 score + Math.min(0.01f, index * 0.0001f),
                                 historyCommand));
                     }
@@ -228,11 +307,25 @@ public final class SFMClientActionCommandTree {
             }
             for (Map.Entry<ResourceLocation, SFMClientAction<?>> action : actions.entrySet()) {
                 if (!isAvailable(action.getKey(), source)) continue;
-                float score = actionScore(query, searchMetadata.get(action.getKey()));
+                float score = action.getKey().toString().equals(query)
+                        ? -1.0f
+                        : actionScore(query, searchMetadata.get(action.getKey()));
                 if (query.isBlank() || score <= 0.65f) {
-                    ranked.add(new RankedPaletteSuggestion(
-                            new Suggestion(actionRange, action.getKey().toString()),
-                            score,
+                    Integer recency = actionHistoryRecency.get(action.getKey());
+                    float historyBoost = query.isBlank() || recency == null
+                            ? 0.0f
+                            : Math.max(0.001f, HISTORY_ACTION_BOOST - recency * 0.0001f);
+                    ranked.add(new RankedPaletteCandidate(
+                            SFMPaletteCandidate.activatable(
+                                    new Suggestion(actionRange, action.getKey().toString()),
+                                    SFMPaletteCandidate.Kind.ACTION_BOUNDARY,
+                                    SFMPaletteCandidate.Origin.ACTION_REGISTRY,
+                                    action.getKey(),
+                                    frontierId,
+                                    recency == null ? SFMPaletteCandidate.NO_HISTORY : recency,
+                                    null
+                            ),
+                            score - historyBoost,
                             action.getKey().toString()
                     ));
                 }
@@ -245,18 +338,119 @@ public final class SFMClientActionCommandTree {
                         MAX_LITERAL_CONTINUATION_CANDIDATES));
             }
             ranked.sort(Comparator
-                    .comparingDouble(RankedPaletteSuggestion::score)
-                    .thenComparing(RankedPaletteSuggestion::command));
-            return new Suggestions(
-                    actionRange,
-                    ranked.stream()
-                            .filter(suggestion -> !query.isBlank() || !isDuplicateBareAction(suggestion, ranked))
-                            .distinct()
-                            .limit(MAX_LITERAL_CONTINUATION_CANDIDATES)
-                            .map(RankedPaletteSuggestion::suggestion)
-                            .toList()
-            );
+                    .comparingDouble(RankedPaletteCandidate::score)
+                    .thenComparingInt(candidate -> candidateKindOrder(candidate.candidate().kind()))
+                    .thenComparing(RankedPaletteCandidate::command));
+            return distinctCandidates(ranked.stream()
+                    .map(RankedPaletteCandidate::candidate)
+                    .limit(MAX_LITERAL_CONTINUATION_CANDIDATES)
+                    .toList());
         });
+    }
+
+    private List<SFMPaletteCandidate> nestedCandidates(
+            String command,
+            ParseResults<SFMClientActionSource> parsed,
+            Suggestions brigadierSuggestions,
+            SFMCommandFrontierAnalysis frontier
+    ) {
+        ResourceLocation actionId = parsedActionId(parsed);
+        List<String> history = availableHistory(parsed.getContext().getSource());
+        List<SFMClientActionArgumentHistory.HistoricalArgument> historical =
+                SFMClientActionArgumentHistory.suggestions(
+                        command,
+                        parsed,
+                        frontier,
+                        dispatcher,
+                        history
+                );
+        Map<String, Suggestion> brigadierByText = new LinkedHashMap<>();
+        for (Suggestion suggestion : brigadierSuggestions.getList()) {
+            brigadierByText.putIfAbsent(suggestion.getText(), suggestion);
+        }
+        ArrayList<SFMPaletteCandidate> result = new ArrayList<>();
+        for (SFMClientActionArgumentHistory.HistoricalArgument argument : historical) {
+            Suggestion registered = brigadierByText.get(argument.value());
+            Suggestion suggestion = registered == null
+                    ? new Suggestion(frontier.replacementRange(), argument.value())
+                    : registered;
+            result.add(SFMPaletteCandidate.activatable(
+                    suggestion,
+                    SFMPaletteCandidate.Kind.ARGUMENT_VALUE,
+                    SFMPaletteCandidate.Origin.COMMAND_HISTORY,
+                    actionId,
+                    frontier.frontierId(),
+                    argument.historyRecency(),
+                    argument.familyId()
+            ));
+        }
+        for (Suggestion suggestion : brigadierSuggestions.getList()) {
+            boolean literal = frontier.parent().getChildren().stream()
+                    .anyMatch(child -> child instanceof LiteralCommandNode<?>
+                            && child.getName().equals(suggestion.getText()));
+            result.add(SFMPaletteCandidate.activatable(
+                    suggestion,
+                    literal
+                            ? SFMPaletteCandidate.Kind.LITERAL_CONTINUATION
+                            : SFMPaletteCandidate.Kind.ARGUMENT_VALUE,
+                    SFMPaletteCandidate.Origin.BRIGADIER,
+                    actionId,
+                    frontier.frontierId(),
+                    SFMPaletteCandidate.NO_HISTORY,
+                    null
+            ));
+        }
+        for (String usage : frontier.usageDisplayRows()) {
+            result.add(SFMPaletteCandidate.usageHint(
+                    frontier.replacementRange(),
+                    usage,
+                    SFMPaletteCandidate.Origin.SMART_USAGE,
+                    actionId,
+                    frontier.frontierId()
+            ));
+        }
+        if (result.isEmpty()) {
+            for (String diagnostic : frontier.diagnostics()) {
+                result.add(SFMPaletteCandidate.usageHint(
+                        frontier.replacementRange(),
+                        "Invalid: " + diagnostic,
+                        SFMPaletteCandidate.Origin.PARSE_DIAGNOSTIC,
+                        actionId,
+                        frontier.frontierId()
+                ));
+            }
+        }
+        return distinctCandidates(result);
+    }
+
+    private ResourceLocation parsedActionId(ParseResults<SFMClientActionSource> parsed) {
+        return parsed.getContext().getNodes().stream()
+                .map(node -> ResourceLocation.tryParse(node.getNode().getName()))
+                .filter(actions::containsKey)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private static int candidateKindOrder(SFMPaletteCandidate.Kind kind) {
+        return switch (kind) {
+            case ACTION_BOUNDARY -> 0;
+            case COMPLETE_HISTORY_COMMAND -> 1;
+            case LITERAL_CONTINUATION -> 2;
+            case ARGUMENT_VALUE -> 3;
+            case USAGE_HINT -> 4;
+        };
+    }
+
+    private static List<SFMPaletteCandidate> distinctCandidates(List<SFMPaletteCandidate> candidates) {
+        LinkedHashMap<String, SFMPaletteCandidate> result = new LinkedHashMap<>();
+        for (SFMPaletteCandidate candidate : candidates) {
+            String key = candidate.activatable()
+                    ? candidate.replacementRange().getStart() + ":"
+                            + candidate.replacementRange().getEnd() + ":" + candidate.replacementText()
+                    : "usage:" + candidate.displayText();
+            result.putIfAbsent(key, candidate);
+        }
+        return List.copyOf(result.values());
     }
 
     /**
@@ -266,7 +460,7 @@ public final class SFMClientActionCommandTree {
      * {@code sfm:panel/open sfm:terminal}, while keeping completion bounded
      * and free of synchronous filesystem/network work.
      */
-    private static List<RankedPaletteSuggestion> literalContinuationSuggestions(
+    private static List<RankedPaletteCandidate> literalContinuationSuggestions(
             StringRange replacementRange,
             String query,
             ParseResults<SFMClientActionSource> parsed,
@@ -277,7 +471,8 @@ public final class SFMClientActionCommandTree {
         if (nodes.isEmpty()) return List.of();
         CommandNode<SFMClientActionSource> parent = nodes.get(nodes.size() - 1).getNode();
         SFMClientActionSource source = parsed.getContext().getSource();
-        List<RankedPaletteSuggestion> result = new ArrayList<>();
+        List<RankedPaletteCandidate> result = new ArrayList<>();
+        String frontier = "literal-discovery@" + replacementRange.getStart();
         for (CommandNode<SFMClientActionSource> child : parent.getChildren()) {
             if (!(child instanceof LiteralCommandNode<SFMClientActionSource> actionLiteral)
                     || !actionLiteral.canUse(source)) continue;
@@ -292,6 +487,7 @@ public final class SFMClientActionCommandTree {
                     0,
                     candidateLimit,
                     path,
+                    frontier,
                     result);
             if (result.size() >= candidateLimit) break;
         }
@@ -307,7 +503,8 @@ public final class SFMClientActionCommandTree {
             int depth,
             int candidateLimit,
             Set<CommandNode<SFMClientActionSource>> path,
-            List<RankedPaletteSuggestion> result
+            String frontier,
+            List<RankedPaletteCandidate> result
     ) {
         if (depth >= MAX_LITERAL_CONTINUATION_DEPTH || result.size() >= candidateLimit) return;
         for (CommandNode<SFMClientActionSource> child : parent.getChildren()) {
@@ -317,8 +514,17 @@ public final class SFMClientActionCommandTree {
             String continuation = commandPrefix + " " + literal.getLiteral();
             float score = literalScore(query, literal.getLiteral());
             if (score <= 0.65f) {
-                result.add(new RankedPaletteSuggestion(
-                        new Suggestion(replacementRange, continuation),
+                ResourceLocation actionId = firstResourceLocationToken(commandPrefix);
+                result.add(new RankedPaletteCandidate(
+                        SFMPaletteCandidate.activatable(
+                                new Suggestion(replacementRange, continuation),
+                                SFMPaletteCandidate.Kind.LITERAL_CONTINUATION,
+                                SFMPaletteCandidate.Origin.LITERAL_DISCOVERY,
+                                actionId,
+                                frontier,
+                                SFMPaletteCandidate.NO_HISTORY,
+                                null
+                        ),
                         score + (depth + 1) * 0.001f,
                         continuation));
             }
@@ -331,6 +537,7 @@ public final class SFMClientActionCommandTree {
                     depth + 1,
                     candidateLimit,
                     path,
+                    frontier,
                     result);
             path.remove(literal);
             if (result.size() >= candidateLimit) return;
@@ -433,6 +640,12 @@ public final class SFMClientActionCommandTree {
         return SFMFuzzyScorer.score(query, candidate);
     }
 
+    private static ResourceLocation firstResourceLocationToken(String value) {
+        int separator = 0;
+        while (separator < value.length() && !Character.isWhitespace(value.charAt(separator))) separator++;
+        return ResourceLocation.tryParse(value.substring(0, separator));
+    }
+
     /**
      * Extracts stable search material without resolving a translatable
      * component through Minecraft's global Language table. Completion-tree
@@ -463,7 +676,7 @@ public final class SFMClientActionCommandTree {
         }
     }
 
-    private record RankedPaletteSuggestion(Suggestion suggestion, float score, String command) {
+    private record RankedPaletteCandidate(SFMPaletteCandidate candidate, float score, String command) {
     }
 
     private record RankedLiteral(Suggestion suggestion, float score, String literal) {
@@ -509,15 +722,4 @@ public final class SFMClientActionCommandTree {
         return ResourceLocation.tryParse(suffix.substring(0, end));
     }
 
-    private static boolean isDuplicateBareAction(
-            RankedPaletteSuggestion candidate,
-            List<RankedPaletteSuggestion> all
-    ) {
-        String command = candidate.command();
-        if (!command.startsWith("sfm action invoke ")) return false;
-        String suffix = historySuffix(command);
-        if (suffix.indexOf(' ') >= 0) return false;
-        return all.stream().anyMatch(other -> other != candidate
-                && other.command().equals(suffix));
-    }
 }

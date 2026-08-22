@@ -144,6 +144,26 @@ public record SFMTextDocumentSnapshot(
         );
     }
 
+    /** Preserves document identity while advancing the saved-content baseline. */
+    public SFMTextDocumentSnapshot withSavedText(String savedText) {
+        Objects.requireNonNull(savedText, "savedText");
+        byte[] bytes = savedText.getBytes(StandardCharsets.UTF_8);
+        return new SFMTextDocumentSnapshot(
+                State.READY,
+                savedText,
+                mutationCapability,
+                path,
+                authorizedRoot,
+                Optional.of(sha256(bytes)),
+                OptionalLong.of(bytes.length),
+                lastModified,
+                Optional.of(detectLineEndings(savedText)),
+                Optional.empty(),
+                diagnostics,
+                sourceRootIdentity
+        );
+    }
+
     public static SFMTextDocumentSnapshot fromResolver(
             SFMResolverTextResult result,
             Optional<SFMTextDocumentRange> targetRange

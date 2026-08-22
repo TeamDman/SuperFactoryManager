@@ -1416,6 +1416,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
         SFMTextDocumentSaveResult result = openContext.saveDocument(getCurrentText());
         saveDiagnostic = result.diagnostic();
+        if (result.saved()) {
+            // Saving advances dirtiness only. The temporal revision graph is
+            // owned by the host and deliberately remains intact.
+            initialCanvasProjectionText = model.projectedText(this.font.width(" "), this.font.lineHeight);
+        }
         return result;
     }
 

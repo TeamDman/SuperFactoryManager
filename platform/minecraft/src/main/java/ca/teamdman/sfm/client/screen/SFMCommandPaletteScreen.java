@@ -6,14 +6,25 @@ import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.action.SFMClientCommandInsertion;
+import ca.teamdman.sfm.client.action.SFMCompletionApplication;
+import ca.teamdman.sfm.client.action.SFMPaletteCandidate;
 import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
+import ca.teamdman.sfm.client.history.SFMDocumentHistoryHost;
+import ca.teamdman.sfm.client.history.SFMDocumentHistoryHostController;
+import ca.teamdman.sfm.client.history.SFMDocumentHistoryInputTarget;
+import ca.teamdman.sfm.client.history.document.SFMDocumentHistoryContract;
+import ca.teamdman.sfm.client.history.document.SFMDocumentHistorySession;
+import ca.teamdman.sfm.client.history.document.runtime.SFMDocumentHistoryRuntime;
 import ca.teamdman.sfm.client.presentation.SFMItemIconRenderer;
 import ca.teamdman.sfm.client.presentation.SFMItemIconResolver;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBinding;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingCycle;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingDisplay;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
+import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextProvider;
+import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextSnapshot;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.widget.SFMConsoleWidget;
 import ca.teamdman.sfm.client.screen.widget.SFMKeycapRenderer;
@@ -24,11 +35,11 @@ import ca.teamdman.sfm.client.theme.SFMColourRole;
 import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
+import ca.teamdman.sfm.mixins.EditBoxAccessor;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.suggestion.Suggestion;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.Button;
@@ -44,6 +55,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
@@ -52,7 +65,8 @@ import java.util.function.Consumer;
  * otherwise replaces the in-world view, so closing it always restores the
  * view from which the palette was opened.
  */
-public final class SFMCommandPaletteScreen extends Screen implements SFMTransientActionScreen {
+public final class SFMCommandPaletteScreen extends Screen implements SFMTransientActionScreen,
+        SFMDocumentHistoryHost, SFMDocumentHistoryInputTarget, SFMKeyboardUsageContextProvider {
     public static final String DEFAULT_QUERY = "sfm action invoke ";
 
     @SFMLocalizationDatagen
@@ -117,6 +131,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     static final String CLOSE_ACTION_COMMAND = "sfm action invoke sfm:palette/close";
 
     private static @Nullable SFMCommandPaletteScreen ACTIVE;
+    private static final AtomicLong NEXT_HISTORY_SESSION = new AtomicLong();
 
     private final SFMClientActionContext actionContext;
     private final boolean pushed;
@@ -134,7 +149,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private Button cancelButton;
     @SuppressWarnings("NotNullFieldNotInitialized")
     private SFMConsoleWidget consoleWidget;
-    private List<Suggestion> suggestions = List.of();
+    private List<SFMPaletteCandidate> suggestions = List.of();
     private final List<Component> feedback = new ArrayList<>();
     private final SFMVerticalListViewport suggestionViewport = new SFMVerticalListViewport();
     private String error = "";
@@ -142,6 +157,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private long bindingCycleTicks;
     private final CloseLifecycle closeLifecycle = new CloseLifecycle();
     private boolean insertedRequiredArgumentSeparator;
+    private @Nullable SFMCompletionApplication lastCompletionApplication;
+    private final String historySessionId =
+            "sfm:document/command-palette/session-" + NEXT_HISTORY_SESSION.incrementAndGet();
+    private @Nullable SFMDocumentHistoryHostController historyController;
+    private @Nullable SFMDocumentHistoryRuntime.Registration historyRegistration;
 
     @FunctionalInterface
     interface PaletteActionExecutor {
@@ -176,6 +196,23 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             boolean active,
             boolean focused,
             String narrationPriority
+    ) {
+    }
+
+    /** Structured candidate evidence used by puppets and later streaming tests. */
+    public record PaletteCandidateAutomationSnapshot(
+            int order,
+            String displayText,
+            boolean activatable,
+            String kind,
+            String origin,
+            int replacementStart,
+            int replacementEnd,
+            String replacementText,
+            String completionFrontier,
+            int historyRecency,
+            @Nullable String historyFamily,
+            String insertionIntent
     ) {
     }
 
@@ -271,7 +308,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     ) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen instanceof SFMCommandPaletteScreen palette) {
-            palette.input.setValue(initialQuery);
+            palette.setInputValueWithHistory(
+                    initialQuery,
+                    SFMDocumentHistoryContract.MutationKind.ACTION,
+                    Optional.of(initialQuery),
+                    "palette-open-replace-query"
+            );
             palette.setFocused(palette.input);
             return;
         }
@@ -348,10 +390,64 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     }
 
     @Override
+    public String documentHistorySessionId() {
+        return historySessionId;
+    }
+
+    @Override
+    public SFMDocumentHistorySession documentHistorySession() {
+        if (historyController == null) throw new IllegalStateException("Palette history is not initialized");
+        return historyController.session();
+    }
+
+    @Override
+    public SFMDocumentHistoryHostController documentHistoryController() {
+        if (historyController == null) throw new IllegalStateException("Palette history is not initialized");
+        return historyController;
+    }
+
+    @Override
+    public void recordDocumentRawInput(
+            long clientTick,
+            SFMDocumentHistoryContract.RawEventKind kind,
+            String source,
+            String code,
+            Optional<String> text,
+            int modifiers,
+            boolean consumed,
+            boolean delivered
+    ) {
+        if (historyController != null) {
+            historyController.recordRawInput(
+                    clientTick, kind, source, code, text, modifiers, consumed, delivered);
+        }
+    }
+
+    @Override
+    public SFMKeyboardUsageContextSnapshot keyboardUsageContextSnapshot() {
+        var ancestry = SFMKeyboardUsageSituations.catalog().resolve(
+                SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT);
+        return new SFMKeyboardUsageContextSnapshot(
+                this,
+                () -> ACTIVE == this && Minecraft.getInstance().screen == this,
+                null,
+                null,
+                0,
+                0,
+                ancestry.situations(),
+                ancestry.depths()
+        );
+    }
+
+    @Override
     public Component getNarrationMessage() {
         int selectedSuggestion = suggestionViewport.selectedRow();
         if (selectedSuggestion < 0 || selectedSuggestion >= suggestions.size()) return title;
-        Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(selectedSuggestion));
+        SFMPaletteCandidate candidate = suggestions.get(selectedSuggestion);
+        if (!candidate.activatable()) {
+            return title.copy().append(". ").append(candidate.displayText());
+        }
+        Optional<ResourceLocation> actionId = suggestionActionId(candidate);
         if (actionId.isEmpty()) return title;
         var action = SFMClientActions.registry().get(actionId.get());
         if (action == null) return title;
@@ -376,6 +472,9 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         ACTIVE = this;
         if (choiceSession != null) commandTree = choiceSession.activate();
         SFMScreenRenderUtils.enableKeyRepeating();
+        SFMDocumentHistoryContract.DocumentState restoredHistoryState = historyController == null
+                ? null
+                : historyController.session().currentState();
         int width = panelWidth();
         int left = panelLeft();
         int top = panelTop();
@@ -389,7 +488,9 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 INPUT_PLACEHOLDER.getComponent()
         ));
         this.input.setMaxLength(2048);
-        this.input.setValue(this.initialQuery);
+        this.input.setValue(restoredHistoryState == null
+                ? this.initialQuery
+                : restoredHistoryState.text());
         this.input.setSuggestion("");
         this.input.setResponder(this::refreshSuggestions);
         this.executeButton = this.addRenderableWidget(new SFMButtonBuilder()
@@ -414,7 +515,28 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.setInitialFocus(this.input);
         this.setFocused(this.input);
         this.input.setFocused(true);
-        refreshSuggestions(this.initialQuery);
+        if (historyController == null) {
+            SFMDocumentHistorySession session = SFMDocumentHistorySession.create(
+                    new SFMDocumentHistoryContract.SessionIdentity(
+                            historySessionId,
+                            historySessionId + "/command",
+                            Optional.empty()
+                    ),
+                    captureInputHistoryState()
+            );
+            historyController = new SFMDocumentHistoryHostController(
+                    session,
+                    "sfm:command_palette",
+                    historySessionId + "/input",
+                    this::checkoutInputHistoryState
+            );
+            // A transient palette is independently addressable, but it does
+            // not steal the workspace's last focused-document selector.
+            historyRegistration = SFMDocumentHistoryRuntime.get().register(historyController);
+        } else {
+            checkoutInputHistoryState(Objects.requireNonNull(restoredHistoryState));
+        }
+        refreshSuggestions(this.input.getValue());
     }
 
     @Override
@@ -443,6 +565,14 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private void cleanupActionSurface() {
         closeLifecycle.runCleanupOnce(() -> {
             try {
+                if (historyRegistration != null) {
+                    historyRegistration.close();
+                    historyRegistration = null;
+                }
+                if (historyController != null) {
+                    historyController.close();
+                    historyController = null;
+                }
                 if (choiceSession != null && !choiceSession.invalidated()) {
                     SFMChoiceSessionService.invalidate(choiceSession);
                 }
@@ -458,6 +588,23 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     @Override
     public boolean keyPressed(int key, int scanCode, int modifiers) {
+        SFMDocumentHistoryContract.DocumentState before = historyController == null
+                ? null
+                : captureInputHistoryState();
+        boolean handled = keyPressedWithoutHistory(key, scanCode, modifiers);
+        if (before != null) {
+            observeInputHistoryMutation(
+                    before,
+                    mutationKindForKey(key, modifiers),
+                    editDirectionForKey(key),
+                    Optional.empty(),
+                    "palette-key-" + key
+            );
+        }
+        return handled;
+    }
+
+    private boolean keyPressedWithoutHistory(int key, int scanCode, int modifiers) {
         if (key == GLFW.GLFW_KEY_ESCAPE) {
             cancelThroughAction();
             return true;
@@ -467,6 +614,13 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             return super.keyPressed(key, scanCode, modifiers);
         }
         if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) {
+            int selected = suggestionViewport.selectedRow();
+            if (selected >= 0 && selected < suggestions.size()
+                    && !suggestions.get(selected).activatable()) {
+                // Usage/diagnostic rows explain the current frontier. Enter
+                // must never execute through an explanatory selection.
+                return true;
+            }
             if (!currentInputIsExecutable()
                     && suggestionViewport.selectedRow() != SFMVerticalListViewport.NO_SELECTION) {
                 applySelectedSuggestion();
@@ -477,8 +631,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         }
         if (key == GLFW.GLFW_KEY_TAB) {
             boolean forward = (modifiers & GLFW.GLFW_MOD_SHIFT) == 0 && !Screen.hasShiftDown();
-            if (forward && this.input.isFocused() && applySelectedSuggestion()) {
-                return true;
+            if (forward && this.input.isFocused()) {
+                if (applySelectedSuggestion()) return true;
+                // A selected exact/no-op or explanatory row must not leak Tab
+                // into the widget focus chain. Shift+Tab remains the explicit
+                // way to leave the input in the reverse direction.
+                if (!this.suggestions.isEmpty()) return true;
             }
             if (!this.changeFocus(forward)) this.changeFocus(forward);
             return true;
@@ -509,7 +667,31 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     }
 
     @Override
+    public boolean charTyped(char character, int modifiers) {
+        SFMDocumentHistoryContract.DocumentState before = historyController == null
+                ? null
+                : captureInputHistoryState();
+        boolean handled = super.charTyped(character, modifiers);
+        if (before != null) {
+            observeInputHistoryMutation(
+                    before,
+                    SFMDocumentHistoryContract.MutationKind.TYPE,
+                    SFMDocumentHistoryContract.EditDirection.FORWARD,
+                    Optional.of(Character.toString(character)),
+                    "palette-character"
+            );
+        }
+        return handled;
+    }
+
+    @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        return observePointerMutation(
+                "pointer-press-" + button,
+                () -> mouseClickedWithoutHistory(mouseX, mouseY, button));
+    }
+
+    private boolean mouseClickedWithoutHistory(double mouseX, double mouseY, int button) {
         if (this.consoleWidget.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
@@ -540,6 +722,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        return observePointerMutation(
+                "pointer-release-" + button,
+                () -> mouseReleasedWithoutHistory(mouseX, mouseY, button));
+    }
+
+    private boolean mouseReleasedWithoutHistory(double mouseX, double mouseY, int button) {
         if (this.consoleWidget.mouseReleased(mouseX, mouseY, button)) {
             return true;
         }
@@ -549,6 +737,18 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     @Override
     public boolean mouseDragged(
+            double mouseX,
+            double mouseY,
+            int button,
+            double dragX,
+            double dragY
+    ) {
+        return observePointerMutation(
+                "pointer-drag-" + button,
+                () -> mouseDraggedWithoutHistory(mouseX, mouseY, button, dragX, dragY));
+    }
+
+    private boolean mouseDraggedWithoutHistory(
             double mouseX,
             double mouseY,
             int button,
@@ -630,12 +830,13 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                             rowTop + SUGGESTION_ROW_CONTENT_HEIGHT,
                             theme.colour(SFMColourRole.PANEL_SELECTION));
                 }
-                Suggestion suggestion = suggestions.get(suggestionIndex);
+                SFMPaletteCandidate suggestion = suggestions.get(suggestionIndex);
                 int textX = actionIcon(suggestion).isPresent()
                         ? left + 10 + SFMItemIconRenderer.SIZE + 4
                         : left + 12;
+                int rowText = suggestion.activatable() ? text : muted;
                 SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion, textX - left),
-                        textX, textY, text, false);
+                        textX, textY, rowText, false);
                 renderBindingSummary(poseStack, suggestion, right, textY, scrollbar.visible());
             }
             renderSuggestionScrollbar(poseStack, mouseX, mouseY, scrollbar);
@@ -659,7 +860,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         renderActionDetailsTooltip(poseStack, mouseX, mouseY);
     }
 
-    private Optional<ca.teamdman.sfm.client.presentation.SFMItemIcon> actionIcon(Suggestion suggestion) {
+    private Optional<ca.teamdman.sfm.client.presentation.SFMItemIcon> actionIcon(SFMPaletteCandidate suggestion) {
         Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return Optional.empty();
         var action = SFMClientActions.registry().get(actionId.get());
@@ -712,7 +913,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     private void renderBindingSummary(
             PoseStack poseStack,
-            Suggestion suggestion,
+            SFMPaletteCandidate suggestion,
             int right,
             int y,
             boolean scrollbarVisible
@@ -765,17 +966,18 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         renderComponentTooltip(poseStack, tooltip, mouseX, mouseY);
     }
 
-    private String truncateSuggestion(Suggestion suggestion, int leftInset) {
-        return font.plainSubstrByWidth(suggestion.getText(), Math.max(20, panelWidth() - 150 - leftInset));
+    private String truncateSuggestion(SFMPaletteCandidate suggestion, int leftInset) {
+        return font.plainSubstrByWidth(suggestion.displayText(), Math.max(20, panelWidth() - 150 - leftInset));
     }
 
-    private Optional<ResourceLocation> suggestionActionId(Suggestion suggestion) {
+    private Optional<ResourceLocation> suggestionActionId(SFMPaletteCandidate suggestion) {
+        if (suggestion.actionId() != null) return Optional.of(suggestion.actionId());
         if (choiceSession != null) {
-            Optional<ResourceLocation> actionId = choiceSession.actionIdForSuggestion(suggestion.getText());
+            Optional<ResourceLocation> actionId = choiceSession.actionIdForSuggestion(suggestion.replacementText());
             if (actionId.isPresent()) return actionId;
         }
         try {
-            String suggestionText = suggestion.getText().stripLeading();
+            String suggestionText = suggestion.replacementText().stripLeading();
             int separator = 0;
             while (separator < suggestionText.length()
                     && !Character.isWhitespace(suggestionText.charAt(separator))) separator++;
@@ -974,6 +1176,151 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         return value.startsWith("/") ? value.substring(1) : value;
     }
 
+    private SFMDocumentHistoryContract.DocumentState captureInputHistoryState() {
+        String value = this.input.getValue();
+        int activeUtf16 = Math.max(0, Math.min(value.length(), this.input.getCursorPosition()));
+        int anchorUtf16 = Math.max(0, Math.min(
+                value.length(),
+                ((EditBoxAccessor) (Object) this.input).sfm$getHighlightPos()
+        ));
+        int activeCodePoint = value.codePointCount(0, activeUtf16);
+        int anchorCodePoint = value.codePointCount(0, anchorUtf16);
+        SFMDocumentHistoryContract.LogicalPoint anchor =
+                SFMDocumentHistoryContract.LogicalPoint.at(value, anchorCodePoint);
+        SFMDocumentHistoryContract.LogicalPoint active =
+                SFMDocumentHistoryContract.LogicalPoint.at(value, activeCodePoint);
+        return new SFMDocumentHistoryContract.DocumentState(
+                value,
+                List.of(new SFMDocumentHistoryContract.LogicalSelection("primary", anchor, active)),
+                Optional.of("primary")
+        );
+    }
+
+    private void checkoutInputHistoryState(SFMDocumentHistoryContract.DocumentState state) {
+        this.input.setValue(state.text());
+        SFMDocumentHistoryContract.LogicalSelection selection = state.primarySelectionId()
+                .flatMap(primary -> state.selections().stream()
+                        .filter(candidate -> candidate.id().equals(primary))
+                        .findFirst())
+                .orElseGet(() -> state.selections().stream().findFirst().orElse(null));
+        if (selection == null) {
+            this.input.moveCursorToEnd();
+            return;
+        }
+        int activeUtf16 = state.text().offsetByCodePoints(0, selection.active().codePointOffset());
+        int anchorUtf16 = state.text().offsetByCodePoints(0, selection.anchor().codePointOffset());
+        this.input.setCursorPosition(activeUtf16);
+        this.input.setHighlightPos(anchorUtf16);
+    }
+
+    private void observeInputHistoryMutation(
+            SFMDocumentHistoryContract.DocumentState before,
+            SFMDocumentHistoryContract.MutationKind kind,
+            SFMDocumentHistoryContract.EditDirection direction,
+            Optional<String> changedText,
+            String cause
+    ) {
+        if (historyController == null || historyController.checkoutInProgress()) return;
+        // A nested explicit programmatic cause (completion/reset/action) may
+        // already have advanced the immutable head while this outer input
+        // callback was on the stack.
+        if (!historyController.session().currentState().equals(before)) return;
+        SFMDocumentHistoryContract.DocumentState after = captureInputHistoryState();
+        if (after.equals(before)) return;
+        historyController.observeMutation(
+                kind,
+                direction,
+                before,
+                after,
+                changedText,
+                SFMKeyBindingService.INSTANCE.currentTick(),
+                cause
+        );
+    }
+
+    private void setInputValueWithHistory(
+            String value,
+            SFMDocumentHistoryContract.MutationKind kind,
+            Optional<String> changedText,
+            String cause
+    ) {
+        SFMDocumentHistoryContract.DocumentState before = historyController == null
+                ? null
+                : captureInputHistoryState();
+        this.input.setValue(value);
+        if (before != null) {
+            observeInputHistoryMutation(
+                    before,
+                    kind,
+                    SFMDocumentHistoryContract.EditDirection.NONE,
+                    changedText,
+                    cause
+            );
+        }
+    }
+
+    private boolean observePointerMutation(String code, BooleanSupplier dispatch) {
+        SFMDocumentHistoryContract.DocumentState before = historyController == null
+                ? null
+                : captureInputHistoryState();
+        if (historyController != null) {
+            historyController.recordRawInput(
+                    SFMKeyBindingService.INSTANCE.currentTick(),
+                    SFMDocumentHistoryContract.RawEventKind.POINTER,
+                    "palette-pointer",
+                    code,
+                    Optional.empty(),
+                    0,
+                    false,
+                    true
+            );
+        }
+        boolean handled = dispatch.getAsBoolean();
+        if (before != null) {
+            observeInputHistoryMutation(
+                    before,
+                    SFMDocumentHistoryContract.MutationKind.SELECTION_CHANGE,
+                    SFMDocumentHistoryContract.EditDirection.NONE,
+                    Optional.empty(),
+                    code
+            );
+        }
+        return handled;
+    }
+
+    private static SFMDocumentHistoryContract.MutationKind mutationKindForKey(
+            int key,
+            int modifiers
+    ) {
+        if (key == GLFW.GLFW_KEY_BACKSPACE) {
+            return SFMDocumentHistoryContract.MutationKind.DELETE_BACKWARD;
+        }
+        if (key == GLFW.GLFW_KEY_DELETE) {
+            return SFMDocumentHistoryContract.MutationKind.DELETE_FORWARD;
+        }
+        if (Screen.isPaste(key)) return SFMDocumentHistoryContract.MutationKind.PASTE;
+        if (key == GLFW.GLFW_KEY_A && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+            return SFMDocumentHistoryContract.MutationKind.SELECTION_CHANGE;
+        }
+        if (key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT
+                || key == GLFW.GLFW_KEY_HOME || key == GLFW.GLFW_KEY_END) {
+            return (modifiers & GLFW.GLFW_MOD_SHIFT) != 0
+                    ? SFMDocumentHistoryContract.MutationKind.SELECTION_CHANGE
+                    : SFMDocumentHistoryContract.MutationKind.CARET_CHANGE;
+        }
+        return SFMDocumentHistoryContract.MutationKind.OTHER;
+    }
+
+    private static SFMDocumentHistoryContract.EditDirection editDirectionForKey(int key) {
+        if (key == GLFW.GLFW_KEY_BACKSPACE || key == GLFW.GLFW_KEY_LEFT) {
+            return SFMDocumentHistoryContract.EditDirection.BACKWARD;
+        }
+        if (key == GLFW.GLFW_KEY_DELETE || key == GLFW.GLFW_KEY_RIGHT) {
+            return SFMDocumentHistoryContract.EditDirection.FORWARD;
+        }
+        return SFMDocumentHistoryContract.EditDirection.NONE;
+    }
+
     private void refreshSuggestions(String ignored) {
         this.insertedRequiredArgumentSeparator = false;
         String command = commandInput();
@@ -986,9 +1333,9 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 new SFMClientActionSource(this.actionContext)
         );
         this.executeButton.active = isExecutable(parsed);
-        tree.getPaletteSuggestions(command, parsed).thenAccept(result -> Minecraft.getInstance().execute(() -> {
+        tree.getPaletteCandidates(command, parsed).thenAccept(result -> Minecraft.getInstance().execute(() -> {
             if (ACTIVE != this || revision != this.suggestionRevision) return;
-            this.suggestions = result.getList();
+            this.suggestions = result;
             suggestionViewport.configure(this.suggestions.size(), visibleSuggestionCount());
             suggestionViewport.select(this.suggestions.isEmpty()
                     ? SFMVerticalListViewport.NO_SELECTION
@@ -1010,18 +1357,53 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private boolean applySelectedSuggestion() {
         int selectedSuggestion = suggestionViewport.selectedRow();
         if (selectedSuggestion < 0 || selectedSuggestion >= this.suggestions.size()) return false;
-        String previousValue = this.input.getValue();
+        String rawCurrent = this.input.getValue();
         String current = commandInput();
-        String suggestedValue = this.suggestions.get(selectedSuggestion).apply(current);
-        String value = SFMClientCommandInsertion.prepare(
-                suggestedValue,
-                commandTree,
-                new SFMClientActionSource(actionContext)
+        SFMPaletteCandidate candidate = this.suggestions.get(selectedSuggestion);
+        if (!candidate.activatable()) return false;
+        SFMCompletionApplication application = candidate.apply(current);
+        if (application.afterValue().equals(current)) {
+            OptionalInt progressing = SFMPaletteCandidate.progressingIndex(
+                    this.suggestions,
+                    selectedSuggestion,
+                    current
+            );
+            if (progressing.isEmpty()) return true;
+            selectedSuggestion = progressing.getAsInt();
+            suggestionViewport.select(selectedSuggestion);
+            candidate = this.suggestions.get(selectedSuggestion);
+            application = candidate.apply(current);
+        }
+        application = paletteCoordinateApplication(rawCurrent, application);
+        this.lastCompletionApplication = application;
+        setInputValueWithHistory(
+                application.afterValue(),
+                SFMDocumentHistoryContract.MutationKind.COMPLETION,
+                Optional.of(application.replacementText()),
+                "palette-completion-" + application.candidateKind().name().toLowerCase(java.util.Locale.ROOT)
         );
-        this.input.setValue(value);
-        this.insertedRequiredArgumentSeparator = !value.equals(suggestedValue);
+        this.insertedRequiredArgumentSeparator = !application.deliberateSeparator().isEmpty();
         this.input.moveCursorToEnd();
-        return !previousValue.equals(this.input.getValue());
+        return true;
+    }
+
+    private static SFMCompletionApplication paletteCoordinateApplication(
+            String rawCurrent,
+            SFMCompletionApplication normalized
+    ) {
+        if (!rawCurrent.startsWith("/")) return normalized;
+        return new SFMCompletionApplication(
+                rawCurrent,
+                com.mojang.brigadier.context.StringRange.between(
+                        normalized.replacementRange().getStart() + 1,
+                        normalized.replacementRange().getEnd() + 1
+                ),
+                normalized.replacementText(),
+                normalized.deliberateSeparator(),
+                normalized.candidateKind(),
+                normalized.candidateOrigin(),
+                "/" + normalized.afterValue()
+        );
     }
 
     private void cancelThroughAction() {
@@ -1058,7 +1440,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 this.error = "Choose an available suggestion before providing the next argument";
                 return;
             }
-            this.input.setValue(prepared);
+            setInputValueWithHistory(
+                    prepared,
+                    SFMDocumentHistoryContract.MutationKind.COMPLETION,
+                    Optional.of(prepared.substring(Math.min(prepared.length(), rawCommand.length()))),
+                    "palette-required-argument-separator"
+            );
             this.insertedRequiredArgumentSeparator = true;
             this.input.moveCursorToEnd();
             return;
@@ -1118,7 +1505,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
      * palette; it does not invoke an action implementation directly.</p>
      */
     public void executeCommandForAutomation(String command) {
-        this.input.setValue(command);
+        setInputValueWithHistory(
+                command,
+                SFMDocumentHistoryContract.MutationKind.ACTION,
+                Optional.of(command),
+                "automation-execute-command"
+        );
         this.input.moveCursorToEnd();
         String normalized = normalizedCommand();
         try {
@@ -1185,7 +1577,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         }
         String surfaceCommand = choiceSession.surfaceCommand(canonicalCommand);
         String suggestionText = surfaceCommand.substring(choiceSession.prefix().length());
-        return suggestions.stream().anyMatch(suggestion -> suggestion.getText().equals(suggestionText));
+        return suggestions.stream().anyMatch(suggestion ->
+                suggestion.activatable() && suggestion.replacementText().equals(suggestionText));
     }
 
     private CancelControlAutomationSnapshot cancelControlSnapshotForAutomation() {
@@ -1220,7 +1613,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         String suggestionText = surfaceCommand.substring(choiceSession.prefix().length());
         int index = -1;
         for (int candidate = 0; candidate < suggestions.size(); candidate++) {
-            if (suggestions.get(candidate).getText().equals(suggestionText)) {
+            if (suggestions.get(candidate).activatable()
+                    && suggestions.get(candidate).replacementText().equals(suggestionText)) {
                 index = candidate;
                 break;
             }
@@ -1287,7 +1681,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     /** Sets the real palette input for a visual puppet without bypassing its responder. */
     public void setInputForAutomation(String command) {
-        this.input.setValue(command);
+        setInputValueWithHistory(
+                command,
+                SFMDocumentHistoryContract.MutationKind.PASTE,
+                Optional.of(command),
+                "automation-set-input"
+        );
         this.input.moveCursorToEnd();
     }
 
@@ -1298,7 +1697,38 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     /** Current Brigadier/fuzzy completion texts used by visual-puppet assertions. */
     public List<String> suggestionTextsForAutomation() {
-        return this.suggestions.stream().map(Suggestion::getText).toList();
+        return this.suggestions.stream()
+                .filter(SFMPaletteCandidate::activatable)
+                .map(SFMPaletteCandidate::replacementText)
+                .toList();
+    }
+
+    /** Full ordered candidate metadata; screenshots are not the only proof. */
+    public List<PaletteCandidateAutomationSnapshot> candidateSnapshotsForAutomation() {
+        ArrayList<PaletteCandidateAutomationSnapshot> result = new ArrayList<>();
+        for (int index = 0; index < suggestions.size(); index++) {
+            SFMPaletteCandidate candidate = suggestions.get(index);
+            result.add(new PaletteCandidateAutomationSnapshot(
+                    index,
+                    candidate.displayText(),
+                    candidate.activatable(),
+                    candidate.kind().name(),
+                    candidate.origin().name(),
+                    candidate.replacementRange().getStart(),
+                    candidate.replacementRange().getEnd(),
+                    candidate.replacementText(),
+                    candidate.completionFrontier(),
+                    candidate.historyRecency(),
+                    candidate.historyFamily(),
+                    candidate.insertionIntent().name()
+            ));
+        }
+        return List.copyOf(result);
+    }
+
+    /** Exact metadata for the latest Tab/mouse completion application. */
+    public Optional<SFMCompletionApplication> lastCompletionApplication() {
+        return Optional.ofNullable(lastCompletionApplication);
     }
 
     /** Submits the current automation input through the same path as Enter. */
@@ -1334,7 +1764,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     }
 
     private void resetToDefaultQuery() {
-        this.input.setValue(DEFAULT_QUERY);
+        setInputValueWithHistory(
+                DEFAULT_QUERY,
+                SFMDocumentHistoryContract.MutationKind.ACTION,
+                Optional.of(DEFAULT_QUERY),
+                "palette-reset-after-command"
+        );
         this.input.moveCursorToEnd();
         this.setFocused(this.input);
         this.input.setFocused(true);

@@ -11,8 +11,18 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMOverlaySceneContractTests {
+    @Test
+    public void genericOverlayHostRegistersBothMachineAndOrdinaryDocumentHistoryContent() {
+        SFMClientOverlayRuntime runtime = new SFMClientOverlayRuntime();
+
+        assertTrue(runtime.registeredContentIds().contains(SFMOverlaySceneContract.HISTORY_RECIPE_ID));
+        assertTrue(runtime.registeredContentIds().contains(
+                SFMOverlaySceneContract.DOCUMENT_HISTORY_RECIPE_ID));
+    }
+
     @Test
     public void placementCanonicalRoundTripPreservesEveryField() {
         Placement constrained = new Placement(

@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.history.SFMBoundedTrajectoryPlanner;
 import ca.teamdman.sfm.client.history.SFMCandidateHistoryContract;
 import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.SFMTrajectoryContract;
+import ca.teamdman.sfm.client.history.document.SFMDocumentHistorySession;
 import ca.teamdman.sfm.client.history.presentation.SFMHistoryGraphPresentationModel;
 import ca.teamdman.sfm.client.history.replay.SFMTemporalReplayArchive;
 import org.junit.jupiter.api.Test;
@@ -133,6 +134,14 @@ class SFMDecimalNumberingTrajectoryControllerTests {
         assertTrue(archive.transitions().stream().allMatch(transition ->
                 transition.status() == SFMTemporalReplayArchive.TransitionStatus.SUCCEEDED));
         assertTrue(archive.transitions().stream().allMatch(transition -> transition.witnessId().isPresent()));
+
+        var documentProjection = controller.documentHistoryProjection();
+        assertEquals(controller.currentState().revisionId(), documentProjection.currentRevisionId());
+        assertEquals(controller.snapshot().history(), documentProjection.graph(),
+                "the generic document kernel is the chamber's authoritative history graph");
+        assertEquals(documentProjection,
+                SFMDocumentHistorySession.restore(controller.documentHistoryArchive()).projection(),
+                "the chamber's generic history archive must restore to the same deterministic projection");
 
         SFMHistoryGraphPresentationModel.Presentation presentation = controller.snapshot().presentation();
         assertTrue(presentation.nodes().stream().anyMatch(node ->

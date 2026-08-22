@@ -9,6 +9,15 @@ import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
 import ca.teamdman.sfm.client.context.SFMContextGenerationEvidence;
 import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
+import ca.teamdman.sfm.client.context.SFMContextCursorProjection;
+import ca.teamdman.sfm.client.context.SFMContextPosition;
+import ca.teamdman.sfm.client.history.SFMDocumentHistoryHost;
+import ca.teamdman.sfm.client.history.SFMDocumentHistoryHostController;
+import ca.teamdman.sfm.client.history.SFMDocumentHistoryInputTarget;
+import ca.teamdman.sfm.client.history.document.SFMDocumentHistoryContract;
+import ca.teamdman.sfm.client.history.document.SFMDocumentHistorySession;
+import ca.teamdman.sfm.client.history.document.runtime.SFMDocumentHistoryRuntime;
+import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasModel;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasScreen;
 import ca.teamdman.sfm.client.screen.SFMTextEditorV3Screen;
@@ -51,6 +60,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 import org.lwjgl.glfw.GLFW;
 
@@ -60,11 +71,13 @@ import org.lwjgl.glfw.GLFW;
  * lifecycle adapter while they are being migrated.
  */
 public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocumentPanelState, SFMContextContributor,
-        SFMSymbolInspectionEvidenceSource {
+        SFMSymbolInspectionEvidenceSource, SFMDocumentHistoryHost, SFMDocumentHistoryInputTarget {
     private static final String CONTEXT_CONTRIBUTOR_ID = "sfm:text-editor";
     private static final double DEFINITION_DRAG_THRESHOLD_PIXELS = 3.0D;
+    private static final AtomicLong NEXT_HISTORY_SESSION = new AtomicLong();
     private final SFMTextEditorPanelOpenContext openContext;
     private final Screen screen;
+    private final boolean independentDocumentHistory;
     private SFMTextDocumentSnapshot presentedDocument;
     private final SFMTextEditorHoverCaptureCache<Optional<HoverCapture>> hoverCaptureCache =
             new SFMTextEditorHoverCaptureCache<>();
@@ -87,14 +100,21 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     private String observedSemanticFingerprint = "";
     private SFMJavaInteractionMapSession interactionMapSession;
     private SFMSymbolHoverIdentity.Modifiers hoverModifiers = SFMSymbolHoverIdentity.Modifiers.NONE;
+    private final String historySessionId;
+    private SFMDocumentHistoryHostController historyController;
+    private SFMDocumentHistoryRuntime.Registration historyRegistration;
+    private boolean historyFocused;
 
     private SFMTextEditorPanel(
             SFMTextEditorPanelOpenContext openContext,
-            Screen screen
+            Screen screen,
+            boolean independentDocumentHistory
     ) {
         this.openContext = openContext;
         this.screen = screen;
+        this.independentDocumentHistory = independentDocumentHistory;
         this.presentedDocument = openContext.document();
+        this.historySessionId = "sfm:document/text-editor/session-" + NEXT_HISTORY_SESSION.incrementAndGet();
     }
 
     public static SFMTextEditorPanel textEditorV3(SFMTextEditorPanelOpenContext context) {
@@ -103,12 +123,36 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 context,
                 () -> {
                     if (holder[0] != null) holder[0].requestClose();
+                },
+                value -> {
+                    if (holder[0] != null) holder[0].documentSaved(value);
                 }
         );
         PanelTextEditorScreen editor = new PanelTextEditorScreen(screenContext, () -> {
             if (holder[0] != null) holder[0].requestClose();
         });
-        holder[0] = new SFMTextEditorPanel(context, editor);
+        holder[0] = new SFMTextEditorPanel(context, editor, true);
+        return holder[0];
+    }
+
+    /** Embeds the editor as the view of an already-authoritative temporal host. */
+    public static SFMTextEditorPanel textEditorV3WithoutIndependentHistory(
+            SFMTextEditorPanelOpenContext context
+    ) {
+        SFMTextEditorPanel[] holder = new SFMTextEditorPanel[1];
+        ISFMTextEditScreenOpenContext screenContext = screenContext(
+                context,
+                () -> {
+                    if (holder[0] != null) holder[0].requestClose();
+                },
+                value -> {
+                    if (holder[0] != null) holder[0].documentSaved(value);
+                }
+        );
+        PanelTextEditorScreen editor = new PanelTextEditorScreen(screenContext, () -> {
+            if (holder[0] != null) holder[0].requestClose();
+        });
+        holder[0] = new SFMTextEditorPanel(context, editor, false);
         return holder[0];
     }
 
@@ -121,10 +165,13 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 context,
                 () -> {
                     if (holder[0] != null) holder[0].requestClose();
+                },
+                value -> {
+                    if (holder[0] != null) holder[0].documentSaved(value);
                 }
         );
         Screen screen = screenFactory.apply(screenContext).asScreen();
-        holder[0] = new SFMTextEditorPanel(context, screen);
+        holder[0] = new SFMTextEditorPanel(context, screen, false);
         return holder[0];
     }
 
@@ -132,9 +179,59 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         return openContext.editorId();
     }
 
+    private void documentSaved(String value) {
+        presentedDocument = presentedDocument.withSavedText(value);
+    }
+
     /** Explorer previews are reusable only while their document is immutable. */
     public boolean isReadOnly() {
         return openContext.readOnly();
+    }
+
+    @Override
+    public String documentHistorySessionId() {
+        return historySessionId;
+    }
+
+    @Override
+    public boolean documentHistoryAvailable() {
+        return historyController != null;
+    }
+
+    @Override
+    public SFMDocumentHistorySession documentHistorySession() {
+        if (historyController == null) {
+            throw new IllegalStateException("This editor does not own a writable document history");
+        }
+        return historyController.session();
+    }
+
+    @Override
+    public SFMDocumentHistoryHostController documentHistoryController() {
+        if (historyController == null) {
+            throw new IllegalStateException("This editor does not own a writable document history");
+        }
+        return historyController;
+    }
+
+    @Override
+    public void recordDocumentRawInput(
+            long clientTick,
+            SFMDocumentHistoryContract.RawEventKind kind,
+            String source,
+            String code,
+            Optional<String> text,
+            int modifiers,
+            boolean consumed,
+            boolean delivered
+    ) {
+        if (historyController == null) return;
+        historyController.recordRawInput(
+                clientTick, kind, source, code, text, modifiers, consumed, delivered);
+    }
+
+    public Optional<SFMDocumentHistorySession> optionalDocumentHistorySession() {
+        return historyController == null ? Optional.empty() : Optional.of(historyController.session());
     }
 
     public Optional<SFMDrawCanvasScreen.SyntaxPresentationEvidence> syntaxPresentationEvidence() {
@@ -162,6 +259,93 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         }
         drawCanvas.checkoutDocument(text, selectionRanges);
         presentedDocument = SFMTextDocumentSnapshot.literal(text);
+    }
+
+    private void checkoutDocumentHistoryState(SFMDocumentHistoryContract.DocumentState state) {
+        if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) {
+            throw new UnsupportedOperationException("This editor does not expose a document checkout surface");
+        }
+        ArrayList<SFMDocumentHistoryContract.LogicalSelection> ordered = new ArrayList<>(state.selections());
+        state.primarySelectionId().ifPresent(primary -> ordered.sort((left, right) -> {
+            if (left.id().equals(primary)) return right.id().equals(primary) ? 0 : -1;
+            if (right.id().equals(primary)) return 1;
+            return left.id().compareTo(right.id());
+        }));
+        ArrayList<SFMTextDocumentRange> ranges = new ArrayList<>();
+        for (SFMDocumentHistoryContract.LogicalSelection selection : ordered) {
+            int startCodePoint = selection.startCodePointOffset();
+            int endCodePoint = selection.endCodePointOffset();
+            int startUtf16 = state.text().offsetByCodePoints(0, startCodePoint);
+            int endUtf16 = state.text().offsetByCodePoints(0, endCodePoint);
+            ranges.add(SFMContextTextCoordinates.rangeAtUtf16Offsets(state.text(), startUtf16, endUtf16));
+        }
+        drawCanvas.checkoutDocument(state.text(), ranges);
+    }
+
+    private SFMDocumentHistoryContract.DocumentState captureDocumentHistoryState(
+            SFMDrawCanvasScreen drawCanvas
+    ) {
+        SFMContextDocumentProjection projection = drawCanvas.captureContextProjection(
+                openContext.editorId(), openContext.document(), isReadOnly());
+        String text = projection.currentText();
+        ArrayList<SFMDocumentHistoryContract.LogicalSelection> selections = new ArrayList<>();
+        String primary = null;
+        for (SFMContextCursorProjection cursor : projection.cursors()) {
+            Optional<ca.teamdman.sfm.client.text_editor.SFMTextDocumentPosition> hit = Optional.empty();
+            if (cursor.position() instanceof SFMContextPosition.Text textPosition) {
+                hit = Optional.of(textPosition.position());
+            } else if (cursor.position() instanceof SFMContextPosition.Canvas canvasPosition) {
+                hit = canvasPosition.textHit();
+            }
+            int codePointOffset = hit.map(position -> {
+                int utf16 = SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(text, position.byteOffset());
+                return text.codePointCount(0, utf16);
+            }).orElseGet(() -> SFMDocumentHistoryContract.codePointLength(text));
+            SFMDocumentHistoryContract.LogicalPoint point =
+                    SFMDocumentHistoryContract.LogicalPoint.at(text, codePointOffset);
+            selections.add(new SFMDocumentHistoryContract.LogicalSelection(
+                    cursor.id(), point, point));
+            if (cursor.primary()) primary = cursor.id();
+        }
+        if (selections.isEmpty()) {
+            return SFMDocumentHistoryContract.DocumentState.withCaret(
+                    text, SFMDocumentHistoryContract.codePointLength(text));
+        }
+        return new SFMDocumentHistoryContract.DocumentState(
+                text,
+                selections,
+                Optional.of(Objects.requireNonNull(primary, "primary cursor"))
+        );
+    }
+
+    private void observeHistoryMutation(
+            SFMDocumentHistoryContract.DocumentState before,
+            SFMDocumentHistoryContract.MutationKind kind,
+            SFMDocumentHistoryContract.EditDirection direction,
+            Optional<String> changedText,
+            String cause
+    ) {
+        if (historyController == null || historyController.checkoutInProgress()
+                || !(screen instanceof SFMDrawCanvasScreen drawCanvas)) return;
+        if (!historyController.session().currentState().equals(before)) return;
+        SFMDocumentHistoryContract.DocumentState after = captureDocumentHistoryState(drawCanvas);
+        if (after.equals(before)) return;
+        historyController.observeMutation(
+                kind,
+                direction,
+                before,
+                after,
+                changedText,
+                SFMKeyBindingService.INSTANCE.currentTick(),
+                cause
+        );
+    }
+
+    private Optional<SFMDocumentHistoryContract.DocumentState> beforeHistoryMutation() {
+        if (historyController == null || !(screen instanceof SFMDrawCanvasScreen drawCanvas)) {
+            return Optional.empty();
+        }
+        return Optional.of(captureDocumentHistoryState(drawCanvas));
     }
 
     @Override
@@ -258,7 +442,9 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 
     @Override
     public ResourceLocation keyboardUsageSituationId() {
-        return SFMKeyboardUsageSituations.TEXT_EDITOR;
+        return isReadOnly()
+                ? SFMKeyboardUsageSituations.TEXT_EDITOR
+                : SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT;
     }
 
     @Override
@@ -655,6 +841,26 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         }
         init(minecraft, bounds);
         if (screen instanceof SFMDrawCanvasScreen drawCanvas) {
+            if (independentDocumentHistory && !isReadOnly() && historyController == null) {
+                SFMDocumentHistoryContract.DocumentState initialState = captureDocumentHistoryState(drawCanvas);
+                Optional<String> sourceAddress = openContext.document().path().map(path -> path.canonical());
+                SFMDocumentHistorySession session = SFMDocumentHistorySession.create(
+                        new SFMDocumentHistoryContract.SessionIdentity(
+                                historySessionId,
+                                historySessionId + "/document",
+                                sourceAddress
+                        ),
+                        initialState
+                );
+                historyController = new SFMDocumentHistoryHostController(
+                        session,
+                        "sfm:text_editor_v3",
+                        historySessionId + "/canvas",
+                        this::checkoutDocumentHistoryState
+                );
+                historyRegistration = SFMDocumentHistoryRuntime.get().registerFocused(historyController);
+                historyFocused = true;
+            }
             observedDocumentGeneration = drawCanvas.documentGeneration();
             refreshInteractionMap(drawCanvas);
         }
@@ -699,6 +905,15 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         observedSemanticFingerprint = "";
         hoverModifiers = SFMSymbolHoverIdentity.Modifiers.NONE;
         hoverCaptureCache.clear();
+        if (historyController != null) {
+            if (historyRegistration != null) {
+                historyRegistration.close();
+                historyRegistration = null;
+            }
+            historyController.close();
+            historyController = null;
+        }
+        historyFocused = false;
         screen.removed();
         panelContext = null;
     }
@@ -706,6 +921,10 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     @Override
     public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
                        int mouseX, int mouseY, float partialTick, boolean focused) {
+        if (focused && !historyFocused && historyRegistration != null) {
+            historyRegistration.focus();
+        }
+        historyFocused = focused;
         if (symbolHover != null && screen instanceof SFMDrawCanvasScreen drawCanvas) {
             boolean inside = bounds.contains(mouseX, mouseY);
             if (focused != hoverFocused) {
@@ -777,8 +996,16 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        Optional<SFMDocumentHistoryContract.DocumentState> before = beforeHistoryMutation();
         updateHoverModifiers(keyCode, modifiers, true);
         boolean handled = screen.keyPressed(keyCode, scanCode, modifiers);
+        before.ifPresent(state -> observeHistoryMutation(
+                state,
+                mutationKindForKey(keyCode, modifiers),
+                editDirectionForKey(keyCode),
+                Optional.empty(),
+                "key-" + keyCode
+        ));
         observeDocumentMutation();
         return handled;
     }
@@ -793,13 +1020,62 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 
     @Override
     public boolean charTyped(char character, int modifiers) {
+        Optional<SFMDocumentHistoryContract.DocumentState> before = beforeHistoryMutation();
         boolean handled = screen.charTyped(character, modifiers);
+        before.ifPresent(state -> observeHistoryMutation(
+                state,
+                SFMDocumentHistoryContract.MutationKind.TYPE,
+                SFMDocumentHistoryContract.EditDirection.FORWARD,
+                Optional.of(Character.toString(character)),
+                "character"
+        ));
         observeDocumentMutation();
         return handled;
     }
 
+    private static SFMDocumentHistoryContract.MutationKind mutationKindForKey(
+            int keyCode,
+            int modifiers
+    ) {
+        if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+            return SFMDocumentHistoryContract.MutationKind.DELETE_BACKWARD;
+        }
+        if (keyCode == GLFW.GLFW_KEY_DELETE) {
+            return SFMDocumentHistoryContract.MutationKind.DELETE_FORWARD;
+        }
+        if (Screen.isPaste(keyCode)) return SFMDocumentHistoryContract.MutationKind.PASTE;
+        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            return SFMDocumentHistoryContract.MutationKind.TYPE;
+        }
+        if (keyCode == GLFW.GLFW_KEY_A && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+            return SFMDocumentHistoryContract.MutationKind.SELECTION_CHANGE;
+        }
+        if (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT
+                || keyCode == GLFW.GLFW_KEY_UP || keyCode == GLFW.GLFW_KEY_DOWN
+                || keyCode == GLFW.GLFW_KEY_HOME || keyCode == GLFW.GLFW_KEY_END
+                || keyCode == GLFW.GLFW_KEY_F1 || keyCode == GLFW.GLFW_KEY_F4) {
+            return SFMDocumentHistoryContract.MutationKind.CARET_CHANGE;
+        }
+        return SFMDocumentHistoryContract.MutationKind.OTHER;
+    }
+
+    private static SFMDocumentHistoryContract.EditDirection editDirectionForKey(int keyCode) {
+        if (keyCode == GLFW.GLFW_KEY_BACKSPACE) return SFMDocumentHistoryContract.EditDirection.BACKWARD;
+        if (keyCode == GLFW.GLFW_KEY_DELETE) return SFMDocumentHistoryContract.EditDirection.FORWARD;
+        if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+            return SFMDocumentHistoryContract.EditDirection.FORWARD;
+        }
+        return SFMDocumentHistoryContract.EditDirection.NONE;
+    }
+
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        return observePointerMutation(
+                "pointer-press-" + button,
+                () -> mouseClickedWithoutHistory(mouseX, mouseY, button));
+    }
+
+    private boolean mouseClickedWithoutHistory(double mouseX, double mouseY, int button) {
         rememberPointer(mouseX, mouseY);
         if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT
                 && screen instanceof SFMDrawCanvasScreen drawCanvas) {
@@ -849,6 +1125,12 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
+        return observePointerMutation(
+                "pointer-release-" + button,
+                () -> mouseReleasedWithoutHistory(mouseX, mouseY, button));
+    }
+
+    private boolean mouseReleasedWithoutHistory(double mouseX, double mouseY, int button) {
         rememberPointer(mouseX, mouseY);
         if (capturedHoverClick && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && symbolHover != null) {
             SFMSymbolHoverStateMachine.GestureDecision decision = symbolHover.primaryReleased(mouseX, mouseY);
@@ -873,6 +1155,18 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+        return observePointerMutation(
+                "pointer-drag-" + button,
+                () -> mouseDraggedWithoutHistory(mouseX, mouseY, button, dragX, dragY));
+    }
+
+    private boolean mouseDraggedWithoutHistory(
+            double mouseX,
+            double mouseY,
+            int button,
+            double dragX,
+            double dragY
+    ) {
         rememberPointer(mouseX, mouseY);
         if (capturedHoverClick && button == GLFW.GLFW_MOUSE_BUTTON_LEFT && symbolHover != null) {
             double dx = mouseX - capturedPressX;
@@ -891,6 +1185,32 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             return true;
         }
         return screen.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+    }
+
+    private boolean observePointerMutation(String code, BooleanSupplier dispatch) {
+        Optional<SFMDocumentHistoryContract.DocumentState> before = beforeHistoryMutation();
+        if (historyController != null) {
+            historyController.recordRawInput(
+                    SFMKeyBindingService.INSTANCE.currentTick(),
+                    SFMDocumentHistoryContract.RawEventKind.POINTER,
+                    "text-editor-pointer",
+                    code,
+                    Optional.empty(),
+                    0,
+                    false,
+                    true
+            );
+        }
+        boolean handled = dispatch.getAsBoolean();
+        before.ifPresent(state -> observeHistoryMutation(
+                state,
+                SFMDocumentHistoryContract.MutationKind.SELECTION_CHANGE,
+                SFMDocumentHistoryContract.EditDirection.NONE,
+                Optional.empty(),
+                code
+        ));
+        observeDocumentMutation();
+        return handled;
     }
 
     @Override
@@ -1177,6 +1497,14 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             SFMTextEditorPanelOpenContext context,
             Runnable closePanel
     ) {
+        return screenContext(context, closePanel, ignored -> { });
+    }
+
+    static ISFMTextEditScreenOpenContext screenContext(
+            SFMTextEditorPanelOpenContext context,
+            Runnable closePanel,
+            java.util.function.Consumer<String> savedDocument
+    ) {
         return new ISFMTextEditScreenOpenContext() {
             @Override public String initialValue() { return context.initialValue(); }
             @Override public boolean readOnly() { return context.readOnly(); }
@@ -1189,7 +1517,10 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             @Override public ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult saveDocument(
                     String value
             ) {
-                return context.saveHandler().save(value);
+                ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult result =
+                        context.saveHandler().save(value);
+                if (result.saved()) savedDocument.accept(value);
+                return result;
             }
             @Override public ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult trySaveAndClose(
                     String value

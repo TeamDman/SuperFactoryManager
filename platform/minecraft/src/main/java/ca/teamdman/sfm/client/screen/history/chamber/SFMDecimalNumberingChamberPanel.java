@@ -11,6 +11,7 @@ import ca.teamdman.sfm.client.history.SFMHistoryGraphRuntime;
 import ca.teamdman.sfm.client.history.chamber.SFMChamberAmbientCheckoutProbe;
 import ca.teamdman.sfm.client.history.chamber.SFMChamberDocumentState;
 import ca.teamdman.sfm.client.history.chamber.SFMDecimalNumberingTrajectoryController;
+import ca.teamdman.sfm.client.history.document.runtime.SFMDocumentHistoryRuntime;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextDocumentPanelState;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelWidgetHost;
@@ -44,6 +45,7 @@ public final class SFMDecimalNumberingChamberPanel implements SFMScreenPanel, SF
     private final SFMDecimalNumberingTrajectoryController controller;
     private final SFMTextEditorPanel editor;
     private SFMHistoryGraphRuntime.Registration registration;
+    private SFMDocumentHistoryRuntime.Registration documentHistoryRegistration;
     private long observedControllerRevision = -1L;
     private boolean focused;
     private String lastOperation = "Ready for supervised planning";
@@ -64,7 +66,7 @@ public final class SFMDecimalNumberingChamberPanel implements SFMScreenPanel, SF
 
     public SFMDecimalNumberingChamberPanel(SFMDecimalNumberingTrajectoryController controller) {
         this.controller = Objects.requireNonNull(controller, "controller");
-        editor = SFMTextEditorPanel.textEditorV3(new SFMTextEditorPanelOpenContext(
+        editor = SFMTextEditorPanel.textEditorV3WithoutIndependentHistory(new SFMTextEditorPanelOpenContext(
                 "sfm:text_editor_v3",
                 controller.currentText(),
                 false,
@@ -148,6 +150,8 @@ public final class SFMDecimalNumberingChamberPanel implements SFMScreenPanel, SF
     public void opened(Minecraft minecraft, SFMScreenPanelBounds bounds, SFMWorkspacePanelContext context) {
         editor.opened(minecraft, bounds, context);
         registration = SFMHistoryGraphRuntime.get().register(controller);
+        documentHistoryRegistration = SFMDocumentHistoryRuntime.get()
+                .registerFocused(controller.documentHistorySession());
         SFMHistoryGraphRuntime.get().setActiveMachine(controller.machineId());
         checkoutControllerRevision();
     }
@@ -163,6 +167,10 @@ public final class SFMDecimalNumberingChamberPanel implements SFMScreenPanel, SF
             registration.close();
             registration = null;
         }
+        if (documentHistoryRegistration != null) {
+            documentHistoryRegistration.close();
+            documentHistoryRegistration = null;
+        }
         editor.closed();
     }
 
@@ -177,6 +185,7 @@ public final class SFMDecimalNumberingChamberPanel implements SFMScreenPanel, SF
                        int mouseX, int mouseY, float partialTick, boolean focused) {
         if (focused && !this.focused && registration != null) {
             SFMHistoryGraphRuntime.get().setActiveMachine(controller.machineId());
+            if (documentHistoryRegistration != null) documentHistoryRegistration.focus();
         }
         this.focused = focused;
         editor.render(poseStack, minecraft, bounds, mouseX, mouseY, partialTick, focused);
