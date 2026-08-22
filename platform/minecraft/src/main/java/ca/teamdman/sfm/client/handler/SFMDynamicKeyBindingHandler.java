@@ -6,7 +6,7 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.keybinding.SFMKeyInputEvent;
 import ca.teamdman.sfm.client.keybinding.SFMKeyModifier;
 import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextSnapshot;
-import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextProvider;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
@@ -132,8 +132,8 @@ public final class SFMDynamicKeyBindingHandler {
     }
 
     private static SFMKeyboardUsageContextSnapshot contextFor(@Nullable Screen screen) {
-        if (screen instanceof SFMScreenMultiplexer workspace) {
-            return workspace.keyboardUsageContextSnapshot();
+        if (screen instanceof SFMKeyboardUsageContextProvider provider) {
+            return provider.keyboardUsageContextSnapshot();
         }
         return SFMKeyboardUsageContextSnapshot.global(
                 screen,

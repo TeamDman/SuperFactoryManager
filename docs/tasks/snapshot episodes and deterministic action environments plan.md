@@ -3109,6 +3109,42 @@ sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
 sfm-propagate-changes.exe puppet run title_screen_document_history_canvas --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
 ```
 
+### TE-S2 first-goal operational readiness
+
+- Target branch/commit: `1.19.2` at planning checkpoint `ba212d857`.
+- Tooling or generated runtime inputs changed: no at goal start; expected work
+  is Java/tests/resources/docs only. Reassess after the final diff.
+- Installer/build command run: not applicable at goal start.
+- Installed executable/path and revision/hash:
+  `G:\Programming\Caches\CARGO_HOME\bin\sfm-propagate-changes.exe`, revision
+  `728694ad7`, SHA-256
+  `931766D833441446EEC7BFE1D1BF52C71BDD459D40270269FEF1BF77A9EED857`;
+  this matches the latest commit touching the CLI source tree.
+- User must run install script: not applicable at goal start because no CLI or
+  generated CLI input has changed. Re-prove this after the final mutation.
+- Dependency posture: frozen under the repository goal-readiness guide.
+- Dependency declarations/lockfiles changed: no; this is an invariant of the
+  goal.
+- Cache rehydration performed: none at goal start.
+- New developer/reference repositories cloned: none; prohibited by the goal.
+- Process lifecycle authority: active via the goal-readiness guide.
+- Process preflight: no Java/Minecraft, Cargo/Rust, SFM CLI, `sfm.exe`, or
+  Teamy Terminal process was running. A VS Code process had this plan's user
+  guide open and is explicitly unrelated/not in scope.
+- Final in-scope process/runtime state: pending completion evidence.
+- Cache/lock verification: no initial in-scope process held a known build
+  cache; every long CLI invocation must still use bounded waits/log evidence.
+- Exact manual test command: pending final artifact id; planned canonical
+  command is the `title_screen_document_history_canvas` puppet invocation above.
+- Expected initial state and artifacts: stopped game; puppet opens a writable
+  editor plus document-history canvas and emits PNG, current/departed text,
+  raw-event, semantic-transaction, revision/edge/head-movement, and layout/hit-
+  test evidence.
+- Known manual-only or external limitation: none identified at goal start.
+- Autonomous continuation ladder and currently claimed item: required core is
+  B-0 plus TE-S2A through TE-S2D; TE-S2E through TE-S2G remain unclaimed future
+  goals and are not implicit stretch authority.
+
 ## Overall acceptance criteria
 
 - [ ] A single canonical JSON file losslessly represents a complete snapshot.

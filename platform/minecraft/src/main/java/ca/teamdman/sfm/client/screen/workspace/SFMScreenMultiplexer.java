@@ -9,6 +9,7 @@ import ca.teamdman.sfm.client.context.SFMContextSnapshot;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingEngine;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextSnapshot;
+import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextProvider;
 import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageSituationCatalog;
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
@@ -46,7 +47,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 /** Owns Minecraft's Screen lifecycle while hosting a normalized tree of SFM panels. */
-public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePanelHost {
+public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePanelHost,
+        SFMKeyboardUsageContextProvider {
     private static final int DIVIDER_WIDTH = 2;
     private static final int DIVIDER_HIT_SLOP = 3;
     private static final int MINIMUM_PANEL_PIXELS = 48;
