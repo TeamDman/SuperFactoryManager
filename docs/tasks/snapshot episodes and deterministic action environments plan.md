@@ -2,7 +2,7 @@
 
 **Plan status:** TE-S1M core and the ordered S1M-X1 through S1M-X6 elastic continuation ladder are complete and locally checkpointed; no continuation is currently claimed
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
-**Last updated:** 2026-08-21
+**Last updated:** 2026-08-22
 **Intent audit:** Passed and re-audited 2026-08-21 against both complete attached source messages plus the undo-tree/frontline-UI and trajectory-machine follow-ups
 
 ## How to update this plan
@@ -56,6 +56,8 @@ This foundation supports several related products:
   experiments without making them prerequisites for the dumb format.
 
 ## Related plans
+
+- [History Graph, temporal actions, and gameplay overlay user guide](<../history graph temporal actions and overlay guide.md>)
 
 - [In-game code review workspace and window manager](in-game%20code%20review%20workspace%20and%20window%20manager%20plan.md)
 - [Global comment selection and review sessions](global%20comment%20selection%20and%20review%20sessions%20plan.md)
