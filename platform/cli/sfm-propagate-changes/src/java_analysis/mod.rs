@@ -22,7 +22,7 @@ mod source_excludes;
 mod symbol_server;
 mod symbol_server_protocol;
 mod symbol_server_runtime;
-mod syntax;
+pub(crate) mod syntax;
 mod usage_at_position;
 mod workspace;
 

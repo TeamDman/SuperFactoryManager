@@ -1,6 +1,11 @@
 use crate::cli::output::CliOutput;
 use crate::release_review_git;
+use crate::release_review_java_diff::produce_java_structured_diff;
 use crate::release_review_materialize;
+use crate::release_review_surface_v1::ReviewSurfaceKindV1;
+use crate::release_review_surface_v1::ReviewSurfaceLimitsV1;
+use crate::release_review_surface_v1::parse_request;
+use crate::release_review_text_diff::produce_text_diff;
 use crate::release_review_v1;
 use crate::release_review_v1::CompletionReportV1;
 use crate::release_review_v1::CompletionStatusV1;
@@ -34,13 +39,67 @@ impl ReviewArgs {
 pub enum ReviewCommand {
     /// Query or summarize a portable review-session document.
     Session(ReviewSessionArgs),
+    /// Generate bounded, source-mapped review presentation surfaces.
+    Surface(ReviewSurfaceArgs),
 }
 
 impl ReviewCommand {
     fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
         match self {
             Self::Session(args) => args.invoke_in(invocation_dir),
+            Self::Surface(args) => args.invoke_in(invocation_dir),
         }
+    }
+}
+
+#[derive(Facet, Debug)]
+pub struct ReviewSurfaceArgs {
+    #[facet(args::subcommand)]
+    pub command: ReviewSurfaceCommand,
+}
+
+impl ReviewSurfaceArgs {
+    fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
+        match self.command {
+            ReviewSurfaceCommand::Generate(args) => args.invoke_in(invocation_dir),
+        }
+    }
+}
+
+#[derive(Facet, Debug)]
+#[repr(u8)]
+pub enum ReviewSurfaceCommand {
+    /// Generate one deterministic text or Java-structured diff from an exact request JSON file.
+    Generate(ReviewSurfaceGenerateArgs),
+}
+
+#[derive(Facet, Debug)]
+pub struct ReviewSurfaceGenerateArgs {
+    /// Versioned `sfm.review-surface-request/1` JSON input.
+    #[facet(args::named)]
+    pub request_file: PathBuf,
+}
+
+impl ReviewSurfaceGenerateArgs {
+    fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
+        let request_path = resolve_path(invocation_dir, &self.request_file);
+        let request_text = std::fs::read_to_string(&request_path).wrap_err_with(|| {
+            format!(
+                "could not read review-surface request {}",
+                request_path.display()
+            )
+        })?;
+        let request = parse_request(&request_text)?;
+        let limits = ReviewSurfaceLimitsV1::default();
+        request.validate(limits)?;
+        let surface = match request.surface_kind {
+            ReviewSurfaceKindV1::TextDiff => produce_text_diff(&request, limits)?,
+            ReviewSurfaceKindV1::JavaStructuredDiff => {
+                produce_java_structured_diff(&request, limits)?
+            }
+        };
+        surface.validate_against(&request, limits)?;
+        Ok(CliOutput::facet(surface))
     }
 }
 
