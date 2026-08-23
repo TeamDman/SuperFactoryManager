@@ -71,6 +71,8 @@ public final class SFMReviewActions {
             SFMReleaseReviewAction.Kind.MIGRATION_DECIDE);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_ATTEST = register(
             SFMReleaseReviewAction.Kind.ATTEST);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReviewLensSetAction> RELEASE_LENS_SET =
+            REGISTERER.register("review/lens/set", SFMReviewLensSetAction::new);
 
     private SFMReviewActions() {
     }

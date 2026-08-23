@@ -73,6 +73,24 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
         }
     }
 
+    /** Public, immutable identity for the review projection hosted by one exact Explorer. */
+    public record LensDescriptor(
+            SFMPath root,
+            Path reviewPath,
+            long reviewOpenEpoch,
+            SFMReleaseReviewExplorerScreenType.Projection projection,
+            Optional<String> query,
+            String title
+    ) {
+        public LensDescriptor {
+            Objects.requireNonNull(root, "root");
+            reviewPath = Objects.requireNonNull(reviewPath, "reviewPath").toAbsolutePath().normalize();
+            Objects.requireNonNull(projection, "projection");
+            query = Objects.requireNonNull(query, "query").map(String::strip).filter(value -> !value.isEmpty());
+            Objects.requireNonNull(title, "title");
+        }
+    }
+
     private static final class ProjectionSnapshot {
         private final long generation;
         private final SFMPath root;
@@ -405,6 +423,43 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
     /** Cheap lens-membership test suitable for command availability and painting. */
     public synchronized boolean hasLensRoot(Set<SFMPath> roots) {
         return Objects.requireNonNull(roots, "roots").stream().anyMatch(lenses::containsKey);
+    }
+
+    /**
+     * Identifies an exact review Explorer without guessing across mixed or
+     * multi-root locations. This is intentionally bounded enough for paint,
+     * focus, and action-availability queries.
+     */
+    public synchronized Optional<LensDescriptor> lensDescriptor(Set<SFMPath> roots) {
+        Set<SFMPath> captured = Set.copyOf(Objects.requireNonNull(roots, "roots"));
+        if (captured.size() != 1) return Optional.empty();
+        Lens lens = lenses.get(captured.iterator().next());
+        if (lens == null) return Optional.empty();
+        return Optional.of(descriptor(lens));
+    }
+
+    /** Replaces only the projection root; the Explorer's durable address and presentation survive. */
+    public java.util.concurrent.CompletionStage<LensDescriptor> switchLens(
+            SFMExplorerPanel explorer,
+            SFMReleaseReviewExplorerScreenType.Projection projection,
+            Optional<String> query
+    ) {
+        Objects.requireNonNull(explorer, "explorer");
+        Objects.requireNonNull(projection, "projection");
+        query = Objects.requireNonNull(query, "query").map(String::strip).filter(value -> !value.isEmpty());
+        LensDescriptor current = lensDescriptor(explorer.sessionSnapshot().roots()).orElseThrow(() ->
+                new IllegalStateException("The originating Explorer no longer hosts one exact release-review lens"));
+        SFMReleaseReviewRuntime.Snapshot review = requireOpenReview();
+        if (review.openEpoch() != current.reviewOpenEpoch()
+                || !review.path().orElseThrow().toAbsolutePath().normalize().equals(current.reviewPath())) {
+            throw new IllegalStateException("The release-review lens belongs to a replaced review session");
+        }
+        Optional<String> effectiveQuery = projection == SFMReleaseReviewExplorerScreenType.Projection.QUERY
+                ? query
+                : Optional.empty();
+        SFMPath nextRoot = prepareLens(current.reviewPath(), projection, effectiveQuery);
+        LensDescriptor next = lensDescriptor(Set.of(nextRoot)).orElseThrow();
+        return explorer.replaceProjectionRoot(nextRoot).thenApply(ignored -> next);
     }
 
     MaterializationEvidence materializationEvidence(SFMPath root) {
@@ -778,6 +833,17 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
         return lenses.values().stream()
                 .filter(lens -> contains(lens.root(), path))
                 .max(Comparator.comparingInt(lens -> lens.root().segments().size()));
+    }
+
+    private static LensDescriptor descriptor(Lens lens) {
+        return new LensDescriptor(
+                lens.root(),
+                lens.reviewPath(),
+                lens.reviewOpenEpoch(),
+                lens.projection(),
+                lens.query(),
+                lens.title()
+        );
     }
 
     private SFMReleaseReviewRuntime.Snapshot requireOpenReview() {

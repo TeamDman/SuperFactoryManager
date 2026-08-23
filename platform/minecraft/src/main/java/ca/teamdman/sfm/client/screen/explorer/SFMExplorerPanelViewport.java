@@ -46,6 +46,7 @@ public final class SFMExplorerPanelViewport {
             Rect body,
             Rect status,
             Rect locationControl,
+            Rect lensControl,
             Rect revealControl,
             Rect filterControl
     ) {
@@ -57,6 +58,7 @@ public final class SFMExplorerPanelViewport {
             Objects.requireNonNull(body, "body");
             Objects.requireNonNull(status, "status");
             Objects.requireNonNull(locationControl, "locationControl");
+            Objects.requireNonNull(lensControl, "lensControl");
             Objects.requireNonNull(revealControl, "revealControl");
             Objects.requireNonNull(filterControl, "filterControl");
         }
@@ -185,10 +187,18 @@ public final class SFMExplorerPanelViewport {
     }
 
     public static Layout layout(SFMScreenPanelBounds rawBounds) {
-        return layout(rawBounds, true);
+        return layout(rawBounds, false, true);
     }
 
     public static Layout layout(SFMScreenPanelBounds rawBounds, boolean revealControlVisible) {
+        return layout(rawBounds, false, revealControlVisible);
+    }
+
+    public static Layout layout(
+            SFMScreenPanelBounds rawBounds,
+            boolean lensControlVisible,
+            boolean revealControlVisible
+    ) {
         int margin = rawBounds.width() < 220 || rawBounds.height() < 140 ? 3 : 6;
         SFMScreenPanelBounds inset = rawBounds.inset(margin);
         Rect content = new Rect(inset.x(), inset.y(), inset.width(), inset.height());
@@ -206,21 +216,30 @@ public final class SFMExplorerPanelViewport {
         int revealWidth = revealControlVisible
                 ? Math.min(header.width(), Math.min(22, header.height()))
                 : 0;
+        int lensWidth = lensControlVisible
+                ? Math.min(Math.max(0, header.width() - revealWidth) / 2, 96)
+                : 0;
         Rect locationControl = new Rect(
                 header.x(),
                 header.y(),
-                Math.max(0, header.width() - revealWidth),
+                Math.max(0, header.width() - lensWidth - revealWidth),
+                header.height()
+        );
+        Rect lensControl = new Rect(
+                locationControl.x() + locationControl.width(),
+                header.y(),
+                lensWidth,
                 header.height()
         );
         Rect revealControl = new Rect(
-                locationControl.x() + locationControl.width(),
+                lensControl.x() + lensControl.width(),
                 header.y(),
                 revealWidth,
                 header.height()
         );
         Rect filterControl = new Rect(filter.x(), filter.y(), filter.width(), filter.height());
         return new Layout(content, header, filter, bodyFrame, body, status,
-                locationControl, revealControl, filterControl);
+                locationControl, lensControl, revealControl, filterControl);
     }
 
     private static int divideRoundUp(int value, int divisor) {

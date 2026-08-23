@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.review.release_review;
 
 import ca.teamdman.sfm.client.explorer.SFMPath;
+import ca.teamdman.sfm.client.explorer.SFMPathExpression;
 import ca.teamdman.sfm.client.explorer.SFMChildRelationRepository;
 import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMSelectionRepository;
@@ -10,6 +11,9 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolverRegistry;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
+import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPresentationRegistry;
 import ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import org.junit.jupiter.api.Test;
@@ -28,6 +32,94 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMReleaseReviewExplorerRuntimeTests {
     @TempDir Path temporaryDirectory;
+
+    @Test
+    void lensDescriptorRequiresOneExactProjectionRoot() throws Exception {
+        Path reviewPath = temporaryDirectory.resolve("lens-descriptor.sfm-review.json");
+        Files.copy(fixture(), reviewPath);
+        SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime();
+        runtime.open(reviewPath, false);
+        try {
+            SFMReleaseReviewExplorerRuntime resolver = new SFMReleaseReviewExplorerRuntime(runtime);
+            SFMPath changes = resolver.prepareLens(
+                    reviewPath,
+                    SFMReleaseReviewExplorerScreenType.Projection.CHANGES,
+                    Optional.empty()
+            );
+            SFMPath comments = resolver.prepareLens(
+                    reviewPath,
+                    SFMReleaseReviewExplorerScreenType.Projection.COMMENTS,
+                    Optional.empty()
+            );
+
+            var descriptor = resolver.lensDescriptor(java.util.Set.of(changes)).orElseThrow();
+            assertEquals(SFMReleaseReviewExplorerScreenType.Projection.CHANGES, descriptor.projection());
+            assertEquals(reviewPath.toAbsolutePath().normalize(), descriptor.reviewPath());
+            assertTrue(resolver.lensDescriptor(java.util.Set.of(changes, comments)).isEmpty(),
+                    "a mixed projection must not be guessed from ambient roots");
+        } finally {
+            runtime.discardAndClose();
+        }
+    }
+
+    @Test
+    void switchingLensRetainsExplorerAddressIdentityAndPresentationSettings() throws Exception {
+        Path reviewPath = temporaryDirectory.resolve("lens-switch.sfm-review.json");
+        Files.copy(fixture(), reviewPath);
+        SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime();
+        runtime.open(reviewPath, false);
+        try {
+            SFMReleaseReviewExplorerRuntime resolver = new SFMReleaseReviewExplorerRuntime(runtime);
+            SFMPath changes = resolver.prepareLens(
+                    reviewPath,
+                    SFMReleaseReviewExplorerScreenType.Projection.CHANGES,
+                    Optional.empty()
+            );
+            SFMExplorerResolverRegistry resolvers = new SFMExplorerResolverRegistry();
+            resolvers.register(resolver);
+            SFMLazyExplorerLoader loader = new SFMLazyExplorerLoader(
+                    resolvers,
+                    new SFMChildRelationRepository(),
+                    Runnable::run
+            );
+            SFMPath displayPath = SFMPath.fromNative(reviewPath);
+            SFMExplorerSession session = new SFMExplorerSession(
+                    new SFMExplorerId("review-lens-switch"),
+                    new SFMPathExpression.Literal(displayPath),
+                    java.util.Set.of(changes),
+                    new SFMSelectionRepository()
+            );
+            session.setView(SFMExplorerProjection.View.SMALL_ICONS);
+            session.setFilterQuery("approved");
+            SFMExplorerPanel panel = new SFMExplorerPanel(
+                    session,
+                    loader,
+                    ignored -> { },
+                    () -> { },
+                    () -> { },
+                    SFMExplorerPresentationRegistry.minecraftDefaults()
+            );
+            loader.openRoot(changes).join();
+            SFMExplorerId identity = session.snapshot().id();
+            SFMPathExpression location = session.snapshot().location();
+            SFMExplorerProjection.Settings settings = session.snapshot().settings();
+
+            var next = resolver.switchLens(
+                    panel,
+                    SFMReleaseReviewExplorerScreenType.Projection.COMMENTS,
+                    Optional.empty()
+            ).toCompletableFuture().join();
+
+            assertEquals(SFMReleaseReviewExplorerScreenType.Projection.COMMENTS, next.projection());
+            assertEquals(identity, session.snapshot().id());
+            assertEquals(location, session.snapshot().location());
+            assertEquals(settings, session.snapshot().settings());
+            assertEquals(java.util.Set.of(next.root()), session.snapshot().roots());
+            assertTrue(session.snapshot().expanded().contains(next.root()));
+        } finally {
+            runtime.discardAndClose();
+        }
+    }
 
     @Test
     void reopeningTheSameDurableReviewGetsAFreshEphemeralExplorerIdentity() throws Exception {

@@ -115,6 +115,20 @@ public class SFMExplorerPanelViewportTests {
     }
 
     @Test
+    public void reviewLensAndRevealControlsShareHeaderWithoutChangingTheBodyViewport() {
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(10, 20, 360, 240);
+        SFMExplorerPanelViewport.Layout ordinary = SFMExplorerPanelViewport.layout(bounds, false, true);
+        SFMExplorerPanelViewport.Layout review = SFMExplorerPanelViewport.layout(bounds, true, true);
+
+        assertTrue(review.lensControl().width() > 0);
+        assertTrue(review.locationControl().width() < ordinary.locationControl().width());
+        assertEquals(ordinary.revealControl(), review.revealControl());
+        assertEquals(ordinary.bodyFrame(), review.bodyFrame());
+        assertEquals(review.header().width(), review.locationControl().width()
+                + review.lensControl().width() + review.revealControl().width());
+    }
+
+    @Test
     public void bodyViewportIsInsetOnAllFourEdgesSoRowsCannotPaintOverFocusChrome() {
         for (SFMScreenPanelBounds bounds : List.of(
                 new SFMScreenPanelBounds(0, 0, 90, 80),

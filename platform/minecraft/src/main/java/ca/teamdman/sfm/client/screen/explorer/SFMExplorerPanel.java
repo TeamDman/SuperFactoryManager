@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen.explorer;
 
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMRevealHereAction;
+import ca.teamdman.sfm.client.action.SFMReviewLensSetAction;
 import ca.teamdman.sfm.client.context.SFMContextCaptureRequest;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
 import ca.teamdman.sfm.client.context.SFMContextContributor;
@@ -13,6 +14,7 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerPathReveal;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
@@ -85,12 +87,13 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 
     private enum KeyboardFocus {
         LOCATION,
+        LENS,
         REVEAL,
         FILTER,
         BODY
     }
 
-    public record FocusChrome(boolean location, boolean reveal, boolean filter, boolean body) {
+    public record FocusChrome(boolean location, boolean lens, boolean reveal, boolean filter, boolean body) {
     }
 
     record FilterRowPresentation(String label, int textColour, String narration) {
@@ -268,6 +271,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 "Explorer location " + state.session().location().canonical() + ". "
                         + state.projection().rows().size() + " entries" + filter + selection
                         + (keyboardFocus == KeyboardFocus.LOCATION ? ". Location control focused" : "")
+                        + (keyboardFocus == KeyboardFocus.LENS ? ". Review lens control focused" : "")
                         + (keyboardFocus == KeyboardFocus.REVEAL ? ". Reveal control focused" : "")
                         + (keyboardFocus == KeyboardFocus.FILTER
                         ? ". Filter control focused. Current filter "
@@ -395,6 +399,26 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 keyboardFocus = KeyboardFocus.BODY;
                 return true;
             }
+            if (keyCode == GLFW.GLFW_KEY_RIGHT && lensControlVisible()) {
+                keyboardFocus = KeyboardFocus.LENS;
+                return true;
+            }
+        }
+        if (keyboardFocus == KeyboardFocus.LENS) {
+            if (keyCode == GLFW.GLFW_KEY_SPACE
+                    || keyCode == GLFW.GLFW_KEY_ENTER
+                    || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                invokeReviewLensChoice();
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_LEFT) {
+                keyboardFocus = KeyboardFocus.LOCATION;
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_RIGHT || keyCode == GLFW.GLFW_KEY_DOWN) {
+                keyboardFocus = revealControlVisible() ? KeyboardFocus.REVEAL : KeyboardFocus.FILTER;
+                return true;
+            }
         }
         if (keyboardFocus == KeyboardFocus.REVEAL) {
             if (keyCode == GLFW.GLFW_KEY_SPACE
@@ -496,6 +520,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         if (!left && !right) return false;
         SFMExplorerPanelModel.State state = model.state(bounds);
         SFMExplorerPanelViewport.Layout layout = effectiveLayout(state);
+        if (left && layout.lensControl().contains(mouseX, mouseY)) {
+            keyboardFocus = KeyboardFocus.LENS;
+            invokeReviewLensChoice();
+            return true;
+        }
         if (left && layout.revealControl().contains(mouseX, mouseY)) {
             keyboardFocus = KeyboardFocus.REVEAL;
             invokeRevealHere();
@@ -576,6 +605,21 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         return accepted;
     }
 
+    private boolean invokeReviewLensChoice() {
+        if (panelContext == null || closed) return false;
+        SFMClientActionContext actionContext = new SFMClientActionContext(
+                panelContext.host(),
+                () -> panelContext != null && !closed,
+                panelContext.panelId()
+        );
+        boolean accepted = SFMReviewLensSetAction.openChoicesFromControl(
+                actionContext,
+                this::reviewLensFeedback
+        );
+        if (accepted) revealActivationSound.run();
+        return accepted;
+    }
+
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
         this.mouseX = (int) mouseX;
@@ -585,7 +629,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
         if (delta == 0) return false;
-        SFMExplorerPanelViewport.Layout layout = SFMExplorerPanelViewport.layout(bounds, revealControlVisible());
+        SFMExplorerPanelViewport.Layout layout = SFMExplorerPanelViewport.layout(
+                bounds,
+                lensControlVisible(),
+                revealControlVisible()
+        );
         if (!layout.bodyFrame().contains(mouseX, mouseY)) return false;
         int magnitude = Math.max(1, (int) Math.ceil(Math.abs(delta)));
         model.scrollRows(delta > 0 ? -magnitude : magnitude, bounds);
@@ -629,7 +677,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         fill(poseStack, layout.filter(), HEADER);
         fill(poseStack, layout.bodyFrame(), PANEL);
         border(poseStack, layout.content(), BORDER);
-        renderHeader(poseStack, minecraft, state, chrome.location(), chrome.reveal());
+        renderHeader(poseStack, minecraft, state, chrome.location(), chrome.lens(), chrome.reveal());
         renderFilter(poseStack, minecraft, state, chrome.filter());
         for (SFMExplorerPanelViewport.Cell cell : state.viewport().cells()) {
             renderCell(poseStack, minecraft, state, cell);
@@ -647,6 +695,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         if (layout.locationControl().contains(mouseX, mouseY)) {
             return Optional.of(SFMPanelTooltip.of(Component.literal(
                     state.session().location().canonical()
+            )));
+        }
+        if (layout.lensControl().contains(mouseX, mouseY)) {
+            return reviewLensDescriptor().map(lens -> SFMPanelTooltip.of(Component.literal(
+                    "Review lens: " + lens.title() + ". Click to switch projection"
             )));
         }
         if (layout.revealControl().contains(mouseX, mouseY)) {
@@ -684,6 +737,30 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         );
     }
 
+    /**
+     * Replaces a contributed projection in place while retaining this
+     * Explorer's visible location, settings, identity, and panel slot.
+     */
+    public CompletionStage<Void> replaceProjectionRoot(SFMPath nextRoot) {
+        Objects.requireNonNull(nextRoot, "nextRoot");
+        SFMExplorerSession.Snapshot before = session.snapshot();
+        if (before.roots().equals(java.util.Set.of(nextRoot))) {
+            return java.util.concurrent.CompletableFuture.completedFuture(null);
+        }
+        before.roots().forEach(session::cancelChildrenRequest);
+        session.replaceLocation(before.location(), java.util.Set.of(nextRoot));
+        pendingRevealSelection = Optional.empty();
+        return loader.openRoot(nextRoot).thenCompose(entry -> {
+            if (closed || !session.snapshot().roots().equals(java.util.Set.of(nextRoot))) {
+                return java.util.concurrent.CompletableFuture.failedFuture(
+                        new IllegalStateException("The Explorer changed before its review lens loaded")
+                );
+            }
+            session.expand(nextRoot);
+            return session.requestChildren(nextRoot, loader, 128).completion().thenApply(ignored -> null);
+        });
+    }
+
     private void activateSelected(SFMExplorerPreviewPlacement.Mode mode) {
         SFMExplorerPanelModel.State state = model.state(bounds);
         if (state.selectedRow().map(row -> row.entry().expandable()).orElse(false)) {
@@ -705,6 +782,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             Minecraft minecraft,
             SFMExplorerPanelModel.State state,
             boolean locationFocused,
+            boolean lensFocused,
             boolean revealFocused
     ) {
         SFMExplorerPanelViewport.Layout layout = effectiveLayout(state);
@@ -724,6 +802,21 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 Math.max(0, layout.locationControl().width() - 12),
                 TEXT
         );
+        if (layout.lensControl().width() > 0) {
+            fill(poseStack, layout.lensControl(), 0xF0353535);
+            border(poseStack, layout.lensControl(), lensFocused ? FOCUSED_BORDER : BORDER);
+            String title = reviewLensDescriptor().map(SFMReleaseReviewExplorerRuntime.LensDescriptor::title)
+                    .orElse("Review");
+            drawTrimmed(
+                    poseStack,
+                    minecraft,
+                    title + " v",
+                    layout.lensControl().x() + 5,
+                    textY,
+                    Math.max(0, layout.lensControl().width() - 10),
+                    TEXT
+            );
+        }
         if (layout.revealControl().width() > 0) {
             fill(poseStack, layout.revealControl(), 0xF0353535);
             border(poseStack, layout.revealControl(), revealFocused ? FOCUSED_BORDER : BORDER);
@@ -743,6 +836,10 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         return keyboardFocus == KeyboardFocus.FILTER;
     }
 
+    boolean lensControlHasKeyboardFocus() {
+        return keyboardFocus == KeyboardFocus.LENS;
+    }
+
     boolean revealControlHasKeyboardFocus() {
         return keyboardFocus == KeyboardFocus.REVEAL;
     }
@@ -754,6 +851,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     public FocusChrome focusChrome(boolean panelFocused) {
         return new FocusChrome(
                 panelFocused && keyboardFocus == KeyboardFocus.LOCATION,
+                panelFocused && lensControlVisible() && keyboardFocus == KeyboardFocus.LENS,
                 panelFocused && revealControlVisible() && keyboardFocus == KeyboardFocus.REVEAL,
                 panelFocused && keyboardFocus == KeyboardFocus.FILTER,
                 panelFocused && keyboardFocus == KeyboardFocus.BODY
@@ -784,6 +882,27 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         }
     }
 
+    private void reviewLensFeedback(Component component) {
+        ca.teamdman.sfm.SFM.LOGGER.info("SFM_REVIEW_LENS_FEEDBACK {}", component.getString());
+        if (panelContext != null
+                && panelContext.host() instanceof ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer workspace) {
+            workspace.showWorkspaceToast("sfm:review-lens", component, true);
+        }
+    }
+
+    private Optional<SFMReleaseReviewExplorerRuntime.LensDescriptor> reviewLensDescriptor() {
+        return SFMReleaseReviewExplorerRuntime.get().lensDescriptor(session.snapshot().roots());
+    }
+
+    private boolean lensControlVisible() {
+        if (panelContext == null || closed) return false;
+        return SFMReviewLensSetAction.isControlVisible(new SFMClientActionContext(
+                panelContext.host(),
+                () -> panelContext != null && !closed,
+                panelContext.panelId()
+        ));
+    }
+
     private boolean revealControlVisible() {
         if (panelContext == null || closed) return false;
         return SFMRevealHereAction.isControlVisible(new SFMClientActionContext(
@@ -795,7 +914,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 
     private SFMExplorerPanelViewport.Layout effectiveLayout(SFMExplorerPanelModel.State state) {
         Objects.requireNonNull(state, "state");
-        return SFMExplorerPanelViewport.layout(bounds, revealControlVisible());
+        return SFMExplorerPanelViewport.layout(bounds, lensControlVisible(), revealControlVisible());
     }
 
     private void renderFilter(
@@ -1013,28 +1132,27 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     private void cycleKeyboardFocus(boolean reverse) {
-        boolean revealVisible = revealControlVisible();
-        keyboardFocus = reverse
-                ? switch (keyboardFocus) {
-                    case BODY -> KeyboardFocus.FILTER;
-                    case FILTER -> revealVisible ? KeyboardFocus.REVEAL : KeyboardFocus.LOCATION;
-                    case REVEAL -> KeyboardFocus.LOCATION;
-                    case LOCATION -> KeyboardFocus.BODY;
-                }
-                : switch (keyboardFocus) {
-                    case BODY -> KeyboardFocus.LOCATION;
-                    case LOCATION -> revealVisible ? KeyboardFocus.REVEAL : KeyboardFocus.FILTER;
-                    case REVEAL -> KeyboardFocus.FILTER;
-                    case FILTER -> KeyboardFocus.BODY;
-                };
+        java.util.ArrayList<KeyboardFocus> order = new java.util.ArrayList<>();
+        order.add(KeyboardFocus.BODY);
+        order.add(KeyboardFocus.LOCATION);
+        if (lensControlVisible()) order.add(KeyboardFocus.LENS);
+        if (revealControlVisible()) order.add(KeyboardFocus.REVEAL);
+        order.add(KeyboardFocus.FILTER);
+        int current = order.indexOf(keyboardFocus);
+        if (current < 0) current = 0;
+        int delta = reverse ? -1 : 1;
+        keyboardFocus = order.get(Math.floorMod(current + delta, order.size()));
         if (keyboardFocus == KeyboardFocus.FILTER) {
             filterDraft = session.snapshot().settings().filterQuery();
         }
     }
 
     private void normalizeKeyboardFocus() {
-        if (keyboardFocus == KeyboardFocus.REVEAL && !revealControlVisible()) {
+        if (keyboardFocus == KeyboardFocus.LENS && !lensControlVisible()) {
             keyboardFocus = KeyboardFocus.LOCATION;
+        }
+        if (keyboardFocus == KeyboardFocus.REVEAL && !revealControlVisible()) {
+            keyboardFocus = lensControlVisible() ? KeyboardFocus.LENS : KeyboardFocus.LOCATION;
         }
     }
 
