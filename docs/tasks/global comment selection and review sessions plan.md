@@ -1682,6 +1682,393 @@ file is committed locally as `in_progress`, the working tree is clean, and the
 goal does not perform the maintainer attestation, push, or claim the release is
 reviewed.
 
+## Post-goal natural-testing reconciliation — explorer-native review workbench
+
+The first manual use of the initialized 1.19.2 review proved that the durable
+review kernel is usable but that its current presentation is still a developer
+surface rather than a coherent review workbench. This section is authoritative
+for the resulting usability/safety corrections. Generic explorer, workspace,
+palette, and contextual-action mechanics remain owned by their existing plans;
+this plan owns their exact release-review composition and acceptance journey.
+
+### Authoritative natural-testing guidance ledger — 2026-08-23
+
+| ID | Active guidance | Required consequence | Primary owner |
+| --- | --- | --- | --- |
+| RUX-1 | The permanent `Release Review · <status>` header and `Selected: <leaf>` footer repeat the same selected-preview information and consume useful space. | Remove the bespoke duplicate chrome. The location control identifies the review; transient open/status feedback uses ordinary narration/toasts and is not repeated permanently above and below the tree. | RCS-UX1 |
+| RUX-2 | The changes tree visibly lacks the generic explorer's location, search/filter, view, presenter, lazy-loading, and reveal behavior. | Replace `SFMReviewExplorerPanel` as the production review tree with an ordinary `SFMExplorerPanel` projection backed by a review resolver/presenter/action contributor. Do not independently reimplement explorer behavior. | RCS-UX1 |
+| RUX-3 | A target/crosshair control like IntelliJ's should reveal the focused document in this explorer. Use Minecraft's target-block ItemStack affordance, tooltip, and narration. | Add an action-backed reveal control to generic explorer chrome. It captures the exact destination explorer and the most recently focused compatible non-explorer panel/document; it never relies on hidden focus at execution time. | RCS-UX2 |
+| RUX-4 | Repeatedly opening the same before/after leaves currently grows the stack (`1,2,…17`). Reopening the same two identities should switch between the same two entries. | Give every review presentation a stable identity and focus an existing matching entry before creating one. Preview ownership/retirement remains safe for unrelated terminals, writable editors, and other explorers. | RCS-UX3 |
+| RUX-5 | Bottom-right stack numbers are visible but not mouse-operable. | Left-click focuses the exact entry, middle-click closes it, and right-click opens its constrained action menu. Each number has title/position narration and a tooltip; stale captures cannot act on a replacement entry. | RCS-UX4 |
+| RUX-6 | The user needs a way to close every editor/tab in one visible group, with confirmation for a large group. | Preserve the established vocabulary: a **panel entry/tab** is stacked content and a **pane** is one visible split leaf. `sfm:panel/close` closes one entry; add hierarchical `sfm:pane/close` for the whole pane, with exact-count and dirty-document confirmation and no silent data loss. | RCS-UX4 |
+| RUX-7 | Each participating file/lane should offer `before`, `after`, ordinary Git/text diff, and structured diff leaves. | Add versioned text- and structure-aware diff surfaces with source mappings back to pinned before/after ranges. Java structured diff uses the already-pinned Arborium/tree-sitter stack. Local Difftastic and syndiff checkouts are implementation references only, not runtime/toolchain dependencies. | RCS-S3 / RCS-UX5 |
+| RUX-8 | A review is a repository-trackable JSON file. It should be revealable and editable as JSON through the file explorer, while right-click exposes `Open review read-only` and `Open review writable`. | Keep the canonical file URI visible. Review interpretation is an explicit explorer view/presenter over that path, not a hidden shortened ID. Multiple read-only sessions may coexist; a writer lease is scoped per canonical path. Production actions carry an explicit review-session selector instead of consulting one unqualified global active review. | RCS-UX1 / RCS-UX6 |
+| RUX-9 | A fresh/empty explorer should be a mouse-usable entry point instead of requiring many palette commands. Suggested roots include My Computer/drives, current instance, SFM source, registries, reviews, recent locations, and favourites. | Add a lazy explorer-home projection. Expanding My Computer or a drive must not recursively enumerate it; roots and unavailable authorities remain explicit. | RCS-UX7 |
+| RUX-10 | The review must be usable primarily with the mouse while retaining the command palette as the discoverable/power-user surface. Screen elements invoke registered actions rather than mutating private state through an inaccessible path. | Every review row, tab, reveal control, selector/comment gesture, status control, and context-menu choice emits or is equivalent to a stable action with captured explicit selectors. Keyboard and mouse parity tests compare outcomes. | All RCS-UX items |
+| RUX-11 | On read-only reviewed source, the reviewer should be able to drag/select a 2D/code region and apply a recently used comment such as `#approved`/`#needs-change`, or choose `Other` to write arbitrary text. Later graphical markup must compose with this rather than replace it. | Selection opens a bounded contextual palette/popover backed by ordinary comment actions. Recent choices are history-ranked; `Other` opens the preferred editor for comment text. The resulting comment stores the accepted pinned literal/semantic selector and exact spatial witness. | RCS-UX6; RCMARK-1..4 later |
+| RUX-12 | Right-clicking actionable UI should include a general `Help me understand` route so the system teaches itself. | Add a contextual help action/provider whose localized presentation can explain the element class/provider, stable element/action IDs, current captured address/selectors, available gestures, and related actions without requiring execution. Tabs, explorer rows, review controls, and later arbitrary widgets use the same contract. | RCS-UX8 / contextual-input plan |
+| RUX-13 | Home and End currently move the palette suggestion selection instead of the input caret. | While the input owns focus, unmodified Home/End operate on the command document. First/last suggestion navigation receives a distinct discoverable binding; selection-list navigation must not steal ordinary text-editor keys. | RCS-UX4 / contextual-input plan |
+| RUX-14 | In a one-lane review, the root/lane labels repeat `4.34.0-1.19.2 → HEAD` beneath an already-identical release heading. | The location/view identifies the comparison once. A single lane is hoisted or labelled concisely as `1.19.2`; multi-lane reviews retain explicit lane grouping. Before/after/diff leaves retain their exact pinned revision tooltips/narration. | RCS-UX1 |
+| RUX-15 | Manual testing crashed while two Java interaction-map requests overlapped preview use: `renderExactDocumentSelections` tried to render line 190 beyond the current canvas projection. | Selection/range publication and rendering must be generation/hash/document bound, tolerate a half-open EOF position after a trailing newline, reject stale preview results, and never turn malformed/stale highlight evidence into a render-thread exception. | RCS-UX0 |
+| RUX-16 | The UI should expose review progress without forcing memorization of the command list, but the command surface remains useful and complete. | Mouse entry points and contextual menus call the same read-only/writable open, query, work-next, comment, diff, close, and help actions documented for the palette. No mouse-only review mutation is permitted. | RCS-UX1..8 |
+
+### Verified implementation evidence and constraints
+
+- `SFMReviewExplorerPanel` currently owns its own rows, header/footer, scroll,
+  and preview slot. It does **not** use `SFMExplorerPanel`; this is the verified
+  cause of the missing location/filter/presenter behavior.
+- `SFMReviewExplorerPanel.openSelected(false)` repeatedly calls
+  `SFMScreenMultiplexer.openIntoSlot`, while
+  `SFMExplorerPreviewPlacement` already owns typed immutable-preview retirement
+  for the generic explorer. Stable-document deduplication is still missing from
+  both paths and must compare typed identity, never display title alone.
+- `SFMScreenMultiplexer.renderEntryAffordances` draws numbered stack boxes but
+  has no corresponding hit regions or actions.
+- `SFMCommandPaletteScreen` consumes unmodified Home/End for suggestion-first/
+  suggestion-last whenever suggestions exist, even while its text input is the
+  active editing surface.
+- The 2026-08-23 crash at `3840x2054`, GUI scale 4, is preserved in
+  `platform/minecraft/run/crash-reports/crash-2026-08-23_13.56.42-client.txt`:
+  `SFMDrawCanvasScreen.lineText` rejected line 190 while rendering an exact
+  document selection. The canvas textual projection may omit a trailing empty
+  line even though the immutable baseline legitimately addresses EOF on that
+  next line; this is not permission to clip arbitrary stale ranges silently.
+- The canonical review file may be dirty because it contains the reviewer's
+  live resume/presentation/comment progress. Treat it as user data. Tests use a
+  copy or fixture and must never restore, rewrite, or normalize the canonical
+  file without the reviewer's explicit review mutation.
+- Dependency declarations and lockfiles remain frozen for this wave. Arborium
+  already exists in the toolchain. Difftastic/syndiff may be read as local
+  reference implementations, but this plan does not add them as binaries,
+  crates, subprocesses, or user prerequisites.
+
+### Confirmed review-workbench design
+
+1. **Location and view are independent.** The explorer location displays the
+   canonical `file:///.../*.sfm-review.json` address. A named review projection
+   (`changes`, `comments`, `hashtags`, `query`, `status`, or `migrations`) is an
+   explicit view/presenter recipe over that location. Ordinary file opening
+   still opens the JSON as text; a context action opts into review semantics.
+2. **Identity is not a title.** A source presentation key includes canonical
+   review path, review semantic-state/corpus identity, lane, side/view kind,
+   immutable document revision/hash, target range or diff-surface identity,
+   and editor/provider recipe. Reopening an equal key focuses the existing tab;
+   changed identity creates a distinct entry.
+3. **Actions are self-contained.** UI controls may derive convenient explicit
+   selectors such as the exact explorer/pane/panel-entry id plus a captured
+   `most-recent-compatible-non-explorer` source, but execution never consults
+   an unspecified current focus. Set-valued selectors retain the established
+   multi-target preflight/atomicity rules.
+4. **Diff display is addressable evidence.** Text and structured diff rows map
+   every selectable displayed region to zero/one/many pinned before/after
+   source ranges with diagnostics. Comments target those durable source
+   selectors plus the diff projection witness; they do not target ephemeral
+   coloured pixels alone.
+5. **Pane versus panel entry is explicit.** The existing bottom-right boxes are
+   compact tab selectors for entries in one pane. Closing a pane is a different
+   action from closing the current entry. Confirmation reports total, dirty,
+   read-only, and independently recoverable entries before destructive close.
+6. **One review runtime is not the public model.** Runtime repositories become
+   keyed by review-session id/canonical path. A compatibility adapter may
+   expose the focused session internally during migration, but new actions and
+   panel recipes carry an explicit selector and tests prove two simultaneous
+   read-only reviews do not bleed state.
+7. **Review content projection is not explorer layout.** `changes`, `comments`,
+   `hashtags`, `query`, `status`, and `migrations` are typed review lens/content-
+   projection ids. They are independent from generic explorer layout choices
+   such as list, small icons, details, sorting, and grouping. The canonical
+   review-file location therefore survives changing either axis.
+8. **Context actions enter with the explorer migration.** RCS-UX1 includes the
+   minimal generic clicked-row action seam and `.sfm-review.json` actions needed
+   to open plain JSON, a read-only review, or a writable review. RCS-UX6 expands
+   that seam into the complete annotation/session journey; it is not a reason
+   to leave the migrated review undiscoverable by mouse.
+9. **Help is progressively disclosed.** RCS-UX2 through RCS-UX4 require useful
+   tooltips, narration, stable ids, and ordinary action names. They do not grow
+   a private partial help framework. RCS-UX8 introduces the reusable
+   `sfm:help/understand` provider and then contributes it to those controls.
+10. **Pane-close prompting is deterministic.** Preflight asks for confirmation
+    whenever the pane contains more than one entry or any entry is dirty or not
+    independently recoverable. The prompt reports exact total, dirty,
+    read-only, and recoverability counts; cancellation changes nothing.
+
+### [~] RCS-UX0 Make exact-selection rendering fail safe without losing evidence
+
+**Work:** Bind exact selections and Java-interaction publications to immutable
+document address, source hash, canvas/document generation, and range witness.
+Preserve baseline text for unchanged read-only coordinate/render operations so
+a valid half-open EOF after a trailing newline remains representable. Before
+paint, distinguish valid empty terminal-line endpoints from stale/out-of-bounds
+ranges. The former draws the preceding non-empty part and no rectangle for the
+empty endpoint; the latter clears/suspends the highlight, emits a structured
+diagnostic, and never throws from `render`.
+
+**Validation:** Add focused tests for LF/CRLF, leading/interior/trailing empty
+lines, EOF endpoints, shorter replacement documents, stale asynchronous maps,
+rapid A→B→A preview switches, and malformed ranges. Reproduce the attached
+`3840x2054@4` sequence in a puppet or deterministic panel test and assert no
+render-thread exception plus retained diagnostic evidence.
+
+**Completion criteria:** No stale or projection-normalized selection can crash
+Minecraft; valid reviewed source ranges still visibly highlight the intended
+glyphs and every rejected range explains why it was rejected.
+
+**Progress 2026-08-23:** The reproduced exception was traced to a valid
+half-open full-document range whose EOF was `(190,0)` after a trailing newline,
+combined with a glyph-derived projection that intentionally omitted that empty
+terminal line. Exact selections now retain and render against the immutable
+source text on which they were validated; malformed/replaced evidence suspends
+the publication with a diagnostic instead of escaping through the render
+thread. Pure regressions cover LF, CRLF, Unicode, leading/trailing empty lines,
+multiple terminal newlines, the exact 190-line shape, and a shortened
+replacement. The focused `SFMDrawCanvasScreenTests` run passed through
+`sfm-propagate-changes.exe test run`; the complete branch run then reported
+1,534 found, 1,533 passed, zero failed, and one intentionally assumption-
+aborted installed-worker integration test. This remains partial until the
+immutable publication is a single address/hash/generation value and the
+asynchronous A→B→A plus live puppet cases above are green.
+
+### [ ] RCS-UX1 Project release reviews through the generic lazy explorer
+
+**Work:** Implement review path resolver/child provider, presenter, action
+contributor, and view recipes for changes/comments/hashtags/query/status/
+migrations. Retire `SFMReviewExplorerPanel` from production registration after
+parity. The generic location and filter controls, view modes, context-preserving
+fuzzy filtering, lazy materialization, icons, keyboard navigation, reveal API,
+and narration must be inherited rather than copied. Hoist redundant one-lane
+comparison labels and retain truthful multi-lane/tombstone structure.
+
+Treat the review recipes as a typed content-projection/lens axis rather than
+adding them to the explorer's list/icon layout enum. In this same slice, add the
+minimal reusable clicked-row context seam and expose plain-JSON, read-only
+review, and writable-review actions for `.sfm-review.json` rows; defer richer
+comment/session context actions to RCS-UX6.
+
+The complete 30 MB/2,917-unit review must remain lazy: opening the review or
+changing a filter cannot eagerly construct all source text or structured diffs.
+Fetch-before-publish and generation checks preserve the last useful tree while
+refreshing.
+
+**Validation:** Resolver/presenter/action tests cover every projection, one and
+multiple lanes, tombstones, huge-corpus bounded materialization, search with
+context ancestors, read-only versus writable sessions, live refresh, and
+location round trip. A natural puppet opens the canonical review from a file
+explorer context action and reaches before/after leaves using only pointer
+input after the initial explorer open.
+
+**Completion criteria:** The production review tree visibly is the ordinary
+explorer—canonical location, filter, view/presenter behavior, lazy status, and
+reveal included—with no duplicated selected-item header/footer.
+
+### [ ] RCS-UX2 Add action-backed reveal-current-context explorer chrome
+
+**Work:** Add a target-block ItemStack control to generic explorer chrome with
+tooltip, narration, keyboard focus, and a stable action/element id. Its action captures
+the exact destination explorer plus the most recently focused compatible
+non-explorer document/panel and invokes the existing reveal coordinator. Empty,
+unaddressable, stale, unauthorized, and multi-match contexts produce visible
+diagnostics without changing the explorer.
+
+Do not create a private help implementation in this slice; RCS-UX8 later
+contributes the reusable `Help me understand` action to this stable control.
+
+**Validation:** Pure capture/action tests and a split-view puppet cover text
+editor→explorer reveal, review before/after/diff mapping, no compatible source,
+stale tab, two explorers with deterministic destination, keyboard activation,
+mouse activation, and every supported GUI scale.
+
+**Completion criteria:** Clicking the target block scrolls/expands the explorer
+to the focused document while preserving the editor's focus/history and never
+guessing an unrelated row.
+
+### [ ] RCS-UX3 Deduplicate and safely own review preview entries
+
+**Work:** Extend generic preview placement with typed presentation identity and
+focus-before-create behavior. Repeated activation of one before/after/diff leaf
+focuses its existing entry. Alternating one file's before and after leaves
+therefore alternates the same two entries. Ordinary preview replacement remains
+available as an explicit mode; explicit open-new-tab/adjacent commands can
+create duplicates only when requested. Never retire unrelated terminals,
+writable editors, dirty documents, or previews owned by another explorer.
+
+**Validation:** Model/workspace tests cover same key, same title/different key,
+A→B→A, changed review generation, two explorers, missing prior panel, dirty
+editor, terminal, explicit duplicate, and close/reopen. Puppet evidence asserts
+bounded tab count and exact focused title/identity after repeated mouse opens.
+
+**Completion criteria:** Natural browsing cannot grow an unbounded tab stack by
+reopening the same review presentations, and preview replacement cannot destroy
+unrelated content.
+
+### [ ] RCS-UX4 Make pane/tab lifecycle and palette caret behavior mouse-complete
+
+**Work:** Give the numbered stack affordances stable hit regions and action
+drafts for focus, close, and move plus tooltip/narration and stable ids.
+Left/middle/right pointer
+semantics match RUX-5. Add `sfm:pane/close` with preflight and count/dirty
+confirmation; retain `sfm:panel/close` for one entry. Correct palette Home/End
+so the focused command document receives ordinary caret movement, and expose
+separate discoverable first/last-suggestion actions/bindings.
+
+Pane close confirms whenever more than one entry is present or any entry is
+dirty/non-recoverable and reports the exact counts. RCS-UX8 later contributes
+the reusable contextual-help entry rather than this task growing a private one.
+
+**Validation:** Workspace geometry/action tests cover scaled panels, overlap,
+stale ids, left/middle/right buttons, one/many/dirty stacks, confirmation cancel,
+move, and tooltip/narration. Palette tests cover Home/End and Shift+Home/End
+selection with zero/many suggestions plus the replacement list-navigation
+bindings. A mouse-only puppet opens, switches, closes one, and closes a pane.
+
+**Completion criteria:** Every visible tab selector is operable by mouse and
+keyboard, pane close is explicit and safe, and editing a palette command no
+longer loses standard Home/End behavior.
+
+### [ ] RCS-UX5 / RCS-S3 Emit textual and structural review surfaces
+
+**Work:** Freeze versioned CLI-AST `ReviewUnit`, `ReviewSurface`, source-map,
+text-diff, structured-diff, and equivalence-report schemas. Produce deterministic
+JSON plus human-readable presentation for the current 1.19.2 lane. Under each
+file/lane, project `before`, `after`, `text diff`, and `structured diff` leaves.
+Use existing Git data for text hunks and the pinned Arborium/tree-sitter stack
+for Java structure matching. Preserve moves/renames, unchanged context,
+parse/unsupported/ambiguous diagnostics, and explicit file/hunk fallback.
+
+Study `G:\Programming\Repos\difftastic` and
+`G:\Programming\Repos\syndiff` only as local reference material. Reimplement
+the bounded algorithms/contracts needed by SFM; do not shell out, require a
+user installation, or change the dependency graph for this slice.
+
+**Validation:** Snapshot scenarios cover added/deleted/renamed files, moved and
+edited methods, reordered declarations, comments/whitespace, imports, Unicode,
+parse failure, unsupported file, source mappings in both directions, stable
+serialization, and repeated generation. In-game tests select diff text and
+create a comment whose durable target resolves against pinned source bytes.
+
+**Completion criteria:** From the ordinary review explorer, the reviewer can
+open before, after, textual diff, or Java structural diff, understand every
+fallback/ambiguity, and attach/query comments without losing source identity.
+
+### [ ] RCS-UX6 Make review opening and annotation naturally mouse-driven
+
+**Work:** Add file-explorer contextual actions for opening a `.sfm-review.json`
+as plain JSON, opening its review read-only, and opening it writable. Replace
+unqualified singleton assumptions with explicit review-session selectors and
+path-scoped writer leases. On reviewed source/diff surfaces, pointer drag creates
+an ordinary selection; release offers recent comment templates, `#approved`,
+`#needs-change`, and `Other`. `Other` opens the preferred text editor for a
+comment draft. Every outcome dispatches the existing comment action with the
+chosen literal/structural proposal and exact witness.
+
+**Validation:** Two simultaneous read-only reviews, one writable lease, same
+file text-versus-review views, recent-choice ordering, arbitrary comment text,
+cancel, stale selection, multi-range, autosave/conflict/recovery, restart, and
+mouse/keyboard parity. The canonical manual journey must be pausable after any
+comment and resumable from the tracked JSON alone.
+
+**Completion criteria:** After opening the explorer, a reviewer can find the
+review file, open it, browse a change, select source, apply or write a comment,
+and see persisted progress without typing an action command.
+
+### [ ] RCS-UX7 Add a lazy explorer home
+
+**Work:** Define a generic home location/view whose top-level entries include
+My Computer, current instance, SFM source, registered
+registries, review files/recent reviews, recent locations, and favourites.
+Unavailable roots remain visible with explanation. Expansion is lazy and
+bounded; opening `C:\` or My Computer does not recursively enumerate descendants.
+
+This explicitly supersedes the current omitted-location default that opens the
+item registry. `My Computer` is the virtual parent whose lazily fetched children
+are the available drives; drives are not duplicated as peer roots. Merely
+displaying or expanding an authority never grants recursive-search authority.
+
+**Validation:** No-drive/no-source, multiple drives, multiple instances,
+registry-only, recent/favourite persistence, unauthorized path, cancellation,
+and huge-root lazy tests plus a mouse-only title-screen puppet.
+
+**Completion criteria:** One generic explorer open is enough to discover the
+main SFM navigation domains without a memorized command or an eager disk scan.
+
+### [ ] RCS-UX8 Add reusable contextual self-explanation
+
+**Work:** Register `sfm:help/understand <captured-context-selector>` and a help
+provider/presenter that can explain a tab, pane, explorer row/control, action,
+and review surface. Explanations include localized purpose, stable ids,
+provider/class provenance in developer mode, current address/selector, common
+mouse/keyboard gestures, and links/actions for deeper help. Right-click menus
+include it where the capture is valid.
+
+**Validation:** Provider composition, unknown/third-party element, stale
+capture, localization, developer/release detail, keyboard-only, mouse-only,
+and no-side-effect tests. Help itself must be inspectable/cancellable through
+the ordinary constrained palette.
+
+**Completion criteria:** A user can right-click any newly introduced review or
+tab affordance and learn what it is and how to operate it without leaving the
+application or executing the target action.
+
+### Review-workbench execution order and bounded next goal
+
+The safety repair is first and independently committable:
+
+1. **RCS-UX0** — eliminate the observed render-thread crash and freeze stale
+   range/publication invariants.
+2. **RCS-UX1 through RCS-UX4** — replace the bespoke review tree with the generic
+   explorer, add reveal, deduplicated previews, mouse tabs/pane close, and fix
+   palette caret behavior. This is the recommended next user-visible goal.
+3. **RCS-UX5 / RCS-S3** — add textual/structured diff reports and leaves on the
+   now-correct generic explorer substrate.
+4. **RCS-UX6** — complete the mouse-first open/select/comment/resume journey.
+5. **RCS-UX7/RCS-UX8** — broaden discoverability through explorer home and
+   contextual self-explanation.
+6. **RCS-S4** — only then prove cross-lane structural equivalence without
+   deduplicating human approval.
+
+RCS-UX0 may be fixed during bookkeeping because it is a reproducible crash and
+does not commit to the larger UI architecture. The recommended next persistent
+goal is **RCS-UX1 through RCS-UX4** after RCS-UX0 is green. It ends with a
+natural mouse-visible improvement while leaving structured diff and comment
+authoring as explicit subsequent slices rather than hiding them in “polish.”
+
+### Review-workbench risk register
+
+| Risk | Guardrail |
+| --- | --- |
+| A stale range or async semantic result crashes render again | RCS-UX0 validates address/hash/generation and treats rendering as a total operation with structured rejection evidence. |
+| Migrating to generic explorer loses review-specific live refresh or work-queue state | Resolver/action integration tests compare every existing projection and resume cursor before retiring the bespoke panel. |
+| A 30 MB review eagerly materializes source/diff nodes and freezes the game | Generic lazy pages, bounded first paint, cancellable diff generation, and complete-corpus performance assertions in RCS-UX1/RCS-UX5. |
+| Preview dedup focuses the wrong same-titled document | Typed immutable presentation keys include review/lane/side/revision/range/provider; titles never establish identity. |
+| Pane close discards writable state | Preflight all entries, dirty-count confirmation, atomic close intent, and cancellation tests. |
+| A global active review leaks comments between two panels | Path/session-keyed runtime and explicit action selectors; singleton access is migration-only and covered by two-review tests. |
+| Structured diff invents semantic equivalence | Diff presentation carries source mappings and diagnostics only; RCS-S4 owns evidence-based cross-lane equivalence and human approval is never inferred. |
+| Mouse affordances diverge from palette behavior | Every mutation is action-backed and parity tests compare mouse, keyboard, and direct command execution. |
+| External diff experiments become undeclared prerequisites | Difftastic/syndiff are read-only references; dependency/lockfile freeze checks remain required. |
+
+### Natural-testing intent audit
+
+- **Pass 1 — extraction:** Reread the complete 2026-08-23 manual-testing
+  message and separated duplicate chrome, generic explorer reuse, target-block
+  reveal, preview accumulation, clickable/middle/right-click tabs, pane close,
+  Home/End, textual/structured diff, no external diff prerequisite, review-file
+  discoverability, session scope, explorer home, mouse-first actions/comments,
+  contextual help, one-lane label repetition, and the attached crash into
+  RUX-1 through RUX-16.
+- **Pass 2 — traceability:** Mapped every RUX item to RCS-UX0 through RCS-UX8 or
+  RCS-S3, named concrete current classes and reuse seams, and added validation,
+  completion criteria, execution order, and risks. Generic explorer/window/
+  palette implementation remains cross-plan-owned while this plan owns the
+  release-review composition.
+- **Pass 3 — adversarial omission:** Checked that “mouse-usable” does not delete
+  the command surface, review JSON remains directly editable as JSON, one
+  writable lease does not prohibit multiple read-only sessions, diff colours do
+  not become durable addresses, local Difftastic/syndiff references do not
+  become dependencies, a target button does not rely on unspecified focus, and
+  the user's dirty canonical review is not treated as a disposable fixture.
+- **Known source limitation:** None for this message; the original prompt and
+  attached crash log were available. Earlier compacted requirements remain
+  represented by the pre-existing ledgers and audits in this plan.
+
 ### Candidate core, parallel topology, and elastic continuation
 
 The candidate required core is **RCS-0 through RCS-8 plus RCS-S1 and RCS-S2**.
@@ -1708,12 +2095,10 @@ this candidate.
   runs final validation/install, and updates canonical plans. RCS-5 waits for
   A/B/C; RCS-8 waits for B/D/E; RCS-S1 waits for every required track.
 
-After a clean committed core, continue one item at a time:
-
-1. **RCS-S3:** freeze CLI-AST `ReviewUnit`/`ReviewSurface`/equivalence report
-   schemas and emit a first human-readable/JSON report for the same lane.
-2. **RCS-S4:** compare one review unit across a second Minecraft lane and show
-   textual/body/environment/unknown equivalence without deduplicating approval.
+After the clean committed core, continue according to the review-workbench
+execution order above. RCS-UX0 is the immediate safety correction; RCS-UX1
+through RCS-UX4 are the next coherent user-visible goal; RCS-UX5 is the expanded
+definition of RCS-S3; and RCS-S4 remains the first cross-lane equivalence proof.
 
 The dependency graph and checked-in lockfiles remain frozen. Local checkpoint
 commits are required; no push, propagation, release tag, publication, broad

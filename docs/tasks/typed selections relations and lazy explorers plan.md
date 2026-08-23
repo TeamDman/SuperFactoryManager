@@ -1594,3 +1594,26 @@ All required outcomes below are now observable in the completion evidence above:
 8. Focused Rust/Java tests, the canonical full Java suite, canonical compile,
    the live puppet, machine artifacts, screenshots, and plan/changelog notes
    all agree. No explorer persistence/global-workspace schema is introduced.
+
+## 2026-08-23 release-review generic-explorer adoption
+
+RCS-UX1, RCS-UX2, and RCS-UX7 in
+`docs/tasks/global comment selection and review sessions plan.md` are the first
+large production consumer required to retire an application-specific tree in
+favour of this plan's generic lazy explorer. This plan owns reusable resolver,
+presenter, filtering, lazy page, reveal, home-location, and explorer-chrome
+contracts. The review plan owns the review-file/session model and exact tree
+projection.
+
+The integration must preserve these clarified requirements:
+
+- the location control visibly identifies the canonical `.sfm-review.json`
+  file while a separate named view/presenter chooses changes, comments,
+  hashtags, query, status, or migrations;
+- a target-block control reveals the captured compatible non-explorer document
+  through the existing coordinator;
+- a generic lazy explorer home can expose My Computer/drives, current instance,
+  SFM source, registries, reviews, recent locations, and favourites without
+  recursively scanning a drive; and
+- the 30 MB/2,917-unit review remains paged/cancellable rather than becoming an
+  eager in-memory tree merely because it is now a contributed resolver.

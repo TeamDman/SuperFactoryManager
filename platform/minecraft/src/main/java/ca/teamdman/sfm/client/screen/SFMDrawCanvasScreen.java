@@ -154,9 +154,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private Optional<Component> saveDiagnostic = Optional.empty();
     private Optional<SFMTextDocumentRange> openTargetRange = Optional.empty();
     private List<SFMTextDocumentSelection> exactDocumentSelections = List.of();
+    /**
+     * Exact immutable text against which {@link #exactDocumentSelections} was
+     * validated.  The canvas glyph projection intentionally has no glyph for
+     * a trailing empty line, so reconstructing text from glyphs can omit the
+     * final newline even though EOF on the following line is a valid source
+     * coordinate.
+     */
+    private String exactDocumentSelectionsSourceText = "";
     private long exactDocumentSelectionsContentRevision = -1L;
     private long exactDocumentSelectionsCursorFingerprint;
     private boolean exactDocumentSelectionsPublished;
+    private Optional<Component> exactDocumentSelectionsDiagnostic = Optional.empty();
     private Optional<SFMSpatialSemanticContract.FramingObservation> navigationFramingObservation = Optional.empty();
     private long javaInteractionRegionRevision = -1L;
     private SFMJavaCanvasInteractionRegions.Index javaInteractionRegionIndex;
@@ -916,9 +925,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 range.start(),
                 true
         ));
+        exactDocumentSelectionsSourceText = openContext.initialValue();
         exactDocumentSelectionsContentRevision = model().contentRevision();
         exactDocumentSelectionsCursorFingerprint = cursorFingerprint();
         exactDocumentSelectionsPublished = true;
+        exactDocumentSelectionsDiagnostic = Optional.empty();
         SFMNavigationFramingPolicy.Result framing = frameDestination(openContext.initialValue(), range);
         cameraX = framing.camera().x();
         cameraY = framing.camera().y();
@@ -1392,11 +1403,31 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private void renderExactDocumentSelections(PoseStack poseStack) {
         Optional<List<SFMTextDocumentSelection>> published = exactDocumentSelections();
         if (published.isEmpty()) return;
-        String text = getCurrentText();
-        for (SFMTextDocumentSelection selection : published.orElseThrow()) {
-            SFMTextDocumentRange range = selection.orderedRange();
-            if (range.start().equals(range.end())) continue;
-            renderTextRangeHighlight(poseStack, text, range, 0x8042647A);
+        try {
+            for (SFMTextDocumentSelection selection : published.orElseThrow()) {
+                SFMTextDocumentRange range = selection.orderedRange();
+                if (range.start().equals(range.end())) continue;
+                renderTextRangeHighlight(
+                        poseStack,
+                        exactDocumentSelectionsSourceText,
+                        range,
+                        0x8042647A
+                );
+            }
+        } catch (IllegalArgumentException staleRange) {
+            // Rendering is a total operation.  A stale/malformed source range
+            // may suspend its highlight, but it must never crash Minecraft's
+            // render thread.  Publication paths validate eagerly; this guard
+            // protects persisted or asynchronously superseded evidence.
+            exactDocumentSelectionsPublished = false;
+            exactDocumentSelectionsDiagnostic = Optional.of(Component.literal(
+                    "Exact document selection was suspended: " + staleRange.getMessage()));
+            SFM.LOGGER.warn(
+                    "SFM_EXACT_DOCUMENT_SELECTION_INVALIDATED content_revision={} range_count={} reason={}",
+                    model().contentRevision(),
+                    exactDocumentSelections.size(),
+                    staleRange.getMessage()
+            );
         }
     }
 
@@ -1406,23 +1437,42 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             SFMTextDocumentRange range,
             int colour
     ) {
-        for (int line = range.start().line(); line <= range.end().line(); line++) {
-            String lineText = lineText(text, line);
-            int lineCodePoints = lineText.codePointCount(0, lineText.length());
-            int startColumn = line == range.start().line() ? range.start().column() : 0;
-            int endColumn = line == range.end().line() ? range.end().column() : lineCodePoints;
-            if (startColumn >= endColumn) continue;
-            int startIndex = lineText.offsetByCodePoints(0, Math.min(startColumn, lineCodePoints));
-            int endIndex = lineText.offsetByCodePoints(0, Math.min(endColumn, lineCodePoints));
-            double canvasX = font.width(lineText.substring(0, startIndex));
-            double canvasY = (double) line * font.lineHeight;
-            double canvasWidth = Math.max(1, font.width(lineText.substring(startIndex, endIndex)));
+        for (TextHighlightRow row : textHighlightRows(text, range)) {
+            double canvasX = font.width(row.lineText().substring(0, row.startUtf16()));
+            double canvasY = (double) row.line() * font.lineHeight;
+            double canvasWidth = Math.max(
+                    1,
+                    font.width(row.lineText().substring(row.startUtf16(), row.endUtf16()))
+            );
             int left = (int) Math.floor(canvasToScreenX(canvasX));
             int top = (int) Math.floor(canvasToScreenY(canvasY));
             int right = (int) Math.ceil(canvasToScreenX(canvasX + canvasWidth));
             int bottom = (int) Math.ceil(canvasToScreenY(canvasY + font.lineHeight));
             GuiComponent.fill(poseStack, left, top, right, bottom, colour);
         }
+    }
+
+    /**
+     * Pure range-to-row projection shared by rendering and focused regression
+     * tests.  A half-open range ending at column zero on the empty line after
+     * a trailing newline is valid and contributes no rectangle for that final
+     * line.
+     */
+    static List<TextHighlightRow> textHighlightRows(String text, SFMTextDocumentRange range) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(range, "range").validateAgainst(text);
+        ArrayList<TextHighlightRow> rows = new ArrayList<>();
+        for (int line = range.start().line(); line <= range.end().line(); line++) {
+            String value = lineText(text, line);
+            int lineCodePoints = value.codePointCount(0, value.length());
+            int startColumn = line == range.start().line() ? range.start().column() : 0;
+            int endColumn = line == range.end().line() ? range.end().column() : lineCodePoints;
+            if (startColumn >= endColumn) continue;
+            int startIndex = value.offsetByCodePoints(0, startColumn);
+            int endIndex = value.offsetByCodePoints(0, endColumn);
+            rows.add(new TextHighlightRow(line, value, startIndex, endIndex));
+        }
+        return List.copyOf(rows);
     }
 
     private CanvasTextPoint canvasPoint(String text, SFMTextDocumentPosition position) {
@@ -1600,9 +1650,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
         model().replaceCursors(cursors);
         exactDocumentSelections = List.copyOf(validated);
+        exactDocumentSelectionsSourceText = text;
         exactDocumentSelectionsContentRevision = model().contentRevision();
         exactDocumentSelectionsCursorFingerprint = cursorFingerprint();
         exactDocumentSelectionsPublished = true;
+        exactDocumentSelectionsDiagnostic = Optional.empty();
         rememberCursorPosition();
     }
 
@@ -1614,6 +1666,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             return Optional.empty();
         }
         return Optional.of(exactDocumentSelections);
+    }
+
+    public Optional<Component> exactDocumentSelectionsDiagnostic() {
+        return exactDocumentSelectionsDiagnostic;
     }
 
     public SFMDrawCanvasPerformanceTracker.Snapshot performanceEvidence() {
@@ -3161,6 +3217,21 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                    && this.top <= top
                    && this.right >= right
                    && this.bottom >= bottom;
+        }
+    }
+
+    record TextHighlightRow(
+            int line,
+            String lineText,
+            int startUtf16,
+            int endUtf16
+    ) {
+        TextHighlightRow {
+            if (line < 0) throw new IllegalArgumentException("Highlight line must not be negative");
+            Objects.requireNonNull(lineText, "lineText");
+            if (startUtf16 < 0 || endUtf16 < startUtf16 || endUtf16 > lineText.length()) {
+                throw new IllegalArgumentException("Highlight UTF-16 bounds lie outside the line");
+            }
         }
     }
 

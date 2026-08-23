@@ -3969,3 +3969,26 @@ are recorded in C-4a through C-6 rather than being deferred to a future goal.
 - `platform/cli/sfm-propagate-changes/src/java_analysis/`
 - `platform/cli/sfm-propagate-changes/src/cli/symbol/`
 - `G:\Programming\Repos\microsoft-terminal\src\cascadia\TerminalSettingsModel\defaults.json`
+
+## 2026-08-23 release-review workbench ownership addendum
+
+Natural use of the initialized release review exposed generic input/action gaps
+that are specified atomically as RUX-3, RUX-5, RUX-10, RUX-12, RUX-13, and
+RUX-16 in
+`docs/tasks/global comment selection and review sessions plan.md`.
+
+This plan owns the reusable implementation of:
+
+- an action-backed explorer target-block control that captures an exact
+  destination explorer and compatible non-explorer source before dispatch;
+- left/middle/right tab affordances and constrained contextual actions;
+- `sfm:help/understand <captured-context-selector>` provider composition;
+- mouse/keyboard/direct-command parity for review-facing controls; and
+- ordinary command-document Home/End/Shift+Home/Shift+End behavior while the
+  palette input has focus, with distinct discoverable first/last-suggestion
+  actions instead of stealing text-editor keys.
+
+The global review plan owns how those mechanisms compose into release review,
+including exact review/session/source identities and its natural acceptance
+journey. Do not patch those behaviors only into `SFMReviewExplorerPanel`; its
+production replacement with `SFMExplorerPanel` is RCS-UX1.

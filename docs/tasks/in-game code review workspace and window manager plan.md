@@ -2314,3 +2314,23 @@ surfaces through `cargo run -- ...`. A track with deliberately older or locally
 modified Rust CLI sources therefore uses its local CLI for validation without
 installing it globally, reports the incompatibility here, and waits for an
 accepted canonical CLI update before changing the shared epoch.
+
+## 2026-08-23 pane/tab review-workbench ownership addendum
+
+The natural release-review test clarified the public vocabulary and mouse
+contract now tracked as RUX-4 through RUX-6 in
+`docs/tasks/global comment selection and review sessions plan.md`:
+
+- a **pane** is one visible split leaf/area;
+- a **panel entry/tab** is one stacked content entry in that pane;
+- `sfm:panel/close` closes one exact entry;
+- hierarchical `sfm:pane/close` closes the pane only after count/dirty-state
+  preflight and confirmation when required; and
+- the existing bottom-right numbered stack boxes become real left-click focus,
+  middle-click close, and right-click constrained-action targets with stable
+  captured entry identities, tooltips, narration, and contextual help.
+
+This plan owns the generic workspace/layout/action mechanics. The global review
+plan owns stable review-presentation identity, preview deduplication, and the
+release-review puppet that proves repeated before/after browsing alternates
+existing entries instead of accumulating an unbounded stack.

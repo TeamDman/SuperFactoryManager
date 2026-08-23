@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -8,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMDrawCanvasScreenTests {
@@ -41,6 +43,75 @@ public class SFMDrawCanvasScreenTests {
                 "first",
                 "first\nsecond".indexOf("second")
         ).isEmpty());
+    }
+
+    @Test
+    public void exactHighlightPreservesValidHalfOpenEofAfterTrailingNewline() {
+        String source = "first\nsecond\n";
+        SFMTextDocumentRange range = new SFMTextDocumentRange(
+                SFMContextTextCoordinates.atLineColumn(source, 1, 0),
+                SFMContextTextCoordinates.atLineColumn(source, 2, 0)
+        );
+
+        assertEquals(
+                List.of(new SFMDrawCanvasScreen.TextHighlightRow(1, "second", 0, "second".length())),
+                SFMDrawCanvasScreen.textHighlightRows(source, range)
+        );
+    }
+
+    @Test
+    public void exactHighlightPreservesFullFileRangeForCrLfUnicodeAndLeadingEmptyLine() {
+        String source = "\r\nα💡\r\n";
+        SFMTextDocumentRange range = new SFMTextDocumentRange(
+                SFMContextTextCoordinates.atLineColumn(source, 0, 0),
+                SFMContextTextCoordinates.atLineColumn(source, 2, 0)
+        );
+
+        assertEquals(
+                List.of(new SFMDrawCanvasScreen.TextHighlightRow(1, "α💡", 0, "α💡".length())),
+                SFMDrawCanvasScreen.textHighlightRows(source, range)
+        );
+    }
+
+    @Test
+    public void exactHighlightDoesNotPaintMultipleEmptyLinesAtEof() {
+        String source = "body\n\n";
+        SFMTextDocumentRange range = new SFMTextDocumentRange(
+                SFMContextTextCoordinates.atLineColumn(source, 0, 0),
+                SFMContextTextCoordinates.atLineColumn(source, 2, 0)
+        );
+
+        assertEquals(
+                List.of(new SFMDrawCanvasScreen.TextHighlightRow(0, "body", 0, "body".length())),
+                SFMDrawCanvasScreen.textHighlightRows(source, range)
+        );
+    }
+
+    @Test
+    public void exactHighlightPreservesFullFileRangeEndingOnLineOneHundredNinety() {
+        String source = "line\n".repeat(190);
+        SFMTextDocumentRange range = new SFMTextDocumentRange(
+                SFMContextTextCoordinates.atLineColumn(source, 0, 0),
+                SFMContextTextCoordinates.atLineColumn(source, 190, 0)
+        );
+
+        List<SFMDrawCanvasScreen.TextHighlightRow> rows = SFMDrawCanvasScreen.textHighlightRows(source, range);
+        assertEquals(190, rows.size());
+        assertEquals(189, rows.get(rows.size() - 1).line());
+    }
+
+    @Test
+    public void exactHighlightRejectsRangeAfterDocumentWasShortened() {
+        String original = "first\nsecond\n";
+        SFMTextDocumentRange range = new SFMTextDocumentRange(
+                SFMContextTextCoordinates.atLineColumn(original, 1, 0),
+                SFMContextTextCoordinates.atLineColumn(original, 2, 0)
+        );
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> SFMDrawCanvasScreen.textHighlightRows("first", range)
+        );
     }
 
     @Test
