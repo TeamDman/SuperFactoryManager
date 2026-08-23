@@ -1711,6 +1711,11 @@ this plan owns their exact release-review composition and acceptance journey.
 | RUX-14 | In a one-lane review, the root/lane labels repeat `4.34.0-1.19.2 → HEAD` beneath an already-identical release heading. | The location/view identifies the comparison once. A single lane is hoisted or labelled concisely as `1.19.2`; multi-lane reviews retain explicit lane grouping. Before/after/diff leaves retain their exact pinned revision tooltips/narration. | RCS-UX1 |
 | RUX-15 | Manual testing crashed while two Java interaction-map requests overlapped preview use: `renderExactDocumentSelections` tried to render line 190 beyond the current canvas projection. | Selection/range publication and rendering must be generation/hash/document bound, tolerate a half-open EOF position after a trailing newline, reject stale preview results, and never turn malformed/stale highlight evidence into a render-thread exception. | RCS-UX0 |
 | RUX-16 | The UI should expose review progress without forcing memorization of the command list, but the command surface remains useful and complete. | Mouse entry points and contextual menus call the same read-only/writable open, query, work-next, comment, diff, close, and help actions documented for the palette. No mouse-only review mutation is permitted. | RCS-UX1..8 |
+| RUX-17 | The target-block tooltip is clipped to its Explorer pane and can be overpainted by a subsequently rendered pane. | Panels publish tooltip candidates; the workspace chooses and renders the final tooltip only after every panel, widget, and scissor scope has finished. No panel directly renders a tooltip that may escape its bounds. | RCS-UX2a / generic workspace tooltip contract |
+| RUX-18 | The first target click and first command-palette open with a release review active can stall noticeably, while warm retries improve. | Action availability is constant/bounded work and never constructs a complete review projection. Build the document-to-review-row reverse index asynchronously with generation/cancellation guards; reveal dispatch stays responsive and reports pending/failure without blocking the render thread. Add cold and warm telemetry rather than accepting cache-masked behavior. | RCS-UX2a / RCS-UX1 latency correction |
+| RUX-19 | With no addressed editor available, the target remains visible and invokes an unavailable Brigadier node, yielding `Incorrect argument ... sfm action invoke` instead of an intentional state. It also lacks normal button feedback. | Hide the target control entirely—including focus, hit, narration, and reserved width—when no compatible document exists. A context race fails with the action's precise unavailable reason, never a parser artifact. Accepted pointer/keyboard activation plays exactly one vanilla button-click sound. | RCS-UX2a |
+| RUX-20 | Changes/Comments/Hashtags/Query/Status/Migrations can be opened by memorized palette commands but cannot be switched from the review workbench with the mouse. | Add an action-backed review-lens control using the ordinary constrained choice surface. It indicates the active lens and exposes every valid lens without creating a parallel selection widget. | RCS-UX6a |
+| RUX-21 | Existing comment actions require an undiscoverable selector-proposal id, and the Comments lens only displays existing comments. This is not a feasible review-authoring loop. | On a writable reviewed before/after/diff surface, select a source-backed region and choose `#approved`, `#needs-change`, a recent template, or `Other`; persist the exact proposal/witness and refresh Comments/Hashtags/query status immediately. Read-only sessions explain and offer the explicit writable transition instead of pretending mutation succeeded. | RCS-UX6a / RCS-UX6 |
 
 ### Verified implementation evidence and constraints
 
@@ -1869,7 +1874,7 @@ header/footer chrome. Reopening the same durable review receives a fresh
 ephemeral explorer identity through its open epoch, preventing stale resolver
 state from a prior in-process session.
 
-### [x] RCS-UX2 Add action-backed reveal-current-context explorer chrome
+### [~] RCS-UX2 Add action-backed reveal-current-context explorer chrome
 
 **Work:** Add a target-block ItemStack control to generic explorer chrome with
 tooltip, narration, keyboard focus, and a stable action/element id. Its action captures
@@ -1897,6 +1902,53 @@ source panel; stale, absent, unauthorized, and unmatched rows fail visibly and
 do not mutate selection. The natural review puppet first selects a decoy
 `after` row, focuses the corresponding `before` editor, then clicks the target
 control and verifies expansion/selection of that exact before row.
+
+**Manual regression 2026-08-23:** Reopened. Natural use found that the tooltip
+is rendered inside the Explorer's active scissor and before later panes, the
+raw hit rectangle emits no vanilla click sound, and the control remains visible
+without an eligible document. In that absent-document state Brigadier's
+availability `requires` hides the action node, so the fixed control command
+fails generically at `sfm action invoke` instead of presenting its reason.
+`SFMRevealHereAction.requirement()` can also call
+`SFMReleaseReviewExplorerRuntime.revealTargets()`, whose cold path constructs
+the complete review projection synchronously; palette availability evaluation
+can therefore pay the same render-thread cost before the target is clicked.
+
+### [ ] RCS-UX2a Repair reveal layering, availability, feedback, and latency
+
+**Work:** Introduce one workspace-level deferred-tooltip contract and migrate
+the target control to it so tooltips render after all panels with no active
+panel scissor. Make target visibility a cheap snapshot derived from the most
+recent compatible addressed document; absence removes the control from layout,
+focus order, hit testing, tooltip, and narration. Preserve a precise stale-race
+failure by resolving/dispatching the registered action directly rather than
+turning unavailability into a Brigadier parse failure. Use the normal Minecraft
+button activation sound for accepted pointer and keyboard activation.
+
+Replace synchronous review projection discovery in action requirements with a
+generation-keyed, cancellable reverse index from immutable document identity
+(address plus source hash and side/revision evidence) to exact review rows. The
+index may build asynchronously when a lens opens or the review generation
+changes; reveal dispatch must be O(1)/O(depth) over published evidence and may
+show a non-blocking pending state. Command-palette opening and action suggestion
+generation must never trigger corpus projection, filesystem traversal, or
+source loading. Add structured cold/warm timings and work counters.
+
+**Validation:** A split-pane visual test proves a long target tooltip crosses
+the pane boundary and remains above the neighbor. Geometry/focus tests prove
+the target consumes no width or tab stop with no eligible document and appears
+when one becomes available. Pointer and keyboard tests observe one click sound
+per accepted activation. Direct, absent, stale, unauthorized, pending-index,
+zero/one/many-match, and action-registry race tests produce specific feedback
+and no generic parse error. A cold 30 MB review fixture and natural puppet prove
+that first palette open and target input return without corpus-sized render-
+thread work; telemetry distinguishes asynchronous index latency from input
+dispatch latency.
+
+**Completion criteria:** The target looks and sounds like an ordinary Minecraft
+control only when useful, its tooltip is an unclipped top-level overlay, no
+state emits the observed Brigadier error, and neither palette opening nor reveal
+input freezes a frame while projecting the review.
 
 ### [x] RCS-UX3 Deduplicate and safely own review preview entries
 
@@ -1998,6 +2050,38 @@ create a comment whose durable target resolves against pinned source bytes.
 open before, after, textual diff, or Java structural diff, understand every
 fallback/ambiguity, and attach/query comments without losing source identity.
 
+### [ ] RCS-UX6a Prove one mouse-complete persistent comment loop
+
+**Work:** Add an action-backed review-lens control to the generic review
+Explorer. Clicking it opens the ordinary constrained palette containing
+Changes, Comments, Hashtags, Query, Status, and Migrations, marks the active
+lens, and preserves the canonical review path and explicit session selector.
+The control obeys the deferred-tooltip, sound, focus, and availability contract
+from RCS-UX2a.
+
+For one canonical writable review journey, support pointer selection on
+before/after and RCS-UX5 diff surfaces, then present recent templates plus
+`#approved`, `#needs-change`, `Other`, and Cancel through an action-backed
+choice. `Other` opens the preferred editor for arbitrary comment text. Resolve
+the chosen literal/structural proposal explicitly, persist its pinned source
+selection and projection witness atomically to the `.sfm-review.json`, and
+refresh Comments, Hashtags, active query, and status lenses. A read-only review
+offers an explicit reopen-writable action and performs no mutation. This slice
+does not claim all multi-review/session-management work in RCS-UX6 complete.
+
+**Validation:** Mouse and keyboard journeys cover lens switching, before/after,
+text-diff and structured-diff selection, built-in/recent/arbitrary comments,
+Cancel, stale and empty selections, read-only refusal/transition, autosave,
+close/reopen, and exact comment/highlight/query recovery from the tracked JSON.
+The natural puppet pauses after one comment, closes the workspace/runtime,
+reopens only the review file, and proves that `#approved` query membership and
+resume state survive. No test mutates the user's live review document.
+
+**Completion criteria:** Without typing an action command, a reviewer can open
+the workbench, switch lenses, inspect either diff, select source-backed content,
+apply or write a comment, immediately find it by comment/hashtag/query, close
+Minecraft, and resume from the repository-tracked review file.
+
 ### [ ] RCS-UX6 Make review opening and annotation naturally mouse-driven
 
 **Work:** Add file-explorer contextual actions for opening a `.sfm-review.json`
@@ -2065,20 +2149,25 @@ The safety repair is first and independently committable:
    range/publication invariants.
 2. **RCS-UX1 through RCS-UX4** — replace the bespoke review tree with the generic
    explorer, add reveal, deduplicated previews, mouse tabs/pane close, and fix
-   palette caret behavior. This is the recommended next user-visible goal.
-3. **RCS-UX5 / RCS-S3** — add textual/structured diff reports and leaves on the
-   now-correct generic explorer substrate.
-4. **RCS-UX6** — complete the mouse-first open/select/comment/resume journey.
-5. **RCS-UX7/RCS-UX8** — broaden discoverability through explorer home and
+   palette caret behavior. The checkpoint is complete except for the manually
+   reopened RCS-UX2 acceptance defects owned by RCS-UX2a.
+3. **RCS-UX2a** — repair the manually observed reveal tooltip, availability,
+   sound, parse-feedback, and cold render-thread latency regressions.
+4. **RCS-UX5 / RCS-S3 plus RCS-UX6a** — add textual/structured diff reports
+   and prove one mouse-complete persistent comment loop on that substrate. This
+   is the recommended next user-visible goal.
+5. **RCS-UX6 remainder** — broaden the mouse-first workflow to complete
+   multi-session leases, conflicts, recovery, and every annotation edge case.
+6. **RCS-UX7/RCS-UX8** — broaden discoverability through explorer home and
    contextual self-explanation.
-6. **RCS-S4** — only then prove cross-lane structural equivalence without
+7. **RCS-S4** — only then prove cross-lane structural equivalence without
    deduplicating human approval.
 
-RCS-UX0 may be fixed during bookkeeping because it is a reproducible crash and
-does not commit to the larger UI architecture. The recommended next persistent
-goal is **RCS-UX1 through RCS-UX4** after RCS-UX0 is green. It ends with a
-natural mouse-visible improvement while leaving structured diff and comment
-authoring as explicit subsequent slices rather than hiding them in “polish.”
+The completed RCS-UX0..4 checkpoint remains useful, but manual testing has
+reopened RCS-UX2 until RCS-UX2a is green. The recommended next persistent goal
+is **RCS-UX2a, RCS-UX5/RCS-S3, and RCS-UX6a**. It deliberately includes the
+comparison and first persistent annotation loop so the endpoint is usable for
+real release review rather than another isolated presentation fragment.
 
 ### Review-workbench risk register
 
@@ -2144,10 +2233,11 @@ this candidate.
   runs final validation/install, and updates canonical plans. RCS-5 waits for
   A/B/C; RCS-8 waits for B/D/E; RCS-S1 waits for every required track.
 
-After the clean committed core, continue according to the review-workbench
-execution order above. RCS-UX0 is the immediate safety correction; RCS-UX1
-through RCS-UX4 are the next coherent user-visible goal; RCS-UX5 is the expanded
-definition of RCS-S3; and RCS-S4 remains the first cross-lane equivalence proof.
+After the clean committed core, continue according to the current review-
+workbench execution order above. RCS-UX0 and the original RCS-UX1..4 checkpoint
+are complete, with RCS-UX2 manually reopened under RCS-UX2a. The next coherent
+goal is RCS-UX2a plus RCS-UX5/RCS-S3 and RCS-UX6a; RCS-S4 remains the first
+cross-lane equivalence proof after the single-lane review loop is usable.
 
 The dependency graph and checked-in lockfiles remain frozen. Local checkpoint
 commits are required; no push, propagation, release tag, publication, broad
