@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.context.SFMContextContribution;
 import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
 import ca.teamdman.sfm.client.context.SFMContextGenerationEvidence;
 import ca.teamdman.sfm.client.context.SFMContextOriginId;
+import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,6 +22,20 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMJavaInteractionMapSessionTests {
+    @Test
+    void pathlessScratchRevisionsNeverSubmitInteractionMapWork() {
+        FakeLookupService service = new FakeLookupService();
+        SFMJavaInteractionMapSession session = new SFMJavaInteractionMapSession(service);
+
+        session.refresh(pathlessContribution("", 1), 1, SFMDefinitionRequest.sha256(""));
+        session.refresh(pathlessContribution("hello", 2), 2, SFMDefinitionRequest.sha256("hello"));
+
+        assertEquals(0, service.results.size());
+        assertEquals(0, service.cancellations.get());
+        assertFalse(session.pending());
+        assertTrue(session.current(2, SFMDefinitionRequest.sha256("hello")).isEmpty());
+    }
+
     @Test
     void onlyTheLatestExactDocumentGenerationCanPublish() {
         FakeLookupService service = new FakeLookupService();
@@ -93,9 +109,21 @@ class SFMJavaInteractionMapSessionTests {
     }
 
     private static SFMContextContribution contribution(String text, long generation) {
+        return contribution(addressedSnapshot(text), text, generation);
+    }
+
+    private static SFMContextContribution pathlessContribution(String text, long generation) {
+        return contribution(SFMTextDocumentSnapshot.literal(text), text, generation);
+    }
+
+    private static SFMContextContribution contribution(
+            SFMTextDocumentSnapshot baseline,
+            String text,
+            long generation
+    ) {
         SFMContextDocumentProjection projection = SFMContextDocumentProjection.capture(
                 "fixture-editor",
-                SFMTextDocumentSnapshot.literal(text),
+                baseline,
                 text,
                 false,
                 true,
@@ -106,6 +134,24 @@ class SFMJavaInteractionMapSessionTests {
                 new SFMContextOriginId("sfm:test", "fixture", "document"),
                 new SFMContextGenerationEvidence(generation, generation, generation, 0),
                 projection
+        );
+    }
+
+    private static SFMTextDocumentSnapshot addressedSnapshot(String text) {
+        SFMTextDocumentSnapshot literal = SFMTextDocumentSnapshot.literal(text);
+        return new SFMTextDocumentSnapshot(
+                literal.state(),
+                literal.text(),
+                literal.mutationCapability(),
+                Optional.of(SFMPath.parse("file:///D:/workspace/source/A.java")),
+                Optional.of(SFMPath.parse("file:///D:/workspace/source/")),
+                literal.sha256(),
+                literal.byteLength(),
+                literal.lastModified(),
+                literal.lineEndingKind(),
+                literal.targetRange(),
+                literal.diagnostics(),
+                literal.sourceRootIdentity()
         );
     }
 

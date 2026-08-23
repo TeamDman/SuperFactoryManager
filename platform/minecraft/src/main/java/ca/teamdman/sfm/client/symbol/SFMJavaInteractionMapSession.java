@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.symbol;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
+import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 
 import java.util.List;
@@ -35,36 +36,48 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
         if (closed) return;
         long epoch = ++requestEpoch;
         if (active != null) active.cancel();
+        active = null;
         publication = null;
+        Optional<SFMDefinitionContextAdapter.DiagnosticCode> unavailable =
+                structurallyUnavailable(contribution);
+        if (unavailable.isPresent()) {
+            SFM.LOGGER.debug(
+                    "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=SKIPPED epoch={} expected_generation={} reason={}",
+                    epoch,
+                    documentGeneration,
+                    unavailable.orElseThrow().name().toLowerCase(Locale.ROOT)
+            );
+            return;
+        }
         SFMJavaInteractionMapLookupService.Submission submitted = service.queryInteractionMap(contribution);
         active = submitted;
         submitted.result().whenComplete((lookup, failure) -> {
-            if (failure != null) {
-                Throwable rootFailure = unwrap(failure);
-                SFM.LOGGER.warn(
-                        "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=FAILED epoch={} expected_generation={} failure_type={} failure_code={}",
-                        epoch,
-                        documentGeneration,
-                        rootFailure.getClass().getSimpleName(),
-                        privacySafeFailureCode(rootFailure)
-                );
-                return;
-            }
-            if (lookup == null) {
-                SFM.LOGGER.warn(
-                        "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=REJECTED_NULL epoch={} expected_generation={}",
-                        epoch,
-                        documentGeneration
-                );
-                return;
-            }
             synchronized (SFMJavaInteractionMapSession.this) {
                 if (closed || requestEpoch != epoch || active != submitted) {
-                    SFM.LOGGER.info(
+                    SFM.LOGGER.debug(
                             "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=REJECTED_STALE epoch={} current_epoch={} closed={}",
                             epoch,
                             requestEpoch,
                             closed
+                    );
+                    return;
+                }
+                if (failure != null) {
+                    Throwable rootFailure = unwrap(failure);
+                    SFM.LOGGER.warn(
+                            "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=FAILED epoch={} expected_generation={} failure_type={} failure_code={}",
+                            epoch,
+                            documentGeneration,
+                            rootFailure.getClass().getSimpleName(),
+                            privacySafeFailureCode(rootFailure)
+                    );
+                    return;
+                }
+                if (lookup == null) {
+                    SFM.LOGGER.warn(
+                            "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=REJECTED_NULL epoch={} expected_generation={}",
+                            epoch,
+                            documentGeneration
                     );
                     return;
                 }
@@ -122,6 +135,38 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
                 );
             }
         });
+    }
+
+    /**
+     * Rejects immutable document shapes that the Java worker can never adapt.
+     * Scratch buffers are valid editor documents, but they have no resolver
+     * authority and therefore must not produce one failed worker request per
+     * edit revision.
+     */
+    static Optional<SFMDefinitionContextAdapter.DiagnosticCode> structurallyUnavailable(
+            SFMContextContribution contribution
+    ) {
+        Objects.requireNonNull(contribution, "contribution");
+        if (!(contribution.projection() instanceof SFMContextDocumentProjection document)) {
+            return Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.ORIGIN_IS_NOT_DOCUMENT);
+        }
+        var baseline = document.baseline();
+        if (!baseline.ready()) {
+            return Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_NOT_READY);
+        }
+        if (baseline.path().isEmpty()) {
+            return Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_PATH_ABSENT);
+        }
+        if (baseline.authorizedRoot().isEmpty()) {
+            return Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.AUTHORIZED_ROOT_ABSENT);
+        }
+        if (baseline.path().orElseThrow().kind() != SFMPath.Kind.FILE) {
+            return Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_PATH_NOT_FILE);
+        }
+        if (baseline.authorizedRoot().orElseThrow().kind() != SFMPath.Kind.FILE) {
+            return Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.AUTHORIZED_ROOT_NOT_FILE);
+        }
+        return Optional.empty();
     }
 
     public Optional<SFMJavaInteractionMap.Result> current(
