@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
+import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -67,8 +68,8 @@ class SFMRevealHereActionTests {
         SFMRevealHereAction.Target target = availability.target();
         assertEquals(explorerId, target.explorerPanelId());
         assertEquals(secondId, target.documentPanelId());
-        assertEquals(SECOND, target.documentPath());
-        assertEquals(ROOT, target.containingRoot());
+        assertEquals(SECOND, target.documentSnapshot().path().orElseThrow());
+        assertEquals(ROOT, target.directContainingRoot().orElseThrow());
         assertTrue(target.stillCurrent());
     }
 
@@ -98,6 +99,22 @@ class SFMRevealHereActionTests {
                 SFMRevealHereAction.capture(new SFMClientActionContext(workspace, () -> true, explorerId));
         assertFalse(unavailable.isAvailable());
         assertTrue(unavailable.unavailableReason().getString().contains("not authorized"));
+    }
+
+    @Test
+    void semanticControlFailsWithItsExactReasonInsteadOfABrigadierParseArtifact() {
+        SFMExplorerPanel explorer = explorer();
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.single(explorer);
+        SFMScreenMultiplexer workspace = SFMHeadlessWorkspaceTestSupport.create(layout);
+        SFMWorkspacePanelId explorerId = id(layout, explorer);
+        SFMClientActionContext context = new SFMClientActionContext(workspace, () -> true, explorerId);
+        ArrayList<Component> feedback = new ArrayList<>();
+
+        assertFalse(SFMRevealHereAction.isControlVisible(context));
+        assertFalse(SFMRevealHereAction.invokeFromControl(context, feedback::add));
+        assertEquals(1, feedback.size());
+        assertTrue(feedback.get(0).getString().contains("No recently focused addressed document"));
+        assertFalse(feedback.get(0).getString().contains("Incorrect argument"));
     }
 
     private static SFMExplorerPanel explorer() {

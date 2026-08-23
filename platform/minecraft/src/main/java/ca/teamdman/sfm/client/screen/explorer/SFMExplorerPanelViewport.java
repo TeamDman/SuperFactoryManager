@@ -185,6 +185,10 @@ public final class SFMExplorerPanelViewport {
     }
 
     public static Layout layout(SFMScreenPanelBounds rawBounds) {
+        return layout(rawBounds, true);
+    }
+
+    public static Layout layout(SFMScreenPanelBounds rawBounds, boolean revealControlVisible) {
         int margin = rawBounds.width() < 220 || rawBounds.height() < 140 ? 3 : 6;
         SFMScreenPanelBounds inset = rawBounds.inset(margin);
         Rect content = new Rect(inset.x(), inset.y(), inset.width(), inset.height());
@@ -199,7 +203,9 @@ public final class SFMExplorerPanelViewport {
         Rect bodyFrame = new Rect(content.x(), filter.y() + filter.height(), content.width(), bodyHeight);
         Rect body = bodyFrame.inset(1);
         Rect status = new Rect(content.x(), bodyFrame.y() + bodyFrame.height(), content.width(), statusHeight);
-        int revealWidth = Math.min(header.width(), Math.min(22, header.height()));
+        int revealWidth = revealControlVisible
+                ? Math.min(header.width(), Math.min(22, header.height()))
+                : 0;
         Rect locationControl = new Rect(
                 header.x(),
                 header.y(),

@@ -102,6 +102,19 @@ public class SFMExplorerPanelViewportTests {
     }
 
     @Test
+    public void hiddenRevealControlReturnsItsSpaceAndHitRegionToTheLocationControl() {
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(4, 7, 640, 360);
+        SFMExplorerPanelViewport.Layout visible = SFMExplorerPanelViewport.layout(bounds, true);
+        SFMExplorerPanelViewport.Layout hidden = SFMExplorerPanelViewport.layout(bounds, false);
+
+        assertTrue(visible.revealControl().width() > 0);
+        assertEquals(0, hidden.revealControl().width());
+        assertEquals(hidden.header().width(), hidden.locationControl().width());
+        assertEquals(visible.header(), hidden.header());
+        assertEquals(visible.body(), hidden.body());
+    }
+
+    @Test
     public void bodyViewportIsInsetOnAllFourEdgesSoRowsCannotPaintOverFocusChrome() {
         for (SFMScreenPanelBounds bounds : List.of(
                 new SFMScreenPanelBounds(0, 0, 90, 80),

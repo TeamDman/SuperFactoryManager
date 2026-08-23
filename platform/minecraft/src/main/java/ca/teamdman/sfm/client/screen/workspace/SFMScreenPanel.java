@@ -70,6 +70,15 @@ public interface SFMScreenPanel {
     default void tick() {
     }
 
+    /**
+     * Describes a tooltip for the current pointer without painting it.
+     * The workspace renders the returned tooltip after all panel scissors and
+     * sibling panels have finished.
+     */
+    default Optional<SFMPanelTooltip> tooltipAt(double mouseX, double mouseY) {
+        return Optional.empty();
+    }
+
     void render(
             PoseStack poseStack,
             Minecraft minecraft,

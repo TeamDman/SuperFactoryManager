@@ -28,7 +28,7 @@ public class SFMExplorerPanelInteractionTests {
     private static final SFMScreenPanelBounds BOUNDS = new SFMScreenPanelBounds(0, 0, 320, 180);
 
     @Test
-    public void locationRevealFilterAndBodyOwnExactlyOneFocusedChromeAtATime() {
+    public void unavailableRevealControlIsAbsentFromTheFocusCycle() {
         Fixture fixture = fixture(20);
         SFMExplorerPanel panel = fixture.panel();
 
@@ -36,10 +36,8 @@ public class SFMExplorerPanelInteractionTests {
         assertTrue(panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
         assertEquals(new SFMExplorerPanel.FocusChrome(true, false, false, false), panel.focusChrome(true));
         assertTrue(panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
-        assertEquals(new SFMExplorerPanel.FocusChrome(false, true, false, false), panel.focusChrome(true));
-        assertTrue(panel.revealControlHasKeyboardFocus());
-        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
         assertEquals(new SFMExplorerPanel.FocusChrome(false, false, true, false), panel.focusChrome(true));
+        assertFalse(panel.revealControlHasKeyboardFocus());
         assertTrue(panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
         assertEquals(new SFMExplorerPanel.FocusChrome(false, false, false, true), panel.focusChrome(true));
         assertEquals(new SFMExplorerPanel.FocusChrome(false, false, false, false), panel.focusChrome(false));

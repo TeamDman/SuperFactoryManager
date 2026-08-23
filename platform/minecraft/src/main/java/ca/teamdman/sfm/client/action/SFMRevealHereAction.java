@@ -17,7 +17,10 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Consumer;
 
 /** Reveals the most recently focused addressed document in one exact explorer. */
 public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereAction.Target> {
@@ -30,8 +33,8 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
             SFMExplorerPanel explorer,
             SFMWorkspacePanelId documentPanelId,
             SFMScreenPanel documentPanel,
-            SFMPath containingRoot,
-            SFMPath documentPath
+            SFMTextDocumentSnapshot documentSnapshot,
+            Optional<SFMPath> directContainingRoot
     ) {
         Target {
             Objects.requireNonNull(actionContext, "actionContext");
@@ -40,8 +43,8 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
             Objects.requireNonNull(explorer, "explorer");
             Objects.requireNonNull(documentPanelId, "documentPanelId");
             Objects.requireNonNull(documentPanel, "documentPanel");
-            Objects.requireNonNull(containingRoot, "containingRoot");
-            Objects.requireNonNull(documentPath, "documentPath");
+            Objects.requireNonNull(documentSnapshot, "documentSnapshot");
+            directContainingRoot = Objects.requireNonNull(directContainingRoot, "directContainingRoot");
         }
 
         boolean stillCurrent() {
@@ -107,31 +110,12 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
                 explorer.sessionSnapshot().roots(),
                 path
         ).orElse(null);
-        if (containingRoot == null) {
-            java.util.List<SFMReleaseReviewExplorerRuntime.RevealTarget> reviewTargets;
-            try {
-                reviewTargets = SFMReleaseReviewExplorerRuntime.get().revealTargets(
-                        explorer.sessionSnapshot().roots(),
-                        snapshot
-                );
-            } catch (IllegalStateException unavailableReview) {
-                reviewTargets = java.util.List.of();
-            }
-            if (reviewTargets.size() > 1) {
-                return SFMClientActionAvailability.unavailable(Component.literal(
-                        "More than one exact review row represents " + path.canonical()
-                ));
-            }
-            if (reviewTargets.size() == 1) {
-                SFMReleaseReviewExplorerRuntime.RevealTarget target = reviewTargets.get(0);
-                containingRoot = target.containingRoot();
-                path = target.explorerPath();
-            } else {
-                return SFMClientActionAvailability.unavailable(Component.literal(
-                        "This Explorer is not authorized to reveal " + path.canonical()
-                                + "; it has no exact row for that document"
-                ));
-            }
+        if (containingRoot == null && !SFMReleaseReviewExplorerRuntime.get().hasLensRoot(
+                explorer.sessionSnapshot().roots()
+        )) {
+            return SFMClientActionAvailability.unavailable(Component.literal(
+                    "This Explorer is not authorized to reveal " + path.canonical()
+            ));
         }
         return SFMClientActionAvailability.available(new Target(
                 context,
@@ -140,9 +124,33 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
                 explorer,
                 recent.id(),
                 recent.panel(),
-                containingRoot,
-                path
+                snapshot,
+                Optional.ofNullable(containingRoot)
         ));
+    }
+
+    /** Cheap visibility query; it never builds a release-review projection. */
+    public static boolean isControlVisible(SFMClientActionContext context) {
+        return capture(Objects.requireNonNull(context, "context")).isAvailable();
+    }
+
+    /**
+     * Executes the registered reveal behavior from its semantic panel control
+     * without round-tripping through Brigadier's availability-filtered tree.
+     */
+    public static boolean invokeFromControl(
+            SFMClientActionContext context,
+            Consumer<Component> feedback
+    ) {
+        Objects.requireNonNull(context, "context");
+        Objects.requireNonNull(feedback, "feedback");
+        SFMClientActionAvailability<Target> availability = capture(context);
+        if (!availability.isAvailable()) {
+            feedback.accept(availability.unavailableReason().copy().withStyle(ChatFormatting.RED));
+            return false;
+        }
+        beginReveal(availability.target(), feedback);
+        return true;
     }
 
     @Override
@@ -153,33 +161,75 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
             )).create();
         }
 
-        CompletionStage<?> completion;
-        try {
-            completion = Objects.requireNonNull(
-                    target.explorer().revealPath(target.containingRoot(), target.documentPath()),
-                    "reveal completion"
-            );
-        } catch (RuntimeException failure) {
-            throw syntaxFailure(failure);
-        }
-        completion.whenComplete((ignored, failure) -> {
-            if (failure != null) {
-                context.getSource().sendFeedback(Component.literal(
-                        "Reveal here failed: " + message(unwrap(failure))
-                ).withStyle(ChatFormatting.RED));
-                return;
-            }
-            context.getSource().sendFeedback(Component.literal(
-                    "Revealed " + target.documentPath().canonical() + " in this Explorer"
-            ));
-        });
+        beginReveal(target, context.getSource()::sendFeedback);
         return 1;
     }
 
-    private static CommandSyntaxException syntaxFailure(Throwable failure) {
-        return new SimpleCommandExceptionType(Component.literal(
-                "Reveal here failed: " + message(failure)
-        )).create();
+    private static void beginReveal(Target target, Consumer<Component> feedback) {
+        SFMPath sourcePath = target.documentSnapshot().path().orElseThrow();
+        CompletionStage<java.util.List<SFMReleaseReviewExplorerRuntime.RevealTarget>> resolution;
+        if (target.directContainingRoot().isPresent()) {
+            resolution = CompletableFuture.completedFuture(java.util.List.of(
+                    new SFMReleaseReviewExplorerRuntime.RevealTarget(
+                            target.directContainingRoot().orElseThrow(),
+                            sourcePath
+                    )
+            ));
+        } else {
+            feedback.accept(Component.literal("Finding the exact review row for " + sourcePath.canonical()));
+            resolution = SFMReleaseReviewExplorerRuntime.get().revealTargetsAsync(
+                    target.explorer().sessionSnapshot().roots(),
+                    target.documentSnapshot()
+            );
+        }
+        resolution.whenComplete((matches, resolutionFailure) -> {
+            if (resolutionFailure != null) {
+                feedback.accept(failure("Reveal target lookup failed", resolutionFailure));
+                return;
+            }
+            if (!target.stillCurrent()) {
+                feedback.accept(Component.literal(
+                        "Reveal target became stale because the Explorer or document changed"
+                ).withStyle(ChatFormatting.RED));
+                return;
+            }
+            if (matches.isEmpty()) {
+                feedback.accept(Component.literal(
+                        "This Explorer has no exact row for " + sourcePath.canonical()
+                ).withStyle(ChatFormatting.RED));
+                return;
+            }
+            if (matches.size() > 1) {
+                feedback.accept(Component.literal(
+                        "More than one exact review row represents " + sourcePath.canonical()
+                ).withStyle(ChatFormatting.RED));
+                return;
+            }
+            SFMReleaseReviewExplorerRuntime.RevealTarget resolved = matches.get(0);
+            CompletionStage<?> reveal;
+            try {
+                reveal = Objects.requireNonNull(
+                        target.explorer().revealPath(resolved.containingRoot(), resolved.explorerPath()),
+                        "reveal completion"
+                );
+            } catch (RuntimeException failure) {
+                feedback.accept(failure("Reveal here failed", failure));
+                return;
+            }
+            reveal.whenComplete((ignored, revealFailure) -> {
+                if (revealFailure != null) {
+                    feedback.accept(failure("Reveal here failed", revealFailure));
+                    return;
+                }
+                feedback.accept(Component.literal(
+                        "Revealed " + resolved.explorerPath().canonical() + " in this Explorer"
+                ));
+            });
+        });
+    }
+
+    private static Component failure(String prefix, Throwable failure) {
+        return Component.literal(prefix + ": " + message(unwrap(failure))).withStyle(ChatFormatting.RED);
     }
 
     private static Throwable unwrap(Throwable failure) {

@@ -80,8 +80,14 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
         private final Map<SFMPath, SFMReviewExplorerModel.Node> nodes = new TreeMap<>();
         private final Map<SFMPath, SFMReviewExplorerModel.SourceLeaf> leaves = new TreeMap<>();
         private final Map<SFMPath, String> nodeIds = new TreeMap<>();
+        private final Map<DocumentIdentity, List<SFMPath>> revealPaths = new HashMap<>();
 
-        private ProjectionSnapshot(long generation, SFMPath root, SFMReviewExplorerModel.Node modelRoot) {
+        private ProjectionSnapshot(
+                long generation,
+                SFMPath root,
+                SFMReviewExplorerModel.Node modelRoot,
+                SFMReleaseReviewRuntime.Snapshot review
+        ) {
             this.generation = generation;
             this.root = Objects.requireNonNull(root, "root");
             Objects.requireNonNull(modelRoot, "modelRoot");
@@ -89,6 +95,7 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
                     root, modelRoot.label(), true, "minecraft:spyglass"));
             nodes.put(root, modelRoot);
             nodeIds.put(root, modelRoot.id());
+            indexRevealPaths(root, modelRoot, review);
         }
 
         private synchronized SFMExplorerEntry entry(SFMPath path) {
@@ -137,19 +144,74 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
             return new MaterializationEvidence(entries.size(), nodes.size(), leaves.size());
         }
 
-        private synchronized void collectRevealTargets(
-                SFMReleaseReviewRuntime.Snapshot review,
-                SFMTextDocumentSnapshot document,
-                List<RevealTarget> matches
+        private synchronized List<SFMPath> revealPaths(SFMTextDocumentSnapshot document) {
+            return DocumentIdentity.from(document)
+                    .map(identity -> revealPaths.getOrDefault(identity, List.of()))
+                    .orElseGet(List::of);
+        }
+
+        private void indexRevealPaths(
+                SFMPath parentPath,
+                SFMReviewExplorerModel.Node parentNode,
+                SFMReleaseReviewRuntime.Snapshot review
         ) {
-            SFMReleaseReviewExplorerRuntime.collectRevealTargets(
-                    root,
-                    root,
-                    Objects.requireNonNull(nodes.get(root), "review root node"),
-                    review,
-                    document,
-                    matches
+            List<SFMReviewExplorerModel.Node> children = displayedChildren(
+                    parentNode,
+                    review.document().orElseThrow()
             );
+            for (int index = 0; index < children.size(); index++) {
+                SFMReviewExplorerModel.Node child = children.get(index);
+                SFMPath childPath = childPath(parentPath, index, child);
+                SFMReviewExplorerModel.SourceLeaf leaf = child.leaf();
+                if (leaf != null && !leaf.missing()) {
+                    SFMTextDocumentSource source = documentSource(review, leaf);
+                    if (source instanceof SFMTextDocumentSource.PinnedSnapshot pinned) {
+                        DocumentIdentity identity = DocumentIdentity.from(pinned);
+                        ArrayList<SFMPath> paths = new ArrayList<>(
+                                revealPaths.getOrDefault(identity, List.of())
+                        );
+                        paths.add(childPath);
+                        revealPaths.put(identity, List.copyOf(paths));
+                    }
+                }
+                if (child.expandable()) indexRevealPaths(childPath, child, review);
+            }
+        }
+    }
+
+    private record DocumentIdentity(
+            SFMPath path,
+            SFMPath authorizedRoot,
+            String sha256,
+            Optional<SFMTextDocumentRange> targetRange
+    ) {
+        private DocumentIdentity {
+            Objects.requireNonNull(path, "path");
+            Objects.requireNonNull(authorizedRoot, "authorizedRoot");
+            Objects.requireNonNull(sha256, "sha256");
+            targetRange = Objects.requireNonNull(targetRange, "targetRange");
+        }
+
+        private static DocumentIdentity from(SFMTextDocumentSource.PinnedSnapshot source) {
+            return new DocumentIdentity(
+                    source.path(),
+                    source.authorizedRoot(),
+                    source.expectedSha256(),
+                    source.targetRange()
+            );
+        }
+
+        private static Optional<DocumentIdentity> from(SFMTextDocumentSnapshot snapshot) {
+            if (!snapshot.ready() || snapshot.path().isEmpty()
+                    || snapshot.authorizedRoot().isEmpty() || snapshot.sha256().isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(new DocumentIdentity(
+                    snapshot.path().orElseThrow(),
+                    snapshot.authorizedRoot().orElseThrow(),
+                    snapshot.sha256().orElseThrow(),
+                    snapshot.targetRange()
+            ));
         }
     }
 
@@ -294,9 +356,55 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
             }
             if (lens == null) continue;
             ProjectionSnapshot projection = projection(review, lens);
-            projection.collectRevealTargets(review, document, matches);
+            projection.revealPaths(document).forEach(path -> matches.add(new RevealTarget(root, path)));
         }
         return List.copyOf(matches);
+    }
+
+    /** Resolves a potentially cold review projection away from the render thread. */
+    public CompletableFuture<List<RevealTarget>> revealTargetsAsync(
+            Set<SFMPath> roots,
+            SFMTextDocumentSnapshot document
+    ) {
+        Set<SFMPath> capturedRoots = Set.copyOf(Objects.requireNonNull(roots, "roots"));
+        Objects.requireNonNull(document, "document");
+        long submittedGeneration = generation();
+        long started = System.nanoTime();
+        int warmRoots;
+        synchronized (this) {
+            warmRoots = (int) capturedRoots.stream()
+                    .map(lenses::get)
+                    .filter(Objects::nonNull)
+                    .filter(lens -> cachedProjections.containsKey(
+                            submittedGeneration + "|" + lens.root().canonical()
+                    ))
+                    .count();
+        }
+        int capturedWarmRoots = warmRoots;
+        return CompletableFuture.supplyAsync(() -> {
+            List<RevealTarget> answer = revealTargets(capturedRoots, document);
+            long completedGeneration = generation();
+            if (completedGeneration != submittedGeneration) {
+                throw new IllegalStateException(
+                        "Release review changed while resolving the reveal target (generation "
+                                + submittedGeneration + " -> " + completedGeneration + ")"
+                );
+            }
+            SFM.LOGGER.info(
+                    "SFM_RELEASE_REVIEW_REVEAL_RESOLVED generation={} roots={} warm_roots={} matches={} elapsed_micros={}",
+                    submittedGeneration,
+                    capturedRoots.size(),
+                    capturedWarmRoots,
+                    answer.size(),
+                    (System.nanoTime() - started) / 1_000L
+            );
+            return answer;
+        }, ForkJoinPool.commonPool());
+    }
+
+    /** Cheap lens-membership test suitable for command availability and painting. */
+    public synchronized boolean hasLensRoot(Set<SFMPath> roots) {
+        return Objects.requireNonNull(roots, "roots").stream().anyMatch(lenses::containsKey);
     }
 
     MaterializationEvidence materializationEvidence(SFMPath root) {
@@ -500,7 +608,7 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
         }
         SFMReleaseReviewV1 document = review.document().orElseThrow();
         SFMReviewExplorerModel model = project(document, lens.projection(), lens.query());
-        ProjectionSnapshot built = buildProjection(review.generation(), lens.root(), model.root());
+        ProjectionSnapshot built = buildProjection(review.generation(), lens.root(), model.root(), review);
         synchronized (this) {
             cachedProjections.keySet().removeIf(candidate -> !candidate.startsWith(review.generation() + "|"));
             return cachedProjections.computeIfAbsent(key, ignored -> built);
@@ -510,9 +618,10 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
     private static ProjectionSnapshot buildProjection(
             long generation,
             SFMPath root,
-            SFMReviewExplorerModel.Node modelRoot
+            SFMReviewExplorerModel.Node modelRoot,
+            SFMReleaseReviewRuntime.Snapshot review
     ) {
-        return new ProjectionSnapshot(generation, root, modelRoot);
+        return new ProjectionSnapshot(generation, root, modelRoot, review);
     }
 
     private static SFMPath childPath(
@@ -530,35 +639,6 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
                 Optional.empty(),
                 child.expandable()
         );
-    }
-
-    private static void collectRevealTargets(
-            SFMPath containingRoot,
-            SFMPath parentPath,
-            SFMReviewExplorerModel.Node parentNode,
-            SFMReleaseReviewRuntime.Snapshot review,
-            SFMTextDocumentSnapshot document,
-            List<RevealTarget> matches
-    ) {
-        List<SFMReviewExplorerModel.Node> children = displayedChildren(
-                parentNode,
-                review.document().orElseThrow()
-        );
-        for (int index = 0; index < children.size(); index++) {
-            SFMReviewExplorerModel.Node child = children.get(index);
-            SFMPath path = childPath(parentPath, index, child);
-            SFMReviewExplorerModel.SourceLeaf leaf = child.leaf();
-            if (leaf != null && !leaf.missing()) {
-                SFMTextDocumentSource source = documentSource(review, leaf);
-                if (source instanceof SFMTextDocumentSource.PinnedSnapshot pinned
-                        && sameDocumentIdentity(pinned, document)) {
-                    matches.add(new RevealTarget(containingRoot, path));
-                }
-            }
-            if (child.expandable()) {
-                collectRevealTargets(containingRoot, path, child, review, document, matches);
-            }
-        }
     }
 
     private static List<SFMReviewExplorerModel.Node> displayedChildren(
@@ -680,16 +760,6 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
                         revisionId
                 )
         );
-    }
-
-    private static boolean sameDocumentIdentity(
-            SFMTextDocumentSource.PinnedSnapshot candidate,
-            SFMTextDocumentSnapshot document
-    ) {
-        return document.path().filter(candidate.path()::equals).isPresent()
-                && document.authorizedRoot().filter(candidate.authorizedRoot()::equals).isPresent()
-                && document.sha256().filter(candidate.expectedSha256()::equals).isPresent()
-                && document.targetRange().equals(candidate.targetRange());
     }
 
     private static String presentationIdentity(Path reviewPath, Lens lens, SFMReviewExplorerModel.SourceLeaf leaf) {

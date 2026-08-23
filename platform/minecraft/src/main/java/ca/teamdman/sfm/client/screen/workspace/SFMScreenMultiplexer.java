@@ -1166,6 +1166,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         }
         super.render(poseStack, mouseX, mouseY, partialTick);
         renderWorkspaceToasts(poseStack, mouseX, mouseY);
+        renderPanelTooltip(poseStack, mouseX, mouseY);
         renderPanelEntryTooltip(poseStack, mouseX, mouseY);
         if (dividerInteraction != null) dividerInteraction.reassertCursor();
     }
@@ -1645,6 +1646,27 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 mouseX,
                 mouseY
         ));
+    }
+
+    private void renderPanelTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+        if (workspaceToastAt(mouseX, mouseY).isPresent()
+                || panelEntryAt(mouseX, mouseY).isPresent()) return;
+        List<SFMWorkspaceLayout.PanelEntry> visible = layout.visiblePanels();
+        for (int index = visible.size() - 1; index >= 0; index--) {
+            SFMWorkspaceLayout.PanelEntry entry = visible.get(index);
+            SFMScreenPanelBounds bounds = panelBounds.get(entry.id());
+            if (bounds == null || !contains(bounds, mouseX, mouseY)) continue;
+            Optional<SFMPanelTooltip> tooltip = entry.panel().tooltipAt(mouseX, mouseY);
+            if (tooltip.isPresent()) {
+                renderComponentTooltip(poseStack, tooltip.orElseThrow().lines(), mouseX, mouseY);
+            }
+            return;
+        }
+    }
+
+    private static boolean contains(SFMScreenPanelBounds bounds, double x, double y) {
+        return x >= bounds.x() && x < bounds.x() + bounds.width()
+                && y >= bounds.y() && y < bounds.y() + bounds.height();
     }
 
     private void renderDividerAffordances(PoseStack poseStack) {
