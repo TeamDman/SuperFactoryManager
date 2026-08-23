@@ -30,6 +30,7 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSelection;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.semantic.SFMCanvasSpatialCoverageSnapshot;
 import ca.teamdman.sfm.client.semantic.SFMJavaInteractionMapSpatialAdapter;
@@ -230,6 +231,26 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 clientTick, kind, source, code, text, modifiers, consumed, delivered);
     }
 
+    private void updateDocumentHistoryFocus(boolean focused) {
+        if (historyFocused == focused) return;
+        if (focused && historyRegistration != null) {
+            historyRegistration.focus();
+        }
+        if (historyController != null) {
+            historyController.recordRawInput(
+                    SFMKeyBindingService.INSTANCE.currentTick(),
+                    SFMDocumentHistoryContract.RawEventKind.FOCUS,
+                    "text-editor-focus",
+                    focused ? "gain" : "loss",
+                    Optional.empty(),
+                    0,
+                    false,
+                    true
+            );
+        }
+        historyFocused = focused;
+    }
+
     public Optional<SFMDocumentHistorySession> optionalDocumentHistorySession() {
         return historyController == null ? Optional.empty() : Optional.of(historyController.session());
     }
@@ -261,7 +282,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         presentedDocument = SFMTextDocumentSnapshot.literal(text);
     }
 
-    private void checkoutDocumentHistoryState(SFMDocumentHistoryContract.DocumentState state) {
+    void checkoutDocumentHistoryState(SFMDocumentHistoryContract.DocumentState state) {
         if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) {
             throw new UnsupportedOperationException("This editor does not expose a document checkout surface");
         }
@@ -271,23 +292,51 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             if (right.id().equals(primary)) return 1;
             return left.id().compareTo(right.id());
         }));
-        ArrayList<SFMTextDocumentRange> ranges = new ArrayList<>();
+        ArrayList<SFMTextDocumentSelection> selections = new ArrayList<>();
         for (SFMDocumentHistoryContract.LogicalSelection selection : ordered) {
-            int startCodePoint = selection.startCodePointOffset();
-            int endCodePoint = selection.endCodePointOffset();
-            int startUtf16 = state.text().offsetByCodePoints(0, startCodePoint);
-            int endUtf16 = state.text().offsetByCodePoints(0, endCodePoint);
-            ranges.add(SFMContextTextCoordinates.rangeAtUtf16Offsets(state.text(), startUtf16, endUtf16));
+            int anchorUtf16 = state.text().offsetByCodePoints(0, selection.anchor().codePointOffset());
+            int activeUtf16 = state.text().offsetByCodePoints(0, selection.active().codePointOffset());
+            selections.add(new SFMTextDocumentSelection(
+                    selection.id(),
+                    SFMContextTextCoordinates.atUtf16Offset(state.text(), anchorUtf16),
+                    SFMContextTextCoordinates.atUtf16Offset(state.text(), activeUtf16),
+                    state.primarySelectionId().filter(selection.id()::equals).isPresent()
+            ));
         }
-        drawCanvas.checkoutDocument(state.text(), ranges);
+        drawCanvas.checkoutDocumentSelections(state.text(), selections);
     }
 
-    private SFMDocumentHistoryContract.DocumentState captureDocumentHistoryState(
+    SFMDocumentHistoryContract.DocumentState captureDocumentHistoryState(
             SFMDrawCanvasScreen drawCanvas
     ) {
         SFMContextDocumentProjection projection = drawCanvas.captureContextProjection(
                 openContext.editorId(), openContext.document(), isReadOnly());
         String text = projection.currentText();
+        Optional<List<SFMTextDocumentSelection>> exact = drawCanvas.exactDocumentSelections();
+        if (exact.isPresent()) {
+            ArrayList<SFMDocumentHistoryContract.LogicalSelection> selections = new ArrayList<>();
+            String primary = null;
+            for (SFMTextDocumentSelection selection : exact.orElseThrow()) {
+                int anchorUtf16 = SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(
+                        text, selection.anchor().byteOffset());
+                int activeUtf16 = SFMContextTextCoordinates.utf16OffsetAtUtf8Byte(
+                        text, selection.active().byteOffset());
+                selections.add(new SFMDocumentHistoryContract.LogicalSelection(
+                        selection.id(),
+                        SFMDocumentHistoryContract.LogicalPoint.at(
+                                text, text.codePointCount(0, anchorUtf16)),
+                        SFMDocumentHistoryContract.LogicalPoint.at(
+                                text, text.codePointCount(0, activeUtf16))
+                ));
+                if (selection.primary()) primary = selection.id();
+            }
+            if (selections.isEmpty()) return SFMDocumentHistoryContract.DocumentState.withoutSelection(text);
+            return new SFMDocumentHistoryContract.DocumentState(
+                    text,
+                    selections,
+                    Optional.of(Objects.requireNonNull(primary, "primary selection"))
+            );
+        }
         ArrayList<SFMDocumentHistoryContract.LogicalSelection> selections = new ArrayList<>();
         String primary = null;
         for (SFMContextCursorProjection cursor : projection.cursors()) {
@@ -859,7 +908,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                         this::checkoutDocumentHistoryState
                 );
                 historyRegistration = SFMDocumentHistoryRuntime.get().registerFocused(historyController);
-                historyFocused = true;
+                updateDocumentHistoryFocus(true);
             }
             observedDocumentGeneration = drawCanvas.documentGeneration();
             refreshInteractionMap(drawCanvas);
@@ -906,6 +955,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         hoverModifiers = SFMSymbolHoverIdentity.Modifiers.NONE;
         hoverCaptureCache.clear();
         if (historyController != null) {
+            updateDocumentHistoryFocus(false);
             if (historyRegistration != null) {
                 historyRegistration.close();
                 historyRegistration = null;
@@ -921,10 +971,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     @Override
     public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
                        int mouseX, int mouseY, float partialTick, boolean focused) {
-        if (focused && !historyFocused && historyRegistration != null) {
-            historyRegistration.focus();
-        }
-        historyFocused = focused;
+        updateDocumentHistoryFocus(focused);
         if (symbolHover != null && screen instanceof SFMDrawCanvasScreen drawCanvas) {
             boolean inside = bounds.contains(mouseX, mouseY);
             if (focused != hoverFocused) {

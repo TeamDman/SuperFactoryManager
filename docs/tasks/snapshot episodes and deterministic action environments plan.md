@@ -1,6 +1,6 @@
 # Snapshot episodes, action traces, and deterministic environments plan
 
-**Plan status:** TE-S1M core and the ordered S1M-X1 through S1M-X6 elastic continuation ladder are complete and locally checkpointed; TE-S2 is reconciled and implementation-ready but unclaimed
+**Plan status:** TE-S1M core and the ordered S1M-X1 through S1M-X6 elastic continuation ladder are complete and locally checkpointed; TE-S2A through TE-S2D are complete; TE-S2E is the next unclaimed ordinary-document trajectory slice
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Last updated:** 2026-08-22
 **Intent audit:** Passed and re-audited 2026-08-22 against the complete temporal-history follow-up, both supplied Excalidraw diagrams, and the earlier undo-tree/frontline-UI and trajectory-machine guidance
@@ -2765,7 +2765,7 @@ document history.
   glyph rendering, and canvas coordinate transforms that a shared graph
   viewport may reuse without making text-editor glyph state the graph model.
 
-### [ ] TE-S2A Extract the reusable per-document history kernel
+### [x] TE-S2A Extract the reusable per-document history kernel
 
 **Work:** Introduce one Java-local, UI-independent document-history owner over
 the existing history contract. A document revision contains exact content plus
@@ -2806,7 +2806,16 @@ one ordinary document, obtain the exact three semantic typing transactions for
 `open the`, undo and branch without losing the departed child, export every raw
 event/state witness, and drive the existing chamber through the same kernel.
 
-### [ ] TE-S2B Make Text Editor V3 and command-palette input real history hosts
+**Completion evidence — 2026-08-22:** The UI-independent immutable document
+history session records raw input, mutation transitions, grouped semantic
+transactions, exact Unicode document state, immutable child revisions, and
+head movements. Undo-undo-do retains departed siblings; redo is deterministic
+for one child and explicit for several. Archive/projection tests cover raw
+witness expansion, grouping boundaries, duplicate ingress, Unicode, checkout,
+and retained branches. Foundation checkpoints are `b66e2c597` and
+`5b5155cdd`.
+
+### [x] TE-S2B Make Text Editor V3 and command-palette input real history hosts
 
 **Work:** Give every writable Text Editor V3 document session a stable runtime
 history identity and the TE-S2A owner. Route editor mutations through a typed
@@ -2861,7 +2870,18 @@ Text Editor V3 or the command palette, use Ctrl+Z/Ctrl+Shift+Z naturally, and
 inspect retained alternative descendants. The action registry contains both
 undo and redo and no screen hard-codes a parallel destructive stack.
 
-### [ ] TE-S2C Join contextual-input B-0's completion-frontier repair
+**Completion evidence — 2026-08-22:** Writable Text Editor V3 panels and each
+command-palette session own exact independent histories. Canonical selector-
+explicit undo/redo actions and contextual Ctrl+Z/Ctrl+Shift+Z defaults resolve
+the focused document, refuse read-only hosts, preserve alternate descendants,
+and present ambiguous redo through human-readable constrained choices. Exact
+checkout restores directional Unicode ranges, multiple selections, and the
+primary selection. Editor focus gain/loss and physical scan codes are retained
+as raw evidence; save baselines remain separate from revision retention.
+Focused editor, action-resolution, key-input, choice, draw-canvas, and palette
+tests pass.
+
+### [x] TE-S2C Join contextual-input B-0's completion-frontier repair
 
 **Work:** Complete the authoritative contextual-input B-0 slice. The temporal
 join adds no second ranker. It only proves that palette input history from
@@ -2894,7 +2914,16 @@ when no value completion exists, and undo/redo around suggestion acceptance.
 Tab/Tab or choose Space to enter its scene argument; complete historical leaves
 remain available but do not steal the first nonblank grammar boundary.
 
-### [ ] TE-S2D Add the approachable 2D experienced-history canvas
+**Completion evidence — 2026-08-22:** Contextual-input B-0 is complete and the
+palette records candidate acceptance as one semantic transaction while
+retaining raw Tab/Space evidence. The natural puppet proves blank MRU,
+nonblank `open`, exact `sfm:panel/open`, the deterministic strict descendant
+`sfm:panel/open/left`, deliberate `sfm:panel/open `, trajectory and overlay
+selectors, overlay visibility, named usage, and undo/redo around completion.
+Its exact candidate order, kinds, replacement ranges, history scopes, and
+input values are exported in `artifact_palette-*.json`.
+
+### [x] TE-S2D Add the approachable 2D experienced-history canvas
 
 **Work:** Add a reusable node/edge canvas presentation over the TE-S2A
 projections and register an ordinary scene such as:
@@ -2952,6 +2981,27 @@ edge paths must agree across the machine-readable and raster evidence.
 editing appear as the two supplied Excalidraw concepts: an action/state paired
 sequence and an append-only narrative with an undo jump. Keyboard/mouse can
 select, pan, zoom, inspect, and transpose the graph.
+
+**Completion evidence — 2026-08-22:** The push-fed
+`SFMDocumentHistoryPanel` renders blue action/head-movement nodes, amber state
+nodes, chronological edges, and curved checkout/undo jumps from the ordinary
+document projection rather than a fake trajectory machine. It is hostable in
+workspace and overlay runtimes. Users can select by keyboard or pointer,
+expand raw evidence, wheel-zoom, middle-drag pan, frame the current subject
+with `R`, fit all with Home, transpose with `T`, and open the chronological
+transcript with `V`. Geometry, framing, transpose, hit-testing, pushed revision
+selection, jump cycles, and resize behavior have pure tests.
+
+The natural title-screen puppet
+`sfm:title_screen_ordinary_document_history` passed at `1280x720@auto` in
+run `sfm-title_screen-20260822-215127-171`. It visibly types
+`hello world!`, undoes to the root, creates retained sibling `new content!`,
+shows two labelled redo choices, restores the departed `hello world!` branch,
+proves an immediate live push, then captures readable top-down, transposed, and
+chronological-transcript views. The run contains 15 PNG figures plus exact
+`artifact_document-history.json`, `artifact_history-canvas-layout.json`,
+interaction/projection JSON, transcript, current text, and both retained child
+texts. No temporal-numbering chamber was opened.
 
 ### [ ] TE-S2E Plan between two ordinary document revisions
 
@@ -3031,25 +3081,26 @@ that an external action remains inspectable but is never optimistically undone.
 **Completion criteria:** Multi-document behavior composes from the same single
 and pairwise contracts and no second global history engine appears.
 
-### Proposed first TE-S2 goal boundary
+### Completed first TE-S2 goal boundary — 2026-08-22
 
-The next implementation goal should be:
+The completed implementation goal was:
 
 > Complete contextual-input B-0 and TE-S2A through TE-S2D in
 > `docs/tasks/contextual input actions and addressable explorer plan.md` and
 > `docs/tasks/snapshot episodes and deterministic action environments plan.md`.
 
-This is the smallest boundary that fixes the user's immediate palette and undo
-friction **and** ends with a natural visible feature rather than only a kernel.
-It deliberately stops before pairwise search so the planner cannot remain the
-only usable part while ordinary editing is still history-blind.
+This boundary fixed the user's immediate palette and undo friction **and** ended
+with a natural visible feature rather than only a kernel. It deliberately
+stopped before pairwise search; TE-S2E remains the next unclaimed slice.
 
 Observable acceptance for that goal:
 
 1. Typing `open` ranks bare `sfm:panel/open` first despite a recent complete
-   chamber command. Tab accepts the boundary without a space; another Tab can
-   continue to `sfm:panel/open/right`, while Space deliberately enters the
-   scene argument and scene history is shared across compatible open actions.
+   chamber command. Tab accepts the boundary without a space; another Tab
+   continues to the deterministic strict descendant
+   `sfm:panel/open/left` in the current registration order, while Space
+   deliberately enters the scene argument and scene history is shared across
+   compatible open actions.
 2. `focused`, exact overlay selectors such as `id(sfm%3Ahistory)`, and
    `visible|hidden` are suggested at their actual argument frontiers. When no
    value completion exists, the palette visibly names the expected Brigadier
@@ -3106,44 +3157,54 @@ sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMTextEditorPanelTe
 sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMCommandPaletteScreenTests --wait-for-build-lock
 sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMHistoryCanvas --wait-for-build-lock
 sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
-sfm-propagate-changes.exe puppet run title_screen_document_history_canvas --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
+sfm-propagate-changes.exe puppet run sfm:title_screen_ordinary_document_history --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock
 ```
 
 ### TE-S2 first-goal operational readiness
 
-- Target branch/commit: `1.19.2` at planning checkpoint `ba212d857`.
-- Tooling or generated runtime inputs changed: no at goal start; expected work
-  is Java/tests/resources/docs only. Reassess after the final diff.
-- Installer/build command run: not applicable at goal start.
+- Target branch/commit: `1.19.2`, from planning checkpoint `ba212d857` through
+  implementation checkpoints `b66e2c597`, `5b5155cdd`, and `4bf109948`; the
+  final hardening commit is recorded by the completion bookkeeping commit.
+- Tooling or generated runtime inputs changed: no. Goal changes are confined
+  to Java, tests, gameplay resources, and docs.
+- Installer/build command run: canonical `run compile`, full `test run`, and
+  the natural puppet all passed. `install.ps1` was neither needed nor run.
 - Installed executable/path and revision/hash:
   `G:\Programming\Caches\CARGO_HOME\bin\sfm-propagate-changes.exe`, revision
   `728694ad7`, SHA-256
   `931766D833441446EEC7BFE1D1BF52C71BDD459D40270269FEF1BF77A9EED857`;
   this matches the latest commit touching the CLI source tree.
-- User must run install script: not applicable at goal start because no CLI or
-  generated CLI input has changed. Re-prove this after the final mutation.
+- User must run install script: **no**. No CLI source or generated CLI input
+  changed, and the installed executable remains the current accepted build.
 - Dependency posture: frozen under the repository goal-readiness guide.
 - Dependency declarations/lockfiles changed: no; this is an invariant of the
   goal.
-- Cache rehydration performed: none at goal start.
+- Cache rehydration performed: canonical build/test/puppet commands reused
+  existing lockfile-pinned toolchain caches; no dependency acquisition or
+  lockfile mutation was requested.
 - New developer/reference repositories cloned: none; prohibited by the goal.
 - Process lifecycle authority: active via the goal-readiness guide.
 - Process preflight: no Java/Minecraft, Cargo/Rust, SFM CLI, `sfm.exe`, or
   Teamy Terminal process was running. A VS Code process had this plan's user
   guide open and is explicitly unrelated/not in scope.
-- Final in-scope process/runtime state: pending completion evidence.
+- Final in-scope process/runtime state: stopped; the puppet, test, and compile
+  processes exited normally and no game was left running.
 - Cache/lock verification: no initial in-scope process held a known build
   cache; every long CLI invocation must still use bounded waits/log evidence.
-- Exact manual test command: pending final artifact id; planned canonical
-  command is the `title_screen_document_history_canvas` puppet invocation above.
-- Expected initial state and artifacts: stopped game; puppet opens a writable
-  editor plus document-history canvas and emits PNG, current/departed text,
-  raw-event, semantic-transaction, revision/edge/head-movement, and layout/hit-
-  test evidence.
-- Known manual-only or external limitation: none identified at goal start.
-- Autonomous continuation ladder and currently claimed item: required core is
-  B-0 plus TE-S2A through TE-S2D; TE-S2E through TE-S2G remain unclaimed future
-  goals and are not implicit stretch authority.
+- Exact manual test command:
+  `sfm-propagate-changes.exe puppet run sfm:title_screen_ordinary_document_history --branch 1.19.2 --variant 1280x720@auto --wait-for-build-lock`.
+- Final artifact run:
+  `sfm-title_screen-20260822-215127-171/title_screen_ordinary_document_history/1280x720_auto`.
+  It contains 15 screenshots and exact palette, raw-input, semantic-
+  transaction, revision/edge/head-movement, canvas-layout/hit-test,
+  transcript, current-text, and retained-branch artifacts.
+- Known manual-only or external limitation: none for the claimed acceptance.
+  The one full-suite abort is the existing opt-in installed symbol-worker
+  integration test, which requires explicit executable/branch properties and
+  is outside this goal.
+- Autonomous continuation ladder and currently claimed item: the required core
+  B-0 plus TE-S2A through TE-S2D is complete. TE-S2E through TE-S2G remain
+  unclaimed future goals and are not implicit stretch authority.
 
 ## Overall acceptance criteria
 
@@ -3156,7 +3217,7 @@ sfm-propagate-changes.exe puppet run title_screen_document_history_canvas --bran
   events and binding revision.
 - [ ] Immutable branch history distinguishes exact replay from semantic rebase;
   historical insertion never changes an existing revision.
-- [ ] Undo followed by new work retains every prior child; redo enumerates an
+- [x] Undo followed by new work retains every prior child; redo enumerates an
   explicit child and ambiguous redo opens a constrained choice.
 - [ ] Intent, evaluation/witness, outcome, and resulting state remain separately
   inspectable; checkout, frozen-witness execution, and intent re-evaluation are

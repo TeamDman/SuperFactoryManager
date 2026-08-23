@@ -64,7 +64,8 @@ public final class SFMDocumentHistoryUndoAction implements SFMClientAction<SFMCl
         SFMHistoryGraphRuntime.OperationResult result = target.target().undoDocumentHistory();
         context.getSource().sendFeedback(Component.literal(result.message()));
         return result.status() == SFMHistoryGraphRuntime.OperationStatus.APPLIED
-                ? PanelActionSupport.closePaletteAfter(1)
+                ? PanelActionSupport.closePaletteAfterUnlessTarget(
+                        1, target.target(), target.sessionId())
                 : 0;
     }
 

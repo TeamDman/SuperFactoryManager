@@ -6,12 +6,16 @@ import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import org.junit.jupiter.api.Test;
+import sun.misc.Unsafe;
 
+import java.lang.reflect.Field;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 class SFMDynamicKeyBindingHandlerTests {
     @Test
-    void acceptsKeyboardContextFromAnyCapableScreen() {
+    void acceptsKeyboardContextFromAnyCapableScreen() throws Exception {
         SFMKeyboardUsageContextSnapshot expected = SFMKeyboardUsageContextSnapshot.testing(
                 SFMKeyboardUsageSituations.GLOBAL,
                 SFMKeyboardUsageSituations.DEFAULT,
@@ -19,7 +23,23 @@ class SFMDynamicKeyBindingHandlerTests {
                 SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT
         );
 
-        assertSame(expected, SFMDynamicKeyBindingHandler.contextFor(new ContextScreen(expected)));
+        ContextScreen screen = allocateWithoutConstructor(ContextScreen.class);
+        Field snapshot = ContextScreen.class.getDeclaredField("snapshot");
+        snapshot.setAccessible(true);
+        snapshot.set(screen, expected);
+
+        assertSame(expected, SFMDynamicKeyBindingHandler.contextFor(screen));
+    }
+
+    @Test
+    void rawKeyJournalEncodingRetainsThePhysicalScanCode() {
+        assertEquals("key=65,scan=30", SFMDynamicKeyBindingHandler.journalKeyCode(65, 30));
+    }
+
+    private static <T> T allocateWithoutConstructor(Class<T> type) throws Exception {
+        Field unsafeField = Unsafe.class.getDeclaredField("theUnsafe");
+        unsafeField.setAccessible(true);
+        return type.cast(((Unsafe) unsafeField.get(null)).allocateInstance(type));
     }
 
     private static final class ContextScreen extends Screen implements SFMKeyboardUsageContextProvider {

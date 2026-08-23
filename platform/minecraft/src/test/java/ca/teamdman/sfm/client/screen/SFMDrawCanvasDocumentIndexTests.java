@@ -22,6 +22,18 @@ class SFMDrawCanvasDocumentIndexTests {
     }
 
     @Test
+    void explicitSpacesRemainAddressableAtTheDocumentTail() {
+        SFMDrawCanvasModel model = new SFMDrawCanvasModel();
+
+        model.replaceText("hello ", ignored -> 1, 9);
+        assertEquals("hello ", model.projectedText(1, 9));
+        assertEquals(" ", model.glyphs().get(model.glyphs().size() - 1).text());
+
+        model.typeGlyph("w", 1, 9);
+        assertEquals("hello w", model.projectedText(1, 9));
+    }
+
+    @Test
     void visibleQueryIncludesBoundaryGlyphsAndExcludesOffscreenRows() {
         SFMDrawCanvasModel model = new SFMDrawCanvasModel();
         model.replaceText("abcdef\nsecond\nthird", ignored -> 2, 10);
@@ -48,7 +60,8 @@ class SFMDrawCanvasDocumentIndexTests {
 
         assertSame(emoji, index.glyphAt(emoji.x(), emoji.y()).orElseThrow());
         assertSame(emoji, index.glyphAt(emoji.x() + emoji.width() - 0.01D, emoji.y() + 8.99D).orElseThrow());
-        assertFalse(index.glyphAt(emoji.x() + emoji.width(), emoji.y()).isPresent());
+        assertEquals(" ", index.glyphAt(emoji.x() + emoji.width(), emoji.y()).orElseThrow().text(),
+                "the right-open emoji edge belongs to the explicit following space glyph");
         assertEquals("a ".length(), index.utf16OffsetOf(emoji).orElseThrow());
         assertEquals(index.glyphOrdinalOf(emoji).orElseThrow(), index.glyphOrdinalOrMinusOne(emoji));
         assertEquals(-1, index.glyphOrdinalOrMinusOne(

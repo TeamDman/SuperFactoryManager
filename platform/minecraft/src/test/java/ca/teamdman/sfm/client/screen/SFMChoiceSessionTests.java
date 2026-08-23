@@ -62,7 +62,7 @@ class SFMChoiceSessionTests {
                 List.of(
                         SFMActionChoice.invoke(FIRST, ""),
                         SFMActionChoice.invoke(REQUIRED, "fixed"),
-                        SFMActionChoice.invoke(REQUIRED, "other")),
+                        SFMActionChoice.invoke(REQUIRED, "other", "Use the other retained branch")),
                 SFMClientActionContext.create("captured", () -> true),
                 actions::get,
                 global);
@@ -94,6 +94,13 @@ class SFMChoiceSessionTests {
                         session.prefix(), surface.parse(session.prefix(), source))
                 .join().getList().stream().map(suggestion -> suggestion.getText()).toList();
         assertEquals(List.of("sfm:first", "sfm:required fixed", "sfm:required other"), suggestions);
+        assertEquals("Use the other retained branch", surface.getPaletteCandidates(
+                        session.prefix(), surface.parse(session.prefix(), source))
+                .join().stream()
+                .filter(candidate -> candidate.replacementText().equals("sfm:required other"))
+                .findFirst()
+                .orElseThrow()
+                .displayText());
 
         String fuzzy = session.prefix() + "req";
         assertEquals(List.of("sfm:required fixed", "sfm:required other"), surface.getPaletteSuggestions(

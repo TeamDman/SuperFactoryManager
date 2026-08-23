@@ -2,8 +2,8 @@
 
 **Plan status:** Active; C-4a through C-11 and linked CLI-AST Phases 0.11
 through 0.12.4 are complete; the bounded REVEAL-3 subset of B-4 and CTXREF
-subset of B-5 plus B-5a are complete; B-0 is reconciled and implementation-
-ready but unclaimed; broader Phase B and B-6 remain
+subset of B-5 plus B-5a are complete; B-0 is complete; broader Phase B and
+B-6 remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
@@ -2424,7 +2424,7 @@ candidate release; no propagation or publication occurs without a later goal.
 
 ## Phase B — Streaming fuzzy search and contextual action discovery
 
-### [ ] B-0 Repair progressive completion boundaries, parameter history, and usage guidance
+### [x] B-0 Repair progressive completion boundaries, parameter history, and usage guidance
 
 **User outcome:** The ordinary command palette behaves as a progressive grammar
 browser. With a recently executed full panel-open command in history, typing
@@ -2548,6 +2548,36 @@ selectors and named missing arguments, and accept a candidate without an
 implicit separator or focus escape. Blank complete-MRU behavior and Brigadier
 execution semantics are unchanged. The candidate seam is directly consumable
 by B-1 and TE-S2 rather than becoming transitional debt.
+
+**Completion evidence — 2026-08-22:**
+
+- `SFMPaletteCandidate` is the bounded typed candidate seam. Blank input keeps
+  complete MRU commands first; nonblank `open` ranks the bare
+  `sfm:panel/open` boundary first; Tab performs exact replacement without an
+  implicit separator; a repeated Tab advances to the deterministic strict
+  descendant (`sfm:panel/open/left` in the current registration order); and
+  Space deliberately enters the scene argument frontier.
+- Compatible panel-open scene arguments share parsed bounded history without
+  changing persisted command history. Dynamic trajectory/overlay selectors,
+  visibility values, and named non-activatable usage rows are represented at
+  their actual Brigadier frontiers. Async candidate revisions clear stale
+  rows immediately, so automation and users do not observe suggestions from a
+  previous query.
+- Candidate application publishes exact replacement metadata and participates
+  in the command palette's ordinary document history. Focused Java tests cover
+  ranking, insertion, history compatibility, frontier freshness, named usage,
+  mouse/keyboard acceptance, and undo/redo around completion.
+- The natural title-screen puppet
+  `sfm:title_screen_ordinary_document_history` passed at `1280x720@auto` in
+  run `sfm-title_screen-20260822-215127-171`. Figures 1 through 6 and the
+  `artifact_palette-*.json` files prove blank MRU, nonblank boundary ranking,
+  exact first Tab, strict second Tab, deliberate Space, selector/value
+  suggestions, and required-argument usage without opening a chamber.
+- The canonical full test run reported `1444 found, 1443 passed, 0 failed,
+  1 aborted`; the sole abort is the intentionally opt-in installed symbol
+  worker integration test. Canonical `run compile` passed. Implementation
+  checkpoints include `4bf109948`; final hardening is recorded by the goal's
+  completion commit below.
 
 ### [ ] B-1 Add cancellable streamed palette candidates without replacing Brigadier
 

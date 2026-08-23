@@ -75,12 +75,15 @@ public final class SFMChoiceSession {
         LinkedHashMap<String, SFMActionChoice> surfaceCommands = new LinkedHashMap<>();
         LinkedHashMap<ResourceLocation, SFMClientAction<?>> actions = new LinkedHashMap<>();
         LinkedHashMap<String, ResourceLocation> paletteChoices = new LinkedHashMap<>();
+        LinkedHashMap<String, String> paletteChoiceDisplayTexts = new LinkedHashMap<>();
         for (SFMActionChoice choice : choices) {
             String command = surfaceCommand(choice);
             surfaceCommands.put(command, choice);
             SFMClientAction<?> action = actionLookup.apply(choice.actionId());
             if (action != null) actions.put(choice.actionId(), action);
-            paletteChoices.put(choiceTail(choice), choice.actionId());
+            String tail = choiceTail(choice);
+            paletteChoices.put(tail, choice.actionId());
+            paletteChoiceDisplayTexts.put(tail, choice.displayText());
         }
         choicesBySurfaceCommand = Map.copyOf(surfaceCommands);
         choiceActionsByTail = Map.copyOf(paletteChoices);
@@ -95,7 +98,7 @@ public final class SFMChoiceSession {
                 .then(LiteralArgumentBuilder.<SFMClientActionSource>literal("choose")
                         .then(sessionNode)));
         commandTree = SFMClientActionCommandTree.isolatedPaletteSurface(
-                dispatcher, actions, prefix(), paletteChoices);
+                dispatcher, actions, prefix(), paletteChoices, paletteChoiceDisplayTexts);
         activated = true;
         return commandTree;
     }

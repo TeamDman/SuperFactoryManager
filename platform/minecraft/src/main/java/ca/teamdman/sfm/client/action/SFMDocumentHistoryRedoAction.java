@@ -84,14 +84,18 @@ public final class SFMDocumentHistoryRedoAction implements SFMClientAction<SFMCl
                 new SimpleCommandExceptionType(Component.literal("No matching document history")).create());
         Optional<String> child = optionalChild(context);
         if (child.isEmpty() && target.session().isPresent()) {
-            List<String> candidates = target.session().orElseThrow().eligibleRedoChildren().stream()
-                    .map(SFMDocumentHistoryContract.DocumentRevision::id)
-                    .sorted()
+            List<SFMDocumentHistoryContract.DocumentRevision> candidates = target.session().orElseThrow()
+                    .eligibleRedoChildren().stream()
+                    .sorted(java.util.Comparator.comparing(SFMDocumentHistoryContract.DocumentRevision::id))
                     .toList();
             if (candidates.size() > 1) {
                 String selector = SFMDocumentHistorySelector.exact(target.sessionId()).canonical();
                 List<SFMActionChoice> choices = candidates.stream()
-                        .map(revision -> SFMActionChoice.invoke(ID, selector + " " + revision))
+                        .map(revision -> SFMActionChoice.invoke(
+                                ID,
+                                selector + " " + revision.id(),
+                                "Redo to " + preview(revision.state().text())
+                        ))
                         .toList();
                 SFMCommandPaletteScreen.openChoices(
                         context.getSource().context(),
@@ -106,7 +110,8 @@ public final class SFMDocumentHistoryRedoAction implements SFMClientAction<SFMCl
                 .redoDocumentHistory(child.orElse(""));
         context.getSource().sendFeedback(Component.literal(result.message()));
         return result.status() == SFMHistoryGraphRuntime.OperationStatus.APPLIED
-                ? PanelActionSupport.closePaletteAfter(1)
+                ? PanelActionSupport.closePaletteAfterUnlessTarget(
+                        1, target.target(), target.sessionId())
                 : 0;
     }
 
@@ -124,5 +129,15 @@ public final class SFMDocumentHistoryRedoAction implements SFMClientAction<SFMCl
         } catch (IllegalArgumentException exception) {
             return Optional.empty();
         }
+    }
+
+    private static String preview(String text) {
+        if (text.isEmpty()) return "<empty document>";
+        String visible = text.replace("\r\n", "↵").replace('\r', '↵').replace('\n', '↵');
+        int limit = 40;
+        if (visible.codePointCount(0, visible.length()) > limit) {
+            visible = visible.substring(0, visible.offsetByCodePoints(0, limit)) + "…";
+        }
+        return "“" + visible + "”";
     }
 }

@@ -3,12 +3,15 @@ package ca.teamdman.sfm.client.screen.text_editor;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasModel;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasScreen;
 import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
+import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
+import ca.teamdman.sfm.client.history.document.SFMDocumentHistoryContract;
 import ca.teamdman.sfm.client.symbol.SFMDefinitionResult;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverLookup;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverStateMachine;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSelection;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverIdentity;
@@ -256,16 +259,53 @@ class SFMTextEditorPanelTests {
         setField(screen, "navigatedRange", Optional.empty());
         var constructor = SFMTextEditorPanel.class.getDeclaredConstructor(
                 SFMTextEditorPanelOpenContext.class,
-                Screen.class
+                Screen.class,
+                boolean.class
         );
         constructor.setAccessible(true);
-        SFMTextEditorPanel panel = constructor.newInstance(context, screen);
+        SFMTextEditorPanel panel = constructor.newInstance(context, screen, false);
 
         assertEquals(Optional.of(first), panel.documentSnapshot().orElseThrow().targetRange());
         assertTrue(panel.navigateToRange(second));
         assertEquals(Optional.of(second), screen.navigatedRange);
         assertEquals(withTargetRange(baseline, second), panel.documentSnapshot().orElseThrow(),
                 "A reused editor must publish the exact range it now presents without losing provenance");
+    }
+
+    @Test
+    void historyCheckoutRoundTripsDirectionalUnicodeAndMultipleSelections() throws Exception {
+        String text = "a😀bc";
+        SFMDocumentHistoryContract.DocumentState expected = new SFMDocumentHistoryContract.DocumentState(
+                text,
+                List.of(
+                        logicalSelection(text, "forward", 1, 3),
+                        logicalSelection(text, "backward", 4, 2)
+                ),
+                Optional.of("forward")
+        );
+        SFMTextEditorPanelOpenContext context = new SFMTextEditorPanelOpenContext(
+                "sfm:text_editor_v3", text, false, "Editor");
+        RecordingHistorySelectionScreen screen = allocateWithoutConstructor(RecordingHistorySelectionScreen.class);
+        setField(screen, "text", text);
+        setField(screen, "selections", List.of());
+        var constructor = SFMTextEditorPanel.class.getDeclaredConstructor(
+                SFMTextEditorPanelOpenContext.class,
+                Screen.class,
+                boolean.class
+        );
+        constructor.setAccessible(true);
+        SFMTextEditorPanel panel = constructor.newInstance(context, screen, true);
+
+        panel.checkoutDocumentHistoryState(expected);
+
+        assertEquals(2, screen.selections.size());
+        assertEquals("forward", screen.selections.get(0).id(),
+                "the primary selection must drive the spatial primary cursor");
+        assertTrue(screen.selections.get(0).primary());
+        assertTrue(screen.selections.stream().anyMatch(selection ->
+                selection.id().equals("backward")
+                        && selection.anchor().byteOffset() > selection.active().byteOffset()));
+        assertEquals(expected, panel.captureDocumentHistoryState(screen));
     }
 
     private static SFMSymbolHoverStateMachine.Target hoverTarget() {
@@ -312,6 +352,19 @@ class SFMTextEditorPanelTests {
         return new SFMTextDocumentRange(
                 SFMTextDocumentRange.positionAtByteOffset(text, start),
                 SFMTextDocumentRange.positionAtByteOffset(text, start + token.length())
+        );
+    }
+
+    private static SFMDocumentHistoryContract.LogicalSelection logicalSelection(
+            String text,
+            String id,
+            int anchorCodePoint,
+            int activeCodePoint
+    ) {
+        return new SFMDocumentHistoryContract.LogicalSelection(
+                id,
+                SFMDocumentHistoryContract.LogicalPoint.at(text, anchorCodePoint),
+                SFMDocumentHistoryContract.LogicalPoint.at(text, activeCodePoint)
         );
     }
 
@@ -391,6 +444,47 @@ class SFMTextEditorPanelTests {
         public void openAtTextRange(SFMTextDocumentRange range) {
             range.validateAgainst(text);
             navigatedRange = Optional.of(range);
+        }
+    }
+
+    private static final class RecordingHistorySelectionScreen extends SFMDrawCanvasScreen {
+        private String text;
+        private List<SFMTextDocumentSelection> selections = List.of();
+
+        private RecordingHistorySelectionScreen(String text) {
+            super((Screen) null);
+            this.text = text;
+        }
+
+        @Override
+        public void checkoutDocumentSelections(String text, List<SFMTextDocumentSelection> selections) {
+            this.text = text;
+            this.selections = List.copyOf(selections);
+        }
+
+        @Override
+        public Optional<List<SFMTextDocumentSelection>> exactDocumentSelections() {
+            return Optional.of(selections);
+        }
+
+        @Override
+        public SFMContextDocumentProjection captureContextProjection(
+                String editorId,
+                SFMTextDocumentSnapshot baseline,
+                boolean readOnly
+        ) {
+            return SFMContextDocumentProjection.capture(
+                    editorId,
+                    baseline,
+                    text,
+                    !baseline.displayText().equals(text),
+                    readOnly,
+                    List.of(),
+                    selections.stream()
+                            .map(selection -> new ca.teamdman.sfm.client.context.SFMContextSelectionProjection(
+                                    selection.id(), List.of(selection.orderedRange()), selection.primary()))
+                            .toList()
+            );
         }
     }
 }

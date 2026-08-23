@@ -111,9 +111,11 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
     private SFMHistoryCanvasInteractionState interaction = SFMHistoryCanvasInteractionState.empty();
     private SFMDocumentHistoryViewport viewport = SFMDocumentHistoryViewport.identity();
     private boolean viewportTouched;
+    private boolean selectionTouched;
     private boolean detailsExpanded;
     private int transcriptScroll;
     private boolean draggingCanvas;
+    private long geometryGeneration;
     private SFMScreenPanelBounds lastBounds = new SFMScreenPanelBounds(0, 0, 1, 1);
     private SFMScreenPanelBounds canvasBounds = new SFMScreenPanelBounds(0, HEADER_HEIGHT, 1, 1);
     private SFMScreenPanelBounds transposeButtonBounds = new SFMScreenPanelBounds(0, 0, 1, 1);
@@ -178,7 +180,7 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
     public void resized(Minecraft minecraft, SFMScreenPanelBounds bounds) {
         lastBounds = Objects.requireNonNull(bounds, "bounds");
         updateGeometry(bounds);
-        if (!viewportTouched && canvas != null) fitCanvas();
+        if (!viewportTouched && canvas != null) frameCurrentSubject();
     }
 
     @Override
@@ -227,7 +229,7 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         if (!bounds.equals(lastBounds)) {
             lastBounds = bounds;
             updateGeometry(bounds);
-            if (!viewportTouched && canvas != null) fitCanvas();
+            if (!viewportTouched && canvas != null) frameCurrentSubject();
         }
         GuiComponent.fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(),
                 bounds.y() + bounds.height(), BACKGROUND);
@@ -251,7 +253,10 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
                     canvasBounds.height()
             );
             SFMHistoryCanvasSpatialIndex.CullingResult visible = current.visible(visibleCanvas);
-            for (SFMHistoryCanvasLayout.Edge edge : visible.edges()) drawEdge(poseStack, edge);
+            String latestJump = latestJumpEdgeId(current).orElse("");
+            for (SFMHistoryCanvasLayout.Edge edge : visible.edges()) {
+                if (shouldDrawEdge(edge, latestJump)) drawEdge(poseStack, edge);
+            }
             for (SFMHistoryCanvasLayout.Node node : visible.nodes()) drawNode(poseStack, minecraft, node);
         }
         drawDetails(poseStack, minecraft, bounds);
@@ -272,10 +277,14 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
                 if (interaction.selected().isEmpty()) yield false;
                 detailsExpanded = !detailsExpanded;
                 updateGeometry(lastBounds);
-                if (!viewportTouched && canvas != null) fitCanvas();
+                if (!viewportTouched && canvas != null) frameCurrentSubject();
                 yield true;
             }
-            case GLFW.GLFW_KEY_R, GLFW.GLFW_KEY_HOME -> {
+            case GLFW.GLFW_KEY_R -> {
+                frameCurrentSubject();
+                yield canvas != null;
+            }
+            case GLFW.GLFW_KEY_HOME -> {
                 fitCanvas();
                 yield canvas != null;
             }
@@ -300,6 +309,7 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
             Optional<SFMHistoryCanvasSpatialIndex.Hit> hit = hitTest(mouseX, mouseY);
             interaction = interaction.select(hit);
+            selectionTouched = true;
             draggingCanvas = hit.isEmpty();
         } else {
             draggingCanvas = true;
@@ -340,7 +350,11 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         if (delta == 0.0D || !contains(canvasBounds, mouseX, mouseY) || canvas == null) return false;
         if (presentationMode == PresentationMode.TRANSCRIPT) {
             int visibleLines = Math.max(1, canvasBounds.height() / 12);
-            int maximum = Math.max(0, accessibleTranscript().size() - visibleLines);
+            Minecraft minecraft = Minecraft.getInstance();
+            int lineCount = minecraft == null
+                    ? accessibleTranscript().size()
+                    : wrappedTranscriptLines(minecraft).size();
+            int maximum = Math.max(0, lineCount - visibleLines);
             transcriptScroll = Math.max(0, Math.min(maximum,
                     transcriptScroll + (delta < 0.0D ? 3 : -3)));
             return true;
@@ -387,6 +401,22 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         return viewport;
     }
 
+    /** Exact panel-local canvas rectangle used by pointer automation and evidence. */
+    public SFMScreenPanelBounds canvasBounds() {
+        return canvasBounds;
+    }
+
+    /** Non-placeholder geometry published only after the panel has been laid out. */
+    public Optional<SFMScreenPanelBounds> readyCanvasBoundsForAutomation() {
+        return geometryGeneration > 0 && canvasBounds.width() > 1 && canvasBounds.height() > 1
+                ? Optional.of(canvasBounds)
+                : Optional.empty();
+    }
+
+    public long geometryGeneration() {
+        return geometryGeneration;
+    }
+
     public Optional<SFMDocumentHistoryContract.Projection> documentProjection() {
         return Optional.ofNullable(documentProjection);
     }
@@ -403,6 +433,10 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         return interaction.selected();
     }
 
+    public Optional<SFMHistoryCanvasSpatialIndex.Subject> hoveredSubject() {
+        return interaction.hovered();
+    }
+
     public List<SFMHistoryGraphPresentationModel.Detail> selectedDetails() {
         if (canvas == null || interaction.selected().isEmpty()) return List.of();
         SFMHistoryCanvasSpatialIndex.Subject selected = interaction.selected().orElseThrow();
@@ -415,6 +449,7 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         Objects.requireNonNull(subject, "subject");
         if (canvas == null || !canvas.spatialIndex().contains(subject)) return false;
         interaction = interaction.select(subject);
+        selectionTouched = true;
         return true;
     }
 
@@ -440,7 +475,7 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         if (canvas != null) {
             canvas = canvas.transpose();
             interaction = canvas.retainInteraction(interaction);
-            if (!viewportTouched) fitCanvas();
+            if (!viewportTouched) frameCurrentSubject();
         }
     }
 
@@ -459,6 +494,34 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
                 canvasBounds.height(),
                 PADDING
         );
+        viewportTouched = false;
+    }
+
+    public void frameCurrent() {
+        frameCurrentSubject();
+    }
+
+    private void frameCurrentSubject() {
+        if (canvas == null) return;
+        SFMHistoryCanvasLayout.Rect content = canvas.snapshot().contentBounds();
+        SFMHistoryCanvasLayout.Rect focus = interaction.selected()
+                .flatMap(this::subjectBounds)
+                .orElse(content);
+        viewport = orientation == SFMHistoryCanvasLayout.Orientation.TOP_DOWN
+                ? SFMDocumentHistoryViewport.frameWidthAround(
+                        content,
+                        focus,
+                        canvasBounds.width(),
+                        canvasBounds.height(),
+                        PADDING
+                )
+                : SFMDocumentHistoryViewport.frameHeightAround(
+                        content,
+                        focus,
+                        canvasBounds.width(),
+                        canvasBounds.height(),
+                        PADDING
+                );
         viewportTouched = false;
     }
 
@@ -496,9 +559,11 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
                     SFMDocumentHistoryContract.Projection projection = entry.session().projection();
                     SFMHistoryGraphPresentationModel.Presentation presentation =
                             SFMDocumentHistoryPresentationProjection.project(projection);
-                    SFMHistoryCanvasLayoutEngine.Request request = SFMHistoryCanvasLayoutEngine.Request
-                            .defaults()
-                            .withOrientation(requestOrientation);
+                    SFMHistoryCanvasLayoutEngine.Request request = new SFMHistoryCanvasLayoutEngine.Request(
+                            requestOrientation,
+                            SFMHistoryCanvasLayoutEngine.Config.documentHistoryDefaults(),
+                            SFMHistoryCanvasSpatialIndex.Limits.defaults()
+                    );
                     SFMHistoryCanvasLayoutEngine.Result result =
                             SFMHistoryCanvasLayoutEngine.layout(presentation, request);
                     pendingProjectionUpdates.add(new ProjectionReady(
@@ -538,11 +603,13 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         resolvedSessionId = ready.sessionId();
         publicationGeneration = ready.projection().generation();
         interaction = canvas.retainInteraction(interaction);
-        if (interaction.selected().isEmpty()) interaction = selectCurrentHead(canvas, interaction);
+        if (!selectionTouched || interaction.selected().isEmpty()) {
+            interaction = selectCurrentHead(canvas, interaction);
+        }
         loadStatus = LoadStatus.READY;
         statusMessage = ready.projection().identity().documentId()
                 + " · revision " + shortIdentity(ready.projection().currentRevisionId());
-        if (!hadCanvas && !viewportTouched) fitCanvas();
+        if (!viewportTouched) frameCurrentSubject();
     }
 
     private void clearPresentation() {
@@ -550,6 +617,7 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         documentProjection = null;
         canvas = null;
         interaction = SFMHistoryCanvasInteractionState.empty();
+        selectionTouched = false;
         transcriptScroll = 0;
         draggingCanvas = false;
     }
@@ -562,7 +630,10 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
                 : 0;
         int bodyY = bounds.y() + Math.min(HEADER_HEIGHT, bounds.height());
         int bodyHeight = Math.max(0, bounds.height() - (bodyY - bounds.y()) - detailsHeight);
-        canvasBounds = new SFMScreenPanelBounds(bounds.x(), bodyY, Math.max(0, bounds.width()), bodyHeight);
+        SFMScreenPanelBounds nextCanvasBounds = new SFMScreenPanelBounds(
+                bounds.x(), bodyY, Math.max(0, bounds.width()), bodyHeight);
+        if (!nextCanvasBounds.equals(canvasBounds)) geometryGeneration++;
+        canvasBounds = nextCanvasBounds;
         int buttonWidth = Math.min(86, Math.max(1, bounds.width() / 4));
         transposeButtonBounds = new SFMScreenPanelBounds(
                 bounds.x() + Math.max(0, bounds.width() - buttonWidth - 4),
@@ -587,15 +658,45 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
                 transposeButtonBounds.y() + transposeButtonBounds.height(), buttonColour);
         drawClipped(poseStack, minecraft, transposeButtonBounds,
                 transposeButtonBounds.x() + 4, transposeButtonBounds.y() + 5,
-                orientation == SFMHistoryCanvasLayout.Orientation.TOP_DOWN ? "T: top-down" : "T: left-right",
+                orientation == SFMHistoryCanvasLayout.Orientation.TOP_DOWN ? "T: down" : "T: right",
                 HEADER);
         GuiComponent.fill(poseStack, viewButtonBounds.x(), viewButtonBounds.y(),
                 viewButtonBounds.x() + viewButtonBounds.width(),
                 viewButtonBounds.y() + viewButtonBounds.height(), buttonColour);
         drawClipped(poseStack, minecraft, viewButtonBounds,
                 viewButtonBounds.x() + 4, viewButtonBounds.y() + 5,
-                presentationMode == PresentationMode.CANVAS ? "V: canvas" : "V: transcript",
+                presentationMode == PresentationMode.CANVAS ? "V: graph" : "V: text",
                 HEADER);
+    }
+
+    private Optional<String> latestJumpEdgeId(SFMHistoryCanvasLayoutEngine.Result current) {
+        SFMHistoryCanvasLayout.Edge latest = null;
+        for (SFMHistoryCanvasLayout.Edge edge : current.snapshot().edges()) {
+            if (!edge.curved()) continue;
+            if (latest == null
+                    || edge.sourceRank() > latest.sourceRank()
+                    || edge.sourceRank() == latest.sourceRank()
+                    && edge.stableId().compareTo(latest.stableId()) > 0) {
+                latest = edge;
+            }
+        }
+        return latest == null ? Optional.empty() : Optional.of(latest.stableId());
+    }
+
+    private boolean shouldDrawEdge(SFMHistoryCanvasLayout.Edge edge, String latestJumpEdgeId) {
+        if (!edge.curved() || edge.stableId().equals(latestJumpEdgeId)) return true;
+        return interaction.selected().filter(subject -> touches(subject, edge)).isPresent()
+                || interaction.hovered().filter(subject -> touches(subject, edge)).isPresent();
+    }
+
+    private static boolean touches(
+            SFMHistoryCanvasSpatialIndex.Subject subject,
+            SFMHistoryCanvasLayout.Edge edge
+    ) {
+        return subject.kind() == SFMHistoryCanvasLayout.SubjectKind.EDGE
+                ? subject.stableId().equals(edge.stableId())
+                : subject.stableId().equals(edge.fromNodeId())
+                        || subject.stableId().equals(edge.toNodeId());
     }
 
     private void drawEdge(PoseStack poseStack, SFMHistoryCanvasLayout.Edge edge) {
@@ -649,28 +750,52 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         else if (interaction.hovered().filter(subject::equals).isPresent()) outline = HOVERED;
         outlineCircle(poseStack, marker, outline);
 
-        if (screen.width() < 8 || screen.height() < 8 || label.width() < 4 || label.height() < 4) return;
-        int labelX = Math.max(canvasBounds.x() + 2, label.x());
-        int labelY = Math.max(canvasBounds.y() + 2, label.y());
-        int available = Math.max(0, Math.min(label.right(), canvasBounds.x() + canvasBounds.width()) - labelX - 2);
+        boolean selected = interaction.selected().filter(subject::equals).isPresent();
+        boolean hovered = interaction.hovered().filter(subject::equals).isPresent();
+        boolean actualHead = node.source().roles()
+                .contains(SFMHistoryGraphPresentationModel.LegendRole.ACTUAL_HEAD);
+        boolean retained = node.source().roles()
+                .contains(SFMHistoryGraphPresentationModel.LegendRole.RETAINED_ALTERNATIVE);
+        boolean salient = selected || hovered || actualHead
+                || orientation == SFMHistoryCanvasLayout.Orientation.TOP_DOWN && retained;
+        if (screen.width() < 8 || screen.height() < 8) return;
+        if (orientation == SFMHistoryCanvasLayout.Orientation.LEFT_RIGHT
+                && viewport.zoom() < 0.85D
+                && !salient) return;
+        if (orientation == SFMHistoryCanvasLayout.Orientation.TOP_DOWN
+                && (label.width() < 4 || label.height() < 4)) return;
+        int labelX = orientation == SFMHistoryCanvasLayout.Orientation.LEFT_RIGHT
+                ? marker.right() + Math.max(2, safeRound(4.0D * viewport.zoom()))
+                : Math.max(canvasBounds.x() + 2, label.x());
+        int labelY = orientation == SFMHistoryCanvasLayout.Orientation.LEFT_RIGHT
+                ? marker.y() + Math.max(0, (marker.height() - safeRound(10.0D * viewport.zoom())) / 2)
+                : Math.max(canvasBounds.y() + 2, label.y());
+        int available = orientation == SFMHistoryCanvasLayout.Orientation.LEFT_RIGHT
+                ? Math.max(0, canvasBounds.x() + canvasBounds.width() - labelX - 2)
+                : Math.max(0, Math.min(label.right(), canvasBounds.x() + canvasBounds.width()) - labelX - 2);
         if (available <= 0) return;
-        String prefix = node.source().roles().contains(SFMHistoryGraphPresentationModel.LegendRole.ACTUAL_HEAD)
-                ? "H "
-                : node.source().roles().contains(SFMHistoryGraphPresentationModel.LegendRole.RETAINED_ALTERNATIVE)
-                ? "R "
-                : "";
-        int lineHeight = Math.max(1, safeRound(10.0D * viewport.zoom()));
+        if (viewport.zoom() < 0.55D && !salient) return;
+        double scale = viewport.zoom();
+        int lineHeight = Math.max(1, safeRound(10.0D * scale));
+        int logicalAvailable = Math.max(1, safeRound(available / scale));
         for (int index = 0; index < node.label().lines().size(); index++) {
             int y = labelY + index * lineHeight;
-            if (y >= label.bottom() || y >= canvasBounds.y() + canvasBounds.height()) break;
-            String text = (index == 0 ? prefix : "") + node.label().lines().get(index);
-            drawClipped(poseStack, minecraft, canvasBounds, labelX, y,
-                    minecraft.font.plainSubstrByWidth(text, available), HEADER);
+            if (orientation == SFMHistoryCanvasLayout.Orientation.TOP_DOWN && y >= label.bottom()) break;
+            if (y >= canvasBounds.y() + canvasBounds.height()) break;
+            String text = minecraft.font.plainSubstrByWidth(
+                    node.label().lines().get(index),
+                    logicalAvailable
+            );
+            poseStack.pushPose();
+            poseStack.translate(labelX, y, 0.0D);
+            poseStack.scale((float) scale, (float) scale, 1.0F);
+            SFMFontUtils.draw(poseStack, minecraft.font, text, 0, 0, HEADER, false);
+            poseStack.popPose();
         }
     }
 
     private void drawTranscript(PoseStack poseStack, Minecraft minecraft) {
-        List<String> lines = accessibleTranscript();
+        List<String> lines = wrappedTranscriptLines(minecraft);
         int lineHeight = Math.max(10, minecraft.font.lineHeight + 2);
         int visible = Math.max(1, (canvasBounds.height() - PADDING * 2) / lineHeight);
         transcriptScroll = Math.max(0, Math.min(Math.max(0, lines.size() - visible), transcriptScroll));
@@ -685,6 +810,13 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         }
     }
 
+    private List<String> wrappedTranscriptLines(Minecraft minecraft) {
+        int availableWidth = Math.max(1, canvasBounds.width() - PADDING * 2);
+        return accessibleTranscript().stream()
+                .flatMap(line -> wrapForWidth(minecraft, line, availableWidth).stream())
+                .toList();
+    }
+
     private void drawDetails(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds) {
         int y = canvasBounds.y() + canvasBounds.height();
         int height = bounds.y() + bounds.height() - y;
@@ -694,17 +826,101 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
                 details.y() + details.height(), DETAILS_BACKGROUND);
         int line = Math.max(10, minecraft.font.lineHeight + 2);
         int textY = y + 4;
-        Optional<String> narration = selectedNarration();
-        drawClipped(poseStack, minecraft, details, details.x() + PADDING, textY,
-                narration.orElse("Select a node or edge to inspect its evidence"), narration.isPresent() ? HEADER : MUTED);
-        textY += line;
-        int detailLimit = detailsExpanded ? Integer.MAX_VALUE : 4;
-        for (SFMHistoryGraphPresentationModel.Detail detail : selectedDetails().stream().limit(detailLimit).toList()) {
-            if (textY + line > details.y() + details.height()) break;
+        Optional<String> summary = selectedSummary();
+        int availableWidth = Math.max(1, details.width() - PADDING * 2);
+        for (String wrapped : wrapForWidth(
+                minecraft,
+                summary.orElse("Select a node or edge to inspect its evidence"),
+                availableWidth
+        )) {
+            if (textY + line > details.y() + details.height()) return;
             drawClipped(poseStack, minecraft, details, details.x() + PADDING, textY,
-                    detail.key() + ": " + detail.value(), MUTED);
+                    wrapped, summary.isPresent() ? HEADER : MUTED);
             textY += line;
         }
+        if (detailsExpanded) {
+            for (String wrapped : wrapForWidth(
+                    minecraft,
+                    "Narration: " + selectedNarration().orElse("unavailable"),
+                    availableWidth
+            )) {
+                if (textY + line > details.y() + details.height()) return;
+                drawClipped(poseStack, minecraft, details, details.x() + PADDING, textY, wrapped, MUTED);
+                textY += line;
+            }
+        }
+        List<SFMHistoryGraphPresentationModel.Detail> visibleDetails = detailsExpanded
+                ? selectedDetails()
+                : compactSelectedDetails();
+        int detailLimit = detailsExpanded ? Integer.MAX_VALUE : 4;
+        for (SFMHistoryGraphPresentationModel.Detail detail : visibleDetails.stream().limit(detailLimit).toList()) {
+            String value = detailsExpanded ? detail.value() : compactDetailValue(detail.value());
+            for (String wrapped : wrapForWidth(
+                    minecraft,
+                    detail.key() + ": " + value,
+                    availableWidth
+            )) {
+                if (textY + line > details.y() + details.height()) return;
+                drawClipped(poseStack, minecraft, details, details.x() + PADDING, textY, wrapped, MUTED);
+                textY += line;
+            }
+        }
+    }
+
+    private Optional<String> selectedSummary() {
+        if (canvas == null || interaction.selected().isEmpty()) return Optional.empty();
+        SFMHistoryCanvasSpatialIndex.Subject selected = interaction.selected().orElseThrow();
+        if (selected.kind() == SFMHistoryCanvasLayout.SubjectKind.NODE) {
+            return canvas.spatialIndex().node(selected.stableId()).map(node ->
+                    (node.lane() == SFMHistoryCanvasLayout.Lane.ACTION ? "Action: " : "State: ")
+                            + node.source().label());
+        }
+        return canvas.spatialIndex().edge(selected.stableId()).map(edge ->
+                "Relation: " + edge.source().label());
+    }
+
+    private List<SFMHistoryGraphPresentationModel.Detail> compactSelectedDetails() {
+        List<SFMHistoryGraphPresentationModel.Detail> details = selectedDetails();
+        if (details.isEmpty()) return details;
+        ArrayList<SFMHistoryGraphPresentationModel.Detail> ordered = new ArrayList<>(details);
+        ordered.sort((left, right) -> Integer.compare(detailPriority(left.key()), detailPriority(right.key())));
+        return List.copyOf(ordered);
+    }
+
+    private static int detailPriority(String key) {
+        return switch (key) {
+            case "state.content", "action.kind", "head-movement.kind" -> 0;
+            case "state.revision-id", "action.before-revision", "head-movement.from-revision" -> 1;
+            case "state.parent-revision", "action.after-revision", "head-movement.to-revision" -> 2;
+            case "state.sequence", "action.transaction-id", "head-movement.request-id" -> 3;
+            default -> 10;
+        };
+    }
+
+    private static String compactDetailValue(String value) {
+        if (value.startsWith("sfm:") || value.startsWith("sha256:")) return shortIdentity(value);
+        if (value.length() <= 72) return value;
+        return value.substring(0, 34) + "…" + value.substring(value.length() - 24);
+    }
+
+    private static List<String> wrapForWidth(Minecraft minecraft, String text, int width) {
+        if (text.isEmpty()) return List.of("");
+        ArrayList<String> result = new ArrayList<>();
+        String remaining = text;
+        int safeWidth = Math.max(1, width);
+        while (!remaining.isEmpty()) {
+            String fitting = minecraft.font.plainSubstrByWidth(remaining, safeWidth);
+            int end = fitting.length();
+            if (end <= 0) end = Character.charCount(remaining.codePointAt(0));
+            if (end < remaining.length()) {
+                int wordBoundary = remaining.lastIndexOf(' ', end - 1);
+                if (wordBoundary > 0) end = wordBoundary;
+            }
+            result.add(remaining.substring(0, end));
+            remaining = remaining.substring(end);
+            if (remaining.startsWith(" ")) remaining = remaining.substring(1);
+        }
+        return List.copyOf(result);
     }
 
     private Optional<String> selectedNarration() {
@@ -713,6 +929,15 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
         return selected.kind() == SFMHistoryCanvasLayout.SubjectKind.NODE
                 ? canvas.spatialIndex().node(selected.stableId()).map(node -> node.source().narration())
                 : canvas.spatialIndex().edge(selected.stableId()).map(edge -> edge.source().narration());
+    }
+
+    private Optional<SFMHistoryCanvasLayout.Rect> subjectBounds(
+            SFMHistoryCanvasSpatialIndex.Subject subject
+    ) {
+        if (canvas == null) return Optional.empty();
+        return subject.kind() == SFMHistoryCanvasLayout.SubjectKind.NODE
+                ? canvas.spatialIndex().node(subject.stableId()).map(SFMHistoryCanvasLayout.Node::bounds)
+                : canvas.spatialIndex().edge(subject.stableId()).map(SFMHistoryCanvasLayout.Edge::bounds);
     }
 
     private Optional<SFMHistoryCanvasSpatialIndex.Hit> hitTest(double mouseX, double mouseY) {
@@ -736,6 +961,7 @@ public final class SFMDocumentHistoryPanel implements SFMScreenPanel {
                 ? delta < 0 ? subjects.size() - 1 : 0
                 : Math.max(0, Math.min(subjects.size() - 1, current + delta));
         interaction = interaction.select(subjects.get(next));
+        selectionTouched = true;
         return next != current;
     }
 

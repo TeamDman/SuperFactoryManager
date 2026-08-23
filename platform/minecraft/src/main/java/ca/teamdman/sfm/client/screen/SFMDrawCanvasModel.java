@@ -275,9 +275,11 @@ public class SFMDrawCanvasModel {
             double insertionX = insertionXForCursor(cursor, lineHeight);
             cursor.set(insertionX, lineY);
             shiftLineContentAndCursorsAtOrAfter(lineY, insertionX, width, cursor);
-            if (!" ".equals(text)) {
-                glyphs.add(new CanvasGlyph(text, cursor.x(), cursor.y(), width));
-            }
+            // Spatial gaps still project as inferred spaces, but an explicitly
+            // entered space must remain an addressable document glyph. Without
+            // it, trailing spaces disappear until a later visible glyph reveals
+            // the gap, which makes saves and immutable undo revisions lossy.
+            glyphs.add(new CanvasGlyph(text, cursor.x(), cursor.y(), width));
             cursor.move(width, 0.0D);
         }
         collapseDuplicateCursors();
@@ -328,7 +330,7 @@ public class SFMDrawCanvasModel {
                 }
                 String glyphText = new String(Character.toChars(codePoint));
                 int width = glyphWidthReader.width(glyphText);
-                if (!" ".equals(glyphText)) glyphs.add(new CanvasGlyph(glyphText, x, y, width));
+                glyphs.add(new CanvasGlyph(glyphText, x, y, width));
                 x += width;
             }
             cursors = new ArrayList<>();
@@ -417,11 +419,11 @@ public class SFMDrawCanvasModel {
     }
 
     public void deleteLeftWord(int lineHeight) {
-        deleteNearestWordTransactionally(false);
+        deleteNearestWordTransactionally(false, lineHeight);
     }
 
     public void deleteRightWord(int lineHeight) {
-        deleteNearestWordTransactionally(true);
+        deleteNearestWordTransactionally(true, lineHeight);
     }
 
     public void moveCursorLeft() {
@@ -822,10 +824,13 @@ public class SFMDrawCanvasModel {
             int lineHeight,
             int spaceWidth
     ) {
+        List<CanvasGlyph> line = glyphsOnLine(cursor.y());
         CanvasGlyph target = glyphAt(cursor, lineHeight);
-        if (target == null) {
-            target = rightMostGlyphBefore(glyphsOnLine(cursor.y()), cursor.x());
+        if (target != null && Double.compare(cursor.x(), target.x()) == 0) {
+            target = previousGlyph(line, target);
         }
+        if (target == null) target = rightMostGlyphBefore(line, cursor.x());
+        target = skipWhitespace(line, target, -1);
         if (target == null) {
             return leftTarget(cursor, lineHeight, spaceWidth);
         }
@@ -850,10 +855,10 @@ public class SFMDrawCanvasModel {
             int lineHeight,
             int spaceWidth
     ) {
+        List<CanvasGlyph> line = glyphsOnLine(cursor.y());
         CanvasGlyph target = glyphAt(cursor, lineHeight);
-        if (target == null) {
-            target = leftMostGlyphAtOrAfter(glyphsOnLine(cursor.y()), cursor.x());
-        }
+        if (target == null) target = leftMostGlyphAtOrAfter(line, cursor.x());
+        target = skipWhitespace(line, target, 1);
         if (target == null) {
             return rightTarget(cursor, spaceWidth);
         }
@@ -1100,15 +1105,11 @@ public class SFMDrawCanvasModel {
         collapseDuplicateCursors();
     }
 
-    private void deleteNearestWordTransactionally(boolean moveRight) {
+    private void deleteNearestWordTransactionally(boolean moveRight, int lineHeight) {
         List<WordCursorTarget> wordTargets = new ArrayList<>();
         List<CanvasGlyph> targets = new ArrayList<>();
         for (CanvasCursor cursor : activeCursorsSnapshot()) {
-            CanvasGlyph nearest = nearestGlyph(cursor);
-            if (nearest == null) {
-                continue;
-            }
-            List<CanvasGlyph> run = contiguousGlyphRun(nearest);
+            List<CanvasGlyph> run = directionalWordDeletionRun(cursor, moveRight, lineHeight);
             if (run.isEmpty()) {
                 continue;
             }
@@ -1643,20 +1644,85 @@ public class SFMDrawCanvasModel {
         if (targetIndex == -1) {
             return List.of();
         }
-        boolean word = isWordGlyph(target);
+        GlyphClass glyphClass = glyphClass(target);
         int start = targetIndex;
         while (start > 0
-               && isWordGlyph(line.get(start - 1)) == word
+               && glyphClass(line.get(start - 1)) == glyphClass
                && glyphsTouch(line.get(start - 1), line.get(start))) {
             start--;
         }
         int end = targetIndex;
         while (end < line.size() - 1
-               && isWordGlyph(line.get(end + 1)) == word
+               && glyphClass(line.get(end + 1)) == glyphClass
                && glyphsTouch(line.get(end), line.get(end + 1))) {
             end++;
         }
         return new ArrayList<>(line.subList(start, end + 1));
+    }
+
+    /**
+     * Chooses the directional Ctrl+Backspace/Delete unit. Explicit whitespace
+     * glyphs are document content, but they are a bridge to the adjacent word
+     * or punctuation run rather than a one-character "word" of their own.
+     */
+    private List<CanvasGlyph> directionalWordDeletionRun(
+            CanvasCursor cursor,
+            boolean moveRight,
+            int lineHeight
+    ) {
+        List<CanvasGlyph> line = glyphsOnLine(cursor.y());
+        if (line.isEmpty()) {
+            CanvasGlyph nearest = nearestGlyph(cursor);
+            if (nearest == null) return List.of();
+            line = glyphsOnLine(nearest.y());
+        }
+
+        CanvasGlyph target;
+        if (moveRight) {
+            target = glyphAt(cursor, lineHeight);
+            if (target == null) target = leftMostGlyphAtOrAfter(line, cursor.x());
+        } else {
+            target = glyphAt(cursor, lineHeight);
+            if (target != null && Double.compare(cursor.x(), target.x()) == 0) {
+                target = previousGlyph(line, target);
+            }
+            if (target == null) target = rightMostGlyphBefore(line, cursor.x());
+        }
+        if (target == null) return List.of();
+
+        ArrayList<CanvasGlyph> selected = new ArrayList<>();
+        List<CanvasGlyph> firstRun = contiguousGlyphRun(target);
+        selected.addAll(firstRun);
+        if (glyphClass(target) != GlyphClass.WHITESPACE) return selected;
+
+        CanvasGlyph adjacent = moveRight
+                               ? nextGlyph(line, firstRun.get(firstRun.size() - 1))
+                               : previousGlyph(line, firstRun.get(0));
+        if (adjacent != null) {
+            for (CanvasGlyph glyph : contiguousGlyphRun(adjacent)) {
+                if (!selected.contains(glyph)) selected.add(glyph);
+            }
+        }
+        selected.sort(Comparator.comparingDouble(CanvasGlyph::x));
+        return selected;
+    }
+
+    private CanvasGlyph skipWhitespace(List<CanvasGlyph> line, CanvasGlyph target, int direction) {
+        CanvasGlyph current = target;
+        while (current != null && glyphClass(current) == GlyphClass.WHITESPACE) {
+            current = direction < 0 ? previousGlyph(line, current) : nextGlyph(line, current);
+        }
+        return current;
+    }
+
+    private CanvasGlyph previousGlyph(List<CanvasGlyph> line, CanvasGlyph glyph) {
+        int index = line.indexOf(glyph);
+        return index > 0 ? line.get(index - 1) : null;
+    }
+
+    private CanvasGlyph nextGlyph(List<CanvasGlyph> line, CanvasGlyph glyph) {
+        int index = line.indexOf(glyph);
+        return index >= 0 && index + 1 < line.size() ? line.get(index + 1) : null;
     }
 
     private boolean glyphsTouch(
@@ -1666,12 +1732,20 @@ public class SFMDrawCanvasModel {
         return Double.compare(left.x() + left.width(), right.x()) == 0;
     }
 
-    private boolean isWordGlyph(CanvasGlyph glyph) {
+    private GlyphClass glyphClass(CanvasGlyph glyph) {
         if (glyph.text().isEmpty()) {
-            return false;
+            return GlyphClass.PUNCTUATION;
         }
         int codePoint = glyph.text().codePointAt(0);
-        return Character.isLetterOrDigit(codePoint) || codePoint == '_';
+        if (Character.isWhitespace(codePoint)) return GlyphClass.WHITESPACE;
+        if (Character.isLetterOrDigit(codePoint) || codePoint == '_') return GlyphClass.WORD;
+        return GlyphClass.PUNCTUATION;
+    }
+
+    private enum GlyphClass {
+        WORD,
+        WHITESPACE,
+        PUNCTUATION
     }
 
     private Double previousGlyphRow(double y) {

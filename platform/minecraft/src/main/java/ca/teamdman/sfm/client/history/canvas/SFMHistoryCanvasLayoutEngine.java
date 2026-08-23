@@ -74,6 +74,17 @@ public final class SFMHistoryCanvasLayoutEngine {
                     4_096, 8_192, 4_000_000);
         }
 
+        /**
+         * Compact paired lanes for the narrow split-panel surface used by an
+         * ordinary document history. Full labels remain available through the
+         * transcript and details while the frontline canvas keeps action and
+         * resulting-state labels readable at Minecraft GUI scales.
+         */
+        public static Config documentHistoryDefaults() {
+            return new Config(24, 14, 6, 4, 6, 10, 20, 2, 24, 12, 20, 3, 24,
+                    4_096, 8_192, 4_000_000);
+        }
+
         public int maximumNodeWidth() {
             int textWidth = Math.multiplyExact(maxLabelCodePointsPerLine, estimatedGlyphWidth);
             return Math.addExact(

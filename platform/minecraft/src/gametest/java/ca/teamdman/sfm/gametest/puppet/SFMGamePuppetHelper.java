@@ -362,6 +362,35 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    /** Captures one verified live progressive-completion frontier. */
+    public void assertProgressivePaletteCompletion(
+            AssertProgressivePaletteCompletionPuppetAction.Stage stage,
+            String artifactName
+    ) {
+        add(new AssertProgressivePaletteCompletionPuppetAction(stage, artifactName));
+    }
+
+    /** Captures one verified ordinary-document history/canvas milestone. */
+    public void assertOrdinaryDocumentHistory(
+            AssertOrdinaryDocumentHistoryPuppetAction.Stage stage,
+            String artifactName
+    ) {
+        add(new AssertOrdinaryDocumentHistoryPuppetAction(stage, artifactName));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Chooses a dynamic retained redo branch by its eventual exact document bytes. */
+    public void chooseOrdinaryDocumentHistoryBranch(String expectedDescendantText) {
+        add(new ChooseOrdinaryDocumentHistoryBranchPuppetAction(expectedDescendantText));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Uses the real workspace pointer router to pan and zoom the focused history canvas. */
+    public void exerciseOrdinaryDocumentHistoryCanvas(String artifactName) {
+        add(new ExerciseOrdinaryDocumentHistoryCanvasPuppetAction(artifactName));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     /** Validates and artifacts one natural temporal-numbering journey checkpoint. */
     public void assertTemporalTrajectoryMachine(
             AssertTemporalTrajectoryMachinePuppetAction.Stage stage,

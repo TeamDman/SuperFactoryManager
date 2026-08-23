@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMCanvasSpatialCoverageSnapshotTests {
     @Test
-    void realCanvasGlyphsUseSemanticMapWhileWhitespaceIsAnApprovedException() {
+    void semanticGlyphsUseTheMapWhileAnExplicitWhitespaceGlyphIsAnApprovedException() {
         SFMDrawCanvasModel model = new SFMDrawCanvasModel();
         model.replaceText("a b", ignored -> 1, 1);
         var layout = model.documentIndex(1, 1);

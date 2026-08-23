@@ -66,6 +66,9 @@ NAME "Changelog"
 -- Add hierarchical panel-opening actions and lifecycle-only Rust terminal server actions
 -- Retire the superseded managed-bundle review surface while preserving comment and review-session behavior
 -- Keep command-palette completion bounded to in-memory candidates and improve incomplete-argument guidance
+-- Make command-palette completion progress through reusable grammar boundaries, deliberate argument spaces, compatible parameter history, and named usage hints without regressing blank MRU ranking
+-- Add retained per-document undo and redo histories to writable Text Editor v3 and command-palette input, including exact Unicode selections and constrained ambiguous-redo choices
+-- Add a push-fed Document History canvas with paired action/state lanes, curved head-movement jumps, pan, zoom, transpose, inspection details, and a chronological transcript
 -- Persist successful command-palette commands as bounded MRU history with read-only history open and clear actions
 -- Allow command-palette history to be enabled or disabled persistently, with explicit clear remaining available
 -- Add bounded Java-local terminal scrollback with wheel, page, Home, End, and follow-output navigation
@@ -125,7 +128,8 @@ NAME "Changelog"
 -- Add a flat CC:Tweaked SFM turtle peripheral with disk/gun editing and composable contiguous label discovery
 -- Add CC:Tweaked cable-network peripherals, structured SFM item details, and turtle inventory support
 -- Fix draw canvas selection highlights covering unselected gaps between glyphs
--- Fix draw canvas spaces being stored as glyphs and blank-line Backspace/Delete deleting the wrong glyph
+-- Preserve explicitly typed and trailing spaces as addressable Text Editor v3 glyphs while keeping inferred canvas gaps synthetic
+-- Fix blank-line Backspace/Delete deleting the wrong glyph
 -- Add draw canvas keyboard shortcuts for zooming, panning, reset zoom, and fitting content
 -- Improve draw canvas insert/delete shifting and add Ctrl+Backspace/Ctrl+Delete word deletion
 -- Improve draw canvas Enter/edge-arrow navigation and raw input diagnostics

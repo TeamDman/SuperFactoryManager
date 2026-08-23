@@ -41,13 +41,14 @@ public final class SFMClientActionCommandTree {
     private final Map<ResourceLocation, ActionSearchMetadata> searchMetadata;
     private final List<String> paletteActionPrefixes;
     private final Map<String, ResourceLocation> paletteChoiceActions;
+    private final Map<String, String> paletteChoiceDisplayTexts;
     private final Supplier<List<String>> historySuggestions;
 
     SFMClientActionCommandTree(
             CommandDispatcher<SFMClientActionSource> dispatcher,
             Map<ResourceLocation, SFMClientAction<?>> actions
     ) {
-        this(dispatcher, actions, List.of(PALETTE_ACTION_PREFIX), Map.of(),
+        this(dispatcher, actions, List.of(PALETTE_ACTION_PREFIX), Map.of(), Map.of(),
                 SFMCommandHistoryService::suggestionsNewestFirst);
     }
 
@@ -56,7 +57,7 @@ public final class SFMClientActionCommandTree {
             Map<ResourceLocation, SFMClientAction<?>> actions,
             List<String> paletteActionPrefixes
     ) {
-        this(dispatcher, actions, paletteActionPrefixes, Map.of(),
+        this(dispatcher, actions, paletteActionPrefixes, Map.of(), Map.of(),
                 SFMCommandHistoryService::suggestionsNewestFirst);
     }
 
@@ -66,7 +67,7 @@ public final class SFMClientActionCommandTree {
             List<String> paletteActionPrefixes,
             Map<String, ResourceLocation> paletteChoiceActions
     ) {
-        this(dispatcher, actions, paletteActionPrefixes, paletteChoiceActions,
+        this(dispatcher, actions, paletteActionPrefixes, paletteChoiceActions, Map.of(),
                 SFMCommandHistoryService::suggestionsNewestFirst);
     }
 
@@ -77,10 +78,22 @@ public final class SFMClientActionCommandTree {
             Map<String, ResourceLocation> paletteChoiceActions,
             Supplier<List<String>> historySuggestions
     ) {
+        this(dispatcher, actions, paletteActionPrefixes, paletteChoiceActions, Map.of(), historySuggestions);
+    }
+
+    SFMClientActionCommandTree(
+            CommandDispatcher<SFMClientActionSource> dispatcher,
+            Map<ResourceLocation, SFMClientAction<?>> actions,
+            List<String> paletteActionPrefixes,
+            Map<String, ResourceLocation> paletteChoiceActions,
+            Map<String, String> paletteChoiceDisplayTexts,
+            Supplier<List<String>> historySuggestions
+    ) {
         this.dispatcher = dispatcher;
         this.actions = Map.copyOf(actions);
         this.paletteActionPrefixes = List.copyOf(paletteActionPrefixes);
         this.paletteChoiceActions = Collections.unmodifiableMap(new LinkedHashMap<>(paletteChoiceActions));
+        this.paletteChoiceDisplayTexts = Collections.unmodifiableMap(new LinkedHashMap<>(paletteChoiceDisplayTexts));
         this.historySuggestions = historySuggestions;
         this.searchMetadata = this.actions.entrySet().stream().collect(java.util.stream.Collectors.toUnmodifiableMap(
                 Map.Entry::getKey,
@@ -105,6 +118,23 @@ public final class SFMClientActionCommandTree {
     ) {
         return new SFMClientActionCommandTree(
                 dispatcher, actions, List.of(paletteActionPrefix), paletteChoiceActions);
+    }
+
+    public static SFMClientActionCommandTree isolatedPaletteSurface(
+            CommandDispatcher<SFMClientActionSource> dispatcher,
+            Map<ResourceLocation, SFMClientAction<?>> actions,
+            String paletteActionPrefix,
+            Map<String, ResourceLocation> paletteChoiceActions,
+            Map<String, String> paletteChoiceDisplayTexts
+    ) {
+        return new SFMClientActionCommandTree(
+                dispatcher,
+                actions,
+                List.of(paletteActionPrefix),
+                paletteChoiceActions,
+                paletteChoiceDisplayTexts,
+                SFMCommandHistoryService::suggestionsNewestFirst
+        );
     }
 
     CommandDispatcher<SFMClientActionSource> dispatcher() {
@@ -234,6 +264,7 @@ public final class SFMClientActionCommandTree {
             return CompletableFuture.completedFuture(ranked.stream()
                     .map(choice -> SFMPaletteCandidate.activatable(
                             choice.suggestion(),
+                            paletteChoiceDisplayTexts.getOrDefault(choice.command(), choice.command()),
                             SFMPaletteCandidate.Kind.ACTION_BOUNDARY,
                             SFMPaletteCandidate.Origin.CHOICE_SURFACE,
                             paletteChoiceActions.get(choice.command()),

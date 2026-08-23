@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.client.history.SFMDocumentHistoryHost;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
@@ -62,6 +63,40 @@ final class PanelActionSupport {
             palette.onClose();
         }
         return result;
+    }
+
+    /**
+     * Keep an active palette open when that exact palette is the mutated
+     * document. A constrained child palette still closes back to its parent,
+     * and palette actions targeting a workspace document retain the ordinary
+     * close-after-execution behavior.
+     */
+    static int closePaletteAfterUnlessTarget(int result, Object target, String targetSessionId) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (result > 0 && minecraft != null
+                && shouldKeepActivePaletteOpen(minecraft.screen, target, targetSessionId)) return result;
+        return closePaletteAfter(result);
+    }
+
+    static boolean shouldKeepActivePaletteOpen(
+            Object activeScreen,
+            Object target,
+            String targetSessionId
+    ) {
+        java.util.Optional<String> activePaletteSession = activeScreen instanceof SFMCommandPaletteScreen palette
+                && palette.documentHistoryAvailable()
+                ? java.util.Optional.of(palette.documentHistorySessionId())
+                : java.util.Optional.empty();
+        return shouldKeepPaletteOpen(activeScreen == target, activePaletteSession, targetSessionId);
+    }
+
+    static boolean shouldKeepPaletteOpen(
+            boolean activePaletteIsDirectTarget,
+            java.util.Optional<String> activePaletteSessionId,
+            String targetSessionId
+    ) {
+        return activePaletteIsDirectTarget
+               || activePaletteSessionId.filter(targetSessionId::equals).isPresent();
     }
 
     record CapturedPanel(SFMScreenMultiplexer workspace, SFMWorkspacePanelId panelId) {

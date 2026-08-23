@@ -135,13 +135,24 @@ public final class SFMCanvasSpatialCoverageSnapshot {
                 "sfm:canvas-layout",
                 List.of()
         );
-        SemanticResult semantic = semanticLookup.atUtf16(utf16Offset).orElseGet(() -> new SemanticResult(
-                new SFMSpatialSemanticContract.Classification(
-                        SFMSpatialSemanticContract.ClassificationStatus.UNCLASSIFIED,
-                        "semantic-map-missing-region"),
-                List.of(), List.of(), List.of(new SFMSpatialSemanticContract.ProviderEvidence(
-                "sfm:java-interaction-map", 100, "unsupported", "No semantic region covered the glyph")),
-                "sfm:java-interaction-map", 0, false, false));
+        SemanticResult semantic = semanticLookup.atUtf16(utf16Offset).orElseGet(() -> {
+            if (glyph.text().codePoints().allMatch(Character::isWhitespace)) {
+                return new SemanticResult(
+                        new SFMSpatialSemanticContract.Classification(
+                                SFMSpatialSemanticContract.ClassificationStatus.EXPLICIT_NO_ACTION,
+                                "whitespace"),
+                        List.of(), List.of(), List.of(new SFMSpatialSemanticContract.ProviderEvidence(
+                        "sfm:canvas-layout", 0, "explicit-no-action", null)),
+                        "sfm:canvas-layout", 0, false, false);
+            }
+            return new SemanticResult(
+                    new SFMSpatialSemanticContract.Classification(
+                            SFMSpatialSemanticContract.ClassificationStatus.UNCLASSIFIED,
+                            "semantic-map-missing-region"),
+                    List.of(), List.of(), List.of(new SFMSpatialSemanticContract.ProviderEvidence(
+                    "sfm:java-interaction-map", 100, "unsupported", "No semantic region covered the glyph")),
+                    "sfm:java-interaction-map", 0, false, false);
+        });
         return observation(
                 domainId, x, y, region, semantic,
                 workspaceGeneration, documentGeneration, layoutGeneration

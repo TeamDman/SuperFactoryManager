@@ -46,7 +46,11 @@ public final class SFMDynamicKeyBindingHandler {
     @MCVersionDependentBehaviour
     public static void onScreenKeyPressed(ScreenEvent.KeyPressed.Pre event) {
         markScreenEvent(event.getKeyCode(), event.getScanCode(), false, event.getModifiers());
-        if (acceptScreenPress(event.getScreen(), event.getKeyCode(), event.getModifiers())) {
+        if (acceptScreenPress(
+                event.getScreen(),
+                event.getKeyCode(),
+                event.getScanCode(),
+                event.getModifiers())) {
             event.setCanceled(true);
         }
     }
@@ -59,9 +63,10 @@ public final class SFMDynamicKeyBindingHandler {
     public static boolean onPreVanillaReservedKeyPressed(
             @Nullable Screen screen,
             int keyCode,
+            int scanCode,
             int modifiers
     ) {
-        return acceptScreenPress(screen, keyCode, modifiers);
+        return acceptScreenPress(screen, keyCode, scanCode, modifiers);
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT, receiveCanceled = true)
@@ -74,7 +79,7 @@ public final class SFMDynamicKeyBindingHandler {
                 event.getScreen(),
                 SFMDocumentHistoryContract.RawEventKind.KEY_UP,
                 "forge-screen-key",
-                keyCode(event.getKeyCode(), event.getScanCode()),
+                journalKeyCode(event.getKeyCode(), event.getScanCode()),
                 Optional.empty(),
                 event.getModifiers(),
                 consumed,
@@ -145,6 +150,18 @@ public final class SFMDynamicKeyBindingHandler {
         if (event.phase != TickEvent.Phase.END) return;
         long window = Minecraft.getInstance().getWindow().getWindow();
         boolean focused = GLFW.glfwGetWindowAttrib(window, GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
+        if (windowFocused != focused) {
+            recordDocumentInput(
+                    Minecraft.getInstance().screen,
+                    SFMDocumentHistoryContract.RawEventKind.FOCUS,
+                    "glfw-window-focus",
+                    focused ? "gain" : "loss",
+                    Optional.empty(),
+                    0,
+                    false,
+                    true
+            );
+        }
         if (windowFocused && !focused) resetForFocusLoss();
         windowFocused = focused;
         SFMKeyBindingService.INSTANCE.advanceTime(++clientTick);
@@ -169,6 +186,7 @@ public final class SFMDynamicKeyBindingHandler {
     private static boolean acceptScreenPress(
             @Nullable Screen screen,
             int keyCode,
+            int scanCode,
             int modifierMask
     ) {
         synchronizeScreen(screen);
@@ -178,7 +196,7 @@ public final class SFMDynamicKeyBindingHandler {
                     screen,
                     SFMDocumentHistoryContract.RawEventKind.KEY_REPEAT,
                     "forge-screen-key",
-                    keyCode(keyCode, 0),
+                    journalKeyCode(keyCode, scanCode),
                     Optional.empty(),
                     modifierMask,
                     true,
@@ -191,7 +209,7 @@ public final class SFMDynamicKeyBindingHandler {
                     screen,
                     SFMDocumentHistoryContract.RawEventKind.KEY_REPEAT,
                     "forge-screen-key",
-                    keyCode(keyCode, 0),
+                    journalKeyCode(keyCode, scanCode),
                     Optional.empty(),
                     modifierMask,
                     false,
@@ -211,7 +229,7 @@ public final class SFMDynamicKeyBindingHandler {
                             screen,
                             SFMDocumentHistoryContract.RawEventKind.KEY_DOWN,
                             "forge-screen-key",
-                            keyCode(keyCode, 0),
+                            journalKeyCode(keyCode, scanCode),
                             Optional.empty(),
                             modifierMask,
                             result.consumed(),
@@ -225,7 +243,7 @@ public final class SFMDynamicKeyBindingHandler {
                     screen,
                     SFMDocumentHistoryContract.RawEventKind.KEY_DOWN,
                     "forge-screen-key",
-                    keyCode(keyCode, 0),
+                    journalKeyCode(keyCode, scanCode),
                     Optional.empty(),
                     modifierMask,
                     false,
@@ -290,7 +308,7 @@ public final class SFMDynamicKeyBindingHandler {
         ));
     }
 
-    private static String keyCode(int keyCode, int scanCode) {
+    static String journalKeyCode(int keyCode, int scanCode) {
         return "key=" + keyCode + ",scan=" + scanCode;
     }
 

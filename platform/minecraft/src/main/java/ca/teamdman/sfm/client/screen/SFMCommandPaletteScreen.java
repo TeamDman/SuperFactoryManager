@@ -154,6 +154,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private final SFMVerticalListViewport suggestionViewport = new SFMVerticalListViewport();
     private String error = "";
     private long suggestionRevision;
+    private long appliedSuggestionRevision = -1L;
+    private String appliedSuggestionCommand = "";
     private long bindingCycleTicks;
     private final CloseLifecycle closeLifecycle = new CloseLifecycle();
     private boolean insertedRequiredArgumentSeparator;
@@ -162,6 +164,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             "sfm:document/command-palette/session-" + NEXT_HISTORY_SESSION.incrementAndGet();
     private @Nullable SFMDocumentHistoryHostController historyController;
     private @Nullable SFMDocumentHistoryRuntime.Registration historyRegistration;
+    private boolean historyInputFocused;
 
     @FunctionalInterface
     interface PaletteActionExecutor {
@@ -536,6 +539,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         } else {
             checkoutInputHistoryState(Objects.requireNonNull(restoredHistoryState));
         }
+        updateDocumentHistoryFocus(true);
         refreshSuggestions(this.input.getValue());
     }
 
@@ -570,6 +574,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                     historyRegistration = null;
                 }
                 if (historyController != null) {
+                    updateDocumentHistoryFocus(false);
                     historyController.close();
                     historyController = null;
                 }
@@ -584,6 +589,23 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 }
             }
         });
+    }
+
+    private void updateDocumentHistoryFocus(boolean focused) {
+        if (historyInputFocused == focused) return;
+        if (historyController != null) {
+            historyController.recordRawInput(
+                    SFMKeyBindingService.INSTANCE.currentTick(),
+                    SFMDocumentHistoryContract.RawEventKind.FOCUS,
+                    "command-palette-focus",
+                    focused ? "gain" : "loss",
+                    Optional.empty(),
+                    0,
+                    false,
+                    true
+            );
+        }
+        historyInputFocused = focused;
     }
 
     @Override
@@ -1327,6 +1349,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.error = "";
         this.input.setSuggestion(command.isEmpty() ? INPUT_PLACEHOLDER.getString() : "");
         long revision = ++this.suggestionRevision;
+        // A previous query's candidates must never remain interactive while a
+        // new asynchronous Brigadier/fuzzy result is in flight.
+        this.suggestions = List.of();
+        suggestionViewport.configure(0, visibleSuggestionCount());
+        suggestionViewport.select(SFMVerticalListViewport.NO_SELECTION);
         var tree = commandTree;
         ParseResults<SFMClientActionSource> parsed = tree.parse(
                 command,
@@ -1336,6 +1363,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         tree.getPaletteCandidates(command, parsed).thenAccept(result -> Minecraft.getInstance().execute(() -> {
             if (ACTIVE != this || revision != this.suggestionRevision) return;
             this.suggestions = result;
+            this.appliedSuggestionRevision = revision;
+            this.appliedSuggestionCommand = command;
             suggestionViewport.configure(this.suggestions.size(), visibleSuggestionCount());
             suggestionViewport.select(this.suggestions.isEmpty()
                     ? SFMVerticalListViewport.NO_SELECTION
@@ -1724,6 +1753,20 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             ));
         }
         return List.copyOf(result);
+    }
+
+    /** True only after the latest input's asynchronous candidate set was applied. */
+    public boolean suggestionsMatchCurrentInputForAutomation() {
+        return appliedSuggestionRevision == suggestionRevision
+               && appliedSuggestionCommand.equals(commandInput());
+    }
+
+    public String appliedSuggestionCommandForAutomation() {
+        return appliedSuggestionCommand;
+    }
+
+    public long appliedSuggestionRevisionForAutomation() {
+        return appliedSuggestionRevision;
     }
 
     /** Exact metadata for the latest Tab/mouse completion application. */

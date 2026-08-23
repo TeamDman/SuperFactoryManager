@@ -81,9 +81,31 @@ public record SFMPaletteCandidate(
             int historyRecency,
             @Nullable String historyFamily
     ) {
-        return new SFMPaletteCandidate(
+        return activatable(
                 suggestion,
                 suggestion.getText(),
+                kind,
+                origin,
+                actionId,
+                completionFrontier,
+                historyRecency,
+                historyFamily
+        );
+    }
+
+    public static SFMPaletteCandidate activatable(
+            Suggestion suggestion,
+            String displayText,
+            Kind kind,
+            Origin origin,
+            @Nullable ResourceLocation actionId,
+            String completionFrontier,
+            int historyRecency,
+            @Nullable String historyFamily
+    ) {
+        return new SFMPaletteCandidate(
+                suggestion,
+                displayText,
                 kind,
                 origin,
                 actionId,

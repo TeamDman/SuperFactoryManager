@@ -21,6 +21,7 @@ import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentPosition;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSelection;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
@@ -152,6 +153,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private boolean draggingGrammarInsert;
     private Optional<Component> saveDiagnostic = Optional.empty();
     private Optional<SFMTextDocumentRange> openTargetRange = Optional.empty();
+    private List<SFMTextDocumentSelection> exactDocumentSelections = List.of();
+    private long exactDocumentSelectionsContentRevision = -1L;
+    private long exactDocumentSelectionsCursorFingerprint;
+    private boolean exactDocumentSelectionsPublished;
     private Optional<SFMSpatialSemanticContract.FramingObservation> navigationFramingObservation = Optional.empty();
     private long javaInteractionRegionRevision = -1L;
     private SFMJavaCanvasInteractionRegions.Index javaInteractionRegionIndex;
@@ -295,6 +300,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             renderCursorTrail(poseStack);
         }
         renderOpenTargetRange(poseStack);
+        renderExactDocumentSelections(poseStack);
         renderGlyphs(poseStack, visibleGlyphs);
         renderSymbolHoverUnderline(poseStack, visibleGlyphs);
         if (!hideSelection) {
@@ -1028,6 +1034,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                     cursor.active()
             ));
         }
+        List<ca.teamdman.sfm.client.context.SFMContextSelectionProjection> selections =
+                exactDocumentSelections().orElse(List.of()).stream()
+                        .map(selection -> new ca.teamdman.sfm.client.context.SFMContextSelectionProjection(
+                                selection.id(),
+                                List.of(selection.orderedRange()),
+                                selection.primary()
+                        ))
+                        .toList();
         SFMContextDocumentProjection captured = SFMContextDocumentProjection.capture(
                 editorId,
                 baseline,
@@ -1035,7 +1049,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 dirty,
                 readOnly,
                 cursors,
-                List.of()
+                selections
         );
         performanceTracker.contextCapture(System.nanoTime() - captureStartedNanos);
         return captured;
@@ -1362,6 +1376,42 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
     }
 
+    private void renderExactDocumentSelections(PoseStack poseStack) {
+        Optional<List<SFMTextDocumentSelection>> published = exactDocumentSelections();
+        if (published.isEmpty()) return;
+        String text = getCurrentText();
+        for (SFMTextDocumentSelection selection : published.orElseThrow()) {
+            SFMTextDocumentRange range = selection.orderedRange();
+            if (range.start().equals(range.end())) continue;
+            renderTextRangeHighlight(poseStack, text, range, 0x8042647A);
+        }
+    }
+
+    private void renderTextRangeHighlight(
+            PoseStack poseStack,
+            String text,
+            SFMTextDocumentRange range,
+            int colour
+    ) {
+        for (int line = range.start().line(); line <= range.end().line(); line++) {
+            String lineText = lineText(text, line);
+            int lineCodePoints = lineText.codePointCount(0, lineText.length());
+            int startColumn = line == range.start().line() ? range.start().column() : 0;
+            int endColumn = line == range.end().line() ? range.end().column() : lineCodePoints;
+            if (startColumn >= endColumn) continue;
+            int startIndex = lineText.offsetByCodePoints(0, Math.min(startColumn, lineCodePoints));
+            int endIndex = lineText.offsetByCodePoints(0, Math.min(endColumn, lineCodePoints));
+            double canvasX = font.width(lineText.substring(0, startIndex));
+            double canvasY = (double) line * font.lineHeight;
+            double canvasWidth = Math.max(1, font.width(lineText.substring(startIndex, endIndex)));
+            int left = (int) Math.floor(canvasToScreenX(canvasX));
+            int top = (int) Math.floor(canvasToScreenY(canvasY));
+            int right = (int) Math.ceil(canvasToScreenX(canvasX + canvasWidth));
+            int bottom = (int) Math.ceil(canvasToScreenY(canvasY + font.lineHeight));
+            GuiComponent.fill(poseStack, left, top, right, bottom, colour);
+        }
+    }
+
     private CanvasTextPoint canvasPoint(String text, SFMTextDocumentPosition position) {
         String line = lineText(text, position.line());
         int codePoints = line.codePointCount(0, line.length());
@@ -1497,6 +1547,24 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     ) {
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(selectionRanges, "selectionRanges");
+        ArrayList<SFMTextDocumentSelection> selections = new ArrayList<>();
+        for (int index = 0; index < selectionRanges.size(); index++) {
+            SFMTextDocumentRange range = Objects.requireNonNull(
+                    selectionRanges.get(index), "selection range");
+            range.validateAgainst(text);
+            selections.add(new SFMTextDocumentSelection(
+                    "selection-" + index, range.start(), range.end(), index == 0));
+        }
+        checkoutDocumentSelections(text, selections);
+    }
+
+    /** Exact directional revision checkout used by the generic history host. */
+    public void checkoutDocumentSelections(
+            String text,
+            List<SFMTextDocumentSelection> selections
+    ) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(selections, "selections");
         loadInitialContent();
         boolean changed = !getCurrentText().equals(text);
         if (changed) {
@@ -1504,10 +1572,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             openTargetRange = Optional.empty();
             documentChanged();
         }
+        ArrayList<SFMTextDocumentSelection> validated = new ArrayList<>();
         ArrayList<SFMDrawCanvasModel.CursorPosition> cursors = new ArrayList<>();
-        for (SFMTextDocumentRange range : selectionRanges) {
-            Objects.requireNonNull(range, "selection range").validateAgainst(text);
-            CanvasTextPoint point = canvasPoint(text, range.start());
+        for (SFMTextDocumentSelection selection : selections) {
+            Objects.requireNonNull(selection, "selection").validateAgainst(text);
+            validated.add(selection);
+            CanvasTextPoint point = canvasPoint(text, selection.active());
             cursors.add(new SFMDrawCanvasModel.CursorPosition(point.x(), point.y()));
         }
         if (cursors.isEmpty()) {
@@ -1516,7 +1586,21 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             cursors.add(new SFMDrawCanvasModel.CursorPosition(point.x(), point.y()));
         }
         model().replaceCursors(cursors);
+        exactDocumentSelections = List.copyOf(validated);
+        exactDocumentSelectionsContentRevision = model().contentRevision();
+        exactDocumentSelectionsCursorFingerprint = cursorFingerprint();
+        exactDocumentSelectionsPublished = true;
         rememberCursorPosition();
+    }
+
+    /** Exact selection witness remains valid until content or cursors change. */
+    public Optional<List<SFMTextDocumentSelection>> exactDocumentSelections() {
+        if (!exactDocumentSelectionsPublished
+                || exactDocumentSelectionsContentRevision != model().contentRevision()
+                || exactDocumentSelectionsCursorFingerprint != cursorFingerprint()) {
+            return Optional.empty();
+        }
+        return Optional.of(exactDocumentSelections);
     }
 
     public SFMDrawCanvasPerformanceTracker.Snapshot performanceEvidence() {

@@ -36,6 +36,7 @@ public final class KeyboardHandlerMixin {
         if (SFMDynamicKeyBindingHandler.onPreVanillaReservedKeyPressed(
                 minecraft.screen,
                 keyCode,
+                scanCode,
                 modifiers)) {
             callback.cancel();
         }

@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.history.canvas.SFMHistoryCanvasLayout;
 public record SFMDocumentHistoryViewport(double panX, double panY, double zoom) {
     public static final double MIN_ZOOM = 0.25D;
     public static final double MAX_ZOOM = 4.0D;
+    public static final double MIN_READABLE_FRAME_ZOOM = 0.70D;
 
     public SFMDocumentHistoryViewport {
         requireFinite(panX, "panX");
@@ -38,6 +39,57 @@ public record SFMDocumentHistoryViewport(double panX, double panY, double zoom) 
         double renderedHeight = content.height() * zoom;
         double panX = (width - renderedWidth) / 2.0D - content.x() * zoom;
         double panY = (height - renderedHeight) / 2.0D - content.y() * zoom;
+        return new SFMDocumentHistoryViewport(panX, panY, zoom);
+    }
+
+    /**
+     * Fits the paired lanes horizontally while centering one relevant subject
+     * vertically. This keeps labels legible for a long append-only history
+     * instead of shrinking the complete timeline to the minimum zoom.
+     */
+    public static SFMDocumentHistoryViewport frameWidthAround(
+            SFMHistoryCanvasLayout.Rect content,
+            SFMHistoryCanvasLayout.Rect focus,
+            int width,
+            int height,
+            int padding
+    ) {
+        if (width <= 0 || height <= 0 || content.isEmpty()) return identity();
+        int safePadding = Math.max(0, padding);
+        double availableWidth = Math.max(1.0D, width - safePadding * 2.0D);
+        double zoom = clamp(Math.min(1.0D, availableWidth / Math.max(1.0D, content.width())));
+        double renderedWidth = content.width() * zoom;
+        double panX = (width - renderedWidth) / 2.0D - content.x() * zoom;
+        SFMHistoryCanvasLayout.Rect anchor = focus.isEmpty() ? content : focus;
+        double anchorY = anchor.y() + anchor.height() / 2.0D;
+        double panY = height / 2.0D - anchorY * zoom;
+        return new SFMDocumentHistoryViewport(panX, panY, zoom);
+    }
+
+    /**
+     * Fits the paired lanes vertically while centering one relevant subject
+     * horizontally. This is the transposed counterpart of
+     * {@link #frameWidthAround(SFMHistoryCanvasLayout.Rect, SFMHistoryCanvasLayout.Rect, int, int, int)}.
+     */
+    public static SFMDocumentHistoryViewport frameHeightAround(
+            SFMHistoryCanvasLayout.Rect content,
+            SFMHistoryCanvasLayout.Rect focus,
+            int width,
+            int height,
+            int padding
+    ) {
+        if (width <= 0 || height <= 0 || content.isEmpty()) return identity();
+        int safePadding = Math.max(0, padding);
+        double availableHeight = Math.max(1.0D, height - safePadding * 2.0D);
+        double zoom = clamp(Math.max(
+                MIN_READABLE_FRAME_ZOOM,
+                Math.min(1.0D, availableHeight / Math.max(1.0D, content.height()))
+        ));
+        double renderedHeight = content.height() * zoom;
+        double panY = (height - renderedHeight) / 2.0D - content.y() * zoom;
+        SFMHistoryCanvasLayout.Rect anchor = focus.isEmpty() ? content : focus;
+        double anchorX = anchor.x() + anchor.width() / 2.0D;
+        double panX = width / 2.0D - anchorX * zoom;
         return new SFMDocumentHistoryViewport(panX, panY, zoom);
     }
 

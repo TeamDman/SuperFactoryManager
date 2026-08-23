@@ -74,15 +74,16 @@ public class SFMDrawCanvasModelTests {
     }
 
     @Test
-    public void typingSpaceAdvancesCursorWithoutCreatingGlyph() {
+    public void typingSpaceCreatesAnAddressableGlyph() {
         SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
 
         canvas.typeText("a b", ignored -> 1, 9);
 
-        assertEquals(2, canvas.glyphs().size());
+        assertEquals(3, canvas.glyphs().size());
         assertEquals("a", canvas.glyphs().get(0).text());
-        assertEquals("b", canvas.glyphs().get(1).text());
-        assertEquals(2, canvas.glyphs().get(1).x());
+        assertEquals(" ", canvas.glyphs().get(1).text());
+        assertEquals("b", canvas.glyphs().get(2).text());
+        assertEquals(2, canvas.glyphs().get(2).x());
         assertEquals("a b", SFMDrawCanvasSyntaxHighlightingHelper.projectCanvasDocument(canvas.glyphs(), 1, 9).text());
     }
 
@@ -311,6 +312,41 @@ public class SFMDrawCanvasModelTests {
         assertEquals("""
                 abc|def
                 """, toFixture(canvas));
+    }
+
+    @Test
+    public void ctrlBackspaceConsumesTrailingExplicitWhitespaceAndThePreviousWord() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("hello  ", ignored -> 1, 1);
+
+        canvas.deleteLeftWord(1);
+
+        assertEquals("", canvas.projectedText(1, 1));
+        assertEquals(0.0D, canvas.cursorCanvasX());
+    }
+
+    @Test
+    public void ctrlDeleteConsumesLeadingExplicitWhitespaceAndTheNextWord() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("  hello", ignored -> 1, 1);
+        canvas.setCursor(0, 0);
+
+        canvas.deleteRightWord(1);
+
+        assertEquals("", canvas.projectedText(1, 1));
+        assertEquals(0.0D, canvas.cursorCanvasX());
+    }
+
+    @Test
+    public void ctrlDeleteAcrossInterstitialExplicitWhitespaceConsumesTheFollowingWord() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("hello  world", ignored -> 1, 1);
+        canvas.setCursor(5, 0);
+
+        canvas.deleteRightWord(1);
+
+        assertEquals("hello", canvas.projectedText(1, 1));
+        assertEquals(5.0D, canvas.cursorCanvasX());
     }
 
     @Test
@@ -786,6 +822,38 @@ public class SFMDrawCanvasModelTests {
         assertEquals("""
                 abc,.;|def
                 """, toFixture(canvas));
+    }
+
+    @Test
+    public void controlLeftSkipsTrailingExplicitWhitespaceToThePreviousWordStart() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("hello  ", ignored -> 1, 1);
+
+        canvas.moveCursorLeftWord(1, 1);
+
+        assertEquals(0.0D, canvas.cursorCanvasX());
+    }
+
+    @Test
+    public void controlLeftFromTheNextWordStartSkipsInterstitialWhitespace() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("hello  world", ignored -> 1, 1);
+        canvas.setCursor(7, 0);
+
+        canvas.moveCursorLeftWord(1, 1);
+
+        assertEquals(0.0D, canvas.cursorCanvasX());
+    }
+
+    @Test
+    public void controlRightSkipsLeadingExplicitWhitespaceToTheNextWordEnd() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("  hello", ignored -> 1, 1);
+        canvas.setCursor(0, 0);
+
+        canvas.moveCursorRightWord(1, 1);
+
+        assertEquals(7.0D, canvas.cursorCanvasX());
     }
 
     @Test
