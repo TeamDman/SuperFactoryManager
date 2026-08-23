@@ -106,6 +106,8 @@ handoff.
 | ICLI-16 | A non-exact request may explicitly open a generic explorer when none matches, while a missing exact explorer id must fail without replacement. Explorer locations are panel-local/session-local rather than one persisted workspace. | I-4 uses `--if-no-match fail|open-new`, rejects exact-id plus open-new, and introduces no workspace persistence schema. | — |
 | ICLI-17 | Native filesystem paths are strict UTF-8 typed content paths, not Minecraft resource locations; explorer roots may be heterogeneous and lazily resolved. | The shared selection/explorer X-1 through X-7 foundation owns path/expression/relation semantics; I-4 reuses its generated DTOs and game-side authority checks. | — |
 | ICLI-18 | Temporal episodes, combined observations, shared terminals, and optional coding agents should be controllable from ordinary shells and the in-game terminal without inventing another game-discovery path. | Future direct `episode`, `logs`, and `agent` command families reuse this plan's descriptor/authentication/selection/Vox/client-thread contracts and the domain DTOs owned by their linked plans. Teamy Terminal remains one caller. | — |
+| ICLI-19 | A future cloud-like console should aggregate several managers and answer questions such as which manager is lagging and which resources moved recently. | I-6 defines server-authoritative manager discovery plus bounded performance/recent-transfer observations; panel, CLI, and agent views consume the same typed results. | — |
+| ICLI-20 | Saving from an external editor should be able to update a manager program, but remote operation beyond looking at or standing near a manager needs an explicit permission model. | I-7 adds long-form manager-program commands, optimistic revision checks, capability/permission evidence, and server-thread mutation. Local client authentication identifies the game process but never substitutes for player/server authorization. | — |
 
 ## Guidance traceability
 
@@ -121,6 +123,8 @@ handoff.
 | ICLI-13 | I-1, I-2, I-3, I-3a | Exact CLI grammar/round trip, Minecraft-thread assertion, registered action execution result, size-display panel state, and screenshot/puppet witness |
 | ICLI-14, ICLI-15, ICLI-16, ICLI-17 | Selection/explorer X-1 through X-7; I-4/I-5 | Direct help/`ToArgs`, selector/path round trips, exact/focused/all/empty-target tests, heterogeneous lazy explorer artifacts, and absence of built-in aliases/global persistence |
 | ICLI-18 | Snapshot/episode Phase 8/9; future post-I-5 CLI slices | Direct long-form help, typed round trips, exact-game selection, bounded capability context, and invocation from both an external shell and Teamy Terminal with no second descriptor registry |
+| ICLI-19 | I-6 | Multi-manager query fixtures plus a live overview whose lag/recent-transfer claims link to bounded observations and exact manager identities |
+| ICLI-20 | I-7 | External-editor save proof, stale-revision rejection, near/look/remote permission matrix, and server-authoritative audit records |
 
 ## Intent audit evidence
 
@@ -716,6 +720,48 @@ evidence shows only the intended game and explorer(s) changing; stale, wrong,
 ambiguous, and partially invalid target sets produce no mutation. The shared
 control foundation can accept future typed manager/inventory operations without
 redesigning discovery or dispatch.
+
+### [ ] I-6 Add typed multi-manager discovery and observation queries
+
+**Work:** Add direct long-form commands such as `sfm manager list` and bounded
+query operations for performance/lag evidence and recent resource movements.
+Every manager has a stable world/dimension/position identity plus current
+server revision and authorization result. Responses are structured and
+pageable; a future cloud-console panel and agents consume those results rather
+than scraping screen text or logs. Observation timestamps, sampling windows,
+drop counts, and confidence are explicit. This task does not mutate managers.
+
+**Validation:** Multi-world/multi-manager, unloaded chunks, unauthorized and
+stale targets, paging, high-volume transfer truncation, observation gaps,
+multi-instance selection, client-thread request handoff, and server-thread
+query ownership. A live view identifies an intentionally slow fixture manager
+and recent transfers without claiming complete history when samples were
+dropped.
+
+**Completion criteria:** Shell, terminal, panel, and future agent consumers can
+ask the same typed questions about exact managers, and every performance or
+movement claim names its evidence window and authority.
+
+### [ ] I-7 Add revision-safe manager-program reads and writes
+
+**Work:** Add explicit commands such as `sfm manager program show <selector>`
+and `sfm manager program set <selector> --from <path-or-stdin>
+--expected-revision <revision>`. Define selectors, maximum sizes, encoding,
+parse/validation diagnostics, dry-run versus apply, atomicity for set-valued
+targets, and audit observations. Integrate editor Save through the same typed
+operation. Freeze a server-owned permission matrix for same-player/same-world,
+looked-at, proximity, ownership/team/operator, unloaded, and remote cases;
+capability discovery explains availability without granting it.
+
+**Validation:** Exact and set-valued manager targets, file/stdin Unicode,
+parse failure, no-op, stale revision, concurrent editor, partial preflight,
+disconnect, permission denial/escalation boundaries, server-thread assertion,
+and one VS-Code-style save journey. A failed or unauthorized write changes no
+manager and emits no success observation.
+
+**Completion criteria:** A user can deliberately save an externally edited
+program to an exact authorized manager with conflict protection, while local
+Vox/process credentials alone cannot bypass Minecraft/server permissions.
 
 ## Next recommended vertical slices
 

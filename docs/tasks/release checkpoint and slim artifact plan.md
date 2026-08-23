@@ -1802,6 +1802,17 @@ The user-testing fixes above are prerequisites for calling the Rust terminal or 
 
 ### Phase 5.5 — AST-aware multi-version code review [ ]
 
+**Sequencing reconciliation — 2026-08-23:** The immediate predecessor is the
+RCS-0 through RCS-8 selector/evaluation/migration, portable-review-document,
+query/resume, and completion slice plus its required real single-lane RCS-S2
+domain and RCS-S1 end-to-end proof in
+`global comment selection and review sessions plan.md`, followed by the CLI-AST
+review-surface schema. That path
+connects the already-completed explorer/editor/spatial/comment foundations to
+this phase. The puppet-control/rich-argument plan remains useful testing and
+developer UX work, but it is not a prerequisite for AST-aware review and must
+not displace this sequence merely because it was discussed most recently.
+
 **Work:** Build the code-review slice that turns each supported lane's
 `previous_release..HEAD` change set into inspectable review units and ordinary
 comment/session projections. Start with one canonical lane, then compare the
@@ -1853,7 +1864,8 @@ can proceed.
 AST-aware review surface for all supported release lanes, drill from a changed
 operation to its definition/dependencies/usages, understand every accepted
 morphism or unresolved boundary, and persist approval through the existing
-comment/session system. The same state is reproducible from the release
+comment/session system in an explicit repository-tracked
+`*.sfm-review.json` document. The same state is reproducible from the release
 baseline and candidate commit without an IDE plugin, and no release-tag gate
 can be marked complete without the recorded human code-review approval.
 
@@ -1900,7 +1912,8 @@ This plan is complete only when:
 8. Every supported lane has an AST-aware `previous_release..HEAD` code-review
    report with deduplicated review units, dependency/import closure, explicit
    equivalence or morphism evidence, unresolved-boundary diagnostics, and
-   recorded maintainer approval through the comment/session system.
+   recorded maintainer approval through a canonical, resumable,
+   repository-tracked review document whose completion witness is current.
 9. The prospective release JAR has passed the Prism harness experiential
    review and the maintainer has visually approved the user-facing behavior and
    the inspection artifacts.

@@ -1494,6 +1494,39 @@ sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
 registry, and no provider can make the command palette needed for recovery
 unavailable.
 
+### [ ] CP-1a Freeze intent, provider, policy, continuation, and authority semantics
+
+**Work:** Make the first generic requests concrete: `edit document`, `open
+manager`, and `present command choices`. A request carries the addressed
+subject, caller/game/player context, required capabilities, authority token or
+server-side authorization evidence where applicable, and an optional
+continuation/reopen recipe. Providers advertise stable ids, supported request
+shapes, availability reasons, and presentation capabilities. Resolution
+supports explicit provider, persisted preferred provider, and ask-each-time;
+the chooser uses the built-in palette bootstrap even when contributed palette
+providers are themselves candidates.
+
+Keep provider choice separate from launch policy. For a manager, `resume last
+valid manager session` versus `open main screen` selects a continuation policy,
+then a capable provider presents the authorized result. A stale continuation
+falls back visibly according to policy. A third-party Vim-like editor may
+answer `edit document`, but cannot broaden filesystem access, manager reach,
+server permission, or mutable-document capability supplied by the request.
+Built-in providers remain a safe recovery path and provider unload/failure
+cannot strand persisted preferences.
+
+**Validation:** TextEditorV3 plus a fixture provider, manager main/resume with
+stale-state fallback, built-in and fixture palette providers, explicit versus
+preferred versus ask, provider unload/failure, authority narrowing, denied
+manager access, read-only document preservation, nested chooser recursion, and
+stable continuation serialization. No production Vim editor is required for
+the proof.
+
+**Completion criteria:** The same provider-resolution contract selects text
+editors, manager presentations, and command-choice presentations while keeping
+what may be done in the authoritative request rather than trusting the chosen
+screen.
+
 ### [ ] CP-2 Add bounded action metadata and preview contributions
 
 **Work:** Add localized aliases/search terms and a separate preview-contributor
@@ -1514,6 +1547,29 @@ sfm-propagate-changes.exe puppet run title_screen_action_preview --branch 1.19.2
 **Completion criteria:** The selected palette action can explain itself with a
 bounded rich preview, while a broken contributor cannot block input or corrupt
 the rest of the screen.
+
+### [ ] CP-2a Add bounded editors for the active command argument
+
+**Work:** Coordinate with CA-1 through CA-3 in the
+[puppet control surface and rich command arguments plan](puppet%20control%20surface%20and%20rich%20command%20arguments%20plan.md).
+Define a distinct argument-presenter contribution keyed by stable typed
+argument descriptor—not by command string or puppet id. It receives immutable
+parse/caret/replacement context and may propose canonical replacement text plus
+the resulting caret. The palette owns focus, clipping, cancellation, lifecycle,
+undo/history, suffix preservation, and execution. Plain text remains the
+universal editor; a presenter is never an implicit submit or a dedicated
+configuration screen.
+
+**Validation:** Shared host tests prove provider precedence/failure/unload,
+wide/narrow placement, keyboard and pointer access, narration, stale ranges,
+suffix preservation, and canonical-text round trips. The first production
+proof is the finite-control/infinite-domain viewport value
+`WIDTHxHEIGHT@auto|N`, with numeric fields, bounded controls, and an aspect
+preview instead of enumerating every integer candidate.
+
+**Completion criteria:** Action previews and argument editors can share bounded
+palette layout infrastructure without conflating “explain this action” with
+“edit this parameter,” and neither requires a one-off screen.
 
 ### [x] CP-3 Research Create Ponder and Panopticon before virtual-world design
 

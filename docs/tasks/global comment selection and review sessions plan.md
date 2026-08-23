@@ -1,7 +1,7 @@
 # Global comment selection and review sessions plan
 
 **Plan status:** Active
-**Last updated:** 2026-08-21
+**Last updated:** 2026-08-23
 
 ## Purpose
 
@@ -196,11 +196,13 @@ approval and any candidate discussion remain distinguishable.
 A release review is a required human gate on the prospective Git tag, not a
 side effect of committing or passing tests. For every supported Minecraft
 version, create a review lane from that lane's `previous_release` selector to
-the candidate `HEAD`. The review session records the lane, baseline/candidate
-snapshot identities and hashes, parser/index fingerprints, generated review
-units, equivalence evidence, unresolved boundaries, and maintainer approval.
-It must remain separate from Git's index, commit status, automated test
-results, and release authorization.
+the candidate `HEAD`. One explicit repository-trackable review document records
+the lane, baseline/candidate snapshot identities and hashes, parser/index
+fingerprints, generated review units, named queries, resume position,
+equivalence evidence, unresolved boundaries, and maintainer approval. It must
+remain separate from Git's index, commit status, automated test results, and
+release authorization, while still being ordinary commit-able evidence whose
+history can be reviewed with Git.
 
 The primary review unit is a changed function/method when the comparison can
 identify one safely. Its selectable review surface is not only the method body:
@@ -496,9 +498,22 @@ presentation, not a durable identity by itself.
 ### Session ownership and persistence
 
 Comments live in a global review session rather than beside each source file.
-The application-data area is the default persistence location. A user can start
-an empty session, reopen one, clone it, export it, or archive it. A session may
-reference multiple repositories, snapshot pairs, and Minecraft versions.
+For the **release-review profile**, the canonical session is an explicit,
+portable, user-addressed file rather than hidden application state. A user can
+start an empty session at a chosen path, reopen it, clone it, save it as another
+path, archive it, inspect its diff, and commit it with the repository. A session
+may reference multiple repositories, snapshot pairs, and Minecraft versions.
+For SFM itself, the suggested location is
+`docs/reviews/<before>-to-<after>.sfm-review.json`; the format and actions do not
+hard-code that directory.
+
+Application data may retain a recent-file list, an autosave recovery copy,
+indexes, thumbnails, or other rebuildable caches keyed by canonical session
+path and content hash. Deleting AppData must not delete review decisions,
+change coverage, or prevent the explicit review file from reopening. Existing
+machine-local candidate/trajectory comment sessions may continue using their
+bounded AppData store, but such a hidden session cannot satisfy a release-review
+gate until it is deliberately saved into a portable release-review document.
 
 ```text
 ReviewSession {
@@ -515,12 +530,49 @@ ReviewSession {
 }
 ```
 
+The commit-friendly file is a versioned orchestration envelope containing the
+single authoritative v2 comment session, not a second comment database:
+
+```text
+ReleaseReviewDocument {
+    schema: "sfm.release-review/1",
+    review_session: ReviewSessionV2,
+    repository_bindings,
+    named_queries,
+    resume_state,
+    completion_attestations
+}
+```
+
+The embedded `sfm.review-session/2` object remains the sole authority for
+comments, targets, hashtags, style rules, and approval semantics. The envelope
+owns only release-review orchestration that v2 does not currently model:
+portable repository bindings, saved query definitions, deterministic resume
+position, and explicit completion attestations. Do not add a parallel comment
+list or duplicate review decisions in AppData.
+
+The envelope defines a domain-separated `review_semantic_state_hash` over the
+embedded review session, pinned source-corpus bindings, named completion
+queries/policy, producer generations, and explicit review decisions. It excludes
+the attestation array itself, rebuildable caches, presentation layout, and the
+resume cursor. An attestation signs/references that semantic hash rather than
+trying to hash a JSON file that contains its own hash. Changing a comment,
+selector, corpus binding, completion query/policy, producer generation, or
+review decision changes the semantic hash; merely moving the viewport or
+writing the attestation does not.
+
 Persistence is deterministic and atomic. Unknown future fields are preserved
 where practical. Corruption must fail closed and retain the last valid session.
-Sessions can be exported as ordinary JSON even if an optimized index or binary
-cache exists. Source text may be embedded by snapshot reference or supplied by
-the canonical snapshot interchange, but comments must never depend on ambient
-unversioned paths without recording their resolved identities.
+The canonical file itself is ordinary JSON even if an optimized index or binary
+cache exists. Temporary atomic-write files and an AppData recovery copy are not
+additional authorities and need not be committed. Every semantically committed
+review action autosaves the canonical file; an unsuccessful write leaves a
+visible dirty/error state and closing must not silently discard it. A
+single-writer lease plus expected-content-hash check detects another process or
+Git operation changing the file instead of overwriting it. Source text may be
+embedded by snapshot reference or supplied by the canonical snapshot
+interchange, but comments must never depend on ambient unversioned paths without
+recording their resolved identities.
 
 ### Revision lanes and the release surface
 
@@ -545,6 +597,65 @@ Before documents are first-class. Removed methods and deleted files remain
 selectable, so a human can write `#approved Deletion is intentional` or
 `#needs-change Why was this compatibility check removed?`. An after-only model
 could incorrectly approve an empty result while ignoring a dangerous deletion.
+
+### Queryable progress and deterministic resumption
+
+A review query evaluates to a set of addressed review surfaces. It uses the
+same typed selection/set foundations as comments but queries comments,
+effective approval, lanes, snapshot sides, review units, evaluation states, and
+the completion domain rather than pretending a text filter is sufficient.
+
+The first grammar supports parentheses plus `union`, `intersect`, and
+`difference`, with these ergonomic atoms and their explicit canonical forms:
+
+```text
+#approved              -> comments-with-tag("#approved")
+1.19.2                 -> lane("1.19.2")
+HEAD                   -> side("candidate") at that lane's pinned candidate commit
+previous_release       -> side("baseline") at that lane's pinned baseline commit
+changed                -> completion-domain("release-change")
+effective(#approved)   -> effective-approval("#approved")
+state(ambiguous)       -> evaluation-state("ambiguous")
+```
+
+Therefore the user's compact query must work as written:
+
+```text
+#approved intersect 1.19.2 HEAD
+```
+
+It returns tagged coverage and displays whether each result is effective or
+suspended. Release completion deliberately uses the stricter expression:
+
+```text
+effective(#approved) intersect 1.19.2 HEAD
+```
+
+`HEAD` never means whatever Git happens to resolve when the query is rerun. It
+is syntactic sugar for the immutable candidate source snapshot recorded in the
+review file. Ambient Git HEAD is classified as exact, a descendant containing
+only explicitly recognized review-evidence-file changes, or source-affecting
+divergence. Committing the canonical review file may advance ambient HEAD while
+leaving the pinned source corpus valid; any changed path or environment input in
+the review domain makes the session visibly stale until the user explicitly
+advances/migrates it. The palette/query editor shows the normalized expansion,
+pinned source commit/tree/hash, and ambient relationship before execution.
+
+Named queries such as `approved-current`, `remaining-current`, `blocking`, and
+`suspended` live in the review file. The canonical remaining-work expression is
+the configured changed-surface domain minus effective approval, plus any
+blocking/suspended/missing work required by policy. Query results open as an
+ordinary explorer/jump list and are available through the Rust CLI in human and
+structured output forms.
+
+The review file persists the active named/ad-hoc query, deterministic work-queue
+ordering, last visited stable review-unit identity, explicit deferrals, and the
+last completion-report witness. Those values are navigation provenance, not
+the authority for whether something is reviewed: progress is recomputed from
+the current pinned corpus, comments, effective evaluations, blockers, and
+policy. Closing halfway through and reopening the file resumes at the first
+still-applicable item at or after that cursor; deleted, changed, or newly
+uncovered work cannot disappear because an old cursor said it was complete.
 
 ## Computationally responsible rule evaluation
 
@@ -786,6 +897,17 @@ comments, suspended approvals, ambiguous/missing rules, and producer freshness.
 
 Clicking a count creates a jump list. The tool reports evidence and coverage;
 it does not silently stage, commit, merge, or declare a release approved.
+
+Completion is an explicit maintainer attestation over the domain-separated
+review semantic-state hash, pinned lane revisions, completion-policy/query
+revision, producer/index fingerprints, and a zero-uncovered/zero-blocker
+report. The program may enable
+the attestation action only when policy passes, but no puppet, analyzer, comment
+producer, or successful test run invokes it for the maintainer. Changing the
+review file, candidate revision, review domain, policy, producer generation, or
+effective approval after attestation marks that attestation stale and requires
+a new explicit decision. The file may therefore be committed halfway through
+as `in_progress` and later as `complete`, with both states inspectable in Git.
 
 ## User experience walkthrough
 
@@ -1221,13 +1343,327 @@ separately invoked explicit selection action.
   previews, F2 navigation, session reopen, snapshot advance, and migration
   failure.
 
-## Proposed structural selector and migration wave — 2026-07-23
+## Recommended next cross-plan goal candidate — review selectors and migration
 
-This is the next proposed Track 6 wave. It covers Phase 3 and the first complete
-vertical slice of Phase 4. It does not begin Phase 5 producer unification,
-multi-version derived approval, release completion policy, Vox, or general
-refactoring execution. No worktree or subagent is created until the maintainer
-accepts these briefs.
+The 2026-08-23 whole-plan audit makes this the lowest-regret next overnight
+candidate for the stated release objective. The newer puppet-control proposal
+is coherent but is not a prerequisite for human review: existing Rust-launched
+puppets already provide live evidence, while release confidence still lacks the
+adapter and evaluation path that turns an editor selection/semantic region into
+a durable comment and carries it conservatively across revisions.
+
+Current foundations supersede parts of the 2026-07-23 proposal below: X-1
+through X-7 and X-8a through X-8c are complete; SS-1 through SS-6 are complete;
+Java syntax, definitions, usages, dependency sources, worker supervision,
+review explorers, panel stacks, literal comments, persistence, and candidate-
+trajectory comments exist. The next slice must use
+`sfm.review-comment-session/2` and the current typed selection/spatial models;
+it must not revive the deleted managed-bundle inbox, stale v1-only assumptions,
+or the old proposed worktree names.
+
+### [ ] RCS-0 Freeze the current adapter/evaluation contract and corpus fixture
+
+**Work:** Reconcile X-9, SS-7, comment Phase 3/4, and the current Java worker
+schemas into one versioned contract for pinned document revision/hash, shared
+path/selection revision, ordered UTF-8 ranges, spatial/semantic region witness,
+selector proposal, evaluation result, invalidation keys, and migration report.
+Freeze the `sfm.release-review/1` orchestration envelope and query/progress
+boundary while retaining the embedded `sfm.review-session/2` object as the
+only comment/approval authority; later tracks must not improvise hidden
+AppData-only progress or a second comment list.
+Add the minimum authoritative snapshot-frame/revision-to-review-corpus adapter:
+it enumerates immutable addressed documents and bytes/hashes from the existing
+snapshot/revision owner and supplies them to review evaluation without copying
+them into a competing repository bundle or mutable comment store. Use one
+three-snapshot Java fixture plus one small multi-document fixture. The adapter
+is intentionally bounded; it does not require completion of the entire episode,
+replay, or cross-runtime snapshot program.
+
+**Validation:** Cross-language canonical fixtures cover Unicode boundaries,
+disjoint ranges, stale selection heads, current-live versus pinned revisions,
+hash mismatch, missing/partial frame materialization, unknown fields,
+deterministic ordering, exact source-owner provenance, and no approval field
+being derived by the adapter. A fixture proves the review corpus references the
+same immutable document hashes as its source snapshot rather than silently
+serializing an independent copy.
+
+**Completion criteria:** Later lanes consume one current schema and cannot
+invent a second comment, selection, migration, or approval authority.
+
+### [ ] RCS-1 Complete X-9: adapt editor/explorer selections to pinned comments
+
+**Work:** Project ordered EditorV3 cursor/range selections and shared named
+selections into pinned review selectors while retaining primary cursor,
+direction, source expression, resolved document identities/hashes, and
+selection revision as provenance. Reverse projection is a view, not a moving
+live approval target.
+
+**Validation:** Single/multiple cursor, disjoint multi-document, direction,
+whitespace, read-only source, live-head advance, stale hash, session round trip,
+and existing v1/v2 migration compatibility.
+
+**Completion criteria:** An ordinary selection can become one durable comment
+target and reopen identically without coupling the comment to current cursor or
+explorer state.
+
+### [ ] RCS-2 Complete SS-7: offer semantic/spatial selector candidates
+
+**Work:** Adapt certified Java regions/outlinks and canvas projections into
+literal, declaration, signature, body, return-type, symbol, and bounded
+multi-region selector proposals. Every proposal retains its exact literal
+witness, semantic provider/provenance, confidence evidence, projection
+fingerprint, and addressed source snapshot. Rectangle/freehand creation remains
+Phase 6a; this slice proves editor selection and semantic region input.
+
+**Validation:** Method/type/field/import/punctuation boundaries, overlapping
+regions, zero/one/many proposals, provider failure, stale publication,
+ambiguous symbols, and exact witness reproduction. A generic nearest-token
+fallback cannot masquerade as structural evidence.
+
+**Completion criteria:** From a selected Java surface, the constrained palette
+can explain and offer conservative literal versus semantic targets through the
+ordinary comment action.
+
+### [ ] RCS-3 Implement the bounded Phase 3 evaluator and indexes
+
+**Work:** Index the fixture/review corpus by lane, path, language, syntax kind,
+symbol, content hash, and diff side. Evaluate text, syntax-region, symbol,
+prepared diff-region, union, intersection, and difference rules into exact,
+relocated, content-changed, ambiguous, missing, invalid, or scope-missing
+results with bounded invalidation keys. Keep diagnostic candidates rather than
+choosing the first match.
+
+**Validation:** Repeated/file-order-independent evaluation, incremental
+invalidation, overload ambiguity, moved declaration, renamed/modified method,
+deleted source, parse gap, missing scope, set laws, and bounded work counters.
+
+**Completion criteria:** Every comment in the scoped corpus has a deterministic
+terminal evaluation state and every non-exact state remains inspectable.
+
+### [ ] RCS-4 Implement the first Phase 4 migration decision surface
+
+**Work:** Reevaluate B-targeted comments against C without rewriting B. Show
+selector explanation, old/new witnesses, candidate ranges, and effective-
+approval suspension. Add self-contained retarget, confirm witnessed relocation,
+edit selector, archive, discard, and defer actions through the constrained
+palette; persistence records the human decision and provenance.
+
+**Validation:** Exact unchanged, safe relocation, content changed, equally
+specific candidates, missing/invalid, stale UI capture, close/reopen, and the
+rule that automated evidence cannot grant or transfer human approval.
+
+**Completion criteria:** A reviewer can resolve or defer each migration case,
+and ambiguous/changed/missing comments never silently disappear or remain
+effectively approved.
+
+### [ ] RCS-5 Prove the natural in-game review journey
+
+**Work:** Open the fixture in the existing explorer/EditorV3, select a method
+surface, choose an explained structural selector over its literal witness,
+write a comment, close/reopen, advance to the next pinned snapshot, inspect the
+migration queue, resolve one relocation, and leave changed/ambiguous/missing
+cases suspended. Capture PNG plus structured session, selection, proposal,
+evaluation, migration, and action artifacts.
+
+**Validation:** Focused Rust/Java tests, canonical compile/full suite, one
+self-orchestrating natural-input puppet at preferred and one non-default
+accepted viewport, final tool installation after the last relevant mutation,
+and a manual-test handoff that requires no user installer run.
+
+**Completion criteria:** In normal in-game usage—not only a diagnostic panel—a
+reviewer can create a semantic comment and watch it survive or conservatively
+fail migration across revisions with truthful persisted evidence.
+
+### [ ] RCS-6 Make release review one portable, commit-friendly document
+
+**Work:** Implement the `sfm.release-review/1` envelope described above and
+path-addressed create/open/save/save-as actions. Use a canonical
+`.sfm-review.json` file chosen by the user, with
+`docs/reviews/<before>-to-<after>.sfm-review.json` as the SFM repository
+convention. Embed exactly one authoritative `sfm.review-session/2`; persist
+repository bindings, named queries, resume state, and completion attestations
+beside it. Autosave every semantically committed review mutation atomically.
+AppData may remember recent paths and hold hash-keyed recovery/index caches but
+must not contain required review truth.
+
+**Validation:** Canonical Java/Rust round trip, explicit-path open, save-as,
+external-content-hash conflict, failed write/dirty close, crash recovery,
+read-only path, unknown field, deletion of every AppData cache, Git diff, and
+two process attempts to open the same file writable. A committed-path fixture
+reopens after all machine-local state is removed with identical comments,
+queries, progress, and completion status. A self-hosting fixture commits only
+the review file after pinning its source candidate and proves that the ambient
+HEAD advance is classified as review-evidence-only rather than source drift;
+changing one reviewed Java byte is classified as source-affecting divergence.
+
+**Completion criteria:** `git status` can show one review file containing all
+durable progress, and copying or committing that file is sufficient to resume
+the same review on another checkout with the referenced revisions available.
+
+### [ ] RCS-7 Add review-query algebra, work queues, and resume actions
+
+**Work:** Implement the compact/canonical query grammar documented above,
+including the exact accepted expression
+`#approved intersect 1.19.2 HEAD`, its normalized expansion, and the stricter
+`effective(#approved)` form used by completion policy. Project query results to
+ordinary explorer/jump-list panels. Add saved/ad-hoc query, next/previous,
+defer, resume, status, and show-normalized-query actions, plus equivalent
+`sfm-propagate-changes.exe review session query|status --file ...` human/Facet
+outputs. Persist only stable query/work-unit identities and explicit deferrals;
+derive reviewed/unreviewed truth from the corpus and effective comments.
+
+**Validation:** Precedence/parentheses, union/intersection/difference laws, raw
+versus effective approval, lane and pinned-side aliases, moved ambient `HEAD`,
+zero/one/many lanes, unknown atom, stale query revision, deterministic ordering,
+close/reopen halfway, source change before resume, and CLI/game parity. A query
+with suspended `#approved` results visibly differs from effective approval.
+
+**Completion criteria:** A reviewer can ask what is approved, remaining,
+blocked, suspended, or missing for the pinned 1.19.2 candidate; stop halfway;
+commit the file; reopen it; and continue at the next still-valid unit.
+
+### [ ] RCS-S2 Project the complete 1.19.2 change domain into ordinary comments
+
+**Work:** Run one structured comparison producer over the entire real 1.19.2
+`previous_release..HEAD` pair and project added/removed/modified/renamed and
+ambiguous operations into ordinary generated comments with stable producer,
+rule, generation, and source-snapshot identity. Every changed before/after
+surface enters the release-change completion domain. When structural Java
+analysis is unavailable, retain a bounded file/diff-hunk fallback review unit
+with an explicit limitation rather than making that change invisible.
+
+**Validation:** Added/deleted/renamed/binary/generated/unsupported files,
+empty-side tombstones, changed whitespace, repeated producer run, stale
+generation, partial parser/index availability, deterministic ordering/counts,
+and a raw Git diff inventory reconciled against the produced completion domain.
+The reconciliation must account for every changed path and byte/hunk or explain
+its explicit exclusion under the versioned policy.
+
+**Completion criteria:** The one-lane review domain is complete enough to be
+finished: every real change is navigable or appears as an explicit unsupported
+work item, and producer reruns cannot duplicate or silently erase progress.
+
+### [ ] RCS-8 Make completion and attestation self-contained and fail closed
+
+**Work:** Compute changed-domain, raw-tag, effective-approval, uncovered,
+blocking, suspended, ambiguous/missing, deferred, unsupported, and stale-
+producer queries from the canonical file and pinned corpus. Persist completion
+reports by witness and add an explicit maintainer-attestation action that is
+enabled only under the selected completion policy. Record file/corpus/policy/
+producer fingerprints and mark attestations stale after any relevant change.
+The required puppet proves readiness but never invokes human attestation.
+
+**Validation:** Zero-change lane, partial review, overlapping approval/problem,
+changed approval, deferred work, unsupported fallback, stale producer, changed
+candidate commit, changed policy/query, post-attestation comment edit, and
+reopen from a Git checkout. Prove the semantic-state hash is non-circular:
+adding the attestation or changing only resume/presentation state preserves it,
+while changing a comment, target, policy, producer generation, or source corpus
+invalidates it. CLI status and in-game status must agree and use a non-success
+exit/status for incomplete or stale review without claiming that tests or Git
+cleanliness imply approval.
+
+**Completion criteria:** The review file can truthfully say `in_progress`,
+`ready_for_maintainer_attestation`, `complete`, or `stale`, explain every
+blocking count through jump lists, and serve as the commit-able human-review
+evidence referenced by the release gate.
+
+### [ ] RCS-S1 Prove the complete resumable loop on real 1.19.2 release code
+
+**Work:** Resolve the existing prior-release tag and pinned `HEAD` commit for
+the 1.19.2 lane, create the canonical repository review file, materialize the
+complete RCS-S2 domain, and open it through the ordinary review explorer and
+EditorV3. Review at least one genuine changed structural surface, run
+`#approved intersect 1.19.2 HEAD` and the remaining/effective queries, stop with
+the session intentionally incomplete, close Minecraft, clear process-local and
+rebuildable cache state, reopen the same file, and resume at the next valid
+work item. Use a two-checkpoint self-hosting sequence: first commit the completed
+implementation and pin that source commit as the candidate corpus; then create
+and commit the initialized `in_progress` review document in a separate local
+review-evidence-only commit. Do not push. The final worktree is clean, and the
+session classifies the second commit as evidence-only rather than source drift.
+
+**Validation:** Record real tag/commit ids, source hashes, complete changed-path
+reconciliation, query normalization/results, autosave generations, resume
+cursor, Git diff/commit of the review file, and structured plus PNG evidence from a
+self-orchestrating natural-input puppet. Commit review-progress evidence in an
+isolated test repository/fixture and prove that review-file-only commits do not
+retarget the pinned source candidate. Also perform a manual-test handoff from
+the installed client; the user must not need to rerun the installer.
+
+**Completion criteria:** The morning handoff is a feasible, self-contained
+1.19.2 review process: the user can open a repository-tracked review file,
+navigate every current release change or explicit unsupported item, annotate
+and query it, pause and resume across game restarts, see exact remaining work,
+and eventually produce a fail-closed completion attestation. The initialized
+file is committed locally as `in_progress`, the working tree is clean, and the
+goal does not perform the maintainer attestation, push, or claim the release is
+reviewed.
+
+### Candidate core, parallel topology, and elastic continuation
+
+The candidate required core is **RCS-0 through RCS-8 plus RCS-S1 and RCS-S2**.
+No goal is active until the user approves it. The fixture proof remains required
+because it gives deterministic exact/relocated/changed/ambiguous/missing
+coverage. RCS-6/RCS-7/RCS-8 make that machinery portable, queryable,
+resumable, and completable; RCS-S2/RCS-S1 ground it in the complete current
+1.19.2 release-change domain. A comment-only or one-file demo does not satisfy
+this candidate.
+
+- **Track A — selection/comment adapter:** RCS-0/RCS-1 Java and cross-language
+  fixtures; owns no parser or UI.
+- **Track B — structural proposals/evaluation:** RCS-2/RCS-3 Rust analysis and
+  pure Java evaluation adapters; owns no panel/action registration.
+- **Track C — migration presentation:** RCS-4 fixture-backed panel/actions;
+  consumes the frozen contract and owns no session codec.
+- **Track D — portable document/query kernel:** RCS-6/RCS-7 Java/Rust codecs,
+  stores, query evaluator, CLI, and pure fixtures; owns no source comparison.
+- **Track E — real change domain:** RCS-S2 comparison/comment projection and
+  reconciliation; owns no comment or approval semantics.
+- **Integration owner:** merges current providers, completes RCS-5/RCS-8/RCS-S1,
+  runs final validation/install, and updates canonical plans. RCS-5 waits for
+  A/B/C; RCS-8 waits for B/D/E; RCS-S1 waits for every required track.
+
+After a clean committed core, continue one item at a time:
+
+1. **RCS-S3:** freeze CLI-AST `ReviewUnit`/`ReviewSurface`/equivalence report
+   schemas and emit a first human-readable/JSON report for the same lane.
+2. **RCS-S4:** compare one review unit across a second Minecraft lane and show
+   textual/body/environment/unknown equivalence without deduplicating approval.
+
+The dependency graph and checked-in lockfiles remain frozen. Local checkpoint
+commits are required; no push, propagation, release tag, publication, broad
+refactoring mutation, graphical markup, or maintainer approval is included. The
+existing goal-readiness process authority, tool freshness, and bounded
+cache-rehydration rules apply.
+
+### 2026-08-23 trajectory intent audit
+
+- **Pass 1 — extraction:** Preserved the goal of human inspection before a
+  release tag, multi-file/revision comments, AST-aware selectors, conservative
+  migration, cross-lane deduplication evidence, generated diff/audit/compiler
+  comments, and in-game plus CLI/HTML review—not merely the latest puppet UI.
+- **Pass 2 — dependency trace:** X-9 and SS-7 are the missing joins between
+  completed editor/explorer/spatial foundations and comment Phase 3/4. Those
+  feed Phase 5 producers, CLI-AST 2.5/2.5a, comment Phase 7/8, and release Phase
+  5.5. Puppet browsing, rich viewport arguments, logging, generic provider
+  selection, and manager remote control are useful parallel capabilities but
+  are not predecessors of this join.
+- **Pass 3 — adversarial omission:** The slice has visible in-game value yet
+  does not confuse fixture migration with real multi-version release approval,
+  a passing analyzer with human review, a moving live selection with a pinned
+  comment, or a screenshot with structured evidence. The old sidecar/worktree
+  proposal remains historical reference and cannot silently override current
+  schemas.
+
+## Historical structural selector and migration wave — 2026-07-23 (superseded)
+
+This was the original proposed Track 6 wave. Its scenario and conservative
+migration requirements remain useful source evidence, but the exact v1-only
+contract, prepared-sidecar assumption, branch/worktree names, and “next wave”
+status are superseded by RCS-0 through RCS-8 plus RCS-S2/RCS-S1 above and by
+foundations completed after 2026-07-23. Do not dispatch these historical briefs
+verbatim.
 
 ### Coordinator-owned contract freeze before dispatch
 

@@ -2183,6 +2183,65 @@ and related meanings agree with runtime dispatch. Every cleanup path is clean,
 artifacts prove inspection-only behavior, and release inclusion/deferment is
 explicit.
 
+## Phase UIE — Addressable, user-controlled UI affordances
+
+This bounded phase owns the discoverability-versus-minimalism requirement from
+the 2026-08-23 planning pass. It builds on K-5's `SFMActionElement` inventory;
+it does not create a second widget registry. The linked
+[puppet control surface and rich command arguments plan](puppet%20control%20surface%20and%20rich%20command%20arguments%20plan.md)
+may consume UIE-1/UIE-2 only as its ordered PS-2 stretch after its required
+puppet core has reached a clean checkpoint.
+
+### [ ] UIE-1 Add stable element selection and visibility preferences
+
+**Work:** Extend live action-element publication with stable owner-qualified
+element ids, host/screen/panel identity, current `visible|hidden|unavailable`
+state, default state, and a self-contained set-valued element selector. Add the
+canonical action
+`sfm:ui/element/visibility/set <element-selector> visible|hidden|default` and
+palette suggestions that enumerate both currently shown and currently hidden
+elements. Persist only user preference, not stale widget instances or panel
+ids. A host resolves the preference when publishing its current widget tree.
+Candidate rows communicate current/effective/default state in text and
+narration as well as colour/style. Right-click Hide may draft the same action;
+it may not mutate visibility through a private callback.
+
+Define recovery rules before persistence: essential Cancel/close/recovery
+controls cannot all be hidden; an unavailable owner remains inspectable but is
+not fabricated as live; and a global reset-to-default action works from the
+built-in command-palette bootstrap even when contributed providers fail.
+
+**Validation:** Pure selector and preference round trips, exact/set-valued
+targets, shown/hidden/unavailable enumeration, host recreation, panel
+duplication, stale ids, owner unload/reload, GUI-scale/focus/narration,
+colour-independent labels, essential-control rejection, and reset recovery.
+The action-element audit rejects a user-hideable element with no stable id or
+canonical visibility action.
+
+**Completion criteria:** A user can discover an element by id, see whether it
+is visible and why, hide/show/reset it through ordinary actions, restart or
+recreate the host, and recover without editing a config file or depending on
+colour alone.
+
+### [ ] UIE-2 Prove the contract with an optional EditorV3 history affordance
+
+**Work:** Add one compact, focusable/narrated EditorV3 history action element
+that opens the focused document's existing history/timeline presentation. It
+has a stable id and canonical action draft, participates in normal toolbar
+layout, and can be hidden/restored through UIE-1. Hiding the button never
+disables the command-palette action or keyboard binding. The element visibly
+distinguishes unavailable, empty, and history-present states with text/tooltips
+or narration rather than an unexplained icon alone.
+
+**Validation:** New/ordinary/branched documents, wrong focus, read-only files,
+panel stacks, hide/show/default persistence, pointer/keyboard/palette parity,
+narrow layouts, and a puppet artifact showing the affordance, its history
+destination, the hidden state, and command-palette recovery.
+
+**Completion criteria:** Ordinary EditorV3 use exposes a discoverable path to
+document history without forcing permanent chrome on users who prefer a
+minimal surface.
+
 ## Phase A — Typed addresses and explorer projections
 
 ### [ ] A-1 Freeze typed addresses, address queries, resolver context, and canonical spelling

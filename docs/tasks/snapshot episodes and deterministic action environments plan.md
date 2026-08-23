@@ -101,7 +101,7 @@ terminal protocol; and the in-game CLI owns discovery and remote invocation.
 | TE-10 | Source exploration/editing must not clobber the real checkout; the current read-only source view needs a safe path to writable experiments. | Writable sessions materialize an immutable source snapshot into a bounded ignored overlay/false universe. Save mutates only the branch overlay; applying/exporting to ambient source is a separate explicit capability. |
 | TE-11 | Build Portal-like test chambers/tutorials for multiple cursors and editing fluency, including speed trials and “transform document A into B.” | A chamber declares initial snapshot, goal predicate/expected snapshot, capabilities, prompts, and scoring. Correctness/safety remain hard gates; elapsed time, action count, and trace compression are separate metrics. |
 | TE-12 | Automate the facilitator role for self-user-studies and retain structured narration markers. Audio is useful; full video is presently too much information. | Puppets can run scripted chambers and capture episode data, screenshots, text, and facilitator markers. Audio is a later explicit opt-in artifact with consent/retention controls; continuous video is deferred. |
-| TE-13 | Java Log4j/translatable messages and Rust `tracing` events should become one correlated end-to-end stream that can be inspected in-game without opening a terminal. | The log plan supplies adapters into a versioned observation envelope with runtime, session, span/correlation ids, sequence, wall time, structured fields, rendered fallback, and bounded errors. Logs are observations, never replay authority. |
+| TE-13 | Java Log4j/translatable messages and Rust `tracing` events should become one correlated end-to-end stream that can be inspected in-game without opening a terminal. Java and Rust records should retain truthful clickable source provenance, and SFM-authored semantic logs should support English plus the user's locale. The same stream should also be attachable from an exact external or in-game Teamy Terminal session without making terminal transport authoritative. | The log plan owns `LOG-X0`/`LOG-X1A`/`LOG-X1B`/`LOG-X1C`: measured sink topology precedes claims about `latest.log`; Rust retains tracing callsite metadata; Java uses measured SFM-scoped caller capture plus an optional hash-checked build manifest for exact URI/column/span; wrapper loggers preserve the application caller; semantic records retain message id/key, English fallback, typed arguments, locale projection, and throwable; and effective capture/location/rendering policy has explicit precedence. `LOG-X2A` supplies Java scope ancestry across async handoffs, while `LOG-X2B` proves the exact combined `run client --log-file` path and honest stream termination. Adapters publish a versioned observation envelope with runtime, session, span/correlation ids, sequence, wall time, structured fields, rendered projections, provenance confidence, and bounded errors. `LOG-X6` adds exact launch/game/run/stream attachment for shell and terminal consumers while preserving LOG-X3 as an optional rich panel. Logs are observations, never replay authority. |
 | TE-14 | A Teamy Terminal that launched Minecraft should be attachable from inside the game as another device manipulating the same terminal session. | Terminal sessions remain independent from presentation. External window and in-game panel attach to one addressable PTY/session with explicit observer/input leases and multi-writer arbitration; no duplicate PTY is implied. |
 | TE-15 | Codex should eventually help users write SFM programs and review changes, using the user's existing local Codex setup where possible. | Phase 8 defines a provider-neutral external-agent contract and an optional Codex adapter around supported local SDK/app-server or CLI surfaces. It inherits local authentication/permissions, embeds no credentials, and receives only bounded revision/selection/capability context. |
 | TE-16 | Release review comments target spatial surfaces across files and historical before/after states, while static analysis and AI review should reduce duplicated human inspection. | Review lanes pin immutable snapshot revisions; comment selectors and approvals remain in the comment plan. Static facts/outlinks and agent suggestions are provenance-bearing observations, never automatic approval. |
@@ -163,7 +163,7 @@ terminal protocol; and the in-game CLI owns discovery and remote invocation.
 | TE-1 through TE-5 | 0.1–0.5, 1.1–1.5, 2.7/2.8, TE-S1 | Cross-language schema fixtures, immutable fork/hash proof, clock/address fixtures, live branch scrubber, and action-history artifacts |
 | TE-6 through TE-9 | 0.4/0.5, 4.4–4.7, selection X-9/X-3a | Query/witness/order round trips, multiple-cursor and decimal-sequence tests, exact/recompute branch comparison |
 | TE-10 through TE-12 | 5.0–5.4, TE-S1 | Checkout-unchanged proof, writable overlay puppet, chamber score/trace/screenshots, and opt-in media policy before audio work |
-| TE-13 | 9.1/9.2 and LOG-X1–LOG-X4 | Correlated Java/Rust structured records visible in-game without a terminal and retained only as episode observations |
+| TE-13 | 9.1/9.2 and LOG-X0, LOG-X1, LOG-X1A, LOG-X1B, LOG-X1C, LOG-X2, LOG-X2A, LOG-X2B, LOG-X3–LOG-X6 | Correlated Java/Rust structured records retain measured sink provenance, truthful source locations, semantic bilingual projections, async span ancestry, and honest stream completeness; they remain queryable and visible through either a rich in-game panel or exact terminal/shell attachment, and are retained only as episode observations rather than replay authority. |
 | TE-14 | 9.3 and terminal T-SHARED-1 | One PTY/session with independent native/in-game attachments, observer/input/resize leases, and lifecycle trace |
 | TE-15 | 8.1–8.3 | Optional local-provider tests, bounded context/capabilities, provenance, cancellation, and ordinary no-Codex operation |
 | TE-16 through TE-19 | Comment Phase 3–7/6a, spatial SS-7/SS-8, Draw tools, CLI-AST | Pinned multi-revision comments, graphical markup witness, static rule/morphism evidence, full-document coverage masks, and human approval artifact |
@@ -1724,7 +1724,21 @@ possible shell host, not the agent protocol or authority.
   Rust `tracing` adapter at the bridge boundary.
 - Preserve runtime/process/thread/task, logger/target, level, span/correlation
   ids, monotonic source sequence, optional wall time, structured fields,
-  translatable content, rendered fallback, and bounded error chains.
+  translatable content, English fallback and optional localized rendering,
+  rendered fallback, and bounded error chains.
+- Preserve source provenance as structured evidence: Rust tracing callsite
+  fields; Java class/method/file/line from opt-in SFM-scoped caller capture;
+  and, when a versioned source-hash-matching callsite manifest resolves it,
+  canonical source URI, column, and exact span. Record capture mechanism and
+  confidence, and never synthesize an exact source link from stale evidence.
+- Keep the potentially stack-walking Java location path disabled for unrelated
+  root-logger traffic, measure its disabled/SFM-only/enriched costs, and make
+  caller-aware wrappers identify the application callsite rather than the
+  facade implementation.
+- Retain semantic message identity and arguments independently from English,
+  localized, bilingual, or auto rendering. Early bootstrap/server records may
+  lack a client locale, but must retain the English support fallback without
+  fabricating a localized value.
 - Map records into episode observations without treating log arrival order as
   the canonical action order. Correlate to episode/event/action/terminal/request
   ids when known.
@@ -1737,8 +1751,10 @@ possible shell host, not the agent protocol or authority.
 Add a normal addressable log/observation panel that subscribes to the shared
 sink and works without opening a terminal. It can filter by runtime, episode,
 branch, action, request, severity, target/logger, and correlation id; jump links
-open the associated document/selection/action where resolvable. Export remains
-structured, with copyable rendered text as a projection.
+open the associated source span, document/selection/action, or correlated
+runtime context where resolvable. Export remains structured, with provenance
+and semantic message fields intact and copyable English/localized/bilingual
+text as selectable projections.
 
 ### [ ] 9.3 Attach several presentation devices to one terminal session
 
