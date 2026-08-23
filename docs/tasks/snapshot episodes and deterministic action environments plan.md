@@ -3163,8 +3163,8 @@ sfm-propagate-changes.exe puppet run sfm:title_screen_ordinary_document_history 
 ### TE-S2 first-goal operational readiness
 
 - Target branch/commit: `1.19.2`, from planning checkpoint `ba212d857` through
-  implementation checkpoints `b66e2c597`, `5b5155cdd`, and `4bf109948`; the
-  final hardening commit is recorded by the completion bookkeeping commit.
+  implementation checkpoints `b66e2c597`, `5b5155cdd`, and `4bf109948`, then
+  final hardening and completion evidence in `bfd744c1c`.
 - Tooling or generated runtime inputs changed: no. Goal changes are confined
   to Java, tests, gameplay resources, and docs.
 - Installer/build command run: canonical `run compile`, full `test run`, and

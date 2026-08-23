@@ -2576,8 +2576,8 @@ by B-1 and TE-S2 rather than becoming transitional debt.
 - The canonical full test run reported `1444 found, 1443 passed, 0 failed,
   1 aborted`; the sole abort is the intentionally opt-in installed symbol
   worker integration test. Canonical `run compile` passed. Implementation
-  checkpoints include `4bf109948`; final hardening is recorded by the goal's
-  completion commit below.
+  checkpoints include `4bf109948`; final hardening and completion evidence are
+  recorded by `bfd744c1c`.
 
 ### [ ] B-1 Add cancellable streamed palette candidates without replacing Brigadier
 
