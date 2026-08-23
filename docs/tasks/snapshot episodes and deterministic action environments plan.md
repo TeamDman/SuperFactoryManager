@@ -2881,6 +2881,22 @@ as raw evidence; save baselines remain separate from revision retention.
 Focused editor, action-resolution, key-input, choice, draw-canvas, and palette
 tests pass.
 
+**Post-completion pathless-buffer hardening — 2026-08-22:** Scratch Text
+Editor V3 documents intentionally have no resolver path or source-root
+authority. `SFMJavaInteractionMapSession` now recognizes structurally
+ineligible document projections before submission, clears any prior
+publication, and records only a debug-level `SKIPPED` reason instead of
+launching the symbol worker and warning once per edit revision. Superseded
+asynchronous failures are checked against the current epoch and retained only
+as debug-level stale evidence. `SFMJavaInteractionMapSessionTests` proves
+repeated pathless revisions submit zero lookups and create no cancellation
+churn. The exact natural-history puppet passed again in run
+`sfm-title_screen-20260822-232951-899`; its captured console contains no
+`document_path_absent`/interaction-map failure and closes the symbol worker
+with `launches=0`. The full suite reported `1445 found, 1444 passed, 0 failed,
+1 aborted`, with only the existing opt-in installed-worker test aborted.
+Implementation is checkpointed in `05819991d`.
+
 ### [x] TE-S2C Join contextual-input B-0's completion-frontier repair
 
 **Work:** Complete the authoritative contextual-input B-0 slice. The temporal
