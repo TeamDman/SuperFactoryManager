@@ -614,8 +614,8 @@ class SFMReleaseReviewV1Tests {
     }
 
     @Test
-    void failedAutosaveCannotBeSilentlyDiscardedByCloseOrOpen(@TempDir Path directory) throws Exception {
-        Path path = directory.resolve("dirty-close.sfm-review.json");
+    void readOnlyMutationDoesNotPublishCandidateOrAdvanceGeneration(@TempDir Path directory) throws Exception {
+        Path path = directory.resolve("read-only-mutation.sfm-review.json");
         try (SFMReleaseReviewRuntime writer = new SFMReleaseReviewRuntime()) {
             writer.create(path, fixture());
         }
@@ -623,6 +623,7 @@ class SFMReleaseReviewV1Tests {
         SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime();
         try {
             runtime.open(path, false);
+            SFMReleaseReviewRuntime.Snapshot before = runtime.snapshot();
             SFMReleaseReviewRuntime.MutationResult failed = runtime.mutate(current -> copy(
                     current,
                     new SFMReleaseReviewV1.ResumeState(
@@ -630,20 +631,93 @@ class SFMReleaseReviewV1Tests {
                             Optional.of("unit:src/Other.java:file"), List.of(), 99),
                     current.reviewSession(), current.completionAttestations()));
             assertFalse(failed.saved());
-            assertTrue(failed.dirty());
-            assertTrue(runtime.dirty());
-            assertEquals(99, runtime.document().orElseThrow().resumeState().generation());
+            assertFalse(failed.dirty());
+            assertTrue(failed.failure().orElseThrow().contains("code=review.read-only"));
+            assertTrue(failed.failure().orElseThrow().contains("access=READ_ONLY"));
+            SFMReleaseReviewRuntime.Snapshot after = runtime.snapshot();
+            assertEquals(before.document(), after.document());
+            assertEquals(before.generation(), after.generation());
+            assertFalse(after.dirty());
+            assertEquals(1, runtime.document().orElseThrow().resumeState().generation());
 
-            assertThrows(IllegalStateException.class, runtime::close);
-            assertThrows(IllegalStateException.class, () -> runtime.open(path, false));
-            assertEquals(99, runtime.document().orElseThrow().resumeState().generation(),
-                    "a rejected close/reopen must retain the dirty in-memory document");
+            runtime.close();
+            assertEquals(1, runtime.open(path, false).document().orElseThrow().resumeState().generation(),
+                    "reopening must reveal the unchanged authoritative repository bytes");
+        } finally {
+            runtime.discardAndClose();
+        }
+    }
+
+    @Test
+    void failedAtomicCommentSaveLeavesPublishedSnapshotAndCompletionCacheIntact(@TempDir Path directory)
+            throws Exception {
+        Path path = directory.resolve("external-edit-comment.sfm-review.json");
+        try (SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime()) {
+            runtime.create(path, fixture());
+            SFMReleaseReviewRuntime.Snapshot before = runtime.snapshot();
+            SFMReleaseReviewKernel.CompletionReport cachedStatus = runtime.status();
+            SFMReleaseReviewV1.CommentSelectorBinding existingBinding = before.document().orElseThrow()
+                    .selectorBindings().get(0);
+            SFMReleaseReviewV1.SelectorProposal existingProposal = existingBinding.selectedProposal();
+            SFMReleaseReviewV1.SelectorProposal proposal = new SFMReleaseReviewV1.SelectorProposal(
+                    "test:atomic-save-failure",
+                    existingProposal.kind(),
+                    existingProposal.selectionRule(),
+                    existingProposal.literalWitness(),
+                    existingProposal.semanticProvider(),
+                    existingProposal.semanticKey(),
+                    existingProposal.semanticProvenance(),
+                    existingProposal.confidence(),
+                    existingProposal.projectionFingerprint(),
+                    existingProposal.sourceSnapshotId(),
+                    existingProposal.diagnostics()
+            );
+
+            Files.writeString(path, Files.readString(path) + " ");
+            SFMReleaseReviewRuntime.CommentMutationResult failed = runtime.createComment(
+                    "#needs-change must not become a ghost comment",
+                    existingBinding.capturedSelection(),
+                    proposal
+            );
+
+            assertFalse(failed.mutation().saved());
+            assertFalse(failed.mutation().dirty());
+            String diagnostic = failed.mutation().failure().orElseThrow();
+            assertTrue(diagnostic.contains("code=review.external-edit-conflict"));
+            assertTrue(diagnostic.contains("operation=mutate"));
+            assertTrue(diagnostic.contains("failure_type=ExternalEditConflict"));
+            assertTrue(diagnostic.contains(path.toAbsolutePath().normalize().toString()));
+            SFMReleaseReviewRuntime.Snapshot after = runtime.snapshot();
+            assertEquals(before.document(), after.document());
+            assertEquals(before.generation(), after.generation());
+            assertEquals(before.dirty(), after.dirty());
+            assertSame(cachedStatus, runtime.status(),
+                    "a rejected candidate must not invalidate the published completion cache");
+            assertFalse(after.document().orElseThrow().reviewSession().comments().stream()
+                    .anyMatch(comment -> comment.text().contains("ghost comment")));
+        }
+    }
+
+    @Test
+    void runtimeSnapshotPublishesAccessAndWritabilityWithDocumentIdentity(@TempDir Path directory)
+            throws Exception {
+        Path path = directory.resolve("snapshot-access.sfm-review.json");
+        SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime();
+        try {
+            SFMReleaseReviewRuntime.Snapshot closed = runtime.snapshot();
+            assertTrue(closed.access().isEmpty());
+            assertFalse(closed.writable());
+
+            runtime.create(path, fixture());
+            SFMReleaseReviewRuntime.Snapshot writable = runtime.snapshot();
+            assertEquals(Optional.of(SFMReleaseReviewStore.Access.WRITABLE), writable.access());
+            assertTrue(writable.writable());
 
             runtime.discardAndClose();
-            assertTrue(runtime.document().isEmpty());
-            assertFalse(runtime.dirty());
-            assertEquals(1, runtime.open(path, false).document().orElseThrow().resumeState().generation(),
-                    "explicit discard must reveal the last authoritative repository bytes");
+            runtime.open(path, false);
+            SFMReleaseReviewRuntime.Snapshot readOnly = runtime.snapshot();
+            assertEquals(Optional.of(SFMReleaseReviewStore.Access.READ_ONLY), readOnly.access());
+            assertFalse(readOnly.writable());
         } finally {
             runtime.discardAndClose();
         }

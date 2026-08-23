@@ -68,7 +68,7 @@ class SFMReleaseReviewPortableStoreTests {
     }
 
     @Test
-    void readOnlyMutationCannotChangeAuthorityAndCanBeRecoveredWithSaveAs(@TempDir Path directory)
+    void readOnlyMutationCannotChangePublishedStateAndSaveAsRemainsAvailable(@TempDir Path directory)
             throws Exception {
         Path source = directory.resolve("review.sfm-review.json");
         Path recovered = directory.resolve("recovered/review.sfm-review.json");
@@ -78,11 +78,15 @@ class SFMReleaseReviewPortableStoreTests {
         SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime();
         try {
             runtime.open(source, false);
+            SFMReleaseReviewRuntime.Snapshot before = runtime.snapshot();
             SFMReleaseReviewRuntime.MutationResult failed = runtime.activateQuery(Optional.empty(), "HEAD");
 
             assertFalse(failed.saved());
-            assertTrue(failed.dirty());
-            assertTrue(runtime.dirty());
+            assertFalse(failed.dirty());
+            assertFalse(runtime.dirty());
+            assertTrue(failed.failure().orElseThrow().contains("code=review.read-only"));
+            assertEquals(before.document(), runtime.snapshot().document());
+            assertEquals(before.generation(), runtime.snapshot().generation());
             assertEquals(authoritative, Files.readString(source, StandardCharsets.UTF_8),
                     "read-only mutation must not change authoritative repository bytes");
 
@@ -93,8 +97,8 @@ class SFMReleaseReviewPortableStoreTests {
             assertEquals(authoritative, Files.readString(source, StandardCharsets.UTF_8));
             SFMReleaseReviewV1 recoveredDocument = SFMReleaseReviewV1Codec.parse(
                     Files.readString(recovered, StandardCharsets.UTF_8));
-            assertEquals(2, recoveredDocument.resumeState().generation(),
-                    "save-as must preserve the dirty in-memory state at a new authority path");
+            assertEquals(1, recoveredDocument.resumeState().generation(),
+                    "save-as must preserve the previously published state at a new authority path");
             assertEquals(SFMReleaseReviewV1Codec.write(runtime.document().orElseThrow()),
                     Files.readString(recovered, StandardCharsets.UTF_8));
         } finally {
@@ -105,26 +109,28 @@ class SFMReleaseReviewPortableStoreTests {
     }
 
     @Test
-    void dirtyReadOnlyStateRequiresExplicitDiscardAndLeavesAuthorityRecoverable(@TempDir Path directory)
+    void recoveredDirtyStateSurvivesRejectedMutationAndCanBeSavedExplicitly(@TempDir Path directory)
             throws Exception {
         Path source = directory.resolve("review.sfm-review.json");
         createRepositoryFile(source);
         String authoritative = Files.readString(source, StandardCharsets.UTF_8);
+        Files.delete(source);
 
         SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime();
         try {
-            runtime.open(source, false);
-            assertFalse(runtime.activateQuery(Optional.empty(), "HEAD").saved());
+            SFMReleaseReviewRuntime.OpenResult opened = runtime.open(source, false);
+            assertTrue(opened.recoveredMachineLocalCopy());
             assertTrue(runtime.dirty());
+            SFMReleaseReviewRuntime.Snapshot before = runtime.snapshot();
+            SFMReleaseReviewRuntime.MutationResult rejected = runtime.activateQuery(Optional.empty(), "HEAD");
+            assertFalse(rejected.saved());
+            assertTrue(rejected.dirty(), "the pre-existing recovery dirtiness must remain truthful");
+            assertEquals(before.document(), runtime.snapshot().document());
+            assertEquals(before.generation(), runtime.snapshot().generation());
             assertThrows(IllegalStateException.class, runtime::close);
-            assertEquals(authoritative, Files.readString(source, StandardCharsets.UTF_8));
 
-            runtime.discardAndClose();
-
+            runtime.saveAs(source);
             assertFalse(runtime.dirty());
-            assertTrue(runtime.document().isEmpty());
-            assertEquals(1, runtime.open(source, false).document().orElseThrow().resumeState().generation(),
-                    "explicit discard must reveal the unchanged authoritative repository state");
             assertEquals(authoritative, Files.readString(source, StandardCharsets.UTF_8));
         } finally {
             runtime.discardAndClose();

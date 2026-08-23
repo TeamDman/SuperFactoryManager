@@ -29,12 +29,27 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
         }
     }
 
-    public record MutationResult(boolean saved, boolean dirty, Optional<String> failure) {}
+    public record MutationResult(
+            boolean saved,
+            boolean dirty,
+            Optional<String> failure,
+            List<String> diagnostics
+    ) {
+        public MutationResult {
+            failure = Objects.requireNonNull(failure, "failure");
+            diagnostics = List.copyOf(diagnostics);
+        }
+
+        public MutationResult(boolean saved, boolean dirty, Optional<String> failure) {
+            this(saved, dirty, failure, failure.map(List::of).orElseGet(List::of));
+        }
+    }
 
     /** One atomic identity capture for resolver-backed review projections. */
     public record Snapshot(
             Optional<Path> path,
             Optional<SFMReleaseReviewV1> document,
+            Optional<SFMReleaseReviewStore.Access> access,
             long generation,
             long openEpoch,
             boolean dirty
@@ -42,10 +57,16 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
         public Snapshot {
             Objects.requireNonNull(path, "path");
             Objects.requireNonNull(document, "document");
+            Objects.requireNonNull(access, "access");
             if (generation <= 0) throw new IllegalArgumentException("Review generation must be positive");
-            if (path.isPresent() != document.isPresent()) {
-                throw new IllegalArgumentException("Review path and document must be published atomically");
+            if (path.isPresent() != document.isPresent() || path.isPresent() != access.isPresent()) {
+                throw new IllegalArgumentException(
+                        "Review path, document, and access must be published atomically");
             }
+        }
+
+        public boolean writable() {
+            return access.filter(value -> value == SFMReleaseReviewStore.Access.WRITABLE).isPresent();
         }
     }
 
@@ -119,32 +140,49 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
     public synchronized void create(Path path, SFMReleaseReviewV1 value) throws IOException {
         Objects.requireNonNull(value, "value");
         closeForReplacement();
-        store = SFMReleaseReviewStore.open(path, SFMReleaseReviewStore.Access.WRITABLE);
-        document = value;
-        openedHash = Optional.empty();
-        cachedStatus = null;
-        SFMReleaseReviewStore.SaveResult saved = store.save(value, openedHash);
-        openedHash = Optional.of(saved.contentHash());
-        dirty = false;
-        advanceOpenEpoch();
-        advanceGeneration();
+        SFMReleaseReviewStore replacement = SFMReleaseReviewStore.open(
+                path,
+                SFMReleaseReviewStore.Access.WRITABLE
+        );
+        try {
+            long nextOpenEpoch = Math.incrementExact(openEpoch);
+            long nextGeneration = Math.incrementExact(generation);
+            SFMReleaseReviewStore.SaveResult saved = replacement.save(value, Optional.empty());
+            store = replacement;
+            replacement = null;
+            document = value;
+            openedHash = Optional.of(saved.contentHash());
+            cachedStatus = null;
+            dirty = false;
+            openEpoch = nextOpenEpoch;
+            generation = nextGeneration;
+        } finally {
+            if (replacement != null) replacement.close();
+        }
     }
 
     public synchronized MutationResult mutate(UnaryOperator<SFMReleaseReviewV1> mutation) {
         requireDocument();
+        if (store.access() != SFMReleaseReviewStore.Access.WRITABLE) {
+            return mutationRejected(
+                    "review.read-only",
+                    "mutate",
+                    "Writable access is required before applying a release-review mutation"
+            );
+        }
         SFMReleaseReviewV1 updated = Objects.requireNonNull(mutation.apply(document), "mutated document");
         SFMReleaseReviewKernel.validate(updated);
-        document = updated;
-        cachedStatus = null;
-        dirty = true;
-        advanceGeneration();
+        long nextGeneration = Math.incrementExact(generation);
         try {
             SFMReleaseReviewStore.SaveResult saved = store.save(updated, openedHash);
+            document = updated;
             openedHash = Optional.of(saved.contentHash());
+            cachedStatus = null;
             dirty = false;
-            return new MutationResult(true, false, Optional.empty());
+            generation = nextGeneration;
+            return new MutationResult(true, false, Optional.empty(), saved.diagnostics());
         } catch (IOException | RuntimeException exception) {
-            return new MutationResult(false, true, Optional.ofNullable(exception.getMessage()));
+            return mutationFailed("mutate", exception);
         }
     }
 
@@ -167,14 +205,20 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
 
     public synchronized MutationResult save() {
         requireDocument();
+        if (store.access() != SFMReleaseReviewStore.Access.WRITABLE) {
+            return mutationRejected(
+                    "review.read-only",
+                    "save",
+                    "Writable access is required to save the open release review"
+            );
+        }
         try {
             SFMReleaseReviewStore.SaveResult saved = store.save(document, openedHash);
             openedHash = Optional.of(saved.contentHash());
             dirty = false;
-            return new MutationResult(true, false, Optional.empty());
+            return new MutationResult(true, false, Optional.empty(), saved.diagnostics());
         } catch (IOException | RuntimeException exception) {
-            dirty = true;
-            return new MutationResult(false, true, Optional.ofNullable(exception.getMessage()));
+            return mutationFailed("save", exception);
         }
     }
 
@@ -552,6 +596,7 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
         return new Snapshot(
                 store == null ? Optional.empty() : Optional.of(store.path()),
                 Optional.ofNullable(document),
+                store == null ? Optional.empty() : Optional.of(store.access()),
                 generation,
                 openEpoch,
                 dirty
@@ -624,6 +669,37 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
 
     private void advanceOpenEpoch() {
         openEpoch = Math.incrementExact(openEpoch);
+    }
+
+    private MutationResult mutationFailed(String operation, Throwable failure) {
+        String code = failure instanceof SFMReleaseReviewStore.ExternalEditConflict
+                ? "review.external-edit-conflict"
+                : failure instanceof IOException
+                        ? "review.io-failure"
+                        : "review.serialization-failure";
+        return mutationRejected(
+                code,
+                operation,
+                "failure_type=" + failure.getClass().getSimpleName()
+                        + " message=" + failureMessage(failure)
+        );
+    }
+
+    private MutationResult mutationRejected(String code, String operation, String detail) {
+        String diagnostic = "Release-review mutation was not published"
+                + " code=" + code
+                + " operation=" + operation
+                + " path=" + store.path()
+                + " access=" + store.access()
+                + " published_generation=" + generation
+                + " published_dirty=" + dirty
+                + " detail=" + detail;
+        return new MutationResult(false, dirty, Optional.of(diagnostic), List.of(diagnostic));
+    }
+
+    private static String failureMessage(Throwable failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank() ? "<no message>" : message;
     }
 
     private String activeExpression() {

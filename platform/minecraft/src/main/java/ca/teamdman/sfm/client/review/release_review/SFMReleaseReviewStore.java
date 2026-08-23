@@ -30,7 +30,16 @@ public final class SFMReleaseReviewStore implements AutoCloseable {
         }
     }
 
-    public record SaveResult(String contentHash, long byteCount) {}
+    public record SaveResult(String contentHash, long byteCount, List<String> diagnostics) {
+        public SaveResult {
+            contentHash = java.util.Objects.requireNonNull(contentHash, "contentHash");
+            diagnostics = List.copyOf(diagnostics);
+        }
+
+        public SaveResult(String contentHash, long byteCount) {
+            this(contentHash, byteCount, List.of());
+        }
+    }
 
     /** Exact rebuildable machine-local paths associated with one authoritative review file. */
     public record MachineLocalState(Path recovery, Path writerLease) {}
@@ -127,8 +136,18 @@ public final class SFMReleaseReviewStore implements AutoCloseable {
         }
         byte[] bytes = canonical.getBytes(StandardCharsets.UTF_8);
         replaceAtomically(path, bytes);
-        replaceAtomically(recoveryPath, bytes);
-        return new SaveResult(SFMReleaseReviewKernel.sha256(bytes), bytes.length);
+
+        List<String> diagnostics = new ArrayList<>();
+        try {
+            replaceAtomically(recoveryPath, bytes);
+        } catch (IOException | RuntimeException failure) {
+            diagnostics.add("Release-review authority was saved, but its machine-local recovery mirror was not"
+                    + " code=review.recovery-mirror-write-failed"
+                    + " path=" + recoveryPath
+                    + " failure_type=" + failure.getClass().getSimpleName()
+                    + " message=" + failureMessage(failure));
+        }
+        return new SaveResult(SFMReleaseReviewKernel.sha256(bytes), bytes.length, diagnostics);
     }
 
     public Path path() {
@@ -197,6 +216,11 @@ public final class SFMReleaseReviewStore implements AutoCloseable {
         } finally {
             Files.deleteIfExists(temporary);
         }
+    }
+
+    private static String failureMessage(Throwable failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank() ? "<no message>" : message;
     }
 
     private static Path recoveryRoot() {
