@@ -907,6 +907,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         long geometryStartedNanos = System.nanoTime();
         CanvasTextPoint point = canvasPoint(openContext.initialValue(), range.start());
         model().setCursor(point.x(), point.y());
+        // A review/navigation target is also an exact directional selection.
+        // Keep the active edge at the visible cursor so context actions retain
+        // the complete pinned range without inventing a second selection store.
+        exactDocumentSelections = List.of(new SFMTextDocumentSelection(
+                "open-target",
+                range.end(),
+                range.start(),
+                true
+        ));
+        exactDocumentSelectionsContentRevision = model().contentRevision();
+        exactDocumentSelectionsCursorFingerprint = cursorFingerprint();
+        exactDocumentSelectionsPublished = true;
         SFMNavigationFramingPolicy.Result framing = frameDestination(openContext.initialValue(), range);
         cameraX = framing.camera().x();
         cameraY = framing.camera().y();
@@ -1039,7 +1051,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                         .map(selection -> new ca.teamdman.sfm.client.context.SFMContextSelectionProjection(
                                 selection.id(),
                                 List.of(selection.orderedRange()),
-                                selection.primary()
+                                selection.primary(),
+                                List.of(selection)
                         ))
                         .toList();
         SFMContextDocumentProjection captured = SFMContextDocumentProjection.capture(

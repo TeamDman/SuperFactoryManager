@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.context.SFMContextActionProvider;
 import ca.teamdman.sfm.client.context.SFMContextActionRegistry;
 import ca.teamdman.sfm.client.context.SFMContextSnapshot;
@@ -64,9 +65,16 @@ public final class SFMContextActionsOpenAction implements SFMClientAction<SFMCli
         SFMContextSnapshot snapshot = workspace.contextSnapshot();
         SFMContextActionRegistry.Resolution resolution = registry.resolve(
                 SFMContextActionProvider.Request.capture(target, snapshot));
-        resolution.diagnostics().forEach(diagnostic -> context.getSource().sendFeedback(Component.literal(
-                "Context action provider " + diagnostic.providerId() + ": " + diagnostic.message()
-        ).withStyle(ChatFormatting.RED)));
+        resolution.diagnostics().forEach(diagnostic -> {
+            SFM.LOGGER.warn(
+                    "SFM_CONTEXT_ACTION_PROVIDER_FAILED provider={} message={}",
+                    diagnostic.providerId(),
+                    diagnostic.message()
+            );
+            context.getSource().sendFeedback(Component.literal(
+                    "Context action provider " + diagnostic.providerId() + ": " + diagnostic.message()
+            ).withStyle(ChatFormatting.RED));
+        });
         if (resolution.choices().isEmpty()) throw NONE.create();
         SFMCommandPaletteScreen.openChoices(
                 target,

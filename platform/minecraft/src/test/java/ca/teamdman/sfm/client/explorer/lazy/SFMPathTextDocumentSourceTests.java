@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.client.explorer.lazy;
 
 import ca.teamdman.sfm.client.explorer.SFMPath;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -259,6 +261,29 @@ public class SFMPathTextDocumentSourceTests {
 
         assertFalse(resolver.supportsTextRead());
         assertEquals(SFMResolverTextResult.Status.UNSUPPORTED_RESOLVER, resolver.readText(request).join().status());
+    }
+
+    @Test
+    public void pinnedSnapshotRetainsAddressAndFailsClosedOnHashMismatch() {
+        String text = "class Café {}\n";
+        String hash = sha256(text.getBytes(StandardCharsets.UTF_8));
+        SFMPath root = SFMPath.parse("review://document/revision-1/");
+        SFMPath path = SFMPath.parse("review://document/revision-1/src/Cafe.java");
+        SFMTextDocumentSource.PinnedSnapshot source = new SFMTextDocumentSource.PinnedSnapshot(
+                path, root, text, hash, Optional.empty(), Optional.empty());
+
+        SFMTextDocumentSnapshot ready = source.load(new SFMExplorerCancellationToken()).join();
+        assertTrue(ready.ready());
+        assertTrue(ready.readOnly());
+        assertEquals(path, ready.path().orElseThrow());
+        assertEquals(root, ready.authorizedRoot().orElseThrow());
+        assertEquals(hash, ready.sha256().orElseThrow());
+
+        SFMTextDocumentSnapshot stale = new SFMTextDocumentSource.PinnedSnapshot(
+                path, root, text, "0".repeat(64), Optional.empty(), Optional.empty())
+                .load(new SFMExplorerCancellationToken()).join();
+        assertEquals(SFMTextDocumentSnapshot.State.STALE_CONTENT, stale.state());
+        assertFalse(stale.ready());
     }
 
     @Test

@@ -428,7 +428,8 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 document.lineEndingKind(),
                 Optional.of(range),
                 document.diagnostics(),
-                document.sourceRootIdentity()
+                document.sourceRootIdentity(),
+                document.analysisIdentity()
         );
     }
 
@@ -537,6 +538,12 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                         layout.generation()
                 );
         return Optional.of(new SpatialCoverageCapture(identity, document, map.files()));
+    }
+
+    /** Current exact Rust semantic publication for context-aware review selector proposals. */
+    public Optional<SFMJavaInteractionMap.Result> currentJavaInteractionMap() {
+        if (!(screen instanceof SFMDrawCanvasScreen drawCanvas)) return Optional.empty();
+        return currentInteractionMap(drawCanvas);
     }
 
     @Override
@@ -1453,6 +1460,11 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 openContext.document(),
                 isReadOnly()
         );
+        SFMContextDocumentProjection semanticProjection = projection.baseline().semanticAnalysisSnapshot()
+                .map(baseline -> new SFMContextDocumentProjection(
+                        projection.editorId(), baseline, projection.currentText(), projection.currentSha256(),
+                        projection.dirty(), projection.readOnly(), projection.cursors(), projection.selections()))
+                .orElse(projection);
         long documentGeneration = drawCanvas.documentGeneration();
         long contributorGeneration = drawCanvas.contextGeneration();
         observedDocumentContentHash = SFMDefinitionRequest.sha256(projection.currentText());
@@ -1466,7 +1478,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                                 contributorGeneration,
                                 0
                         ),
-                        projection
+                        semanticProjection
                 ),
                 documentGeneration,
                 observedDocumentContentHash

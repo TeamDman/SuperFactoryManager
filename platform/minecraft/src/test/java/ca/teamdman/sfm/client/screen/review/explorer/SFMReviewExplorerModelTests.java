@@ -1,12 +1,18 @@
 package ca.teamdman.sfm.client.screen.review.explorer;
 
 import ca.teamdman.sfm.client.history.SFMHistoryGraphContract;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewKernel;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1Codec;
 import ca.teamdman.sfm.client.review.session.SFMReviewSessionV1;
 import ca.teamdman.sfm.client.review.session.SFMReviewSessionV2;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -68,6 +74,77 @@ class SFMReviewExplorerModelTests {
         model.collapseSelectionOrSelectParent();
         model.collapseSelectionOrSelectParent();
         assertEquals(SFMReviewExplorerModel.Kind.ROOT, model.selected().kind());
+    }
+
+    @Test
+    void immutableProjectionRefreshPreservesSelectionAndExpansion() {
+        SFMReviewExplorerModel initial = SFMReviewExplorerModel.changes("before", "after");
+        initial.selectNext();
+        initial.expandSelection();
+        initial.selectNext();
+        String selectedId = initial.selected().id();
+        AtomicReference<Object> revision = new AtomicReference<>(new Object());
+        AtomicReference<SFMReviewExplorerModel> projection = new AtomicReference<>(initial);
+        SFMReviewExplorerPanel panel = new SFMReviewExplorerPanel(
+                "Live review", initial, revision::get, projection::get);
+
+        SFMReviewExplorerModel replacement = SFMReviewExplorerModel.changes("before", "candidate");
+        projection.set(replacement);
+        revision.set(new Object());
+        panel.tick();
+
+        assertSame(replacement, panel.model());
+        assertEquals(selectedId, panel.model().selected().id());
+        assertTrue(panel.model().root().children().get(0).expanded());
+        assertTrue(panel.model().root().expanded());
+    }
+
+    @Test
+    void releaseStatusMakesEveryCompletionCountANavigableWitnessList() throws Exception {
+        SFMReleaseReviewV1 review = releaseReviewFixture();
+        SFMReleaseReviewKernel.CompletionReport report = SFMReleaseReviewKernel.completion(review);
+
+        SFMReviewExplorerModel model = SFMReviewExplorerModel.releaseStatus(review);
+
+        assertTrue(model.root().label().contains(report.status().name().toLowerCase(java.util.Locale.ROOT)));
+        assertEquals(List.of(
+                        "release/status/changed",
+                        "release/status/approved-raw",
+                        "release/status/approved-effective",
+                        "release/status/remaining",
+                        "release/status/blocking",
+                        "release/status/suspended",
+                        "release/status/missing",
+                        "release/status/deferred",
+                        "release/status/unsupported",
+                        "release/status/stale-producer"
+                ), model.root().children().stream().map(SFMReviewExplorerModel.Node::id).toList(),
+                "every completion witness category must remain present even when its count is zero");
+        assertStatusCategory(model, "changed",
+                List.of("unit:src/Cafe.java:value", "unit:src/Other.java:file"));
+        assertStatusCategory(model, "approved-raw", List.of("unit:src/Cafe.java:value"));
+        assertStatusCategory(model, "approved-effective", List.of("unit:src/Cafe.java:value"));
+        assertStatusCategory(model, "remaining", List.of("unit:src/Other.java:file"));
+        assertStatusCategory(model, "blocking", List.of());
+        assertStatusCategory(model, "suspended", List.of());
+        assertStatusCategory(model, "missing", List.of());
+        assertStatusCategory(model, "deferred", List.of());
+        assertStatusCategory(model, "unsupported", List.of("unit:src/Other.java:file"));
+        assertStatusCategory(model, "stale-producer", List.of());
+    }
+
+    @Test
+    void canonicalQueriesProjectExactStableUnitIdsIntoOrdinaryJumpLists() throws Exception {
+        SFMReleaseReviewV1 review = releaseReviewFixture();
+
+        assertQueryJumpList(review, "#approved intersect 1.19.2 HEAD",
+                List.of("unit:src/Cafe.java:value"));
+        assertQueryJumpList(review, "effective(#approved) intersect 1.19.2 HEAD",
+                List.of("unit:src/Cafe.java:value"));
+        assertQueryJumpList(review, "remaining intersect 1.19.2 HEAD",
+                List.of("unit:src/Other.java:file"));
+        assertQueryJumpList(review, "blocking intersect 1.19.2 HEAD", List.of());
+        assertQueryJumpList(review, "suspended intersect 1.19.2 HEAD", List.of());
     }
 
     @Test
@@ -222,5 +299,68 @@ class SFMReviewExplorerModelTests {
                 Optional.of("evaluator-1"),
                 List.of()
         );
+    }
+
+    private static void assertStatusCategory(
+            SFMReviewExplorerModel model,
+            String id,
+            List<String> expectedUnitIds
+    ) {
+        SFMReviewExplorerModel.Node category = model.root().children().stream()
+                .filter(node -> node.id().equals("release/status/" + id))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(SFMReviewExplorerModel.Kind.STATUS_CATEGORY, category.kind());
+        assertTrue(category.label().endsWith(" · " + expectedUnitIds.size()));
+        assertEquals(expectedUnitIds,
+                category.children().stream()
+                        .map(node -> node.id().substring("release/unit/".length()))
+                        .toList());
+        assertNavigableReviewUnits(category.children(), expectedUnitIds);
+    }
+
+    private static void assertQueryJumpList(
+            SFMReleaseReviewV1 review,
+            String expression,
+            List<String> expectedUnitIds
+    ) {
+        SFMReviewExplorerModel model = SFMReviewExplorerModel.releaseQuery(review, expression);
+        assertEquals(expectedUnitIds.stream().map(id -> "release/unit/" + id).toList(),
+                model.root().children().stream().map(SFMReviewExplorerModel.Node::id).toList());
+        assertNavigableReviewUnits(model.root().children(), expectedUnitIds);
+    }
+
+    private static void assertNavigableReviewUnits(
+            List<SFMReviewExplorerModel.Node> rows,
+            List<String> expectedUnitIds
+    ) {
+        assertEquals(expectedUnitIds.size(), rows.size());
+        for (int index = 0; index < rows.size(); index++) {
+            SFMReviewExplorerModel.Node unit = rows.get(index);
+            String expectedUnitId = expectedUnitIds.get(index);
+            assertEquals("release/unit/" + expectedUnitId, unit.id());
+            assertEquals(SFMReviewExplorerModel.Kind.REVIEW_UNIT, unit.kind());
+            assertEquals(2, unit.children().size(),
+                    "every review-unit witness must expose explicit before and after destinations");
+            assertEquals(List.of(SFMReviewExplorerModel.Kind.REVISION, SFMReviewExplorerModel.Kind.REVISION),
+                    unit.children().stream().map(SFMReviewExplorerModel.Node::kind).toList());
+            assertEquals(List.of("before", "after"), unit.children().stream()
+                    .map(child -> child.leaf().title().split(" · ")[0])
+                    .toList());
+            assertTrue(unit.children().stream().allMatch(child -> child.leaf() != null));
+            assertTrue(unit.children().stream().allMatch(child -> child.id().endsWith("/" + expectedUnitId)),
+                    "status and query leaves must retain the stable review-unit id in their jump identity");
+        }
+    }
+
+    private static SFMReleaseReviewV1 releaseReviewFixture() throws Exception {
+        Path cursor = Path.of("").toAbsolutePath();
+        for (int depth = 0; depth < 8 && cursor != null; depth++, cursor = cursor.getParent()) {
+            Path candidate = cursor.resolve("docs/architecture/fixtures/release-review-v1.json");
+            if (Files.isRegularFile(candidate)) {
+                return SFMReleaseReviewV1Codec.parse(Files.readString(candidate).replace("\r\n", "\n"));
+            }
+        }
+        throw new IllegalStateException("Unable to locate canonical release-review fixture");
     }
 }

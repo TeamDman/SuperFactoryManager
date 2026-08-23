@@ -31,6 +31,42 @@ public final class SFMReviewActions {
             SFMCandidateCommentAction.Kind.PROMOTE_EXACT);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMCandidateCommentAction> MIGRATE_WITNESSED = register(
             SFMCandidateCommentAction.Kind.MIGRATE_WITNESSED);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_CREATE = register(
+            SFMReleaseReviewAction.Kind.CREATE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_OPEN = register(
+            SFMReleaseReviewAction.Kind.OPEN);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_OPEN_READ_ONLY = register(
+            SFMReleaseReviewAction.Kind.OPEN_READ_ONLY);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_SAVE = register(
+            SFMReleaseReviewAction.Kind.SAVE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_SAVE_AS = register(
+            SFMReleaseReviewAction.Kind.SAVE_AS);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_QUERY = register(
+            SFMReleaseReviewAction.Kind.QUERY);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_QUERY_ACTIVATE = register(
+            SFMReleaseReviewAction.Kind.QUERY_ACTIVATE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_QUERY_SAVE = register(
+            SFMReleaseReviewAction.Kind.QUERY_SAVE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_QUERY_NORMALIZE = register(
+            SFMReleaseReviewAction.Kind.QUERY_NORMALIZE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_STATUS = register(
+            SFMReleaseReviewAction.Kind.STATUS);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_SELECT = register(
+            SFMReleaseReviewAction.Kind.SELECT);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_NEXT = register(
+            SFMReleaseReviewAction.Kind.NEXT);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_PREVIOUS = register(
+            SFMReleaseReviewAction.Kind.PREVIOUS);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_DEFER = register(
+            SFMReleaseReviewAction.Kind.DEFER);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_RESUME = register(
+            SFMReleaseReviewAction.Kind.RESUME);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_COMMENT_CREATE = register(
+            SFMReleaseReviewAction.Kind.COMMENT_CREATE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_MIGRATION_DECIDE = register(
+            SFMReleaseReviewAction.Kind.MIGRATION_DECIDE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_ATTEST = register(
+            SFMReleaseReviewAction.Kind.ATTEST);
 
     private SFMReviewActions() {
     }
@@ -39,6 +75,12 @@ public final class SFMReviewActions {
             SFMCandidateCommentAction.Kind kind
     ) {
         return REGISTERER.register(kind.path(), () -> new SFMCandidateCommentAction(kind));
+    }
+
+    private static SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> register(
+            SFMReleaseReviewAction.Kind kind
+    ) {
+        return REGISTERER.register(kind.path(), () -> new SFMReleaseReviewAction(kind));
     }
 
     public static void register(IEventBus bus) {

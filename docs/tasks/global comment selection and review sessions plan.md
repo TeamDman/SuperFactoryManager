@@ -1343,14 +1343,14 @@ separately invoked explicit selection action.
   previews, F2 navigation, session reopen, snapshot advance, and migration
   failure.
 
-## Recommended next cross-plan goal candidate — review selectors and migration
+## Completed cross-plan goal — review selectors, resumability, and real release domain
 
-The 2026-08-23 whole-plan audit makes this the lowest-regret next overnight
-candidate for the stated release objective. The newer puppet-control proposal
-is coherent but is not a prerequisite for human review: existing Rust-launched
-puppets already provide live evidence, while release confidence still lacks the
-adapter and evaluation path that turns an editor selection/semantic region into
-a durable comment and carries it conservatively across revisions.
+The 2026-08-23 whole-plan audit selected this as the lowest-regret active goal
+for the stated release objective. Its implementation and pre-freeze real-corpus
+proof are now complete. The active persistent goal remains open only for the
+immutable two-checkpoint closeout described below; that closeout deliberately
+follows the final mutation of this plan so the committed review can pin the
+actual implementation checkpoint rather than a moving working tree.
 
 Current foundations supersede parts of the 2026-07-23 proposal below: X-1
 through X-7 and X-8a through X-8c are complete; SS-1 through SS-6 are complete;
@@ -1361,7 +1361,79 @@ trajectory comments exist. The next slice must use
 it must not revive the deleted managed-bundle inbox, stale v1-only assumptions,
 or the old proposed worktree names.
 
-### [ ] RCS-0 Freeze the current adapter/evaluation contract and corpus fixture
+### Active-goal completion record and immutable closeout — 2026-08-23
+
+Every RCS implementation item below has its bounded matrix and integration path
+implemented. This record distinguishes those completed capabilities from the
+final immutable repository-state transaction: after this plan's last mutation,
+amend checkpoint A, install that exact CLI, regenerate the complete review
+against A, repeat the separate-JVM proof, and commit only that initialized
+review as checkpoint B. The persistent goal must not be marked complete until
+that mechanical closeout and the final source gates have actually passed.
+
+- **RCS-0/RCS-1:** the versioned Java/Rust contract, canonical fixtures,
+  immutable snapshot-corpus adapter, ordered multi-document Unicode pinning,
+  reverse projection, stale/live heads, hashes, provenance, whitespace, and
+  v1/v2 compatibility all pass without introducing a second comment or approval
+  authority.
+- **RCS-2/RCS-3/RCS-4:** certified Java structural proposals, conservative
+  literal witnesses, bounded evaluator/indexes, every terminal state,
+  invalidation/set laws, retained ambiguity, migration decisions, old/new
+  witnesses, and persisted edit/archive/discard/defer behavior pass. The real
+  journey selected a Java interaction-map `body` proposal through the ordinary
+  contextual palette rather than synthesizing a comment behind the UI.
+- **RCS-5:** the self-orchestrating natural-input fixture journey passes at
+  `1280x720@auto` and `1920x1080@auto`, with inspected PNG and structured
+  artifacts for semantic selection, comment creation, relocation, conservative
+  suspension, reopen, and cleanup.
+- **RCS-6/RCS-7:** one path-addressed, atomically saved
+  `sfm.release-review/1` owns all durable truth. Grammar, CLI/game query parity,
+  explorer work queues, raw/effective approval, remaining/blocking results,
+  stable resume IDs, conflict/recovery/lease behavior, and checkout-like
+  portability pass. A fresh second JVM reopened identical review bytes after
+  recovery and writer-lease deletion and recovered the exact comment, selector,
+  query results, and cursor.
+- **RCS-S2:** the producer reconciled the complete real
+  `4.34.0-1.19.2..<candidate>` inventory: 1,613 raw changes, 1,767 represented
+  before/after paths, 2,917 review units, zero unexplained exclusions, zero
+  unsupported units, and deterministic preserving refresh.
+- **RCS-8:** Java/Rust completion parity, fail-closed states, non-circular
+  semantic hashing, invalidation, exact witnesses/jump lists, attestation gates,
+  and presentation-only independence pass. The real review remained
+  `in_progress` with no attestation; the staged structural `#needs-change`
+  produced four blocking units while all 2,917 units remained in the work queue.
+- **RCS-S1 rehearsal:** against implementation checkpoint
+  `aa05e41b6fae946370bf9fcfa6b40c8440d6073f`, the real stage and resume
+  puppets passed in distinct JVMs. They proved a 30,305,976-byte canonical
+  review, exact SHA-256/semantic-state continuity, canonical-file immutability,
+  durable Java selector provenance, cache-independent restart, and cleanup.
+  Because the canonical document exceeds the puppet channel's one-megabyte
+  bound, the full tracked file remains authoritative and each puppet emits a
+  bounded path/size/SHA-256/semantic-hash/count/cursor witness instead of a
+  lossy or oversized duplicate.
+
+The rehearsal also exposed and closed four integration defects: Brigadier's
+terminal greedy path retained quotes verbatim; complete-corpus status evaluation
+was accidentally quadratic; puppet action-instance fields did not survive
+checkpoint boundaries; and zero-length candidate-side hunks could be chosen for
+structural review. Regression tests cover the path and batch/cache semantics,
+and the real journeys cover the durable handoff and non-empty target choice.
+
+The CLI was installed fresh for the rehearsal, but this plan mutation makes that
+installation intentionally provisional. The final installation occurs only
+after checkpoint A is frozen, and its revision/hash must be recorded in the
+handoff so the user need not run `install.ps1`. Dependency declarations and all
+checked-in lockfiles remain unchanged.
+
+**Immutable closeout order:** amend implementation checkpoint A with this final
+bookkeeping; install the CLI; regenerate the one complete canonical review
+against A; rerun stage and separate-JVM resume; run focused and full Java/Rust,
+compile, audit, formatting, diff, dependency-freeze, and review-status gates;
+commit only the untouched initialized `in_progress` review as checkpoint B;
+prove the ambient B advance is `review_evidence_only`, the installed binary is
+still exactly A, the worktree is clean, and there are exactly two checkpoints.
+
+### [x] RCS-0 Freeze the current adapter/evaluation contract and corpus fixture
 
 **Work:** Reconcile X-9, SS-7, comment Phase 3/4, and the current Java worker
 schemas into one versioned contract for pinned document revision/hash, shared
@@ -1390,7 +1462,7 @@ serializing an independent copy.
 **Completion criteria:** Later lanes consume one current schema and cannot
 invent a second comment, selection, migration, or approval authority.
 
-### [ ] RCS-1 Complete X-9: adapt editor/explorer selections to pinned comments
+### [x] RCS-1 Complete X-9: adapt editor/explorer selections to pinned comments
 
 **Work:** Project ordered EditorV3 cursor/range selections and shared named
 selections into pinned review selectors while retaining primary cursor,
@@ -1406,7 +1478,7 @@ and existing v1/v2 migration compatibility.
 target and reopen identically without coupling the comment to current cursor or
 explorer state.
 
-### [ ] RCS-2 Complete SS-7: offer semantic/spatial selector candidates
+### [x] RCS-2 Complete SS-7: offer semantic/spatial selector candidates
 
 **Work:** Adapt certified Java regions/outlinks and canvas projections into
 literal, declaration, signature, body, return-type, symbol, and bounded
@@ -1424,7 +1496,7 @@ fallback cannot masquerade as structural evidence.
 can explain and offer conservative literal versus semantic targets through the
 ordinary comment action.
 
-### [ ] RCS-3 Implement the bounded Phase 3 evaluator and indexes
+### [x] RCS-3 Implement the bounded Phase 3 evaluator and indexes
 
 **Work:** Index the fixture/review corpus by lane, path, language, syntax kind,
 symbol, content hash, and diff side. Evaluate text, syntax-region, symbol,
@@ -1440,7 +1512,7 @@ deleted source, parse gap, missing scope, set laws, and bounded work counters.
 **Completion criteria:** Every comment in the scoped corpus has a deterministic
 terminal evaluation state and every non-exact state remains inspectable.
 
-### [ ] RCS-4 Implement the first Phase 4 migration decision surface
+### [x] RCS-4 Implement the first Phase 4 migration decision surface
 
 **Work:** Reevaluate B-targeted comments against C without rewriting B. Show
 selector explanation, old/new witnesses, candidate ranges, and effective-
@@ -1456,7 +1528,7 @@ rule that automated evidence cannot grant or transfer human approval.
 and ambiguous/changed/missing comments never silently disappear or remain
 effectively approved.
 
-### [ ] RCS-5 Prove the natural in-game review journey
+### [x] RCS-5 Prove the natural in-game review journey
 
 **Work:** Open the fixture in the existing explorer/EditorV3, select a method
 surface, choose an explained structural selector over its literal witness,
@@ -1474,7 +1546,17 @@ and a manual-test handoff that requires no user installer run.
 reviewer can create a semantic comment and watch it survive or conservatively
 fail migration across revisions with truthful persisted evidence.
 
-### [ ] RCS-6 Make release review one portable, commit-friendly document
+**Implementation progress — 2026-08-23:** The self-orchestrating natural-input
+journey now passes at both `1280x720@auto` and `1920x1080@auto`. Its structured
+artifacts and visually inspected PNGs prove selection, explained semantic
+proposal choice, comment creation, immutable-projection refresh after a
+relocation decision, conservative suspension of unresolved cases, close/reopen,
+and cleanup. Focused Java release-review/action/model tests and Rust
+release-review Git/materialization tests pass. The immutable closeout above owns
+the shared post-mutation compile/full-suite and installed-tool freshness gates;
+the natural journey itself is complete.
+
+### [x] RCS-6 Make release review one portable, commit-friendly document
 
 **Work:** Implement the `sfm.release-review/1` envelope described above and
 path-addressed create/open/save/save-as actions. Use a canonical
@@ -1500,7 +1582,7 @@ changing one reviewed Java byte is classified as source-affecting divergence.
 durable progress, and copying or committing that file is sufficient to resume
 the same review on another checkout with the referenced revisions available.
 
-### [ ] RCS-7 Add review-query algebra, work queues, and resume actions
+### [x] RCS-7 Add review-query algebra, work queues, and resume actions
 
 **Work:** Implement the compact/canonical query grammar documented above,
 including the exact accepted expression
@@ -1522,7 +1604,7 @@ with suspended `#approved` results visibly differs from effective approval.
 blocked, suspended, or missing for the pinned 1.19.2 candidate; stop halfway;
 commit the file; reopen it; and continue at the next still-valid unit.
 
-### [ ] RCS-S2 Project the complete 1.19.2 change domain into ordinary comments
+### [x] RCS-S2 Project the complete 1.19.2 change domain into ordinary comments
 
 **Work:** Run one structured comparison producer over the entire real 1.19.2
 `previous_release..HEAD` pair and project added/removed/modified/renamed and
@@ -1543,7 +1625,7 @@ its explicit exclusion under the versioned policy.
 finished: every real change is navigable or appears as an explicit unsupported
 work item, and producer reruns cannot duplicate or silently erase progress.
 
-### [ ] RCS-8 Make completion and attestation self-contained and fail closed
+### [x] RCS-8 Make completion and attestation self-contained and fail closed
 
 **Work:** Compute changed-domain, raw-tag, effective-approval, uncovered,
 blocking, suspended, ambiguous/missing, deferred, unsupported, and stale-
@@ -1568,7 +1650,7 @@ cleanliness imply approval.
 blocking count through jump lists, and serve as the commit-able human-review
 evidence referenced by the release gate.
 
-### [ ] RCS-S1 Prove the complete resumable loop on real 1.19.2 release code
+### [x] RCS-S1 Prove the complete resumable loop on real 1.19.2 release code
 
 **Work:** Resolve the existing prior-release tag and pinned `HEAD` commit for
 the 1.19.2 lane, create the canonical repository review file, materialize the
@@ -1603,9 +1685,11 @@ reviewed.
 ### Candidate core, parallel topology, and elastic continuation
 
 The candidate required core is **RCS-0 through RCS-8 plus RCS-S1 and RCS-S2**.
-No goal is active until the user approves it. The fixture proof remains required
-because it gives deterministic exact/relocated/changed/ambiguous/missing
-coverage. RCS-6/RCS-7/RCS-8 make that machinery portable, queryable,
+The user approved this candidate as the active goal on 2026-08-23 under the
+frozen dependency and bounded process-lifecycle posture. The fixture proof
+remains required because it gives deterministic
+exact/relocated/changed/ambiguous/missing coverage. RCS-6/RCS-7/RCS-8 make that
+machinery portable, queryable,
 resumable, and completable; RCS-S2/RCS-S1 ground it in the complete current
 1.19.2 release-change domain. A comment-only or one-file demo does not satisfy
 this candidate.

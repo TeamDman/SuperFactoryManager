@@ -149,33 +149,41 @@ public final class SFMReviewSessionV2Kernel {
 
     public static List<Evaluation> evaluateAll(SFMReviewSessionV2 session) {
         validateSession(session);
-        return session.comments().stream().map(comment -> evaluateComment(session, comment)).toList();
+        List<SFMReviewSessionV1.Comment> committedComments = session.comments().stream()
+                .filter(comment -> comment.target() instanceof SFMReviewSessionV2.CommittedReviewTarget)
+                .map(SFMReviewSessionV2Kernel::asV1Comment)
+                .toList();
+        Map<String, SFMReviewSessionV1Kernel.Evaluation> committedEvaluations = committedComments.isEmpty()
+                ? Map.of()
+                : SFMReviewSessionV1Kernel.evaluateAll(asV1(session, committedComments)).stream()
+                        .collect(java.util.stream.Collectors.toMap(
+                                SFMReviewSessionV1Kernel.Evaluation::commentId,
+                                java.util.function.Function.identity(),
+                                (left, right) -> {
+                                    throw new IllegalArgumentException("Duplicate review comment id "
+                                            + left.commentId());
+                                },
+                                LinkedHashMap::new));
+        return session.comments().stream().map(comment -> {
+            if (comment.target() instanceof SFMReviewSessionV2.CandidateTrajectoryTarget candidate) {
+                return evaluateCandidate(comment, candidate);
+            }
+            SFMReviewSessionV1Kernel.Evaluation evaluation = Objects.requireNonNull(
+                    committedEvaluations.get(comment.id()),
+                    "Missing batch evaluation for " + comment.id());
+            return fromV1(evaluation);
+        }).toList();
     }
 
     public static Evaluation evaluateComment(SFMReviewSessionV2 session, SFMReviewSessionV2.Comment comment) {
         validateSession(session);
         Objects.requireNonNull(comment, "comment");
         if (comment.target() instanceof SFMReviewSessionV2.CandidateTrajectoryTarget candidate) {
-            Status status = candidate.projectionStatus() == SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED
-                    ? Status.CANDIDATE_PINNED
-                    : Status.CANDIDATE_PINNED_UNAVAILABLE;
-            String diagnostic = candidate.targetKind() == SFMReviewSessionV2.CandidateTargetKind.DOCUMENT_REGION
-                    ? "Pinned candidate document witness at " + candidate.canonicalAddress()
-                    : "Pinned candidate " + candidate.targetKind().name().toLowerCase(java.util.Locale.ROOT)
-                    + " at " + candidate.canonicalAddress();
-            return new Evaluation(comment.id(), EVALUATOR_VERSION, status, List.of(), List.of(diagnostic));
+            return evaluateCandidate(comment, candidate);
         }
-        SFMReviewSessionV2.CommittedReviewTarget committed =
-                (SFMReviewSessionV2.CommittedReviewTarget) comment.target();
-        SFMReviewSessionV1 v1 = asV1(session, comment, committed.selectionRule());
+        SFMReviewSessionV1 v1 = asV1(session, List.of(asV1Comment(comment)));
         SFMReviewSessionV1Kernel.Evaluation evaluation = SFMReviewSessionV1Kernel.evaluateAll(v1).get(0);
-        return new Evaluation(
-                comment.id(),
-                EVALUATOR_VERSION,
-                Status.valueOf(evaluation.status().name()),
-                evaluation.ranges(),
-                evaluation.diagnostics()
-        );
+        return fromV1(evaluation);
     }
 
     /** Candidate and candidate-promoted discussion is never itself effective approval. */
@@ -186,10 +194,15 @@ public final class SFMReviewSessionV2Kernel {
     ) {
         if (!(comment.target() instanceof SFMReviewSessionV2.CommittedReviewTarget committed)) return false;
         if (committed.candidatePromotion().isPresent()) return false;
-        SFMReviewSessionV1 v1 = asV1(session, comment, committed.selectionRule());
-        SFMReviewSessionV1Kernel.Evaluation v1Evaluation = SFMReviewSessionV1Kernel.evaluateAll(v1).get(0);
-        if (!Status.valueOf(v1Evaluation.status().name()).equals(evaluation.status())) return false;
-        return SFMReviewSessionV1Kernel.isApprovalEffective(v1, v1.comments().get(0), v1Evaluation);
+        SFMReviewSessionV1.Comment v1Comment = asV1Comment(comment);
+        SFMReviewSessionV1Kernel.Evaluation v1Evaluation = new SFMReviewSessionV1Kernel.Evaluation(
+                evaluation.commentId(),
+                evaluation.evaluatorVersion(),
+                SFMReviewSessionV1Kernel.Status.valueOf(evaluation.status().name()),
+                evaluation.ranges(),
+                evaluation.diagnostics());
+        SFMReviewSessionV1 v1 = asV1(session, List.of(v1Comment));
+        return SFMReviewSessionV1Kernel.isApprovalEffective(v1, v1Comment, v1Evaluation);
     }
 
     public static PromotionResult promoteExact(
@@ -414,8 +427,7 @@ public final class SFMReviewSessionV2Kernel {
 
     private static SFMReviewSessionV1 asV1(
             SFMReviewSessionV2 session,
-            SFMReviewSessionV2.Comment comment,
-            SFMReviewSessionV1.SelectionRule rule
+            List<SFMReviewSessionV1.Comment> comments
     ) {
         return new SFMReviewSessionV1(
                 SFMReviewSessionV1.SCHEMA,
@@ -423,10 +435,40 @@ public final class SFMReviewSessionV2Kernel {
                 session.title(),
                 session.coordinateSystem(),
                 session.revisionLanes(),
-                List.of(new SFMReviewSessionV1.Comment(comment.id(), comment.text(), comment.provenance(), rule)),
+                comments,
                 session.styleRules(),
                 session.completionPolicy()
         );
+    }
+
+    private static SFMReviewSessionV1.Comment asV1Comment(SFMReviewSessionV2.Comment comment) {
+        SFMReviewSessionV2.CommittedReviewTarget committed =
+                (SFMReviewSessionV2.CommittedReviewTarget) comment.target();
+        return new SFMReviewSessionV1.Comment(
+                comment.id(), comment.text(), comment.provenance(), committed.selectionRule());
+    }
+
+    private static Evaluation evaluateCandidate(
+            SFMReviewSessionV2.Comment comment,
+            SFMReviewSessionV2.CandidateTrajectoryTarget candidate
+    ) {
+        Status status = candidate.projectionStatus() == SFMHistoryGraphContract.ProjectionStatus.MATERIALIZED
+                ? Status.CANDIDATE_PINNED
+                : Status.CANDIDATE_PINNED_UNAVAILABLE;
+        String diagnostic = candidate.targetKind() == SFMReviewSessionV2.CandidateTargetKind.DOCUMENT_REGION
+                ? "Pinned candidate document witness at " + candidate.canonicalAddress()
+                : "Pinned candidate " + candidate.targetKind().name().toLowerCase(java.util.Locale.ROOT)
+                + " at " + candidate.canonicalAddress();
+        return new Evaluation(comment.id(), EVALUATOR_VERSION, status, List.of(), List.of(diagnostic));
+    }
+
+    private static Evaluation fromV1(SFMReviewSessionV1Kernel.Evaluation evaluation) {
+        return new Evaluation(
+                evaluation.commentId(),
+                EVALUATOR_VERSION,
+                Status.valueOf(evaluation.status().name()),
+                evaluation.ranges(),
+                evaluation.diagnostics());
     }
 
     private static List<SFMReviewSessionV1.RevisionLane> withCommittedDocument(

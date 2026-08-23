@@ -26,8 +26,27 @@ public record SFMTextDocumentSnapshot(
         Optional<SFMResolverTextResult.LineEndingKind> lineEndingKind,
         Optional<SFMTextDocumentRange> targetRange,
         List<String> diagnostics,
-        Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
+        Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity,
+        Optional<AnalysisIdentity> analysisIdentity
 ) {
+    /**
+     * Optional native identity used only to ask language workers about immutable
+     * bytes whose durable user-facing address belongs to another resolver.
+     */
+    public record AnalysisIdentity(
+            SFMPath path,
+            SFMPath authorizedRoot,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
+    ) {
+        public AnalysisIdentity {
+            Objects.requireNonNull(path, "path");
+            Objects.requireNonNull(authorizedRoot, "authorizedRoot");
+            sourceRootIdentity = Objects.requireNonNull(sourceRootIdentity, "sourceRootIdentity");
+            if (path.kind() != SFMPath.Kind.FILE || authorizedRoot.kind() != SFMPath.Kind.FILE) {
+                throw new IllegalArgumentException("Semantic analysis identities must be file-backed");
+            }
+        }
+    }
     public enum State {
         READY,
         UNSUPPORTED_RESOLVER,
@@ -62,6 +81,7 @@ public record SFMTextDocumentSnapshot(
         targetRange = Objects.requireNonNull(targetRange, "targetRange");
         diagnostics = List.copyOf(diagnostics);
         sourceRootIdentity = Objects.requireNonNull(sourceRootIdentity, "sourceRootIdentity");
+        analysisIdentity = Objects.requireNonNull(analysisIdentity, "analysisIdentity");
         if (state == State.READY) {
             if (sha256.isEmpty() || byteLength.isEmpty() || lineEndingKind.isEmpty()) {
                 throw new IllegalArgumentException("A ready document requires hash, byte length, and line endings");
@@ -73,6 +93,25 @@ public record SFMTextDocumentSnapshot(
             // document and must never escape into the editor presentation.
             targetRange = Optional.empty();
         }
+    }
+
+    /** Backwards-compatible construction for documents without a distinct analysis identity. */
+    public SFMTextDocumentSnapshot(
+            State state,
+            String text,
+            MutationCapability mutationCapability,
+            Optional<SFMPath> path,
+            Optional<SFMPath> authorizedRoot,
+            Optional<String> sha256,
+            OptionalLong byteLength,
+            Optional<Instant> lastModified,
+            Optional<SFMResolverTextResult.LineEndingKind> lineEndingKind,
+            Optional<SFMTextDocumentRange> targetRange,
+            List<String> diagnostics,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
+    ) {
+        this(state, text, mutationCapability, path, authorizedRoot, sha256, byteLength, lastModified,
+                lineEndingKind, targetRange, diagnostics, sourceRootIdentity, Optional.empty());
     }
 
     /** Backwards-compatible construction for documents without worker provenance. */
@@ -101,6 +140,7 @@ public record SFMTextDocumentSnapshot(
                 lineEndingKind,
                 targetRange,
                 diagnostics,
+                Optional.empty(),
                 Optional.empty()
         );
     }
@@ -144,6 +184,72 @@ public record SFMTextDocumentSnapshot(
         );
     }
 
+    public static SFMTextDocumentSnapshot pinned(
+            SFMPath path,
+            SFMPath authorizedRoot,
+            String text,
+            String expectedSha256,
+            Optional<SFMTextDocumentRange> targetRange,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
+    ) {
+        return pinned(path, authorizedRoot, text, expectedSha256, targetRange, sourceRootIdentity, Optional.empty());
+    }
+
+    public static SFMTextDocumentSnapshot pinned(
+            SFMPath path,
+            SFMPath authorizedRoot,
+            String text,
+            String expectedSha256,
+            Optional<SFMTextDocumentRange> targetRange,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity,
+            Optional<AnalysisIdentity> analysisIdentity
+    ) {
+        Objects.requireNonNull(path, "path");
+        Objects.requireNonNull(authorizedRoot, "authorizedRoot");
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(expectedSha256, "expectedSha256");
+        Objects.requireNonNull(targetRange, "targetRange");
+        Objects.requireNonNull(sourceRootIdentity, "sourceRootIdentity");
+        Objects.requireNonNull(analysisIdentity, "analysisIdentity");
+        byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+        String actualSha256 = sha256(bytes);
+        if (!actualSha256.equals(expectedSha256)) {
+            return failure(
+                    State.STALE_CONTENT,
+                    path,
+                    authorizedRoot,
+                    List.of("Pinned document SHA-256 does not match its materialized bytes"),
+                    sourceRootIdentity
+            );
+        }
+        try {
+            targetRange.ifPresent(range -> range.validateAgainst(text));
+        } catch (IllegalArgumentException invalidRange) {
+            return failure(
+                    State.INVALID_RANGE,
+                    path,
+                    authorizedRoot,
+                    List.of(invalidRange.getMessage()),
+                    sourceRootIdentity
+            );
+        }
+        return new SFMTextDocumentSnapshot(
+                State.READY,
+                text,
+                MutationCapability.READ_ONLY,
+                Optional.of(path),
+                Optional.of(authorizedRoot),
+                Optional.of(actualSha256),
+                OptionalLong.of(bytes.length),
+                Optional.empty(),
+                Optional.of(detectLineEndings(text)),
+                targetRange,
+                List.of(),
+                sourceRootIdentity,
+                analysisIdentity
+        );
+    }
+
     /** Preserves document identity while advancing the saved-content baseline. */
     public SFMTextDocumentSnapshot withSavedText(String savedText) {
         Objects.requireNonNull(savedText, "savedText");
@@ -160,8 +266,28 @@ public record SFMTextDocumentSnapshot(
                 Optional.of(detectLineEndings(savedText)),
                 Optional.empty(),
                 diagnostics,
-                sourceRootIdentity
+                sourceRootIdentity,
+                analysisIdentity
         );
+    }
+
+    /** File-backed worker baseline that preserves the durable review identity in the owning snapshot. */
+    public Optional<SFMTextDocumentSnapshot> semanticAnalysisSnapshot() {
+        return analysisIdentity.map(identity -> new SFMTextDocumentSnapshot(
+                state,
+                text,
+                mutationCapability,
+                Optional.of(identity.path()),
+                Optional.of(identity.authorizedRoot()),
+                sha256,
+                byteLength,
+                lastModified,
+                lineEndingKind,
+                targetRange,
+                diagnostics,
+                identity.sourceRootIdentity(),
+                Optional.empty()
+        ));
     }
 
     public static SFMTextDocumentSnapshot fromResolver(

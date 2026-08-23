@@ -36,6 +36,20 @@ class SFMReviewSessionV2Tests {
     }
 
     @Test
+    void batchEvaluationMatchesIndependentEvaluationForEveryTargetKind() throws Exception {
+        SFMReviewSessionV2 session = SFMReviewSessionV2Codec.parse(
+                Files.readString(fixtureV2Path()).replace("\r\n", "\n"));
+
+        List<SFMReviewSessionV2Kernel.Evaluation> batch = SFMReviewSessionV2Kernel.evaluateAll(session);
+        List<SFMReviewSessionV2Kernel.Evaluation> independent = session.comments().stream()
+                .map(comment -> SFMReviewSessionV2Kernel.evaluateComment(session, comment))
+                .toList();
+
+        assertEquals(independent, batch,
+                "one indexed batch must preserve committed and candidate evaluation semantics and order");
+    }
+
+    @Test
     void everyCandidateGranularityRoundTripsWithImmutableAddressEvidence() {
         SFMReviewSessionV2 session = withComments(
                 candidate("route", SFMReviewSessionV2.CandidateTargetKind.ROUTE, 0, Optional.empty(), Optional.empty(),

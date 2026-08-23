@@ -62,6 +62,8 @@ public final class SFMContextActionRegistry {
             .thenComparingInt(RankedChoice::offerRank)
             .thenComparing(candidate -> candidate.choice().command());
     private static final SFMContextActionRegistry MINECRAFT_DEFAULTS = builder()
+            .register(SFMReleaseReviewContextActionProvider.ID, 50,
+                    new SFMReleaseReviewContextActionProvider())
             .register(SFMJavaSymbolContextActionProvider.ID, 100, new SFMJavaSymbolContextActionProvider())
             .build();
 

@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 /** Immutable source descriptor resolved independently for each editor panel. */
 public sealed interface SFMTextDocumentSource permits
         SFMTextDocumentSource.Literal,
+        SFMTextDocumentSource.PinnedSnapshot,
         SFMTextDocumentSource.ResourceAddress,
         SFMTextDocumentSource.PathAddress {
     int DEFAULT_MAXIMUM_BYTES = 4 * 1024 * 1024;
@@ -36,6 +37,45 @@ public sealed interface SFMTextDocumentSource permits
         public CompletableFuture<SFMTextDocumentSnapshot> load(SFMExplorerCancellationToken cancellation) {
             Objects.requireNonNull(cancellation, "cancellation");
             return CompletableFuture.completedFuture(SFMTextDocumentSnapshot.literal(text));
+        }
+    }
+
+    /** Immutable addressed bytes already materialized by an owning snapshot/review corpus. */
+    record PinnedSnapshot(
+            SFMPath path,
+            SFMPath authorizedRoot,
+            String text,
+            String expectedSha256,
+            Optional<SFMTextDocumentRange> targetRange,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity,
+            Optional<SFMTextDocumentSnapshot.AnalysisIdentity> analysisIdentity
+    ) implements SFMTextDocumentSource {
+        public PinnedSnapshot {
+            Objects.requireNonNull(path, "path");
+            Objects.requireNonNull(authorizedRoot, "authorizedRoot");
+            Objects.requireNonNull(text, "text");
+            Objects.requireNonNull(expectedSha256, "expectedSha256");
+            Objects.requireNonNull(targetRange, "targetRange");
+            Objects.requireNonNull(sourceRootIdentity, "sourceRootIdentity");
+            Objects.requireNonNull(analysisIdentity, "analysisIdentity");
+        }
+
+        public PinnedSnapshot(
+                SFMPath path,
+                SFMPath authorizedRoot,
+                String text,
+                String expectedSha256,
+                Optional<SFMTextDocumentRange> targetRange,
+                Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
+        ) {
+            this(path, authorizedRoot, text, expectedSha256, targetRange, sourceRootIdentity, Optional.empty());
+        }
+
+        @Override
+        public CompletableFuture<SFMTextDocumentSnapshot> load(SFMExplorerCancellationToken cancellation) {
+            Objects.requireNonNull(cancellation, "cancellation");
+            return CompletableFuture.completedFuture(SFMTextDocumentSnapshot.pinned(
+                    path, authorizedRoot, text, expectedSha256, targetRange, sourceRootIdentity, analysisIdentity));
         }
     }
 

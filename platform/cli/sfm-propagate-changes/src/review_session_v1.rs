@@ -16,6 +16,7 @@ pub const COORDINATE_SYSTEM: &str = "utf8_byte_half_open";
 pub const EVALUATOR_VERSION: &str = "sfm-review-v1/1";
 
 #[derive(Clone, Debug, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
 pub struct ReviewSessionV1 {
     pub schema: String,
     pub id: String,
@@ -28,6 +29,7 @@ pub struct ReviewSessionV1 {
 }
 
 #[derive(Clone, Debug, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
 pub struct RevisionLaneV1 {
     pub id: String,
     pub repository: RepositoryV1,
@@ -38,18 +40,21 @@ pub struct RevisionLaneV1 {
 }
 
 #[derive(Clone, Debug, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
 pub struct RepositoryV1 {
     pub id: String,
     pub root_hint: String,
 }
 
 #[derive(Clone, Debug, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
 pub struct SnapshotV1 {
     pub id: String,
     pub documents: Vec<DocumentRevisionV1>,
 }
 
 #[derive(Clone, Debug, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
 pub struct DocumentRevisionV1 {
     pub id: String,
     pub path: String,
@@ -59,6 +64,7 @@ pub struct DocumentRevisionV1 {
 }
 
 #[derive(Clone, Debug, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
 pub struct CommentV1 {
     pub id: String,
     pub text: String,
@@ -69,6 +75,7 @@ pub struct CommentV1 {
 }
 
 #[derive(Clone, Debug, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
 pub struct ProvenanceV1 {
     pub kind: String,
     pub producer: String,
@@ -77,6 +84,7 @@ pub struct ProvenanceV1 {
 }
 
 #[derive(Clone, Debug, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
 #[facet(tag = "kind", rename_all = "snake_case")]
 #[repr(C)]
 pub enum SelectionRuleV1 {
@@ -100,6 +108,7 @@ pub enum SelectionRuleV1 {
 }
 
 #[derive(Clone, Debug, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
 pub struct CommentStyleRuleV1 {
     pub id: String,
     pub required_hashtags: Vec<String>,
@@ -116,6 +125,7 @@ pub struct CommentStyleRuleV1 {
 }
 
 #[derive(Clone, Debug, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
 pub struct CompletionPolicyV1 {
     pub coverage_mode: String,
     pub approval_hashtag: String,
@@ -586,7 +596,7 @@ fn normalize(mut ranges: Vec<DocumentRangeV1>) -> Vec<DocumentRangeV1> {
     result
 }
 
-fn validate(session: &ReviewSessionV1) -> eyre::Result<()> {
+pub(crate) fn validate(session: &ReviewSessionV1) -> eyre::Result<()> {
     if session.schema != SCHEMA {
         return Err(eyre!("unsupported schema '{}'", session.schema));
     }

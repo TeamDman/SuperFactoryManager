@@ -1,5 +1,8 @@
 package ca.teamdman.sfm.client.screen.review.explorer;
 
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewCorpus;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewKernel;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1;
 import ca.teamdman.sfm.client.review.session.SFMReviewSessionV2;
 import ca.teamdman.sfm.client.screen.review.comment.SFMCommentHashtags;
 import ca.teamdman.sfm.client.screen.review.comment.SFMFixtureReviewCommentDataSource;
@@ -20,14 +23,62 @@ import java.util.TreeMap;
 
 /** Pure tree/navigation model shared by changes, comments, and hashtag explorers. */
 public final class SFMReviewExplorerModel {
-    public enum Kind { ROOT, FILE, LANE, REVISION, COMMENT, HASHTAG, REGION, CANDIDATE_TARGET }
+    public enum Kind {
+        ROOT,
+        FILE,
+        LANE,
+        REVISION,
+        REVIEW_UNIT,
+        STATUS_CATEGORY,
+        MIGRATION,
+        COMMENT,
+        HASHTAG,
+        REGION,
+        CANDIDATE_TARGET
+    }
 
-    public record SourceLeaf(String id, String title, String path, String text, boolean missing) {
+    public record SourceLeaf(
+            String id,
+            String title,
+            String path,
+            String text,
+            boolean missing,
+            Optional<String> documentRevisionId,
+            Optional<String> sha256,
+            Optional<SFMReleaseReviewV1.Utf8Range> targetRange
+    ) {
         public SourceLeaf {
             Objects.requireNonNull(id);
             Objects.requireNonNull(title);
             Objects.requireNonNull(path);
             Objects.requireNonNull(text);
+            Objects.requireNonNull(documentRevisionId, "documentRevisionId");
+            Objects.requireNonNull(sha256, "sha256");
+            Objects.requireNonNull(targetRange, "targetRange");
+            if (documentRevisionId.isPresent() != sha256.isPresent()) {
+                throw new IllegalArgumentException("Pinned review identity requires both revision id and SHA-256");
+            }
+            targetRange.ifPresent(range -> {
+                if (range.endByte() > text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length) {
+                    throw new IllegalArgumentException("Review leaf target range lies beyond its UTF-8 text");
+                }
+            });
+        }
+
+        public SourceLeaf(
+                String id,
+                String title,
+                String path,
+                String text,
+                boolean missing,
+                Optional<String> documentRevisionId,
+                Optional<String> sha256
+        ) {
+            this(id, title, path, text, missing, documentRevisionId, sha256, Optional.empty());
+        }
+
+        public SourceLeaf(String id, String title, String path, String text, boolean missing) {
+            this(id, title, path, text, missing, Optional.empty(), Optional.empty(), Optional.empty());
         }
     }
 
@@ -86,6 +137,18 @@ public final class SFMReviewExplorerModel {
     }
 
     public record VisibleNode(Node node, int depth) {}
+
+    /** UI-only tree state retained while an immutable review projection is rebuilt. */
+    public record ViewState(String selectedNodeId, Set<String> knownNodeIds, Set<String> expandedNodeIds) {
+        public ViewState {
+            Objects.requireNonNull(selectedNodeId, "selectedNodeId");
+            knownNodeIds = Set.copyOf(knownNodeIds);
+            expandedNodeIds = Set.copyOf(expandedNodeIds);
+            if (!knownNodeIds.containsAll(expandedNodeIds)) {
+                throw new IllegalArgumentException("Expanded review nodes must belong to the captured tree");
+            }
+        }
+    }
 
     public record LaneData(String id, String beforeSelector, String afterSelector, List<FileData> files) {
         public LaneData {
@@ -158,6 +221,216 @@ public final class SFMReviewExplorerModel {
     /** Production hashtag projection over the canonical immutable V2 review session. */
     public static SFMReviewExplorerModel hashtags(SFMReviewSessionV2 session) {
         return sessionComments(session, true);
+    }
+
+    /** Complete pinned before/after projection from one portable release-review document. */
+    public static SFMReviewExplorerModel releaseChanges(SFMReleaseReviewV1 review) {
+        Objects.requireNonNull(review, "review");
+        SFMReleaseReviewCorpus corpus = SFMReleaseReviewCorpus.from(review);
+        Map<String, Map<String, List<SFMReleaseReviewV1.CorpusDocument>>> byPathAndLane = new TreeMap<>();
+        for (SFMReleaseReviewV1.CorpusDocument document : review.corpusDocuments()) {
+            byPathAndLane.computeIfAbsent(document.path(), ignored -> new TreeMap<>())
+                    .computeIfAbsent(document.laneId(), ignored -> new ArrayList<>())
+                    .add(document);
+        }
+        for (SFMReleaseReviewV1.ReviewUnit unit : review.reviewUnits()) {
+            unit.pathBefore().ifPresent(path -> byPathAndLane.computeIfAbsent(path, ignored -> new TreeMap<>())
+                    .computeIfAbsent(unit.laneId(), ignored -> new ArrayList<>()));
+            unit.pathAfter().ifPresent(path -> byPathAndLane.computeIfAbsent(path, ignored -> new TreeMap<>())
+                    .computeIfAbsent(unit.laneId(), ignored -> new ArrayList<>()));
+        }
+        Map<String, SFMReleaseReviewV1.RepositoryBinding> bindings = new LinkedHashMap<>();
+        review.repositoryBindings().forEach(binding -> bindings.put(binding.laneId(), binding));
+        List<Node> files = new ArrayList<>();
+        for (Map.Entry<String, Map<String, List<SFMReleaseReviewV1.CorpusDocument>>> pathEntry
+                : byPathAndLane.entrySet()) {
+            List<Node> lanes = new ArrayList<>();
+            for (Map.Entry<String, List<SFMReleaseReviewV1.CorpusDocument>> laneEntry
+                    : pathEntry.getValue().entrySet()) {
+                String laneId = laneEntry.getKey();
+                SFMReleaseReviewV1.RepositoryBinding binding = bindings.get(laneId);
+                String beforeLabel = binding == null ? "before" : binding.beforeLabel();
+                String afterLabel = binding == null ? "after" : binding.afterLabel();
+                SFMReleaseReviewV1.CorpusDocument before = laneEntry.getValue().stream()
+                        .filter(value -> value.snapshotSide() == SFMReleaseReviewV1.SnapshotSide.BEFORE)
+                        .findFirst().orElse(null);
+                SFMReleaseReviewV1.CorpusDocument after = laneEntry.getValue().stream()
+                        .filter(value -> value.snapshotSide() == SFMReleaseReviewV1.SnapshotSide.AFTER)
+                        .findFirst().orElse(null);
+                SourceLeaf beforeLeaf = releaseLeaf(corpus, laneId, pathEntry.getKey(), before, true, "");
+                SourceLeaf afterLeaf = releaseLeaf(corpus, laneId, pathEntry.getKey(), after, false, "");
+                lanes.add(node(
+                        "release/lane/" + laneId + "/" + pathEntry.getKey(),
+                        laneId + "  " + beforeLabel + " → " + afterLabel,
+                        Kind.LANE,
+                        List.of(
+                                node(beforeLeaf.id(), beforeLeaf.title(), Kind.REVISION, List.of(), beforeLeaf, true),
+                                node(afterLeaf.id(), afterLeaf.title(), Kind.REVISION, List.of(), afterLeaf, true)
+                        ),
+                        null,
+                        false
+                ));
+            }
+            files.add(node("release/file/" + pathEntry.getKey(), pathEntry.getKey(), Kind.FILE, lanes, null, false));
+        }
+        return new SFMReviewExplorerModel(node(
+                "release/changes",
+                "Release changes · " + pinnedRangeLabel(review),
+                Kind.ROOT,
+                files,
+                null,
+                true
+        ));
+    }
+
+    /** Query-projected stable work queue over the portable release-review completion domain. */
+    public static SFMReviewExplorerModel releaseQuery(SFMReleaseReviewV1 review, String expression) {
+        Objects.requireNonNull(review, "review");
+        SFMReleaseReviewKernel.QueryResult result = SFMReleaseReviewKernel.query(review, expression);
+        SFMReviewExplorerModel model = new SFMReviewExplorerModel(node(
+                "release/query",
+                "Review queue · " + result.normalizedExpression(),
+                Kind.ROOT,
+                releaseUnitRows(review, result.reviewUnitIds()),
+                null,
+                true
+        ));
+        review.resumeState().currentUnitId().ifPresent(id -> model.selectNode("release/unit/" + id));
+        return model;
+    }
+
+    /** Fail-closed completion report whose every count expands to its exact unit witnesses. */
+    public static SFMReviewExplorerModel releaseStatus(SFMReleaseReviewV1 review) {
+        Objects.requireNonNull(review, "review");
+        SFMReleaseReviewKernel.CompletionReport report = SFMReleaseReviewKernel.completion(review);
+        SFMReleaseReviewKernel.CompletionWitnesses witnesses = report.witnesses();
+        List<Node> categories = List.of(
+                releaseStatusCategory(review, "changed", "Changed domain", witnesses.changedDomain()),
+                releaseStatusCategory(review, "approved-raw", "Approved (raw tag)", witnesses.approvedRaw()),
+                releaseStatusCategory(review, "approved-effective", "Approved (effective)",
+                        witnesses.approvedEffective()),
+                releaseStatusCategory(review, "remaining", "Remaining", witnesses.remaining()),
+                releaseStatusCategory(review, "blocking", "Blocking", witnesses.blocking()),
+                releaseStatusCategory(review, "suspended", "Suspended", witnesses.suspended()),
+                releaseStatusCategory(review, "missing", "Missing or ambiguous", witnesses.missing()),
+                releaseStatusCategory(review, "deferred", "Deferred", witnesses.deferred()),
+                releaseStatusCategory(review, "unsupported", "Unsupported", witnesses.unsupported()),
+                releaseStatusCategory(review, "stale-producer", "Stale producer", witnesses.staleProducer())
+        );
+        SFMReviewExplorerModel model = new SFMReviewExplorerModel(node(
+                "release/status",
+                "Release status · " + report.status().name().toLowerCase(Locale.ROOT)
+                        + " · remaining=" + report.remaining()
+                        + " · blocking=" + report.blocking(),
+                Kind.ROOT,
+                categories,
+                null,
+                true
+        ));
+        review.resumeState().currentUnitId().ifPresent(id -> model.selectNode("release/unit/" + id));
+        return model;
+    }
+
+    private static Node releaseStatusCategory(
+            SFMReleaseReviewV1 review,
+            String id,
+            String label,
+            List<String> reviewUnitIds
+    ) {
+        return node(
+                "release/status/" + id,
+                label + " · " + reviewUnitIds.size(),
+                Kind.STATUS_CATEGORY,
+                releaseUnitRows(review, reviewUnitIds),
+                null,
+                false
+        );
+    }
+
+    private static List<Node> releaseUnitRows(SFMReleaseReviewV1 review, List<String> reviewUnitIds) {
+        Map<String, SFMReleaseReviewV1.ReviewUnit> units = new LinkedHashMap<>();
+        review.reviewUnits().forEach(unit -> units.put(unit.id(), unit));
+        SFMReleaseReviewCorpus corpus = SFMReleaseReviewCorpus.from(review);
+        List<Node> rows = new ArrayList<>();
+        for (String unitId : reviewUnitIds) {
+            SFMReleaseReviewV1.ReviewUnit unit = Objects.requireNonNull(units.get(unitId), unitId);
+            String path = unit.pathAfter().orElseGet(() -> unit.pathBefore().orElse("<missing>"));
+            List<Node> leaves = new ArrayList<>();
+            leaves.add(releaseUnitLeaf(corpus, unit, true));
+            leaves.add(releaseUnitLeaf(corpus, unit, false));
+            String limitation = unit.limitation().map(value -> " · " + value).orElse("");
+            rows.add(node(
+                    "release/unit/" + unit.id(),
+                    unit.operation().name().toLowerCase(Locale.ROOT) + " · "
+                            + unit.surfaceKind().name().toLowerCase(Locale.ROOT) + " · " + path + limitation,
+                    Kind.REVIEW_UNIT,
+                    leaves,
+                    null,
+                    false
+            ));
+        }
+        return rows;
+    }
+
+    /** Persisted migration decisions and all old/new witnesses, including unresolved candidates. */
+    public static SFMReviewExplorerModel releaseMigrations(SFMReleaseReviewV1 review) {
+        Objects.requireNonNull(review, "review");
+        SFMReleaseReviewCorpus corpus = SFMReleaseReviewCorpus.from(review);
+        List<Node> migrations = new ArrayList<>();
+        for (SFMReleaseReviewV1.MigrationReport report : review.migrationReports()) {
+            List<Node> witnesses = new ArrayList<>();
+            for (int index = 0; index < report.oldWitnesses().size(); index++) {
+                SFMReleaseReviewV1.PinnedSelectionRange range = report.oldWitnesses().get(index);
+                witnesses.add(releaseAddressedLeaf(
+                        corpus,
+                        report.id() + "/old/" + index,
+                        "old",
+                        range.documentRevisionId(),
+                        range.startByte(),
+                        range.endByte()
+                ));
+            }
+            for (int index = 0; index < report.newCandidates().size(); index++) {
+                SFMReleaseReviewV1.AddressedRange range = report.newCandidates().get(index);
+                witnesses.add(releaseAddressedLeaf(
+                        corpus,
+                        report.id() + "/candidate/" + index,
+                        "candidate " + (index + 1),
+                        range.documentRevisionId(),
+                        range.startByte(),
+                        range.endByte()
+                ));
+            }
+            String candidateStatus = report.candidateEvaluation().status().name().toLowerCase(Locale.ROOT);
+            migrations.add(node(
+                    "release/migration/" + report.id(),
+                    candidateStatus + " · " + report.decision().name().toLowerCase(Locale.ROOT)
+                            + " · " + report.sourceSelectorId(),
+                    Kind.MIGRATION,
+                    witnesses,
+                    null,
+                    report.decision() == SFMReleaseReviewV1.MigrationDecision.UNRESOLVED
+            ));
+        }
+        return new SFMReviewExplorerModel(node(
+                "release/migrations",
+                "Release-review migration queue",
+                Kind.ROOT,
+                migrations,
+                null,
+                true
+        ));
+    }
+
+    public static SFMReviewExplorerModel message(String title, String message) {
+        return new SFMReviewExplorerModel(node(
+                "message",
+                title,
+                Kind.ROOT,
+                List.of(node("message/body", message, Kind.REGION, List.of(), null, true)),
+                null,
+                true
+        ));
     }
 
     private static SFMReviewExplorerModel fixtureComments(boolean hashtags) {
@@ -309,14 +582,132 @@ public final class SFMReviewExplorerModel {
         );
     }
 
+    private static Node releaseUnitLeaf(
+            SFMReleaseReviewCorpus corpus,
+            SFMReleaseReviewV1.ReviewUnit unit,
+            boolean before
+    ) {
+        Optional<String> revisionId = before ? unit.beforeDocumentRevisionId() : unit.afterDocumentRevisionId();
+        Optional<String> path = before ? unit.pathBefore() : unit.pathAfter();
+        SFMReleaseReviewV1.CorpusDocument binding = revisionId
+                .flatMap(corpus::documentRevision)
+                .map(SFMReleaseReviewCorpus.DocumentView::binding)
+                .orElse(null);
+        List<SFMReleaseReviewV1.Utf8Range> ranges = before ? unit.beforeRanges() : unit.afterRanges();
+        String rangeLabel = ranges.isEmpty() ? "" : " · " + ranges.stream()
+                .map(range -> "[" + range.startByte() + ".." + range.endByte() + ")")
+                .collect(java.util.stream.Collectors.joining(","));
+        SourceLeaf leaf = releaseLeaf(
+                corpus,
+                unit.laneId(),
+                path.orElse("<missing>"),
+                binding,
+                before,
+                rangeLabel,
+                ranges.stream().findFirst()
+        );
+        return node(leaf.id() + "/" + unit.id(), leaf.title(), Kind.REVISION, List.of(), leaf, true);
+    }
+
+    private static Node releaseAddressedLeaf(
+            SFMReleaseReviewCorpus corpus,
+            String id,
+            String label,
+            String revisionId,
+            int startByte,
+            int endByte
+    ) {
+        SFMReleaseReviewCorpus.DocumentView view = corpus.documentRevision(revisionId).orElse(null);
+        SFMReleaseReviewV1.CorpusDocument binding = view == null ? null : view.binding();
+        String lane = binding == null ? "unknown" : binding.laneId();
+        String path = binding == null ? revisionId : binding.path();
+        boolean before = binding != null && binding.snapshotSide() == SFMReleaseReviewV1.SnapshotSide.BEFORE;
+        SourceLeaf source = releaseLeaf(
+                corpus,
+                lane,
+                path,
+                binding,
+                before,
+                " · [" + startByte + ".." + endByte + ")",
+                Optional.of(new SFMReleaseReviewV1.Utf8Range(startByte, endByte))
+        );
+        SourceLeaf unique = new SourceLeaf(
+                "release/migration/" + id,
+                label + " · " + source.title(),
+                source.path(),
+                source.text(),
+                source.missing(),
+                source.documentRevisionId(),
+                source.sha256(),
+                source.targetRange()
+        );
+        return node(unique.id(), unique.title(), Kind.REVISION, List.of(), unique, true);
+    }
+
+    private static SourceLeaf releaseLeaf(
+            SFMReleaseReviewCorpus corpus,
+            String laneId,
+            String path,
+            SFMReleaseReviewV1.CorpusDocument binding,
+            boolean before,
+            String suffix
+    ) {
+        return releaseLeaf(corpus, laneId, path, binding, before, suffix, Optional.empty());
+    }
+
+    private static SourceLeaf releaseLeaf(
+            SFMReleaseReviewCorpus corpus,
+            String laneId,
+            String path,
+            SFMReleaseReviewV1.CorpusDocument binding,
+            boolean before,
+            String suffix,
+            Optional<SFMReleaseReviewV1.Utf8Range> targetRange
+    ) {
+        String side = before ? "before" : "after";
+        Optional<SFMReleaseReviewCorpus.DocumentView> view = binding == null
+                ? Optional.empty()
+                : corpus.documentRevision(binding.documentRevisionId());
+        Optional<String> text = view.flatMap(SFMReleaseReviewCorpus.DocumentView::materializedDocument)
+                .map(value -> value.text());
+        boolean missing = binding == null
+                || binding.materialization() != SFMReleaseReviewV1.Materialization.COMPLETE
+                || text.isEmpty();
+        String id = "release/revision/" + laneId + "/" + side + "/" + path;
+        return new SourceLeaf(
+                id,
+                side + " · " + laneId + " · " + (missing ? "missing" : path) + suffix,
+                path,
+                text.orElse(""),
+                missing,
+                binding == null ? Optional.empty() : Optional.of(binding.documentRevisionId()),
+                binding == null ? Optional.empty() : Optional.of(binding.sha256()),
+                missing ? Optional.empty() : targetRange
+        );
+    }
+
+    private static String pinnedRangeLabel(SFMReleaseReviewV1 review) {
+        return review.repositoryBindings().stream()
+                .map(binding -> binding.laneId() + ":" + binding.beforeLabel() + "→" + binding.afterLabel())
+                .collect(java.util.stream.Collectors.joining(", "));
+    }
+
     private static SourceLeaf leafForRange(
             String id,
             String commentId,
             SFMReviewCommentDataSource.DocumentView document,
             SFMReviewCommentDataSource.RangeView range
     ) {
-        return new SourceLeaf(id, commentId + " · " + document.side() + " · " + document.path(),
-                document.path(), document.text(), false);
+        return new SourceLeaf(
+                id,
+                commentId + " · " + document.side() + " · " + document.path(),
+                document.path(),
+                document.text(),
+                false,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(new SFMReleaseReviewV1.Utf8Range(range.startByte(), range.endByte()))
+        );
     }
 
     private static Node node(String id, String label, Kind kind, List<Node> children, SourceLeaf leaf, boolean expanded) {
@@ -356,6 +747,29 @@ public final class SFMReviewExplorerModel {
     }
 
     public SourceLeaf selectedLeaf() { return selected().leaf(); }
+
+    public ViewState captureViewState() {
+        LinkedHashSet<String> known = new LinkedHashSet<>();
+        LinkedHashSet<String> expanded = new LinkedHashSet<>();
+        collectViewState(root, known, expanded);
+        return new ViewState(selected().id(), known, expanded);
+    }
+
+    public void restoreViewState(ViewState state) {
+        Objects.requireNonNull(state, "state");
+        applyExpanded(root, state.knownNodeIds(), state.expandedNodeIds());
+        selectNode(state.selectedNodeId());
+    }
+
+    public void selectNode(String id) {
+        List<VisibleNode> visible = visibleNodes();
+        for (int index = 0; index < visible.size(); index++) {
+            if (visible.get(index).node().id().equals(id)) {
+                selectionIndex = index;
+                return;
+            }
+        }
+    }
 
     public void selectNext() { selectionIndex = Math.min(Math.max(0, visibleNodes().size() - 1), selectionIndex + 1); }
     public void selectPrevious() { selectionIndex = Math.max(0, selectionIndex - 1); }
@@ -402,5 +816,16 @@ public final class SFMReviewExplorerModel {
             if (nested != null) return nested;
         }
         return null;
+    }
+
+    private static void collectViewState(Node node, Set<String> known, Set<String> expanded) {
+        known.add(node.id());
+        if (node.expanded()) expanded.add(node.id());
+        node.children().forEach(child -> collectViewState(child, known, expanded));
+    }
+
+    private static void applyExpanded(Node node, Set<String> known, Set<String> expanded) {
+        if (known.contains(node.id())) node.setExpanded(expanded.contains(node.id()));
+        node.children().forEach(child -> applyExpanded(child, known, expanded));
     }
 }

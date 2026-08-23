@@ -341,6 +341,18 @@ public final class SFMGamePuppetHelper {
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 
+    /** Exercises one natural checkpoint in the portable release-review journey. */
+    public void releaseReviewJourney(ReleaseReviewJourneyPuppetAction.Operation operation) {
+        add(new ReleaseReviewJourneyPuppetAction(Objects.requireNonNull(operation, "operation")));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Exercises one checkpoint in the two-process real release-review journey. */
+    public void realReleaseReviewJourney(RealReleaseReviewJourneyPuppetAction.Operation operation) {
+        add(new RealReleaseReviewJourneyPuppetAction(Objects.requireNonNull(operation, "operation")));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     /**
      * Executes a command through the visible palette input and waits for its
      * rendered output to settle.

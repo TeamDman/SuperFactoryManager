@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.screen.workspace.SFMDecimalNumberingChamberScreenT
 import ca.teamdman.sfm.client.screen.workspace.SFMHistoryGraphScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
 import ca.teamdman.sfm.client.screen.workspace.SFMReviewExplorerScreenType;
+import ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMTestScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMTextEditorScreenType;
 import com.mojang.brigadier.CommandDispatcher;
@@ -283,6 +284,50 @@ class OpenPanelActionTests {
         assertNotEquals(first.model().selectionIndex(), second.model().selectionIndex());
         assertNotEquals(first.model().selected().label(), second.model().selected().label());
         assertTrue(second.model().selected().label().contains("Changes"));
+    }
+
+    @Test
+    void releaseReviewQueryPanelAcceptsActiveOrAdHocWorkQueueExpressions() throws Exception {
+        ResourceLocation sceneId = new ResourceLocation("sfm", "explorer/release_review/query");
+        AtomicReference<SFMPanelReopenRecipe> captured = new AtomicReference<>();
+        CommandDispatcher<SFMClientActionSource> dispatcher = new CommandDispatcher<>();
+        dispatcher.register(new SFMReleaseReviewExplorerScreenType(
+                SFMReleaseReviewExplorerScreenType.Projection.QUERY).createCommandNode(
+                sceneId,
+                (context, recipe) -> {
+                    captured.set(recipe);
+                    return 1;
+                }));
+        SFMClientActionSource source = new SFMClientActionSource(SFMClientActionContext.create(null, () -> true));
+
+        assertEquals(1, dispatcher.execute("sfm:explorer/release_review/query", source));
+        assertEquals(java.util.Optional.empty(),
+                ((SFMReleaseReviewExplorerScreenType.Recipe) captured.get()).queryExpression());
+        assertEquals(1, dispatcher.execute(
+                "sfm:explorer/release_review/query remaining intersect 1.19.2 HEAD", source));
+        assertEquals("remaining intersect 1.19.2 HEAD",
+                ((SFMReleaseReviewExplorerScreenType.Recipe) captured.get()).queryExpression().orElseThrow());
+    }
+
+    @Test
+    void releaseReviewStatusWitnessPanelIsAnArgumentFreeOrdinaryPanel() throws Exception {
+        ResourceLocation sceneId = new ResourceLocation("sfm", "explorer/release_review/status");
+        AtomicReference<SFMPanelReopenRecipe> captured = new AtomicReference<>();
+        CommandDispatcher<SFMClientActionSource> dispatcher = new CommandDispatcher<>();
+        dispatcher.register(new SFMReleaseReviewExplorerScreenType(
+                SFMReleaseReviewExplorerScreenType.Projection.STATUS).createCommandNode(
+                sceneId,
+                (context, recipe) -> {
+                    captured.set(recipe);
+                    return 1;
+                }));
+        SFMClientActionSource source = new SFMClientActionSource(SFMClientActionContext.create(null, () -> true));
+
+        assertEquals(1, dispatcher.execute("sfm:explorer/release_review/status", source));
+        SFMReleaseReviewExplorerScreenType.Recipe recipe =
+                (SFMReleaseReviewExplorerScreenType.Recipe) captured.get();
+        assertEquals(SFMReleaseReviewExplorerScreenType.Projection.STATUS, recipe.projection());
+        assertEquals(java.util.Optional.empty(), recipe.queryExpression());
     }
 
     private static boolean isExecutable(ParseResults<SFMClientActionSource> parsed) {

@@ -89,6 +89,48 @@ public final class SFMWorkspaceScreenTypes {
             () -> new SFMReviewExplorerScreenType(SFMReviewExplorerScreenType.Projection.HASHTAGS)
     );
 
+    public static final SFMRegistryObject<SFMClientScreenType, SFMReleaseReviewExplorerScreenType>
+            RELEASE_REVIEW_CHANGES = REGISTERER.register(
+                    "explorer/release_review/changes",
+                    () -> new SFMReleaseReviewExplorerScreenType(
+                            SFMReleaseReviewExplorerScreenType.Projection.CHANGES)
+            );
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMReleaseReviewExplorerScreenType>
+            RELEASE_REVIEW_COMMENTS = REGISTERER.register(
+                    "explorer/release_review/comments",
+                    () -> new SFMReleaseReviewExplorerScreenType(
+                            SFMReleaseReviewExplorerScreenType.Projection.COMMENTS)
+            );
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMReleaseReviewExplorerScreenType>
+            RELEASE_REVIEW_HASHTAGS = REGISTERER.register(
+                    "explorer/release_review/comments/hashtags",
+                    () -> new SFMReleaseReviewExplorerScreenType(
+                            SFMReleaseReviewExplorerScreenType.Projection.HASHTAGS)
+            );
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMReleaseReviewExplorerScreenType>
+            RELEASE_REVIEW_QUERY = REGISTERER.register(
+                    "explorer/release_review/query",
+                    () -> new SFMReleaseReviewExplorerScreenType(
+                            SFMReleaseReviewExplorerScreenType.Projection.QUERY)
+            );
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMReleaseReviewExplorerScreenType>
+            RELEASE_REVIEW_STATUS = REGISTERER.register(
+                    "explorer/release_review/status",
+                    () -> new SFMReleaseReviewExplorerScreenType(
+                            SFMReleaseReviewExplorerScreenType.Projection.STATUS)
+            );
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMReleaseReviewExplorerScreenType>
+            RELEASE_REVIEW_MIGRATIONS = REGISTERER.register(
+                    "explorer/release_review/migrations",
+                    () -> new SFMReleaseReviewExplorerScreenType(
+                            SFMReleaseReviewExplorerScreenType.Projection.MIGRATIONS)
+            );
+
     private SFMWorkspaceScreenTypes() {
     }
 
