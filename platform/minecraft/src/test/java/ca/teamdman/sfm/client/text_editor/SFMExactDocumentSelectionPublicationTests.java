@@ -45,6 +45,32 @@ public class SFMExactDocumentSelectionPublicationTests {
     }
 
     @Test
+    public void publicationRetainsReversePointerSelectionDirection() {
+        String source = "a😀bc\r\n";
+        SFMTextDocumentPosition start = SFMContextTextCoordinates.atLineColumn(source, 0, 1);
+        SFMTextDocumentPosition end = SFMContextTextCoordinates.atLineColumn(source, 0, 4);
+        SFMTextDocumentSelection reverse = new SFMTextDocumentSelection(
+                "pointer-primary",
+                end,
+                start,
+                true
+        );
+
+        SFMExactDocumentSelectionPublication.State state =
+                SFMExactDocumentSelectionPublication.State.publish(
+                        identity(source, 1L, 2L, 3L),
+                        source,
+                        List.of(reverse)
+                );
+
+        SFMTextDocumentSelection retained = state.publication().orElseThrow().selections().get(0);
+        assertEquals(end, retained.anchor());
+        assertEquals(start, retained.active());
+        assertEquals(start, retained.orderedRange().start());
+        assertEquals(end, retained.orderedRange().end());
+    }
+
+    @Test
     public void documentAddressReplacementFailsClosedAndRetainsDiagnostic() {
         String source = "same bytes";
         SFMExactDocumentSelectionPublication.State published = publish(source, 2L, 3L, 5L);

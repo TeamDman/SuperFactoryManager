@@ -8,6 +8,7 @@ import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
+import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPointerSelection;
 import ca.teamdman.sfm.client.semantic.SFMNavigationFramingPolicy;
 import ca.teamdman.sfm.client.semantic.SFMJavaCanvasInteractionRegions;
 import ca.teamdman.sfm.client.semantic.SFMSpatialSemanticContract;
@@ -155,6 +156,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private Optional<Component> saveDiagnostic = Optional.empty();
     private SFMExactDocumentSelectionPublication.State exactDocumentSelectionState =
             SFMExactDocumentSelectionPublication.State.empty();
+    private PointerSelectionGesture pointerSelectionGesture;
     private Optional<SFMSpatialSemanticContract.FramingObservation> navigationFramingObservation = Optional.empty();
     private long javaInteractionRegionRevision = -1L;
     private SFMJavaCanvasInteractionRegions.Index javaInteractionRegionIndex;
@@ -347,6 +349,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     ) {
         performanceTracker.inputReceived(System.nanoTime());
         try {
+            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) pointerSelectionGesture = null;
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && super.mouseClicked(mouseX, mouseY, button)) {
                 return true;
             }
@@ -361,7 +364,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 } else if (hasControlDown()) {
                     model().setAllCursors(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
                 } else {
-                    model().setActiveCursors(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+                    beginPointerSelection(mouseX, mouseY);
+                    return true;
                 }
                 focusMainCanvas();
                 rememberCursorPosition();
@@ -391,7 +395,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 return true;
             }
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-                if (hasAltDown()) {
+                if (pointerSelectionGesture != null) {
+                    return updatePointerSelection(mouseX, mouseY);
+                } else if (hasAltDown()) {
                     model().addCursorAvoidingCrowding(
                             screenToCanvasX(mouseX),
                             screenToCanvasY(mouseY),
@@ -421,6 +427,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         try {
             if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && panning) {
                 panning = false;
+                return true;
+            }
+            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && pointerSelectionGesture != null) {
+                updatePointerSelection(mouseX, mouseY);
+                pointerSelectionGesture = null;
                 return true;
             }
             return super.mouseReleased(mouseX, mouseY, button);
@@ -1172,15 +1183,98 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 .documentIndex(this.font.width(" "), this.font.lineHeight)
                 .orderedGlyphs()
                 .get(hit.range().glyphStart());
-        model().setActiveCursors(glyph.x(), glyph.y());
+        collapsePointerSelectionAtCanvas(glyph.x(), glyph.y());
+    }
+
+    public void focusContextAtScreen(double mouseX, double mouseY) {
+        collapsePointerSelectionAtCanvas(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+    }
+
+    /** Whether a context click should retain the currently published exact range. */
+    public boolean hasNonEmptyExactSelectionAtScreen(double mouseX, double mouseY) {
+        Optional<SFMExactDocumentSelectionPublication> publication = currentExactDocumentSelectionPublication();
+        if (publication.isEmpty()) return false;
+        SFMExactDocumentSelectionPublication exact = publication.orElseThrow();
+        SFMTextEditorPointerSelection.Layout layout = pointerSelectionLayout(exact.coordinateText());
+        SFMTextDocumentPosition position = layout.positionAtCanvas(
+                screenToCanvasX(mouseX),
+                screenToCanvasY(mouseY)
+        );
+        return SFMTextEditorPointerSelection.containsNonEmptySelection(exact.selections(), position);
+    }
+
+    private void beginPointerSelection(double mouseX, double mouseY) {
+        SFMTextEditorPointerSelection.Layout layout = pointerSelectionLayout(pointerCoordinateText());
+        SFMTextDocumentPosition anchor = layout.positionAtCanvas(
+                screenToCanvasX(mouseX),
+                screenToCanvasY(mouseY)
+        );
+        pointerSelectionGesture = new PointerSelectionGesture(
+                layout,
+                documentGeneration,
+                model().contentRevision(),
+                anchor
+        );
+        applyPointerSelection(layout, anchor, anchor);
+    }
+
+    private boolean updatePointerSelection(double mouseX, double mouseY) {
+        PointerSelectionGesture gesture = pointerSelectionGesture;
+        if (gesture == null) return false;
+        if (gesture.documentGeneration() != documentGeneration
+                || gesture.modelContentRevision() != model().contentRevision()) {
+            pointerSelectionGesture = null;
+            return false;
+        }
+        SFMTextDocumentPosition active = gesture.layout().positionAtCanvas(
+                screenToCanvasX(mouseX),
+                screenToCanvasY(mouseY)
+        );
+        applyPointerSelection(gesture.layout(), gesture.anchor(), active);
+        return true;
+    }
+
+    private void collapsePointerSelectionAtCanvas(double canvasX, double canvasY) {
+        pointerSelectionGesture = null;
+        SFMTextEditorPointerSelection.Layout layout = pointerSelectionLayout(pointerCoordinateText());
+        SFMTextDocumentPosition position = layout.positionAtCanvas(canvasX, canvasY);
+        applyPointerSelection(layout, position, position);
+    }
+
+    private void applyPointerSelection(
+            SFMTextEditorPointerSelection.Layout layout,
+            SFMTextDocumentPosition anchor,
+            SFMTextDocumentPosition active
+    ) {
+        CanvasTextPoint point = canvasPoint(layout.coordinateText(), active);
+        model().replaceCursors(List.of(new SFMDrawCanvasModel.CursorPosition(point.x(), point.y())));
+        publishExactDocumentSelections(layout.coordinateText(), List.of(new SFMTextDocumentSelection(
+                "pointer-primary",
+                anchor,
+                active,
+                true
+        )));
         focusMainCanvas();
         rememberCursorPosition();
     }
 
-    public void focusContextAtScreen(double mouseX, double mouseY) {
-        model().setActiveCursors(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
-        focusMainCanvas();
-        rememberCursorPosition();
+    private SFMTextEditorPointerSelection.Layout pointerSelectionLayout(String coordinateText) {
+        loadInitialContent();
+        return SFMTextEditorPointerSelection.capture(
+                coordinateText,
+                model().documentIndex(this.font.width(" "), this.font.lineHeight),
+                this.font.width(" "),
+                this.font.lineHeight
+        );
+    }
+
+    private String pointerCoordinateText() {
+        loadInitialContent();
+        String projected = getCurrentText();
+        if (openContext != null && projected.equals(initialCanvasProjectionText)) {
+            return openContext.initialValue();
+        }
+        return projected;
     }
 
     public Optional<SymbolHit> symbolHitAtScreen(double mouseX, double mouseY) {
@@ -1458,6 +1552,18 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private record CanvasTextPoint(double x, double y) {
+    }
+
+    private record PointerSelectionGesture(
+            SFMTextEditorPointerSelection.Layout layout,
+            long documentGeneration,
+            long modelContentRevision,
+            SFMTextDocumentPosition anchor
+    ) {
+        private PointerSelectionGesture {
+            Objects.requireNonNull(layout, "layout");
+            Objects.requireNonNull(anchor, "anchor");
+        }
     }
 
     @Override
@@ -2230,6 +2336,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private void documentChanged() {
+        pointerSelectionGesture = null;
         documentGeneration = incrementGeneration(documentGeneration);
         clearRemoteSyntaxStyles();
         syntaxPresentationEvidence = Optional.empty();

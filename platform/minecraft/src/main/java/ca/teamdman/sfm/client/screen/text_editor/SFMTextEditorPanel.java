@@ -1144,7 +1144,13 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 && screen instanceof SFMDrawCanvasScreen drawCanvas) {
             Optional<SFMDrawCanvasScreen.SymbolHit> hit = drawCanvas.symbolHitAtScreen(
                     mouseX, mouseY, currentInteractionMap(drawCanvas));
-            hit.ifPresentOrElse(drawCanvas::focusSymbolHit, () -> drawCanvas.focusContextAtScreen(mouseX, mouseY));
+            boolean preserveSelection = drawCanvas.hasNonEmptyExactSelectionAtScreen(mouseX, mouseY);
+            if (!preserveSelection) {
+                hit.ifPresentOrElse(
+                        drawCanvas::focusSymbolHit,
+                        () -> drawCanvas.focusContextAtScreen(mouseX, mouseY)
+                );
+            }
             contextualProjectionOverride = hit
                     .map(value -> drawCanvas.captureContextProjectionAt(
                             openContext.editorId(), openContext.document(), isReadOnly(), value))

@@ -235,6 +235,17 @@ public final class SFMDrawCanvasDocumentIndex {
         return Optional.empty();
     }
 
+    /** Complete immutable row lookup, including zero-width Unicode glyphs. */
+    public List<SFMDrawCanvasModel.CanvasGlyph> glyphsOnVisualRow(double y) {
+        int index = firstPotentialRow(y);
+        for (; index < rows.size(); index++) {
+            Row row = rows.get(index);
+            if (row.y() > y) break;
+            if (y >= row.y() && y < row.y() + lineHeight) return row.glyphs();
+        }
+        return List.of();
+    }
+
     private int firstPotentialRow(double top) {
         int low = 0;
         int high = rows.size();
