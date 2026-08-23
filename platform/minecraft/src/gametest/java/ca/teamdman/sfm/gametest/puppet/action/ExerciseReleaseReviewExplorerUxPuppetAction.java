@@ -1,23 +1,39 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
 import ca.teamdman.sfm.client.explorer.SFMPath;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewKernel;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceRuntime;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceV1;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1Codec;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanelModel;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanelViewport;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelEntryAffordanceLayout;
+import ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelMetadata;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
+import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetArtifactFormat;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
+import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetPointer;
 import com.google.gson.GsonBuilder;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -28,13 +44,29 @@ import java.util.Optional;
 
 /** Mouse-only natural proof for the generic release-review Explorer and pane lifecycle. */
 public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPuppetAction {
-    private static final String READ_ONLY_VIEW_PREFIX =
-            "sfm action invoke sfm:review/session/open/read_only/view ";
+    private static final String WRITABLE_VIEW_PREFIX =
+            "sfm action invoke sfm:review/session/open/view ";
+    private static final String COMMENT_CHOICE_PREFIX =
+            "sfm action invoke sfm:review/comment/choice/open ";
+    private static final String COMMENT_APPROVE_PREFIX =
+            "sfm action invoke sfm:review/comment/choice/apply ";
+    private static final String LENS_SET_PREFIX =
+            "sfm action invoke sfm:review/lens/set ";
     private static final String ENTRY_FOCUS_PREFIX =
             "sfm action invoke sfm:panel/entry/focus ";
     private static final String PANE_CLOSE = "sfm action invoke sfm:pane/close";
     private static final String PANE_CLOSE_CONFIRM_PREFIX =
             "sfm action invoke sfm:pane/close/confirm ";
+    private static final int CAFE_REVIEW_START = 35;
+    private static final int CAFE_REVIEW_END = 60;
+    private static final List<SFMReleaseReviewExplorerScreenType.Projection> LENS_JOURNEY = List.of(
+            SFMReleaseReviewExplorerScreenType.Projection.COMMENTS,
+            SFMReleaseReviewExplorerScreenType.Projection.HASHTAGS,
+            SFMReleaseReviewExplorerScreenType.Projection.QUERY,
+            SFMReleaseReviewExplorerScreenType.Projection.STATUS,
+            SFMReleaseReviewExplorerScreenType.Projection.MIGRATIONS,
+            SFMReleaseReviewExplorerScreenType.Projection.CHANGES
+    );
 
     private final SFMPath reviewFile;
     private Stage stage = Stage.OPEN_FILE_CONTEXT;
@@ -42,11 +74,23 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
     private String reviewExplorerId;
     private SFMPath beforePath;
     private SFMPath afterPath;
+    private SFMPath textDiffPath;
+    private SFMPath structuredDiffPath;
     private SFMWorkspacePanelId beforePanelId;
     private SFMWorkspacePanelId afterPanelId;
+    private SFMWorkspacePanelId textDiffPanelId;
+    private SFMWorkspacePanelId structuredDiffPanelId;
     private String beforeIdentity;
     private String afterIdentity;
     private String removedIdentity;
+    private int initialCommentCount;
+    private String createdCommentId;
+    private String createdCommentText;
+    private C11SourceNavigationPuppetProbe.Pointer selectionEnd;
+    private C11SourceNavigationPuppetProbe.Pointer selectionContext;
+    private int nextLensIndex;
+    private final List<String> lensMenuCommands = new ArrayList<>();
+    private final List<String> visitedLenses = new ArrayList<>();
     private final List<String> entryMenuCommands = new ArrayList<>();
 
     public ExerciseReleaseReviewExplorerUxPuppetAction(Path reviewFile) {
@@ -55,14 +99,14 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
 
     @Override
     public String description() {
-        return "exercise mouse-only release-review open, before/after dedup, reveal, tabs, and pane close";
+        return "exercise mouse-only release-review open, lazy diffs, persistent comments, lenses, tabs, and pane close";
     }
 
     @Override
     public boolean tick(ISFMGamePuppetRuntime runtime) {
         return switch (stage) {
             case OPEN_FILE_CONTEXT -> openFileContext();
-            case CHOOSE_READ_ONLY_VIEW -> chooseReadOnlyView(runtime);
+            case CHOOSE_WRITABLE_VIEW -> chooseWritableView(runtime);
             case WAIT_REVIEW_EXPLORER -> waitReviewExplorer();
             case EXPAND_CHANGES -> expandChanges();
             case OPEN_BEFORE -> openLeaf(beforePath, Stage.WAIT_BEFORE);
@@ -87,6 +131,26 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             case CHOOSE_PANE_CLOSE -> choosePaneClose(runtime);
             case CONFIRM_PANE_CLOSE -> confirmPaneClose(runtime);
             case WAIT_PANE_CLOSED -> waitPaneClosed(runtime);
+            case OPEN_TEXT_DIFF -> openLeaf(textDiffPath, Stage.WAIT_TEXT_DIFF);
+            case WAIT_TEXT_DIFF -> waitDiff(SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_DIFF);
+            case OPEN_STRUCTURED_DIFF -> openLeaf(structuredDiffPath, Stage.WAIT_STRUCTURED_DIFF);
+            case WAIT_STRUCTURED_DIFF -> waitDiff(SFMReleaseReviewSurfaceV1.SurfaceKind.JAVA_STRUCTURED_DIFF);
+            case REOPEN_TEXT_DIFF -> openLeaf(textDiffPath, Stage.WAIT_TEXT_DIFF_DEDUP);
+            case WAIT_TEXT_DIFF_DEDUP -> waitTextDiffDedup();
+            case CAPTURE_TEXT_DIFF -> captureTextDiff(runtime);
+            case SELECT_DIFF_TEXT -> selectDiffText();
+            case OPEN_COMMENT_MENU -> openCommentMenu();
+            case CHOOSE_COMMENT_ROUTE -> chooseCommentRoute(runtime);
+            case CHOOSE_APPROVED -> chooseApproved(runtime);
+            case WAIT_COMMENT_SAVED -> waitCommentSaved();
+            case OPEN_LENS_MENU -> openLensMenu();
+            case CHOOSE_LENS -> chooseLens(runtime);
+            case WAIT_LENS -> waitLens();
+            case CAPTURE_COMMENT_LENS -> captureCommentLens(runtime);
+            case CLOSE_FOR_RESUME -> closeForResume(runtime);
+            case OPEN_RESUME_PALETTE -> openResumePalette(runtime);
+            case SUBMIT_RESUME -> submitResume(runtime);
+            case WAIT_RESUMED -> waitResumed(runtime);
         };
     }
 
@@ -108,21 +172,21 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         if (!clickRow(explorer, reviewFile, GLFW.GLFW_MOUSE_BUTTON_RIGHT, false)) {
             return waitOrFail("the staged .sfm-review.json row");
         }
-        transition(Stage.CHOOSE_READ_ONLY_VIEW);
+        transition(Stage.CHOOSE_WRITABLE_VIEW);
         return false;
     }
 
-    private boolean chooseReadOnlyView(ISFMGamePuppetRuntime runtime) {
+    private boolean chooseWritableView(ISFMGamePuppetRuntime runtime) {
         if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette)) {
             return waitOrFail("the review-file context palette");
         }
         String command = palette.choiceCommandsForAutomation().stream()
-                .filter(candidate -> candidate.startsWith(READ_ONLY_VIEW_PREFIX))
+                .filter(candidate -> candidate.startsWith(WRITABLE_VIEW_PREFIX))
                 .findFirst().orElseThrow(() -> new IllegalStateException(
-                        "Review-file context menu omitted the read-only view action: "
+                        "Review-file context menu omitted the writable view action: "
                                 + palette.choiceCommandsForAutomation()));
         if (!palette.choiceReadyForPointerAutomation(command)) {
-            return waitOrFail("the read-only review choice to become pointer-ready");
+            return waitOrFail("the writable review choice to become pointer-ready");
         }
         runtime.clickActionChoice(command);
         transition(Stage.WAIT_REVIEW_EXPLORER);
@@ -133,6 +197,9 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         Handle explorer = explorer(true);
         if (explorer == null) return waitOrFail("the generic release-review Explorer");
         reviewExplorerId = explorer.panel().explorerId().value();
+        SFMReleaseReviewRuntime.Snapshot review = SFMReleaseReviewRuntime.get().snapshot();
+        require(review.writable(), "mouse-opened release review did not acquire its writer lease");
+        initialCommentCount = review.document().orElseThrow().reviewSession().comments().size();
         transition(Stage.EXPAND_CHANGES);
         return false;
     }
@@ -150,9 +217,19 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
                     .filter(candidate -> candidate.entry().label().startsWith("after"))
                     .filter(candidate -> sameParent(before.path(), candidate.path()))
                     .findFirst();
-            if (after.isPresent()) {
+            Optional<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection.Row> textDiff = sourceRows.stream()
+                    .filter(candidate -> candidate.entry().label().startsWith("text diff"))
+                    .filter(candidate -> sameParent(before.path(), candidate.path()))
+                    .findFirst();
+            Optional<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection.Row> structuredDiff = sourceRows.stream()
+                    .filter(candidate -> candidate.entry().label().startsWith("structured diff"))
+                    .filter(candidate -> sameParent(before.path(), candidate.path()))
+                    .findFirst();
+            if (after.isPresent() && textDiff.isPresent() && structuredDiff.isPresent()) {
                 beforePath = before.path();
                 afterPath = after.orElseThrow().path();
+                textDiffPath = textDiff.orElseThrow().path();
+                structuredDiffPath = structuredDiff.orElseThrow().path();
                 transition(Stage.OPEN_BEFORE);
                 return false;
             }
@@ -163,7 +240,7 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
                         .filter(row -> row.entry().expandable())
                         .filter(row -> !explorer.state().session().expanded().contains(row.path()))
                         .findFirst();
-        if (collapsed.isEmpty()) return waitOrFail("a before/after pair in the Changes projection");
+        if (collapsed.isEmpty()) return waitOrFail("a before/after/text-diff/structured-diff quartet in Changes");
         if (!clickChevron(explorer, collapsed.orElseThrow().path())) {
             return waitOrFail("the next expandable Changes row to enter the viewport");
         }
@@ -423,6 +500,342 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
                 SFMGamePuppetArtifactFormat.JSON,
                 new GsonBuilder().setPrettyPrinting().create().toJson(evidence)
         );
+        transition(Stage.OPEN_TEXT_DIFF);
+        return false;
+    }
+
+    private boolean waitDiff(SFMReleaseReviewSurfaceV1.SurfaceKind expectedKind) {
+        SFMScreenMultiplexer workspace = workspace();
+        if (workspace == null) return waitOrFail("the generated " + expectedKind.wireName() + " preview");
+        Optional<SFMSourcePuppetProbe.EditorHandle> handle =
+                SFMSourcePuppetProbe.editor(workspace, workspace.focusedPanelId());
+        if (handle.isEmpty() || handle.orElseThrow().resolvedPanel().isEmpty()) {
+            return waitOrFail("the resolved " + expectedKind.wireName() + " EditorV3 preview");
+        }
+        SFMTextDocumentSnapshot snapshot = handle.orElseThrow().state().documentSnapshot().orElse(null);
+        if (snapshot == null || !snapshot.ready()) {
+            if (snapshot != null) {
+                throw new IllegalStateException("Generated " + expectedKind.wireName()
+                        + " was unavailable: " + snapshot.diagnostics());
+            }
+            return waitOrFail("the ready " + expectedKind.wireName() + " document");
+        }
+        SFMReleaseReviewSurfaceV1.Surface surface = SFMReleaseReviewSurfaceRuntime.get()
+                .sourceMap(snapshot).orElse(null);
+        if (surface == null) return waitOrFail("the source map for " + expectedKind.wireName());
+        require(surface.surfaceKind() == expectedKind,
+                "Expected " + expectedKind + " but opened " + surface.surfaceKind());
+        require(surface.complete(), "Generated " + expectedKind.wireName() + " was incomplete");
+        require(!surface.mappings().isEmpty(), "Generated " + expectedKind.wireName() + " had no source mappings");
+        if (expectedKind == SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_DIFF) {
+            textDiffPanelId = handle.orElseThrow().panelId();
+            transition(Stage.OPEN_STRUCTURED_DIFF);
+        } else {
+            structuredDiffPanelId = handle.orElseThrow().panelId();
+            require(!structuredDiffPanelId.equals(textDiffPanelId),
+                    "Text and structured diff reused one presentation entry");
+            transition(Stage.REOPEN_TEXT_DIFF);
+        }
+        return false;
+    }
+
+    private boolean waitTextDiffDedup() {
+        SFMScreenMultiplexer workspace = workspace();
+        if (workspace == null) return waitOrFail("the deduplicated text-diff preview");
+        require(previews(workspace).size() == 2,
+                "text/structured/text browsing grew beyond two typed preview entries");
+        if (!workspace.focusedPanelId().equals(textDiffPanelId)) {
+            return waitOrFail("reopening text diff to focus its existing entry");
+        }
+        transition(Stage.CAPTURE_TEXT_DIFF);
+        return false;
+    }
+
+    private boolean captureTextDiff(ISFMGamePuppetRuntime runtime) {
+        if (!runtime.capture(
+                "release-review-text-diff",
+                caption("Lazy text diff with exact pinned before/after source mappings."))) return false;
+        transition(Stage.SELECT_DIFF_TEXT);
+        return false;
+    }
+
+    private boolean selectDiffText() {
+        SFMScreenMultiplexer workspace = workspace();
+        if (workspace == null) return waitOrFail("the text-diff editor before pointer selection");
+        SFMSourcePuppetProbe.EditorHandle editor = SFMSourcePuppetProbe
+                .editor(workspace, textDiffPanelId).orElse(null);
+        if (editor == null || editor.resolvedPanel().isEmpty()) {
+            return waitOrFail("the resolved text-diff editor before pointer selection");
+        }
+        SFMTextDocumentSnapshot snapshot = editor.state().documentSnapshot().orElseThrow();
+        SFMReleaseReviewSurfaceV1.Surface surface = SFMReleaseReviewSurfaceRuntime.get()
+                .sourceMap(snapshot).orElseThrow(() -> new IllegalStateException(
+                        "The text-diff document lost its source map"));
+        SFMTextDocumentRange selection = mappedCafeWord(surface);
+        int startUtf16 = utf16Offset(snapshot.text(), selection.start().byteOffset());
+        int endUtf16 = utf16Offset(snapshot.text(), selection.end().byteOffset());
+        C11SourceNavigationPuppetProbe.Pointer start = C11SourceNavigationPuppetProbe.pointer(
+                workspace,
+                editor,
+                SFMContextTextCoordinates.rangeAtUtf16Offsets(snapshot.text(), startUtf16, startUtf16 + 1)
+        );
+        selectionEnd = C11SourceNavigationPuppetProbe.pointer(
+                workspace,
+                editor,
+                SFMContextTextCoordinates.rangeAtUtf16Offsets(snapshot.text(), endUtf16 - 1, endUtf16)
+        );
+        int contextUtf16 = Math.min(endUtf16 - 1, startUtf16 + 1);
+        selectionContext = C11SourceNavigationPuppetProbe.pointer(
+                workspace,
+                editor,
+                SFMContextTextCoordinates.rangeAtUtf16Offsets(
+                        snapshot.text(), contextUtf16, contextUtf16 + 1)
+        );
+        SFMGamePuppetPointer.moveNative(workspace, start.globalX(), start.globalY());
+        require(workspace.mouseClicked(start.globalX(), start.globalY(), GLFW.GLFW_MOUSE_BUTTON_LEFT),
+                "Text-diff selection press was not handled");
+        workspace.mouseMoved(selectionEnd.globalX(), selectionEnd.globalY());
+        require(workspace.mouseDragged(
+                        selectionEnd.globalX(), selectionEnd.globalY(), GLFW.GLFW_MOUSE_BUTTON_LEFT,
+                        selectionEnd.globalX() - start.globalX(), selectionEnd.globalY() - start.globalY()),
+                "Text-diff selection drag was not handled");
+        require(workspace.mouseReleased(
+                        selectionEnd.globalX(), selectionEnd.globalY(), GLFW.GLFW_MOUSE_BUTTON_LEFT),
+                "Text-diff selection release was not handled");
+        List<ca.teamdman.sfm.client.text_editor.SFMTextDocumentSelection> exactSelections =
+                C11SourceNavigationPuppetProbe.exactDocumentSelections(editor)
+                        .orElseThrow(() -> new IllegalStateException(
+                                "Pointer drag published no exact generated-surface selection"));
+        require(exactSelections.size() == 1 && !exactSelections.get(0).collapsed(),
+                "Pointer drag did not publish one non-empty selection: " + exactSelections);
+        SFMTextDocumentRange selected = exactSelections.get(0).orderedRange();
+        List<SFMReleaseReviewSurfaceV1.SourceRange> projected = surface.sourceRangesFor(
+                new SFMReleaseReviewSurfaceV1.Utf8Range(
+                        selected.start().byteOffset(), selected.end().byteOffset()));
+        require(!projected.isEmpty(),
+                "Pointer drag missed every generated-surface mapping: selected=" + selected
+                        + " mappings=" + surface.mappings());
+        transition(Stage.OPEN_COMMENT_MENU);
+        return false;
+    }
+
+    private boolean openCommentMenu() {
+        SFMScreenMultiplexer workspace = workspace();
+        if (workspace == null) return waitOrFail("the selected text-diff editor");
+        require(selectionContext != null, "The text-diff selection interior was not captured");
+        SFMGamePuppetPointer.moveNative(workspace, selectionContext.globalX(), selectionContext.globalY());
+        require(workspace.mouseClicked(
+                        selectionContext.globalX(), selectionContext.globalY(), GLFW.GLFW_MOUSE_BUTTON_RIGHT),
+                "The selected text-diff context click was not handled");
+        transition(Stage.CHOOSE_COMMENT_ROUTE);
+        return false;
+    }
+
+    private boolean chooseCommentRoute(ISFMGamePuppetRuntime runtime) {
+        if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette)) {
+            return waitOrFail("the contextual action palette for selected diff text");
+        }
+        String command = palette.choiceCommandsForAutomation().stream()
+                .filter(candidate -> candidate.startsWith(COMMENT_CHOICE_PREFIX))
+                .findFirst().orElseThrow(() -> new IllegalStateException(
+                        "Selected source-mapped diff text offered no Comment action: "
+                                + palette.choiceCommandsForAutomation()));
+        if (!palette.choiceReadyForPointerAutomation(command)) {
+            return waitOrFail("the Comment action to become pointer-ready");
+        }
+        runtime.clickActionChoice(command);
+        transition(Stage.CHOOSE_APPROVED);
+        return false;
+    }
+
+    private boolean chooseApproved(ISFMGamePuppetRuntime runtime) {
+        if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette)) {
+            return waitOrFail("the nested review-comment choice palette");
+        }
+        String command = palette.choiceCommandsForAutomation().stream()
+                .filter(candidate -> candidate.startsWith(COMMENT_APPROVE_PREFIX))
+                .filter(candidate -> candidate.contains("#approved"))
+                .findFirst().orElseThrow(() -> new IllegalStateException(
+                        "Writable comment palette omitted #approved: " + palette.choiceCommandsForAutomation()));
+        if (!palette.choiceReadyForPointerAutomation(command)) {
+            return waitOrFail("the #approved choice to become pointer-ready");
+        }
+        runtime.clickActionChoice(command);
+        transition(Stage.WAIT_COMMENT_SAVED);
+        return false;
+    }
+
+    private boolean waitCommentSaved() {
+        SFMReleaseReviewV1 review = SFMReleaseReviewRuntime.get().document().orElse(null);
+        if (review == null || review.reviewSession().comments().size() <= initialCommentCount) {
+            return waitOrFail("the pointer-created review comment to save");
+        }
+        var comment = review.reviewSession().comments().get(review.reviewSession().comments().size() - 1);
+        require(comment.text().startsWith("#approved"), "Pointer-created comment lost #approved");
+        createdCommentId = comment.id();
+        createdCommentText = comment.text();
+        var binding = review.selectorBindings().stream()
+                .filter(candidate -> candidate.commentId().equals(createdCommentId))
+                .findFirst().orElseThrow(() -> new IllegalStateException(
+                        "Pointer-created comment has no durable selector binding"));
+        require(!binding.capturedSelection().ranges().isEmpty(),
+                "Pointer-created comment has no pinned source range");
+        require(binding.capturedSelection().ranges().stream().allMatch(range ->
+                        range.documentRevisionId().equals(ReleaseReviewJourneyPuppetAction.CAFE_REVISION)
+                                || range.documentRevisionId().equals(ReleaseReviewJourneyPuppetAction.AFTER_CAFE_REVISION)),
+                "Text-diff source mapping escaped the Café before/after pair");
+        require(SFMReleaseReviewKernel.query(review, "#approved intersect 1.19.2 HEAD")
+                        .reviewUnitIds().contains(ReleaseReviewJourneyPuppetAction.CAFE_UNIT),
+                "The newly persisted approval is absent from the pinned 1.19.2 HEAD query");
+        SFMReleaseReviewV1 disk = readReviewFile();
+        require(disk.reviewSession().comments().stream().anyMatch(value -> value.id().equals(createdCommentId)),
+                "Atomic autosave omitted the pointer-created comment");
+        transition(Stage.OPEN_LENS_MENU);
+        return false;
+    }
+
+    private boolean openLensMenu() {
+        Handle explorer = explorer(true);
+        if (explorer == null) return waitOrFail("the review Explorer lens control");
+        SFMExplorerPanelViewport.Rect control = explorer.panel().interactionLayout().lensControl();
+        require(control.width() > 0 && control.height() > 0, "Review lens control is absent from layout");
+        double[] point = workspacePoint(explorer, control);
+        require(explorer.workspace().mouseClicked(point[0], point[1], GLFW.GLFW_MOUSE_BUTTON_LEFT),
+                "Review lens control click was not handled");
+        transition(Stage.CHOOSE_LENS);
+        return false;
+    }
+
+    private boolean chooseLens(ISFMGamePuppetRuntime runtime) {
+        if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette)) {
+            return waitOrFail("the constrained review-lens palette");
+        }
+        if (lensMenuCommands.isEmpty()) {
+            lensMenuCommands.addAll(palette.choiceCommandsForAutomation());
+            for (SFMReleaseReviewExplorerScreenType.Projection projection
+                    : SFMReleaseReviewExplorerScreenType.Projection.values()) {
+                String expected = LENS_SET_PREFIX + lensToken(projection);
+                require(lensMenuCommands.contains(expected),
+                        "Review lens palette omitted " + expected + ": " + lensMenuCommands);
+            }
+        }
+        SFMReleaseReviewExplorerScreenType.Projection projection = LENS_JOURNEY.get(nextLensIndex);
+        String command = LENS_SET_PREFIX + lensToken(projection);
+        if (!palette.choiceReadyForPointerAutomation(command)) {
+            return waitOrFail("the " + projection + " lens choice to become pointer-ready");
+        }
+        runtime.clickActionChoice(command);
+        transition(Stage.WAIT_LENS);
+        return false;
+    }
+
+    private boolean waitLens() {
+        Handle explorer = explorer(true);
+        if (explorer == null) return waitOrFail("the review Explorer after switching lens");
+        SFMReleaseReviewExplorerScreenType.Projection expected = LENS_JOURNEY.get(nextLensIndex);
+        var descriptor = SFMReleaseReviewExplorerRuntime.get()
+                .lensDescriptor(explorer.panel().sessionSnapshot().roots()).orElse(null);
+        if (descriptor == null || descriptor.projection() != expected) {
+            return waitOrFail("the " + expected + " review lens to publish");
+        }
+        List<String> labels = explorer.state().projection().rows().stream()
+                .map(row -> row.entry().label()).toList();
+        if (expected == SFMReleaseReviewExplorerScreenType.Projection.COMMENTS) {
+            require(labels.stream().anyMatch(label -> label.contains(createdCommentId)
+                            || label.contains(createdCommentText)),
+                    "Comments lens did not refresh with the pointer-created comment: " + labels);
+        }
+        if (expected == SFMReleaseReviewExplorerScreenType.Projection.HASHTAGS) {
+            require(labels.stream().anyMatch(label -> label.contains("#approved")),
+                    "Hashtags lens did not refresh with #approved: " + labels);
+        }
+        visitedLenses.add(lensToken(expected));
+        nextLensIndex++;
+        if (expected == SFMReleaseReviewExplorerScreenType.Projection.COMMENTS) {
+            transition(Stage.CAPTURE_COMMENT_LENS);
+        } else if (nextLensIndex < LENS_JOURNEY.size()) transition(Stage.OPEN_LENS_MENU);
+        else transition(Stage.CLOSE_FOR_RESUME);
+        return false;
+    }
+
+    private boolean captureCommentLens(ISFMGamePuppetRuntime runtime) {
+        if (!runtime.capture(
+                "release-review-approved-comment",
+                caption("A pointer-selected diff region persisted as #approved and refreshed Comments."))) {
+            return false;
+        }
+        if (nextLensIndex < LENS_JOURNEY.size()) transition(Stage.OPEN_LENS_MENU);
+        else transition(Stage.CLOSE_FOR_RESUME);
+        return false;
+    }
+
+    private static Component caption(String text) {
+        return Component.literal("SFM Release Review — ").withStyle(ChatFormatting.GOLD)
+                .append(Component.literal(text).withStyle(ChatFormatting.BLACK));
+    }
+
+    private boolean closeForResume(ISFMGamePuppetRuntime runtime) {
+        require(readReviewFile().reviewSession().comments().stream()
+                        .anyMatch(value -> value.id().equals(createdCommentId)),
+                "Review comment disappeared before the resume boundary");
+        SFMReleaseReviewRuntime.get().close();
+        runtime.closeScreenNaturally();
+        transition(Stage.OPEN_RESUME_PALETTE);
+        return false;
+    }
+
+    private boolean openResumePalette(ISFMGamePuppetRuntime runtime) {
+        if (Minecraft.getInstance().screen instanceof SFMScreenMultiplexer) {
+            return waitOrFail("the release-review workspace to close naturally");
+        }
+        if (!runtime.openCommandPalette()) return waitOrFail("the resume command palette");
+        transition(Stage.SUBMIT_RESUME);
+        return false;
+    }
+
+    private boolean submitResume(ISFMGamePuppetRuntime runtime) {
+        if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen)) {
+            return waitOrFail("the resume command palette input");
+        }
+        runtime.executeCommandPalette(
+                "sfm action invoke sfm:review/session/open/read_only/view " + reviewFile.toNativePath());
+        transition(Stage.WAIT_RESUMED);
+        return false;
+    }
+
+    private boolean waitResumed(ISFMGamePuppetRuntime runtime) {
+        Handle explorer = explorer(true);
+        if (explorer == null) return waitOrFail("the reopened release-review Changes Explorer");
+        SFMReleaseReviewRuntime.Snapshot snapshot = SFMReleaseReviewRuntime.get().snapshot();
+        require(!snapshot.writable(), "Resume proof unexpectedly reacquired a writer lease");
+        require(snapshot.path().orElseThrow().equals(reviewFile.toNativePath().toAbsolutePath().normalize()),
+                "Resume proof reopened a different review file");
+        SFMReleaseReviewV1 review = snapshot.document().orElseThrow();
+        require(review.reviewSession().comments().stream().anyMatch(value -> value.id().equals(createdCommentId)),
+                "Reopened review omitted the pointer-created comment");
+        List<String> approved = SFMReleaseReviewKernel.query(review, "#approved intersect 1.19.2 HEAD")
+                .reviewUnitIds();
+        require(approved.contains(ReleaseReviewJourneyPuppetAction.CAFE_UNIT),
+                "Reopened review lost #approved intersect 1.19.2 HEAD membership");
+
+        Map<String, Object> evidence = new LinkedHashMap<>();
+        evidence.put("schema", "sfm.release-review-mouse-comment-loop/1");
+        evidence.put("review_file", reviewFile.canonical());
+        evidence.put("text_diff_path", textDiffPath.canonical());
+        evidence.put("structured_diff_path", structuredDiffPath.canonical());
+        evidence.put("text_diff_panel", textDiffPanelId.toString());
+        evidence.put("structured_diff_panel", structuredDiffPanelId.toString());
+        evidence.put("created_comment_id", createdCommentId);
+        evidence.put("created_comment_text", createdCommentText);
+        evidence.put("lens_choices", List.copyOf(lensMenuCommands));
+        evidence.put("visited_lenses", List.copyOf(visitedLenses));
+        evidence.put("approved_intersect_1_19_2_head", approved);
+        evidence.put("reopened_writable", snapshot.writable());
+        runtime.writeArtifact(
+                "release-review-mouse-comment-loop",
+                SFMGamePuppetArtifactFormat.JSON,
+                new GsonBuilder().setPrettyPrinting().create().toJson(evidence)
+        );
         return true;
     }
 
@@ -563,6 +976,70 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         return first.segments().subList(0, parentSize).equals(second.segments().subList(0, parentSize));
     }
 
+    private static SFMTextDocumentRange mappedCafeWord(SFMReleaseReviewSurfaceV1.Surface surface) {
+        byte[] surfaceBytes = surface.text().getBytes(StandardCharsets.UTF_8);
+        for (SFMReleaseReviewSurfaceV1.Mapping mapping : surface.mappings()) {
+            for (SFMReleaseReviewSurfaceV1.SourceRange source : mapping.sourceRanges()) {
+                if (!source.documentRevisionId().equals(ReleaseReviewJourneyPuppetAction.CAFE_REVISION)
+                        && !source.documentRevisionId().equals(ReleaseReviewJourneyPuppetAction.AFTER_CAFE_REVISION)) {
+                    continue;
+                }
+                int overlapStart = Math.max(CAFE_REVIEW_START, source.range().startByte());
+                int overlapEnd = Math.min(CAFE_REVIEW_END, source.range().endByte());
+                if (overlapStart >= overlapEnd) continue;
+                int surfaceStart = mapping.surfaceRange().startByte()
+                        + overlapStart - source.range().startByte();
+                int surfaceEnd = surfaceStart + overlapEnd - overlapStart;
+                String candidate = new String(
+                        surfaceBytes,
+                        surfaceStart,
+                        surfaceEnd - surfaceStart,
+                        StandardCharsets.UTF_8
+                );
+                int wordStart = -1;
+                int wordEnd = -1;
+                for (int index = 0; index < candidate.length();) {
+                    int codePoint = candidate.codePointAt(index);
+                    int next = index + Character.charCount(codePoint);
+                    if (Character.isJavaIdentifierPart(codePoint)) {
+                        if (wordStart < 0) wordStart = index;
+                        wordEnd = next;
+                    } else if (wordStart >= 0) {
+                        break;
+                    }
+                    index = next;
+                }
+                if (wordStart < 0 || wordEnd <= wordStart) continue;
+                int prefixUtf16 = new String(surfaceBytes, 0, surfaceStart, StandardCharsets.UTF_8).length();
+                return SFMContextTextCoordinates.rangeAtUtf16Offsets(
+                        surface.text(), prefixUtf16 + wordStart, prefixUtf16 + wordEnd);
+            }
+        }
+        throw new IllegalStateException(
+                "No generated text-diff word maps into the pinned Café review-unit range");
+    }
+
+    private static int utf16Offset(String text, int byteOffset) {
+        byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+        if (byteOffset < 0 || byteOffset > bytes.length) {
+            throw new IllegalArgumentException("UTF-8 byte offset lies outside the generated document");
+        }
+        return new String(bytes, 0, byteOffset, StandardCharsets.UTF_8).length();
+    }
+
+    private SFMReleaseReviewV1 readReviewFile() {
+        try {
+            return SFMReleaseReviewV1Codec.parse(Files.readString(
+                    reviewFile.toNativePath(), StandardCharsets.UTF_8));
+        } catch (IOException failure) {
+            throw new IllegalStateException("Could not read staged release review " + reviewFile.canonical(), failure);
+        }
+    }
+
+    private static String lensToken(SFMReleaseReviewExplorerScreenType.Projection projection) {
+        return projection.name().toLowerCase(java.util.Locale.ROOT).replace('_', '-');
+    }
+
     private void transition(Stage next) {
         stage = next;
         stageTicks = 0;
@@ -581,7 +1058,7 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
 
     private enum Stage {
         OPEN_FILE_CONTEXT,
-        CHOOSE_READ_ONLY_VIEW,
+        CHOOSE_WRITABLE_VIEW,
         WAIT_REVIEW_EXPLORER,
         EXPAND_CHANGES,
         OPEN_BEFORE,
@@ -605,7 +1082,27 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         OPEN_PANE_MENU,
         CHOOSE_PANE_CLOSE,
         CONFIRM_PANE_CLOSE,
-        WAIT_PANE_CLOSED
+        WAIT_PANE_CLOSED,
+        OPEN_TEXT_DIFF,
+        WAIT_TEXT_DIFF,
+        OPEN_STRUCTURED_DIFF,
+        WAIT_STRUCTURED_DIFF,
+        REOPEN_TEXT_DIFF,
+        WAIT_TEXT_DIFF_DEDUP,
+        CAPTURE_TEXT_DIFF,
+        SELECT_DIFF_TEXT,
+        OPEN_COMMENT_MENU,
+        CHOOSE_COMMENT_ROUTE,
+        CHOOSE_APPROVED,
+        WAIT_COMMENT_SAVED,
+        OPEN_LENS_MENU,
+        CHOOSE_LENS,
+        WAIT_LENS,
+        CAPTURE_COMMENT_LENS,
+        CLOSE_FOR_RESUME,
+        OPEN_RESUME_PALETTE,
+        SUBMIT_RESUME,
+        WAIT_RESUMED
     }
 
     private record Handle(

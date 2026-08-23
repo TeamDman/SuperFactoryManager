@@ -104,7 +104,8 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
                 long generation,
                 SFMPath root,
                 SFMReviewExplorerModel.Node modelRoot,
-                SFMReleaseReviewRuntime.Snapshot review
+                SFMReleaseReviewRuntime.Snapshot review,
+                SFMReleaseReviewSurfaceRuntime surfaceRuntime
         ) {
             this.generation = generation;
             this.root = Objects.requireNonNull(root, "root");
@@ -113,7 +114,7 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
                     root, modelRoot.label(), true, "minecraft:spyglass"));
             nodes.put(root, modelRoot);
             nodeIds.put(root, modelRoot.id());
-            indexRevealPaths(root, modelRoot, review);
+            indexRevealPaths(root, modelRoot, review, surfaceRuntime);
         }
 
         private synchronized SFMExplorerEntry entry(SFMPath path) {
@@ -171,7 +172,8 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
         private void indexRevealPaths(
                 SFMPath parentPath,
                 SFMReviewExplorerModel.Node parentNode,
-                SFMReleaseReviewRuntime.Snapshot review
+                SFMReleaseReviewRuntime.Snapshot review,
+                SFMReleaseReviewSurfaceRuntime surfaceRuntime
         ) {
             List<SFMReviewExplorerModel.Node> children = displayedChildren(
                     parentNode,
@@ -182,7 +184,7 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
                 SFMPath childPath = childPath(parentPath, index, child);
                 SFMReviewExplorerModel.SourceLeaf leaf = child.leaf();
                 if (leaf != null && !leaf.missing()) {
-                    SFMTextDocumentSource source = documentSource(review, leaf);
+                    SFMTextDocumentSource source = documentSource(surfaceRuntime, review, leaf);
                     if (source instanceof SFMTextDocumentSource.PinnedSnapshot pinned) {
                         DocumentIdentity identity = DocumentIdentity.from(pinned);
                         ArrayList<SFMPath> paths = new ArrayList<>(
@@ -192,7 +194,7 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
                         revealPaths.put(identity, List.copyOf(paths));
                     }
                 }
-                if (child.expandable()) indexRevealPaths(childPath, child, review);
+                if (child.expandable()) indexRevealPaths(childPath, child, review, surfaceRuntime);
             }
         }
     }
@@ -270,12 +272,21 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
     }
 
     private final SFMReleaseReviewRuntime reviewRuntime;
+    private final SFMReleaseReviewSurfaceRuntime surfaceRuntime;
     private final Map<SFMPath, Lens> lenses = new TreeMap<>();
     private final Map<String, ProjectionSnapshot> cachedProjections = new HashMap<>();
     private boolean resolverRegistered;
 
     SFMReleaseReviewExplorerRuntime(SFMReleaseReviewRuntime reviewRuntime) {
+        this(reviewRuntime, SFMReleaseReviewSurfaceRuntime.get());
+    }
+
+    SFMReleaseReviewExplorerRuntime(
+            SFMReleaseReviewRuntime reviewRuntime,
+            SFMReleaseReviewSurfaceRuntime surfaceRuntime
+    ) {
         this.reviewRuntime = Objects.requireNonNull(reviewRuntime, "reviewRuntime");
+        this.surfaceRuntime = Objects.requireNonNull(surfaceRuntime, "surfaceRuntime");
     }
 
     public static SFMReleaseReviewExplorerRuntime get() {
@@ -353,7 +364,7 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
         SFMReviewExplorerModel.SourceLeaf leaf = projection.leaf(path);
         if (leaf == null || leaf.missing()) return Optional.empty();
         String identity = presentationIdentity(review.path().orElseThrow(), lens, leaf);
-        return Optional.of(new DocumentTarget(path, leaf, identity, documentSource(review, leaf)));
+        return Optional.of(new DocumentTarget(path, leaf, identity, documentSource(surfaceRuntime, review, leaf)));
     }
 
     /**
@@ -470,6 +481,19 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
         }
         if (lens == null) throw new IllegalArgumentException("Unknown release-review root " + root);
         return projection(requireOpenReview(), lens).materializationEvidence();
+    }
+
+    /** Exact generated surface retained for later comment-capture projection. */
+    public Optional<SFMReleaseReviewSurfaceV1.Surface> generatedSurface(SFMTextDocumentSnapshot document) {
+        return surfaceRuntime.sourceMap(document);
+    }
+
+    /** Maps a generated-surface selection back to immutable before/after corpus ranges. */
+    public List<SFMReleaseReviewSurfaceV1.SourceRange> projectGeneratedSelection(
+            SFMTextDocumentSnapshot document,
+            SFMReleaseReviewSurfaceV1.Utf8Range selected
+    ) {
+        return surfaceRuntime.projectToSources(document, selected);
     }
 
     /** Review-specific row actions contributed to the generic Explorer menu. */
@@ -670,13 +694,13 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
         }
     }
 
-    private static ProjectionSnapshot buildProjection(
+    private ProjectionSnapshot buildProjection(
             long generation,
             SFMPath root,
             SFMReviewExplorerModel.Node modelRoot,
             SFMReleaseReviewRuntime.Snapshot review
     ) {
-        return new ProjectionSnapshot(generation, root, modelRoot, review);
+        return new ProjectionSnapshot(generation, root, modelRoot, review, surfaceRuntime);
     }
 
     private static SFMPath childPath(
@@ -715,6 +739,9 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
         return switch (node.kind()) {
             case FILE -> "minecraft:paper";
             case REVISION -> javaIcon(node.leaf()) ? "minecraft:cocoa_beans" : "minecraft:map";
+            case DIFF -> node.leaf() != null && node.leaf().generatedSurface()
+                    .map(recipe -> recipe.surfaceKind() == SFMReleaseReviewSurfaceV1.SurfaceKind.JAVA_STRUCTURED_DIFF)
+                    .orElse(false) ? "minecraft:comparator" : "minecraft:writable_book";
             case COMMENT -> "minecraft:writable_book";
             case HASHTAG -> "minecraft:name_tag";
             case MIGRATION -> "minecraft:compass";
@@ -772,9 +799,17 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerResolve
     }
 
     private static SFMTextDocumentSource documentSource(
+            SFMReleaseReviewSurfaceRuntime surfaceRuntime,
             SFMReleaseReviewRuntime.Snapshot review,
             SFMReviewExplorerModel.SourceLeaf leaf
     ) {
+        if (leaf.generatedSurface().isPresent()) {
+            return new SFMTextDocumentSource.GeneratedReviewSurface(
+                    surfaceRuntime,
+                    leaf.generatedSurface().orElseThrow(),
+                    review.generation()
+            );
+        }
         if (leaf.documentRevisionId().isEmpty()) return new SFMTextDocumentSource.Literal(leaf.text());
         String revisionId = leaf.documentRevisionId().orElseThrow();
         SFMPath root = new SFMPath(

@@ -723,6 +723,15 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     /**
+     * Returns the same context-sensitive chrome geometry used for rendering,
+     * tooltips, and pointer hit-testing. Automation must not infer review or
+     * reveal controls from the model's context-free viewport layout.
+     */
+    public SFMExplorerPanelViewport.Layout interactionLayout() {
+        return effectiveLayout(model.state(bounds));
+    }
+
+    /**
      * Materializes every missing ancestor page and queues exact row selection
      * against the next real panel bounds, so reveal never guesses scroll geometry.
      */
@@ -759,6 +768,30 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             session.expand(nextRoot);
             return session.requestChildren(nextRoot, loader, 128).completion().thenApply(ignored -> null);
         });
+    }
+
+    /**
+     * Reloads every currently expanded projection relation against the
+     * resolver's latest generation. This is used after an atomic review-file
+     * mutation so Comments, Hashtags, Query, and Status panes update in place
+     * without replacing their explorer identity or view settings.
+     */
+    public CompletionStage<Void> refreshExpandedProjection() {
+        SFMExplorerSession.Snapshot snapshot = session.snapshot();
+        java.util.ArrayList<SFMPath> paths = new java.util.ArrayList<>(snapshot.expanded());
+        snapshot.roots().stream().filter(path -> !paths.contains(path)).forEach(paths::add);
+        paths.sort(java.util.Comparator
+                .comparingInt((SFMPath path) -> path.segments().size())
+                .thenComparing(SFMPath::canonical));
+        java.util.concurrent.CompletableFuture<Void> result =
+                java.util.concurrent.CompletableFuture.completedFuture(null);
+        for (SFMPath path : paths) {
+            result = result.thenCompose(ignored -> {
+                if (closed) return java.util.concurrent.CompletableFuture.completedFuture(null);
+                return session.requestChildren(path, loader, 128).completion().thenApply(load -> null);
+            });
+        }
+        return result;
     }
 
     private void activateSelected(SFMExplorerPreviewPlacement.Mode mode) {

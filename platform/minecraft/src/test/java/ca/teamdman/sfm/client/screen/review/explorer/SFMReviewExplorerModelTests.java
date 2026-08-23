@@ -148,6 +148,64 @@ class SFMReviewExplorerModelTests {
     }
 
     @Test
+    void releaseChangesProjectExactlyFourLazyLeavesPerFileLaneIncludingAddedTombstones() throws Exception {
+        SFMReviewExplorerModel model = SFMReviewExplorerModel.releaseChanges(releaseReviewFixture());
+        List<SFMReviewExplorerModel.Node> lanes = model.root().children().stream()
+                .flatMap(file -> file.children().stream())
+                .toList();
+        assertFalse(lanes.isEmpty());
+        assertEquals(List.of(
+                        "src/Cafe.java", "src/Missing.java", "src/Other.java", "src/Partial.java", "src/Unicode.java"),
+                model.root().children().stream().map(SFMReviewExplorerModel.Node::label).toList(),
+                "the Changes projection must retain corpus-only pinned files outside the review-unit domain");
+        for (SFMReviewExplorerModel.Node lane : lanes) {
+            assertEquals(List.of("before", "after", "text diff", "structured diff"),
+                    lane.children().stream().map(child -> child.leaf().title().split(" · ")[0]).toList());
+            assertEquals(List.of(
+                            SFMReviewExplorerModel.Kind.REVISION,
+                            SFMReviewExplorerModel.Kind.REVISION,
+                            SFMReviewExplorerModel.Kind.DIFF,
+                            SFMReviewExplorerModel.Kind.DIFF),
+                    lane.children().stream().map(SFMReviewExplorerModel.Node::kind).toList());
+            assertEquals(
+                    lane.children().get(2).leaf().generatedSurface().isPresent(),
+                    lane.children().get(3).leaf().generatedSurface().isPresent(),
+                    "text and structured diff availability must agree for one immutable file pair");
+        }
+        assertEquals(2, lanes.stream()
+                .filter(lane -> lane.children().get(2).leaf().generatedSurface().isPresent())
+                .count(), "only exact review-unit-backed pairs should launch generated diff work");
+        SFMReviewExplorerModel.Node added = model.root().children().stream()
+                .filter(file -> file.label().equals("src/Other.java"))
+                .findFirst().orElseThrow();
+        assertTrue(added.children().get(0).children().get(0).leaf().missing());
+        assertFalse(added.children().get(0).children().get(1).leaf().missing());
+        assertEquals(SFMReleaseReviewV1.ChangeOperation.ADDED,
+                added.children().get(0).children().get(2).leaf().generatedSurface().orElseThrow()
+                        .filePair().operation());
+    }
+
+    @Test
+    void renamedNonJavaPairsStayUnifiedAndRequestAnExplicitStructuredFallbackSurface() throws Exception {
+        SFMReviewExplorerModel model = SFMReviewExplorerModel.releaseChanges(renamedNonJavaFixture());
+        SFMReviewExplorerModel.Node renamed = model.root().children().stream()
+                .filter(file -> file.label().equals("src/Cafe.java → src/CafeRenamed.txt"))
+                .findFirst().orElseThrow();
+        assertEquals(1, renamed.children().size(), "rename must remain one lane/file pair rather than two path rows");
+        List<SFMReviewExplorerModel.Node> leaves = renamed.children().get(0).children();
+        assertEquals(4, leaves.size());
+        var text = leaves.get(2).leaf().generatedSurface().orElseThrow();
+        var structured = leaves.get(3).leaf().generatedSurface().orElseThrow();
+        assertEquals(SFMReleaseReviewV1.ChangeOperation.RENAMED, text.filePair().operation());
+        assertEquals("src/Cafe.java", text.filePair().before().orElseThrow().path());
+        assertEquals("src/CafeRenamed.txt", text.filePair().after().orElseThrow().path());
+        assertEquals("text", structured.filePair().after().orElseThrow().language());
+        assertEquals(ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceV1.SurfaceKind.JAVA_STRUCTURED_DIFF,
+                structured.surfaceKind(),
+                "the Rust producer owns the explicit unsupported-language text fallback and diagnostics");
+    }
+
+    @Test
     void productionCandidateCommentsRenderWithoutCommittedRangesAndCarryExactNavigation() {
         SFMReviewSessionV2.CandidateTrajectoryTarget oldPlan = candidateTarget(
                 "plan-old", "route-a", SFMHistoryGraphContract.ProjectionStatus.EXTERNAL_BARRIER,
@@ -362,5 +420,48 @@ class SFMReviewExplorerModelTests {
             }
         }
         throw new IllegalStateException("Unable to locate canonical release-review fixture");
+    }
+
+    private static SFMReleaseReviewV1 renamedNonJavaFixture() throws Exception {
+        SFMReleaseReviewV1 source = releaseReviewFixture();
+        String revisionId = "1.19.2:after:src/Cafe.java";
+        String renamedPath = "src/CafeRenamed.txt";
+        List<SFMReviewSessionV1.RevisionLane> lanes = source.reviewSession().revisionLanes().stream()
+                .map(lane -> new SFMReviewSessionV1.RevisionLane(
+                        lane.id(), lane.repository(), lane.versionLabel(), lane.before(),
+                        new SFMReviewSessionV1.Snapshot(
+                                lane.after().id(),
+                                lane.after().documents().stream().map(document -> document.id().equals(revisionId)
+                                        ? new SFMReviewSessionV1.DocumentRevision(
+                                                document.id(), renamedPath, document.encoding(), document.sha256(),
+                                                document.text())
+                                        : document).toList())))
+                .toList();
+        SFMReviewSessionV2 session = new SFMReviewSessionV2(
+                source.reviewSession().schema(), source.reviewSession().id(), source.reviewSession().title(),
+                source.reviewSession().coordinateSystem(), lanes, source.reviewSession().comments(),
+                source.reviewSession().styleRules(), source.reviewSession().completionPolicy());
+        List<SFMReleaseReviewV1.CorpusDocument> corpus = source.corpusDocuments().stream()
+                .map(document -> document.documentRevisionId().equals(revisionId)
+                        ? new SFMReleaseReviewV1.CorpusDocument(
+                                document.id(), document.laneId(), document.snapshotSide(), renamedPath,
+                                document.documentRevisionId(), document.sha256(), document.sourceOwner(),
+                                document.sourceLocator(), document.materialization())
+                        : document)
+                .toList();
+        List<SFMReleaseReviewV1.ReviewUnit> units = source.reviewUnits().stream()
+                .map(unit -> unit.afterDocumentRevisionId().filter(revisionId::equals).isPresent()
+                        ? new SFMReleaseReviewV1.ReviewUnit(
+                                unit.id(), unit.laneId(), SFMReleaseReviewV1.ChangeOperation.RENAMED,
+                                unit.pathBefore(), Optional.of(renamedPath), unit.beforeDocumentRevisionId(),
+                                unit.afterDocumentRevisionId(), unit.beforeRanges(), unit.afterRanges(), "text",
+                                unit.surfaceKind(), unit.semanticKey(), unit.limitation(), unit.producerId(),
+                                unit.producerGeneration())
+                        : unit)
+                .toList();
+        return new SFMReleaseReviewV1(
+                source.schema(), session, source.repositoryBindings(), corpus, units, source.selectorBindings(),
+                source.migrationReports(), source.namedQueries(), source.resumeState(), source.producerGenerations(),
+                source.completionAttestations());
     }
 }

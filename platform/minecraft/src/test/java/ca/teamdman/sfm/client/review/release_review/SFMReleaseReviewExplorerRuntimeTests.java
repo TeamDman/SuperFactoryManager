@@ -21,9 +21,12 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -204,11 +207,13 @@ class SFMReleaseReviewExplorerRuntimeTests {
                         new SFMExplorerCancellationToken()
                 )).join();
             }
-            assertEquals(List.of("before", "after"), descendants.entries().stream()
+            assertEquals(List.of("before", "after", "text diff", "structured diff"), descendants.entries().stream()
                     .map(entry -> entry.label().split(" · ")[0])
                     .toList());
             assertTrue(descendants.entries().stream().noneMatch(entry -> entry.expandable()));
-            assertFalse(resolver.documentTarget(descendants.entries().get(0).path()).isEmpty());
+            assertTrue(descendants.entries().stream()
+                    .anyMatch(entry -> resolver.documentTarget(entry.path()).isPresent()),
+                    "the four-leaf projection must retain at least one openable document beside any tombstone");
         } finally {
             runtime.discardAndClose();
         }
@@ -299,7 +304,9 @@ class SFMReleaseReviewExplorerRuntimeTests {
                     Optional.empty()
             );
             List<SFMPath> sourceRows = descendants(resolver, root).stream()
-                    .filter(entry -> resolver.documentTarget(entry.path()).isPresent())
+                    .filter(entry -> resolver.documentTarget(entry.path())
+                            .map(target -> target.leaf().documentRevisionId().isPresent())
+                            .orElse(false))
                     .map(entry -> entry.path())
                     .limit(2)
                     .toList();
@@ -346,6 +353,63 @@ class SFMReleaseReviewExplorerRuntimeTests {
             }
         } finally {
             runtime.discardAndClose();
+        }
+    }
+
+    @Test
+    void diffLeavesRemainLazyUntilOpenedAndThenRegisterTheirExactSourceMap() throws Exception {
+        Path reviewPath = temporaryDirectory.resolve("lazy-surfaces.sfm-review.json");
+        Files.copy(fixture(), reviewPath);
+        SFMReleaseReviewRuntime reviewRuntime = new SFMReleaseReviewRuntime();
+        reviewRuntime.open(reviewPath, false);
+        AtomicInteger invocations = new AtomicInteger();
+        SFMReleaseReviewSurfaceRuntime surfaces = new SFMReleaseReviewSurfaceRuntime(
+                new SFMReleaseReviewSurfaceRuntime.Configuration(
+                        "fixture-worker", Duration.ofSeconds(2), Duration.ofMillis(100),
+                        16 * 1024 * 1024, 64 * 1024),
+                Executors.newSingleThreadExecutor(action -> {
+                    Thread thread = new Thread(action, "sfm-review-explorer-surface-test");
+                    thread.setDaemon(true);
+                    return thread;
+                }),
+                (configuration, json, cancellation) -> {
+                    invocations.incrementAndGet();
+                    var request = SFMReleaseReviewSurfaceJsonCodec.decodeRequest(json);
+                    return new SFMReleaseReviewSurfaceRuntime.ProcessResult(
+                            0,
+                            SFMReleaseReviewSurfaceJsonCodec.encodeSurface(
+                                    SFMReleaseReviewSurfaceJsonCodecTests.afterSurface(request)),
+                            "");
+                },
+                true
+        );
+        try {
+            SFMReleaseReviewExplorerRuntime resolver = new SFMReleaseReviewExplorerRuntime(reviewRuntime, surfaces);
+            SFMPath root = resolver.prepareLens(
+                    reviewPath, SFMReleaseReviewExplorerScreenType.Projection.CHANGES, Optional.empty());
+            var allRows = descendants(resolver, root);
+            assertEquals(0, invocations.get(), "describing and expanding the tree must not launch the producer");
+            SFMPath textDiff = allRows.stream()
+                    .filter(entry -> entry.label().startsWith("text diff ·"))
+                    .map(entry -> entry.path())
+                    .findFirst().orElseThrow();
+            var source = resolver.documentTarget(textDiff).orElseThrow().source();
+            assertEquals(0, invocations.get(), "creating a generated source must remain lazy");
+
+            SFMTextDocumentSnapshot snapshot = source.load(new SFMExplorerCancellationToken()).join();
+
+            assertEquals(1, invocations.get());
+            assertTrue(snapshot.ready());
+            assertTrue(snapshot.readOnly());
+            assertTrue(resolver.generatedSurface(snapshot).isPresent());
+            int bytes = snapshot.text().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+            assertFalse(resolver.projectGeneratedSelection(
+                    snapshot, new SFMReleaseReviewSurfaceV1.Utf8Range(0, bytes)).isEmpty());
+            source.load(new SFMExplorerCancellationToken()).join();
+            assertEquals(1, invocations.get(), "reopening immutable generated content must use the cache");
+        } finally {
+            surfaces.close();
+            reviewRuntime.discardAndClose();
         }
     }
 

@@ -13,6 +13,7 @@ import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMap;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentPosition;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSelection;
 
 import java.nio.charset.StandardCharsets;
@@ -89,6 +90,17 @@ public final class SFMReleaseReviewEditorCapture {
         }
         SFMPath path = projection.baseline().path().orElseThrow(() ->
                 new IllegalArgumentException("The focused document has no durable address"));
+        if (path.kind() == SFMPath.Kind.CONTRIBUTED
+                && path.scheme().equals("review-surface")
+                && path.authority().equals("generated")) {
+            return captureGeneratedSurface(
+                    actionContext,
+                    projection,
+                    review,
+                    path,
+                    SFMReleaseReviewSurfaceRuntime.get()
+            );
+        }
         if (path.kind() != SFMPath.Kind.CONTRIBUTED
                 || !path.scheme().equals("review")
                 || !path.authority().equals("document")
@@ -178,11 +190,134 @@ public final class SFMReleaseReviewEditorCapture {
     }
 
     public static boolean isPinnedReleaseReviewDocument(SFMContextDocumentProjection projection) {
-        return projection.baseline().path()
+        boolean pinnedSource = projection.baseline().path()
                 .filter(path -> path.kind() == SFMPath.Kind.CONTRIBUTED)
                 .filter(path -> path.scheme().equals("review") && path.authority().equals("document"))
                 .filter(path -> !path.segments().isEmpty())
                 .isPresent();
+        if (pinnedSource) return true;
+        return projection.baseline().path()
+                .filter(path -> path.kind() == SFMPath.Kind.CONTRIBUTED)
+                .filter(path -> path.scheme().equals("review-surface") && path.authority().equals("generated"))
+                .filter(ignored -> SFMReleaseReviewSurfaceRuntime.get()
+                        .sourceMap(projection.baseline()).isPresent())
+                .isPresent();
+    }
+
+    static Capture captureGeneratedSurface(
+            SFMClientActionContext actionContext,
+            SFMContextDocumentProjection projection,
+            SFMReleaseReviewV1 review,
+            SFMPath generatedPath,
+            SFMReleaseReviewSurfaceRuntime surfaceRuntime
+    ) {
+        Objects.requireNonNull(surfaceRuntime, "surfaceRuntime");
+        SFMReleaseReviewSurfaceV1.Surface surface = surfaceRuntime
+                .sourceMap(projection.baseline())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "The generated review surface no longer has an exact source map"));
+        List<SFMTextDocumentSelection> surfaceSelections = exactSelections(projection);
+        ArrayList<SFMReleaseReviewSurfaceV1.SourceRange> sourceRanges = new ArrayList<>();
+        for (SFMTextDocumentSelection selection : surfaceSelections) {
+            SFMTextDocumentRange range = selection.orderedRange();
+            sourceRanges.addAll(surface.sourceRangesFor(new SFMReleaseReviewSurfaceV1.Utf8Range(
+                    range.start().byteOffset(), range.end().byteOffset())));
+        }
+        sourceRanges = sourceRanges.stream().distinct()
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        if (sourceRanges.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Select source-backed diff text; headers and diagnostic-only regions cannot own comments"
+                            + " (selected=" + surfaceSelections.stream()
+                            .map(selection -> selection.orderedRange().start().byteOffset() + ".."
+                                    + selection.orderedRange().end().byteOffset())
+                            .toList() + ", mappings=" + surface.mappings().size() + ")");
+        }
+
+        SFMReleaseReviewCorpus corpus = SFMReleaseReviewCorpus.from(review);
+        TreeMap<String, ArrayList<SFMReleaseReviewSurfaceV1.SourceRange>> byRevision = new TreeMap<>();
+        for (SFMReleaseReviewSurfaceV1.SourceRange sourceRange : sourceRanges) {
+            SFMReleaseReviewCorpus.DocumentView source = corpus.documentRevision(sourceRange.documentRevisionId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Generated diff mapping names an absent corpus revision "
+                                    + sourceRange.documentRevisionId()));
+            if (!source.binding().sha256().equals(
+                    SFMReleaseReviewSurfaceV1.snapshotSha256(sourceRange.documentSha256()))) {
+                throw new IllegalArgumentException(
+                        "Generated diff mapping hash is stale for " + sourceRange.documentRevisionId());
+            }
+            byRevision.computeIfAbsent(sourceRange.documentRevisionId(), ignored -> new ArrayList<>())
+                    .add(sourceRange);
+        }
+
+        String selectionRevision = generatedSelectionRevision(
+                projection.currentSha256(), generatedPath, sourceRanges);
+        ArrayList<SFMReleaseReviewSelectionAdapter.OrderedDocumentSelection> documents = new ArrayList<>();
+        int ordinal = 0;
+        boolean primaryAssigned = false;
+        for (Map.Entry<String, ArrayList<SFMReleaseReviewSurfaceV1.SourceRange>> entry : byRevision.entrySet()) {
+            SFMReleaseReviewCorpus.DocumentView source = corpus.documentRevision(entry.getKey()).orElseThrow();
+            String sourceText = source.materializedDocument().orElseThrow(() ->
+                    new IllegalArgumentException("Mapped corpus source is not materialized: " + entry.getKey()))
+                    .text();
+            ArrayList<SFMTextDocumentSelection> selections = new ArrayList<>();
+            for (SFMReleaseReviewSurfaceV1.SourceRange range : entry.getValue()) {
+                SFMTextDocumentPosition start = SFMTextDocumentRange.positionAtByteOffset(
+                        sourceText, range.range().startByte());
+                SFMTextDocumentPosition end = SFMTextDocumentRange.positionAtByteOffset(
+                        sourceText, range.range().endByte());
+                boolean primary = !primaryAssigned;
+                primaryAssigned |= primary;
+                selections.add(new SFMTextDocumentSelection(
+                        "surface-map-" + ordinal++, start, end, primary));
+            }
+            SFMReleaseReviewSelectionAdapter.DocumentWitness witness =
+                    SFMReleaseReviewSelectionAdapter.DocumentWitness.capture(
+                            entry.getKey(),
+                            selectionRevision,
+                            sourceAddress(source.binding()),
+                            sourceText
+                    );
+            documents.add(new SFMReleaseReviewSelectionAdapter.OrderedDocumentSelection(witness, selections));
+        }
+
+        SFMReleaseReviewSelectionAdapter.SelectionCapture selection =
+                new SFMReleaseReviewSelectionAdapter.SelectionCapture(
+                        selectionRevision, generatedPath.canonical(), documents);
+        SFMReleaseReviewSelectionAdapter.AdaptedSelection adapted =
+                SFMReleaseReviewSelectionAdapter.adapt(selection);
+        SFMReleaseReviewSelectionAdapter.DocumentResolver resolver =
+                SFMReleaseReviewSelectionAdapter.resolver(selection);
+        List<SFMReleaseReviewSelectorProposalAdapter.SemanticEvidenceProvider> providers =
+                SFMReleaseReviewSemanticProviderRegistry.global().snapshot();
+        SFMReleaseReviewSelectorProposalAdapter.ProposalBatch proposals =
+                SFMReleaseReviewSelectorProposalAdapter.propose(adapted, resolver, providers);
+        ArrayList<String> diagnostics = new ArrayList<>();
+        diagnostics.add("Projected " + surfaceSelections.size() + " generated selection(s) to "
+                + sourceRanges.size() + " pinned source range(s) through " + surface.algorithm());
+        surface.diagnostics().forEach(value -> diagnostics.add(value.displayText()));
+        proposals.diagnostics().forEach(value -> diagnostics.add(
+                value.code() + " [" + value.providerId() + "]: " + value.message()));
+        return new Capture(selection, adapted, resolver, proposals, diagnostics);
+    }
+
+    private static String generatedSelectionRevision(
+            String surfaceSha256,
+            SFMPath path,
+            List<SFMReleaseReviewSurfaceV1.SourceRange> ranges
+    ) {
+        StringBuilder witness = new StringBuilder(path.canonical()).append('\n').append(surfaceSha256);
+        for (SFMReleaseReviewSurfaceV1.SourceRange range : ranges) {
+            witness.append('\n').append(range.documentRevisionId())
+                    .append(':').append(range.range().startByte())
+                    .append(':').append(range.range().endByte());
+        }
+        return "release-review-surface-selection:" + SFMReviewSessionV1Kernel.sha256(
+                witness.toString().getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String sourceAddress(SFMReleaseReviewV1.CorpusDocument document) {
+        return "review://document/" + document.documentRevisionId() + "/" + document.path();
     }
 
     private static List<SFMTextDocumentSelection> exactSelections(SFMContextDocumentProjection projection) {

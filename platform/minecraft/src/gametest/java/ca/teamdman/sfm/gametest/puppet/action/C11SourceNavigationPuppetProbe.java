@@ -19,6 +19,7 @@ import ca.teamdman.sfm.client.semantic.SFMSpatialSemanticContract;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverIdentity;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverStateMachine;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSelection;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -87,7 +88,6 @@ final class C11SourceNavigationPuppetProbe {
     private static final Field DRAW_CAMERA_X = field(SFMDrawCanvasScreen.class, "cameraX");
     private static final Field DRAW_CAMERA_Y = field(SFMDrawCanvasScreen.class, "cameraY");
     private static final Field DRAW_ZOOM = field(SFMDrawCanvasScreen.class, "zoom");
-    private static final Field DRAW_OPEN_TARGET = field(SFMDrawCanvasScreen.class, "openTargetRange");
     private static final Field DRAW_HOVER_UNDERLINE = field(SFMDrawCanvasScreen.class, "symbolHoverUnderline");
 
     private C11SourceNavigationPuppetProbe() {
@@ -131,7 +131,7 @@ final class C11SourceNavigationPuppetProbe {
             throw new IllegalStateException("The source editor could not navigate to the pointer range");
         }
         try {
-            SFMDrawCanvasScreen draw = draw(panel);
+            SFMDrawCanvasScreen draw = drawCanvas(panel);
             SFMDrawCanvasModel model = (SFMDrawCanvasModel) DRAW_MODEL.get(draw);
             SFMDrawCanvasDocumentIndex index = model.documentIndex(
                     Minecraft.getInstance().font.width(" "),
@@ -175,7 +175,7 @@ final class C11SourceNavigationPuppetProbe {
             boolean selected = cursor != null && booleanField(cursor, "selected").getBoolean(cursor);
             @SuppressWarnings("unchecked")
             Optional<SFMSymbolHoverIdentity.TextGlyphRange> underline =
-                    (Optional<SFMSymbolHoverIdentity.TextGlyphRange>) DRAW_HOVER_UNDERLINE.get(draw(panel));
+                    (Optional<SFMSymbolHoverIdentity.TextGlyphRange>) DRAW_HOVER_UNDERLINE.get(drawCanvas(panel));
             return new Hover(state.snapshot(), underline, selected, state.lastCancellationCause());
         } catch (IllegalAccessException failure) {
             throw new IllegalStateException("Could not inspect the EditorV3 hover state", failure);
@@ -203,21 +203,23 @@ final class C11SourceNavigationPuppetProbe {
             SFMSourcePuppetProbe.EditorHandle editor
     ) {
         try {
-            return draw(editor.resolvedPanel().orElseThrow()).navigationFramingObservation();
+            return drawCanvas(editor.resolvedPanel().orElseThrow()).navigationFramingObservation();
         } catch (IllegalAccessException failure) {
             throw new IllegalStateException("Could not inspect EditorV3 navigation framing", failure);
         }
     }
 
     static Optional<SFMTextDocumentRange> openTargetRange(SFMSourcePuppetProbe.EditorHandle editor) {
-        SFMTextEditorPanel panel = editor.resolvedPanel().orElseThrow();
+        return editor.state().documentSnapshot().flatMap(SFMTextDocumentSnapshot::targetRange);
+    }
+
+    static Optional<List<SFMTextDocumentSelection>> exactDocumentSelections(
+            SFMSourcePuppetProbe.EditorHandle editor
+    ) {
         try {
-            @SuppressWarnings("unchecked")
-            Optional<SFMTextDocumentRange> target =
-                    (Optional<SFMTextDocumentRange>) DRAW_OPEN_TARGET.get(draw(panel));
-            return target;
+            return drawCanvas(editor.resolvedPanel().orElseThrow()).exactDocumentSelections();
         } catch (IllegalAccessException failure) {
-            throw new IllegalStateException("Could not inspect the EditorV3 open target", failure);
+            throw new IllegalStateException("Could not inspect the EditorV3 exact selection", failure);
         }
     }
 
@@ -225,7 +227,7 @@ final class C11SourceNavigationPuppetProbe {
             SFMSourcePuppetProbe.EditorHandle editor
     ) {
         try {
-            return draw(editor.resolvedPanel().orElseThrow()).performanceEvidence();
+            return drawCanvas(editor.resolvedPanel().orElseThrow()).performanceEvidence();
         } catch (IllegalAccessException failure) {
             throw new IllegalStateException("Could not inspect EditorV3 performance evidence", failure);
         }
@@ -233,7 +235,7 @@ final class C11SourceNavigationPuppetProbe {
 
     static void beginWarmPerformanceMeasurement(SFMSourcePuppetProbe.EditorHandle editor) {
         try {
-            draw(editor.resolvedPanel().orElseThrow()).beginWarmPerformanceMeasurement();
+            drawCanvas(editor.resolvedPanel().orElseThrow()).beginWarmPerformanceMeasurement();
         } catch (IllegalAccessException failure) {
             throw new IllegalStateException("Could not begin the EditorV3 warm performance measurement", failure);
         }
@@ -311,7 +313,7 @@ final class C11SourceNavigationPuppetProbe {
         }
     }
 
-    private static SFMDrawCanvasScreen draw(SFMTextEditorPanel editor) throws IllegalAccessException {
+    private static SFMDrawCanvasScreen drawCanvas(SFMTextEditorPanel editor) throws IllegalAccessException {
         Screen embedded = (Screen) EDITOR_SCREEN.get(editor);
         if (embedded instanceof SFMDrawCanvasScreen draw) return draw;
         throw new IllegalStateException("The C-11 source journey requires Text Editor v3");

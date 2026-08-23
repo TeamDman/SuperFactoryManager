@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen.review.explorer;
 
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewCorpus;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewKernel;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceV1;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1;
 import ca.teamdman.sfm.client.review.session.SFMReviewSessionV2;
 import ca.teamdman.sfm.client.screen.review.comment.SFMCommentHashtags;
@@ -20,6 +21,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 
 /** Pure tree/navigation model shared by changes, comments, and hashtag explorers. */
 public final class SFMReviewExplorerModel {
@@ -28,6 +30,7 @@ public final class SFMReviewExplorerModel {
         FILE,
         LANE,
         REVISION,
+        DIFF,
         REVIEW_UNIT,
         STATUS_CATEGORY,
         MIGRATION,
@@ -45,7 +48,8 @@ public final class SFMReviewExplorerModel {
             boolean missing,
             Optional<String> documentRevisionId,
             Optional<String> sha256,
-            Optional<SFMReleaseReviewV1.Utf8Range> targetRange
+            Optional<SFMReleaseReviewV1.Utf8Range> targetRange,
+            Optional<SFMReleaseReviewSurfaceV1.Recipe> generatedSurface
     ) {
         public SourceLeaf {
             Objects.requireNonNull(id);
@@ -55,8 +59,12 @@ public final class SFMReviewExplorerModel {
             Objects.requireNonNull(documentRevisionId, "documentRevisionId");
             Objects.requireNonNull(sha256, "sha256");
             Objects.requireNonNull(targetRange, "targetRange");
+            Objects.requireNonNull(generatedSurface, "generatedSurface");
             if (documentRevisionId.isPresent() != sha256.isPresent()) {
                 throw new IllegalArgumentException("Pinned review identity requires both revision id and SHA-256");
+            }
+            if (generatedSurface.isPresent() && (missing || documentRevisionId.isPresent() || !text.isEmpty())) {
+                throw new IllegalArgumentException("Generated review leaves must be lazy and independent of one revision");
             }
             targetRange.ifPresent(range -> {
                 if (range.endByte() > text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length) {
@@ -72,13 +80,26 @@ public final class SFMReviewExplorerModel {
                 String text,
                 boolean missing,
                 Optional<String> documentRevisionId,
+                Optional<String> sha256,
+                Optional<SFMReleaseReviewV1.Utf8Range> targetRange
+        ) {
+            this(id, title, path, text, missing, documentRevisionId, sha256, targetRange, Optional.empty());
+        }
+
+        public SourceLeaf(
+                String id,
+                String title,
+                String path,
+                String text,
+                boolean missing,
+                Optional<String> documentRevisionId,
                 Optional<String> sha256
         ) {
-            this(id, title, path, text, missing, documentRevisionId, sha256, Optional.empty());
+            this(id, title, path, text, missing, documentRevisionId, sha256, Optional.empty(), Optional.empty());
         }
 
         public SourceLeaf(String id, String title, String path, String text, boolean missing) {
-            this(id, title, path, text, missing, Optional.empty(), Optional.empty(), Optional.empty());
+            this(id, title, path, text, missing, Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
         }
     }
 
@@ -158,6 +179,28 @@ public final class SFMReviewExplorerModel {
 
     public record FileData(String path, String beforeText, String afterText) {}
 
+    private record ReleasePair(
+            String laneId,
+            SFMReleaseReviewV1.ChangeOperation operation,
+            Optional<String> pathBefore,
+            Optional<String> pathAfter,
+            Optional<SFMReleaseReviewV1.CorpusDocument> before,
+            Optional<SFMReleaseReviewV1.CorpusDocument> after,
+            String language,
+            List<String> reviewUnitIds
+    ) {
+        private ReleasePair {
+            Objects.requireNonNull(laneId, "laneId");
+            Objects.requireNonNull(operation, "operation");
+            Objects.requireNonNull(pathBefore, "pathBefore");
+            Objects.requireNonNull(pathAfter, "pathAfter");
+            Objects.requireNonNull(before, "before");
+            Objects.requireNonNull(after, "after");
+            Objects.requireNonNull(language, "language");
+            reviewUnitIds = List.copyOf(reviewUnitIds);
+        }
+    }
+
     private final Node root;
     private int selectionIndex;
 
@@ -223,55 +266,73 @@ public final class SFMReviewExplorerModel {
         return sessionComments(session, true);
     }
 
-    /** Complete pinned before/after projection from one portable release-review document. */
+    /** Complete pinned before/after plus lazy source-mapped diff projection. */
     public static SFMReviewExplorerModel releaseChanges(SFMReleaseReviewV1 review) {
         Objects.requireNonNull(review, "review");
         SFMReleaseReviewCorpus corpus = SFMReleaseReviewCorpus.from(review);
-        Map<String, Map<String, List<SFMReleaseReviewV1.CorpusDocument>>> byPathAndLane = new TreeMap<>();
-        for (SFMReleaseReviewV1.CorpusDocument document : review.corpusDocuments()) {
-            byPathAndLane.computeIfAbsent(document.path(), ignored -> new TreeMap<>())
-                    .computeIfAbsent(document.laneId(), ignored -> new ArrayList<>())
-                    .add(document);
-        }
+        Map<String, SFMReleaseReviewV1.CorpusDocument> documents = new LinkedHashMap<>();
+        review.corpusDocuments().forEach(document -> documents.put(document.documentRevisionId(), document));
+        Map<String, List<SFMReleaseReviewV1.ReviewUnit>> groupedUnits = new TreeMap<>();
         for (SFMReleaseReviewV1.ReviewUnit unit : review.reviewUnits()) {
-            unit.pathBefore().ifPresent(path -> byPathAndLane.computeIfAbsent(path, ignored -> new TreeMap<>())
-                    .computeIfAbsent(unit.laneId(), ignored -> new ArrayList<>()));
-            unit.pathAfter().ifPresent(path -> byPathAndLane.computeIfAbsent(path, ignored -> new TreeMap<>())
-                    .computeIfAbsent(unit.laneId(), ignored -> new ArrayList<>()));
+            groupedUnits.computeIfAbsent(releasePairGroupingKey(unit), ignored -> new ArrayList<>()).add(unit);
         }
         Map<String, SFMReleaseReviewV1.RepositoryBinding> bindings = new LinkedHashMap<>();
         review.repositoryBindings().forEach(binding -> bindings.put(binding.laneId(), binding));
-        List<Node> files = new ArrayList<>();
-        for (Map.Entry<String, Map<String, List<SFMReleaseReviewV1.CorpusDocument>>> pathEntry
-                : byPathAndLane.entrySet()) {
+        Map<String, List<ReleasePair>> pairsByFile = new TreeMap<>();
+        Set<String> pairedRevisionIds = new LinkedHashSet<>();
+        for (List<SFMReleaseReviewV1.ReviewUnit> values : groupedUnits.values()) {
+            ReleasePair pair = releasePair(values, documents);
+            pair.before().ifPresent(document -> pairedRevisionIds.add(document.documentRevisionId()));
+            pair.after().ifPresent(document -> pairedRevisionIds.add(document.documentRevisionId()));
+            pairsByFile.computeIfAbsent(releasePairLabel(pair), ignored -> new ArrayList<>()).add(pair);
+        }
+        Map<String, List<SFMReleaseReviewV1.CorpusDocument>> unpairedCorpus = new TreeMap<>();
+        for (SFMReleaseReviewV1.CorpusDocument document : review.corpusDocuments()) {
+            if (pairedRevisionIds.contains(document.documentRevisionId())) continue;
+            String key = document.laneId() + "\u0000" + document.path();
+            unpairedCorpus.computeIfAbsent(key, ignored -> new ArrayList<>()).add(document);
+        }
+        for (List<SFMReleaseReviewV1.CorpusDocument> values : unpairedCorpus.values()) {
+            ReleasePair pair = releaseCorpusPair(values);
+            pairsByFile.computeIfAbsent(releasePairLabel(pair), ignored -> new ArrayList<>()).add(pair);
+        }
+        ArrayList<Node> files = new ArrayList<>();
+        for (List<ReleasePair> filePairs : pairsByFile.values()) {
+            filePairs.sort(Comparator.comparing(ReleasePair::laneId));
+            String fileLabel = releasePairLabel(filePairs.get(0));
             List<Node> lanes = new ArrayList<>();
-            for (Map.Entry<String, List<SFMReleaseReviewV1.CorpusDocument>> laneEntry
-                    : pathEntry.getValue().entrySet()) {
-                String laneId = laneEntry.getKey();
+            for (ReleasePair pair : filePairs) {
+                String laneId = pair.laneId();
                 SFMReleaseReviewV1.RepositoryBinding binding = bindings.get(laneId);
                 String beforeLabel = binding == null ? "before" : binding.beforeLabel();
                 String afterLabel = binding == null ? "after" : binding.afterLabel();
-                SFMReleaseReviewV1.CorpusDocument before = laneEntry.getValue().stream()
-                        .filter(value -> value.snapshotSide() == SFMReleaseReviewV1.SnapshotSide.BEFORE)
-                        .findFirst().orElse(null);
-                SFMReleaseReviewV1.CorpusDocument after = laneEntry.getValue().stream()
-                        .filter(value -> value.snapshotSide() == SFMReleaseReviewV1.SnapshotSide.AFTER)
-                        .findFirst().orElse(null);
-                SourceLeaf beforeLeaf = releaseLeaf(corpus, laneId, pathEntry.getKey(), before, true, "");
-                SourceLeaf afterLeaf = releaseLeaf(corpus, laneId, pathEntry.getKey(), after, false, "");
+                SourceLeaf beforeLeaf = releaseLeaf(corpus, laneId, pair.pathBefore().orElse(fileLabel),
+                        pair.before().orElse(null), true, "");
+                SourceLeaf afterLeaf = releaseLeaf(corpus, laneId, pair.pathAfter().orElse(fileLabel),
+                        pair.after().orElse(null), false, "");
+                Optional<SFMReleaseReviewSurfaceV1.FilePair> surfacePair = releaseSurfacePair(corpus, pair);
+                SourceLeaf textDiff = releaseDiffLeaf(
+                        pair, surfacePair, SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_DIFF, "text diff");
+                SourceLeaf structuredDiff = releaseDiffLeaf(
+                        pair, surfacePair, SFMReleaseReviewSurfaceV1.SurfaceKind.JAVA_STRUCTURED_DIFF,
+                        "structured diff");
                 lanes.add(node(
-                        "release/lane/" + laneId + "/" + pathEntry.getKey(),
+                        "release/lane/" + laneId + "/" + stableId(releaseFileGroupingKey(pair)),
                         laneId + "  " + beforeLabel + " → " + afterLabel,
                         Kind.LANE,
                         List.of(
                                 node(beforeLeaf.id(), beforeLeaf.title(), Kind.REVISION, List.of(), beforeLeaf, true),
-                                node(afterLeaf.id(), afterLeaf.title(), Kind.REVISION, List.of(), afterLeaf, true)
+                                node(afterLeaf.id(), afterLeaf.title(), Kind.REVISION, List.of(), afterLeaf, true),
+                                node(textDiff.id(), textDiff.title(), Kind.DIFF, List.of(), textDiff, true),
+                                node(structuredDiff.id(), structuredDiff.title(), Kind.DIFF,
+                                        List.of(), structuredDiff, true)
                         ),
                         null,
                         false
                 ));
             }
-            files.add(node("release/file/" + pathEntry.getKey(), pathEntry.getKey(), Kind.FILE, lanes, null, false));
+            files.add(node("release/file/" + stableId(releaseFileGroupingKey(filePairs.get(0))),
+                    fileLabel, Kind.FILE, lanes, null, false));
         }
         return new SFMReviewExplorerModel(node(
                 "release/changes",
@@ -580,6 +641,172 @@ public final class SFMReviewExplorerModel {
                 side + " · " + lane.id() + " · " + (text == null ? "missing" : file.path()),
                 file.path(), text == null ? "" : text, text == null
         );
+    }
+
+    private static String releasePairGroupingKey(SFMReleaseReviewV1.ReviewUnit unit) {
+        return unit.laneId() + "\u0000" + unit.pathBefore().orElse("") + "\u0000" + unit.pathAfter().orElse("");
+    }
+
+    private static ReleasePair releasePair(
+            List<SFMReleaseReviewV1.ReviewUnit> values,
+            Map<String, SFMReleaseReviewV1.CorpusDocument> documents
+    ) {
+        if (values.isEmpty()) throw new IllegalArgumentException("A release file pair requires review units");
+        List<SFMReleaseReviewV1.ReviewUnit> units = values.stream()
+                .sorted(Comparator.comparing(SFMReleaseReviewV1.ReviewUnit::id))
+                .toList();
+        SFMReleaseReviewV1.ReviewUnit first = units.get(0);
+        for (SFMReleaseReviewV1.ReviewUnit unit : units) {
+            if (!unit.laneId().equals(first.laneId())
+                    || !unit.pathBefore().equals(first.pathBefore())
+                    || !unit.pathAfter().equals(first.pathAfter())
+                    || unit.operation() != first.operation()
+                    || !unit.language().equals(first.language())) {
+                throw new IllegalArgumentException("Review units disagree about their immutable file pair");
+            }
+        }
+        Optional<String> beforeRevision = singleRevision(units, true);
+        Optional<String> afterRevision = singleRevision(units, false);
+        Optional<SFMReleaseReviewV1.CorpusDocument> before = beforeRevision.map(id -> {
+            SFMReleaseReviewV1.CorpusDocument document = documents.get(id);
+            if (document == null || document.snapshotSide() != SFMReleaseReviewV1.SnapshotSide.BEFORE) {
+                throw new IllegalArgumentException("Review file pair has no exact before corpus document");
+            }
+            return document;
+        });
+        Optional<SFMReleaseReviewV1.CorpusDocument> after = afterRevision.map(id -> {
+            SFMReleaseReviewV1.CorpusDocument document = documents.get(id);
+            if (document == null || document.snapshotSide() != SFMReleaseReviewV1.SnapshotSide.AFTER) {
+                throw new IllegalArgumentException("Review file pair has no exact after corpus document");
+            }
+            return document;
+        });
+        return new ReleasePair(
+                first.laneId(), first.operation(), first.pathBefore(), first.pathAfter(), before, after,
+                first.language(), units.stream().map(SFMReleaseReviewV1.ReviewUnit::id).toList());
+    }
+
+    private static Optional<String> singleRevision(List<SFMReleaseReviewV1.ReviewUnit> units, boolean before) {
+        List<String> revisions = units.stream()
+                .map(unit -> before ? unit.beforeDocumentRevisionId() : unit.afterDocumentRevisionId())
+                .flatMap(Optional::stream)
+                .distinct()
+                .toList();
+        if (revisions.size() > 1) throw new IllegalArgumentException("Review file pair has multiple source revisions");
+        return revisions.stream().findFirst();
+    }
+
+    private static ReleasePair releaseCorpusPair(List<SFMReleaseReviewV1.CorpusDocument> values) {
+        if (values.isEmpty()) throw new IllegalArgumentException("A corpus file pair requires at least one document");
+        SFMReleaseReviewV1.CorpusDocument first = values.get(0);
+        for (SFMReleaseReviewV1.CorpusDocument document : values) {
+            if (!document.laneId().equals(first.laneId()) || !document.path().equals(first.path())) {
+                throw new IllegalArgumentException("Corpus documents disagree about their lane/path pair");
+            }
+        }
+        Optional<SFMReleaseReviewV1.CorpusDocument> before = values.stream()
+                .filter(document -> document.snapshotSide() == SFMReleaseReviewV1.SnapshotSide.BEFORE)
+                .findFirst();
+        Optional<SFMReleaseReviewV1.CorpusDocument> after = values.stream()
+                .filter(document -> document.snapshotSide() == SFMReleaseReviewV1.SnapshotSide.AFTER)
+                .findFirst();
+        SFMReleaseReviewV1.ChangeOperation operation = before.isEmpty()
+                ? SFMReleaseReviewV1.ChangeOperation.ADDED
+                : after.isEmpty()
+                        ? SFMReleaseReviewV1.ChangeOperation.DELETED
+                        : SFMReleaseReviewV1.ChangeOperation.MODIFIED;
+        Optional<String> pathBefore = before.map(SFMReleaseReviewV1.CorpusDocument::path);
+        Optional<String> pathAfter = after.map(SFMReleaseReviewV1.CorpusDocument::path);
+        String path = pathAfter.orElseGet(() -> pathBefore.orElseThrow());
+        String language = path.toLowerCase(Locale.ROOT).endsWith(".java") ? "java" : "text";
+        return new ReleasePair(
+                first.laneId(), operation, pathBefore, pathAfter, before, after, language, List.of());
+    }
+
+    private static String releaseFileGroupingKey(ReleasePair pair) {
+        return pair.pathBefore().orElse("") + "\u0000" + pair.pathAfter().orElse("");
+    }
+
+    private static String releasePairLabel(ReleasePair pair) {
+        if (pair.pathBefore().equals(pair.pathAfter()) && pair.pathAfter().isPresent()) {
+            return pair.pathAfter().orElseThrow();
+        }
+        if (pair.pathBefore().isEmpty()) return pair.pathAfter().orElseThrow();
+        if (pair.pathAfter().isEmpty()) return pair.pathBefore().orElseThrow();
+        return pair.pathBefore().orElseThrow() + " → " + pair.pathAfter().orElseThrow();
+    }
+
+    private static Optional<SFMReleaseReviewSurfaceV1.FilePair> releaseSurfacePair(
+            SFMReleaseReviewCorpus corpus,
+            ReleasePair pair
+    ) {
+        Optional<SFMReleaseReviewSurfaceV1.Source> before = pair.before().flatMap(binding ->
+                releaseSurfaceSource(corpus, binding, pair.language()));
+        Optional<SFMReleaseReviewSurfaceV1.Source> after = pair.after().flatMap(binding ->
+                releaseSurfaceSource(corpus, binding, pair.language()));
+        String identity = pair.laneId() + "\n" + pair.operation() + "\n"
+                + pair.pathBefore().orElse("<missing>") + "\n" + pair.pathAfter().orElse("<missing>") + "\n"
+                + String.join("\n", pair.reviewUnitIds());
+        try {
+            return Optional.of(new SFMReleaseReviewSurfaceV1.FilePair(
+                    "pair-" + stableId(identity), pair.laneId(), pair.operation(), pair.reviewUnitIds(), before, after));
+        } catch (IllegalArgumentException incomplete) {
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<SFMReleaseReviewSurfaceV1.Source> releaseSurfaceSource(
+            SFMReleaseReviewCorpus corpus,
+            SFMReleaseReviewV1.CorpusDocument binding,
+            String language
+    ) {
+        if (binding.materialization() != SFMReleaseReviewV1.Materialization.COMPLETE) return Optional.empty();
+        return corpus.documentRevision(binding.documentRevisionId())
+                .flatMap(SFMReleaseReviewCorpus.DocumentView::materializedDocument)
+                .map(document -> SFMReleaseReviewSurfaceV1.Source.fromCorpus(
+                        binding.documentRevisionId(), binding.path(), language, document.text()));
+    }
+
+    private static SourceLeaf releaseDiffLeaf(
+            ReleasePair pair,
+            Optional<SFMReleaseReviewSurfaceV1.FilePair> filePair,
+            SFMReleaseReviewSurfaceV1.SurfaceKind kind,
+            String title
+    ) {
+        String path = releasePairLabel(pair);
+        String id = "release/diff/" + pair.laneId() + "/" + kind.wireName() + "/"
+                + stableId(releaseFileGroupingKey(pair));
+        if (filePair.isEmpty()) {
+            boolean reviewUnitsAbsent = pair.reviewUnitIds().isEmpty();
+            return new SourceLeaf(
+                    id,
+                    title + " · " + pair.laneId() + " · unavailable",
+                    path,
+                    "Review diff unavailable\n"
+                            + "code: " + (reviewUnitsAbsent
+                                    ? "review.surface.review-unit-unavailable"
+                                    : "review.surface.source-unavailable") + "\n"
+                            + (reviewUnitsAbsent
+                                    ? "The pinned corpus entry is outside the review-unit domain.\n"
+                                    : "One or more immutable source snapshots were not materialized.\n"),
+                    false
+            );
+        }
+        return new SourceLeaf(
+                id,
+                title + " · " + pair.laneId() + " · " + path,
+                path,
+                "",
+                false,
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(new SFMReleaseReviewSurfaceV1.Recipe(filePair.orElseThrow(), kind))
+        );
+    }
+
+    private static String stableId(String value) {
+        return UUID.nameUUIDFromBytes(value.getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
     }
 
     private static Node releaseUnitLeaf(

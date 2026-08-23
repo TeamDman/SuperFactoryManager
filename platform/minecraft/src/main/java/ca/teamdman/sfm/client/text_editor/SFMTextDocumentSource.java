@@ -4,6 +4,8 @@ import ca.teamdman.sfm.client.explorer.SFMExplorerRuntime;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
 import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextRequest;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceRuntime;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceV1;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
@@ -23,7 +25,8 @@ public sealed interface SFMTextDocumentSource permits
         SFMTextDocumentSource.Literal,
         SFMTextDocumentSource.PinnedSnapshot,
         SFMTextDocumentSource.ResourceAddress,
-        SFMTextDocumentSource.PathAddress {
+        SFMTextDocumentSource.PathAddress,
+        SFMTextDocumentSource.GeneratedReviewSurface {
     int DEFAULT_MAXIMUM_BYTES = 4 * 1024 * 1024;
 
     CompletableFuture<SFMTextDocumentSnapshot> load(SFMExplorerCancellationToken cancellation);
@@ -104,6 +107,25 @@ public sealed interface SFMTextDocumentSource permits
                         "Failed to read runtime resource: " + address + "\n" + exception.getMessage()
                 ));
             }
+        }
+    }
+
+    /** Lazily generated, immutable review presentation backed by exact source mappings. */
+    record GeneratedReviewSurface(
+            SFMReleaseReviewSurfaceRuntime runtime,
+            SFMReleaseReviewSurfaceV1.Recipe recipe,
+            long reviewGeneration
+    ) implements SFMTextDocumentSource {
+        public GeneratedReviewSurface {
+            Objects.requireNonNull(runtime, "runtime");
+            Objects.requireNonNull(recipe, "recipe");
+            if (reviewGeneration <= 0) throw new IllegalArgumentException("reviewGeneration must be positive");
+        }
+
+        @Override
+        public CompletableFuture<SFMTextDocumentSnapshot> load(SFMExplorerCancellationToken cancellation) {
+            Objects.requireNonNull(cancellation, "cancellation");
+            return runtime.loadDocument(recipe, reviewGeneration, cancellation);
         }
     }
 

@@ -73,6 +73,17 @@ public final class SFMReviewActions {
             SFMReleaseReviewAction.Kind.ATTEST);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReviewLensSetAction> RELEASE_LENS_SET =
             REGISTERER.register("review/lens/set", SFMReviewLensSetAction::new);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentChoiceAction>
+            RELEASE_COMMENT_CHOICE_OPEN = register(SFMReleaseReviewCommentChoiceAction.Kind.OPEN);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentChoiceAction>
+            RELEASE_COMMENT_CHOICE_APPLY = register(SFMReleaseReviewCommentChoiceAction.Kind.APPLY);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentChoiceAction>
+            RELEASE_COMMENT_CHOICE_OTHER = register(SFMReleaseReviewCommentChoiceAction.Kind.OTHER);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentChoiceAction>
+            RELEASE_COMMENT_CHOICE_CANCEL = register(SFMReleaseReviewCommentChoiceAction.Kind.CANCEL);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentChoiceAction>
+            RELEASE_COMMENT_CHOICE_REOPEN_WRITABLE = register(
+                    SFMReleaseReviewCommentChoiceAction.Kind.REOPEN_WRITABLE);
 
     private SFMReviewActions() {
     }
@@ -87,6 +98,12 @@ public final class SFMReviewActions {
             SFMReleaseReviewAction.Kind kind
     ) {
         return REGISTERER.register(kind.path(), () -> new SFMReleaseReviewAction(kind));
+    }
+
+    private static SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentChoiceAction> register(
+            SFMReleaseReviewCommentChoiceAction.Kind kind
+    ) {
+        return REGISTERER.register(kind.path(), () -> new SFMReleaseReviewCommentChoiceAction(kind));
     }
 
     public static void register(IEventBus bus) {

@@ -1151,11 +1151,13 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                         () -> drawCanvas.focusContextAtScreen(mouseX, mouseY)
                 );
             }
-            contextualProjectionOverride = hit
-                    .map(value -> drawCanvas.captureContextProjectionAt(
-                            openContext.editorId(), openContext.document(), isReadOnly(), value))
-                    .orElseGet(() -> drawCanvas.captureContextProjection(
-                            openContext.editorId(), openContext.document(), isReadOnly()));
+            contextualProjectionOverride = preserveSelection
+                    ? drawCanvas.captureContextProjection(
+                            openContext.editorId(), openContext.document(), isReadOnly())
+                    : hit.map(value -> drawCanvas.captureContextProjectionAt(
+                                    openContext.editorId(), openContext.document(), isReadOnly(), value))
+                            .orElseGet(() -> drawCanvas.captureContextProjection(
+                                    openContext.editorId(), openContext.document(), isReadOnly()));
             if (hoverModifiers.requestsDefinitionNavigation()) refreshHoverTarget(mouseX, mouseY);
             try {
                 return executeEditorAction(SFMContextActionsOpenAction.ID);

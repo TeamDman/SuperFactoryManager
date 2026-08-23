@@ -423,7 +423,8 @@ class SFMReleaseReviewV1Tests {
                 .filter(node -> node.label().equals("src/Other.java"))
                 .findFirst().orElseThrow();
         assertEquals(1, other.children().size());
-        assertEquals(2, other.children().get(0).children().size());
+        assertEquals(4, other.children().get(0).children().size(),
+                "each immutable file pair exposes before, after, text-diff, and structured-diff leaves");
         assertTrue(other.children().get(0).children().get(0).leaf().missing());
         assertFalse(other.children().get(0).children().get(1).leaf().missing());
 
