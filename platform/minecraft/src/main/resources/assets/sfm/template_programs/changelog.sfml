@@ -11,6 +11,9 @@ NAME "Changelog"
 -- Add asynchronous in-game and typed CLI release-review create, refresh, open, query, status, and restart-safe resume workflows
 -- Prevent release-review selection highlights at trailing-newline EOF positions from crashing the render thread
 -- Project release-review changes, comments, hashtags, queries, status, and migrations through the generic lazy Explorer with canonical location, filtering, context actions, and target-block reveal
+-- Make target-block reveal appear only for an addressable document, render unclipped tooltips above adjacent panels, play ordinary click feedback, and avoid cold review projection on the render thread
+-- Add lazy source-mapped text and Java structured-diff leaves beside every release-review before/after pair with explicit tombstone and fallback diagnostics
+-- Add mouse-driven review lens switching and persistent source-backed comment choices for approvals, requested changes, recent templates, and custom notes
 -- Keep release-review before/after previews bounded by typed identity and make numbered pane entries focusable, closeable, movable, and context-operable with the mouse
 -- Add safe whole-pane close confirmation and restore ordinary Home/End command-palette caret editing alongside explicit first/last-suggestion actions
 -- Add a reusable selector-addressed non-pausing gameplay overlay scene with canonical direct restore, explicit passive/interactive focus, action/CLI parity, and the live History Graph as its first consumer

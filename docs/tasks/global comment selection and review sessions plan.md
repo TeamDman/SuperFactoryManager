@@ -1874,7 +1874,7 @@ header/footer chrome. Reopening the same durable review receives a fresh
 ephemeral explorer identity through its open epoch, preventing stale resolver
 state from a prior in-process session.
 
-### [~] RCS-UX2 Add action-backed reveal-current-context explorer chrome
+### [x] RCS-UX2 Add action-backed reveal-current-context explorer chrome
 
 **Work:** Add a target-block ItemStack control to generic explorer chrome with
 tooltip, narration, keyboard focus, and a stable action/element id. Its action captures
@@ -1914,7 +1914,14 @@ fails generically at `sfm action invoke` instead of presenting its reason.
 the complete review projection synchronously; palette availability evaluation
 can therefore pay the same render-thread cost before the target is clicked.
 
-### [ ] RCS-UX2a Repair reveal layering, availability, feedback, and latency
+**Resolution 2026-08-23:** The reopened defects are complete under RCS-UX2a.
+The target now derives visibility from a cheap compatible-document snapshot,
+dispatches its captured action without reparsing a command string, and uses a
+generation-keyed asynchronous reverse index for review rows. The generic
+workspace renders its deferred tooltip after panel scissors and later panes,
+and accepted mouse/keyboard activations use the ordinary Minecraft click sound.
+
+### [x] RCS-UX2a Repair reveal layering, availability, feedback, and latency
 
 **Work:** Introduce one workspace-level deferred-tooltip contract and migrate
 the target control to it so tooltips render after all panels with no active
@@ -1949,6 +1956,16 @@ dispatch latency.
 control only when useful, its tooltip is an unclipped top-level overlay, no
 state emits the observed Brigadier error, and neither palette opening nor reveal
 input freezes a frame while projecting the review.
+
+**Completion notes 2026-08-23:** Complete in `6bc1dc7e0` with final shared-
+layout coverage in `9f695c480`. `SFMExplorerPanel` publishes one context-
+sensitive interaction layout for rendering, hit testing, tooltips, and puppet
+geometry. The reveal action captures the exact explorer/document pair,
+distinguishes absent/stale/unauthorized/pending/no-match/ambiguous outcomes,
+and never constructs the formerly failing `sfm action invoke` string. Split-
+pane tooltip, zero-width absent control, focus, sound, cold/warm reverse-index,
+and natural mouse tests are green. The preferred and declared GUI-scale puppet
+runs observed no parse failure or render-thread corpus projection.
 
 ### [x] RCS-UX3 Deduplicate and safely own review preview entries
 
@@ -2025,7 +2042,7 @@ text/font draw audit groups, not new goal failures. No CLI source or dependency
 lockfile changed, so the already-installed user-facing tooling is current and
 no `install.ps1` rerun is required.
 
-### [ ] RCS-UX5 / RCS-S3 Emit textual and structural review surfaces
+### [x] RCS-UX5 / RCS-S3 Emit textual and structural review surfaces
 
 **Work:** Freeze versioned CLI-AST `ReviewUnit`, `ReviewSurface`, source-map,
 text-diff, structured-diff, and equivalence-report schemas. Produce deterministic
@@ -2050,7 +2067,26 @@ create a comment whose durable target resolves against pinned source bytes.
 open before, after, textual diff, or Java structural diff, understand every
 fallback/ambiguity, and attach/query comments without losing source identity.
 
-### [ ] RCS-UX6a Prove one mouse-complete persistent comment loop
+**Completion notes 2026-08-23:** Complete in `b538d7bb9` and `9f695c480`.
+The Rust producer freezes `sfm.review-file-pair/1`,
+`sfm.review-surface-request/1`, `sfm.review-surface/1`, and
+`sfm.review-correspondence-report/1`; `review surface generate --request-file`
+emits deterministic bounded text or Java-structured presentations with exact
+bidirectional UTF-8 source mappings. Java opens those presentations lazily from
+the ordinary review explorer and retains the generated source map for comment
+capture. Every corpus file remains visible even when it is outside the review-
+unit domain; its four-leaf shape remains stable and unavailable generated diffs
+state the exact limitation rather than dropping the pinned file.
+
+Rust scenarios cover added/deleted/renamed files, CRLF/Unicode, output bounds,
+edited/moved/renamed/reordered Java declarations, imports/fields, parse gaps,
+unsupported languages, ambiguity, deterministic JSON, and repeated generation.
+Java codec/runtime/model/capture tests prove lazy work, cancellation, cache
+identity, source projection, tombstones, corpus-only rows, and source-backed
+selection. Difftastic and syndiff remained read-only local references; no
+runtime shell-out, new dependency, or lockfile change was introduced.
+
+### [x] RCS-UX6a Prove one mouse-complete persistent comment loop
 
 **Work:** Add an action-backed review-lens control to the generic review
 Explorer. Clicking it opens the ordinary constrained palette containing
@@ -2081,6 +2117,59 @@ resume state survive. No test mutates the user's live review document.
 the workbench, switch lenses, inspect either diff, select source-backed content,
 apply or write a comment, immediately find it by comment/hashtag/query, close
 Minecraft, and resume from the repository-tracked review file.
+
+**Completion notes 2026-08-23:** Complete in `9f695c480`. The review Explorer's
+in-place lens control opens one constrained ordinary palette for Changes,
+Comments, Hashtags, Query, Status, and Migrations. Pointer selection on pinned
+source or generated diff text opens action-backed built-in/recent/custom/cancel
+comment choices. Writable choices persist atomically to the selected tracked
+`.sfm-review.json`; read-only sessions offer an explicit writable reopen and do
+not mutate. Returning from a nested comment choice closes the stale contextual
+palette and restores the review workspace. Exact selected source ranges,
+projection witnesses, hashtags, query membership, and resume state survive
+close/reopen.
+
+The natural `sfm:title_screen_release_review_explorer_ux` puppet passed at its
+preferred viewport and across the declared `3840x2130` GUI-scale matrix (auto
+and 1–8). Its durable artifacts show a text diff, an exact `#approved` comment,
+all six visited lenses, successful `#approved intersect 1.19.2 HEAD` membership,
+atomic persistence, and a read-only reopen. Focused release-review tests pass;
+the full Java suite reports 1,601 passed, zero failed, and one expected opt-in
+installed-worker assumption abort out of 1,602. The locked/offline Rust suite
+reports 727 passed and three network-dependent ignored tests. `audit --branch
+1.19.2` exits successfully with 341 findings in the one pre-existing unresolved
+`GuiGraphicsExtractor.text` group; this goal removed six ambiguous puppet-helper
+false positives. Cargo/SFM lockfiles and the dependency graph are unchanged.
+
+**Operational readiness 2026-08-23:** The user-facing CLI was installed from
+the current goal source and resolves to
+`G:\Programming\Caches\CARGO_HOME\bin\sfm-propagate-changes.exe` with SHA-256
+`5445A354999C66CD5D6BAEC18986F8EDC90229AE41BDF18A14BAADF2FA52350F`.
+`help list --short` exposes `review surface generate`; no user `install.ps1`
+run is required. The final process check found no Java, Minecraft, SFM CLI, or
+teamy-terminal process left running by validation.
+
+**Manual acceptance walkthrough:**
+
+1. Launch with `sfm-propagate-changes.exe run client --branch 1.19.2
+   --wait-for-build-lock` and open a generic file Explorer.
+2. Browse to `docs/reviews`, right-click a `.sfm-review.json`, and choose the
+   writable review action. The same row also remains openable as plain JSON or
+   as a read-only review.
+3. In Changes, expand one file/lane and open `before`, `after`, `text diff`, or
+   `structured diff`. Reopening the same leaf focuses its existing preview.
+4. Drag across source-backed text, right-click, choose `Comment…`, then select
+   `#approved`, `#needs-change`, a recent template, `Other…`, or Cancel.
+5. Click the review-lens control and verify the comment through Comments,
+   Hashtags, Query (`#approved intersect 1.19.2 HEAD`), and Status.
+6. Close the workspace/game, relaunch, reopen only that tracked review file,
+   and verify the comment and queue position remain. Do not use the protected
+   maintainer review file for disposable experiments.
+
+For repeatable automation, run `sfm-propagate-changes.exe puppet run
+sfm:title_screen_release_review_explorer_ux --branch 1.19.2 --variant preferred
+--wait-for-build-lock`; use `--variant declared` for the complete GUI-scale
+matrix.
 
 ### [ ] RCS-UX6 Make review opening and annotation naturally mouse-driven
 
@@ -2147,27 +2236,26 @@ The safety repair is first and independently committable:
 
 1. **RCS-UX0** — eliminate the observed render-thread crash and freeze stale
    range/publication invariants.
-2. **RCS-UX1 through RCS-UX4** — replace the bespoke review tree with the generic
-   explorer, add reveal, deduplicated previews, mouse tabs/pane close, and fix
-   palette caret behavior. The checkpoint is complete except for the manually
-   reopened RCS-UX2 acceptance defects owned by RCS-UX2a.
-3. **RCS-UX2a** — repair the manually observed reveal tooltip, availability,
-   sound, parse-feedback, and cold render-thread latency regressions.
-4. **RCS-UX5 / RCS-S3 plus RCS-UX6a** — add textual/structured diff reports
-   and prove one mouse-complete persistent comment loop on that substrate. This
-   is the recommended next user-visible goal.
-5. **RCS-UX6 remainder** — broaden the mouse-first workflow to complete
+2. **RCS-UX1 through RCS-UX4** — complete: replace the bespoke review tree with
+   the generic explorer, add reveal, deduplicated previews, mouse tabs/pane
+   close, and fix palette caret behavior.
+3. **RCS-UX2a** — complete: repair the manually observed reveal tooltip,
+   availability, sound, parse-feedback, and cold render-thread latency defects.
+4. **RCS-UX5 / RCS-S3 plus RCS-UX6a** — complete: add source-mapped textual/
+   structured diff reports and prove one mouse-complete persistent comment loop.
+5. **RCS-UX6 remainder** — next: broaden the mouse-first workflow to complete
    multi-session leases, conflicts, recovery, and every annotation edge case.
 6. **RCS-UX7/RCS-UX8** — broaden discoverability through explorer home and
    contextual self-explanation.
 7. **RCS-S4** — only then prove cross-lane structural equivalence without
    deduplicating human approval.
 
-The completed RCS-UX0..4 checkpoint remains useful, but manual testing has
-reopened RCS-UX2 until RCS-UX2a is green. The recommended next persistent goal
-is **RCS-UX2a, RCS-UX5/RCS-S3, and RCS-UX6a**. It deliberately includes the
-comparison and first persistent annotation loop so the endpoint is usable for
-real release review rather than another isolated presentation fragment.
+RCS-UX0 through RCS-UX5/RCS-S3 and the bounded RCS-UX6a loop are complete. The
+next coherent review-workbench goal is the **RCS-UX6 remainder**: multiple
+simultaneous reviews, path-scoped writer leases, conflict/recovery behavior,
+arbitrary-comment editing completion, multi-range/stale-selection breadth, and
+full mouse/keyboard parity. RCS-UX7/RCS-UX8 then broaden discovery and help;
+RCS-S4 remains the first cross-lane structural-equivalence proof.
 
 ### Review-workbench risk register
 
@@ -2234,10 +2322,10 @@ this candidate.
   A/B/C; RCS-8 waits for B/D/E; RCS-S1 waits for every required track.
 
 After the clean committed core, continue according to the current review-
-workbench execution order above. RCS-UX0 and the original RCS-UX1..4 checkpoint
-are complete, with RCS-UX2 manually reopened under RCS-UX2a. The next coherent
-goal is RCS-UX2a plus RCS-UX5/RCS-S3 and RCS-UX6a; RCS-S4 remains the first
-cross-lane equivalence proof after the single-lane review loop is usable.
+workbench execution order above. RCS-UX0 through RCS-UX5/RCS-S3 and the bounded
+RCS-UX6a single-review loop are complete. The next coherent goal is the
+RCS-UX6 remainder; RCS-S4 remains the first cross-lane equivalence proof after
+multi-session review ownership and recovery are complete.
 
 The dependency graph and checked-in lockfiles remain frozen. Local checkpoint
 commits are required; no push, propagation, release tag, publication, broad
