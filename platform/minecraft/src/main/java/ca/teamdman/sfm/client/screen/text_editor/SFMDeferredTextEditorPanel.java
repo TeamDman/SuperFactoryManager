@@ -8,6 +8,7 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelCloseState;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
@@ -61,6 +62,11 @@ public final class SFMDeferredTextEditorPanel
     @Override
     public boolean isReadOnly() {
         return true;
+    }
+
+    @Override
+    public SFMPanelCloseState closeState() {
+        return delegate == null ? SFMPanelCloseState.cleanReadOnly() : delegate.closeState();
     }
 
     @Override

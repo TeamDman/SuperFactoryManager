@@ -1,10 +1,7 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
-import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime;
-import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1;
-import ca.teamdman.sfm.client.screen.review.explorer.SFMReviewExplorerModel;
-import ca.teamdman.sfm.client.screen.review.explorer.SFMReviewExplorerPanel;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -56,53 +53,7 @@ public final class SFMReleaseReviewExplorerScreenType implements SFMClientScreen
 
         @Override
         public SFMScreenPanel reopen() {
-            SFMReleaseReviewRuntime runtime = SFMReleaseReviewRuntime.get();
-            return new SFMReviewExplorerPanel(
-                    title(),
-                    project(runtime.document()),
-                    () -> runtime.document().orElse(null),
-                    () -> project(runtime.document())
-            );
-        }
-
-        private String title() {
-            return switch (projection) {
-                case CHANGES -> "Release review · Changes";
-                case COMMENTS -> "Release review · Comments";
-                case HASHTAGS -> "Release review · Hashtags";
-                case QUERY -> "Release review · Work queue";
-                case STATUS -> "Release review · Status witnesses";
-                case MIGRATIONS -> "Release review · Migrations";
-            };
-        }
-
-        private SFMReviewExplorerModel project(Optional<SFMReleaseReviewV1> open) {
-            if (open.isEmpty()) {
-                return SFMReviewExplorerModel.message(
-                        "Release review unavailable",
-                        "Open a .sfm-review.json file with sfm:review/session/open first"
-                );
-            }
-            SFMReleaseReviewV1 review = open.orElseThrow();
-            return switch (projection) {
-                case CHANGES -> SFMReviewExplorerModel.releaseChanges(review);
-                case COMMENTS -> SFMReviewExplorerModel.comments(review.reviewSession());
-                case HASHTAGS -> SFMReviewExplorerModel.hashtags(review.reviewSession());
-                case QUERY -> SFMReviewExplorerModel.releaseQuery(
-                        review, queryExpression.orElseGet(() -> activeQuery(review)));
-                case STATUS -> SFMReviewExplorerModel.releaseStatus(review);
-                case MIGRATIONS -> SFMReviewExplorerModel.releaseMigrations(review);
-            };
-        }
-
-        private static String activeQuery(SFMReleaseReviewV1 review) {
-            return review.resumeState().activeQueryExpression().orElseGet(() ->
-                    review.resumeState().activeQueryId()
-                            .flatMap(id -> review.namedQueries().stream()
-                                    .filter(query -> query.id().equals(id))
-                                    .findFirst())
-                            .map(SFMReleaseReviewV1.NamedQuery::expression)
-                            .orElse("remaining"));
+            return SFMReleaseReviewExplorerRuntime.get().openScene(projection, queryExpression);
         }
     }
 }

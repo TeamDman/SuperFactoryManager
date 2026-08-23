@@ -25,6 +25,7 @@ public final class SFMKeyboardUsageSituations {
     public static final ResourceLocation DEFAULT = new ResourceLocation(SFM.MOD_ID, "default");
     public static final ResourceLocation TEXT_EDITOR = new ResourceLocation(SFM.MOD_ID, "text_editor");
     public static final ResourceLocation TEMPORAL_DOCUMENT = new ResourceLocation(SFM.MOD_ID, "temporal_document");
+    public static final ResourceLocation COMMAND_PALETTE = new ResourceLocation(SFM.MOD_ID, "command_palette");
     public static final ResourceLocation TERMINAL = new ResourceLocation(SFM.MOD_ID, "terminal");
 
     private SFMKeyboardUsageSituations() {
@@ -82,6 +83,10 @@ public final class SFMKeyboardUsageSituations {
                 Component.literal("SFM temporal document"),
                 Component.literal("Active while an undo-tree-backed SFM document owns keyboard input"),
                 List.of(TEXT_EDITOR)));
+        values.put(COMMAND_PALETTE, new SFMKeyboardUsageSituation(
+                Component.literal("SFM command palette"),
+                Component.literal("Active while the SFM command palette owns keyboard input"),
+                List.of(TEMPORAL_DOCUMENT)));
         values.put(TERMINAL, new SFMKeyboardUsageSituation(
                 Component.literal("SFM terminal"),
                 Component.literal("Active while the Rust terminal viewport owns keyboard input"),

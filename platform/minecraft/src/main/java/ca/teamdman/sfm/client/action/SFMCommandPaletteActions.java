@@ -97,6 +97,20 @@ public final class SFMCommandPaletteActions {
             ClosePaletteAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, CommandPaletteSuggestionSelectionAction>
+            SELECT_FIRST_PALETTE_SUGGESTION = REGISTERER.register(
+            "palette/suggestion/select/first",
+            () -> new CommandPaletteSuggestionSelectionAction(
+                    CommandPaletteSuggestionSelectionAction.Boundary.FIRST)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, CommandPaletteSuggestionSelectionAction>
+            SELECT_LAST_PALETTE_SUGGESTION = REGISTERER.register(
+            "palette/suggestion/select/last",
+            () -> new CommandPaletteSuggestionSelectionAction(
+                    CommandPaletteSuggestionSelectionAction.Boundary.LAST)
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST = REGISTERER.register(
             "toast/copy",
             () -> new SFMToastAction(SFMToastAction.Operation.COPY)

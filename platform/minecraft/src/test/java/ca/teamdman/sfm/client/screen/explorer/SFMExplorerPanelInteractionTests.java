@@ -28,18 +28,21 @@ public class SFMExplorerPanelInteractionTests {
     private static final SFMScreenPanelBounds BOUNDS = new SFMScreenPanelBounds(0, 0, 320, 180);
 
     @Test
-    public void locationFilterAndBodyOwnExactlyOneFocusedChromeAtATime() {
+    public void locationRevealFilterAndBodyOwnExactlyOneFocusedChromeAtATime() {
         Fixture fixture = fixture(20);
         SFMExplorerPanel panel = fixture.panel();
 
-        assertEquals(new SFMExplorerPanel.FocusChrome(false, false, true), panel.focusChrome(true));
+        assertEquals(new SFMExplorerPanel.FocusChrome(false, false, false, true), panel.focusChrome(true));
         assertTrue(panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
-        assertEquals(new SFMExplorerPanel.FocusChrome(true, false, false), panel.focusChrome(true));
+        assertEquals(new SFMExplorerPanel.FocusChrome(true, false, false, false), panel.focusChrome(true));
         assertTrue(panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
-        assertEquals(new SFMExplorerPanel.FocusChrome(false, true, false), panel.focusChrome(true));
+        assertEquals(new SFMExplorerPanel.FocusChrome(false, true, false, false), panel.focusChrome(true));
+        assertTrue(panel.revealControlHasKeyboardFocus());
         assertTrue(panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
-        assertEquals(new SFMExplorerPanel.FocusChrome(false, false, true), panel.focusChrome(true));
-        assertEquals(new SFMExplorerPanel.FocusChrome(false, false, false), panel.focusChrome(false));
+        assertEquals(new SFMExplorerPanel.FocusChrome(false, false, true, false), panel.focusChrome(true));
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0));
+        assertEquals(new SFMExplorerPanel.FocusChrome(false, false, false, true), panel.focusChrome(true));
+        assertEquals(new SFMExplorerPanel.FocusChrome(false, false, false, false), panel.focusChrome(false));
 
         assertTrue(panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, GLFW.GLFW_MOD_SHIFT));
         assertTrue(panel.filterControlHasKeyboardFocus());

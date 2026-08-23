@@ -29,6 +29,11 @@ public interface SFMScreenPanel {
         return title();
     }
 
+    /** Current data-loss posture used by pane-level close preflight. */
+    default SFMPanelCloseState closeState() {
+        return SFMPanelCloseState.cleanEditable();
+    }
+
     /**
      * Optional Minecraft-like child surface hosted by this panel.
      *

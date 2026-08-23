@@ -75,15 +75,21 @@ public final class SFMPathHierarchy {
         }
 
         for (int size = root.segments().size() + 1; size <= target.segments().size(); size++) {
-            answer.add(size == target.segments().size()
-                    ? target
-                    : new SFMPath(
+                answer.add(size == target.segments().size()
+                        ? target
+                        : new SFMPath(
                             target.kind(),
                             target.scheme(),
                             target.authority(),
                             target.segments().subList(0, size),
                             target.revision(),
-                            false
+                            // Every intermediate member of a root-to-target
+                            // chain is necessarily a container. Contributed
+                            // resolvers preserve that distinction in their
+                            // canonical path identity; synthesizing a leaf
+                            // spelling here makes an otherwise-published edge
+                            // impossible to find during reveal.
+                            target.kind() == SFMPath.Kind.CONTRIBUTED
                     ));
         }
         return List.copyOf(answer);

@@ -35,11 +35,9 @@ public final class TitleScreenReleaseReviewJourneyGamePuppet {
                 SFMScreenMultiplexer.class
         );
 
-        // The activated queue selects Café. Expand it, select its pinned source
-        // surface, preview naturally, then focus the new editor panel.
-        puppet.pressScreenKey(GLFW.GLFW_KEY_RIGHT, 0);
-        puppet.pressScreenKey(GLFW.GLFW_KEY_DOWN, 0);
-        puppet.pressScreenKey(GLFW.GLFW_KEY_SPACE, 0);
+        // The activated queue selects Café. Resolve and reveal its exact pinned source through the
+        // production generic-Explorer path, preview it, then focus the new editor panel.
+        puppet.releaseReviewJourney(ReleaseReviewJourneyPuppetAction.Operation.OPEN_CAFE_SOURCE);
         puppet.pressScreenKey(GLFW.GLFW_KEY_2, GLFW.GLFW_MOD_CONTROL);
         puppet.releaseReviewJourney(ReleaseReviewJourneyPuppetAction.Operation.CHOOSE_SEMANTIC_COMMENT);
         puppet.releaseReviewJourney(ReleaseReviewJourneyPuppetAction.Operation.ASSERT_COMMENT);

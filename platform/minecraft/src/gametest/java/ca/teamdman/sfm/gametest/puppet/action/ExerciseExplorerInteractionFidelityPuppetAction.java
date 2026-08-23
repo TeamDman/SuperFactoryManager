@@ -49,6 +49,7 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
     private String filterQuery;
     private SFMExplorerPanel.FocusChrome bodyFocus;
     private SFMExplorerPanel.FocusChrome locationFocus;
+    private SFMExplorerPanel.FocusChrome revealFocus;
     private SFMExplorerPanel.FocusChrome filterFocus;
     private SFMExplorerPanel.FocusChrome finalBodyFocus;
     private Map<String, Object> javaPresentation = Map.of();
@@ -120,7 +121,7 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         handle.workspace().focusPanel(handle.panelId());
         focusBody(handle);
         bodyFocus = handle.panel().focusChrome(true);
-        require(bodyFocus.body() && !bodyFocus.location() && !bodyFocus.filter(),
+        require(bodyFocus.body() && !bodyFocus.location() && !bodyFocus.reveal() && !bodyFocus.filter(),
                 "body focus must be exclusive before the first capture");
 
         SFMExplorerProjection.Row javaRow = row(state, javaPath).orElseThrow();
@@ -136,7 +137,8 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         require(handle.workspace().keyPressed(GLFW.GLFW_KEY_TAB, 0, 0),
                 "workspace did not route Tab into the explorer");
         locationFocus = handle.panel().focusChrome(true);
-        require(locationFocus.location() && !locationFocus.filter() && !locationFocus.body(),
+        require(locationFocus.location() && !locationFocus.reveal()
+                        && !locationFocus.filter() && !locationFocus.body(),
                 "location focus must be exclusive");
         stage = Stage.SETTLE_LOCATION;
         stageTicks = 0;
@@ -149,13 +151,20 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         relationBeforeFilter = before.childRelationRevision();
 
         require(handle.workspace().keyPressed(GLFW.GLFW_KEY_TAB, 0, 0),
-                "workspace did not route Tab from location to filter");
+                "workspace did not route Tab from location to reveal");
+        revealFocus = handle.panel().focusChrome(true);
+        require(revealFocus.reveal() && !revealFocus.location()
+                        && !revealFocus.filter() && !revealFocus.body(),
+                "reveal focus must be exclusive");
+        require(handle.workspace().keyPressed(GLFW.GLFW_KEY_TAB, 0, 0),
+                "workspace did not route Tab from reveal to filter");
         for (char character : filterQuery.toCharArray()) {
             require(handle.workspace().charTyped(character, 0),
                     "workspace did not route filter character " + character);
         }
         filterFocus = handle.panel().focusChrome(true);
-        require(filterFocus.filter() && !filterFocus.location() && !filterFocus.body(),
+        require(filterFocus.filter() && !filterFocus.location()
+                        && !filterFocus.reveal() && !filterFocus.body(),
                 "filter focus must be exclusive");
         stage = Stage.SETTLE_FILTER;
         stageTicks = 0;
@@ -269,7 +278,8 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
                     "wheel callback " + expected + " produced row " + observed + " instead of " + expected);
         }
         finalBodyFocus = handle.panel().focusChrome(true);
-        require(finalBodyFocus.body() && !finalBodyFocus.location() && !finalBodyFocus.filter(),
+        require(finalBodyFocus.body() && !finalBodyFocus.location()
+                        && !finalBodyFocus.reveal() && !finalBodyFocus.filter(),
                 "body focus must remain exclusive while scrolling");
         stage = Stage.SETTLE_SCROLL;
         stageTicks = 0;
@@ -387,6 +397,7 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
         Map<String, Object> evidence = new LinkedHashMap<>();
         evidence.put("body", chromeEvidence(bodyFocus));
         evidence.put("location", chromeEvidence(locationFocus));
+        evidence.put("reveal", chromeEvidence(revealFocus));
         evidence.put("filter", chromeEvidence(filterFocus));
         evidence.put("body_after_scroll", chromeEvidence(finalBodyFocus));
         return evidence;
@@ -395,6 +406,7 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
     private static Map<String, Boolean> chromeEvidence(SFMExplorerPanel.FocusChrome chrome) {
         return Map.of(
                 "location", chrome.location(),
+                "reveal", chrome.reveal(),
                 "filter", chrome.filter(),
                 "body", chrome.body()
         );
@@ -516,7 +528,7 @@ public final class ExerciseExplorerInteractionFidelityPuppetAction implements SF
     }
 
     private void focusBody(Handle handle) {
-        for (int attempts = 0; attempts < 3 && !handle.panel().focusChrome(true).body(); attempts++) {
+        for (int attempts = 0; attempts < 4 && !handle.panel().focusChrome(true).body(); attempts++) {
             require(handle.workspace().keyPressed(GLFW.GLFW_KEY_TAB, 0, 0),
                     "workspace did not route Tab while restoring body focus");
         }

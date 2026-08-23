@@ -5,6 +5,10 @@ import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewEditorCaptur
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
+import net.minecraft.resources.ResourceLocation;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -35,6 +39,10 @@ public final class SFMReleaseReviewAction implements SFMClientAction<SFMClientAc
         OPEN("review/session/open", "Open release review", "Open one tracked .sfm-review.json file writable"),
         OPEN_READ_ONLY("review/session/open/read_only", "Open release review read-only",
                 "Inspect one tracked review file without taking its writer lease"),
+        OPEN_VIEW("review/session/open/view", "Open release review view",
+                "Open one tracked review writable and show its generic Changes explorer"),
+        OPEN_READ_ONLY_VIEW("review/session/open/read_only/view", "Open release review view read-only",
+                "Open one tracked review read-only and show its generic Changes explorer"),
         SAVE("review/session/save", "Save release review", "Atomically save the current review file"),
         SAVE_AS("review/session/save/as", "Save release review as", "Atomically save to another explicit path"),
         QUERY("review/session/query", "Query release review", "Evaluate review-unit set algebra"),
@@ -135,7 +143,7 @@ public final class SFMReleaseReviewAction implements SFMClientAction<SFMClientAc
                                                     .<SFMClientActionSource, String>argument(
                                                             "repository_root", StringArgumentType.string())
                                                     .executes(this::invoke))))));
-            case OPEN, OPEN_READ_ONLY, SAVE_AS -> node.then(RequiredArgumentBuilder
+            case OPEN, OPEN_READ_ONLY, OPEN_VIEW, OPEN_READ_ONLY_VIEW, SAVE_AS -> node.then(RequiredArgumentBuilder
                     .<SFMClientActionSource, String>argument("path", StringArgumentType.greedyString())
                     .executes(this::invoke));
             case QUERY, QUERY_ACTIVATE, QUERY_NORMALIZE -> node.then(RequiredArgumentBuilder
@@ -191,14 +199,31 @@ public final class SFMReleaseReviewAction implements SFMClientAction<SFMClientAc
                         ),
                         context.getSource()::sendFeedback
                 );
-                case OPEN, OPEN_READ_ONLY -> {
+                case OPEN, OPEN_READ_ONLY, OPEN_VIEW, OPEN_READ_ONLY_VIEW -> {
                     Path path = Path.of(StringArgumentType.getString(context, "path"));
-                    SFMReleaseReviewRuntime.OpenResult result = runtime.open(path, kind == Kind.OPEN);
+                    boolean writable = kind == Kind.OPEN || kind == Kind.OPEN_VIEW;
+                    SFMReleaseReviewRuntime.OpenResult result = runtime.open(path, writable);
                     if (result.document().isEmpty()) {
                         throw new IllegalArgumentException(String.join("; ", result.diagnostics()));
                     }
                     feedback(context, "Opened " + path.toAbsolutePath().normalize()
-                            + (kind == Kind.OPEN ? " writable" : " read-only"));
+                            + (writable ? " writable" : " read-only"));
+                    if (kind == Kind.OPEN_VIEW || kind == Kind.OPEN_READ_ONLY_VIEW) {
+                        ResourceLocation sceneId = new ResourceLocation(
+                                "sfm", "explorer/release_review/changes");
+                        SFMPanelReopenRecipe recipe = new SFMReleaseReviewExplorerScreenType.Recipe(
+                                sceneId,
+                                SFMReleaseReviewExplorerScreenType.Projection.CHANGES,
+                                Optional.empty()
+                        );
+                        SFMScreenPanel panel = recipe.reopen();
+                        OpenPanelAction.Direction direction = target.originatingHost() instanceof SFMScreenMultiplexer
+                                ? OpenPanelAction.Direction.RIGHT
+                                : OpenPanelAction.Direction.FOCUSED;
+                        if (OpenPanelAction.openPanel(target, panel, direction, recipe) == 0) {
+                            throw new IllegalStateException("The release-review Changes explorer could not be opened");
+                        }
+                    }
                     yield 1;
                 }
                 case SAVE -> mutation(context, runtime.save(), "Saved release review");

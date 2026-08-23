@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.screen.explorer;
 
+import ca.teamdman.sfm.client.action.SFMClientActionContext;
+import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.context.SFMContextCaptureRequest;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
 import ca.teamdman.sfm.client.context.SFMContextContributor;
@@ -12,6 +14,10 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerPathReveal;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
+import ca.teamdman.sfm.client.screen.SFMActionChoice;
+import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
+import ca.teamdman.sfm.client.presentation.SFMItemIcon;
+import ca.teamdman.sfm.client.presentation.SFMItemIconRenderer;
 import ca.teamdman.sfm.client.screen.workspace.SFMFileDropTarget;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
@@ -22,6 +28,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
@@ -49,6 +56,8 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private static final int SELECTED = 0xFF264F78;
     private static final int HOVERED = 0xFF303A44;
     private static final int DIAGNOSTIC = 0xFFFF7777;
+    private static final SFMItemIcon REVEAL_ICON = SFMItemIcon.vanilla(
+            "target", "Reveal the most recently focused document in this Explorer");
 
     private final SFMExplorerSession session;
     private final SFMLazyExplorerLoader loader;
@@ -57,6 +66,8 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     private final Runnable focusObserver;
     private final Runnable closeObserver;
     private final Consumer<String> clipboardSink;
+    private final SFMExplorerContextActionRegistry contextActions =
+            SFMExplorerContextActionRegistry.minecraftDefaults();
     private SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 1, 1);
     private int mouseX;
     private int mouseY;
@@ -71,11 +82,12 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 
     private enum KeyboardFocus {
         LOCATION,
+        REVEAL,
         FILTER,
         BODY
     }
 
-    public record FocusChrome(boolean location, boolean filter, boolean body) {
+    public record FocusChrome(boolean location, boolean reveal, boolean filter, boolean body) {
     }
 
     record FilterRowPresentation(String label, int textColour, String narration) {
@@ -230,6 +242,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 "Explorer location " + state.session().location().canonical() + ". "
                         + state.projection().rows().size() + " entries" + filter + selection
                         + (keyboardFocus == KeyboardFocus.LOCATION ? ". Location control focused" : "")
+                        + (keyboardFocus == KeyboardFocus.REVEAL ? ". Reveal control focused" : "")
                         + (keyboardFocus == KeyboardFocus.FILTER
                         ? ". Filter control focused. Current filter "
                         + (filterDraft.isEmpty() ? "empty" : filterDraft)
@@ -356,6 +369,22 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 return true;
             }
         }
+        if (keyboardFocus == KeyboardFocus.REVEAL) {
+            if (keyCode == GLFW.GLFW_KEY_SPACE
+                    || keyCode == GLFW.GLFW_KEY_ENTER
+                    || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
+                invokeRevealHere();
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_LEFT) {
+                keyboardFocus = KeyboardFocus.LOCATION;
+                return true;
+            }
+            if (keyCode == GLFW.GLFW_KEY_RIGHT || keyCode == GLFW.GLFW_KEY_DOWN) {
+                keyboardFocus = KeyboardFocus.FILTER;
+                return true;
+            }
+        }
         if (keyboardFocus == KeyboardFocus.FILTER) {
             if (control && keyCode == GLFW.GLFW_KEY_C) {
                 clipboardSink.accept(filterDraft);
@@ -397,6 +426,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                             ? SFMExplorerPreviewPlacement.Mode.ADJACENT
                             : SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW
             );
+            case GLFW.GLFW_KEY_MENU -> openSelectedContextActions();
+            case GLFW.GLFW_KEY_F10 -> {
+                if ((modifiers & GLFW.GLFW_MOD_SHIFT) == 0) return false;
+                openSelectedContextActions();
+            }
             case GLFW.GLFW_KEY_F5 -> model.emitRefreshSelected(bounds);
             case GLFW.GLFW_KEY_R -> {
                 if ((modifiers & GLFW.GLFW_MOD_CONTROL) == 0) return false;
@@ -430,14 +464,21 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        boolean left = button == GLFW.GLFW_MOUSE_BUTTON_LEFT;
+        boolean right = button == GLFW.GLFW_MOUSE_BUTTON_RIGHT;
+        if (!left && !right) return false;
         SFMExplorerPanelModel.State state = model.state(bounds);
-        if (state.viewport().layout().locationControl().contains(mouseX, mouseY)) {
+        if (left && state.viewport().layout().revealControl().contains(mouseX, mouseY)) {
+            keyboardFocus = KeyboardFocus.REVEAL;
+            invokeRevealHere();
+            return true;
+        }
+        if (left && state.viewport().layout().locationControl().contains(mouseX, mouseY)) {
             keyboardFocus = KeyboardFocus.LOCATION;
             model.emitLocationEdit();
             return true;
         }
-        if (state.viewport().layout().filterControl().contains(mouseX, mouseY)) {
+        if (left && state.viewport().layout().filterControl().contains(mouseX, mouseY)) {
             focusFilter();
             return true;
         }
@@ -452,6 +493,10 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         keyboardFocus = KeyboardFocus.BODY;
         SFMExplorerPanelViewport.Cell cell = hit.orElseThrow();
         model.select(cell.row().path(), bounds);
+        if (right) {
+            openContextActions(cell.row());
+            return true;
+        }
         if (cell.chevron().contains(mouseX, mouseY) && cell.row().entry().expandable()) {
             model.emitToggleSelected(bounds);
             rememberClick(cell.row().path());
@@ -465,6 +510,49 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         lastClickPath = Optional.of(cell.row().path());
         lastClickTime = now;
         return true;
+    }
+
+    private void openContextActions(SFMExplorerProjection.Row row) {
+        if (panelContext == null || closed) return;
+        SFMClientActionContext actionContext = new SFMClientActionContext(
+                panelContext.host(),
+                () -> panelContext != null && !closed,
+                panelContext.panelId()
+        );
+        List<SFMActionChoice> choices = contextActions.resolve(new SFMExplorerContextActionProvider.Request(
+                actionContext,
+                row.path(),
+                row.entry()
+        ));
+        if (choices.isEmpty()) return;
+        SFMCommandPaletteScreen.openChoices(
+                actionContext,
+                Component.literal("Explorer actions · " + row.entry().label()),
+                choices
+        );
+    }
+
+    private void openSelectedContextActions() {
+        model.state(bounds).selectedRow().ifPresent(this::openContextActions);
+    }
+
+    private void invokeRevealHere() {
+        if (panelContext == null || closed) return;
+        SFMClientActionContext actionContext = new SFMClientActionContext(
+                panelContext.host(),
+                () -> panelContext != null && !closed,
+                panelContext.panelId()
+        );
+        try {
+            SFMClientActionExecutor.execute(
+                    "sfm action invoke sfm:explorer/reveal/here",
+                    actionContext,
+                    component -> ca.teamdman.sfm.SFM.LOGGER.info(
+                            "SFM_EXPLORER_REVEAL_FEEDBACK {}", component.getString())
+            );
+        } catch (CommandSyntaxException | RuntimeException failure) {
+            ca.teamdman.sfm.SFM.LOGGER.error("SFM_EXPLORER_REVEAL_FAILED", failure);
+        }
     }
 
     @Override
@@ -519,7 +607,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         fill(poseStack, layout.filter(), HEADER);
         fill(poseStack, layout.bodyFrame(), PANEL);
         border(poseStack, layout.content(), BORDER);
-        renderHeader(poseStack, minecraft, state, chrome.location());
+        renderHeader(poseStack, minecraft, state, chrome.location(), chrome.reveal());
         renderFilter(poseStack, minecraft, state, chrome.filter());
         for (SFMExplorerPanelViewport.Cell cell : state.viewport().cells()) {
             renderCell(poseStack, minecraft, state, cell);
@@ -532,6 +620,14 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             minecraft.screen.renderComponentTooltip(
                     poseStack,
                     List.of(Component.literal(state.session().location().canonical())),
+                    mouseX,
+                    mouseY
+            );
+        } else if (state.viewport().layout().revealControl().contains(mouseX, mouseY)
+                && minecraft.screen != null) {
+            minecraft.screen.renderComponentTooltip(
+                    poseStack,
+                    List.of(Component.literal("Reveal the most recently focused document in this Explorer")),
                     mouseX,
                     mouseY
             );
@@ -585,7 +681,8 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
             PoseStack poseStack,
             Minecraft minecraft,
             SFMExplorerPanelModel.State state,
-            boolean focused
+            boolean locationFocused,
+            boolean revealFocused
     ) {
         SFMExplorerPanelViewport.Layout layout = state.viewport().layout();
         int textY = layout.header().y() + Math.max(1, (layout.header().height() - minecraft.font.lineHeight) / 2);
@@ -593,7 +690,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         border(
                 poseStack,
                 layout.locationControl(),
-                focused ? FOCUSED_BORDER : BORDER
+                locationFocused ? FOCUSED_BORDER : BORDER
         );
         drawTrimmed(
                 poseStack,
@@ -604,6 +701,13 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 Math.max(0, layout.locationControl().width() - 12),
                 TEXT
         );
+        fill(poseStack, layout.revealControl(), 0xF0353535);
+        border(poseStack, layout.revealControl(), revealFocused ? FOCUSED_BORDER : BORDER);
+        int iconX = layout.revealControl().x()
+                + Math.max(0, (layout.revealControl().width() - SFMItemIconRenderer.SIZE) / 2);
+        int iconY = layout.revealControl().y()
+                + Math.max(0, (layout.revealControl().height() - SFMItemIconRenderer.SIZE) / 2);
+        SFMItemIconRenderer.render(minecraft, REVEAL_ICON, iconX, iconY);
     }
 
     boolean locationControlHasKeyboardFocus() {
@@ -614,6 +718,10 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         return keyboardFocus == KeyboardFocus.FILTER;
     }
 
+    boolean revealControlHasKeyboardFocus() {
+        return keyboardFocus == KeyboardFocus.REVEAL;
+    }
+
     boolean bodyControlHasKeyboardFocus() {
         return keyboardFocus == KeyboardFocus.BODY;
     }
@@ -621,6 +729,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     public FocusChrome focusChrome(boolean panelFocused) {
         return new FocusChrome(
                 panelFocused && keyboardFocus == KeyboardFocus.LOCATION,
+                panelFocused && keyboardFocus == KeyboardFocus.REVEAL,
                 panelFocused && keyboardFocus == KeyboardFocus.FILTER,
                 panelFocused && keyboardFocus == KeyboardFocus.BODY
         );
@@ -851,12 +960,14 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         keyboardFocus = reverse
                 ? switch (keyboardFocus) {
                     case BODY -> KeyboardFocus.FILTER;
-                    case FILTER -> KeyboardFocus.LOCATION;
+                    case FILTER -> KeyboardFocus.REVEAL;
+                    case REVEAL -> KeyboardFocus.LOCATION;
                     case LOCATION -> KeyboardFocus.BODY;
                 }
                 : switch (keyboardFocus) {
                     case BODY -> KeyboardFocus.LOCATION;
-                    case LOCATION -> KeyboardFocus.FILTER;
+                    case LOCATION -> KeyboardFocus.REVEAL;
+                    case REVEAL -> KeyboardFocus.FILTER;
                     case FILTER -> KeyboardFocus.BODY;
                 };
         if (keyboardFocus == KeyboardFocus.FILTER) {

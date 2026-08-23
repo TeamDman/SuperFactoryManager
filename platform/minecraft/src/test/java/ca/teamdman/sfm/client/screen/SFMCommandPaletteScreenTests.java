@@ -2,8 +2,10 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarratableEntry;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -97,5 +99,59 @@ class SFMCommandPaletteScreenTests {
             assertTrue(controls.execute().width() > 0);
             assertTrue(controls.cancel().width() > 0);
         }
+    }
+
+    @Test
+    void homeAndEndMoveTheFocusedInputCaretWithZeroOrManySuggestions() {
+        EditBox input = input("alpha beta", 5, 2);
+
+        assertTrue(SFMCommandPaletteScreen.handleCommandInputHomeEnd(
+                input, GLFW.GLFW_KEY_HOME, 0, 0));
+        assertEquals(0, input.getCursorPosition());
+        assertEquals("", input.getHighlighted());
+
+        input.setCursorPosition(3);
+        input.setHighlightPos(1);
+        assertTrue(SFMCommandPaletteScreen.handleCommandInputHomeEnd(
+                input, GLFW.GLFW_KEY_END, 0, 37));
+        assertEquals(input.getValue().length(), input.getCursorPosition());
+        assertEquals("", input.getHighlighted());
+    }
+
+    @Test
+    void shiftHomeAndEndExtendTheFocusedInputSelection() {
+        EditBox input = input("alpha beta", 5, 2);
+
+        assertTrue(SFMCommandPaletteScreen.handleCommandInputHomeEnd(
+                input, GLFW.GLFW_KEY_HOME, GLFW.GLFW_MOD_SHIFT, 0));
+        assertEquals(0, input.getCursorPosition());
+        assertEquals("al", input.getHighlighted());
+
+        input.setCursorPosition(5);
+        input.setHighlightPos(2);
+        assertTrue(SFMCommandPaletteScreen.handleCommandInputHomeEnd(
+                input, GLFW.GLFW_KEY_END, GLFW.GLFW_MOD_SHIFT, 37));
+        assertEquals(input.getValue().length(), input.getCursorPosition());
+        assertEquals("pha beta", input.getHighlighted());
+    }
+
+    @Test
+    void modifiedHomeAndEndRemainAvailableForActionBindings() {
+        EditBox input = input("alpha beta", 5, 2);
+
+        assertFalse(SFMCommandPaletteScreen.handleCommandInputHomeEnd(
+                input, GLFW.GLFW_KEY_HOME, GLFW.GLFW_MOD_CONTROL, 12));
+        assertEquals(5, input.getCursorPosition());
+        assertEquals("pha", input.getHighlighted());
+    }
+
+    private static EditBox input(String value, int cursor, int anchor) {
+        EditBox input = new EditBox(null, 0, 0, 200, 20, Component.empty());
+        input.setMaxLength(2048);
+        input.setValue(value);
+        input.setCursorPosition(cursor);
+        input.setHighlightPos(anchor);
+        input.setFocused(true);
+        return input;
     }
 }

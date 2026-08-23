@@ -14,6 +14,8 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageSituationCatalog;
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
+import ca.teamdman.sfm.client.action.SFMPanelEntryInteractionSessionService;
+import ca.teamdman.sfm.client.action.SFMWorkspaceLifecycleActionIds;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
@@ -37,14 +39,17 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /** Owns Minecraft's Screen lifecycle while hosting a normalized tree of SFM panels. */
 public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePanelHost,
@@ -72,6 +77,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private static final String COPY_CONFIRMATION_ALTERNATE_TOAST_KEY =
             "sfm:clipboard-copy-confirmation-alternate";
     private static final int TOAST_MAX_LINES = 6;
+    private static final int MAX_FOCUS_HISTORY_ENTRIES = 32;
 
     private final @Nullable Screen previousScreen;
     private final SFMWorkspaceLayout layout;
@@ -85,9 +91,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     private @Nullable SFMWorkspaceToastQueue workspaceToasts = new SFMWorkspaceToastQueue();
     private @Nullable SFMWorkspaceToastLayout workspaceToastLayout = new SFMWorkspaceToastLayout();
     private List<ToastHitRegion> workspaceToastHitRegions = List.of();
+    private List<SFMPanelEntryAffordanceLayout.HitRegion> panelEntryHitRegions = List.of();
     private @Nullable SFMWorkspaceToastQueue.ToastId capturedWorkspaceToastPointer;
     private long panelGroupRevision = Long.MIN_VALUE;
     private @Nullable SFMWorkspacePanelId observedFocusedPanel;
+    private @Nullable ArrayDeque<FocusedPanelWitness> focusHistory;
     private long keyboardFocusRevision;
     private long contextWorkspaceRevision;
     private long contextCaptureGeneration;
@@ -298,11 +306,15 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     public boolean focusPanel(SFMWorkspacePanelId panelId) {
         Objects.requireNonNull(panelId, "panelId");
+        observeWorkspaceFocus();
         if (panelId.equals(layout.focusedPanel())) {
             return layout.panel(panelId) != null;
         }
         boolean focused = layout.focus(panelId);
-        if (focused) refreshLayout(true);
+        if (focused) {
+            observeWorkspaceFocus();
+            refreshLayout(true);
+        }
         return focused;
     }
 
@@ -316,8 +328,10 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     /** Applies the same traversal used by the Ctrl+Tab workspace shortcut. */
     public boolean traversePanelFocus(int direction) {
+        observeWorkspaceFocus();
         boolean changed = layout.traverse(direction);
         if (changed) {
+            observeWorkspaceFocus();
             refreshLayout(true);
             synchronizeWidgetHostActivation();
         }
@@ -352,6 +366,17 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     public SFMWorkspacePanelIntentResult moveFocused(SFMWorkspaceSide side) {
         return submit(layout.focusedPanel(), new SFMWorkspacePanelIntent.Move(side));
+    }
+
+    /** Focuses and moves one exact entry; callers must perform any stronger capture validation first. */
+    public SFMWorkspacePanelIntentResult movePanel(
+            SFMWorkspacePanelId panelId,
+            SFMWorkspaceSide side
+    ) {
+        Objects.requireNonNull(panelId, "panelId");
+        Objects.requireNonNull(side, "side");
+        if (!focusPanel(panelId)) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
+        return submit(panelId, new SFMWorkspacePanelIntent.Move(side));
     }
 
     public boolean canDuplicate(SFMWorkspacePanelId panelId) {
@@ -453,6 +478,78 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         return layout.slotEntries(panelId);
     }
 
+    /** Captures one pane, including exact panel object identities and close-risk counts. */
+    public Optional<SFMWorkspacePaneCloseCapture> capturePaneClose(SFMWorkspacePanelId panelId) {
+        if (panelId == null || panelGroup != null) return Optional.empty();
+        Optional<SFMWorkspaceStackId> paneId = layout.stackId(panelId);
+        List<SFMWorkspaceLayout.PanelEntry> entries = layout.slotEntries(panelId);
+        if (paneId.isEmpty() || entries.isEmpty()) return Optional.empty();
+        List<SFMWorkspacePaneCloseCapture.EntryWitness> witnesses = entries.stream()
+                .map(entry -> new SFMWorkspacePaneCloseCapture.EntryWitness(entry.id(), entry.panel()))
+                .toList();
+        return Optional.of(new SFMWorkspacePaneCloseCapture(
+                paneId.orElseThrow(),
+                witnesses,
+                paneCloseSummary(entries)
+        ));
+    }
+
+    /** True only while every captured id still denotes the exact same pane member and state. */
+    public boolean matchesPaneCloseCapture(SFMWorkspacePaneCloseCapture capture) {
+        Objects.requireNonNull(capture, "capture");
+        if (panelGroup != null || capture.entries().isEmpty()) return false;
+        SFMWorkspacePanelId anchor = capture.entries().get(0).id();
+        if (!layout.stackId(anchor).filter(capture.paneId()::equals).isPresent()) return false;
+        List<SFMWorkspaceLayout.PanelEntry> current = layout.slotEntries(anchor);
+        if (current.size() != capture.entries().size()) return false;
+        for (int index = 0; index < current.size(); index++) {
+            SFMWorkspaceLayout.PanelEntry entry = current.get(index);
+            SFMWorkspacePaneCloseCapture.EntryWitness witness = capture.entries().get(index);
+            if (!entry.id().equals(witness.id()) || entry.panel() != witness.panel()) return false;
+        }
+        return paneCloseSummary(current).equals(capture.summary());
+    }
+
+    /** Atomically validates and removes every entry in one captured pane. */
+    public SFMWorkspacePanelIntentResult closePane(SFMWorkspacePaneCloseCapture capture) {
+        if (!matchesPaneCloseCapture(capture)) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
+        List<SFMWorkspacePaneCloseCapture.EntryWitness> entries = capture.entries();
+        for (SFMWorkspacePaneCloseCapture.EntryWitness entry : entries) {
+            if (!layout.remove(entry.id())) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
+        }
+        for (SFMWorkspacePaneCloseCapture.EntryWitness entry : entries) {
+            entry.panel().widgetHost().ifPresent(SFMPanelWidgetHost::closed);
+            entry.panel().closed();
+            openedPanels.remove(entry.id());
+            openedPanelInstances.remove(entry.id());
+            reopenRecipes.remove(entry.panel());
+        }
+        if (layout.panels().isEmpty()) onClose();
+        else refreshLayout(true);
+        return SFMWorkspacePanelIntentResult.APPLIED;
+    }
+
+    private SFMWorkspacePaneCloseSummary paneCloseSummary(
+            List<SFMWorkspaceLayout.PanelEntry> entries
+    ) {
+        int dirty = 0;
+        int readOnly = 0;
+        int recoverable = 0;
+        for (SFMWorkspaceLayout.PanelEntry entry : entries) {
+            SFMPanelCloseState state = entry.panel().closeState();
+            if (state.dirty()) dirty++;
+            if (state.readOnly()) readOnly++;
+            if (reopenRecipes.contains(entry.panel())) recoverable++;
+        }
+        return new SFMWorkspacePaneCloseSummary(
+                entries.size(),
+                dirty,
+                readOnly,
+                recoverable,
+                entries.size() - recoverable
+        );
+    }
+
     public boolean rotateVisibleContent(int direction) {
         boolean changed = layout.rotateVisibleContent(direction);
         if (changed) refreshLayout(true);
@@ -471,6 +568,36 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     public List<SFMWorkspaceLayout.PanelEntry> focusedSlotEntries() {
         return layout.focusedSlotEntries();
+    }
+
+    /**
+     * Returns the newest still-current panel identity matching {@code predicate}.
+     * Reused panel ids never inherit an earlier panel object's focus history.
+     */
+    public Optional<SFMWorkspaceLayout.PanelEntry> mostRecentlyFocusedPanel(
+            Predicate<SFMScreenPanel> predicate,
+            @Nullable SFMWorkspacePanelId excluded
+    ) {
+        Objects.requireNonNull(predicate, "predicate");
+        observeWorkspaceFocus();
+        Iterator<FocusedPanelWitness> iterator = focusHistory().iterator();
+        while (iterator.hasNext()) {
+            FocusedPanelWitness witness = iterator.next();
+            SFMScreenPanel current = layout.panel(witness.id());
+            if (current != witness.panel()) {
+                iterator.remove();
+                continue;
+            }
+            if (witness.id().equals(excluded) || !predicate.test(current)) continue;
+            SFMWorkspaceLayout.PanelEntry entry = layout.entry(witness.id());
+            if (entry != null) return Optional.of(entry);
+        }
+        return Optional.empty();
+    }
+
+    /** Last painted numbered-entry geometry in unscaled workspace GUI coordinates. */
+    public List<SFMPanelEntryAffordanceLayout.HitRegion> panelEntryHitRegions() {
+        return panelEntryHitRegions == null ? List.of() : List.copyOf(panelEntryHitRegions);
     }
 
     /** Traversal index retained for automation; panel identity is exposed separately. */
@@ -701,6 +828,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     protected void init() {
         disposeDividerInteraction();
         workspaceToastHitRegions = List.of();
+        panelEntryHitRegions = List.of();
         capturedWorkspaceToastPointer = null;
         super.init();
         refreshLayout(true);
@@ -747,6 +875,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
 
     private void refreshLayout(boolean notifyPanels, boolean recomposePanelGroup) {
         contextWorkspaceRevision = incrementContextGeneration(contextWorkspaceRevision);
+        panelEntryHitRegions = List.of();
         if (panelGroup != null && recomposePanelGroup) {
             layout.recompose(panelGroup.layout(new SFMScreenPanelBounds(0, 0, this.width, this.height)));
             panelGroupRevision = panelGroup.revision();
@@ -943,6 +1072,17 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         Component narration = focused == null
                 ? Component.literal("Empty SFM workspace")
                 : Component.literal("SFM workspace. Focused panel: ").append(focused.narration());
+        List<SFMWorkspaceLayout.PanelEntry> focusedPane = layout.focusedSlotEntries();
+        if (focusedPane.size() > 1) {
+            int focusedIndex = 0;
+            for (int index = 0; index < focusedPane.size(); index++) {
+                if (focusedPane.get(index).id().equals(layout.focusedPanel())) focusedIndex = index;
+            }
+            narration = narration.copy().append(Component.literal(
+                    ". Pane entry " + (focusedIndex + 1) + " of " + focusedPane.size()
+                            + ". Numbered controls: left click focuses, middle click closes, right click opens actions."
+            ));
+        }
         if (dropFeedback != null) narration = narration.copy().append(Component.literal(". ")).append(dropFeedback);
         Optional<SFMWorkspaceToastQueue.Snapshot> toast = latestWorkspaceToast();
         if (toast.isPresent()) {
@@ -979,6 +1119,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         reopenRecipes.clear();
         toastQueue().close();
         workspaceToastHitRegions = List.of();
+        panelEntryHitRegions = List.of();
         capturedWorkspaceToastPointer = null;
         SFMScreenChangeHelpers.setScreen(previousScreen);
     }
@@ -994,6 +1135,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
         synchronizeWidgetHostActivation();
         this.renderBackground(poseStack);
+        ArrayList<SFMPanelEntryAffordanceLayout.HitRegion> entryHitRegions = new ArrayList<>();
         for (SFMWorkspaceLayout.PanelEntry entry : layout.visiblePanels()) {
             SFMScreenPanelBounds bounds = panelBounds.get(entry.id());
             if (bounds == null) continue;
@@ -1015,14 +1157,16 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             } finally {
                 SFMScissorStack.pop();
             }
-            renderEntryAffordances(poseStack, entry, bounds);
+            entryHitRegions.addAll(renderEntryAffordances(poseStack, entry, bounds));
         }
+        panelEntryHitRegions = List.copyOf(entryHitRegions);
         renderDividerAffordances(poseStack);
         if (dropFeedback != null) {
             SFMFontUtils.draw(poseStack, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
         super.render(poseStack, mouseX, mouseY, partialTick);
         renderWorkspaceToasts(poseStack, mouseX, mouseY);
+        renderPanelEntryTooltip(poseStack, mouseX, mouseY);
         if (dividerInteraction != null) dividerInteraction.reassertCursor();
     }
 
@@ -1131,11 +1275,25 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             else if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) openWorkspaceToastActions(id);
             return true;
         }
+        Optional<SFMPanelEntryAffordanceLayout.HitRegion> panelEntry = panelEntryAt(mouseX, mouseY);
+        if (panelEntry.isPresent()) {
+            SFMPanelEntryAffordanceLayout.HitRegion hit = panelEntry.orElseThrow();
+            if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                invokePanelEntryAction(hit, SFMWorkspaceLifecycleActionIds.PANEL_ENTRY_FOCUS);
+            } else if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
+                invokePanelEntryAction(hit, SFMWorkspaceLifecycleActionIds.PANEL_ENTRY_CLOSE);
+            } else if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+                openPanelEntryActions(hit);
+            }
+            return true;
+        }
         if (dividerInteraction != null
                 && dividerInteraction.pointerPressed(mouseX, mouseY, button)) return true;
         SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
         if (entry != null) {
+            observeWorkspaceFocus();
             layout.focus(entry.id());
+            observeWorkspaceFocus();
             synchronizeWidgetHostActivation();
             int[] local = localMouse(entry, mouseX, mouseY);
             boolean childHandled = entry.panel().widgetHost()
@@ -1214,7 +1372,9 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         if (workspaceToastAt(mouseX, mouseY).isPresent()) return true;
         SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
         if (entry != null) {
+            observeWorkspaceFocus();
             layout.focus(entry.id());
+            observeWorkspaceFocus();
             synchronizeWidgetHostActivation();
         }
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
@@ -1363,6 +1523,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         SFMWorkspacePanelId focused = layout.focusedPanel();
         if (java.util.Objects.equals(observedFocusedPanel, focused)) return;
         observedFocusedPanel = focused;
+        SFMScreenPanel focusedPanel = focused == null ? null : layout.panel(focused);
+        if (focusedPanel != null) {
+            ArrayDeque<FocusedPanelWitness> history = focusHistory();
+            history.removeIf(witness -> witness.id().equals(focused) || witness.panel() == focusedPanel);
+            history.addFirst(new FocusedPanelWitness(focused, focusedPanel));
+            while (history.size() > MAX_FOCUS_HISTORY_ENTRIES) history.removeLast();
+        }
         keyboardFocusRevision++;
         // Pure layout/action tests construct a workspace without bootstrapping
         // Minecraft. Revision identity still updates there; only the live
@@ -1372,33 +1539,112 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         }
     }
 
+    private ArrayDeque<FocusedPanelWitness> focusHistory() {
+        if (focusHistory == null) focusHistory = new ArrayDeque<>();
+        return focusHistory;
+    }
 
-    private void renderEntryAffordances(
+    private record FocusedPanelWitness(SFMWorkspacePanelId id, SFMScreenPanel panel) {
+    }
+
+
+    private List<SFMPanelEntryAffordanceLayout.HitRegion> renderEntryAffordances(
             PoseStack poseStack,
             SFMWorkspaceLayout.PanelEntry entry,
             SFMScreenPanelBounds bounds
     ) {
         List<SFMWorkspaceLayout.PanelEntry> slot = layout.slotEntries(entry.id());
-        if (slot.size() > 1) {
-            int boxSize = 11;
-            int gap = 2;
-            int totalWidth = slot.size() * boxSize + (slot.size() - 1) * gap;
-            int startX = Math.max(bounds.x() + 2, bounds.x() + bounds.width() - totalWidth - 3);
-            int y = Math.max(bounds.y() + 2, bounds.y() + bounds.height() - boxSize - 3);
-            for (int index = 0; index < slot.size(); index++) {
-                SFMWorkspaceLayout.PanelEntry tab = slot.get(index);
-                int x = startX + index * (boxSize + gap);
-                int background = tab.id().equals(layout.focusedPanel()) ? 0xFF55FFFF : 0xCC303030;
-                int foreground = tab.id().equals(layout.focusedPanel()) ? 0xFF101010 : 0xFFFFFFFF;
-                fill(poseStack, x, y, x + boxSize, y + boxSize, background);
-                String label = Integer.toString(index + 1);
-                SFMFontUtils.draw(poseStack, this.font, label,
-                        x + (boxSize - this.font.width(label)) / 2,
-                        y + 2,
-                        foreground,
-                        true);
-            }
+        Optional<SFMWorkspaceStackId> paneId = layout.stackId(entry.id());
+        if (paneId.isEmpty()) return List.of();
+        List<SFMPanelEntryAffordanceLayout.HitRegion> regions =
+                SFMPanelEntryAffordanceLayout.layout(
+                        bounds,
+                        paneId.orElseThrow(),
+                        slot,
+                        layout.focusedPanel()
+                );
+        for (SFMPanelEntryAffordanceLayout.HitRegion region : regions) {
+            SFMScreenPanelBounds hit = region.bounds();
+            int background = region.focused() ? 0xFF55FFFF : 0xCC303030;
+            int foreground = region.focused() ? 0xFF101010 : 0xFFFFFFFF;
+            fill(poseStack, hit.x(), hit.y(), hit.x() + hit.width(), hit.y() + hit.height(), background);
+            String label = Integer.toString(region.oneBasedIndex());
+            SFMFontUtils.draw(poseStack, this.font, label,
+                    hit.x() + (hit.width() - this.font.width(label)) / 2,
+                    hit.y() + 2,
+                    foreground,
+                    true);
         }
+        return regions;
+    }
+
+    private Optional<SFMPanelEntryAffordanceLayout.HitRegion> panelEntryAt(
+            double mouseX,
+            double mouseY
+    ) {
+        // Headless and first-frame input can arrive before numbered-entry geometry has been painted.
+        // An absent cache means there is no entry affordance to hit; it must not prevent divider or
+        // panel input from continuing through the ordinary routing path.
+        List<SFMPanelEntryAffordanceLayout.HitRegion> regions = panelEntryHitRegions;
+        if (regions == null || regions.isEmpty()) return Optional.empty();
+        return SFMPanelEntryAffordanceLayout.hitTest(regions, mouseX, mouseY)
+                .filter(hit -> layout.panel(hit.entryId()) == hit.capturedPanel())
+                .filter(hit -> layout.stackId(hit.entryId()).filter(hit.paneId()::equals).isPresent());
+    }
+
+    private boolean invokePanelEntryAction(
+            SFMPanelEntryAffordanceLayout.HitRegion hit,
+            ResourceLocation actionId
+    ) {
+        Optional<SFMPanelEntryInteractionSessionService.Session> captured =
+                SFMPanelEntryInteractionSessionService.create(this, hit);
+        if (captured.isEmpty()) return false;
+        SFMPanelEntryInteractionSessionService.Session session = captured.orElseThrow();
+        try {
+            return invokeWorkspaceAction(actionId + " " + session.commandArgument());
+        } finally {
+            SFMPanelEntryInteractionSessionService.invalidate(session);
+        }
+    }
+
+    private boolean openPanelEntryActions(SFMPanelEntryAffordanceLayout.HitRegion hit) {
+        Optional<SFMPanelEntryInteractionSessionService.Session> captured =
+                SFMPanelEntryInteractionSessionService.create(this, hit);
+        if (captured.isEmpty()) return false;
+        SFMPanelEntryInteractionSessionService.Session session = captured.orElseThrow();
+        SFMClientActionContext context = new SFMClientActionContext(
+                this,
+                () -> !closing && Minecraft.getInstance().screen == this,
+                hit.entryId()
+        );
+        try {
+            SFMCommandPaletteScreen.openChoices(
+                    context,
+                    Component.literal("Panel entry " + session.oneBasedIndex()
+                            + " of " + session.entryCount() + " · " + session.stableId()),
+                    SFMWorkspaceLifecycleActionIds.panelEntryChoices(session),
+                    () -> SFMPanelEntryInteractionSessionService.invalidate(session)
+            );
+            return true;
+        } catch (RuntimeException failure) {
+            SFMPanelEntryInteractionSessionService.invalidate(session);
+            throw failure;
+        }
+    }
+
+    private void renderPanelEntryTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+        if (workspaceToastAt(mouseX, mouseY).isPresent()) return;
+        panelEntryAt(mouseX, mouseY).ifPresent(hit -> renderComponentTooltip(
+                poseStack,
+                List.of(
+                        Component.literal("Panel entry " + hit.oneBasedIndex() + " of " + hit.entryCount()),
+                        hit.capturedPanel().title(),
+                        Component.literal("Stable id: " + hit.stableId()),
+                        Component.literal("Left: focus · Middle: close · Right: actions")
+                ),
+                mouseX,
+                mouseY
+        ));
     }
 
     private void renderDividerAffordances(PoseStack poseStack) {

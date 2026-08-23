@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMPathExpression;
 import ca.teamdman.sfm.client.history.workspace.SFMWorkspaceCounterfactualRuntime;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPreviewPlacement;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
@@ -86,6 +87,18 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
                 );
                 commandContext.getSource().sendFeedback(Component.literal(
                         "Opening " + path.canonical() + " as "
+                                + mode.name().toLowerCase(java.util.Locale.ROOT)
+                ));
+                return opened;
+            }
+            if (path.scheme().equals(SFMReleaseReviewExplorerRuntime.PATH_SCHEME)) {
+                int opened = SFMReleaseReviewExplorerRuntime.get().openDocument(
+                        commandContext.getSource().context(),
+                        path,
+                        mode
+                );
+                commandContext.getSource().sendFeedback(Component.literal(
+                        "Opening review source " + path.canonical() + " as "
                                 + mode.name().toLowerCase(java.util.Locale.ROOT)
                 ));
                 return opened;

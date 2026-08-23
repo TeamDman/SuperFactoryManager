@@ -13,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Places addressed documents without treating arbitrary panels as disposable.
@@ -81,13 +82,26 @@ public final class SFMExplorerPreviewPlacement {
             SFMScreenPanel documentPanel,
             @Nullable SFMPanelReopenRecipe reopenRecipe
     ) {
+        return place(workspace, explorerPanelId, explorerId, mode, documentPanel, reopenRecipe, Optional.empty());
+    }
+
+    public static Result place(
+            SFMScreenMultiplexer workspace,
+            SFMWorkspacePanelId explorerPanelId,
+            String explorerId,
+            Mode mode,
+            SFMScreenPanel documentPanel,
+            @Nullable SFMPanelReopenRecipe reopenRecipe,
+            Optional<String> presentationIdentity
+    ) {
         return place(
                 new MultiplexerWorkspace(Objects.requireNonNull(workspace, "workspace")),
                 explorerPanelId,
                 explorerId,
                 mode,
                 documentPanel,
-                reopenRecipe
+                reopenRecipe,
+                presentationIdentity
         );
     }
 
@@ -99,11 +113,34 @@ public final class SFMExplorerPreviewPlacement {
             SFMScreenPanel documentPanel,
             @Nullable SFMPanelReopenRecipe reopenRecipe
     ) {
+        return place(
+                workspace,
+                explorerPanelId,
+                explorerId,
+                mode,
+                documentPanel,
+                reopenRecipe,
+                Optional.empty()
+        );
+    }
+
+    static Result place(
+            Workspace workspace,
+            SFMWorkspacePanelId explorerPanelId,
+            String explorerId,
+            Mode mode,
+            SFMScreenPanel documentPanel,
+            @Nullable SFMPanelReopenRecipe reopenRecipe,
+            Optional<String> presentationIdentity
+    ) {
         Objects.requireNonNull(workspace, "workspace");
         Objects.requireNonNull(explorerPanelId, "explorerPanelId");
         Objects.requireNonNull(explorerId, "explorerId");
         Objects.requireNonNull(mode, "mode");
         Objects.requireNonNull(documentPanel, "documentPanel");
+        presentationIdentity = Objects.requireNonNull(presentationIdentity, "presentationIdentity")
+                .map(String::strip)
+                .filter(value -> !value.isEmpty());
         if (!workspace.containsPanel(explorerPanelId)) {
             return new Result(SFMWorkspacePanelIntentResult.UNAVAILABLE, null, false);
         }
@@ -136,7 +173,27 @@ public final class SFMExplorerPreviewPlacement {
                 })
                 .sorted(Comparator.comparingLong(SFMWorkspacePanelId::value).reversed())
                 .toList();
-        SFMWorkspacePanelMetadata previewMetadata = SFMWorkspacePanelMetadata.explorerPreview(explorerId);
+        if (presentationIdentity.isPresent()) {
+            String exactIdentity = presentationIdentity.orElseThrow();
+            SFMWorkspacePanelId existing = reusable.stream()
+                    .filter(id -> {
+                        SFMWorkspacePanelMetadata metadata = workspace.panelMetadata(id);
+                        return metadata != null && metadata.isExplorerPreview(explorerId, exactIdentity);
+                    })
+                    .findFirst()
+                    .orElse(null);
+            if (existing != null) {
+                boolean focused = workspace.focusPanel(mode == Mode.PREVIEW ? explorerPanelId : existing);
+                return new Result(
+                        focused ? SFMWorkspacePanelIntentResult.APPLIED : SFMWorkspacePanelIntentResult.UNAVAILABLE,
+                        existing,
+                        true
+                );
+            }
+        }
+        SFMWorkspacePanelMetadata previewMetadata = presentationIdentity
+                .map(identity -> SFMWorkspacePanelMetadata.explorerPreview(explorerId, identity))
+                .orElseGet(() -> SFMWorkspacePanelMetadata.explorerPreview(explorerId));
         SFMWorkspacePanelIntentResult outcome;
         boolean reused = !reusable.isEmpty();
         if (reused) {
@@ -160,10 +217,12 @@ public final class SFMExplorerPreviewPlacement {
         }
 
         SFMWorkspacePanelId opened = workspace.focusedPanelId();
-        // The new immutable preview is already active in the same slot before
-        // the old one is retired, so the user never observes an empty slot.
-        for (SFMWorkspacePanelId old : reusable) {
-            if (!old.equals(opened) && workspace.containsPanel(old)) workspace.closePanel(old);
+        if (presentationIdentity.isEmpty()) {
+            // Rolling previews retain the original replacement policy. Typed
+            // presentations instead remain as stable tabs in this slot.
+            for (SFMWorkspacePanelId old : reusable) {
+                if (!old.equals(opened) && workspace.containsPanel(old)) workspace.closePanel(old);
+            }
         }
         if (mode == Mode.PREVIEW) workspace.focusPanel(explorerPanelId);
         else workspace.focusPanel(opened);

@@ -429,7 +429,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     @Override
     public SFMKeyboardUsageContextSnapshot keyboardUsageContextSnapshot() {
         var ancestry = SFMKeyboardUsageSituations.catalog().resolve(
-                SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT);
+                SFMKeyboardUsageSituations.COMMAND_PALETTE);
         return new SFMKeyboardUsageContextSnapshot(
                 this,
                 () -> ACTIVE == this && Minecraft.getInstance().screen == this,
@@ -663,6 +663,9 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             if (!this.changeFocus(forward)) this.changeFocus(forward);
             return true;
         }
+        if (handleCommandInputHomeEnd(this.input, key, modifiers, suggestions.size())) {
+            return true;
+        }
         if (key == GLFW.GLFW_KEY_UP || key == GLFW.GLFW_KEY_DOWN) {
             if (!suggestions.isEmpty()) {
                 suggestionViewport.moveSelection(key == GLFW.GLFW_KEY_UP ? -1 : 1);
@@ -677,15 +680,55 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             suggestionViewport.pageSelection(1);
             return true;
         }
-        if (!suggestions.isEmpty() && key == GLFW.GLFW_KEY_HOME) {
-            suggestionViewport.selectFirst();
-            return true;
-        }
-        if (!suggestions.isEmpty() && key == GLFW.GLFW_KEY_END) {
-            suggestionViewport.selectLast();
-            return true;
-        }
         return super.keyPressed(key, scanCode, modifiers);
+    }
+
+    /**
+     * Applies the single-line command-input Home/End contract.
+     *
+     * <p>The suggestion count is deliberately part of this boundary even
+     * though it cannot change the result. This prevents a future regression
+     * where suggestions make ordinary text-navigation keys select list rows
+     * again.</p>
+     */
+    static boolean handleCommandInputHomeEnd(
+            EditBox input,
+            int key,
+            int modifiers,
+            int suggestionCount
+    ) {
+        if (suggestionCount < 0) throw new IllegalArgumentException("suggestionCount must be non-negative");
+        if (!input.isFocused()) return false;
+        if (key != GLFW.GLFW_KEY_HOME && key != GLFW.GLFW_KEY_END) return false;
+
+        int navigationModifiers = modifiers & (
+                GLFW.GLFW_MOD_SHIFT
+                        | GLFW.GLFW_MOD_CONTROL
+                        | GLFW.GLFW_MOD_ALT
+                        | GLFW.GLFW_MOD_SUPER);
+        if ((navigationModifiers & ~GLFW.GLFW_MOD_SHIFT) != 0) return false;
+
+        int destination = key == GLFW.GLFW_KEY_HOME ? 0 : input.getValue().length();
+        boolean extendSelection = (navigationModifiers & GLFW.GLFW_MOD_SHIFT) != 0;
+        input.setCursorPosition(destination);
+        if (!extendSelection) input.setHighlightPos(destination);
+        return true;
+    }
+
+    public boolean hasSuggestionsForAction() {
+        return !suggestions.isEmpty();
+    }
+
+    public boolean selectFirstSuggestionForAction() {
+        if (suggestions.isEmpty()) return false;
+        suggestionViewport.selectFirst();
+        return true;
+    }
+
+    public boolean selectLastSuggestionForAction() {
+        if (suggestions.isEmpty()) return false;
+        suggestionViewport.selectLast();
+        return true;
     }
 
     @Override
@@ -1681,13 +1724,13 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             throw new IllegalStateException("Suggestion wheel did not advance the viewport");
         }
         keyPressed(GLFW.GLFW_KEY_PAGE_DOWN, 0, 0);
-        keyPressed(GLFW.GLFW_KEY_END, 0, 0);
+        selectLastSuggestionForAction();
         if (suggestionViewport.selectedRow() != suggestions.size() - 1) {
-            throw new IllegalStateException("End did not select the final suggestion");
+            throw new IllegalStateException("The last-suggestion action did not select the final suggestion");
         }
-        keyPressed(GLFW.GLFW_KEY_HOME, 0, 0);
+        selectFirstSuggestionForAction();
         if (suggestionViewport.firstVisibleRow() != 0 || suggestionViewport.selectedRow() != 0) {
-            throw new IllegalStateException("Home did not restore the first suggestion");
+            throw new IllegalStateException("The first-suggestion action did not restore the first suggestion");
         }
 
         SFMVerticalListViewport.ScrollbarGeometry geometry = suggestionScrollbarGeometry();
@@ -1697,7 +1740,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 || suggestionViewport.firstVisibleRow() == 0) {
             throw new IllegalStateException("Suggestion scrollbar track click did not advance the viewport");
         }
-        keyPressed(GLFW.GLFW_KEY_HOME, 0, 0);
+        selectFirstSuggestionForAction();
         geometry = suggestionScrollbarGeometry();
         double thumbY = geometry.thumb().y() + geometry.thumb().height() / 2.0d;
         if (!mouseClicked(trackX, thumbY, 0)

@@ -13,6 +13,7 @@ import ca.teamdman.sfm.client.history.workspace.SFMWorkspaceCounterfactualRuntim
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextDocumentPanelState;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelWidgetHost;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelCloseState;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
@@ -84,6 +85,7 @@ public final class SFMWorkspaceCounterfactualDocumentPanel
     @Override public Optional<SFMPanelWidgetHost> widgetHost() { return editor.widgetHost(); }
     @Override public boolean widgetHostOwnsInput() { return editor.widgetHostOwnsInput(); }
     @Override public boolean isReadOnly() { return false; }
+    @Override public SFMPanelCloseState closeState() { return new SFMPanelCloseState(dirty, false); }
     @Override public Optional<SFMTextDocumentSnapshot> documentSnapshot() {
         return Optional.of(addressedSnapshot(editor.currentText()));
     }

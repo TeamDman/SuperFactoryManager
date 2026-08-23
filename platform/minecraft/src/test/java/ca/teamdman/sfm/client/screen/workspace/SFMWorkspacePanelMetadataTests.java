@@ -38,4 +38,20 @@ class SFMWorkspacePanelMetadataTests {
         assertThrows(IllegalArgumentException.class,
                 () -> SFMWorkspacePanelMetadata.explorerPreview("explorer-1)ordinary"));
     }
+
+    @Test
+    void typedPresentationIdentityRoundTripsWithoutLeakingIntoOwnerParsing() {
+        String identity = "review|D:\\repo with spaces|before|sha256:abc|[0,12)";
+        SFMWorkspacePanelMetadata metadata = SFMWorkspacePanelMetadata.explorerPreview(
+                "explorer-7",
+                identity
+        );
+
+        assertEquals(Optional.of("explorer-7"), metadata.explorerPreviewOwner());
+        assertEquals(Optional.of(identity), metadata.explorerPreviewPresentationIdentity());
+        assertTrue(metadata.isExplorerPreview("explorer-7", identity));
+        assertFalse(metadata.isExplorerPreview("explorer-7", identity + "-other"));
+        assertEquals(Optional.of(identity), metadata.withGuiScaleOverride(3)
+                .explorerPreviewPresentationIdentity());
+    }
 }

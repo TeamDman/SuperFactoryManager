@@ -16,6 +16,7 @@ import ca.teamdman.sfm.client.action.SFMReviewActions;
 import ca.teamdman.sfm.client.action.SFMRouteComparisonActions;
 import ca.teamdman.sfm.client.action.SFMTrajectoryActions;
 import ca.teamdman.sfm.client.action.SFMWorkspaceCounterfactualActions;
+import ca.teamdman.sfm.client.action.SFMWorkspaceLifecycleActions;
 import ca.teamdman.sfm.client.action.SFMDeveloperActions;
 import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
 import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
@@ -105,6 +106,7 @@ public class SFM {
         SFMReviewActions.register(bus);
         SFMRouteComparisonActions.register(bus);
         SFMWorkspaceCounterfactualActions.register(bus);
+        SFMWorkspaceLifecycleActions.register(bus);
 
         SFMKeyboardUsageSituationRegistrations.register(bus);
 

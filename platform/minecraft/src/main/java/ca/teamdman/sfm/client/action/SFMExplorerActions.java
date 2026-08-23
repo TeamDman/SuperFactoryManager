@@ -45,6 +45,8 @@ public final class SFMExplorerActions {
             REGISTERER.register("path/open", SFMPathOpenAction::new);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMRevealInExplorerAction> REVEAL =
             REGISTERER.register("explorer/reveal", SFMRevealInExplorerAction::new);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMRevealHereAction> REVEAL_HERE =
+            REGISTERER.register("explorer/reveal/here", SFMRevealHereAction::new);
 
     private SFMExplorerActions() {
     }

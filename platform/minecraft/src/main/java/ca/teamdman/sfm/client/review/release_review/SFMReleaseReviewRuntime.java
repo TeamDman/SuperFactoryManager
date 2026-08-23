@@ -31,6 +31,24 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
 
     public record MutationResult(boolean saved, boolean dirty, Optional<String> failure) {}
 
+    /** One atomic identity capture for resolver-backed review projections. */
+    public record Snapshot(
+            Optional<Path> path,
+            Optional<SFMReleaseReviewV1> document,
+            long generation,
+            long openEpoch,
+            boolean dirty
+    ) {
+        public Snapshot {
+            Objects.requireNonNull(path, "path");
+            Objects.requireNonNull(document, "document");
+            if (generation <= 0) throw new IllegalArgumentException("Review generation must be positive");
+            if (path.isPresent() != document.isPresent()) {
+                throw new IllegalArgumentException("Review path and document must be published atomically");
+            }
+        }
+    }
+
     public record CommentMutationResult(String commentId, MutationResult mutation) {
         public CommentMutationResult {
             Objects.requireNonNull(commentId, "commentId");
@@ -55,6 +73,13 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
     private Optional<String> openedHash = Optional.empty();
     private SFMReleaseReviewKernel.CompletionReport cachedStatus;
     private boolean dirty;
+    private long generation = 1;
+    /**
+     * Identity of the currently opened review lease. Unlike {@link #generation}, this does not
+     * advance for ordinary document mutations, so resolver-backed views can refresh in place while
+     * still distinguishing a later reopen of the same durable path.
+     */
+    private long openEpoch = 1;
 
     public static SFMReleaseReviewRuntime get() {
         return INSTANCE;
@@ -62,14 +87,33 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
 
     public synchronized OpenResult open(Path path, boolean writable) throws IOException {
         closeForReplacement();
-        store = SFMReleaseReviewStore.open(path,
+        SFMReleaseReviewStore replacement = SFMReleaseReviewStore.open(path,
                 writable ? SFMReleaseReviewStore.Access.WRITABLE : SFMReleaseReviewStore.Access.READ_ONLY);
-        SFMReleaseReviewStore.LoadResult loaded = store.load();
-        document = loaded.document().orElse(null);
-        openedHash = loaded.openedContentHash();
-        cachedStatus = null;
-        dirty = loaded.recoveredMachineLocalCopy();
-        return new OpenResult(loaded.document(), writable, loaded.recoveredMachineLocalCopy(), loaded.diagnostics());
+        try {
+            SFMReleaseReviewStore.LoadResult loaded = replacement.load();
+            if (loaded.document().isPresent()) {
+                store = replacement;
+                replacement = null;
+                document = loaded.document().orElseThrow();
+                openedHash = loaded.openedContentHash();
+                dirty = loaded.recoveredMachineLocalCopy();
+            } else {
+                document = null;
+                openedHash = Optional.empty();
+                dirty = false;
+            }
+            cachedStatus = null;
+            advanceOpenEpoch();
+            advanceGeneration();
+            return new OpenResult(
+                    loaded.document(),
+                    writable,
+                    loaded.recoveredMachineLocalCopy(),
+                    loaded.diagnostics()
+            );
+        } finally {
+            if (replacement != null) replacement.close();
+        }
     }
 
     public synchronized void create(Path path, SFMReleaseReviewV1 value) throws IOException {
@@ -82,6 +126,8 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
         SFMReleaseReviewStore.SaveResult saved = store.save(value, openedHash);
         openedHash = Optional.of(saved.contentHash());
         dirty = false;
+        advanceOpenEpoch();
+        advanceGeneration();
     }
 
     public synchronized MutationResult mutate(UnaryOperator<SFMReleaseReviewV1> mutation) {
@@ -91,6 +137,7 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
         document = updated;
         cachedStatus = null;
         dirty = true;
+        advanceGeneration();
         try {
             SFMReleaseReviewStore.SaveResult saved = store.save(updated, openedHash);
             openedHash = Optional.of(saved.contentHash());
@@ -112,6 +159,7 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
             replacement = null;
             openedHash = Optional.of(saved.contentHash());
             dirty = false;
+            advanceGeneration();
         } finally {
             if (replacement != null) replacement.close();
         }
@@ -500,6 +548,20 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
         return Optional.ofNullable(document);
     }
 
+    public synchronized Snapshot snapshot() {
+        return new Snapshot(
+                store == null ? Optional.empty() : Optional.of(store.path()),
+                Optional.ofNullable(document),
+                generation,
+                openEpoch,
+                dirty
+        );
+    }
+
+    public synchronized long generation() {
+        return generation;
+    }
+
     public synchronized Optional<Path> path() {
         return store == null ? Optional.empty() : Optional.of(store.path());
     }
@@ -530,11 +592,16 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
 
     /** Explicitly abandons unsaved in-memory/recovery state and releases the writer lease. */
     public synchronized void discardAndClose() {
+        boolean changed = store != null || document != null;
         closeStore();
         document = null;
         openedHash = Optional.empty();
         cachedStatus = null;
         dirty = false;
+        if (changed) {
+            advanceOpenEpoch();
+            advanceGeneration();
+        }
     }
 
     private void closeForReplacement() {
@@ -549,6 +616,14 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
 
     private void requireDocument() {
         if (store == null || document == null) throw new IllegalStateException("No release-review document is open");
+    }
+
+    private void advanceGeneration() {
+        generation = Math.incrementExact(generation);
+    }
+
+    private void advanceOpenEpoch() {
+        openEpoch = Math.incrementExact(openEpoch);
     }
 
     private String activeExpression() {

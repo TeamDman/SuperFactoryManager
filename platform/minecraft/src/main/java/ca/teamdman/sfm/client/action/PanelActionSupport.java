@@ -66,6 +66,27 @@ final class PanelActionSupport {
     }
 
     /**
+     * Closes a constrained confirmation and any palette that presented it,
+     * stopping as soon as the action's owning host is visible again.
+     *
+     * <p>A confirmed operation is terminal for that choice journey. Returning
+     * to the now-stale parent choice surface would strand the user above the
+     * workspace whose pane membership just changed.</p>
+     */
+    static int closePaletteChainAfter(int result, Object owningHost) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (result <= 0 || minecraft == null) return result;
+        for (int depth = 0; depth < 16
+                && minecraft.screen instanceof SFMCommandPaletteScreen palette;
+                depth++) {
+            Object before = minecraft.screen;
+            palette.onClose();
+            if (minecraft.screen == owningHost || minecraft.screen == before) break;
+        }
+        return result;
+    }
+
+    /**
      * Keep an active palette open when that exact palette is the mutated
      * document. A constrained child palette still closes back to its parent,
      * and palette actions targeting a workspace document retain the ordinary

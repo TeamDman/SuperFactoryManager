@@ -15,6 +15,7 @@ import ca.teamdman.sfm.client.history.document.runtime.SFMDocumentHistoryRuntime
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextDocumentPanelState;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelWidgetHost;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelCloseState;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
@@ -111,6 +112,11 @@ public final class SFMDecimalNumberingChamberPanel implements SFMScreenPanel, SF
     @Override
     public boolean isReadOnly() {
         return false;
+    }
+
+    @Override
+    public SFMPanelCloseState closeState() {
+        return editor.closeState();
     }
 
     @Override

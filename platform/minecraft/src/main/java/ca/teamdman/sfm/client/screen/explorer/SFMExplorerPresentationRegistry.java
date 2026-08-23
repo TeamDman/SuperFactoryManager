@@ -69,6 +69,11 @@ public final class SFMExplorerPresentationRegistry {
                     new SFMSymbolReferenceExplorerPresenter()
             )
             .register(
+                    SFMReleaseReviewExplorerPresenter.ID,
+                    SFMReleaseReviewExplorerPresenter.ORDER,
+                    new SFMReleaseReviewExplorerPresenter()
+            )
+            .register(
                     SFMFileExtensionExplorerPresenter.ID,
                     SFMFileExtensionExplorerPresenter.ORDER,
                     new SFMFileExtensionExplorerPresenter()

@@ -37,6 +37,10 @@ public final class SFMReviewActions {
             SFMReleaseReviewAction.Kind.OPEN);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_OPEN_READ_ONLY = register(
             SFMReleaseReviewAction.Kind.OPEN_READ_ONLY);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_OPEN_VIEW = register(
+            SFMReleaseReviewAction.Kind.OPEN_VIEW);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_OPEN_READ_ONLY_VIEW = register(
+            SFMReleaseReviewAction.Kind.OPEN_READ_ONLY_VIEW);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_SAVE = register(
             SFMReleaseReviewAction.Kind.SAVE);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_SAVE_AS = register(

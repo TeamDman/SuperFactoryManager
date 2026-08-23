@@ -17,6 +17,7 @@ import ca.teamdman.sfm.client.syntax.SFMTextEditorSyntaxSession;
 import ca.teamdman.sfm.client.symbol.SFMSymbolHoverIdentity;
 import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMap;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
+import ca.teamdman.sfm.client.text_editor.SFMExactDocumentSelectionPublication;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentPosition;
@@ -152,20 +153,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private double grammarPanAnchorCameraY;
     private boolean draggingGrammarInsert;
     private Optional<Component> saveDiagnostic = Optional.empty();
-    private Optional<SFMTextDocumentRange> openTargetRange = Optional.empty();
-    private List<SFMTextDocumentSelection> exactDocumentSelections = List.of();
-    /**
-     * Exact immutable text against which {@link #exactDocumentSelections} was
-     * validated.  The canvas glyph projection intentionally has no glyph for
-     * a trailing empty line, so reconstructing text from glyphs can omit the
-     * final newline even though EOF on the following line is a valid source
-     * coordinate.
-     */
-    private String exactDocumentSelectionsSourceText = "";
-    private long exactDocumentSelectionsContentRevision = -1L;
-    private long exactDocumentSelectionsCursorFingerprint;
-    private boolean exactDocumentSelectionsPublished;
-    private Optional<Component> exactDocumentSelectionsDiagnostic = Optional.empty();
+    private SFMExactDocumentSelectionPublication.State exactDocumentSelectionState =
+            SFMExactDocumentSelectionPublication.State.empty();
     private Optional<SFMSpatialSemanticContract.FramingObservation> navigationFramingObservation = Optional.empty();
     private long javaInteractionRegionRevision = -1L;
     private SFMJavaCanvasInteractionRegions.Index javaInteractionRegionIndex;
@@ -308,7 +297,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (showCursorTrail) {
             renderCursorTrail(poseStack);
         }
-        renderOpenTargetRange(poseStack);
         renderExactDocumentSelections(poseStack);
         renderGlyphs(poseStack, visibleGlyphs);
         renderSymbolHoverUnderline(poseStack, visibleGlyphs);
@@ -912,24 +900,19 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (openContext == null) throw new IllegalStateException("A standalone canvas has no text document");
         loadInitialContent();
         range.validateAgainst(openContext.initialValue());
-        openTargetRange = Optional.of(range);
         long geometryStartedNanos = System.nanoTime();
         CanvasTextPoint point = canvasPoint(openContext.initialValue(), range.start());
         model().setCursor(point.x(), point.y());
         // A review/navigation target is also an exact directional selection.
         // Keep the active edge at the visible cursor so context actions retain
         // the complete pinned range without inventing a second selection store.
-        exactDocumentSelections = List.of(new SFMTextDocumentSelection(
+        List<SFMTextDocumentSelection> selections = List.of(new SFMTextDocumentSelection(
                 "open-target",
                 range.end(),
                 range.start(),
                 true
         ));
-        exactDocumentSelectionsSourceText = openContext.initialValue();
-        exactDocumentSelectionsContentRevision = model().contentRevision();
-        exactDocumentSelectionsCursorFingerprint = cursorFingerprint();
-        exactDocumentSelectionsPublished = true;
-        exactDocumentSelectionsDiagnostic = Optional.empty();
+        publishExactDocumentSelections(openContext.initialValue(), selections);
         SFMNavigationFramingPolicy.Result framing = frameDestination(openContext.initialValue(), range);
         cameraX = framing.camera().x();
         cameraY = framing.camera().y();
@@ -1377,79 +1360,47 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
     }
 
-    private void renderOpenTargetRange(PoseStack poseStack) {
-        if (openTargetRange.isEmpty() || openContext == null) return;
-        SFMTextDocumentRange range = openTargetRange.orElseThrow();
-        String text = openContext.initialValue();
-        for (int line = range.start().line(); line <= range.end().line(); line++) {
-            String lineText = lineText(text, line);
-            int lineCodePoints = lineText.codePointCount(0, lineText.length());
-            int startColumn = line == range.start().line() ? range.start().column() : 0;
-            int endColumn = line == range.end().line() ? range.end().column() : lineCodePoints;
-            if (startColumn >= endColumn) continue;
-            int startIndex = lineText.offsetByCodePoints(0, Math.min(startColumn, lineCodePoints));
-            int endIndex = lineText.offsetByCodePoints(0, Math.min(endColumn, lineCodePoints));
-            double canvasX = font.width(lineText.substring(0, startIndex));
-            double canvasY = (double) line * font.lineHeight;
-            double canvasWidth = Math.max(1, font.width(lineText.substring(startIndex, endIndex)));
-            int left = (int) Math.floor(canvasToScreenX(canvasX));
-            int top = (int) Math.floor(canvasToScreenY(canvasY));
-            int right = (int) Math.ceil(canvasToScreenX(canvasX + canvasWidth));
-            int bottom = (int) Math.ceil(canvasToScreenY(canvasY + font.lineHeight));
-            GuiComponent.fill(poseStack, left, top, right, bottom, 0x8042647A);
-        }
-    }
-
     private void renderExactDocumentSelections(PoseStack poseStack) {
-        Optional<List<SFMTextDocumentSelection>> published = exactDocumentSelections();
+        Optional<SFMExactDocumentSelectionPublication> published = currentExactDocumentSelectionPublication();
         if (published.isEmpty()) return;
+        SFMExactDocumentSelectionPublication publication = published.orElseThrow();
+        ArrayList<TextHighlightRow> rows = new ArrayList<>();
         try {
-            for (SFMTextDocumentSelection selection : published.orElseThrow()) {
+            for (SFMTextDocumentSelection selection : publication.selections()) {
                 SFMTextDocumentRange range = selection.orderedRange();
                 if (range.start().equals(range.end())) continue;
-                renderTextRangeHighlight(
-                        poseStack,
-                        exactDocumentSelectionsSourceText,
-                        range,
-                        0x8042647A
-                );
+                rows.addAll(textHighlightRows(publication.coordinateText(), range));
             }
-        } catch (IllegalArgumentException staleRange) {
-            // Rendering is a total operation.  A stale/malformed source range
-            // may suspend its highlight, but it must never crash Minecraft's
-            // render thread.  Publication paths validate eagerly; this guard
-            // protects persisted or asynchronously superseded evidence.
-            exactDocumentSelectionsPublished = false;
-            exactDocumentSelectionsDiagnostic = Optional.of(Component.literal(
-                    "Exact document selection was suspended: " + staleRange.getMessage()));
-            SFM.LOGGER.warn(
-                    "SFM_EXACT_DOCUMENT_SELECTION_INVALIDATED content_revision={} range_count={} reason={}",
-                    model().contentRevision(),
-                    exactDocumentSelections.size(),
-                    staleRange.getMessage()
+        } catch (RuntimeException malformedRange) {
+            suspendExactDocumentSelections(
+                    SFMExactDocumentSelectionPublication.DiagnosticCode.MALFORMED_PUBLICATION,
+                    "Exact document selection rendering was suspended: " + failureMessage(malformedRange)
             );
+            return;
+        }
+        // Project every row before drawing any of them. A malformed selection
+        // therefore fails closed instead of leaving a partially painted frame.
+        for (TextHighlightRow row : rows) {
+            renderTextHighlightRow(poseStack, row, 0x8042647A);
         }
     }
 
-    private void renderTextRangeHighlight(
+    private void renderTextHighlightRow(
             PoseStack poseStack,
-            String text,
-            SFMTextDocumentRange range,
+            TextHighlightRow row,
             int colour
     ) {
-        for (TextHighlightRow row : textHighlightRows(text, range)) {
-            double canvasX = font.width(row.lineText().substring(0, row.startUtf16()));
-            double canvasY = (double) row.line() * font.lineHeight;
-            double canvasWidth = Math.max(
-                    1,
-                    font.width(row.lineText().substring(row.startUtf16(), row.endUtf16()))
-            );
-            int left = (int) Math.floor(canvasToScreenX(canvasX));
-            int top = (int) Math.floor(canvasToScreenY(canvasY));
-            int right = (int) Math.ceil(canvasToScreenX(canvasX + canvasWidth));
-            int bottom = (int) Math.ceil(canvasToScreenY(canvasY + font.lineHeight));
-            GuiComponent.fill(poseStack, left, top, right, bottom, colour);
-        }
+        double canvasX = font.width(row.lineText().substring(0, row.startUtf16()));
+        double canvasY = (double) row.line() * font.lineHeight;
+        double canvasWidth = Math.max(
+                1,
+                font.width(row.lineText().substring(row.startUtf16(), row.endUtf16()))
+        );
+        int left = (int) Math.floor(canvasToScreenX(canvasX));
+        int top = (int) Math.floor(canvasToScreenY(canvasY));
+        int right = (int) Math.ceil(canvasToScreenX(canvasX + canvasWidth));
+        int bottom = (int) Math.ceil(canvasToScreenY(canvasY + font.lineHeight));
+        GuiComponent.fill(poseStack, left, top, right, bottom, colour);
     }
 
     /**
@@ -1463,6 +1414,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         Objects.requireNonNull(range, "range").validateAgainst(text);
         ArrayList<TextHighlightRow> rows = new ArrayList<>();
         for (int line = range.start().line(); line <= range.end().line(); line++) {
+            // The end of a multi-line half-open range at column zero is an
+            // insertion point, not a painted row. This includes EOF after LF
+            // or CRLF and avoids probing a projection that has no glyph row.
+            if (line == range.end().line()
+                    && range.end().column() == 0
+                    && line > range.start().line()) break;
             String value = lineText(text, line);
             int lineCodePoints = value.codePointCount(0, value.length());
             int startColumn = line == range.start().line() ? range.start().column() : 0;
@@ -1632,7 +1589,6 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         boolean changed = !getCurrentText().equals(text);
         if (changed) {
             model().replaceText(text, this.font::width, this.font.lineHeight);
-            openTargetRange = Optional.empty();
             documentChanged();
         }
         ArrayList<SFMTextDocumentSelection> validated = new ArrayList<>();
@@ -1649,27 +1605,103 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             cursors.add(new SFMDrawCanvasModel.CursorPosition(point.x(), point.y()));
         }
         model().replaceCursors(cursors);
-        exactDocumentSelections = List.copyOf(validated);
-        exactDocumentSelectionsSourceText = text;
-        exactDocumentSelectionsContentRevision = model().contentRevision();
-        exactDocumentSelectionsCursorFingerprint = cursorFingerprint();
-        exactDocumentSelectionsPublished = true;
-        exactDocumentSelectionsDiagnostic = Optional.empty();
+        publishExactDocumentSelections(text, validated);
         rememberCursorPosition();
     }
 
     /** Exact selection witness remains valid until content or cursors change. */
     public Optional<List<SFMTextDocumentSelection>> exactDocumentSelections() {
-        if (!exactDocumentSelectionsPublished
-                || exactDocumentSelectionsContentRevision != model().contentRevision()
-                || exactDocumentSelectionsCursorFingerprint != cursorFingerprint()) {
-            return Optional.empty();
-        }
-        return Optional.of(exactDocumentSelections);
+        return currentExactDocumentSelectionPublication()
+                .map(SFMExactDocumentSelectionPublication::selections);
     }
 
     public Optional<Component> exactDocumentSelectionsDiagnostic() {
-        return exactDocumentSelectionsDiagnostic;
+        return exactDocumentSelectionState.diagnostic()
+                .map(diagnostic -> Component.literal(
+                        diagnostic.code().name().toLowerCase(java.util.Locale.ROOT)
+                                + ": " + diagnostic.message()
+                ));
+    }
+
+    private void publishExactDocumentSelections(
+            String coordinateText,
+            List<SFMTextDocumentSelection> selections
+    ) {
+        SFMExactDocumentSelectionPublication.Identity identity =
+                SFMExactDocumentSelectionPublication.Identity.forText(
+                        exactDocumentAddress(),
+                        coordinateText,
+                        documentGeneration,
+                        model().contentRevision(),
+                        cursorFingerprint()
+                );
+        exactDocumentSelectionState = SFMExactDocumentSelectionPublication.State.publish(
+                identity,
+                coordinateText,
+                selections
+        );
+        exactDocumentSelectionState.diagnostic().ifPresent(this::logExactDocumentSelectionDiagnostic);
+    }
+
+    private Optional<SFMExactDocumentSelectionPublication> currentExactDocumentSelectionPublication() {
+        Optional<SFMExactDocumentSelectionPublication> publication = exactDocumentSelectionState.publication();
+        if (publication.isEmpty()) return Optional.empty();
+        SFMExactDocumentSelectionPublication current = publication.orElseThrow();
+        SFMExactDocumentSelectionPublication.Identity publishedIdentity = current.identity();
+        String currentHash = publishedIdentity.documentGeneration() == documentGeneration
+                && publishedIdentity.modelContentRevision() == model().contentRevision()
+                ? publishedIdentity.contentSha256()
+                : SFMContextTextCoordinates.sha256(getCurrentText());
+        SFMExactDocumentSelectionPublication.Identity currentIdentity =
+                new SFMExactDocumentSelectionPublication.Identity(
+                        exactDocumentAddress(),
+                        currentHash,
+                        documentGeneration,
+                        model().contentRevision(),
+                        cursorFingerprint()
+                );
+        SFMExactDocumentSelectionPublication.State resolved = exactDocumentSelectionState.resolve(currentIdentity);
+        if (resolved != exactDocumentSelectionState) {
+            exactDocumentSelectionState = resolved;
+            resolved.diagnostic().ifPresent(this::logExactDocumentSelectionDiagnostic);
+        }
+        return exactDocumentSelectionState.publication();
+    }
+
+    private String exactDocumentAddress() {
+        if (openContext != null) {
+            Optional<String> addressed = openContext.documentSnapshot()
+                    .flatMap(SFMTextDocumentSnapshot::path)
+                    .map(path -> path.canonical());
+            if (addressed.isPresent()) return addressed.orElseThrow();
+        }
+        return "editor://" + syntaxOriginId;
+    }
+
+    private void suspendExactDocumentSelections(
+            SFMExactDocumentSelectionPublication.DiagnosticCode code,
+            String message
+    ) {
+        exactDocumentSelectionState = exactDocumentSelectionState.suspend(code, message);
+        exactDocumentSelectionState.diagnostic().ifPresent(this::logExactDocumentSelectionDiagnostic);
+    }
+
+    private void logExactDocumentSelectionDiagnostic(
+            SFMExactDocumentSelectionPublication.Diagnostic diagnostic
+    ) {
+        SFM.LOGGER.warn(
+                "SFM_EXACT_DOCUMENT_SELECTION_INVALIDATED code={} address={} document_generation={} content_revision={} reason={}",
+                diagnostic.code().name().toLowerCase(java.util.Locale.ROOT),
+                exactDocumentAddress(),
+                documentGeneration,
+                model().contentRevision(),
+                diagnostic.message()
+        );
+    }
+
+    private static String failureMessage(RuntimeException failure) {
+        String message = failure.getMessage();
+        return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
     }
 
     public SFMDrawCanvasPerformanceTracker.Snapshot performanceEvidence() {

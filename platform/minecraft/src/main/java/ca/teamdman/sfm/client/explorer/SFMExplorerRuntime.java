@@ -261,6 +261,35 @@ public final class SFMExplorerRuntime implements AutoCloseable {
         return panel(explorer.id());
     }
 
+    /**
+     * Opens a resolver-backed scene whose visible address is intentionally
+     * distinct from the roots that provide its rows.
+     *
+     * <p>This is the generic projection seam used by file-backed lenses such
+     * as release reviews: the location bar remains the canonical backing file,
+     * while a contributed resolver owns the lazily materialized view.</p>
+     */
+    public synchronized SFMScreenPanel openProjectedScene(
+            SFMPathExpression displayLocation,
+            Set<SFMPath> projectionRoots,
+            boolean expandRoots
+    ) {
+        ensureOpen();
+        Objects.requireNonNull(displayLocation, "displayLocation");
+        Set<SFMPath> roots = Set.copyOf(Objects.requireNonNull(projectionRoots, "projectionRoots"));
+        if (roots.isEmpty()) throw new IllegalArgumentException("A projected explorer requires at least one root");
+        roots.forEach(this::preflightRoot);
+        roots.forEach(this::authorizeRoot);
+        SFMExplorerRepository.Explorer explorer = createExplorer(displayLocation, roots);
+        explorers.register(explorer, true);
+        roots.forEach(root -> loader.openRoot(root).whenComplete((entry, failure) -> {
+            if (failure != null || !expandRoots || explorer.session().snapshot().closed()) return;
+            explorer.session().expand(root);
+            loader.refresh(root, DEFAULT_PAGE_SIZE);
+        }));
+        return panel(explorer.id());
+    }
+
     public synchronized SFMExplorerPanel panel(SFMExplorerId id) {
         ensureOpen();
         SFMExplorerRepository.Explorer explorer = explorers.find(Objects.requireNonNull(id, "id"))

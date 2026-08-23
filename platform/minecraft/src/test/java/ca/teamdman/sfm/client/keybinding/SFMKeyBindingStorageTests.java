@@ -263,6 +263,28 @@ class SFMKeyBindingStorageTests {
     }
 
     @Test
+    void commandPaletteSuggestionBoundariesHaveDiscoverableContextualDefaults() {
+        List<SFMKeyBinding> bindings = SFMKeyBindingDefaults.definitions().stream()
+                .filter(binding -> binding.actionId().startsWith("sfm:palette/suggestion/select/"))
+                .toList();
+
+        assertEquals(2, bindings.size());
+        assertTrue(bindings.stream().allMatch(binding ->
+                binding.situationId().equals(SFMKeyboardUsageSituations.COMMAND_PALETTE)));
+
+        SFMKeyBinding first = bindings.stream()
+                .filter(binding -> binding.actionId().endsWith("/first"))
+                .findFirst().orElseThrow();
+        SFMKeyBinding last = bindings.stream()
+                .filter(binding -> binding.actionId().endsWith("/last"))
+                .findFirst().orElseThrow();
+        assertEquals(GLFW.GLFW_KEY_UP, first.sequence().strokes().get(0).keyCode());
+        assertEquals(GLFW.GLFW_KEY_DOWN, last.sequence().strokes().get(0).keyCode());
+        assertEquals(Set.of(SFMKeyModifier.CONTROL), first.sequence().strokes().get(0).modifiers());
+        assertEquals(Set.of(SFMKeyModifier.CONTROL), last.sequence().strokes().get(0).modifiers());
+    }
+
+    @Test
     void microsoftTerminalPanelDefaultsUseExactSixContextualRelationships() {
         List<SFMKeyBinding> defaults = SFMKeyBindingDefaults.definitions();
         List<SFMKeyBinding> resize = defaults.stream()

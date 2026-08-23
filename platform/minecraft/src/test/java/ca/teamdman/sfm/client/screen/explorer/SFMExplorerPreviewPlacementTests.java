@@ -119,6 +119,37 @@ class SFMExplorerPreviewPlacementTests {
         assertEquals(SFMWorkspacePanelMetadata.ordinary(), workspace.panelMetadata(result.openedPanelId()));
     }
 
+    @Test
+    void typedBeforeAfterPreviewsRemainTwoStableEntriesAndRevisitingFocusesExisting() {
+        SFMTestScreenPanel explorer = new SFMTestScreenPanel("explorer");
+        FakeWorkspace workspace = new FakeWorkspace(explorer);
+        SFMWorkspacePanelId explorerPanelId = workspace.focusedPanelId();
+
+        var before = SFMExplorerPreviewPlacement.place(
+                workspace, explorerPanelId, "review-explorer",
+                SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW,
+                editor("before", true), null, Optional.of("review|before|sha-a")
+        );
+        var after = SFMExplorerPreviewPlacement.place(
+                workspace, explorerPanelId, "review-explorer",
+                SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW,
+                editor("after", true), null, Optional.of("review|after|sha-b")
+        );
+        var beforeAgain = SFMExplorerPreviewPlacement.place(
+                workspace, explorerPanelId, "review-explorer",
+                SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW,
+                editor("duplicate-before-must-not-open", true), null, Optional.of("review|before|sha-a")
+        );
+
+        assertTrue(before.applied());
+        assertTrue(after.applied());
+        assertTrue(beforeAgain.applied());
+        assertEquals(3, workspace.panelIds().size(), "explorer plus exactly two typed review entries");
+        assertEquals(before.openedPanelId(), beforeAgain.openedPanelId());
+        assertEquals(before.openedPanelId(), workspace.focusedPanelId());
+        assertTrue(workspace.containsPanel(after.openedPanelId()));
+    }
+
     private static TestDocumentPanel editor(String title, boolean readOnly) {
         return new TestDocumentPanel(title, readOnly);
     }

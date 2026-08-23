@@ -28,6 +28,7 @@ public final class SFMThemeSettingsPanel implements SFMScreenPanel {
     public SFMThemeSettingsPanel(SFMThemeSettingsModel model) { this.model = model; }
     public SFMThemeSettingsModel model() { return model; }
     @Override public Component title() { return Component.literal("Theme settings"); }
+    @Override public SFMPanelCloseState closeState() { return new SFMPanelCloseState(model.dirty(), false); }
     @Override public Component narration() { return Component.literal("Theme settings. " + model.status()); }
     @Override public void opened(Minecraft minecraft, SFMScreenPanelBounds bounds, SFMWorkspacePanelContext context) { this.bounds=bounds; this.context=context; }
     @Override public void resized(Minecraft minecraft, SFMScreenPanelBounds bounds) { this.bounds=bounds; }

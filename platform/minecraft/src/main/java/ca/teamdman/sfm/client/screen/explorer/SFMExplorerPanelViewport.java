@@ -46,6 +46,7 @@ public final class SFMExplorerPanelViewport {
             Rect body,
             Rect status,
             Rect locationControl,
+            Rect revealControl,
             Rect filterControl
     ) {
         public Layout {
@@ -56,6 +57,7 @@ public final class SFMExplorerPanelViewport {
             Objects.requireNonNull(body, "body");
             Objects.requireNonNull(status, "status");
             Objects.requireNonNull(locationControl, "locationControl");
+            Objects.requireNonNull(revealControl, "revealControl");
             Objects.requireNonNull(filterControl, "filterControl");
         }
     }
@@ -197,14 +199,22 @@ public final class SFMExplorerPanelViewport {
         Rect bodyFrame = new Rect(content.x(), filter.y() + filter.height(), content.width(), bodyHeight);
         Rect body = bodyFrame.inset(1);
         Rect status = new Rect(content.x(), bodyFrame.y() + bodyFrame.height(), content.width(), statusHeight);
+        int revealWidth = Math.min(header.width(), Math.min(22, header.height()));
         Rect locationControl = new Rect(
                 header.x(),
                 header.y(),
-                header.width(),
+                Math.max(0, header.width() - revealWidth),
+                header.height()
+        );
+        Rect revealControl = new Rect(
+                locationControl.x() + locationControl.width(),
+                header.y(),
+                revealWidth,
                 header.height()
         );
         Rect filterControl = new Rect(filter.x(), filter.y(), filter.width(), filter.height());
-        return new Layout(content, header, filter, bodyFrame, body, status, locationControl, filterControl);
+        return new Layout(content, header, filter, bodyFrame, body, status,
+                locationControl, revealControl, filterControl);
     }
 
     private static int divideRoundUp(int value, int divisor) {

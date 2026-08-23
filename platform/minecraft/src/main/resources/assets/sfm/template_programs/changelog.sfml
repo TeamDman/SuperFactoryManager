@@ -10,6 +10,9 @@ NAME "Changelog"
 -- Add portable repository-tracked release-review documents over complete pinned Git change domains with structural comments, queryable work queues, and fail-closed completion
 -- Add asynchronous in-game and typed CLI release-review create, refresh, open, query, status, and restart-safe resume workflows
 -- Prevent release-review selection highlights at trailing-newline EOF positions from crashing the render thread
+-- Project release-review changes, comments, hashtags, queries, status, and migrations through the generic lazy Explorer with canonical location, filtering, context actions, and target-block reveal
+-- Keep release-review before/after previews bounded by typed identity and make numbered pane entries focusable, closeable, movable, and context-operable with the mouse
+-- Add safe whole-pane close confirmation and restore ordinary Home/End command-palette caret editing alongside explicit first/last-suggestion actions
 -- Add a reusable selector-addressed non-pausing gameplay overlay scene with canonical direct restore, explicit passive/interactive focus, action/CLI parity, and the live History Graph as its first consumer
 -- Add a read-only Candidate History timeline with immutable plan pinning, exact projected document frames, and explicit unavailable, invalidated, external-barrier, and unknown states
 -- Add a supervised temporal-numbering chamber with natural Text Editor v3 edits, non-destructive Ctrl+Z branches, retained replans, and exact checkout-safe puppet evidence

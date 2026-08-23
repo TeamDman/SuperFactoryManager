@@ -151,6 +151,18 @@ public final class SFMKeyBindingDefaults {
                         SFMKeyStroke.of(GLFW.GLFW_KEY_MINUS,
                                 SFMKeyModifier.ALT, SFMKeyModifier.SHIFT)),
                 binding(
+                        "builtin/command-palette/suggestion/select/first",
+                        "sfm:palette/suggestion/select/first",
+                        "sfm action invoke sfm:palette/suggestion/select/first",
+                        SFMKeyboardUsageSituations.COMMAND_PALETTE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_UP, SFMKeyModifier.CONTROL)),
+                binding(
+                        "builtin/command-palette/suggestion/select/last",
+                        "sfm:palette/suggestion/select/last",
+                        "sfm action invoke sfm:palette/suggestion/select/last",
+                        SFMKeyboardUsageSituations.COMMAND_PALETTE,
+                        SFMKeyStroke.of(GLFW.GLFW_KEY_DOWN, SFMKeyModifier.CONTROL)),
+                binding(
                         "builtin/temporal-document/history/undo",
                         "sfm:document/history/undo",
                         "sfm action invoke sfm:document/history/undo focused",

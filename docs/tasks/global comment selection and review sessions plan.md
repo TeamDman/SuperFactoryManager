@@ -1792,7 +1792,7 @@ this plan owns their exact release-review composition and acceptance journey.
     independently recoverable. The prompt reports exact total, dirty,
     read-only, and recoverability counts; cancellation changes nothing.
 
-### [~] RCS-UX0 Make exact-selection rendering fail safe without losing evidence
+### [x] RCS-UX0 Make exact-selection rendering fail safe without losing evidence
 
 **Work:** Bind exact selections and Java-interaction publications to immutable
 document address, source hash, canvas/document generation, and range witness.
@@ -1813,22 +1813,19 @@ render-thread exception plus retained diagnostic evidence.
 Minecraft; valid reviewed source ranges still visibly highlight the intended
 glyphs and every rejected range explains why it was rejected.
 
-**Progress 2026-08-23:** The reproduced exception was traced to a valid
-half-open full-document range whose EOF was `(190,0)` after a trailing newline,
-combined with a glyph-derived projection that intentionally omitted that empty
-terminal line. Exact selections now retain and render against the immutable
-source text on which they were validated; malformed/replaced evidence suspends
-the publication with a diagnostic instead of escaping through the render
-thread. Pure regressions cover LF, CRLF, Unicode, leading/trailing empty lines,
-multiple terminal newlines, the exact 190-line shape, and a shortened
-replacement. The focused `SFMDrawCanvasScreenTests` run passed through
-`sfm-propagate-changes.exe test run`; the complete branch run then reported
-1,534 found, 1,533 passed, zero failed, and one intentionally assumption-
-aborted installed-worker integration test. This remains partial until the
-immutable publication is a single address/hash/generation value and the
-asynchronous A→B→A plus live puppet cases above are green.
+**Progress 2026-08-23:** Complete. The reproduced exception was traced to a
+valid half-open full-document range whose EOF was `(190,0)` after a trailing
+newline, combined with a glyph-derived projection that intentionally omitted
+that empty terminal line. `SFMExactDocumentSelectionPublication` now publishes
+one immutable address/hash/content-generation/range witness and rejects stale
+or malformed evidence before paint without discarding its diagnostic. Focused
+regressions cover LF, CRLF, Unicode, leading/interior/trailing empty lines,
+multiple terminal newlines, the exact 190-line shape, malformed ranges,
+shortened replacement documents, stale asynchronous maps, and A→B→A identity
+reuse. The release-review journey and explorer-UX natural puppets exercise the
+same live review/editor presentation path without a render-thread exception.
 
-### [ ] RCS-UX1 Project release reviews through the generic lazy explorer
+### [x] RCS-UX1 Project release reviews through the generic lazy explorer
 
 **Work:** Implement review path resolver/child provider, presenter, action
 contributor, and view recipes for changes/comments/hashtags/query/status/
@@ -1860,7 +1857,19 @@ input after the initial explorer open.
 explorer—canonical location, filter, view/presenter behavior, lazy status, and
 reveal included—with no duplicated selected-item header/footer.
 
-### [ ] RCS-UX2 Add action-backed reveal-current-context explorer chrome
+**Progress 2026-08-23:** Complete. Production review opening now creates a
+generic `SFMExplorerPanel` backed by `SFMReleaseReviewExplorerRuntime` and
+`SFMReleaseReviewExplorerPresenter`; changes, comments, hashtags, query,
+status, and migrations are typed projection lenses over the canonical review
+path. Children remain lazy and generation-checked, fuzzy filtering retains
+materialized ancestors, one-lane labels are hoisted, and tombstones remain
+explicit. The generic clicked-row action registry supplies review open/read-
+only/writable and review-leaf presentation actions without restoring bespoke
+header/footer chrome. Reopening the same durable review receives a fresh
+ephemeral explorer identity through its open epoch, preventing stale resolver
+state from a prior in-process session.
+
+### [x] RCS-UX2 Add action-backed reveal-current-context explorer chrome
 
 **Work:** Add a target-block ItemStack control to generic explorer chrome with
 tooltip, narration, keyboard focus, and a stable action/element id. Its action captures
@@ -1881,7 +1890,15 @@ mouse activation, and every supported GUI scale.
 to the focused document while preserving the editor's focus/history and never
 guessing an unrelated row.
 
-### [ ] RCS-UX3 Deduplicate and safely own review preview entries
+**Progress 2026-08-23:** Complete. Generic explorer chrome exposes a narrated,
+keyboard-focusable target-block control backed by `sfm:explorer/reveal/here`.
+The action session captures the exact destination explorer and compatible
+source panel; stale, absent, unauthorized, and unmatched rows fail visibly and
+do not mutate selection. The natural review puppet first selects a decoy
+`after` row, focuses the corresponding `before` editor, then clicks the target
+control and verifies expansion/selection of that exact before row.
+
+### [x] RCS-UX3 Deduplicate and safely own review preview entries
 
 **Work:** Extend generic preview placement with typed presentation identity and
 focus-before-create behavior. Repeated activation of one before/after/diff leaf
@@ -1900,7 +1917,15 @@ bounded tab count and exact focused title/identity after repeated mouse opens.
 reopening the same review presentations, and preview replacement cannot destroy
 unrelated content.
 
-### [ ] RCS-UX4 Make pane/tab lifecycle and palette caret behavior mouse-complete
+**Progress 2026-08-23:** Complete. Explorer preview placement now carries a
+typed presentation identity and focuses an existing matching entry before
+creating content. Repeated A→B→A review browsing remains bounded to the same
+before/after entries, while changed generations, different explorers, explicit
+duplicates, dirty/writable editors, terminals, and unrelated previews retain
+their independent ownership. Focused tests and the mouse-only review puppet
+assert bounded entry count and exact focused presentation identity.
+
+### [x] RCS-UX4 Make pane/tab lifecycle and palette caret behavior mouse-complete
 
 **Work:** Give the numbered stack affordances stable hit regions and action
 drafts for focus, close, and move plus tooltip/narration and stable ids.
@@ -1923,6 +1948,30 @@ bindings. A mouse-only puppet opens, switches, closes one, and closes a pane.
 **Completion criteria:** Every visible tab selector is operable by mouse and
 keyboard, pane close is explicit and safe, and editing a palette command no
 longer loses standard Home/End behavior.
+
+**Progress 2026-08-23:** Complete. Numbered stack entries have stable narrated
+hit regions: left click focuses, middle click closes, and right click offers
+captured one-shot focus, close, four-direction move, and containing-pane close
+actions. `sfm:pane/close` performs an identity-sensitive preflight, reports
+exact total/dirty/read-only/recoverability counts, and uses a constrained
+confirmation whenever required. Home/End and Shift+Home/End once again edit the
+palette command document; first/last suggestion selection is exposed through
+separate registered actions and bindings. Prepaint hit caches are fail-safe so
+headless and first-frame divider input cannot dereference absent geometry.
+
+**Goal validation 2026-08-23:** The self-orchestrating
+`sfm:title_screen_release_review_explorer_ux` puppet passed its complete declared
+GUI-scale matrix (auto and 1–8) at `3840x2130`, and
+`sfm:title_screen_explorer_interaction_fidelity` passed the same nine scales
+with 54 captures. The durable release-review journey passed at its declared
+`1280x720@auto` viewport, including semantic comment persistence, migration,
+autosave, close, and resume. The full Java suite found 1,568 tests: 1,567
+passed, zero failed, and one installed-worker integration test was
+assumption-aborted because its opt-in system properties were absent. The SFM
+audit exited successfully; its 346 unresolved findings are the two existing
+text/font draw audit groups, not new goal failures. No CLI source or dependency
+lockfile changed, so the already-installed user-facing tooling is current and
+no `install.ps1` rerun is required.
 
 ### [ ] RCS-UX5 / RCS-S3 Emit textual and structural review surfaces
 

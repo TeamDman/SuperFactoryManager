@@ -94,8 +94,10 @@ public class SFMExplorerPanelViewportTests {
                     rows(1),
                     0
             );
-            assertEquals(viewport.layout().header(), viewport.layout().locationControl());
             assertTrue(inside(viewport.layout().locationControl(), viewport.layout().content()));
+            assertTrue(inside(viewport.layout().revealControl(), viewport.layout().content()));
+            assertEquals(viewport.layout().header().width(),
+                    viewport.layout().locationControl().width() + viewport.layout().revealControl().width());
         }
     }
 

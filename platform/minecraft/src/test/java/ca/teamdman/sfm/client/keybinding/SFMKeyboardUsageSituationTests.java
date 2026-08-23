@@ -35,6 +35,14 @@ class SFMKeyboardUsageSituationTests {
                         SFMKeyboardUsageSituations.GLOBAL),
                 catalog.ancestry(SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT));
         assertEquals(List.of(
+                        SFMKeyboardUsageSituations.COMMAND_PALETTE,
+                        SFMKeyboardUsageSituations.TEMPORAL_DOCUMENT,
+                        SFMKeyboardUsageSituations.TEXT_EDITOR,
+                        SFMKeyboardUsageSituations.DEFAULT,
+                        SFMKeyboardUsageSituations.WORKSPACE,
+                        SFMKeyboardUsageSituations.GLOBAL),
+                catalog.ancestry(SFMKeyboardUsageSituations.COMMAND_PALETTE));
+        assertEquals(List.of(
                         SFMKeyboardUsageSituations.WORKSPACE,
                         SFMKeyboardUsageSituations.GLOBAL),
                 catalog.ancestry(SFMKeyboardUsageSituations.WORKSPACE));

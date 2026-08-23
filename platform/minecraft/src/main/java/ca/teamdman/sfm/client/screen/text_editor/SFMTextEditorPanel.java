@@ -23,6 +23,7 @@ import ca.teamdman.sfm.client.screen.SFMDrawCanvasScreen;
 import ca.teamdman.sfm.client.screen.SFMTextEditorV3Screen;
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelActionExecution;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelCloseState;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
@@ -187,6 +188,14 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     /** Explorer previews are reusable only while their document is immutable. */
     public boolean isReadOnly() {
         return openContext.readOnly();
+    }
+
+    @Override
+    public SFMPanelCloseState closeState() {
+        return new SFMPanelCloseState(
+                !isReadOnly() && !currentText().equals(presentedDocument.displayText()),
+                isReadOnly()
+        );
     }
 
     @Override

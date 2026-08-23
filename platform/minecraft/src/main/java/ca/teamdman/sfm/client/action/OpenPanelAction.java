@@ -99,7 +99,7 @@ public final class OpenPanelAction implements SFMClientAction<SFMClientActionCon
         return openPanel(actionContext, panel, direction, null);
     }
 
-    static int openPanel(
+    public static int openPanel(
             SFMClientActionContext actionContext,
             SFMScreenPanel panel,
             Direction direction,

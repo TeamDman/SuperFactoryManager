@@ -142,6 +142,14 @@ public final class SFMGamePuppetHelper {
         ));
     }
 
+    /** Runs the mouse-only RCS-UX1..4 release-review Explorer journey. */
+    public void exerciseReleaseReviewExplorerUx(Path reviewFile) {
+        add(new ExerciseReleaseReviewExplorerUxPuppetAction(
+                Objects.requireNonNull(reviewFile, "reviewFile")
+        ));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
     /** Records the final real-source identity, layout, focus, and no-write witness. */
     public void assertAddressedSfmJava(Path root, Path file) {
         add(new AssertAddressedSfmJavaPuppetAction(

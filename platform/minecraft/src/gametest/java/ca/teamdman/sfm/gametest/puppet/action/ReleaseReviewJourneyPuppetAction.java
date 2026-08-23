@@ -3,7 +3,11 @@ package ca.teamdman.sfm.gametest.puppet.action;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.context.SFMContextActionProvider;
 import ca.teamdman.sfm.client.context.SFMContextActionRegistry;
+import ca.teamdman.sfm.client.explorer.SFMPath;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewKernel;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewEvaluator;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewMigrationPipeline;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime;
@@ -15,7 +19,8 @@ import ca.teamdman.sfm.client.review.session.SFMReviewSessionV1;
 import ca.teamdman.sfm.client.review.session.SFMReviewSessionV1Kernel;
 import ca.teamdman.sfm.client.review.session.SFMReviewSessionV2;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
-import ca.teamdman.sfm.client.screen.review.explorer.SFMReviewExplorerPanel;
+import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
+import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPreviewPlacement;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
@@ -36,14 +41,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 /** Natural RCS-5 journey through release-review selection, migration, persistence, and queries. */
 public final class ReleaseReviewJourneyPuppetAction implements SFMPuppetAction {
     public enum Operation {
         PREPARE,
+        OPEN_CAFE_SOURCE,
         CHOOSE_SEMANTIC_COMMENT,
         ASSERT_COMMENT,
         CHOOSE_RELOCATION,
@@ -78,6 +86,9 @@ public final class ReleaseReviewJourneyPuppetAction implements SFMPuppetAction {
     private final Operation operation;
     private int ticks;
     private boolean openedChoice;
+    private CompletableFuture<SFMPath> cafeSourceLookup;
+    private CompletableFuture<?> cafeSourceReveal;
+    private boolean cafeSourceOpenSubmitted;
 
     public ReleaseReviewJourneyPuppetAction(Operation operation) {
         this.operation = Objects.requireNonNull(operation, "operation");
@@ -101,6 +112,7 @@ public final class ReleaseReviewJourneyPuppetAction implements SFMPuppetAction {
         }
         return switch (operation) {
             case PREPARE -> prepare(runtime);
+            case OPEN_CAFE_SOURCE -> openCafeSource();
             case CHOOSE_SEMANTIC_COMMENT -> chooseSemanticComment(runtime);
             case ASSERT_COMMENT -> assertComment(runtime);
             case CHOOSE_RELOCATION -> chooseRelocation(runtime);
@@ -156,6 +168,103 @@ public final class ReleaseReviewJourneyPuppetAction implements SFMPuppetAction {
         }
         return true;
     }
+
+    /**
+     * Drives the migrated generic Explorer through its production reveal/open seams. The former
+     * journey used fixed Right/Down/Space presses that described the retired bespoke review tree;
+     * resolving the exact revision keeps this persistence journey stable as review projections grow.
+     */
+    private boolean openCafeSource() {
+        SFMScreenMultiplexer workspace = workspaceOrNull();
+        if (workspace == null) return false;
+        ExplorerHandle handle = releaseReviewExplorer(workspace).orElse(null);
+        if (handle == null) return false;
+
+        if (cafeSourceOpenSubmitted) {
+            return workspace.panelIds().stream()
+                    .map(workspace::panelInstance)
+                    .filter(SFMTextEditorPanel.class::isInstance)
+                    .map(SFMTextEditorPanel.class::cast)
+                    .map(SFMTextEditorPanel::documentSnapshot)
+                    .flatMap(Optional::stream)
+                    .anyMatch(snapshot -> snapshot.path()
+                            .filter(path -> !path.segments().isEmpty())
+                            .map(path -> path.segments().get(0).equals(CAFE_REVISION))
+                            .orElse(false));
+        }
+
+        SFMPath root = handle.panel().sessionSnapshot().roots().stream()
+                .filter(path -> path.scheme().equals(SFMReleaseReviewExplorerRuntime.PATH_SCHEME))
+                .findFirst().orElseThrow();
+        SFMReleaseReviewExplorerRuntime resolver = SFMReleaseReviewExplorerRuntime.get();
+        if (cafeSourceLookup == null) {
+            cafeSourceLookup = CompletableFuture.supplyAsync(() -> findRevisionPath(resolver, root, CAFE_REVISION));
+            return false;
+        }
+        if (!cafeSourceLookup.isDone()) return false;
+        SFMPath sourcePath = cafeSourceLookup.join();
+
+        if (cafeSourceReveal == null) {
+            cafeSourceReveal = handle.panel().revealPath(root, sourcePath).toCompletableFuture();
+            return false;
+        }
+        if (!cafeSourceReveal.isDone()) return false;
+        var bounds = workspace.panelContentBounds(handle.panelId());
+        if (bounds == null || !handle.panel().model().state(bounds).selectedPath().equals(Optional.of(sourcePath))) {
+            return false;
+        }
+        require(handle.panel().model().emitOpenSelected(bounds, SFMExplorerPreviewPlacement.Mode.PREVIEW),
+                "The revealed Café source row was not openable");
+        cafeSourceOpenSubmitted = true;
+        return false;
+    }
+
+    private static SFMPath findRevisionPath(
+            SFMReleaseReviewExplorerRuntime resolver,
+            SFMPath root,
+            String revisionId
+    ) {
+        ArrayDeque<SFMPath> pending = new ArrayDeque<>();
+        pending.add(root);
+        SFMExplorerCancellationToken cancellation = new SFMExplorerCancellationToken();
+        while (!pending.isEmpty()) {
+            SFMPath parent = pending.removeFirst();
+            Optional<String> continuation = Optional.empty();
+            do {
+                SFMExplorerResolver.ChildPage page = resolver.resolveChildren(new SFMExplorerResolver.ChildRequest(
+                        parent,
+                        continuation,
+                        128,
+                        resolver.generation(),
+                        cancellation
+                )).join();
+                for (var entry : page.entries()) {
+                    var target = resolver.documentTarget(entry.path());
+                    if (target.isPresent()
+                            && target.orElseThrow().leaf().documentRevisionId().orElse("").equals(revisionId)) {
+                        return entry.path();
+                    }
+                    if (entry.expandable()) pending.addLast(entry.path());
+                }
+                continuation = page.continuation();
+            } while (continuation.isPresent());
+        }
+        throw new IllegalStateException("Release-review projection did not contain revision " + revisionId);
+    }
+
+    private static Optional<ExplorerHandle> releaseReviewExplorer(SFMScreenMultiplexer workspace) {
+        return workspace.panelIds().stream()
+                .filter(id -> workspace.panelInstance(id) instanceof SFMExplorerPanel)
+                .map(id -> new ExplorerHandle(id, (SFMExplorerPanel) workspace.panelInstance(id)))
+                .filter(handle -> handle.panel().sessionSnapshot().roots().stream()
+                        .anyMatch(path -> path.scheme().equals(SFMReleaseReviewExplorerRuntime.PATH_SCHEME)))
+                .findFirst();
+    }
+
+    private record ExplorerHandle(
+            ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId panelId,
+            SFMExplorerPanel panel
+    ) {}
 
     private boolean chooseSemanticComment(ISFMGamePuppetRuntime runtime) {
         if (!openedChoice) {
@@ -304,11 +413,22 @@ public final class ReleaseReviewJourneyPuppetAction implements SFMPuppetAction {
         if (!openedChoice) {
             SFMScreenMultiplexer workspace = workspaceOrNull();
             if (workspace == null
-                    || !(workspace.focusedPanelInstance() instanceof SFMReviewExplorerPanel explorer)) {
+                    || !(workspace.focusedPanelInstance() instanceof SFMExplorerPanel explorer)) {
                 return false;
             }
-            String expected = "release/migration/" + relocationId;
-            if (!explorer.selectedNodeIdForAutomation().equals(expected)) {
+            SFMReleaseReviewV1.MigrationReport report = migration(
+                    SFMReleaseReviewRuntime.get().document().orElseThrow(),
+                    relocationId
+            );
+            String expectedLabel = report.candidateEvaluation().status().name().toLowerCase(java.util.Locale.ROOT)
+                    + " · " + report.decision().name().toLowerCase(java.util.Locale.ROOT)
+                    + " · " + report.sourceSelectorId();
+            var bounds = workspace.panelContentBounds(workspace.focusedPanelId());
+            if (bounds == null) return false;
+            String selectedLabel = explorer.model().state(bounds).selectedRow()
+                    .map(row -> row.entry().label())
+                    .orElse("");
+            if (!selectedLabel.equals(expectedLabel)) {
                 runtime.pressScreenKey(GLFW.GLFW_KEY_DOWN, 0);
                 return false;
             }
