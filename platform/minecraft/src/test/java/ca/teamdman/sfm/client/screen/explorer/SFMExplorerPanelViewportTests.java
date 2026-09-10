@@ -15,6 +15,47 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMExplorerPanelViewportTests {
     @Test
+    void firstContentTimingExcludesUnpublishedRootsLoadingAndOffscreenRows() {
+        var sample = rows(1).get(0);
+        for (boolean root : List.of(false, true)) {
+            for (var kind : SFMExplorerProjection.RowKind.values()) {
+                var row = new SFMExplorerProjection.Row(sample.path(), sample.entry(), 0,
+                        root, false, sample.activeSortKey(), SFMExplorerProjection.FilterRole.NONE, kind);
+                var viewport = SFMExplorerPanelViewport.calculate(new SFMScreenPanelBounds(0, 0, 300, 200),
+                        SFMExplorerProjection.View.LIST, List.of(row), 0);
+                assertEquals(0, SFMExplorerPanelViewport.publishedContentCount(viewport, 0));
+                assertEquals(!root && kind == SFMExplorerProjection.RowKind.ENTRY ? 1 : 0,
+                        SFMExplorerPanelViewport.publishedContentCount(viewport, 1));
+            }
+        }
+        var viewport = SFMExplorerPanelViewport.calculate(new SFMScreenPanelBounds(0, 0, 200, 100),
+                SFMExplorerProjection.View.LIST, rows(100), 17);
+        assertEquals(2, SFMExplorerPanelViewport.publishedContentCount(viewport, 1));
+        var empty = SFMExplorerPanelViewport.calculate(new SFMScreenPanelBounds(0, 0, 300, 200),
+                SFMExplorerProjection.View.LIST, List.of(), 0);
+        assertEquals(0, SFMExplorerPanelViewport.publishedContentCount(empty, 1));
+    }
+
+    @Test
+    void reviewToolbarReservesRealBodySpaceAtSmallAndLargePanelBounds() {
+        for (int width : List.of(1, 100, 250, 320, 640)) {
+            for (int height : List.of(1, 50, 150, 360)) {
+                var bounds = new SFMScreenPanelBounds(33, 19, width, height);
+                var viewport = SFMExplorerPanelViewport.calculate(bounds, SFMExplorerProjection.View.LIST,
+                        rows(100), 0, 20);
+                var layout = SFMExplorerPanelViewport.layout(bounds, true, true, 20);
+                assertEquals(layout.toolbar(), viewport.layout().toolbar());
+                assertEquals(layout.body(), viewport.layout().body());
+                var cells = SFMExplorerPanelViewport.toolbarCells(layout, 5);
+                assertEquals(layout.toolbar().width(), cells.stream().mapToInt(SFMExplorerPanelViewport.Rect::width).sum());
+                cells.forEach(cell -> assertTrue(inside(cell, layout.toolbar())));
+                assertTrue(layout.toolbar().y() + layout.toolbar().height() <= layout.bodyFrame().y());
+                viewport.cells().forEach(cell -> assertTrue(inside(cell.bounds(), layout.body())));
+            }
+        }
+    }
+
+    @Test
     public void listViewportSlicesWithoutMaterializingOffscreenRows() {
         List<SFMExplorerProjection.Row> rows = rows(100);
         SFMExplorerPanelViewport.Snapshot viewport = SFMExplorerPanelViewport.calculate(

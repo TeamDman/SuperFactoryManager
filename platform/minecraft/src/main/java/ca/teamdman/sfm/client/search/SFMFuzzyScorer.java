@@ -16,8 +16,13 @@ public final class SFMFuzzyScorer {
 
     /** Lower scores are better. Values at or below {@link #DEFAULT_THRESHOLD} are matches. */
     public static float score(String query, String candidate) {
-        String normalizedQuery = normalize(query);
-        String normalizedCandidate = normalize(candidate);
+        return score(query, candidate, false);
+    }
+
+    /** Explicit case-sensitive variant; the historical two-argument ranking remains unchanged. */
+    public static float score(String query, String candidate, boolean matchCase) {
+        String normalizedQuery = matchCase ? Objects.requireNonNull(query).strip() : normalize(query);
+        String normalizedCandidate = matchCase ? Objects.requireNonNull(candidate).strip() : normalize(candidate);
         if (normalizedQuery.isEmpty()) return 0F;
         if (normalizedCandidate.isEmpty()) return 1F;
         if (normalizedCandidate.equals(normalizedQuery)) return 0F;

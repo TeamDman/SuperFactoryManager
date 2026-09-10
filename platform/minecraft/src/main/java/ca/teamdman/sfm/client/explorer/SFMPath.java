@@ -14,14 +14,15 @@ import java.util.Optional;
  * <p>This is deliberately separate from both {@link Path} and Minecraft
  * resource locations. Native paths exist only at resolver boundaries.</p>
  */
-public record SFMPath(
-        Kind kind,
-        String scheme,
-        String authority,
-        List<String> segments,
-        Optional<String> revision,
-        boolean trailingSlash
-) implements Comparable<SFMPath> {
+public final class SFMPath implements Comparable<SFMPath> {
+    private final Kind kind;
+    private final String scheme;
+    private final String authority;
+    private final List<String> segments;
+    private final Optional<String> revision;
+    private final boolean trailingSlash;
+    private final String canonical;
+    private final int hashCode;
     public enum Kind {
         FILE,
         REGISTRY,
@@ -29,7 +30,8 @@ public record SFMPath(
         CONTRIBUTED
     }
 
-    public SFMPath {
+    public SFMPath(Kind kind, String scheme, String authority, List<String> segments,
+                   Optional<String> revision, boolean trailingSlash) {
         Objects.requireNonNull(kind, "kind");
         Objects.requireNonNull(scheme, "scheme");
         Objects.requireNonNull(authority, "authority");
@@ -115,7 +117,36 @@ public record SFMPath(
             case SELECTION -> false;
             case CONTRIBUTED -> trailingSlash;
         };
+        this.kind = kind;
+        this.scheme = scheme;
+        this.authority = authority;
+        this.segments = segments;
+        this.revision = revision;
+        this.trailingSlash = trailingSlash;
+        // This value is immutable. Sorting a large Explorer must not percent-
+        // encode every segment again for every comparison or rendered frame.
+        this.canonical = encodeCanonical();
+        this.hashCode = Objects.hash(kind, scheme, authority, segments, revision, trailingSlash);
     }
+
+    public Kind kind() { return kind; }
+    public String scheme() { return scheme; }
+    public String authority() { return authority; }
+    public List<String> segments() { return segments; }
+    public Optional<String> revision() { return revision; }
+    public boolean trailingSlash() { return trailingSlash; }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) return true;
+        return other instanceof SFMPath path
+                && kind == path.kind && trailingSlash == path.trailingSlash
+                && scheme.equals(path.scheme) && authority.equals(path.authority)
+                && segments.equals(path.segments) && revision.equals(path.revision);
+    }
+
+    @Override
+    public int hashCode() { return hashCode; }
 
     public static SFMPath parse(String text) {
         Objects.requireNonNull(text, "text");
@@ -181,6 +212,10 @@ public record SFMPath(
     }
 
     public String canonical() {
+        return canonical;
+    }
+
+    private String encodeCanonical() {
         if (kind == Kind.SELECTION) {
             return "selection://" + SFMCanonicalText.encodeComponent(authority)
                     + revision.map(value -> "@" + SFMCanonicalText.encodeComponent(value)).orElse("");

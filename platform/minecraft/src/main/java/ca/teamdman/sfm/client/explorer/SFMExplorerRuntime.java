@@ -131,6 +131,7 @@ public final class SFMExplorerRuntime implements AutoCloseable {
             java.util.Comparator.comparing(SFMExplorerId::value)
     );
     private boolean closed;
+    private final Map<SFMExplorerId, Runnable> projectionDisposers = new java.util.HashMap<>();
 
     private SFMExplorerRuntime(Minecraft minecraft) {
         Objects.requireNonNull(minecraft, "minecraft");
@@ -182,6 +183,24 @@ public final class SFMExplorerRuntime implements AutoCloseable {
         ensureOpen();
         Objects.requireNonNull(request, "request");
         return actions.execute(request);
+    }
+
+    /** Refresh an already-known parent after our own file creation; never scan for new roots. */
+    public void fileCreated(Path file) {
+        ensureOpen();
+        Path parent = file.toAbsolutePath().normalize().getParent();
+        if (parent == null) return;
+        SFMPath path = SFMPath.fromNative(parent);
+        for (var explorer : explorers.explorersInStableOrder()) {
+            if (!explorer.session().snapshot().roots().stream().anyMatch(root ->
+                    root.kind() == SFMPath.Kind.FILE
+                            && parent.startsWith(root.toNativePath().toAbsolutePath().normalize()))) continue;
+            var result = execute(new SFMExplorerActionRequest(
+                    SFMEntitySelector.exact(SFMEntitySelector.Domain.EXPLORER, explorer.id().value()),
+                    new SFMExplorerActionRequest.NodeRefresh(path, DEFAULT_PAGE_SIZE), SFMExplorerActionRequest.IfNoMatch.FAIL));
+            // A never-expanded parent is intentionally unknown and needs no invalidation.
+            if (result.status() == SFMExplorerActionResult.Status.SUCCEEDED) break;
+        }
     }
 
     /** Purely prepares and captures an action so bounded transports can validate before publication. */
@@ -283,9 +302,8 @@ public final class SFMExplorerRuntime implements AutoCloseable {
         SFMExplorerRepository.Explorer explorer = createExplorer(displayLocation, roots);
         explorers.register(explorer, true);
         roots.forEach(root -> loader.openRoot(root).whenComplete((entry, failure) -> {
-            if (failure != null || !expandRoots || explorer.session().snapshot().closed()) return;
-            explorer.session().expand(root);
-            loader.refresh(root, DEFAULT_PAGE_SIZE);
+            if (failure != null || !expandRoots) return;
+            explorer.session().initializeRootChildren(root, loader, DEFAULT_PAGE_SIZE);
         }));
         return panel(explorer.id());
     }
@@ -393,6 +411,11 @@ public final class SFMExplorerRuntime implements AutoCloseable {
         return resolvers.find(scheme).map(ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver::generation);
     }
 
+    public synchronized boolean supportsTextRead(String scheme) {
+        ensureOpen();
+        return resolvers.find(scheme).map(ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver::supportsTextRead).orElse(false);
+    }
+
     /**
      * Installs one contributed resolver without replacing an authority that is
      * already live for the same scheme.
@@ -473,6 +496,7 @@ public final class SFMExplorerRuntime implements AutoCloseable {
             if (panel != null) panel.closed();
             explorer.session().close();
             explorers.unregister(explorer.id());
+            disposeProjection(explorer.id());
         }
         panels.clear();
     }
@@ -556,6 +580,21 @@ public final class SFMExplorerRuntime implements AutoCloseable {
     private synchronized void closeExplorer(SFMExplorerId id) {
         panels.remove(id);
         explorers.unregister(id).ifPresent(explorer -> explorer.session().close());
+        disposeProjection(id);
+    }
+
+    /** Transfers a contributed mount's lifetime to its exact Explorer, including failed attachment. */
+    public synchronized void ownProjection(SFMExplorerId id, Runnable disposer) {
+        ensureOpen();
+        Objects.requireNonNull(disposer, "disposer");
+        if (explorers.find(id).isEmpty()) throw new IllegalArgumentException("Unknown explorer: " + id.value());
+        if (projectionDisposers.putIfAbsent(id, disposer) != null)
+            throw new IllegalStateException("Explorer already owns a projection lease");
+    }
+
+    private void disposeProjection(SFMExplorerId id) {
+        Runnable disposer = projectionDisposers.remove(id);
+        if (disposer != null) disposer.run();
     }
 
     /** Removes a newly-created scene that could not be attached to its requested workspace. */

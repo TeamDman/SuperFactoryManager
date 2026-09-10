@@ -31,15 +31,20 @@ public sealed interface SFMTextDocumentSource permits
 
     CompletableFuture<SFMTextDocumentSnapshot> load(SFMExplorerCancellationToken cancellation);
 
-    record Literal(String text) implements SFMTextDocumentSource {
+    record Literal(String text, SFMTextDocumentLanguage language) implements SFMTextDocumentSource {
         public Literal {
             Objects.requireNonNull(text);
+            Objects.requireNonNull(language, "language");
+        }
+
+        public Literal(String text) {
+            this(text, SFMTextDocumentLanguage.sfml());
         }
 
         @Override
         public CompletableFuture<SFMTextDocumentSnapshot> load(SFMExplorerCancellationToken cancellation) {
             Objects.requireNonNull(cancellation, "cancellation");
-            return CompletableFuture.completedFuture(SFMTextDocumentSnapshot.literal(text));
+            return CompletableFuture.completedFuture(SFMTextDocumentSnapshot.literal(text, language));
         }
     }
 
@@ -51,7 +56,8 @@ public sealed interface SFMTextDocumentSource permits
             String expectedSha256,
             Optional<SFMTextDocumentRange> targetRange,
             Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity,
-            Optional<SFMTextDocumentSnapshot.AnalysisIdentity> analysisIdentity
+            Optional<SFMTextDocumentSnapshot.AnalysisIdentity> analysisIdentity,
+            SFMTextDocumentLanguage language
     ) implements SFMTextDocumentSource {
         public PinnedSnapshot {
             Objects.requireNonNull(path, "path");
@@ -61,6 +67,20 @@ public sealed interface SFMTextDocumentSource permits
             Objects.requireNonNull(targetRange, "targetRange");
             Objects.requireNonNull(sourceRootIdentity, "sourceRootIdentity");
             Objects.requireNonNull(analysisIdentity, "analysisIdentity");
+            Objects.requireNonNull(language, "language");
+        }
+
+        public PinnedSnapshot(
+                SFMPath path,
+                SFMPath authorizedRoot,
+                String text,
+                String expectedSha256,
+                Optional<SFMTextDocumentRange> targetRange,
+                Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity,
+                Optional<SFMTextDocumentSnapshot.AnalysisIdentity> analysisIdentity
+        ) {
+            this(path, authorizedRoot, text, expectedSha256, targetRange, sourceRootIdentity, analysisIdentity,
+                    SFMTextDocumentLanguage.fromPath(path));
         }
 
         public PinnedSnapshot(
@@ -71,14 +91,16 @@ public sealed interface SFMTextDocumentSource permits
                 Optional<SFMTextDocumentRange> targetRange,
                 Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity
         ) {
-            this(path, authorizedRoot, text, expectedSha256, targetRange, sourceRootIdentity, Optional.empty());
+            this(path, authorizedRoot, text, expectedSha256, targetRange, sourceRootIdentity, Optional.empty(),
+                    SFMTextDocumentLanguage.fromPath(path));
         }
 
         @Override
         public CompletableFuture<SFMTextDocumentSnapshot> load(SFMExplorerCancellationToken cancellation) {
             Objects.requireNonNull(cancellation, "cancellation");
             return CompletableFuture.completedFuture(SFMTextDocumentSnapshot.pinned(
-                    path, authorizedRoot, text, expectedSha256, targetRange, sourceRootIdentity, analysisIdentity));
+                    path, authorizedRoot, text, expectedSha256, targetRange, sourceRootIdentity, analysisIdentity,
+                    language));
         }
     }
 
@@ -206,4 +228,5 @@ public sealed interface SFMTextDocumentSource permits
                     SFMTextDocumentSnapshot.fromResolver(result, targetRange, sourceRootIdentity));
         }
     }
+
 }

@@ -32,7 +32,7 @@ class SFMDeveloperActionRemovalTests {
         List<String> actionFields = Arrays.stream(SFMDeveloperActions.class.getDeclaredFields())
                 .map(Field::getName)
                 .toList();
-        List<String> presentationFields = Arrays.stream(OpenTitleScreenDevScreenAction.class.getDeclaredFields())
+        List<String> presentationFields = Arrays.stream(OpenDeveloperPanelAction.class.getDeclaredFields())
                 .map(Field::getName)
                 .toList();
 

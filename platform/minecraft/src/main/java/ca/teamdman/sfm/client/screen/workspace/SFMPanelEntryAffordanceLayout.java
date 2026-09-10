@@ -73,7 +73,7 @@ public final class SFMPanelEntryAffordanceLayout {
             Objects.requireNonNull(entryId, "entryId");
             Objects.requireNonNull(capturedPanel, "capturedPanel");
             Objects.requireNonNull(bounds, "bounds");
-            if (entryCount < 2 || zeroBasedIndex < 0 || zeroBasedIndex >= entryCount) {
+            if (entryCount < 1 || zeroBasedIndex < 0 || zeroBasedIndex >= entryCount) {
                 throw new IllegalArgumentException("Invalid panel-entry affordance ordinal");
             }
         }

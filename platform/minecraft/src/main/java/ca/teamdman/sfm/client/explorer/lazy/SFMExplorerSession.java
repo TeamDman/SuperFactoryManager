@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMPathExpression;
 import ca.teamdman.sfm.client.explorer.SFMSelectionId;
 import ca.teamdman.sfm.client.explorer.SFMSelectionRepository;
+import ca.teamdman.sfm.client.explorer.SFMSelectionRevision;
 
 import java.util.ArrayList;
 import java.util.ArrayDeque;
@@ -44,6 +45,89 @@ public final class SFMExplorerSession implements AutoCloseable {
         }
     }
 
+    /** Lifecycle of one independent find query; finding never changes projection filtering. */
+    public enum FinderStatus {
+        CLEARED,
+        PENDING,
+        READY,
+        EMPTY,
+        FAILED
+    }
+
+    /** Machine-readable finder feedback retained with the session snapshot. */
+    public enum FinderDiagnosticCode {
+        SEARCH_PENDING,
+        NO_MATCHES,
+        SEARCH_FAILED,
+        RESULTS_TRUNCATED,
+        REVEAL_FAILED
+    }
+
+    public record FinderDiagnostic(FinderDiagnosticCode code, String message) {
+        public FinderDiagnostic {
+            Objects.requireNonNull(code, "code");
+            message = Objects.requireNonNull(message, "message").strip();
+            if (message.isEmpty()) throw new IllegalArgumentException("Finder diagnostic must not be blank");
+        }
+    }
+
+    /** Immutable, deterministic find state for one Explorer session. */
+    public record FinderState(
+            String query,
+            FinderStatus status,
+            List<SFMPath> matches,
+            int cursorIndex,
+            List<FinderDiagnostic> diagnostics,
+            long generation,
+            ca.teamdman.sfm.client.search.SFMTextMatchOptions options
+    ) {
+        public FinderState {
+            query = Objects.requireNonNull(query, "query");
+            Objects.requireNonNull(status, "status");
+            Objects.requireNonNull(options, "options");
+            matches = List.copyOf(matches);
+            diagnostics = List.copyOf(diagnostics);
+            if (generation < 0) throw new IllegalArgumentException("Finder generation must not be negative");
+            if (cursorIndex < -1 || cursorIndex >= matches.size()) {
+                throw new IllegalArgumentException("Finder cursor is outside the result list");
+            }
+            if (matches.size() != new java.util.HashSet<>(matches).size()) {
+                throw new IllegalArgumentException("Finder matches must be unique canonical identities");
+            }
+            if (status == FinderStatus.CLEARED && (!query.isEmpty() || !matches.isEmpty())) {
+                throw new IllegalArgumentException("Cleared finder state cannot retain a query or matches");
+            }
+            if (status == FinderStatus.PENDING && query.isEmpty()) {
+                throw new IllegalArgumentException("Pending finder state requires a query");
+            }
+            if (status == FinderStatus.READY && matches.isEmpty()) {
+                throw new IllegalArgumentException("Ready finder state requires matches");
+            }
+            if (status == FinderStatus.EMPTY && !matches.isEmpty()) {
+                throw new IllegalArgumentException("Empty finder state cannot retain matches");
+            }
+        }
+
+        public static FinderState cleared() {
+            return cleared(0);
+        }
+
+        public FinderState(String query, FinderStatus status, List<SFMPath> matches, int cursorIndex,
+                           List<FinderDiagnostic> diagnostics, long generation) {
+            this(query.strip(), status, matches, cursorIndex, diagnostics, generation,
+                    ca.teamdman.sfm.client.search.SFMTextMatchOptions.legacyFuzzy());
+        }
+
+        private static FinderState cleared(long generation) {
+            return new FinderState("", FinderStatus.CLEARED, List.of(), -1, List.of(), generation,
+                    ca.teamdman.sfm.client.search.SFMTextMatchOptions.defaults());
+        }
+
+        public Optional<SFMPath> currentMatch() {
+            return cursorIndex < 0 ? Optional.empty() : Optional.of(matches.get(cursorIndex));
+        }
+    }
+
     private static final class ActiveRequest {
         private final SFMLazyExplorerLoader.LoadHandle handle;
         private final long startedAtEpochMillis;
@@ -63,6 +147,9 @@ public final class SFMExplorerSession implements AutoCloseable {
         private final Set<SFMSelectionId> overlaySelections;
         private final SFMPathExpression location;
         private final Optional<SFMPath> navigationCursor;
+        private final Optional<SFMSelectionId> rowSelectionId;
+        private final Optional<SFMPath> rangeAnchor;
+        private final FinderState finder;
         private final Optional<SFMSelectionId> ephemeralLocationSelection;
         private final int scrollOffset;
         private final long locationRequestOrdinal;
@@ -77,6 +164,9 @@ public final class SFMExplorerSession implements AutoCloseable {
             overlaySelections = Set.copyOf(session.overlaySelections);
             location = session.location;
             navigationCursor = session.navigationCursor;
+            rowSelectionId = session.rowSelectionId;
+            rangeAnchor = session.rangeAnchor;
+            finder = session.finder;
             ephemeralLocationSelection = session.ephemeralLocationSelection;
             scrollOffset = session.scrollOffset;
             locationRequestOrdinal = session.locationRequestOrdinal;
@@ -98,8 +188,56 @@ public final class SFMExplorerSession implements AutoCloseable {
             SFMExplorerProjection.Settings settings,
             Set<SFMSelectionId> overlaySelections,
             Optional<SFMSelectionId> ephemeralLocationSelection,
-            boolean closed
+            boolean closed,
+            FinderState finder,
+            Optional<SFMSelectionRevision> rowSelection,
+            Optional<SFMPath> rangeAnchor
     ) {
+        /** Compatibility for older projections without an interactive membership ledger. */
+        public Snapshot(SFMExplorerId id, long revision, SFMPathExpression location, Set<SFMPath> roots,
+                        List<SFMPath> manualRootOrder, Set<SFMPath> expanded, Optional<SFMPath> navigationCursor,
+                        int scrollOffset, SFMExplorerProjection.Settings settings, Set<SFMSelectionId> overlaySelections,
+                        Optional<SFMSelectionId> ephemeralLocationSelection, boolean closed, FinderState finder) {
+            this(id, revision, location, roots, manualRootOrder, expanded, navigationCursor, scrollOffset, settings,
+                    overlaySelections, ephemeralLocationSelection, closed, finder, Optional.empty(), Optional.empty());
+        }
+
+        public Set<SFMPath> selectedPaths() {
+            return rowSelection.map(SFMSelectionRevision::members)
+                    .orElseGet(() -> navigationCursor.map(Set::of).orElse(Set.of()));
+        }
+        /** Compatibility constructor for callers that predate independent finder state. */
+        public Snapshot(
+                SFMExplorerId id,
+                long revision,
+                SFMPathExpression location,
+                Set<SFMPath> roots,
+                List<SFMPath> manualRootOrder,
+                Set<SFMPath> expanded,
+                Optional<SFMPath> navigationCursor,
+                int scrollOffset,
+                SFMExplorerProjection.Settings settings,
+                Set<SFMSelectionId> overlaySelections,
+                Optional<SFMSelectionId> ephemeralLocationSelection,
+                boolean closed
+        ) {
+            this(
+                    id,
+                    revision,
+                    location,
+                    roots,
+                    manualRootOrder,
+                    expanded,
+                    navigationCursor,
+                    scrollOffset,
+                    settings,
+                    overlaySelections,
+                    ephemeralLocationSelection,
+                    closed,
+                    FinderState.cleared()
+            );
+        }
+
         public Snapshot {
             Objects.requireNonNull(id, "id");
             if (revision < 0) throw new IllegalArgumentException("Session revision must not be negative");
@@ -116,6 +254,9 @@ public final class SFMExplorerSession implements AutoCloseable {
             overlayCopy.addAll(overlaySelections);
             overlaySelections = Collections.unmodifiableSet(overlayCopy);
             Objects.requireNonNull(ephemeralLocationSelection, "ephemeralLocationSelection");
+            Objects.requireNonNull(finder, "finder");
+            Objects.requireNonNull(rowSelection, "rowSelection");
+            Objects.requireNonNull(rangeAnchor, "rangeAnchor");
         }
     }
 
@@ -131,6 +272,9 @@ public final class SFMExplorerSession implements AutoCloseable {
     private final ArrayDeque<RequestObservation> recentRequests = new ArrayDeque<>();
     private SFMPathExpression location;
     private Optional<SFMPath> navigationCursor = Optional.empty();
+    private Optional<SFMSelectionId> rowSelectionId = Optional.empty();
+    private Optional<SFMPath> rangeAnchor = Optional.empty();
+    private FinderState finder = FinderState.cleared();
     private Optional<SFMSelectionId> ephemeralLocationSelection = Optional.empty();
     private int scrollOffset;
     private long locationRequestOrdinal = 1;
@@ -187,7 +331,10 @@ public final class SFMExplorerSession implements AutoCloseable {
                 settings,
                 overlaySelections,
                 ephemeralLocationSelection,
-                closed
+                closed,
+                finder,
+                rowSelectionId.flatMap(selections::selection).flatMap(value -> selections.revision(value.headRevisionId())),
+                rangeAnchor
         );
     }
 
@@ -207,6 +354,9 @@ public final class SFMExplorerSession implements AutoCloseable {
         overlaySelections.addAll(snapshot.overlaySelections);
         location = snapshot.location;
         navigationCursor = snapshot.navigationCursor;
+        rowSelectionId = snapshot.rowSelectionId;
+        rangeAnchor = snapshot.rangeAnchor;
+        finder = snapshot.finder;
         ephemeralLocationSelection = snapshot.ephemeralLocationSelection;
         scrollOffset = snapshot.scrollOffset;
         locationRequestOrdinal = snapshot.locationRequestOrdinal;
@@ -246,6 +396,7 @@ public final class SFMExplorerSession implements AutoCloseable {
         }
         roots.add(root);
         manualRootOrder.add(root);
+        invalidateFinderForDomainChange();
         revision++;
         return true;
     }
@@ -288,8 +439,11 @@ public final class SFMExplorerSession implements AutoCloseable {
         manualRootOrder.addAll(nextOrder);
         expanded.retainAll(normalizedRoots);
         navigationCursor = navigationCursor.filter(normalizedRoots::contains);
+        if (rowSelectionId.isPresent()) replaceRowMembers(Set.of());
+        rangeAnchor = Optional.empty();
         scrollOffset = 0;
         location = nextLocation;
+        invalidateFinderForDomainChange();
         ephemeralLocationSelection = ephemeralLocationSelection.filter(selectionId ->
                 members(selectionId).equals(nextLocation)
         );
@@ -313,6 +467,7 @@ public final class SFMExplorerSession implements AutoCloseable {
         ));
         roots.remove(root);
         manualRootOrder.remove(root);
+        invalidateFinderForDomainChange();
         expanded.remove(root);
         navigationCursor = navigationCursor.filter(cursor -> !cursor.equals(root));
         revision++;
@@ -346,7 +501,8 @@ public final class SFMExplorerSession implements AutoCloseable {
                 settings.group(),
                 settings.hoist(),
                 settings.pathDisplay(),
-                settings.filterQuery()
+                settings.filterQuery(),
+                settings.filterOptions(), settings.compaction()
         ));
     }
 
@@ -357,7 +513,8 @@ public final class SFMExplorerSession implements AutoCloseable {
                 settings.group(),
                 settings.hoist(),
                 settings.pathDisplay(),
-                settings.filterQuery()
+                settings.filterQuery(),
+                settings.filterOptions(), settings.compaction()
         ));
     }
 
@@ -368,7 +525,8 @@ public final class SFMExplorerSession implements AutoCloseable {
                 group,
                 settings.hoist(),
                 settings.pathDisplay(),
-                settings.filterQuery()
+                settings.filterQuery(),
+                settings.filterOptions(), settings.compaction()
         ));
     }
 
@@ -379,7 +537,8 @@ public final class SFMExplorerSession implements AutoCloseable {
                 settings.group(),
                 hoist,
                 settings.pathDisplay(),
-                settings.filterQuery()
+                settings.filterQuery(),
+                settings.filterOptions(), settings.compaction()
         ));
     }
 
@@ -390,7 +549,8 @@ public final class SFMExplorerSession implements AutoCloseable {
                 settings.group(),
                 settings.hoist(),
                 pathDisplay,
-                settings.filterQuery()
+                settings.filterQuery(),
+                settings.filterOptions(), settings.compaction()
         ));
     }
 
@@ -401,8 +561,14 @@ public final class SFMExplorerSession implements AutoCloseable {
                 settings.group(),
                 settings.hoist(),
                 settings.pathDisplay(),
-                filterQuery
+                filterQuery,
+                settings.filterOptions(), settings.compaction()
         ));
+    }
+
+    public synchronized void setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions options) {
+        setSettings(new SFMExplorerProjection.Settings(settings.view(), settings.sort(), settings.group(),
+                settings.hoist(), settings.pathDisplay(), settings.filterQuery(), options, settings.compaction()));
     }
 
     public synchronized boolean expand(SFMPath path) {
@@ -427,11 +593,43 @@ public final class SFMExplorerSession implements AutoCloseable {
     }
 
     public synchronized void navigateTo(SFMPath path) {
+        selectRow(path, List.of(path), SFMExplorerRowSelection.Gesture.REPLACE);
+    }
+
+    public synchronized void selectRow(SFMPath path, List<SFMPath> displayedOrder,
+                                       SFMExplorerRowSelection.Gesture gesture) {
         ensureOpen();
-        Optional<SFMPath> next = Optional.of(Objects.requireNonNull(path, "path"));
-        if (navigationCursor.equals(next)) return;
-        navigationCursor = next;
+        var next = SFMExplorerRowSelection.apply(selectedPaths(), rangeAnchor, path, displayedOrder, gesture);
+        if (navigationCursor.equals(Optional.of(path)) && rangeAnchor.equals(next.anchor())
+                && selectedPaths().equals(next.members())) return;
+        replaceRowMembers(next.members());
+        navigationCursor = Optional.of(path);
+        rangeAnchor = next.anchor();
         revision++;
+    }
+
+    public synchronized Set<SFMPath> selectedPaths() {
+        return rowSelectionId.flatMap(selections::selection).flatMap(value -> selections.revision(value.headRevisionId()))
+                .map(SFMSelectionRevision::members).orElse(Set.of());
+    }
+
+    /** Complete-domain match selection may include exact paths not yet materialized as rows. */
+    public synchronized void selectMembers(Set<SFMPath> members, Optional<SFMPath> primary) {
+        ensureOpen();
+        primary.ifPresent(path -> { if (!members.contains(path)) throw new IllegalArgumentException("Primary must be selected"); });
+        replaceRowMembers(members);
+        navigationCursor = primary;
+        rangeAnchor = primary;
+        revision++;
+    }
+
+    private void replaceRowMembers(Set<SFMPath> members) {
+        if (rowSelectionId.isEmpty()) {
+            var created = selections.create(Optional.empty(), members, actor(), nextRequestId("row-selection-create"));
+            rowSelectionId = Optional.of(created.selection().id());
+        } else if (!selectedPaths().equals(members)) {
+            selections.replace(rowSelectionId.orElseThrow(), members, actor(), nextRequestId("row-selection-replace"));
+        }
     }
 
     public synchronized void clearNavigationCursor() {
@@ -439,6 +637,165 @@ public final class SFMExplorerSession implements AutoCloseable {
         if (navigationCursor.isEmpty()) return;
         navigationCursor = Optional.empty();
         revision++;
+    }
+
+    /** Starts or restarts an asynchronous find without changing the Explorer filter settings. */
+    public synchronized long beginFinderQuery(String query) {
+        return beginFinderQuery(query.strip(), ca.teamdman.sfm.client.search.SFMTextMatchOptions.legacyFuzzy());
+    }
+
+    public synchronized long beginFinderQuery(String query, ca.teamdman.sfm.client.search.SFMTextMatchOptions options) {
+        ensureOpen();
+        query = validateFinderQuery(query);
+        long generation = finder.generation() + 1;
+        finder = new FinderState(
+                query,
+                FinderStatus.PENDING,
+                List.of(),
+                -1,
+                List.of(new FinderDiagnostic(
+                        FinderDiagnosticCode.SEARCH_PENDING,
+                        "Searching Explorer entries for '" + query + "'"
+                )),
+                generation,
+                options
+        );
+        revision++;
+        return generation;
+    }
+
+    /** Publishes a generation-matched finder result atomically in canonical path order. */
+    public synchronized boolean publishFinderResults(
+            long expectedGeneration,
+            String query,
+            List<SFMPath> matches,
+            boolean complete,
+            List<String> resolverDiagnostics
+    ) {
+        return publishFinderResultsInDisplayOrder(expectedGeneration, query,
+                matches.stream().distinct().sorted().toList(), complete, resolverDiagnostics);
+    }
+
+    /** The query provider computes a deterministic presentation order without reordering the live tree. */
+    public synchronized boolean publishFinderResultsInDisplayOrder(long expectedGeneration, String query,
+            List<SFMPath> matches, boolean complete, List<String> resolverDiagnostics) {
+        if (closed) return false;
+        query = validateFinderQuery(query);
+        Objects.requireNonNull(matches, "matches");
+        Objects.requireNonNull(resolverDiagnostics, "resolverDiagnostics");
+        if (finder.generation() != expectedGeneration || !finder.query().equals(query)) return false;
+
+        List<SFMPath> ordered = matches.stream().distinct().toList();
+        ArrayList<FinderDiagnostic> diagnostics = new ArrayList<>();
+        resolverDiagnostics.stream()
+                .filter(message -> message != null && !message.isBlank())
+                .map(message -> new FinderDiagnostic(FinderDiagnosticCode.SEARCH_FAILED, message))
+                .forEach(diagnostics::add);
+        if (!complete) {
+            diagnostics.add(new FinderDiagnostic(
+                    FinderDiagnosticCode.RESULTS_TRUNCATED,
+                    "Finder results are bounded; additional matches may exist"
+            ));
+        }
+        FinderStatus status;
+        if (ordered.isEmpty() && complete) {
+            status = FinderStatus.EMPTY;
+            diagnostics.add(new FinderDiagnostic(
+                    FinderDiagnosticCode.NO_MATCHES,
+                    "No Explorer entries match '" + query + "'"
+            ));
+        } else if (ordered.isEmpty()) {
+            status = FinderStatus.FAILED;
+        } else {
+            status = FinderStatus.READY;
+        }
+        finder = new FinderState(query, status, ordered, -1, diagnostics, expectedGeneration, finder.options());
+        revision++;
+        return true;
+    }
+
+    /** Retains a typed terminal failure only if the request is still current. */
+    public synchronized boolean failFinderQuery(
+            long expectedGeneration,
+            String query,
+            String diagnostic
+    ) {
+        if (closed) return false;
+        query = validateFinderQuery(query);
+        diagnostic = Objects.requireNonNull(diagnostic, "diagnostic").strip();
+        if (diagnostic.isEmpty()) throw new IllegalArgumentException("Finder failure must not be blank");
+        if (finder.generation() != expectedGeneration || !finder.query().equals(query)) return false;
+        finder = new FinderState(
+                query,
+                FinderStatus.FAILED,
+                List.of(),
+                -1,
+                List.of(new FinderDiagnostic(FinderDiagnosticCode.SEARCH_FAILED, diagnostic)),
+                expectedGeneration,
+                finder.options()
+        );
+        revision++;
+        return true;
+    }
+
+    /** Advances with deterministic wraparound; pending and empty searches remain unchanged. */
+    public synchronized boolean advanceFinder(int delta) {
+        ensureOpen();
+        if (delta != -1 && delta != 1) throw new IllegalArgumentException("Finder delta must be -1 or 1");
+        if (finder.status() != FinderStatus.READY || finder.matches().isEmpty()) return false;
+        int nextIndex = finder.cursorIndex() < 0
+                ? (delta > 0 ? 0 : finder.matches().size() - 1)
+                : Math.floorMod(finder.cursorIndex() + delta, finder.matches().size());
+        finder = new FinderState(
+                finder.query(),
+                finder.status(),
+                finder.matches(),
+                nextIndex,
+                finder.diagnostics().stream()
+                        .filter(value -> value.code() != FinderDiagnosticCode.REVEAL_FAILED)
+                        .toList(),
+                finder.generation(),
+                finder.options()
+        );
+        revision++;
+        return true;
+    }
+
+    /** Records asynchronous reveal failure without allowing stale callbacks to poison a new search. */
+    public synchronized boolean recordFinderRevealFailure(
+            long expectedGeneration,
+            SFMPath target,
+            String diagnostic
+    ) {
+        if (closed) return false;
+        Objects.requireNonNull(target, "target");
+        diagnostic = Objects.requireNonNull(diagnostic, "diagnostic").strip();
+        if (diagnostic.isEmpty()) throw new IllegalArgumentException("Reveal failure must not be blank");
+        if (finder.generation() != expectedGeneration || !finder.matches().contains(target)) return false;
+        ArrayList<FinderDiagnostic> diagnostics = new ArrayList<>(finder.diagnostics().stream()
+                .filter(value -> value.code() != FinderDiagnosticCode.REVEAL_FAILED)
+                .toList());
+        diagnostics.add(new FinderDiagnostic(FinderDiagnosticCode.REVEAL_FAILED, diagnostic));
+        finder = new FinderState(
+                finder.query(),
+                finder.status(),
+                finder.matches(),
+                finder.cursorIndex(),
+                diagnostics,
+                finder.generation(),
+                finder.options()
+        );
+        revision++;
+        return true;
+    }
+
+    public synchronized boolean clearFinder() {
+        ensureOpen();
+        if (finder.status() == FinderStatus.CLEARED) return false;
+        finder = new FinderState("", FinderStatus.CLEARED, List.of(), -1, List.of(),
+                finder.generation() + 1, finder.options());
+        revision++;
+        return true;
     }
 
     public synchronized void setScrollOffset(int scrollOffset) {
@@ -449,6 +806,14 @@ public final class SFMExplorerSession implements AutoCloseable {
         revision++;
     }
 
+    private void invalidateFinderForDomainChange() {
+        if (finder.status() == FinderStatus.CLEARED) return;
+        finder = new FinderState(finder.query(), FinderStatus.FAILED, List.of(), -1,
+                List.of(new FinderDiagnostic(FinderDiagnosticCode.SEARCH_FAILED,
+                        "Explorer location changed; run Find again for the new domain")),
+                finder.generation() + 1, finder.options());
+    }
+
     public synchronized void showSelectionOverlay(SFMSelectionId selectionId) {
         ensureOpen();
         if (overlaySelections.add(Objects.requireNonNull(selectionId, "selectionId"))) revision++;
@@ -457,6 +822,27 @@ public final class SFMExplorerSession implements AutoCloseable {
     public synchronized void hideSelectionOverlay(SFMSelectionId selectionId) {
         ensureOpen();
         if (overlaySelections.remove(Objects.requireNonNull(selectionId, "selectionId"))) revision++;
+    }
+
+    /**
+     * Completes delayed root initialization without replacing a reveal/prefetch
+     * already in flight. A late describe result cannot expand a removed root,
+     * reopen a closed session, or discard pages that reveal already materialized.
+     */
+    public synchronized Optional<SFMLazyExplorerLoader.LoadHandle> initializeRootChildren(
+            SFMPath root,
+            SFMLazyExplorerLoader loader,
+            int pageSize
+    ) {
+        Objects.requireNonNull(root, "root");
+        Objects.requireNonNull(loader, "loader");
+        if (pageSize <= 0) throw new IllegalArgumentException("Page size must be positive");
+        if (closed || !roots.contains(root)) return Optional.empty();
+        expand(root);
+        Optional<SFMLazyExplorerLoader.LoadHandle> active = activeRequestHandle(root);
+        if (active.isPresent()) return active;
+        if (loader.hasCurrentMaterializedChildren(root)) return Optional.empty();
+        return Optional.of(requestChildren(root, loader, pageSize));
     }
 
     public synchronized SFMLazyExplorerLoader.LoadHandle requestChildren(
@@ -510,6 +896,17 @@ public final class SFMExplorerSession implements AutoCloseable {
         return selections;
     }
 
+    private static String validateFinderQuery(String query) {
+        query = Objects.requireNonNull(query, "query");
+        if (query.isEmpty()) throw new IllegalArgumentException("Explorer finder query must not be blank");
+        if (query.length() > 2048 || query.codePointCount(0, query.length()) > 1024)
+            throw new IllegalArgumentException("Explorer finder query is too long");
+        if (query.indexOf('\n') >= 0 || query.indexOf('\r') >= 0) {
+            throw new IllegalArgumentException("Explorer finder query must be one line");
+        }
+        return query;
+    }
+
     /** Safe revalidation hook for prepared all-or-none action transactions. */
     public synchronized boolean hasRevision(long expectedRevision) {
         return revision == expectedRevision;
@@ -535,6 +932,26 @@ public final class SFMExplorerSession implements AutoCloseable {
 
     public synchronized int activeRequestCount() {
         return activeRequests.size();
+    }
+
+    /**
+     * Returns the authoritative in-flight request for one parent, if any.
+     * Reveal and other coordinators join this handle instead of treating a
+     * deduplicated request as an unavailable continuation.
+     */
+    public synchronized Optional<SFMLazyExplorerLoader.LoadHandle> activeRequestHandle(SFMPath parent) {
+        ActiveRequest active = activeRequests.get(Objects.requireNonNull(parent, "parent"));
+        if (active == null) return Optional.empty();
+        if (active.handle.completion().isDone()) {
+            // CompletableFuture dependents are not ordered. A reveal continuation
+            // can run before track()'s bookkeeping callback and would otherwise
+            // repeatedly rejoin the same already-completed handle. Retire it
+            // eagerly from this authoritative accessor.
+            SFMLazyExplorerLoader.LoadResult result = active.handle.completion().getNow(null);
+            finishRequest(parent, active, result, null);
+            return Optional.empty();
+        }
+        return Optional.of(active.handle);
     }
 
     private void track(SFMPath parent, SFMLazyExplorerLoader.LoadHandle handle) {

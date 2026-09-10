@@ -23,6 +23,7 @@ import java.util.function.Consumer;
 final class SFMReleaseReviewCreateRuntime {
     static final String EXECUTABLE_PROPERTY = "sfm.releaseReviewToolchainExecutable";
     private static final int MAXIMUM_RETAINED_OUTPUT_BYTES = 64 * 1024;
+    private static final java.util.concurrent.atomic.AtomicLong CAPTURE_IDS = new java.util.concurrent.atomic.AtomicLong();
     private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "sfm-release-review-create");
         thread.setDaemon(true);
@@ -34,13 +35,31 @@ final class SFMReleaseReviewCreateRuntime {
             String lane,
             String before,
             String candidate,
-            Optional<Path> repositoryRoot
+            Optional<Path> repositoryRoot,
+            Optional<String> workingTreeScope,
+            Optional<ca.teamdman.sfm.client.review.release_review.SFMWorkingTreeCaptureV1> previousCapture,
+            List<String> additionalExclusions
     ) {
+        Request(Path file, String lane, String before, String candidate, Optional<Path> repositoryRoot,
+                Optional<String> workingTreeScope) {
+            this(file, lane, before, candidate, repositoryRoot, workingTreeScope, Optional.empty(), List.of());
+        }
+        Request(Path file, String lane, String before, String candidate, Optional<Path> repositoryRoot) {
+            this(file, lane, before, candidate, repositoryRoot, Optional.empty());
+        }
         Request {
             Objects.requireNonNull(file, "file");
+            previousCapture = Objects.requireNonNull(previousCapture, "previousCapture");
+            additionalExclusions = List.copyOf(additionalExclusions);
             lane = requireText(lane, "lane");
             before = requireText(before, "before");
-            candidate = requireText(candidate, "candidate");
+            workingTreeScope = Objects.requireNonNull(workingTreeScope, "workingTreeScope")
+                    .map(scope -> requireText(scope, "scope"));
+            if (workingTreeScope.isEmpty() && (previousCapture.isPresent() || !additionalExclusions.isEmpty()))
+                throw new IllegalArgumentException("Capture policy requires a working-tree request");
+            if (workingTreeScope.isPresent()) {
+                if (candidate != null) throw new IllegalArgumentException("Choose Git candidate or working-tree scope, not both");
+            } else candidate = requireText(candidate, "candidate");
             repositoryRoot = Objects.requireNonNull(repositoryRoot, "repositoryRoot");
         }
     }
@@ -49,6 +68,29 @@ final class SFMReleaseReviewCreateRuntime {
     }
 
     static int queue(Request request, Consumer<Component> feedback) {
+        return queue(request, feedback, output -> SFMReleaseReviewRuntime.get().openAsync(output, true)
+                .whenComplete((opened, failure) -> publish(feedback, Component.literal(
+                        failure != null ? "Created review, but open failed: " + message(failure)
+                                : opened.document().isEmpty() ? "Created review, but open failed: " + String.join("; ", opened.diagnostics())
+                                : "Created and opened release review " + output))));
+    }
+
+    static int queue(Request request, Consumer<Component> feedback, Consumer<Path> created) {
+        return queue(request, feedback, created, feedback);
+    }
+
+    static int queue(Request request, SFMClientActionContext context, Consumer<Component> feedback, Consumer<Path> created) {
+        // Negative IDs have their own persistent toast lane without falsely offering
+        // the persistence runtime's cancellation action for a different subprocess.
+        var status = new SFMReleaseReviewOperationFeedback(context, -CAPTURE_IDS.incrementAndGet(), feedback);
+        return queue(request, status::complete, output -> {
+            status.complete(ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
+                    "Created ", ca.teamdman.sfm.client.explorer.SFMPath.fromNative(output), ""));
+            created.accept(output);
+        }, status::pending);
+    }
+
+    private static int queue(Request request, Consumer<Component> feedback, Consumer<Path> created, Consumer<Component> queued) {
         Objects.requireNonNull(request, "request");
         Objects.requireNonNull(feedback, "feedback");
         Path repositoryRoot = request.repositoryRoot()
@@ -56,9 +98,10 @@ final class SFMReleaseReviewCreateRuntime {
                 .orElseGet(SFMReleaseReviewCreateRuntime::discoverRepositoryRoot);
         Path output = resolveOutput(repositoryRoot, request.file());
         List<String> argv = command(request, repositoryRoot);
-        feedback.accept(Component.literal("Release-review creation queued: " + output)
-                .withStyle(ChatFormatting.GRAY));
-        WORKER.execute(() -> execute(argv, repositoryRoot, output, feedback));
+        queued.accept(ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
+                "Release-review creation queued: ", ca.teamdman.sfm.client.explorer.SFMPath.fromNative(output), "")
+                .copy().withStyle(ChatFormatting.GRAY));
+        WORKER.execute(() -> execute(argv, repositoryRoot, output, feedback, created));
         return 1;
     }
 
@@ -70,13 +113,25 @@ final class SFMReleaseReviewCreateRuntime {
         argv.add(System.getProperty(EXECUTABLE_PROPERTY, "sfm-propagate-changes.exe"));
         argv.addAll(List.of(
                 "--output-format", "json",
-                "review", "session", "create",
+                "review", "session", "create-ledger",
                 "--file", request.file().toString(),
                 "--branch", request.lane(),
-                "--before", request.before(),
-                "--candidate", request.candidate(),
-                "--repository-root", normalizedRoot.toString()
+                "--before", request.before()
         ));
+        if (request.workingTreeScope().isPresent()) {
+            argv.add("--working-tree");
+            for (String scope : request.previousCapture().map(value -> value.scopePaths())
+                    .orElseGet(() -> List.of(request.workingTreeScope().orElseThrow()))) {
+                argv.addAll(List.of("--scope", scope));
+            }
+            var exclusions = new java.util.LinkedHashSet<>(request.additionalExclusions());
+            request.previousCapture().ifPresent(capture -> {
+                exclusions.addAll(capture.excludedPaths());
+                if (!capture.includeUntracked()) argv.add("--tracked-only");
+            });
+            exclusions.forEach(path -> argv.addAll(List.of("--exclude", path)));
+        } else argv.addAll(List.of("--candidate", request.candidate()));
+        argv.addAll(List.of("--repository-root", normalizedRoot.toString()));
         return List.copyOf(argv);
     }
 
@@ -84,7 +139,8 @@ final class SFMReleaseReviewCreateRuntime {
             List<String> argv,
             Path repositoryRoot,
             Path output,
-            Consumer<Component> feedback
+            Consumer<Component> feedback,
+            Consumer<Path> created
     ) {
         try {
             ProcessBuilder builder = new ProcessBuilder(argv)
@@ -92,8 +148,27 @@ final class SFMReleaseReviewCreateRuntime {
                     .redirectErrorStream(true);
             Process process = builder.start();
             process.getOutputStream().close();
-            String processOutput = drain(process.getInputStream());
-            int exitCode = process.waitFor();
+            java.util.concurrent.CompletableFuture<String> drained = new java.util.concurrent.CompletableFuture<>();
+            Thread reader = new Thread(() -> {
+                try { drained.complete(drain(process.getInputStream())); }
+                catch (Throwable failure) { drained.completeExceptionally(failure); }
+            }, "sfm-release-review-create-output");
+            reader.setDaemon(true);
+            reader.start();
+            String processOutput;
+            int exitCode;
+            try {
+                if (!process.waitFor(180, java.util.concurrent.TimeUnit.SECONDS)) {
+                    throw new IOException("Review creation exceeded 180 seconds; choose a narrower scope and a new output path");
+                }
+                exitCode = process.exitValue();
+                processOutput = drained.get(5, java.util.concurrent.TimeUnit.SECONDS);
+            } finally {
+                if (process.isAlive()) {
+                    process.descendants().forEach(ProcessHandle::destroyForcibly);
+                    process.destroyForcibly();
+                }
+            }
             if (exitCode != 0) {
                 publish(feedback, Component.literal("Release-review creation failed (exit " + exitCode + "): "
                                 + summarize(processOutput))
@@ -107,18 +182,9 @@ final class SFMReleaseReviewCreateRuntime {
                 return;
             }
             Minecraft.getInstance().execute(() -> {
-                try {
-                    var opened = SFMReleaseReviewRuntime.get().open(output, true);
-                    if (opened.document().isEmpty()) {
-                        throw new IllegalStateException(String.join("; ", opened.diagnostics()));
-                    }
-                    feedback.accept(Component.literal("Created and opened release review " + output)
-                            .withStyle(ChatFormatting.AQUA));
-                } catch (Throwable failure) {
-                    feedback.accept(Component.literal("Created " + output + " but could not open it: "
-                                    + message(failure))
-                            .withStyle(ChatFormatting.RED));
-                }
+                try { ca.teamdman.sfm.client.explorer.SFMExplorerRuntime.get().fileCreated(output); }
+                catch (RuntimeException refreshFailure) { ca.teamdman.sfm.SFM.LOGGER.warn("Created review directory refresh unavailable", refreshFailure); }
+                created.accept(output);
             });
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();

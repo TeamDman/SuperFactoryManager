@@ -67,6 +67,7 @@ instance selection; and the log plan owns observation transport/presentation.
 | PCR-18 | Live UI elements need stable identities so the palette can enumerate visible/hidden elements and invoke hide/show actions; candidate styling cannot rely on colour alone. | Routed to contextual/window UIE-1/UIE-2 and reused by CA-2 presenter accessibility. | — |
 | PCR-19 | The next unattended batch should minimize regret, have observable in-game outcomes, and use an elastic continuation ladder rather than treating a ten-hour estimate as acceptance. | A whole-plan dependency audit compares this candidate with the release-review path. The global comment plan's RCS-0 through RCS-8 plus real-lane RCS-S2/RCS-S1 domain and resumability proof is now the recommended next batch; this puppet candidate retains its own core/ladder for later or explicit reprioritization. | — |
 | PCR-20 | Do not set the goal yet; remain in bookkeeping and planning until the user reviews the proposal. | This plan remains Draft and no goal tool is called during this phase. | — |
+| PCR-21 | Automated pointer tests must not reposition or inject the operating-system cursor. Puppets need an owned virtual-input seam that traverses Minecraft/SFM input routing while the human's desktop cursor remains untouched. | PA-3 replaces `glfwSetCursorPos`/Win32 mouse-message injection with a version-adapted Minecraft mouse-callback invoker, migrates every puppet caller, and adds a source audit that rejects future native cursor warping. | — |
 
 ## Guidance traceability
 
@@ -82,6 +83,7 @@ instance selection; and the log plan owns observation transport/presentation.
 | PCR-16 | Log-plan LOG-X6 | Exact run/game/observation-session attach and terminal-follow proof; deferred from core |
 | PCR-17, PCR-18 | UIE-1/UIE-2; stretch PS-2 | Addressable history affordance and visible/hidden candidate proof |
 | PCR-19, PCR-20 | Cross-plan priority note, candidate-goal/operational-readiness sections, and global-comment RCS batch | User approval precedes goal creation; the recommended review core and later puppet candidate each have explicit observable checkpoints and stretch ladders |
+| PCR-21 | PA-3; window-manager Track 7 | Static no-warp audit, callback-path tests, and a live pointer-heavy puppet that completes without calling an OS cursor-position API |
 
 ## Intent audit evidence
 
@@ -401,6 +403,42 @@ artifacts.
 **Completion criteria:** The known duplicated dropdown geometry and incidental
 visible-row/panel ordinal targeting are gone from ordinary interaction proofs.
 
+### [x] PA-3 Route puppet pointer input through an owned virtual-input seam
+
+**Work:** Add a version-adapted invoker for Minecraft's raw mouse move/button/
+scroll callbacks and expose it through one puppet input driver. Convert every
+puppet pointer-position helper away from `GLFW.glfwSetCursorPos`, native-window
+handles, foreground-dependent callback delivery, and posted Win32 mouse
+messages. Virtual coordinates remain in Minecraft native-window units at the
+callback boundary and become GUI/panel-local coordinates through the same
+vanilla and multiplexer transforms used by human input. Direct state mutation
+is not an acceptable substitute for callback routing. Preserve separately
+named low-level logical-panel helpers only where a test is explicitly proving
+one isolated panel contract.
+
+**Validation:** A static architecture test fails on OS cursor warp/injection
+APIs anywhere in puppet sources. Unit/host tests prove logical-to-native
+conversion and active-screen/window guards. Run at least one pointer-heavy live
+puppet (the release-review Explorer journey is the current witness) and retain
+its success artifact. No acceptance assertion may require the GLFW-polled OS
+cursor to equal the virtual pointer.
+
+**Completion criteria:** Running puppets no longer moves the user's desktop
+cursor, while hover, drag, selection, contextual click, divider, and palette
+paths can still be driven through the reusable virtual-input seam.
+
+**Completion evidence — 2026-08-24:** `MouseHandlerInvoker` now exposes the
+version-adapted vanilla move/button/scroll callbacks and
+`SFMGamePuppetPointer` supplies virtual move, button, click, scroll, plus one
+explicit low-level workspace-only helper. All former `moveNative` callers were
+migrated; puppet source contains no `glfwSetCursorPos`, Win32 mouse-move
+message, or OS cursor-position setter. The focused
+`SFMGamePuppetVirtualPointerSourceTests` passed after the final seam edit. The
+pointer-heavy `sfm:title_screen_release_review_explorer_ux` matrix then passed
+all nine `3840x2130@auto,1..8` variants (`failed=0 total=9`) through virtual
+drag-selection, context click, and numbered-entry click/drag routing. Artifact
+run: `sfm-title_screen-20260824-183208-397`.
+
 ## Candidate puppet-control goal — ready for later review; do not set yet
 
 **Cross-plan priority reconciliation — 2026-08-23:** This is a coherent and
@@ -431,8 +469,9 @@ ends only when both of these observable journeys work:
 2. **PS-2 — addressable history affordance:** implement the linked UIE-1/UIE-2
    slice with a hideable EditorV3 history button and visible/hidden palette
    candidates, then checkpoint.
-3. **PS-3 — PA-1/PA-2 puppet interaction hardening:** publish the complete
-   audit and remove the known fragile helpers, then checkpoint.
+3. **PS-3 — PA-1/PA-2/PA-3 puppet interaction hardening:** publish the complete
+   audit, remove the known fragile helpers, and eliminate OS-cursor injection,
+   then checkpoint.
 4. **PS-4 — generic capability-provider proof:** complete the smallest linked
    CP-1 foundation using text-edit plus one bounded second intent; do not begin
    manager mutation or remote permissions, then checkpoint.

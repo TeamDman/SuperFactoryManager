@@ -34,6 +34,21 @@ pub struct GitReviewDomain {
     pub reconciliation: GitReconciliationReport,
 }
 
+impl GitReviewDomain {
+    /// Keep complete change records and rebuild all dependent reconciliation evidence.
+    pub(crate) fn retain_changes(&mut self, keep: impl FnMut(&GitDomainChange) -> bool) {
+        self.changes.retain(keep);
+        let retained: std::collections::BTreeSet<_> = self
+            .changes
+            .iter()
+            .map(|change| change.change_id.as_str())
+            .collect();
+        self.units
+            .retain(|unit| retained.contains(unit.change_id.as_str()));
+        self.reconciliation = reconcile(&self.changes, &self.units);
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedGitRevision {
     pub requested: String,
@@ -224,6 +239,139 @@ pub struct AmbientRepositoryRelationship {
     pub changed_paths: Vec<AmbientGitPathWitness>,
     pub source_affecting_paths: Vec<AmbientGitPathWitness>,
     pub diagnostics: Vec<AmbientRepositoryDiagnostic>,
+}
+
+/// Separate from commit ancestry: equal HEAD does not imply a clean worktree.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkingTreeEvidence {
+    pub schema: &'static str,
+    pub checked_at_unix_millis: u128,
+    pub head: Option<String>,
+    /// None means the probe failed or exceeded its publication budget.
+    pub source_dirty: Option<bool>,
+    pub changes: Vec<WorkingTreeChange>,
+    pub diagnostics: Vec<AmbientRepositoryDiagnostic>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkingTreeChange {
+    pub index_status: char,
+    pub worktree_status: char,
+    pub path: AmbientGitPathWitness,
+    pub previous_path: Option<AmbientGitPathWitness>,
+    pub review_evidence_only: bool,
+}
+
+/// Read-only status, preserving byte-addressed paths and rename endpoints.
+/// A probe is evidence at a time, not a promise that the filesystem stays frozen.
+#[must_use]
+pub fn inspect_working_tree(
+    repository_root: &Path,
+    review_evidence_paths: &[String],
+) -> WorkingTreeEvidence {
+    let checked_at_unix_millis = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |duration| duration.as_millis());
+    let failed = |message: String| WorkingTreeEvidence {
+        schema: "sfm.release-review.working-tree-evidence/1",
+        checked_at_unix_millis,
+        head: None,
+        source_dirty: None,
+        changes: Vec::new(),
+        diagnostics: vec![AmbientRepositoryDiagnostic {
+            code: "working-tree.unavailable".to_owned(),
+            message,
+        }],
+    };
+    let inspect = || -> Result<WorkingTreeEvidence, GitDomainError> {
+        let before = resolve_revision(repository_root, "HEAD")?;
+        let output = run_git(
+            repository_root,
+            [
+                "status",
+                "--porcelain=v1",
+                "-z",
+                "--untracked-files=all",
+                "--ignore-submodules=none",
+                "--renames",
+            ],
+            None,
+            "inspecting staged, unstaged and untracked paths",
+        )?;
+        let changes = parse_working_tree_status(&output.stdout, review_evidence_paths)?;
+        let after = resolve_revision(repository_root, "HEAD")?;
+        if before.commit_id != after.commit_id {
+            return Err(GitDomainError::Invariant {
+                detail: "HEAD changed during the working-tree probe; retry".to_owned(),
+            });
+        }
+        Ok(WorkingTreeEvidence {
+            schema: "sfm.release-review.working-tree-evidence/1",
+            checked_at_unix_millis,
+            head: Some(after.commit_id),
+            source_dirty: Some(changes.iter().any(|change| !change.review_evidence_only)),
+            changes,
+            diagnostics: Vec::new(),
+        })
+    };
+    inspect().unwrap_or_else(|error| failed(error.to_string()))
+}
+
+/// Porcelain v1 -z has an XY prefix, an unquoted destination, then the old
+/// path for rename/copy entries. Whitespace and newlines belong to the path.
+/// # Errors
+/// Rejects malformed or truncated porcelain status records instead of reporting a clean tree.
+pub fn parse_working_tree_status(
+    bytes: &[u8],
+    review_evidence_paths: &[String],
+) -> Result<Vec<WorkingTreeChange>, GitDomainError> {
+    let mut cursor = NulCursor::new(bytes);
+    let mut changes = Vec::new();
+    let permitted = |path: &[u8]| {
+        review_evidence_paths
+            .iter()
+            .any(|value| value.as_bytes() == path)
+    };
+    while let Some(record) = cursor.next("working-tree status")? {
+        if record.len() < 4
+            || record[2] != b' '
+            || !b" MTADRCU?!".contains(&record[0])
+            || !b" MTADRCU?!".contains(&record[1])
+        {
+            return Err(GitDomainError::Parse {
+                stream: "working-tree status",
+                detail: "invalid XY/path record".to_owned(),
+            });
+        }
+        if changes.len() >= 100_000 {
+            return Err(GitDomainError::Invariant {
+                detail: "working-tree status exceeds 100000 paths".to_owned(),
+            });
+        }
+        let path = &record[3..];
+        let previous = if record[..2].iter().any(|value| matches!(value, b'R' | b'C')) {
+            Some(
+                cursor
+                    .next("working-tree rename source")?
+                    .filter(|path| !path.is_empty())
+                    .ok_or_else(|| GitDomainError::Parse {
+                        stream: "working-tree status",
+                        detail: "rename source is missing".to_owned(),
+                    })?,
+            )
+        } else {
+            None
+        };
+        changes.push(WorkingTreeChange {
+            index_status: char::from(record[0]),
+            worktree_status: char::from(record[1]),
+            path: path_witness(&GitPath::from_bytes(path.to_vec())),
+            previous_path: previous.map(|path| path_witness(&GitPath::from_bytes(path.to_vec()))),
+            review_evidence_only: permitted(path) && previous.is_none_or(permitted),
+        });
+    }
+    changes.sort_by(|left, right| left.path.bytes_hex.cmp(&right.path.bytes_hex));
+    Ok(changes)
 }
 
 #[derive(Debug)]
@@ -784,6 +932,7 @@ where
         .arg("-c")
         .arg("core.quotePath=false")
         .args(arguments)
+        .env("GIT_OPTIONAL_LOCKS", "0")
         .env("LC_ALL", "C")
         .env("LANG", "C");
     if let Some(attribute_source) = attribute_source {

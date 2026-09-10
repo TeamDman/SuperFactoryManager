@@ -23,6 +23,7 @@ import sun.misc.Unsafe;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,6 +34,16 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 class SFMTextEditorPanelTests {
+    @Test
+    void readOnlyInspectionClosesItsPanelDespiteTerminalNewlineProjection() {
+        var closed = new AtomicBoolean();
+        var context = new SFMTextEditorPanelOpenContext(
+                "sfm:text_editor_v3", "Inspection payload\n", true, "Icon rule explanation");
+        var screenContext = SFMTextEditorPanel.screenContext(context, () -> closed.set(true));
+        screenContext.onTryClose("Inspection payload", () -> { throw new AssertionError("Must close only its panel"); });
+        assertTrue(closed.get());
+    }
+
     @Test
     void focusGainWithStationaryCtrlHoverPreservesLookupAndRecapturesCurrentPointer() {
         List<String> calls = new ArrayList<>();
@@ -238,6 +249,35 @@ class SFMTextEditorPanelTests {
         assertFalse(closed.get());
 
         assertTrue(screenContext.trySaveAndClose("accepted").saved());
+        assertTrue(closed.get());
+    }
+
+    @Test
+    void asynchronousPanelContextAdvancesOnlyTheSubmittedBaselineOnClientAcknowledgement() {
+        var durable = new java.util.concurrent.CompletableFuture<SFMTextDocumentSaveResult>();
+        var closed = new AtomicBoolean();
+        var handler = new ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveHandler() {
+            @Override public boolean asynchronous() { return true; }
+            @Override public SFMTextDocumentSaveResult save(String text) { throw new AssertionError("sync save invoked"); }
+            @Override public java.util.concurrent.CompletableFuture<SFMTextDocumentSaveResult> saveAsync(String text) {
+                assertEquals("submitted", text);
+                return durable;
+            }
+        };
+        var panelContext = new SFMTextEditorPanelOpenContext("sfm:v1", "baseline", false, "Comment", handler);
+        var saved = new java.util.ArrayList<String>();
+        var screenContext = SFMTextEditorPanel.screenContext(panelContext, () -> closed.set(true), saved::add);
+        assertTrue(screenContext.asynchronousSave());
+        assertSame(durable, screenContext.saveDocumentAsync("submitted"));
+        assertEquals("baseline", screenContext.initialValue());
+        assertFalse(closed.get());
+        durable.complete(SFMTextDocumentSaveResult.success());
+        assertEquals("baseline", screenContext.initialValue(), "worker completion alone is not a UI acknowledgement");
+        screenContext.documentSaved("submitted");
+        assertEquals("submitted", screenContext.initialValue());
+        assertEquals(java.util.List.of("submitted"), saved);
+        assertFalse(closed.get());
+        screenContext.finishAsyncSaveClose();
         assertTrue(closed.get());
     }
 

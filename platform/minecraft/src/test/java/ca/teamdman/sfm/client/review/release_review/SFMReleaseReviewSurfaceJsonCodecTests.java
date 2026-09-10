@@ -13,6 +13,40 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMReleaseReviewSurfaceJsonCodecTests {
     @Test
+    void wholeHunkRegionsAndCorrespondencesCanContainHundredsOfExactLineRanges() {
+        String text = "a\n".repeat(300);
+        var source = SFMReleaseReviewSurfaceV1.Source.fromCorpus("after-large", "Large.java", "java", text);
+        var pair = new SFMReleaseReviewSurfaceV1.FilePair("large-pair", "1.19.2",
+                SFMReleaseReviewV1.ChangeOperation.ADDED, List.of("large-unit"),
+                Optional.empty(), Optional.of(source));
+        var request = new SFMReleaseReviewSurfaceV1.Recipe(pair,
+                SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_DIFF).request(1, 1);
+        var valid = afterSurface(request);
+        var ranges = new java.util.ArrayList<SFMReleaseReviewSurfaceV1.SourceRange>();
+        for (int line = 0; line < 300; line++) {
+            ranges.add(new SFMReleaseReviewSurfaceV1.SourceRange(SFMReleaseReviewV1.SnapshotSide.AFTER,
+                    source.documentRevisionId(), source.sha256(), source.path(),
+                    new SFMReleaseReviewSurfaceV1.Utf8Range(line * 2, line * 2 + 2)));
+        }
+        var surface = new SFMReleaseReviewSurfaceV1.Surface(valid.schema(), valid.requestId(),
+                valid.requestGeneration(), valid.filePairId(), valid.surfaceKind(), valid.algorithm(),
+                valid.outcome(), valid.complete(), valid.fallbackKind(), valid.text(), valid.textSha256(),
+                valid.mappings(), List.of(new SFMReleaseReviewSurfaceV1.Region("whole-hunk",
+                SFMReleaseReviewSurfaceV1.RegionKind.TEXT_HUNK, "300 added lines",
+                new SFMReleaseReviewSurfaceV1.Utf8Range(0, 600), ranges)),
+                new SFMReleaseReviewSurfaceV1.CorrespondenceReport(SFMReleaseReviewSurfaceV1.CORRESPONDENCE_SCHEMA,
+                pair.id(), true, List.of(new SFMReleaseReviewSurfaceV1.Correspondence("whole-change",
+                SFMReleaseReviewSurfaceV1.CorrespondenceKind.ADDED,
+                SFMReleaseReviewSurfaceV1.CorrespondenceConfidence.EXACT, Optional.empty(), Optional.empty(),
+                List.of(), ranges, List.of("exact lines"))), List.of()), List.of());
+        var decoded = SFMReleaseReviewSurfaceJsonCodec.decodeSurface(
+                SFMReleaseReviewSurfaceJsonCodec.encodeSurface(surface));
+        decoded.validateAgainst(request);
+        assertEquals(300, decoded.regions().get(0).sourceRanges().size());
+        assertEquals(300, decoded.correspondence().correspondences().get(0).afterRanges().size());
+    }
+
+    @Test
     void strictRequestAndSurfaceRoundTripUnicodeAndCrLfByteRanges() {
         SFMReleaseReviewSurfaceV1.Request request = request(41, 9);
         SFMReleaseReviewSurfaceV1.Surface surface = afterSurface(request);

@@ -27,6 +27,47 @@ class SFMClientActionPaletteSuggestionTests {
     private static final String QUERY = "sfm action invoke open";
 
     @Test
+    void optInConstructionIsBoundedTypedAndNeverCallsUnrelatedValueProviders() {
+        AtomicInteger completionCalls = new AtomicInteger();
+        AtomicBoolean available = new AtomicBoolean(true);
+        ResourceLocation id = new ResourceLocation("sfm:rule/add");
+        class RuleAction implements SFMClientAction<Object>, SFMClientActionCompletion {
+            public Component title() { return Component.literal("Add preview rule"); }
+            public Component description() { return Component.literal("Construct a rule"); }
+            public SFMClientActionRequirement<Object> requirement() { return context -> available.get()
+                    ? SFMClientActionAvailability.available(context)
+                    : SFMClientActionAvailability.unavailable(Component.literal("unavailable")); }
+            public int execute(Object target, CommandContext<SFMClientActionSource> command) { throw new AssertionError("Completion cannot execute"); }
+            public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
+                node.then(RequiredArgumentBuilder.<SFMClientActionSource,String>argument("rule",StringArgumentType.greedyString())
+                        .suggests((context,builder)->{throw new AssertionError("Arbitrary provider was invoked");}));
+            }
+            public List<Continuation> contextualContinuations(SFMClientActionContext context) {
+                return List.of(new Continuation("typed_prefix", "Rule for abc.json"));
+            }
+            public java.util.Optional<List<SFMPaletteCandidate>> argumentCandidates(String command,int start,int cursor,SFMClientActionContext context) {
+                completionCalls.incrementAndGet();
+                return java.util.Optional.of(List.of(SFMPaletteCandidate.activatable(
+                        new Suggestion(com.mojang.brigadier.context.StringRange.between(start,start+3),"new"),
+                        SFMPaletteCandidate.Kind.ARGUMENT_VALUE,SFMPaletteCandidate.Origin.BRIGADIER,id,"typed",-1,null)));
+            }
+        }
+        var tree=tree(Map.entry(id,new RuleAction()));
+        var source=source();
+        String command="sfm action invoke sfm:rule/add old minecraft:bell";
+        var candidates=tree.getPaletteCandidates(command,tree.parse(command,source),command.indexOf("old")+1).join();
+        assertEquals("sfm action invoke sfm:rule/add new minecraft:bell",candidates.get(0).apply(command).afterValue());
+        assertEquals(1,completionCalls.get());
+        String query="sfm action invoke rule";
+        var top=tree.getPaletteCandidates(query,tree.parse(query,source)).join();
+        assertTrue(top.stream().anyMatch(c->c.replacementText().equals("sfm:rule/add")));
+        assertTrue(top.stream().anyMatch(c->c.replacementText().equals("sfm:rule/add typed_prefix")));
+        available.set(false);
+        assertTrue(tree.getPaletteCandidates(query,tree.parse(query,source)).join().isEmpty());
+        assertEquals(1,completionCalls.get());
+    }
+
+    @Test
     void fuzzyQueryRanksActionTitleAndTheResultStillExecutesThroughBrigadier()
             throws CommandSyntaxException {
         AtomicInteger terminalCount = new AtomicInteger();

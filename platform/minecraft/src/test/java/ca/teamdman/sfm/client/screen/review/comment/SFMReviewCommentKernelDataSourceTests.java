@@ -65,6 +65,29 @@ class SFMReviewCommentKernelDataSourceTests {
     }
 
     @Test
+    void textualGutterMarkersAreNotParsedAsArgbColours() {
+        SFMReviewSessionV2 empty = SFMReviewSessionV2.empty("sfm:test/text-gutter", "Text gutter marker");
+        SFMReviewSessionV2 session = new SFMReviewSessionV2(
+                empty.schema(),
+                empty.id(),
+                empty.title(),
+                empty.coordinateSystem(),
+                empty.revisionLanes(),
+                empty.comments(),
+                List.of(new SFMReviewSessionV1.StyleRule(
+                        "release-change", List.of("#release-change"), 0,
+                        null, null, null, "R", true
+                )),
+                empty.completionPolicy()
+        );
+
+        SFMReviewCommentDataSource.StyleRuleView style =
+                new SFMReviewCommentKernelDataSource(session).refresh().styleRules().get(0);
+
+        assertEquals("R", style.gutterMarker());
+    }
+
+    @Test
     void v1ConstructionMigratesConvenientlyToCommittedV2Comments() throws Exception {
         SFMReviewSessionV1 fixture = SFMReviewSessionV1Codec.parse(Files.readString(fixturePath()));
 

@@ -149,9 +149,7 @@ public final class SFMExactDocumentSelectionPublication {
                     "coordinate text hash does not match publication identity"
             );
         }
-        for (SFMTextDocumentSelection selection : this.selections) {
-            Objects.requireNonNull(selection, "selections[]").validateAgainst(coordinateText);
-        }
+        SFMTextDocumentSelection.validateAllAgainst(coordinateText, this.selections);
     }
 
     public Identity identity() {

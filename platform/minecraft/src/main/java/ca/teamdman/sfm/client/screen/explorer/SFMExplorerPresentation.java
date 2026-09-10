@@ -17,8 +17,17 @@ public record SFMExplorerPresentation(String label, Icon icon) {
     }
 
     /** A presentation icon knows how to draw itself without path-specific logic in the panel. */
-    public sealed interface Icon permits MarkerIcon, ItemIcon {
+    public sealed interface Icon permits MarkerIcon, ItemIcon, DegradedIcon {
         void render(PoseStack poseStack, Minecraft minecraft, int x, int y, int height, int colour);
+    }
+
+    /** The exclamation is an inspectable warning, not merely a colour distinction. */
+    public record DegradedIcon(Icon baseline) implements Icon {
+        public DegradedIcon { Objects.requireNonNull(baseline); }
+        @Override public void render(PoseStack poseStack, Minecraft minecraft, int x, int y, int height, int colour) {
+            baseline.render(poseStack,minecraft,x,y,height,colour);
+            SFMFontUtils.draw(poseStack,minecraft.font,"!",x+11,y,0xFFFFFF55,true);
+        }
     }
 
     /** Deterministic generic marker used when no richer contributor accepts an entry. */
@@ -58,7 +67,7 @@ public record SFMExplorerPresentation(String label, Icon icon) {
                 int colour
         ) {
             int iconY = y + Math.max(0, (height - SFMItemIconRenderer.SIZE) / 2);
-            SFMItemIconRenderer.render(minecraft, item, x, iconY);
+            SFMItemIconRenderer.render(poseStack, minecraft, item, x, iconY);
         }
     }
 }

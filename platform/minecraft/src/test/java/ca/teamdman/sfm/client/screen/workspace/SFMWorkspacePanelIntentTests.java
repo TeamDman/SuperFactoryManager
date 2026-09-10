@@ -91,4 +91,50 @@ class SFMWorkspacePanelIntentTests {
         );
     }
 
+    @Test
+    void dispatcherMovesAnExactEntryIntoAnExactDestinationPane() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.sideBySide(
+                new SFMTestScreenPanel("left"),
+                new SFMTestScreenPanel("right")
+        );
+        SFMWorkspacePanelId source = layout.visiblePanels().get(0).id();
+        SFMWorkspacePanelId destination = layout.visiblePanels().get(1).id();
+
+        SFMWorkspacePanelIntentDispatcher.Outcome outcome =
+                SFMWorkspacePanelIntentDispatcher.apply(
+                        layout,
+                        source,
+                        new SFMWorkspacePanelIntent.MoveToStack(destination)
+                );
+
+        assertEquals(SFMWorkspacePanelIntentResult.APPLIED, outcome.result());
+        assertEquals(1, layout.visiblePanels().size());
+        assertEquals(2, layout.slotEntries(source).size());
+        assertEquals(layout.stackId(source), layout.stackId(destination));
+        assertEquals(source, layout.focusedPanel());
+    }
+
+    @Test
+    void movingBetweenEntriesAlreadyInOnePaneIsANonDestructiveNoOp() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.single(new SFMTestScreenPanel("first"));
+        SFMWorkspacePanelId first = layout.focusedPanel();
+        SFMWorkspacePanelId second = layout.pushToFocusedStack(
+                new SFMTestScreenPanel("second"),
+                SFMWorkspacePanelMetadata.ordinary()
+        );
+        long revision = layout.mutationRevision();
+
+        SFMWorkspacePanelIntentDispatcher.Outcome outcome =
+                SFMWorkspacePanelIntentDispatcher.apply(
+                        layout,
+                        first,
+                        new SFMWorkspacePanelIntent.MoveToStack(second)
+                );
+
+        assertEquals(SFMWorkspacePanelIntentResult.UNAVAILABLE, outcome.result());
+        assertEquals(2, layout.allPanels().size());
+        assertEquals(revision, layout.mutationRevision());
+        assertEquals(layout.stackId(first), layout.stackId(second));
+    }
+
 }

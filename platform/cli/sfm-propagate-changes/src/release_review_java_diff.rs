@@ -39,7 +39,7 @@ use std::collections::BTreeSet;
 use tree_sitter_patched_arborium::Node;
 
 pub const JAVA_STRUCTURED_DIFF_ALGORITHM_V1: &str =
-    "arborium-java/2.18.1+sfm-declaration-correspondence/1";
+    "arborium-java/2.18.1+sfm-declaration-correspondence/2";
 
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 enum DeclarationKind {
@@ -185,6 +185,48 @@ impl<'a> StructuredSurfaceBuilder<'a> {
             self.push_unmapped("\n")?;
         }
         Ok((surface_range, source_ranges))
+    }
+
+    // Partition the last copied declaration without changing its displayed bytes.
+    // Neutral spans still carry exact source mappings for syntax and comments.
+    fn refine_last_source(&mut self, changed: &[Utf8RangeV1]) -> Result<(), StructuredBuildLimit> {
+        let original = self.mappings.pop().expect("nonempty declaration mapping");
+        let length = original.surface_range.end_byte - original.surface_range.start_byte;
+        let mut cursor = 0;
+        for range in changed.iter().chain(std::iter::once(&Utf8RangeV1 {
+            start_byte: length,
+            end_byte: length,
+        })) {
+            for (start, end, kind) in [
+                (
+                    cursor,
+                    range.start_byte,
+                    ReviewSurfaceMappingKindV1::StructuralCorrespondence,
+                ),
+                (range.start_byte, range.end_byte, original.kind),
+            ] {
+                if start == end {
+                    continue;
+                }
+                if self.mappings.len() >= self.request.maximum_mappings {
+                    return Err(StructuredBuildLimit {
+                        message: "Java changed-span refinement exceeds exact mapping bound"
+                            .to_owned(),
+                    });
+                }
+                let mut mapping = original.clone();
+                mapping.kind = kind;
+                mapping.surface_range.start_byte += start;
+                mapping.surface_range.end_byte = original.surface_range.start_byte + end;
+                for source in &mut mapping.source_ranges {
+                    source.range.end_byte = source.range.start_byte + end;
+                    source.range.start_byte += start;
+                }
+                self.mappings.push(mapping);
+            }
+            cursor = range.end_byte;
+        }
+        Ok(())
     }
 
     fn push_region(&mut self, region: ReviewSurfaceRegionV1) -> Result<(), StructuredBuildLimit> {
@@ -805,6 +847,21 @@ fn build_structured_surface(
             )?;
             region_sources.extend(sources);
         } else {
+            let refinement = before_declaration
+                .zip(after_declaration)
+                .map(|(before, after)| {
+                    changed_spans(
+                        &request
+                            .file_pair
+                            .before
+                            .as_ref()
+                            .expect("before source")
+                            .text[before.range.start_byte..before.range.end_byte],
+                        &request.file_pair.after.as_ref().expect("after source").text
+                            [after.range.start_byte..after.range.end_byte],
+                    )
+                })
+                .transpose()?;
             if let Some(before_declaration) = before_declaration {
                 let (_, sources) = builder.push_source(
                     "-",
@@ -813,6 +870,9 @@ fn build_structured_surface(
                     ReviewSurfaceMappingKindV1::StructuralBefore,
                     None,
                 )?;
+                if let Some((before_changes, _)) = &refinement {
+                    builder.refine_last_source(before_changes)?;
+                }
                 region_sources.extend(sources);
             }
             if let Some(after_declaration) = after_declaration {
@@ -823,6 +883,9 @@ fn build_structured_surface(
                     ReviewSurfaceMappingKindV1::StructuralAfter,
                     None,
                 )?;
+                if let Some((_, after_changes)) = &refinement {
+                    builder.refine_last_source(after_changes)?;
+                }
                 region_sources.extend(sources);
             }
         }
@@ -921,6 +984,58 @@ fn build_structured_surface(
         correspondence: report,
         diagnostics: Vec::new(),
     }))
+}
+
+fn changed_spans(
+    before: &str,
+    after: &str,
+) -> Result<(Vec<Utf8RangeV1>, Vec<Utf8RangeV1>), StructuredBuildLimit> {
+    // Bound worst-case character comparison work independently of output size.
+    // Large declarations use the existing explicit text fallback, never a
+    // misleading claim that an entire matched declaration changed structurally.
+    if before.len().saturating_mul(after.len()) > 16_777_216 {
+        return Err(StructuredBuildLimit {
+            message: "Java changed-span refinement exceeds bounded comparison work".to_owned(),
+        });
+    }
+    let offsets = |text: &str| {
+        text.char_indices()
+            .map(|(offset, _)| offset)
+            .chain(std::iter::once(text.len()))
+            .collect::<Vec<_>>()
+    };
+    let before_offsets = offsets(before);
+    let after_offsets = offsets(after);
+    let mut input = gix::diff::blob::InternedInput::<&str>::default();
+    input.update_before(
+        before_offsets
+            .windows(2)
+            .map(|pair| &before[pair[0]..pair[1]]),
+    );
+    input.update_after(
+        after_offsets
+            .windows(2)
+            .map(|pair| &after[pair[0]..pair[1]]),
+    );
+    let diff =
+        gix::diff::blob::diff_with_slider_heuristics(gix::diff::blob::Algorithm::Myers, &input);
+    let mut before_changes = Vec::new();
+    let mut after_changes = Vec::new();
+    for hunk in diff.hunks() {
+        if !hunk.before.is_empty() {
+            before_changes.push(Utf8RangeV1 {
+                start_byte: before_offsets[hunk.before.start as usize],
+                end_byte: before_offsets[hunk.before.end as usize],
+            });
+        }
+        if !hunk.after.is_empty() {
+            after_changes.push(Utf8RangeV1 {
+                start_byte: after_offsets[hunk.after.start as usize],
+                end_byte: after_offsets[hunk.after.end as usize],
+            });
+        }
+    }
+    Ok((before_changes, after_changes))
 }
 
 fn classify_pair(
@@ -1091,6 +1206,60 @@ mod tests {
             ReviewSurfaceKindV1::JavaStructuredDiff,
             limits,
         )
+    }
+
+    #[test]
+    fn changed_spans_leave_annotations_and_unicode_context_neutral() {
+        let request = request(
+            "class A { @Override public String toString() { return \"😀old\"; } }",
+            "class A { @Override public String toString() { return \"😀new\"; } }",
+        );
+        let limits = ReviewSurfaceLimitsV1::default();
+        let surface = produce_java_structured_diff(&request, limits).expect("refined diff");
+        assert_eq!(surface.outcome, ReviewSurfaceOutcomeV1::Produced);
+        surface
+            .validate_against(&request, limits)
+            .expect("exact UTF-8 mappings");
+        let colored = surface
+            .mappings
+            .iter()
+            .filter(|mapping| {
+                matches!(
+                    mapping.kind,
+                    ReviewSurfaceMappingKindV1::StructuralBefore
+                        | ReviewSurfaceMappingKindV1::StructuralAfter
+                )
+            })
+            .map(|mapping| {
+                &surface.text[mapping.surface_range.start_byte..mapping.surface_range.end_byte]
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(colored, vec!["old", "new"]);
+        assert!(surface.mappings.iter().any(|mapping| {
+            mapping.kind == ReviewSurfaceMappingKindV1::StructuralCorrespondence
+                && surface.text[mapping.surface_range.start_byte..mapping.surface_range.end_byte]
+                    .contains("@Override")
+        }));
+    }
+
+    #[test]
+    fn changed_spans_preserve_common_islands_and_bound_work() {
+        let (before, after) = changed_spans("a😀b\r\nc", "x😀y\r\nz").expect("bounded diff");
+        assert_eq!(
+            before
+                .iter()
+                .map(|range| &"a😀b\r\nc"[range.start_byte..range.end_byte])
+                .collect::<Vec<_>>(),
+            vec!["a", "b", "c"]
+        );
+        assert_eq!(
+            after
+                .iter()
+                .map(|range| &"x😀y\r\nz"[range.start_byte..range.end_byte])
+                .collect::<Vec<_>>(),
+            vec!["x", "y", "z"]
+        );
+        assert!(changed_spans(&"a".repeat(4097), &"b".repeat(4097)).is_err());
     }
 
     #[test]

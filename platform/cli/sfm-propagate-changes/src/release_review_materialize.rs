@@ -160,13 +160,31 @@ struct SideDocument {
 /// Returns an error when the domain is incomplete, the explicit pins disagree,
 /// Git cannot be launched, an invariant cannot be represented, or the produced
 /// document fails the frozen canonical parser.
+pub fn materialize_release_review(
+    domain: &GitReviewDomain,
+    config: &ReleaseReviewMaterializeConfig,
+) -> eyre::Result<ReleaseReviewDocumentV1> {
+    materialize_with_markers(domain, config, true)
+}
+
+/// Resolve live Git surfaces without manufacturing annotation records.
+/// # Errors
+/// Rejects the same invalid pins, domain or materialization as the frozen API.
+pub fn materialize_observation(
+    domain: &GitReviewDomain,
+    config: &ReleaseReviewMaterializeConfig,
+) -> eyre::Result<ReleaseReviewDocumentV1> {
+    materialize_with_markers(domain, config, false)
+}
+
 #[expect(
     clippy::too_many_lines,
     reason = "the top-level projection keeps the frozen wire model visibly auditable"
 )]
-pub fn materialize_release_review(
+fn materialize_with_markers(
     domain: &GitReviewDomain,
     config: &ReleaseReviewMaterializeConfig,
+    include_markers: bool,
 ) -> eyre::Result<ReleaseReviewDocumentV1> {
     validate_inputs(domain, config)?;
 
@@ -203,6 +221,7 @@ pub fn materialize_release_review(
 
     let comments = review_units
         .iter()
+        .filter(|_| include_markers)
         .map(|unit| generated_comment(unit, &side_documents, &producer_generation))
         .collect::<eyre::Result<Vec<_>>>()?;
 
@@ -302,8 +321,9 @@ pub fn materialize_release_review(
             before_commit: domain.before.commit_id.clone(),
             before_tree: domain.before.tree_id.clone(),
             after_label: config.after_label.clone(),
-            candidate_commit: domain.candidate.commit_id.clone(),
-            candidate_tree: domain.candidate.tree_id.clone(),
+            candidate_commit: Some(domain.candidate.commit_id.clone()),
+            candidate_tree: Some(domain.candidate.tree_id.clone()),
+            working_tree_capture: None,
             review_evidence_paths: vec![config.review_evidence_path.clone()],
         }],
         corpus_documents,
@@ -338,6 +358,9 @@ pub fn materialize_release_review(
         completion_attestations: Vec::new(),
     };
 
+    if !include_markers {
+        document.review_session.style_rules.clear();
+    }
     let projected = crate::release_review_v1::to_canonical_json(&document)
         .wrap_err("could not canonicalize materializer output projection")?;
     document.producer_generations[0].output_fingerprint = sha256(projected.as_bytes());

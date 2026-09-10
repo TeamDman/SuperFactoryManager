@@ -1,13 +1,16 @@
 package ca.teamdman.sfm.client.explorer.lazy;
 
+import ca.teamdman.sfm.client.explorer.SFMChildEdge;
 import ca.teamdman.sfm.client.explorer.SFMChildRelationRepository;
 import ca.teamdman.sfm.client.explorer.SFMPath;
-import ca.teamdman.sfm.client.search.SFMFuzzyScorer;
+import ca.teamdman.sfm.client.search.SFMTextMatchOptions;
+import ca.teamdman.sfm.client.search.SFMTextMatcher;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -60,7 +63,14 @@ public final class SFMExplorerProjection {
     public enum FilterRole {
         NONE,
         MATCH,
-        CONTEXT_ANCESTOR
+        CONTEXT_ANCESTOR,
+        CONTEXT_DESCENDANT
+    }
+
+    /** Distinguishes semantic resolver entries from transient projection feedback. */
+    public enum RowKind {
+        ENTRY,
+        LOADING
     }
 
     public record Settings(
@@ -69,7 +79,9 @@ public final class SFMExplorerProjection {
             Group group,
             Hoist hoist,
             PathDisplay pathDisplay,
-            String filterQuery
+            String filterQuery,
+            SFMTextMatchOptions filterOptions,
+            SFMExplorerCompaction.Options compaction
     ) {
         public Settings {
             Objects.requireNonNull(view, "view");
@@ -77,16 +89,33 @@ public final class SFMExplorerProjection {
             Objects.requireNonNull(group, "group");
             Objects.requireNonNull(hoist, "hoist");
             Objects.requireNonNull(pathDisplay, "pathDisplay");
-            filterQuery = Objects.requireNonNull(filterQuery, "filterQuery").strip();
+            filterQuery = Objects.requireNonNull(filterQuery, "filterQuery");
+            Objects.requireNonNull(filterOptions, "filterOptions");
+            Objects.requireNonNull(compaction, "compaction");
+        }
+
+        public Settings(View view, Sort sort, Group group, Hoist hoist, PathDisplay pathDisplay,
+                        String filterQuery, SFMTextMatchOptions filterOptions) {
+            this(view, sort, group, hoist, pathDisplay, filterQuery, filterOptions, SFMExplorerCompaction.Options.defaults());
+        }
+
+        public Settings withCompaction(SFMExplorerCompaction.Options value) {
+            return new Settings(view, sort, group, hoist, pathDisplay, filterQuery, filterOptions, value);
+        }
+
+        /** Old projections explicitly retain their fuzzy predicate. New UI uses defaults(). */
+        public Settings(View view, Sort sort, Group group, Hoist hoist, PathDisplay pathDisplay, String filterQuery) {
+            this(view, sort, group, hoist, pathDisplay, filterQuery.strip(), SFMTextMatchOptions.legacyFuzzy());
         }
 
         /** Source-compatible constructor for the projection axes that predate X-8b. */
         public Settings(View view, Sort sort, Group group, Hoist hoist) {
-            this(view, sort, group, hoist, PathDisplay.NAME, "");
+            this(view, sort, group, hoist, PathDisplay.NAME, "", SFMTextMatchOptions.defaults());
         }
 
         public static Settings defaults() {
-            return new Settings(View.LIST, Sort.NAME, Group.HIERARCHY, Hoist.AUTO, PathDisplay.NAME, "");
+            return new Settings(View.LIST, Sort.NAME, Group.HIERARCHY, Hoist.AUTO, PathDisplay.NAME, "",
+                    SFMTextMatchOptions.defaults());
         }
 
         public boolean filterActive() {
@@ -101,7 +130,9 @@ public final class SFMExplorerProjection {
             boolean root,
             boolean expanded,
             SFMExplorerEntry.SortKey activeSortKey,
-            FilterRole filterRole
+            FilterRole filterRole,
+            RowKind rowKind,
+            List<SFMExplorerEntry> segments
     ) {
         public Row {
             Objects.requireNonNull(path, "path");
@@ -112,6 +143,33 @@ public final class SFMExplorerProjection {
             if (depth < 0) throw new IllegalArgumentException("Projection depth must not be negative");
             Objects.requireNonNull(activeSortKey, "activeSortKey");
             Objects.requireNonNull(filterRole, "filterRole");
+            Objects.requireNonNull(rowKind, "rowKind");
+            segments = List.copyOf(segments);
+            if (segments.isEmpty() || !segments.get(segments.size() - 1).equals(entry)
+                    || segments.stream().map(SFMExplorerEntry::path).distinct().count() != segments.size())
+                throw new IllegalArgumentException("Compact segments must be unique and end at the row entry");
+        }
+
+        public Row(SFMPath path, SFMExplorerEntry entry, int depth, boolean root, boolean expanded,
+                   SFMExplorerEntry.SortKey activeSortKey, FilterRole filterRole, RowKind rowKind) {
+            this(path, entry, depth, root, expanded, activeSortKey, filterRole, rowKind, List.of(entry));
+        }
+
+        public boolean contains(SFMPath target) { return segments.stream().anyMatch(segment -> segment.path().equals(target)); }
+        public List<SFMPath> paths() { return segments.stream().map(SFMExplorerEntry::path).toList(); }
+        public String compactLabel() { return String.join("/", segments.stream().map(SFMExplorerEntry::label).toList()); }
+
+        /** Source-compatible constructor for semantic rows. */
+        public Row(
+                SFMPath path,
+                SFMExplorerEntry entry,
+                int depth,
+                boolean root,
+                boolean expanded,
+                SFMExplorerEntry.SortKey activeSortKey,
+                FilterRole filterRole
+        ) {
+            this(path, entry, depth, root, expanded, activeSortKey, filterRole, RowKind.ENTRY);
         }
 
         /** Source-compatible constructor for callers that create unfiltered rows. */
@@ -123,7 +181,7 @@ public final class SFMExplorerProjection {
                 boolean expanded,
                 SFMExplorerEntry.SortKey activeSortKey
         ) {
-            this(path, entry, depth, root, expanded, activeSortKey, FilterRole.NONE);
+            this(path, entry, depth, root, expanded, activeSortKey, FilterRole.NONE, RowKind.ENTRY);
         }
 
         public boolean filterMatch() {
@@ -133,6 +191,14 @@ public final class SFMExplorerProjection {
         public boolean filterContextAncestor() {
             return filterRole == FilterRole.CONTEXT_ANCESTOR;
         }
+
+        public boolean filterContextDescendant() {
+            return filterRole == FilterRole.CONTEXT_DESCENDANT;
+        }
+
+        public boolean loading() {
+            return rowKind == RowKind.LOADING;
+        }
     }
 
     public record Result(
@@ -140,7 +206,8 @@ public final class SFMExplorerProjection {
             long relationRevision,
             List<Row> rows,
             List<String> diagnostics,
-            FilterEvidence filter
+            FilterEvidence filter,
+            Map<SFMPath, MatchEvidence> matchEvidence
     ) {
         public Result {
             Objects.requireNonNull(settings, "settings");
@@ -150,7 +217,28 @@ public final class SFMExplorerProjection {
             rows = List.copyOf(rows);
             diagnostics = List.copyOf(diagnostics);
             Objects.requireNonNull(filter, "filter");
+            matchEvidence = Map.copyOf(matchEvidence);
         }
+
+        public Result(Settings settings, long relationRevision, List<Row> rows,
+                      List<String> diagnostics, FilterEvidence filter) {
+            this(settings, relationRevision, rows, diagnostics, filter, Map.of());
+        }
+
+        /** Domain bounds survive local projection; a truncated index is never a complete empty result. */
+        public Result withDomainEvidence(boolean complete, List<String> domainDiagnostics) {
+            var messages = java.util.stream.Stream.concat(diagnostics.stream(), domainDiagnostics.stream())
+                    .distinct().limit(128).toList();
+            var evidence = new FilterEvidence(filter.query(), filter.candidateCount(), filter.matchCount(),
+                    filter.visibleRowCount(), filter.contextAncestorCount(), filter.contextDescendantCount(),
+                    filter.incompleteMaterialization() || !complete);
+            return new Result(settings, relationRevision, rows, messages, evidence, matchEvidence);
+        }
+    }
+
+    /** Self membership and descendant knowledge are independent, including incomplete lazy subtrees. */
+    public record MatchEvidence(SFMExplorerEntryMatch self, boolean descendantMatch, boolean descendantsComplete) {
+        public MatchEvidence { Objects.requireNonNull(self, "self"); }
     }
 
     /** Evidence that filtering remained local to the currently published lazy relation. */
@@ -160,6 +248,7 @@ public final class SFMExplorerProjection {
             int matchCount,
             int visibleRowCount,
             int contextAncestorCount,
+            int contextDescendantCount,
             boolean incompleteMaterialization
     ) {
         public FilterEvidence {
@@ -167,10 +256,30 @@ public final class SFMExplorerProjection {
             if (candidateCount < 0 || matchCount < 0 || matchCount > candidateCount) {
                 throw new IllegalArgumentException("Invalid explorer filter counts");
             }
-            if (visibleRowCount < 0 || contextAncestorCount < 0
-                    || visibleRowCount != matchCount + contextAncestorCount) {
+            if (visibleRowCount < 0 || contextAncestorCount < 0 || contextDescendantCount < 0
+                    || visibleRowCount != matchCount + contextAncestorCount + contextDescendantCount) {
                 throw new IllegalArgumentException("Invalid explorer filter projection counts");
             }
+        }
+
+        /** Source-compatible constructor for projections without descendant context. */
+        public FilterEvidence(
+                String query,
+                int candidateCount,
+                int matchCount,
+                int visibleRowCount,
+                int contextAncestorCount,
+                boolean incompleteMaterialization
+        ) {
+            this(
+                    query,
+                    candidateCount,
+                    matchCount,
+                    visibleRowCount,
+                    contextAncestorCount,
+                    0,
+                    incompleteMaterialization
+            );
         }
 
         public boolean active() {
@@ -186,28 +295,57 @@ public final class SFMExplorerProjection {
             SFMChildRelationRepository.Snapshot relations,
             Map<SFMPath, SFMExplorerEntry> entries
     ) {
+        return project(session, relations, entries, Map.of());
+    }
+
+    public static Result project(SFMExplorerSession.Snapshot session,
+                                 SFMChildRelationRepository.Snapshot relations,
+                                 Map<SFMPath, SFMExplorerEntry> entries,
+                                 Map<SFMPath, SFMExplorerEntryMatch> preparedMatches) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(relations, "relations");
         Objects.requireNonNull(entries, "entries");
-        Projection projection = new Projection(session, relations, entries);
+        Projection projection = new Projection(session, relations, entries, preparedMatches);
         return projection.project();
+    }
+
+    /** Build once per immutable relation snapshot, not once per visited node. */
+    static Map<SFMPath, List<SFMPath>> indexChildren(Iterable<SFMChildEdge> edges) {
+        HashMap<SFMPath, List<SFMPath>> children = new HashMap<>();
+        for (SFMChildEdge edge : edges) {
+            children.computeIfAbsent(edge.parent(), ignored -> new ArrayList<>()).add(edge.child());
+        }
+        children.replaceAll((parent, paths) -> List.copyOf(paths));
+        return Map.copyOf(children);
     }
 
     private static final class Projection {
         private final SFMExplorerSession.Snapshot session;
         private final SFMChildRelationRepository.Snapshot relations;
         private final Map<SFMPath, SFMExplorerEntry> entries;
+        private final Map<SFMPath, List<SFMPath>> childrenByParent;
         private final ArrayList<Row> rows = new ArrayList<>();
         private final ArrayList<String> diagnostics = new ArrayList<>();
+        private boolean matchingIncomplete;
+        private final Map<SFMPath, MatchEvidence> matchEvidence = new HashMap<>();
+        private final Map<SFMPath, SFMExplorerEntryMatch> preparedMatches;
+        private final ca.teamdman.sfm.client.search.SFMMatchBudget matchBudget = new ca.teamdman.sfm.client.search.SFMMatchBudget(1_000_000);
 
         private Projection(
                 SFMExplorerSession.Snapshot session,
                 SFMChildRelationRepository.Snapshot relations,
-                Map<SFMPath, SFMExplorerEntry> entries
+                Map<SFMPath, SFMExplorerEntry> entries,
+                Map<SFMPath, SFMExplorerEntryMatch> preparedMatches
         ) {
             this.session = session;
             this.relations = relations;
             this.entries = entries;
+            this.preparedMatches = Objects.requireNonNull(preparedMatches);
+            this.childrenByParent = indexChildren(relations.relation().edges());
+        }
+
+        private List<SFMPath> childrenOf(SFMPath parent) {
+            return childrenByParent.getOrDefault(parent, List.of());
         }
 
         private Result project() {
@@ -228,9 +366,12 @@ public final class SFMExplorerProjection {
             return new Result(
                     session.settings(),
                     relations.relation().id(),
-                    rows,
+                    session.settings().group() == Group.HIERARCHY
+                            ? SFMExplorerCompaction.compact(rows, session.settings().compaction(), session.roots(), relations, childrenByParent, entries)
+                            : rows,
                     diagnostics,
-                    filter
+                    filter,
+                    matchEvidence
             );
         }
 
@@ -261,7 +402,13 @@ public final class SFMExplorerProjection {
                 }
             }
             String query = session.settings().filterQuery();
-            topLevel.forEach(node -> score(node, query));
+            try {
+                SFMTextMatcher matcher = SFMTextMatcher.compile(query, session.settings().filterOptions());
+                topLevel.forEach(node -> score(node, matcher));
+            } catch (SFMTextMatcher.LimitExceeded failure) {
+                matchingIncomplete = true;
+                diagnostics.add(failure.getMessage());
+            }
             int matchCount = (int) candidates.stream().filter(MaterializedNode::matches).count();
 
             if (session.settings().group() == Group.NONE) {
@@ -278,14 +425,20 @@ public final class SFMExplorerProjection {
                         .sorted(filteredSubtreeComparator())
                         .forEach(this::emitFilteredHierarchy);
             }
-            int contextAncestorCount = rows.size() - matchCount;
+            int contextAncestorCount = (int) rows.stream()
+                    .filter(Row::filterContextAncestor)
+                    .count();
+            int contextDescendantCount = (int) rows.stream()
+                    .filter(Row::filterContextDescendant)
+                    .count();
             return new FilterEvidence(
                     query,
                     candidates.size(),
                     matchCount,
                     rows.size(),
                     contextAncestorCount,
-                    materializationIsIncomplete(visited)
+                    contextDescendantCount,
+                    matchingIncomplete || materializationIsIncomplete(visited)
             );
         }
 
@@ -302,7 +455,7 @@ public final class SFMExplorerProjection {
                 diagnostics.add("cycle suppressed below " + parent.canonical());
                 return;
             }
-            for (SFMPath child : sorted(relations.relation().childrenOf(parent))) {
+            for (SFMPath child : sorted(childrenOf(parent))) {
                 if (ancestry.contains(child)) {
                     diagnostics.add("cycle suppressed below " + parent.canonical()
                             + " through " + child.canonical());
@@ -326,15 +479,25 @@ public final class SFMExplorerProjection {
             ancestry.remove(parent);
         }
 
-        private float score(MaterializedNode node, String query) {
-            float directScore = Math.min(
-                    SFMFuzzyScorer.score(query, node.row().entry().label()),
-                    SFMFuzzyScorer.score(query, node.row().path().canonical())
-            );
+        private float score(MaterializedNode node, SFMTextMatcher matcher) {
+            SFMExplorerEntryMatch match = preparedMatches.get(node.row().path());
+            if (match == null) match = SFMExplorerEntryMatch.evaluate(node.row().entry(), matcher, matchBudget);
+            if (!match.complete()) {
+                matchingIncomplete = true;
+                if (diagnostics.size() < 64) diagnostics.addAll(match.diagnostics());
+            }
+            float directScore = match.score();
             node.directScore(directScore);
-            node.matches(directScore <= SFMFuzzyScorer.DEFAULT_THRESHOLD);
+            node.matches(match.matches());
             float best = node.matches() ? directScore : Float.POSITIVE_INFINITY;
-            for (MaterializedNode child : node.children()) best = Math.min(best, score(child, query));
+            for (MaterializedNode child : node.children()) best = Math.min(best, score(child, matcher));
+            boolean descendantMatch = node.children().stream().anyMatch(MaterializedNode::included);
+            boolean descendantsComplete = !materializationIsIncomplete(Set.of(node.row().path()))
+                    && node.children().stream().allMatch(child -> {
+                        var evidence = matchEvidence.get(child.row().path());
+                        return evidence != null && evidence.self().complete() && evidence.descendantsComplete();
+                    });
+            matchEvidence.put(node.row().path(), new MatchEvidence(match, descendantMatch, descendantsComplete));
             node.bestDescendantScore(best);
             return best;
         }
@@ -350,17 +513,53 @@ public final class SFMExplorerProjection {
                     .filter(MaterializedNode::included)
                     .sorted(filteredSubtreeComparator())
                     .toList();
+            boolean explicitMatchExpansion = node.matches()
+                    && session.expanded().contains(node.row().path());
             Row source = node.row();
             rows.add(new Row(
                     source.path(),
                     source.entry(),
                     source.depth(),
                     source.root(),
-                    source.expanded() || !includedChildren.isEmpty(),
+                    explicitMatchExpansion || !includedChildren.isEmpty(),
                     source.activeSortKey(),
                     node.matches() ? FilterRole.MATCH : FilterRole.CONTEXT_ANCESTOR
             ));
-            includedChildren.forEach(this::emitFilteredHierarchy);
+            if (!explicitMatchExpansion) {
+                includedChildren.forEach(this::emitFilteredHierarchy);
+                return;
+            }
+
+            // Filtering locates compact matching rows by default. Once the user
+            // explicitly expands one direct match, its immediate children are
+            // valuable context even when their own labels do not match. Do not
+            // recursively force-open those contextual descendants.
+            node.children().stream()
+                    .sorted(filteredSubtreeComparator())
+                    .forEach(child -> {
+                        if (child.included()) emitFilteredHierarchy(child);
+                        else emitContextDescendant(child);
+                    });
+        }
+
+        private void emitContextDescendant(MaterializedNode node) {
+            Row source = node.row();
+            boolean expanded = session.expanded().contains(source.path());
+            rows.add(new Row(
+                    source.path(),
+                    source.entry(),
+                    source.depth(),
+                    source.root(),
+                    expanded,
+                    source.activeSortKey(),
+                    FilterRole.CONTEXT_DESCENDANT
+            ));
+            if (expanded) {
+                node.children().stream().sorted(filteredSubtreeComparator()).forEach(child -> {
+                    if (child.included()) emitFilteredHierarchy(child);
+                    else emitContextDescendant(child);
+                });
+            }
         }
 
         private Row flatFilteredRow(MaterializedNode node) {
@@ -395,7 +594,7 @@ public final class SFMExplorerProjection {
             return state != null
                     && (state.materialization()
                     == SFMChildRelationRepository.PageState.Materialization.MATERIALIZED
-                    || !relations.relation().childrenOf(root).isEmpty());
+                    || !childrenOf(root).isEmpty());
         }
 
         private void projectHierarchy(List<SFMPath> roots, boolean showRoots) {
@@ -407,9 +606,9 @@ public final class SFMExplorerProjection {
                         addExpandedChildren(root, 1, ancestry);
                     }
                 } else {
-                    for (SFMPath child : sorted(relations.relation().childrenOf(root))) {
+                    for (SFMPath child : sorted(childrenOf(root))) {
                         addRow(child, 0, false);
-                        if (session.expanded().contains(child)) {
+                        if (descend(child)) {
                             addExpandedChildren(child, 1, ancestry);
                         }
                     }
@@ -422,9 +621,13 @@ public final class SFMExplorerProjection {
                 diagnostics.add("cycle suppressed below " + parent.canonical());
                 return;
             }
-            for (SFMPath child : sorted(relations.relation().childrenOf(parent))) {
+            for (SFMPath child : sorted(childrenOf(parent))) {
+                if (ancestry.contains(child)) {
+                    diagnostics.add("cycle suppressed below " + parent.canonical());
+                    continue;
+                }
                 addRow(child, depth, false);
-                if (session.expanded().contains(child)) {
+                if (descend(child)) {
                     addExpandedChildren(child, depth + 1, ancestry);
                 }
             }
@@ -440,13 +643,20 @@ public final class SFMExplorerProjection {
             sorted(descendants).forEach(path -> addRow(path, 0, false));
         }
 
+        private boolean descend(SFMPath parent) {
+            if (session.expanded().contains(parent)) return true;
+            var children = childrenOf(parent);
+            return children.size() == 1 && SFMExplorerCompaction.canJoin(parent, children.get(0),
+                    session.settings().compaction(), session.roots(), relations, childrenByParent, entries);
+        }
+
         private void collectDescendants(
                 SFMPath parent,
                 Set<SFMPath> answer,
                 Set<SFMPath> ancestry
         ) {
             if (!ancestry.add(parent)) return;
-            for (SFMPath child : relations.relation().childrenOf(parent)) {
+            for (SFMPath child : childrenOf(parent)) {
                 if (answer.add(child)) collectDescendants(child, answer, ancestry);
             }
             ancestry.remove(parent);
@@ -500,7 +710,8 @@ public final class SFMExplorerProjection {
         }
 
         private SFMExplorerEntry entry(SFMPath path) {
-            return entries.getOrDefault(path, fallback(path));
+            SFMExplorerEntry known = entries.get(path);
+            return known != null ? known : fallback(path);
         }
 
         private static SFMExplorerEntry fallback(SFMPath path) {

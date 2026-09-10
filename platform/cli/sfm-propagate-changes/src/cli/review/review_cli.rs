@@ -25,6 +25,23 @@ pub struct ReviewArgs {
 }
 
 impl ReviewArgs {
+    /// Invoke with cancellation propagated to filesystem capture.
+    ///
+    /// # Errors
+    /// Reports ordinary review failures or cancellation before capture publication.
+    pub fn invoke_with_cancellation(
+        self,
+        invocation_dir: &Path,
+        cancellation: &crate::cancellation::CancellationToken,
+    ) -> eyre::Result<CliOutput> {
+        match self.command {
+            ReviewCommand::Session(ReviewSessionArgs {
+                command: ReviewSessionCommand::Create(args),
+            }) => args.invoke_with_cancellation(invocation_dir, cancellation),
+            command => command.invoke_in(invocation_dir),
+        }
+    }
+
     /// # Errors
     ///
     /// Returns an error when the selected review command cannot read, parse,
@@ -113,9 +130,45 @@ impl ReviewSessionArgs {
     fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
         match self.command {
             ReviewSessionCommand::Create(args) => args.invoke_in(invocation_dir),
+            ReviewSessionCommand::CreateLedger(args) => args.invoke_ledger_in(invocation_dir),
             ReviewSessionCommand::Refresh(args) => args.invoke_in(invocation_dir),
             ReviewSessionCommand::Query(args) => args.invoke_in(invocation_dir),
             ReviewSessionCommand::Status(args) => args.invoke_in(invocation_dir),
+            ReviewSessionCommand::Freshness(args) => args.invoke_freshness_in(invocation_dir),
+            ReviewSessionCommand::FreshnessOf(args) => {
+                let path = resolve_review_document_path(invocation_dir, &args.file);
+                let request = args.request_file.ok_or_else(|| {
+                    eyre::eyre!(
+                        "freshness-of requires --request-file with observed source bindings"
+                    )
+                })?;
+                let bindings = crate::release_review_source_probe::read_bindings(&resolve_path(
+                    invocation_dir,
+                    &request,
+                ))?;
+                Ok(CliOutput::facet(ReviewSessionFreshnessOutput {
+                    schema: "sfm.release-review-freshness/1".into(),
+                    repository_relationships: inspect_repository_relationships(
+                        invocation_dir,
+                        &path,
+                        &bindings,
+                    ),
+                }))
+            }
+            ReviewSessionCommand::Resolve(args) => {
+                let path = resolve_review_document_path(invocation_dir, &args.file);
+                let input_path = args
+                    .request_file
+                    .as_ref()
+                    .map_or_else(|| path.clone(), |p| resolve_path(invocation_dir, p));
+                let input = std::fs::read_to_string(input_path)?;
+                let resolution = resolve_ledger_at(&path, &input)?;
+                Ok(CliOutput::facet(ReviewSessionResolveOutput {
+                    schema: "sfm.release-review-resolve/3".into(),
+                    authority_sha256: crate::review_session_v1::sha256(input.as_bytes()),
+                    resolution,
+                }))
+            }
         }
     }
 }
@@ -125,12 +178,51 @@ impl ReviewSessionArgs {
 pub enum ReviewSessionCommand {
     /// Create one canonical, commit-friendly review document from a pinned Git range.
     Create(ReviewSessionCreateArgs),
+    /// Create a small target-only review; working-tree bytes are retained only when commented on.
+    CreateLedger(ReviewSessionCreateArgs),
     /// Refresh producer-owned state while preserving human review progress.
     Refresh(ReviewSessionRefreshArgs),
     /// Evaluate a set expression against the pinned review domain.
     Query(ReviewSessionQueryArgs),
     /// Report fail-closed completion and semantic-state identity.
     Status(ReviewSessionStatusArgs),
+    /// Read-only pinned-versus-current Git and working-tree evidence, without the completion corpus.
+    Freshness(ReviewSessionStatusArgs),
+    /// Compare exact already-observed source bindings with current source, without resolving a new ledger observation.
+    FreshnessOf(ReviewSessionResolveArgs),
+    /// Resolve a sparse ledger into a transient observation without modifying the review file.
+    Resolve(ReviewSessionResolveArgs),
+}
+
+#[derive(Debug, Facet)]
+pub struct ReviewSessionResolveArgs {
+    /// Authoritative review path, used for repository context and self-exclusion.
+    #[facet(args::named)]
+    pub file: PathBuf,
+    /// Optional exact ledger bytes captured by a caller; does not change path context.
+    #[facet(default, args::named)]
+    pub request_file: Option<PathBuf>,
+}
+
+#[derive(Debug, Facet)]
+pub struct ReviewSessionResolveOutput {
+    pub schema: String,
+    pub authority_sha256: String,
+    pub resolution: crate::release_review_ledger_resolve::Resolution,
+}
+
+#[derive(Facet)]
+struct ReviewSchemaHeader {
+    schema: String,
+}
+
+#[derive(Debug, Facet)]
+pub struct ReviewLedgerCreateOutput {
+    pub schema: String,
+    pub file: String,
+    pub review_id: String,
+    pub byte_count: usize,
+    pub after_kind: String,
 }
 
 #[derive(Facet, Debug)]
@@ -194,8 +286,20 @@ pub struct ReviewSessionCreateArgs {
     #[facet(args::named)]
     pub before: String,
     /// Candidate commit-ish to resolve and pin. Use `HEAD` to pin the current commit.
-    #[facet(args::named)]
-    pub candidate: String,
+    #[facet(default, args::named)]
+    pub candidate: Option<String>,
+    /// Capture current disk bytes, including permitted untracked files, instead of a Git candidate.
+    #[facet(default, args::named)]
+    pub working_tree: bool,
+    /// Explicit repository-relative source scope; repeat for multiple paths. Required for --working-tree.
+    #[facet(default, args::named)]
+    pub scope: Vec<String>,
+    /// Exclude a repository-relative subtree from a working-tree capture; repeat as needed.
+    #[facet(default, args::named)]
+    pub exclude: Vec<String>,
+    /// Exclude all untracked files from a working-tree capture.
+    #[facet(default, args::named)]
+    pub tracked_only: bool,
     /// Git repository root; defaults to the command invocation directory.
     #[facet(default, args::named)]
     pub repository_root: Option<PathBuf>,
@@ -222,7 +326,149 @@ pub struct ReviewSessionCreateOutput {
 }
 
 impl ReviewSessionCreateArgs {
+    fn validate_ledger_source(&self) -> eyre::Result<()> {
+        if self.working_tree == self.candidate.is_some() {
+            return Err(eyre::eyre!(
+                "choose exactly one of --candidate <revision> or --working-tree"
+            ));
+        }
+        if self.working_tree && self.scope.is_empty() {
+            return Err(eyre::eyre!("live reviews require explicit --scope"));
+        }
+        if !self.working_tree
+            && (!self.scope.is_empty() || !self.exclude.is_empty() || self.tracked_only)
+        {
+            return Err(eyre::eyre!(
+                "--scope/--exclude/--tracked-only require --working-tree"
+            ));
+        }
+        if self.branch.trim().is_empty() {
+            return Err(eyre::eyre!("release-review branch/lane must not be blank"));
+        }
+        Ok(())
+    }
+
+    fn invoke_ledger_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
+        self.validate_ledger_source()?;
+        let requested = self.repository_root.as_ref().map_or_else(
+            || invocation_dir.to_owned(),
+            |p| resolve_path(invocation_dir, p),
+        );
+        let cancellation = crate::cancellation::CancellationToken::new();
+        let budget = crate::release_review_capture_io::CaptureBudget::with_timeout(
+            &cancellation,
+            std::time::Duration::from_secs(10),
+        );
+        let top = budget.git(
+            &requested,
+            &["rev-parse", "--show-toplevel"],
+            None,
+            64 * 1024,
+        )?;
+        let root = std::fs::canonicalize(String::from_utf8(top)?.trim_end_matches(['\r', '\n']))?;
+        let resolve_commit = |revision: &str| -> eyre::Result<String> {
+            let object = format!("{revision}^{{commit}}");
+            let bytes = budget.git(
+                &root,
+                &["rev-parse", "--verify", "--end-of-options", &object],
+                None,
+                1024,
+            )?;
+            Ok(String::from_utf8(bytes)?
+                .trim_end_matches(['\r', '\n'])
+                .into())
+        };
+        let before = resolve_commit(&self.before)?;
+        let after = self.candidate.as_deref().map(resolve_commit).transpose()?;
+        let output = resolve_output_path(invocation_dir, &root, &self.file)?;
+        let evidence = output
+            .strip_prefix(&root)?
+            .to_string_lossy()
+            .replace('\\', "/");
+        let mut exclusions = self.exclude;
+        if !exclusions.contains(&evidence) {
+            exclusions.push(evidence);
+        }
+        let after_kind = if self.working_tree {
+            "working_tree"
+        } else {
+            "git"
+        }
+        .to_owned();
+        let created = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)?
+            .as_nanos();
+        let id = format!(
+            "release-review:{}",
+            crate::review_session_v1::sha256(
+                format!(
+                    "sfm.release-review/3:new\0{}\0{created}\0{}",
+                    output.display(),
+                    std::process::id()
+                )
+                .as_bytes()
+            )
+        );
+        let ledger = crate::release_review_ledger::ReviewLedger::new(
+            id.clone(),
+            format!(
+                "Release review · {} · {} → {}",
+                self.branch,
+                before,
+                after.as_deref().unwrap_or("live working tree")
+            ),
+            vec![crate::release_review_ledger::TargetLane {
+                id: self.branch,
+                repository_id: "sfm".into(),
+                root_hint: ".".into(),
+                before_commit: before,
+                after_commit: after,
+                after_kind: after_kind.clone(),
+                scope_paths: if self.working_tree {
+                    self.scope
+                } else {
+                    vec![".".into()]
+                },
+                excluded_paths: exclusions,
+                include_untracked: !self.tracked_only,
+            }],
+        );
+        let encoded = crate::release_review_ledger::to_json(&ledger)?;
+        write_new_atomically(&output, encoded.as_bytes())?;
+        Ok(CliOutput::facet(ReviewLedgerCreateOutput {
+            schema: "sfm.release-review-create/3".into(),
+            file: output.to_string_lossy().into_owned(),
+            review_id: id,
+            byte_count: encoded.len(),
+            after_kind,
+        }))
+    }
+
     fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
+        self.invoke_with_cancellation(
+            invocation_dir,
+            &crate::cancellation::CancellationToken::new(),
+        )
+    }
+
+    fn invoke_with_cancellation(
+        self,
+        invocation_dir: &Path,
+        cancellation: &crate::cancellation::CancellationToken,
+    ) -> eyre::Result<CliOutput> {
+        if self.working_tree == self.candidate.is_some() {
+            return Err(eyre::eyre!(
+                "choose exactly one of --candidate <revision> or --working-tree"
+            ));
+        }
+        if !self.working_tree
+            && (!self.scope.is_empty() || !self.exclude.is_empty() || self.tracked_only)
+        {
+            return Err(eyre::eyre!(
+                "--scope/--exclude/--tracked-only require --working-tree"
+            ));
+        }
+        cancellation.bail_if_cancelled()?;
         if self.branch.trim().is_empty() {
             return Err(eyre::eyre!("release-review branch/lane must not be blank"));
         }
@@ -243,10 +489,23 @@ impl ReviewSessionCreateArgs {
             .to_string_lossy()
             .replace('\\', "/");
 
+        if self.working_tree {
+            return self.capture_working_tree(
+                repository_root,
+                &output,
+                review_evidence_path,
+                cancellation,
+            );
+        }
+        let candidate = self
+            .candidate
+            .as_deref()
+            .expect("exclusive source validated");
+
         let domain = release_review_git::produce_git_review_domain(
             &repository_root,
             &self.before,
-            &self.candidate,
+            candidate,
         )
         .map_err(|error| eyre::eyre!(error))?;
         let config = release_review_materialize::ReleaseReviewMaterializeConfig {
@@ -256,7 +515,7 @@ impl ReviewSessionCreateArgs {
             root_hint: ".".to_owned(),
             before_label: self.before.clone(),
             before_revision: domain.before.commit_id.clone(),
-            after_label: self.candidate.clone(),
+            after_label: candidate.to_owned(),
             candidate_revision: domain.candidate.commit_id.clone(),
             review_evidence_path,
         };
@@ -279,7 +538,7 @@ impl ReviewSessionCreateArgs {
             before_label: self.before,
             before_commit: domain.before.commit_id,
             before_tree: domain.before.tree_id,
-            candidate_label: self.candidate,
+            candidate_label: candidate.to_owned(),
             candidate_commit: domain.candidate.commit_id,
             candidate_tree: domain.candidate.tree_id,
             raw_change_count: reconciliation.raw_change_count,
@@ -292,6 +551,86 @@ impl ReviewSessionCreateArgs {
             completion_status: completion.status,
         }))
     }
+
+    fn capture_working_tree(
+        self,
+        repository_root: PathBuf,
+        output: &Path,
+        evidence: String,
+        cancellation: &crate::cancellation::CancellationToken,
+    ) -> eyre::Result<CliOutput> {
+        let config = crate::release_review_working_tree::WorkingTreeReviewConfig {
+            repository_root,
+            lane_id: self.branch.clone(),
+            repository_id: "sfm".into(),
+            before: self.before.clone(),
+            scope_paths: self.scope,
+            excluded_paths: self.exclude,
+            include_untracked: !self.tracked_only,
+            review_evidence_path: evidence,
+        };
+        let input = crate::release_review_working_tree::capture(&config, cancellation)?;
+        let capture_id = input.capture.id.clone();
+        let head = input.capture.observed_head_commit.clone();
+        let captured_at = input.capture.captured_at_unix_ms;
+        let scopes = input.capture.scope_paths.clone();
+        let exclusions = input.capture.excluded_paths.clone();
+        let document = crate::release_review_working_tree_materialize::materialize(&config, input)?;
+        let canonical = release_review_v1::to_canonical_json(&document)?;
+        let completion = release_review_v1::completion(&document)?;
+        cancellation.bail_if_cancelled()?;
+        write_new_atomically(output, canonical.as_bytes())?;
+        Ok(CliOutput::facet(WorkingTreeReviewCreateOutput {
+            schema: "sfm.release-review-create/2".into(),
+            file: output.to_string_lossy().into_owned(),
+            lane_id: self.branch,
+            before_label: self.before,
+            before_commit: document.repository_bindings[0].before_commit.clone(),
+            candidate_source_kind: "working_tree_capture".into(),
+            candidate_id: capture_id,
+            observed_head_commit: head,
+            captured_at_unix_ms: captured_at,
+            scope_paths: scopes,
+            excluded_paths: exclusions,
+            include_untracked: !self.tracked_only,
+            raw_change_count: document.review_units.len(),
+            review_unit_count: document.review_units.len(),
+            represented_corpus_side_path_count: document
+                .corpus_documents
+                .iter()
+                .filter(|c| c.materialization == release_review_v1::MaterializationV1::Complete)
+                .count(),
+            explicitly_unsupported_corpus_side_path_count: document
+                .corpus_documents
+                .iter()
+                .filter(|c| c.materialization != release_review_v1::MaterializationV1::Complete)
+                .count(),
+            reconciliation_complete: true,
+            completion_status: completion.status,
+        }))
+    }
+}
+
+#[derive(Debug, Facet)]
+pub struct WorkingTreeReviewCreateOutput {
+    pub schema: String,
+    pub file: String,
+    pub lane_id: String,
+    pub before_label: String,
+    pub before_commit: String,
+    pub candidate_source_kind: String,
+    pub candidate_id: String,
+    pub observed_head_commit: String,
+    pub captured_at_unix_ms: u64,
+    pub scope_paths: Vec<String>,
+    pub excluded_paths: Vec<String>,
+    pub include_untracked: bool,
+    pub raw_change_count: usize,
+    pub review_unit_count: usize,
+    pub represented_corpus_side_path_count: usize,
+    pub explicitly_unsupported_corpus_side_path_count: usize,
+    pub reconciliation_complete: bool,
+    pub completion_status: CompletionStatusV1,
 }
 
 impl ReviewSessionRefreshArgs {
@@ -342,10 +681,14 @@ impl ReviewSessionRefreshArgs {
             ));
         }
         let binding = &existing.repository_bindings[0];
+        if binding.working_tree_capture.is_some() {
+            return Ok(refresh_refused(display_path, None, "refresh.immutable-working-tree-capture",
+                "A saved working-tree capture is immutable. Create a new review to capture current files; existing comments are not retargeted.".to_owned()));
+        }
         let repository_root = resolve_bound_repository_root(invocation_dir, &review_path, binding);
         let relationship = release_review_git::classify_ambient_repository_relationship(
             &repository_root,
-            &binding.candidate_commit,
+            binding.git_candidate()?,
             &binding.review_evidence_paths,
         );
         let relationship_diagnostics = relationship
@@ -369,7 +712,7 @@ impl ReviewSessionRefreshArgs {
                 "refresh.repository-diverged",
                 format!(
                     "ambient repository does not safely reproduce pinned candidate {}; check out the candidate or retain only commits touching declared review-evidence paths",
-                    binding.candidate_commit
+                    binding.git_candidate()?
                 ),
             ));
         }
@@ -433,7 +776,7 @@ impl ReviewSessionRefreshArgs {
         let domain = match release_review_git::produce_git_review_domain(
             &repository_root,
             &binding.before_commit,
-            &binding.candidate_commit,
+            binding.git_candidate()?,
         ) {
             Ok(domain) => domain,
             Err(error) => {
@@ -453,7 +796,7 @@ impl ReviewSessionRefreshArgs {
             before_label: binding.before_label.clone(),
             before_revision: binding.before_commit.clone(),
             after_label: binding.after_label.clone(),
-            candidate_revision: binding.candidate_commit.clone(),
+            candidate_revision: binding.git_candidate()?.to_owned(),
             review_evidence_path: relative_review_path,
         };
         let refreshed =
@@ -565,13 +908,42 @@ pub struct ReviewSessionRepositoryDiagnosticOutput {
 }
 
 #[derive(Debug, Facet)]
+pub struct ReviewSessionWorkingTreeChangeOutput {
+    pub index_status: String,
+    pub worktree_status: String,
+    pub path: ReviewSessionGitPathWitnessOutput,
+    #[facet(skip_serializing_if = Option::is_none)]
+    pub previous_path: Option<ReviewSessionGitPathWitnessOutput>,
+    pub review_evidence_only: bool,
+}
+
+#[derive(Debug, Facet)]
+pub struct ReviewSessionWorkingTreeOutput {
+    pub schema: String,
+    pub checked_at_unix_millis: u64,
+    #[facet(skip_serializing_if = Option::is_none)]
+    pub head: Option<String>,
+    // None is unavailable, never equivalent to a clean working tree.
+    #[facet(skip_serializing_if = Option::is_none)]
+    pub source_dirty: Option<bool>,
+    pub changes: Vec<ReviewSessionWorkingTreeChangeOutput>,
+    pub diagnostics: Vec<ReviewSessionRepositoryDiagnosticOutput>,
+}
+
+#[derive(Debug, Facet)]
 pub struct ReviewSessionRepositoryRelationshipOutput {
     pub schema: String,
     pub lane_id: String,
     pub repository_id: String,
     pub root_hint: String,
     pub repository_root: String,
-    pub candidate_commit: String,
+    #[facet(skip_serializing_if = Option::is_none)]
+    pub candidate_commit: Option<String>,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub candidate_id: Option<String>,
+    /// Captured scope comparison is independent of ambient commit ancestry.
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub capture_scope_matches: Option<bool>,
     #[facet(skip_serializing_if = Option::is_none)]
     pub ambient_head: Option<String>,
     pub classification: ReviewSessionRepositoryRelationshipKindOutput,
@@ -582,6 +954,9 @@ pub struct ReviewSessionRepositoryRelationshipOutput {
     pub changed_paths: Vec<ReviewSessionGitPathWitnessOutput>,
     pub source_affecting_paths: Vec<ReviewSessionGitPathWitnessOutput>,
     pub diagnostics: Vec<ReviewSessionRepositoryDiagnosticOutput>,
+    /// Separate from the commit-ancestry classification; populated by status checks.
+    #[facet(skip_serializing_if = Option::is_none)]
+    pub working_tree: Option<ReviewSessionWorkingTreeOutput>,
 }
 
 #[derive(Debug, Facet)]
@@ -596,62 +971,88 @@ pub struct ReviewSessionStatusOutput {
     pub diagnostics: Vec<String>,
 }
 
+#[derive(Debug, Facet)]
+pub struct ReviewSessionFreshnessOutput {
+    pub schema: String,
+    pub repository_relationships: Vec<ReviewSessionRepositoryRelationshipOutput>,
+}
+
 impl ReviewSessionStatusArgs {
+    fn invoke_freshness_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
+        let review_path = resolve_review_document_path(invocation_dir, &self.file);
+        let bindings = crate::release_review_source_probe::read_bindings(&review_path)?;
+        Ok(CliOutput::facet(ReviewSessionFreshnessOutput {
+            schema: "sfm.release-review-freshness/1".to_owned(),
+            repository_relationships: inspect_repository_relationships(
+                invocation_dir,
+                &review_path,
+                &bindings,
+            ),
+        }))
+    }
+
     fn invoke_in(self, invocation_dir: &Path) -> eyre::Result<CliOutput> {
         let review_path = resolve_review_document_path(invocation_dir, &self.file);
         let document = read_review_document_at(&review_path)?;
         let report = release_review_v1::completion(&document)?;
-        let mut repository_relationships = document
-            .repository_bindings
-            .iter()
-            .map(|binding| {
-                let repository_root =
-                    resolve_bound_repository_root(invocation_dir, &review_path, binding);
-                let relationship = release_review_git::classify_ambient_repository_relationship(
-                    &repository_root,
-                    &binding.candidate_commit,
-                    &binding.review_evidence_paths,
-                );
-                repository_relationship_output(binding, relationship)
-            })
-            .collect::<Vec<_>>();
-        repository_relationships.sort_by(|left, right| {
-            left.lane_id
-                .cmp(&right.lane_id)
-                .then_with(|| left.repository_id.cmp(&right.repository_id))
-                .then_with(|| left.repository_root.cmp(&right.repository_root))
-        });
+        let repository_relationships = inspect_repository_relationships(
+            invocation_dir,
+            &review_path,
+            &document.repository_bindings,
+        );
         let repository_diverged = repository_relationships.iter().any(|relationship| {
+            if relationship.candidate_id.is_some() {
+                return relationship.capture_scope_matches != Some(true);
+            }
             matches!(
                 relationship.classification,
                 ReviewSessionRepositoryRelationshipKindOutput::SourceAffectingDivergence
-            )
+            ) || relationship
+                .working_tree
+                .as_ref()
+                .is_none_or(|tree| tree.source_dirty != Some(false))
         });
+        Ok(Self::status_output(
+            report,
+            repository_relationships,
+            repository_diverged,
+        ))
+    }
+
+    fn status_output(
+        report: CompletionReportV1,
+        repository_relationships: Vec<ReviewSessionRepositoryRelationshipOutput>,
+        repository_diverged: bool,
+    ) -> CliOutput {
         let status = if repository_diverged {
             CompletionStatusV1::Stale
         } else {
             report.status
         };
-        let diagnostics = repository_relationships
-            .iter()
-            .filter(|relationship| {
-                matches!(
-                    relationship.classification,
-                    ReviewSessionRepositoryRelationshipKindOutput::SourceAffectingDivergence
+        let mut diagnostics = Vec::new();
+        for relationship in &repository_relationships {
+            diagnostics.extend(relationship.diagnostics.iter().map(|diagnostic| {
+                format!(
+                    "repository lane '{}' ({}): {}: {}",
+                    relationship.lane_id,
+                    relationship.repository_id,
+                    diagnostic.code,
+                    diagnostic.message
                 )
-            })
-            .flat_map(|relationship| {
-                relationship.diagnostics.iter().map(|diagnostic| {
+            }));
+            if let Some(tree) = &relationship.working_tree {
+                if tree.source_dirty == Some(true) {
+                    diagnostics.push(format!(
+                        "repository lane '{}' has local source changes outside the pinned review; existing approvals still describe their original content", relationship.lane_id));
+                }
+                diagnostics.extend(tree.diagnostics.iter().map(|diagnostic| {
                     format!(
-                        "repository lane '{}' ({}) failed closed: {}: {}",
-                        relationship.lane_id,
-                        relationship.repository_id,
-                        diagnostic.code,
-                        diagnostic.message
+                        "repository lane '{}' working-tree check: {}: {}",
+                        relationship.lane_id, diagnostic.code, diagnostic.message
                     )
-                })
-            })
-            .collect::<Vec<_>>();
+                }));
+            }
+        }
         let exit_code = if matches!(
             status,
             CompletionStatusV1::InProgress | CompletionStatusV1::Stale
@@ -660,7 +1061,7 @@ impl ReviewSessionStatusArgs {
         } else {
             0
         };
-        Ok(CliOutput::facet_with_status(
+        CliOutput::facet_with_status(
             ReviewSessionStatusOutput {
                 schema: "sfm.release-review-status/1".to_owned(),
                 status,
@@ -670,8 +1071,63 @@ impl ReviewSessionStatusArgs {
                 diagnostics,
             },
             exit_code,
-        ))
+        )
     }
+}
+
+fn inspect_repository_relationships(
+    invocation_dir: &Path,
+    review_path: &Path,
+    bindings: &[release_review_v1::RepositoryBindingV1],
+) -> Vec<ReviewSessionRepositoryRelationshipOutput> {
+    let mut repository_relationships = bindings
+        .iter()
+        .map(|binding| {
+            let repository_root =
+                resolve_bound_repository_root(invocation_dir, review_path, binding);
+            if binding.working_tree_capture.is_some() {
+                return inspect_capture_relationship(binding, &repository_root);
+            }
+            let relationship = release_review_git::classify_ambient_repository_relationship(
+                &repository_root,
+                binding
+                    .candidate_commit
+                    .as_deref()
+                    .expect("Git binding validated"),
+                &binding.review_evidence_paths,
+            );
+            let working_tree = release_review_git::inspect_working_tree(
+                &repository_root,
+                &binding.review_evidence_paths,
+            );
+            let mut output = repository_relationship_output(binding, relationship);
+            output.working_tree = Some(working_tree_output(working_tree));
+            if output.ambient_head
+                != output
+                    .working_tree
+                    .as_ref()
+                    .and_then(|tree| tree.head.clone())
+            {
+                let tree = output.working_tree.as_mut().expect("populated above");
+                tree.source_dirty = None;
+                tree.diagnostics
+                    .push(ReviewSessionRepositoryDiagnosticOutput {
+                        code: "working-tree.head-changed-during-status".to_owned(),
+                        message:
+                            "HEAD changed between ancestry and working-tree checks; retry status"
+                                .to_owned(),
+                    });
+            }
+            output
+        })
+        .collect::<Vec<_>>();
+    repository_relationships.sort_by(|left, right| {
+        left.lane_id
+            .cmp(&right.lane_id)
+            .then_with(|| left.repository_id.cmp(&right.repository_id))
+            .then_with(|| left.repository_root.cmp(&right.repository_root))
+    });
+    repository_relationships
 }
 
 impl From<release_review_git::AmbientRepositoryRelationshipKind>
@@ -721,7 +1177,9 @@ fn repository_relationship_output(
         repository_id: binding.repository_id.clone(),
         root_hint: binding.root_hint.clone(),
         repository_root: relationship.repository_root,
-        candidate_commit: relationship.candidate_commit,
+        candidate_commit: Some(relationship.candidate_commit),
+        candidate_id: None,
+        capture_scope_matches: None,
         ambient_head: relationship.ambient_head,
         classification: relationship.classification.into(),
         candidate_is_ancestor: relationship.candidate_is_ancestor,
@@ -742,6 +1200,114 @@ fn repository_relationship_output(
             .into_iter()
             .map(Into::into)
             .collect(),
+        working_tree: None,
+    }
+}
+
+fn inspect_capture_relationship(
+    binding: &release_review_v1::RepositoryBindingV1,
+    root: &Path,
+) -> ReviewSessionRepositoryRelationshipOutput {
+    let saved = binding
+        .working_tree_capture
+        .as_ref()
+        .expect("capture binding dispatched");
+    let relationship = release_review_git::classify_ambient_repository_relationship(
+        root,
+        &saved.observed_head_commit,
+        &binding.review_evidence_paths,
+    );
+    let mut output = repository_relationship_output(binding, relationship);
+    output.candidate_commit = None;
+    output.candidate_id = Some(saved.id.clone());
+    for diagnostic in &mut output.diagnostics {
+        if diagnostic.code == "ambient.head-exact" {
+            diagnostic.message = "ambient HEAD equals the commit observed when disk was captured; this does not establish captured-content freshness".into();
+        }
+    }
+    let mut tree = ReviewSessionWorkingTreeOutput {
+        schema: "sfm.release-review.working-tree-evidence/1".into(),
+        checked_at_unix_millis: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |value| {
+                u64::try_from(value.as_millis()).unwrap_or(u64::MAX)
+            }),
+        head: output.ambient_head.clone(),
+        source_dirty: None,
+        changes: vec![],
+        diagnostics: vec![],
+    };
+    let result = (|| {
+        let evidence = binding
+            .review_evidence_paths
+            .first()
+            .ok_or_else(|| eyre::eyre!("capture binding has no original output exclusion"))?;
+        let config = crate::release_review_working_tree::WorkingTreeReviewConfig {
+            repository_root: root.to_owned(),
+            lane_id: binding.lane_id.clone(),
+            repository_id: binding.repository_id.clone(),
+            before: binding.before_commit.clone(),
+            scope_paths: saved.scope_paths.clone(),
+            excluded_paths: saved.excluded_paths.clone(),
+            include_untracked: saved.include_untracked,
+            review_evidence_path: evidence.clone(),
+        };
+        crate::release_review_working_tree::scope_matches(
+            &config,
+            saved,
+            &crate::cancellation::CancellationToken::new(),
+        )
+    })();
+    match result {
+        Ok((matches, head)) if Some(&head) == output.ambient_head.as_ref() => {
+            output.capture_scope_matches = Some(matches);
+            tree.source_dirty = Some(!matches);
+            tree.diagnostics.push(ReviewSessionRepositoryDiagnosticOutput {
+                code: if matches { "capture.scope-exact" } else { "capture.scope-changed" }.into(),
+                message: if matches {
+                    "Current scoped disk content matches the saved capture. The changes array is not a per-path capture comparison."
+                } else {
+                    "Current scoped disk content differs from the saved capture. The changes array is not a per-path capture comparison; an empty array does not mean no source changed. Create a new capture to review the newer bytes."
+                }.into(),
+            });
+        }
+        Ok(_) => tree
+            .diagnostics
+            .push(ReviewSessionRepositoryDiagnosticOutput {
+                code: "capture.head-changed-during-status".into(),
+                message: "HEAD changed during the capture freshness check; retry".into(),
+            }),
+        Err(error) => tree
+            .diagnostics
+            .push(ReviewSessionRepositoryDiagnosticOutput {
+                code: "capture.scope-unavailable".into(),
+                message: error.to_string(),
+            }),
+    }
+    output.working_tree = Some(tree);
+    output
+}
+
+fn working_tree_output(
+    evidence: release_review_git::WorkingTreeEvidence,
+) -> ReviewSessionWorkingTreeOutput {
+    ReviewSessionWorkingTreeOutput {
+        schema: evidence.schema.to_owned(),
+        checked_at_unix_millis: u64::try_from(evidence.checked_at_unix_millis).unwrap_or(u64::MAX),
+        head: evidence.head,
+        source_dirty: evidence.source_dirty,
+        changes: evidence
+            .changes
+            .into_iter()
+            .map(|change| ReviewSessionWorkingTreeChangeOutput {
+                index_status: change.index_status.to_string(),
+                worktree_status: change.worktree_status.to_string(),
+                path: change.path.into(),
+                previous_path: change.previous_path.map(Into::into),
+                review_evidence_only: change.review_evidence_only,
+            })
+            .collect(),
+        diagnostics: evidence.diagnostics.into_iter().map(Into::into).collect(),
     }
 }
 
@@ -880,8 +1446,41 @@ fn read_review_document_at(
 ) -> eyre::Result<release_review_v1::ReleaseReviewDocumentV1> {
     let input = std::fs::read_to_string(path)
         .wrap_err_with(|| format!("could not read release-review document {}", path.display()))?;
+    let header: ReviewSchemaHeader = facet_json::from_str(&input)
+        .map_err(|error| eyre::eyre!("invalid review schema header: {error:?}"))?;
+    if header.schema == crate::release_review_ledger::SCHEMA {
+        return Ok(resolve_ledger_at(path, &input)?.document);
+    }
     release_review_v1::parse(&input)
         .wrap_err_with(|| format!("could not load release-review document {}", path.display()))
+}
+
+fn resolve_ledger_at(
+    path: &Path,
+    input: &str,
+) -> eyre::Result<crate::release_review_ledger_resolve::Resolution> {
+    let ledger = crate::release_review_ledger::parse(input)?;
+    let parent = std::fs::canonicalize(
+        path.parent()
+            .ok_or_else(|| eyre::eyre!("review path has no parent"))?,
+    )?;
+    let path = parent.join(
+        path.file_name()
+            .ok_or_else(|| eyre::eyre!("review path has no filename"))?,
+    );
+    let cancellation = crate::cancellation::CancellationToken::new();
+    let budget = crate::release_review_capture_io::CaptureBudget::with_timeout(
+        &cancellation,
+        std::time::Duration::from_secs(10),
+    );
+    let mut roots = std::collections::BTreeMap::new();
+    for target in &ledger.targets {
+        let hint = resolve_path(&parent, Path::new(&target.root_hint));
+        let bytes = budget.git(&hint, &["rev-parse", "--show-toplevel"], None, 64 * 1024)?;
+        let root = std::fs::canonicalize(String::from_utf8(bytes)?.trim_end_matches(['\r', '\n']))?;
+        roots.insert(target.id.clone(), root);
+    }
+    crate::release_review_ledger_resolve::resolve(&ledger, &path, &roots, &cancellation)
 }
 
 fn resolve_bound_repository_root(
@@ -899,7 +1498,23 @@ fn resolve_bound_repository_root(
             return root;
         }
     }
-    resolve_path(invocation_dir, Path::new(&binding.root_hint))
+    let hinted = resolve_path(invocation_dir, Path::new(&binding.root_hint));
+    // A copied/renamed review no longer ends in its original evidence path.
+    // Its relative hint may resolve inside the repository (Java launches the
+    // probe beside the review), but capture paths are Git-root-relative.
+    // Resolve only that hinted repository, never scan sibling repositories.
+    // Failed discovery retains the hint so the ordinary typed probe reports
+    // unavailable, rather than treating missing source as current.
+    let budget = crate::release_review_capture_io::CaptureBudget::with_timeout(
+        &crate::cancellation::CancellationToken::new(),
+        std::time::Duration::from_secs(5),
+    );
+    budget
+        .git(&hinted, &["rev-parse", "--show-toplevel"], None, 64 * 1024)
+        .ok()
+        .and_then(|bytes| String::from_utf8(bytes).ok())
+        .and_then(|root| std::fs::canonicalize(root.trim_end_matches(['\r', '\n'])).ok())
+        .unwrap_or(hinted)
 }
 
 fn resolve_path(invocation_dir: &Path, requested: &Path) -> PathBuf {
@@ -1019,6 +1634,43 @@ mod tests {
     }
 
     #[test]
+    fn freshness_schema_is_shared_with_java_without_requiring_the_completion_corpus() {
+        let fixture = include_str!(
+            "../../../../../../docs/architecture/fixtures/release-review-freshness-v1.json"
+        );
+        let output: ReviewSessionFreshnessOutput =
+            facet_json::from_str(fixture).expect("shared freshness schema");
+        assert_eq!(output.schema, "sfm.release-review-freshness/1");
+        let lane = &output.repository_relationships[0];
+        assert_eq!(
+            lane.working_tree
+                .as_ref()
+                .expect("working tree")
+                .source_dirty,
+            Some(true)
+        );
+        assert_eq!(
+            lane.ambient_head.as_deref(),
+            lane.candidate_commit.as_deref()
+        );
+        let cli = parse(&[
+            "review",
+            "session",
+            "freshness",
+            "--file",
+            "example.sfm-review.json",
+        ]);
+        assert!(matches!(
+            cli.command,
+            Command::Review(ReviewArgs {
+                command: ReviewCommand::Session(ReviewSessionArgs {
+                    command: ReviewSessionCommand::Freshness(_)
+                })
+            })
+        ));
+    }
+
+    #[test]
     fn parses_explicit_release_review_creation_boundary() {
         let cli = parse(&[
             "review",
@@ -1044,7 +1696,7 @@ mod tests {
         };
         assert_eq!(create.branch, "1.19.2");
         assert_eq!(create.before, "4.34.0-1.19.2");
-        assert_eq!(create.candidate, "HEAD");
+        assert_eq!(create.candidate.as_deref(), Some("HEAD"));
         assert_eq!(
             create.file,
             PathBuf::from("docs/reviews/previous-to-head.sfm-review.json")
@@ -1073,6 +1725,150 @@ mod tests {
             refresh.file,
             PathBuf::from("docs/reviews/previous-to-head.sfm-review.json")
         );
+    }
+
+    #[test]
+    fn parses_working_tree_source_and_repeated_scope_parameters() {
+        let cli = parse(&[
+            "review",
+            "session",
+            "create",
+            "--file",
+            "capture.sfm-review.json",
+            "--branch",
+            "1.19.2",
+            "--before",
+            "HEAD",
+            "--working-tree",
+            "--scope",
+            "src",
+            "--scope",
+            "docs",
+            "--exclude",
+            "docs/private",
+            "--tracked-only",
+        ]);
+        let Command::Review(ReviewArgs {
+            command:
+                ReviewCommand::Session(ReviewSessionArgs {
+                    command: ReviewSessionCommand::Create(create),
+                }),
+        }) = cli.command
+        else {
+            panic!("create command");
+        };
+        assert!(create.working_tree && create.tracked_only);
+        assert!(create.candidate.is_none());
+        assert_eq!(create.scope, ["src", "docs"]);
+        assert_eq!(create.exclude, ["docs/private"]);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn working_tree_creation_roundtrips_without_committing_or_clobbering() {
+        let repository = tempfile::tempdir().unwrap();
+        git(repository.path(), &["init", "--quiet"]);
+        std::fs::create_dir(repository.path().join("src")).unwrap();
+        std::fs::write(repository.path().join("src/A.java"), "class A {}\n").unwrap();
+        git(repository.path(), &["add", "."]);
+        git(
+            repository.path(),
+            &[
+                "-c",
+                "user.name=SFM Fixture",
+                "-c",
+                "user.email=fixture@example.invalid",
+                "commit",
+                "--quiet",
+                "-m",
+                "baseline",
+            ],
+        );
+        let head = git_stdout(repository.path(), &["rev-parse", "HEAD"]);
+        let index = std::fs::read(repository.path().join(".git/index")).unwrap();
+        std::fs::write(repository.path().join("src/New.java"), "class New {}\n").unwrap();
+        let args = || ReviewSessionCreateArgs {
+            file: "capture.sfm-review.json".into(),
+            branch: "1.19.2".into(),
+            before: "HEAD".into(),
+            candidate: None,
+            working_tree: true,
+            scope: vec!["src".into()],
+            exclude: vec![],
+            tracked_only: false,
+            repository_root: None,
+        };
+        let output = args()
+            .invoke_in(repository.path())
+            .unwrap()
+            .render(Some(OutputFormat::Json), false)
+            .unwrap()
+            .unwrap();
+        assert!(output.contains("working_tree_capture"));
+        assert!(!output.contains("candidate_commit"));
+        let path = repository.path().join("capture.sfm-review.json");
+        let saved = std::fs::read_to_string(&path).unwrap();
+        let review = release_review_v1::parse(&saved).unwrap();
+        assert_eq!(review.review_units.len(), 1);
+        assert_eq!(
+            review.review_units[0].path_after.as_deref(),
+            Some("src/New.java")
+        );
+        assert!(args().invoke_in(repository.path()).is_err());
+        assert_eq!(saved, std::fs::read_to_string(&path).unwrap());
+        let nested = repository.path().join("review-copies/nested");
+        std::fs::create_dir_all(&nested).unwrap();
+        let copied = nested.join("renamed.sfm-review.json");
+        std::fs::copy(&path, &copied).unwrap();
+        let relationships =
+            inspect_repository_relationships(&nested, &copied, &review.repository_bindings);
+        assert_eq!(relationships[0].capture_scope_matches, Some(true));
+        assert!(
+            relationships[0]
+                .working_tree
+                .as_ref()
+                .unwrap()
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "capture.scope-exact")
+        );
+        std::fs::write(
+            repository.path().join("src/New.java"),
+            "class New { int changed; }\n",
+        )
+        .unwrap();
+        let changed =
+            inspect_repository_relationships(&nested, &copied, &review.repository_bindings);
+        assert_eq!(changed[0].capture_scope_matches, Some(false));
+        assert!(
+            changed[0]
+                .working_tree
+                .as_ref()
+                .unwrap()
+                .diagnostics
+                .iter()
+                .any(|diagnostic| diagnostic.code == "capture.scope-changed"
+                    && diagnostic.message.contains("empty array does not mean"))
+        );
+        assert!(changed[0].diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "ambient.head-exact"
+                && diagnostic
+                    .message
+                    .contains("observed when disk was captured")
+        }));
+        assert_eq!(
+            std::fs::canonicalize(&relationships[0].repository_root).unwrap(),
+            std::fs::canonicalize(repository.path()).unwrap(),
+        );
+        assert_eq!(saved, std::fs::read_to_string(&copied).unwrap());
+        assert_eq!(head, git_stdout(repository.path(), &["rev-parse", "HEAD"]));
+        assert_eq!(
+            index,
+            std::fs::read(repository.path().join(".git/index")).unwrap()
+        );
+        let mut invalid = args();
+        invalid.candidate = Some("HEAD".into());
+        assert!(invalid.invoke_in(repository.path()).is_err());
     }
 
     #[test]
@@ -1125,7 +1921,11 @@ mod tests {
             file: output.clone(),
             branch: "1.19.2".to_owned(),
             before: before.clone(),
-            candidate: "HEAD".to_owned(),
+            candidate: Some("HEAD".to_owned()),
+            working_tree: false,
+            scope: vec![],
+            exclude: vec![],
+            tracked_only: false,
             repository_root: None,
         };
 
@@ -1143,7 +1943,10 @@ mod tests {
         )
         .expect("canonical release-review document");
         assert_eq!(document.repository_bindings[0].before_commit, before);
-        assert_eq!(document.repository_bindings[0].candidate_commit, candidate);
+        assert_eq!(
+            document.repository_bindings[0].git_candidate().unwrap(),
+            candidate
+        );
         assert_eq!(document.review_units.len(), 1);
         assert!(
             create().invoke_in(repository.path()).is_err(),
@@ -1200,7 +2003,11 @@ mod tests {
             file: relative.clone(),
             branch: "1.19.2".to_owned(),
             before,
-            candidate: "HEAD".to_owned(),
+            candidate: Some("HEAD".to_owned()),
+            working_tree: false,
+            scope: vec![],
+            exclude: vec![],
+            tracked_only: false,
             repository_root: None,
         }
         .invoke_in(repository.path())
@@ -1419,13 +2226,13 @@ mod tests {
         let review_path = repository.path().join(&relative_review_path);
         std::fs::create_dir_all(review_path.parent().expect("review parent"))
             .expect("create review directory");
-        let mut document = test_support::exact_document();
+        let mut document = test_support::fully_reviewed_document();
         let binding = &mut document.repository_bindings[0];
         binding.root_hint = ".".to_owned();
         binding.before_commit.clone_from(&candidate);
         binding.before_tree.clone_from(&tree);
-        binding.candidate_commit.clone_from(&candidate);
-        binding.candidate_tree = tree;
+        binding.candidate_commit = Some(candidate.clone());
+        binding.candidate_tree = Some(tree);
         binding.review_evidence_paths =
             vec![relative_review_path.to_string_lossy().replace('\\', "/")];
         std::fs::write(
@@ -1445,6 +2252,33 @@ mod tests {
             .expect("exact JSON")
             .expect("exact output");
         assert!(exact_json.contains("\"classification\": \"exact\""));
+        assert!(exact_json.contains("\"source_dirty\": false"));
+
+        let untracked = repository.path().join("NewUncommitted.java");
+        std::fs::write(&untracked, "class NewUncommitted {}\n").expect("untracked source");
+        let dirty = ReviewSessionStatusArgs {
+            file: relative_review_path.clone(),
+        }
+        .invoke_in(repository.path())
+        .expect("dirty status");
+        assert_eq!(dirty.exit_code(), REVIEW_NOT_COMPLETE_EXIT_CODE);
+        let dirty_json = dirty
+            .render(Some(OutputFormat::Json), false)
+            .expect("dirty JSON")
+            .expect("dirty output");
+        assert!(dirty_json.contains("\"classification\": \"exact\""));
+        assert!(dirty_json.contains("\"source_dirty\": true"));
+        assert!(dirty_json.contains("NewUncommitted.java"));
+        assert!(dirty_json.contains("\"status\": \"stale\""));
+        assert_eq!(
+            git_stdout(repository.path(), &["rev-parse", "HEAD"]),
+            candidate
+        );
+        assert_eq!(
+            std::fs::read_to_string(&review_path).expect("unchanged review"),
+            release_review_v1::to_canonical_json(&document).expect("canonical original")
+        );
+        std::fs::remove_file(&untracked).expect("remove disposable source fixture");
 
         git(repository.path(), &["add", "."]);
         git(
@@ -1472,6 +2306,81 @@ mod tests {
             .expect("evidence output");
         assert!(evidence_json.contains("\"classification\": \"review_evidence_only\""));
         assert!(evidence_json.contains("docs/reviews/ready.sfm-review.json"));
+    }
+
+    #[test]
+    fn target_only_creation_is_small_and_resolution_preserves_file_and_git_index() {
+        let repository = tempfile::tempdir().unwrap();
+        git(repository.path(), &["init", "--quiet"]);
+        std::fs::write(repository.path().join("A.java"), "class A {}\n").unwrap();
+        git(repository.path(), &["add", "."]);
+        git(
+            repository.path(),
+            &[
+                "-c",
+                "user.name=SFM Fixture",
+                "-c",
+                "user.email=fixture@example.invalid",
+                "commit",
+                "--quiet",
+                "-m",
+                "baseline",
+            ],
+        );
+        let index = std::fs::read(repository.path().join(".git/index")).unwrap();
+        std::fs::write(
+            repository.path().join("New.java"),
+            "// do not persist browsing bytes\n".repeat(3000),
+        )
+        .unwrap();
+        let args = || ReviewSessionCreateArgs {
+            file: "live.sfm-review.json".into(),
+            branch: "1.19.2".into(),
+            before: "HEAD".into(),
+            candidate: None,
+            working_tree: true,
+            scope: vec![".".into()],
+            exclude: vec![],
+            tracked_only: false,
+            repository_root: None,
+        };
+        args().invoke_ledger_in(repository.path()).unwrap();
+        let file = repository.path().join("live.sfm-review.json");
+        let text = std::fs::read_to_string(&file).unwrap();
+        assert!(text.len() < 2500, "new ledger size: {}", text.len());
+        let ledger = crate::release_review_ledger::parse(&text).unwrap();
+        assert!(!ledger.state.review_session.title.contains("HEAD"));
+        assert!(
+            ledger
+                .state
+                .review_session
+                .title
+                .contains(&ledger.targets[0].before_commit)
+        );
+        assert!(
+            ledger
+                .state
+                .review_session
+                .title
+                .ends_with("live working tree")
+        );
+        assert!(ledger.evidence.documents.is_empty());
+        assert!(ledger.state.review_session.comments.is_empty());
+        let resolved = read_review_document_at(&file).unwrap();
+        assert_eq!(1, resolved.review_units.len());
+        assert_eq!(
+            Some("New.java"),
+            resolved.review_units[0].path_after.as_deref()
+        );
+        assert_eq!(text, std::fs::read_to_string(&file).unwrap());
+        assert_eq!(
+            index,
+            std::fs::read(repository.path().join(".git/index")).unwrap()
+        );
+        assert!(
+            args().invoke_ledger_in(repository.path()).is_err(),
+            "creation cannot replace an existing review"
+        );
     }
 
     fn git(repository: &Path, arguments: &[&str]) {

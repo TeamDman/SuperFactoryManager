@@ -59,7 +59,9 @@ public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentD
         List<SFMReviewSessionV2Kernel.Evaluation> evaluations = SFMReviewSessionV2Kernel.evaluateAll(session);
         Map<String, SFMReviewSessionV2Kernel.Evaluation> evaluationByComment = new LinkedHashMap<>();
         evaluations.forEach(evaluation -> evaluationByComment.put(evaluation.commentId(), evaluation));
-        List<CommentView> comments = session.comments().stream().map(comment -> {
+        List<CommentView> comments = session.comments().stream()
+                .filter(comment -> !ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewGeneratedMarkers.isChangeMarker(comment))
+                .map(comment -> {
             SFMReviewSessionV2Kernel.Evaluation evaluation = evaluationByComment.get(comment.id());
             Set<String> hashtags = Set.copyOf(SFMReviewSessionV1Kernel.derivedHashtags(comment.text()));
             boolean candidate = comment.target() instanceof SFMReviewSessionV2.CandidateTrajectoryTarget;
@@ -73,9 +75,11 @@ public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentD
         }).toList();
         List<StyleRuleView> styles = session.styleRules().stream().map(style -> new StyleRuleView(
                 style.id(), style.requiredHashtags(), style.priority(), colour(style.foreground()),
-                colour(style.background()), colour(style.underline()), colour(style.gutterMarker()), style.enabled()
+                colour(style.background()), colour(style.underline()), style.gutterMarker(), style.enabled()
         )).toList();
-        List<MigrationView> migrations = evaluations.stream().map(evaluation -> new MigrationView(
+        Set<String> visibleIds = comments.stream().map(CommentView::id).collect(java.util.stream.Collectors.toSet());
+        List<MigrationView> migrations = evaluations.stream().filter(evaluation -> visibleIds.contains(evaluation.commentId()))
+                .map(evaluation -> new MigrationView(
                 evaluation.commentId(), status(evaluation.status()), String.join("; ", evaluation.diagnostics())
         )).toList();
         return new SessionView(session.title(), documents, comments, styles, migrations, legacyRows);
@@ -128,7 +132,7 @@ public final class SFMReviewCommentKernelDataSource implements SFMReviewCommentD
                     channel == StyleChannel.FOREGROUND ? value : style.foreground(),
                     channel == StyleChannel.BACKGROUND ? value : style.background(),
                     channel == StyleChannel.UNDERLINE ? value : style.underline(),
-                    channel == StyleChannel.GUTTER ? value : style.gutterMarker(), style.enabled()));
+                    style.gutterMarker(), style.enabled()));
             replaceStyles(styles);
             return;
         }

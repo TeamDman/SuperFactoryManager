@@ -128,9 +128,9 @@ public final class SFMRevealInExplorerAction implements SFMClientAction<SFMRevea
                 ).withStyle(ChatFormatting.RED));
                 return;
             }
-            context.getSource().sendFeedback(Component.literal(
-                    (outcome.openedNew() ? "Opened Explorer and revealed " : "Revealed ")
-                            + outcome.path().canonical()
+            context.getSource().sendFeedback(ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
+                    outcome.openedNew() ? "Opened Explorer and revealed " : "Revealed ",
+                    outcome.path(), ""
             ));
         });
         return 1;

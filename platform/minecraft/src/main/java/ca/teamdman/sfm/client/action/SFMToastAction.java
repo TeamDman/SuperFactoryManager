@@ -14,6 +14,7 @@ import net.minecraft.network.chat.Component;
 public final class SFMToastAction implements SFMClientAction<SFMScreenMultiplexer> {
     public enum Operation {
         COPY,
+        COPY_DETAILS,
         STOP_TIMER,
         RESUME_TIMER,
         DISMISS
@@ -32,6 +33,7 @@ public final class SFMToastAction implements SFMClientAction<SFMScreenMultiplexe
     public Component title() {
         return Component.literal(switch (operation) {
             case COPY -> "Copy toast text";
+            case COPY_DETAILS -> "Copy complete notification details";
             case STOP_TIMER -> "Stop Timer Forever";
             case RESUME_TIMER -> "Resume Timer";
             case DISMISS -> "Dismiss";
@@ -42,6 +44,7 @@ public final class SFMToastAction implements SFMClientAction<SFMScreenMultiplexe
     public Component description() {
         return Component.literal(switch (operation) {
             case COPY -> "Copy the exact addressed notification to the clipboard";
+            case COPY_DETAILS -> "Copy the diagnostic payload associated with this exact notification";
             case STOP_TIMER -> "Pause this notification without resetting its remaining lifetime";
             case RESUME_TIMER -> "Continue this notification from its previously remaining lifetime";
             case DISMISS -> "Immediately remove only this notification";
@@ -79,14 +82,20 @@ public final class SFMToastAction implements SFMClientAction<SFMScreenMultiplexe
                 LongArgumentType.getLong(context, "toast-id"));
         boolean available = switch (operation) {
             case COPY -> workspace.copyWorkspaceToast(id);
+            case COPY_DETAILS -> workspace.copyWorkspaceToastDetails(id);
             case STOP_TIMER -> isAvailable(workspace.stopWorkspaceToastTimer(id));
             case RESUME_TIMER -> isAvailable(workspace.resumeWorkspaceToastTimer(id));
             case DISMISS -> workspace.dismissWorkspaceToast(id)
                     == SFMWorkspaceToastQueue.MutationResult.APPLIED;
         };
-        if (!available) throw STALE.create();
+        if (!available) {
+            if (operation == Operation.COPY || operation == Operation.COPY_DETAILS) throw new SimpleCommandExceptionType(
+                    Component.literal("Clipboard unavailable or the notification expired")).create();
+            throw STALE.create();
+        }
         context.getSource().sendFeedback(Component.literal(switch (operation) {
             case COPY -> "Copied notification " + id.value() + " to the clipboard";
+            case COPY_DETAILS -> "Copied details for notification " + id.value() + " to the clipboard";
             case STOP_TIMER -> "Stopped timer for toast " + id.value();
             case RESUME_TIMER -> "Resumed timer for toast " + id.value();
             case DISMISS -> "Dismissed toast " + id.value();

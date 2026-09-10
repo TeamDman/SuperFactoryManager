@@ -149,7 +149,9 @@ impl Command {
             Command::Test(args) => legacy_output(args.invoke(cancellation_token)),
             Command::Symbol(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::Syntax(args) => args.invoke(&cancellation_token),
-            Command::Review(args) => args.invoke_in(invocation_dir),
+            Command::Review(args) => {
+                args.invoke_with_cancellation(invocation_dir, &cancellation_token)
+            }
             Command::RepoRoot(args) => legacy_output(args.invoke()),
         }
     }

@@ -1,6 +1,9 @@
 package ca.teamdman.sfm.client.theme;
 
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
+import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewRuleCodec;
+import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewRegistry;
+import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewRules;
 import com.electronwill.nightconfig.core.Config;
 import com.electronwill.nightconfig.toml.TomlFormat;
 import net.minecraft.ChatFormatting;
@@ -13,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.HashSet;
 
 /**
  * The authoritative typed theme loader.
@@ -78,11 +82,22 @@ public final class SFMClientThemeLoader {
         }
 
         Map<String, SFMItemIcon> fileIcons = new LinkedHashMap<>(defaults.fileIcons());
+        var explicitFileIcons = new HashSet<>(defaults.explicitFileIcons());
         Config fileIconConfig = configAt(root, "icons.files", diagnostics);
         if (fileIconConfig != null) {
             for (Map.Entry<String, Object> entry : fileIconConfig.valueMap().entrySet()) {
-                parseIcon(entry.getValue(), "icons.files." + entry.getKey(), entry.getKey(), diagnostics)
-                        .ifPresent(icon -> fileIcons.put(entry.getKey().toLowerCase(Locale.ROOT), icon));
+                String key = entry.getKey().toLowerCase(Locale.ROOT);
+                SFMItemIcon inherited = fileIcons.get(key);
+                if (inherited == null) {
+                    SFMItemIcon unknown = defaults.fileIcon("unknown");
+                    inherited = new SFMItemIcon(
+                            unknown.requestedItem(),
+                            unknown.fallbackItem(),
+                            entry.getKey()
+                    );
+                }
+                parseIcon(entry.getValue(), "icons.files." + entry.getKey(), inherited, diagnostics)
+                        .ifPresent(icon -> { fileIcons.put(key, icon); explicitFileIcons.add(key); });
             }
         }
 
@@ -92,7 +107,16 @@ public final class SFMClientThemeLoader {
             for (Map.Entry<String, Object> entry : actionIconConfig.valueMap().entrySet()) {
                 try {
                     ResourceLocation actionId = new ResourceLocation(entry.getKey());
-                    parseIcon(entry.getValue(), "icons.actions.\"" + entry.getKey() + "\"", entry.getKey(), diagnostics)
+                    SFMItemIcon inherited = actionIcons.getOrDefault(
+                            actionId,
+                            new SFMItemIcon(actionId, SFMItemIcon.PAPER, entry.getKey())
+                    );
+                    parseIcon(
+                            entry.getValue(),
+                            "icons.actions.\"" + entry.getKey() + "\"",
+                            inherited,
+                            diagnostics
+                    )
                             .ifPresent(icon -> actionIcons.put(actionId, icon));
                 } catch (RuntimeException e) {
                     diagnostics.add("Invalid action id: " + entry.getKey());
@@ -100,8 +124,11 @@ public final class SFMClientThemeLoader {
             }
         }
 
+        List<SFMItemstackPreviewRules.Rule> rules = List.of();
+        try { rules = SFMItemstackPreviewRuleCodec.read(root, SFMItemstackPreviewRegistry.snapshot().operators()); }
+        catch (RuntimeException failure) { diagnostics.add("Invalid preview rules: " + failure.getMessage()); }
         if (!diagnostics.isEmpty()) return new SFMThemeLoadResult(Optional.empty(), diagnostics);
-        return new SFMThemeLoadResult(Optional.of(new SFMClientTheme(colours, syntax, fileIcons, actionIcons)), List.of());
+        return new SFMThemeLoadResult(Optional.of(new SFMClientTheme(colours, syntax, fileIcons, actionIcons, rules, explicitFileIcons)), List.of());
     }
 
     private static Config configAt(Config root, String path, List<String> diagnostics) {
@@ -150,17 +177,50 @@ public final class SFMClientThemeLoader {
     private static Optional<SFMItemIcon> parseIcon(
             Object value,
             String path,
-            String label,
+            SFMItemIcon inherited,
             List<String> diagnostics
     ) {
-        if (!(value instanceof String text)) {
-            diagnostics.add(path + " must be an item registry id string");
+        String requestedText;
+        ResourceLocation fallback = inherited.fallbackItem();
+        String accessibleLabel = inherited.accessibleLabel();
+        if (value instanceof String text) {
+            requestedText = text;
+        } else if (value instanceof Config config) {
+            Object requestedValue = config.get("item");
+            if (!(requestedValue instanceof String text)) {
+                diagnostics.add(path + ".item must be an item registry id string");
+                return Optional.empty();
+            }
+            requestedText = text;
+            Object fallbackValue = config.get("fallback");
+            if (fallbackValue != null) {
+                if (!(fallbackValue instanceof String fallbackText)) {
+                    diagnostics.add(path + ".fallback must be an item registry id string");
+                    return Optional.empty();
+                }
+                try {
+                    fallback = new ResourceLocation(fallbackText);
+                } catch (RuntimeException e) {
+                    diagnostics.add(path + ".fallback has invalid item id: " + fallbackText);
+                    return Optional.empty();
+                }
+            }
+            Object labelValue = config.get("label");
+            if (labelValue != null) {
+                if (!(labelValue instanceof String labelText) || labelText.isBlank()) {
+                    diagnostics.add(path + ".label must be a non-blank string");
+                    return Optional.empty();
+                }
+                accessibleLabel = labelText;
+            }
+        } else {
+            diagnostics.add(path + " must be an item registry id string or inline icon table");
             return Optional.empty();
         }
         try {
-            return Optional.of(new SFMItemIcon(new ResourceLocation(text), SFMItemIcon.PAPER, label));
+            return Optional.of(new SFMItemIcon(new ResourceLocation(requestedText), fallback, accessibleLabel));
         } catch (RuntimeException e) {
-            diagnostics.add(path + " has invalid item id: " + text);
+            diagnostics.add(path + " has invalid item id: " + requestedText);
             return Optional.empty();
         }
     }

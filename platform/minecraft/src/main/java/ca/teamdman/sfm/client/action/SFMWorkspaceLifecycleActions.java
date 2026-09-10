@@ -29,6 +29,8 @@ public final class SFMWorkspaceLifecycleActions {
     public static final SFMRegistryObject<SFMClientAction<?>, SFMPanelEntryAction> PANEL_ENTRY_MOVE_BELOW =
             REGISTERER.register("panel/entry/move/below",
                     () -> new SFMPanelEntryAction(SFMPanelEntryAction.Operation.MOVE_BELOW));
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMPanelEntryMoveToAction> PANEL_ENTRY_MOVE_TO =
+            REGISTERER.register("panel/entry/move/to", SFMPanelEntryMoveToAction::new);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMClosePaneAction> PANE_CLOSE =
             REGISTERER.register("pane/close",
                     () -> new SFMClosePaneAction(SFMClosePaneAction.Phase.PREFLIGHT));

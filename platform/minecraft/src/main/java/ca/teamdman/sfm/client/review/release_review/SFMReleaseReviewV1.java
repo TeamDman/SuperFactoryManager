@@ -29,13 +29,20 @@ public record SFMReleaseReviewV1(
         List<CompletionAttestation> completionAttestations
 ) {
     public static final String SCHEMA = "sfm.release-review/1";
-    public static final String HASH_DOMAIN = "sfm.release-review/1:semantic-state\n";
+    public static final String WORKING_TREE_SCHEMA = "sfm.release-review/2";
+    public static final String OBSERVATION_SCHEMA = "sfm.release-review-observation/3";
+    public static final String EVIDENCE_OWNER = "sfm:review-evidence";
+    public static final String HASH_DOMAIN = "sfm.release-review/1:semantic-state:exact-coverage/2\n";
+    public static final String WORKING_TREE_HASH_DOMAIN = "sfm.release-review/2:semantic-state:exact-coverage/2\n";
 
     public SFMReleaseReviewV1 {
-        if (!SCHEMA.equals(schema)) throw new IllegalArgumentException("Unsupported release-review schema " + schema);
+        if (!SCHEMA.equals(schema) && !WORKING_TREE_SCHEMA.equals(schema) && !OBSERVATION_SCHEMA.equals(schema))
+            throw new IllegalArgumentException("Unsupported release-review schema " + schema);
         Objects.requireNonNull(reviewSession, "reviewSession");
         repositoryBindings = sortedUnique(copy(repositoryBindings, "repository binding"),
                 RepositoryBinding::laneId, "repository-binding lane id");
+        if (SCHEMA.equals(schema) && repositoryBindings.stream().anyMatch(b -> b.workingTreeCapture().isPresent()))
+            throw new IllegalArgumentException("Working-tree bindings require release-review/2");
         corpusDocuments = copy(corpusDocuments, "corpus document").stream()
                 .sorted(Comparator.comparing(CorpusDocument::laneId)
                         .thenComparingInt(value -> value.snapshotSide().ordinal())
@@ -75,8 +82,16 @@ public record SFMReleaseReviewV1(
             String afterLabel,
             String candidateCommit,
             String candidateTree,
-            List<String> reviewEvidencePaths
+            List<String> reviewEvidencePaths,
+            Optional<SFMWorkingTreeCaptureV1> workingTreeCapture
     ) {
+        public RepositoryBinding(String laneId, String repositoryId, String rootHint,
+                                 String beforeLabel, String beforeCommit, String beforeTree, String afterLabel,
+                                 String candidateCommit, String candidateTree, List<String> reviewEvidencePaths) {
+            this(laneId, repositoryId, rootHint, beforeLabel, beforeCommit, beforeTree, afterLabel,
+                    candidateCommit, candidateTree, reviewEvidencePaths, Optional.empty());
+        }
+
         public RepositoryBinding {
             laneId = requireText(laneId, "repositoryBinding.laneId");
             repositoryId = requireText(repositoryId, "repositoryBinding.repositoryId");
@@ -85,13 +100,29 @@ public record SFMReleaseReviewV1(
             beforeCommit = requireGitSha1(beforeCommit, "repositoryBinding.beforeCommit");
             beforeTree = requireGitSha1(beforeTree, "repositoryBinding.beforeTree");
             afterLabel = requireText(afterLabel, "repositoryBinding.afterLabel");
-            candidateCommit = requireGitSha1(candidateCommit, "repositoryBinding.candidateCommit");
-            candidateTree = requireGitSha1(candidateTree, "repositoryBinding.candidateTree");
+            Objects.requireNonNull(workingTreeCapture, "workingTreeCapture");
+            if (workingTreeCapture.isPresent()) {
+                if (candidateCommit != null || candidateTree != null)
+                    throw new IllegalArgumentException("Capture and Git candidate sources are mutually exclusive");
+            } else {
+                candidateCommit = requireGitSha1(candidateCommit, "repositoryBinding.candidateCommit");
+                candidateTree = requireGitSha1(candidateTree, "repositoryBinding.candidateTree");
+            }
             reviewEvidencePaths = copy(reviewEvidencePaths, "review evidence path").stream()
                     .map(value -> requireRelativePath(value, "review evidence path"))
                     .sorted()
                     .toList();
             ensureUnique(reviewEvidencePaths, "review evidence path");
+        }
+
+        public String candidateIdentity() {
+            return workingTreeCapture.map(SFMWorkingTreeCaptureV1::id).orElse(candidateCommit);
+        }
+
+        public boolean matchesSnapshotAtom(String atom) {
+            return beforeCommit.equalsIgnoreCase(atom) || ("git:" + beforeCommit).equalsIgnoreCase(atom)
+                    || candidateIdentity().equalsIgnoreCase(atom)
+                    || (candidateCommit != null && ("git:" + candidateCommit).equalsIgnoreCase(atom));
         }
     }
 

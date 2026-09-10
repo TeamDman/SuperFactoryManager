@@ -19,8 +19,8 @@ public final class SFMFixtureReviewCommentDataSource implements SFMReviewComment
         comments.add(comment("diff-rename","#modified #renamed oldName → newName; audit() was added.","diff_engine · fixture:line-range",
                 List.of(new RangeView(BEFORE,20,57),new RangeView(AFTER,20,74)),EvaluationStatus.RESOLVED_EXACTLY));
         styles.add(new StyleRuleView("approved-background",List.of("#approved"),10,null,0x5522AA44,null,null,true));
-        styles.add(new StyleRuleView("needs-change-underline",List.of("#needs-change"),50,null,null,0xFFFFAA00,0xFFFFAA00,true));
-        styles.add(new StyleRuleView("problem-underline",List.of("#problem"),100,0xFFFF7777,0x55441111,0xFFFF5555,0xFFFF5555,true));
+        styles.add(new StyleRuleView("needs-change-underline",List.of("#needs-change"),50,null,null,0xFFFFAA00,"!",true));
+        styles.add(new StyleRuleView("problem-underline",List.of("#problem"),100,0xFFFF7777,0x55441111,0xFFFF5555,"!",true));
         styles.add(new StyleRuleView("modified-background",List.of("#modified"),5,null,0x553366AA,null,null,true));
     }
     private static CommentView comment(String id,String text,String provenance,List<RangeView> ranges,EvaluationStatus status){return new CommentView(id,text,provenance,false,List.copyOf(ranges),status);}
@@ -39,7 +39,7 @@ public final class SFMFixtureReviewCommentDataSource implements SFMReviewComment
     @Override public void editComment(String id,String text){replace(id,c->new CommentView(c.id(),text,c.provenance(),c.archived(),c.candidate(),c.targetLabel(),c.ranges(),c.evaluationStatus()));}
     @Override public void archiveComment(String id){replace(id,c->new CommentView(c.id(),c.text(),c.provenance(),true,c.candidate(),c.targetLabel(),c.ranges(),c.evaluationStatus()));}
     @Override public void updateStyleColour(String id,StyleChannel channel,int argb){
-        for(int i=0;i<styles.size();i++) if(styles.get(i).id().equals(id)){StyleRuleView s=styles.get(i);styles.set(i,new StyleRuleView(s.id(),s.requiredHashtags(),s.priority(),replace(channel,StyleChannel.FOREGROUND,s.foreground(),argb),replace(channel,StyleChannel.BACKGROUND,s.background(),argb),replace(channel,StyleChannel.UNDERLINE,s.underline(),argb),replace(channel,StyleChannel.GUTTER,s.gutter(),argb),s.enabled()));return;}
+        for(int i=0;i<styles.size();i++) if(styles.get(i).id().equals(id)){StyleRuleView s=styles.get(i);styles.set(i,new StyleRuleView(s.id(),s.requiredHashtags(),s.priority(),replace(channel,StyleChannel.FOREGROUND,s.foreground(),argb),replace(channel,StyleChannel.BACKGROUND,s.background(),argb),replace(channel,StyleChannel.UNDERLINE,s.underline(),argb),s.gutterMarker(),s.enabled()));return;}
         throw new IllegalArgumentException("Unknown style rule "+id);
     }
     private void replace(String id,java.util.function.Function<CommentView,CommentView> f){for(int i=0;i<comments.size();i++)if(comments.get(i).id().equals(id)){comments.set(i,f.apply(comments.get(i)));return;}throw new IllegalArgumentException("Unknown comment "+id);}

@@ -7,10 +7,47 @@ B-6 remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Coordinating release plan:** `docs/tasks/release checkpoint and slim artifact plan.md`
 **Selection/explorer foundation plan:** `docs/tasks/typed selections relations and lazy explorers plan.md`
-**Last updated:** 2026-08-22
-**Intent audit:** Passed and post-compaction re-audited 2026-08-22 against the user's command-boundary/history, argument-frontier, required-usage, ordinary undo/redo, and temporal-canvas report; the 2026-08-16 symbol-navigation audit remains retained below
+**Last updated:** 2026-09-06 (rule-authoring and shared input/find checkpoints verified)
+**Intent audit:** Passed and post-compaction re-audited 2026-08-23 against command-boundary/history, explicit Alt focus, exact command-scoped shortcut identity, title-screen lifecycle, argument-frontier, required-usage, ordinary undo/redo, and temporal-canvas requirements; the 2026-08-16 symbol-navigation audit remains retained below
+
+**September 6 input/find follow-up (verified checkpoint):**
+[Explorer find, selection, compact hierarchy, and review freshness](explorer%20find%20selection%20compact%20hierarchy%20and%20review%20freshness%20plan.md)
+owns EFR-01–49 and EF-1/EF-2's shared single-line editing inventory, EF-4/EF-5's
+Find/Filter action and focus contract, and EF-6/EF-7's match-selection shortcuts.
+Alt+J and Ctrl+Shift+Alt+J are explicitly requested scope-specific selection
+bindings, not a silent abandonment of earlier Alt focus guidance. Reference
+screenshots do not authorize replacing palette Alt+C Cancel with Match Case.
+All new controls, clear-input menus and compact-segment menus use discoverable,
+remappable public actions. New focused Alt+F (fuzzy) and Alt+H (highlight)
+bindings operate independently for Find and Filter; both get the shared
+case/word/regex/fuzzy suite, with regex and fuzzy mutually exclusive. The linked
+EF-1–EF-9/EF-11/EF-12/EF-A checkpoint now includes current-source tests, datagen,
+GUI 2/4 virtual mouse/keyboard use and separate-JVM persistence. EF-10's exact
+compact-segment menus remain scheduled; current row menus offer local unmerge.
 
 ## How to update this plan
+
+**Linked implementation slice:** [Contextual ItemStack preview rule authoring](contextual%20itemstack%20preview%20rule%20authoring%20plan.md),
+IPR-T0/T1/T3/T3a, defines part of authorized optional stretch ER-S4. The shared palette owns typed,
+cursor-aware partial-expression completion and bounded context-derived deeper
+continuations; the icon provider owns the captured subject and predicates.
+Existing literal descent/history is foundation, not arbitrary argument-value
+enumeration. Incomplete continuations remain selectable without executing a
+mutation, and editing an earlier operand preserves subsequent arguments. Flat
+icon aspect actions replace required Help/Customize wrappers. The detailed
+IPR ledger preserves all examples, lifecycle/authority and validation. T0–T5,
+including T3a, are complete: live GUI 2/4 authoring, independent-JVM persistence,
+actual clipboard readback and final review regression are recorded under
+[Release review overnight readiness](release%20review%20overnight%20readiness%20plan.md).
+This bounded contribution does not complete the broader Phase B backlog here.
+
+IPR-27–35/T3a also define clipboard prompt export as a reusable **command-schema**
+projection, not recursive value completion. Export registered string/Boolean
+operator signatures and actual canonical invocation syntax; registry-valued
+ItemStack arguments publish their type/format, never all item variants. An
+explicit descriptor policy prevents accidental provider calls or catalogue
+expansion. The prompt reuses immutable Explorer details, supports a manual
+chat-to-command handoff, and grants no automatic execution authority.
 
 - `[ ]` Not started
 - `[~]` In progress
@@ -156,7 +193,7 @@ workspace.
 | FFILE-3 | The file explorer contributes its selected item path independently of any text-editor document path. | B-2 gives contributions stable origin identities instead of collapsing them to one current path; B-3 ranks focused context without discarding other visible-panel roots. | — |
 | FFILE-4 | Path candidates should be able to stream into command-palette intellisense while Brigadier continues to interpret commands and supply ordinary suggestions. | B-1 adds a generation-tagged, cancellable candidate stream and deterministic merge/ranking layer around the existing Brigadier result. | — |
 | FFILE-5 | The generic mental model is `gci -Recurse \| fzf`; determine whether that requires inventing an SFM pipe system. | D-7 and B-1 deliberately provide typed candidate producers/consumers in-process. A general command-pipe language is not required by, and is excluded from, the first slice. | — |
-| REVEAL-1 | Ctrl+Shift+E may show an explorer and/or reveal the file represented by the focused panel. Explorer selection and editor documents must remain independently targetable. | D-10 freezes fallback behavior; B-4 adds explicit focus/open and reveal-address actions plus the approved contextual default. | — |
+| REVEAL-1 | Ctrl+Shift+E opens a generic explorer rooted at the current Minecraft instance filesystem; revealing the file represented by a focused panel remains an explicit contextual/target-block action. Explorer selection and editor documents must remain independently targetable. | D-10/B-4 keep open and reveal as separate action-addressable operations; the 2026-08-23 default-key decision removes focus-dependent shortcut behavior while satisfying the explicit File Explorer expectation. Other domains remain available through explicit locations such as `registry://minecraft/item/`. | — |
 | REVEAL-2 | Reveal-in-explorer is a general address operation: paths go to a file explorer, item ids/queries go to an item explorer, and future domains can contribute their own explorer projection. | A-1/A-3 and B-4 route typed addresses/queries through resolver-provided explorer capabilities rather than a file-only `instanceof` ladder. | — |
 | CTXA-1 | The old Ctrl+Space token action should evolve into a VS Code-like Alt+Enter lightbulb/pick-list experience using the command palette now that the palette is mature. | D-9 and B-5 add a semantic contextual-actions action and open the existing constrained palette/choice surface; migration and compatibility are explicit. | — |
 | CTXA-2 | Replace one-to-one `TokenKind -> Runnable` behavior with a contributor registry that can map contextual inputs to zero or more action suggestions. | B-2/B-5 introduce typed context projections and a one-to-many `SFMContextActionProvider` registry that emits canonical action drafts, not callbacks. | — |
@@ -2583,9 +2620,12 @@ at every real Brigadier frontier.
 - a command with an unbounded/unsuggested argument visibly reports its named
   Brigadier usage and cannot activate that explanatory row;
 - quoted and greedy historical arguments round-trip through Brigadier ranges;
-- Tab cycling never turns an exact no-op candidate into an unintended focus
-  change; mouse acceptance, Up/Down selection, cancellation, and ordinary
-  execution retain existing behavior.
+- At an incomplete grammar frontier, Tab cycling never lets an exact no-op
+  candidate escape into unrelated widget focus. Once the current command is
+  executable and no selected completion can make progress, forward Tab enters
+  the ordinary focus chain so Execute is keyboard reachable. Mouse acceptance,
+  Up/Down selection, cancellation, and ordinary execution retain their
+  existing behavior.
 
 ```pwsh
 sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMClientActionPaletteSuggestionTests --wait-for-build-lock
@@ -2626,6 +2666,22 @@ by B-1 and TE-S2 rather than becoming transitional debt.
   in the command palette's ordinary document history. Focused Java tests cover
   ranking, insertion, history compatibility, frontier freshness, named usage,
   mouse/keyboard acceptance, and undo/redo around completion.
+- Follow-up natural testing found that a selected explanatory row could mask an
+  already-executable command from Enter. RCS-UX6b gives executable input
+  priority on Enter and routes puppet submission through the real Enter handler
+  so automation cannot bypass the contract. Tab remains owned by command
+  completion while the input has focus—even when completion makes no progress.
+  Focus transfer is explicit through `sfm:focus <target>`: Alt+E targets
+  `execute_button`, Alt+C targets `cancel_button`, and right-click exposes the
+  same focus/copy actions with localized, dynamically bound tooltips.
+- Shortcut badges, narration, and detail tooltips resolve an exact normalized
+  `(action-id, command-draft)`. Parameterized `sfm:panel/open` candidates no
+  longer cycle bindings that belong to a different scene. Alt+D and
+  Ctrl+Shift+E are global, and palette-origin unwrapping plus current-screen
+  publication guards preserve the title/world/workspace beneath transient
+  palettes. `sfm:screen/diagnostics` and alias `sfm:overlay/diagnostics` expose
+  the resulting screen, focus, panel, viewport, and overlay composition in a
+  read-only document.
 - The natural title-screen puppet
   `sfm:title_screen_ordinary_document_history` passed at `1280x720@auto` in
   run `sfm-title_screen-20260822-215127-171`. Figures 1 through 6 and the
@@ -2743,6 +2799,14 @@ finished, accepting a result performs the approved safe open/reveal behavior,
 and an empty context never scans a drive root.
 
 ### [~] B-4 Generalize reveal-in-explorer and bind Ctrl+Shift+E
+
+**Latest default-key decision (2026-08-23):** Ctrl+Shift+E opens one generic
+`sfm:explorer` panel through `sfm:panel/open`; it does not implicitly mutate an
+existing Explorer selection. Exact `Reveal in Explorer` remains a separate
+contextual/target-block action whose explicit address and resolver authority
+are preserved. This supersedes the earlier proposal to make reveal itself the
+Ctrl+Shift+E fallback and keeps the shortcut predictable when no addressable
+document is focused.
 
 **Work:** Close D-10 and the explorer vocabulary in D-11. Register semantic
 explorer focus/open and reveal actions. Resolve the captured focused address or
@@ -3911,6 +3975,34 @@ are recorded in C-4a through C-6 rather than being deferred to a future goal.
 | Missing Rust tooling makes source unreadable | Highlighting is advisory; unsupported/missing/crashed workers retain plain/existing text and visible bounded diagnostics while editor/navigation stay usable |
 | Language audit silently expands the release binary | C-4c enables Java only; later-language order is documentation/backlog, with dependency/features and artifact-size review required by a later goal |
 
+## 2026-08-24 input, action, and diagnostics acceptance correction
+
+The 2026-08-24 natural release-review journey exposed the following reusable
+input/action gaps. They are deliberately recorded here rather than as
+review-only patches:
+
+| ID | Requirement | Implemented contract and evidence |
+| --- | --- | --- |
+| INPUT-AC1 | The old raw-input diagnostic must be usable inside an existing workspace and discoverable from F3, not restricted to the title screen. | Complete: `sfm:input_diagnostics` is an embeddable panel with reference-counted raw GLFW key/scroll observation, semantic event rows, wheel navigation, Ctrl+C copy, and Ctrl+L clear. F3 offers an explicit open-right action, or closes the focused diagnostics panel. The legacy `sfm:developer/open_input_diagnostics` action delegates to the panel route. |
+| INPUT-AC2 | Ctrl+Arrow word movement stops at colons, slashes, and hyphens while retaining underscores as part of identifiers. | Complete: `SFMDrawCanvasModel` classifies `:`, `/`, and `-` as individual navigation separators and preserves `_` as a word constituent; focused tests cover both directions and adjacent separators. |
+| INPUT-AC3 | Title-only developer openings must not strand a palette/workspace on a black return screen. | Complete: legacy developer text-editor/input-diagnostic actions delegate through canonical persistent panel opening, which unwraps transient palette origins and returns to the real title/world/workspace owner. The superseded title-screen-only action class is removed. |
+| INPUT-AC4 | Vanilla-screen operations use one typed `sfm:minecraft/` action surface. | Complete: `sfm:minecraft/screen/open <TitleScreen\|ControlsScreen\|KeyBindsScreen>` exposes literal Brigadier suggestions, preserves the parent screen, and rejects TitleScreen while a world is loaded. The unreleased `sfm:controls/open` route is removed without compatibility debt. |
+| INPUT-AC5 | Execute and Cancel explain their current shortcuts and remain action-addressable. | Complete: localized tooltips query exact command-palette bindings for `sfm:focus execute_button` and `sfm:focus cancel_button` (default Alt+E/Alt+C); right-click offers the focus action and canonical command copying. The generated English resource now contains the Cancel label and all newly introduced UI strings. |
+| INPUT-AC6 | The keybinding manager must explain sorting, scope, and identity rather than exposing ambiguous unlabeled state. | Complete: Name/Binding Count headers show localized selected `>X (Asc/Desc)<` states and full Ascending/Descending tooltips; right-clicking Scope opens a constrained choice for every registered situation; the identity control switches display-name/action-ID primacy and each row exposes the alternate identity on hover. Explicit action families set sort, scope, and identity. |
+| INPUT-AC7 | F3 must expose the built-in FPS overlay without requiring users to type its encoded selector. | Complete: the constrained F3 diagnostics surface includes `Toggle FPS overlay`, backed by `sfm:overlay/visibility/toggle id(sfm%3Afps)`, so repeated execution alternates visibility while retaining placement and other scene state. |
+
+**Validation:** Canonical datagen regenerated `en_us.json`; canonical compilation
+and the complete Java test suite passed with 1,628 tests passed, zero failed,
+and the one expected opt-in symbol-worker integration test aborted. Raw-input
+modifier, word-navigation, typed-screen literal, palette lifecycle/focus, and
+keybinding sort tests are included. Live visual acceptance remains part of the
+maintainer journey rather than being inferred from model tests.
+
+The focused `sfm:title_screen_palette_focus_and_lifecycle` puppet passed at
+`1280x720@auto` in run `sfm-title_screen-20260824-005628-617`, producing exact
+captures for global Alt+D, Alt+E execution, Alt+C cancellation, palette-close
+return ownership, and screen diagnostics.
+
 ## Source and implementation references
 
 - `docs/AGENTS.md`
@@ -3992,3 +4084,26 @@ The global review plan owns how those mechanisms compose into release review,
 including exact review/session/source identities and its natural acceptance
 journey. Do not patch those behaviors only into `SFMReviewExplorerPanel`; its
 production replacement with `SFMExplorerPanel` is RCS-UX1.
+
+## 2026-08-24 candidate inspectability and selector-target correction
+
+RUX-38 through RUX-40 in
+`docs/tasks/global comment selection and review sessions plan.md` now provide a
+production acceptance case for generic contextual surfaces. This plan owns the
+reusable behavior:
+
+- Explorer rows and command-palette candidates expose action-backed, versioned
+  copy-details payloads;
+- candidate text consumes the true available row width, and the whole row—not
+  only an icon/details sliver—owns its complete tooltip when truncated;
+- candidate right-click offers copy display text, replacement/surface text,
+  canonical executable command, and structured details/help; and
+- a contextual proposal separates its effective destination from supporting
+  semantic evidence. Labels lead with the local target and place definitions,
+  provenance, and confidence in explicitly subordinate fields.
+
+The exact release-review regression is a local `@Override` range whose semantic
+definition is JDK `Override.java`. Choosing it must remain visibly and
+persistently a comment on the local reviewed bytes. The review plan owns that
+fixture and persistence assertion; this plan owns the candidate representation
+that makes the distinction impossible to mistake.

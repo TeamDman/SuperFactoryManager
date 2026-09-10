@@ -3,7 +3,20 @@
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Reference-only worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`
-**Last updated:** 2026-08-21
+**Last updated:** 2026-09-06 (linked bounded editor match-selection checkpoint verified)
+
+**September 6 refinement:**
+[Explorer find, selection, compact hierarchy, and review freshness](explorer%20find%20selection%20compact%20hierarchy%20and%20review%20freshness%20plan.md)
+captures EFR-02/18–22 and EF-1/EF-2/EF-7/EF-8: shared competent single-line
+editing, Alt+J add-next and Ctrl+Shift+Alt+J select-highlights, case/whole-word/
+regex options and explicit dot-all. Shared text match evidence projects through
+actual glyph/canvas geometry, including irregular spacing and multiline regions;
+it does not replace the 2D domain with a fixed line grid. X-9 remains the shared
+selection adapter. Live/pinned review targets are coordinated through EF-11/EF-12.
+EF-7 is now verified: ordinary V3 buffers expose exact next/all occurrence
+selection, shared bounded matching and atomic replacement through existing undo.
+The linked task records geometry/size limits and real typing/undo evidence; it
+does not claim an editor Find bar or unlimited persistent canvas geometry.
 
 ## How to update this plan
 

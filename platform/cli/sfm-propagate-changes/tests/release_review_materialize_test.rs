@@ -1,5 +1,7 @@
 #![expect(dead_code)]
 
+#[path = "../src/release_review_capture.rs"]
+mod release_review_capture;
 #[path = "../src/release_review_git.rs"]
 mod release_review_git;
 #[path = "../src/release_review_materialize.rs"]
@@ -80,6 +82,31 @@ fn materializes_complete_real_git_domain_canonically_and_without_mutation() {
     let second = materialize_release_review(&domain, &config).expect("rerun should be stable");
     assert_eq!(first, second);
 
+    // Synthetic annotations are presentation history, not the changed-domain
+    // denominator. The live path must retain every side and unit without them.
+    let observation = release_review_materialize::materialize_observation(&domain, &config)
+        .expect("comment-free observation should work");
+    assert!(observation.review_session.comments.is_empty());
+    assert!(observation.review_session.style_rules.is_empty());
+    assert!(!first.review_units.is_empty());
+    assert_eq!(first.review_units, observation.review_units);
+    assert_eq!(first.corpus_documents, observation.corpus_documents);
+    assert_eq!(
+        first.review_session.revision_lanes,
+        observation.review_session.revision_lanes
+    );
+    for expression in [
+        "1.19.2 HEAD",
+        "(1.19.2 HEAD) difference effective(#approved)",
+        "effective(#approved) intersect 1.19.2 HEAD",
+    ] {
+        assert_eq!(
+            release_review_v1::query(&first, expression).expect("legacy coverage query"),
+            release_review_v1::query(&observation, expression).expect("observation coverage query"),
+            "removing generated annotations changed coverage for {expression}"
+        );
+    }
+
     let first_json = release_review_v1::to_canonical_json(&first).expect("canonical JSON");
     let parsed = release_review_v1::parse(&first_json).expect("canonical JSON should parse");
     assert_eq!(
@@ -91,9 +118,15 @@ fn materializes_complete_real_git_domain_canonically_and_without_mutation() {
     assert_eq!(first.repository_bindings.len(), 1);
     let binding = &first.repository_bindings[0];
     assert_eq!(binding.before_commit, fixture.before_commit);
-    assert_eq!(binding.candidate_commit, fixture.candidate_commit);
+    assert_eq!(
+        binding.candidate_commit.as_deref(),
+        Some(fixture.candidate_commit.as_str())
+    );
     assert_eq!(binding.before_tree, domain.before.tree_id);
-    assert_eq!(binding.candidate_tree, domain.candidate.tree_id);
+    assert_eq!(
+        binding.candidate_tree.as_deref(),
+        Some(domain.candidate.tree_id.as_str())
+    );
     assert_eq!(binding.after_label, "HEAD");
     assert_eq!(
         binding.review_evidence_paths,
@@ -534,7 +567,7 @@ fn refresh_refuses_candidate_and_source_snapshot_divergence() {
         .expect("initial materialization");
 
     let mut candidate_diverged = existing.clone();
-    candidate_diverged.repository_bindings[0].candidate_commit = "e".repeat(40);
+    candidate_diverged.repository_bindings[0].candidate_commit = Some("e".repeat(40));
     let candidate_error = merge_refreshed_materialization(&existing, &candidate_diverged)
         .expect_err("candidate divergence must fail closed");
     assert_eq!(

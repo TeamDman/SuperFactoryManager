@@ -7,7 +7,10 @@ import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import ca.teamdman.sfm.client.action.SFMClientCommandInsertion;
 import ca.teamdman.sfm.client.action.SFMCompletionApplication;
+import ca.teamdman.sfm.client.action.SFMFocusTargetHost;
 import ca.teamdman.sfm.client.action.SFMPaletteCandidate;
+import ca.teamdman.sfm.client.action.SFMPaletteCandidateCopyAction;
+import ca.teamdman.sfm.client.action.SFMPaletteCandidateInspection;
 import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
 import ca.teamdman.sfm.client.history.SFMDocumentHistoryHost;
 import ca.teamdman.sfm.client.history.SFMDocumentHistoryHostController;
@@ -17,6 +20,7 @@ import ca.teamdman.sfm.client.history.document.SFMDocumentHistorySession;
 import ca.teamdman.sfm.client.history.document.runtime.SFMDocumentHistoryRuntime;
 import ca.teamdman.sfm.client.presentation.SFMItemIconRenderer;
 import ca.teamdman.sfm.client.presentation.SFMItemIconResolver;
+import ca.teamdman.sfm.client.presentation.SFMTextSummary;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBinding;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingCycle;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingDisplay;
@@ -66,7 +70,8 @@ import java.util.function.Consumer;
  * view from which the palette was opened.
  */
 public final class SFMCommandPaletteScreen extends Screen implements SFMTransientActionScreen,
-        SFMDocumentHistoryHost, SFMDocumentHistoryInputTarget, SFMKeyboardUsageContextProvider {
+        SFMDocumentHistoryHost, SFMDocumentHistoryInputTarget, SFMKeyboardUsageContextProvider,
+        SFMFocusTargetHost, SFMScreenDiagnosticsContributor, SFMPaletteCandidateCopyAction.Host {
     public static final String DEFAULT_QUERY = "sfm action invoke ";
 
     @SFMLocalizationDatagen
@@ -100,6 +105,42 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     );
 
     @SFMLocalizationDatagen
+    public static final LocalizationEntry CANCEL = new LocalizationEntry(
+            "gui.sfm.client_action.palette.cancel",
+            "Cancel"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FOCUS_CONTROL_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.client_action.palette.focus_control_tooltip",
+            "Focus with %s. Right-click for actions."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FOCUS_CONTROL_TOOLTIP_UNBOUND = new LocalizationEntry(
+            "gui.sfm.client_action.palette.focus_control_tooltip_unbound",
+            "No focus shortcut is assigned. Right-click for actions."
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CONTROL_ACTIONS = new LocalizationEntry(
+            "gui.sfm.client_action.palette.control_actions",
+            "%s actions"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry FOCUS_CONTROL = new LocalizationEntry(
+            "gui.sfm.client_action.palette.focus_control",
+            "Focus %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry COPY_FOCUS_ACTION = new LocalizationEntry(
+            "gui.sfm.client_action.palette.copy_focus_action",
+            "Copy focus action for %s"
+    );
+
+    @SFMLocalizationDatagen
     public static final LocalizationEntry EXECUTION_FAILED = new LocalizationEntry(
             "gui.sfm.client_action.palette.execution_failed",
             "Command could not be executed: %s"
@@ -109,6 +150,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     public static final LocalizationEntry REQUIRED_ARGUMENT = new LocalizationEntry(
             "gui.sfm.client_action.palette.required_argument",
             "Separator inserted; provide the required argument"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry MORE_DETAILS = new LocalizationEntry(
+            "gui.sfm.client_action.palette.more_details",
+            "Right-click this row for full details or to copy its complete value."
     );
 
     private static final int MAX_SUGGESTIONS = 8;
@@ -129,6 +176,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private static final int SCROLLBAR_GAP = 4;
     private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 12;
     static final String CLOSE_ACTION_COMMAND = "sfm action invoke sfm:palette/close";
+    static final String COMMAND_INPUT_FOCUS_TARGET = "command_input";
+    static final String EXECUTE_FOCUS_TARGET = "execute_button";
+    static final String CANCEL_FOCUS_TARGET = "cancel_button";
+    private static final ResourceLocation FOCUS_ACTION_ID = new ResourceLocation(SFM.MOD_ID, "focus");
+    private static final ResourceLocation COPY_ACTION_ID = new ResourceLocation(SFM.MOD_ID, "clipboard/copy/action");
 
     private static @Nullable SFMCommandPaletteScreen ACTIVE;
     private static final AtomicLong NEXT_HISTORY_SESSION = new AtomicLong();
@@ -138,6 +190,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private final String initialQuery;
     private final @Nullable SFMChoiceSession choiceSession;
     private final Runnable closeListener;
+    private final @Nullable SFMCommandPaletteScreen previousActive;
     @SuppressWarnings("NotNullFieldNotInitialized")
     private SFMClientActionCommandTree commandTree;
 
@@ -165,6 +218,8 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private @Nullable SFMDocumentHistoryHostController historyController;
     private @Nullable SFMDocumentHistoryRuntime.Registration historyRegistration;
     private boolean historyInputFocused;
+    private long nextCandidateInspectionId;
+    private @Nullable CapturedCandidateInspection capturedCandidateInspection;
 
     @FunctionalInterface
     interface PaletteActionExecutor {
@@ -186,6 +241,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             ControlBounds execute,
             ControlBounds cancel
     ) {
+    }
+
+    enum EnterKeyAction {
+        EXECUTE,
+        APPLY_SELECTED_SUGGESTION,
+        CONSUME
     }
 
     /** Read-only witness for the real shared Cancel widget used by live puppets. */
@@ -219,6 +280,27 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     ) {
     }
 
+    record CapturedCandidateInspection(long id, SFMPaletteCandidateInspection inspection) {
+        CapturedCandidateInspection {
+            if (id <= 0) throw new IllegalArgumentException("Candidate inspection id must be positive");
+            Objects.requireNonNull(inspection, "inspection");
+        }
+    }
+
+    record SuggestionTextPresentation(String renderedText, int availableWidth, boolean truncated) {
+        SuggestionTextPresentation {
+            Objects.requireNonNull(renderedText, "renderedText");
+            if (availableWidth < 0) throw new IllegalArgumentException("availableWidth must be non-negative");
+        }
+    }
+
+    enum SuggestionTooltipKind {
+        COMPLETE_CANDIDATE,
+        ICON,
+        ACTION_DETAILS,
+        NONE
+    }
+
     static final class CloseLifecycle {
         private boolean closing;
         private boolean cleaned;
@@ -248,6 +330,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.pushed = pushed;
         this.choiceSession = null;
         this.closeListener = () -> { };
+        this.previousActive = ACTIVE;
         this.commandTree = SFMClientActions.commandTree();
     }
 
@@ -265,6 +348,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.choiceSession = SFMChoiceSessionService.create(choices, actionContext);
         this.initialQuery = choiceSession.prefix();
         this.closeListener = () -> { };
+        this.previousActive = ACTIVE;
     }
 
     private SFMCommandPaletteScreen(
@@ -289,9 +373,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 capturedContext.originatingHost(),
                 () -> ACTIVE == this && Minecraft.getInstance().screen == this,
                 capturedContext.originatingPanelId());
+        ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewCaptures.inherit(capturedContext,this.actionContext);
         this.choiceSession = SFMChoiceSessionService.create(choices, actionContext);
         this.initialQuery = choiceSession.prefix();
         this.closeListener = Objects.requireNonNull(closeListener, "closeListener");
+        this.previousActive = ACTIVE;
     }
 
     public static SFMClientActionContext createOriginContext() {
@@ -457,7 +543,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         var narration = title.copy().append(". ").append(action.title()).append(". ")
                 .append(action.description());
         action.itemIcon(actionContext).ifPresent(icon -> narration.append(". Icon: " + icon.accessibleLabel()));
-        int bindingCount = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get()).size();
+        int bindingCount = bindingsForSuggestion(candidate).size();
         narration.append(". " + bindingCount + (bindingCount == 1 ? " binding" : " bindings")
                 + ". Open details to inspect or configure them.");
         return narration;
@@ -482,13 +568,14 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         int left = panelLeft();
         int top = panelTop();
         ControlsLayout controls = controlsLayout(this.width, top);
-        this.input = this.addRenderableWidget(new EditBox(
+        this.input = this.addRenderableWidget(new ca.teamdman.sfm.client.input.SFMSingleLineEditBox(
                 this.font,
                 controls.input().x(),
                 controls.input().y(),
                 controls.input().width(),
                 controls.input().height(),
-                INPUT_PLACEHOLDER.getComponent()
+                INPUT_PLACEHOLDER.getComponent(),
+                false // This screen's document history already owns input mutations.
         ));
         this.input.setMaxLength(2048);
         this.input.setValue(restoredHistoryState == null
@@ -501,11 +588,13 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 .setSize(controls.execute().width(), controls.execute().height())
                 .setText(EXECUTE)
                 .setOnPress(button -> executeInput())
+                .setTooltip(this, this.font, focusControlTooltip(EXECUTE_FOCUS_TARGET))
                 .build());
         this.executeButton.active = false;
         this.cancelButton = this.addRenderableWidget(createCancelButton(
                 controls.cancel(),
-                this::cancelThroughAction
+                this::cancelThroughAction,
+                focusControlTooltip(CANCEL_FOCUS_TARGET)
         ));
         this.consoleWidget = new SFMConsoleWidget(
                 this.font,
@@ -585,7 +674,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 try {
                     closeListener.run();
                 } finally {
-                    if (ACTIVE == this) ACTIVE = null;
+                    if (ACTIVE == this) ACTIVE = previousActive;
                 }
             }
         });
@@ -610,10 +699,16 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     @Override
     public boolean keyPressed(int key, int scanCode, int modifiers) {
+        int previousCursor = input == null ? -1 : input.getCursorPosition();
         SFMDocumentHistoryContract.DocumentState before = historyController == null
                 ? null
                 : captureInputHistoryState();
         boolean handled = keyPressedWithoutHistory(key, scanCode, modifiers);
+        if (ACTIVE == this && input != null && previousCursor != input.getCursorPosition()
+                && (key == GLFW.GLFW_KEY_LEFT || key == GLFW.GLFW_KEY_RIGHT
+                || key == GLFW.GLFW_KEY_HOME || key == GLFW.GLFW_KEY_END)) {
+            refreshSuggestions(input.getValue());
+        }
         if (before != null) {
             observeInputHistoryMutation(
                     before,
@@ -637,28 +732,25 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         }
         if (key == GLFW.GLFW_KEY_ENTER || key == GLFW.GLFW_KEY_KP_ENTER) {
             int selected = suggestionViewport.selectedRow();
-            if (selected >= 0 && selected < suggestions.size()
-                    && !suggestions.get(selected).activatable()) {
-                // Usage/diagnostic rows explain the current frontier. Enter
-                // must never execute through an explanatory selection.
-                return true;
+            switch (enterKeyAction(currentInputIsExecutable(), suggestions, selected)) {
+                case EXECUTE -> executeInput();
+                case APPLY_SELECTED_SUGGESTION -> {
+                    applySelectedSuggestion();
+                    if (currentInputIsExecutable()) executeInput();
+                }
+                case CONSUME -> {
+                    // Usage/diagnostic rows explain an incomplete frontier.
+                    // They remain non-activatable when the input itself is
+                    // not yet executable.
+                }
             }
-            if (!currentInputIsExecutable()
-                    && suggestionViewport.selectedRow() != SFMVerticalListViewport.NO_SELECTION) {
-                applySelectedSuggestion();
-                if (!currentInputIsExecutable()) return true;
-            }
-            executeInput();
             return true;
         }
         if (key == GLFW.GLFW_KEY_TAB) {
             boolean forward = (modifiers & GLFW.GLFW_MOD_SHIFT) == 0 && !Screen.hasShiftDown();
             if (forward && this.input.isFocused()) {
-                if (applySelectedSuggestion()) return true;
-                // A selected exact/no-op or explanatory row must not leak Tab
-                // into the widget focus chain. Shift+Tab remains the explicit
-                // way to leave the input in the reverse direction.
-                if (!this.suggestions.isEmpty()) return true;
+                applySelectedSuggestion();
+                return true;
             }
             if (!this.changeFocus(forward)) this.changeFocus(forward);
             return true;
@@ -681,6 +773,19 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             return true;
         }
         return super.keyPressed(key, scanCode, modifiers);
+    }
+
+    static EnterKeyAction enterKeyAction(
+            boolean currentInputExecutable,
+            List<SFMPaletteCandidate> candidates,
+            int selectedIndex
+    ) {
+        Objects.requireNonNull(candidates, "candidates");
+        if (currentInputExecutable) return EnterKeyAction.EXECUTE;
+        if (selectedIndex < 0 || selectedIndex >= candidates.size()) return EnterKeyAction.EXECUTE;
+        return candidates.get(selectedIndex).activatable()
+                ? EnterKeyAction.APPLY_SELECTED_SUGGESTION
+                : EnterKeyAction.CONSUME;
     }
 
     /**
@@ -760,7 +865,20 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         if (this.consoleWidget.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
-        if (super.mouseClicked(mouseX, mouseY, button)) return true;
+        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+            if (executeButton.isMouseOver(mouseX, mouseY)) {
+                openFocusControlActions(EXECUTE_FOCUS_TARGET, EXECUTE.getComponent());
+                return true;
+            }
+            if (cancelButton.isMouseOver(mouseX, mouseY)) {
+                openFocusControlActions(CANCEL_FOCUS_TARGET, CANCEL.getComponent());
+                return true;
+            }
+        }
+        if (super.mouseClicked(mouseX, mouseY, button)) {
+            if (input.isFocused()) refreshSuggestions(input.getValue());
+            return true;
+        }
         SFMVerticalListViewport.ScrollbarGeometry scrollbar = suggestionScrollbarGeometry();
         if (suggestionViewport.mouseClickedScrollbar(mouseX, mouseY, button, scrollbar)) return true;
         OptionalInt row = suggestionViewport.rowAt(
@@ -769,6 +887,10 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 suggestionRowBounds(scrollbar.visible()),
                 SUGGESTION_ROW_HEIGHT,
                 SUGGESTION_ROW_CONTENT_HEIGHT);
+        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && row.isPresent()) {
+            openCandidateActions(row.getAsInt());
+            return true;
+        }
         if (button == 0 && row.isPresent()) {
             int suggestionIndex = row.getAsInt();
             if (mouseX >= suggestionDetailsLeft(scrollbar.visible())) {
@@ -858,7 +980,10 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         fill(poseStack, left, top, left + 1, bottom, border);
         fill(poseStack, right - 1, top, right, bottom, border);
 
-        SFMFontUtils.draw(poseStack, this.font, title.copy().withStyle(ChatFormatting.BOLD), left + 10, top + 12, text, false);
+        String heading = SFMTextSummary.fitLine(title.getString(), panelWidth() - 20,
+                value -> font.width(Component.literal(value).withStyle(ChatFormatting.BOLD)));
+        SFMFontUtils.draw(poseStack, this.font, Component.literal(heading).withStyle(ChatFormatting.BOLD),
+                left + 10, top + 12, text, false);
         Component guidance = insertedRequiredArgumentSeparator
                 ? REQUIRED_ARGUMENT.getComponent().withStyle(ChatFormatting.GOLD)
                 : ACCEPT_SUGGESTION.getComponent(Component.literal("Tab").withStyle(ChatFormatting.AQUA));
@@ -900,7 +1025,9 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                         ? left + 10 + SFMItemIconRenderer.SIZE + 4
                         : left + 12;
                 int rowText = suggestion.activatable() ? text : muted;
-                SFMFontUtils.draw(poseStack, this.font, truncateSuggestion(suggestion, textX - left),
+                SuggestionTextPresentation textPresentation = suggestionTextPresentation(
+                        suggestion, textX, rows, right, scrollbar.visible());
+                SFMFontUtils.draw(poseStack, this.font, textPresentation.renderedText(),
                         textX, textY, rowText, false);
                 renderBindingSummary(poseStack, suggestion, right, textY, scrollbar.visible());
             }
@@ -921,8 +1048,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         this.consoleWidget.render(poseStack, mouseX, mouseY, partialTick);
         super.render(poseStack, mouseX, mouseY, partialTick);
         renderActionIconsOnTop(poseStack);
-        renderActionIconTooltip(poseStack, mouseX, mouseY);
-        renderActionDetailsTooltip(poseStack, mouseX, mouseY);
+        renderSuggestionTooltip(poseStack, mouseX, mouseY);
     }
 
     private Optional<ca.teamdman.sfm.client.presentation.SFMItemIcon> actionIcon(SFMPaletteCandidate suggestion) {
@@ -950,22 +1076,113 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         }
     }
 
-    private void renderActionIconTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+    private void renderSuggestionTooltip(PoseStack poseStack, int mouseX, int mouseY) {
         SFMVerticalListViewport.ScrollbarGeometry scrollbar = suggestionScrollbarGeometry();
+        SFMVerticalListViewport.Bounds rows = suggestionRowBounds(scrollbar.visible());
         OptionalInt row = suggestionViewport.rowAt(
                 mouseX,
                 mouseY,
-                suggestionRowBounds(scrollbar.visible()),
+                rows,
                 SUGGESTION_ROW_HEIGHT,
                 SUGGESTION_ROW_CONTENT_HEIGHT);
         if (row.isEmpty()) return;
         int suggestionIndex = row.getAsInt();
+        SFMPaletteCandidate suggestion = suggestions.get(suggestionIndex);
         int visibleIndex = suggestionIndex - suggestionViewport.firstVisibleRow();
         int iconX = panelLeft() + 10;
-        int iconY = suggestionRowBounds(scrollbar.visible()).y() + visibleIndex * SUGGESTION_ROW_HEIGHT;
-        if (mouseX < iconX || mouseX >= iconX + SFMItemIconRenderer.SIZE
-                || mouseY < iconY || mouseY >= iconY + SFMItemIconRenderer.SIZE) return;
-        Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
+        int iconY = rows.y() + visibleIndex * SUGGESTION_ROW_HEIGHT;
+        boolean iconHovered = mouseX >= iconX && mouseX < iconX + SFMItemIconRenderer.SIZE
+                && mouseY >= iconY && mouseY < iconY + SFMItemIconRenderer.SIZE;
+        boolean detailsHovered = mouseX >= suggestionDetailsLeft(scrollbar.visible());
+        int textX = actionIcon(suggestion).isPresent()
+                ? panelLeft() + 10 + SFMItemIconRenderer.SIZE + 4
+                : panelLeft() + 12;
+        SuggestionTextPresentation textPresentation = suggestionTextPresentation(
+                suggestion,
+                textX,
+                rows,
+                panelLeft() + panelWidth(),
+                scrollbar.visible()
+        );
+        switch (suggestionTooltipKind(textPresentation.truncated(), iconHovered, detailsHovered)) {
+            case COMPLETE_CANDIDATE -> renderCompleteCandidateTooltip(
+                    poseStack, candidateInspection(suggestion), mouseX, mouseY);
+            case ICON -> renderActionIconTooltip(poseStack, suggestion, mouseX, mouseY);
+            case ACTION_DETAILS -> renderActionDetailsTooltip(poseStack, suggestion, mouseX, mouseY);
+            case NONE -> {
+            }
+        }
+    }
+
+    static SuggestionTooltipKind suggestionTooltipKind(
+            boolean truncated,
+            boolean iconHovered,
+            boolean detailsHovered
+    ) {
+        if (truncated) return SuggestionTooltipKind.COMPLETE_CANDIDATE;
+        if (iconHovered) return SuggestionTooltipKind.ICON;
+        if (detailsHovered) return SuggestionTooltipKind.ACTION_DETAILS;
+        return SuggestionTooltipKind.NONE;
+    }
+
+    private void renderCompleteCandidateTooltip(
+            PoseStack poseStack,
+            SFMPaletteCandidateInspection inspection,
+            int mouseX,
+            int mouseY
+    ) {
+        int maximumWidth = Math.max(1, Math.min(360, this.width - 40));
+        int maximumRows = tooltipRowBudget(this.height);
+        ArrayList<net.minecraft.util.FormattedCharSequence> wrapped = new ArrayList<>();
+        List<String> lines = inspection.accessibleDescriptionLines();
+        boolean abbreviated = false;
+        for (int index = 0; index < lines.size(); index++) {
+            String bounded = SFMTextSummary.codePoints(lines.get(index), 4096);
+            abbreviated |= !bounded.equals(lines.get(index));
+            Component line = Component.literal(bounded).withStyle(
+                    index == 0 ? ChatFormatting.AQUA : ChatFormatting.GRAY);
+            wrapped.addAll(this.font.split(line, maximumWidth));
+            if (wrapped.size() > maximumRows) { abbreviated = true; break; }
+        }
+        if (abbreviated) {
+            var hint = this.font.split(MORE_DETAILS.getComponent().withStyle(ChatFormatting.GOLD), maximumWidth);
+            int hintRows = Math.min(maximumRows, hint.size());
+            wrapped = new ArrayList<>(wrapped.subList(0, Math.min(wrapped.size(), maximumRows - hintRows)));
+            wrapped.addAll(hint.subList(0, hintRows));
+        }
+        int contentWidth = wrapped.stream().mapToInt(this.font::width).max().orElse(0);
+        TooltipAnchor anchor = tooltipAnchor(
+                this.width, this.height, mouseX, mouseY, contentWidth, wrapped.size());
+        renderTooltip(poseStack, wrapped, anchor.x(), anchor.y());
+    }
+
+    static int tooltipRowBudget(int screenHeight) {
+        return Math.max(1, Math.min(18, (screenHeight - 32) / 10));
+    }
+
+    record TooltipAnchor(int x, int y) { }
+
+    static TooltipAnchor tooltipAnchor(
+            int screenWidth, int screenHeight, int mouseX, int mouseY,
+            int contentWidth, int rowCount
+    ) {
+        // Screen.renderTooltip offsets x by 12, then flips the whole tooltip left
+        // if it overflows. Prewrapped text can be wider than either side of the
+        // pointer, so keep the anchor in the right-placement interval instead.
+        // Reserve the vanilla four-pixel border and the first-line vertical gap.
+        int x = Math.max(0, Math.min(mouseX, screenWidth - contentWidth - 16));
+        int contentHeight = rowCount * 10 + 2;
+        int top = Math.max(4, Math.min(mouseY - 12, screenHeight - contentHeight - 6));
+        return new TooltipAnchor(x, top + 12);
+    }
+
+    private void renderActionIconTooltip(
+            PoseStack poseStack,
+            SFMPaletteCandidate suggestion,
+            int mouseX,
+            int mouseY
+    ) {
+        Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return;
         var action = SFMClientActions.registry().get(actionId.get());
         if (action == null) return;
@@ -985,11 +1202,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     ) {
         Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return;
-        List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get());
+        List<SFMKeyBinding> bindings = bindingsForSuggestion(suggestion);
         SFMKeyBinding binding = SFMKeyBindingCycle.displayedBinding(bindings, bindingCycleTicks);
         if (binding == null) return;
         int scrollbarSpace = scrollbarVisible ? SCROLLBAR_WIDTH + SCROLLBAR_GAP : 0;
-        int bindingAreaLeft = right - 146 - scrollbarSpace;
+        int bindingAreaLeft = bindingAreaLeft(right, scrollbarVisible);
         int bindingAreaWidth = 108;
         SFMKeycapRenderer.draw(
                 poseStack,
@@ -1003,17 +1220,13 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 SFMClientThemeService.active().colour(SFMColourRole.TEXT_ACCENT), false);
     }
 
-    private void renderActionDetailsTooltip(PoseStack poseStack, int mouseX, int mouseY) {
-        SFMVerticalListViewport.ScrollbarGeometry scrollbar = suggestionScrollbarGeometry();
-        OptionalInt row = suggestionViewport.rowAt(
-                mouseX,
-                mouseY,
-                suggestionRowBounds(scrollbar.visible()),
-                SUGGESTION_ROW_HEIGHT,
-                SUGGESTION_ROW_CONTENT_HEIGHT);
-        if (row.isEmpty() || mouseX < suggestionDetailsLeft(scrollbar.visible())) return;
-        int suggestionIndex = row.getAsInt();
-        Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
+    private void renderActionDetailsTooltip(
+            PoseStack poseStack,
+            SFMPaletteCandidate suggestion,
+            int mouseX,
+            int mouseY
+    ) {
+        Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return;
         var action = SFMClientActions.registry().get(actionId.get());
         if (action == null) return;
@@ -1023,7 +1236,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         action.itemIcon(actionContext).ifPresent(icon -> tooltip.add(
                 Component.literal("Icon: " + icon.accessibleLabel()).withStyle(ChatFormatting.GRAY)
         ));
-        List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get());
+        List<SFMKeyBinding> bindings = bindingsForSuggestion(suggestion);
         if (bindings.isEmpty()) tooltip.add(Component.literal("No key bindings").withStyle(ChatFormatting.GRAY));
         else bindings.forEach(binding -> tooltip.add(Component.literal(
                 SFMKeyBindingDisplay.format(binding.sequence()) + (binding.enabled() ? "" : " (disabled)")
@@ -1031,8 +1244,40 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         renderComponentTooltip(poseStack, tooltip, mouseX, mouseY);
     }
 
-    private String truncateSuggestion(SFMPaletteCandidate suggestion, int leftInset) {
-        return font.plainSubstrByWidth(suggestion.displayText(), Math.max(20, panelWidth() - 150 - leftInset));
+    private SuggestionTextPresentation suggestionTextPresentation(
+            SFMPaletteCandidate suggestion,
+            int textX,
+            SFMVerticalListViewport.Bounds rows,
+            int panelRight,
+            boolean scrollbarVisible
+    ) {
+        OptionalInt trailingAffordanceLeft = bindingsForSuggestion(suggestion).isEmpty()
+                ? OptionalInt.empty()
+                : OptionalInt.of(bindingAreaLeft(panelRight, scrollbarVisible));
+        int availableWidth = suggestionTextAvailableWidth(
+                textX,
+                rows.x() + rows.width(),
+                trailingAffordanceLeft
+        );
+        String displayText = suggestion.displayText();
+        String rendered = SFMTextSummary.fitLine(displayText, availableWidth, this.font::width);
+        return new SuggestionTextPresentation(rendered, availableWidth, !rendered.equals(displayText));
+    }
+
+    static int suggestionTextAvailableWidth(
+            int textX,
+            int rowRight,
+            OptionalInt trailingAffordanceLeft
+    ) {
+        int textRight = trailingAffordanceLeft.isPresent()
+                ? Math.min(rowRight, trailingAffordanceLeft.getAsInt())
+                : rowRight;
+        return Math.max(0, textRight - textX - 4);
+    }
+
+    private static int bindingAreaLeft(int panelRight, boolean scrollbarVisible) {
+        int scrollbarSpace = scrollbarVisible ? SCROLLBAR_WIDTH + SCROLLBAR_GAP : 0;
+        return panelRight - 146 - scrollbarSpace;
     }
 
     private Optional<ResourceLocation> suggestionActionId(SFMPaletteCandidate suggestion) {
@@ -1051,6 +1296,50 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         } catch (RuntimeException ignored) {
             return Optional.empty();
         }
+    }
+
+    private List<SFMKeyBinding> bindingsForSuggestion(SFMPaletteCandidate suggestion) {
+        Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
+        Optional<String> command = canonicalCommandForSuggestion(suggestion);
+        if (actionId.isEmpty() || command.isEmpty()) return List.of();
+        return SFMKeyBindingService.INSTANCE.bindingsForCommand(actionId.get(), command.get());
+    }
+
+    private Optional<String> canonicalCommandForSuggestion(SFMPaletteCandidate suggestion) {
+        if (!suggestion.activatable()) return Optional.empty();
+        String surfaceCommand = suggestion.apply(commandInput()).afterValue().strip();
+        if (choiceSession != null) {
+            return choiceSession.canonicalCommandForSurfaceCommand(surfaceCommand);
+        }
+        return Optional.of(surfaceCommand);
+    }
+
+    private Optional<String> canonicalExecutableCommandForSuggestion(SFMPaletteCandidate suggestion) {
+        return canonicalCommandForSuggestion(suggestion).filter(command -> isExecutable(
+                SFMClientActions.commandTree().parse(
+                        command,
+                        new SFMClientActionSource(actionContext)
+                )
+        ));
+    }
+
+    private SFMPaletteCandidateInspection candidateInspection(SFMPaletteCandidate suggestion) {
+        Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
+        var action = actionId.map(id -> SFMClientActions.registry().get(id)).orElse(null);
+        List<String> bindings = bindingsForSuggestion(suggestion).stream()
+                .map(binding -> SFMKeyBindingDisplay.format(binding.sequence())
+                        + (binding.enabled() ? "" : " (disabled)"))
+                .toList();
+        return SFMPaletteCandidateInspection.capture(
+                suggestion,
+                commandInput(),
+                canonicalExecutableCommandForSuggestion(suggestion).orElse(null),
+                actionId.map(ResourceLocation::toString).orElse(null),
+                action == null ? null : action.title().getString(),
+                action == null ? null : action.description().getString(),
+                actionIcon(suggestion).map(icon -> icon.accessibleLabel()).orElse(null),
+                bindings
+        );
     }
 
     private int panelWidth() {
@@ -1146,9 +1435,131 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         return new SFMButtonBuilder()
                 .setPosition(bounds.x(), bounds.y())
                 .setSize(bounds.width(), bounds.height())
-                .setText(Component.literal("Cancel"))
+                .setText(CANCEL)
                 .setOnPress(button -> onPress.run())
                 .build();
+    }
+
+    private Button createCancelButton(ControlBounds bounds, Runnable onPress, Component tooltip) {
+        Objects.requireNonNull(bounds, "bounds");
+        Objects.requireNonNull(onPress, "onPress");
+        return new SFMButtonBuilder()
+                .setPosition(bounds.x(), bounds.y())
+                .setSize(bounds.width(), bounds.height())
+                .setText(CANCEL)
+                .setOnPress(button -> onPress.run())
+                .setTooltip(this, this.font, tooltip)
+                .build();
+    }
+
+    private Component focusControlTooltip(String targetId) {
+        List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForCommand(
+                FOCUS_ACTION_ID,
+                focusCommand(targetId)
+        );
+        if (bindings.isEmpty()) return FOCUS_CONTROL_TOOLTIP_UNBOUND.getComponent();
+        String labels = bindings.stream()
+                .map(binding -> SFMKeyBindingDisplay.format(binding.sequence()))
+                .distinct()
+                .collect(java.util.stream.Collectors.joining(", "));
+        return FOCUS_CONTROL_TOOLTIP.getComponent(Component.literal(labels));
+    }
+
+    private void openCandidateActions(int suggestionIndex) {
+        if (suggestionIndex < 0 || suggestionIndex >= suggestions.size()) return;
+        SFMPaletteCandidateInspection inspection = candidateInspection(suggestions.get(suggestionIndex));
+        long captureId = ++nextCandidateInspectionId;
+        if (captureId <= 0) throw new IllegalStateException("Palette candidate inspection id space exhausted");
+        CapturedCandidateInspection capture = new CapturedCandidateInspection(captureId, inspection);
+        capturedCandidateInspection = capture;
+        SFMClientActionContext targetContext = SFMClientActionContext.create(
+                this,
+                () -> capturedCandidateInspection == capture
+        );
+        try {
+            SFMCommandPaletteScreen.openChoices(
+                    targetContext,
+                    Component.literal("Candidate actions"),
+                    SFMPaletteCandidateCopyAction.choices(captureId, inspection),
+                    () -> {
+                        if (capturedCandidateInspection == capture) capturedCandidateInspection = null;
+                    }
+            );
+        } catch (RuntimeException exception) {
+            if (capturedCandidateInspection == capture) capturedCandidateInspection = null;
+            throw exception;
+        }
+    }
+
+    @Override
+    public Optional<SFMPaletteCandidateInspection> paletteCandidateInspection(long captureId) {
+        CapturedCandidateInspection capture = capturedCandidateInspection;
+        return capture != null && capture.id() == captureId
+                ? Optional.of(capture.inspection())
+                : Optional.empty();
+    }
+
+    private void openFocusControlActions(String targetId, Component controlName) {
+        SFMClientActionContext targetContext = SFMClientActionContext.create(
+                this,
+                () -> ACTIVE != null
+        );
+        SFMCommandPaletteScreen.openChoices(
+                targetContext,
+                CONTROL_ACTIONS.getComponent(controlName),
+                List.of(
+                        SFMActionChoice.invoke(
+                                FOCUS_ACTION_ID,
+                                targetId,
+                                FOCUS_CONTROL.getComponent(controlName).getString()
+                        ),
+                        SFMActionChoice.invoke(
+                                COPY_ACTION_ID,
+                                FOCUS_ACTION_ID + " " + targetId,
+                                COPY_FOCUS_ACTION.getComponent(controlName).getString()
+                        )
+                )
+        );
+    }
+
+    private static String focusCommand(String targetId) {
+        return "sfm action invoke " + FOCUS_ACTION_ID + " " + targetId;
+    }
+
+    @Override
+    public List<String> focusTargetIds() {
+        return List.of(COMMAND_INPUT_FOCUS_TARGET, EXECUTE_FOCUS_TARGET, CANCEL_FOCUS_TARGET);
+    }
+
+    @Override
+    public boolean focusTarget(String targetId) {
+        net.minecraft.client.gui.components.AbstractWidget target = switch (targetId) {
+            case COMMAND_INPUT_FOCUS_TARGET -> input;
+            case EXECUTE_FOCUS_TARGET -> executeButton;
+            case CANCEL_FOCUS_TARGET -> cancelButton;
+            default -> null;
+        };
+        if (target == null || !target.visible) return false;
+        setFocused(target);
+        target.setFocused(true);
+        return true;
+    }
+
+    @Override
+    public List<String> screenDiagnostics() {
+        return List.of(
+                "palette.title=" + title.getString(),
+                "palette.pushed=" + pushed,
+                "palette.choice-session=" + (choiceSession == null ? "none" : choiceSession.id()),
+                "palette.input=" + (input == null ? "uninitialized" : input.getValue()),
+                "palette.suggestions=" + suggestions.size(),
+                "palette.selected-suggestion=" + suggestionViewport.selectedRow(),
+                "palette.execute-active=" + (executeButton != null && executeButton.active),
+                "palette.focus-targets=" + String.join(",", focusTargetIds()),
+                "palette.origin=" + (actionContext.originatingHost() == null
+                        ? "none"
+                        : actionContext.originatingHost().getClass().getName())
+        );
     }
 
     private SFMVerticalListViewport.Bounds suggestionListBounds() {
@@ -1403,7 +1814,9 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 new SFMClientActionSource(this.actionContext)
         );
         this.executeButton.active = isExecutable(parsed);
-        tree.getPaletteCandidates(command, parsed).thenAccept(result -> Minecraft.getInstance().execute(() -> {
+        int cursor = Math.max(0, Math.min(command.length(), input.getCursorPosition()
+                - (input.getValue().startsWith("/") ? 1 : 0)));
+        tree.getPaletteCandidates(command, parsed, cursor).thenAccept(result -> Minecraft.getInstance().execute(() -> {
             if (ACTIVE != this || revision != this.suggestionRevision) return;
             this.suggestions = result;
             this.appliedSuggestionRevision = revision;
@@ -1428,23 +1841,33 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     private boolean applySelectedSuggestion() {
         int selectedSuggestion = suggestionViewport.selectedRow();
-        if (selectedSuggestion < 0 || selectedSuggestion >= this.suggestions.size()) return false;
         String rawCurrent = this.input.getValue();
         String current = commandInput();
-        SFMPaletteCandidate candidate = this.suggestions.get(selectedSuggestion);
-        if (!candidate.activatable()) return false;
-        SFMCompletionApplication application = candidate.apply(current);
-        if (application.afterValue().equals(current)) {
-            OptionalInt progressing = SFMPaletteCandidate.progressingIndex(
-                    this.suggestions,
-                    selectedSuggestion,
-                    current
-            );
-            if (progressing.isEmpty()) return true;
-            selectedSuggestion = progressing.getAsInt();
+        OptionalInt suggestionToApply = selectedSuggestionToApply(
+                suggestions,
+                selectedSuggestion,
+                current
+        );
+        if (suggestionToApply.isEmpty()) return false;
+        if (suggestionToApply.getAsInt() != selectedSuggestion) {
+            selectedSuggestion = suggestionToApply.getAsInt();
             suggestionViewport.select(selectedSuggestion);
-            candidate = this.suggestions.get(selectedSuggestion);
-            application = candidate.apply(current);
+        }
+        SFMPaletteCandidate candidate = this.suggestions.get(selectedSuggestion);
+        SFMCompletionApplication application = candidate.apply(current);
+        if (choiceSession != null) {
+            Optional<String> continuation = choiceSession.continuationForSurfaceCommand(application.afterValue());
+            if (continuation.isPresent()) {
+                // Close this exact choice surface, then continue with its captured origin and theme arguments.
+                // No action has executed and no mutation is implied by selecting the incomplete candidate.
+                onClose();
+                var continuedContext = new SFMClientActionContext(actionContext.originatingHost(),
+                        () -> isOriginStillActive(actionContext.originatingHost() instanceof Screen origin ? origin : null),
+                        actionContext.originatingPanelId());
+                ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewCaptures.inherit(actionContext,continuedContext);
+                SFMCommandPaletteScreen.open(continuedContext, continuation.get() + " ");
+                return true;
+            }
         }
         application = paletteCoordinateApplication(rawCurrent, application);
         this.lastCompletionApplication = application;
@@ -1455,8 +1878,28 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 "palette-completion-" + application.candidateKind().name().toLowerCase(java.util.Locale.ROOT)
         );
         this.insertedRequiredArgumentSeparator = !application.deliberateSeparator().isEmpty();
-        this.input.moveCursorToEnd();
+        this.input.setCursorPosition(Math.min(this.input.getValue().length(),
+                application.replacementRange().getStart() + application.replacementText().length()
+                        + application.deliberateSeparator().length()));
+        this.input.setHighlightPos(this.input.getCursorPosition());
+        refreshSuggestions(this.input.getValue());
         return true;
+    }
+
+    static OptionalInt selectedSuggestionToApply(
+            List<SFMPaletteCandidate> candidates,
+            int selectedIndex,
+            String currentValue
+    ) {
+        Objects.requireNonNull(candidates, "candidates");
+        Objects.requireNonNull(currentValue, "currentValue");
+        if (selectedIndex < 0 || selectedIndex >= candidates.size()) return OptionalInt.empty();
+        SFMPaletteCandidate selected = candidates.get(selectedIndex);
+        if (!selected.activatable()) return OptionalInt.empty();
+        if (!selected.apply(currentValue).afterValue().equals(currentValue)) {
+            return OptionalInt.of(selectedIndex);
+        }
+        return SFMPaletteCandidate.progressingIndex(candidates, selectedIndex, currentValue);
     }
 
     private static SFMCompletionApplication paletteCoordinateApplication(
@@ -1566,7 +2009,9 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             if (Minecraft.getInstance().screen == this) onClose();
             return result;
         }
-        resetToDefaultQuery();
+        // Actions may close or replace this palette. Do not mutate a removed
+        // palette after command execution transfers screen ownership.
+        if (Minecraft.getInstance().screen == this) resetToDefaultQuery();
         return result;
     }
 
@@ -1605,6 +2050,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     /** Immutable originating context retained while automation drives a pushed palette. */
     public SFMClientActionContext actionContextForAutomation() {
+        return actionContext;
+    }
+
+    /** Captured origin used when a palette action opens a persistent workspace. */
+    public SFMClientActionContext originatingActionContext() {
         return actionContext;
     }
 
@@ -1819,7 +2269,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     /** Submits the current automation input through the same path as Enter. */
     public void submitInputForAutomation() {
-        executeInput();
+        keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0);
     }
 
     /** Displays deterministic theme reload feedback for the visual puppet. */
@@ -1839,7 +2289,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     /** Exercises the same Enter path as a user and verifies its resulting draft. */
     public void prepareIncompleteInputForAutomation(String command, String expected) {
         setInputForAutomation(command);
-        executeInput();
+        keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0);
         if (!this.input.getValue().equals(expected)) {
             throw new IllegalStateException("Expected palette input '" + expected + "' but found '"
                     + this.input.getValue() + "'");

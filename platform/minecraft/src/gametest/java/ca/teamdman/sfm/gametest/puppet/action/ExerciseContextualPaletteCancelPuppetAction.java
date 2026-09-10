@@ -126,8 +126,7 @@ public final class ExerciseContextualPaletteCancelPuppetAction implements SFMPup
         SFMTextDocumentRange range = SFMSourcePuppetProbe.symbolRange(document.text(), symbol, occurrence);
         C11SourceNavigationPuppetProbe.Pointer pointer =
                 C11SourceNavigationPuppetProbe.pointer(workspace, editor, range);
-        SFMGamePuppetPointer.moveNative(workspace, pointer.globalX(), pointer.globalY());
-        SFMGamePuppetPointer.moveWorkspace(workspace, pointer.globalX(), pointer.globalY());
+        SFMGamePuppetPointer.moveVirtual(workspace, pointer.globalX(), pointer.globalY());
         if (!workspace.mouseClicked(pointer.globalX(), pointer.globalY(), GLFW.GLFW_MOUSE_BUTTON_RIGHT)) {
             fail("The text editor did not consume the contextual right-click");
         }

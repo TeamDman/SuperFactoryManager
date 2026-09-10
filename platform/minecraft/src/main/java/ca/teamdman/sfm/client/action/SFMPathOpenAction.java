@@ -85,9 +85,8 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
                         path,
                         mode
                 );
-                commandContext.getSource().sendFeedback(Component.literal(
-                        "Opening " + path.canonical() + " as "
-                                + mode.name().toLowerCase(java.util.Locale.ROOT)
+                commandContext.getSource().sendFeedback(ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
+                        "Opening ", path, ""
                 ));
                 return opened;
             }
@@ -97,14 +96,10 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
                         path,
                         mode
                 );
-                commandContext.getSource().sendFeedback(Component.literal(
-                        "Opening review source " + path.canonical() + " as "
-                                + mode.name().toLowerCase(java.util.Locale.ROOT)
+                commandContext.getSource().sendFeedback(ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
+                        "Opening review source ", path, ""
                 ));
                 return opened;
-            }
-            if (path.kind() != SFMPath.Kind.FILE) {
-                throw new IllegalArgumentException("The first addressed editor slice supports file:// paths only");
             }
             SFMClientActionContext actionContext = commandContext.getSource().context();
             SFMScreenMultiplexer workspace = actionContext.originatingHost() instanceof SFMScreenMultiplexer value
@@ -114,6 +109,10 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
                     && workspace.panelInstance(sourcePanelId) instanceof SFMExplorerPanel explorer
                     ? explorer : null;
             SFMExplorerRuntime runtime = SFMExplorerRuntime.get();
+            if (!runtime.supportsTextRead(path.scheme()))
+                throw new IllegalArgumentException("This resolver does not support text reads: " + path.scheme());
+            if (path.kind() != SFMPath.Kind.FILE && sourceExplorer == null)
+                throw new IllegalArgumentException("Contributed text paths require their originating Explorer root");
             SFMPath authorizedRoot = sourceExplorer == null
                     ? runtime.authorizedFilesystemRootFor(path).orElseThrow(() -> new IllegalArgumentException(
                             "Path is outside every explicit explorer root: " + path.canonical()
@@ -127,6 +126,8 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
             String title = path.segments().isEmpty()
                     ? path.canonical()
                     : path.segments().get(path.segments().size() - 1);
+            if (sourceExplorer != null && path.kind() != SFMPath.Kind.FILE)
+                title = sourceExplorer.publishedLabel(path).orElse(title);
             SFMTextEditorPanelRecipe recipe = new SFMTextEditorPanelRecipe(
                     new ResourceLocation(SFM.MOD_ID, "text_editor"),
                     editorId,
@@ -155,8 +156,8 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
             if (opened == 0) {
                 throw new IllegalStateException("The addressed document could not be placed in the panel workspace");
             }
-            commandContext.getSource().sendFeedback(Component.literal(
-                    "Opening " + path.canonical() + " as " + mode.name().toLowerCase(java.util.Locale.ROOT)
+            commandContext.getSource().sendFeedback(ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
+                    "Opening ", path, ""
             ));
             return opened;
         } catch (RuntimeException failure) {
@@ -245,8 +246,20 @@ public final class SFMPathOpenAction implements SFMClientAction<SFMClientActionC
             ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession.Snapshot snapshot,
             SFMPath path
     ) {
+        return deepestContainingRoot(snapshot.roots(), path);
+    }
+
+    static Optional<SFMPath> deepestContainingRoot(java.util.Collection<SFMPath> roots, SFMPath path) {
+        if (path.kind() != SFMPath.Kind.FILE) {
+            return roots.stream().filter(root -> root.kind() == path.kind()
+                            && root.scheme().equals(path.scheme()) && root.authority().equals(path.authority())
+                            && root.revision().equals(path.revision())
+                            && root.segments().size() <= path.segments().size()
+                            && path.segments().subList(0, root.segments().size()).equals(root.segments()))
+                    .max(Comparator.comparingInt(root -> root.segments().size()));
+        }
         Path nativePath = path.toNativePath().toAbsolutePath().normalize();
-        return snapshot.roots().stream()
+        return roots.stream()
                 .filter(root -> root.kind() == SFMPath.Kind.FILE)
                 .filter(root -> nativePath.startsWith(root.toNativePath().toAbsolutePath().normalize()))
                 .max(Comparator.comparingInt(root -> root.toNativePath().getNameCount()));

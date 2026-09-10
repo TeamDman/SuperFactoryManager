@@ -45,6 +45,36 @@ class SFMChoiceSessionTests {
     private static final ResourceLocation SECOND = new ResourceLocation("sfm", "second");
     private static final ResourceLocation REQUIRED = new ResourceLocation("sfm", "required");
 
+    @Test
+    void incompleteOptInChoiceBuildsACommandButCannotExecuteOrRetargetAfterExpiry() throws Exception {
+        AtomicInteger executions = new AtomicInteger();
+        class ConstructAction implements SFMClientAction<Object>, ca.teamdman.sfm.client.action.SFMClientActionCompletion {
+            public Component title() { return Component.literal("Construct"); }
+            public Component description() { return Component.literal("Construct a typed command"); }
+            public SFMClientActionRequirement<Object> requirement() { return context -> SFMClientActionAvailability.available(context); }
+            public int execute(Object target, CommandContext<SFMClientActionSource> context) { executions.incrementAndGet(); return 1; }
+            public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
+                node.then(RequiredArgumentBuilder.<SFMClientActionSource,String>argument("value",StringArgumentType.string()));
+            }
+            public java.util.Optional<List<ca.teamdman.sfm.client.action.SFMPaletteCandidate>> argumentCandidates(
+                    String command,int start,int cursor,SFMClientActionContext context) { return java.util.Optional.empty(); }
+        }
+        Map<ResourceLocation,SFMClientAction<?>> actions=Map.of(FIRST,new ConstructAction(),REQUIRED,new RequiredAction(executions));
+        var global=SFMClientActionDispatcherCompiler.compileCommandTree(actions.entrySet());
+        var origin=SFMClientActionContext.create("original",()->true);
+        var choice=SFMActionChoice.continuation(FIRST,"\"two  spaces\"","Continue constructing");
+        var session=SFMChoiceSessionService.create(List.of(choice,SFMActionChoice.continuation(REQUIRED,"","Not opted in")),origin,actions::get,global);
+        var surface=session.activate();
+        assertEquals(List.of(choice.command()),session.canonicalCommands());
+        String command=session.surfaceCommand(choice.command());
+        assertFalse(SFMClientActionExecutor.isExecutable(surface.parse(command,new SFMClientActionSource(origin))));
+        assertThrows(CommandSyntaxException.class,()->surface.execute(command,new SFMClientActionSource(origin)));
+        assertEquals(choice.command(),session.continuationForSurfaceCommand(command).orElseThrow());
+        assertEquals(0,executions.get());
+        SFMChoiceSessionService.invalidate(session);
+        assertTrue(session.continuationForSurfaceCommand(command).isEmpty());
+    }
+
     @AfterEach
     void clearSessions() {
         SFMChoiceSessionService.clearForTests();

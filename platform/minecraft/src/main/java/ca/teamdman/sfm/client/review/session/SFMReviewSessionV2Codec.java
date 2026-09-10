@@ -56,6 +56,11 @@ public final class SFMReviewSessionV2Codec {
     }
 
     public static String write(SFMReviewSessionV2 session) {
+        return GSON.toJson(writeTree(session)) + "\n";
+    }
+
+    /** Fresh owned tree for nesting without serializing and parsing an intermediate string. */
+    public static JsonObject writeTree(SFMReviewSessionV2 session) {
         JsonObject root = new JsonObject();
         root.addProperty("schema", session.schema());
         root.addProperty("id", session.id());
@@ -75,7 +80,7 @@ public final class SFMReviewSessionV2Codec {
         policy.addProperty("approval_hashtag", session.completionPolicy().approvalHashtag());
         policy.add("blocking_hashtags", writeStrings(session.completionPolicy().blockingHashtags()));
         root.add("completion_policy", policy);
-        return GSON.toJson(root) + "\n";
+        return root;
     }
 
     private static SFMReviewSessionV2 parseV2(JsonObject root) {

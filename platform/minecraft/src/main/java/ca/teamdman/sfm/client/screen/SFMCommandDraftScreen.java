@@ -68,7 +68,7 @@ public final class SFMCommandDraftScreen extends Screen {
     }
 
     private void initPrompt(int left, int top) {
-        editor = addRenderableWidget(new EditBox(font, left + 12, top + 86, panelWidth() - 24, 20,
+        editor = addRenderableWidget(new ca.teamdman.sfm.client.input.SFMSingleLineEditBox(font, left + 12, top + 86, panelWidth() - 24, 20,
                 Component.literal("Argument value")));
         editor.setMaxLength(1024);
         primary = addRenderableWidget(new SFMButtonBuilder()
@@ -82,7 +82,7 @@ public final class SFMCommandDraftScreen extends Screen {
     }
 
     private void initConfirmation(int left, int top) {
-        editor = addRenderableWidget(new EditBox(font, left + 12, top + 86, panelWidth() - 24, 20,
+        editor = addRenderableWidget(new ca.teamdman.sfm.client.input.SFMSingleLineEditBox(font, left + 12, top + 86, panelWidth() - 24, 20,
                 Component.literal("Final command")));
         editor.setMaxLength(2048);
         editor.setValue(command);

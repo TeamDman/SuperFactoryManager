@@ -48,6 +48,43 @@ public final class SFMDrawCanvasRemoteSyntaxStyles {
             throw new IllegalArgumentException("Canvas projection no longer matches the highlighted source");
         }
 
+        return projectGlyphMap(exactSource, projection.glyphsByCharIndex(), spans);
+    }
+
+    /** Immutable source bytes include CRLF and blank terminal rows that have no glyph. */
+    public static Map<SFMDrawCanvasModel.CanvasGlyph, List<ChatFormatting>> projectPinned(
+            List<SFMDrawCanvasModel.CanvasGlyph> sourceGlyphs, int lineHeight,
+            String exactSource, List<FormattingSpan> spans) {
+        var ordered = sourceGlyphs.stream().sorted(java.util.Comparator
+                .comparingDouble(SFMDrawCanvasModel.CanvasGlyph::y)
+                .thenComparingDouble(SFMDrawCanvasModel.CanvasGlyph::x)).toList();
+        ArrayList<SFMDrawCanvasModel.CanvasGlyph> glyphsByCharIndex = new ArrayList<>(exactSource.length());
+        int nextGlyph = 0;
+        double x = 0, y = 0;
+        for (int offset = 0; offset < exactSource.length();) {
+            int codePoint = exactSource.codePointAt(offset);
+            int length = Character.charCount(codePoint);
+            offset += length;
+            if (codePoint == '\r' || codePoint == '\n') {
+                glyphsByCharIndex.add(null);
+                if (codePoint == '\n') { x = 0; y += Math.max(1, lineHeight); }
+                continue;
+            }
+            if (nextGlyph >= ordered.size()) throw new IllegalArgumentException("Pinned source has missing canvas glyphs");
+            var glyph = ordered.get(nextGlyph++);
+            if (!glyph.text().equals(new String(Character.toChars(codePoint)))
+                    || Double.compare(glyph.x(), x) != 0 || Double.compare(glyph.y(), y) != 0) {
+                throw new IllegalArgumentException("Pinned source no longer matches the canvas glyph/layout identity");
+            }
+            for (int unit = 0; unit < length; unit++) glyphsByCharIndex.add(glyph);
+            x += glyph.width();
+        }
+        if (nextGlyph != ordered.size()) throw new IllegalArgumentException("Canvas has extra glyphs outside the pinned source");
+        return projectGlyphMap(exactSource, glyphsByCharIndex, spans);
+    }
+
+    private static Map<SFMDrawCanvasModel.CanvasGlyph, List<ChatFormatting>> projectGlyphMap(
+            String exactSource, List<SFMDrawCanvasModel.CanvasGlyph> glyphsByCharIndex, List<FormattingSpan> spans) {
         IdentityHashMap<SFMDrawCanvasModel.CanvasGlyph, List<ChatFormatting>> answer =
                 new IdentityHashMap<>();
         int previousEnd = 0;
@@ -68,11 +105,11 @@ public final class SFMDrawCanvasRemoteSyntaxStyles {
             FormattingSpan span = spans.get(spanIndex);
             int start = utf16Boundaries.get(spanIndex * 2);
             int end = utf16Boundaries.get(spanIndex * 2 + 1);
-            if (end > projection.glyphsByCharIndex().size()) {
+            if (end > glyphsByCharIndex.size()) {
                 throw new IllegalArgumentException("Syntax style span exceeds the canvas projection");
             }
             for (int index = start; index < end; index++) {
-                SFMDrawCanvasModel.CanvasGlyph glyph = projection.glyphsByCharIndex().get(index);
+                SFMDrawCanvasModel.CanvasGlyph glyph = glyphsByCharIndex.get(index);
                 if (glyph == null) continue;
                 List<ChatFormatting> previous = answer.putIfAbsent(glyph, span.formatting());
                 if (previous != null && !previous.equals(span.formatting())) {

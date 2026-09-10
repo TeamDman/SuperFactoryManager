@@ -72,6 +72,11 @@ public final class SFMKeyBindingListModel {
         }
     }
 
+    public void setSort(SortColumn column, Direction direction) {
+        this.sortColumn = Objects.requireNonNull(column, "column");
+        this.direction = Objects.requireNonNull(direction, "direction");
+    }
+
     public List<ResourceLocation> visibleActions(
             Function<ResourceLocation, String> title,
             Function<ResourceLocation, String> description

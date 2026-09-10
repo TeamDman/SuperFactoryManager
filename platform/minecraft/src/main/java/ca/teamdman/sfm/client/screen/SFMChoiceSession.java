@@ -89,7 +89,7 @@ public final class SFMChoiceSession {
         choiceActionsByTail = Map.copyOf(paletteChoices);
 
         ChoicePath root = new ChoicePath();
-        choices.forEach(choice -> root.add(choiceTail(choice), choice));
+        choices.stream().filter(choice -> !choice.continuation()).forEach(choice -> root.add(choiceTail(choice), choice));
         CommandDispatcher<SFMClientActionSource> dispatcher = new CommandDispatcher<>();
         LiteralArgumentBuilder<SFMClientActionSource> sessionNode =
                 LiteralArgumentBuilder.literal(Long.toString(id));
@@ -120,8 +120,20 @@ public final class SFMChoiceSession {
         return Optional.ofNullable(choiceActionsByTail.get(suggestion));
     }
 
+    /** Maps an ephemeral {@code sfm choose} command back to the action command it delegates to. */
+    public synchronized Optional<String> canonicalCommandForSurfaceCommand(String surfaceCommand) {
+        SFMActionChoice choice = choicesBySurfaceCommand.get(surfaceCommand.strip());
+        return choice == null ? Optional.empty() : Optional.of(choice.command());
+    }
+
     void invalidate() {
         invalidated = true;
+    }
+
+    public synchronized Optional<String> continuationForSurfaceCommand(String command) {
+        if (invalidated || !SFMChoiceSessionService.isCurrent(this)) return Optional.empty();
+        SFMActionChoice choice = choicesBySurfaceCommand.get(command.strip());
+        return choice != null && choice.continuation() ? Optional.of(choice.command()) : Optional.empty();
     }
 
     boolean invalidated() {
@@ -177,7 +189,7 @@ public final class SFMChoiceSession {
 
         private LiteralArgumentBuilder<SFMClientActionSource> compile(String literal) {
             LiteralArgumentBuilder<SFMClientActionSource> node = LiteralArgumentBuilder.literal(literal);
-            if (choice != null) {
+            if (choice != null && !choice.continuation()) {
                 node.executes(context -> execute(surfaceCommand(choice), context.getSource()));
             }
             children.forEach((childLiteral, child) -> node.then(child.compile(childLiteral)));

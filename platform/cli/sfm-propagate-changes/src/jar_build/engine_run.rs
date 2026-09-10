@@ -1006,7 +1006,11 @@ fn execute_run(
         tracing::info!("Validated client puppet completed {pass_count} required game tests.");
     }
     if matches!(kind, RunKind::GameTestPreview) {
-        validate_game_puppet_completion(&launch_output.combined, &launch_log)?;
+        validate_game_puppet_completion(
+            &launch_output.combined,
+            &launch_log,
+            run_options.game_puppet_keep_open,
+        )?;
         let manifest = publish_game_puppet_preview_artifacts(
             plan,
             &working_dir,
@@ -1144,16 +1148,20 @@ fn execute_junit_tests(
     let console_launcher = resolve_junit_console_standalone(&context, &test_resolver)?.cache_path;
     context.bail_if_cancelled()?;
 
-    let mut test_runtime_classpath = vec![
-        test_classes_dir.clone(),
-        test_resources_dir.clone(),
-        staged_resources_dir.clone(),
-        classes_dir.clone(),
-    ];
-    test_runtime_classpath.extend(base_classpath);
-    test_runtime_classpath.extend(test_compile_dependencies.iter().cloned());
-    test_runtime_classpath.extend(test_runtime_dependencies.iter().cloned());
-    test_runtime_classpath = dedup_paths_preserve_order(test_runtime_classpath);
+    // The transformed compile jar intentionally omits vanilla resources. Plain
+    // JUnit still needs those resources: Language initializes when Brigadier
+    // formats its first translated error, even without a Minecraft client.
+    // Reuse the locked resource-only runtime jar, never the obfuscated client
+    // jar (which would introduce a competing set of Minecraft classes).
+    let minecraft_resources = ensure_client_extra_jar(&context)?;
+    let test_runtime_classpath = build_junit_runtime_classpath(
+        &project_root,
+        minecraft_resources,
+        base_classpath
+            .into_iter()
+            .chain(test_compile_dependencies.iter().cloned())
+            .chain(test_runtime_dependencies.iter().cloned()),
+    );
 
     let runtime_classpath_file = run_state_dir.join("testRuntimeClasspath.txt");
     write_classpath_file(&runtime_classpath_file, &test_runtime_classpath)?;
@@ -1373,6 +1381,22 @@ fn write_file_if_changed(path: &Path, bytes: &[u8]) -> eyre::Result<()> {
         fs::create_dir_all(parent)?;
     }
     fs::write(path, bytes).wrap_err_with(|| format!("Failed to write {}", path.display()))
+}
+
+fn build_junit_runtime_classpath(
+    project_root: &Path,
+    minecraft_resources: PathBuf,
+    dependencies: impl IntoIterator<Item = PathBuf>,
+) -> Vec<PathBuf> {
+    let mut classpath = vec![
+        project_root.join("test").join("classes"),
+        project_root.join("test").join("resources"),
+        project_root.join("staged-resources"),
+        project_root.join("classes"),
+        minecraft_resources,
+    ];
+    classpath.extend(dependencies);
+    dedup_paths_preserve_order(classpath)
 }
 
 fn write_junit_runner_argfile(
@@ -3493,27 +3517,60 @@ fn resolve_neogradle_run_classpath(
     })
 }
 
-fn validate_game_puppet_completion(output: &str, launch_log: &Path) -> eyre::Result<()> {
+fn validate_game_puppet_completion(
+    output: &str,
+    launch_log: &Path,
+    keep_open: crate::jar_build::GamePuppetKeepOpen,
+) -> eyre::Result<()> {
     if output.contains("SFM_GAME_PUPPET_FAILED") {
         eyre::bail!(
             "runGameTestPreview reported a game puppet failure. See {}",
             launch_log.display()
         );
     }
-    if !output.contains("SFM_GAME_PUPPET_COMPLETE failed=0") {
+    let completions = puppet_marker_fields(output, "SFM_GAME_PUPPET_COMPLETE");
+    let successful_completion = completions.len() == 1
+        && completions[0].get("failed") == Some(&"0")
+        && completions[0]
+            .get("total")
+            .is_some_and(|total| total.parse::<std::num::NonZeroU32>().is_ok());
+    if !successful_completion {
         eyre::bail!(
             "runGameTestPreview exited successfully but did not report successful puppet completion. See {}",
             launch_log.display()
         );
     }
-    if !output.contains("SFM_GAME_PUPPET_VIEWPORT_RESTORED") {
+    let retained = valid_retained_puppet_viewport(output, keep_open);
+    if !output.contains("SFM_GAME_PUPPET_VIEWPORT_RESTORED") && !retained {
         eyre::bail!(
-            "runGameTestPreview completed without proving viewport restoration. See {}",
+            "runGameTestPreview completed without proving viewport restoration or the requested final-scene hold. See {}",
             launch_log.display()
         );
     }
-    tracing::info!("Validated game puppet preview completion.");
+    tracing::info!(retained_viewport = retained, "Validated game puppet preview completion.");
     Ok(())
+}
+
+fn puppet_marker_fields<'a>(output: &'a str, marker: &str) -> Vec<BTreeMap<&'a str, &'a str>> {
+    output.lines().filter_map(|line| {
+        let (_, fields) = line.split_once(marker)?;
+        // A prefix such as COMPLETE_PENDING is not the terminal marker.
+        if !fields.starts_with(char::is_whitespace) { return None; }
+        Some(fields.split_whitespace().filter_map(|field| field.split_once('=')).collect())
+    }).collect()
+}
+
+fn valid_retained_puppet_viewport(output: &str, keep_open: crate::jar_build::GamePuppetKeepOpen) -> bool {
+    if matches!(keep_open, crate::jar_build::GamePuppetKeepOpen::None) { return false; }
+    let retained = puppet_marker_fields(output, "SFM_GAME_PUPPET_VIEWPORT_RETAINED");
+    if retained.len() != 1 { return false; }
+    let fields = &retained[0];
+    if fields.get("keep_open_seconds").and_then(|value| value.parse::<i32>().ok())
+        != Some(keep_open.property_seconds()) { return false; }
+    let Some(viewport) = parse_game_puppet_preview_viewport(fields) else { return false; };
+    viewport.actual_window_width > 0 && viewport.actual_window_height > 0
+        && viewport.framebuffer_width > 0 && viewport.framebuffer_height > 0
+        && viewport.effective_gui_scale > 0 && viewport.logical_width > 0 && viewport.logical_height > 0
 }
 
 #[derive(Debug)]
@@ -3606,7 +3663,11 @@ pub(crate) struct GamePuppetPreviewManifest {
     #[facet(rename = "sourceIdentity")]
     #[facet(default)]
     pub(crate) source_identity: Option<GamePuppetPreviewSourceIdentity>,
+    /// Initial launch request, not the observed dimensions of every matrix capture.
     pub(crate) viewport: GamePuppetPreviewViewport,
+    #[facet(rename = "viewportRole")]
+    #[facet(default)]
+    pub(crate) viewport_role: String,
     #[facet(rename = "viewportSelection")]
     #[facet(default)]
     pub(crate) viewport_selection: String,
@@ -4410,6 +4471,7 @@ fn render_game_puppet_preview_manifest(
             width: run_options.preview_width,
             height: run_options.preview_height,
         },
+        viewport_role: "initial-launch-window".to_string(),
         viewport_selection: run_options.game_puppet_viewport_selection.clone(),
         capture_profile: GamePuppetPreviewCaptureProfile {
             native_main_render_target: false,
@@ -4835,6 +4897,7 @@ mod game_puppet_preview_tests {
                 width: 1280,
                 height: 720,
             },
+            viewport_role: "initial-launch-window".to_string(),
             viewport_selection: "preferred".to_string(),
             capture_profile: GamePuppetPreviewCaptureProfile {
                 native_main_render_target: false,
@@ -4890,6 +4953,7 @@ mod game_puppet_preview_tests {
         assert!(json.contains("\"gitRevision\": \"0123456789abcdef\""));
         assert!(json.contains("\"workingTreeDirty\": true"));
         assert!(json.contains("\"sourceFingerprint\""));
+        assert!(json.contains("\"viewportRole\": \"initial-launch-window\""));
         assert!(json.contains("\"nativeMainRenderTarget\": false"));
         assert!(json.contains("\"composition\": \"captioned-native-main-render-target\""));
         assert!(json.contains("\"captionPixelHeight\": 87"));
@@ -5069,6 +5133,26 @@ mod game_puppet_preview_tests {
         assert_eq!(capture.hud_hidden, Some(true));
         assert_eq!(capture.variant.as_deref(), Some("1280x720@auto"));
         assert_eq!(capture.viewport.as_ref().map(|viewport| viewport.logical_width), Some(427));
+    }
+
+    #[test]
+    fn held_capture_viewport_is_not_replaced_by_restored_launch_dimensions() {
+        let metadata = parse_game_puppet_capture_metadata(
+            "SFM_GAME_PUPPET_CAPTURE_QUEUED puppet=title_screen variant=2000x2000@4 capture=held file=held.png figure=1 actual_width=2000 actual_height=2000 framebuffer_width=2000 framebuffer_height=2000 requested_gui_scale=4 effective_gui_scale=4 logical_width=500 logical_height=500\n\
+             SFM_GAME_PUPPET_VIEWPORT_RETAINED keep_open_seconds=5 variant=2000x2000@4 actual_width=2000 actual_height=2000\n\
+             SFM_GAME_PUPPET_VIEWPORT_RESTORED actual_width=1280 actual_height=720 framebuffer_width=1280 framebuffer_height=720 effective_gui_scale=3 logical_width=427 logical_height=240",
+        );
+        let capture = metadata.get("held.png").unwrap();
+        let viewport = capture.viewport.as_ref().unwrap();
+        assert_eq!(capture.variant.as_deref(), Some("2000x2000@4"));
+        assert_eq!(viewport.actual_window_width, 2000);
+        assert_eq!(viewport.actual_window_height, 2000);
+        assert_eq!(viewport.framebuffer_width, 2000);
+        assert_eq!(viewport.framebuffer_height, 2000);
+        assert_eq!(viewport.requested_gui_scale, "4");
+        assert_eq!(viewport.effective_gui_scale, 4);
+        assert_eq!(viewport.logical_width, 500);
+        assert_eq!(viewport.logical_height, 500);
     }
 }
 

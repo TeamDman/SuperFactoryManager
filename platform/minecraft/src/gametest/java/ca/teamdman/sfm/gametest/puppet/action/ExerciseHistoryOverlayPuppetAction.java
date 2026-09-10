@@ -452,7 +452,12 @@ public final class ExerciseHistoryOverlayPuppetAction implements SFMPuppetAction
         retainedBounds = requireBounds(overlay.snapshot());
         restoreCountBefore = overlay.snapshot().directRestoreCount();
         invokeAction("sfm:overlay/placement/set " + HISTORY_SELECTOR + " "
-                + SFMOverlaySceneContract.SceneState.defaults().overlays().get(0).placement().canonical());
+                + SFMOverlaySceneContract.SceneState.defaults().overlays().stream()
+                .filter(state -> state.id().value().equals(SFMOverlaySceneContract.HISTORY_OVERLAY_ID))
+                .findFirst()
+                .orElseThrow()
+                .placement()
+                .canonical());
         invokeAction("sfm:overlay/visibility/set " + HISTORY_SELECTOR + " hidden");
         overlay.restoreCanonical(retainedCanonical);
         String immediate = overlay.encodeCanonical();

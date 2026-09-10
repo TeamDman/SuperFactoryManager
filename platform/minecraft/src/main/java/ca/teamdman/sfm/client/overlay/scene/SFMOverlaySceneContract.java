@@ -17,6 +17,8 @@ public final class SFMOverlaySceneContract {
     public static final String HISTORY_OVERLAY_ID = "sfm:history";
     public static final String HISTORY_RECIPE_ID = "sfm:episode/history";
     public static final String DOCUMENT_HISTORY_RECIPE_ID = "sfm:document/history";
+    public static final String FPS_OVERLAY_ID = "sfm:fps";
+    public static final String FPS_RECIPE_ID = "sfm:diagnostics/fps";
     public static final int MAX_OVERLAYS = 64;
     public static final int MAX_TEXT_BYTES = 16 * 1024;
     public static final int MAX_SCENE_JSON_BYTES = 1024 * 1024;
@@ -364,15 +366,7 @@ public final class SFMOverlaySceneContract {
             return new SceneState(
                     SCHEMA,
                     0,
-                    List.of(new OverlayState(
-                            new OverlayInstanceId(HISTORY_OVERLAY_ID),
-                            new ContentRecipe(HISTORY_RECIPE_ID, "focused"),
-                            false,
-                            Placement.topRight(DEFAULT_CONTENT_WIDTH, DEFAULT_CONTENT_HEIGHT),
-                            InputMode.PASSIVE,
-                            100,
-                            Map.of()
-                    )),
+                    List.of(defaultFpsOverlay(), defaultHistoryOverlay()),
                     Optional.empty()
             );
         }
@@ -399,6 +393,40 @@ public final class SFMOverlaySceneContract {
         public SceneState withFocus(Optional<OverlayInstanceId> nextFocus) {
             return new SceneState(schema, revision + 1, overlays, nextFocus);
         }
+    }
+
+    public static OverlayState defaultHistoryOverlay() {
+        return new OverlayState(
+                new OverlayInstanceId(HISTORY_OVERLAY_ID),
+                new ContentRecipe(HISTORY_RECIPE_ID, "focused"),
+                false,
+                Placement.topRight(DEFAULT_CONTENT_WIDTH, DEFAULT_CONTENT_HEIGHT),
+                InputMode.PASSIVE,
+                100,
+                Map.of()
+        );
+    }
+
+    public static OverlayState defaultFpsOverlay() {
+        return new OverlayState(
+                new OverlayInstanceId(FPS_OVERLAY_ID),
+                new ContentRecipe(FPS_RECIPE_ID, ""),
+                false,
+                new Placement(
+                        ReferenceFrame.GUI_SAFE_VIEWPORT,
+                        1.0D,
+                        0.0D,
+                        1.0D,
+                        0.0D,
+                        -8,
+                        8,
+                        Optional.of(new SizeConstraints(96, 28, 220, 36, 4096, 4096)),
+                        ClipPolicy.CLAMP_TO_SAFE_VIEWPORT
+                ),
+                InputMode.PASSIVE,
+                110,
+                Map.of()
+        );
     }
 
     private static String decimal(double value) {

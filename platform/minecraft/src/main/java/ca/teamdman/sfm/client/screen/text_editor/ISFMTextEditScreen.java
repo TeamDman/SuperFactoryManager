@@ -6,6 +6,8 @@ import net.minecraft.client.gui.screens.Screen;
 public interface ISFMTextEditScreen {
     ISFMTextEditScreenOpenContext openContext();
     default void onPreferenceChanged() {}
+    /** Actual panel disposal, not transient screen covering or resizing. */
+    default void onDocumentHostClosed() { }
     default OpenBehaviour openBehaviour() {
         return OpenBehaviour.Push;
     }

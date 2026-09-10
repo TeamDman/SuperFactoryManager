@@ -17,6 +17,7 @@ public record SFMItemIcon(
         String accessibleLabel
 ) {
     public static final ResourceLocation PAPER = new ResourceLocation("minecraft", "paper");
+    public static final ResourceLocation BARREL = new ResourceLocation("minecraft", "barrel");
 
     public SFMItemIcon {
         Objects.requireNonNull(requestedItem, "requestedItem");

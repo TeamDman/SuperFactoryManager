@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.explorer.SFMChildRelationRevision;
 import ca.teamdman.sfm.client.explorer.SFMEntitySelectorResolver;
 import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMPath;
+import ca.teamdman.sfm.client.explorer.SFMPathHierarchy;
 import ca.teamdman.sfm.client.explorer.SFMPathExpressionResolution;
 import ca.teamdman.sfm.client.explorer.SFMPathExpressionResolver;
 import ca.teamdman.sfm.client.explorer.SFMSelection;
@@ -13,6 +14,7 @@ import ca.teamdman.sfm.client.explorer.SFMSelectionRepository;
 import ca.teamdman.sfm.client.explorer.SFMSelectorDomains;
 import ca.teamdman.sfm.client.explorer.SFMSelectorResolution;
 import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionRequest.Operation;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerPathReveal;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
@@ -27,6 +29,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 
 /**
@@ -444,11 +448,22 @@ public final class SFMExplorerActionEngine {
             changed = session.snapshot().settings().pathDisplay() != set.pathDisplay();
             session.setPathDisplay(set.pathDisplay());
         } else if (operation instanceof SFMExplorerActionRequest.FilterSet set) {
-            changed = !session.snapshot().settings().filterQuery().equals(set.query());
+            changed = !session.snapshot().settings().filterQuery().equals(set.query())
+                    || !session.snapshot().settings().filterOptions().equals(set.options());
+            session.setFilterOptions(set.options());
             session.setFilterQuery(set.query());
         } else if (operation instanceof SFMExplorerActionRequest.FilterClear) {
             changed = !session.snapshot().settings().filterQuery().isEmpty();
             session.setFilterQuery("");
+        } else if (operation instanceof SFMExplorerActionRequest.FindSet set) {
+            session.beginFinderQuery(set.query(), set.options());
+            changed = true;
+        } else if (operation instanceof SFMExplorerActionRequest.FindNext) {
+            changed = session.advanceFinder(1);
+        } else if (operation instanceof SFMExplorerActionRequest.FindPrevious) {
+            changed = session.advanceFinder(-1);
+        } else if (operation instanceof SFMExplorerActionRequest.FindClear) {
+            changed = session.clearFinder();
         }
 
         return new StateAppliedTarget(plan, changed);
@@ -492,6 +507,11 @@ public final class SFMExplorerActionEngine {
                 Set<SFMPath> after = session.snapshot().roots();
                 before.stream().filter(path -> !after.contains(path)).forEach(session::cancelChildrenRequest);
                 after.stream().filter(path -> !before.contains(path)).forEach(explorer.loader()::openRoot);
+            } else if (operation instanceof SFMExplorerActionRequest.FindSet set) {
+                startFinderQuery(explorer, set);
+            } else if (operation instanceof SFMExplorerActionRequest.FindNext
+                    || operation instanceof SFMExplorerActionRequest.FindPrevious) {
+                revealFinderMatch(explorer, diagnostics);
             }
         } catch (RuntimeException failure) {
             String message = failure.getMessage() == null
@@ -519,6 +539,150 @@ public final class SFMExplorerActionEngine {
                 loadRequest,
                 diagnostics
         );
+    }
+
+    /** Starts query-specific work without publishing anything into the ordinary Explorer relation. */
+    private static void startFinderQuery(
+            SFMExplorerRepository.Explorer explorer,
+            SFMExplorerActionRequest.FindSet operation
+    ) {
+        SFMExplorerSession session = explorer.session();
+        SFMExplorerSession.Snapshot snapshot = session.snapshot();
+        long finderGeneration = snapshot.finder().generation();
+        List<SFMPath> roots = snapshot.roots().stream().sorted().toList();
+        ArrayList<CompletableFuture<SFMLazyExplorerLoader.LoadDisposition>> completions = new ArrayList<>();
+        for (SFMPath root : roots) {
+            Optional<CompletableFuture<SFMLazyExplorerLoader.LoadDisposition>> completion =
+                    explorer.loader().ensureFinderDomain(root, operation.query(), operation.options());
+            if (completion.isEmpty()) {
+                session.failFinderQuery(
+                        finderGeneration,
+                        operation.query(),
+                        "Explorer resolver for " + root.scheme() + " does not support asynchronous finding"
+                );
+                return;
+            }
+            completions.add(completion.orElseThrow());
+        }
+
+        CompletableFuture.allOf(completions.toArray(CompletableFuture[]::new)).whenComplete((ignored, failure) -> {
+            if (failure != null) {
+                session.failFinderQuery(
+                        finderGeneration,
+                        operation.query(),
+                        "Explorer find failed: " + failureMessage(failure)
+                );
+                return;
+            }
+            Optional<SFMLazyExplorerLoader.LoadDisposition> unsuccessful = completions.stream()
+                    .map(completion -> completion.getNow(SFMLazyExplorerLoader.LoadDisposition.FAILED))
+                    .filter(disposition -> disposition != SFMLazyExplorerLoader.LoadDisposition.PUBLISHED)
+                    .findFirst();
+            if (unsuccessful.isPresent()) {
+                String detail = snapshot.roots().stream()
+                        .map(root -> explorer.loader().filterDomainFailure(root, operation.query(), operation.options()))
+                        .flatMap(Optional::stream).findFirst().map(message -> ": " + message).orElse("");
+                session.failFinderQuery(
+                        finderGeneration,
+                        operation.query(),
+                        "Explorer find domain was "
+                                + unsuccessful.orElseThrow().name().toLowerCase(java.util.Locale.ROOT) + detail
+                );
+                return;
+            }
+
+            Optional<SFMLazyExplorerLoader.FilterProjection> projection = explorer.loader().filterProjection(
+                    snapshot.roots(),
+                    operation.query(),
+                    Set.of(),
+                    operation.options()
+            );
+            if (projection.isEmpty()) {
+                session.failFinderQuery(
+                        finderGeneration,
+                        operation.query(),
+                        "Explorer find completed without publishing an exact query projection"
+                );
+                return;
+            }
+            SFMLazyExplorerLoader.FilterProjection published = projection.orElseThrow();
+            session.publishFinderResultsInDisplayOrder(
+                    finderGeneration,
+                    operation.query(),
+                    ca.teamdman.sfm.client.explorer.lazy.SFMExplorerMatchTraversal.order(
+                            published.matchedPaths(), snapshot, published.relations(), published.entries()),
+                    published.complete(),
+                    published.diagnostics()
+            );
+        });
+    }
+
+    /** Reveals the current finder match while preserving the independent projection filter verbatim. */
+    private static void revealFinderMatch(
+            SFMExplorerRepository.Explorer explorer,
+            List<String> immediateDiagnostics
+    ) {
+        SFMExplorerSession session = explorer.session();
+        SFMExplorerSession.Snapshot snapshot = session.snapshot();
+        Optional<SFMPath> target = snapshot.finder().currentMatch();
+        if (target.isEmpty()) return;
+        SFMPath matchedPath = target.orElseThrow();
+        Optional<SFMPath> containingRoot = SFMPathHierarchy.deepestContainingRoot(
+                snapshot.roots(),
+                matchedPath
+        );
+        if (containingRoot.isEmpty()) {
+            String diagnostic = "Finder match is outside the Explorer's current roots: " + matchedPath.canonical();
+            session.recordFinderRevealFailure(snapshot.finder().generation(), matchedPath, diagnostic);
+            immediateDiagnostics.add("explorer.find-reveal-failed: " + diagnostic);
+            return;
+        }
+
+        String preservedFilter = snapshot.settings().filterQuery();
+        java.util.concurrent.CompletionStage<SFMExplorerPathReveal.Result> reveal;
+        try {
+            reveal = SFMExplorerPathReveal.reveal(
+                    session,
+                    explorer.loader(),
+                    containingRoot.orElseThrow(),
+                    matchedPath,
+                    explorer.defaultPageSize(),
+                    () -> { }
+            );
+        } catch (RuntimeException failure) {
+            restoreFilter(session, preservedFilter);
+            String diagnostic = "Could not start Explorer finder reveal: " + failureMessage(failure);
+            session.recordFinderRevealFailure(snapshot.finder().generation(), matchedPath, diagnostic);
+            immediateDiagnostics.add("explorer.find-reveal-failed: " + diagnostic);
+            return;
+        }
+        // SFMExplorerPathReveal historically clears a projection filter so a
+        // direct reveal is visible. Finder is a separate mechanism, therefore
+        // restore the exact filter before releasing the transaction lock.
+        restoreFilter(session, preservedFilter);
+        reveal.whenComplete((ignored, failure) -> {
+            if (failure == null) return;
+            session.recordFinderRevealFailure(
+                    snapshot.finder().generation(),
+                    matchedPath,
+                    "Explorer finder reveal failed: " + failureMessage(failure)
+            );
+        });
+    }
+
+    private static void restoreFilter(SFMExplorerSession session, String preservedFilter) {
+        if (!session.snapshot().settings().filterQuery().equals(preservedFilter)) {
+            session.setFilterQuery(preservedFilter);
+        }
+    }
+
+    private static String failureMessage(Throwable failure) {
+        Throwable current = failure;
+        while ((current instanceof CompletionException || current instanceof java.util.concurrent.ExecutionException)
+                && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current.getMessage() == null ? current.getClass().getSimpleName() : current.getMessage();
     }
 
     /** Validates every resolver-dependent side effect without starting work or allocating a relation ticket. */
@@ -611,7 +775,15 @@ public final class SFMExplorerActionEngine {
             SFMExplorerSession.Snapshot snapshot,
             SFMPath path
     ) {
-        SFMChildRelationRevision relation = explorer.loader().relationSnapshot().relation();
+        // Filter rows can be outside the first ordinary child page. Validate against
+        // the exact current query/root/resolver-generation projection, not an unrelated
+        // finder lane or a stale query. Its merged relation includes explicitly opened
+        // children without promoting the whole filter index into the ordinary tree.
+        SFMChildRelationRevision relation = explorer.loader().filterProjection(
+                        snapshot.roots(), snapshot.settings().filterQuery(), snapshot.expanded(),
+                        snapshot.settings().filterOptions())
+                .map(projection -> projection.relations().relation())
+                .orElseGet(() -> explorer.loader().relationSnapshot().relation());
         ArrayDeque<SFMPath> frontier = new ArrayDeque<>(snapshot.roots());
         HashSet<SFMPath> visited = new HashSet<>();
         while (!frontier.isEmpty()) {

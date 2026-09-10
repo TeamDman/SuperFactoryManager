@@ -1,7 +1,65 @@
 # Global comment selection and review sessions plan
 
 **Plan status:** Active
-**Last updated:** 2026-08-23
+**Last updated:** 2026-09-06
+**Completed overnight execution:** [Release review overnight readiness](release%20review%20overnight%20readiness%20plan.md)
+records the September 6 core and every ordered stretch as verified complete.
+Its task-local evidence is authoritative; no overnight item remains newly claimed.
+
+**September 6 user-testing follow-up (verified checkpoint):**
+[Explorer find, selection, compact hierarchy, and review freshness](explorer%20find%20selection%20compact%20hierarchy%20and%20review%20freshness%20plan.md)
+retains EFR-01–49: shared input editing, non-hiding Find versus Filter,
+multi-selection, compact path identity, explicit review freshness, and distinct
+live filesystem versus Git-pinned comment targets. The reported puppet file is
+untracked and absent from the user's 58ed4e431-pinned review; a newer Git HEAD
+alone cannot include it. EF-11/EF-12 refine X-9 and this plan's live/pinned
+adapter with immutable capture and explicit migration, never automatic approval
+transfer or replacement of the existing portable review. The latest correction
+confirms fuzzy matching/ranking work; the next core adds independent shared
+Find/Filter options/highlights, pointer multi-selection and commit-before versus
+captured-files-on-disk-after reviews. Untracked changes must support ordinary
+portable comments that agents can inspect without copy/paste or committing first.
+Git targets display their actual revision; `(HEAD)` is only a current equality
+decoration. EF-1–6, EF-8, EF-11/12 and EF-A are the core; EF-7/9/10 the ordered
+stretch ladder. Existing Git/Git reviews retain immutable meaning. The core and
+EF-7/EF-9 are now verified, including captured untracked code, exact comments and
+saved queries in a portable review reopened in a separate JVM. EF-10 remains
+scheduled. The user's existing review was not rewritten; approval-like fixtures
+are synthetic test evidence, not human review. See the linked task-local proof
+and `docs/explorer find filter and working tree review guide.md` for use.
+
+**September 6 planning refinement:** [Contextual ItemStack preview rule authoring](contextual%20itemstack%20preview%20rule%20authoring%20plan.md)
+retains the ER-S4/X-8e user-theme and contextual command-building slice
+as IPR-01–35. The bounded IPR-T0–T5/T3a implementation is verified complete in
+the overnight plan, not part of the earlier completed exploratory goal. Review
+rows use the generic rule system; flat aspect actions supersede generic Help or
+Customize wrappers without changing review identities or approval semantics.
+IPR-T3a adds reusable details/prompt clipboard actions: include the captured
+entry and actual rule/operator contract, omit ItemStack catalogue enumeration,
+and leave sharing and executing the suggested rule to the user. This is neither
+an automatic AI review nor a change to stored comment/approval meaning.
+
+**Completed bounded goal:** [Release review exploratory usability](release%20review%20exploratory%20usability%20plan.md)
+E-1–E-4 (September 5): four independent JVMs, adaptive disposable review use,
+concise captured-path notification actions, real SFM.java text-diff decoding,
+saved-comment marker navigation, and filtered expansion reduced from an observed
+1.57 s to 32 ms dispatch. Exact notes survived restart; no OS cursor injection,
+maintainer review changes or release approval. The supplement records the final
+clean CLI run, current Java build, unchanged installed Rust tool and qualified
+full-suite failures. ER-1–ER-8 preserve the request; ER-F1–ER-F7 retain newly
+observed limits and test-infrastructure follow-ups. The completed overnight core was
+ER-F1–ER-F4 (open/save stalls, preview reuse, legible comments, mouse-discoverable
+remaining work), not another generic agent framework. Its separate execution
+plan above preserves both completed goals and their ordered stretch evidence.
+
+**Completed bounded goal:** [Release review exact coverage acceptance](release%20review%20exact%20coverage%20acceptance%20plan.md),
+RCOV-A through RCOV-E (September 5). Java/Rust now require full pinned
+before/after coverage, expose exact remaining ranges, and agree on a real
+285-byte hunk with one approved byte. Separate JVMs preserved comments and
+portable-file identity; final in-game syntax/diff/comment and icon evidence
+passed. The supplement records current installed tools, screenshots and known
+full-suite/audit warnings. This does not close the broader RCS-UX6 remainder
+or grant human release approval.
 
 ## Purpose
 
@@ -1716,6 +1774,40 @@ this plan owns their exact release-review composition and acceptance journey.
 | RUX-19 | With no addressed editor available, the target remains visible and invokes an unavailable Brigadier node, yielding `Incorrect argument ... sfm action invoke` instead of an intentional state. It also lacks normal button feedback. | Hide the target control entirely—including focus, hit, narration, and reserved width—when no compatible document exists. A context race fails with the action's precise unavailable reason, never a parser artifact. Accepted pointer/keyboard activation plays exactly one vanilla button-click sound. | RCS-UX2a |
 | RUX-20 | Changes/Comments/Hashtags/Query/Status/Migrations can be opened by memorized palette commands but cannot be switched from the review workbench with the mouse. | Add an action-backed review-lens control using the ordinary constrained choice surface. It indicates the active lens and exposes every valid lens without creating a parallel selection widget. | RCS-UX6a |
 | RUX-21 | Existing comment actions require an undiscoverable selector-proposal id, and the Comments lens only displays existing comments. This is not a feasible review-authoring loop. | On a writable reviewed before/after/diff surface, select a source-backed region and choose `#approved`, `#needs-change`, a recent template, or `Other`; persist the exact proposal/witness and refresh Comments/Hashtags/query status immediately. Read-only sessions explain and offer the explicit writable transition instead of pretending mutation succeeded. | RCS-UX6a / RCS-UX6 |
+| RUX-22 | Keyboard users can open an Explorer row's contextual action surface with the hardware Menu key, but the established Alt+Enter contextual gesture does nothing. | Alt+Enter and the Menu/Shift+F10 gestures capture the same selected row and open the same constrained action surface; none may activate/open the row as a side effect. | RCS-UX6b1 / contextual-input plan |
+| RUX-23 | Opening a real 30 MB writable review and expanding a cold review node pauses for one or two seconds with no visible pending state. | Parse/projection work remains off the render thread where possible. Every active lazy child request immediately renders an animated, narrated loading state while retaining the last useful rows; failure and cancellation replace pending state explicitly. | RCS-UX6b1 |
+| RUX-24 | Filtering Changes for `java` showed one already-materialized fixture even though the ledger contains 1,337 Java units across 1,230 distinct paths. | A review search is complete over the immutable review projection, not merely the current lazy page. Resolve matches and their ancestor chains asynchronously with generation/cancellation guards, publish bounded pages, and report complete/incomplete search scope honestly. Do not eagerly materialize every source body. | RCS-UX6b1 |
+| RUX-25 | Newly persisted human comments are hidden after 2,917 generated comments because Comments pages in append order. | Present the append-only comment feed newest-first (and use deterministic ordering within hashtag/file groupings), refresh the active lens after mutation, and reveal/select the newly created comment. Generated review-unit evidence must not bury human review work. | RCS-UX6b1 |
+| RUX-26 | Comment submission freezes visibly because one render-thread action serializes, reparses, hashes, and atomically writes the full ledger plus recovery mirror. | Capture the immutable mutation intent on the client thread, perform validation/serialization/write on an owned worker, show `Saving comment…`, and publish only if review path/open epoch/generation still match. Conflicts remain explicit and no optimistic UI may claim persistence before atomic save succeeds. | RCS-UX6b1 |
+| RUX-27 | A source range can be commented successfully but the open before/after/diff preview shows no durable indication that a comment targets it. | Render source-mapped comment decorations as an independent overlay layer (background/underline/gutter according to style rules), with hover/click navigation to comment details. Decorations are hash/generation bound and update after save without replacing syntax colours. | RCS-UX6b1 / RCMARK-1..4 |
+| RUX-28 | Structured diff text is neutral and marker-heavy; the reviewer wants normal Java syntax plus independent added/removed meaning. | Keep syntax token foregrounds and diff semantics orthogonal. Carry source language and versioned `added`, `removed`, `modified`, `moved`, and `context` regions through the generated-surface contract; compose red/green/etc. backgrounds or gutters without destroying Arborium syntax spans. Text-diff fallback gets a registered diff provider rather than SFML highlighting. | RCS-UX6b1 / RCS-S3 follow-up |
+| RUX-29 | One added-file text-diff preview reported `Document unavailable` while the paired Java structured surface opened. | Log generated-surface request identity, kind, duration, outcome, and bounded failure code; reproduce the exact file pair and make text/structured availability agree unless a typed per-kind limitation explains the difference in the document. Tombstone `before` leaves remain explicitly distinct from diff failures. | RCS-UX6b1 |
+| RUX-30 | The Status lens appears as one inert root while its children are pending, so the completion witness categories are undiscoverable. | Use the common loading state, auto-expand/select the lens root when opened, and retain actionable category counts (`remaining`, `blocking`, etc.) whose children are exact navigable witnesses. Empty categories state `0` rather than appearing broken. | RCS-UX6b1 |
+| RUX-31 | The 30 MB ledger's human comments did persist, yet the automated fixture claimed immediate Comments/Hashtags visibility because its corpus was tiny. | Add a production-scale deterministic fixture with more than one page of generated comments and more than one page of changed paths. Prove newest-comment visibility, complete `java` search, loading feedback, asynchronous save responsiveness, restart persistence, and inline decoration without mutating the maintainer review. | RCS-UX6b1 |
+| RUX-32 | Opening Comments failed with `Invalid ARGB colour R` because the textual gutter marker was routed through the colour parser. | Preserve `gutter_marker` as an independent string from schema through datasource and rendering. Only foreground/background/underline channels accept ARGB; malformed optional colours retain the deliberate fallback style rather than erasing it. | RCS-UX6b1 / RCMARK-2 |
+| RUX-33 | Once complete review filtering existed, `java` matched the inherited path repeated in every before/after/diff label and expanded every Java file into four noisy rows. | Separate visible labels from resolver-contributed search terms. A file-name query matches compact file rows plus locating ancestors; semantic role queries such as `structured` still match the corresponding diff leaves. Do not hide the exact path/revision context from display, narration, or addressing. | RCS-UX6b1 |
+| RUX-34 | On the production review, activating `.java` first exposed two materialized matches and then 1,237 complete matches roughly twelve seconds later; editing or clearing the query repeatedly stalled the UI because complete-domain projection and fuzzy scoring ran on the render path. | Replace query-independent full-tree publication and render-thread rescoring with a resolver-owned, asynchronous, cancellable, generation-bound, query-specific result index/page stream. Retain the last useful result page while a new query runs, publish exact complete/incomplete counts, and make each keystroke bounded render-thread work. | RCS-UX6b2 / lazy-explorer plan |
+| RUX-35 | Filtering is currently also tree pruning: a directly matched `SFM.java` row can be expanded yet its `before`, `after`, text-diff, and structured-diff children disappear because their labels do not match `.java`. The reviewer also needs navigation among findings without hiding unrelated tree context. | Keep compact direct-match rows initially. Once a directly matched expandable row is explicitly expanded, include all of its immediate contextual children even when they do not match; preserve only necessary ancestors elsewhere. Introduce a separate next/previous finder operation whose result cursor does not prune the visible hierarchy. Filter evidence distinguishes direct matches, locating ancestors, and contextual descendants. | RCS-UX6b2 / lazy-explorer plan |
+| RUX-36 | A cold expansion shows only a distant aggregate footer spinner, leaving the exact row looking broken while its children are loading. | Publish a stable, non-activatable `Loading children…` placeholder at the exact future child insertion point as soon as a request starts. Replace it atomically with children, typed failure, or empty state; the footer may additionally narrate aggregate pending work. No child load blocks the render thread. | RCS-UX6b2 / lazy-explorer plan |
+| RUX-37 | Target/reveal failed with `Explorer continuation could not be acquired` when the destination relation was partial or already loading. | Reveal is race-safe across partial pages and in-flight requests: deduplicate/await the active continuation or use resolver-owned direct path-chain materialization, retain generation checks, and select the exact row only after its ancestor chain exists. A concurrent filter, comment refresh, or page request must not turn an addressable row into a transient reveal failure. | RCS-UX6b2 / lazy-explorer plan |
+| RUX-38 | Review and generic Explorer rows lack a copyable diagnostic description, making a failed or ambiguous row expensive to report. | Every selected row exposes `Copy details` through the common contextual action surface. The versioned payload includes explorer/session/view identity, canonical path/address, entry kind and stable id, label/search terms, parent/relation/page/generation/loading state, selected/open destination, and resolver-specific evidence without forcing materialization of source bodies. | RCS-UX6b2 / lazy-explorer and contextual-input plans |
+| RUX-39 | Command-palette candidate text is truncated while useful width remains, its complete tooltip activates only over a tiny icon/details strip, and a candidate cannot be inspected or copied through right-click. | Compute candidate text width from the actual row affordances and scrollbar. Hovering any point in a truncated row exposes its complete accessible description. Right-click opens an action-backed surface for copying display text, replacement/surface text, canonical executable command, or complete versioned candidate details/help. | RCS-UX6b2 / contextual-input plan |
+| RUX-40 | A comment selector proposal labelled `symbol · jdk-source://.../Override.java` looked as though the comment would target the JDK declaration even though persistence correctly targeted `SetTerminalTransportAction.java` bytes `[831,1237)` and used local `@Override` bytes `[1102,1111)` plus JDK `Override.java` only as semantic definition evidence. | Proposal labels and details lead with the effective local review target, source side/path/range, and selected excerpt. Semantic definition, provenance, confidence, and migration evidence are visually subordinate and explicitly named; they can never masquerade as the destination selector. Preserve an exact regression fixture for this local-annotation/external-definition case. | RCS-UX6b2 / contextual-input plan |
+| RUX-41 | Workspace panel-moving captured every middle-button drag before Text Editor v3 could pan its 2D document, regressing an established editor gesture. | Perform explicit pointer ownership arbitration before mutation. Text-editor content owns ordinary middle-drag panning; panel movement begins only from pane chrome/numbered stack affordances or an explicit discoverable modifier such as Alt+middle-drag. Middle click without a drag may retain the panel action surface. Tests prove both gestures and cancellation without duplicate actions. | RCS-UX6b2 / workspace plan |
+| RUX-42 | The Comments lens leads with opaque storage IDs and flattens target evidence into ambiguous rows, while the reviewer cannot separately open the comment value, durable selector, derived matches, selected excerpt, or provenance. | Present every comment as an inspectable object tree: a useful text/tag/path preview label, then `value`, `selector`, `matches (N)`, and `provenance`. `value` opens the full text read-only; `selector` exposes kind/expression, literal witness, and semantic evidence; `matches` contains derived side/path/range/excerpt rows that open exact source regions; `provenance` owns id, producer, kind/schema, and parent lineage. Selector intent and evaluated matches remain distinct so zero, one, many, stale, and ambiguous results are honest. | RCS-UX6b2 / review kernel |
+| RUX-43 | Persisted source comments have a small decoration but no approachable, anchored details surface, especially when multiple comments overlap one range. | Make each source decoration expose a gutter/hover/click sticky-note-style details presentation backed by the same comment object and actions as the Comments lens. It shows useful comment text first, supports overlap selection, opens value/selector/matches/provenance, remains keyboard accessible, and never replaces syntax/diff styling. | RCS-UX6b2 / RCMARK-1..4 |
+| RUX-44 | The Comments lens drops input while scrolling only 24 visible rows out of 129 entries; unlocked-wheel events visibly outrun rendering. | Instrument event-to-projection-to-frame latency and per-frame row/render work on a production-shaped comment corpus. Eliminate render-thread rebuilding and unbounded per-frame work, coalesce only redundant state updates without delaying the first wheel delta, retain bounded virtualization, and prove responsive wheel/key scrolling while background review work continues. | RCS-UX6b2 / lazy-explorer plan |
+| RUX-45 | The Changes lens presents every repository-relative path as one long row (`docs/architecture/...`), so the changed surface is difficult to orient in at a glance. | Default Changes to a lazy path-segment hierarchy (`docs` → `architecture` → … → file) while retaining an explicit flat-path presentation. Layout changes reproject the same immutable review identities in the same Explorer/session; filter, finder, reveal, comments, and open-preview deduplication must work in either layout. The review lens control and every Changes-row context surface expose the alternate mode through `sfm:review/changes/layout/set hierarchy|flat-paths`. | RCS-UX6b3 / lazy-explorer plan |
+| RUX-46 | Generic alphabetical sorting displays `after` before `before`, even though review evidence has a temporal order. | Give the four file-pair children an explicit semantic name-sort order: `before`, `after`, `text diff`, `structured diff`. Labels and durable identities remain unchanged, and other Explorer sort axes remain available. | RCS-UX6b3 |
+| RUX-47 | A newly opened filesystem Explorer exposes/hoists the single `run` root differently on its first opening than on later openings. | Specify and test one deterministic single-root hoist/expansion policy across cold open, reopen, refresh, and restored session state. Do not make the first interaction depend on whether a child page happened to be warm. | RCS-UX7 / lazy-explorer plan |
+| RUX-48 | The inline loading animation uses proportional-width glyphs, making `Loading children…` shift horizontally every frame. | Use a fixed-width animation cell or fixed anchor/bounds so progress remains animated without moving adjacent text. This is explicitly lower priority than the hierarchy slice. | RCS-UX6 remainder / generic explorer presentation |
+| RUX-49 | Opening the writable production review still pauses for roughly half a second before the workbench appears. | Record open-to-first-useful-frame phases and move remaining parse/projection work off the render thread while keeping the previous useful screen visible. Do not optimize away durability validation or writer-lease safety. | RCS-UX6 remainder |
+| RUX-50 | The lens control offers a confusing executable `Current · Changes` no-op and consumes location-bar width; the same lens choices are not yet available from ordinary review-row context menus. | Move toward one contextual review-presentation surface that identifies active lens/layout non-operatively, offers only meaningful transitions, and can be opened from review chrome or rows. Retire redundant top-right chrome only after mouse, keyboard, narration, and action discoverability are equivalent. | RCS-UX6 remainder / contextual-input plan |
+| RUX-51 | Markdown before/after previews render without Markdown-aware syntax styling. | Route review source leaves through their actual source language provider; add Markdown support using the existing pinned syntax-worker path or an explicit truthful plain-text fallback until supported. Never apply SFML styling merely because the host mod is SFM. | RCS-UX6 remainder / syntax-highlighting plan |
+| RUX-52 | Text and structured diffs still expose raw `@@`, `---`, and `+++`-style marker documents, making additions/removals harder to scan than an inline review surface. | Build on RUX-28: compose language syntax foregrounds with independent added/removed/modified/moved/context backgrounds or gutters, and offer a richer inline/side-by-side review presentation without losing the exact textual diff or source mappings. Difftastic remains reference material, not a runtime prerequisite. | RCS-UX6 remainder / RCS-S3 follow-up |
+| RUX-53 | Hierarchical Changes now distinguishes path segments structurally, but synthetic directories such as `docs` and `platform` render as paper on the title screen and remain difficult to distinguish from source leaves. The resolver lost the chest's declared fallback, while the renderer also treated every custom model as unsafe even though vanilla's `BlockEntityWithoutLevelRenderer` and `ChestRenderer` explicitly support a null level. | Preserve requested item, title-safe fallback, and accessible label through the generic Explorer presentation seam. Review directories retain the preferred theme chest when the renderer is known level-independent and retain barrel as a useful fallback for unavailable or unproven custom rendering; files keep language/review-specific icons. Focused round-trip/resolver/policy tests and a title-screen puppet must prove the distinction. | lazy-explorer X-8d |
+| RUX-54 | The review hierarchy is a useful proving ground for richer semantic presentation (`docs`, `platform`, `Minecraft`, language/tool names), but hard-coding those words in the review renderer would create another isolated UI dialect. | Reuse the generic structured, inspectable Explorer presentation registry: typed path/structural metadata, specificity-based contributed rules, Java baseline, optional async enrichment, versioned cache evidence, and independently actionable icons. Review rows may contribute semantic facets but do not own precedence, AI access, or cache policy. | lazy-explorer X-8e |
+| RUX-55 | A review icon may differ between title-screen and in-world contexts, but the UI currently offers no way to learn whether that is necessary, conservative, or caused by a missing item. Silent fallback teaches the reviewer a false model of the system. | The icon itself has flat right-click aspect actions backed by semantic, replayable commands rather than widget ids. XEXP-38/IPR-02 supersedes the earlier generic Help grouping only. Subject-specific explanation reports requested/resolved items, current context, capability evidence and typed fallback reason; `sfm:explain/itemstack_rendering_in_the_title_screen` is directly offered as its own aspect. A stable non-colour-only disturbed marker appears only when degraded. Bounds/geometry remain a separate action and payload. | lazy-explorer X-8e / XEXP-35..38; IPR-T3 |
 
 ### Verified implementation evidence and constraints
 
@@ -2171,6 +2263,542 @@ sfm:title_screen_release_review_explorer_ux --branch 1.19.2 --variant preferred
 --wait-for-build-lock`; use `--variant declared` for the complete GUI-scale
 matrix.
 
+### [~] RCS-UX6b Stabilize the natural review-workbench controls
+
+**Observed acceptance gaps:** Before/after and generated diff documents
+inherited SFML colours;
+directory, generic JSON, and review-ledger icons were too similar; wheel input
+appeared dead over parts of both ordinary and review explorers; executable
+palette commands could not be submitted with Enter; action-family shortcut
+hints leaked Alt+D and Ctrl+Shift+E onto unrelated `sfm:panel/open` candidates;
+Tab completion was incorrectly made conditional on whether it could transfer
+focus; Alt+D was not global at the title screen and could retain a transient
+palette as a workspace's return screen; closing a palette command could mutate
+the removed palette; the workspace lacked direct diagnostics; and it lacked the
+requested panel-level middle-button management gesture. Raising only review
+JSON to 64 MiB then made a real 30,307,364-byte raw ledger stop responding,
+proving that a larger eager allocation was not an acceptable fix.
+
+**Work:** Keep every eager raw-text read, including compound
+`.sfm-review.json`, capped at the existing 4 MiB bound. An oversized raw ledger
+must return the typed `oversized` document immediately; users review its
+projected changes, comments, and query lenses instead of eagerly editing the
+whole persistence file. Carry explicit document-language metadata through literal, path,
+pinned-revision, saved, and generated-surface snapshots. Java before/after
+documents use the existing asynchronous Arborium worker; SFML alone uses the
+local SFML highlighter; JSON, generated text/structured diffs, and unsupported
+languages remain neutral until their own registered provider exists. Never
+infer language from panel titles.
+
+Use one specificity-aware theme resolver for directory (`chest`), generic file
+(`paper`), Java (`cocoa_beans`), JSON (`written_book`), and compound review
+ledger (`bell`) identities, with the longest case-insensitive suffix winning.
+Make the complete Explorer panel the primary wheel surface so its location,
+filter, list frame, and status chrome do not create dead input strips.
+
+Repair the palette keyboard contract so an executable command wins over a
+selected explanatory row on Enter. While command input owns focus, Tab belongs
+only to completion and never conditionally becomes focus traversal. Give the
+focused surface's registered Alt mnemonics first refusal for explicit focus
+actions: register `sfm:focus <focus-target>`, bind Alt+E to `execute_button`
+and Alt+C to `cancel_button`, and let right-click on either control offer both
+its focus action and a canonical-command copy action. An unmatched chord may
+still reach an intentional global action such as Alt+D. Localized control
+tooltips render the current command-palette bindings.
+Route puppet submission through the real Enter path.
+
+Resolve shortcut badges, narration counts, and detail tooltips by exact
+normalized `(action-id, command-draft)`, not action ID alone. Register
+Alt+D for `sfm:panel/open sfm:text_editor` and Ctrl+Shift+E for
+`sfm:panel/open sfm:explorer` in the global situation so both work from the
+title screen. Persistent panel opening unwraps transient palette origins before
+constructing the workspace; successful commands only reset a palette that is
+still current; nested constrained palettes restore their parent palette's
+active identity. `sfm:palette/close` must therefore return to the actual title,
+world, or workspace rather than clearing/reinitializing a removed palette. The
+generic Explorer's omitted-location default is the current Minecraft instance
+directory, so Ctrl+Shift+E is concretely a File Explorer; item exploration stays
+available through the explicit `registry://minecraft/item/` location.
+
+Add a panel-management layer above child content for the middle button:
+middle-clicking ordinary panel content opens the exact captured panel-entry
+action surface; crossing a four-pixel drag threshold previews the destination
+pane; releasing over another visible pane invokes the registered
+`sfm:panel/entry/move/to <source-session> <destination-session>` action and
+moves the source entry into that pane's stack without changing entry identity.
+Invalid drops and Escape/focus loss cancel safely; left/right input remains
+owned by panel content. The numbered stack controls retain their existing
+left-focus, middle-close, and right-context semantics.
+
+Register `sfm:screen/diagnostics`, with `sfm:overlay/diagnostics` as an alias,
+to open a read-only plain-text document containing current screen class/title,
+logical and framebuffer sizes, focused child, workspace panel IDs/classes/
+bounds/stacks, previous screen, and every SFM overlay's identity, visibility,
+content, input mode, z-order, and resolved bounds.
+
+**Validation:** Focused tests cover fail-fast oversized review JSON and the
+unchanged 4 MiB eager bound; explicit Java/diff language routing and
+snapshot preservation; compound-suffix icon precedence in generic/review
+explorers; immediate wheel routing over panel chrome and between hovered panes;
+Enter/explanatory-row and Tab/completion ownership; exact command-scoped hint
+identity; Alt+E/Alt+C focus defaults; global Alt+D/Ctrl+Shift+E defaults; panel
+move identity; and click/drag/cancel gesture state. A title-screen puppet must
+prove Alt+D both with and without a palette, Alt+E + Enter execution, Alt+C +
+Enter cancellation, canonical palette close, diagnostics opening, and return
+to the same title screen. The release-review puppet and manual journey still
+verify projections, Java before/after, neutral diffs, icons, wheel, keyboard,
+shortcuts, and panel movement without modifying the protected maintainer review
+file.
+
+**Completion criteria:** A restarted client rejects the real large raw review
+JSON promptly while keeping its review projections usable, displays every
+review surface with the correct language route and recognizable icon, scrolls
+either Explorer from any chrome, submits commands with Enter, completes with
+Tab, focuses controls with explicit Alt actions, shows only exact shortcut
+hints, opens an untitled editor/Explorer from the title screen without losing
+that screen, opens screen/overlay diagnostics, and moves or inspects a panel
+with the middle button through the same typed actions available to automation.
+
+**2026-08-23 automated evidence:** The focused regression suites and complete
+Java suite pass (`1616` passed, `0` failed, with the one expected opt-in worker
+test aborted); `sfm-propagate-changes.exe audit --branch 1.19.2` exits zero; and
+the restarted `sfm:title_screen_release_review_explorer_ux` preferred-variant
+puppet completed all captures, persisted its pointer-created `#approved`
+comment, visited all six review lenses, proved
+`#approved intersect 1.19.2 HEAD`, and closed/reopened the review. Its lens
+assertion now waits for the lazy child page that semantically contains the
+comment/hashtag rather than confusing the published root-only loading state for
+a missing comment. Keep this item in verification until the maintainer manually
+accepts the corrected oversized-file refusal, language/icon presentation, wheel
+surface, explicit keyboard focus, exact shortcut hints, title-screen lifecycle,
+diagnostics, and middle-button panel gesture in one restarted client.
+
+**2026-08-24 corrective implementation evidence:** The natural journey's
+remaining generic/review failures now have bounded implementations and tests:
+
+- context capture rebases a visible canvas selection onto the exact current
+  publication by line and Unicode-scalar column, maps EOF to EOF, and omits an
+  incompatible range. Right-clicking a structured diff can no longer pass a
+  stale `277` offset into a 276-byte document and crash the render thread;
+  LF/CRLF, astral-Unicode, terminal-newline, and incompatible-publication
+  regressions are covered;
+- ItemStack presentation now composes the caller's current panel pose into the
+  model-view transform before item rendering, so review/file icons remain
+  visible in translated right-hand panes as well as the origin pane;
+- generic Explorer projections are cached against explicit root/settings/
+  relation/entry generations, so wheel and cursor movement do not repeatedly
+  copy and sort the entire materialized relation graph. A visible draggable
+  scrollbar and whole-panel wheel routing retain every input delta rather than
+  debouncing a scroll gesture into one late jump;
+- right-clicking the Explorer location offers exact-explorer copy/edit actions,
+  and copy writes the canonical location rather than a clipped presentation;
+- the built-in `sfm:fps` overlay is registered hidden-by-default and can be
+  shown through the ordinary selector-addressed overlay visibility action;
+  F3 exposes the same registered toggle as a labelled constrained choice; and
+- the generated localization resources contain the palette Cancel label and
+  the new keybinding-manager/input-diagnostics strings.
+
+Canonical datagen, compilation, and the complete Java suite pass after this
+correction (`1,628` passed, `0` failed, one expected opt-in worker test
+aborted). Keep RCS-UX6b in maintainer verification until the restarted-client
+journey visually confirms the right-pane ItemStacks, scrollbar/scroll latency,
+location context action, F3 diagnostics, FPS overlay, and structured-diff
+right-click path.
+
+The restarted `sfm:title_screen_release_review_explorer_ux` puppet subsequently
+passed at `3840x2130@auto` in run
+`sfm-title_screen-20260824-005852-534`. Its disposable review completed lazy
+text/structured diff materialization, source-backed comment creation, six-lens
+querying, and close/reopen persistence. The captured split view visibly retains
+Java, text-diff, structured-diff, and directory ItemStacks in the translated
+right-hand pane, and no context-click range exception occurred.
+
+### [~] RCS-UX6b1 Repair real-ledger projection completeness and feedback
+
+**Exploratory follow-through:** E-1–E-4 in the linked exploratory usability plan
+are complete, but measured review-open (~1.24 s) and note-save (~2.13 s) dispatch
+remain synchronous stalls. ER-F1 owns the next bounded latency acceptance; do
+not infer broad responsiveness from fast cached filtered expansion alone.
+
+**September 5 bounded follow-through:** RCOV-A–E completed exact partial-
+coverage safety, filtered nested-context action authorization, independent diff
+styling and separate-process persistence. It also repaired V1 note focus/save
+and per-comment selector identity. The linked supplement owns the proof and
+remaining test-environment warnings. This umbrella stays active for its broader
+real-ledger UX/performance obligations; do not infer all review-workbench or
+language support is complete from the bounded acceptance.
+
+**Manual evidence 2026-08-24:** The 30,314,243-byte
+`manual-test.sfm-review.json` contains 2,917 review units, 1,337 Java units,
+1,230 distinct Java paths, and two successfully persisted human selector
+bindings. Nevertheless, `Ctrl+F java` exposed only one path because generic
+filtering considered 136 materialized entries, and the Comments lens could not
+reach the two human comments because they were appended after 2,917 generated
+comments. The runtime currently performs full canonical serialization,
+reparse/validation, existing-file hashing, authority replacement, and recovery-
+mirror replacement synchronously inside `createComment`, explaining the
+perceived comment-submit pause. One text-diff leaf also appeared unavailable
+while its paired Java structured surface produced five mapped regions; the
+current failure path does not log enough identity/evidence to distinguish a
+generator failure from a stale/tombstone row interaction.
+
+**Bounded corrective work:** First preserve keyboard parity and honest feedback:
+Alt+Enter opens the same Explorer row context surface as Menu/Shift+F10; active
+lazy requests retain old rows and show an animated `Loading …` status; Comments
+and Hashtags project append-only comments newest-first so a newly authored
+comment is in the first page. These corrections are small and independently
+testable, but do not by themselves complete this item.
+
+Then add a resolver-owned complete filter domain for immutable review
+projections. The first bounded implementation is query-independent: when a
+review filter becomes active, the review resolver materializes presentation
+entries and complete immediate-child relations away from the render thread,
+never source bodies, once per exact lens root and resolver generation. It
+publishes atomically through the Explorer owner executor, is capped at 100,000
+entries, and then lets the common fuzzy projection answer every subsequent
+query with complete ancestor retention. A stale review generation cannot
+publish. Generic filesystem filtering remains materialization-local until it
+gains its own indexed resolver, and the UI labels those scopes distinctly. If a
+future review exceeds the explicit domain cap, replace this bounded path with a
+query-specific paged resolver operation rather than silently returning partial
+matches.
+
+**Implemented evidence 2026-08-24:** The review resolver now publishes that
+bounded complete presentation domain once per exact lens root and resolver
+generation. A focused production-shaped test proves that a `java` filter sees
+rows beyond the first lazy page, including both `Cafe.java` and `Unicode.java`,
+while retaining complete ancestor chains through the ordinary Explorer fuzzy
+projection. The common loader rejects stale generations, deduplicates concurrent
+requests, reports cap/failure diagnostics, and exposes the request through the
+same animated loading state. Alt+Enter/Menu parity and newest-first comment
+projection are also implemented and covered by focused tests. This item remains
+in progress until the remaining persistence routes, generated-surface comment
+mapping, composed syntax/diff styling, Status polish, and production-scale
+natural evidence are complete. Generated text and structured surfaces now also
+open through the existing deferred editor host, so their worker future can
+display a loading panel instead of being joined by the panel-opening/render
+path.
+
+The follow-up manual regressions are represented explicitly rather than folded
+into that broad claim. Resolver-owned search terms keep `java` results at the
+file row while a `structured` query still finds structured-diff leaves; focused
+projection tests cover both cases. Review-comment gutter markers remain textual
+end-to-end, so a marker such as `R` cannot be parsed as ARGB and the Comments
+lens no longer fails while building its style index.
+
+Built-in `#approved` and `#needs-change` choices now hand one immutable mutation
+to the application-owned persistence worker, report `Saving review comment…`
+immediately, retain the committed document/generation until atomic persistence
+succeeds, and refresh matching lenses only after publication. A queued-executor
+test proves the handoff and no-optimistic-publication boundary. The free-form
+`Other…` editor and non-comment review mutations still use the synchronous path,
+so RUX-26 remains in progress pending their migration and production-scale frame
+evidence.
+
+Exact before/after source previews now derive hash- and generation-bound comment
+decorations after a successful save. Background, underline, and textual gutter
+layers compose independently with syntax foregrounds and refresh while the
+document remains open. RUX-27 remains in progress because generated-diff source
+mapping plus hover/click navigation to comment details are not yet implemented.
+
+Move review mutations to a single owned persistence executor. The render thread
+captures a typed comment/migration intent and immediately publishes a pending
+state. The worker derives the candidate document, validates and writes it
+atomically, and hands a generation-checked result back to the client executor.
+During save, existing rows and editor text remain interactive. Success refreshes
+every matching open review lens, reveals the new comment, updates query/status,
+and publishes source-mapped decorations; conflict/failure retains the draft and
+offers retry/copy diagnostics.
+
+Extend generated review surfaces and editor styling with two composable layers:
+language syntax spans (Java through the existing Arborium worker) and diff-role
+regions (`added`, `removed`, `modified`, `moved`, `context`). Diff backgrounds,
+gutters, and comment decorations never replace syntax foregrounds. Add bounded
+surface telemetry and reproduce the observed added-file text-diff failure before
+changing availability semantics.
+
+**Validation:** Focused tests cover Alt+Enter/Menu parity, pending relation
+visibility, newest-first comments past the first page, complete review search
+with ancestor retention, stale-search cancellation, async-save conflict and
+render-thread responsiveness, comment decoration refresh, and syntax/diff style
+composition. A production-scale natural puppet opens a disposable review with
+more than 1,024 changed paths and 2,917 generated comments, searches `java`,
+authors a comment, observes pending/saved states, finds and clicks its inline
+decoration and Comments row, inspects text and structured diffs, checks Status,
+then closes/reopens from the tracked file. Artifacts record frame latency,
+surface failure codes, match counts, and exact persisted selector evidence.
+
+**Completion criteria:** On the real-size fixture, keyboard-only Alt+Enter works;
+no cold operation looks inert; `java` finds the complete review corpus with its
+ancestor hierarchy; a human comment appears immediately and remains visible in
+the source plus Comments/Hashtags/query/status after restart; save work does not
+block frames; and Java diff previews combine readable syntax with explicit
+added/removed semantics. Any unavailable diff states a precise durable reason.
+
+### [x] RCS-UX6b2 Make production review navigation inspectable and responsive
+
+**Manual evidence and corrected boundary — 2026-08-24:** On
+`manual-test.sfm-review.json`, entering `.java` first exposed two currently
+materialized matches and later 1,237 complete matches. The log recorded
+`explorer-1: refresh-requested` at `16:15:26.320` and `explorer-2: applied` at
+`16:15:38.016`, an approximately 11.7-second opaque transition. Expanding a
+matched file while the filter remained active hid all four useful children;
+clearing the query stalled on successive edits; target reveal failed against an
+in-flight partial continuation; and the Comments lens could not keep up with an
+unlocked wheel at only `24 visible / 129 entries`. These are production-path
+failures, not permission to replace the tracked maintainer review or to tune a
+tiny fixture until it passes.
+
+The same journey exposed three semantic presentation failures. Text Editor v3
+lost ordinary middle-drag panning to the newer workspace panel-move gesture.
+Command-palette candidates hid decisive information behind premature truncation
+and a tiny tooltip hit area. Most importantly, a proposal displayed
+`symbol · jdk-source://.../Override.java` even though the persisted comment's
+effective target was the selected local range in
+`SetTerminalTransportAction.java`; the external `Override.java` declaration was
+supporting semantic evidence only. Storage happened to be correct, but the UI
+made the reviewer unable to know what was being approved.
+
+**A. Query, context, loading, and reveal (RUX-34 through RUX-37):** Move
+production review search to one resolver-owned worker pipeline that accepts the
+normalized query and exact review/lens generation, resolves direct matches and
+ancestor chains, and publishes bounded pages with cancellation. It must not
+publish a query-independent full presentation tree merely so the render thread
+can rescore that tree on every keystroke. Preserve the last complete page while
+new work is pending and distinguish incomplete/materialized counts from exact
+complete counts. A direct matching row stays compact until the user expands it;
+then its immediate before/after/text-diff/structured-diff children are contextual
+descendants even if their labels do not match. A separate finding cursor owns
+next/previous navigation without changing tree inclusion. Active expansion
+publishes an inline `Loading children…` row, and reveal either joins/deduplicates
+that exact request or directly materializes the resolver-known ancestor chain.
+
+**B. Inspectability and honest proposal identity (RUX-38 through RUX-40):** Add
+versioned copy-details payloads to Explorer/review rows and command-palette
+candidates. Candidate layout uses all available row width; its entire row owns
+the full-details tooltip when truncated; right-click offers display,
+replacement, canonical command, and structured-details copies. Comment target
+choices put the local effective destination—review side, path, range, and
+excerpt—first. Definition/source-index evidence is explicitly secondary. The
+exact local `@Override` versus JDK `Override.java` case is a non-negotiable
+regression test.
+
+**C. Pointer ownership (RUX-41):** Decide pointer ownership from panel chrome,
+content kind, button, modifier, and drag threshold before either layer mutates.
+Ordinary middle-drag over text-editor content pans the document. Moving a panel
+uses pane chrome/numbered stack affordances or the selected explicit modifier;
+middle click without crossing the threshold may still open the panel action
+surface. Escape, focus loss, and invalid drops cancel whichever one owner won.
+The live acceptance puppet must exercise these pointer paths through the
+puppet plan's PA-3 virtual Minecraft-callback seam; validation may not reposition
+the operating-system cursor or depend on GLFW-polled desktop-pointer agreement.
+
+**D. Review object comprehension (RUX-42 and RUX-43):** Replace opaque
+comment-id-first rows with a reusable comment-object projection:
+
+```text
+📝 #approved Reviewed local transport selection…
+  value
+    Reviewed local transport selection…
+  selector
+    kind
+    expression / rule
+    literal witness
+    semantic evidence
+  matches (N)
+    after · path/to/File.java · [start,end) · "selected excerpt"
+  provenance
+    id · producer · kind/schema · parents
+```
+
+The selector is durable intent; `matches` are derived evaluations and therefore
+may be zero, one, many, stale, or ambiguous. Opening `value` shows the complete
+comment text in a read-only editor. Opening a match navigates to its exact
+pinned source range and visibly shows the excerpt. Storage IDs belong in
+provenance/tooltips, not as the primary human label. The same projection backs
+an anchored source-decoration details surface, including overlap choice and
+keyboard/action parity.
+
+**E. Production interaction performance (RUX-44):** Add bounded telemetry for
+input-received, query/relation work submitted, first useful page retained or
+published, row projection, wheel offset publication, and frame presentation.
+Use a deterministic disposable corpus at least as large as the observed review
+shape. Fix measured render-thread recomputation and allocation; do not disguise
+latency by debouncing away the first keystroke or wheel delta.
+
+**Focused validation:**
+
+1. Type `.java` one character at a time in a production-shaped Changes lens.
+   The client remains responsive, old useful rows stay visible while pending,
+   and the final exact count includes every generated path.
+2. Expand a directly matched `SFM.java` row and observe inline loading followed
+   by before, after, text diff, and structured diff without clearing the filter.
+   Next/previous finding moves independently of tree filtering.
+3. Trigger reveal while that row or its parent continuation is already loading,
+   and again immediately after a comment generation refresh. Both converge on
+   the exact selected row without a continuation-acquisition failure.
+4. Copy details from an Explorer/review row and from a palette candidate. Hover
+   anywhere over a truncated candidate to inspect its complete description;
+   right-click copies each documented representation.
+5. Reproduce the local `@Override` proposal. The choice names the current local
+   file/range/excerpt as target and names JDK `Override.java` only as definition
+   evidence; persisted selector bytes remain local.
+6. Middle-drag a large source document to pan it, then move that panel through
+   the explicit workspace gesture. Neither gesture invokes the other.
+7. Open Comments on a production-shaped corpus, scroll with an unlocked wheel,
+   expand a human comment into `value`, `selector`, `matches`, and `provenance`,
+   open its complete text and exact source excerpt, then use the source marker
+   to open the same details.
+8. Focused model/interaction tests and a natural puppet record exact counts,
+   generation/cancellation outcomes, reveal outcome, event-to-frame latency,
+   and screenshots without mutating
+   `docs/reviews/4.34.0-1.19.2-to-58ed4e431.sfm-review.json`.
+
+**Completion criteria:** A reviewer can search or find, expand contextual review
+surfaces, reveal a changing lazy row, understand and copy every proposed target,
+pan source independently from moving panels, and inspect persisted comments as
+value/intent/matches/provenance without guessing from IDs. The natural workflow
+has no multi-second render-thread freeze, no missing first input delta, no
+mislabelled semantic evidence, and no transient reveal race. The disposable
+review survives close/reopen with the same comment target and derived matches.
+
+**Operational boundary:** The dependency graph and checked-in dependency
+declarations/lockfiles remain frozen. Introduce no new dependency and clone no
+new developer/reference repository. Existing locked cache rehydration remains
+permitted by the repository goal-execution guide. This slice changes Java,
+tests/puppets, and plans only unless an already-existing CLI test surface needs
+rebuilding; final tooling freshness and the exact manual launch path must be
+reported after the last runtime-input change.
+
+**Completion evidence — 2026-08-24:** RUX-34 through RUX-44 are implemented.
+The resolver now owns cancellable query-specific filter and finder lanes;
+contextual children and inline loading remain generation-safe; reveal joins
+active work; Explorer rows and palette candidates expose versioned details;
+local review targets lead semantic evidence; middle-drag ownership is explicit;
+and Comments project value/selector/matches/provenance with source-anchored
+details and bounded scrolling telemetry. The complete focused
+`SFMReleaseReview*` family passed 106/106, and the Explorer, palette,
+workspace-move, comment-model, lazy-loader, pagination, finder-independence,
+candidate/row-copy, and source-comment navigation suites passed. The final
+whole JUnit run started 1,674 tests: 1,667 passed, one property-gated worker
+integration test aborted, and six shared-JVM
+failures cascaded from `net.minecraft.locale.Language` initialization finding
+no default-language resource; the first failing
+`SFMOverlayActionGrammarTests` class passed independently after that run. The
+final focused virtual-input source test also passed.
+
+The natural command
+`sfm-propagate-changes.exe puppet run sfm:title_screen_release_review_explorer_ux --branch 1.19.2 --wait-for-build-lock`
+passed all nine `3840x2130@auto,1..8` variants with `failed=0 total=9`; artifacts
+are under `sfm-title_screen-20260824-183208-397`. Its pointer path now uses the
+PA-3 Minecraft-callback virtual input seam and cannot reposition the user's OS
+cursor. The protected maintainer ledger remained dirty user state and was not
+edited, staged, or used as a mutation target. No dependency/lockfile or CLI
+source changed; the installed CLI at
+`G:\Programming\Caches\CARGO_HOME\bin\sfm-propagate-changes.exe` (SHA-256
+`5445A354999C66CD5D6BAEC18986F8EDC90229AE41BDF18A14BAADF2FA52350F`)
+successfully built, tested, and launched the final Java sources, so no
+`install.ps1` run is required.
+
+### [x] RCS-UX6b3 Project review changes as a navigable repository hierarchy
+
+**Manual evidence and boundary — 2026-09-03:** The production Changes lens
+shows complete repository paths as sibling labels, obscuring the shape of the
+change set, and the ordinary Explorer name sort places `after` before `before`.
+This corrective slice owns RUX-45 and RUX-46. It does not absorb the separately
+tracked cold-root inconsistency, proportional-width spinner, writable-open
+latency, lens-chrome cleanup, Markdown provider, or richer diff rendering in
+RUX-47 through RUX-52, nor the title-screen icon fallback, generic
+presentation-registry, and explainable degraded-icon follow-ups in
+RUX-53 through RUX-55.
+
+**Contract:** `Changes` opens in repository hierarchy mode. Each normalized
+repository path contributes lazy directory segments followed by one file-pair
+node; expanding a directory materializes only its bounded child page. Renames
+are grouped beneath the after-path when present while retaining the before and
+after paths in labels/search evidence and preserving one stable file identity.
+The explicit alternate `flat-paths` layout restores complete path rows. A
+layout switch replaces only the ephemeral resolver root: review path/open
+epoch, Explorer id/location/settings, immutable file/source/diff ids, and
+existing preview identities remain stable. Complete filtering includes exact
+ancestor chains in hierarchy mode and compact direct file matches in either
+mode. Reveal resolves the actual path chain for the active layout.
+
+The action `sfm:review/changes/layout/set hierarchy|flat-paths` is available
+through Brigadier suggestions, the existing review control, and every Changes
+row's ordinary context surface. The default name sort publishes semantic sort
+keys for `before`, `after`, `text diff`, and `structured diff`; presentation
+labels and non-name sort axes are not rewritten.
+
+**Focused validation:** Model tests compare hierarchy and flat projections and
+prove stable file identities. Resolver tests prove default hierarchy, complete
+filter ancestors, row-context discoverability, semantic leaf ordering, and an
+in-place flat/hierarchy switch that retains Explorer/review identity. Action
+tests prove canonical suggestions plus the bounded alternate-layout choice.
+The release-review puppet must still reach and open one complete four-leaf file
+pair through the default hierarchy at every supported GUI scale.
+
+**Completion criteria:** A newly opened review visibly starts with repository
+segments such as `docs`, a reviewer can expand down to a file and sees `before`
+above `after`, and the same workbench can switch to complete flat paths and back
+without duplicate previews, lost filters, changed durable addresses, or a
+render-thread traversal of every source body.
+
+**Completion evidence — 2026-09-03:** Changes now defaults to a lazy
+path-segment model and retains an explicit `flat-paths` model behind
+`sfm:review/changes/layout/set`. The review control and each Changes row expose
+the alternate action; switching replaces only the ephemeral resolver root and
+retains Explorer id/location/settings, review path/open epoch, stable file ids,
+and source/diff presentation identities. File rows contribute their complete
+paths as search evidence even when the visible label is only the basename.
+Review-specific name sort keys preserve `before`, `after`, `text diff`, then
+`structured diff`.
+
+`SFMReviewExplorerModelTests` passed 18/18,
+`SFMReleaseReviewExplorerRuntimeTests` passed 10/10, the two new layout-action
+tests and two lens-control tests passed, and the complete focused
+`SFMReleaseReview*` family passed 108/108. The natural
+`sfm:title_screen_release_review_explorer_ux` puppet passed its full nine-variant
+`3840x2130@auto,1..8` matrix. Artifacts are under
+`sfm-title_screen-20260903-173958-123`; figure 1 visibly shows `src` as a
+directory, `Cafe.java` beneath it, and the four temporal/diff children in the
+required order. No dependency, lockfile, CLI source, or protected maintainer
+review file changed.
+
+### [ ] RCS-UX6c Add viewport-backed read-only virtual documents
+
+**Motivation:** A 30+ MiB review ledger must eventually be inspectable without
+converting one size-limit exception into a multi-second allocation, parse, style,
+layout, and render stall. The first slice is read-only; saving and arbitrary
+editing remain deferred until chunk identity and transaction semantics are
+proven.
+
+**Contract:** Introduce a versioned virtual-document recipe carrying canonical
+address, expected content identity/hash, byte length, encoding, and a reusable
+line/byte index. Convert the editor's 2D camera and logical viewport (plus a
+bounded prefetch margin) into requested line/byte ranges. Resolve ranges off the
+render thread with cancellation and monotonically increasing request generation;
+publish only ranges matching the current address, hash, viewport generation,
+and panel lifetime. Retain an explicitly bounded LRU of immutable chunks and
+render stable loading/error placeholders where bytes are absent. Panning,
+scrolling, jumping, and resizing request newly exposed ranges immediately
+without clearing still-valid visible chunks.
+
+Syntax providers receive only loaded ranges plus enough overlap/state to make
+their boundary behavior explicit. Selection, copy, symbol queries, diagnostics,
+and full-document operations must report whether their required ranges are
+materialized rather than guessing. A normal small document stays on the eager
+path; virtual mode is selected by typed metadata/policy, not by a panel-title
+heuristic.
+
+**Validation:** Pure tests cover viewport-to-range math, Unicode and CRLF line
+indexes, prefetch/clamping, stale-result rejection, cancellation, LRU eviction,
+and placeholders. A natural puppet opens a deterministic sparse file larger
+than 30 MiB near the origin, pans/jumps to distant regions, returns to a cached
+region, and proves bounded resident bytes, responsive frames, correct visible
+text, and no render-thread full-file read. Raw release-review JSON may opt into
+this path only after that evidence passes.
+
 ### [ ] RCS-UX6 Make review opening and annotation naturally mouse-driven
 
 **Work:** Add file-explorer contextual actions for opening a `.sfm-review.json`
@@ -2243,18 +2871,52 @@ The safety repair is first and independently committable:
    availability, sound, parse-feedback, and cold render-thread latency defects.
 4. **RCS-UX5 / RCS-S3 plus RCS-UX6a** — complete: add source-mapped textual/
    structured diff reports and prove one mouse-complete persistent comment loop.
-5. **RCS-UX6 remainder** — next: broaden the mouse-first workflow to complete
+5. **RCS-UX6b** — corrective focus/lifecycle/diagnostics slice in progress;
+   rerun focused/full tests and the title/review puppets, then await maintainer
+   acceptance of oversized refusal, language/icon, scrolling, explicit focus,
+   exact hints, global shortcuts, diagnostics, and panel gestures.
+6. **RCS-UX6b1** — reopened follow-through: completeness, comment visibility and
+   composable styling have bounded acceptance, but ER-F1 retains the observed
+   synchronous real-ledger open/save stalls; mutation responsiveness is not done.
+7. **RCS-UX6b2** — complete: correct the production review's filter/find semantics,
+   asynchronous query and reveal behavior, row/candidate inspectability,
+   pointer ownership, comment object projection, and Comments scrolling through
+   RUX-34 through RUX-44.
+8. **RCS-UX6b3** — complete: project changed paths as a lazy repository
+   hierarchy by default, retain an explicit flat-path mode, preserve identities
+   across layout switches, and order temporal/diff children as `before`,
+   `after`, `text diff`, `structured diff` through RUX-45 and RUX-46.
+9. **RCS-UX6c** — later, add read-only viewport-backed virtual documents before
+   allowing raw ledgers above the eager 4 MiB boundary.
+10. **RCS-UX6 remainder** — then broaden the mouse-first workflow to complete
    multi-session leases, conflicts, recovery, and every annotation edge case.
-6. **RCS-UX7/RCS-UX8** — broaden discoverability through explorer home and
+11. **RCS-UX7/RCS-UX8** — broaden discoverability through explorer home and
    contextual self-explanation.
-7. **RCS-S4** — only then prove cross-lane structural equivalence without
+12. **RCS-S4** — only then prove cross-lane structural equivalence without
    deduplicating human approval.
 
-RCS-UX0 through RCS-UX5/RCS-S3 and the bounded RCS-UX6a loop are complete. The
-next coherent review-workbench goal is the **RCS-UX6 remainder**: multiple
-simultaneous reviews, path-scoped writer leases, conflict/recovery behavior,
-arbitrary-comment editing completion, multi-range/stale-selection breadth, and
-full mouse/keyboard parity. RCS-UX7/RCS-UX8 then broaden discovery and help;
+RCS-UX0 through RCS-UX5/RCS-S3 and the bounded RCS-UX6a loop are complete.
+RCS-UX6b2 / RUX-34 through RUX-44 and RCS-UX6b3 / RUX-45 through RUX-46 have
+bounded acceptance, including inspectable comments and the identity-preserving
+hierarchy/flat-path alternate. September 5 exploratory evidence explicitly
+reopens RCS-UX6b1's latency follow-through; it does not establish general
+responsiveness or every cancellation race. Prioritize ER-F1–ER-F4 before the
+larger **RCS-UX6 remainder**, which adds multiple
+simultaneous reviews, path-scoped writer leases,
+conflict/recovery behavior, arbitrary-comment editing completion,
+multi-range/stale-selection breadth, and full mouse/keyboard parity. Its
+constituent follow-ups explicitly include RUX-48 through RUX-52: stable loading
+animation geometry, writable-open latency, non-redundant contextual lens
+controls, Markdown syntax presentation, and richer composable diff rendering.
+RUX-47's cold/reopen single-root hoist consistency remains generic Explorer
+work owned with RCS-UX7. RUX-53 is the bounded lazy-explorer X-8d repair that
+keeps review directories container-like through title-screen safety fallback;
+RUX-54 deliberately delegates richer semantic/icon/cache behavior to the
+generic structured presentation registry in lazy-explorer X-8e rather than
+hard-coding review-specific name rules. RUX-55 keeps title-screen capability
+and fallback explanations semantic, replayable, visibly discoverable, and
+separate from geometry inspection.
+RCS-UX7/RCS-UX8 then broaden discovery and help;
 RCS-S4 remains the first cross-lane structural-equivalence proof.
 
 ### Review-workbench risk register
@@ -2291,6 +2953,29 @@ RCS-S4 remains the first cross-lane structural-equivalence proof.
   not become durable addresses, local Difftastic/syndiff references do not
   become dependencies, a target button does not rely on unspecified focus, and
   the user's dirty canonical review is not treated as a disposable fixture.
+- **Pass 4 — 2026-09-03 hierarchy narration:** Re-read the maintainer's complete
+  hands-on Changes-lens narration and split its observations into RUX-45 through
+  RUX-52. RUX-45/RUX-46 are complete in RCS-UX6b3 with a hierarchy default,
+  explicit flat-path alternate, stable review/file/preview identities, retained
+  full-path search evidence, and semantic temporal/diff ordering. The cold-root
+  presentation mismatch, spinner jitter, writable-open pause, redundant
+  current-lens control, Markdown highlighting, and richer diff rendering remain
+  individually addressable follow-ups rather than being compressed into an
+  unspecified polish task.
+- **Pass 5 — 2026-09-03 presentation narration:** Traced the paper-like
+  `docs`/`platform` rows through review structural kind, theme request, resolver
+  publication, title-screen custom-render safety, and the discarded fallback.
+  RUX-53 owns preservation of the chest/barrel specification plus the bounded
+  correction that permits vanilla's known level-independent chest renderer.
+  RUX-54 links—without duplicating—the typed subject, semantic-specificity
+  ordering, diverse
+  replaceable defaults, Java baseline, optional asynchronous/AI enrichment,
+  versioned cache evidence, independently actionable icon bounds, and
+  structured JSON/compressed-log resolver work recorded as XEXP-27 through
+  XEXP-37 and X-8e/X-8f in the lazy-explorer plan. RUX-55 separately preserves
+  semantic title-screen help, exact subject replay, typed degraded reasons and
+  a disturbed visual affordance while forbidding geometry from being buried in
+  that explanation.
 - **Known source limitation:** None for this message; the original prompt and
   attached crash log were available. Earlier compacted requirements remain
   represented by the pre-existing ledgers and audits in this plan.
@@ -2323,8 +3008,9 @@ this candidate.
 
 After the clean committed core, continue according to the current review-
 workbench execution order above. RCS-UX0 through RCS-UX5/RCS-S3 and the bounded
-RCS-UX6a single-review loop are complete. The next coherent goal is the
-RCS-UX6 remainder; RCS-S4 remains the first cross-lane equivalence proof after
+RCS-UX6a single-review loop are complete, as are RCS-UX6b2 and RCS-UX6b3's
+production navigation corrections. The next coherent goal is the RCS-UX6
+remainder; RCS-S4 remains the first cross-lane equivalence proof after
 multi-session review ownership and recovery are complete.
 
 The dependency graph and checked-in lockfiles remain frozen. Local checkpoint

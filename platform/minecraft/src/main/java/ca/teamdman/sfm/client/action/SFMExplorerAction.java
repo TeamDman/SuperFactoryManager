@@ -8,6 +8,8 @@ import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionRequest;
 import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionResult;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSettingRegistry;
+import ca.teamdman.sfm.client.search.SFMTextMatchOptions;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -34,7 +36,13 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
         HOIST_SET,
         PATH_DISPLAY_SET,
         FILTER_SET,
-        FILTER_CLEAR
+        FILTER_MATCH,
+        FILTER_CLEAR,
+        FIND_SET,
+        FIND_MATCH,
+        FIND_NEXT,
+        FIND_PREVIOUS,
+        FIND_CLEAR
     }
 
     private final Operation operation;
@@ -58,7 +66,13 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
             case HOIST_SET -> "Set explorer root hoisting";
             case PATH_DISPLAY_SET -> "Set explorer path labels";
             case FILTER_SET -> "Set explorer fuzzy filter";
+            case FILTER_MATCH -> "Set explorer filter with match options";
             case FILTER_CLEAR -> "Clear explorer fuzzy filter";
+            case FIND_SET -> "Find in explorer";
+            case FIND_MATCH -> "Find in explorer with match options";
+            case FIND_NEXT -> "Find next explorer entry";
+            case FIND_PREVIOUS -> "Find previous explorer entry";
+            case FIND_CLEAR -> "Clear explorer finder";
         });
     }
 
@@ -127,13 +141,13 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
                 ));
             }
             selector.then(path);
-        } else if (operation == Operation.FILTER_CLEAR) {
+        } else if (takesOnlySelector()) {
             selector.executes(context -> invokeOperation(
                     context,
                     SFMExplorerActionRequest.IfNoMatch.FAIL
             ));
-        } else if (operation == Operation.FILTER_SET) {
-            selector.then(RequiredArgumentBuilder
+        } else if (takesQuery()) {
+            var query = RequiredArgumentBuilder
                     .<SFMClientActionSource, String>argument(
                             "query",
                             StringArgumentType.greedyString()
@@ -141,7 +155,20 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
                     .executes(context -> invokeOperation(
                             context,
                             SFMExplorerActionRequest.IfNoMatch.FAIL
-                    )));
+                    ));
+            if (takesMatchOptions()) {
+                selector.then(RequiredArgumentBuilder.<SFMClientActionSource, String>argument("match_mode", StringArgumentType.word())
+                        .suggests((context, builder) -> {
+                            builder.suggest("literal");
+                            builder.suggest("fuzzy");
+                            builder.suggest("regex");
+                            return builder.buildFuture();
+                        })
+                        .then(RequiredArgumentBuilder.<SFMClientActionSource, Boolean>argument("match_case", BoolArgumentType.bool())
+                                .then(RequiredArgumentBuilder.<SFMClientActionSource, Boolean>argument("whole_word", BoolArgumentType.bool())
+                                        .then(RequiredArgumentBuilder.<SFMClientActionSource, Boolean>argument("dot_all", BoolArgumentType.bool())
+                                                .then(query)))));
+            } else selector.then(query);
         } else {
             RequiredArgumentBuilder<SFMClientActionSource, String> setting = RequiredArgumentBuilder
                     .<SFMClientActionSource, String>argument("setting", SFMCanonicalTokenArgument.token())
@@ -232,11 +259,24 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
                 default -> throw new AssertionError("Path operation expected");
             };
         }
-        if (operation == Operation.FILTER_SET) {
-            return new SFMExplorerActionRequest.FilterSet(StringArgumentType.getString(context, "query"));
+        if (takesQuery()) {
+            String query = StringArgumentType.getString(context, "query");
+            return switch (operation) {
+                case FILTER_SET -> new SFMExplorerActionRequest.FilterSet(query);
+                case FIND_SET -> new SFMExplorerActionRequest.FindSet(query);
+                case FILTER_MATCH -> new SFMExplorerActionRequest.FilterSet(query, matchOptions(context));
+                case FIND_MATCH -> new SFMExplorerActionRequest.FindSet(query, matchOptions(context));
+                default -> throw new AssertionError("Query operation expected");
+            };
         }
-        if (operation == Operation.FILTER_CLEAR) {
-            return new SFMExplorerActionRequest.FilterClear();
+        if (takesOnlySelector()) {
+            return switch (operation) {
+                case FILTER_CLEAR -> new SFMExplorerActionRequest.FilterClear();
+                case FIND_NEXT -> new SFMExplorerActionRequest.FindNext();
+                case FIND_PREVIOUS -> new SFMExplorerActionRequest.FindPrevious();
+                case FIND_CLEAR -> new SFMExplorerActionRequest.FindClear();
+                default -> throw new AssertionError("Selector-only operation expected");
+            };
         }
         String setting = SFMCanonicalTokenArgument.get(context, "setting");
         return switch (operation) {
@@ -252,8 +292,35 @@ public final class SFMExplorerAction implements SFMClientAction<SFMClientActionC
     private boolean takesPath() {
         return switch (operation) {
             case NODE_EXPAND, NODE_COLLAPSE, NODE_TOGGLE, NODE_REFRESH, ROOT_ADD, ROOT_REMOVE -> true;
-            case VIEW_SET, SORT_SET, GROUP_SET, HOIST_SET, PATH_DISPLAY_SET, FILTER_SET, FILTER_CLEAR -> false;
+            case VIEW_SET, SORT_SET, GROUP_SET, HOIST_SET, PATH_DISPLAY_SET,
+                    FILTER_SET, FILTER_MATCH, FILTER_CLEAR, FIND_SET, FIND_MATCH, FIND_NEXT, FIND_PREVIOUS, FIND_CLEAR -> false;
         };
+    }
+
+    private boolean takesQuery() {
+        return operation == Operation.FILTER_SET || operation == Operation.FIND_SET || takesMatchOptions();
+    }
+
+    private boolean takesMatchOptions() {
+        return operation == Operation.FILTER_MATCH || operation == Operation.FIND_MATCH;
+    }
+
+    private static SFMTextMatchOptions matchOptions(CommandContext<SFMClientActionSource> context) {
+        var mode = switch (StringArgumentType.getString(context, "match_mode")) {
+            case "literal" -> SFMTextMatchOptions.Mode.LITERAL;
+            case "fuzzy" -> SFMTextMatchOptions.Mode.FUZZY;
+            case "regex" -> SFMTextMatchOptions.Mode.REGEX;
+            default -> throw new IllegalArgumentException("Supported match modes: literal, fuzzy, regex");
+        };
+        return new SFMTextMatchOptions(mode, BoolArgumentType.getBool(context, "match_case"),
+                BoolArgumentType.getBool(context, "whole_word"), BoolArgumentType.getBool(context, "dot_all"));
+    }
+
+    private boolean takesOnlySelector() {
+        return operation == Operation.FILTER_CLEAR
+                || operation == Operation.FIND_NEXT
+                || operation == Operation.FIND_PREVIOUS
+                || operation == Operation.FIND_CLEAR;
     }
 
     private List<String> settingSuggestions() {

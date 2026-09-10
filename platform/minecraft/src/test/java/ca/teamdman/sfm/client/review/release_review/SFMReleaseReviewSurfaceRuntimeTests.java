@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.review.release_review;
 
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentLanguage;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import org.junit.jupiter.api.Test;
 
@@ -55,6 +56,8 @@ class SFMReleaseReviewSurfaceRuntimeTests {
             SFMTextDocumentSnapshot snapshot = first.snapshot();
             assertTrue(snapshot.ready());
             assertTrue(snapshot.readOnly());
+            assertEquals(SFMTextDocumentLanguage.diff(), snapshot.language());
+            assertFalse(snapshot.language().usesLocalSfmlHighlighting());
             assertEquals(first.surface(), runtime.sourceMap(snapshot).orElseThrow());
             int length = first.surface().text().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
             assertEquals(1, runtime.projectToSources(snapshot,

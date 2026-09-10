@@ -106,8 +106,8 @@ If we have a concept of virtual desktop-like things, then does that mean we have
 **Plan status:** Active; multiplexer/explorer foundation and Track 1b pointer-driven divider resizing are complete; Track 1c overlay/declarative-scene state, review-surface, and later relocation/workspace slices remain
 **Primary planning root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Related reference worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`  
-**Last updated:** 2026-08-21
-**Intent audit:** Passed and post-compaction re-audited 2026-08-21 for divider behavior plus the complete temporal-history/frontline-overlay/layout-state guidance
+**Last updated:** 2026-08-24
+**Intent audit:** Passed and post-compaction re-audited 2026-08-23 for divider behavior, explicit focus actions, transient-screen ownership, screen/overlay diagnostics, bounded eager documents, and the complete temporal-history/frontline-overlay/layout-state guidance
 
 ## How to update this plan
 
@@ -122,6 +122,31 @@ work item they affect. Work from the oldest supported Minecraft version and use
 the repository propagation workflow for changes intended for core branches.
 
 ## Planning checkpoint
+
+### 2026-08-23 palette, screen ownership, and large-document correction
+
+- Focus traversal is action-addressable rather than inferred from whether Tab
+  completion happened to make progress. `sfm:focus <target>` owns stable focus
+  IDs; Alt+E/Alt+C target the palette's Execute/Cancel controls, and right-click
+  exposes those same actions plus canonical-command copying. Panel content may
+  continue to own Tab without making controls unreachable.
+- Persistent workspaces unwrap any transient palette origin before retaining
+  their previous screen. A command that closes/replaces a palette cannot reset
+  the removed instance, and nested constrained palettes restore their parent
+  identity. This is the lifecycle invariant that prevents Alt+D from replacing
+  the title screen with an undismissable palette/workspace cycle.
+- `sfm:screen/diagnostics` (alias `sfm:overlay/diagnostics`) opens a read-only
+  text snapshot of current screen, focus, logical/framebuffer dimensions,
+  workspace panel IDs/classes/bounds/stacks, previous screen, and all overlay
+  scene entries. It is a general inspection seam, not a bespoke diagnostics
+  screen.
+- Eager path documents retain one 4 MiB bound, including `.sfm-review.json`.
+  Do not raise that limit to accommodate a 30+ MiB persistence file. The
+  authoritative future work is RCS-UX6c in the global review plan: a read-only
+  viewport-backed virtual document with line/byte indexing, camera-derived
+  cancellable range requests, generation/hash guards, bounded LRU chunks,
+  placeholders, bounded syntax, and a >30 MiB natural puppet. Writable virtual
+  documents remain deferred.
 
 No architecture or release-scope decision is accepted merely by creating this
 document. The next planning pass should separate and relate these concerns:
@@ -2334,3 +2359,76 @@ This plan owns the generic workspace/layout/action mechanics. The global review
 plan owns stable review-presentation identity, preview deduplication, and the
 release-review puppet that proves repeated before/after browsing alternates
 existing entries instead of accumulating an unbounded stack.
+
+The follow-up RCS-UX6b gesture keeps panel content and workspace management
+separate without inventing inaccessible state mutation. Middle-click within
+ordinary panel content opens the exact panel-entry action surface. A middle
+drag crossing the fixed threshold previews another pane and releases through
+`sfm:panel/entry/move/to <source-session> <destination-session>`, preserving
+the moved entry identity while stacking it in the destination pane. Invalid
+drops, Escape, and focus loss cancel. The numbered stack boxes keep the prior
+left-focus/middle-close/right-context contract because their hit regions take
+precedence over the panel-wide gesture.
+
+The same slice adds ordinary workspace defaults for Alt+D (one untitled
+default Text Editor) and Ctrl+Shift+E (one generic Explorer whose omitted
+location resolves to the current Minecraft instance filesystem), and treats the
+complete hovered Explorer panel as its primary wheel surface. These shortcuts
+and pointer gestures remain registry/action-backed so command palette, puppet,
+CLI, and later remapping surfaces can reproduce them.
+
+## 2026-08-24 workspace acceptance correction
+
+The latest manual release-review pass clarified and completed these generic
+workspace responsibilities:
+
+- `sfm:input_diagnostics` is ordinary panel content and F3 presents its typed
+  open/close choice; raw GLFW callbacks are chained and reference-counted so
+  opening or closing the panel cannot steal another owner permanently;
+- built-in overlay scene migration adds a hidden passive `sfm:fps` entry while
+  preserving every persisted overlay's visibility, placement, input mode, and
+  z-order. The ordinary selector-based visibility action controls it, and F3
+  exposes that exact action as `Toggle FPS overlay`;
+- generic Explorer panels own a visible draggable scrollbar and immediate
+  whole-panel wheel handling. Projection caches invalidate only when roots,
+  settings, manual order, child relations, or entries change—not when a cursor
+  or scroll offset changes;
+- the Explorer address bar's right-click surface targets the exact explorer and
+  exposes canonical copy/edit actions;
+- ItemStack rendering composes each panel's current pose into model-view state,
+  fixing icons in translated/right split panes without panel-specific offsets;
+- old title-screen developer text-editor/input-diagnostic actions delegate to
+  canonical panel opening, while `sfm:minecraft/screen/open` owns typed vanilla
+  Title, Controls, and Key Binds transitions; and
+- structured-diff context projection treats stale or differently normalized
+  text as fallible evidence, rebasing compatible Unicode coordinates and
+  omitting incompatible ranges instead of throwing on the render thread.
+
+The canonical 1.19.2 datagen, compile, and complete Java suite pass after these
+changes (`1,628` passed, `0` failed, one expected opt-in worker integration test
+aborted). No dependency or lockfile changed. Live visual acceptance is still
+required for transformed ItemStacks, F3/input/FPS affordances, scrollbar feel,
+and the exact structured-diff right-click journey.
+
+Focused visual evidence now includes palette/lifecycle run
+`sfm-title_screen-20260824-005628-617` and release-review run
+`sfm-title_screen-20260824-005852-534`. The latter's `3840x2130@auto` split
+capture visibly proves transformed right-pane ItemStacks while its complete
+mouse review/comment/reopen journey exits successfully. Maintainer interaction
+acceptance remains distinct from this automated visual evidence.
+
+## 2026-08-24 middle-button ownership correction
+
+RUX-41 in `docs/tasks/global comment selection and review sessions plan.md`
+records that the panel-move layer regressed Text Editor v3 middle-drag panning.
+The workspace owns the generic arbitration fix: decide one pointer owner before
+mutation from pane chrome/content, panel type, button, modifier, and drag
+threshold. Text-editor content retains ordinary middle-drag pan. Panel movement
+starts from pane chrome or numbered stack affordances, or through one explicit
+discoverable modified drag; a non-drag middle click may still open the panel
+entry action surface. Escape, focus loss, and invalid drops cancel the chosen
+owner without dispatching another gesture.
+
+Tests must exercise panning and panel movement in the same split workspace and
+prove that neither produces duplicate actions. The review plan owns the natural
+large-source workflow that exposed the regression.

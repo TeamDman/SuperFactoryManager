@@ -58,4 +58,11 @@ public sealed interface SFMWorkspacePanelIntent {
             Objects.requireNonNull(side);
         }
     }
+
+    /** Moves one existing panel entry into the pane containing another exact entry. */
+    record MoveToStack(SFMWorkspacePanelId destination) implements SFMWorkspacePanelIntent {
+        public MoveToStack {
+            Objects.requireNonNull(destination);
+        }
+    }
 }

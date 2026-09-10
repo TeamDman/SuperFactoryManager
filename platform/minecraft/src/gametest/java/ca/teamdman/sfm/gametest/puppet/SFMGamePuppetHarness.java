@@ -40,9 +40,10 @@ public final class SFMGamePuppetHarness {
     private static boolean initialized;
     private static boolean awaitingTitleScreen;
     private static boolean completed;
+    private static boolean completionReported;
     private static int nextPuppetIndex;
     private static int failedPuppetCount;
-    private static int finalWorldHoldTicksRemaining = -1;
+    private static long finalWorldHoldTicksRemaining = -1;
     private static int exitTicksRemaining = -1;
     private static boolean runtimeOptionsCaptured;
     private static boolean pauseOnLostFocusBeforeAutomation;
@@ -195,6 +196,19 @@ public final class SFMGamePuppetHarness {
         }
 
         int keepOpenSeconds = SFMProperties.clientRunKeepOpenSeconds(0);
+        // Completion describes assertions, not how long the user inspects the final scene.
+        // Report it exactly once, before either kind of hold; ordinary shutdown while
+        // holding must not turn a finished run into a missing-completion failure.
+        reportCompletion();
+        if (keepOpenSeconds != 0) {
+            SFMGamePuppetViewportObservation viewport = active.viewportObservation;
+            SFM.LOGGER.info(
+                    "SFM_GAME_PUPPET_VIEWPORT_RETAINED keep_open_seconds={} variant={} actual_width={} actual_height={} framebuffer_width={} framebuffer_height={} requested_gui_scale={} effective_gui_scale={} logical_width={} logical_height={}",
+                    keepOpenSeconds, active.viewportVariant.id(), viewport.windowWidth(), viewport.windowHeight(),
+                    viewport.framebufferWidth(), viewport.framebufferHeight(), active.viewportVariant.requestedScaleName(),
+                    viewport.effectiveGuiScale(), viewport.logicalWidth(), viewport.logicalHeight()
+            );
+        }
         if (keepOpenSeconds < 0) {
             activePuppet = null;
             completed = true;
@@ -204,7 +218,7 @@ public final class SFMGamePuppetHarness {
         }
         if (keepOpenSeconds > 0) {
             activePuppet = null;
-            finalWorldHoldTicksRemaining = keepOpenSeconds * 20;
+            finalWorldHoldTicksRemaining = keepOpenSeconds * 20L;
             SFM.LOGGER.info("SFM_GAME_PUPPET_FINAL_WORLD_HOLD_PENDING seconds={}", keepOpenSeconds);
             return;
         }
@@ -247,11 +261,7 @@ public final class SFMGamePuppetHarness {
         completed = true;
         SFMGamePuppetViewportController.requestRestore(Minecraft.getInstance());
         restoreRuntimeOptions(Minecraft.getInstance());
-        SFM.LOGGER.info(
-                "SFM_GAME_PUPPET_COMPLETE failed={} total={}",
-                failedPuppetCount,
-                selectedExecutions.size()
-        );
+        reportCompletion();
         int titleExitSeconds = SFMProperties.clientRunTitleExitSeconds(25);
         if (titleExitSeconds < 0) {
             SFM.LOGGER.info("SFM_GAME_PUPPET_KEEP_TITLE_OPEN");
@@ -259,6 +269,13 @@ public final class SFMGamePuppetHarness {
         }
         exitTicksRemaining = titleExitSeconds * 20;
         SFM.LOGGER.info("SFM_GAME_PUPPET_EXIT_PENDING seconds={}", titleExitSeconds);
+    }
+
+    private static void reportCompletion() {
+        if (completionReported) return;
+        completionReported = true;
+        SFM.LOGGER.info("SFM_GAME_PUPPET_COMPLETE failed={} total={}",
+                failedPuppetCount, selectedExecutions.size());
     }
 
     private static void tickAutoExit() {

@@ -11,7 +11,7 @@ use std::io::Read;
 
 #[derive(Facet, Debug)]
 pub struct SyntaxHighlightArgs {
-    /// Enabled language id. This phase supports `java`.
+    /// Enabled language id: java, rust, json, groovy, markdown, powershell, typescript, toml.
     #[facet(args::named)]
     pub language: String,
     /// Read the exact UTF-8 source document from stdin.

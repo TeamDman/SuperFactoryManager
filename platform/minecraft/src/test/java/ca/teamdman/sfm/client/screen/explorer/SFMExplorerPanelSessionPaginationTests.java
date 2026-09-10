@@ -1,10 +1,14 @@
 package ca.teamdman.sfm.client.screen.explorer;
 
 import ca.teamdman.sfm.client.explorer.SFMChildRelationRepository;
+import ca.teamdman.sfm.client.explorer.SFMChildPage;
 import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMSelectionRepository;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerEntry;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerFilterDomainResolver;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerIoCounter;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolverRegistry;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
@@ -24,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -92,6 +97,10 @@ public class SFMExplorerPanelSessionPaginationTests {
         assertEquals(1, executor.size(), "repeated viewport observations must not restart the append");
         assertEquals(1, session.activeRequestCount());
         assertEquals(128, relations.snapshot().relation().childrenOf(rootPath).size());
+        SFMExplorerPanelModel.State pending = model.state(BOUNDS);
+        assertTrue(pending.projection().rows().stream().anyMatch(row ->
+                        row.loading() && row.entry().label().equals("Loading children...")),
+                "the in-flight append must occupy its future inline child location");
 
         executor.runNext();
 
@@ -106,6 +115,8 @@ public class SFMExplorerPanelSessionPaginationTests {
 
         model.state(BOUNDS);
         assertEquals(2, io.snapshot().directoryEnumerations(), "a complete page must not be requested again");
+        assertTrue(model.state(BOUNDS).projection().rows().stream().noneMatch(row -> row.loading()),
+                "published children atomically replace the inline loading row");
     }
 
     @Test
@@ -170,6 +181,152 @@ public class SFMExplorerPanelSessionPaginationTests {
         assertEquals(session.snapshot().navigationCursor(), shared.selectedPath());
         assertEquals(session.snapshot().scrollOffset(), shared.viewport().scrollRow());
         assertTrue(semanticActions.isEmpty(), "visual navigation must not emit semantic actions");
+    }
+
+    @Test
+    public void replacementFilterKeepsLastPublishedRowsUntilAtomicPublicationAndClearRestoresOrdinaryTree() {
+        SFMPath root = SFMPath.parse("registry://test/root");
+        SFMPath alpha = SFMPath.parse("registry://test/root/alpha.java");
+        SFMPath beta = SFMPath.parse("registry://test/root/beta.java");
+        SFMExplorerEntry rootEntry = SFMExplorerEntry.simple(root, "root", true, Optional.of("test"));
+        SFMExplorerEntry alphaEntry = SFMExplorerEntry.simple(alpha, "Alpha.java", false, Optional.of("paper"));
+        SFMExplorerEntry betaEntry = SFMExplorerEntry.simple(beta, "Beta.java", false, Optional.of("paper"));
+        java.util.concurrent.CompletableFuture<SFMExplorerFilterDomainResolver.FilterDomain> pendingBeta =
+                new java.util.concurrent.CompletableFuture<>();
+        SFMExplorerFilterDomainResolver resolver = new SFMExplorerFilterDomainResolver() {
+            @Override
+            public String scheme() {
+                return "registry";
+            }
+
+            @Override
+            public long generation() {
+                return 3;
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<SFMExplorerEntry> describe(
+                    SFMPath path,
+                    SFMExplorerCancellationToken cancellation
+            ) {
+                return java.util.concurrent.CompletableFuture.completedFuture(rootEntry);
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<ChildPage> resolveChildren(ChildRequest request) {
+                return java.util.concurrent.CompletableFuture.completedFuture(new ChildPage(
+                        root,
+                        List.of(alphaEntry, betaEntry),
+                        Optional.empty(),
+                        generation(),
+                        List.of(),
+                        2
+                ));
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<FilterDomain> resolveFilterDomain(
+                    FilterDomainRequest request
+            ) {
+                if (request.query().equals("beta")) return pendingBeta;
+                return java.util.concurrent.CompletableFuture.completedFuture(domain(request.query(), alphaEntry));
+            }
+
+            private FilterDomain domain(String query, SFMExplorerEntry match) {
+                return new FilterDomain(
+                        root,
+                        query,
+                        List.of(rootEntry, match),
+                        List.of(
+                                new SFMChildPage(
+                                        root,
+                                        List.of(new ca.teamdman.sfm.client.explorer.SFMChildEdge(root, match.path())),
+                                        Optional.empty(),
+                                        SFMChildPage.Completeness.COMPLETE,
+                                        generation(),
+                                        List.of()
+                                ),
+                                new SFMChildPage(
+                                        match.path(),
+                                        List.of(),
+                                        Optional.empty(),
+                                        SFMChildPage.Completeness.COMPLETE,
+                                        generation(),
+                                        List.of()
+                                )
+                        ),
+                        Set.of(match.path()),
+                        1,
+                        true,
+                        generation(),
+                        List.of()
+                );
+            }
+        };
+        SFMExplorerResolverRegistry resolvers = new SFMExplorerResolverRegistry();
+        resolvers.register(resolver);
+        SFMLazyExplorerLoader loader = new SFMLazyExplorerLoader(
+                resolvers, new SFMChildRelationRepository(), Runnable::run
+        );
+        loader.openRoot(root).join();
+        loader.refresh(root, 8).completion().join();
+        SFMExplorerSession session = new SFMExplorerSession(
+                new SFMExplorerId("retained-filter"), root, new SFMSelectionRepository()
+        );
+        session.setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions.legacyFuzzy());
+        session.expand(root);
+        SFMExplorerPanelModel model = new SFMExplorerPanelModel(session, loader, ignored -> { });
+
+        session.setFilterQuery("alpha");
+        loader.ensureFilterDomain(root, "alpha").orElseThrow().join();
+        assertEquals(List.of(alpha), model.state(BOUNDS).projection().rows().stream()
+                .map(row -> row.path()).toList());
+
+        session.setFilterQuery("beta");
+        java.util.concurrent.CompletableFuture<SFMLazyExplorerLoader.LoadDisposition> replacement =
+                loader.ensureFilterDomain(root, "beta").orElseThrow();
+        assertEquals("beta", model.state(BOUNDS).session().settings().filterQuery());
+        assertEquals(List.of(alpha), model.state(BOUNDS).projection().rows().stream()
+                        .map(row -> row.path()).toList(),
+                "the last coherent filtered page remains visible while its replacement is pending");
+
+        pendingBeta.complete(new SFMExplorerFilterDomainResolver.FilterDomain(
+                root,
+                "beta",
+                List.of(rootEntry, betaEntry),
+                List.of(
+                        new SFMChildPage(
+                                root,
+                                List.of(new ca.teamdman.sfm.client.explorer.SFMChildEdge(root, beta)),
+                                Optional.empty(),
+                                SFMChildPage.Completeness.COMPLETE,
+                                resolver.generation(),
+                                List.of()
+                        ),
+                        new SFMChildPage(
+                                beta,
+                                List.of(),
+                                Optional.empty(),
+                                SFMChildPage.Completeness.COMPLETE,
+                                resolver.generation(),
+                                List.of()
+                        )
+                ),
+                Set.of(beta),
+                1,
+                true,
+                resolver.generation(),
+                List.of()
+        ));
+        assertEquals(SFMLazyExplorerLoader.LoadDisposition.PUBLISHED, replacement.join());
+        assertEquals(List.of(beta), model.state(BOUNDS).projection().rows().stream()
+                .map(row -> row.path()).toList());
+
+        session.setFilterQuery("");
+        SFMExplorerPanelModel.State cleared = model.state(BOUNDS);
+        assertTrue(!cleared.projection().filter().active());
+        assertEquals(List.of(alpha, beta), cleared.projection().rows().stream()
+                .map(row -> row.path()).toList());
     }
 
     private static final class QueuedExecutor implements Executor {

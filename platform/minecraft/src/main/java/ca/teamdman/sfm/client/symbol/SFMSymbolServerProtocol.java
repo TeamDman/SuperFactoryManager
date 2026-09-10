@@ -865,13 +865,7 @@ public final class SFMSymbolServerProtocol {
      * Win32 extended-length spelling emitted by Rust canonicalization.
      */
     static String ordinaryWindowsPath(String value) {
-        String extendedUnc = "\\\\?\\UNC\\";
-        if (value.regionMatches(true, 0, extendedUnc, 0, extendedUnc.length())) {
-            return "\\\\" + value.substring(extendedUnc.length());
-        }
-        String extended = "\\\\?\\";
-        if (value.startsWith(extended)) return value.substring(extended.length());
-        return value;
+        return ca.teamdman.sfm.common.util.SFMNativePaths.ordinaryWindowsPath(value);
     }
 
     private static String canonicalRelativePath(String value, String label, boolean allowEmpty) {

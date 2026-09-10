@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.client.explorer.lazy;
 
 import ca.teamdman.sfm.client.explorer.SFMChildRelationRepository;
+import ca.teamdman.sfm.client.explorer.SFMChildEdge;
+import ca.teamdman.sfm.client.explorer.SFMChildPage;
 import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
 import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMPath;
@@ -176,6 +178,216 @@ public class SFMLazyExplorerTests {
 
         assertEquals(SFMLazyExplorerLoader.LoadDisposition.PUBLISHED, load.completion().join().disposition());
         assertEquals(Set.of(child), relations.snapshot().relation().childrenOf(root));
+    }
+
+    @Test
+    public void resolverOwnedFilterDomainPublishesCompleteAncestorsThroughTheOwnerExecutor() {
+        SFMPath root = SFMPath.parse("registry://test/root");
+        SFMPath child = SFMPath.parse("registry://test/root/child");
+        SFMPath grandchild = SFMPath.parse("registry://test/root/child/grandchild.java");
+        SFMExplorerFilterDomainResolver resolver = new SFMExplorerFilterDomainResolver() {
+            @Override
+            public String scheme() {
+                return "registry";
+            }
+
+            @Override
+            public long generation() {
+                return 7;
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<SFMExplorerEntry> describe(
+                    SFMPath path,
+                    SFMExplorerCancellationToken cancellation
+            ) {
+                return java.util.concurrent.CompletableFuture.completedFuture(
+                        SFMExplorerEntry.simple(path, path.equals(root)
+                                        ? "root"
+                                        : path.segments().get(path.segments().size() - 1),
+                                !path.equals(grandchild), Optional.of("test"))
+                );
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<ChildPage> resolveChildren(ChildRequest request) {
+                return java.util.concurrent.CompletableFuture.completedFuture(new ChildPage(
+                        request.parent(),
+                        List.of(),
+                        Optional.empty(),
+                        generation(),
+                        List.of(),
+                        0
+                ));
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<FilterDomain> resolveFilterDomain(
+                    FilterDomainRequest request
+            ) {
+                List<SFMExplorerEntry> entries = List.of(
+                        SFMExplorerEntry.simple(root, "root", true, Optional.of("test")),
+                        SFMExplorerEntry.simple(child, "child", true, Optional.of("test")),
+                        SFMExplorerEntry.simple(grandchild, "Grandchild.java", false, Optional.of("test"))
+                );
+                List<SFMChildPage> pages = List.of(
+                        new SFMChildPage(
+                                root,
+                                List.of(new SFMChildEdge(root, child)),
+                                Optional.empty(),
+                                SFMChildPage.Completeness.COMPLETE,
+                                generation(),
+                                List.of()
+                        ),
+                        new SFMChildPage(
+                                child,
+                                List.of(new SFMChildEdge(child, grandchild)),
+                                Optional.empty(),
+                                SFMChildPage.Completeness.COMPLETE,
+                                generation(),
+                                List.of()
+                        )
+                );
+                return java.util.concurrent.CompletableFuture.completedFuture(new FilterDomain(
+                        root,
+                        request.query(),
+                        entries,
+                        pages,
+                        Set.of(grandchild),
+                        1,
+                        true,
+                        generation(),
+                        List.of()
+                ));
+            }
+        };
+        SFMExplorerResolverRegistry registry = new SFMExplorerResolverRegistry();
+        registry.register(resolver);
+        SFMChildRelationRepository relations = new SFMChildRelationRepository();
+        ManualExecutor publicationExecutor = new ManualExecutor();
+        SFMLazyExplorerLoader loader = new SFMLazyExplorerLoader(registry, relations, publicationExecutor);
+
+        java.util.concurrent.CompletableFuture<SFMLazyExplorerLoader.LoadDisposition> completion =
+                loader.ensureFilterDomain(root, "grandchild").orElseThrow();
+
+        assertEquals(Set.of(root), loader.activeParents());
+        assertFalse(completion.isDone());
+        assertTrue(relations.snapshot().relation().edges().isEmpty());
+
+        publicationExecutor.runNext();
+
+        assertEquals(SFMLazyExplorerLoader.LoadDisposition.PUBLISHED, completion.join());
+        assertTrue(loader.activeParents().isEmpty());
+        assertTrue(relations.snapshot().relation().edges().isEmpty(),
+                "query projection must not contaminate the ordinary lazy relation");
+
+        SFMExplorerSession session = new SFMExplorerSession(
+                new SFMExplorerId("complete-filter"),
+                root,
+                new SFMSelectionRepository()
+        );
+        session.setFilterQuery("grandchild");
+        SFMLazyExplorerLoader.FilterProjection filtered = loader.filterProjection(
+                Set.of(root),
+                "grandchild",
+                Set.of()
+        ).orElseThrow();
+        SFMExplorerProjection.Result projection = SFMExplorerProjection.project(
+                session.snapshot(),
+                filtered.relations(),
+                filtered.entries()
+        );
+        assertEquals(List.of(child, grandchild), projection.rows().stream()
+                .map(SFMExplorerProjection.Row::path)
+                .toList());
+        assertFalse(projection.filter().incompleteMaterialization());
+    }
+
+    @Test
+    public void newerFilterQueryCancelsAndCompletesSupersededWorkEvenWhenResolverNeverReturns() {
+        SFMPath root = SFMPath.parse("registry://test/root");
+        SFMExplorerEntry rootEntry = SFMExplorerEntry.simple(
+                root, "root", true, Optional.of("test")
+        );
+        Map<String, java.util.concurrent.CompletableFuture<SFMExplorerFilterDomainResolver.FilterDomain>> pending =
+                new java.util.HashMap<>();
+        List<SFMExplorerFilterDomainResolver.FilterDomainRequest> requests = new ArrayList<>();
+        SFMExplorerFilterDomainResolver resolver = new SFMExplorerFilterDomainResolver() {
+            @Override
+            public String scheme() {
+                return "registry";
+            }
+
+            @Override
+            public long generation() {
+                return 11;
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<SFMExplorerEntry> describe(
+                    SFMPath path,
+                    SFMExplorerCancellationToken cancellation
+            ) {
+                return java.util.concurrent.CompletableFuture.completedFuture(rootEntry);
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<ChildPage> resolveChildren(ChildRequest request) {
+                return java.util.concurrent.CompletableFuture.completedFuture(new ChildPage(
+                        request.parent(), List.of(), Optional.empty(), generation(), List.of(), 0
+                ));
+            }
+
+            @Override
+            public java.util.concurrent.CompletableFuture<FilterDomain> resolveFilterDomain(
+                    FilterDomainRequest request
+            ) {
+                requests.add(request);
+                java.util.concurrent.CompletableFuture<FilterDomain> result =
+                        new java.util.concurrent.CompletableFuture<>();
+                pending.put(request.query(), result);
+                return result;
+            }
+        };
+        SFMExplorerResolverRegistry registry = new SFMExplorerResolverRegistry();
+        registry.register(resolver);
+        SFMLazyExplorerLoader loader = new SFMLazyExplorerLoader(
+                registry, new SFMChildRelationRepository(), Runnable::run
+        );
+
+        java.util.concurrent.CompletableFuture<SFMLazyExplorerLoader.LoadDisposition> first =
+                loader.ensureFilterDomain(root, "java").orElseThrow();
+        java.util.concurrent.CompletableFuture<SFMLazyExplorerLoader.LoadDisposition> replacement =
+                loader.ensureFilterDomain(root, "json").orElseThrow();
+
+        assertTrue(requests.get(0).cancellation().isCancelled());
+        assertEquals(SFMLazyExplorerLoader.LoadDisposition.CANCELLED, first.join(),
+                "superseded callers must not wait forever for a non-cooperative resolver");
+        assertFalse(replacement.isDone());
+
+        pending.get("json").complete(new SFMExplorerFilterDomainResolver.FilterDomain(
+                root,
+                "json",
+                List.of(rootEntry),
+                List.of(new SFMChildPage(
+                        root,
+                        List.of(),
+                        Optional.empty(),
+                        SFMChildPage.Completeness.COMPLETE,
+                        resolver.generation(),
+                        List.of()
+                )),
+                Set.of(),
+                0,
+                true,
+                resolver.generation(),
+                List.of()
+        ));
+
+        assertEquals(SFMLazyExplorerLoader.LoadDisposition.PUBLISHED, replacement.join());
+        assertEquals("json", loader.filterProjection(Set.of(root), "json", Set.of())
+                .orElseThrow().query());
+        assertTrue(loader.activeParents().isEmpty());
     }
 
     @Test

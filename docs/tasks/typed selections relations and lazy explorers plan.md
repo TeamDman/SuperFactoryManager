@@ -1,14 +1,14 @@
 # Typed selections, relations, and lazy explorers plan
 
-**Plan status:** Active; X-1 through X-7 and X-8a through X-8c are complete;
-X-3a, picker X-8, and X-9 through X-11 remain
+**Plan status:** Active; X-1 through X-7 and X-8a through X-8d are complete;
+X-8e, X-8f, picker X-8, and X-9 through X-11 remain
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Primary implementation target:** Minecraft 1.19.2
 **Related control plan:** `docs/tasks/sfm in-game control cli plan.md`
 **Related UI plan:** `docs/tasks/contextual input actions and addressable explorer plan.md`
 **Related comment plan:** `docs/tasks/global comment selection and review sessions plan.md`
 **Related editor plan:** `docs/tasks/draw editor document regions and commands plan.md`
-**Last updated:** 2026-08-21
+**Last updated:** 2026-09-06 (bounded rule-authoring and find/selection/compact-path checkpoints verified)
 **Intent audit:** Passed and post-compaction re-audited 2026-08-21 against the complete 2026-08-12 through 2026-08-16
 CLI/explorer/path/selection/relation/picker/layout design discussion, the latest
 projection/icon/filter/focus/scroll observations, and the linked plans' existing
@@ -16,6 +16,38 @@ ledgers, plus the explicit non-destructive undo-tree follow-up; implementation
 closure audit remains valid for completed X-1 through X-7/X-8a/X-8b code,
 tests, protocol, and live artifacts while X-3a supersedes the linear redo-head
 limitation without marking X-3 incomplete
+
+**September 6 refinement:** [Contextual ItemStack preview rule authoring](contextual%20itemstack%20preview%20rule%20authoring%20plan.md)
+owns IPR-01–IPR-35 and IPR-T0–T5 (including IPR-T3a): flat aspect-specific icon actions, predicates
+seeded from the inspected file, typed prefix/Boolean composition and reusable
+palette argument completion, persisted through explicit user-theme ownership.
+IPR-27–35/T3a add shared entry-details and user-mediated prompt-copy actions:
+export actual string/Boolean operator signatures, not ItemStack value catalogues.
+This supersedes the generic Help/Customize entry-point proposal, not its
+explanations or inspectors. ER-S4/IPR-T0–T5 including T3a are verified complete,
+with GUI 2/4 authoring, independent-JVM persistence and final review regression under
+[Release review overnight readiness](release%20review%20overnight%20readiness%20plan.md);
+the core review checkpoint is complete. It does not imply completion of X-8e's
+async/cache/provider breadth.
+
+**September 6 search/selection follow-up (verified checkpoint):**
+[Explorer find, selection, compact hierarchy, and review freshness](explorer%20find%20selection%20compact%20hierarchy%20and%20review%20freshness%20plan.md)
+captures EFR-01–49. EF-4/EF-5 extend the existing independent finder with a
+non-hiding Ctrl+F surface; Ctrl+Shift+F remains filtering. EF-6 adapts X-9 for
+interactive multi-selection, primary/anchor separation and match-selection
+shortcuts. EF-9/EF-10 add per-Explorer compact-chain preferences, local path
+overrides and exact intermediate-segment targeting without altering root
+hoisting or losing identity. EF-11/EF-12 refine live intent versus immutable
+review evidence. New EFR-40–46 add independent shared Find/Filter case/word/
+regex/fuzzy options, exclusive regex/fuzzy, Alt+F/H toggles, per-glyph
+find/filter/both colours, Shift range replacement, Ctrl member toggle and
+Ctrl+Shift additive/removal ranges. Existing fuzzy reranking is confirmed good.
+EF-1–EF-9, EF-11/EF-12 and EF-A are verified, including compact-path independent
+panel preferences and explicit preset persistence across JVM restarts. EF-10's
+individual segment hit targets/create-child actions remain scheduled; unmerge
+first to act on an intermediate path. This does not mark broader parent tasks
+or a general automatic saved-workspace system complete. Task-local evidence and
+the manual guide are in the linked plan.
 
 ## How to update this plan
 
@@ -164,6 +196,22 @@ reuse this plan's lazy relation/revision/publication rules.
 | XEXP-23 | Explorer body focus chrome is internally inconsistent: left/right edges remain when the address bar is focused, top/bottom are missing, and a selected row can paint over the border because content is not inset/clipped. | X-8b derives body chrome solely from `KeyboardFocus.BODY`, renders all four edges above or outside row content, and allocates an inset body viewport so cells cannot overwrite it. | — |
 | XEXP-24 | Multiple mouse-wheel events must apply immediately and in order; one physical motion must not pause and then become one large jump. Holding Down, which currently feels responsive, is the comparison control. | X-8b instruments callback -> model mutation -> visible frame, preserves every received delta in order, forbids trailing-edge debounce/coalescing in SFM, and fixes whichever measured event/render stage causes the delay. | — |
 | XEXP-25 | The explorer needs fuzzy filtering. | X-8b adds action-backed per-explorer filter query/state and a focusable filter surface using the shared fuzzy scorer. XD-11 keeps local materialized-row filtering distinct from B-3's bounded recursive file search. | — |
+| XEXP-26 | Synthetic directory nodes in the hierarchical release-review Explorer are containers, yet they appear as paper on the title screen. A container should remain visually distinct from an ordinary file, and a preferred icon that is demonstrably level-independent must not be discarded merely because it uses a custom model. | X-8d carries the complete requested/fallback/accessible-label icon specification through resolver metadata. Directory semantics request `minecraft:chest`, whose vanilla `BlockEntityWithoutLevelRenderer`/`ChestRenderer` explicitly supports `level == null`, and retain `minecraft:barrel` as the title-safe fallback for a genuinely unavailable or unproven renderer. | — |
+| XEXP-27 | Icon selection must operate on a structured description of the subject, not a lossy filename string. Rules may need typed path, resolver, structural kind (file/directory/synthetic container), exact name, suffixes, semantic facets, metadata, and evidence provenance. | X-8e introduces an immutable presentation subject and typed rule result. Existing suffix lookup becomes one contributor rather than the universal input model; lazily unavailable facts remain explicit. | — |
+| XEXP-28 | Presentation precedence should reflect how difficult/specific a rule is to satisfy. Floating-point priorities invite fragile neighbor competition and cross-mod ordering accidents. | X-8e uses semantic dominance plus contribution layers: exact semantic/name constraints dominate compound suffix, then suffix, then structural kind, then fallback when their predicates overlap. Explicit user rules outrank mod rules, which outrank defaults. Incomparable candidates use stable rule ids only for deterministic display and emit an ambiguity diagnostic instead of silently pretending one was more specific. | — |
+| XEXP-29 | Minecraft affords enough ItemStacks that related rows need not collapse into barely distinguishable paper/map variants. Useful built-ins include grass for `Minecraft`, book for `docs`, scaffolding or wall for `architecture`/`platform`, and nautilus shell for PowerShell, while directory and file remain chest/barrel and paper-like fallbacks. | X-8e supplies diverse, replaceable default rules and records the winning semantic rationale. These examples are defaults rather than hard-coded renderer branches; themes/mods can replace them through the same registry. | — |
+| XEXP-30 | A useful Java-only baseline must work when no Rust desktop companion exists. Content-aware, Rust, or AI providers may answer later and should hydrate an already usable row without blocking or degrading ordinary Explorer use. | X-8e resolves synchronous Java candidates first, then optionally schedules cancellable generation-bound enrichment. It retains the last useful icon while pending, uses bounded non-jittering progress, rejects stale replies, and never makes network/AI work an implicit prerequisite or hidden spend. | — |
+| XEXP-31 | Expensive presentation inference should survive game restarts when its evidence is still valid, without hashing every file merely to paint an initial icon. The user must be able to see what was cached and why it was reused. | X-8e defines a versioned provider cache keyed by canonical subject identity, provider/rule version, and declared evidence. A cheap path/file-identity/size/mtime fingerprint may be an explicitly weak trust level; providers that require content identity request a digest. Cache hits expose their trust/evidence and never masquerade as stronger proof. | — |
+| XEXP-32 | The ItemStack icon is an independently meaningful part of a row. Clicking text and clicking/right-clicking the icon may offer different actions, including understanding the winning rule and opening cached evidence. | X-8e gives icon bounds their own contextual target and actions to explain candidate/winner ordering, copy item/rule/provider ids, and reveal/open the exact cache entry through an Explorer resolver. Keyboard and narration expose equivalent information. | — |
+| XEXP-33 | Structured files and archives can themselves be hierarchical locations. JSON members and `.log.gz` contents should be expandable lazily rather than requiring every format/decompression dependency in the Java UI layer. | X-8f composes contributed content resolvers with the same bounded child-page contract. Java may provide cheap built-ins; an optional Rust provider may decode dependency-heavy formats. Missing companions/providers produce a typed unavailable row, never a false empty container. | — |
+| XEXP-34 | AI-assisted content-to-icon inference is a possible enrichment source, but its latency, provenance, privacy, cost, and nondeterminism differ from local deterministic rules. | X-8e treats AI as an explicit opt-in asynchronous provider with a versioned prompt/model identity, bounded input disclosure and cache evidence. It cannot supersede an explicit user rule, trigger merely by viewing a broad root, or make baseline presentation depend on connectivity. | — |
+| XEXP-35 | Right-clicking an icon needs an explanation of whether its preferred ItemStack can render in the current title-screen/world context and why a fallback was or was not selected. The earlier generic `Help` entry-point grouping is retained as historical intent only; the semantic operation must not hide behind an opaque widget id such as `button click 123`. | X-8e registers the reusable concept action `sfm:explain/itemstack_rendering_in_the_title_screen` and a subject-specific `sfm:presentation/icon/explain <explorer-selector> <path-expression>` action. Icon hit regions emit the exact self-contained command; the report identifies requested/resolved items, environment, renderer/capability evidence, policy, and fallback chain. | XEXP-38 / IPR-02 supersedes the generic Help grouping only |
+| XEXP-36 | Explanation of rendering semantics and inspection of an element's exact `x,y,w,h` are distinct concerns. Geometry must not clutter or hide the reason an icon changed. | X-8e offers separate icon-resolution, rule/cache details, and geometry/bounds actions in the same flat contextual surface. Each produces its own typed payload and canonical command. | — |
+| XEXP-37 | A fallback that silently looks ordinary is misleading. When presentation is degraded, the icon should look intentionally disturbed enough to invite inspection, but the indicator must not jitter, rely only on colour, or imply that fallback is always necessary. | X-8e replaces `usedFallback: boolean` with a typed resolution reason and overlays a stable shape/glyph plus accessible tooltip/narration only for non-preferred outcomes. The explanation distinguishes missing item, unproven title-screen renderer, known incompatibility, failed fallback, and last-resort paper; known level-independent vanilla rendering remains preferred and unmarked. | — |
+| XEXP-38 | Expose an action for each icon aspect directly, and construct presentation rules instead of requiring generic Help or Customize icon wrappers. | IPR-02–IPR-09/IPR-T3 retain separate explanations/IDs/bounds/cache actions plus generic and context-seeded add-rule continuations for `.json`, exact `abc.json`, basename `abc` and prefixes `a`, `ab`, etc. | — |
+| XEXP-39 | Use command-palette parameter solicitation, registered string/Boolean operations and deeper suggestions, without a new `.g4` grammar. | IPR-T0/T1 freeze typed fixed-arity prefix composition, round trips, expected-type/cursor-aware completion and bounded finite candidate discovery; incomplete commands are completable but cannot execute mutations. Existing panel-open/history discovery is preserved. | — |
+| XEXP-40 | User preference/theme ownership must remain explicit as rule authoring becomes contextual. | IPR-T2/T4 preserve typed subjects and conservative precedence, captured theme identity/revision, existing ItemStack picker and one persisted theme authority, with inherited/user distinction, reset and cancellation. Presentation never changes path/review semantics. | — |
+| XEXP-41 | Copy entry details independently, or use those details in a prewritten prompt that the user can paste into a chat application to solicit a rule-add command to run themselves. The prompt must describe valid string/Boolean operators and subcommands without listing every registry ItemStack accepted by Brigadier. | IPR-27–35/IPR-T3a reuse the existing immutable row-inspection serializer, add typed presentation evidence and canonical command/operator schema export, exclude value enumeration, and retain manual disclosure/validation/execution. No automatic AI provider or theme mutation. | — |
 
 ### Layout and deferred interaction
 
@@ -193,6 +241,9 @@ reuse this plan's lazy relation/revision/publication rules.
 | XEXP-6 through XEXP-14 | Action/target/remoting contract; X-5, X-6, X-7 | Registry/action parity tests plus direct CLI puppet |
 | XEXP-15 through XEXP-19 | Editable location-header contract; X-8a and contextual-plan A-2c | Geometry/narration/action tests, preferred-editor recipe, atomic/stale save fixtures, and live location-editor puppet |
 | XEXP-20 through XEXP-25 | XD-9 through XD-11; X-8b | Extension/theme presenter tests, deep action-completion tests, list/small-icon ItemStack proof, independent path-label modes, exact focus-border geometry/render ordering, wheel event-to-frame traces, fuzzy filter ranking/action/keyboard tests, and a live explorer interaction puppet |
+| XEXP-26 | XD-12; X-8d | Theme round-trip and review-resolver tests preserve the chest/barrel/label triple; a title-screen review puppet visually proves synthetic directories render as containers rather than paper |
+| XEXP-27 through XEXP-32, XEXP-34 through XEXP-37 | XD-12, XD-13, and XD-15; X-8e | Structured-subject fixtures, semantic-dominance/ambiguity tests, diverse default examples, Java-only behavior, delayed/stale-provider tests, restart cache evidence, semantic-help versus geometry command proof, typed fallback reasons, and icon-target action/narration proof |
+| XEXP-33 | XD-14; X-8f | Lazy JSON and compressed-log child paging, cancellation/stale-publication, bounded memory, optional-provider absence, and cache/evidence inspection tests |
 | XLAY-1 through XLAY-3 | X-10 | Pane/entry/component selector and nested-layout tests |
 | XLAY-4, XLAY-5 | X-11 explicit deferral | Later goal must retain highlighted placement and copy/move/ask semantics |
 | XLAY-6 | Window-manager Track 1b; X-10 compatibility | Divider-id/geometry/share tests, horizontal/vertical/intersection cursors and drag proofs, action parity, nested three/four-pane fixtures, and live screenshot/machine topology evidence |
@@ -664,9 +715,15 @@ For every set-valued mutation:
 | XD-9 Java extension icon | Which ItemStack represents `.java`, and is the map fixed or contributed? | **Closed for X-8b:** use an ordered contributed extension/theme registry and `minecraft:cocoa_beans` for `.java` on 1.19.2 (the valid item matching the proposed cocoa concept), with paper fallback and no filename-only hard-coded renderer branch. The mapping remains replaceable through the contribution surface. | X-8b tests precedence, case handling, compound extensions, missing item fallback, narration, list/small-icons, and actual item ids. |
 | XD-10 Absolute-path presentation | Is “absolute paths” a mutually exclusive view beside list/icons or an independent label/path-display axis? | **Closed for X-8b:** independent path display so `small_icons + absolute_path` is representable. `view/set` still discovers list/icons; a hierarchical `path-display/set` action discovers name/relative/absolute. | X-8b freezes action/id spelling and tests every combination before exposing it in palette history. |
 | XD-11 Explorer fuzzy-filter scope | Does filtering search only known rows or recursively enumerate descendants? | **Closed for X-8b:** filter/rank the current lazy materialization (and newly arriving pages) immediately without I/O. B-3 owns bounded cancellable recursive file search through Ctrl+Shift+N. The filter visibly says when a subtree is unmaterialized rather than implying exhaustive search. | Filter tests assert zero resolver reads caused solely by query changes, stable selection/expansion, streamed-page incorporation, and a separate recursive-search action. |
+| XD-12 Presentation-rule ordering | How do independently contributed icon rules establish precedence without floating-point priorities or registration-order accidents? | Use a typed predicate-specificity partial order plus explicit contribution layers. A candidate dominates only when its constraints are at least as specific in every relevant dimension and stricter in one; exact semantic/name, compound suffix, suffix, structural kind, and fallback form the initial built-in chain. User > mod > default resolves policy authority. Stable rule id orders only otherwise equal diagnostics; incomparable maximal candidates are reported as ambiguous. | Fixtures permute registration order, inject cross-mod ties, and prove the same candidate set/winner or the same explicit ambiguity. `Copy icon details` exposes every candidate and comparison reason. |
+| XD-13 Async presentation and cache trust | How can delayed Rust/content/AI enrichment coexist with a no-companion Java experience and avoid stale or opaque cache results? | Publish a synchronous Java result first. Async providers declare required evidence, provider version, cancellation/generation behavior, and trust level. Cache keys contain canonical subject plus that declared evidence; stat fingerprints are allowed only as visibly weak evidence, while content-sensitive providers require a digest. AI is opt-in and may not crawl a broad root merely because it is visible. | Tests cover absent companion, delayed success/failure, stale generation, restart hit/miss, stat change, digest-required invalidation, privacy/budget gating, and unchanged baseline behavior. |
+| XD-14 Structured-content composition | Are JSON and compressed logs special Explorer implementations or ordinary child resolvers? | Treat them as contributed path/content resolvers under the existing bounded relation contract. A resolver can expose a file as expandable and page logical children without changing filesystem identity. Java owns dependency-free baselines; optional Rust providers may add formats. | JSON/object/array and `.log.gz` fixtures prove paging, cancellation, typed unavailable/error states, safe decompression bounds, and no render-thread whole-file parse. |
+| XD-15 Explainable icon resolution | Is icon help a generic UI callback, a semantic educational action, or inspection of one resolved subject? | Keep both semantic levels and keep geometry separate. Per XEXP-38/IPR-02, offer the aspects directly, without a required generic Help grouping. `sfm:explain/itemstack_rendering_in_the_title_screen` opens localized reusable explanation. `sfm:presentation/icon/explain <explorer-selector> <path-expression>` explains one self-contained subject/resolution. A separate geometry action owns bounds. Non-preferred resolution carries a typed reason and stable disturbed marker; a merely custom model is not proof of incompatibility. | Command/inspection fixtures assert flat aspect actions, no opaque button id, complete Brigadier suggestions, localized concept text, exact subject replay, requested/resolved ids and capability evidence, separate bounds payload, and accessible non-colour fallback indication. |
 
-All gates have a reversible working resolution sufficient for the first slice.
-X-1/X-2 must record the exact final grammar before downstream integration.
+All gates have a reversible working resolution sufficient for their owning
+slices. X-1/X-2 recorded the exact path grammar before downstream integration;
+XD-12 through XD-15 now prevent the presentation follow-ups from hard-coding a
+second, incompatible addressing or precedence system.
 
 ### X-1/X-2 contract freeze — 2026-08-12
 
@@ -1395,6 +1452,168 @@ match's location using materialized ancestors; actual-match and context counts
 are honest; filtering performs no resolver I/O; and clearing restores the
 unfiltered explorer state exactly.
 
+### [x] X-8d Preserve container semantics through title-screen icon fallback
+
+**Observed defect (2026-09-03):** The hierarchical release-review projection
+correctly classifies synthetic `docs`, `platform`, and other path-segment rows
+as directories and requests the theme's `minecraft:chest` icon. Chest uses a
+custom item renderer on 1.19.2, however, so the title-screen safety path in
+`SFMItemIconRenderer` substitutes the icon's declared fallback. Review rows had
+discarded that fallback and reconstructed every icon with paper, causing
+containers to look like ordinary documents. Source inspection then established
+that the safety rule itself was over-broad: Minecraft's default custom path is
+`BlockEntityWithoutLevelRenderer`, and `ChestRenderer` deliberately handles a
+null level. “Custom model” alone is therefore not evidence that fallback is
+required.
+
+**Work:** Preserve the complete `SFMItemIcon` specification—requested item,
+safe fallback item, and accessible label—from theme through release-review
+resolver publication and presentation. The default directory specification is
+chest with `minecraft:barrel` as a title-safe, visibly container-like fallback.
+Continue accepting compact scalar TOML overrides; they inherit default
+fallback/label metadata for known keys. The full-snapshot writer uses an
+inspectable inline table so a saved theme does not silently lose those fields.
+At the title screen, permit Minecraft's known level-independent renderer and
+retain the preferred chest. Continue falling back conservatively for a
+mod-supplied custom renderer whose level independence is not established; the
+barrel remains useful rather than becoming the ordinary directory appearance.
+
+The current resolver metadata bridge may carry fallback/label beside its icon
+sort key, but it is not the final X-8e presentation-subject model and must not
+be treated as a new generic sort axis.
+
+**Validation:** Theme parsing/writing tests prove scalar compatibility and an
+exact full-snapshot round trip. Explorer presentation and release-review
+resolver tests prove directory rows publish chest/barrel/`directory` rather
+than chest/paper. Renderer policy tests distinguish ordinary baked models,
+Minecraft's known level-independent custom renderer, unproven custom renderers,
+and an available world. Run the title-screen release-review Explorer puppet and
+visually inspect at least one frame where a synthetic directory is visibly a
+preferred chest; retain a deterministic forced-fallback fixture for the barrel.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMClientThemeTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMItemIconRendererTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMExplorerFilePresentationTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMReleaseReviewExplorerRuntimeTests --wait-for-build-lock
+sfm-propagate-changes.exe puppet run sfm:title_screen_release_review_explorer_ux --branch 1.19.2 --wait-for-build-lock
+```
+
+**Completion evidence (2026-09-05):** The explicitly authorized RCOV goal
+compiled the pending bridge, corrected the theme-loader duplicate pattern
+binding, and retained conservative fallback if model lookup itself throws.
+Theme, icon policy, resolver and presentation tests pass in the full JUnit run
+(its separate pre-existing shared-JVM Language initialization failures are
+recorded in the RCOV plan). The virtual-input title-screen Explorer puppet
+passed at `3840x2130@4`; `sfm-title_screen-20260905-122301-336` contains
+`figure_01_release-review-text-diff.png`, visually inspected with View Image:
+preferred chest containers render on the locked desktop without an open world.
+Forced fallback remains covered by the deterministic renderer policy tests.
+The old non-goal build-lock restriction is superseded by the scoped goal
+execution guide, not by permission to terminate unrelated processes.
+
+**Completion criteria:** Review hierarchy containers remain visually and
+accessibly containers at the title screen and in-world; a known-safe preferred
+chest is not needlessly degraded; an unproven custom renderer retains a useful
+barrel fallback; theme round trips retain that safety policy; focused tests
+pass; and a live artifact is visually inspected. X-8e owns the contextual Help,
+typed disturbed-state reason, and independently addressable icon surface rather
+than pretending the bounded X-8d bridge already explains itself.
+
+### [ ] X-8e Resolve Explorer presentation through structured, inspectable rules
+
+**Bounded authoring completion:** IPR-T0–IPR-T5, including IPR-T3a clipboard-assisted
+authoring, in the linked September 6 plan is complete as ER-S4. Its pure Java
+subject/precedence/typed-completion contract, explicit theme persistence, flat
+inspection and two clipboard exports are covered by focused/full tests, GUI 2/4
+authoring and independent-JVM hash equality. The subject/precedence contracts
+are shared, not a parallel theme-only engine. X-8e remains open for the broader
+default vocabulary, async enrichment, persistent expensive-analysis caches and
+addressable cache providers below. Completing this bounded slice does not claim
+those unimplemented capabilities or X-8f archive support.
+
+**Work:** Replace filename-only icon lookup with a contributed presentation
+registry over an immutable structured subject. The initial subject carries the
+typed path, resolver id, structural/semantic kind, exact name, parsed suffixes,
+known metadata, and evidence provenance; unavailable lazy facts stay typed
+rather than becoming empty strings. A result carries ItemStack presentation,
+accessible description, winning rule/provider identity, evidence/trust, and
+diagnostics.
+
+Resolve deterministic Java rules immediately. Order overlapping rules by the
+XD-12 specificity relation and authority layer, never a floating-point
+priority. Ship diverse replaceable defaults such as `Minecraft` -> grass block,
+`docs` -> book, PowerShell -> nautilus shell, and architecture/platform -> an
+appropriate scaffolding/wall vocabulary, while preserving generic container
+and file fallbacks. Exact choices remain theme contributions rather than
+renderer conditionals.
+
+Permit optional asynchronous enrichment without making Rust or AI part of the
+baseline. Providers publish cancellable generation-bound candidates; the row
+keeps its last useful presentation while work is pending and never shifts its
+layout merely because a spinner frame changed width. Persist expensive results
+using the XD-13 versioned evidence contract. Expose the cache as an addressable
+resolver/location rather than opaque application state.
+
+Make icon geometry independently hit-testable. Its flat contextual action surface
+offers an explicit resolution explanation by emitting the self-contained subject action
+`sfm:presentation/icon/explain <explorer-selector> <path-expression>` and links
+to the reusable localized concept action
+`sfm:explain/itemstack_rendering_in_the_title_screen` as its own directly offered
+operation, not a required generic Help intermediary. It explains all candidate
+rules, requested versus rendered ItemStacks, current world/title context,
+renderer capability evidence, fallback reason, and cache provenance. Copying
+item/rule/provider ids and inspecting exact geometry remain separate actions;
+the semantic explanation must not be buried under `x,y,w,h` or an opaque
+`button click <id>` command. Keyboard and narration provide equivalent facts.
+
+Replace the current `usedFallback` boolean with a typed resolution reason. A
+non-preferred result gets a stable, non-colour-only disturbed corner/outline
+marker and tooltip inviting `Help`; preferred rendering remains visually
+unmarked. AI inference, if contributed later, is explicit opt-in, bounded,
+auditable, and incapable of overriding an explicit user rule.
+
+**Validation:** Pure rule fixtures cover structured kinds, exact names,
+compound suffixes, case handling, incomparable ties, registration-order
+permutations, and contribution layers. Async fixtures cover absent companion,
+delay, failure, cancellation, stale publication, and stable visual fallback.
+Restart fixtures cover weak stat evidence versus required content digests.
+Context-action tests prove icon/text target separation and complete explanation
+payloads, semantic Help versus bounds separation, canonical replayable commands,
+and a stable disturbed indicator for every non-preferred reason. A mixed
+review/filesystem/registry puppet shows diverse icons with no Java-only
+degradation.
+
+**Completion criteria:** Every displayed icon has a deterministic or explicitly
+ambiguous explanation over typed evidence; broad roots remain immediately
+usable without Rust/network/AI; delayed enrichment cannot block, jitter, or
+overwrite newer state; and users can inspect both rule choice and cache origin.
+
+### [ ] X-8f Expand structured files through contributed lazy content resolvers
+
+**Work:** Let a typed file path advertise logical child providers without
+changing its filesystem identity. Implement bounded JSON object/array children
+first, then a safe compressed-log provider for `.log.gz` with decompression,
+line/page, and memory limits. Providers use the existing child relation,
+continuation, cancellation, fetch-before-replace, and generation contracts.
+Dependency-free Java behavior remains useful; optional Rust providers may add
+formats or richer parsing. Provider absence/failure appears as a typed child
+state, not an empty successful container.
+
+Cache/provider records are themselves explorable using the X-8e presentation
+evidence location. Opening a structured leaf as text and expanding it as data
+remain separate registered actions so neither interpretation is hidden.
+
+**Validation:** Small and production-shaped JSON fixtures, nested arrays and
+objects, malformed input, large-value bounds, gzip truncation/bomb limits,
+cancellation, stale generation, missing companion, and delayed paging. A live
+Explorer puppet expands JSON and compressed-log samples without parsing an
+entire large artifact on the render thread.
+
+**Completion criteria:** JSON and compressed logs can participate in the same
+lazy Explorer hierarchy with bounded truthful states, while installations with
+no desktop companion retain a coherent baseline and never freeze on expansion.
+
 ### [ ] X-8 Compose pickers as selection destinations
 
 **Work:** Promote set-consuming explorer/selection action boundaries from the
@@ -1617,3 +1836,51 @@ The integration must preserve these clarified requirements:
   recursively scanning a drive; and
 - the 30 MB/2,917-unit review remains paged/cancellable rather than becoming an
   eager in-memory tree merely because it is now a contributed resolver.
+
+## 2026-08-24 production filter, finding, loading, and reveal correction
+
+RUX-34 through RUX-38 in
+`docs/tasks/global comment selection and review sessions plan.md` are the
+acceptance authority for defects first observed in the release-review consumer.
+This plan owns their reusable lazy-Explorer mechanisms:
+
+- a resolver may provide cancellable, generation-bound, query-specific bounded
+  result pages so the common render path never rebuilds or fuzzily rescans an
+  entire resolver domain on every query edit;
+- filter evidence distinguishes direct matches, locating ancestors, and
+  contextual descendants. An explicitly expanded direct match may show its
+  immediate nonmatching children without causing every match to expand;
+- finding is an independent result cursor with next/previous navigation and
+  does not prune the visible Explorer hierarchy;
+- an in-flight child relation has a stable inline `Loading children…` entry at
+  the future insertion site in addition to aggregate footer narration;
+- reveal can join/deduplicate an existing continuation request or ask the
+  resolver to materialize the exact ancestor chain, rather than failing because
+  a relation is partial at one instant; and
+- every row can produce a versioned copy-details payload without materializing
+  its source body.
+
+The global review plan owns the production corpus, before/after/diff contextual
+children, review-generation transitions, and end-to-end acceptance. Generic
+filesystem and registry resolvers adopt the same contracts only when they can
+honestly provide complete search scope; they must not claim review-index
+completeness by accident.
+
+## 2026-09-03 release-review changed-path hierarchy correction
+
+RUX-45 and RUX-46 in
+`docs/tasks/global comment selection and review sessions plan.md` prove that a
+consumer may project immutable Explorer subjects through either a path-segment
+hierarchy or a flat-path layout without replacing their durable identities.
+The review consumer owns its repository-path segmentation, semantic
+`before`/`after`/diff ordering, and `sfm:review/changes/layout/set` action. This
+plan continues to own the reusable invariant that presentation layout is
+separate from membership, resolver authority, filtering evidence, reveal, and
+open-document identity.
+
+Two generic observations remain explicitly pending. RUX-47 requires one
+deterministic auto-hoist result across a filesystem Explorer's cold open,
+reopen, refresh, and restored session. RUX-48 requires inline asynchronous
+progress to retain fixed geometry so proportional glyph widths cannot make
+adjacent labels jitter. Neither follow-up changes the completed review
+hierarchy contract.

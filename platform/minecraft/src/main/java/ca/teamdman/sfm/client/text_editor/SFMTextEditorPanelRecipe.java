@@ -44,7 +44,8 @@ public record SFMTextEditorPanelRecipe(
 
     @Override
     public SFMScreenPanel reopen() {
-        if (documentSource instanceof SFMTextDocumentSource.PathAddress) {
+        if (documentSource instanceof SFMTextDocumentSource.PathAddress
+                || documentSource instanceof SFMTextDocumentSource.GeneratedReviewSurface) {
             return new ca.teamdman.sfm.client.screen.text_editor.SFMDeferredTextEditorPanel(this);
         }
         SFMTextDocumentSnapshot snapshot = documentSource

@@ -30,7 +30,10 @@ public final class SFMActionChoiceCatalog {
             if (!commands.add(candidate.command())) continue;
             SFMClientAction<?> action = actionLookup.apply(candidate.actionId());
             if (action == null || !action.requirement().resolve(context).isAvailable()) continue;
-            if (!SFMClientActionExecutor.isExecutable(tree.parse(candidate.command(), source))) continue;
+            if (candidate.continuation()) {
+                if (!(action instanceof ca.teamdman.sfm.client.action.SFMClientActionCompletion completion)
+                        || !completion.acceptsContinuation(candidate.command(), context)) continue;
+            } else if (!SFMClientActionExecutor.isExecutable(tree.parse(candidate.command(), source))) continue;
             answer.add(candidate);
         }
         return List.copyOf(answer);

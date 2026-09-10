@@ -20,7 +20,7 @@ public final class TitleScreenDynamicKeyBindingsGamePuppet {
         puppet.waitTicks(20);
         puppet.openCommandPalette();
         puppet.executeCommandPaletteAndWaitForScreen(
-                "sfm action invoke sfm:controls/open",
+                "sfm action invoke sfm:minecraft/screen/open ControlsScreen",
                 ControlsScreen.class
         );
         puppet.capture("minecraft-controls-screen", caption("Minecraft Controls remains available as a separately named action."));

@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.client.action;
 
-import ca.teamdman.sfm.client.screen.SFMTitleScreenDevScreen;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -10,8 +9,8 @@ public class SFMClientActionIconTests {
 
     @Test
     public void unrelatedDeveloperActionRetainsTextOnlyFallback() {
-        OpenTitleScreenDevScreenAction action = new OpenTitleScreenDevScreenAction(
-                SFMTitleScreenDevScreen.TEXT_EDITOR
+        OpenDeveloperPanelAction action = new OpenDeveloperPanelAction(
+                OpenDeveloperPanelAction.Scene.TEXT_EDITOR
         );
 
         assertTrue(action.itemIcon(CONTEXT).isEmpty());

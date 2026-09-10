@@ -54,6 +54,8 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             "sfm action invoke sfm:review/lens/set ";
     private static final String ENTRY_FOCUS_PREFIX =
             "sfm action invoke sfm:panel/entry/focus ";
+    private static final String ENTRY_CLOSE_PREFIX =
+            "sfm action invoke sfm:panel/entry/close ";
     private static final String PANE_CLOSE = "sfm action invoke sfm:pane/close";
     private static final String PANE_CLOSE_CONFIRM_PREFIX =
             "sfm action invoke sfm:pane/close/confirm ";
@@ -86,6 +88,8 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
     private int initialCommentCount;
     private String createdCommentId;
     private String createdCommentText;
+    private boolean openedSelectionActions;
+    private int dismissedSavedCommentMenus;
     private C11SourceNavigationPuppetProbe.Pointer selectionEnd;
     private C11SourceNavigationPuppetProbe.Pointer selectionContext;
     private int nextLensIndex;
@@ -124,7 +128,7 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             case WAIT_ENTRY_MENU_CLOSE -> waitEntryMenuClose();
             case LEFT_FOCUS_ENTRY -> leftFocusEntry();
             case MIDDLE_CLOSE_ENTRY -> middleCloseEntry();
-            case WAIT_SINGLE_ENTRY -> waitSingleEntry();
+            case WAIT_SINGLE_ENTRY -> waitSingleEntry(runtime);
             case REOPEN_REMOVED_ENTRY -> reopenRemovedEntry();
             case WAIT_RESTACK -> waitRestack();
             case OPEN_PANE_MENU -> openPaneMenu();
@@ -135,6 +139,7 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             case WAIT_TEXT_DIFF -> waitDiff(SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_DIFF);
             case OPEN_STRUCTURED_DIFF -> openLeaf(structuredDiffPath, Stage.WAIT_STRUCTURED_DIFF);
             case WAIT_STRUCTURED_DIFF -> waitDiff(SFMReleaseReviewSurfaceV1.SurfaceKind.JAVA_STRUCTURED_DIFF);
+            case CAPTURE_STRUCTURED_DIFF -> captureStructuredDiff(runtime);
             case REOPEN_TEXT_DIFF -> openLeaf(textDiffPath, Stage.WAIT_TEXT_DIFF_DEDUP);
             case WAIT_TEXT_DIFF_DEDUP -> waitTextDiffDedup();
             case CAPTURE_TEXT_DIFF -> captureTextDiff(runtime);
@@ -407,10 +412,24 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         return false;
     }
 
-    private boolean waitSingleEntry() {
+    private boolean waitSingleEntry(ISFMGamePuppetRuntime runtime) {
+        if (Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette) {
+            String close = palette.choiceCommandsForAutomation().stream()
+                    .filter(command -> command.startsWith(ENTRY_CLOSE_PREFIX))
+                    .findFirst()
+                    .orElse(null);
+            if (close == null) return waitOrFail("the exact middle-click entry-close action");
+            if (!palette.choiceReadyForPointerAutomation(close)) {
+                return waitOrFail("the exact middle-click entry-close action to become pointer-ready");
+            }
+            runtime.clickActionChoice(close);
+            return false;
+        }
         SFMScreenMultiplexer workspace = workspace();
         if (workspace == null) return waitOrFail("one preview after middle-click close");
-        if (previews(workspace).size() != 1) return waitOrFail("middle-click to close exactly one entry");
+        if (previews(workspace).size() != 1) {
+            return waitOrFail("one preview after invoking the exact middle-click entry-close action");
+        }
         transition(Stage.REOPEN_REMOVED_ENTRY);
         return false;
     }
@@ -527,6 +546,103 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
                 "Expected " + expectedKind + " but opened " + surface.surfaceKind());
         require(surface.complete(), "Generated " + expectedKind.wireName() + " was incomplete");
         require(!surface.mappings().isEmpty(), "Generated " + expectedKind.wireName() + " had no source mappings");
+        var styledPanel = handle.orElseThrow().resolvedPanel().orElseThrow();
+        if (styledPanel.remoteStyledGlyphCount() == 0) return waitOrFail("source syntax in " + expectedKind.wireName());
+        require(styledPanel.documentDecorations().stream().anyMatch(value -> value.backgroundArgb().isPresent()),
+                "Generated " + expectedKind.wireName() + " lost its independent change backgrounds");
+        var pointerCanvas = styledPanel.pointerCanvas().orElseThrow();
+        var originalPointerSettings = pointerCanvas.pointerSettings();
+        styledPanel.mouseClicked(32, pointerCanvas.height - 14, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        styledPanel.mouseReleased(32, pointerCanvas.height - 14, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        require(pointerCanvas.pointerSettings().equals(originalPointerSettings.toggleWheel()),
+                "Deferred diff toolbar failed to dispatch its wheel action through the hosted panel");
+        styledPanel.mouseClicked(54, pointerCanvas.height - 14, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        styledPanel.mouseReleased(54, pointerCanvas.height - 14, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        require(pointerCanvas.pointerSettings().equals(originalPointerSettings.toggleWheel().toggleButtons()),
+                "Deferred diff toolbar failed to dispatch its pan/action button mapping");
+        styledPanel.mouseClicked(32, pointerCanvas.height - 14, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        styledPanel.mouseReleased(32, pointerCanvas.height - 14, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        styledPanel.mouseClicked(54, pointerCanvas.height - 14, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        styledPanel.mouseReleased(54, pointerCanvas.height - 14, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        require(pointerCanvas.pointerSettings().equals(originalPointerSettings),
+                "Deferred diff pointer settings were not restored by the same actions");
+        for (boolean wheelZooms : new boolean[]{false, true}) {
+            for (boolean middlePans : new boolean[]{false, true}) {
+                var settings = new ca.teamdman.sfm.client.text_editor.SFMTextEditorPointerSettings(
+                        wheelZooms, middlePans);
+                pointerCanvas.setPointerSettings(settings);
+                double x = pointerCanvas.width * 0.6;
+                double y = pointerCanvas.height * 0.4;
+                var before = pointerCanvas.captureSpatialLayout().camera();
+                require(pointerCanvas.mouseScrolled(x, y, 1), "wheel gesture was not handled");
+                var after = pointerCanvas.captureSpatialLayout().camera();
+                if (wheelZooms) {
+                    require(after.zoom() != before.zoom(), "zoom mode did not zoom");
+                    double offsetX = x - pointerCanvas.width / 2.0;
+                    double offsetY = y - pointerCanvas.height / 2.0;
+                    require(Math.abs(before.x() + offsetX / before.zoom()
+                                    - after.x() - offsetX / after.zoom()) < 0.000001,
+                            "wheel zoom moved its horizontal anchor");
+                    require(Math.abs(before.y() + offsetY / before.zoom()
+                                    - after.y() - offsetY / after.zoom()) < 0.000001,
+                            "wheel zoom moved its vertical anchor");
+                } else {
+                    require(after.zoom() == before.zoom() && after.x() == before.x()
+                                    && after.y() != before.y(),
+                            "scroll mode must translate vertically without zooming");
+                }
+                pointerCanvas.mouseScrolled(x, y, -1);
+                if (!wheelZooms) {
+                    var horizontalBefore = pointerCanvas.captureSpatialLayout().camera();
+                    var physicalPanel = workspace.panelBounds(handle.orElseThrow().panelId());
+                    require(physicalPanel != null, "scroll target lost its panel allocation");
+                    SFMGamePuppetPointer.moveVirtual(workspace,
+                            physicalPanel.x() + physicalPanel.width() / 2.0,
+                            physicalPanel.y() + physicalPanel.height() / 2.0);
+                    SFMGamePuppetPointer.scrollVirtual(0, 1, GLFW.GLFW_MOD_SHIFT);
+                    var horizontalAfter = pointerCanvas.captureSpatialLayout().camera();
+                    require(horizontalAfter.zoom() == horizontalBefore.zoom()
+                                    && horizontalAfter.y() == horizontalBefore.y()
+                                    && Math.abs(horizontalAfter.x() - horizontalBefore.x()
+                                        + 36 / horizontalBefore.zoom()) < 0.000001,
+                            "virtual Shift-wheel must scroll horizontally without vertical movement or zoom");
+                    SFMGamePuppetPointer.scrollVirtual(0, -1, GLFW.GLFW_MOD_SHIFT);
+                }
+                var panBefore = pointerCanvas.captureSpatialLayout().camera();
+                require(pointerCanvas.mouseClicked(x, y, settings.panButton()), "pan press not handled");
+                require(pointerCanvas.mouseDragged(x + 12, y + 8, settings.panButton(), 12, 8),
+                        "pan drag not handled");
+                var panAfter = pointerCanvas.captureSpatialLayout().camera();
+                require(Math.abs(panAfter.x() - panBefore.x() + 12 / panBefore.zoom()) < 0.000001
+                                && Math.abs(panAfter.y() - panBefore.y() + 8 / panBefore.zoom()) < 0.000001,
+                        "configured pan button did not translate both canvas axes");
+                pointerCanvas.mouseDragged(x, y, settings.panButton(), -12, -8);
+                pointerCanvas.mouseReleased(x, y, settings.panButton());
+            }
+        }
+        pointerCanvas.setPointerSettings(originalPointerSettings);
+        for (boolean middlePans : new boolean[]{false, true}) {
+            pointerCanvas.setPointerSettings(new ca.teamdman.sfm.client.text_editor.SFMTextEditorPointerSettings(
+                    originalPointerSettings.wheelZooms(), middlePans));
+            var cameraBeforePanelAction = pointerCanvas.captureSpatialLayout().camera();
+            var physicalPanel = workspace.panelBounds(handle.orElseThrow().panelId());
+            require(physicalPanel != null, "panel action target lost allocation");
+            SFMGamePuppetPointer.clickVirtual(workspace,
+                    physicalPanel.x() + physicalPanel.width() / 2.0,
+                    physicalPanel.y() + physicalPanel.height() / 2.0,
+                    GLFW.GLFW_MOUSE_BUTTON_MIDDLE, GLFW.GLFW_MOD_ALT);
+            require(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen,
+                    "Alt+middle must open panel actions for either canvas button mapping");
+            var panelPalette = (SFMCommandPaletteScreen) Minecraft.getInstance().screen;
+            require(panelPalette.choiceCommandsForAutomation().contains(PANE_CLOSE),
+                    "Alt+middle opened content actions instead of panel actions");
+            require(pointerCanvas.captureSpatialLayout().camera().equals(cameraBeforePanelAction),
+                    "panel action unexpectedly moved the document camera");
+            panelPalette.dismissActionSurface();
+            require(Minecraft.getInstance().screen == workspace,
+                    "dismissing panel actions did not restore the same workspace");
+        }
+        pointerCanvas.setPointerSettings(originalPointerSettings);
         if (expectedKind == SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_DIFF) {
             textDiffPanelId = handle.orElseThrow().panelId();
             transition(Stage.OPEN_STRUCTURED_DIFF);
@@ -534,7 +650,7 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             structuredDiffPanelId = handle.orElseThrow().panelId();
             require(!structuredDiffPanelId.equals(textDiffPanelId),
                     "Text and structured diff reused one presentation entry");
-            transition(Stage.REOPEN_TEXT_DIFF);
+            transition(Stage.CAPTURE_STRUCTURED_DIFF);
         }
         return false;
     }
@@ -551,10 +667,77 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         return false;
     }
 
+    private boolean captureStructuredDiff(ISFMGamePuppetRuntime runtime) {
+        var workspace = workspace();
+        if (workspace == null) return waitOrFail("the structured diff evidence workspace");
+        var editor = SFMSourcePuppetProbe.editor(workspace, structuredDiffPanelId).orElseThrow();
+        var snapshot = editor.state().documentSnapshot().orElseThrow();
+        var surface = SFMReleaseReviewSurfaceRuntime.get().sourceMap(snapshot).orElseThrow();
+        byte[] bytes = surface.text().getBytes(StandardCharsets.UTF_8);
+        List<String> removed = surface.mappings().stream()
+                .filter(mapping -> mapping.kind() == SFMReleaseReviewSurfaceV1.MappingKind.STRUCTURAL_BEFORE)
+                .map(mapping -> new String(bytes, mapping.surfaceRange().startByte(),
+                        mapping.surfaceRange().endByte() - mapping.surfaceRange().startByte(), StandardCharsets.UTF_8))
+                .toList();
+        List<String> added = surface.mappings().stream()
+                .filter(mapping -> mapping.kind() == SFMReleaseReviewSurfaceV1.MappingKind.STRUCTURAL_AFTER)
+                .map(mapping -> new String(bytes, mapping.surfaceRange().startByte(),
+                        mapping.surfaceRange().endByte() - mapping.surfaceRange().startByte(), StandardCharsets.UTF_8))
+                .toList();
+        require(removed.equals(List.of("1")) && added.equals(List.of("2")),
+                "Structural change spans must isolate the changed literal, not unchanged method syntax: "
+                        + removed + " -> " + added);
+        if (!runtime.capture("release-review-structured-diff",
+                caption("Structural diff: only the changed literal is removed/added; shared syntax stays neutral."))) {
+            return false;
+        }
+        runtime.writeArtifact("release-review-structured-spans", SFMGamePuppetArtifactFormat.JSON,
+                new GsonBuilder().setPrettyPrinting().create().toJson(Map.of(
+                        "removed", removed, "added", added, "algorithm", surface.algorithm(),
+                        "remote_styled_glyphs", editor.resolvedPanel().orElseThrow().remoteStyledGlyphCount())));
+        transition(Stage.REOPEN_TEXT_DIFF);
+        return false;
+    }
+
     private boolean captureTextDiff(ISFMGamePuppetRuntime runtime) {
+        var workspace = workspace();
+        if (workspace == null) return waitOrFail("the workspace for source-styled diff evidence");
+        var editor = SFMSourcePuppetProbe.editor(workspace, textDiffPanelId).orElseThrow();
+        if (editor.resolvedPanel().isEmpty() || editor.resolvedPanel().orElseThrow().remoteStyledGlyphCount() == 0) {
+            return waitOrFail("source-mapped Java syntax styles in the generated diff");
+        }
+        var panel = editor.resolvedPanel().orElseThrow();
+        require(panel.documentDecorations().stream().anyMatch(value -> value.backgroundArgb().isPresent()),
+                "Source-styled diff is missing independent change backgrounds");
+        var dividers = workspace.dividerDescriptions().stream()
+                .filter(value -> value.lineBounds().height() > value.lineBounds().width())
+                .sorted(java.util.Comparator.comparingInt(value -> value.lineBounds().x())).toList();
+        require(!dividers.isEmpty(), "Diff evidence needs a resizable split");
+        // Make room in the outer split first; an inner divider cannot cross
+        // its parent's left edge when enlarging the document pane.
+        boolean outer = dividers.size() > 1 && dividers.get(0).lineBounds().x() > workspace.width * 0.25;
+        var divider = outer ? dividers.get(0) : dividers.get(dividers.size() - 1);
+        var line = divider.lineBounds();
+        double target = workspace.width * (outer ? 0.20 : 0.45);
+        if (line.x() > target + 5) {
+            double x = line.x() + line.width() / 2D, y = line.y() + line.height() / 2D;
+            SFMGamePuppetPointer.moveVirtual(workspace, x, y);
+            require(workspace.mouseClicked(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT), "Divider press was not handled");
+            SFMGamePuppetPointer.moveVirtual(workspace, target, y);
+            workspace.mouseDragged(target, y, GLFW.GLFW_MOUSE_BUTTON_LEFT, target - x, 0);
+            workspace.mouseReleased(target, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+            return false;
+        }
         if (!runtime.capture(
                 "release-review-text-diff",
                 caption("Lazy text diff with exact pinned before/after source mappings."))) return false;
+        runtime.writeArtifact("release-review-diff-presentation", SFMGamePuppetArtifactFormat.JSON,
+                new GsonBuilder().setPrettyPrinting().create().toJson(Map.of(
+                        "remote_styled_glyphs", panel.remoteStyledGlyphCount(),
+                        "structured_diff_styled_glyphs", SFMSourcePuppetProbe.editor(workspace, structuredDiffPanelId)
+                                .orElseThrow().resolvedPanel().orElseThrow().remoteStyledGlyphCount(),
+                        "change_backgrounds", panel.documentDecorations().stream().filter(value -> value.backgroundArgb().isPresent()).count(),
+                        "os_pointer_injection", false)));
         transition(Stage.SELECT_DIFF_TEXT);
         return false;
     }
@@ -591,17 +774,11 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
                 SFMContextTextCoordinates.rangeAtUtf16Offsets(
                         snapshot.text(), contextUtf16, contextUtf16 + 1)
         );
-        SFMGamePuppetPointer.moveNative(workspace, start.globalX(), start.globalY());
-        require(workspace.mouseClicked(start.globalX(), start.globalY(), GLFW.GLFW_MOUSE_BUTTON_LEFT),
-                "Text-diff selection press was not handled");
-        workspace.mouseMoved(selectionEnd.globalX(), selectionEnd.globalY());
-        require(workspace.mouseDragged(
-                        selectionEnd.globalX(), selectionEnd.globalY(), GLFW.GLFW_MOUSE_BUTTON_LEFT,
-                        selectionEnd.globalX() - start.globalX(), selectionEnd.globalY() - start.globalY()),
-                "Text-diff selection drag was not handled");
-        require(workspace.mouseReleased(
-                        selectionEnd.globalX(), selectionEnd.globalY(), GLFW.GLFW_MOUSE_BUTTON_LEFT),
-                "Text-diff selection release was not handled");
+        SFMGamePuppetPointer.moveVirtual(workspace, start.globalX(), start.globalY());
+        SFMGamePuppetPointer.buttonVirtual(GLFW.GLFW_MOUSE_BUTTON_LEFT, GLFW.GLFW_PRESS, 0);
+        SFMGamePuppetPointer.moveVirtual(
+                workspace, selectionEnd.globalX(), selectionEnd.globalY());
+        SFMGamePuppetPointer.buttonVirtual(GLFW.GLFW_MOUSE_BUTTON_LEFT, GLFW.GLFW_RELEASE, 0);
         List<ca.teamdman.sfm.client.text_editor.SFMTextDocumentSelection> exactSelections =
                 C11SourceNavigationPuppetProbe.exactDocumentSelections(editor)
                         .orElseThrow(() -> new IllegalStateException(
@@ -623,10 +800,12 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         SFMScreenMultiplexer workspace = workspace();
         if (workspace == null) return waitOrFail("the selected text-diff editor");
         require(selectionContext != null, "The text-diff selection interior was not captured");
-        SFMGamePuppetPointer.moveNative(workspace, selectionContext.globalX(), selectionContext.globalY());
-        require(workspace.mouseClicked(
-                        selectionContext.globalX(), selectionContext.globalY(), GLFW.GLFW_MOUSE_BUTTON_RIGHT),
-                "The selected text-diff context click was not handled");
+        SFMGamePuppetPointer.clickVirtual(
+                workspace,
+                selectionContext.globalX(),
+                selectionContext.globalY(),
+                GLFW.GLFW_MOUSE_BUTTON_RIGHT,
+                0);
         transition(Stage.CHOOSE_COMMENT_ROUTE);
         return false;
     }
@@ -635,9 +814,22 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette)) {
             return waitOrFail("the contextual action palette for selected diff text");
         }
-        String command = palette.choiceCommandsForAutomation().stream()
+        Optional<String> directComment = palette.choiceCommandsForAutomation().stream()
                 .filter(candidate -> candidate.startsWith(COMMENT_CHOICE_PREFIX))
-                .findFirst().orElseThrow(() -> new IllegalStateException(
+                .findFirst();
+        // A marked range opens existing-comment actions first. Follow the same
+        // explicit selection-actions affordance available to a mouse-only user.
+        String selectionActions = "sfm action invoke sfm:context/actions/open";
+        if (directComment.isEmpty() && !openedSelectionActions
+                && palette.choiceCommandsForAutomation().contains(selectionActions)) {
+            if (!palette.choiceReadyForPointerAutomation(selectionActions)) {
+                return waitOrFail("the selection-actions choice to become pointer-ready");
+            }
+            runtime.clickActionChoice(selectionActions);
+            openedSelectionActions = true;
+            return false;
+        }
+        String command = directComment.orElseThrow(() -> new IllegalStateException(
                         "Selected source-mapped diff text offered no Comment action: "
                                 + palette.choiceCommandsForAutomation()));
         if (!palette.choiceReadyForPointerAutomation(command)) {
@@ -695,6 +887,13 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
     }
 
     private boolean openLensMenu() {
+        if (nextLensIndex == 0 && Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette) {
+            require(createdCommentId != null && dismissedSavedCommentMenus < 3,
+                    "Saved comment did not return through its bounded parent context-menu stack");
+            palette.clickCancelForAutomation();
+            dismissedSavedCommentMenus++;
+            return false;
+        }
         Handle explorer = explorer(true);
         if (explorer == null) return waitOrFail("the review Explorer lens control");
         SFMExplorerPanelViewport.Rect control = explorer.panel().interactionLayout().lensControl();
@@ -741,13 +940,15 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         List<String> labels = explorer.state().projection().rows().stream()
                 .map(row -> row.entry().label()).toList();
         if (expected == SFMReleaseReviewExplorerScreenType.Projection.COMMENTS) {
-            require(labels.stream().anyMatch(label -> label.contains(createdCommentId)
-                            || label.contains(createdCommentText)),
-                    "Comments lens did not refresh with the pointer-created comment: " + labels);
+            if (labels.stream().noneMatch(label -> label.contains(createdCommentId)
+                    || label.contains(createdCommentText))) {
+                return waitOrFail("the Comments lens to materialize the pointer-created comment; rows=" + labels);
+            }
         }
         if (expected == SFMReleaseReviewExplorerScreenType.Projection.HASHTAGS) {
-            require(labels.stream().anyMatch(label -> label.contains("#approved")),
-                    "Hashtags lens did not refresh with #approved: " + labels);
+            if (labels.stream().noneMatch(label -> label.contains("#approved"))) {
+                return waitOrFail("the Hashtags lens to materialize #approved; rows=" + labels);
+            }
         }
         visitedLenses.add(lensToken(expected));
         nextLensIndex++;
@@ -925,7 +1126,8 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         ArrayList<Preview> answer = new ArrayList<>();
         for (SFMWorkspacePanelId id : workspace.panelIds()) {
             SFMWorkspacePanelMetadata metadata = workspace.panelMetadata(id);
-            if (metadata == null || !metadata.isExplorerPreviewOwnedBy(reviewExplorerId)) continue;
+            if (metadata == null || !metadata.isExplorerPreviewOwnedBy(
+                    SFMReleaseReviewExplorerRuntime.previewOwner(reviewFile.toNativePath()))) continue;
             answer.add(new Preview(
                     id,
                     metadata.explorerPreviewPresentationIdentity().orElseThrow()
@@ -938,7 +1140,8 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         return workspace.panelEntryHitRegions().stream()
                 .filter(hit -> {
                     SFMWorkspacePanelMetadata metadata = workspace.panelMetadata(hit.entryId());
-                    return metadata != null && metadata.isExplorerPreviewOwnedBy(reviewExplorerId);
+                    return metadata != null && metadata.isExplorerPreviewOwnedBy(
+                            SFMReleaseReviewExplorerRuntime.previewOwner(reviewFile.toNativePath()));
                 })
                 .toList();
     }
@@ -949,12 +1152,9 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             int button
     ) {
         SFMScreenPanelBounds bounds = hit.bounds();
-        require(workspace.mouseClicked(
-                        bounds.x() + bounds.width() / 2D,
-                        bounds.y() + bounds.height() / 2D,
-                        button
-                ),
-                "Numbered entry did not handle mouse button " + button);
+        double mouseX = bounds.x() + bounds.width() / 2D;
+        double mouseY = bounds.y() + bounds.height() / 2D;
+        SFMGamePuppetPointer.clickVirtual(workspace, mouseX, mouseY, button, 0);
     }
 
     private static double[] workspacePoint(Handle handle, SFMExplorerPanelViewport.Rect local) {
@@ -1087,6 +1287,7 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         WAIT_TEXT_DIFF,
         OPEN_STRUCTURED_DIFF,
         WAIT_STRUCTURED_DIFF,
+        CAPTURE_STRUCTURED_DIFF,
         REOPEN_TEXT_DIFF,
         WAIT_TEXT_DIFF_DEDUP,
         CAPTURE_TEXT_DIFF,

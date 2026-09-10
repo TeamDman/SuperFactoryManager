@@ -38,6 +38,22 @@ class SFMKeyBindingListModelTests {
         assertEquals(List.of(BETA), model.visibleActions(id -> id.getPath(), id -> ""));
     }
 
+    @Test
+    void semanticSetSortSelectsAnExactColumnAndDirection() {
+        SFMKeyBindingListModel model = model(Map.of(
+                ALPHA, List.of(binding("a", GLOBAL)),
+                BETA, List.of(binding("b", GLOBAL), binding("b2", GLOBAL))));
+
+        model.setSort(
+                SFMKeyBindingListModel.SortColumn.BINDING_COUNT,
+                SFMKeyBindingListModel.Direction.DESCENDING
+        );
+
+        assertEquals(SFMKeyBindingListModel.SortColumn.BINDING_COUNT, model.sortColumn());
+        assertEquals(SFMKeyBindingListModel.Direction.DESCENDING, model.direction());
+        assertEquals(List.of(BETA, ALPHA), model.visibleActions(id -> id.getPath(), id -> ""));
+    }
+
     private static SFMKeyBindingListModel model(Map<ResourceLocation, List<SFMKeyBinding>> bindings) {
         SFMKeyBindingListModel model = new SFMKeyBindingListModel(id -> bindings.getOrDefault(id, List.of()));
         model.setActions(bindings.keySet().stream().toList());

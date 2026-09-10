@@ -526,7 +526,10 @@ fn union(left: &[DocumentRangeV1], right: &[DocumentRangeV1]) -> Vec<DocumentRan
     normalize(left.iter().chain(right).cloned().collect())
 }
 
-fn intersection(left: &[DocumentRangeV1], right: &[DocumentRangeV1]) -> Vec<DocumentRangeV1> {
+pub(crate) fn intersection(
+    left: &[DocumentRangeV1],
+    right: &[DocumentRangeV1],
+) -> Vec<DocumentRangeV1> {
     normalize(
         left.iter()
             .flat_map(|a| {
@@ -547,7 +550,10 @@ fn intersection(left: &[DocumentRangeV1], right: &[DocumentRangeV1]) -> Vec<Docu
     )
 }
 
-fn difference(include: &[DocumentRangeV1], exclude: &[DocumentRangeV1]) -> Vec<DocumentRangeV1> {
+pub(crate) fn difference(
+    include: &[DocumentRangeV1],
+    exclude: &[DocumentRangeV1],
+) -> Vec<DocumentRangeV1> {
     let mut current = normalize(include.to_vec());
     for cut in normalize(exclude.to_vec()) {
         let mut next = Vec::new();
@@ -579,7 +585,7 @@ fn difference(include: &[DocumentRangeV1], exclude: &[DocumentRangeV1]) -> Vec<D
     normalize(current)
 }
 
-fn normalize(mut ranges: Vec<DocumentRangeV1>) -> Vec<DocumentRangeV1> {
+pub(crate) fn normalize(mut ranges: Vec<DocumentRangeV1>) -> Vec<DocumentRangeV1> {
     ranges.retain(|range| range.start_byte < range.end_byte);
     ranges.sort();
     let mut result: Vec<DocumentRangeV1> = Vec::new();

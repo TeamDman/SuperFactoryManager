@@ -17,6 +17,14 @@ public final class SFMDocumentHistoryActions {
             REGISTERER.register("document/history/redo", SFMDocumentHistoryRedoAction::new);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMDocumentHistoryViewTransposeAction> TRANSPOSE_VIEW =
             REGISTERER.register("document/history/view/transpose", SFMDocumentHistoryViewTransposeAction::new);
+    static {
+        for (var kind : SFMTextEditorPointerAction.Kind.values())
+            REGISTERER.register("document/pointer/" + kind.name().toLowerCase(java.util.Locale.ROOT),
+                    () -> new SFMTextEditorPointerAction(kind));
+        for (var kind : SFMTextEditorSearchAction.Kind.values())
+            REGISTERER.register("document/search/" + kind.name().toLowerCase(java.util.Locale.ROOT),
+                    () -> new SFMTextEditorSearchAction(kind));
+    }
 
     private SFMDocumentHistoryActions() {
     }

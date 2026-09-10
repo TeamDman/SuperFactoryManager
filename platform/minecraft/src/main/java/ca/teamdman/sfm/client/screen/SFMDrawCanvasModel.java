@@ -32,6 +32,14 @@ public class SFMDrawCanvasModel {
         return contentRevision;
     }
 
+    /** Commit a prevalidated immutable geometry transaction with one revision change. */
+    public void replaceGlyphs(List<CanvasGlyph> replacement) {
+        List<CanvasGlyph> checked = List.copyOf(replacement);
+        glyphs.beginBulkChange();
+        try { glyphs.clear(); glyphs.addAll(checked); }
+        finally { glyphs.endBulkChange(); }
+    }
+
     public SFMDrawCanvasDocumentIndex documentIndex(int spaceWidth, int lineHeight) {
         int safeSpaceWidth = Math.max(1, spaceWidth);
         int safeLineHeight = Math.max(1, lineHeight);
@@ -1647,17 +1655,28 @@ public class SFMDrawCanvasModel {
         GlyphClass glyphClass = glyphClass(target);
         int start = targetIndex;
         while (start > 0
-               && glyphClass(line.get(start - 1)) == glyphClass
+               && belongsToSameContiguousRun(line.get(start - 1), line.get(start), glyphClass)
                && glyphsTouch(line.get(start - 1), line.get(start))) {
             start--;
         }
         int end = targetIndex;
         while (end < line.size() - 1
-               && glyphClass(line.get(end + 1)) == glyphClass
+               && belongsToSameContiguousRun(line.get(end), line.get(end + 1), glyphClass)
                && glyphsTouch(line.get(end), line.get(end + 1))) {
             end++;
         }
         return new ArrayList<>(line.subList(start, end + 1));
+    }
+
+    private boolean belongsToSameContiguousRun(
+            CanvasGlyph left,
+            CanvasGlyph right,
+            GlyphClass expectedClass
+    ) {
+        if (expectedClass == GlyphClass.NAVIGATION_SEPARATOR) {
+            return false;
+        }
+        return glyphClass(left) == expectedClass && glyphClass(right) == expectedClass;
     }
 
     /**
@@ -1739,12 +1758,14 @@ public class SFMDrawCanvasModel {
         int codePoint = glyph.text().codePointAt(0);
         if (Character.isWhitespace(codePoint)) return GlyphClass.WHITESPACE;
         if (Character.isLetterOrDigit(codePoint) || codePoint == '_') return GlyphClass.WORD;
+        if (codePoint == ':' || codePoint == '/' || codePoint == '-') return GlyphClass.NAVIGATION_SEPARATOR;
         return GlyphClass.PUNCTUATION;
     }
 
     private enum GlyphClass {
         WORD,
         WHITESPACE,
+        NAVIGATION_SEPARATOR,
         PUNCTUATION
     }
 

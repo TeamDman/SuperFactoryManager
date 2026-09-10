@@ -20,6 +20,8 @@ import ca.teamdman.sfm.client.symbol.SFMJavaInteractionMap;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMExactDocumentSelectionPublication;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentDecoration;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentLanguage;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentPosition;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
@@ -131,9 +133,53 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private boolean showCursorTrail = false;
     private boolean hideSelection = false;
     private boolean panning;
+    private ca.teamdman.sfm.client.text_editor.SFMTextEditorPointerSettings pointerSettings =
+            ca.teamdman.sfm.client.text_editor.SFMTextEditorPointerSettings.DEFAULT;
+    private boolean pointerDefaultsLoaded;
+    private java.util.function.Consumer<net.minecraft.resources.ResourceLocation> pointerActionInvoker = ignored -> { };
+    private net.minecraft.client.gui.components.Button wheelButton;
+    private net.minecraft.client.gui.components.Button pointerButton;
+
+    public void setPointerActionInvoker(java.util.function.Consumer<net.minecraft.resources.ResourceLocation> invoker) {
+        pointerActionInvoker = java.util.Objects.requireNonNull(invoker);
+    }
+
+    public boolean pointerControlAt(double x, double y) {
+        return (wheelButton != null && wheelButton.isMouseOver(x, y))
+                || (pointerButton != null && pointerButton.isMouseOver(x, y));
+    }
+
+    public ca.teamdman.sfm.client.text_editor.SFMTextEditorPointerSettings pointerSettings() {
+        return pointerSettings;
+    }
+
+    public void setPointerSettings(ca.teamdman.sfm.client.text_editor.SFMTextEditorPointerSettings settings) {
+        pointerSettings = java.util.Objects.requireNonNull(settings);
+        pointerDefaultsLoaded = true;
+        panning = false;
+        if (wheelButton != null) wheelButton.setMessage(Component.literal(settings.wheelZooms() ? "Z" : "S"));
+        if (pointerButton != null) pointerButton.setMessage(Component.literal(settings.middlePans() ? "M" : "R"));
+    }
+
+    public void savePointerDefaults() {
+        SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.canvasWheelZooms.set(pointerSettings.wheelZooms());
+        SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.canvasMiddlePans.set(pointerSettings.middlePans());
+        SFMConfig.CLIENT_TEXT_EDITOR_CONFIG_SPEC.save();
+    }
     private boolean suppressNextNumpadPanChar;
     private boolean initialContentLoaded;
     private String initialCanvasProjectionText = "";
+    private String baselineExactText = "";
+    private String exactEditedText;
+    private long exactEditedRevision = -1;
+    // Disposable presentation cache, not a second undo/selection store. Logical history remains
+    // authoritative. Recent range edits can restore their original non-grid geometry on checkout.
+    private final java.util.LinkedHashMap<String, List<SFMDrawCanvasModel.CanvasGlyph>> historyLayouts = new java.util.LinkedHashMap<>();
+    private SFMDrawCanvasDocumentIndex selectionGeometryIndex;
+    private String selectionGeometryText;
+    private ca.teamdman.sfm.client.screen.text_editor.SFMTextCanvasGeometry selectionGeometry;
+    private SFMExactDocumentSelectionPublication paintedSelectionPublication;
+    private List<ca.teamdman.sfm.client.screen.text_editor.SFMTextCanvasGeometry.Rect> paintedSelectionRectangles = List.of();
     private long contextGeneration;
     private double panAnchorMouseX;
     private double panAnchorMouseY;
@@ -154,6 +200,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private double grammarPanAnchorCameraY;
     private boolean draggingGrammarInsert;
     private Optional<Component> saveDiagnostic = Optional.empty();
+    private final ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession asyncSave =
+            new ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession();
     private SFMExactDocumentSelectionPublication.State exactDocumentSelectionState =
             SFMExactDocumentSelectionPublication.State.empty();
     private PointerSelectionGesture pointerSelectionGesture;
@@ -179,6 +227,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private ViewportGlyphCache viewportGlyphCache;
     private SelectionHighlightCache selectionHighlightCache;
     private Optional<SFMSymbolHoverIdentity.TextGlyphRange> symbolHoverUnderline = Optional.empty();
+    private List<SFMTextDocumentDecoration> documentDecorations = List.of();
+    private final TextHighlightCache textHighlightCache = new TextHighlightCache();
 
     public SFMDrawCanvasScreen(Screen previousScreen) {
         this(previousScreen, false);
@@ -251,6 +301,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         this.setFocused(canvasFocusTarget);
         canvasFocusTarget.setFocused(true);
         diagnosticButtons.clear();
+        if (!pointerDefaultsLoaded) {
+            setPointerSettings(new ca.teamdman.sfm.client.text_editor.SFMTextEditorPointerSettings(
+                    SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.canvasWheelZooms.get(),
+                    SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.canvasMiddlePans.get()));
+        }
         addDiagnosticButton(8, 8, () -> showCrosshairCoordinates, value -> showCrosshairCoordinates = value, "Coords");
         addDiagnosticButton(8, 32, () -> showGlyphBoundingBoxes, value -> showGlyphBoundingBoxes = value, "Glyph Bounds");
         addDiagnosticButton(8, 56, () -> showCursorTrail, value -> showCursorTrail = value, "Cursor Trail");
@@ -269,6 +324,26 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                             () -> { }
                     )))
                     .build());
+        }
+        if (openContext != null) {
+            wheelButton = new SFMButtonBuilder().setPosition(22, this.height - 24).setSize(20, 20)
+                    .setText(Component.literal(pointerSettings.wheelZooms() ? "Z" : "S"))
+                    .setTooltipSupplier(this, font, () -> (pointerSettings.wheelZooms()
+                            ? ca.teamdman.sfm.client.action.SFMTextEditorPointerAction.ZOOM_STATE
+                            : ca.teamdman.sfm.client.action.SFMTextEditorPointerAction.SCROLL_STATE).getComponent())
+                    .setOnPress(button -> pointerActionInvoker.accept(
+                            ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath("sfm", "document/pointer/wheel")))
+                    .build();
+            pointerButton = new SFMButtonBuilder().setPosition(44, this.height - 24).setSize(20, 20)
+                    .setText(Component.literal(pointerSettings.middlePans() ? "M" : "R"))
+                    .setTooltipSupplier(this, font, () -> (pointerSettings.middlePans()
+                            ? ca.teamdman.sfm.client.action.SFMTextEditorPointerAction.MIDDLE_STATE
+                            : ca.teamdman.sfm.client.action.SFMTextEditorPointerAction.RIGHT_STATE).getComponent())
+                    .setOnPress(button -> pointerActionInvoker.accept(
+                            ca.teamdman.sfm.common.util.SFMResourceLocation.fromNamespaceAndPath("sfm", "document/pointer/buttons")))
+                    .build();
+            this.addRenderableWidget(wheelButton);
+            this.addRenderableWidget(pointerButton);
         }
         doneButtonBounds = new SFMTextEditorReadOnlyChrome.Rect(this.width - 88, this.height - 24, 80, 20);
         this.addRenderableWidget(new SFMButtonBuilder()
@@ -290,25 +365,44 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     ) {
         long frameStartedNanos = System.nanoTime();
         long frameAllocatedBefore = performanceTracker.allocationCheckpoint();
+        if (splitCanvas != null) {
+            fill(poseStack, 0, 0, this.width, this.height, BACKGROUND);
+            SFMScissorStack.pushGui(poseStack, 0, 0, width, Math.max(0, height - 28));
+            try {
+                splitCanvas.render(poseStack, canvasToScreenX(0), canvasToScreenY(0), zoom, Math.max(0, height - 28));
+            } finally {
+                SFMScissorStack.pop();
+            }
+            renderReadOnlyChrome(poseStack);
+            super.render(poseStack, mouseX, mouseY, partialTick);
+            return;
+        }
         ResolvedViewportGlyphs viewport = resolveViewportGlyphs();
         List<SFMDrawCanvasModel.CanvasGlyph> visibleGlyphs = viewport.slice().glyphs();
         fill(poseStack, 0, 0, this.width, this.height, BACKGROUND);
-        if (showGrid) {
-            renderGrid(poseStack);
+        SFMScissorStack.pushGui(poseStack, 0, 0, width, Math.max(0, height - 28));
+        try {
+            if (showGrid) {
+                renderGrid(poseStack);
+            }
+            if (showCursorTrail) {
+                renderCursorTrail(poseStack);
+            }
+            renderDocumentDecorationBackgrounds(poseStack);
+            renderExactDocumentSelections(poseStack);
+            renderGlyphs(poseStack, visibleGlyphs);
+            renderDocumentDecorationUnderlines(poseStack);
+            renderSymbolHoverUnderline(poseStack, visibleGlyphs);
+            if (!hideSelection) {
+                renderGlyphSelectionHighlights(poseStack, visibleGlyphs);
+            }
+            if (showGlyphBoundingBoxes) {
+                renderGlyphBoundingBoxes(poseStack, visibleGlyphs);
+            }
+            renderCanvasCursor(poseStack);
+        } finally {
+            SFMScissorStack.pop();
         }
-        if (showCursorTrail) {
-            renderCursorTrail(poseStack);
-        }
-        renderExactDocumentSelections(poseStack);
-        renderGlyphs(poseStack, visibleGlyphs);
-        renderSymbolHoverUnderline(poseStack, visibleGlyphs);
-        if (!hideSelection) {
-            renderGlyphSelectionHighlights(poseStack, visibleGlyphs);
-        }
-        if (showGlyphBoundingBoxes) {
-            renderGlyphBoundingBoxes(poseStack, visibleGlyphs);
-        }
-        renderCanvasCursor(poseStack);
         if (showCrosshairCoordinates) {
             renderHud(poseStack);
         }
@@ -353,7 +447,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && super.mouseClicked(mouseX, mouseY, button)) {
                 return true;
             }
-            if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
+            if (splitCanvas != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT)
+                return splitCanvas.press(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+            if (button == pointerSettings.panButton()) {
                 beginPan(mouseX, mouseY);
                 focusMainCanvas();
                 return true;
@@ -387,7 +483,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     ) {
         performanceTracker.inputReceived(System.nanoTime());
         try {
-            if (panning && button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE) {
+            if (splitCanvas != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT)
+                return splitCanvas.drag(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+            if (panning && button == pointerSettings.panButton()) {
                 cameraX = panAnchorCameraX - (mouseX - panAnchorMouseX) / zoom;
                 cameraY = panAnchorCameraY - (mouseY - panAnchorMouseY) / zoom;
                 model().setCursor(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
@@ -425,7 +523,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     ) {
         performanceTracker.inputReceived(System.nanoTime());
         try {
-            if (button == GLFW.GLFW_MOUSE_BUTTON_MIDDLE && panning) {
+            if (splitCanvas != null && button == GLFW.GLFW_MOUSE_BUTTON_LEFT)
+                return splitCanvas.release(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+            if (button == pointerSettings.panButton() && panning) {
                 panning = false;
                 return true;
             }
@@ -453,6 +553,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             }
             double focusX = screenToCanvasX(mouseX);
             double focusY = screenToCanvasY(mouseY);
+            if (!pointerSettings.wheelZooms()) {
+                double distance = delta * 36.0D / zoom;
+                boolean shift = ca.teamdman.sfm.client.input.SFMPointerInputModifiers.isDown(
+                        GLFW.GLFW_MOD_SHIFT, Screen::hasShiftDown);
+                if (shift) cameraX -= distance;
+                else cameraY -= distance;
+                return true;
+            }
             double scaleFactor = Math.pow(ZOOM_STEP, delta);
             zoom = Mth.clamp(zoom * scaleFactor, MIN_ZOOM, MAX_ZOOM);
             cameraX = focusX - (mouseX - this.width / 2.0D) / zoom;
@@ -487,6 +595,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
         String text = Character.toString(codePoint);
         rememberInputEvent(String.format("charTyped '%s' U+%04X modifiers=%s", text, (int) codePoint, modifierText(modifiers)));
+        if (replaceExactSelectionText(text, false)) return true;
         model().typeGlyph(text, this.font.width(text), this.font.lineHeight);
         documentChanged();
         rememberCursorPosition();
@@ -505,6 +614,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         performanceTracker.inputReceived(System.nanoTime());
         try {
         rememberInputEvent(String.format("keyPressed key=%d scan=%d modifiers=%s", keyCode, scanCode, modifierText(modifiers)));
+        if (splitCanvas != null) {
+            if (handleCameraShortcut(keyCode, modifiers) || handleNumpadCameraPan(keyCode)) return true;
+            if (Screen.isCopy(keyCode)) { copyCanvasTextToClipboard(); return true; }
+            if (splitCanvas.keyPressed(keyCode, modifiers)) return true;
+            // Never mutate the hidden inline cursor model for a split preview.
+            return super.keyPressed(keyCode, scanCode, modifiers);
+        }
         if (keyCode == GLFW.GLFW_KEY_F3) {
             diagnosticControlsVisible = !diagnosticControlsVisible;
             refreshDiagnosticControls();
@@ -535,6 +651,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_A && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+            if (openContext != null) {
+                // Read-only document selection is an exact source range, like a
+                // pointer drag, not one editing cursor per glyph. The latter's
+                // nearest-glyph expansion is inappropriate for source previews.
+                String text = pointerCoordinateText();
+                var selection = entireDocumentSelection(text);
+                applyPointerSelection(pointerSelectionLayout(text), selection.anchor(), selection.active());
+                return true;
+            }
             model().ensureCursorClosestToEachGlyph();
             rememberCursorPosition();
             return true;
@@ -555,13 +680,33 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (handleNumpadCameraPan(keyCode)) {
             return true;
         }
+        boolean extendNavigation = (modifiers & GLFW.GLFW_MOD_SHIFT) != 0;
+        Optional<SFMTextDocumentSelection> navigationSelection = Optional.empty();
+        if (openContext != null && model().cursors().size() == 1
+                && (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT
+                || keyCode == GLFW.GLFW_KEY_UP || keyCode == GLFW.GLFW_KEY_DOWN
+                || keyCode == GLFW.GLFW_KEY_HOME || keyCode == GLFW.GLFW_KEY_END)) {
+            var layout = pointerSelectionLayout(pointerCoordinateText());
+            var position = layout.positionAtCanvas(model().cursorCanvasX(), model().cursorCanvasY());
+            navigationSelection = Optional.of(currentExactDocumentSelectionPublication()
+                    .flatMap(publication -> publication.selections().stream().filter(SFMTextDocumentSelection::primary).findFirst())
+                    .orElse(new SFMTextDocumentSelection("pointer-primary", position, position, true)));
+            var previous = navigationSelection.orElseThrow();
+            if (!extendNavigation && !previous.collapsed()
+                    && (modifiers & GLFW.GLFW_MOD_CONTROL) == 0
+                    && (keyCode == GLFW.GLFW_KEY_LEFT || keyCode == GLFW.GLFW_KEY_RIGHT)) {
+                var edge = keyCode == GLFW.GLFW_KEY_LEFT ? previous.orderedRange().start() : previous.orderedRange().end();
+                applyPointerSelection(layout, edge, edge);
+                return true;
+            }
+        }
         if (keyCode == GLFW.GLFW_KEY_LEFT) {
             if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
                 model().moveCursorLeftWord(this.font.lineHeight, this.font.width(" "));
             } else {
                 model().moveCursorLeft(this.font.lineHeight, this.font.width(" "));
             }
-            rememberCursorPosition();
+            rememberNavigationPosition(navigationSelection, extendNavigation);
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_RIGHT) {
@@ -570,7 +715,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             } else {
                 model().moveCursorRight(this.font.width(" "));
             }
-            rememberCursorPosition();
+            rememberNavigationPosition(navigationSelection, extendNavigation);
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_UP) {
@@ -579,7 +724,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             } else {
                 model().moveCursorUp(this.font.lineHeight);
             }
-            rememberCursorPosition();
+            rememberNavigationPosition(navigationSelection, extendNavigation);
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_DOWN) {
@@ -588,7 +733,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             } else {
                 model().moveCursorDown(this.font.lineHeight);
             }
-            rememberCursorPosition();
+            rememberNavigationPosition(navigationSelection, extendNavigation);
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_HOME) {
@@ -597,7 +742,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             } else {
                 model().moveCursorToLineStart();
             }
-            rememberCursorPosition();
+            rememberNavigationPosition(navigationSelection, extendNavigation);
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_END) {
@@ -606,11 +751,12 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             } else {
                 model().moveCursorToLineEnd();
             }
-            rememberCursorPosition();
+            rememberNavigationPosition(navigationSelection, extendNavigation);
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
             if (openContext != null && openContext.readOnly()) return true;
+            if (replaceExactSelectionText("", true)) return true;
             model().deleteLeftWord(this.font.lineHeight);
             documentChanged();
             rememberCursorPosition();
@@ -618,6 +764,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
         if (keyCode == GLFW.GLFW_KEY_DELETE && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
             if (openContext != null && openContext.readOnly()) return true;
+            if (replaceExactSelectionText("", true)) return true;
             model().deleteRightWord(this.font.lineHeight);
             documentChanged();
             rememberCursorPosition();
@@ -625,6 +772,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
         if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
             if (openContext != null && openContext.readOnly()) return true;
+            if (replaceExactSelectionText("", true)) return true;
             model().deleteLeft(this.font.lineHeight);
             documentChanged();
             rememberCursorPosition();
@@ -632,6 +780,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
         if (keyCode == GLFW.GLFW_KEY_DELETE) {
             if (openContext != null && openContext.readOnly()) return true;
+            if (replaceExactSelectionText("", true)) return true;
             model().deleteNearestAndMoveRight(this.font.lineHeight);
             documentChanged();
             rememberCursorPosition();
@@ -810,6 +959,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private void fitCanvasContentToScreen() {
+        if (splitCanvas != null) {
+            fitSplitCanvas();
+            return;
+        }
         Optional<SFMDrawCanvasDocumentIndex.ContentBounds> indexedBounds = model()
                 .documentIndex(this.font.width(" "), this.font.lineHeight)
                 .bounds();
@@ -897,6 +1050,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         model = new SFMDrawCanvasModel();
         long loadStartedNanos = System.nanoTime();
         model.replaceText(openContext.initialValue(), this.font::width, this.font.lineHeight);
+        baselineExactText = openContext.initialValue();
         performanceTracker.coldLoad(System.nanoTime() - loadStartedNanos);
         initialCanvasProjectionText = model.projectedText(this.font.width(" "), this.font.lineHeight);
         model.moveCursorToDocumentStart();
@@ -1029,13 +1183,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             boolean readOnly
     ) {
         long captureStartedNanos = System.nanoTime();
+        if (splitCanvas != null) return splitCanvas.projection(editorId);
         Objects.requireNonNull(baseline, "baseline");
         loadInitialContent();
         SFMDrawCanvasDocumentIndex documentIndex = model().documentIndex(this.font.width(" "), this.font.lineHeight);
         SFMDrawCanvasSyntaxHighlightingHelper.CanvasDocumentProjection canvas = documentIndex.projection();
-        String projectedText = canvas.text();
-        boolean dirty = !projectedText.equals(initialCanvasProjectionText);
-        String currentText = !dirty && baseline.ready() ? baseline.text() : projectedText;
+        String currentText = pointerCoordinateText();
+        boolean dirty = !currentText.equals(baselineExactText);
         List<SFMContextCursorProjection> cursors = new ArrayList<>();
         List<SFMDrawCanvasModel.CanvasCursor> currentCursors = List.copyOf(model().cursors());
         for (int index = 0; index < currentCursors.size(); index++) {
@@ -1052,7 +1206,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             ));
         }
         List<ca.teamdman.sfm.client.context.SFMContextSelectionProjection> selections =
-                exactDocumentSelections().orElse(List.of()).stream()
+                currentExactDocumentSelectionPublication().stream()
+                        .flatMap(publication -> publication.selections().stream()
+                                .map(selection -> rebaseSelection(
+                                        publication.coordinateText(),
+                                        currentText,
+                                        selection))
+                                .flatMap(Optional::stream))
                         .map(selection -> new ca.teamdman.sfm.client.context.SFMContextSelectionProjection(
                                 selection.id(),
                                 List.of(selection.orderedRange()),
@@ -1071,6 +1231,56 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         );
         performanceTracker.contextCapture(System.nanoTime() - captureStartedNanos);
         return captured;
+    }
+
+    /**
+     * Re-expresses one exact directional selection in the contextual text's
+     * coordinate space. The canvas may normalize line endings or expose a
+     * synthetic terminal visual row while an unchanged document projection
+     * deliberately retains the resolver's immutable baseline bytes.
+     *
+     * <p>EOF maps to EOF explicitly. Other positions preserve semantic
+     * line/Unicode-scalar coordinates. An incompatible position is omitted
+     * instead of clipping an arbitrary byte offset or crashing input.</p>
+     */
+    static Optional<SFMTextDocumentSelection> rebaseSelection(
+            String coordinateText,
+            String contextualText,
+            SFMTextDocumentSelection selection
+    ) {
+        Objects.requireNonNull(coordinateText, "coordinateText");
+        Objects.requireNonNull(contextualText, "contextualText");
+        Objects.requireNonNull(selection, "selection");
+        try {
+            selection.validateAgainst(coordinateText);
+            SFMTextDocumentPosition anchor = rebasePosition(
+                    coordinateText,
+                    contextualText,
+                    selection.anchor());
+            SFMTextDocumentPosition active = rebasePosition(
+                    coordinateText,
+                    contextualText,
+                    selection.active());
+            return Optional.of(new SFMTextDocumentSelection(
+                    selection.id(), anchor, active, selection.primary()));
+        } catch (IllegalArgumentException incompatibleCoordinateSpace) {
+            return Optional.empty();
+        }
+    }
+
+    private static SFMTextDocumentPosition rebasePosition(
+            String coordinateText,
+            String contextualText,
+            SFMTextDocumentPosition position
+    ) {
+        int coordinateBytes = coordinateText.getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+        if (position.byteOffset() == coordinateBytes) {
+            return SFMContextTextCoordinates.atUtf16Offset(contextualText, contextualText.length());
+        }
+        return SFMContextTextCoordinates.atLineColumn(
+                contextualText,
+                position.line(),
+                position.column());
     }
 
     public long contextGeneration() {
@@ -1122,8 +1332,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         SFMDrawCanvasDocumentIndex index = model().documentIndex(this.font.width(" "), this.font.lineHeight);
         SFMDrawCanvasSyntaxHighlightingHelper.CanvasDocumentProjection canvas = index.projection();
         String projectedText = canvas.text();
-        boolean dirty = !projectedText.equals(initialCanvasProjectionText);
-        String currentText = !dirty && baseline.ready() ? baseline.text() : projectedText;
+        String currentText = pointerCoordinateText();
+        boolean dirty = !currentText.equals(baselineExactText);
         SFMDrawCanvasModel.CanvasGlyph glyph = index.orderedGlyphs().get(hit.glyphOrdinal());
         int projectedOffset = index.utf16OffsetOf(glyph)
                 .orElse(Math.min(hit.navigationUtf16Offset(), projectedText.length()));
@@ -1187,11 +1397,16 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     public void focusContextAtScreen(double mouseX, double mouseY) {
+        if (splitCanvas != null) {
+            splitCanvas.focus(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
+            return;
+        }
         collapsePointerSelectionAtCanvas(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
     }
 
     /** Whether a context click should retain the currently published exact range. */
     public boolean hasNonEmptyExactSelectionAtScreen(double mouseX, double mouseY) {
+        if (splitCanvas != null) return splitCanvas.containsSelection(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
         Optional<SFMExactDocumentSelectionPublication> publication = currentExactDocumentSelectionPublication();
         if (publication.isEmpty()) return false;
         SFMExactDocumentSelectionPublication exact = publication.orElseThrow();
@@ -1246,7 +1461,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             SFMTextDocumentPosition anchor,
             SFMTextDocumentPosition active
     ) {
-        CanvasTextPoint point = canvasPoint(layout.coordinateText(), active);
+        var point = exactSelectionGeometry(layout.coordinateText()).point(active);
         model().replaceCursors(List.of(new SFMDrawCanvasModel.CursorPosition(point.x(), point.y())));
         publishExactDocumentSelections(layout.coordinateText(), List.of(new SFMTextDocumentSelection(
                 "pointer-primary",
@@ -1256,6 +1471,24 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         )));
         focusMainCanvas();
         rememberCursorPosition();
+    }
+
+    private void rememberNavigationPosition(Optional<SFMTextDocumentSelection> previous, boolean extend) {
+        if (previous.isEmpty()) {
+            rememberCursorPosition();
+            return;
+        }
+        var layout = pointerSelectionLayout(pointerCoordinateText());
+        var active = layout.positionAtCanvas(model().cursorCanvasX(), model().cursorCanvasY());
+        var selection = selectionAfterNavigation(previous.orElseThrow(), active, extend);
+        pointerSelectionGesture = null;
+        applyPointerSelection(layout, selection.anchor(), selection.active());
+    }
+
+    static SFMTextDocumentSelection selectionAfterNavigation(
+            SFMTextDocumentSelection previous, SFMTextDocumentPosition active, boolean extend
+    ) {
+        return new SFMTextDocumentSelection("pointer-primary", extend ? previous.anchor() : active, active, true);
     }
 
     private SFMTextEditorPointerSelection.Layout pointerSelectionLayout(String coordinateText) {
@@ -1270,9 +1503,10 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
 
     private String pointerCoordinateText() {
         loadInitialContent();
+        if (exactEditedRevision == model().contentRevision() && exactEditedText != null) return exactEditedText;
         String projected = getCurrentText();
         if (openContext != null && projected.equals(initialCanvasProjectionText)) {
-            return openContext.initialValue();
+            return baselineExactText;
         }
         return projected;
     }
@@ -1286,7 +1520,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             double mouseY,
             Optional<SFMJavaInteractionMap.Result> interactionMap
     ) {
-        if (openContext == null) return Optional.empty();
+        // The inline backing model has different geometry from the split canvas.
+        // Context selection is projected by the split canvas directly to its source.
+        if (splitCanvas != null || openContext == null) return Optional.empty();
         SFMDrawCanvasDocumentIndex index = model().documentIndex(this.font.width(" "), this.font.lineHeight);
         SFMDrawCanvasModel.CanvasGlyph glyph = index.glyphAt(
                 screenToCanvasX(mouseX),
@@ -1415,6 +1651,113 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         symbolHoverUnderline = Objects.requireNonNull(range, "range");
     }
 
+    private ca.teamdman.sfm.client.screen.text_editor.SFMReviewSplitCanvas splitCanvas;
+
+    public void setSplitDocument(ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceRuntime.SplitDocument document) {
+        if (splitCanvas == null) {
+            splitCanvas = new ca.teamdman.sfm.client.screen.text_editor.SFMReviewSplitCanvas(document, font);
+            splitCanvas.decorations(documentDecorations);
+            // Reading starts at the first present source, at the normal font size.
+            // Fit Width remains explicit: a single long literal must not shrink
+            // the entire preview into illegible pixels on first open.
+            zoom = 1.0;
+            cameraX = splitCanvas.contentLeft() + width / 2.0 - 24;
+            cameraY = height / 2.0 - 48;
+        }
+    }
+
+    private void fitSplitCanvas() {
+        double left = splitCanvas.contentLeft(), right = splitCanvas.contentRight();
+        zoom = Mth.clamp(Math.min(1.0, Math.max(24, width - 48) / Math.max(1, right - left)), MIN_ZOOM, MAX_ZOOM);
+        cameraX = (left + right) / 2;
+        cameraY = (height / 2.0 - 48) / zoom;
+    }
+
+    public void setDocumentDecorations(List<SFMTextDocumentDecoration> decorations) {
+        documentDecorations = List.copyOf(Objects.requireNonNull(decorations, "decorations"));
+        if (splitCanvas != null) splitCanvas.decorations(documentDecorations);
+    }
+
+    /** A generated diff uses exact original-source spans, never parses the diff as Java. */
+    public void setSourceMappedSyntaxStyles(String exactText, List<SFMDrawCanvasRemoteSyntaxStyles.FormattingSpan> spans) {
+        if (!pointerCoordinateText().equals(exactText)) {
+            SFM.LOGGER.info("SFM_REVIEW_SURFACE_SYNTAX_REJECTED reason=document_changed spans={}", spans.size());
+            return;
+        }
+        if (splitCanvas != null) splitCanvas.styles(spans);
+        try {
+            setRemoteSyntaxStyles(SFMDrawCanvasRemoteSyntaxStyles.projectPinned(
+                    model().glyphs(), this.font.lineHeight, exactText, spans));
+            SFM.LOGGER.info("SFM_REVIEW_SURFACE_SYNTAX_APPLIED spans={} glyphs={}", spans.size(), remoteStyledGlyphs.size());
+        } catch (IllegalArgumentException staleLayout) {
+            // Decoration failure must never turn an asynchronous style reply
+            // into a render-thread crash; keep the document readable.
+            publishRemoteSyntaxFailure(staleLayout);
+        }
+    }
+
+    public List<SFMTextDocumentDecoration> documentDecorations() {
+        return documentDecorations;
+    }
+
+    public int remoteStyledGlyphCount() {
+        return remoteStyledGlyphs.size();
+    }
+
+    /** Exact pointer hit retained separately from the decoration's paint channels. */
+    public record DocumentDecorationHit(
+            SFMTextDocumentDecoration decoration,
+            boolean gutterMarker
+    ) {
+        public DocumentDecorationHit {
+            Objects.requireNonNull(decoration, "decoration");
+        }
+    }
+
+    /**
+     * Returns every decoration under the pointer in stable source order.  A
+     * range and its gutter marker are one object hit, so overlapping comments
+     * can be presented as a deliberate choice instead of whichever happened
+     * to paint last.
+     */
+    public List<DocumentDecorationHit> documentDecorationHitsAtScreen(double mouseX, double mouseY) {
+        if (splitCanvas != null) return splitCanvas.hits(screenToCanvasX(mouseX), screenToCanvasY(mouseY))
+                .stream().map(decoration -> new DocumentDecorationHit(decoration, false)).toList();
+        ArrayList<DocumentDecorationHit> hits = new ArrayList<>();
+        for (SFMTextDocumentDecoration decoration : documentDecorations) {
+            List<TextHighlightRow> rows;
+            try {
+                rows = documentDecorationRows(decoration);
+            } catch (IllegalArgumentException ignoredStaleDecoration) {
+                continue;
+            }
+            boolean rangeHit = false;
+            for (TextHighlightRow row : rows) {
+                if (contains(screenBounds(row), mouseX, mouseY)) {
+                    rangeHit = true;
+                    break;
+                }
+            }
+            boolean gutterHit = false;
+            if (!rows.isEmpty() && decoration.gutterMarker().isPresent()) {
+                TextHighlightRow first = rows.get(0);
+                CanvasRect rowBounds = screenBounds(first);
+                String marker = decoration.gutterMarker().orElseThrow();
+                double markerRight = Math.max(2, canvasToScreenX(0) - 3);
+                double markerLeft = Math.max(0, markerRight - font.width(marker) - 2);
+                CanvasRect markerBounds = new CanvasRect(
+                        markerLeft,
+                        rowBounds.top(),
+                        Math.max(markerLeft + 1, markerRight),
+                        rowBounds.bottom()
+                );
+                gutterHit = contains(markerBounds, mouseX, mouseY);
+            }
+            if (rangeHit || gutterHit) hits.add(new DocumentDecorationHit(decoration, gutterHit));
+        }
+        return List.copyOf(hits);
+    }
+
     private Optional<SFMTextDocumentPosition> contextTextPosition(
             SFMDrawCanvasModel.CanvasCursor cursor,
             SFMDrawCanvasDocumentIndex index,
@@ -1458,12 +1801,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         Optional<SFMExactDocumentSelectionPublication> published = currentExactDocumentSelectionPublication();
         if (published.isEmpty()) return;
         SFMExactDocumentSelectionPublication publication = published.orElseThrow();
-        ArrayList<TextHighlightRow> rows = new ArrayList<>();
         try {
-            for (SFMTextDocumentSelection selection : publication.selections()) {
-                SFMTextDocumentRange range = selection.orderedRange();
-                if (range.start().equals(range.end())) continue;
-                rows.addAll(textHighlightRows(publication.coordinateText(), range));
+            if (paintedSelectionPublication != publication) {
+                var geometry = exactSelectionGeometry(publication.coordinateText());
+                var rectangles = new ArrayList<ca.teamdman.sfm.client.screen.text_editor.SFMTextCanvasGeometry.Rect>();
+                for (var selection : publication.selections()) rectangles.addAll(geometry.rectangles(selection.orderedRange()));
+                paintedSelectionRectangles = List.copyOf(rectangles);
+                paintedSelectionPublication = publication;
             }
         } catch (RuntimeException malformedRange) {
             suspendExactDocumentSelections(
@@ -1472,11 +1816,77 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             );
             return;
         }
-        // Project every row before drawing any of them. A malformed selection
-        // therefore fails closed instead of leaving a partially painted frame.
-        for (TextHighlightRow row : rows) {
-            renderTextHighlightRow(poseStack, row, 0x8042647A);
+        // The cached exact geometry is independent of the camera. Cull before drawing.
+        for (var rect : paintedSelectionRectangles) {
+            int left = (int) Math.floor(canvasToScreenX(rect.left()));
+            int top = (int) Math.floor(canvasToScreenY(rect.top()));
+            int right = (int) Math.ceil(canvasToScreenX(rect.right()));
+            int bottom = (int) Math.ceil(canvasToScreenY(rect.bottom()));
+            if (right > 0 && left < width && bottom > 0 && top < height)
+                GuiComponent.fill(poseStack, left, top, right, bottom, 0x8042647A);
         }
+    }
+
+    private ca.teamdman.sfm.client.screen.text_editor.SFMTextCanvasGeometry exactSelectionGeometry(String text) {
+        var index = model().documentIndex(font.width(" "), font.lineHeight);
+        if (selectionGeometryIndex != index || !Objects.equals(selectionGeometryText, text)) {
+            var next = ca.teamdman.sfm.client.screen.text_editor.SFMTextCanvasGeometry.capture(
+                    text, index, font.width(" "), font.lineHeight);
+            selectionGeometry = next;
+            selectionGeometryIndex = index;
+            selectionGeometryText = text;
+        }
+        return selectionGeometry;
+    }
+
+    private void renderDocumentDecorationBackgrounds(PoseStack poseStack) {
+        for (SFMTextDocumentDecoration decoration : documentDecorations) {
+            if (decoration.backgroundArgb().isEmpty()) continue;
+            try {
+                for (TextHighlightRow row : documentDecorationRows(decoration)) {
+                    renderTextHighlightRow(poseStack, row, decoration.backgroundArgb().getAsInt());
+                }
+            } catch (IllegalArgumentException ignoredStaleDecoration) {
+                // A generation-bound panel refresh will replace stale geometry.
+            }
+        }
+    }
+
+    private void renderDocumentDecorationUnderlines(PoseStack poseStack) {
+        for (SFMTextDocumentDecoration decoration : documentDecorations) {
+            List<TextHighlightRow> rows;
+            try {
+                rows = documentDecorationRows(decoration);
+            } catch (IllegalArgumentException ignoredStaleDecoration) {
+                continue;
+            }
+            if (decoration.underlineArgb().isPresent()) {
+                for (TextHighlightRow row : rows) {
+                    renderTextUnderlineRow(poseStack, row, decoration.underlineArgb().getAsInt());
+                }
+            }
+            if (!rows.isEmpty() && decoration.gutterMarker().isPresent()) {
+                TextHighlightRow first = rows.get(0);
+                int top = (int) Math.floor(canvasToScreenY((double) first.line() * font.lineHeight));
+                int left = (int) Math.floor(canvasToScreenX(0));
+                String marker = decoration.gutterMarker().orElseThrow();
+                font.draw(poseStack, marker, Math.max(2, left - font.width(marker) - 3), top,
+                        decoration.underlineArgb().orElse(0xFF60A5FA));
+            }
+        }
+    }
+
+    /** Rendering and hit testing must address the same exact source, not reconstructed glyph text. */
+    private List<TextHighlightRow> documentDecorationRows(SFMTextDocumentDecoration decoration) {
+        return textHighlightCache.rows(pointerCoordinateText(), decoration.range());
+    }
+
+    private void renderTextUnderlineRow(PoseStack poseStack, TextHighlightRow row, int colour) {
+        CanvasRect bounds = screenBounds(row);
+        int left = (int) Math.floor(bounds.left());
+        int right = (int) Math.ceil(bounds.right());
+        int bottom = (int) Math.ceil(bounds.bottom());
+        GuiComponent.fill(poseStack, left, bottom - 1, Math.max(left + 1, right), bottom, colour);
     }
 
     private void renderTextHighlightRow(
@@ -1484,17 +1894,32 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             TextHighlightRow row,
             int colour
     ) {
+        CanvasRect bounds = screenBounds(row);
+        int left = (int) Math.floor(bounds.left());
+        int top = (int) Math.floor(bounds.top());
+        int right = (int) Math.ceil(bounds.right());
+        int bottom = ca.teamdman.sfm.client.text_editor.SFMTextHighlightRaster.boundary(bounds.bottom());
+        GuiComponent.fill(poseStack, left, top, right, bottom, colour);
+    }
+
+    private CanvasRect screenBounds(TextHighlightRow row) {
         double canvasX = font.width(row.lineText().substring(0, row.startUtf16()));
         double canvasY = (double) row.line() * font.lineHeight;
         double canvasWidth = Math.max(
                 1,
                 font.width(row.lineText().substring(row.startUtf16(), row.endUtf16()))
         );
-        int left = (int) Math.floor(canvasToScreenX(canvasX));
-        int top = (int) Math.floor(canvasToScreenY(canvasY));
-        int right = (int) Math.ceil(canvasToScreenX(canvasX + canvasWidth));
-        int bottom = (int) Math.ceil(canvasToScreenY(canvasY + font.lineHeight));
-        GuiComponent.fill(poseStack, left, top, right, bottom, colour);
+        return new CanvasRect(
+                canvasToScreenX(canvasX),
+                canvasToScreenY(canvasY),
+                canvasToScreenX(canvasX + canvasWidth),
+                canvasToScreenY(canvasY + font.lineHeight)
+        );
+    }
+
+    private static boolean contains(CanvasRect bounds, double x, double y) {
+        return x >= bounds.left() && x < bounds.right()
+                && y >= bounds.top() && y < bounds.bottom();
     }
 
     /**
@@ -1503,6 +1928,41 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
      * a trailing newline is valid and contributes no rectangle for that final
      * line.
      */
+    static final class TextHighlightCache {
+        private String text;
+        private final java.util.Map<SFMTextDocumentRange, List<TextHighlightRow>> rows =
+                new java.util.HashMap<>();
+        private int retainedRows;
+        private long retainedCharacters;
+        private long projectionCount;
+
+        List<TextHighlightRow> rows(String nextText, SFMTextDocumentRange range) {
+            if (!Objects.equals(text, nextText)) {
+                text = Objects.requireNonNull(nextText, "text");
+                rows.clear();
+                retainedRows = 0;
+                retainedCharacters = 0;
+            }
+            List<TextHighlightRow> cached = rows.get(range);
+            if (cached != null) return cached;
+            projectionCount++;
+            List<TextHighlightRow> projected = textHighlightRows(text, range);
+            // Per-document ownership and a bounded row budget avoid retaining
+            // old revisions or an unbounded collection of pointer selections.
+            long characters = projected.stream().mapToLong(row -> row.lineText().length()).sum();
+            if (rows.size() < 8192 && retainedRows + projected.size() <= 32768
+                    && retainedCharacters + characters <= 1_048_576) {
+                rows.put(range, projected);
+                retainedRows += projected.size();
+                retainedCharacters += characters;
+            }
+            return projected;
+        }
+
+        long projectionCount() { return projectionCount; }
+        int cachedRangeCount() { return rows.size(); }
+    }
+
     static List<TextHighlightRow> textHighlightRows(String text, SFMTextDocumentRange range) {
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(range, "range").validateAgainst(text);
@@ -1577,12 +2037,40 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             finishClose();
             return;
         }
-        if (saveDocumentInternal().saved()) finishClose();
+        if (openContext.asynchronousSave() && !openContext.readOnly()) {
+            saveDocumentAsync(true);
+        } else if (saveDocumentInternal().saved()) finishClose();
     }
 
     @Override
     public void saveDocument() {
-        saveDocumentInternal();
+        if (openContext != null && openContext.asynchronousSave() && !openContext.readOnly()) {
+            saveDocumentAsync(false);
+        } else saveDocumentInternal();
+    }
+
+    private void saveDocumentAsync(boolean closeAfter) {
+        saveDiagnostic = Optional.of(ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession.SAVING.getComponent());
+        asyncSave.submit(getCurrentText(), closeAfter, openContext::saveDocumentAsync,
+                work -> Minecraft.getInstance().execute(work), completion -> {
+                    if (!openContext.saveHostIsCurrent()) return;
+                    saveDiagnostic = completion.result().diagnostic();
+                    if (completion.result().saved()) {
+                        openContext.documentSaved(completion.submittedText());
+                        baselineExactText = completion.submittedText();
+                        initialCanvasProjectionText = completion.submittedText();
+                        if (completion.mayClose(getCurrentText())) finishClose();
+                        else if (!completion.submittedText().equals(getCurrentText())) {
+                            saveDiagnostic = Optional.of(ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession
+                                    .SAVED_NEWER_EDITS.getComponent());
+                        }
+                    }
+                });
+    }
+
+    @Override
+    public void onDocumentHostClosed() {
+        asyncSave.detach();
     }
 
     private SFMTextDocumentSaveResult saveDocumentInternal() {
@@ -1593,6 +2081,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         SFMTextDocumentSaveResult result = openContext.saveDocument(getCurrentText());
         saveDiagnostic = result.diagnostic();
         if (result.saved()) {
+            baselineExactText = getCurrentText();
             // Saving advances dirtiness only. The temporal revision graph is
             // owned by the host and deliberately remains intact.
             initialCanvasProjectionText = model.projectedText(this.font.width(" "), this.font.lineHeight);
@@ -1612,7 +2101,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                 rendered,
                 24,
                 Math.max(2, height - 18),
-                0xFFFF7777,
+                asyncSave.pending() ? 0xFFFFFF77 : 0xFFFF7777,
                 true
         );
     }
@@ -1652,6 +2141,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private String getCurrentText() {
+        if (exactEditedRevision == model().contentRevision() && exactEditedText != null) return exactEditedText;
         return model().documentIndex(this.font.width(" "), this.font.lineHeight).projection().text();
     }
 
@@ -1694,20 +2184,34 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         loadInitialContent();
         boolean changed = !getCurrentText().equals(text);
         if (changed) {
-            model().replaceText(text, this.font::width, this.font.lineHeight);
+            rememberHistoryLayout(pointerCoordinateText());
+            var layout = historyLayouts.get(text);
+            if (layout == null) model().replaceText(text, this.font::width, this.font.lineHeight);
+            else model().replaceGlyphs(layout);
+            exactEditedText = text;
+            exactEditedRevision = model().contentRevision();
             documentChanged();
         }
+        applyExactSelections(text, selections);
+    }
+
+    private void applyExactSelections(String text, List<SFMTextDocumentSelection> selections) {
+        var geometry = exactSelectionGeometry(text);
+        SFMTextDocumentSelection.validateAllAgainst(text, selections);
+        if (selections.stream().filter(SFMTextDocumentSelection::primary).count() > 1
+                || selections.stream().map(SFMTextDocumentSelection::id).distinct().count() != selections.size())
+            throw new IllegalArgumentException("Exact selections need unique IDs and at most one primary range");
         ArrayList<SFMTextDocumentSelection> validated = new ArrayList<>();
         ArrayList<SFMDrawCanvasModel.CursorPosition> cursors = new ArrayList<>();
-        for (SFMTextDocumentSelection selection : selections) {
-            Objects.requireNonNull(selection, "selection").validateAgainst(text);
+        for (SFMTextDocumentSelection selection : selections.stream()
+                .sorted(java.util.Comparator.comparing(SFMTextDocumentSelection::primary).reversed()).toList()) {
             validated.add(selection);
-            CanvasTextPoint point = canvasPoint(text, selection.active());
+            var point = geometry.point(selection.active());
             cursors.add(new SFMDrawCanvasModel.CursorPosition(point.x(), point.y()));
         }
         if (cursors.isEmpty()) {
             SFMTextDocumentPosition end = SFMContextTextCoordinates.atUtf16Offset(text, text.length());
-            CanvasTextPoint point = canvasPoint(text, end);
+            var point = geometry.point(end);
             cursors.add(new SFMDrawCanvasModel.CursorPosition(point.x(), point.y()));
         }
         model().replaceCursors(cursors);
@@ -1715,10 +2219,32 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         rememberCursorPosition();
     }
 
+    /** Immutable worker input; generation/cursor checks reject results after a user edit or move. */
+    public record MatchSelectionCapture(String text, long documentGeneration, long modelRevision,
+                                        long cursorFingerprint, List<SFMTextDocumentSelection> selections) {
+        public MatchSelectionCapture { selections = List.copyOf(selections); }
+    }
+    public MatchSelectionCapture captureMatchSelection() {
+        return new MatchSelectionCapture(pointerCoordinateText(), documentGeneration, model().contentRevision(),
+                cursorFingerprint(), exactDocumentSelections().orElse(List.of()));
+    }
+    public boolean applyMatchSelection(MatchSelectionCapture capture, List<SFMTextDocumentSelection> selections) {
+        if (capture.documentGeneration() != documentGeneration || capture.modelRevision() != model().contentRevision()
+                || capture.cursorFingerprint() != cursorFingerprint() || !capture.text().equals(pointerCoordinateText())) return false;
+        applyExactSelections(capture.text(), selections);
+        return true;
+    }
+
     /** Exact selection witness remains valid until content or cursors change. */
     public Optional<List<SFMTextDocumentSelection>> exactDocumentSelections() {
         return currentExactDocumentSelectionPublication()
                 .map(SFMExactDocumentSelectionPublication::selections);
+    }
+
+    static SFMTextDocumentSelection entireDocumentSelection(String text) {
+        return new SFMTextDocumentSelection("document-all",
+                SFMContextTextCoordinates.atUtf16Offset(text, 0),
+                SFMContextTextCoordinates.atUtf16Offset(text, text.length()), true);
     }
 
     public Optional<Component> exactDocumentSelectionsDiagnostic() {
@@ -2315,6 +2841,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private void insertLineBreak() {
+        if (replaceExactSelectionText("\n", false)) return;
         model().insertLineBreak(this.font.lineHeight);
         documentChanged();
         rememberCursorPosition();
@@ -2330,9 +2857,44 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (clipboardContents.isEmpty()) {
             return;
         }
+        if (replaceExactSelectionText(clipboardContents, false)) return;
         model().pasteText(clipboardContents, text -> this.font.width(text), this.font.lineHeight);
         documentChanged();
         rememberCursorPosition();
+    }
+
+    private void rememberHistoryLayout(String text) {
+        if (text.length() > 32768) return;
+        historyLayouts.remove(text);
+        historyLayouts.put(text, List.copyOf(model().glyphs()));
+        while (historyLayouts.size() > 16 || historyLayouts.values().stream().mapToInt(List::size).sum() > 131072) {
+            historyLayouts.remove(historyLayouts.keySet().iterator().next());
+        }
+    }
+
+    /** True means handled, including a refused edit. Never fall through and insert after a refusal. */
+    private boolean replaceExactSelectionText(String replacement, boolean requireNonEmpty) {
+        var publication = currentExactDocumentSelectionPublication();
+        if (publication.isEmpty() || publication.orElseThrow().selections().isEmpty()) return false;
+        var exact = publication.orElseThrow();
+        if (requireNonEmpty && exact.selections().stream().allMatch(SFMTextDocumentSelection::collapsed)) return false;
+        try {
+            var edit = ca.teamdman.sfm.client.screen.text_editor.SFMTextCanvasEdit.replace(exact.coordinateText(),
+                    model().documentIndex(font.width(" "), font.lineHeight), exact.selections(), replacement,
+                    font::width, font.width(" "), font.lineHeight);
+            rememberHistoryLayout(exact.coordinateText());
+            model().replaceGlyphs(edit.glyphs());
+            exactEditedText = edit.text();
+            exactEditedRevision = model().contentRevision();
+            documentChanged();
+            applyExactSelections(edit.text(), edit.selections());
+            rememberHistoryLayout(edit.text());
+            saveDiagnostic = Optional.empty();
+        } catch (IllegalArgumentException failure) {
+            saveDiagnostic = Optional.of(Component.literal(ca.teamdman.sfm.client.search.SFMExplorerSearchText.value(
+                    ca.teamdman.sfm.client.search.SFMTextEditorSearchText.EDIT_FAILED, failure.getMessage())));
+        }
+        return true;
     }
 
     private void documentChanged() {
@@ -2347,8 +2909,13 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     private void refreshLocalSyntaxColours() {
         long startedNanos = System.nanoTime();
         try {
-            if (isConcreteJavaDocument()) {
+            if (!documentLanguage().usesLocalSfmlHighlighting()) {
                 localSyntaxColours = Map.of();
+                if (ca.teamdman.sfm.client.syntax.SFMLocalLexicalStyles.supports(documentLanguage().id())) {
+                    String text = pointerCoordinateText();
+                    var spans = ca.teamdman.sfm.client.syntax.SFMLocalLexicalStyles.highlight(documentLanguage().id(), text);
+                    setSourceMappedSyntaxStyles(text, spans);
+                }
                 return;
             }
             localSyntaxColours = SFMDrawCanvasSyntaxHighlightingHelper.buildSyntaxHighlightColours(
@@ -2362,16 +2929,21 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         }
     }
 
-    private boolean isConcreteJavaDocument() {
-        return openContext != null
-                && openContext.documentSnapshot()
-                        .flatMap(SFMTextDocumentSnapshot::path)
-                        .map(path -> path.extension().equalsIgnoreCase("java"))
-                        .orElse(false);
+    private SFMTextDocumentLanguage documentLanguage() {
+        return openContext == null
+                ? SFMTextDocumentLanguage.sfml()
+                : openContext.documentSnapshot()
+                        .map(SFMTextDocumentSnapshot::language)
+                        .orElseGet(SFMTextDocumentLanguage::sfml);
     }
 
     private void ensureRemoteSyntaxHighlighting() {
-        if (!isConcreteJavaDocument()) return;
+        if (documentLanguage().remoteWorkerLanguage().isEmpty()) {
+            if (documentLanguage().highlighting() == SFMTextDocumentLanguage.Highlighting.NEUTRAL
+                    && !Set.of("text", "diff").contains(documentLanguage().id()))
+                setSyntaxStatus(documentLanguage().id() + " syntax highlighting: no provider registered");
+            return;
+        }
         if (syntaxSession == null) {
             syntaxSession = new SFMTextEditorSyntaxSession(
                     syntaxOriginId,
@@ -2385,13 +2957,14 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private void requestRemoteSyntaxStyles() {
-        if (!isConcreteJavaDocument() || syntaxSession == null
+        Optional<String> remoteLanguage = documentLanguage().remoteWorkerLanguage();
+        if (remoteLanguage.isEmpty() || syntaxSession == null
                 || lastRequestedSyntaxGeneration == documentGeneration) return;
         String source = getCurrentText();
         syntaxRequestStartedNanos = System.nanoTime();
-        syntaxDiagnostic = Optional.empty();
+        setSyntaxStatus(remoteLanguage.orElseThrow() + " syntax highlighting: loading…");
         try {
-            syntaxSession.request(documentGeneration, "java", source);
+            syntaxSession.request(documentGeneration, remoteLanguage.orElseThrow(), source);
             performanceTracker.syntaxWorkerSubmitted();
             lastRequestedSyntaxGeneration = documentGeneration;
         } catch (RuntimeException failure) {
@@ -2407,7 +2980,8 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         if (result.outcome() != SFMSyntaxHighlightResult.Outcome.HIGHLIGHTED) {
             clearRemoteSyntaxStyles();
             syntaxDiagnostic = Optional.of(Component.literal(
-                    "Java syntax highlighting unavailable: " + result.outcome().wireName()
+                    publication.request().language() + " syntax highlighting unavailable: "
+                            + result.outcome().wireName()
             ));
             return;
         }
@@ -2469,7 +3043,9 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
         String detail = current.getMessage();
         if (detail == null || detail.isBlank()) detail = current.getClass().getSimpleName();
         if (detail.length() > 160) detail = detail.substring(0, 160);
-        syntaxDiagnostic = Optional.of(Component.literal("Java syntax highlighting unavailable: " + detail));
+        syntaxDiagnostic = Optional.of(Component.literal(
+                documentLanguage().id() + " syntax highlighting unavailable: " + detail
+        ));
     }
 
     private void setRemoteSyntaxStyles(
@@ -2480,6 +3056,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
 
     private void clearRemoteSyntaxStyles() {
         remoteStyledGlyphs = Map.of();
+    }
+
+    /** Shared source/diff status affordance; empty means the current projection is ready. */
+    public void setSyntaxStatus(String message) {
+        syntaxDiagnostic = message.isBlank() ? Optional.empty() : Optional.of(Component.literal(message));
     }
 
     private void renderSyntaxDiagnostic(PoseStack poseStack) {
@@ -2529,7 +3110,27 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
     }
 
     private void copyCanvasTextToClipboard() {
+        if (splitCanvas != null) {
+            Minecraft.getInstance().keyboardHandler.setClipboard(splitCanvas.selection().text());
+            return;
+        }
         try {
+            var exact = currentExactDocumentSelectionPublication();
+            if (exact.isPresent()) {
+                var publication = exact.orElseThrow();
+                byte[] bytes = publication.coordinateText().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                var selected = new ArrayList<String>();
+                for (var selection : publication.selections()) {
+                    var range = selection.orderedRange();
+                    int start = Math.toIntExact(range.start().byteOffset());
+                    int end = Math.toIntExact(range.end().byteOffset());
+                    if (start < end) selected.add(new String(bytes, start, end - start, java.nio.charset.StandardCharsets.UTF_8));
+                }
+                if (!selected.isEmpty()) {
+                    Minecraft.getInstance().keyboardHandler.setClipboard(String.join("\n", selected));
+                    return;
+                }
+            }
             Minecraft.getInstance().keyboardHandler.setClipboard(model().copyableText(this.font.width(" "), this.font.lineHeight));
         } catch (Throwable ignored) {
         }
@@ -3032,9 +3633,16 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             return;
         }
         Component message = TEXT_EDITOR_V3_READ_ONLY_DOCUMENT.getComponent();
+        // Reserve the entire left toolbar group, not only the original # button.
+        SFMTextEditorReadOnlyChrome.Rect leftControls = pointerButton == null
+                ? configButtonBounds
+                : new SFMTextEditorReadOnlyChrome.Rect(
+                        configButtonBounds.x(), configButtonBounds.y(),
+                        Math.max(configButtonBounds.width(), pointerButton.x + pointerButton.getWidth() - configButtonBounds.x()),
+                        configButtonBounds.height());
         SFMTextEditorReadOnlyChrome.layout(
                 true,
-                configButtonBounds,
+                leftControls,
                 doneButtonBounds,
                 this.font.width(message),
                 this.font.lineHeight

@@ -1470,6 +1470,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         }
         if (!state.hudPrepared) {
             // The source frame must first render with the requested HUD profile.
+            state.frameBeforePreparation = SFMGamePuppetRenderHarness.completedFrames();
             if (preserveHud) {
                 prepareOverlayPreservingCaptureHud();
             } else {
@@ -1478,6 +1479,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
             state.hudPrepared = true;
             return false;
         }
+        // Several client ticks can run before the next rendered frame, especially
+        // while minimized/locked. A tick delay alone can capture an OLD screen.
+        if (SFMGamePuppetRenderHarness.completedFrames() <= state.frameBeforePreparation) return false;
         if (!state.requested) {
             state.requested = true;
             if (state.file.exists() && !state.file.delete()) {

@@ -136,7 +136,7 @@ public final class SFMClientOverlayRuntime {
     }
 
     public SFMClientOverlayRuntime(SceneState initial) {
-        controller = new SFMOverlaySceneController(Objects.requireNonNull(initial, "initial"));
+        controller = new SFMOverlaySceneController(withBuiltInOverlays(Objects.requireNonNull(initial, "initial")));
         registerContentFactory(SFMOverlaySceneContract.HISTORY_RECIPE_ID, (state, invoker) -> {
             SFMEntitySelector selector = SFMEntitySelector.parseCanonical(
                     SFMEntitySelector.Domain.EPISODE,
@@ -147,6 +147,7 @@ public final class SFMClientOverlayRuntime {
         registerContentFactory(SFMOverlaySceneContract.DOCUMENT_HISTORY_RECIPE_ID, (state, invoker) ->
                 new SFMDocumentHistoryPanel(SFMDocumentHistorySelector.parseCanonical(
                         state.recipe().argument())));
+        registerContentFactory(SFMOverlaySceneContract.FPS_RECIPE_ID, (state, invoker) -> new FpsOverlayPanel());
     }
 
     public static SFMClientOverlayRuntime get() {
@@ -186,11 +187,22 @@ public final class SFMClientOverlayRuntime {
         Minecraft minecraft = Minecraft.getInstance();
         Optional<OverlayInstanceId> beforeFocus = scene().focusedOverlay();
         if (beforeFocus.isPresent()) releaseCursor(minecraft, false, "direct-restore");
-        controller.restore(Objects.requireNonNull(restored, "restored"));
+        SceneState migrated = withBuiltInOverlays(Objects.requireNonNull(restored, "restored"));
+        controller.restore(migrated);
         directRestoreCount++;
         reconcileHosted(minecraft, false);
         synchronizeFocus(minecraft, false, "direct-restore");
-        event("scene restored directly at revision " + restored.revision());
+        event("scene restored directly at revision " + migrated.revision());
+    }
+
+    private static SceneState withBuiltInOverlays(SceneState source) {
+        ArrayList<OverlayState> overlays = new ArrayList<>(source.overlays());
+        for (OverlayState builtIn : SceneState.defaults().overlays()) {
+            boolean present = overlays.stream().anyMatch(existing -> existing.id().equals(builtIn.id()));
+            if (!present) overlays.add(builtIn);
+        }
+        if (overlays.size() == source.overlays().size()) return source;
+        return new SceneState(source.schema(), source.revision(), overlays, source.focusedOverlay());
     }
 
     public synchronized SFMOverlaySceneController.BatchResult execute(
@@ -789,6 +801,44 @@ public final class SFMClientOverlayRuntime {
 
     private static SFMWorkspacePanelId panelId(OverlayInstanceId id) {
         return new SFMWorkspacePanelId(Integer.toUnsignedLong(id.value().hashCode()));
+    }
+
+    private static final class FpsOverlayPanel implements SFMScreenPanel {
+        @Override
+        public Component title() {
+            return Component.literal("FPS");
+        }
+
+        @Override
+        public Component narration() {
+            Minecraft minecraft = Minecraft.getInstance();
+            return Component.literal(minecraft == null ? "FPS unavailable" : minecraft.fpsString);
+        }
+
+        @Override
+        public void render(
+                PoseStack poseStack,
+                Minecraft minecraft,
+                SFMScreenPanelBounds bounds,
+                int mouseX,
+                int mouseY,
+                float partialTick,
+                boolean focused
+        ) {
+            GuiComponent.fill(poseStack, 0, 0, bounds.width(), bounds.height(), 0xD0101418);
+            String fps = minecraft.fpsString == null || minecraft.fpsString.isBlank()
+                    ? "FPS pending"
+                    : minecraft.fpsString;
+            SFMFontUtils.draw(
+                    poseStack,
+                    minecraft.font,
+                    minecraft.font.plainSubstrByWidth(fps, Math.max(0, bounds.width() - 12)),
+                    6,
+                    Math.max(4, (bounds.height() - minecraft.font.lineHeight) / 2),
+                    0xFFB7F7C8,
+                    true
+            );
+        }
     }
 
     private static final class UnknownContentPanel implements SFMScreenPanel {

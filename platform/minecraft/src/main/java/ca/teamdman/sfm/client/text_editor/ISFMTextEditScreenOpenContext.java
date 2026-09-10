@@ -113,6 +113,21 @@ public interface ISFMTextEditScreenOpenContext {
         }
     }
 
+    default boolean asynchronousSave() { return false; }
+
+    default java.util.concurrent.CompletableFuture<SFMTextDocumentSaveResult> saveDocumentAsync(String content) {
+        return java.util.concurrent.CompletableFuture.completedFuture(saveDocument(content));
+    }
+
+    /** Called on the client thread only after durable async success. */
+    default void documentSaved(String submittedText) { }
+
+    default void finishAsyncSaveClose() { SFMScreenChangeHelpers.popScreen(); }
+
+    default boolean saveHostIsCurrent() { return true; }
+
+    default boolean cancelPendingSave() { return false; }
+
     Consumer<String> saveWriter();
 
     LabelPositionHolder labelPositionHolder();

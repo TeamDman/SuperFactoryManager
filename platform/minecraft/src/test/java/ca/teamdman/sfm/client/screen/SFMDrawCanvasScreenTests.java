@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSelection;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;
@@ -13,6 +14,80 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMDrawCanvasScreenTests {
+    @Test
+    public void keyboardExtensionKeepsExactAnchorAcrossDirectionChangesAndCollapsesWithoutShift() {
+        String text = "α💡\r\nsecond\r\n";
+        var start = SFMContextTextCoordinates.atLineColumn(text, 0, 1);
+        var end = SFMContextTextCoordinates.atLineColumn(text, 1, 3);
+        var before = SFMContextTextCoordinates.atLineColumn(text, 0, 0);
+        var initial = new SFMTextDocumentSelection("pointer-primary", start, start, true);
+        var forward = SFMDrawCanvasScreen.selectionAfterNavigation(initial, end, true);
+        forward.validateAgainst(text);
+        assertEquals(start, forward.anchor());
+        assertEquals(end, forward.active());
+        var backward = SFMDrawCanvasScreen.selectionAfterNavigation(forward, before, true);
+        backward.validateAgainst(text);
+        assertEquals(start, backward.anchor());
+        assertEquals(before, backward.orderedRange().start());
+        var collapsed = SFMDrawCanvasScreen.selectionAfterNavigation(backward, end, false);
+        collapsed.validateAgainst(text);
+        assertTrue(collapsed.collapsed());
+        assertEquals(end, collapsed.anchor());
+    }
+
+    @Test
+    public void readOnlySelectAllIsOneExactRangeIncludingCrLfUnicodeAndTerminalNewline() {
+        for (String text : List.of("", "α💡\r\nsecond\r\n", "source line\n".repeat(3000))) {
+            var selection = SFMDrawCanvasScreen.entireDocumentSelection(text);
+            selection.validateAgainst(text);
+            assertEquals(0, selection.anchor().byteOffset());
+            assertEquals(text.getBytes(java.nio.charset.StandardCharsets.UTF_8).length,
+                    selection.active().byteOffset());
+            assertTrue(selection.primary());
+        }
+    }
+
+    @Test
+    public void highlightCacheReusesRowsButRevalidatesEveryChangedDocument() {
+        var cache = new SFMDrawCanvasScreen.TextHighlightCache();
+        String text = "α💡\r\nsecond\r\n";
+        var range = new SFMTextDocumentRange(
+                SFMContextTextCoordinates.atLineColumn(text, 0, 0),
+                SFMContextTextCoordinates.atLineColumn(text, 1, 6));
+        var expected = SFMDrawCanvasScreen.textHighlightRows(text, range);
+        for (int frame = 0; frame < 100; frame++) {
+            assertEquals(expected, cache.rows(new String(text), range));
+        }
+        assertEquals(1, cache.projectionCount());
+        assertThrows(IllegalArgumentException.class, () -> cache.rows("short", range));
+        assertEquals(0, cache.cachedRangeCount());
+        assertEquals(expected, cache.rows(text, range));
+        assertEquals(3, cache.projectionCount());
+    }
+
+    @Test
+    public void highlightCacheDoesNotRetainUnboundedCopiesOfLongLines() {
+        var cache = new SFMDrawCanvasScreen.TextHighlightCache();
+        String text = "x".repeat(1_048_577);
+        var range = new SFMTextDocumentRange(
+                SFMContextTextCoordinates.atLineColumn(text, 0, 0),
+                SFMContextTextCoordinates.atLineColumn(text, 0, 1));
+        assertEquals(1, cache.rows(text, range).size());
+        assertEquals(0, cache.cachedRangeCount());
+    }
+
+    @Test
+    public void wholeSourceCommentRequiresExactTextIncludingTerminalNewline() {
+        String exact = "{\r\n  \"name\": \"😀\"\r\n}\r\n";
+        var selection = SFMDrawCanvasScreen.entireDocumentSelection(exact);
+        var range = new SFMTextDocumentRange(selection.anchor(), selection.active());
+        var cache = new SFMDrawCanvasScreen.TextHighlightCache();
+        assertEquals(3, cache.rows(exact, range).size());
+        assertThrows(IllegalArgumentException.class,
+                () -> cache.rows(exact.replace("\r\n", "\n").stripTrailing(), range));
+        assertEquals(3, cache.rows(exact, range).size());
+    }
+
     @Test
     public void projectedLfHoverCoordinatesMapToExactCrlfBaselineWithoutAddressingItsInterior() {
         String projected = "first\nsecond\nemoji \uD83D\uDE80 target";
@@ -43,6 +118,49 @@ public class SFMDrawCanvasScreenTests {
                 "first",
                 "first\nsecond".indexOf("second")
         ).isEmpty());
+    }
+
+    @Test
+    public void canvasTerminalRowSelectionRebasesToImmutableBaselineEof() {
+        String canvas = "structured diff\n";
+        String baseline = "structured diff";
+        var canvasEof = SFMContextTextCoordinates.atUtf16Offset(canvas, canvas.length());
+        SFMTextDocumentSelection selection = new SFMTextDocumentSelection(
+                "selection-0", canvasEof, canvasEof, true);
+
+        SFMTextDocumentSelection rebased = SFMDrawCanvasScreen.rebaseSelection(
+                canvas, baseline, selection).orElseThrow();
+
+        var baselineEof = SFMContextTextCoordinates.atUtf16Offset(baseline, baseline.length());
+        assertEquals(baselineEof, rebased.anchor());
+        assertEquals(baselineEof, rebased.active());
+    }
+
+    @Test
+    public void canvasSelectionRebasesCrLfByLogicalLineAndUnicodeColumn() {
+        String canvas = "first\nemoji 💡 value";
+        String baseline = "first\r\nemoji 💡 value";
+        var canvasStart = SFMContextTextCoordinates.atLineColumn(canvas, 1, 6);
+        var canvasEnd = SFMContextTextCoordinates.atLineColumn(canvas, 1, 7);
+        SFMTextDocumentSelection selection = new SFMTextDocumentSelection(
+                "selection-0", canvasStart, canvasEnd, true);
+
+        SFMTextDocumentSelection rebased = SFMDrawCanvasScreen.rebaseSelection(
+                canvas, baseline, selection).orElseThrow();
+
+        assertEquals(SFMContextTextCoordinates.atLineColumn(baseline, 1, 6), rebased.anchor());
+        assertEquals(SFMContextTextCoordinates.atLineColumn(baseline, 1, 7), rebased.active());
+    }
+
+    @Test
+    public void incompatibleNonEofSelectionIsOmittedInsteadOfClipped() {
+        String canvas = "first\nsecond";
+        String baseline = "first";
+        var second = SFMContextTextCoordinates.atLineColumn(canvas, 1, 0);
+        SFMTextDocumentSelection selection = new SFMTextDocumentSelection(
+                "selection-0", second, second, true);
+
+        assertTrue(SFMDrawCanvasScreen.rebaseSelection(canvas, baseline, selection).isEmpty());
     }
 
     @Test

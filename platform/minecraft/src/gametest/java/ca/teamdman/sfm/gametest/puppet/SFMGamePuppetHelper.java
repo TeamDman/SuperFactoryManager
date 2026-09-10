@@ -311,6 +311,9 @@ public final class SFMGamePuppetHelper {
     public void exerciseActionableToast(String artifactName) {
         add(new ExerciseActionableToastPuppetAction(Objects.requireNonNull(artifactName, "artifactName")));
     }
+    public void exerciseItemstackPreviewRules(boolean resume) {
+        add(new ItemstackPreviewRulesPuppetAction(resume));
+    }
 
     /** Runs spatial coverage through the real short-lived external {@code sfm.exe} remoting client. */
     public void invokeExternalCliSpatialCoverage(Path sourceFile, Path artifactDirectory, String artifactName) {
@@ -358,6 +361,15 @@ public final class SFMGamePuppetHelper {
     /** Exercises one checkpoint in the two-process real release-review journey. */
     public void realReleaseReviewJourney(RealReleaseReviewJourneyPuppetAction.Operation operation) {
         add(new RealReleaseReviewJourneyPuppetAction(Objects.requireNonNull(operation, "operation")));
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    public void exploreReviewInteractively() {
+        add(new ca.teamdman.sfm.gametest.puppet.action.ExploreReviewInteractivelyPuppetAction());
+    }
+
+    public void exactReleaseReviewJourney(boolean resume) {
+        add(new ca.teamdman.sfm.gametest.puppet.action.ExactReleaseReviewJourneyPuppetAction(resume));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
     }
 

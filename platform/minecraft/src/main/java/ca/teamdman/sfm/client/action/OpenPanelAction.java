@@ -106,6 +106,17 @@ public final class OpenPanelAction implements SFMClientAction<SFMClientActionCon
             @Nullable SFMPanelReopenRecipe reopenRecipe
     ) {
         @Nullable Screen origin = actionContext.originatingHost() instanceof Screen screen ? screen : null;
+        // Global shortcuts may be invoked while transient palettes are
+        // pushed. A persistent workspace must retain the palette's real
+        // origin, never a palette that is about to be removed.
+        for (int depth = 0; depth < 16 && origin instanceof SFMCommandPaletteScreen palette; depth++) {
+            Object parent = palette.originatingActionContext().originatingHost();
+            if (!(parent instanceof Screen parentScreen) || parentScreen == origin) {
+                origin = null;
+                break;
+            }
+            origin = parentScreen;
+        }
         Minecraft minecraft = Minecraft.getInstance();
         boolean paletteWasOpen = minecraft.screen instanceof SFMCommandPaletteScreen;
 

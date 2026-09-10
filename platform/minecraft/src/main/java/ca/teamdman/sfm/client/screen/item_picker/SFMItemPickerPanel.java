@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.screen.item_picker;
 
+import ca.teamdman.sfm.client.input.SFMSingleLineInput;
+import ca.teamdman.sfm.client.input.SFMSingleLineInputView;
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.presentation.SFMItemIconRenderer;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
@@ -32,6 +34,11 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     private static final int SUCCESS = 0xFF72D572;
 
     private final SFMItemPickerModel model;
+    private final SFMSingleLineInput searchInput = new SFMSingleLineInput("");
+    private final SFMSingleLineInputView searchView = new SFMSingleLineInputView();
+    private boolean searchFocused;
+    private boolean searchDragging;
+    private Minecraft client;
     private final Consumer<SFMItemIcon> onConfirm;
     private final Runnable onCancel;
     private SFMItemPickerLayout layout = SFMItemPickerLayout.calculate(0, 0, 1, 1);
@@ -73,6 +80,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
 
     @Override
     public void opened(Minecraft minecraft, SFMScreenPanelBounds bounds, SFMWorkspacePanelContext context) {
+        client = minecraft;
         hostContext = context;
         resize(bounds);
     }
@@ -81,10 +89,22 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     public void resized(Minecraft minecraft, SFMScreenPanelBounds bounds) { resize(bounds); }
 
     @Override
-    public void closed() { hostContext = null; }
+    public void closed() { hostContext = null; completed = true; }
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == GLFW.GLFW_KEY_F && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) {
+            searchFocused = true;
+            return true;
+        }
+        if (keyCode == GLFW.GLFW_KEY_DOWN || keyCode == GLFW.GLFW_KEY_UP) searchFocused = false;
+        if (keyCode == GLFW.GLFW_KEY_BACKSPACE) searchFocused = true;
+        if (searchFocused && searchInput.keyPressed(keyCode, modifiers,
+                () -> client == null ? "" : client.keyboardHandler.getClipboard(),
+                value -> { if (client != null) client.keyboardHandler.setClipboard(value); })) {
+            publishSearch();
+            return true;
+        }
         switch (keyCode) {
             case GLFW.GLFW_KEY_LEFT -> model.move(-1, 0, layout.columns());
             case GLFW.GLFW_KEY_RIGHT -> model.move(1, 0, layout.columns());
@@ -92,7 +112,6 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
             case GLFW.GLFW_KEY_DOWN -> model.move(0, 1, layout.columns());
             case GLFW.GLFW_KEY_HOME -> model.selectFirst();
             case GLFW.GLFW_KEY_END -> model.selectLast();
-            case GLFW.GLFW_KEY_BACKSPACE -> model.deleteQueryCharacter();
             case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> confirm();
             case GLFW.GLFW_KEY_ESCAPE -> cancel();
             case GLFW.GLFW_KEY_R -> {
@@ -112,15 +131,21 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
 
     @Override
     public boolean charTyped(char character, int modifiers) {
-        if (character < 32 || character == 127) return false;
-        model.appendQuery(character);
-        keepSelectionVisible();
+        if (!searchInput.charTyped(character, modifiers)) return false;
+        searchFocused = true;
+        publishSearch();
         return true;
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        if (layout.search().contains(mouseX, mouseY)) {
+            searchFocused = searchDragging = true;
+            moveSearchCaret(mouseX, client != null && net.minecraft.client.gui.screens.Screen.hasShiftDown());
+            return true;
+        }
+        searchFocused = false;
         int hit = itemIndexAt(mouseX, mouseY);
         if (hit >= 0) {
             model.select(hit);
@@ -155,6 +180,33 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     public void mouseMoved(double mouseX, double mouseY) {
         this.mouseX = (int) mouseX;
         this.mouseY = (int) mouseY;
+    }
+
+    @Override public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
+        if (!searchDragging || button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        moveSearchCaret(x, true);
+        return true;
+    }
+
+    @Override public boolean mouseReleased(double x, double y, int button) {
+        if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        boolean consumed = searchDragging;
+        searchDragging = false;
+        return consumed;
+    }
+
+    private void publishSearch() {
+        if (model.query().equals(searchInput.text())) return;
+        model.setQuery(searchInput.text());
+        keepSelectionVisible();
+    }
+
+    private void moveSearchCaret(double x, boolean extend) {
+        if (client == null) return;
+        int inset = layout.compact() ? 5 : 9;
+        int at = searchView.indexAt(searchInput, client.font, layout.search().width() - inset * 2,
+                x - layout.search().x() - inset);
+        searchInput.select(extend ? searchInput.anchor() : at, at);
     }
 
     @Override
@@ -197,6 +249,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
 
     public void setQueryForAutomation(String query) {
         automationTooltipIndex = -1;
+        searchInput.setText(query);
         model.setQuery(query);
         keepSelectionVisible();
     }
@@ -219,12 +272,10 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     private void renderSearch(PoseStack poseStack, Minecraft minecraft, int inset) {
         fill(poseStack, layout.search(), 0xFF101010);
         border(poseStack, layout.search(), 0xFF8A8A8A);
-        String query = model.query();
-        Component value = query.isEmpty()
-                ? Component.literal("Search names, ids, or an SFML matcher...").withStyle(ChatFormatting.DARK_GRAY)
-                : Component.literal(query + "_");
-        SFMFontUtils.draw(poseStack, minecraft.font, value,
-                layout.search().x() + inset, layout.search().y() + 7, TEXT, true);
+        searchInput.setText(model.query());
+        searchView.render(poseStack, minecraft.font, searchInput,
+                layout.search().x() + inset, layout.search().y() + 7, layout.search().width() - inset * 2,
+                searchFocused, "Search names, ids, or an SFML matcher...", TEXT, MUTED);
     }
 
     private void renderItems(PoseStack poseStack, Minecraft minecraft) {
@@ -245,10 +296,10 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
             border(poseStack, cell, 0xFF3A3A3A);
             SFMItemPickerEntry entry = entries.get(index);
             if (model.viewMode() == SFMItemPickerModel.ViewMode.DENSE_ICONS) {
-                SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x + 3, y + 3);
+                SFMItemIconRenderer.render(poseStack, minecraft, entry.toIcon(model.fallbackItem()), x + 3, y + 3);
                 continue;
             }
-            SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x + 5, y + 8);
+            SFMItemIconRenderer.render(poseStack, minecraft, entry.toIcon(model.fallbackItem()), x + 5, y + 8);
             int textX = x + 26;
             int available = Math.max(1, layout.cellWidth() - 30);
             SFMFontUtils.draw(poseStack, minecraft.font,
@@ -282,7 +333,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
                 return;
             }
             model.selection().ifPresent(entry -> {
-                SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x, y + 1);
+                SFMItemIconRenderer.render(poseStack, minecraft, entry.toIcon(model.fallbackItem()), x, y + 1);
                 SFMFontUtils.draw(poseStack, minecraft.font,
                         trim(minecraft, "Current: " + entry.accessibleName(), layout.preview().width() - 28),
                         x + 22, y, TEXT, true);
@@ -298,7 +349,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
         int y = layout.preview().y() + 10;
         SFMFontUtils.draw(poseStack, minecraft.font, "Current selection", x, y, SUCCESS, true);
         model.selection().ifPresent(entry -> {
-            SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x, y + 18);
+            SFMItemIconRenderer.render(poseStack, minecraft, entry.toIcon(model.fallbackItem()), x, y + 18);
             SFMFontUtils.draw(poseStack, minecraft.font,
                     trim(minecraft, entry.accessibleName(), layout.preview().width() - 38),
                     x + 22, y + 22, TEXT, true);

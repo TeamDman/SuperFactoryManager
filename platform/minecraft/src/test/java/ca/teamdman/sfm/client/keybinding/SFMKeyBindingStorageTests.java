@@ -238,6 +238,90 @@ class SFMKeyBindingStorageTests {
     }
 
     @Test
+    void altDOpensOneUntitledDefaultTextEditorThroughTheCanonicalPanelAction() {
+        List<SFMKeyBinding> bindings = SFMKeyBindingDefaults.definitions().stream()
+                .filter(binding -> binding.bindingId().equals("builtin/workspace/open/text-editor"))
+                .toList();
+
+        assertEquals(1, bindings.size());
+        SFMKeyBinding binding = bindings.get(0);
+        assertEquals("sfm:panel/open", binding.actionId());
+        assertEquals("sfm action invoke sfm:panel/open sfm:text_editor", binding.commandDraft());
+        assertEquals(SFMKeyboardUsageSituations.GLOBAL, binding.situationId());
+        assertEquals(1, binding.sequence().strokes().size());
+        SFMKeyStroke stroke = binding.sequence().strokes().get(0);
+        assertEquals(GLFW.GLFW_KEY_D, stroke.keyCode());
+        assertEquals(Set.of(SFMKeyModifier.ALT), stroke.modifiers());
+    }
+
+    @Test
+    void controlShiftEOpensOneExplorerThroughTheCanonicalPanelAction() {
+        List<SFMKeyBinding> bindings = SFMKeyBindingDefaults.definitions().stream()
+                .filter(binding -> binding.bindingId().equals("builtin/workspace/open/explorer"))
+                .toList();
+
+        assertEquals(1, bindings.size());
+        SFMKeyBinding binding = bindings.get(0);
+        assertEquals("sfm:panel/open", binding.actionId());
+        assertEquals("sfm action invoke sfm:panel/open sfm:explorer", binding.commandDraft());
+        assertEquals(SFMKeyboardUsageSituations.GLOBAL, binding.situationId());
+        assertEquals(1, binding.sequence().strokes().size());
+        SFMKeyStroke stroke = binding.sequence().strokes().get(0);
+        assertEquals(GLFW.GLFW_KEY_E, stroke.keyCode());
+        assertEquals(Set.of(SFMKeyModifier.CONTROL, SFMKeyModifier.SHIFT), stroke.modifiers());
+    }
+
+    @Test
+    void parameterizedActionHintsMatchTheExactCommandDraft() {
+        SFMKeyBindingProfile profile = new SFMKeyBindingProfile(
+                SFMKeyBindingDefaults.definitions(),
+                SFMKeyBindingUserState.EMPTY,
+                new SFMKeyboardUsageSituationCatalog(Map.of())
+        );
+
+        assertEquals(
+                List.of("builtin/workspace/open/text-editor"),
+                profile.bindingsForCommand(
+                                "sfm:panel/open",
+                                "sfm action invoke sfm:panel/open sfm:text_editor")
+                        .stream().map(SFMKeyBinding::bindingId).toList()
+        );
+        assertEquals(
+                List.of("builtin/workspace/open/explorer"),
+                profile.bindingsForCommand(
+                                "sfm:panel/open",
+                                "/sfm action invoke sfm:panel/open sfm:explorer")
+                        .stream().map(SFMKeyBinding::bindingId).toList()
+        );
+        assertTrue(profile.bindingsForCommand(
+                "sfm:panel/open",
+                "sfm action invoke sfm:panel/open sfm:terminal").isEmpty());
+    }
+
+    @Test
+    void paletteFocusDefaultsReserveAltEAndAltCForStableTargets() {
+        Map<String, SFMKeyBinding> bindings = SFMKeyBindingDefaults.definitions().stream()
+                .filter(binding -> binding.bindingId().startsWith("builtin/command-palette/focus/"))
+                .collect(java.util.stream.Collectors.toMap(SFMKeyBinding::bindingId, binding -> binding));
+
+        assertEquals(Set.of(
+                "builtin/command-palette/focus/execute",
+                "builtin/command-palette/focus/cancel"), bindings.keySet());
+        assertEquals("sfm action invoke sfm:focus execute_button",
+                bindings.get("builtin/command-palette/focus/execute").commandDraft());
+        assertEquals(GLFW.GLFW_KEY_E,
+                bindings.get("builtin/command-palette/focus/execute").sequence().strokes().get(0).keyCode());
+        assertEquals("sfm action invoke sfm:focus cancel_button",
+                bindings.get("builtin/command-palette/focus/cancel").commandDraft());
+        assertEquals(GLFW.GLFW_KEY_C,
+                bindings.get("builtin/command-palette/focus/cancel").sequence().strokes().get(0).keyCode());
+        bindings.values().forEach(binding -> {
+            assertEquals(SFMKeyboardUsageSituations.COMMAND_PALETTE, binding.situationId());
+            assertEquals(Set.of(SFMKeyModifier.ALT), binding.sequence().strokes().get(0).modifiers());
+        });
+    }
+
+    @Test
     void temporalDocumentUndoHasOneExactContextualDefault() {
         List<SFMKeyBinding> undo = SFMKeyBindingDefaults.definitions().stream()
                 .filter(binding -> binding.actionId().equals("sfm:document/history/undo"))

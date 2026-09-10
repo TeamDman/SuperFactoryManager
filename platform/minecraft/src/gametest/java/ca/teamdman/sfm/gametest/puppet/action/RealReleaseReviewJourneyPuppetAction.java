@@ -40,6 +40,7 @@ import java.util.Optional;
 public final class RealReleaseReviewJourneyPuppetAction implements SFMPuppetAction {
     public enum Operation {
         PREPARE_STAGE,
+        PREPARE_EXACT_STAGE,
         CHOOSE_STRUCTURAL_NEEDS_CHANGE,
         ASSERT_STAGED,
         PREPARE_RESUME,
@@ -86,7 +87,7 @@ public final class RealReleaseReviewJourneyPuppetAction implements SFMPuppetActi
             throw new IllegalStateException("Real release-review journey timed out during " + operation);
         }
         return switch (operation) {
-            case PREPARE_STAGE -> prepareStage(runtime);
+            case PREPARE_STAGE, PREPARE_EXACT_STAGE -> prepareStage(runtime);
             case CHOOSE_STRUCTURAL_NEEDS_CHANGE -> chooseStructuralNeedsChange(runtime);
             case ASSERT_STAGED -> assertStaged(runtime);
             case PREPARE_RESUME -> prepareResume(runtime);
@@ -100,7 +101,14 @@ public final class RealReleaseReviewJourneyPuppetAction implements SFMPuppetActi
         Path canonical = canonicalReviewPath();
         byte[] canonicalBytes = readBytes(canonical);
         SFMReleaseReviewV1 review = parse(canonical);
-        SFMReleaseReviewV1.ReviewUnit target = chooseTarget(review, canonical);
+        SFMReleaseReviewV1.ReviewUnit target = operation == Operation.PREPARE_EXACT_STAGE
+                ? review.reviewUnits().stream()
+                        .filter(unit -> unit.pathAfter().orElse("").equals("platform/minecraft/src/main/java/ca/teamdman/sfm/SFM.java"))
+                        .filter(unit -> !unit.afterRanges().isEmpty() && targetAfterRange(unit).endByte() - targetAfterRange(unit).startByte() > 20)
+                        .filter(unit -> unit.beforeDocumentRevisionId().isPresent()
+                                && unit.beforeRanges().stream().anyMatch(range -> range.endByte() > range.startByte()))
+                        .findFirst().orElseThrow(() -> new IllegalStateException("No real SFM.java before/after unit is available"))
+                : chooseTarget(review, canonical);
         SFMReleaseReviewKernel.CompletionReport completion = SFMReleaseReviewKernel.completion(review);
         require(completion.status() == SFMReleaseReviewKernel.CompletionStatus.IN_PROGRESS,
                 "The canonical initialized review must remain in_progress");
@@ -460,7 +468,7 @@ public final class RealReleaseReviewJourneyPuppetAction implements SFMPuppetActi
         throw new IllegalStateException("Unable to locate canonical SFM repository root");
     }
 
-    private static SFMReleaseReviewV1 parse(Path path) {
+    static SFMReleaseReviewV1 parse(Path path) {
         try {
             SFMReleaseReviewV1 review = SFMReleaseReviewV1Codec.parse(
                     Files.readString(path, StandardCharsets.UTF_8));
@@ -492,11 +500,11 @@ public final class RealReleaseReviewJourneyPuppetAction implements SFMPuppetActi
         }
     }
 
-    private static String hash(Path path) {
+    static String hash(Path path) {
         return SFMReleaseReviewKernel.sha256(readBytes(path));
     }
 
-    private static JsonObject readMarker() {
+    static JsonObject readMarker() {
         try {
             return JsonParser.parseString(Files.readString(MARKER_PATH, StandardCharsets.UTF_8)).getAsJsonObject();
         } catch (IOException failure) {
@@ -504,7 +512,7 @@ public final class RealReleaseReviewJourneyPuppetAction implements SFMPuppetActi
         }
     }
 
-    private static void writeMarker(JsonObject marker) {
+    static void writeMarker(JsonObject marker) {
         try {
             Files.createDirectories(MARKER_PATH.getParent());
             Files.writeString(MARKER_PATH, GSON.toJson(marker), StandardCharsets.UTF_8);
@@ -513,7 +521,7 @@ public final class RealReleaseReviewJourneyPuppetAction implements SFMPuppetActi
         }
     }
 
-    private static void requireCanonicalUnchanged(JsonObject marker) {
+    static void requireCanonicalUnchanged(JsonObject marker) {
         Path canonical = Path.of(marker.get("canonical_path").getAsString());
         require(hash(canonical).equals(marker.get("canonical_sha256").getAsString()),
                 "The authoritative initialized review was mutated by the real journey");

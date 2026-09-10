@@ -38,14 +38,16 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
         if (active != null) active.cancel();
         active = null;
         publication = null;
+        RequestEvidence evidence = requestEvidence(contribution);
         Optional<SFMDefinitionContextAdapter.DiagnosticCode> unavailable =
                 structurallyUnavailable(contribution);
         if (unavailable.isPresent()) {
             SFM.LOGGER.debug(
-                    "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=SKIPPED epoch={} expected_generation={} reason={}",
+                    "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=SKIPPED epoch={} expected_generation={} reason={} language={} address_scheme={} document_id={} content_hash={}",
                     epoch,
                     documentGeneration,
-                    unavailable.orElseThrow().name().toLowerCase(Locale.ROOT)
+                    unavailable.orElseThrow().name().toLowerCase(Locale.ROOT),
+                    evidence.language(), evidence.addressScheme(), evidence.documentId(), evidence.contentHash()
             );
             return;
         }
@@ -65,11 +67,13 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
                 if (failure != null) {
                     Throwable rootFailure = unwrap(failure);
                     SFM.LOGGER.warn(
-                            "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=FAILED epoch={} expected_generation={} failure_type={} failure_code={}",
+                            "SFM_JAVA_INTERACTION_MAP_PUBLICATION status=FAILED epoch={} expected_generation={} failure_type={} failure_code={} language={} address_scheme={} document_id={} content_hash={} root_id={} source_set={}",
                             epoch,
                             documentGeneration,
                             rootFailure.getClass().getSimpleName(),
-                            privacySafeFailureCode(rootFailure)
+                            privacySafeFailureCode(rootFailure),
+                            evidence.language(), evidence.addressScheme(), evidence.documentId(), evidence.contentHash(),
+                            evidence.rootId(), evidence.sourceSet()
                     );
                     return;
                 }
@@ -154,6 +158,11 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
         if (!baseline.ready()) {
             return Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_NOT_READY);
         }
+        // Provenance declares the source language; a materialized analysis path or panel title
+        // must not turn a JSON/diff/ordinary text document into Java.
+        if (!baseline.language().id().equals("java")) {
+            return Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_LANGUAGE_NOT_JAVA);
+        }
         if (baseline.path().isEmpty()) {
             return Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_PATH_ABSENT);
         }
@@ -168,6 +177,22 @@ public final class SFMJavaInteractionMapSession implements AutoCloseable {
         }
         return Optional.empty();
     }
+
+    /** Correlatable request identity without source text, diagnostic prose or private absolute paths. */
+    static RequestEvidence requestEvidence(SFMContextContribution contribution) {
+        if (!(contribution.projection() instanceof SFMContextDocumentProjection document)) {
+            return new RequestEvidence("none", "none", "none", "none", "none", "none");
+        }
+        var baseline = document.baseline();
+        return new RequestEvidence(baseline.language().id(), baseline.path().map(SFMPath::scheme).orElse("none"),
+                baseline.path().map(path -> SFMDefinitionRequest.sha256(path.canonical())).orElse("none"),
+                "sha256:" + document.currentSha256(),
+                baseline.sourceRootIdentity().map(value -> safeLogToken(value.rootId())).orElse("none"),
+                baseline.sourceRootIdentity().map(value -> safeLogToken(value.sourceSet())).orElse("none"));
+    }
+
+    record RequestEvidence(String language, String addressScheme, String documentId, String contentHash,
+                           String rootId, String sourceSet) { }
 
     public Optional<SFMJavaInteractionMap.Result> current(
             long documentGeneration,

@@ -7,13 +7,103 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Keep pointer mode actions available in asynchronously loaded source and diff editors
+-- Honor virtual pointer modifiers for horizontal Shift-wheel scrolling in the canvas editor
+-- Honor explicit Alt pointer input for panel movement without inheriting physical keyboard state
+-- Present retained comment evidence as a historical commented snapshot rather than a second change pair with unavailable diffs
+-- Offer existing comment text, reveal, targets and selector actions from keyboard context menus at matching source selections
+-- Resolve retained source and diff Explorer rows after comment saves without requiring users to re-expand the hierarchy
+-- Clip source and inline/split diff canvas content above the v3 toolbar while preserving enclosing panel clipping
+-- Keep legacy generated release-change markers out of annotation views without deleting historical evidence or hiding human comments that use the same hashtag
+-- Expose pending and unavailable source highlighting in source and diff editors, and add a repository-root syntax coverage audit for actual grammar spans
+-- Keep live-review change surfaces separate from human comments, avoiding expensive generated-comment materialization when opening large reviews
+-- Route Rust, JSON, Groovy/Gradle, Markdown, PowerShell, TypeScript and TOML source highlighting through exact-pinned Arborium grammars in ordinary and review editors
+-- Add per-editor wheel zoom/scroll and middle/right pan/action controls beside the v3 settings button, with explicit saved defaults and contextual mouse access
+-- Refresh surviving review explorers when a comment finishes saving after its source editor was closed
+-- Extend exact source-preview selections with Shift and navigation keys, retaining their anchor and comment byte ranges
+-- Add named comment text, reveal, target and selector actions to Changes comment rows, bound to the review that opened the menu
+-- Show source filenames in review reveal notifications while retaining exact review-row links for copy and context actions
+-- Reuse unchanged review source pairing and diff recipes across comment updates while keeping panel expansion and comment children independent; avoid redundant evidence hashing and nested JSON serialization
+-- Reuse verified later-committed bytes in explicit Git-dependent review exports without changing original comment targets; restore self-contained evidence from pinned storage references
+-- Preview single-file review evidence copies with exact byte counts and explicit portable versus Git-dependent policies; confirm new-file publication without replacing original comments or approvals
+-- Open retained v3 review comments and embedded evidence in the ordinary Explorer without Git or source access; clearly distinguish offline evidence from current release coverage
+-- Preview exact comment successors against current observed review sources, inspect original/proposed targets, and explicitly accept a linked comment while retaining original evidence; ambiguous or incomplete matches cannot transfer approval
+-- Explain retained historical approvals and exact current byte coverage in the review status tree, with links to comment text and source evidence
+-- Inspect review storage and exact source evidence from explicit review/source context actions, with background reads and stale-file protection
+-- Refine matched Java declaration diffs to exact changed Unicode spans, keeping unchanged annotations and surrounding code neutral while retaining syntax and comment source mappings
+-- Create small single-file reviews from pinned Git targets or live working-tree scopes; retain exact disk source bytes only when adding a comment, and keep historical evidence separate from current completion
+-- Refresh live review observations explicitly without rewriting original comment targets; probe freshness against the source observation actually open in the editor
+-- Quiet the review freshness age after ten seconds by updating its displayed age in ten-second steps; preserve exact check evidence and immediate status changes
+-- Reserve plain Ctrl+1 through Ctrl+9 for workspace tabs so Ctrl+Shift+9 reaches the editor's Fit Width action
+-- Keep Enter/double-click opening source documents that also have comment children; route split-preview keyboard selection to its visible source side instead of hidden inline cursors
+-- Open existing review comments from highlighted-region context choices or source-document children, with separate text and Explorer navigation actions
+-- Explain generated release-change gutter markers and remove their automatic line underlines; prevent adjacent translucent highlight rows from double-blending at fractional zoom
+-- Expose creation of a new latest-disk review directly from freshness choices; keep original snapshots, comments and approvals unchanged
+-- Add explicitly labelled inline and single-canvas split text/structured review diffs with independent source-side selections and syntax colours
+-- Keep review capture progress visible after its choice menu closes; open refreshed reviews and comment text in existing areas instead of repeatedly subdividing the workspace
+-- Add repository-wide ItemStack icon coverage reports and semantic default icons for build artifacts, scripts, source, tests, review, exploration and configuration directories; retain explicit user overrides
+-- Add Explorer context actions for refreshing roots, adding directories as roots, and navigating to a root's parent while preserving other roots
+-- Restore working-tree review creation continuations and refresh an already-known parent listing after a new review is created
+-- Extend default file icons for configuration, archive, source, image and world-data types; use a grass block for a Minecraft-named container unless overridden by user rules
+-- Add bounded local lexical highlighting for Gradle/Groovy and Markdown/configuration documents, including mapped diff source fragments; brighten added and removed diff backgrounds
+-- Compact certified single-child Explorer containers into exact-path chains, with local unmerge/reset, per-panel defaults, anchored layout changes, typed reopen preferences and portable explicit JSON presets
+-- Add next/all occurrence selection to ordinary Text Editor V3 with Alt+J and Ctrl+Shift+Alt+J, shared bounded matching, exact glyph geometry and atomic range replacement through existing undo history
+-- Separate Explorer Find (Ctrl+F) from Filter (Ctrl+Shift+F), with shared Unicode editing and literal defaults; retain optional fuzzy ranking, case, whole-word, bounded regex, dot-all and matched-glyph highlight controls
+-- Show distinct Find, Filter and intersecting glyph highlights, descendant-match markers, and exact range/additive Explorer selection using Shift, Ctrl and Ctrl+Shift clicks
+-- Label review sources with actual pinned revisions and separately checked freshness, rather than implying that a saved HEAD target follows later commits
+-- Create portable working-tree reviews of scoped uncommitted and untracked files without committing; preserve immutable captured bytes, exact comments, queries and resume state across restarts
+-- Keep read-only document Select All as one exact source range instead of expanding an editing cursor for every glyph; copy published exact selections including Unicode and line endings
+-- Author typed ItemStack preview rules from flat Explorer icon actions; inspect rule/rendering/cache facts independently and retain exact theme revisions through picker, draft, save and reset
+-- Copy shared entry details or a self-contained rule-authoring prompt with registered string/Boolean signatures, without enumerating the item catalogue, reading source contents or calling an AI service
+-- Keep contextual command continuations alive when handing off from a choice menu to the ordinary palette, preserving captured entry and theme identity
+-- Close read-only inspection panels without a false unsaved-changes prompt when the canvas omits a trailing newline
+-- Reuse an equivalent saved work-queue lens for Show current, retaining populated rows and in-flight loading instead of restarting the same queue
+-- Keep long command-palette candidate tooltips on-screen at large GUI scales instead of flipping them beyond the left viewport edge
+-- Permit an explicit 2000x2000 square viewport for adaptive review puppets while retaining bounded per-puppet viewport support
+-- Report completed puppet assertions before a final-scene hold; accept normal held-scene shutdown with explicit retained viewport evidence instead of a false missing-completion failure
+-- Avoid Java interaction-map requests for non-Java review/file documents; keep real Java failures traceable by language, document/content identity and source-root metadata
+-- Add visible Previous, Next, Defer, Resume and Show current controls to review work queues; save the stable cursor off-thread without wrapping or confusing it with Explorer selection
+-- Discover remaining review work and exact before/after coverage from the Explorer lens menu; persist writable work queues asynchronously and make retained filters explicit and clearable
+-- Let a newly opened review Explorer join in-flight reveal loading instead of replacing it with a competing initial refresh
+-- Keep long review menus and tooltips within the viewport, suggest human-authored recent notes, and expose complete failed-save diagnostics separately from concise notifications
+-- Keep review comment values, targets and drafts in existing tab areas, and reject delayed navigation after its review, lens or exact panel changes
+-- Keep pending review notifications visible with exact cancellation actions, and preserve review Explorer lenses when reopening the same review writable
+-- Stage review opening and preset/freeform comment saves off the client thread; preserve pending drafts, cancel before commit, and never close over newer unsaved text
+-- Let repeated Save/Done update the same exact-target review note while ignoring callbacks for closed editor hosts
+-- Keep reveal notifications concise with exact-path hover, copy, open-as-text and Explorer actions; report unavailable clipboard access honestly
+-- Reuse immutable Explorer path identities and document highlight projections to reduce review navigation and rendering overhead
+-- Restore large source-mapped text diffs and quoted comment-marker actions without weakening exact source validation
+-- Require complete before-and-after source coverage for release approval; partial approvals retain exact navigable unreviewed regions
+-- Let empty and panel-hosted V1 text areas retain keyboard focus while writing review notes
+-- Allow multiple comments on the same exact selection with distinct durable selector identities
+-- Preserve source syntax highlighting beneath independent added/removed diff backgrounds and interactive review-comment markers
+-- Allow indexed Explorer search results and their explicitly expanded context groups to remain actionable beyond the first loaded page
+-- Add panelized raw-input diagnostics to F3 with safe raw/semantic event inspection, copying, clearing, and scrolling
+-- Add typed Minecraft Title, Controls, and Key Binds screen actions while keeping legacy developer panel openings lifecycle-safe
+-- Improve command-palette focus tooltips and keybinding management with explicit sort, scope, and action-ID/display-name controls
+-- Make Ctrl+Arrow navigation stop at colons, slashes, and hyphens while retaining underscores inside identifiers
+-- Add a selector-addressed FPS overlay, expose its toggle through F3, and add canonical Explorer-location copy/edit actions
+-- Add immediate Explorer scrolling, a draggable scrollbar, and generation-aware projection reuse
+-- Fix ItemStack icons disappearing in translated split panels
+-- Fix structured-diff right-click crashing when a stale UTF-8 selection ended beyond the current document
 -- Add portable repository-tracked release-review documents over complete pinned Git change domains with structural comments, queryable work queues, and fail-closed completion
 -- Add asynchronous in-game and typed CLI release-review create, refresh, open, query, status, and restart-safe resume workflows
 -- Prevent release-review selection highlights at trailing-newline EOF positions from crashing the render thread
 -- Project release-review changes, comments, hashtags, queries, status, and migrations through the generic lazy Explorer with canonical location, filtering, context actions, and target-block reveal
 -- Make target-block reveal appear only for an addressable document, render unclipped tooltips above adjacent panels, play ordinary click feedback, and avoid cold review projection on the render thread
 -- Add lazy source-mapped text and Java structured-diff leaves beside every release-review before/after pair with explicit tombstone and fallback diagnostics
+-- Reject oversized raw review ledgers promptly at the ordinary 4 MiB eager-text boundary while keeping projected review surfaces usable
+-- Carry explicit source-language metadata through review previews so Java uses Arborium highlighting and generated diffs never fall back to SFML colours
+-- Distinguish review ledgers, JSON, Java, generic files, and directories with specificity-aware ItemStack icons
 -- Add mouse-driven review lens switching and persistent source-backed comment choices for approvals, requested changes, recent templates, and custom notes
+-- Make Explorer Alt+Enter open the row context menu, show animated lazy-loading status, and surface newest review comments first
+-- Make release-review filtering cover the complete immutable review row domain instead of only the first materialized page
+-- Keep release-review file-name searches compact while preserving semantic searches for before, after, text-diff, and structured-diff rows
+-- Preserve textual review gutter markers without treating them as ARGB colours when opening Comments
+-- Persist built-in release-review approval and requested-change comments on an owned worker with truthful pending feedback
+-- Show persisted source-review comments as syntax-preserving background, underline, and gutter decorations in open before/after previews
+-- Open generated text and structured review diffs through a visible non-blocking deferred editor panel
+-- Add bounded generated-review-surface request identities, timing, and failure codes for text/structured diff diagnosis
 -- Keep release-review before/after previews bounded by typed identity and make numbered pane entries focusable, closeable, movable, and context-operable with the mouse
 -- Add safe whole-pane close confirmation and restore ordinary Home/End command-palette caret editing alongside explicit first/last-suggestion actions
 -- Add a reusable selector-addressed non-pausing gameplay overlay scene with canonical direct restore, explicit passive/interactive focus, action/CLI parity, and the live History Graph as its first consumer
@@ -44,6 +134,7 @@ NAME "Changelog"
 -- Retire the title-screen SFM Dev chooser and superseded managed-bundle/source-review entry points
 -- Add command-palette actions for vanilla keybindings and setting, incrementing, or decrementing GUI scale
 -- Add panel stacks with hierarchical close/move actions, deterministic Ctrl+number focus, and Ctrl+Tab traversal
+-- Add action-backed middle-click panel actions and middle-drag movement into another pane
 -- Add per-panel scale and content/scale rotation actions with visible stack and scale affordances
 -- Route explorer previews through the explorer-owned preview slot, with Space preserving explorer focus and Ctrl+Enter focusing the preview
 -- Separate SFM Key Binds from Minecraft Controls in the command palette
@@ -60,6 +151,10 @@ NAME "Changelog"
 -- Make Rust terminal, Presentation, Start/Retry, and terminal-properties controls share Minecraft-like keyboard focus, activation, and narration
 -- Present bounded F3 diagnostics and Escape close choices through constrained command-palette sessions while preserving the terminal's triple-Escape gesture
 -- Add wheel, keyboard, and scrollbar navigation to command-palette suggestions and the complete SFM Key Binds list
+-- Restore command-palette Enter execution while keeping Tab dedicated to completion and adding Alt+E/Alt+C focus actions for Execute/Cancel
+-- Scope command-palette shortcut badges and tooltips to exact command drafts so parameterized actions do not display unrelated bindings
+-- Make untitled-editor and Explorer shortcuts global and preserve the real title/world/workspace beneath palette-launched panels
+-- Add read-only screen and overlay diagnostics with focused widget, viewport, workspace-panel, and overlay-scene details
 -- Fix shortcut search-area clicks opening the first action and loaded terminal clicks activating a stale Start/Retry control
 -- Return keyboard input to the Rust terminal immediately when its viewport is clicked after using the Presentation menu
 -- Fix large raw Rust terminal frames disconnecting Vox when byte payloads exceed the unrelated collection-entry limit
@@ -103,6 +198,7 @@ NAME "Changelog"
 -- Make large Text Editor v3 documents responsive with viewport indexes and reusable projection, style, and selection state
 -- Avoid reinitializing large editor panels when focus is already unchanged, preserving responsive input-to-frame latency
 -- Add extension-aware explorer icons, discoverable view/path modes, fuzzy filtering, immediate wheel scrolling, and corrected focus borders
+-- Route Explorer wheel input across its complete panel surface and add Alt+D/Ctrl+Shift+E defaults for untitled editors and current-instance File Explorers
 -- Add pointer-driven panel divider resizing with horizontal, vertical, and intersection cursor affordances
 -- Keep preferred text editors responsive, clipped, and panel-local when explorer locations are opened beside narrow panels
 -- Add single-client responsive viewport sweeps and browsable puppet evidence reports

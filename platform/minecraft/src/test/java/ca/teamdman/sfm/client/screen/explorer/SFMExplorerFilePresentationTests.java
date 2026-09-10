@@ -22,11 +22,14 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 public class SFMExplorerFilePresentationTests {
     private static final ResourceLocation CHEST = new ResourceLocation("minecraft", "chest");
+    private static final ResourceLocation BARREL = new ResourceLocation("minecraft", "barrel");
     private static final ResourceLocation PAPER = new ResourceLocation("minecraft", "paper");
     private static final ResourceLocation COCOA_BEANS = new ResourceLocation("minecraft", "cocoa_beans");
+    private static final ResourceLocation WRITTEN_BOOK = new ResourceLocation("minecraft", "written_book");
+    private static final ResourceLocation BELL = new ResourceLocation("minecraft", "bell");
 
     @Test
-    public void fileDirectoriesUseTheThemeChestForRootChildCollapsedAndExpandedRows() {
+    public void fileDirectoriesUseSpecificNameRulesOrChestForRootChildCollapsedAndExpandedRows() {
         SFMExplorerPresentationRegistry registry = SFMExplorerPresentationRegistry.minecraftDefaults();
 
         assertFileIcon(
@@ -37,13 +40,16 @@ public class SFMExplorerFilePresentationTests {
         assertFileIcon(
                 registry.resolve(row("file:///C:/project/src", "src", true, 1, false)),
                 "src",
-                CHEST
+                new ResourceLocation("minecraft", "crafting_table")
         );
         assertFileIcon(
                 registry.resolve(row("file:///C:/project/src", "src", true, 1, true)),
                 "src",
-                CHEST
+                new ResourceLocation("minecraft", "crafting_table")
         );
+        assertEquals(BARREL, itemIcon(registry.resolve(
+                row("file:///C:/project/src", "src", true, 1, false)
+        )).fallbackItem(), "title-screen safety must retain a container-shaped fallback");
     }
 
     @Test
@@ -77,6 +83,53 @@ public class SFMExplorerFilePresentationTests {
 
         assertEquals(COCOA_BEANS, SFMClientTheme.defaults().fileIcon(".java").requestedItem());
         assertEquals(COCOA_BEANS, persistedDefault.fileIcon(".java").requestedItem());
+        assertEquals(WRITTEN_BOOK, persistedDefault.fileIconForName("settings.json").requestedItem());
+        assertEquals(BELL, persistedDefault.fileIconForName("candidate.sfm-review.json").requestedItem());
+    }
+
+    @Test
+    public void jsonAndReleaseReviewCompoundSuffixesUseDistinctIconsWithLongestMatchWinning() {
+        SFMExplorerPresentationRegistry registry = SFMExplorerPresentationRegistry.minecraftDefaults();
+
+        SFMExplorerPresentationRegistry.Resolution json = registry.resolve(row(
+                "file:///C:/project/settings.json", "settings.json", false, 0, false
+        ));
+        assertEquals(SFMFileExtensionExplorerPresenter.ID, json.contributorId());
+        assertFileIcon(json, "settings.json", WRITTEN_BOOK);
+
+        SFMExplorerPresentationRegistry.Resolution review = registry.resolve(row(
+                "file:///C:/project/candidate.sfm-review.json",
+                "candidate.sfm-review.json",
+                false,
+                0,
+                false
+        ));
+        assertEquals(SFMFileExtensionExplorerPresenter.ID, review.contributorId());
+        assertFileIcon(review, "candidate.sfm-review.json", BELL);
+
+        assertFileIcon(
+                registry.resolve(row(
+                        "file:///C:/project/LOUD.SFM-REVIEW.JSON",
+                        "LOUD.SFM-REVIEW.JSON",
+                        false,
+                        0,
+                        false
+                )),
+                "LOUD.SFM-REVIEW.JSON",
+                BELL
+        );
+
+        SFMClientTheme defaults = SFMClientTheme.defaults();
+        Map<String, SFMItemIcon> reversedSpecificity = new LinkedHashMap<>(defaults.fileIcons());
+        SFMItemIcon jsonIcon = reversedSpecificity.remove(".json");
+        SFMItemIcon reviewIcon = reversedSpecificity.remove(".sfm-review.json");
+        reversedSpecificity.put(".json", jsonIcon);
+        reversedSpecificity.put(".sfm-review.json", reviewIcon);
+        SFMClientTheme reordered = new SFMClientTheme(
+                defaults.colours(), defaults.sfmlSyntax(), reversedSpecificity, defaults.actionIcons()
+        );
+        assertEquals(BELL, reordered.fileIconForName("candidate.sfm-review.json").requestedItem(),
+                "compound suffix specificity must not depend on theme-map insertion order");
     }
 
     @Test
@@ -93,6 +146,13 @@ public class SFMExplorerFilePresentationTests {
                         "file:///C:/project/archive.unknown", "archive.unknown", false, 0, false
                 )),
                 "archive.unknown",
+                PAPER
+        );
+        assertFileIcon(
+                SFMExplorerPresentationRegistry.minecraftDefaults().resolve(row(
+                        "file:///C:/project/README", "README", false, 0, false
+                )),
+                "README",
                 PAPER
         );
     }
@@ -349,7 +409,7 @@ public class SFMExplorerFilePresentationTests {
                 0,
                 false
         ));
-        assertEquals(SFMFilePathExplorerPresenter.ID, ordinary.contributorId());
+        assertEquals("sfm:file_extension", ordinary.contributorId());
         assertEquals(PAPER, assertInstanceOf(
                 SFMExplorerPresentation.ItemIcon.class,
                 ordinary.presentation().icon()

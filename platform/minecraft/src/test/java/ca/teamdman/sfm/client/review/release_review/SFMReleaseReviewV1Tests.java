@@ -20,6 +20,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -173,9 +174,9 @@ class SFMReleaseReviewV1Tests {
                 document, "#approved intersect 1.19.2 HEAD");
         assertEquals("((#approved intersect 1.19.2) intersect HEAD)", raw.normalizedExpression());
         assertEquals(List.of("unit:src/Cafe.java:value"), raw.reviewUnitIds());
-        assertEquals(List.of("unit:src/Cafe.java:value"), SFMReleaseReviewKernel.query(
+        assertEquals(List.of(), SFMReleaseReviewKernel.query(
                 document, "effective(#approved) intersect 1.19.2 HEAD").reviewUnitIds());
-        assertEquals(List.of("unit:src/Other.java:file"), SFMReleaseReviewKernel.query(
+        assertEquals(List.of("unit:src/Cafe.java:value", "unit:src/Other.java:file"), SFMReleaseReviewKernel.query(
                 document, "remaining intersect 1.19.2 HEAD").reviewUnitIds());
         assertEquals(List.of(), SFMReleaseReviewKernel.query(
                 document, "blocking intersect 1.19.2 HEAD").reviewUnitIds());
@@ -183,15 +184,15 @@ class SFMReleaseReviewV1Tests {
                 document, "suspended intersect 1.19.2 HEAD").reviewUnitIds());
         assertEquals(raw.reviewUnitIds(),
                 SFMReleaseReviewKernel.query(document, "approved-for-candidate").reviewUnitIds());
-        assertEquals(List.of("unit:src/Other.java:file"),
+        assertEquals(List.of("unit:src/Cafe.java:value", "unit:src/Other.java:file"),
                 SFMReleaseReviewKernel.query(document, "remaining-work").reviewUnitIds());
 
         SFMReleaseReviewKernel.CompletionReport status = SFMReleaseReviewKernel.completion(document);
         assertEquals(SFMReleaseReviewKernel.CompletionStatus.IN_PROGRESS, status.status());
         assertEquals(2, status.changedDomain());
         assertEquals(1, status.approvedRaw());
-        assertEquals(1, status.approvedEffective());
-        assertEquals(1, status.remaining());
+        assertEquals(0, status.approvedEffective());
+        assertEquals(2, status.remaining());
         assertEquals(0, status.blocking());
         assertEquals(0, status.suspended());
         assertEquals(0, status.missing());
@@ -201,8 +202,8 @@ class SFMReleaseReviewV1Tests {
         assertEquals(List.of("unit:src/Cafe.java:value", "unit:src/Other.java:file"),
                 status.witnesses().changedDomain());
         assertEquals(List.of("unit:src/Cafe.java:value"), status.witnesses().approvedRaw());
-        assertEquals(List.of("unit:src/Cafe.java:value"), status.witnesses().approvedEffective());
-        assertEquals(List.of("unit:src/Other.java:file"), status.witnesses().remaining());
+        assertEquals(List.of(), status.witnesses().approvedEffective());
+        assertEquals(List.of("unit:src/Cafe.java:value", "unit:src/Other.java:file"), status.witnesses().remaining());
         assertEquals(List.of(), status.witnesses().blocking());
         assertEquals(List.of(), status.witnesses().suspended());
         assertEquals(List.of(), status.witnesses().missing());
@@ -244,7 +245,7 @@ class SFMReleaseReviewV1Tests {
 
     @Test
     void staleAttestationCannotMakeSemanticallyChangedReadyReviewReadyAgain() throws Exception {
-        SFMReleaseReviewV1 document = fixture();
+        SFMReleaseReviewV1 document = beforeApprovedFixture();
         SFMReviewSessionV2.Comment other = document.reviewSession().comments().stream()
                 .filter(comment -> comment.id().equals("generated:unit-other"))
                 .findFirst().orElseThrow();
@@ -414,7 +415,7 @@ class SFMReleaseReviewV1Tests {
 
     @Test
     void releaseExplorerUsesPinnedCorpusAndKeepsBothTombstoneSides() throws Exception {
-        SFMReleaseReviewV1 document = fixture();
+        SFMReleaseReviewV1 document = beforeApprovedFixture();
         SFMReviewExplorerModel changes = SFMReviewExplorerModel.releaseChanges(document);
         assertEquals(List.of(
                         "src/Cafe.java", "src/Missing.java", "src/Other.java", "src/Partial.java", "src/Unicode.java"),
@@ -423,8 +424,8 @@ class SFMReleaseReviewV1Tests {
                 .filter(node -> node.label().equals("src/Other.java"))
                 .findFirst().orElseThrow();
         assertEquals(1, other.children().size());
-        assertEquals(4, other.children().get(0).children().size(),
-                "each immutable file pair exposes before, after, text-diff, and structured-diff leaves");
+        assertEquals(6, other.children().get(0).children().size(),
+                "each immutable file pair exposes before, after, inline diffs, and split diffs");
         assertTrue(other.children().get(0).children().get(0).leaf().missing());
         assertFalse(other.children().get(0).children().get(1).leaf().missing());
 
@@ -457,14 +458,14 @@ class SFMReleaseReviewV1Tests {
         assertEquals(SFMReleaseReviewKernel.CompletionStatus.IN_PROGRESS, report.status());
         assertEquals(2, report.changedDomain());
         assertEquals(1, report.approvedRaw());
-        assertEquals(1, report.approvedEffective());
-        assertEquals(1, report.remaining());
+        assertEquals(0, report.approvedEffective());
+        assertEquals(2, report.remaining());
         assertEquals(1, report.unsupported());
         assertEquals(List.of("unit:src/Cafe.java:value", "unit:src/Other.java:file"),
                 report.witnesses().changedDomain());
         assertEquals(List.of("unit:src/Cafe.java:value"), report.witnesses().approvedRaw());
-        assertEquals(report.witnesses().approvedRaw(), report.witnesses().approvedEffective());
-        assertEquals(List.of("unit:src/Other.java:file"), report.witnesses().remaining());
+        assertTrue(report.witnesses().approvedEffective().isEmpty());
+        assertEquals(List.of("unit:src/Cafe.java:value", "unit:src/Other.java:file"), report.witnesses().remaining());
         assertEquals(report.remaining(), report.witnesses().remaining().size());
         assertEquals(report.unsupported(), report.witnesses().unsupported().size());
 
@@ -594,7 +595,7 @@ class SFMReleaseReviewV1Tests {
             assertTrue(result.document().isPresent());
             assertFalse(result.recoveredMachineLocalCopy());
             assertEquals(2, result.document().orElseThrow().resumeState().generation());
-            assertEquals(List.of("unit:src/Other.java:file"),
+            assertEquals(List.of("unit:src/Cafe.java:value", "unit:src/Other.java:file"),
                     reopened.query("remaining-work").reviewUnitIds());
         }
     }
@@ -737,7 +738,7 @@ class SFMReleaseReviewV1Tests {
             assertTrue(mutation.saved());
             assertEquals(Optional.of("needs-human-review"),
                     runtime.document().orElseThrow().resumeState().activeQueryId());
-            assertEquals(List.of("unit:src/Other.java:file"),
+            assertEquals(List.of("unit:src/Cafe.java:value", "unit:src/Other.java:file"),
                     runtime.query("needs-human-review").reviewUnitIds());
         }
         try (SFMReleaseReviewRuntime reopened = new SFMReleaseReviewRuntime()) {
@@ -746,7 +747,7 @@ class SFMReleaseReviewV1Tests {
                     query.id().equals("needs-human-review")
                             && query.expression().equals("remaining intersect 1.19.2 HEAD")));
             assertEquals(Optional.of("needs-human-review"), document.resumeState().activeQueryId());
-            assertEquals(List.of("unit:src/Other.java:file"),
+            assertEquals(List.of("unit:src/Cafe.java:value", "unit:src/Other.java:file"),
                     reopened.query("needs-human-review").reviewUnitIds());
         }
     }
@@ -808,6 +809,44 @@ class SFMReleaseReviewV1Tests {
     }
 
     @Test
+    void asynchronousCommentPersistenceDoesNotPublishUntilTheOwnedWorkerCompletes(
+            @TempDir Path directory
+    ) throws Exception {
+        Path path = directory.resolve("async-review.sfm-review.json");
+        SFMReleaseReviewV1 document = fixture();
+        SFMReleaseReviewEditorCapture.Capture capture = editorCapture(
+                document, "1.19.2:after:src/Other.java", 0, 32, false);
+        SFMReleaseReviewV1.SelectorProposal literal = capture.proposals().proposals().get(0);
+        ArrayList<Runnable> queuedPersistence = new ArrayList<>();
+        try (SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime(queuedPersistence::add)) {
+            runtime.create(path, document);
+            int commentsBefore = runtime.document().orElseThrow().reviewSession().comments().size();
+            long generationBefore = runtime.generation();
+
+            var pending = runtime.createCommentAsync(
+                    "#needs-change Persist outside the client callback.",
+                    capture.adapted().pinnedSelection(),
+                    literal
+            );
+
+            assertFalse(pending.isDone(), "submission must hand persistence to the owned worker");
+            assertTrue(runtime.persistencePending());
+            assertEquals(generationBefore, runtime.snapshot().generation());
+            assertEquals(commentsBefore,
+                    runtime.document().orElseThrow().reviewSession().comments().size(),
+                    "uncommitted async state must not be published optimistically");
+            assertEquals(1, queuedPersistence.size());
+
+            queuedPersistence.remove(0).run();
+            assertTrue(pending.join().mutation().saved());
+            assertFalse(runtime.persistencePending());
+            assertEquals(generationBefore + 1, runtime.generation());
+            assertEquals(commentsBefore + 1,
+                    runtime.document().orElseThrow().reviewSession().comments().size());
+        }
+    }
+
+    @Test
     void witnessedRelocationRequiresExplicitConfirmationAndPersistsItsOrdinaryDecisionComment(
             @TempDir Path directory
     ) throws Exception {
@@ -832,7 +871,7 @@ class SFMReleaseReviewV1Tests {
             assertFalse(runtime.dirty());
             assertEquals(List.of("unit:src/Other.java:file"),
                     runtime.query("#approved intersect 1.19.2 HEAD").reviewUnitIds());
-            assertEquals(List.of("unit:src/Other.java:file"),
+            assertEquals(List.of(),
                     runtime.query("effective(#approved) intersect 1.19.2 HEAD").reviewUnitIds());
             assertThrows(IllegalArgumentException.class, () -> runtime.decideMigration(
                     "migration:fixture-value",
@@ -1000,7 +1039,7 @@ class SFMReleaseReviewV1Tests {
 
         try (SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime()) {
             runtime.open(path, true);
-            assertEquals(List.of("unit:src/Other.java:file"),
+            assertEquals(List.of(),
                     runtime.query("effective(#approved) intersect 1.19.2 HEAD").reviewUnitIds());
         }
     }
@@ -1042,7 +1081,7 @@ class SFMReleaseReviewV1Tests {
     }
 
     @Test
-    void deferringTheLastQueueItemWrapsToTheFirstStableUnit(@TempDir Path directory) throws Exception {
+    void deferringTheLastQueueItemKeepsItsDeferredIdentityWithoutWrapping(@TempDir Path directory) throws Exception {
         Path path = directory.resolve("review.sfm-review.json");
         try (SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime()) {
             runtime.create(path, fixture());
@@ -1051,8 +1090,7 @@ class SFMReleaseReviewV1Tests {
             assertEquals("unit:src/Other.java:file",
                     runtime.document().orElseThrow().resumeState().currentUnitId().orElseThrow());
             assertTrue(runtime.deferCurrent().saved());
-            assertEquals("unit:src/Cafe.java:value",
-                    runtime.document().orElseThrow().resumeState().currentUnitId().orElseThrow());
+            assertTrue(runtime.document().orElseThrow().resumeState().currentUnitId().isEmpty());
             assertEquals(List.of("unit:src/Other.java:file"),
                     runtime.document().orElseThrow().resumeState().deferredUnitIds());
         }
@@ -1188,6 +1226,16 @@ class SFMReleaseReviewV1Tests {
 
     private static SFMReleaseReviewV1 fixture() throws Exception {
         return SFMReleaseReviewV1Codec.parse(Files.readString(fixturePath()).replace("\r\n", "\n"));
+    }
+
+    private static SFMReleaseReviewV1 beforeApprovedFixture() throws Exception {
+        var original = fixture();
+        var comments = new ArrayList<>(original.reviewSession().comments());
+        var template = comments.stream().filter(value -> value.id().equals("human:approved-value")).findFirst().orElseThrow();
+        comments.add(new SFMReviewSessionV2.Comment("test:approved-before", "#approved Explicit before-surface test evidence",
+                template.provenance(), new SFMReviewSessionV2.CommittedReviewTarget(SFMReleaseReviewExactCoverageTests.literal(
+                original, new SFMReviewSessionV1Kernel.Range("1.19.2:before:src/Cafe.java", 35, 60)))));
+        return withComments(original, comments);
     }
 
     private static SFMReleaseReviewV1 withMigration(

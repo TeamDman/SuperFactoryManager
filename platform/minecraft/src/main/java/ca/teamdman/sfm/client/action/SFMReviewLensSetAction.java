@@ -17,6 +17,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -44,8 +45,12 @@ public final class SFMReviewLensSetAction implements SFMClientAction<SFMReviewLe
         }
 
         boolean stillCurrent() {
-            return actionContext.originatingHostIsCurrent().getAsBoolean()
+            var review = ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime.get().snapshot();
+            return SFMClientActionContinuation.capture(actionContext).isCurrent()
                     && workspace.panelInstance(panelId) == explorer
+                    && explorer.sessionSnapshot().roots().equals(java.util.Set.of(lens.root()))
+                    && review.openEpoch() == lens.reviewOpenEpoch()
+                    && review.path().filter(lens.reviewPath()::equals).isPresent()
                     && SFMReleaseReviewExplorerRuntime.get()
                     .lensDescriptor(explorer.sessionSnapshot().roots())
                     .map(current -> current.reviewOpenEpoch() == lens.reviewOpenEpoch()
@@ -117,10 +122,50 @@ public final class SFMReviewLensSetAction implements SFMClientAction<SFMReviewLe
         Target target = availability.target();
         SFMCommandPaletteScreen.openChoices(
                 target.actionContext(),
-                Component.literal("Review lens · " + target.lens().title()),
-                choices(target.lens().projection())
+                Component.literal("Review · " + shortTitle(target.lens()) + " · "
+                        + filterDescription(target.explorer().sessionSnapshot().settings().filterQuery())),
+                controlChoices(target.lens(),
+                        ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime.get().document().orElseThrow(),
+                        target.explorer().explorerId().value(),
+                        target.explorer().sessionSnapshot().settings().filterQuery())
         );
         return true;
+    }
+
+    static List<SFMActionChoice> controlChoices(SFMReleaseReviewExplorerRuntime.LensDescriptor lens) {
+        ArrayList<SFMActionChoice> answer = new ArrayList<>(choices(lens.projection()));
+        if (lens.projection() == SFMReleaseReviewExplorerScreenType.Projection.CHANGES) {
+            answer.addAll(SFMReviewChangesLayoutSetAction.alternativeChoice(lens.changesPathLayout()));
+        }
+        return List.copyOf(answer);
+    }
+
+    static List<SFMActionChoice> controlChoices(
+            SFMReleaseReviewExplorerRuntime.LensDescriptor lens,
+            ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1 review,
+            String explorerId, String filter
+    ) {
+        ArrayList<SFMActionChoice> answer = new ArrayList<>(SFMReviewRemainingWorkAction.choices(review));
+        SFMReviewWorkQueueControls.CONTROLS.stream().map(SFMReviewWorkQueueControls.Control::choice)
+                .forEach(answer::add);
+        answer.addAll(controlChoices(lens));
+        answer.addAll(SFMReviewFreshnessAction.choices());
+        if (!filter.isEmpty()) {
+            String selector = ca.teamdman.sfm.client.explorer.SFMEntitySelector.exact(
+                    ca.teamdman.sfm.client.explorer.SFMEntitySelector.Domain.EXPLORER, explorerId).canonical();
+            answer.add(SFMActionChoice.invoke(new ResourceLocation("sfm", "explorer/filter/clear"), selector,
+                    "Clear retained filter · " + filter));
+        }
+        return List.copyOf(answer);
+    }
+
+    public static String filterDescription(String filter) {
+        return filter.isEmpty() ? "no text filter" : "filter retained: " + filter + " (clear or edit in Explorer)";
+    }
+
+    public static String shortTitle(SFMReleaseReviewExplorerRuntime.LensDescriptor lens) {
+        return lens.projection() == SFMReleaseReviewExplorerScreenType.Projection.QUERY
+                ? "Work queue" : title(lens.projection());
     }
 
     static List<SFMActionChoice> choices(SFMReleaseReviewExplorerScreenType.Projection active) {
@@ -169,7 +214,8 @@ public final class SFMReviewLensSetAction implements SFMClientAction<SFMReviewLe
                         return;
                     }
                     context.getSource().sendFeedback(Component.literal(
-                            "Review lens is now " + lens.title()
+                            "Review lens is now " + shortTitle(lens) + "; "
+                                    + filterDescription(target.explorer().sessionSnapshot().settings().filterQuery())
                     ));
                 });
         return 1;
@@ -190,6 +236,7 @@ public final class SFMReviewLensSetAction implements SFMClientAction<SFMReviewLe
     }
 
     private static String title(SFMReleaseReviewExplorerScreenType.Projection projection) {
+        if (projection == SFMReleaseReviewExplorerScreenType.Projection.STATUS) return "Exact coverage and blockers";
         String token = token(projection);
         return Character.toUpperCase(token.charAt(0)) + token.substring(1);
     }

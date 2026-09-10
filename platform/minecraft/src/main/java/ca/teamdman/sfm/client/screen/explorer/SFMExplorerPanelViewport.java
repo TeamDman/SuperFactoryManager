@@ -14,6 +14,13 @@ public final class SFMExplorerPanelViewport {
     public static final int SMALL_ICON_CELL_HEIGHT = 38;
     public static final int SMALL_ICON_MINIMUM_WIDTH = 96;
 
+    /** Count painted contents, not initial roots, pending rows or offscreen entries. */
+    static long publishedContentCount(Snapshot viewport, long relationRevision) {
+        if (relationRevision <= 0) return 0;
+        return viewport.cells().stream()
+                .filter(cell -> !cell.row().loading() && !cell.row().root()).count();
+    }
+
     public record Rect(int x, int y, int width, int height) {
         public Rect {
             if (width < 0 || height < 0) {
@@ -42,18 +49,21 @@ public final class SFMExplorerPanelViewport {
             Rect content,
             Rect header,
             Rect filter,
+            Rect toolbar,
             Rect bodyFrame,
             Rect body,
             Rect status,
             Rect locationControl,
             Rect lensControl,
             Rect revealControl,
-            Rect filterControl
+            Rect filterControl,
+            Rect findControl
     ) {
         public Layout {
             Objects.requireNonNull(content, "content");
             Objects.requireNonNull(header, "header");
             Objects.requireNonNull(filter, "filter");
+            Objects.requireNonNull(toolbar, "toolbar");
             Objects.requireNonNull(bodyFrame, "bodyFrame");
             Objects.requireNonNull(body, "body");
             Objects.requireNonNull(status, "status");
@@ -61,6 +71,7 @@ public final class SFMExplorerPanelViewport {
             Objects.requireNonNull(lensControl, "lensControl");
             Objects.requireNonNull(revealControl, "revealControl");
             Objects.requireNonNull(filterControl, "filterControl");
+            Objects.requireNonNull(findControl, "findControl");
         }
     }
 
@@ -119,18 +130,40 @@ public final class SFMExplorerPanelViewport {
     private SFMExplorerPanelViewport() {
     }
 
+    /** Shared icon hit geometry mirrors list/icon rendering; text remains a separate target. */
+    public static Rect iconBounds(Cell cell,SFMExplorerProjection.View view) {
+        int x=view==SFMExplorerProjection.View.LIST ? cell.chevron().x()+13 : cell.bounds().x()+4;
+        int height=view==SFMExplorerProjection.View.LIST ? Math.max(0,cell.bounds().height()-2) : Math.max(0,cell.bounds().height()-6);
+        int y=cell.bounds().y()+(view==SFMExplorerProjection.View.LIST ? 1 : 3)+Math.max(0,(height-16)/2);
+        return new Rect(x,y,Math.min(16,Math.max(0,cell.bounds().x()+cell.bounds().width()-x)),16);
+    }
+
     public static Snapshot calculate(
             SFMScreenPanelBounds bounds,
             SFMExplorerProjection.View view,
             List<SFMExplorerProjection.Row> rows,
             int requestedScrollRow
     ) {
+        return calculate(bounds, view, rows, requestedScrollRow, 0);
+    }
+
+    public static Snapshot calculate(
+            SFMScreenPanelBounds bounds, SFMExplorerProjection.View view,
+            List<SFMExplorerProjection.Row> rows, int requestedScrollRow, int toolbarHeight
+    ) {
+        return calculate(bounds, view, rows, requestedScrollRow, toolbarHeight, false);
+    }
+
+    public static Snapshot calculate(
+            SFMScreenPanelBounds bounds, SFMExplorerProjection.View view,
+            List<SFMExplorerProjection.Row> rows, int requestedScrollRow, int toolbarHeight, boolean findVisible
+    ) {
         Objects.requireNonNull(bounds, "bounds");
         Objects.requireNonNull(view, "view");
         rows = List.copyOf(Objects.requireNonNull(rows, "rows"));
         if (requestedScrollRow < 0) throw new IllegalArgumentException("Scroll row must not be negative");
 
-        Layout layout = layout(bounds);
+        Layout layout = layout(bounds, false, true, toolbarHeight, findVisible);
         int columns = view == SFMExplorerProjection.View.LIST
                 ? 1
                 : Math.max(1, layout.bodyFrame().width() / SMALL_ICON_MINIMUM_WIDTH);
@@ -199,6 +232,17 @@ public final class SFMExplorerPanelViewport {
             boolean lensControlVisible,
             boolean revealControlVisible
     ) {
+        return layout(rawBounds, lensControlVisible, revealControlVisible, 0);
+    }
+
+    public static Layout layout(SFMScreenPanelBounds rawBounds, boolean lensControlVisible,
+                                boolean revealControlVisible, int requestedToolbarHeight) {
+        return layout(rawBounds, lensControlVisible, revealControlVisible, requestedToolbarHeight, false);
+    }
+
+    public static Layout layout(SFMScreenPanelBounds rawBounds, boolean lensControlVisible,
+                                boolean revealControlVisible, int requestedToolbarHeight, boolean findVisible) {
+        if (requestedToolbarHeight < 0) throw new IllegalArgumentException("Toolbar height must not be negative");
         int margin = rawBounds.width() < 220 || rawBounds.height() < 140 ? 3 : 6;
         SFMScreenPanelBounds inset = rawBounds.inset(margin);
         Rect content = new Rect(inset.x(), inset.y(), inset.width(), inset.height());
@@ -206,11 +250,16 @@ public final class SFMExplorerPanelViewport {
         int remainingAfterHeader = Math.max(0, content.height() - headerHeight);
         int filterHeight = Math.min(18, remainingAfterHeader);
         int remainingAfterFilter = Math.max(0, remainingAfterHeader - filterHeight);
-        int statusHeight = Math.min(14, remainingAfterFilter);
-        int bodyHeight = Math.max(0, remainingAfterFilter - statusHeight);
+        int findHeight = Math.min(findVisible ? 18 : 0, remainingAfterFilter);
+        remainingAfterFilter -= findHeight;
+        int toolbarHeight = Math.min(requestedToolbarHeight, remainingAfterFilter);
+        int statusHeight = Math.min(14, remainingAfterFilter - toolbarHeight);
+        int bodyHeight = Math.max(0, remainingAfterFilter - toolbarHeight - statusHeight);
         Rect header = new Rect(content.x(), content.y(), content.width(), headerHeight);
         Rect filter = new Rect(content.x(), content.y() + headerHeight, content.width(), filterHeight);
-        Rect bodyFrame = new Rect(content.x(), filter.y() + filter.height(), content.width(), bodyHeight);
+        Rect find = new Rect(content.x(), filter.y() + filter.height(), content.width(), findHeight);
+        Rect toolbar = new Rect(content.x(), find.y() + find.height(), content.width(), toolbarHeight);
+        Rect bodyFrame = new Rect(content.x(), toolbar.y() + toolbar.height(), content.width(), bodyHeight);
         Rect body = bodyFrame.inset(1);
         Rect status = new Rect(content.x(), bodyFrame.y() + bodyFrame.height(), content.width(), statusHeight);
         int revealWidth = revealControlVisible
@@ -238,8 +287,23 @@ public final class SFMExplorerPanelViewport {
                 header.height()
         );
         Rect filterControl = new Rect(filter.x(), filter.y(), filter.width(), filter.height());
-        return new Layout(content, header, filter, bodyFrame, body, status,
-                locationControl, lensControl, revealControl, filterControl);
+        return new Layout(content, header, filter, toolbar, bodyFrame, body, status,
+                locationControl, lensControl, revealControl, filterControl, find);
+    }
+
+    public static List<Rect> toolbarCells(Layout layout, int count) {
+        return toolbarCells(layout.toolbar(), count);
+    }
+
+    public static List<Rect> toolbarCells(Rect toolbar, int count) {
+        if (count < 1) throw new IllegalArgumentException("Toolbar must contain at least one control");
+        ArrayList<Rect> answer = new ArrayList<>();
+        for (int index = 0; index < count; index++) {
+            int left = toolbar.width() * index / count;
+            int right = toolbar.width() * (index + 1) / count;
+            answer.add(new Rect(toolbar.x() + left, toolbar.y(), right - left, toolbar.height()));
+        }
+        return List.copyOf(answer);
     }
 
     private static int divideRoundUp(int value, int divisor) {

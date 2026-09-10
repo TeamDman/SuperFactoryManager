@@ -64,7 +64,10 @@ public final class SFMContextActionRegistry {
     private static final SFMContextActionRegistry MINECRAFT_DEFAULTS = builder()
             .register(SFMReleaseReviewContextActionProvider.ID, 50,
                     new SFMReleaseReviewContextActionProvider())
+            .register("sfm:review-evidence-export", 45,
+                    ca.teamdman.sfm.client.action.SFMReviewEvidenceExportAction::contextOffers)
             .register(SFMJavaSymbolContextActionProvider.ID, 100, new SFMJavaSymbolContextActionProvider())
+            .register("sfm:document-search", 110, new SFMTextEditorSearchContextActionProvider())
             .build();
 
     private final List<Registration> registrations;

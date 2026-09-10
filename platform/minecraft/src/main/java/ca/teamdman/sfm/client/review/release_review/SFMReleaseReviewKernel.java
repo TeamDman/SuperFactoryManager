@@ -33,9 +33,11 @@ public final class SFMReleaseReviewKernel {
         STALE
     }
 
-    public record QueryResult(String expression, String normalizedExpression, List<String> reviewUnitIds) {
+    public record QueryResult(String expression, String normalizedExpression, List<String> reviewUnitIds,
+                              List<SFMReleaseReviewCoverage.UnitCoverage> surfaceCoverage) {
         public QueryResult {
             reviewUnitIds = List.copyOf(reviewUnitIds);
+            surfaceCoverage = List.copyOf(surfaceCoverage);
         }
     }
 
@@ -80,11 +82,13 @@ public final class SFMReleaseReviewKernel {
             int unsupported,
             int staleProducer,
             CompletionWitnesses witnesses,
-            List<String> diagnostics
+            List<String> diagnostics,
+            List<SFMReleaseReviewCoverage.UnitCoverage> surfaceCoverage
     ) {
         public CompletionReport {
             Objects.requireNonNull(witnesses, "witnesses");
             diagnostics = List.copyOf(diagnostics);
+            surfaceCoverage = List.copyOf(surfaceCoverage);
         }
     }
 
@@ -101,15 +105,109 @@ public final class SFMReleaseReviewKernel {
             Set<String> missing,
             Set<String> deferred,
             Set<String> unsupported,
-            Set<String> staleProducer
+            Set<String> staleProducer,
+            List<SFMReleaseReviewCoverage.UnitCoverage> surfaceCoverage
     ) {}
 
     private SFMReleaseReviewKernel() {
     }
 
+    /** Read-only attribution using the same policy and revision-qualified ranges as completion. */
+    public record ApprovalEvidence(String commentId, String explanation, String targetDescription,
+            List<SFMReviewSessionV1Kernel.Range> targetRanges,
+            List<SFMReviewSessionV1Kernel.Range> effectiveCurrentRanges,
+            List<SFMReviewSessionV1Kernel.Range> historicalRanges) {
+        public ApprovalEvidence {
+            targetRanges = List.copyOf(targetRanges);
+            effectiveCurrentRanges = List.copyOf(effectiveCurrentRanges);
+            historicalRanges = List.copyOf(historicalRanges);
+        }
+    }
+
+    public static List<ApprovalEvidence> approvalEvidence(SFMReleaseReviewV1 document) {
+        validate(document);
+        var context = contextUnchecked(document);
+        String approval = normalizeHashtag(document.reviewSession().completionPolicy().approvalHashtag());
+        var required = SFMReviewSessionV1Kernel.normalize(context.surfaceCoverage().stream()
+                .flatMap(value -> value.required().stream()).toList());
+        var blockers = new ArrayList<SFMReviewSessionV1Kernel.Range>();
+        for (String tag : document.reviewSession().completionPolicy().blockingHashtags())
+            blockers.addAll(hashtagRanges(document, context.comments(), context.evaluations(), normalizeHashtag(tag), false));
+        var historicalIds = document.corpusDocuments().stream().filter(source -> isHistoricalEvidence(document, source))
+                .map(SFMReleaseReviewV1.CorpusDocument::documentRevisionId).collect(java.util.stream.Collectors.toSet());
+        var corpusById = new HashMap<String, SFMReleaseReviewV1.CorpusDocument>();
+        var currentContentKeys = new HashSet<String>();
+        for (var source : document.corpusDocuments()) {
+            corpusById.put(source.documentRevisionId(), source);
+            if (!historicalIds.contains(source.documentRevisionId())
+                    && source.materialization() == SFMReleaseReviewV1.Materialization.COMPLETE
+                    && source.snapshotSide() == SFMReleaseReviewV1.SnapshotSide.AFTER)
+                currentContentKeys.add(source.path() + "\0" + source.sha256());
+        }
+        var answer = new ArrayList<ApprovalEvidence>();
+        for (var comment : document.reviewSession().comments()) {
+            var tags = SFMReviewSessionV1Kernel.derivedHashtags(comment.text());
+            if (!tags.contains(approval)) continue;
+            var evaluation = context.evaluations().get(comment.id());
+            var targets = evaluation.ranges().isEmpty() ? originalRanges(comment.target()) : evaluation.ranges();
+            var historical = targets.stream().filter(range -> historicalIds.contains(range.documentRevisionId())).toList();
+            var eligible = hashtagRanges(document, Map.of(comment.id(), comment), context.evaluations(), approval, true);
+            var effective = SFMReviewSessionV1Kernel.intersection(required,
+                    SFMReviewSessionV1Kernel.difference(eligible, blockers));
+            String explanation;
+            if (tags.contains("#archived")) explanation = "Archived approval; does not count toward current completion";
+            else if (!effective.isEmpty()) explanation = historical.isEmpty()
+                    ? "Covers exact current changed bytes; this alone does not imply a complete file approval"
+                    : "Partly covers current changed bytes; other targets are retained historical evidence";
+            else if (!historical.isEmpty()) {
+                boolean identicalCurrentBytes = historical.stream().map(range -> corpusById.get(range.documentRevisionId()))
+                        .filter(Objects::nonNull).anyMatch(old -> old.materialization() == SFMReleaseReviewV1.Materialization.COMPLETE
+                                && currentContentKeys.contains(old.path() + "\0" + old.sha256()));
+                explanation = identicalCurrentBytes
+                        ? "Retained historical approval; identical bytes exist at the same current path, but snapshot identity changed. Approval was not transferred"
+                        : "Retained historical approval; does not approve the current source revision";
+            }
+            else if (eligible.isEmpty()) explanation = "Not eligible for current approval under exact-target/migration policy; evaluator=" + evaluation.status();
+            else if (!SFMReviewSessionV1Kernel.intersection(required, eligible).isEmpty())
+                explanation = "Current approval is excluded by blocking comments";
+            else explanation = "Exact target is outside the current changed surface; no current work is approved by it";
+            String targetDescription = evaluation.ranges().isEmpty()
+                    ? "Original literal witness; unresolved target, not current coverage"
+                    : "Evaluator target · " + evaluation.status();
+            answer.add(new ApprovalEvidence(comment.id(), explanation, targetDescription, targets, effective, historical));
+        }
+        return List.copyOf(answer);
+    }
+
+    private static boolean isHistoricalEvidence(SFMReleaseReviewV1 document, SFMReleaseReviewV1.CorpusDocument corpus) {
+        if (!SFMReleaseReviewV1.OBSERVATION_SCHEMA.equals(document.schema())
+                || !SFMReleaseReviewV1.EVIDENCE_OWNER.equals(corpus.sourceOwner())
+                || corpus.snapshotSide() != SFMReleaseReviewV1.SnapshotSide.AFTER
+                || !corpus.laneId().equals("review-evidence:" + sha256(corpus.documentRevisionId().getBytes(StandardCharsets.UTF_8)))
+                || !corpus.sourceLocator().equals("review-evidence://sha256/" + corpus.sha256())) return false;
+        return document.reviewSession().revisionLanes().stream().anyMatch(lane ->
+                lane.id().equals(corpus.laneId()) && lane.repository().id().equals(SFMReleaseReviewV1.EVIDENCE_OWNER)
+                        && lane.before().id().equals("evidence:empty") && lane.before().documents().isEmpty()
+                        && lane.after().id().equals("evidence:sha256:" + corpus.sha256())
+                        && switch (corpus.materialization()) {
+                    case COMPLETE -> lane.after().documents().size() == 1
+                            && lane.after().documents().get(0).id().equals(corpus.documentRevisionId());
+                    case MISSING -> lane.after().documents().isEmpty();
+                    case PARTIAL -> false;
+                });
+    }
+
     public static void validate(SFMReleaseReviewV1 document) {
         Objects.requireNonNull(document, "document");
         SFMReviewSessionV2Kernel.evaluateAll(document.reviewSession());
+        if (!SFMReleaseReviewV1.SCHEMA.equals(document.schema())) {
+            var identifiers = new ArrayList<String>();
+            document.namedQueries().forEach(query -> identifiers.add(query.id()));
+            document.reviewSession().revisionLanes().forEach(lane -> identifiers.add(lane.id()));
+            for (var identifier : identifiers) if (identifier.equalsIgnoreCase("candidate")
+                    || document.repositoryBindings().stream().anyMatch(binding -> binding.matchesSnapshotAtom(identifier)))
+                throw new IllegalArgumentException("Query/lane identifier collides with immutable source address: " + identifier);
+        }
 
         Map<String, SFMReviewSessionV1.RevisionLane> sessionLanes = new HashMap<>();
         for (SFMReviewSessionV1.RevisionLane lane : document.reviewSession().revisionLanes()) {
@@ -122,13 +220,22 @@ public final class SFMReleaseReviewKernel {
             if (!sessionLanes.containsKey(binding.laneId())) {
                 throw new IllegalArgumentException("Repository binding has no embedded lane " + binding.laneId());
             }
+            var lane = sessionLanes.get(binding.laneId());
+            if (!SFMReleaseReviewV1.SCHEMA.equals(document.schema())
+                    && ((!binding.beforeCommit().equals(lane.before().id())
+                    && !("git:" + binding.beforeCommit()).equals(lane.before().id()))
+                    || (!binding.candidateIdentity().equals(lane.after().id())
+                    && !(binding.workingTreeCapture().isEmpty()
+                    && ("git:" + binding.candidateCommit()).equals(lane.after().id())))))
+                throw new IllegalArgumentException("Repository source identity disagrees with embedded snapshots");
+            binding.workingTreeCapture().ifPresent(capture -> capture.validateAgainst(lane, document));
             bindings.put(binding.laneId(), binding);
         }
 
         Map<String, SFMReviewSessionV1.DocumentRevision> sessionDocuments = embeddedDocuments(document.reviewSession());
         Map<String, SFMReleaseReviewV1.CorpusDocument> corpusByRevision = new HashMap<>();
         for (SFMReleaseReviewV1.CorpusDocument corpus : document.corpusDocuments()) {
-            if (!bindings.containsKey(corpus.laneId())) {
+            if (!bindings.containsKey(corpus.laneId()) && !isHistoricalEvidence(document, corpus)) {
                 throw new IllegalArgumentException("Corpus document has no repository binding " + corpus.id());
             }
             SFMReviewSessionV1.DocumentRevision embedded = sessionDocuments.get(corpus.documentRevisionId());
@@ -157,6 +264,12 @@ public final class SFMReleaseReviewKernel {
             }
             unit.beforeDocumentRevisionId().ifPresent(id -> requireCorpusRevision(corpusByRevision, id, unit.id()));
             unit.afterDocumentRevisionId().ifPresent(id -> requireCorpusRevision(corpusByRevision, id, unit.id()));
+            if (SFMReleaseReviewV1.OBSERVATION_SCHEMA.equals(document.schema())) {
+                for (var revision : List.of(unit.beforeDocumentRevisionId(), unit.afterDocumentRevisionId())) {
+                    if (revision.isPresent() && !bindings.containsKey(corpusByRevision.get(revision.get()).laneId()))
+                        throw new IllegalArgumentException("Current review unit cannot use historical evidence");
+                }
+            }
             if (!producers.containsKey(unit.producerId())) {
                 throw new IllegalArgumentException("Review unit has no producer declaration " + unit.id());
             }
@@ -215,7 +328,8 @@ public final class SFMReleaseReviewKernel {
         SFMReleaseReviewQuery.Expression parsed = SFMReleaseReviewQuery.parse(expression);
         Context context = contextUnchecked(document);
         Set<String> ids = evaluateExpression(context, parsed, false, new ArrayDeque<>());
-        return new QueryResult(expression, parsed.normalized(), sorted(ids));
+        return new QueryResult(expression, parsed.normalized(), sorted(ids), context.surfaceCoverage().stream()
+                .filter(unit -> ids.contains(unit.reviewUnitId())).toList());
     }
 
     public static CompletionReport completion(SFMReleaseReviewV1 document) {
@@ -228,6 +342,8 @@ public final class SFMReleaseReviewKernel {
         if (!context.suspended().isEmpty()) diagnostics.add("Raw approval is suspended by current evaluation");
         if (!context.missing().isEmpty()) diagnostics.add("Comments have missing or ambiguous targets");
         if (!remaining.isEmpty()) diagnostics.add("Review units remain without effective approval");
+        if (context.surfaceCoverage().stream().anyMatch(unit -> !unit.bounded()))
+            diagnostics.add("Some review operations lack a fully materialized nonempty source domain; byte approval cannot complete them");
         boolean staleQueryRevision = activeQueryRevisionStale(document);
         if (staleQueryRevision) {
             diagnostics.add("Active named-query revision differs from its persisted work-queue expression");
@@ -258,7 +374,7 @@ public final class SFMReleaseReviewKernel {
                 status, semanticHash, context.domain().size(), context.approvedRaw().size(),
                 context.approvedEffective().size(), remaining.size(), context.blocking().size(),
                 context.suspended().size(), context.missing().size(), context.deferred().size(),
-                context.unsupported().size(), context.staleProducer().size(), witnesses, diagnostics
+                context.unsupported().size(), context.staleProducer().size(), witnesses, diagnostics, context.surfaceCoverage()
         );
     }
 
@@ -280,7 +396,11 @@ public final class SFMReleaseReviewKernel {
                 document.producerGenerations(), List.of()
         );
         String canonical = SFMReleaseReviewV1Codec.write(projection);
-        return sha256((SFMReleaseReviewV1.HASH_DOMAIN + canonical).getBytes(StandardCharsets.UTF_8));
+        String domain = SFMReleaseReviewV1.OBSERVATION_SCHEMA.equals(document.schema())
+                ? "sfm.release-review-observation/3:semantic-state:exact-coverage/2\n"
+                : SFMReleaseReviewV1.WORKING_TREE_SCHEMA.equals(document.schema())
+                ? SFMReleaseReviewV1.WORKING_TREE_HASH_DOMAIN : SFMReleaseReviewV1.HASH_DOMAIN;
+        return sha256((domain + canonical).getBytes(StandardCharsets.UTF_8));
     }
 
     /** Whether an activated named query was edited after its work-queue expression was captured. */
@@ -307,13 +427,21 @@ public final class SFMReleaseReviewKernel {
         Set<String> domain = unitIds(document.reviewUnits());
         String approval = normalizeHashtag(document.reviewSession().completionPolicy().approvalHashtag());
         Set<String> approvedRaw = hashtagUnits(document, comments, evaluations, approval, false);
-        Set<String> resolvedApproval = hashtagUnits(document, comments, evaluations, approval, true);
+        List<SFMReviewSessionV1Kernel.Range> approvalRanges = hashtagRanges(document, comments, evaluations, approval, true);
+        Set<String> resolvedApproval = unitsIntersecting(document, approvalRanges);
         Set<String> blocking = new LinkedHashSet<>();
+        List<SFMReviewSessionV1Kernel.Range> blockingRanges = new ArrayList<>();
         for (String tag : document.reviewSession().completionPolicy().blockingHashtags()) {
             blocking.addAll(hashtagUnits(document, comments, evaluations, normalizeHashtag(tag), false));
+            blockingRanges.addAll(hashtagRanges(document, comments, evaluations, normalizeHashtag(tag), false));
         }
-        Set<String> approvedEffective = difference(resolvedApproval, blocking);
-        Set<String> suspended = difference(approvedRaw, approvedEffective);
+        List<SFMReleaseReviewCoverage.UnitCoverage> coverage = SFMReleaseReviewCoverage.evaluate(document, approvalRanges, blockingRanges);
+        Set<String> covered = new LinkedHashSet<>();
+        coverage.stream().filter(SFMReleaseReviewCoverage.UnitCoverage::fullyApproved)
+                .map(SFMReleaseReviewCoverage.UnitCoverage::reviewUnitId).forEach(covered::add);
+        Set<String> approvedEffective = difference(covered, blocking);
+        // Partial but exact approval is not a suspended/stale approval.
+        Set<String> suspended = difference(approvedRaw, difference(resolvedApproval, blocking));
         Set<String> missing = unresolvedUnits(document, comments, evaluations);
         Set<String> deferred = new LinkedHashSet<>(document.resumeState().deferredUnitIds());
         Set<String> unsupported = document.reviewUnits().stream()
@@ -329,7 +457,7 @@ public final class SFMReleaseReviewKernel {
         Map<String, SFMReleaseReviewV1.NamedQuery> queries = new HashMap<>();
         document.namedQueries().forEach(value -> queries.put(value.id().toLowerCase(Locale.ROOT), value));
         return new Context(document, queries, comments, evaluations, domain, approvedRaw, approvedEffective,
-                blocking, suspended, missing, deferred, unsupported, staleProducer);
+                blocking, suspended, missing, deferred, unsupported, staleProducer, coverage);
     }
 
     private static Set<String> evaluateExpression(Context context,
@@ -398,6 +526,14 @@ public final class SFMReleaseReviewKernel {
                 queryStack.removeLast();
             }
         }
+        // Preserve existing v1 lane/named-query meanings before adding source-address aliases.
+        if (lower.equals("candidate")) return copySet(context.domain());
+        Set<String> sourceLanes = context.document().repositoryBindings().stream()
+                .filter(binding -> binding.matchesSnapshotAtom(value)).map(SFMReleaseReviewV1.RepositoryBinding::laneId)
+                .collect(java.util.stream.Collectors.toSet());
+        if (!sourceLanes.isEmpty()) return context.document().reviewUnits().stream()
+                .filter(unit -> sourceLanes.contains(unit.laneId())).map(SFMReleaseReviewV1.ReviewUnit::id)
+                .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
         throw new IllegalArgumentException("Unknown release-review query atom '" + value + "'");
     }
 
@@ -408,7 +544,16 @@ public final class SFMReleaseReviewKernel {
             String hashtag,
             boolean effective
     ) {
-        Set<String> answer = new LinkedHashSet<>();
+        return unitsIntersecting(document, hashtagRanges(document, comments, evaluations, hashtag, effective));
+    }
+
+    private static List<SFMReviewSessionV1Kernel.Range> hashtagRanges(
+            SFMReleaseReviewV1 document,
+            Map<String, SFMReviewSessionV2.Comment> comments,
+            Map<String, SFMReviewSessionV2Kernel.Evaluation> evaluations,
+            String hashtag, boolean effective
+    ) {
+        List<SFMReviewSessionV1Kernel.Range> answer = new ArrayList<>();
         String approval = normalizeHashtag(document.reviewSession().completionPolicy().approvalHashtag());
         Set<String> blockingTags = document.reviewSession().completionPolicy().blockingHashtags().stream()
                 .map(SFMReleaseReviewKernel::normalizeHashtag)
@@ -431,9 +576,9 @@ public final class SFMReleaseReviewKernel {
             List<SFMReviewSessionV1Kernel.Range> ranges = effective || !evaluation.ranges().isEmpty()
                     ? evaluation.ranges()
                     : originalRanges(comment.target());
-            answer.addAll(unitsIntersecting(document, ranges));
+            answer.addAll(ranges);
         }
-        return answer;
+        return SFMReviewSessionV1Kernel.normalize(answer);
     }
 
     private static Set<String> unresolvedUnits(

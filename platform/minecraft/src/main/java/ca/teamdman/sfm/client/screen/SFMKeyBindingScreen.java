@@ -1,16 +1,23 @@
 package ca.teamdman.sfm.client.screen;
 
+import ca.teamdman.sfm.client.action.SFMClientActionContext;
+import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingListModel;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
-import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
+import ca.teamdman.sfm.client.screen.widget.SFMExtendedButtonWithTooltip;
 import ca.teamdman.sfm.client.screen.widget.SFMVerticalListViewport;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
@@ -18,6 +25,80 @@ import java.util.Optional;
 import java.util.OptionalInt;
 
 public final class SFMKeyBindingScreen extends Screen {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TITLE = new LocalizationEntry(
+            "gui.sfm.keybindings.title", "SFM Shortcuts");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SEARCH = new LocalizationEntry(
+            "gui.sfm.keybindings.search", "Search actions");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry PERSISTENCE_WARNING = new LocalizationEntry(
+            "gui.sfm.keybindings.persistence_warning",
+            "Binding file needs recovery; edits are session-only");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SORT_NAME = new LocalizationEntry(
+            "gui.sfm.keybindings.sort.name", "Name");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SORT_COUNT = new LocalizationEntry(
+            "gui.sfm.keybindings.sort.binding_count", "Binding count");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SORT_NAME_ASC = new LocalizationEntry(
+            "gui.sfm.keybindings.sort.name.asc", ">Name (Asc)<");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SORT_NAME_DESC = new LocalizationEntry(
+            "gui.sfm.keybindings.sort.name.desc", ">Name (Desc)<");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SORT_COUNT_ASC = new LocalizationEntry(
+            "gui.sfm.keybindings.sort.binding_count.asc", ">Binding count (Asc)<");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SORT_COUNT_DESC = new LocalizationEntry(
+            "gui.sfm.keybindings.sort.binding_count.desc", ">Binding count (Desc)<");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SORT_TOOLTIP_ASC = new LocalizationEntry(
+            "gui.sfm.keybindings.sort.tooltip.ascending",
+            "Sort by %s. Ascending. Click to sort descending.");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SORT_TOOLTIP_DESC = new LocalizationEntry(
+            "gui.sfm.keybindings.sort.tooltip.descending",
+            "Sort by %s. Descending. Click to sort ascending.");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SORT_TOOLTIP_INACTIVE = new LocalizationEntry(
+            "gui.sfm.keybindings.sort.tooltip.inactive",
+            "Sort by %s. Ascending when selected.");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry DISPLAY_NAMES = new LocalizationEntry(
+            "gui.sfm.keybindings.display.names", "Showing names");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry DISPLAY_IDS = new LocalizationEntry(
+            "gui.sfm.keybindings.display.ids", "Showing IDs");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry DISPLAY_NAMES_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.keybindings.display.names.tooltip",
+            "Rows show display names; hover reveals raw action IDs");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry DISPLAY_IDS_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.keybindings.display.ids.tooltip",
+            "Rows show raw action IDs; hover reveals display names");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SCOPE_ALL = new LocalizationEntry(
+            "gui.sfm.keybindings.scope.all", "Scope: all situations");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SCOPE_SELECTED = new LocalizationEntry(
+            "gui.sfm.keybindings.scope.selected", "Scope: %s");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SCOPE_TOOLTIP = new LocalizationEntry(
+            "gui.sfm.keybindings.scope.tooltip",
+            "Left click cycles scopes. Right click lists every scope.");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SCOPE_CHOICE_TITLE = new LocalizationEntry(
+            "gui.sfm.keybindings.scope.choice.title", "Choose key-binding scope");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SCOPE_CHOICE_ALL = new LocalizationEntry(
+            "gui.sfm.keybindings.scope.choice.all", "All situations");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry BINDING_COUNT = new LocalizationEntry(
+            "gui.sfm.keybindings.row.binding_count", "%1$s/%2$s bindings   [?]");
+
     static final int LIST_TOP = 88;
     static final int LIST_BOTTOM_MARGIN = 28;
     static final int ROW_STRIDE = 24;
@@ -32,51 +113,82 @@ public final class SFMKeyBindingScreen extends Screen {
             id -> SFMKeyBindingService.INSTANCE.bindingsForAction(id));
     private String query = "";
     private final boolean pushed;
+    private Button nameSortButton;
+    private Button bindingCountSortButton;
+    private Button scopeButton;
+    private Button identityButton;
+    private IdentityMode identityMode = IdentityMode.DISPLAY_NAME;
+
+    public enum IdentityMode {
+        DISPLAY_NAME,
+        ACTION_ID
+    }
 
     public SFMKeyBindingScreen() {
-        super(Component.literal("SFM Shortcuts"));
+        super(TITLE.getComponent());
         this.pushed = SFMScreenChangeHelpers.getCurrentScreen() != null;
     }
 
     @Override
     protected void init() {
         int searchWidth = Math.max(20, Math.min(300, width - 24));
-        search = addRenderableWidget(new EditBox(font, (width - searchWidth) / 2, 34, searchWidth, 20,
-                Component.literal("Search actions")));
+        search = addRenderableWidget(new ca.teamdman.sfm.client.input.SFMSingleLineEditBox(font, (width - searchWidth) / 2, 34, searchWidth, 20,
+                SEARCH.getComponent()));
         search.setValue(query);
         search.setResponder(value -> {
             query = value;
             refresh();
         });
         int left = Math.max(12, (width - Math.min(420, width - 24)) / 2);
-        addRenderableWidget(new SFMButtonBuilder()
-                .setPosition(left, 62)
-                .setSize(112, 20)
-                .setText(Component.literal("Name"))
-                .setOnPress(button -> {
+        nameSortButton = addRenderableWidget(new SFMExtendedButtonWithTooltip(
+                left, 62, 112, 20, sortLabel(SFMKeyBindingListModel.SortColumn.NAME),
+                button -> {
                     listModel.toggleSort(SFMKeyBindingListModel.SortColumn.NAME);
+                    updateControlLabels();
                     refresh();
-                })
-                .build());
-        addRenderableWidget(new SFMButtonBuilder()
-                .setPosition(left + 116, 62)
-                .setSize(130, 20)
-                .setText(Component.literal("Binding count"))
-                .setOnPress(button -> {
+                },
+                (button, poseStack, mouseX, mouseY) -> renderTooltip(
+                        poseStack,
+                        sortTooltip(SFMKeyBindingListModel.SortColumn.NAME),
+                        mouseX,
+                        mouseY)));
+        bindingCountSortButton = addRenderableWidget(new SFMExtendedButtonWithTooltip(
+                left + 116, 62, 130, 20,
+                sortLabel(SFMKeyBindingListModel.SortColumn.BINDING_COUNT),
+                button -> {
                     listModel.toggleSort(SFMKeyBindingListModel.SortColumn.BINDING_COUNT);
+                    updateControlLabels();
                     refresh();
-                })
-                .build());
-        addRenderableWidget(new SFMButtonBuilder()
-                .setPosition(left + 250, 62)
-                .setSize(170, 20)
-                .setText(scopeLabel())
-                .setOnPress(button -> {
+                },
+                (button, poseStack, mouseX, mouseY) -> renderTooltip(
+                        poseStack,
+                        sortTooltip(SFMKeyBindingListModel.SortColumn.BINDING_COUNT),
+                        mouseX,
+                        mouseY)));
+        scopeButton = addRenderableWidget(new SFMExtendedButtonWithTooltip(
+                left + 250, 62, 170, 20, scopeLabel(),
+                button -> {
                     cycleScope();
-                    button.setMessage(scopeLabel());
+                    updateControlLabels();
                     refresh();
-                })
-                .build());
+                },
+                (button, poseStack, mouseX, mouseY) -> renderTooltip(
+                        poseStack,
+                        SCOPE_TOOLTIP.getComponent(),
+                        mouseX,
+                        mouseY)));
+        identityButton = addRenderableWidget(new SFMExtendedButtonWithTooltip(
+                Math.max(4, width - 112), 8, 108, 20, identityLabel(),
+                button -> setIdentityMode(identityMode == IdentityMode.DISPLAY_NAME
+                        ? IdentityMode.ACTION_ID
+                        : IdentityMode.DISPLAY_NAME),
+                (button, poseStack, mouseX, mouseY) -> renderTooltip(
+                        poseStack,
+                        identityMode == IdentityMode.DISPLAY_NAME
+                                ? DISPLAY_NAMES_TOOLTIP.getComponent()
+                                : DISPLAY_IDS_TOOLTIP.getComponent(),
+                        mouseX,
+                        mouseY)));
         setInitialFocus(search);
         refresh();
     }
@@ -108,7 +220,7 @@ public final class SFMKeyBindingScreen extends Screen {
         Component heading = title.copy().withStyle(ChatFormatting.BOLD);
         SFMFontUtils.draw(poseStack, font, heading, width / 2 - font.width(heading) / 2, 14, 0xFFFFFFFF, true);
         if (!SFMKeyBindingService.INSTANCE.persistenceWritable()) {
-            String warning = "Binding file needs recovery; edits are session-only";
+            String warning = PERSISTENCE_WARNING.getComponent().getString();
             SFMFontUtils.draw(poseStack, font, warning,
                     width / 2 - font.width(warning) / 2, 24, 0xFFFF7777, true);
         }
@@ -124,21 +236,42 @@ public final class SFMKeyBindingScreen extends Screen {
             boolean selected = viewport.selectedRow() == index;
             int background = selected ? 0xFF315A70 : hovered ? 0xFF404040 : 0xCC252525;
             fill(poseStack, rows.x(), rowTop, rows.x() + rows.width(), rowTop + ROW_HEIGHT, background);
-            String actionTitle = font.plainSubstrByWidth(action.title().getString(), Math.max(20, rows.width() - 145));
+            String primaryIdentity = identityMode == IdentityMode.DISPLAY_NAME
+                    ? action.title().getString()
+                    : actionId.toString();
+            String actionTitle = font.plainSubstrByWidth(primaryIdentity, Math.max(20, rows.width() - 145));
             SFMFontUtils.draw(poseStack, font, actionTitle, rows.x() + 6, rowTop + 6, 0xFFFFFFFF, false);
             int total = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId).size();
             int visible = listModel.filteredBindings(actionId).size();
-            String count = visible + "/" + total + " bindings   [?]";
+            String count = BINDING_COUNT.getComponent(visible, total).getString();
             SFMFontUtils.draw(poseStack, font, count, rows.x() + rows.width() - 6 - font.width(count), rowTop + 6,
                     0xFF80D8FF, false);
         }
         renderScrollbar(poseStack, mouseX, mouseY, scrollbar);
         super.render(poseStack, mouseX, mouseY, partialTick);
+        SFMWidgetUtils.hideTooltipsWhenNotFocused(this, this.renderables);
+        SFMWidgetUtils.renderChildTooltips(poseStack, mouseX, mouseY, this.renderables);
+        if (hoveredRow.isPresent()) {
+            ResourceLocation actionId = visibleActions.get(hoveredRow.getAsInt());
+            var action = SFMClientActions.registry().get(actionId);
+            if (action != null) {
+                String alternateIdentity = identityMode == IdentityMode.DISPLAY_NAME
+                        ? actionId.toString()
+                        : action.title().getString();
+                renderTooltip(poseStack, Component.literal(alternateIdentity), mouseX, mouseY);
+            }
+        }
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         if (super.mouseClicked(mouseX, mouseY, button)) return true;
+        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT
+                && scopeButton != null
+                && scopeButton.isMouseOver(mouseX, mouseY)) {
+            openScopeChoices();
+            return true;
+        }
         SFMVerticalListViewport.ScrollbarGeometry scrollbar = scrollbarGeometry();
         if (viewport.mouseClickedScrollbar(mouseX, mouseY, button, scrollbar)) return true;
         OptionalInt row = actionRowAt(viewport, mouseX, mouseY, width, height, scrollbar.visible());
@@ -315,11 +448,95 @@ public final class SFMKeyBindingScreen extends Screen {
         else listModel.setSituationFilter(scopes.get(index + 1));
     }
 
+    public void setSort(
+            SFMKeyBindingListModel.SortColumn column,
+            SFMKeyBindingListModel.Direction direction
+    ) {
+        listModel.setSort(column, direction);
+        updateControlLabels();
+        refresh();
+    }
+
+    public void setSituationFilter(@Nullable ResourceLocation situationId) {
+        listModel.setSituationFilter(situationId);
+        updateControlLabels();
+        refresh();
+    }
+
+    public void setIdentityMode(IdentityMode identityMode) {
+        this.identityMode = java.util.Objects.requireNonNull(identityMode);
+        updateControlLabels();
+        refresh();
+    }
+
+    private void openScopeChoices() {
+        ResourceLocation actionId = SFMCommandPaletteActions.KEY_BINDINGS_SCOPE_SET
+                .getId().orElseThrow().location();
+        java.util.ArrayList<SFMActionChoice> choices = new java.util.ArrayList<>();
+        choices.add(SFMActionChoice.invoke(actionId, "all", SCOPE_CHOICE_ALL.getComponent().getString()));
+        for (ResourceLocation situationId : SFMKeyBindingService.INSTANCE.situationIds()) {
+            String title = SFMKeyBindingService.INSTANCE.situation(situationId)
+                    .map(situation -> situation.title().getString())
+                    .orElse(situationId.toString());
+            choices.add(SFMActionChoice.invoke(actionId, situationId.toString(), title));
+        }
+        SFMClientActionContext captured = SFMClientActionContext.create(this, () -> true);
+        SFMCommandPaletteScreen.openChoices(
+                captured,
+                SCOPE_CHOICE_TITLE.getComponent(),
+                choices,
+                this::refresh
+        );
+    }
+
+    private void updateControlLabels() {
+        if (nameSortButton != null) {
+            nameSortButton.setMessage(sortLabel(SFMKeyBindingListModel.SortColumn.NAME));
+        }
+        if (bindingCountSortButton != null) {
+            bindingCountSortButton.setMessage(sortLabel(SFMKeyBindingListModel.SortColumn.BINDING_COUNT));
+        }
+        if (scopeButton != null) scopeButton.setMessage(scopeLabel());
+        if (identityButton != null) identityButton.setMessage(identityLabel());
+    }
+
+    private Component sortLabel(SFMKeyBindingListModel.SortColumn column) {
+        if (listModel.sortColumn() != column) {
+            return column == SFMKeyBindingListModel.SortColumn.NAME
+                    ? SORT_NAME.getComponent()
+                    : SORT_COUNT.getComponent();
+        }
+        return switch (column) {
+            case NAME -> listModel.direction() == SFMKeyBindingListModel.Direction.ASCENDING
+                    ? SORT_NAME_ASC.getComponent()
+                    : SORT_NAME_DESC.getComponent();
+            case BINDING_COUNT -> listModel.direction() == SFMKeyBindingListModel.Direction.ASCENDING
+                    ? SORT_COUNT_ASC.getComponent()
+                    : SORT_COUNT_DESC.getComponent();
+        };
+    }
+
+    private Component sortTooltip(SFMKeyBindingListModel.SortColumn column) {
+        Component name = column == SFMKeyBindingListModel.SortColumn.NAME
+                ? SORT_NAME.getComponent()
+                : SORT_COUNT.getComponent();
+        if (listModel.sortColumn() != column) return SORT_TOOLTIP_INACTIVE.getComponent(name);
+        return listModel.direction() == SFMKeyBindingListModel.Direction.ASCENDING
+                ? SORT_TOOLTIP_ASC.getComponent(name)
+                : SORT_TOOLTIP_DESC.getComponent(name);
+    }
+
+    private Component identityLabel() {
+        return identityMode == IdentityMode.DISPLAY_NAME
+                ? DISPLAY_NAMES.getComponent()
+                : DISPLAY_IDS.getComponent();
+    }
+
     private Component scopeLabel() {
         return listModel.situationFilter()
-                .map(id -> Component.literal("Scope: " + SFMKeyBindingService.INSTANCE.situation(id)
-                        .map(situation -> situation.title().getString()).orElse(id.toString())))
-                .orElse(Component.literal("Scope: all situations"));
+                .map(id -> SCOPE_SELECTED.getComponent(SFMKeyBindingService.INSTANCE.situation(id)
+                        .map(situation -> situation.title()).orElse(Component.literal(id.toString()))))
+                .orElse(SCOPE_ALL.getComponent());
     }
 
     @Override

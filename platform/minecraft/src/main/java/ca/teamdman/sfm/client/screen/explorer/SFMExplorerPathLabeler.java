@@ -18,7 +18,7 @@ public final class SFMExplorerPathLabeler {
         Objects.requireNonNull(row, "row");
         Objects.requireNonNull(session, "session");
         return switch (session.settings().pathDisplay()) {
-            case NAME -> row.entry().label();
+            case NAME -> row.compactLabel();
             case ABSOLUTE_PATH -> row.path().canonical();
             case RELATIVE_PATH -> relative(row, session);
         };

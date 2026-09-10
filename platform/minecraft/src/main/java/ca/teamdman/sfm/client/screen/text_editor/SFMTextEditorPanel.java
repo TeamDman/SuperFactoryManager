@@ -1,7 +1,10 @@
 package ca.teamdman.sfm.client.screen.text_editor;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMContextActionsOpenAction;
 import ca.teamdman.sfm.client.action.SFMJumpToDefinitionAction;
+import ca.teamdman.sfm.client.action.SFMClientActionContext;
+import ca.teamdman.sfm.client.action.SFMReleaseReviewCommentDetailsAction;
 import ca.teamdman.sfm.client.context.SFMContextCaptureRequest;
 import ca.teamdman.sfm.client.context.SFMContextContribution;
 import ca.teamdman.sfm.client.context.SFMContextContributor;
@@ -9,6 +12,12 @@ import ca.teamdman.sfm.client.context.SFMContextDocumentProjection;
 import ca.teamdman.sfm.client.context.SFMContextGenerationEvidence;
 import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.context.SFMContextTextCoordinates;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewCommentDecorations;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceRuntime;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfacePresentation;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceSyntaxSession;
+import ca.teamdman.sfm.client.syntax.SFMSyntaxHighlightRuntime;
 import ca.teamdman.sfm.client.context.SFMContextCursorProjection;
 import ca.teamdman.sfm.client.context.SFMContextPosition;
 import ca.teamdman.sfm.client.history.SFMDocumentHistoryHost;
@@ -20,10 +29,13 @@ import ca.teamdman.sfm.client.history.document.runtime.SFMDocumentHistoryRuntime
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasModel;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasScreen;
+import ca.teamdman.sfm.client.screen.SFMActionChoice;
+import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.SFMTextEditorV3Screen;
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelActionExecution;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelCloseState;
+import ca.teamdman.sfm.client.screen.workspace.SFMPanelTooltip;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
@@ -31,6 +43,7 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditScreenOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelOpenContext;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentRange;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentDecoration;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSelection;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.semantic.SFMCanvasSpatialCoverageSnapshot;
@@ -106,6 +119,76 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     private SFMDocumentHistoryHostController historyController;
     private SFMDocumentHistoryRuntime.Registration historyRegistration;
     private boolean historyFocused;
+    private long observedReviewGeneration = -1L;
+    private long observedReviewOpenEpoch = -1L;
+    private SFMReleaseReviewSurfaceSyntaxSession surfaceSyntaxSession;
+    private String matchQuery = "";
+    private ca.teamdman.sfm.client.search.SFMTextMatchOptions matchOptions =
+            ca.teamdman.sfm.client.search.SFMTextMatchOptions.defaults();
+    private volatile long matchGeneration;
+
+    public boolean supportsMatchSelection() { return screen instanceof SFMDrawCanvasScreen; }
+    public void setMatchQuery(String query) {
+        ca.teamdman.sfm.client.search.SFMTextMatcher.compile(query, matchOptions);
+        matchQuery = query;
+        matchGeneration++;
+    }
+    public void toggleMatchOption(String option) {
+        var next = switch (option) {
+            case "case" -> matchOptions.withCase(!matchOptions.matchCase());
+            case "whole-word" -> matchOptions.withWholeWord(!matchOptions.wholeWord());
+            case "regex" -> matchOptions.toggleRegex();
+            case "fuzzy" -> matchOptions.toggleFuzzy();
+            case "dot-all" -> matchOptions.withDotAll(!matchOptions.dotAll());
+            default -> throw new IllegalArgumentException("Unknown document Find option: " + option);
+        };
+        ca.teamdman.sfm.client.search.SFMTextMatcher.compile(matchQuery, next);
+        matchOptions = next;
+        matchGeneration++;
+    }
+
+    public void selectMatches(boolean all, BooleanSupplier originCurrent, java.util.function.Consumer<Component> feedback) {
+        if (!(screen instanceof SFMDrawCanvasScreen canvas)) throw new IllegalArgumentException("Text Editor V3 required");
+        var capture = canvas.captureMatchSelection();
+        String query = matchQuery;
+        var options = matchOptions;
+        long generation = ++matchGeneration;
+        feedback.accept(ca.teamdman.sfm.client.search.SFMTextEditorSearchText.PENDING.getComponent());
+        CompletableFuture.supplyAsync(() -> SFMTextEditorMatchSelection.select(capture.text(), query, options,
+                capture.selections(), all, new ca.teamdman.sfm.client.search.SFMMatchBudget(
+                        ca.teamdman.sfm.client.search.SFMTextMatcher.MAX_COMPARISONS,
+                        () -> generation != matchGeneration))).whenComplete((result, failure) -> Minecraft.getInstance().execute(() -> {
+            if (generation != matchGeneration) return;
+            if (!originCurrent.getAsBoolean()) return;
+            if (failure != null) {
+                Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+                feedback.accept(ca.teamdman.sfm.client.search.SFMTextEditorSearchText.FAILED.getComponent(cause.getMessage()));
+                return;
+            }
+            // Approximate whole-field fallback is useful for ranking rows, not for an editing range.
+            if (result.approximate()) {
+                feedback.accept(ca.teamdman.sfm.client.search.SFMTextEditorSearchText.FAILED.getComponent(
+                        "Fuzzy result is approximate; use literal or regex for exact editing selections"));
+                return;
+            }
+            var before = beforeHistoryMutation();
+            try {
+                if (!canvas.applyMatchSelection(capture, result.selections())) {
+                    feedback.accept(ca.teamdman.sfm.client.search.SFMTextEditorSearchText.STALE.getComponent());
+                    return;
+                }
+            } catch (IllegalArgumentException incompatible) {
+                feedback.accept(ca.teamdman.sfm.client.search.SFMTextEditorSearchText.FAILED.getComponent(incompatible.getMessage()));
+                return;
+            }
+            // A seed is not an explicit query. A later pointer selection may seed another word.
+            before.ifPresent(value -> observeHistoryMutation(value, SFMDocumentHistoryContract.MutationKind.SELECTION_CHANGE,
+                    SFMDocumentHistoryContract.EditDirection.NONE, Optional.empty(),
+                    "sfm:document/search/select " + (all ? "all" : "add-next")));
+            feedback.accept(ca.teamdman.sfm.client.search.SFMTextEditorSearchText.APPLIED.getComponent(
+                    result.selections().size(), result.matchCount()));
+        }));
+    }
 
     private SFMTextEditorPanel(
             SFMTextEditorPanelOpenContext openContext,
@@ -114,6 +197,8 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     ) {
         this.openContext = openContext;
         this.screen = screen;
+        if (screen instanceof SFMDrawCanvasScreen canvas)
+            canvas.setPointerActionInvoker(this::executeEditorAction);
         this.independentDocumentHistory = independentDocumentHistory;
         this.presentedDocument = openContext.document();
         this.historySessionId = "sfm:document/text-editor/session-" + NEXT_HISTORY_SESSION.incrementAndGet();
@@ -927,6 +1012,7 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 updateDocumentHistoryFocus(true);
             }
             observedDocumentGeneration = drawCanvas.documentGeneration();
+            refreshReviewCommentDecorations(drawCanvas);
             refreshInteractionMap(drawCanvas);
         }
     }
@@ -947,6 +1033,11 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 
     @Override
     public void closed() {
+        matchGeneration++;
+        if (surfaceSyntaxSession != null) {
+            surfaceSyntaxSession.close();
+            surfaceSyntaxSession = null;
+        }
         if (symbolHover != null) {
             symbolHover.close();
             symbolHover = null;
@@ -981,6 +1072,8 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         }
         historyFocused = false;
         screen.removed();
+        openContext.saveHandler().cancelPendingSave();
+        if (screen instanceof ISFMTextEditScreen editor) editor.onDocumentHostClosed();
         panelContext = null;
     }
 
@@ -1036,6 +1129,25 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         screen.render(poseStack, mouseX, mouseY, partialTick);
     }
 
+    @Override
+    public Optional<SFMPanelTooltip> tooltipAt(double mouseX, double mouseY) {
+        if (!pointerInside || !(screen instanceof SFMDrawCanvasScreen drawCanvas)) return Optional.empty();
+        List<SFMTextDocumentDecoration.InteractiveObject> objects = reviewObjectsAt(
+                drawCanvas, lastMouseX, lastMouseY, false);
+        if (objects.isEmpty()) return Optional.empty();
+        ArrayList<Component> lines = new ArrayList<>();
+        if (objects.size() > 1) {
+            lines.add(Component.literal(objects.size() + " overlapping review comments"));
+            objects.forEach(object -> lines.add(Component.literal("• " + object.headline())));
+            lines.add(Component.literal("Click the gutter marker to choose one"));
+        } else {
+            SFMTextDocumentDecoration.InteractiveObject object = objects.get(0);
+            lines.add(Component.literal(object.headline()));
+            object.detailLines().forEach(line -> lines.add(Component.literal(line)));
+        }
+        return Optional.of(new SFMPanelTooltip(lines));
+    }
+
     static void reconcileHoverFocusTransition(
             boolean focused,
             boolean pointerInside,
@@ -1054,7 +1166,44 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     @Override
     public void tick() {
         screen.tick();
+        if (screen instanceof SFMDrawCanvasScreen drawCanvas) {
+            refreshReviewCommentDecorations(drawCanvas);
+        }
         observeDocumentMutation();
+    }
+
+    public List<SFMTextDocumentDecoration> documentDecorations() {
+        return screen instanceof SFMDrawCanvasScreen drawCanvas ? drawCanvas.documentDecorations() : List.of();
+    }
+
+    public int remoteStyledGlyphCount() {
+        return screen instanceof SFMDrawCanvasScreen drawCanvas ? drawCanvas.remoteStyledGlyphCount() : 0;
+    }
+
+    private void refreshReviewCommentDecorations(SFMDrawCanvasScreen drawCanvas) {
+        SFMReleaseReviewSurfaceRuntime.get().splitDocument(presentedDocument).ifPresent(drawCanvas::setSplitDocument);
+        SFMReleaseReviewRuntime.Snapshot review = SFMReleaseReviewRuntime.get().snapshot();
+        if (review.generation() == observedReviewGeneration
+                && review.openEpoch() == observedReviewOpenEpoch) return;
+        observedReviewGeneration = review.generation();
+        observedReviewOpenEpoch = review.openEpoch();
+        var generated = SFMReleaseReviewSurfaceRuntime.get().sourceMap(presentedDocument);
+        if (generated.isPresent() && review.document().isPresent()) {
+            var surface = generated.orElseThrow();
+            var document = review.document().orElseThrow();
+            drawCanvas.setDocumentDecorations(SFMReleaseReviewSurfacePresentation.decorations(document, surface));
+            if (surfaceSyntaxSession == null) {
+                surfaceSyntaxSession = new SFMReleaseReviewSurfaceSyntaxSession(historySessionId,
+                        document, surface, SFMSyntaxHighlightRuntime.get(), Minecraft.getInstance()::execute,
+                        spans -> drawCanvas.setSourceMappedSyntaxStyles(surface.text(), spans),
+                        failure -> SFM.LOGGER.warn("Review diff source highlighting unavailable", failure),
+                        drawCanvas::setSyntaxStatus);
+            }
+            return;
+        }
+        drawCanvas.setDocumentDecorations(review.document()
+                .map(document -> SFMReleaseReviewCommentDecorations.forDocument(document, presentedDocument))
+                .orElseGet(List::of));
     }
 
     @Override
@@ -1140,8 +1289,28 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
 
     private boolean mouseClickedWithoutHistory(double mouseX, double mouseY, int button) {
         rememberPointer(mouseX, mouseY);
-        if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT
+        if (screen instanceof SFMDrawCanvasScreen canvas && canvas.pointerControlAt(mouseX, mouseY)) {
+            if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && panelContext != null) {
+                var captured = panelContext;
+                SFMCommandPaletteScreen.openChoices(new SFMClientActionContext(captured.host(),
+                                () -> panelContext == captured, captured.panelId()),
+                        ca.teamdman.sfm.client.action.SFMTextEditorPointerAction.DESCRIPTION.getComponent(),
+                        ca.teamdman.sfm.client.action.SFMTextEditorPointerAction.choices());
+                return true;
+            }
+            return screen.mouseClicked(mouseX, mouseY, button);
+        }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT
                 && screen instanceof SFMDrawCanvasScreen drawCanvas) {
+            List<SFMTextDocumentDecoration.InteractiveObject> reviewObjects = reviewObjectsAt(
+                    drawCanvas, mouseX, mouseY, true);
+            if (!reviewObjects.isEmpty() && openReviewDecorationDetails(reviewObjects)) return true;
+        }
+        if (screen instanceof SFMDrawCanvasScreen drawCanvas
+                && button == drawCanvas.pointerSettings().actionButton()) {
+            List<SFMTextDocumentDecoration.InteractiveObject> reviewObjects = reviewObjectsAt(
+                    drawCanvas, mouseX, mouseY, false);
+            if (!reviewObjects.isEmpty() && openReviewDecorationDetails(reviewObjects)) return true;
             Optional<SFMDrawCanvasScreen.SymbolHit> hit = drawCanvas.symbolHitAtScreen(
                     mouseX, mouseY, currentInteractionMap(drawCanvas));
             boolean preserveSelection = drawCanvas.hasNonEmptyExactSelectionAtScreen(mouseX, mouseY);
@@ -1185,6 +1354,55 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             return true;
         }
         return screen.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private List<SFMTextDocumentDecoration.InteractiveObject> reviewObjectsAt(
+            SFMDrawCanvasScreen drawCanvas,
+            double mouseX,
+            double mouseY,
+            boolean gutterOnly
+    ) {
+        java.util.LinkedHashMap<String, SFMTextDocumentDecoration.InteractiveObject> objects =
+                new java.util.LinkedHashMap<>();
+        for (SFMDrawCanvasScreen.DocumentDecorationHit hit
+                : drawCanvas.documentDecorationHitsAtScreen(mouseX, mouseY)) {
+            if (gutterOnly && !hit.gutterMarker()) continue;
+            hit.decoration().interactiveObject()
+                    .filter(object -> object.kind().equals("sfm:review/comment"))
+                    .ifPresent(object -> objects.putIfAbsent(object.id(), object));
+        }
+        return List.copyOf(objects.values());
+    }
+
+    private boolean openReviewDecorationDetails(
+            List<SFMTextDocumentDecoration.InteractiveObject> objects
+    ) {
+        if (panelContext == null || objects.isEmpty()) return false;
+        try {
+            SFMClientActionContext actionContext = new SFMClientActionContext(
+                    panelContext.host(),
+                    () -> panelContext != null,
+                    panelContext.panelId()
+            );
+            List<SFMActionChoice> objectChoices = objects.size() == 1
+                    ? SFMReleaseReviewCommentDetailsAction.sectionChoices(objects.get(0).id())
+                    : SFMReleaseReviewCommentDetailsAction.commentChoices(
+                            objects.stream().map(SFMTextDocumentDecoration.InteractiveObject::id).toList());
+            List<SFMActionChoice> choices = new java.util.ArrayList<>(objectChoices);
+            choices.add(SFMActionChoice.invoke(SFMContextActionsOpenAction.ID, "",
+                    "Actions for current text selection…"));
+            if (choices.isEmpty()) return false;
+            Component title = objects.size() == 1
+                    ? Component.literal("Review comment · " + objects.get(0).id())
+                    : Component.literal(objects.size() + " overlapping review comments");
+            SFMCommandPaletteScreen.openChoices(actionContext, title, choices);
+            return true;
+        } catch (RuntimeException staleReview) {
+            // A review may be reloaded or closed between the last decoration publication and
+            // this click.  Treat that object as stale instead of crashing the pointer handler.
+            SFM.LOGGER.warn("Release-review source decoration became stale before it could be opened", staleReview);
+            return false;
+        }
     }
 
     @Override
@@ -1527,6 +1745,10 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         if (linkCursor != null) linkCursor.setLink(false);
     }
 
+    public Optional<SFMDrawCanvasScreen> pointerCanvas() {
+        return screen instanceof SFMDrawCanvasScreen canvas ? Optional.of(canvas) : Optional.empty();
+    }
+
     private boolean executeEditorAction(ResourceLocation actionId) {
         if (panelContext == null) return false;
         return SFMPanelActionExecution.executeAction(
@@ -1582,7 +1804,8 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             java.util.function.Consumer<String> savedDocument
     ) {
         return new ISFMTextEditScreenOpenContext() {
-            @Override public String initialValue() { return context.initialValue(); }
+            private String savedValue = context.initialValue();
+            @Override public String initialValue() { return savedValue; }
             @Override public boolean readOnly() { return context.readOnly(); }
             @Override public Optional<ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot> documentSnapshot() {
                 return Optional.of(context.document());
@@ -1595,9 +1818,18 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             ) {
                 ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult result =
                         context.saveHandler().save(value);
-                if (result.saved()) savedDocument.accept(value);
+                if (result.saved()) documentSaved(value);
                 return result;
             }
+            @Override public boolean asynchronousSave() { return context.saveHandler().asynchronous(); }
+            @Override public CompletableFuture<ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult>
+            saveDocumentAsync(String value) { return context.saveHandler().saveAsync(value); }
+            @Override public void documentSaved(String value) {
+                savedValue = value;
+                savedDocument.accept(value);
+            }
+            @Override public void finishAsyncSaveClose() { closePanel.run(); }
+            @Override public boolean cancelPendingSave() { return context.saveHandler().cancelPendingSave(); }
             @Override public ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult trySaveAndClose(
                     String value
             ) {
@@ -1606,7 +1838,10 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
                 return result;
             }
             @Override public void onTryClose(String latestContent, Runnable ignoredFullScreenClose) {
-                ISFMTextEditScreenOpenContext.super.onTryClose(latestContent, closePanel);
+                // A read-only canvas may omit a terminal line ending in its glyph projection.
+                // It cannot own unsaved edits; use the same close policy as the panel lifecycle.
+                if (context.readOnly()) closePanel.run();
+                else ISFMTextEditScreenOpenContext.super.onTryClose(latestContent, closePanel);
             }
             @Override public LabelPositionHolder labelPositionHolder() { return LabelPositionHolder.empty(); }
         };

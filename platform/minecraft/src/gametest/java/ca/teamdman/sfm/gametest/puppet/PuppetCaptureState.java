@@ -16,6 +16,7 @@ public final class PuppetCaptureState {
     public int ticks;
 
     public boolean hudPrepared;
+    public long frameBeforePreparation;
 
     public boolean requested;
 

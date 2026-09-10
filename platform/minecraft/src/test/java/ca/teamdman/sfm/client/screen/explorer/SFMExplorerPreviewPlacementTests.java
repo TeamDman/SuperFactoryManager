@@ -27,6 +27,36 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMExplorerPreviewPlacementTests {
     @Test
+    void reviewLensesShareOnePreviewAreaButExplicitSplitsAndUnrelatedReviewsRemainSeparate() {
+        var workspace = new FakeWorkspace(new SFMTestScreenPanel("changes"));
+        var changes = workspace.focusedPanelId();
+        var comments = workspace.add(new SFMTestScreenPanel("comments"), SFMWorkspacePanelMetadata.ordinary());
+        String owner = ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime.previewOwner(
+                java.nio.file.Path.of("review.sfm-review.json"));
+        assertEquals(owner, ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime.previewOwner(
+                java.nio.file.Path.of("child/../review.sfm-review.json")));
+        var source = SFMExplorerPreviewPlacement.place(workspace, changes, owner,
+                SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW, editor("source", true), null, Optional.of("source|sha"));
+        var value = SFMExplorerPreviewPlacement.place(workspace, comments, owner,
+                SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW, editor("comment value", true), null, Optional.of("comment|sha"));
+        var sourceAgain = SFMExplorerPreviewPlacement.place(workspace, changes, owner,
+                SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW, editor("duplicate", true), null, Optional.of("source|sha"));
+        assertTrue(value.reusedOwnedPreview());
+        assertEquals(source.openedPanelId(), sourceAgain.openedPanelId());
+        assertEquals(1, workspace.sideOpens, "first preview creates the sole preview area");
+        assertEquals(1, workspace.slotOpens, "other lens opens its value as a tab in that area");
+        SFMExplorerPreviewPlacement.place(workspace, comments, owner, SFMExplorerPreviewPlacement.Mode.ADJACENT,
+                editor("explicit adjacent", true), null, Optional.of("source|sha"));
+        assertEquals(2, workspace.sideOpens);
+        String otherOwner = ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime.previewOwner(
+                java.nio.file.Path.of("other.sfm-review.json"));
+        assertFalse(owner.equals(otherOwner));
+        SFMExplorerPreviewPlacement.place(workspace, changes, otherOwner, SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW,
+                editor("unrelated review", true), null, Optional.of("source|sha"));
+        assertEquals(3, workspace.sideOpens, "different review cannot consume this one's preview area");
+    }
+
+    @Test
     void previewRetainsExplorerFocusAndFocusModeReplacesOnlyItsOwnedReadOnlyPreview() {
         SFMTestScreenPanel explorer = new SFMTestScreenPanel("explorer");
         FakeWorkspace workspace = new FakeWorkspace(explorer);
@@ -154,6 +184,23 @@ class SFMExplorerPreviewPlacementTests {
         return new TestDocumentPanel(title, readOnly);
     }
 
+    @Test
+    void revisitingAnInactiveTypedPreviewActivatesItsTabBeforeReturningFocusToExplorer() {
+        var workspace = new FakeWorkspace(new SFMTestScreenPanel("explorer"));
+        var explorer = workspace.focusedPanelId();
+        var before = SFMExplorerPreviewPlacement.place(workspace, explorer, "review",
+                SFMExplorerPreviewPlacement.Mode.PREVIEW, editor("before", true), null, Optional.of("before"));
+        SFMExplorerPreviewPlacement.place(workspace, explorer, "review",
+                SFMExplorerPreviewPlacement.Mode.PREVIEW, editor("after", true), null, Optional.of("after"));
+        workspace.focusHistory.clear();
+        var again = SFMExplorerPreviewPlacement.place(workspace, explorer, "review",
+                SFMExplorerPreviewPlacement.Mode.PREVIEW, editor("duplicate", true), null, Optional.of("before"));
+        assertTrue(again.applied());
+        assertEquals(List.of(before.openedPanelId(), explorer), workspace.focusHistory);
+        assertEquals(explorer, workspace.focusedPanelId());
+        assertEquals(3, workspace.panelIds().size());
+    }
+
     private record TestDocumentPanel(String name, boolean readOnly)
             implements SFMScreenPanel, SFMTextDocumentPanelState {
         @Override public Component title() {
@@ -187,6 +234,9 @@ class SFMExplorerPreviewPlacementTests {
         private final Map<SFMWorkspacePanelId, Entry> entries = new LinkedHashMap<>();
         private long nextId = 1;
         private SFMWorkspacePanelId focused;
+        private int sideOpens;
+        private int slotOpens;
+        private final java.util.ArrayList<SFMWorkspacePanelId> focusHistory = new java.util.ArrayList<>();
 
         private FakeWorkspace(SFMScreenPanel initial) {
             focused = add(initial, SFMWorkspacePanelMetadata.ordinary());
@@ -204,6 +254,7 @@ class SFMExplorerPreviewPlacementTests {
                 SFMPanelReopenRecipe reopenRecipe
         ) {
             if (!entries.containsKey(source)) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
+            sideOpens++;
             focused = add(panel, metadata);
             return SFMWorkspacePanelIntentResult.APPLIED;
         }
@@ -215,6 +266,7 @@ class SFMExplorerPreviewPlacementTests {
                 SFMPanelReopenRecipe reopenRecipe
         ) {
             if (!entries.containsKey(slot)) return SFMWorkspacePanelIntentResult.UNAVAILABLE;
+            slotOpens++;
             focused = add(panel, metadata);
             return SFMWorkspacePanelIntentResult.APPLIED;
         }
@@ -227,6 +279,7 @@ class SFMExplorerPreviewPlacementTests {
 
         @Override public boolean focusPanel(SFMWorkspacePanelId panelId) {
             if (!entries.containsKey(panelId)) return false;
+            focusHistory.add(panelId);
             focused = panelId;
             return true;
         }

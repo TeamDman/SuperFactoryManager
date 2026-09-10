@@ -4,6 +4,7 @@ import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraftforge.client.event.ScreenEvent;
+import net.minecraftforge.event.TickEvent;
 
 import java.util.Objects;
 
@@ -33,6 +34,16 @@ public final class SFMGamePuppetRenderHarness {
     private static long nextTicketId;
     private static Pending pending;
     private static Completion completion;
+    private static long completedFrames;
+
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
+    public static synchronized void onRenderTick(TickEvent.RenderTickEvent event) {
+        if (event.phase == TickEvent.Phase.END) completedFrames++;
+    }
+
+    public static synchronized long completedFrames() {
+        return completedFrames;
+    }
 
     private SFMGamePuppetRenderHarness() {
     }

@@ -6,6 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMTextEditScreenV1Tests {
     @Test
+    public void saveShortcutUsesEventModifiersWithoutPollingTheOperatingSystem() {
+        assertTrue(SFMTextEditScreenV1.isSaveAndCloseShortcut(
+                org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT));
+        assertTrue(SFMTextEditScreenV1.isSaveAndCloseShortcut(
+                org.lwjgl.glfw.GLFW.GLFW_KEY_KP_ENTER, org.lwjgl.glfw.GLFW.GLFW_MOD_SHIFT));
+        org.junit.jupiter.api.Assertions.assertFalse(SFMTextEditScreenV1.isSaveAndCloseShortcut(
+                org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, 0));
+        org.junit.jupiter.api.Assertions.assertFalse(SFMTextEditScreenV1.isSaveAndCloseShortcut(
+                org.lwjgl.glfw.GLFW.GLFW_KEY_ENTER, org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL));
+    }
+
+    @Test
     public void narrowPanelLayoutKeepsEditorAndFooterInsideViewport() {
         var layout = SFMTextEditScreenV1.editorLayout(103, 238, 9);
 

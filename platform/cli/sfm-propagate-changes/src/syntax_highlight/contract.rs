@@ -7,7 +7,7 @@ pub const SYNTAX_HIGHLIGHT_REQUEST_SCHEMA: &str = "sfm.syntax-highlight.request/
 pub const SYNTAX_HIGHLIGHT_RESULT_SCHEMA: &str = "sfm.syntax-highlight.result/1";
 pub const SYNTAX_HIGHLIGHT_FORMATTING_SCHEMA: &str = "minecraft.chat-formatting/1";
 pub const SYNTAX_HIGHLIGHT_PARSER_FINGERPRINT: &str =
-    "arborium-java/2.18.1+arborium-highlight/2.18.1+sfm-chat-formatting/1";
+    "arborium-source-grammars/2.18.1+arborium-highlight/2.18.1+sfm-chat-formatting/2";
 pub const DEFAULT_SYNTAX_HIGHLIGHT_MAX_SOURCE_BYTES: usize = 4 * 1024 * 1024;
 pub const DEFAULT_SYNTAX_HIGHLIGHT_MAX_SPANS: usize = 262_144;
 pub const DEFAULT_SYNTAX_HIGHLIGHT_MAX_DIAGNOSTICS: usize = 256;

@@ -18,6 +18,54 @@ class SFMKeyBindingEngineTests {
     private static final SFMKeyStroke CTRL_K = SFMKeyStroke.of(75, SFMKeyModifier.CONTROL);
     private static final SFMKeyStroke CTRL_E = SFMKeyStroke.of(69, SFMKeyModifier.CONTROL);
 
+    @Test void explorerSearchChordsAreScopedAndDoNotStealPaletteCancelOrTextEditorFind() {
+        var defaults = SFMKeyBindingDefaults.definitions().toArray(SFMKeyBinding[]::new);
+        var catalog = new SFMKeyboardUsageSituationCatalog(SFMKeyboardUsageSituations.builtIns());
+        var find = SFMKeyboardUsageContextSnapshot.testing(catalog.ancestry(SFMKeyboardUsageSituations.EXPLORER_FIND)
+                .toArray(net.minecraft.resources.ResourceLocation[]::new));
+        var filter = SFMKeyboardUsageContextSnapshot.testing(catalog.ancestry(SFMKeyboardUsageSituations.EXPLORER_FILTER)
+                .toArray(net.minecraft.resources.ResourceLocation[]::new));
+        assertEquals(List.of("sfm action invoke sfm:explorer/search/focus find"), engine(defaults)
+                .accept(press(1, 0, GLFW.GLFW_KEY_F, SFMKeyModifier.CONTROL), find).intents().stream()
+                .map(SFMActionInvocationIntent::commandDraft).toList());
+        assertEquals(List.of("sfm action invoke sfm:explorer/search/focus filter"), engine(defaults)
+                .accept(press(1, 0, GLFW.GLFW_KEY_F, SFMKeyModifier.CONTROL, SFMKeyModifier.SHIFT), find)
+                .intents().stream().map(SFMActionInvocationIntent::commandDraft).toList());
+        for (var scope : List.of(find, filter)) {
+            assertEquals(List.of("sfm action invoke sfm:explorer/search/select add-next"), engine(defaults)
+                    .accept(press(1, 0, GLFW.GLFW_KEY_J, SFMKeyModifier.ALT), scope).intents().stream()
+                    .map(SFMActionInvocationIntent::commandDraft).toList());
+            assertEquals(List.of("sfm action invoke sfm:explorer/search/select all"), engine(defaults)
+                    .accept(press(1, 0, GLFW.GLFW_KEY_J, SFMKeyModifier.CONTROL, SFMKeyModifier.SHIFT, SFMKeyModifier.ALT), scope)
+                    .intents().stream().map(SFMActionInvocationIntent::commandDraft).toList());
+            assertEquals(List.of("sfm action invoke sfm:explorer/search/toggle focused fuzzy"), engine(defaults)
+                    .accept(press(1, 0, GLFW.GLFW_KEY_F, SFMKeyModifier.ALT), scope).intents().stream()
+                    .map(SFMActionInvocationIntent::commandDraft).toList());
+            assertEquals(List.of("sfm action invoke sfm:explorer/search/toggle focused highlight"), engine(defaults)
+                    .accept(press(1, 0, GLFW.GLFW_KEY_H, SFMKeyModifier.ALT), scope).intents().stream()
+                    .map(SFMActionInvocationIntent::commandDraft).toList());
+        }
+        assertEquals(List.of("sfm action invoke sfm:explorer/search/move previous-wrapping"), engine(defaults)
+                .accept(press(1, 0, GLFW.GLFW_KEY_ENTER, SFMKeyModifier.SHIFT), find).intents().stream()
+                .map(SFMActionInvocationIntent::commandDraft).toList());
+        assertTrue(engine(defaults).accept(press(1, 0, GLFW.GLFW_KEY_ENTER), filter).intents().isEmpty());
+        var palette = SFMKeyboardUsageContextSnapshot.testing(catalog.ancestry(SFMKeyboardUsageSituations.COMMAND_PALETTE)
+                .toArray(net.minecraft.resources.ResourceLocation[]::new));
+        assertEquals(List.of("sfm action invoke sfm:focus cancel_button"), engine(defaults)
+                .accept(press(1, 0, GLFW.GLFW_KEY_C, SFMKeyModifier.ALT), palette).intents().stream()
+                .map(SFMActionInvocationIntent::commandDraft).toList());
+        var editor = SFMKeyboardUsageContextSnapshot.testing(catalog.ancestry(SFMKeyboardUsageSituations.TEXT_EDITOR)
+                .toArray(net.minecraft.resources.ResourceLocation[]::new));
+        assertEquals(List.of("sfm action invoke sfm:document/search/select add-next"), engine(defaults)
+                .accept(press(1, 0, GLFW.GLFW_KEY_J, SFMKeyModifier.ALT), editor).intents().stream()
+                .map(SFMActionInvocationIntent::commandDraft).toList());
+        assertEquals(List.of("sfm action invoke sfm:document/search/select all"), engine(defaults)
+                .accept(press(1, 0, GLFW.GLFW_KEY_J, SFMKeyModifier.CONTROL, SFMKeyModifier.SHIFT, SFMKeyModifier.ALT), editor)
+                .intents().stream().map(SFMActionInvocationIntent::commandDraft).toList());
+        assertTrue(engine(defaults).accept(press(1, 0, GLFW.GLFW_KEY_F, SFMKeyModifier.CONTROL), editor)
+                .intents().stream().noneMatch(intent -> intent.actionId().startsWith("sfm:explorer/search/")));
+    }
+
     @Test
     void matchesSingleStrokeAndRetainsProvenance() {
         SFMKeyBindingEngine engine = engine(binding("one", SFMKeySequence.of(CTRL_K)));

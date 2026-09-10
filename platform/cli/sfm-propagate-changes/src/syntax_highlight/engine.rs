@@ -101,7 +101,8 @@ enum SpanConstruction {
 /// Reusable Java highlighting engine. The grammar query, parser, query cursor,
 /// and bounded immutable-result cache all outlive individual requests.
 pub struct SyntaxHighlightEngine {
-    query: Query,
+    queries: std::collections::BTreeMap<String, Query>,
+    active_language: String,
     parser: Parser,
     cursor: QueryCursor,
     cache: VecDeque<SyntaxHighlightCacheEntry>,
@@ -131,7 +132,8 @@ impl SyntaxHighlightEngine {
             .set_language(&language)
             .map_err(|error| eyre::eyre!("Failed to load Arborium Java grammar: {error}"))?;
         Ok(Self {
-            query,
+            queries: std::collections::BTreeMap::from([("java".to_owned(), query)]),
+            active_language: "java".to_owned(),
             parser,
             cursor: QueryCursor::new(),
             cache: VecDeque::new(),
@@ -187,7 +189,7 @@ impl SyntaxHighlightEngine {
                 started,
             ));
         }
-        if request.language != "java" {
+        if !super::languages::SUPPORTED.contains(&request.language.as_str()) {
             return Ok(self.finish_terminal(
                 request,
                 SyntaxHighlightOutcome::UnsupportedLanguage,
@@ -195,8 +197,9 @@ impl SyntaxHighlightEngine {
                     code: "syntax.unsupported-language".to_owned(),
                     severity: SyntaxHighlightDiagnosticSeverity::Info,
                     message: format!(
-                        "Syntax language `{}` is not enabled; enabled languages: java",
-                        request.language
+                        "Syntax language `{}` is not enabled; enabled languages: {}",
+                        request.language,
+                        super::languages::SUPPORTED.join(", ")
                     ),
                     start_byte: None,
                     end_byte: None,
@@ -236,6 +239,18 @@ impl SyntaxHighlightEngine {
             };
         }
 
+        let (language, query_source) = super::languages::grammar(&request.language)
+            .ok_or_else(|| eyre::eyre!("Registered syntax grammar is missing"))?;
+        if !self.queries.contains_key(&request.language) {
+            let query = Query::new(&language, query_source)?;
+            self.queries.insert(request.language.clone(), query);
+            self.metrics.query_compilations += 1;
+        }
+        if self.active_language != request.language {
+            self.parser.reset();
+            self.parser.set_language(&language)?;
+            self.active_language.clone_from(&request.language);
+        }
         self.metrics.cache_misses = self.metrics.cache_misses.saturating_add(1);
         self.metrics.parse_count = self.metrics.parse_count.saturating_add(1);
         self.highlight_uncached(request, cancellation_token, key, started)
@@ -267,6 +282,7 @@ impl SyntaxHighlightEngine {
 
         let Some(diagnostics) = collect_parse_diagnostics(
             tree.root_node(),
+            &request.language,
             self.limits.protocol.max_diagnostics,
             cancellation_token,
         ) else {
@@ -378,11 +394,12 @@ impl SyntaxHighlightEngine {
         cancellation_token: &CancellationToken,
     ) -> eyre::Result<CaptureCollection> {
         let mut captures = Vec::new();
-        let capture_names = self.query.capture_names();
+        let query = &self.queries[&self.active_language];
+        let capture_names = query.capture_names();
         let maximum = self.limits.max_captures;
         let mut query_progress = |_state: &QueryCursorState| cancellation_token.is_cancelled();
         let mut matches = self.cursor.matches_with_options(
-            &self.query,
+            query,
             root,
             source.as_bytes(),
             QueryCursorOptions::new().progress_callback(&mut query_progress),
@@ -571,6 +588,7 @@ impl SyntaxHighlightEngine {
 
 fn collect_parse_diagnostics(
     root: Node<'_>,
+    language: &str,
     maximum: usize,
     cancellation_token: &CancellationToken,
 ) -> Option<Vec<SyntaxHighlightDiagnostic>> {
@@ -585,12 +603,15 @@ fn collect_parse_diagnostics(
             total = total.saturating_add(1);
             if diagnostics.len() < maximum {
                 diagnostics.push(SyntaxHighlightDiagnostic {
-                    code: "syntax.java.parse-gap".to_owned(),
+                    code: format!("syntax.{language}.parse-gap"),
                     severity: SyntaxHighlightDiagnosticSeverity::Warning,
                     message: if node.is_missing() {
-                        format!("Arborium inserted missing Java node `{}`", node.kind())
+                        format!(
+                            "Arborium inserted missing {language} node `{}`",
+                            node.kind()
+                        )
                     } else {
-                        "Arborium encountered recoverable Java syntax".to_owned()
+                        format!("Arborium encountered recoverable {language} syntax")
                     },
                     start_byte: (node.start_byte() < node.end_byte())
                         .then_some(node.start_byte() as u64),
@@ -604,10 +625,10 @@ fn collect_parse_diagnostics(
     }
     if total > diagnostics.len() && diagnostics.len() < maximum {
         diagnostics.push(SyntaxHighlightDiagnostic {
-            code: "syntax.java.parse-gaps-suppressed".to_owned(),
+            code: format!("syntax.{language}.parse-gaps-suppressed"),
             severity: SyntaxHighlightDiagnosticSeverity::Warning,
             message: format!(
-                "Suppressed {} additional Java parse diagnostics",
+                "Suppressed {} additional {language} parse diagnostics",
                 total - diagnostics.len()
             ),
             start_byte: None,
@@ -868,11 +889,49 @@ mod tests {
     }
 
     #[test]
+    fn registered_repository_languages_produce_exact_styled_spans() {
+        let mut engine =
+            SyntaxHighlightEngine::new(SyntaxHighlightEngineLimits::default()).unwrap();
+        let samples = [
+            ("java", "class Example { int value = 42; }"),
+            (
+                "rust",
+                "pub fn main() { let value = 42; println!(\"hello\"); }",
+            ),
+            ("json", "{\"name\": \"example\", \"enabled\": true}"),
+            ("groovy", "def message = 'hello'\nprintln message\n"),
+            ("markdown", "# Heading\n\nText with **emphasis**.\n"),
+            ("powershell", "$message = 'hello'\nWrite-Host $message\n"),
+            ("typescript", "export const value: number = 42;"),
+            ("toml", "[package]\nname = \"example\"\n"),
+        ];
+        for (id, source) in samples {
+            let request = SyntaxHighlightRequest::new(1, 1, "coverage", 1, id, source.into(), 4096);
+            let result = engine
+                .highlight(&request, &CancellationToken::new())
+                .unwrap();
+            result
+                .validate_against(&request, SyntaxHighlightLimits::default())
+                .unwrap();
+            assert_eq!(result.outcome, SyntaxHighlightOutcome::Highlighted, "{id}");
+            assert!(!result.spans.is_empty(), "{id} produced no highlighting");
+            assert!(
+                result
+                    .spans
+                    .iter()
+                    .any(|span| !span.chat_formatting.is_empty()),
+                "{id} produced only neutral spans"
+            );
+        }
+        assert_eq!(engine.metrics().query_compilations, samples.len() as u64);
+    }
+
+    #[test]
     fn syntax_highlight_engine_returns_typed_unsupported_invalid_and_cancelled_results() {
         let mut engine =
             SyntaxHighlightEngine::new(SyntaxHighlightEngineLimits::default()).expect("engine");
         let mut unsupported = request(1, "fn main() {}");
-        unsupported.language = "rust".to_owned();
+        unsupported.language = "unsupported-fixture".to_owned();
         let result = engine
             .highlight(&unsupported, &CancellationToken::new())
             .expect("unsupported result");

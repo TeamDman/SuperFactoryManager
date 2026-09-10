@@ -68,6 +68,35 @@ public class SFMExplorerPanelActionEmissionTests {
     }
 
     @Test
+    public void altEnterIsConsumedAsTheSameContextGestureAsTheMenuKey() {
+        Fixture fixture = fileFixture();
+        fixture.panel().model().select(FILE, BOUNDS);
+
+        assertTrue(fixture.panel().keyPressed(GLFW.GLFW_KEY_ENTER, 0, GLFW.GLFW_MOD_ALT));
+        assertTrue(fixture.panel().keyPressed(GLFW.GLFW_KEY_MENU, 0, 0));
+        assertTrue(fixture.actions().isEmpty(),
+                "opening the constrained context palette must not activate the selected row");
+    }
+
+    @Test
+    public void documentWithChildrenEmitsOpenThroughBothPanelAndModel() {
+        Fixture fixture = fileFixture(true);
+        fixture.panel().model().select(FILE, BOUNDS);
+        assertTrue(fixture.panel().keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0));
+        assertTrue(fixture.panel().model().emitOpenSelected(BOUNDS, SFMExplorerPreviewPlacement.Mode.PREVIEW));
+        assertEquals(List.of(
+                "sfm action invoke sfm:path/open " + FILE.canonical() + " focus",
+                "sfm action invoke sfm:path/open " + FILE.canonical() + " preview"
+        ), fixture.actions());
+    }
+
+    @Test
+    public void loadingSummaryIsAnimatedAndCountsPendingBranches() {
+        assertEquals("| Loading 1 branch...", SFMExplorerPanel.loadingSummary(1, 0));
+        assertEquals("/ Loading 2 branches...", SFMExplorerPanel.loadingSummary(2, 150));
+    }
+
+    @Test
     public void leftArrowOnChildMovesToAndCollapsesExpandedProjectedParentInOneOperation() {
         Fixture fixture = fixture();
         fixture.session().setHoist(SFMExplorerProjection.Hoist.SHOW_ROOTS);
@@ -242,7 +271,7 @@ public class SFMExplorerPanelActionEmissionTests {
 
         assertEquals(List.of(
                 "sfm action invoke sfm:explorer/path-display/set id(explorer%20one) sfm:absolute_path",
-                "sfm action invoke sfm:explorer/filter/set id(explorer%20one) stne",
+                "sfm action invoke sfm:explorer/filter/match id(explorer%20one) literal false false false stne",
                 "sfm action invoke sfm:explorer/filter/clear id(explorer%20one)"
         ), fixture.actions());
     }
@@ -324,9 +353,19 @@ public class SFMExplorerPanelActionEmissionTests {
     }
 
     private static Fixture fileFixture() {
+        return fileFixture(false);
+    }
+
+    private static Fixture fileFixture(boolean fileHasChildren) {
         SFMExplorerEntry root = SFMExplorerEntry.simple(FILE_ROOT, "fixture", true, Optional.empty());
         SFMExplorerEntry directory = SFMExplorerEntry.simple(DIRECTORY, "src", true, Optional.empty());
-        SFMExplorerEntry file = SFMExplorerEntry.simple(FILE, "SFM.java", false, Optional.empty());
+        SFMExplorerEntry baseFile = SFMExplorerEntry.simple(FILE, "SFM.java", false, Optional.empty());
+        SFMExplorerEntry file;
+        if (fileHasChildren) {
+            var keys = new java.util.HashMap<>(baseFile.sortKeys());
+            keys.put(SFMExplorerEntry.PRIMARY_ACTION_OPEN, SFMExplorerEntry.SortKey.available("true"));
+            file = new SFMExplorerEntry(FILE, baseFile.label(), true, keys, List.of());
+        } else file = baseFile;
         Map<SFMPath, SFMExplorerEntry> entries = Map.of(
                 FILE_ROOT, root,
                 DIRECTORY, directory,

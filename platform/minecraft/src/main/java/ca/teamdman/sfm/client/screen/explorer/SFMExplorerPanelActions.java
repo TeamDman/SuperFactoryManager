@@ -95,6 +95,16 @@ public final class SFMExplorerPanelActions {
         return PREFIX + "sfm:explorer/filter/clear " + exact(explorerId);
     }
 
+    public static String matchQuery(SFMExplorerId explorerId, boolean find, String query,
+            ca.teamdman.sfm.client.search.SFMTextMatchOptions options) {
+        String normalized = Objects.requireNonNull(query, "query");
+        if (normalized.isEmpty() || normalized.indexOf('\n') >= 0 || normalized.indexOf('\r') >= 0)
+            throw new IllegalArgumentException("Explorer query must be one non-empty line");
+        return command("sfm:explorer/" + (find ? "find" : "filter") + "/match", explorerId,
+                options.mode().name().toLowerCase(Locale.ROOT) + " " + options.matchCase() + " "
+                        + options.wholeWord() + " " + options.dotAll() + " " + normalized);
+    }
+
     private static String node(String operation, SFMExplorerId explorerId, SFMPath path) {
         return command("sfm:explorer/node/" + operation, explorerId, literal(path));
     }

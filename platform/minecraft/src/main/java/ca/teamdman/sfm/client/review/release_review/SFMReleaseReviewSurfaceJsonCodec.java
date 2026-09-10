@@ -190,7 +190,10 @@ public final class SFMReleaseReviewSurfaceJsonCodec {
                 SFMReleaseReviewSurfaceV1.RegionKind.fromWireName(string(json, "kind")),
                 string(json, "label"),
                 readRange(object(required(json, "surface_range"), "surface_range")),
-                objectList(json, "source_ranges", SFMReleaseReviewSurfaceJsonCodec::readSourceRange, 16));
+                // A whole hunk contains one source range per changed line, not just
+                // the one or two ranges of an individual displayed line mapping.
+                objectList(json, "source_ranges", SFMReleaseReviewSurfaceJsonCodec::readSourceRange,
+                        SFMReleaseReviewSurfaceV1.DEFAULT_MAX_MAPPINGS));
     }
 
     private static JsonObject writeSourceRange(SFMReleaseReviewSurfaceV1.SourceRange value) {
@@ -292,8 +295,10 @@ public final class SFMReleaseReviewSurfaceJsonCodec {
                 SFMReleaseReviewSurfaceV1.CorrespondenceConfidence.fromWireName(string(json, "confidence")),
                 optionalString(json, "semantic_key_before"),
                 optionalString(json, "semantic_key_after"),
-                objectList(json, "before_ranges", SFMReleaseReviewSurfaceJsonCodec::readSourceRange, 256),
-                objectList(json, "after_ranges", SFMReleaseReviewSurfaceJsonCodec::readSourceRange, 256),
+                objectList(json, "before_ranges", SFMReleaseReviewSurfaceJsonCodec::readSourceRange,
+                        SFMReleaseReviewSurfaceV1.DEFAULT_MAX_MAPPINGS),
+                objectList(json, "after_ranges", SFMReleaseReviewSurfaceJsonCodec::readSourceRange,
+                        SFMReleaseReviewSurfaceV1.DEFAULT_MAX_MAPPINGS),
                 stringList(json, "evidence", 256));
     }
 

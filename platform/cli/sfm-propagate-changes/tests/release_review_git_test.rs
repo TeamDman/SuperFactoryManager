@@ -15,6 +15,113 @@ use std::process::Output;
 const REVIEW_EVIDENCE_PATH: &str = "docs/reviews/release.sfm-review.json";
 
 #[test]
+fn working_tree_probe_distinguishes_uncommitted_source_from_review_evidence_without_writes() {
+    let fixture = relationship_repository();
+    let paths = [REVIEW_EVIDENCE_PATH.to_owned()];
+    let clean = release_review_git::inspect_working_tree(fixture.root(), &paths);
+    assert_eq!(clean.source_dirty, Some(false));
+    assert_eq!(
+        clean.head.as_deref(),
+        Some(fixture.candidate_commit.as_str())
+    );
+    write(fixture.root(), REVIEW_EVIDENCE_PATH, b"review draft\n");
+    let evidence_only = release_review_git::inspect_working_tree(fixture.root(), &paths);
+    assert_eq!(evidence_only.source_dirty, Some(false));
+    assert_eq!(evidence_only.changes.len(), 1);
+    assert!(evidence_only.changes[0].review_evidence_only);
+    write(
+        fixture.root(),
+        "src/Example.java",
+        b"class Example { int staged = 2; }\n",
+    );
+    git(fixture.root(), ["add", "src/Example.java"]);
+    write(
+        fixture.root(),
+        "src/Example.java",
+        b"class Example { int unstaged = 3; }\n",
+    );
+    write(
+        fixture.root(),
+        "src/Untracked.java",
+        b"class Untracked {}\n",
+    );
+    let index_before = fs::read(fixture.root().join(".git/index")).expect("index before probe");
+    let dirty = release_review_git::inspect_working_tree(fixture.root(), &paths);
+    assert_eq!(dirty.source_dirty, Some(true));
+    assert_eq!(dirty.head, clean.head);
+    let tracked = dirty
+        .changes
+        .iter()
+        .find(|change| change.path.utf8.as_deref() == Some("src/Example.java"))
+        .unwrap();
+    assert_eq!((tracked.index_status, tracked.worktree_status), ('M', 'M'));
+    let untracked = dirty
+        .changes
+        .iter()
+        .find(|change| change.path.utf8.as_deref() == Some("src/Untracked.java"))
+        .unwrap();
+    assert_eq!(
+        (untracked.index_status, untracked.worktree_status),
+        ('?', '?')
+    );
+    assert_eq!(
+        fs::read(fixture.root().join(".git/index")).unwrap(),
+        index_before
+    );
+    assert_eq!(
+        git_stdout(fixture.root(), ["rev-parse", "HEAD"]),
+        fixture.candidate_commit
+    );
+    assert_eq!(
+        fs::read(fixture.root().join("src/Untracked.java")).unwrap(),
+        b"class Untracked {}\n"
+    );
+}
+
+#[test]
+fn working_tree_status_keeps_rename_endpoints_and_raw_path_bytes() {
+    let input =
+        b"R  docs/reviews/new.json\0src/old.java\0?? space and\nnewline\0 M non-utf8-\xff\0";
+    let changes =
+        release_review_git::parse_working_tree_status(input, &["docs/reviews/new.json".to_owned()])
+            .unwrap();
+    let rename = changes
+        .iter()
+        .find(|change| change.index_status == 'R')
+        .unwrap();
+    assert_eq!(
+        rename.previous_path.as_ref().unwrap().utf8.as_deref(),
+        Some("src/old.java")
+    );
+    assert!(
+        !rename.review_evidence_only,
+        "moving source into evidence must not hide the source removal"
+    );
+    assert!(
+        changes
+            .iter()
+            .any(|change| change.path.utf8.as_deref() == Some("space and\nnewline"))
+    );
+    assert!(
+        changes
+            .iter()
+            .any(|change| change.path.utf8.is_none() && change.path.bytes_hex.ends_with("ff"))
+    );
+    assert!(release_review_git::parse_working_tree_status(b"R  dest\0", &[]).is_err());
+    assert!(release_review_git::parse_working_tree_status(b"?? no-terminator", &[]).is_err());
+    assert!(release_review_git::parse_working_tree_status(b"XX bad\0", &[]).is_err());
+}
+
+#[test]
+fn unavailable_working_tree_is_unknown_not_clean() {
+    let missing = tempfile::tempdir().unwrap();
+    let report = release_review_git::inspect_working_tree(missing.path(), &[]);
+    assert_eq!(report.source_dirty, None);
+    assert_eq!(report.head, None);
+    assert!(!report.diagnostics.is_empty());
+}
+
+#[test]
 fn ambient_repository_relationship_is_exact_at_the_pinned_candidate() {
     let fixture = relationship_repository();
     let report = classify_ambient_repository_relationship(

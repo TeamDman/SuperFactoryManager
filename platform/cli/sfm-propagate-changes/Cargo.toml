@@ -13,6 +13,13 @@ categories = ["command-line-utilities", "development-tools"]
 [dependencies]
 arborium-highlight = { version = "=2.18.1", default-features = false }
 arborium-java = "=2.18.1"
+arborium-rust = "=2.18.1"
+arborium-json = "=2.18.1"
+arborium-groovy = "=2.18.1"
+arborium-markdown = { version = "=2.18.1", default-features = false }
+arborium-powershell = "=2.18.1"
+arborium-typescript = "=2.18.1"
+arborium-toml = "=2.18.1"
 base64 = "0.22.1"
 blake3 = "1.8.5"
 chrono = "0.4.43"

@@ -59,8 +59,8 @@ public final class SFMThemeSettingsPanel implements SFMScreenPanel {
         SFMFontUtils.draw(ps,mc.font,"EVERY INPUT example \"hello\" 42",b.x()+11,py+20,theme.syntax("keyword").colour(),false);
         SFMFontUtils.draw(ps,mc.font,"program.sfml",b.x()+31,py+38,theme.colour(SFMColourRole.TEXT_PRIMARY),false);
         SFMFontUtils.draw(ps,mc.font,"palette/open",b.x()+132,py+38,theme.colour(SFMColourRole.TEXT_PRIMARY),false);
-        SFMItemIconRenderer.render(mc,theme.fileIcon(".sfml"),b.x()+11,py+34);
-        SFMItemIconRenderer.render(mc,theme.actionIcon(SFMThemeSettingsModel.PALETTE_ACTION,theme.fileIcon("unknown")),b.x()+112,py+34);
+        SFMItemIconRenderer.render(ps,mc,theme.fileIcon(".sfml"),b.x()+11,py+34);
+        SFMItemIconRenderer.render(ps,mc,theme.actionIcon(SFMThemeSettingsModel.PALETTE_ACTION,theme.fileIcon("unknown")),b.x()+112,py+34);
         SFMFontUtils.draw(ps,mc.font,"Enter edit · Ctrl+S save · R reset · D defaults · T TOML",b.x()+8,bottom-21,theme.colour(SFMColourRole.TEXT_MUTED),false);
         SFMFontUtils.draw(ps,mc.font,model.status(),b.x()+8,bottom-10,model.status().startsWith("Invalid")?theme.colour(SFMColourRole.TEXT_ERROR):theme.colour(SFMColourRole.TEXT_PRIMARY),false);
     }

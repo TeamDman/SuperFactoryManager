@@ -18,6 +18,40 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMReleaseReviewCommentChoiceActionTests {
     @Test
+    void saveRefreshOutlivesClosedEditorButNeverTransfersToAnotherWorkspace() throws Exception {
+        var layout = ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceLayout.sideBySide(
+                new ca.teamdman.sfm.client.screen.workspace.SFMTestScreenPanel("review"),
+                new ca.teamdman.sfm.client.screen.workspace.SFMTestScreenPanel("source"));
+        var workspace = ca.teamdman.sfm.client.screen.workspace.SFMHeadlessWorkspaceTestSupport.create(layout);
+        var context = new SFMClientActionContext(workspace, () -> true, workspace.panelIds().get(1));
+        var navigation = SFMClientActionContinuation.capture(context);
+        var refresh = SFMReleaseReviewCommentChoiceAction.captureReviewRefresh(context);
+        assertTrue(navigation.matches(workspace));
+        assertTrue(refresh.matches(workspace));
+        layout.remove(context.originatingPanelId());
+        assertFalse(navigation.matches(workspace), "closed source must not authorize delayed navigation");
+        assertTrue(refresh.matches(workspace), "surviving review still needs its saved-comment refresh");
+        assertFalse(refresh.matches(null));
+        assertFalse(refresh.matches(ca.teamdman.sfm.client.screen.workspace.SFMHeadlessWorkspaceTestSupport.create(
+                ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceLayout.single(
+                        new ca.teamdman.sfm.client.screen.workspace.SFMTestScreenPanel("replacement")))));
+    }
+
+    @Test
+    void longMultilineUnicodeTemplateHasCompactLabelButCompleteExecutableArgument() {
+        String text = "  #note " + "😀".repeat(100) + "\nsecond line\\path \"quoted\"  ";
+        var choice = SFMReleaseReviewCommentChoiceAction.choices("draft-1", true, List.of(text)).stream()
+                .filter(value -> value.displayText().startsWith("Recent · ")).findFirst().orElseThrow();
+        String compact = choice.displayText().substring("Recent · ".length());
+        assertEquals(80, compact.codePointCount(0, compact.length()));
+        assertFalse(choice.displayText().contains("\n"));
+        assertFalse(choice.displayText().codePoints().anyMatch(cp -> cp >= 0xD800 && cp <= 0xDFFF));
+        assertTrue(choice.command().endsWith(StringArgumentType.escapeIfRequired(text)));
+        assertTrue(executable(SFMReleaseReviewCommentChoiceAction.Kind.APPLY,
+                "action draft-1 " + StringArgumentType.escapeIfRequired(text)));
+    }
+
+    @Test
     void choiceActionsHaveUniqueHierarchicalPathsAndAreRegistered() throws Exception {
         assertEquals(SFMReleaseReviewCommentChoiceAction.Kind.values().length,
                 new HashSet<>(Arrays.stream(SFMReleaseReviewCommentChoiceAction.Kind.values())

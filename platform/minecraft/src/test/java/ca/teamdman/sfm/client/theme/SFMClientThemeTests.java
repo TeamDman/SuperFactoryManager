@@ -98,6 +98,19 @@ public class SFMClientThemeTests {
     }
 
     @Test
+    public void scalarDirectoryOverrideRetainsTheTitleSafeContainerFallback() {
+        SFMClientTheme theme = SFMClientThemeLoader.load("""
+                schema_version = 1
+                [icons.files]
+                directory = "minecraft:chest"
+                """, SFMClientTheme.defaults()).theme().orElseThrow();
+
+        assertEquals(new ResourceLocation("minecraft", "chest"),
+                theme.fileIcon("directory").requestedItem());
+        assertEquals(SFMItemIcon.BARREL, theme.fileIcon("directory").fallbackItem());
+    }
+
+    @Test
     public void fullSnapshotWriterRoundTripsTypedThemeExactly() {
         SFMClientTheme original = SFMClientTheme.defaults();
         EnumMap<SFMColourRole,Integer> colours = new EnumMap<>(SFMColourRole.class);
@@ -113,6 +126,8 @@ public class SFMClientThemeTests {
         SFMClientTheme parsed = result.theme().orElseThrow();
         assertEquals(edited.colours(), parsed.colours());
         assertEquals(edited.sfmlSyntax(), parsed.sfmlSyntax());
+        assertEquals(edited.fileIcons(), parsed.fileIcons());
+        assertEquals(edited.actionIcons(), parsed.actionIcons());
         assertEquals("minecraft:chest", parsed.fileIcon(".sfml").requestedItem().toString());
         assertEquals("minecraft:compass", parsed.actionIcons().get(new ResourceLocation("sfm:palette/open")).requestedItem().toString());
     }

@@ -25,7 +25,22 @@ public class MouseHandlerMixin {
             int modifiers,
             CallbackInfo callback
     ) {
-        if (SFMClientOverlayRuntime.get().mouseButton(window, button, action, modifiers)) callback.cancel();
+        ca.teamdman.sfm.client.input.SFMPointerInputModifiers.begin(modifiers);
+        try {
+            if (SFMClientOverlayRuntime.get().mouseButton(window, button, action, modifiers)) {
+                ca.teamdman.sfm.client.input.SFMPointerInputModifiers.end();
+                callback.cancel();
+            }
+        } catch (RuntimeException | Error failure) {
+            ca.teamdman.sfm.client.input.SFMPointerInputModifiers.end();
+            throw failure;
+        }
+    }
+
+    @Inject(method = "onPress", at = @At("RETURN"))
+    @MCVersionDependentBehaviour
+    private void finishSfmPointerModifiers(long window, int button, int action, int modifiers, CallbackInfo callback) {
+        ca.teamdman.sfm.client.input.SFMPointerInputModifiers.end();
     }
 
     @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)

@@ -1,0 +1,631 @@
+{
+  "schema": "sfm.release-review/2",
+  "review_session": {
+    "schema": "sfm.review-session/2",
+    "id": "sfm:fixture/release-review",
+    "title": "Portable release review fixture",
+    "coordinate_system": "utf8_byte_half_open",
+    "revision_lanes": [
+      {
+        "id": "1.19.2",
+        "repository": {
+          "id": "sfm",
+          "root_hint": "."
+        },
+        "version_label": "1.19.2 pinned release candidate",
+        "before": {
+          "id": "1111111111111111111111111111111111111111",
+          "documents": [
+            {
+              "id": "1.19.2:before:src/Cafe.java",
+              "path": "src/Cafe.java",
+              "encoding": "utf-8",
+              "sha256": "fd34c0aaa4605b09142e6606f5a68ea5535df3ead7b82fa3871a77ec9649bbaf",
+              "text": "package fixture;\nclass Café {\n    int value() { return 1; }\n}\n"
+            }
+          ]
+        },
+        "after": {
+          "id": "working-tree:sha256:02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4",
+          "documents": [
+            {
+              "id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+              "path": "src/Cafe.java",
+              "encoding": "utf-8",
+              "sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+              "text": "package fixture;\nclass Café {\n    int value() { return 2; }\n}\n"
+            },
+            {
+              "id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Other.java",
+              "path": "src/Other.java",
+              "encoding": "utf-8",
+              "sha256": "389e9722ba590e6a4342428bcc7a0c177cc6141e33defae190d84bf8bcbb93a0",
+              "text": "package fixture;\nclass Other {\n    int value() { return 1; }\n}\n"
+            },
+            {
+              "id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+              "path": "src/Unicode.java",
+              "encoding": "utf-8",
+              "sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+              "text": "package fixture;\nclass Unicode {\n    String word() { return \"naïve\"; }\n}\n"
+            }
+          ]
+        }
+      },
+      {
+        "id": "1.19.2-live",
+        "repository": {
+          "id": "sfm",
+          "root_hint": "."
+        },
+        "version_label": "1.19.2 current-live witness",
+        "before": {
+          "id": "2222222222222222222222222222222222222222",
+          "documents": [
+            {
+              "id": "1.19.2-live:before:src/Cafe.java",
+              "path": "src/Cafe.java",
+              "encoding": "utf-8",
+              "sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+              "text": "package fixture;\nclass Café {\n    int value() { return 2; }\n}\n"
+            }
+          ]
+        },
+        "after": {
+          "id": "5555555555555555555555555555555555555555",
+          "documents": [
+            {
+              "id": "1.19.2-live:after:src/Cafe.java",
+              "path": "src/Cafe.java",
+              "encoding": "utf-8",
+              "sha256": "7eaa597c5e04709382b91b941e3935a4cf3a6ec6aea51082f5fde7e087777d7a",
+              "text": "package fixture;\nclass Café {\n    int value() { return 3; }\n}\n"
+            }
+          ]
+        }
+      }
+    ],
+    "comments": [
+      {
+        "id": "generated:unit-value",
+        "text": "#release-change #modified Changed Java method fixture.Café#value().",
+        "provenance": {
+          "kind": "generated",
+          "producer": "sfm:git-comparison",
+          "version": "fixture-generation-1",
+          "parent_comment_ids": []
+        },
+        "target": {
+          "kind": "committed_selection",
+          "selection_rule": {
+            "kind": "literal_utf8_range",
+            "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+            "start_byte": 35,
+            "end_byte": 60,
+            "document_sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+            "selected_text_sha256": "314eee10d4aa063f75324f2e501cbeec27f90a5ad1d792bf91518d86338c79eb"
+          }
+        }
+      },
+      {
+        "id": "human:approved-value",
+        "text": "#approved The changed return value has been reviewed.",
+        "provenance": {
+          "kind": "human",
+          "producer": "fixture-reviewer",
+          "version": "1",
+          "parent_comment_ids": [
+            "generated:unit-value"
+          ]
+        },
+        "target": {
+          "kind": "committed_selection",
+          "selection_rule": {
+            "kind": "literal_utf8_range",
+            "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+            "start_byte": 35,
+            "end_byte": 60,
+            "document_sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+            "selected_text_sha256": "314eee10d4aa063f75324f2e501cbeec27f90a5ad1d792bf91518d86338c79eb"
+          }
+        }
+      },
+      {
+        "id": "generated:unit-other",
+        "text": "#release-change #added Added Java file without a structural declaration surface.",
+        "provenance": {
+          "kind": "generated",
+          "producer": "sfm:git-comparison",
+          "version": "fixture-generation-1",
+          "parent_comment_ids": []
+        },
+        "target": {
+          "kind": "committed_selection",
+          "selection_rule": {
+            "kind": "literal_utf8_range",
+            "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Other.java",
+            "start_byte": 0,
+            "end_byte": 63,
+            "document_sha256": "389e9722ba590e6a4342428bcc7a0c177cc6141e33defae190d84bf8bcbb93a0",
+            "selected_text_sha256": "389e9722ba590e6a4342428bcc7a0c177cc6141e33defae190d84bf8bcbb93a0"
+          }
+        }
+      },
+      {
+        "id": "human:unicode-multidoc-note",
+        "text": "Cross-document Unicode selector witness; approval is not inferred.",
+        "provenance": {
+          "kind": "human",
+          "producer": "fixture-reviewer",
+          "version": "1",
+          "parent_comment_ids": []
+        },
+        "target": {
+          "kind": "committed_selection",
+          "selection_rule": {
+            "kind": "union",
+            "rules": [
+              {
+                "kind": "literal_utf8_range",
+                "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+                "start_byte": 23,
+                "end_byte": 28,
+                "document_sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+                "selected_text_sha256": "73473dcc12b763085904a5279d048c4d5b3b008c46f1f32443b99de04aa83a14"
+              },
+              {
+                "kind": "literal_utf8_range",
+                "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+                "start_byte": 61,
+                "end_byte": 67,
+                "document_sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+                "selected_text_sha256": "f86fd89de87a848a45bfe77708d91a5d2ff48b8e4a4b98af5165af82692f8928"
+              },
+              {
+                "kind": "literal_utf8_range",
+                "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+                "start_byte": 23,
+                "end_byte": 30,
+                "document_sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+                "selected_text_sha256": "f922e0d1e1448d98bc93d0bf5459f4951c10e10111d21dab6ad42325fc831330"
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "style_rules": [],
+    "completion_policy": {
+      "coverage_mode": "changed_surface",
+      "approval_hashtag": "#approved",
+      "blocking_hashtags": [
+        "#problem",
+        "#needs-change"
+      ]
+    }
+  },
+  "repository_bindings": [
+    {
+      "lane_id": "1.19.2",
+      "repository_id": "sfm",
+      "root_hint": ".",
+      "before_label": "4.34.0-1.19.2",
+      "before_commit": "1111111111111111111111111111111111111111",
+      "before_tree": "3333333333333333333333333333333333333333",
+      "after_label": "Captured working tree",
+      "review_evidence_paths": [
+        "docs/reviews/4.34.0-to-candidate.sfm-review.json"
+      ],
+      "working_tree_capture": {
+        "schema": "sfm.release-review.working-tree-capture/1",
+        "id": "working-tree:sha256:02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4",
+        "observed_head_commit": "2222222222222222222222222222222222222222",
+        "observed_head_tree": "4444444444444444444444444444444444444444",
+        "captured_at_unix_ms": 1788726000000,
+        "consistency": "verified_two_pass",
+        "scope_paths": [
+          "src"
+        ],
+        "excluded_paths": [],
+        "include_untracked": true,
+        "entries": [
+          {
+            "path": "src/Cafe.java",
+            "kind": "regular_file",
+            "tracked": true,
+            "byte_length": 63,
+            "sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+            "executable": false,
+            "materialization": "utf8",
+            "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java"
+          },
+          {
+            "path": "src/Other.java",
+            "kind": "regular_file",
+            "tracked": false,
+            "byte_length": 63,
+            "sha256": "389e9722ba590e6a4342428bcc7a0c177cc6141e33defae190d84bf8bcbb93a0",
+            "executable": false,
+            "materialization": "utf8",
+            "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Other.java"
+          },
+          {
+            "path": "src/Unicode.java",
+            "kind": "regular_file",
+            "tracked": false,
+            "byte_length": 74,
+            "sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+            "executable": false,
+            "materialization": "utf8",
+            "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java"
+          }
+        ]
+      }
+    },
+    {
+      "lane_id": "1.19.2-live",
+      "repository_id": "sfm",
+      "root_hint": ".",
+      "before_label": "pinned-candidate",
+      "before_commit": "2222222222222222222222222222222222222222",
+      "before_tree": "4444444444444444444444444444444444444444",
+      "after_label": "current-live",
+      "candidate_commit": "5555555555555555555555555555555555555555",
+      "candidate_tree": "9999999999999999999999999999999999999999",
+      "review_evidence_paths": [
+        "docs/reviews/fixture-live-witness.sfm-review.json"
+      ]
+    }
+  ],
+  "corpus_documents": [
+    {
+      "id": "corpus:before:cafe",
+      "lane_id": "1.19.2",
+      "snapshot_side": "before",
+      "path": "src/Cafe.java",
+      "document_revision_id": "1.19.2:before:src/Cafe.java",
+      "sha256": "fd34c0aaa4605b09142e6606f5a68ea5535df3ead7b82fa3871a77ec9649bbaf",
+      "source_owner": "git",
+      "source_locator": "1111111111111111111111111111111111111111:src/Cafe.java",
+      "materialization": "complete"
+    },
+    {
+      "id": "corpus:after:cafe",
+      "lane_id": "1.19.2",
+      "snapshot_side": "after",
+      "path": "src/Cafe.java",
+      "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+      "sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+      "source_owner": "working-tree:sha256:02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4",
+      "source_locator": "working-tree-capture://02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+      "materialization": "complete"
+    },
+    {
+      "id": "corpus:after:other",
+      "lane_id": "1.19.2",
+      "snapshot_side": "after",
+      "path": "src/Other.java",
+      "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Other.java",
+      "sha256": "389e9722ba590e6a4342428bcc7a0c177cc6141e33defae190d84bf8bcbb93a0",
+      "source_owner": "working-tree:sha256:02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4",
+      "source_locator": "working-tree-capture://02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Other.java",
+      "materialization": "complete"
+    },
+    {
+      "id": "corpus:after:unicode",
+      "lane_id": "1.19.2",
+      "snapshot_side": "after",
+      "path": "src/Unicode.java",
+      "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+      "sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+      "source_owner": "working-tree:sha256:02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4",
+      "source_locator": "working-tree-capture://02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+      "materialization": "complete"
+    },
+    {
+      "id": "corpus:live-before:cafe",
+      "lane_id": "1.19.2-live",
+      "snapshot_side": "before",
+      "path": "src/Cafe.java",
+      "document_revision_id": "1.19.2-live:before:src/Cafe.java",
+      "sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+      "source_owner": "git",
+      "source_locator": "2222222222222222222222222222222222222222:src/Cafe.java",
+      "materialization": "complete"
+    },
+    {
+      "id": "corpus:live-after:cafe",
+      "lane_id": "1.19.2-live",
+      "snapshot_side": "after",
+      "path": "src/Cafe.java",
+      "document_revision_id": "1.19.2-live:after:src/Cafe.java",
+      "sha256": "7eaa597c5e04709382b91b941e3935a4cf3a6ec6aea51082f5fde7e087777d7a",
+      "source_owner": "git",
+      "source_locator": "5555555555555555555555555555555555555555:src/Cafe.java",
+      "materialization": "complete"
+    },
+    {
+      "id": "corpus:live-after:missing",
+      "lane_id": "1.19.2-live",
+      "snapshot_side": "after",
+      "path": "src/Missing.java",
+      "document_revision_id": "1.19.2-live:after:src/Missing.java",
+      "sha256": "b5909dbbe161328c0aad5dea950520abc17f676bc765e8e5660c62798b7e1cfe",
+      "source_owner": "candidate-history-frame",
+      "source_locator": "fixture-plan#live:src/Missing.java",
+      "materialization": "missing"
+    },
+    {
+      "id": "corpus:live-after:partial",
+      "lane_id": "1.19.2-live",
+      "snapshot_side": "after",
+      "path": "src/Partial.java",
+      "document_revision_id": "1.19.2-live:after:src/Partial.java",
+      "sha256": "3bf41f9c840a9f148d7e9ac8a890b140efde1ff2dab54ecce7e7c36310011ab8",
+      "source_owner": "candidate-history-frame",
+      "source_locator": "fixture-plan#live:src/Partial.java",
+      "materialization": "partial"
+    }
+  ],
+  "review_units": [
+    {
+      "id": "unit:src/Cafe.java:value",
+      "lane_id": "1.19.2",
+      "operation": "modified",
+      "path_before": "src/Cafe.java",
+      "path_after": "src/Cafe.java",
+      "before_document_revision_id": "1.19.2:before:src/Cafe.java",
+      "after_document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+      "before_ranges": [
+        {
+          "start_byte": 35,
+          "end_byte": 60
+        }
+      ],
+      "after_ranges": [
+        {
+          "start_byte": 35,
+          "end_byte": 60
+        }
+      ],
+      "language": "java",
+      "surface_kind": "body",
+      "semantic_key": "fixture.Café#value()",
+      "producer_id": "sfm:git-comparison",
+      "producer_generation": "fixture-generation-1"
+    },
+    {
+      "id": "unit:src/Other.java:file",
+      "lane_id": "1.19.2",
+      "operation": "added",
+      "path_after": "src/Other.java",
+      "after_document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Other.java",
+      "before_ranges": [],
+      "after_ranges": [
+        {
+          "start_byte": 0,
+          "end_byte": 63
+        }
+      ],
+      "language": "java",
+      "surface_kind": "unsupported",
+      "limitation": "fixture intentionally lacks a structural declaration adapter",
+      "producer_id": "sfm:git-comparison",
+      "producer_generation": "fixture-generation-1"
+    },
+    {
+      "id": "unit:src/Unicode.java:file",
+      "lane_id": "1.19.2",
+      "operation": "added",
+      "path_after": "src/Unicode.java",
+      "after_document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+      "before_ranges": [],
+      "after_ranges": [
+        {
+          "start_byte": 0,
+          "end_byte": 74
+        }
+      ],
+      "language": "java",
+      "surface_kind": "file",
+      "producer_id": "sfm:git-comparison",
+      "producer_generation": "fixture-generation-1"
+    }
+  ],
+  "selector_bindings": [
+    {
+      "comment_id": "human:approved-value",
+      "captured_selection": {
+        "selection_revision": "selection-fixture-1",
+        "source_expression": "selection://fixture/value",
+        "primary_range_index": 0,
+        "ranges": [
+          {
+            "direction": "backward",
+            "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+            "document_sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+            "start_byte": 35,
+            "end_byte": 60
+          }
+        ]
+      },
+      "selected_proposal": {
+        "id": "proposal:fixture-value-body",
+        "kind": "body",
+        "selection_rule": {
+          "kind": "literal_utf8_range",
+          "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+          "start_byte": 35,
+          "end_byte": 60,
+          "document_sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+          "selected_text_sha256": "314eee10d4aa063f75324f2e501cbeec27f90a5ad1d792bf91518d86338c79eb"
+        },
+        "literal_witness": {
+          "selection_revision": "selection-fixture-1",
+          "source_expression": "selection://fixture/value",
+          "primary_range_index": 0,
+          "ranges": [
+            {
+              "direction": "backward",
+              "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+              "document_sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+              "start_byte": 35,
+              "end_byte": 60
+            }
+          ]
+        },
+        "semantic_provider": "fixture-java-provider",
+        "semantic_key": "fixture.Café#value():body",
+        "semantic_provenance": [
+          {
+            "key": "region-kind",
+            "value": "method-body"
+          }
+        ],
+        "confidence": "exact",
+        "projection_fingerprint": "5555555555555555555555555555555555555555555555555555555555555555",
+        "source_snapshot_id": "working-tree:sha256:02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4",
+        "diagnostics": []
+      }
+    },
+    {
+      "comment_id": "human:unicode-multidoc-note",
+      "captured_selection": {
+        "selection_revision": "selection-fixture@2222222222222222222222222222222222222222",
+        "source_expression": "selection://fixture/unicode-multidoc@revision-2222222222222222222222222222222222222222",
+        "primary_range_index": 1,
+        "ranges": [
+          {
+            "direction": "backward",
+            "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+            "document_sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+            "start_byte": 23,
+            "end_byte": 28
+          },
+          {
+            "direction": "forward",
+            "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+            "document_sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+            "start_byte": 61,
+            "end_byte": 67
+          },
+          {
+            "direction": "forward",
+            "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+            "document_sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+            "start_byte": 23,
+            "end_byte": 30
+          }
+        ]
+      },
+      "selected_proposal": {
+        "id": "proposal:fixture-unicode-multidoc",
+        "kind": "bounded_multi_region",
+        "selection_rule": {
+          "kind": "union",
+          "rules": [
+            {
+              "kind": "literal_utf8_range",
+              "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+              "start_byte": 23,
+              "end_byte": 28,
+              "document_sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+              "selected_text_sha256": "73473dcc12b763085904a5279d048c4d5b3b008c46f1f32443b99de04aa83a14"
+            },
+            {
+              "kind": "literal_utf8_range",
+              "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+              "start_byte": 61,
+              "end_byte": 67,
+              "document_sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+              "selected_text_sha256": "f86fd89de87a848a45bfe77708d91a5d2ff48b8e4a4b98af5165af82692f8928"
+            },
+            {
+              "kind": "literal_utf8_range",
+              "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+              "start_byte": 23,
+              "end_byte": 30,
+              "document_sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+              "selected_text_sha256": "f922e0d1e1448d98bc93d0bf5459f4951c10e10111d21dab6ad42325fc831330"
+            }
+          ]
+        },
+        "literal_witness": {
+          "selection_revision": "selection-fixture@2222222222222222222222222222222222222222",
+          "source_expression": "selection://fixture/unicode-multidoc@revision-2222222222222222222222222222222222222222",
+          "primary_range_index": 1,
+          "ranges": [
+            {
+              "direction": "backward",
+              "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Cafe.java",
+              "document_sha256": "72cf61653a927ca969e3b18f51d507072564b94d74616b51f821acc3a170b5c3",
+              "start_byte": 23,
+              "end_byte": 28
+            },
+            {
+              "direction": "forward",
+              "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+              "document_sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+              "start_byte": 61,
+              "end_byte": 67
+            },
+            {
+              "direction": "forward",
+              "document_revision_id": "fixture:capture/02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4/src/Unicode.java",
+              "document_sha256": "481c2a0d878b683d45991f414c6c68808db8a9db73c506ffa9131f28bc278a70",
+              "start_byte": 23,
+              "end_byte": 30
+            }
+          ]
+        },
+        "semantic_provider": "fixture-java-provider",
+        "semantic_key": "fixture:unicode-multidoc",
+        "semantic_provenance": [
+          {
+            "key": "current-live-revision",
+            "value": "5555555555555555555555555555555555555555"
+          },
+          {
+            "key": "pinned-review-revision",
+            "value": "2222222222222222222222222222222222222222"
+          },
+          {
+            "key": "region-kind",
+            "value": "disjoint-multi-document-unicode"
+          }
+        ],
+        "confidence": "exact",
+        "projection_fingerprint": "8888888888888888888888888888888888888888888888888888888888888888",
+        "source_snapshot_id": "working-tree:sha256:02dff5dcbe644b646ba30c6d1d3d76aa1df06450ba7f04638c8bbc7645806bc4",
+        "diagnostics": []
+      }
+    }
+  ],
+  "migration_reports": [],
+  "named_queries": [
+    {
+      "id": "approved-for-candidate",
+      "expression": "#approved intersect 1.19.2 HEAD"
+    },
+    {
+      "id": "remaining-work",
+      "expression": "remaining intersect 1.19.2 HEAD"
+    }
+  ],
+  "resume_state": {
+    "active_query_id": "remaining-work",
+    "active_query_expression": "remaining intersect 1.19.2 HEAD",
+    "current_unit_id": "unit:src/Other.java:file",
+    "deferred_unit_ids": [],
+    "generation": 1
+  },
+  "producer_generations": [
+    {
+      "producer_id": "sfm:git-comparison",
+      "generation": "fixture-generation-1",
+      "input_fingerprint": "6666666666666666666666666666666666666666666666666666666666666666",
+      "output_fingerprint": "7777777777777777777777777777777777777777777777777777777777777777"
+    }
+  ],
+  "completion_attestations": []
+}

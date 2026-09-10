@@ -240,7 +240,7 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
             int iconX = disclosureX + 10;
             SFMFontUtils.draw(poseStack, minecraft.font, disclosure, disclosureX, y + 5,
                     presentation.textColour(), true);
-            SFMItemIconRenderer.render(minecraft, presentation.itemIcon(), iconX, y + 1);
+            SFMItemIconRenderer.render(poseStack, minecraft, presentation.itemIcon(), iconX, y + 1);
             String text = entry.name() + " (" + presentation.kindLabel() + ")";
             Style style = Style.EMPTY.withColor(TextColor.fromRgb(presentation.textColour() & 0xFFFFFF));
             style = switch (presentation.emphasis()) {

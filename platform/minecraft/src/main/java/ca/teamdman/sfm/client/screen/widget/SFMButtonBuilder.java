@@ -63,9 +63,15 @@ public class SFMButtonBuilder {
             Font font,
             Component tooltip
     ) {
+        return setTooltipSupplier(screen, font, () -> tooltip);
+    }
+
+    @MCVersionDependentBehaviour
+    public SFMButtonBuilder setTooltipSupplier(Screen screen, Font font,
+                                               java.util.function.Supplier<Component> tooltip) {
         this.tooltip = (btn, pose, mx, my) -> screen.renderTooltip(
                 pose,
-                font.split(tooltip, Math.max(screen.width / 2 - 43, 170)
+                font.split(tooltip.get(), Math.max(screen.width / 2 - 43, 170)
                 ),
                 mx,
                 my

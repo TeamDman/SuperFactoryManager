@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMPathExpression;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.search.SFMTextMatchOptions;
 
 import java.util.Objects;
 
@@ -35,7 +36,11 @@ public record SFMExplorerActionRequest(
             HoistSet,
             PathDisplaySet,
             FilterSet,
-            FilterClear {
+            FilterClear,
+            FindSet,
+            FindNext,
+            FindPrevious,
+            FindClear {
         String id();
 
         default boolean mutatesSession() {
@@ -140,11 +145,14 @@ public record SFMExplorerActionRequest(
         public String id() { return "path-display.set"; }
     }
 
-    public record FilterSet(String query) implements Operation {
+    public record FilterSet(String query, SFMTextMatchOptions options) implements Operation {
+        public FilterSet(String query) { this(query.strip(), SFMTextMatchOptions.legacyFuzzy()); }
         public FilterSet {
-            query = Objects.requireNonNull(query, "query").strip();
+            Objects.requireNonNull(options, "options");
+            query = Objects.requireNonNull(query, "query");
             if (query.isEmpty()) throw new IllegalArgumentException("Explorer filter query must not be blank");
-            if (query.length() > 1024) throw new IllegalArgumentException("Explorer filter query is too long");
+            if (query.length() > 2048 || query.codePointCount(0, query.length()) > 1024)
+                throw new IllegalArgumentException("Explorer filter query is too long");
             if (query.indexOf('\n') >= 0 || query.indexOf('\r') >= 0) {
                 throw new IllegalArgumentException("Explorer filter query must be one line");
             }
@@ -156,6 +164,32 @@ public record SFMExplorerActionRequest(
     public record FilterClear() implements Operation {
         @Override
         public String id() { return "filter.clear"; }
+    }
+
+    public record FindSet(String query, SFMTextMatchOptions options) implements Operation {
+        public FindSet(String query) { this(query.strip(), SFMTextMatchOptions.legacyFuzzy()); }
+        public FindSet {
+            Objects.requireNonNull(options, "options");
+            query = validateQuery(query, "finder");
+        }
+
+        @Override
+        public String id() { return "find.set"; }
+    }
+
+    public record FindNext() implements Operation {
+        @Override
+        public String id() { return "find.next"; }
+    }
+
+    public record FindPrevious() implements Operation {
+        @Override
+        public String id() { return "find.previous"; }
+    }
+
+    public record FindClear() implements Operation {
+        @Override
+        public String id() { return "find.clear"; }
     }
 
     public SFMExplorerActionRequest {
@@ -176,5 +210,16 @@ public record SFMExplorerActionRequest(
     private static void requirePathAndPage(SFMPath path, int pageSize) {
         Objects.requireNonNull(path, "path");
         if (pageSize <= 0) throw new IllegalArgumentException("Page size must be positive");
+    }
+
+    private static String validateQuery(String query, String kind) {
+        query = Objects.requireNonNull(query, "query");
+        if (query.isEmpty()) throw new IllegalArgumentException("Explorer " + kind + " query must not be blank");
+        if (query.length() > 2048 || query.codePointCount(0, query.length()) > 1024)
+            throw new IllegalArgumentException("Explorer " + kind + " query is too long");
+        if (query.indexOf('\n') >= 0 || query.indexOf('\r') >= 0) {
+            throw new IllegalArgumentException("Explorer " + kind + " query must be one line");
+        }
+        return query;
     }
 }

@@ -223,6 +223,72 @@ class SFMReleaseReviewEvaluatorTests {
         assertTrue(exceeded.work().comparedBytes() > 5);
     }
 
+    @Test
+    void fieldSelectorAtTwoRevisionsDoesNotTransferApprovalToChangedOrAmbiguousField() {
+        // Prepared-symbol boundary proof, using real field text (not a method renamed as a field).
+        String path = "src/DiskItem.java";
+        String oldField = "private int capacity = 1;";
+        String newField = "private int capacity = 2;";
+        String oldText = "class DiskItem { " + oldField + " }\n";
+        String newText = "class DiskItem { " + newField + " }\n";
+        var before = document("field-before", path, oldText);
+        var after = document("field-after", path, newText);
+        var original = fixture().review();
+        var lane = new SFMReviewSessionV1.RevisionLane(LANE,
+                new SFMReviewSessionV1.Repository("sfm", "."), LANE,
+                new SFMReviewSessionV1.Snapshot("field-commit-before", List.of(before)),
+                new SFMReviewSessionV1.Snapshot("field-captured-after", List.of(after)));
+        var session = new SFMReviewSessionV2(SFMReviewSessionV2.SCHEMA, "field-session", "Field revisions",
+                SFMReviewSessionV1.COORDINATE_SYSTEM, List.of(lane), List.of(), List.of(),
+                original.reviewSession().completionPolicy());
+        var unit = new SFMReleaseReviewV1.ReviewUnit("field-unit", LANE,
+                SFMReleaseReviewV1.ChangeOperation.MODIFIED, Optional.of(path), Optional.of(path),
+                Optional.of(before.id()), Optional.of(after.id()),
+                List.of(new SFMReleaseReviewV1.Utf8Range(0, oldText.length())),
+                List.of(new SFMReleaseReviewV1.Utf8Range(0, newText.length())),
+                "java", SFMReleaseReviewV1.SurfaceKind.FILE, Optional.empty(), Optional.empty(),
+                "fixture-producer", GENERATION);
+        var review = new SFMReleaseReviewV1(SFMReleaseReviewV1.SCHEMA, session,
+                original.repositoryBindings(),
+                List.of(corpus("field-before-corpus", before, SFMReleaseReviewV1.SnapshotSide.BEFORE),
+                        corpus("field-after-corpus", after, SFMReleaseReviewV1.SnapshotSide.AFTER)),
+                List.of(unit), List.of(), List.of(), List.of(), SFMReleaseReviewV1.ResumeState.empty(),
+                original.producerGenerations(), List.of());
+        String key = "ca.teamdman.sfm.common.item.DiskItem capacity";
+        var beforeRange = range(before.id(), oldText, oldField);
+        var afterRange = range(after.id(), newText, newField);
+        var oldCandidate = new SFMReleaseReviewEvaluator.PreparedSemanticCandidate(PROVIDER, GENERATION,
+                sha("field-old"), LANE, path, "java", SFMReleaseReviewEvaluator.DiffSide.BEFORE,
+                SFMReleaseReviewV1.SelectorKind.DECLARATION, key, List.of(beforeRange), sha(oldField), List.of());
+        var newCandidate = new SFMReleaseReviewEvaluator.PreparedSemanticCandidate(PROVIDER, GENERATION,
+                sha("field-new"), LANE, path, "java", SFMReleaseReviewEvaluator.DiffSide.AFTER,
+                SFMReleaseReviewV1.SelectorKind.DECLARATION, key, List.of(afterRange), sha(newField), List.of());
+        var scopes = List.of(scope(path, SFMReleaseReviewEvaluator.DiffSide.BEFORE, true, true, true, ""),
+                scope(path, SFMReleaseReviewEvaluator.DiffSide.AFTER, true, true, true, ""));
+        var evidence = new SFMReleaseReviewEvaluator.PreparedEvidence(scopes,
+                List.of(oldCandidate, newCandidate), List.of());
+        var index = SFMReleaseReviewEvaluator.Index.build(review, evidence, SFMReleaseReviewEvaluator.Limits.defaults());
+        var rule = new SFMReleaseReviewEvaluator.SemanticRule(SFMReleaseReviewV1.SelectorKind.DECLARATION, key,
+                Optional.of(new SFMReleaseReviewEvaluator.Witness(List.of(beforeRange), sha(oldField))));
+        var beforeScope = new SFMReleaseReviewEvaluator.Scope(List.of(LANE), List.of(path), List.of("java"),
+                List.of(SFMReleaseReviewEvaluator.DiffSide.BEFORE));
+        var exact = index.evaluate("field-pinned", rule, beforeScope).result();
+        assertEquals(SFMReleaseReviewV1.EvaluationStatus.EXACT, exact.status());
+        assertEquals(List.of(beforeRange), exact.ranges());
+        var changed = index.evaluate("field-new-revision", rule, afterScope()).result();
+        assertEquals(SFMReleaseReviewV1.EvaluationStatus.CONTENT_CHANGED, changed.status());
+        assertTrue(changed.ranges().isEmpty());
+        assertEquals(List.of(afterRange), changed.candidates());
+        var ambiguous = index.evaluate("field-unscoped-revisions", rule, SFMReleaseReviewEvaluator.Scope.all()).result();
+        assertEquals(SFMReleaseReviewV1.EvaluationStatus.AMBIGUOUS, ambiguous.status());
+        assertTrue(ambiguous.ranges().isEmpty());
+        var missing = SFMReleaseReviewEvaluator.Index.build(review,
+                new SFMReleaseReviewEvaluator.PreparedEvidence(scopes, List.of(oldCandidate), List.of()),
+                SFMReleaseReviewEvaluator.Limits.defaults()).evaluate("field-deleted", rule, afterScope()).result();
+        assertEquals(SFMReleaseReviewV1.EvaluationStatus.MISSING, missing.status());
+        assertTrue(missing.ranges().isEmpty());
+    }
+
     private static SFMReleaseReviewEvaluator.SemanticRule semantic(
             String key, SFMReleaseReviewEvaluator.Witness witness) {
         return new SFMReleaseReviewEvaluator.SemanticRule(

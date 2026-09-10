@@ -594,7 +594,10 @@ fn handle_hello<W: Write>(
                 capabilities: SyntaxServerCapability::all().to_vec(),
                 max_frame_bytes: session.negotiated_max_frame_bytes as u64,
                 max_pending_requests: session.limits.max_pending_requests as u64,
-                supported_languages: vec!["java".to_owned()],
+                supported_languages: super::languages::SUPPORTED
+                    .iter()
+                    .map(|id| (*id).to_owned())
+                    .collect(),
                 request_schema: super::SYNTAX_HIGHLIGHT_REQUEST_SCHEMA.to_owned(),
                 result_schema: super::SYNTAX_HIGHLIGHT_RESULT_SCHEMA.to_owned(),
             },
@@ -1218,7 +1221,7 @@ mod tests {
         ]);
         assert!(
             matches!(frames.first(), Some(SyntaxServerFrame::Hello { hello, .. })
-            if hello.supported_languages == ["java"]
+            if hello.supported_languages.iter().map(String::as_str).collect::<Vec<_>>() == super::super::languages::SUPPORTED
                 && hello.max_pending_requests == DEFAULT_SYNTAX_SERVER_MAX_PENDING_REQUESTS as u64)
         );
         assert!(

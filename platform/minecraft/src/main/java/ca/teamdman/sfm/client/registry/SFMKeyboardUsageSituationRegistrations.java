@@ -14,6 +14,9 @@ public final class SFMKeyboardUsageSituationRegistrations {
             SFMKeyboardUsageSituations.createContributor(SFM.MOD_ID);
 
     static {
+        for (var id : List.of(SFMKeyboardUsageSituations.EXPLORER, SFMKeyboardUsageSituations.EXPLORER_SEARCH,
+                SFMKeyboardUsageSituations.EXPLORER_FIND, SFMKeyboardUsageSituations.EXPLORER_FILTER))
+            REGISTERER.register(id.getPath(), () -> SFMKeyboardUsageSituations.builtIns().get(id));
         REGISTERER.register("global", () -> new SFMKeyboardUsageSituation(
                 Component.literal("Global"),
                 Component.literal("Active across Minecraft and other mods"),

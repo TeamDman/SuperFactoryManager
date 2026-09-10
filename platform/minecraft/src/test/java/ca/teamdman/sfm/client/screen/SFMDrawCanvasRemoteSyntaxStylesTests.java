@@ -12,6 +12,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SFMDrawCanvasRemoteSyntaxStylesTests {
     @Test
+    void pinnedSourceKeepsUnpaintedLineEndingsAndRejectsDifferentContent() {
+        for (String source : List.of("class Café {}\n", "\r\nclass Café {\r\n  String s = \"😀\";\r\n}\r\n\r\n")) {
+            var model = new SFMDrawCanvasModel();
+            model.replaceText(source, String::length, 9);
+            int start = source.substring(0, source.indexOf("Café")).getBytes(StandardCharsets.UTF_8).length;
+            var span = new SFMDrawCanvasRemoteSyntaxStyles.FormattingSpan(start, start + 5, List.of(ChatFormatting.AQUA));
+            var styles = SFMDrawCanvasRemoteSyntaxStyles.projectPinned(model.glyphs(), 9, source, List.of(span));
+            assertEquals(4, styles.size());
+            assertEquals(List.of(ChatFormatting.AQUA), styles.get(model.glyphs().stream()
+                    .filter(glyph -> glyph.text().equals("é")).findFirst().orElseThrow()));
+            assertThrows(IllegalArgumentException.class, () -> SFMDrawCanvasRemoteSyntaxStyles.projectPinned(
+                    model.glyphs(), 9, source.replace("Café", "Fake"), List.of(span)));
+        }
+    }
+
+    @Test
     void projectsUtf8SpansOntoExactUnicodeGlyphs() {
         SFMDrawCanvasModel model = new SFMDrawCanvasModel();
         model.pasteText("class Café {\r\n  String emoji = \"😀\";\r\n}", String::length, 9);

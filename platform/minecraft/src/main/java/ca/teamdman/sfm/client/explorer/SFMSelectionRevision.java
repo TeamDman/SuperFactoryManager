@@ -22,6 +22,7 @@ public record SFMSelectionRevision(
         CREATE,
         ADD,
         REMOVE,
+        REPLACE,
         UNION,
         INTERSECTION,
         DIFFERENCE

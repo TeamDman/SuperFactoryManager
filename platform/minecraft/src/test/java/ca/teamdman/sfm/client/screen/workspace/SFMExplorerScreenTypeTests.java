@@ -14,16 +14,19 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class SFMExplorerScreenTypeTests {
     private static final ResourceLocation SCENE_ID = new ResourceLocation("sfm", "explorer");
+    private static final SFMPathExpression DEFAULT_INSTANCE_LOCATION = SFMPathExpression.parse(
+            "file:///D:/Repos/Minecraft/SFM/repos2/1.19.2/platform/minecraft/run"
+    );
 
     @Test
-    void omittedLocationUsesTheDocumentedItemRegistryDefault() throws Exception {
+    void omittedLocationUsesTheCurrentInstanceFilesystemDefault() throws Exception {
         SFMExplorerScreenType.Recipe recipe = parseRecipe("");
 
         SFMPathExpression.Literal literal = assertInstanceOf(
                 SFMPathExpression.Literal.class,
                 recipe.initialLocation()
         );
-        assertEquals("registry://minecraft/item/", literal.canonical());
+        assertEquals(DEFAULT_INSTANCE_LOCATION.canonical(), literal.canonical());
     }
 
     @Test
@@ -59,7 +62,7 @@ class SFMExplorerScreenTypeTests {
     private static SFMExplorerScreenType.Recipe parseRecipe(String arguments) throws Exception {
         AtomicReference<SFMPanelReopenRecipe> captured = new AtomicReference<>();
         CommandDispatcher<SFMClientActionSource> dispatcher = new CommandDispatcher<>();
-        dispatcher.register(new SFMExplorerScreenType().createCommandNode(
+        dispatcher.register(new SFMExplorerScreenType(() -> DEFAULT_INSTANCE_LOCATION).createCommandNode(
                 SCENE_ID,
                 (context, recipe) -> {
                     captured.set(recipe);

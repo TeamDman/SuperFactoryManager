@@ -123,6 +123,47 @@ leaves the existing review bytes unchanged. Success reports outcome
 `refreshed`, generation/reconciliation counts, ambient relationship, and the
 new completion status.
 
+### Read-only freshness evidence (separate from persisted review identity)
+
+```pwsh
+sfm-propagate-changes.exe --output-format json review session freshness --file <review.sfm-review.json>
+```
+
+The `sfm.release-review-freshness/1` response contains `repository_relationships`
+without the completion corpus. Each relationship retains its existing commit
+ancestry classification and adds optional `working_tree` evidence with schema
+`sfm.release-review.working-tree-evidence/1`: check time (Unix milliseconds),
+observed HEAD, optional `source_dirty`, changed paths with index/worktree status,
+optional prior rename path, review-evidence exclusion flag, and diagnostics.
+Path witnesses retain optional UTF-8 text, display text, and exact byte hex.
+Missing `source_dirty` means **unknown**, not clean. `source_dirty: true` means
+the checkout contains source changes outside this commit-pinned review even when
+its candidate equals HEAD. Exact declared evidence paths are excluded only if
+both endpoints of a rename qualify. There is no broad JSON/docs exclusion.
+
+`review session status` includes this same evidence and fails closed to `stale`
+for dirty/unknown source state, keeping `document_completion_status` separate.
+The existing `refresh` command still rematerializes the original pinned pair;
+it neither follows HEAD nor incorporates local files. These read-only probes
+use `GIT_OPTIONAL_LOCKS=0` and never stage, commit or write the review. A changed
+HEAD between the ancestry and working-tree observations invalidates the check.
+The evidence is observational, not a transactional filesystem snapshot; immutable
+working-tree capture is a separate producer boundary.
+
+The review Explorer displays actual shortened commit pins, ignoring legacy
+`HEAD` display labels as identity. Its banner caches one background check per
+open-review lease and repository bindings, states check age, and never claims a
+live alias. Explicit recheck/Explorer Ctrl+R or reopen invalidates the cache.
+`sfm:review/freshness/check`, `/details`, `/copy` and current-file Explorer actions
+are ordinary palette actions, also available by clicking the banner or the lens
+control. Late completions for another lease are rejected. The subprocess has a
+30-second deadline and bounded output; failure/older companion is visible as
+unknown. In-game text details are bounded to 64KiB with a full CLI replay command.
+No result changes old comments, approval coverage or the portable review file.
+
+The shared Java/Rust wire fixture is
+`docs/architecture/fixtures/release-review-freshness-v1.json`.
+
 ### Ordinary in-game asynchronous create action
 
 The ordinary command-palette action is:
@@ -367,6 +408,13 @@ comment. `migration_reports` likewise retain evidence and point to an ordinary
 decision comment for every resolved human choice. Neither list contains tags or
 approval state, so neither becomes a second decision authority.
 
+Repeated captures may propose the same deterministic selector ID. When creating
+a new comment, the runtime assigns its persisted proposal a comment-qualified
+identity (`comment-selector:sha256:...`) while retaining every rule, witness and
+provenance field. Thus an approval and a separate note can target identical bytes
+without colliding with the globally addressable migration-source selector IDs.
+Existing persisted identities are not rewritten on load.
+
 ### Queries and resume state
 
 ```text
@@ -426,17 +474,35 @@ comment selection. `effective(#approved)` excludes candidate-only, blocked,
 ambiguous, missing, content-changed, scope-missing, and unconfirmed relocation
 evidence. Raw `#approved` remains queryable so suspension is visible.
 
+Since the exact-coverage correction, intersection alone is never effective
+approval. Union eligible exact approval intervals per pinned document revision,
+subtract blocking intervals, and require the union to cover every nonempty
+declared before **and** after range of a unit. Adjacent/overlapping intervals
+normalize; a one-byte gap remains unreviewed. An absent side adds no phantom
+requirement. Missing/unmaterialized sources and empty operation-only domains
+cannot acquire approval through a vacuous range. A materialized side without
+declared ranges falls back to its whole-file domain, not arbitrary overlap.
+An exact partial approval is useful evidence, not a suspended approval.
+
 Required named concepts are `changed-domain`, `approved-raw`,
 `approved-effective`, `remaining`, `blocking`, `suspended`, `missing`,
 `deferred`, `unsupported`, and `stale-producer`.
 
-Every `sfm.release-review-status/1` report carries both redundant counts and
+Every `sfm.release-review-status/2` report carries both redundant counts and
 the canonically ordered review-unit IDs witnessing each of those concepts.
 Counts are never accepted as opaque evidence: an in-game explorer, CLI caller,
 or saved structured artifact can drill from every count to the exact units.
 These reports are derived from the portable document and may be persisted as
 evidence artifacts; they do not become a second approval authority inside the
 document.
+
+Derived status and `sfm.release-review-query/2` outputs also publish
+`surface_coverage`: for each selected unit, `review_unit_id`, `bounded`, and
+normalized `required`, `approved`, `remaining` ranges. Each range includes its
+document revision and half-open UTF-8 byte bounds. These are per-unit byte
+witnesses, not a sum-over-units percentage (units can overlap). The in-game
+query/status Explorer exposes remaining ranges as exact source links. The
+durable `sfm.release-review/1` ledger schema is unchanged.
 
 ### Producer generations and completion
 
@@ -479,6 +545,11 @@ gutter marker, priority, and enabled state cannot stale an otherwise matching
 attestation. Changing a comment, selector target, completion policy, named
 query, producer generation, repository/corpus binding, or other semantic input
 does change the hash and invalidates prior attestations.
+
+The exact-coverage implementation uses the domain prefix
+`sfm.release-review/1:semantic-state:exact-coverage/2` followed by a newline.
+Legacy overlap-based attestations therefore do not silently validate under the
+stronger completion calculation, even when the comments themselves are unchanged.
 
 Tests/build cleanliness never imply approval. CLI status exits non-success for
 `in_progress` or `stale`. The goal that introduced this contract deliberately

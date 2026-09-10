@@ -14,12 +14,38 @@ class SFMWorkspaceBoundedChoiceTests {
     @Test
     void f3OffersEachSizeDisplayPlacementExactlyOnce() {
         assertEquals(List.of(
+                "sfm action invoke sfm:panel/open/right sfm:input_diagnostics",
+                "sfm action invoke sfm:overlay/visibility/toggle id(sfm%3Afps)",
                 "sfm action invoke sfm:panel/open sfm:size_display",
                 "sfm action invoke sfm:panel/open/left sfm:size_display",
                 "sfm action invoke sfm:panel/open/right sfm:size_display",
                 "sfm action invoke sfm:panel/open/above sfm:size_display",
                 "sfm action invoke sfm:panel/open/below sfm:size_display"
         ), SFMScreenMultiplexer.diagnosticChoices().stream().map(choice -> choice.command()).toList());
+    }
+
+    @Test
+    void f3NamesTheFpsToggleWithoutExposingSelectorSyntaxAsItsPrimaryLabel() {
+        var choice = SFMScreenMultiplexer.diagnosticChoices().get(1);
+
+        assertEquals("Toggle FPS overlay", choice.displayText());
+        assertEquals(
+                "sfm action invoke sfm:overlay/visibility/toggle id(sfm%3Afps)",
+                choice.command()
+        );
+    }
+
+    @Test
+    void f3TreatsInputDiagnosticsAsARealToggleablePanel() {
+        var diagnostics = new ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMInputDiagnosticsPanel();
+        try {
+            assertEquals(
+                    "sfm action invoke sfm:panel/close",
+                    SFMScreenMultiplexer.diagnosticChoices(diagnostics).get(0).command()
+            );
+        } finally {
+            diagnostics.closed();
+        }
     }
 
     @Test

@@ -467,15 +467,44 @@ fn game_puppet_completion_requires_an_explicit_success_marker() {
     let launch_log = Path::new("preview-launch.log");
     validate_game_puppet_completion(
         "SFM_GAME_PUPPET_COMPLETE failed=0 total=1\nSFM_GAME_PUPPET_VIEWPORT_RESTORED actual_width=1280 actual_height=720",
-        launch_log
+        launch_log,
+        GamePuppetKeepOpen::None,
     )
     .unwrap();
     assert!(validate_game_puppet_completion(
         "SFM_GAME_PUPPET_FAILED puppet=example action=capture error=timeout\nSFM_GAME_PUPPET_COMPLETE failed=1 total=1",
-        launch_log
+        launch_log,
+        GamePuppetKeepOpen::None,
     )
     .is_err());
-    assert!(validate_game_puppet_completion("ordinary client exit", launch_log).is_err());
+    assert!(validate_game_puppet_completion("ordinary client exit", launch_log, GamePuppetKeepOpen::None).is_err());
+}
+
+#[test]
+fn game_puppet_hold_requires_complete_assertions_and_matching_explicit_viewport_evidence() {
+    let launch_log = Path::new("held-preview.log");
+    let complete = "SFM_GAME_PUPPET_COMPLETE failed=0 total=2";
+    let viewport = "SFM_GAME_PUPPET_VIEWPORT_RETAINED keep_open_seconds=-1 variant=1920x1080@3 actual_width=1920 actual_height=1080 framebuffer_width=1920 framebuffer_height=1080 requested_gui_scale=3 effective_gui_scale=3 logical_width=640 logical_height=360";
+    let held = format!("SFM_GAME_PUPPET_SUCCEEDED puppet=last\n{complete}\n{viewport}\nSFM_GAME_PUPPET_KEEP_FINAL_WORLD_OPEN");
+    validate_game_puppet_completion(&held, launch_log, GamePuppetKeepOpen::Forever).unwrap();
+    assert!(validate_game_puppet_completion(&held, launch_log, GamePuppetKeepOpen::None).is_err());
+    assert!(validate_game_puppet_completion(&held, launch_log, GamePuppetKeepOpen::Countdown { seconds: 5 }).is_err());
+    let countdown = held.replace("keep_open_seconds=-1", "keep_open_seconds=5");
+    validate_game_puppet_completion(&countdown, launch_log, GamePuppetKeepOpen::Countdown { seconds: 5 }).unwrap();
+    validate_game_puppet_completion(&format!("{countdown}\nSFM_GAME_PUPPET_VIEWPORT_RESTORED actual_width=1280 actual_height=720"), launch_log, GamePuppetKeepOpen::Countdown { seconds: 5 }).unwrap();
+    for invalid in [
+        held.replace(complete, "SFM_GAME_PUPPET_SUCCEEDED puppet=last"),
+        held.replace("failed=0", "failed=1"),
+        held.replace("total=2", "total=0"),
+        held.replace("COMPLETE failed", "COMPLETE_PENDING failed"),
+        held.replace("effective_gui_scale=3", "effective_gui_scale=0"),
+        held.replace("logical_width=640", "logical_width=unknown"),
+        format!("{held}\n{complete}"),
+        format!("{held}\nSFM_GAME_PUPPET_FAILED puppet=earlier error=assertion"),
+        format!("{held}\n{viewport}"),
+    ] {
+        assert!(validate_game_puppet_completion(&invalid, launch_log, GamePuppetKeepOpen::Forever).is_err(), "accepted invalid held output: {invalid}");
+    }
 }
 
 #[test]
@@ -789,6 +818,36 @@ fn split_minecraft_runtime_keeps_duplicate_vanilla_resources() {
         "META-INF/services/example.Service",
         &neoforge_entries
     ));
+}
+
+#[test]
+fn junit_runtime_includes_vanilla_resources_and_preserves_project_precedence() {
+    let project = PathBuf::from("project");
+    let resources = PathBuf::from("run/client-extra.jar");
+    let classpath = super::build_junit_runtime_classpath(
+        &project,
+        resources.clone(),
+        [
+            PathBuf::from("forge/dev-compile.jar"),
+            project.join("classes"),
+            resources.clone(),
+            PathBuf::from("junit-api.jar"),
+            PathBuf::from("junit-api.jar"),
+        ],
+    );
+
+    assert_eq!(
+        classpath,
+        vec![
+            project.join("test/classes"),
+            project.join("test/resources"),
+            project.join("staged-resources"),
+            project.join("classes"),
+            resources,
+            PathBuf::from("forge/dev-compile.jar"),
+            PathBuf::from("junit-api.jar"),
+        ]
+    );
 }
 
 #[test]

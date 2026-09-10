@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.client.theme;
 
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
+import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewRuleCodec;
+import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewExpression;
 
 import java.util.Comparator;
 import java.util.Map;
@@ -24,20 +26,30 @@ public final class SFMClientThemeTomlWriter {
                     .append(", underlined = ").append(style.underlined()).append(" }\n");
         });
         out.append("\n[icons.files]\n");
-        theme.fileIcons().entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry ->
-                out.append(quoted(entry.getKey())).append(" = ")
-                        .append(quoted(entry.getValue().requestedItem().toString())).append('\n'));
+        theme.fileIcons().entrySet().stream().filter(entry -> theme.explicitFileIcons().contains(entry.getKey()))
+                .sorted(Map.Entry.comparingByKey()).forEach(entry ->
+                appendIcon(out, quoted(entry.getKey()), entry.getValue()));
         out.append("\n[icons.actions]\n");
         theme.actionIcons().entrySet().stream()
                 .sorted(Comparator.comparing(entry -> entry.getKey().toString()))
-                .forEach(entry -> out.append(quoted(entry.getKey().toString())).append(" = ")
-                        .append(quoted(entry.getValue().requestedItem().toString())).append('\n'));
+                .forEach(entry -> appendIcon(out, quoted(entry.getKey().toString()), entry.getValue()));
+        if (!theme.previewRules().isEmpty()) out.append('\n').append(SFMItemstackPreviewRuleCodec.write(theme.previewRules()));
         return out.toString();
+    }
+
+    private static void appendIcon(StringBuilder out, String key, SFMItemIcon icon) {
+        out.append(key).append(" = { item = ")
+                .append(quoted(icon.requestedItem().toString()))
+                .append(", fallback = ")
+                .append(quoted(icon.fallbackItem().toString()))
+                .append(", label = ")
+                .append(quoted(icon.accessibleLabel()))
+                .append(" }\n");
     }
 
     private static String hex(int argb) { return String.format("#%08X", argb); }
 
     private static String quoted(String value) {
-        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+        return SFMItemstackPreviewExpression.quote(value);
     }
 }

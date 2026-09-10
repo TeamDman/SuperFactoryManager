@@ -27,6 +27,10 @@ public final class SFMKeyboardUsageSituations {
     public static final ResourceLocation TEMPORAL_DOCUMENT = new ResourceLocation(SFM.MOD_ID, "temporal_document");
     public static final ResourceLocation COMMAND_PALETTE = new ResourceLocation(SFM.MOD_ID, "command_palette");
     public static final ResourceLocation TERMINAL = new ResourceLocation(SFM.MOD_ID, "terminal");
+    public static final ResourceLocation EXPLORER = new ResourceLocation(SFM.MOD_ID, "explorer");
+    public static final ResourceLocation EXPLORER_SEARCH = new ResourceLocation(SFM.MOD_ID, "explorer_search");
+    public static final ResourceLocation EXPLORER_FIND = new ResourceLocation(SFM.MOD_ID, "explorer_find");
+    public static final ResourceLocation EXPLORER_FILTER = new ResourceLocation(SFM.MOD_ID, "explorer_filter");
 
     private SFMKeyboardUsageSituations() {
     }
@@ -91,6 +95,14 @@ public final class SFMKeyboardUsageSituations {
                 Component.literal("SFM terminal"),
                 Component.literal("Active while the Rust terminal viewport owns keyboard input"),
                 List.of(DEFAULT)));
+        values.put(EXPLORER, new SFMKeyboardUsageSituation(Component.literal("Explorer"),
+                Component.literal("An Explorer panel owns keyboard input"), List.of(DEFAULT)));
+        values.put(EXPLORER_SEARCH, new SFMKeyboardUsageSituation(Component.literal("Explorer search input"),
+                Component.literal("Find or Filter owns keyboard input"), List.of(EXPLORER)));
+        values.put(EXPLORER_FIND, new SFMKeyboardUsageSituation(Component.literal("Explorer Find"),
+                Component.literal("Non-hiding Find input owns keyboard input"), List.of(EXPLORER_SEARCH)));
+        values.put(EXPLORER_FILTER, new SFMKeyboardUsageSituation(Component.literal("Explorer Filter"),
+                Component.literal("Filter input owns keyboard input"), List.of(EXPLORER_SEARCH)));
         return Map.copyOf(values);
     }
 

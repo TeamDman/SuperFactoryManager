@@ -25,6 +25,38 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMReleaseReviewCommentDraftServiceTests {
+    @Test
+    void recentTemplatesUseHumanProvenancePreserveExactTextAndDeduplicateNewestFirst() {
+        String exact = "  #release-change Generated review unit is a phrase I wrote.\n雪😀  ";
+        var comments = List.of(template("1", "human", "old"),
+                template("2", "human", exact), template("3", "generated", "not a template"),
+                template("4", "human", "old"), template("5", "automation", "#approved"));
+        assertEquals(List.of("old", exact), SFMReleaseReviewCommentDraftService.recentHumanTemplates(comments));
+        assertEquals(exact, comments.get(1).text(), "presentation must not rewrite stored comments");
+        assertTrue(SFMReleaseReviewCommentDraftService.recentHumanTemplates(
+                List.of(template("6", "generated", "ordinary-looking prose"))).isEmpty());
+    }
+
+    @Test
+    void recentHumanTemplateCountIsBoundedWithoutGeneratedRecordsConsumingSlots() {
+        var comments = new ArrayList<ca.teamdman.sfm.client.review.session.SFMReviewSessionV2.Comment>();
+        for (int i = 0; i < 10; i++) {
+            comments.add(template("h" + i, "human", "Note " + i));
+            comments.add(template("g" + i, "generated", "Generated " + i));
+        }
+        assertEquals(List.of("Note 9", "Note 8", "Note 7", "Note 6", "Note 5"),
+                SFMReleaseReviewCommentDraftService.recentHumanTemplates(comments));
+    }
+
+    private static ca.teamdman.sfm.client.review.session.SFMReviewSessionV2.Comment template(
+            String id, String kind, String text
+    ) {
+        return new ca.teamdman.sfm.client.review.session.SFMReviewSessionV2.Comment(id, text,
+                new ca.teamdman.sfm.client.review.session.SFMReviewSessionV1.Provenance(kind, "test", "1", List.of()),
+                new ca.teamdman.sfm.client.review.session.SFMReviewSessionV2.CommittedReviewTarget(
+                        new ca.teamdman.sfm.client.review.session.SFMReviewSessionV1.Union(List.of())));
+    }
+
     private final SFMReleaseReviewRuntime runtime = SFMReleaseReviewRuntime.get();
     private final SFMReleaseReviewCommentDraftService service =
             new SFMReleaseReviewCommentDraftService(runtime);
@@ -78,6 +110,32 @@ class SFMReleaseReviewCommentDraftServiceTests {
     }
 
     @Test
+    void multipleCommentsMayReuseTheSameCapturedProposal(@TempDir Path directory) throws Exception {
+        Path file = copyFixture(directory);
+        runtime.open(file, true);
+        var capture = firstCapture(runtime.document().orElseThrow());
+        var proposal = literalProposal(capture);
+        var first = service.apply(service.create(capture, proposal).id(), "#approved First annotation");
+        assertTrue(first.mutation().saved(), first.mutation().failure().orElse(""));
+        var coverage = SFMReleaseReviewKernel.completion(runtime.document().orElseThrow()).surfaceCoverage();
+        var second = service.apply(service.create(capture, proposal).id(), "A separate explanatory note");
+        assertTrue(second.mutation().saved(), second.mutation().failure().orElse(""));
+        runtime.discardAndClose();
+        runtime.open(file, false);
+        var review = runtime.document().orElseThrow();
+        var bindings = review.selectorBindings().stream().filter(binding ->
+                binding.commentId().equals(first.commentId()) || binding.commentId().equals(second.commentId())).toList();
+        assertEquals(2, bindings.size());
+        assertEquals(2, bindings.stream().map(binding -> binding.selectedProposal().id()).distinct().count());
+        for (var binding : bindings) {
+            assertEquals(proposal.literalWitness(), binding.capturedSelection());
+            assertEquals(proposal.selectionRule(), binding.selectedProposal().selectionRule());
+            assertEquals(proposal.projectionFingerprint(), binding.selectedProposal().projectionFingerprint());
+        }
+        assertEquals(coverage, SFMReleaseReviewKernel.completion(review).surfaceCoverage());
+    }
+
+    @Test
     void draftRegistryIsBoundedAndCancellationIsOneShot(@TempDir Path directory) throws Exception {
         Path file = copyFixture(directory);
         runtime.open(file, true);
@@ -95,7 +153,7 @@ class SFMReleaseReviewCommentDraftServiceTests {
         assertFalse(service.cancel(newest));
     }
 
-    private static SFMReleaseReviewV1.SelectorProposal literalProposal(
+    static SFMReleaseReviewV1.SelectorProposal literalProposal(
             SFMReleaseReviewEditorCapture.Capture capture
     ) {
         return capture.proposals().proposals().stream()
@@ -103,7 +161,7 @@ class SFMReleaseReviewCommentDraftServiceTests {
                 .findFirst().orElseThrow();
     }
 
-    private static SFMReleaseReviewEditorCapture.Capture firstCapture(SFMReleaseReviewV1 review) {
+    static SFMReleaseReviewEditorCapture.Capture firstCapture(SFMReleaseReviewV1 review) {
         SFMReleaseReviewCorpus.DocumentView document = review.corpusDocuments().stream()
                 .filter(value -> value.materialization() == SFMReleaseReviewV1.Materialization.COMPLETE)
                 .map(value -> SFMReleaseReviewCorpus.from(review).documentRevision(value.documentRevisionId()))
@@ -151,7 +209,7 @@ class SFMReleaseReviewCommentDraftServiceTests {
         );
     }
 
-    private static Path copyFixture(Path directory) throws Exception {
+    static Path copyFixture(Path directory) throws Exception {
         Path copy = directory.resolve("comment-loop.sfm-review.json");
         Files.copy(fixturePath(), copy);
         return copy;

@@ -1,16 +1,18 @@
 package ca.teamdman.sfm.client.action;
 
-import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
-import ca.teamdman.sfm.client.screen.SFMTitleScreenDevScreen;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.client.gui.screens.TitleScreen;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.network.chat.Component;
 
 import java.util.Objects;
 
-public final class OpenTitleScreenDevScreenAction implements SFMClientAction<TitleScreen> {
+/**
+ * Transitional developer entry point that delegates to the canonical panel
+ * action instead of replacing Minecraft's current screen.
+ */
+public final class OpenDeveloperPanelAction implements SFMClientAction<SFMClientActionContext> {
     @SFMLocalizationDatagen
     public static final LocalizationEntry TEXT_EDITOR_TITLE = new LocalizationEntry(
             "gui.sfm.client_action.developer.text_editor.title",
@@ -32,42 +34,59 @@ public final class OpenTitleScreenDevScreenAction implements SFMClientAction<Tit
     @SFMLocalizationDatagen
     public static final LocalizationEntry INPUT_DIAGNOSTICS_DESCRIPTION = new LocalizationEntry(
             "gui.sfm.client_action.developer.input_diagnostics.description",
-            "Open the SFM input diagnostics screen"
+            "Open the SFM input diagnostics panel"
     );
 
-    private final SFMTitleScreenDevScreen devScreen;
+    private final Scene scene;
 
-    public OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen devScreen) {
-        this.devScreen = Objects.requireNonNull(devScreen);
+    public OpenDeveloperPanelAction(Scene scene) {
+        this.scene = Objects.requireNonNull(scene);
     }
 
     @Override
     public Component title() {
-        return switch (devScreen) {
+        return switch (scene) {
             case TEXT_EDITOR -> TEXT_EDITOR_TITLE.getComponent();
-            case INPUT_DIAG -> INPUT_DIAGNOSTICS_TITLE.getComponent();
+            case INPUT_DIAGNOSTICS -> INPUT_DIAGNOSTICS_TITLE.getComponent();
         };
     }
 
     @Override
     public Component description() {
-        return switch (devScreen) {
+        return switch (scene) {
             case TEXT_EDITOR -> TEXT_EDITOR_DESCRIPTION.getComponent();
-            case INPUT_DIAG -> INPUT_DIAGNOSTICS_DESCRIPTION.getComponent();
+            case INPUT_DIAGNOSTICS -> INPUT_DIAGNOSTICS_DESCRIPTION.getComponent();
         };
     }
 
     @Override
-    public SFMClientActionRequirement<TitleScreen> requirement() {
-        return SFMDeveloperActionRequirement::resolve;
+    public SFMClientActionRequirement<SFMClientActionContext> requirement() {
+        return context -> context.originatingHostIsCurrent().getAsBoolean()
+                ? SFMClientActionAvailability.available(context)
+                : SFMClientActionAvailability.unavailable(
+                        SFMClientActionContext.ORIGINATING_HOST_CHANGED.getComponent());
     }
 
     @Override
     public int execute(
-            TitleScreen target,
+            SFMClientActionContext target,
             CommandContext<SFMClientActionSource> context
-    ) {
-        SFMScreenChangeHelpers.setScreen(devScreen.create(target));
-        return 1;
+    ) throws CommandSyntaxException {
+        return SFMClientActionExecutor.execute(
+                "sfm action invoke sfm:panel/open " + scene.sceneId,
+                target,
+                context.getSource().feedback()
+        );
+    }
+
+    public enum Scene {
+        TEXT_EDITOR("sfm:text_editor"),
+        INPUT_DIAGNOSTICS("sfm:input_diagnostics");
+
+        private final String sceneId;
+
+        Scene(String sceneId) {
+            this.sceneId = sceneId;
+        }
     }
 }

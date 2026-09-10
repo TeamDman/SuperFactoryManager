@@ -637,6 +637,7 @@ public final class SFMFilesystemExplorerResolver implements SFMExplorerResolver 
                 SFMExplorerEntry.SORT_ICON,
                 SFMExplorerEntry.SortKey.available(directory ? "folder" : iconFor(extension))
         );
+        keys.put(SFMExplorerEntry.SUBJECT_KIND, SFMExplorerEntry.SortKey.available(directory ? "container" : "file"));
         return new SFMExplorerEntry(logicalPath, label, directory, keys, diagnostics);
     }
 

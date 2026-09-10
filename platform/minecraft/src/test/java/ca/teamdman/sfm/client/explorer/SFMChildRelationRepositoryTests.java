@@ -173,6 +173,21 @@ public class SFMChildRelationRepositoryTests {
         assertEquals(Set.of(A_OLD), repository.snapshot().relation().childrenOf(A));
     }
 
+    @Test
+    void activeParentsExposePendingWorkWithoutDiscardingPublishedRows() {
+        SFMChildRelationRepository repository = seeded();
+        SFMChildRelationRepository.Snapshot published = repository.snapshot();
+
+        SFMChildRelationRepository.RefreshTicket refresh = repository.beginRefresh(Set.of(A), 2);
+
+        assertEquals(Set.of(A), repository.activeParents());
+        assertEquals(published.relation(), repository.snapshot().relation(),
+                "starting replacement work must retain the last useful relation");
+
+        repository.publish(refresh, List.of(complete(A, A_NEW, 2)));
+        assertTrue(repository.activeParents().isEmpty());
+    }
+
     private static SFMChildRelationRepository seeded() {
         SFMChildRelationRepository repository = new SFMChildRelationRepository();
         SFMChildRelationRepository.RefreshTicket seed = repository.beginRefresh(Set.of(A), 1);

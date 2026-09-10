@@ -14,6 +14,7 @@ public final class SFMWorkspaceLifecycleActionIds {
     public static final ResourceLocation PANEL_ENTRY_MOVE_RIGHT = id("panel/entry/move/right");
     public static final ResourceLocation PANEL_ENTRY_MOVE_ABOVE = id("panel/entry/move/above");
     public static final ResourceLocation PANEL_ENTRY_MOVE_BELOW = id("panel/entry/move/below");
+    public static final ResourceLocation PANEL_ENTRY_MOVE_TO = id("panel/entry/move/to");
     public static final ResourceLocation PANE_CLOSE = id("pane/close");
     public static final ResourceLocation PANE_CLOSE_CONFIRM = id("pane/close/confirm");
 

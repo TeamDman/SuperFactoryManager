@@ -183,7 +183,9 @@ public final class SFMExplorerPreviewPlacement {
                     .findFirst()
                     .orElse(null);
             if (existing != null) {
-                boolean focused = workspace.focusPanel(mode == Mode.PREVIEW ? explorerPanelId : existing);
+                // Activate the reused tab even when keyboard focus must remain in the Explorer.
+                boolean focused = workspace.focusPanel(existing);
+                if (focused && mode == Mode.PREVIEW) focused = workspace.focusPanel(explorerPanelId);
                 return new Result(
                         focused ? SFMWorkspacePanelIntentResult.APPLIED : SFMWorkspacePanelIntentResult.UNAVAILABLE,
                         existing,

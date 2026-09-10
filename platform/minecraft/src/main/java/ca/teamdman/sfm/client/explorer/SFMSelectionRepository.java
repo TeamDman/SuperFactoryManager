@@ -154,6 +154,7 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
         CREATE,
         ADD,
         REMOVE,
+        REPLACE,
         UNION,
         INTERSECTION,
         DIFFERENCE,
@@ -424,6 +425,12 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             String requestId
     ) {
         return mutateMembers(RequestKind.REMOVE, id, paths, actor, requestId);
+    }
+
+    /** One immutable revision for replacement; never publishes an intermediate empty selection. */
+    public synchronized MutationResult replace(SFMSelectionId id, Collection<SFMPath> paths,
+                                               String actor, String requestId) {
+        return mutateMembers(RequestKind.REPLACE, id, paths, actor, requestId);
     }
 
     public synchronized MutationResult union(
@@ -752,8 +759,11 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
             nextMembers.addAll(operands);
         } else if (kind == RequestKind.REMOVE) {
             nextMembers.removeAll(operands);
+        } else if (kind == RequestKind.REPLACE) {
+            nextMembers.clear();
+            nextMembers.addAll(operands);
         } else {
-            throw new IllegalArgumentException("Member mutation requires add or remove");
+            throw new IllegalArgumentException("Member mutation requires add, remove or replace");
         }
         if (nextMembers.equals(previous.members())) {
             return remember(actor, requestId, signature, result(false, selection, previous, Optional.empty()));
@@ -765,7 +775,8 @@ public final class SFMSelectionRepository implements SFMSelectorRepository<SFMSe
                 new SFMSelectionRevision.Operation(
                         kind == RequestKind.ADD
                                 ? SFMSelectionRevision.OperationKind.ADD
-                                : SFMSelectionRevision.OperationKind.REMOVE,
+                                : kind == RequestKind.REMOVE ? SFMSelectionRevision.OperationKind.REMOVE
+                                : SFMSelectionRevision.OperationKind.REPLACE,
                         List.of(id),
                         operands
                 ),

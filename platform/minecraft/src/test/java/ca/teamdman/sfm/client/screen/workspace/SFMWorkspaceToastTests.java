@@ -27,6 +27,184 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMWorkspaceToastTests {
+    @Test
+    void conciseToastKeepsSeparateDiagnosticAndDoesNotRetargetItsReplacement() throws Exception {
+        var workspace = headlessWorkspace();
+        var id = workspace.showWorkspaceToast("review/failed", Component.literal("Draft retained"), false);
+        String details = "Exact failure\n" + "雪😀".repeat(500);
+        workspace.attachWorkspaceToastDetails(id, details);
+        assertEquals("Draft retained", workspace.workspaceToastSnapshot(id).orElseThrow().text());
+        assertTrue(workspace.workspaceToastChoicesWithPaths(workspace.workspaceToastSnapshot(id).orElseThrow())
+                .stream().anyMatch(choice -> choice.command().equals("sfm action invoke sfm:toast/details/copy " + id.value())));
+        var copied = new AtomicReference<String>();
+        assertTrue(workspace.copyWorkspaceToastDetails(id, copied::set));
+        assertEquals(details, copied.get());
+        assertTrue(workspace.latestWorkspaceToast().orElseThrow().text().startsWith("Copied notification details"));
+        var replacement = workspace.showWorkspaceToast("review/failed", Component.literal("Saved"), false);
+        assertFalse(workspace.copyWorkspaceToastDetails(id, copied::set));
+        assertFalse(workspace.copyWorkspaceToastDetails(replacement, copied::set));
+        assertEquals(details, copied.get());
+    }
+
+    @Test
+    void oversizedDiagnosticIsExplicitlyBoundedWithoutSplittingUnicode() {
+        var content = ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent
+                .capture(Component.literal("Short summary")).withDetails("😀".repeat(40_000));
+        String detail = content.details().orElseThrow();
+        assertTrue(detail.startsWith("😀".repeat(32_768)));
+        assertTrue(detail.endsWith("full payload is in the application log.]"));
+        assertFalse(detail.codePoints().anyMatch(cp -> cp >= 0xD800 && cp <= 0xDFFF));
+    }
+
+    @Test
+    void explicitProducerActionsAreAvailableOnlyOnTheirExactToast() throws Exception {
+        var workspace = headlessWorkspace();
+        var cancel = ca.teamdman.sfm.client.screen.SFMActionChoice.invoke(
+                new ResourceLocation("sfm", "review/session/operation/cancel"), "7", "Cancel pending review operation");
+        var id = workspace.showWorkspaceToast("review/7", Component.literal("Opening…"), false, List.of(cancel));
+        assertEquals(cancel, workspace.workspaceToastChoicesWithPaths(workspace.workspaceToastSnapshot(id).orElseThrow()).get(0));
+        var completed = workspace.showWorkspaceToast("review/7", Component.literal("Opened"), false, List.of());
+        assertTrue(workspace.workspaceToastSnapshot(id).isEmpty());
+        assertFalse(workspace.workspaceToastChoicesWithPaths(workspace.workspaceToastSnapshot(completed).orElseThrow()).contains(cancel));
+        assertThrows(UnsupportedOperationException.class, () -> workspace
+                .workspaceToastChoicesWithPaths(workspace.workspaceToastSnapshot(completed).orElseThrow()).add(cancel));
+    }
+
+    @Test
+    void clipboardVerificationRejectsSilentPlatformFailureAndDoesNotClaimSuccess() throws Exception {
+        AtomicReference<String> clipboard = new AtomicReference<>("old");
+        SFMScreenMultiplexer.verifyClipboardWrite("new", clipboard::set, clipboard::get);
+        assertEquals("new", clipboard.get());
+        assertThrows(IllegalStateException.class, () ->
+                SFMScreenMultiplexer.verifyClipboardWrite("desired", ignored -> { }, clipboard::get));
+        SFMScreenMultiplexer workspace = headlessWorkspace();
+        var path = ca.teamdman.sfm.client.explorer.SFMPath.parse("file:///C:/test.java");
+        var id = workspace.showWorkspaceToast("path",
+                ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage("", path, ""), false);
+        assertFalse(workspace.copyWorkspaceToastPath(id, 0, ignored -> {
+            throw new IllegalStateException("Platform access denied");
+        }));
+        assertTrue(workspace.latestWorkspaceToast().orElseThrow().text().startsWith("Clipboard unavailable"));
+        assertTrue(workspace.workspaceToastSnapshot(id).isPresent());
+        assertFalse(workspace.copyWorkspaceToast(id, ignored -> {
+            throw new IllegalStateException("Platform access denied");
+        }));
+        assertTrue(workspace.latestWorkspaceToast().orElseThrow().text().startsWith("Clipboard unavailable"));
+    }
+
+    @Test
+    void shortPathToastKeepsExactUnicodePathAndCopyConfirmationWithoutFocusLookup() throws Exception {
+        SFMScreenMultiplexer workspace = headlessWorkspace();
+        var path = ca.teamdman.sfm.client.explorer.SFMPath.parse(
+                "file:///C:/a%20long%20directory/another%20directory/%E9%9B%AA.java");
+        var message = ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
+                "Revealed ", path, " in this Explorer");
+        var id = workspace.showWorkspaceToast("path", message, false);
+        assertEquals("Revealed 雪.java in this Explorer", workspace.workspaceToastSnapshot(id).orElseThrow().text());
+        assertEquals(List.of(path), workspace.workspaceToastPaths(id));
+        AtomicReference<String> clipboard = new AtomicReference<>();
+        assertTrue(workspace.copyWorkspaceToastPath(id, 0, clipboard::set));
+        assertEquals(path.canonical(), clipboard.get());
+        assertEquals("Copied full path to the clipboard", workspace.latestWorkspaceToast().orElseThrow().text());
+        assertTrue(workspace.workspaceToastSnapshot(id).isPresent());
+        var choices = workspace.workspaceToastChoicesWithPaths(workspace.workspaceToastSnapshot(id).orElseThrow());
+        assertEquals(6, choices.size());
+        assertTrue(choices.stream().anyMatch(choice -> choice.displayText().equals("Open path as text")));
+        assertTrue(choices.stream().anyMatch(choice -> choice.displayText().equals("Open path in Explorer")));
+    }
+
+    @Test
+    void explicitSourceLabelKeepsOpaqueReviewAddressForActions() throws Exception {
+        SFMScreenMultiplexer workspace = headlessWorkspace();
+        var path = ca.teamdman.sfm.client.explorer.SFMPath.parse("review-tree://review-a/opaque-row-id");
+        var message = ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
+                "Revealed ", path, " in this Explorer", "雪.java");
+        var id = workspace.showWorkspaceToast("path", message, false);
+        assertEquals("Revealed 雪.java in this Explorer", workspace.workspaceToastSnapshot(id).orElseThrow().text());
+        assertEquals(List.of(path), workspace.workspaceToastPaths(id));
+        AtomicReference<String> clipboard = new AtomicReference<>();
+        assertTrue(workspace.copyWorkspaceToastPath(id, 0, clipboard::set));
+        assertEquals(path.canonical(), clipboard.get());
+        var choices = workspace.workspaceToastChoicesWithPaths(workspace.workspaceToastSnapshot(id).orElseThrow());
+        assertTrue(choices.stream().anyMatch(choice -> choice.displayText().equals("Open path in Explorer")));
+        String longLabel = "雪".repeat(100);
+        var bounded = ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
+                "", path, "", longLabel).getString();
+        assertEquals(64, bounded.codePointCount(0, bounded.length()));
+        assertTrue(bounded.endsWith("…"));
+    }
+
+    @Test
+    void replacedOrExpiredPathToastCannotRetargetOrCopyTheReplacement() throws Exception {
+        MutableNanoClock clock = new MutableNanoClock();
+        SFMScreenMultiplexer workspace = headlessWorkspace(new SFMWorkspaceToastQueue(clock));
+        var one = ca.teamdman.sfm.client.explorer.SFMPath.parse("file:///C:/one.java");
+        var two = ca.teamdman.sfm.client.explorer.SFMPath.parse("file:///C:/two.java");
+        var old = workspace.showWorkspaceToast("path",
+                ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage("", one, ""), false);
+        var current = workspace.showWorkspaceToast("path",
+                ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage("", two, ""), false);
+        AtomicInteger writes = new AtomicInteger();
+        assertFalse(workspace.copyWorkspaceToastPath(old, 0, ignored -> writes.incrementAndGet()));
+        assertEquals(List.of(two), workspace.workspaceToastPaths(current));
+        clock.advanceMillis(9_000);
+        assertFalse(workspace.copyWorkspaceToastPath(current, 0, ignored -> writes.incrementAndGet()));
+        assertTrue(workspace.workspaceToastPaths(current).isEmpty());
+        assertEquals(0, writes.get());
+    }
+
+    @Test
+    void capturedComponentsAreDetachedAndDoNotInterpretArbitraryCommandsOrPlainPaths() {
+        var path = ca.teamdman.sfm.client.explorer.SFMPath.parse("file:///C:/folder/hello.java");
+        var mutable = Component.literal("Opening ").append(
+                ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage("", path, ""));
+        var captured = ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.capture(mutable);
+        mutable.append(" changed later");
+        assertEquals("Opening hello.java", captured.component().getString());
+        assertEquals(List.of(path), captured.paths());
+        var dangerous = Component.literal("file:///C:/not-a-link").withStyle(style -> style.withClickEvent(
+                new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND,
+                        "/stop")));
+        var safe = ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.capture(dangerous);
+        assertTrue(safe.paths().isEmpty());
+        safe.component().visit((style, text) -> {
+            assertEquals(null, style.getClickEvent());
+            return java.util.Optional.empty();
+        }, net.minecraft.network.chat.Style.EMPTY);
+    }
+
+    @Test
+    void pathMetadataAndUnicodeLabelsStayBounded() {
+        var message = Component.empty();
+        for (int i = 0; i < 20; i++) {
+            message.append(ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage("",
+                    ca.teamdman.sfm.client.explorer.SFMPath.parse("file:///C:/" + i + ".java"), " "));
+        }
+        var captured = ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.capture(message);
+        assertEquals(8, captured.paths().size());
+        var longText = ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.capture(
+                Component.literal("😀".repeat(600)));
+        assertEquals(512, longText.component().getString().codePointCount(0, longText.component().getString().length()));
+        assertTrue(longText.component().getString().endsWith("…"));
+    }
+
+    @Test
+    void pathActionsExposeCompleteCanonicalGrammarAndRejectMissingOrNegativeIndices() {
+        for (var operation : ca.teamdman.sfm.client.action.SFMToastPathAction.Operation.values()) {
+            var dispatcher = new com.mojang.brigadier.CommandDispatcher<SFMClientActionSource>();
+            var node = com.mojang.brigadier.builder.LiteralArgumentBuilder.<SFMClientActionSource>literal("action");
+            new ca.teamdman.sfm.client.action.SFMToastPathAction(operation).configureCommandNode(node);
+            dispatcher.register(node);
+            var source = new SFMClientActionSource(new SFMClientActionContext(null, () -> true, null));
+            assertTrue(ca.teamdman.sfm.client.action.SFMClientActionExecutor.isExecutable(
+                    dispatcher.parse("action 123 0", source)));
+            for (String invalid : List.of("action", "action 123", "action 0 0", "action 123 -1", "action 123 8")) {
+                assertFalse(ca.teamdman.sfm.client.action.SFMClientActionExecutor.isExecutable(
+                        dispatcher.parse(invalid, source)), operation + ": " + invalid);
+            }
+        }
+    }
+
     private static final long MILLIS = 1_000_000L;
 
     @Test

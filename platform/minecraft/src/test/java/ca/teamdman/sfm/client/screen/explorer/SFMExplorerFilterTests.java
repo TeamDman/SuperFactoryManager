@@ -57,6 +57,7 @@ public class SFMExplorerFilterTests {
         );
         SFMExplorerPanelModel model = new SFMExplorerPanelModel(session, loader, ignored -> {});
 
+        session.setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions.legacyFuzzy());
         session.setFilterQuery("SFM");
         SFMExplorerPanelModel.State filtered = model.state(BOUNDS);
 

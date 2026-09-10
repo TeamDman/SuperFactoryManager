@@ -33,6 +33,8 @@ public final class SFMReviewActions {
             SFMCandidateCommentAction.Kind.MIGRATE_WITNESSED);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_CREATE = register(
             SFMReleaseReviewAction.Kind.CREATE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_CREATE_WORKING_TREE = register(
+            SFMReleaseReviewAction.Kind.CREATE_WORKING_TREE);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_OPEN = register(
             SFMReleaseReviewAction.Kind.OPEN);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_OPEN_READ_ONLY = register(
@@ -43,6 +45,8 @@ public final class SFMReviewActions {
             SFMReleaseReviewAction.Kind.OPEN_READ_ONLY_VIEW);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_SAVE = register(
             SFMReleaseReviewAction.Kind.SAVE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_CANCEL_OPERATION = register(
+            SFMReleaseReviewAction.Kind.CANCEL_OPERATION);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_SAVE_AS = register(
             SFMReleaseReviewAction.Kind.SAVE_AS);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_QUERY = register(
@@ -65,6 +69,8 @@ public final class SFMReviewActions {
             SFMReleaseReviewAction.Kind.DEFER);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_RESUME = register(
             SFMReleaseReviewAction.Kind.RESUME);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_SHOW_CURRENT = register(
+            SFMReleaseReviewAction.Kind.SHOW_CURRENT);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_COMMENT_CREATE = register(
             SFMReleaseReviewAction.Kind.COMMENT_CREATE);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewAction> RELEASE_MIGRATION_DECIDE = register(
@@ -73,6 +79,28 @@ public final class SFMReviewActions {
             SFMReleaseReviewAction.Kind.ATTEST);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReviewLensSetAction> RELEASE_LENS_SET =
             REGISTERER.register("review/lens/set", SFMReviewLensSetAction::new);
+    static {
+        REGISTERER.register("review/evidence/open", SFMReviewOfflineOpenAction::new);
+        for (var kind : SFMReviewEvidenceExportAction.Kind.values()) {
+            REGISTERER.register(kind.id().getPath(), () -> new SFMReviewEvidenceExportAction(kind));
+        }
+        for (var kind : SFMReviewMigrationAction.Kind.values()) {
+            REGISTERER.register(kind.id().getPath(), () -> new SFMReviewMigrationAction(kind));
+        }
+        for (var kind : SFMReviewStorageAction.Kind.values()) {
+            REGISTERER.register(kind.id().getPath(), () -> new SFMReviewStorageAction(kind));
+        }
+        for (var kind : SFMReviewFreshnessAction.Kind.values()) {
+            REGISTERER.register(kind.id().getPath(), () -> new SFMReviewFreshnessAction(kind));
+        }
+    }
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReviewRemainingWorkAction> RELEASE_REMAINING_WORK =
+            REGISTERER.register("review/work/remaining", SFMReviewRemainingWorkAction::new);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReviewChangesLayoutSetAction>
+            RELEASE_CHANGES_LAYOUT_SET = REGISTERER.register(
+                    "review/changes/layout/set",
+                    SFMReviewChangesLayoutSetAction::new
+            );
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentChoiceAction>
             RELEASE_COMMENT_CHOICE_OPEN = register(SFMReleaseReviewCommentChoiceAction.Kind.OPEN);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentChoiceAction>
@@ -84,6 +112,11 @@ public final class SFMReviewActions {
     public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentChoiceAction>
             RELEASE_COMMENT_CHOICE_REOPEN_WRITABLE = register(
                     SFMReleaseReviewCommentChoiceAction.Kind.REOPEN_WRITABLE);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentDetailsAction>
+            RELEASE_COMMENT_DETAILS_OPEN = REGISTERER.register(
+                    "review/comment/details/open",
+                    SFMReleaseReviewCommentDetailsAction::new
+            );
 
     private SFMReviewActions() {
     }

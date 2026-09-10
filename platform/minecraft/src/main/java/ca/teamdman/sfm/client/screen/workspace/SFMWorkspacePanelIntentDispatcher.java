@@ -33,6 +33,11 @@ public final class SFMWorkspacePanelIntentDispatcher {
                     ? new Outcome(SFMWorkspacePanelIntentResult.APPLIED, null, null, null, true)
                     : Outcome.unavailable();
         }
+        if (intent instanceof SFMWorkspacePanelIntent.MoveToStack move) {
+            return layout.moveToStack(source, move.destination())
+                    ? new Outcome(SFMWorkspacePanelIntentResult.APPLIED, null, null, null, true)
+                    : Outcome.unavailable();
+        }
         layout.remove(source);
         return new Outcome(SFMWorkspacePanelIntentResult.APPLIED, null, source, sourcePanel, false);
     }

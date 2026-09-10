@@ -11,9 +11,22 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMOverlaySceneContractTests {
+    @Test
+    public void defaultScenePublishesHiddenAddressableHistoryAndFpsOverlays() {
+        SFMOverlaySceneContract.SceneState defaults = SFMOverlaySceneContract.SceneState.defaults();
+
+        assertEquals(2, defaults.overlays().size());
+        var fps = defaults.overlay(new SFMOverlaySceneContract.OverlayInstanceId(
+                SFMOverlaySceneContract.FPS_OVERLAY_ID)).orElseThrow();
+        assertEquals(SFMOverlaySceneContract.FPS_RECIPE_ID, fps.recipe().contentId());
+        assertFalse(fps.visible());
+        assertEquals(SFMOverlaySceneContract.InputMode.PASSIVE, fps.inputMode());
+    }
+
     @Test
     public void genericOverlayHostRegistersBothMachineAndOrdinaryDocumentHistoryContent() {
         SFMClientOverlayRuntime runtime = new SFMClientOverlayRuntime();
@@ -21,6 +34,7 @@ public class SFMOverlaySceneContractTests {
         assertTrue(runtime.registeredContentIds().contains(SFMOverlaySceneContract.HISTORY_RECIPE_ID));
         assertTrue(runtime.registeredContentIds().contains(
                 SFMOverlaySceneContract.DOCUMENT_HISTORY_RECIPE_ID));
+        assertTrue(runtime.registeredContentIds().contains(SFMOverlaySceneContract.FPS_RECIPE_ID));
     }
 
     @Test

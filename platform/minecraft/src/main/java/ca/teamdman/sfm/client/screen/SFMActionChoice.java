@@ -5,11 +5,21 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.Objects;
 
 /** One exact registered client-action invocation exposed by a constrained palette. */
-public record SFMActionChoice(ResourceLocation actionId, String command, String displayText) {
+public record SFMActionChoice(ResourceLocation actionId, String command, String displayText, boolean continuation) {
     private static final String ACTION_PREFIX = "sfm action invoke ";
 
     public SFMActionChoice(ResourceLocation actionId, String command) {
         this(actionId, command, defaultDisplayText(command));
+    }
+
+    public SFMActionChoice(ResourceLocation actionId, String command, String displayText) {
+        this(actionId, command, displayText, false);
+    }
+
+    /** Select to construct a command, never to execute an incomplete mutation. */
+    public static SFMActionChoice continuation(ResourceLocation actionId, String arguments, String displayText) {
+        SFMActionChoice exact = invoke(actionId, arguments, displayText);
+        return new SFMActionChoice(actionId, exact.command(), displayText, true);
     }
 
     public SFMActionChoice {

@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.review.release_review;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentLanguage;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 
 import java.io.ByteArrayOutputStream;
@@ -116,7 +117,7 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
         SFMTextDocumentSnapshot snapshot() {
             SFMTextDocumentSnapshot pinned = SFMTextDocumentSnapshot.pinned(
                     identity.path(), authorizedRoot, surface.text(), identity.snapshotSha256(),
-                    Optional.empty(), Optional.empty());
+                    Optional.empty(), Optional.empty(), Optional.empty(), SFMTextDocumentLanguage.diff());
             if (!pinned.ready() || surface.diagnostics().isEmpty()) return pinned;
             List<String> diagnostics = surface.diagnostics().stream()
                     .map(SFMReleaseReviewSurfaceV1.Diagnostic::displayText)
@@ -124,7 +125,8 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
             return new SFMTextDocumentSnapshot(
                     pinned.state(), pinned.text(), pinned.mutationCapability(), pinned.path(), pinned.authorizedRoot(),
                     pinned.sha256(), pinned.byteLength(), pinned.lastModified(), pinned.lineEndingKind(),
-                    pinned.targetRange(), diagnostics, pinned.sourceRootIdentity(), pinned.analysisIdentity());
+                    pinned.targetRange(), diagnostics, pinned.sourceRootIdentity(), pinned.analysisIdentity(),
+                    pinned.language());
         }
     }
 
@@ -161,6 +163,15 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
     private final Map<String, CompletableFuture<GeneratedDocument>> cache = new ConcurrentHashMap<>();
     private final Map<GeneratedDocumentIdentity, SFMReleaseReviewSurfaceV1.Surface> sourceMaps =
             new ConcurrentHashMap<>();
+    public record SplitDocument(SFMReleaseReviewSplitLayout layout, SFMReleaseReviewSurfaceV1.FilePair pair,
+                                SFMReleaseReviewSurfaceV1.Surface surface) { }
+    private final Map<GeneratedDocumentIdentity, SplitDocument> splitDocuments = new ConcurrentHashMap<>();
+
+    public Optional<SplitDocument> splitDocument(SFMTextDocumentSnapshot snapshot) {
+        if (!snapshot.ready() || snapshot.path().isEmpty() || snapshot.sha256().isEmpty()) return Optional.empty();
+        return Optional.ofNullable(splitDocuments.get(new GeneratedDocumentIdentity(
+                snapshot.path().orElseThrow(), snapshot.sha256().orElseThrow())));
+    }
 
     private SFMReleaseReviewSurfaceRuntime() {
         this(Configuration.defaults(), Executors.newFixedThreadPool(2, daemonThreads("sfm-review-surface")),
@@ -230,8 +241,12 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
         CompletableFuture<GeneratedDocument> created = CompletableFuture.supplyAsync(() -> {
             cancellation.throwIfCancelled();
             long requestId = nextRequestId();
+            long startedAtNanos = System.nanoTime();
             SFMReleaseReviewSurfaceV1.Request request = recipe.request(requestId, reviewGeneration);
             submitted.incrementAndGet();
+            SFM.LOGGER.info(
+                    "SFM_REVIEW_SURFACE_REQUEST_STARTED request={} review_generation={} pair={} kind={}",
+                    requestId, reviewGeneration, recipe.filePair().id(), recipe.surfaceKind().wireName());
             try {
                 ProcessResult process = generator.invoke(
                         configuration,
@@ -259,7 +274,8 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
                     surface.validateAgainst(request);
                 } catch (IllegalArgumentException invalid) {
                     throw new SurfaceUnavailableException(
-                            "review.surface.invalid-output", "Review-surface process returned invalid or stale output",
+                            "review.surface.invalid-output", "Review-surface process returned invalid or stale output: "
+                                    + invalid.getMessage(),
                             invalid);
                 }
                 if (!surface.complete()) {
@@ -276,24 +292,60 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
                         surface
                 );
                 sourceMaps.put(answer.identity(), surface);
+                if (recipe.split()) splitDocuments.put(answer.identity(), new SplitDocument(
+                        SFMReleaseReviewSplitLayout.from(surface, request), recipe.filePair(), surface));
                 completed.incrementAndGet();
                 SFM.LOGGER.info(
-                        "SFM_REVIEW_SURFACE_GENERATED pair={} kind={} outcome={} mappings={} regions={}",
-                        recipe.filePair().id(), recipe.surfaceKind().wireName(), surface.outcome().wireName(),
-                        surface.mappings().size(), surface.regions().size());
+                        "SFM_REVIEW_SURFACE_REQUEST_COMPLETED request={} review_generation={} pair={} kind={} "
+                                + "outcome={} mappings={} regions={} elapsed_micros={}",
+                        requestId, reviewGeneration, recipe.filePair().id(), recipe.surfaceKind().wireName(),
+                        surface.outcome().wireName(), surface.mappings().size(), surface.regions().size(),
+                        elapsedMicros(startedAtNanos));
                 return answer;
             } catch (CancellationException cancellationFailure) {
                 cancelled.incrementAndGet();
+                logRequestFailure(
+                        requestId,
+                        reviewGeneration,
+                        recipe,
+                        "cancelled",
+                        cancellationFailure,
+                        startedAtNanos
+                );
                 throw cancellationFailure;
             } catch (TimeoutException timeout) {
                 failed.incrementAndGet();
+                logRequestFailure(
+                        requestId,
+                        reviewGeneration,
+                        recipe,
+                        "review.surface.timeout",
+                        timeout,
+                        startedAtNanos
+                );
                 throw new CompletionException(new SurfaceUnavailableException(
                         "review.surface.timeout", "Review-surface process timed out", timeout));
             } catch (SurfaceUnavailableException unavailable) {
                 failed.incrementAndGet();
+                logRequestFailure(
+                        requestId,
+                        reviewGeneration,
+                        recipe,
+                        unavailable.code(),
+                        unavailable,
+                        startedAtNanos
+                );
                 throw new CompletionException(unavailable);
             } catch (Exception failure) {
                 failed.incrementAndGet();
+                logRequestFailure(
+                        requestId,
+                        reviewGeneration,
+                        recipe,
+                        "review.surface.transport-failed",
+                        failure,
+                        startedAtNanos
+                );
                 throw new CompletionException(new SurfaceUnavailableException(
                         "review.surface.transport-failed", "Review-surface process invocation failed", failure));
             }
@@ -334,7 +386,7 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
 
     private String cacheKey(SFMReleaseReviewSurfaceV1.Recipe recipe) {
         return SFMReleaseReviewSurfaceV1.sha256(
-                SFMReleaseReviewSurfaceJsonCodec.encodeRequest(recipe.request(1, 1)));
+                SFMReleaseReviewSurfaceJsonCodec.encodeRequest(recipe.request(1, 1)) + (recipe.split() ? "\nsplit/1" : ""));
     }
 
     private SFMPath generatedRoot(SFMReleaseReviewSurfaceV1.Recipe recipe) {
@@ -354,7 +406,7 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
                 SFMPath.Kind.CONTRIBUTED,
                 root.scheme(),
                 root.authority(),
-                List.of(root.segments().get(0), recipe.surfaceKind().wireName() + ".diff"),
+                List.of(root.segments().get(0), recipe.surfaceKind().wireName() + (recipe.split() ? ".split.diff" : ".diff")),
                 Optional.empty(),
                 false
         );
@@ -508,6 +560,31 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
     private static String boundedMessage(Throwable failure) {
         String message = failure.getMessage();
         return bounded(message == null || message.isBlank() ? failure.getClass().getSimpleName() : message, 512);
+    }
+
+    private static void logRequestFailure(
+            long requestId,
+            long reviewGeneration,
+            SFMReleaseReviewSurfaceV1.Recipe recipe,
+            String failureCode,
+            Throwable failure,
+            long startedAtNanos
+    ) {
+        SFM.LOGGER.warn(
+                "SFM_REVIEW_SURFACE_REQUEST_STOPPED request={} review_generation={} pair={} kind={} "
+                        + "failure_code={} elapsed_micros={} failure={}",
+                requestId,
+                reviewGeneration,
+                recipe.filePair().id(),
+                recipe.surfaceKind().wireName(),
+                failureCode,
+                elapsedMicros(startedAtNanos),
+                boundedMessage(failure)
+        );
+    }
+
+    private static long elapsedMicros(long startedAtNanos) {
+        return Math.max(0L, System.nanoTime() - startedAtNanos) / 1_000L;
     }
 
     private static String bounded(String value, int maximum) {

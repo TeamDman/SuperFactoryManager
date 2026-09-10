@@ -98,6 +98,10 @@ public final class SFMChildRelationRepository {
         }
     }
 
+    /** Cheap cache key which does not copy the relation or page-state maps. */
+    public record Generation(long relationRevision, long statusGeneration) {
+    }
+
     private record ActiveRequest(long requestId, long resolverGeneration, RequestMode mode) {
     }
 
@@ -111,6 +115,19 @@ public final class SFMChildRelationRepository {
 
     public synchronized Snapshot snapshot() {
         return snapshotLocked();
+    }
+
+    public synchronized Generation generation() {
+        return new Generation(relation.id(), statusGeneration);
+    }
+
+    /**
+     * Exact parents whose replacement/append pages are still being resolved.
+     * This is deliberately separate from the last published page state so a
+     * UI can retain useful old rows while also communicating pending work.
+     */
+    public synchronized Set<SFMPath> activeParents() {
+        return Collections.unmodifiableSet(new TreeSet<>(activeRequests.keySet()));
     }
 
     public synchronized RefreshTicket beginRefresh(

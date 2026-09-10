@@ -56,6 +56,13 @@ public final class SFMKeyBindingService {
         return profile.bindingsForAction(actionId.toString());
     }
 
+    public List<SFMKeyBinding> bindingsForCommand(
+            ResourceLocation actionId,
+            String commandDraft
+    ) {
+        return profile.bindingsForCommand(actionId.toString(), commandDraft);
+    }
+
     public List<SFMKeyBinding> tombstonedBuiltInsForAction(ResourceLocation actionId) {
         return profile.tombstonedBuiltInsForAction(actionId.toString());
     }

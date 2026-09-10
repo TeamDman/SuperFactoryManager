@@ -31,7 +31,7 @@ public record SFMSyntaxHighlightResult(
     public static final String SCHEMA = "sfm.syntax-highlight.result/1";
     public static final String FORMATTING_SCHEMA = "minecraft.chat-formatting/1";
     public static final String PARSER_FINGERPRINT =
-            "arborium-java/2.18.1+arborium-highlight/2.18.1+sfm-chat-formatting/1";
+            "arborium-source-grammars/2.18.1+arborium-highlight/2.18.1+sfm-chat-formatting/2";
     public static final Set<String> CHAT_FORMATTING_NAMES = Set.of(
             "black", "dark_blue", "dark_green", "dark_aqua", "dark_red", "dark_purple", "gold",
             "gray", "dark_gray", "blue", "green", "aqua", "red", "light_purple", "yellow", "white",

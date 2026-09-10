@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen.workspace;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMClientScreenTypes;
+import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMInputDiagnosticsScreenType;
 import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMSizeDisplayScreenType;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
@@ -19,6 +20,11 @@ public final class SFMWorkspaceScreenTypes {
     public static final SFMRegistryObject<SFMClientScreenType, SFMSizeDisplayScreenType> SIZE_DISPLAY = REGISTERER.register(
             "size_display",
             SFMSizeDisplayScreenType::new
+    );
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMInputDiagnosticsScreenType> INPUT_DIAGNOSTICS = REGISTERER.register(
+            "input_diagnostics",
+            SFMInputDiagnosticsScreenType::new
     );
 
     public static final SFMRegistryObject<SFMClientScreenType, SFMTerminalScreenType> TERMINAL = REGISTERER.register(

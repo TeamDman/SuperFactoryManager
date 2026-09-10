@@ -12,10 +12,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.UnaryOperator;
 
 /** Application-scoped explicit-path runtime with autosave and truthful dirty state. */
 public final class SFMReleaseReviewRuntime implements AutoCloseable {
+    private static final ExecutorService PERSISTENCE_EXECUTOR = Executors.newSingleThreadExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "sfm-release-review-persistence");
+        thread.setDaemon(true);
+        return thread;
+    });
     private static final SFMReleaseReviewRuntime INSTANCE = new SFMReleaseReviewRuntime();
 
     public record OpenResult(
@@ -77,6 +87,16 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
         }
     }
 
+    public record OperationSnapshot(long id, String kind, Path path, SFMReleaseReviewOperation.Phase phase) { }
+
+    private record PendingWork(long id, String kind, Path path, SFMReleaseReviewOperation control,
+                               long submittedNanos) { }
+
+    @FunctionalInterface
+    interface StoreOpener {
+        SFMReleaseReviewStore open(Path path, SFMReleaseReviewStore.Access access) throws IOException;
+    }
+
     public record MigrationMutationResult(
             String migrationId,
             String decisionCommentId,
@@ -94,6 +114,9 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
     private Optional<String> openedHash = Optional.empty();
     private SFMReleaseReviewKernel.CompletionReport cachedStatus;
     private boolean dirty;
+    private boolean persistencePending;
+    private PendingWork pendingWork;
+    private long nextOperationId = 1;
     private long generation = 1;
     /**
      * Identity of the currently opened review lease. Unlike {@link #generation}, this does not
@@ -101,12 +124,156 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
      * still distinguishing a later reopen of the same durable path.
      */
     private long openEpoch = 1;
+    private final Executor persistenceExecutor;
+    private final StoreOpener storeOpener;
+
+    public SFMReleaseReviewRuntime() {
+        this(PERSISTENCE_EXECUTOR);
+    }
+
+    SFMReleaseReviewRuntime(Executor persistenceExecutor) {
+        this(persistenceExecutor, SFMReleaseReviewStore::open);
+    }
+
+    SFMReleaseReviewRuntime(Executor persistenceExecutor, StoreOpener storeOpener) {
+        this.persistenceExecutor = Objects.requireNonNull(persistenceExecutor, "persistenceExecutor");
+        this.storeOpener = Objects.requireNonNull(storeOpener, "storeOpener");
+    }
 
     public static SFMReleaseReviewRuntime get() {
         return INSTANCE;
     }
 
+    /** Stage a replacement without withdrawing the currently committed document or holding its monitor. */
+    public CompletableFuture<OpenResult> openAsync(Path path, boolean writable) {
+        Path normalized = Objects.requireNonNull(path, "path").toAbsolutePath().normalize();
+        Snapshot captured;
+        SFMReleaseReviewStore previous;
+        PendingWork work;
+        synchronized (this) {
+            if (persistencePending || dirty) {
+                return CompletableFuture.failedFuture(new IllegalStateException(persistencePending
+                        ? "A review operation is already pending"
+                        : "Save or explicitly discard the current review before replacing it"));
+            }
+            captured = snapshot();
+            previous = store;
+            work = beginWork("open", normalized);
+        }
+        CompletableFuture<OpenResult> completion = new CompletableFuture<>();
+        try {
+            persistenceExecutor.execute(() -> stageOpen(normalized, writable, captured, previous, work, completion));
+        } catch (RuntimeException failure) {
+            finishWork(work);
+            completion.completeExceptionally(failure);
+        }
+        return completion;
+    }
+
+    private void stageOpen(
+            Path path, boolean writable, Snapshot captured, SFMReleaseReviewStore previous,
+            PendingWork work, CompletableFuture<OpenResult> completion
+    ) {
+        SFMReleaseReviewStore replacement = null;
+        boolean published = false;
+        OpenResult result = null;
+        Throwable failure = null;
+        long started = operationStarted(work);
+        try {
+            work.control().checkCancelled();
+            var access = writable ? SFMReleaseReviewStore.Access.WRITABLE : SFMReleaseReviewStore.Access.READ_ONLY;
+            // Reopening the same writable path must not compete with our own live writer lease.
+            replacement = previous != null && previous.path().equals(path) && previous.access() == access
+                    ? previous : storeOpener.open(path, access);
+            work.control().checkCancelled();
+            var loaded = replacement.stageLoad();
+            work.control().checkCancelled();
+            var status = loaded.document().map(SFMReleaseReviewKernel::completion).orElse(null);
+            work.control().checkCancelled();
+            result = new OpenResult(loaded.document(), writable, loaded.recoveredMachineLocalCopy(), loaded.diagnostics());
+            if (loaded.document().isPresent()) {
+                synchronized (this) {
+                    if (!workIsCurrent(work, captured, previous)) {
+                        throw new CancellationException("Review open was superseded before publication");
+                    }
+                    long nextEpoch = Math.incrementExact(openEpoch);
+                    long nextGeneration = Math.incrementExact(generation);
+                    work.control().beginCommit();
+                    replacement.acceptLoaded(loaded);
+                    store = replacement;
+                    document = loaded.document().orElseThrow();
+                    openedHash = loaded.openedContentHash();
+                    dirty = loaded.recoveredMachineLocalCopy();
+                    cachedStatus = status;
+                    openEpoch = nextEpoch;
+                    generation = nextGeneration;
+                    published = true;
+                }
+            }
+        } catch (IOException | RuntimeException caught) {
+            failure = caught;
+        } finally {
+            // File-lock/channel cleanup must not make render-thread snapshot reads wait.
+            if (published && previous != null && previous != replacement) previous.close();
+            if (!published && replacement != null && replacement != previous) replacement.close();
+            finishWork(work);
+        }
+        operationCompleted(work, started, published ? "published" : "not_published", failure);
+        if (failure != null) completion.completeExceptionally(failure);
+        else completion.complete(result);
+    }
+
+    public synchronized Optional<OperationSnapshot> pendingOperation() {
+        return pendingWork == null ? Optional.empty() : Optional.of(new OperationSnapshot(
+                pendingWork.id(), pendingWork.kind(), pendingWork.path(), pendingWork.control().phase()));
+    }
+
+    /** A false result means absent/stale or already committing; it never claims to undo a write. */
+    public synchronized boolean cancelOperation(long operationId) {
+        return pendingWork != null && pendingWork.id() == operationId
+                && pendingWork.control().requestCancellation();
+    }
+
+    private PendingWork beginWork(String kind, Path path) {
+        PendingWork work = new PendingWork(nextOperationId, kind, path, new SFMReleaseReviewOperation(), System.nanoTime());
+        nextOperationId = Math.incrementExact(nextOperationId);
+        pendingWork = work;
+        persistencePending = true;
+        return work;
+    }
+
+    private static long operationStarted(PendingWork work) {
+        long started = System.nanoTime();
+        ca.teamdman.sfm.SFM.LOGGER.info(
+                "SFM_RELEASE_REVIEW_OPERATION_STARTED operation={} kind={} path={} queued_micros={}",
+                work.id(), work.kind(), work.path(), (started - work.submittedNanos()) / 1_000L);
+        return started;
+    }
+
+    private static void operationCompleted(PendingWork work, long started, String outcome, Throwable failure) {
+        long finished = System.nanoTime();
+        ca.teamdman.sfm.SFM.LOGGER.info(
+                "SFM_RELEASE_REVIEW_OPERATION_COMPLETED operation={} kind={} path={} outcome={} worker_micros={} total_micros={} failure_type={}",
+                work.id(), work.kind(), work.path(), outcome, (finished - started) / 1_000L,
+                (finished - work.submittedNanos()) / 1_000L, failure == null ? "none" : failure.getClass().getSimpleName());
+    }
+
+    private synchronized void finishWork(PendingWork work) {
+        work.control().complete();
+        if (pendingWork == work) {
+            pendingWork = null;
+            persistencePending = false;
+        }
+    }
+
+    private boolean workIsCurrent(PendingWork work, Snapshot captured, SFMReleaseReviewStore capturedStore) {
+        return pendingWork == work && store == capturedStore && generation == captured.generation()
+                && openEpoch == captured.openEpoch()
+                && document == captured.document().orElse(null);
+    }
+
     public synchronized OpenResult open(Path path, boolean writable) throws IOException {
+        requireNoPendingPersistence("open");
         closeForReplacement();
         SFMReleaseReviewStore replacement = SFMReleaseReviewStore.open(path,
                 writable ? SFMReleaseReviewStore.Access.WRITABLE : SFMReleaseReviewStore.Access.READ_ONLY);
@@ -138,6 +305,7 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
     }
 
     public synchronized void create(Path path, SFMReleaseReviewV1 value) throws IOException {
+        requireNoPendingPersistence("create");
         Objects.requireNonNull(value, "value");
         closeForReplacement();
         SFMReleaseReviewStore replacement = SFMReleaseReviewStore.open(
@@ -163,6 +331,7 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
 
     public synchronized MutationResult mutate(UnaryOperator<SFMReleaseReviewV1> mutation) {
         requireDocument();
+        if (persistencePending) return persistencePending("mutate");
         if (store.access() != SFMReleaseReviewStore.Access.WRITABLE) {
             return mutationRejected(
                     "review.read-only",
@@ -186,8 +355,59 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
         }
     }
 
+    /**
+     * Persists one immutable mutation without holding the runtime monitor or
+     * blocking the Minecraft client thread during validation/serialization/I/O.
+     * The prior committed generation remains authoritative until the atomic
+     * store save succeeds and the captured lease identity is still current.
+     */
+    public CompletableFuture<MutationResult> mutateAsync(
+            UnaryOperator<SFMReleaseReviewV1> mutation
+    ) {
+        return mutateAsync(null, mutation);
+    }
+
+    private CompletableFuture<MutationResult> mutateAsync(
+            Snapshot expected, UnaryOperator<SFMReleaseReviewV1> mutation
+    ) {
+        Objects.requireNonNull(mutation, "mutation");
+        SFMReleaseReviewStore capturedStore;
+        Snapshot captured;
+        Optional<String> capturedOpenedHash;
+        PendingWork work;
+        synchronized (this) {
+            requireDocument();
+            if (expected != null && (document != expected.document().orElse(null)
+                    || openEpoch != expected.openEpoch() || generation != expected.generation())) {
+                return CompletableFuture.completedFuture(mutationRejected(
+                        "review.stale-mutation", "mutate-async", "The captured review changed before submission"));
+            }
+            if (persistencePending) {
+                return CompletableFuture.completedFuture(persistencePending("mutate-async"));
+            }
+            if (store.access() != SFMReleaseReviewStore.Access.WRITABLE) {
+                return CompletableFuture.completedFuture(mutationRejected(
+                        "review.read-only", "mutate-async", "Writable access is required before applying a release-review mutation"));
+            }
+            capturedStore = store;
+            captured = snapshot();
+            capturedOpenedHash = openedHash;
+            work = beginWork("save", capturedStore.path());
+        }
+        CompletableFuture<MutationResult> result = new CompletableFuture<>();
+        try {
+            persistenceExecutor.execute(() -> persistAsyncMutation(
+                    mutation, capturedStore, captured, capturedOpenedHash, work, result));
+        } catch (RuntimeException failure) {
+            finishWork(work);
+            result.complete(asyncMutationFailed(captured, "schedule-mutate-async", failure));
+        }
+        return result;
+    }
+
     public synchronized void saveAs(Path path) throws IOException {
         requireDocument();
+        requireNoPendingPersistence("save-as");
         SFMReleaseReviewStore replacement = SFMReleaseReviewStore.open(path, SFMReleaseReviewStore.Access.WRITABLE);
         try {
             SFMReleaseReviewStore.LoadResult existing = replacement.load();
@@ -205,6 +425,7 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
 
     public synchronized MutationResult save() {
         requireDocument();
+        if (persistencePending) return persistencePending("save");
         if (store.access() != SFMReleaseReviewStore.Access.WRITABLE) {
             return mutationRejected(
                     "review.read-only",
@@ -223,12 +444,27 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
     }
 
     public synchronized MutationResult activateQuery(Optional<String> queryId, String expression) {
-        requireDocument();
-        SFMReleaseReviewKernel.QueryResult result = SFMReleaseReviewKernel.query(document, expression);
-        Optional<String> first = result.reviewUnitIds().stream().findFirst();
-        SFMReleaseReviewV1.ResumeState previous = document.resumeState();
-        return mutate(current -> withResume(current, new SFMReleaseReviewV1.ResumeState(
-                queryId, Optional.of(expression), first, previous.deferredUnitIds(), previous.generation() + 1)));
+        return mutate(activateQueryMutation(queryId, expression));
+    }
+
+    /** Query evaluation and durable resume-state persistence both run on the persistence worker. */
+    public CompletableFuture<MutationResult> activateQueryAsync(Optional<String> queryId, String expression) {
+        return mutateAsync(activateQueryMutation(queryId, expression));
+    }
+
+    private static UnaryOperator<SFMReleaseReviewV1> activateQueryMutation(
+            Optional<String> queryId, String expression
+    ) {
+        Objects.requireNonNull(queryId, "queryId");
+        Objects.requireNonNull(expression, "expression");
+        SFMReleaseReviewQuery.parse(expression); // cheap grammar validation before starting an operation
+        return current -> {
+            SFMReleaseReviewKernel.QueryResult result = SFMReleaseReviewKernel.query(current, expression);
+            Optional<String> first = result.reviewUnitIds().stream().findFirst();
+            SFMReleaseReviewV1.ResumeState previous = current.resumeState();
+            return withResume(current, new SFMReleaseReviewV1.ResumeState(
+                    queryId, Optional.of(expression), first, previous.deferredUnitIds(), previous.generation() + 1));
+        };
     }
 
     public synchronized MutationResult saveNamedQuery(String id, String expression, boolean activate) {
@@ -274,67 +510,102 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
     }
 
     public synchronized MutationResult move(int delta) {
-        requireDocument();
-        String expression = activeExpression();
-        List<String> units = SFMReleaseReviewKernel.query(document, expression).reviewUnitIds();
-        if (units.isEmpty()) return new MutationResult(false, dirty, Optional.of("The active work queue is empty"));
-        int current = document.resumeState().currentUnitId().map(units::indexOf).orElse(-1);
-        int next = current < 0 ? 0 : Math.max(0, Math.min(units.size() - 1, current + delta));
-        SFMReleaseReviewV1.ResumeState previous = document.resumeState();
-        return mutate(value -> withResume(value, new SFMReleaseReviewV1.ResumeState(
-                previous.activeQueryId(), previous.activeQueryExpression(), Optional.of(units.get(next)),
-                previous.deferredUnitIds(), previous.generation() + 1)));
+        if (delta != 1 && delta != -1) throw new IllegalArgumentException("Work queue movement is one unit at a time");
+        return workQueue(delta > 0 ? SFMReleaseReviewWorkQueue.Operation.NEXT
+                : SFMReleaseReviewWorkQueue.Operation.PREVIOUS, Optional.empty());
     }
 
     /** Selects one stable unit from the active query without depending on incidental list position. */
     public synchronized MutationResult selectUnit(String unitId) {
-        requireDocument();
-        Objects.requireNonNull(unitId, "unitId");
-        String expression = activeExpression();
-        List<String> units = SFMReleaseReviewKernel.query(document, expression).reviewUnitIds();
-        if (!units.contains(unitId)) {
-            return new MutationResult(false, dirty, Optional.of(
-                    "Review unit is not present in the active work queue: " + unitId));
-        }
-        SFMReleaseReviewV1.ResumeState previous = document.resumeState();
-        return mutate(value -> withResume(value, new SFMReleaseReviewV1.ResumeState(
-                previous.activeQueryId(), previous.activeQueryExpression(), Optional.of(unitId),
-                previous.deferredUnitIds(), previous.generation() + 1)));
+        return workQueue(SFMReleaseReviewWorkQueue.Operation.SELECT, Optional.of(unitId));
     }
 
     public synchronized MutationResult deferCurrent() {
-        requireDocument();
-        SFMReleaseReviewV1.ResumeState previous = document.resumeState();
-        String current = previous.currentUnitId().orElseThrow(() ->
-                new IllegalStateException("No current review unit is selected"));
-        java.util.ArrayList<String> deferred = new java.util.ArrayList<>(previous.deferredUnitIds());
-        if (!deferred.contains(current)) deferred.add(current);
-        List<String> queue = SFMReleaseReviewKernel.query(document, activeExpression()).reviewUnitIds();
-        int currentIndex = queue.indexOf(current);
-        Optional<String> next = currentIndex >= 0 && currentIndex + 1 < queue.size()
-                ? Optional.of(queue.get(currentIndex + 1))
-                : queue.stream().filter(id -> !id.equals(current)).findFirst();
-        Optional<String> finalNext = next;
-        return mutate(value -> withResume(value, new SFMReleaseReviewV1.ResumeState(
-                previous.activeQueryId(), previous.activeQueryExpression(), finalNext, deferred,
-                previous.generation() + 1)));
+        return workQueue(SFMReleaseReviewWorkQueue.Operation.DEFER, Optional.empty());
     }
 
     public synchronized MutationResult resumeDeferred() {
-        requireDocument();
-        SFMReleaseReviewV1.ResumeState previous = document.resumeState();
-        if (previous.deferredUnitIds().isEmpty()) {
-            return new MutationResult(false, dirty, Optional.of("No deferred review unit is available"));
+        return workQueue(SFMReleaseReviewWorkQueue.Operation.RESUME, Optional.empty());
+    }
+
+    private MutationResult workQueue(SFMReleaseReviewWorkQueue.Operation operation, Optional<String> selected) {
+        try {
+            return mutate(workQueueMutation(operation, selected));
+        } catch (SFMReleaseReviewWorkQueue.Unavailable unavailable) {
+            return new MutationResult(false, dirty, Optional.of(unavailable.getMessage()));
         }
-        java.util.ArrayList<String> deferred = new java.util.ArrayList<>(previous.deferredUnitIds());
-        String resumed = deferred.remove(0);
-        return mutate(value -> withResume(value, new SFMReleaseReviewV1.ResumeState(
-                previous.activeQueryId(), previous.activeQueryExpression(), Optional.of(resumed), deferred,
-                previous.generation() + 1)));
+    }
+
+    /** Exact captured review identity; query evaluation and the portable save never run on the render thread. */
+    public CompletableFuture<MutationResult> workQueueAsync(
+            Snapshot expected, SFMReleaseReviewWorkQueue.Operation operation, Optional<String> selected
+    ) {
+        return mutateAsync(Objects.requireNonNull(expected, "expected"), workQueueMutation(operation, selected));
+    }
+
+    private static UnaryOperator<SFMReleaseReviewV1> workQueueMutation(
+            SFMReleaseReviewWorkQueue.Operation operation, Optional<String> selected
+    ) {
+        Objects.requireNonNull(operation, "operation");
+        Objects.requireNonNull(selected, "selected");
+        return value -> withResume(value, SFMReleaseReviewWorkQueue.transition(value,
+                SFMReleaseReviewKernel.query(value, SFMReleaseReviewWorkQueue.expression(value)).reviewUnitIds(),
+                operation, selected));
+    }
+
+    public record MigrationContext(Snapshot lease, SFMReleaseReviewLedgerResolver.Resolved observation) { }
+
+    /** Captures immutable inputs only; bounded matching belongs on a worker, not the render thread. */
+    public synchronized MigrationContext captureMigrationContext() {
+        requireDocument();
+        if (persistencePending) throw new IllegalStateException("Wait for pending review persistence before previewing migration");
+        var observation = store.migrationObservation();
+        if (observation.document() != document)
+            throw new IllegalStateException("Save or reload the current review before migration");
+        return new MigrationContext(snapshot(), observation);
+    }
+
+    public CompletableFuture<CommentMutationResult> acceptMigrationSuccessorAsync(
+            MigrationContext context, SFMReviewMigrationPlan shown, String note) {
+        String successorId;
+        synchronized (this) {
+            requireDocument();
+            successorId = nextHumanCommentId(document.reviewSession());
+        }
+        return mutateAsync(context.lease(), value -> {
+            if (value != context.observation().document())
+                throw new IllegalArgumentException("Migration observation changed");
+            return SFMReviewMigrationSuccessor.accept(context.observation(), shown, successorId, note);
+        }).thenApply(result -> new CommentMutationResult(successorId, result));
     }
 
     /** Adds one ordinary v2 comment and its exact selector provenance in the same atomic save. */
     public synchronized CommentMutationResult createComment(
+            String text,
+            SFMReleaseReviewV1.PinnedSelection capturedSelection,
+            SFMReleaseReviewV1.SelectorProposal selectedProposal
+    ) {
+        PreparedComment prepared = prepareComment(text, capturedSelection, selectedProposal);
+        return new CommentMutationResult(prepared.commentId(), mutate(prepared.mutation()));
+    }
+
+    /** Asynchronous counterpart used by render-thread comment-choice actions. */
+    public CompletableFuture<CommentMutationResult> createCommentAsync(
+            String text,
+            SFMReleaseReviewV1.PinnedSelection capturedSelection,
+            SFMReleaseReviewV1.SelectorProposal selectedProposal
+    ) {
+        PreparedComment prepared;
+        Snapshot captured;
+        synchronized (this) {
+            prepared = prepareComment(text, capturedSelection, selectedProposal);
+            captured = snapshot();
+        }
+        return mutateAsync(captured, prepared.mutation())
+                .thenApply(mutation -> new CommentMutationResult(prepared.commentId(), mutation));
+    }
+
+    private PreparedComment prepareComment(
             String text,
             SFMReleaseReviewV1.PinnedSelection capturedSelection,
             SFMReleaseReviewV1.SelectorProposal selectedProposal
@@ -348,7 +619,17 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
             throw new IllegalArgumentException("Selected proposal does not retain the captured literal witness");
         }
         String commentId = nextHumanCommentId(document.reviewSession());
-        MutationResult mutation = mutate(value -> {
+        // Captures intentionally produce the same proposal id for the same
+        // selection. Durable selector bindings, however, are independently
+        // addressable by migration reports: qualify this instance by comment.
+        var boundProposal = new SFMReleaseReviewV1.SelectorProposal(
+                "comment-selector:sha256:" + SFMReviewSessionV1Kernel.sha256(
+                        (commentId + "\n" + selectedProposal.id()).getBytes(StandardCharsets.UTF_8)),
+                selectedProposal.kind(), selectedProposal.selectionRule(), selectedProposal.literalWitness(),
+                selectedProposal.semanticProvider(), selectedProposal.semanticKey(), selectedProposal.semanticProvenance(),
+                selectedProposal.confidence(), selectedProposal.projectionFingerprint(),
+                selectedProposal.sourceSnapshotId(), selectedProposal.diagnostics());
+        UnaryOperator<SFMReleaseReviewV1> mutation = value -> {
             java.util.ArrayList<SFMReviewSessionV2.Comment> comments =
                     new java.util.ArrayList<>(value.reviewSession().comments());
             comments.add(new SFMReviewSessionV2.Comment(
@@ -377,15 +658,56 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
             bindings.add(new SFMReleaseReviewV1.CommentSelectorBinding(
                     commentId,
                     capturedSelection,
-                    selectedProposal
+                    boundProposal
             ));
             return new SFMReleaseReviewV1(
                     value.schema(), session, value.repositoryBindings(), value.corpusDocuments(),
                     value.reviewUnits(), bindings, value.migrationReports(), value.namedQueries(),
                     value.resumeState(), value.producerGenerations(), value.completionAttestations()
             );
+        };
+        return new PreparedComment(commentId, mutation);
+    }
+
+    private record PreparedComment(
+            String commentId,
+            UnaryOperator<SFMReleaseReviewV1> mutation
+    ) {
+    }
+
+    /** Continue saving a freeform editor after its initial one-shot draft has become a durable comment. */
+    public CompletableFuture<MutationResult> updateCommentAsync(
+            Path reviewPath, long reviewEpoch, String commentId, String expectedText, String text
+    ) {
+        Snapshot captured = snapshot();
+        if (captured.openEpoch() != reviewEpoch
+                || !captured.path().filter(reviewPath.toAbsolutePath().normalize()::equals).isPresent()) {
+            return CompletableFuture.failedFuture(new IllegalStateException(
+                    "The review was replaced after this comment editor was opened"));
+        }
+        if (text.isBlank()) return CompletableFuture.failedFuture(new IllegalArgumentException("Comment text must not be blank"));
+        return mutateAsync(captured, value -> {
+            var comments = new ArrayList<>(value.reviewSession().comments());
+            int found = -1;
+            for (int index = 0; index < comments.size(); index++) {
+                var comment = comments.get(index);
+                if (!comment.id().equals(commentId)) continue;
+                if (!comment.text().equals(expectedText)) throw new IllegalStateException(
+                        "Comment changed outside this editor; reopen its current value before saving");
+                comments.set(index, new SFMReviewSessionV2.Comment(
+                        comment.id(), text, comment.provenance(), comment.target()));
+                found = index;
+                break;
+            }
+            if (found < 0) throw new IllegalStateException("The saved comment is no longer present: " + commentId);
+            var previous = value.reviewSession();
+            var session = new SFMReviewSessionV2(previous.schema(), previous.id(), previous.title(),
+                    previous.coordinateSystem(), previous.revisionLanes(), comments, previous.styleRules(),
+                    previous.completionPolicy());
+            return new SFMReleaseReviewV1(value.schema(), session, value.repositoryBindings(), value.corpusDocuments(),
+                    value.reviewUnits(), value.selectorBindings(), value.migrationReports(), value.namedQueries(),
+                    value.resumeState(), value.producerGenerations(), value.completionAttestations());
         });
-        return new CommentMutationResult(commentId, mutation);
     }
 
     /** Records a human migration decision and any explicit retargeting as one portable mutation. */
@@ -603,6 +925,13 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
         );
     }
 
+    /** Exact opened file witness paired atomically with the published observation. */
+    public record AuthoritySnapshot(Snapshot observation, Optional<String> contentHash) { }
+
+    public synchronized AuthoritySnapshot authoritySnapshot() {
+        return new AuthoritySnapshot(snapshot(), openedHash);
+    }
+
     public synchronized long generation() {
         return generation;
     }
@@ -613,6 +942,10 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
 
     public synchronized boolean dirty() {
         return dirty;
+    }
+
+    public synchronized boolean persistencePending() {
+        return persistencePending;
     }
 
     public synchronized SFMReleaseReviewKernel.QueryResult query(String expression) {
@@ -627,18 +960,38 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
     }
 
     @Override
-    public synchronized void close() {
-        if (dirty) {
-            throw new IllegalStateException(
-                    "Release-review document has unsaved changes; save or explicitly discard before closing");
+    public void close() {
+        SFMReleaseReviewStore closedStore;
+        synchronized (this) {
+            if (dirty) {
+                throw new IllegalStateException(
+                        "Release-review document has unsaved changes; save or explicitly discard before closing");
+            }
+            closedStore = detachForClose();
         }
-        discardAndClose();
+        if (closedStore != null) closedStore.close();
     }
 
     /** Explicitly abandons unsaved in-memory/recovery state and releases the writer lease. */
-    public synchronized void discardAndClose() {
+    public void discardAndClose() {
+        SFMReleaseReviewStore closedStore;
+        synchronized (this) {
+            closedStore = detachForClose();
+        }
+        if (closedStore != null) closedStore.close();
+    }
+
+    private SFMReleaseReviewStore detachForClose() {
+        if (pendingWork != null && !pendingWork.control().requestCancellation()) {
+            throw new IllegalStateException(
+                    "Release-review commit is in progress; wait for its durable outcome before closing"
+            );
+        }
+        pendingWork = null;
+        persistencePending = false;
         boolean changed = store != null || document != null;
-        closeStore();
+        SFMReleaseReviewStore closedStore = store;
+        store = null;
         document = null;
         openedHash = Optional.empty();
         cachedStatus = null;
@@ -647,6 +1000,7 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
             advanceOpenEpoch();
             advanceGeneration();
         }
+        return closedStore;
     }
 
     private void closeForReplacement() {
@@ -661,6 +1015,87 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
 
     private void requireDocument() {
         if (store == null || document == null) throw new IllegalStateException("No release-review document is open");
+    }
+
+    private void requireNoPendingPersistence(String operation) throws IOException {
+        if (persistencePending) {
+            throw new IOException("Release-review persistence is still pending; cannot " + operation);
+        }
+    }
+
+    private MutationResult persistencePending(String operation) {
+        return mutationRejected(
+                "review.persistence-pending",
+                operation,
+                "Wait for the current atomic review save to finish"
+        );
+    }
+
+    private void persistAsyncMutation(
+            UnaryOperator<SFMReleaseReviewV1> mutation,
+            SFMReleaseReviewStore capturedStore,
+            Snapshot captured,
+            Optional<String> capturedOpenedHash,
+            PendingWork work,
+            CompletableFuture<MutationResult> completion
+    ) {
+        SFMReleaseReviewV1 updated;
+        SFMReleaseReviewStore.SaveResult saved;
+        SFMReleaseReviewKernel.CompletionReport status;
+        long started = operationStarted(work);
+        try {
+            work.control().checkCancelled();
+            updated = Objects.requireNonNull(mutation.apply(captured.document().orElseThrow()), "mutated document");
+            work.control().checkCancelled();
+            SFMReleaseReviewKernel.validate(updated);
+            status = SFMReleaseReviewKernel.completion(updated);
+            work.control().checkCancelled();
+            saved = capturedStore.save(updated, capturedOpenedHash, work.control()::beginCommit);
+        } catch (IOException | RuntimeException failure) {
+            finishWork(work);
+            operationCompleted(work, started, "not_saved", failure);
+            completion.complete(asyncMutationFailed(captured, "mutate-async", failure));
+            return;
+        }
+
+        MutationResult result;
+        synchronized (this) {
+            boolean identityCurrent = workIsCurrent(work, captured, capturedStore)
+                    && openedHash.equals(capturedOpenedHash);
+            if (!identityCurrent) {
+                // Commit authority blocks replacement. If that invariant is ever broken, the
+                // completed write is still a fact: do not tell the user their bytes were unsaved.
+                result = new MutationResult(true, false, Optional.empty(), List.of(
+                        "Review authority saved at " + capturedStore.path()
+                                + " but runtime identity changed before publication"));
+            } else {
+                document = updated;
+                openedHash = Optional.of(saved.contentHash());
+                cachedStatus = status;
+                dirty = false;
+                generation = Math.incrementExact(captured.generation());
+                result = new MutationResult(true, false, Optional.empty(), saved.diagnostics());
+            }
+        }
+        finishWork(work);
+        operationCompleted(work, started, "saved", null);
+        completion.complete(result);
+    }
+
+    private static MutationResult asyncMutationFailed(Snapshot captured, String operation, Throwable failure) {
+        if (failure instanceof SFMReleaseReviewWorkQueue.Unavailable) {
+            return new MutationResult(false, captured.dirty(), Optional.of(failure.getMessage()),
+                    List.of("review.work-queue-unavailable"));
+        }
+        String code = failure instanceof CancellationException ? "review.cancelled"
+                : failure instanceof SFMReleaseReviewStore.ExternalEditConflict ? "review.external-edit-conflict"
+                : failure instanceof IOException ? "review.io-failure" : "review.serialization-failure";
+        String diagnostic = "Release-review mutation was not published code=" + code
+                + " operation=" + operation + " path=" + captured.path().orElseThrow()
+                + " captured_generation=" + captured.generation()
+                + " failure_type=" + failure.getClass().getSimpleName()
+                + " message=" + failureMessage(failure);
+        return new MutationResult(false, captured.dirty(), Optional.of(diagnostic), List.of(diagnostic));
     }
 
     private void advanceGeneration() {
@@ -700,18 +1135,6 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
     private static String failureMessage(Throwable failure) {
         String message = failure.getMessage();
         return message == null || message.isBlank() ? "<no message>" : message;
-    }
-
-    private String activeExpression() {
-        if (SFMReleaseReviewKernel.activeQueryRevisionStale(document)) {
-            throw new IllegalStateException(
-                    "Active named-query revision is stale; reactivate the query before navigating its work queue");
-        }
-        return document.resumeState().activeQueryExpression().orElseGet(() ->
-                document.resumeState().activeQueryId()
-                        .flatMap(id -> document.namedQueries().stream().filter(query -> query.id().equals(id)).findFirst())
-                        .map(SFMReleaseReviewV1.NamedQuery::expression)
-                        .orElse("remaining"));
     }
 
     private static SFMReleaseReviewV1 withResume(

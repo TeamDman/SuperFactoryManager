@@ -11,4 +11,16 @@ public class SFMItemIconRendererTests {
         assertTrue(SFMItemIconRenderer.shouldInspectCustomRenderer(false));
         assertFalse(SFMItemIconRenderer.shouldInspectCustomRenderer(true));
     }
+
+    @Test
+    public void titleScreenFallbackDistinguishesKnownLevelIndependentRenderers() {
+        assertFalse(SFMItemIconRenderer.shouldUseTitleScreenFallback(false, true, true),
+                "Minecraft's BlockEntityWithoutLevelRenderer should retain the preferred icon");
+        assertTrue(SFMItemIconRenderer.shouldUseTitleScreenFallback(false, true, false),
+                "an unproven custom renderer should use the declared safe fallback");
+        assertFalse(SFMItemIconRenderer.shouldUseTitleScreenFallback(false, false, false),
+                "ordinary baked models need no custom-render fallback");
+        assertFalse(SFMItemIconRenderer.shouldUseTitleScreenFallback(true, true, false),
+                "a loaded world satisfies the context expected by custom renderers");
+    }
 }

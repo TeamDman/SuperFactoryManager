@@ -16,7 +16,7 @@ public interface SFMReviewCommentDataSource {
         CANDIDATE_PINNED,
         CANDIDATE_PINNED_UNAVAILABLE
     }
-    enum StyleChannel { FOREGROUND, BACKGROUND, UNDERLINE, GUTTER }
+    enum StyleChannel { FOREGROUND, BACKGROUND, UNDERLINE }
     record DocumentView(String id, Side side, String path, String text) {}
     record RangeView(String documentRevisionId, int startByte, int endByte) {}
     record CommentView(String id, String text, String provenance, boolean archived,
@@ -35,7 +35,8 @@ public interface SFMReviewCommentDataSource {
         }
     }
     record StyleRuleView(String id, List<String> requiredHashtags, int priority,
-                         Integer foreground, Integer background, Integer underline, Integer gutter, boolean enabled) {}
+                         Integer foreground, Integer background, Integer underline,
+                         String gutterMarker, boolean enabled) {}
     record MigrationView(String commentId, EvaluationStatus status, String diagnostic) {}
     record LegacyRow(String operationId, String reviewed, String decision, String audit) {}
     record SessionView(String title, List<DocumentView> documents, List<CommentView> comments,

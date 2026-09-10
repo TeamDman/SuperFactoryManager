@@ -15,11 +15,26 @@ public record SFMExplorerEntry(
         String label,
         boolean expandable,
         Map<String, SortKey> sortKeys,
+        List<String> searchTerms,
         List<String> diagnostics
 ) {
     public static final String SORT_NAME = "name";
     public static final String SORT_EXTENSION = "extension";
     public static final String SORT_ICON = "icon";
+    /** Presentation metadata; unlike {@link #SORT_ICON}, this is not a selectable sort axis. */
+    public static final String PRESENTATION_ICON_FALLBACK = "sfm:presentation/icon-fallback";
+    public static final String PRESENTATION_ICON_LABEL = "sfm:presentation/icon-label";
+    /** Semantic subject facts are distinct from decorated labels and ordering keys. */
+    public static final String SUBJECT_NAME = "sfm:subject/name";
+    public static final String SUBJECT_KIND = "sfm:subject/kind";
+    /** An entry may open a document while also exposing children through its chevron. */
+    public static final String PRIMARY_ACTION_OPEN = "sfm:interaction/primary-open";
+
+    public boolean opensOnActivate() {
+        return !expandable || sortKey(PRIMARY_ACTION_OPEN).value().filter("true"::equals).isPresent();
+    }
+    /** Resolver attestation of the full immediate-child count, not a filtered display count. */
+    public static final String SUBJECT_COMPLETE_CHILD_COUNT = "sfm:subject/complete-child-count";
 
     /** A sort value or a stable explanation of why that value is unavailable. */
     public record SortKey(Optional<String> value, Optional<String> unavailableReason) {
@@ -73,7 +88,26 @@ public record SFMExplorerEntry(
             throw new IllegalArgumentException("Every explorer entry must contribute an available name key");
         }
         sortKeys = Collections.unmodifiableMap(immutableKeys);
+        searchTerms = List.copyOf(searchTerms);
+        if (searchTerms.isEmpty() || searchTerms.stream().anyMatch(String::isEmpty)) {
+            throw new IllegalArgumentException("Explorer search terms must contain non-empty values");
+        }
         diagnostics = List.copyOf(diagnostics);
+    }
+
+    /**
+     * Default search metadata keeps the historical label and canonical-path
+     * behaviour. Resolvers whose visible labels repeat inherited context can
+     * use the canonical constructor to contribute a narrower semantic surface.
+     */
+    public SFMExplorerEntry(
+            SFMPath path,
+            String label,
+            boolean expandable,
+            Map<String, SortKey> sortKeys,
+            List<String> diagnostics
+    ) {
+        this(path, label, expandable, sortKeys, List.of(label, path.canonical()), diagnostics);
     }
 
     public SortKey sortKey(String id) {
@@ -104,6 +138,6 @@ public record SFMExplorerEntry(
                 iconKey.<SortKey>map(SortKey::available)
                         .orElseGet(() -> SortKey.unavailable("resolver did not contribute an icon key"))
         );
-        return new SFMExplorerEntry(path, label, expandable, keys, List.of());
+        return new SFMExplorerEntry(path, label, expandable, keys, List.of(label, path.canonical()), List.of());
     }
 }

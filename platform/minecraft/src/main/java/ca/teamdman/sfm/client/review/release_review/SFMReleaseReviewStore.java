@@ -57,14 +57,26 @@ public final class SFMReleaseReviewStore implements AutoCloseable {
     private final Path recoveryPath;
     private final Path writerLockPath;
     private final Access access;
+    private final SFMReleaseReviewLedgerResolver ledgerResolver;
+    private SFMReleaseReviewLedgerV3 openedLedger;
+    private SFMReleaseReviewV1 openedObservation;
+    private java.util.Map<String, SFMReviewEvidenceTable.Observed> observedSources = java.util.Map.of();
+    private List<String> observationDiagnostics = List.of();
+    private LoadResult stagedResult;
+    private ReadSnapshot stagedSnapshot;
     private final UUID owner = UUID.randomUUID();
     private FileChannel writerLockChannel;
     private FileLock writerLock;
     private boolean closed;
 
     private SFMReleaseReviewStore(Path path, Access access) throws IOException {
+        this(path, access, SFMReleaseReviewLedgerResolver::companion);
+    }
+
+    private SFMReleaseReviewStore(Path path, Access access, SFMReleaseReviewLedgerResolver resolver) throws IOException {
         this.path = path.toAbsolutePath().normalize();
         this.access = access;
+        this.ledgerResolver = resolver;
         this.recoveryPath = recoveryRoot().resolve(
                 SFMReleaseReviewKernel.sha256(this.path.toString().getBytes(StandardCharsets.UTF_8)) + ".json");
         this.writerLockPath = recoveryRoot().resolve(
@@ -103,6 +115,10 @@ public final class SFMReleaseReviewStore implements AutoCloseable {
         return new SFMReleaseReviewStore(path, access);
     }
 
+    static SFMReleaseReviewStore open(Path path, Access access, SFMReleaseReviewLedgerResolver resolver) throws IOException {
+        return new SFMReleaseReviewStore(path, access, resolver);
+    }
+
     public static MachineLocalState machineLocalState(Path path) {
         Path normalized = path.toAbsolutePath().normalize();
         String key = SFMReleaseReviewKernel.sha256(normalized.toString().getBytes(StandardCharsets.UTF_8));
@@ -111,31 +127,72 @@ public final class SFMReleaseReviewStore implements AutoCloseable {
     }
 
     public LoadResult load() {
+        LoadResult loaded = stageLoad();
+        acceptLoaded(loaded);
+        return loaded;
+    }
+
+    /** A cancelled runtime refresh must not replace the store's accepted save projection. */
+    LoadResult stageLoad() {
         requireOpen();
         List<String> diagnostics = new ArrayList<>();
-        Optional<SFMReleaseReviewV1> active = read(path, diagnostics, "repository file");
+        Optional<ReadSnapshot> active = read(path, diagnostics, "repository file");
         if (active.isPresent()) {
-            return new LoadResult(active, contentHash(path), false, diagnostics);
+            stagedSnapshot = active.get();
+            stagedResult = new LoadResult(active.map(ReadSnapshot::document), active.map(ReadSnapshot::hash), false, diagnostics);
+            return stagedResult;
         }
-        Optional<SFMReleaseReviewV1> recovery = read(recoveryPath, diagnostics, "machine-local recovery");
+        Optional<ReadSnapshot> recovery = read(recoveryPath, diagnostics, "machine-local recovery");
         if (recovery.isPresent()) diagnostics.add("Recovered machine-local bytes; save explicitly to restore authority");
-        return new LoadResult(recovery, Optional.empty(), recovery.isPresent(), diagnostics);
+        stagedSnapshot = recovery.orElse(null);
+        stagedResult = new LoadResult(recovery.map(ReadSnapshot::document), Optional.empty(), recovery.isPresent(), diagnostics);
+        return stagedResult;
+    }
+
+    void acceptLoaded(LoadResult result) {
+        if (result != stagedResult) throw new IllegalStateException("Staged review load was superseded");
+        if (stagedSnapshot != null) adopt(stagedSnapshot);
+        stagedResult = null;
+        stagedSnapshot = null;
     }
 
     public SaveResult save(SFMReleaseReviewV1 document, Optional<String> expectedContentHash) throws IOException {
+        return save(document, expectedContentHash, () -> { });
+    }
+
+    /** The callback grants commit authority only after preparation, immediately before replacement. */
+    SaveResult save(
+            SFMReleaseReviewV1 document,
+            Optional<String> expectedContentHash,
+            Runnable beforeCommit
+    ) throws IOException {
         requireOpen();
         if (access != Access.WRITABLE) throw new IOException("Release-review store is read-only: " + path);
         SFMReleaseReviewKernel.validate(document);
-        String canonical = SFMReleaseReviewV1Codec.write(document);
-        SFMReleaseReviewV1 reparsed = SFMReleaseReviewV1Codec.parse(canonical);
-        SFMReleaseReviewKernel.validate(reparsed);
+        SFMReleaseReviewLedgerV3 nextLedger = null;
+        String canonical;
+        if (openedLedger != null) {
+            nextLedger = SFMReleaseReviewLedgerProjection.project(openedLedger, openedObservation, document, observedSources);
+            canonical = SFMReleaseReviewLedgerV3Codec.write(nextLedger);
+            if (!nextLedger.equals(SFMReleaseReviewLedgerV3Codec.parse(canonical)))
+                throw new IOException("Ledger round-trip changed durable review state");
+        } else {
+            if (SFMReleaseReviewV1.OBSERVATION_SCHEMA.equals(document.schema()))
+                throw new IOException("A transient observation cannot be saved without its durable ledger");
+            canonical = SFMReleaseReviewV1Codec.write(document);
+            SFMReleaseReviewKernel.validate(SFMReleaseReviewV1Codec.parse(canonical));
+        }
 
         Optional<String> current = contentHash(path);
         if (!current.equals(expectedContentHash)) {
             throw new ExternalEditConflict(path, expectedContentHash.orElse("<absent>"), current.orElse("<absent>"));
         }
         byte[] bytes = canonical.getBytes(StandardCharsets.UTF_8);
-        replaceAtomically(path, bytes);
+        replaceAtomically(path, bytes, beforeCommit);
+        if (nextLedger != null) {
+            openedLedger = nextLedger;
+            openedObservation = document;
+        }
 
         List<String> diagnostics = new ArrayList<>();
         try {
@@ -180,16 +237,49 @@ public final class SFMReleaseReviewStore implements AutoCloseable {
         if (closed) throw new IllegalStateException("Release-review store is closed");
     }
 
-    private static Optional<SFMReleaseReviewV1> read(Path path, List<String> diagnostics, String label) {
+    SFMReleaseReviewLedgerResolver.Resolved migrationObservation() {
+        requireOpen();
+        if (openedLedger == null || openedObservation == null)
+            throw new IllegalStateException("Literal successor migration requires an opened v3 ledger");
+        return new SFMReleaseReviewLedgerResolver.Resolved(openedObservation, observedSources, observationDiagnostics);
+    }
+
+    private record ReadSnapshot(SFMReleaseReviewV1 document, String hash, SFMReleaseReviewLedgerV3 ledger,
+                                java.util.Map<String, SFMReviewEvidenceTable.Observed> sources, List<String> diagnostics) { }
+
+    private void adopt(ReadSnapshot snapshot) {
+        openedLedger = snapshot.ledger();
+        openedObservation = snapshot.document();
+        observedSources = snapshot.sources();
+        observationDiagnostics = List.copyOf(snapshot.diagnostics());
+    }
+
+    private Optional<ReadSnapshot> read(Path path, List<String> diagnostics, String label) {
         if (!Files.isRegularFile(path)) {
             diagnostics.add("No " + label + " at " + path);
             return Optional.empty();
         }
         try {
-            SFMReleaseReviewV1 value = SFMReleaseReviewV1Codec.parse(Files.readString(path, StandardCharsets.UTF_8));
+            // The compare-before-save witness must identify the exact bytes parsed,
+            // never a second read that may observe an external replacement.
+            byte[] bytes = Files.readAllBytes(path);
+            String text = StandardCharsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(bytes)).toString();
+            String schema = com.google.gson.JsonParser.parseString(text).getAsJsonObject().get("schema").getAsString();
+            if (SFMReleaseReviewLedgerV3.SCHEMA.equals(schema)) {
+                var ledger = SFMReleaseReviewLedgerV3Codec.parse(text);
+                var resolved = ledgerResolver.resolve(this.path, text);
+                diagnostics.addAll(resolved.diagnostics());
+                SFMReleaseReviewKernel.validate(resolved.document());
+                return Optional.of(new ReadSnapshot(resolved.document(), SFMReleaseReviewKernel.sha256(bytes),
+                        ledger, resolved.sources(), resolved.diagnostics()));
+            }
+            if (SFMReleaseReviewV1.OBSERVATION_SCHEMA.equals(schema))
+                throw new IOException("Transient observations are not durable review files");
+            SFMReleaseReviewV1 value = SFMReleaseReviewV1Codec.parse(text);
             SFMReleaseReviewKernel.validate(value);
-            return Optional.of(value);
-        } catch (IOException | RuntimeException exception) {
+            return Optional.of(new ReadSnapshot(value, SFMReleaseReviewKernel.sha256(bytes), null, java.util.Map.of(), List.of()));
+        } catch (Exception exception) {
+            if (exception instanceof InterruptedException) Thread.currentThread().interrupt();
             diagnostics.add("Invalid " + label + " at " + path + ": " + exception.getMessage());
             return Optional.empty();
         }
@@ -205,14 +295,21 @@ public final class SFMReleaseReviewStore implements AutoCloseable {
     }
 
     private static void replaceAtomically(Path destination, byte[] bytes) throws IOException {
+        replaceAtomically(destination, bytes, () -> { });
+    }
+
+    private static void replaceAtomically(Path destination, byte[] bytes, Runnable beforeCommit) throws IOException {
         Path parent = destination.getParent();
         if (parent != null) Files.createDirectories(parent);
         Path temporary = destination.resolveSibling(destination.getFileName() + ".tmp-" + UUID.randomUUID());
-        Files.write(temporary, bytes);
         try {
-            Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException atomicMoveUnavailable) {
-            Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
+            Files.write(temporary, bytes);
+            beforeCommit.run();
+            try {
+                Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException atomicMoveUnavailable) {
+                Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
+            }
         } finally {
             Files.deleteIfExists(temporary);
         }

@@ -15,6 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class SFMExplorerPathReveal {
     private static final int MAXIMUM_PAGES_PER_REVEAL = 4096;
 
+    public enum FilterPolicy { CLEAR, RETAIN }
+
     public record Result(List<SFMPath> expanded, int loadedPages) {
         public Result {
             expanded = List.copyOf(expanded);
@@ -33,36 +35,65 @@ public final class SFMExplorerPathReveal {
             int pageSize,
             Runnable afterMaterialized
     ) {
+        return reveal(session, loader, root, target, pageSize, afterMaterialized, FilterPolicy.CLEAR);
+    }
+
+    public static CompletionStage<Result> reveal(
+            SFMExplorerSession session, SFMLazyExplorerLoader loader, SFMPath root, SFMPath target,
+            int pageSize, Runnable afterMaterialized, FilterPolicy filterPolicy
+    ) {
+        return materialize(session, loader, root, target, pageSize, afterMaterialized, filterPolicy, true, () -> true);
+    }
+
+    /** Query previews retain both selection and filter; stale generations stop before another page. */
+    public static CompletionStage<Result> preview(
+            SFMExplorerSession session, SFMLazyExplorerLoader loader, SFMPath root, SFMPath target,
+            int pageSize, Runnable afterMaterialized, java.util.function.BooleanSupplier current
+    ) {
+        return materialize(session, loader, root, target, pageSize, afterMaterialized, FilterPolicy.RETAIN, false, current);
+    }
+
+    private static CompletionStage<Result> materialize(
+            SFMExplorerSession session, SFMLazyExplorerLoader loader, SFMPath root, SFMPath target,
+            int pageSize, Runnable afterMaterialized, FilterPolicy filterPolicy, boolean select,
+            java.util.function.BooleanSupplier current
+    ) {
         Objects.requireNonNull(session, "session");
         Objects.requireNonNull(loader, "loader");
         Objects.requireNonNull(root, "root");
         Objects.requireNonNull(target, "target");
         Objects.requireNonNull(afterMaterialized, "afterMaterialized");
+        Objects.requireNonNull(current, "current");
+        requireCurrent(current);
         if (pageSize <= 0) throw new IllegalArgumentException("Page size must be positive");
 
         List<SFMPath> chain = SFMPathHierarchy.chain(root, target);
         List<SFMPath> parents = chain.size() < 2
                 ? List.of()
                 : chain.subList(0, chain.size() - 1);
-        session.setFilterQuery("");
+        if (Objects.requireNonNull(filterPolicy, "filterPolicy") == FilterPolicy.CLEAR) session.setFilterQuery("");
         AtomicInteger loadedPages = new AtomicInteger();
         CompletableFuture<Void> materialized = CompletableFuture.completedFuture(null);
         for (int index = 0; index + 1 < chain.size(); index++) {
             SFMPath parent = chain.get(index);
             SFMPath child = chain.get(index + 1);
-            session.expand(parent);
-            materialized = materialized.thenCompose(ignored -> ensureChild(
+            materialized = materialized.thenCompose(ignored -> {
+                requireCurrent(current);
+                session.expand(parent);
+                return ensureChild(
                     session,
                     loader,
                     parent,
                     child,
                     pageSize,
                     false,
-                    loadedPages
-            ).toCompletableFuture());
+                    loadedPages, current
+                ).toCompletableFuture();
+            });
         }
         return materialized.thenApply(ignored -> {
-            session.navigateTo(target);
+            requireCurrent(current);
+            if (select) session.navigateTo(target);
             afterMaterialized.run();
             return new Result(parents, loadedPages.get());
         });
@@ -75,8 +106,10 @@ public final class SFMExplorerPathReveal {
             SFMPath child,
             int pageSize,
             boolean refreshed,
-            AtomicInteger loadedPages
+            AtomicInteger loadedPages,
+            java.util.function.BooleanSupplier current
     ) {
+        requireCurrent(current);
         SFMChildRelationRepository.Snapshot relation = loader.relationSnapshot();
         if (relation.relation().childrenOf(parent).contains(child)) {
             return CompletableFuture.completedFuture(null);
@@ -88,6 +121,18 @@ public final class SFMExplorerPathReveal {
             ));
         }
 
+        // A render/prefetch pass may already own this parent's replacement or
+        // append request. Joining it is the only race-safe response: starting a
+        // competing refresh would retire useful work, while reporting that the
+        // continuation is unavailable turns ordinary deduplication into a
+        // spurious reveal failure.
+        var active = session.activeRequestHandle(parent);
+        if (active.isPresent()) {
+            return awaitPublished(active.orElseThrow(), loadedPages).thenCompose(ignored -> ensureChild(
+                    session, loader, parent, child, pageSize, refreshed, loadedPages, current
+            ));
+        }
+
         SFMChildRelationRepository.PageState state = relation.pageStates().get(parent);
         if (state != null
                 && state.materialization() == SFMChildRelationRepository.PageState.Materialization.MATERIALIZED
@@ -95,17 +140,23 @@ public final class SFMExplorerPathReveal {
                 && state.continuation().isPresent()) {
             return session.requestNextPage(parent, loader, pageSize)
                     .map(handle -> awaitPublished(handle, loadedPages).thenCompose(ignored -> ensureChild(
-                            session, loader, parent, child, pageSize, refreshed, loadedPages
+                            session, loader, parent, child, pageSize, refreshed, loadedPages, current
                     )))
-                    .orElseGet(() -> CompletableFuture.failedFuture(new IllegalStateException(
-                            "Explorer continuation could not be acquired for " + parent.canonical()
-                    )));
+                    .orElseGet(() -> session.activeRequestHandle(parent)
+                            .<CompletionStage<Void>>map(handle -> awaitPublished(handle, loadedPages)
+                                    .thenCompose(ignored -> ensureChild(
+                                            session, loader, parent, child, pageSize, refreshed, loadedPages, current
+                                    )))
+                            .orElseGet(() -> CompletableFuture.failedFuture(new IllegalStateException(
+                                    "Explorer continuation disappeared before reveal could join it for "
+                                            + parent.canonical()
+                            ))));
         }
 
         if (!refreshed) {
             SFMLazyExplorerLoader.LoadHandle handle = session.requestChildren(parent, loader, pageSize);
             return awaitPublished(handle, loadedPages).thenCompose(ignored -> ensureChild(
-                    session, loader, parent, child, pageSize, true, loadedPages
+                    session, loader, parent, child, pageSize, true, loadedPages, current
             ));
         }
         return CompletableFuture.failedFuture(new IllegalStateException(
@@ -124,5 +175,9 @@ public final class SFMExplorerPathReveal {
                         "Explorer reveal load was " + result.disposition().name().toLowerCase(java.util.Locale.ROOT)
                                 + result.diagnostic().map(value -> ": " + value).orElse("")
                 )));
+    }
+
+    private static void requireCurrent(java.util.function.BooleanSupplier current) {
+        if (!current.getAsBoolean()) throw new java.util.concurrent.CancellationException("Explorer reveal generation changed");
     }
 }

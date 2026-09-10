@@ -825,6 +825,37 @@ public class SFMDrawCanvasModelTests {
     }
 
     @Test
+    public void controlRightTreatsActionAndPathSeparatorsAsIndividualStops() {
+        SFMDrawCanvasModel canvas = fromFixture("""
+                |sfm:panel/open-right
+                """);
+
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm|:panel/open-right\n", toFixture(canvas));
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm:|panel/open-right\n", toFixture(canvas));
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm:panel|/open-right\n", toFixture(canvas));
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm:panel/|open-right\n", toFixture(canvas));
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm:panel/open|-right\n", toFixture(canvas));
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm:panel/open-|right\n", toFixture(canvas));
+    }
+
+    @Test
+    public void controlLeftKeepsUnderscoresInsideOneWordRun() {
+        SFMDrawCanvasModel canvas = fromFixture("""
+                alpha/foo_bar|
+                """);
+
+        canvas.moveCursorLeftWord(1, 1);
+
+        assertEquals("alpha/|foo_bar\n", toFixture(canvas));
+    }
+
+    @Test
     public void controlLeftSkipsTrailingExplicitWhitespaceToThePreviousWordStart() {
         SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
         canvas.typeText("hello  ", ignored -> 1, 1);

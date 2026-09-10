@@ -77,12 +77,12 @@ public final class SFMThemeSettingsModel {
             EnumMap<SFMColourRole, Integer> colours = new EnumMap<>(SFMColourRole.class);
             colours.putAll(draft.colours());
             colours.put(SFMColourRole.byId(property.id()).orElseThrow(), argb);
-            draft = new SFMClientTheme(colours, draft.sfmlSyntax(), draft.fileIcons(), draft.actionIcons());
+            draft = new SFMClientTheme(colours, draft.sfmlSyntax(), draft.fileIcons(), draft.actionIcons(), draft.previewRules(), draft.explicitFileIcons());
         } else if (property.kind() == SFMThemeProperty.Kind.SYNTAX) {
             Map<String, SFMSyntaxStyle> syntax = new LinkedHashMap<>(draft.sfmlSyntax());
             SFMSyntaxStyle old = syntax.get(property.id());
             syntax.put(property.id(), new SFMSyntaxStyle(argb, old.bold(), old.italic(), old.underlined()));
-            draft = new SFMClientTheme(draft.colours(), syntax, draft.fileIcons(), draft.actionIcons());
+            draft = new SFMClientTheme(draft.colours(), syntax, draft.fileIcons(), draft.actionIcons(), draft.previewRules(), draft.explicitFileIcons());
         } else {
             throw new IllegalStateException("Selected property is not colour-backed");
         }
@@ -94,11 +94,13 @@ public final class SFMThemeSettingsModel {
         if (property.kind() == SFMThemeProperty.Kind.FILE_ICON) {
             Map<String, SFMItemIcon> icons = new LinkedHashMap<>(draft.fileIcons());
             icons.put(property.id(), icon);
-            draft = new SFMClientTheme(draft.colours(), draft.sfmlSyntax(), icons, draft.actionIcons());
+            var explicit = new java.util.HashSet<>(draft.explicitFileIcons());
+            explicit.add(property.id());
+            draft = new SFMClientTheme(draft.colours(), draft.sfmlSyntax(), icons, draft.actionIcons(), draft.previewRules(), explicit);
         } else if (property.kind() == SFMThemeProperty.Kind.ACTION_ICON) {
             Map<ResourceLocation, SFMItemIcon> icons = new LinkedHashMap<>(draft.actionIcons());
             icons.put(new ResourceLocation(property.id()), icon);
-            draft = new SFMClientTheme(draft.colours(), draft.sfmlSyntax(), draft.fileIcons(), icons);
+            draft = new SFMClientTheme(draft.colours(), draft.sfmlSyntax(), draft.fileIcons(), icons, draft.previewRules(), draft.explicitFileIcons());
         } else {
             throw new IllegalStateException("Selected property is not icon-backed");
         }
@@ -117,6 +119,11 @@ public final class SFMThemeSettingsModel {
             SFMItemIcon value = selectedIcon();
             draft = oldDraft;
             setSelectedIcon(value);
+            if (property.kind() == SFMThemeProperty.Kind.FILE_ICON && !baseline.explicitFileIcons().contains(property.id())) {
+                var explicit = new java.util.HashSet<>(draft.explicitFileIcons());
+                explicit.remove(property.id());
+                draft = new SFMClientTheme(draft.colours(), draft.sfmlSyntax(), draft.fileIcons(), draft.actionIcons(), draft.previewRules(), explicit);
+            }
         }
         status = "Reset " + property.label() + " to the loaded value";
     }
@@ -154,7 +161,7 @@ public final class SFMThemeSettingsModel {
     private static SFMClientTheme normalize(SFMClientTheme theme) {
         Map<ResourceLocation, SFMItemIcon> actions = new LinkedHashMap<>(theme.actionIcons());
         actions.putIfAbsent(PALETTE_ACTION, SFMItemIcon.vanilla("compass", "Open command palette"));
-        return new SFMClientTheme(theme.colours(), theme.sfmlSyntax(), theme.fileIcons(), actions);
+        return new SFMClientTheme(theme.colours(), theme.sfmlSyntax(), theme.fileIcons(), actions, theme.previewRules(), theme.explicitFileIcons());
     }
 
     private static List<SFMThemeProperty> buildProperties(SFMClientTheme theme) {

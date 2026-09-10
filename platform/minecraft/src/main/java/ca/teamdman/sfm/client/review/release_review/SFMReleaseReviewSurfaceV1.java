@@ -268,8 +268,18 @@ public final class SFMReleaseReviewSurfaceV1 {
             int maximumOutputBytes,
             int maximumMappings,
             int maximumRegions,
-            int maximumDiagnostics
+            int maximumDiagnostics,
+            boolean split
     ) {
+        public Recipe(FilePair filePair, SurfaceKind surfaceKind, int contextLines, int maximumOutputBytes,
+                      int maximumMappings, int maximumRegions, int maximumDiagnostics) {
+            this(filePair, surfaceKind, contextLines, maximumOutputBytes, maximumMappings, maximumRegions,
+                    maximumDiagnostics, false);
+        }
+        public Recipe asSplit() {
+            return new Recipe(filePair, surfaceKind, contextLines, maximumOutputBytes, maximumMappings,
+                    maximumRegions, maximumDiagnostics, true);
+        }
         public Recipe {
             Objects.requireNonNull(filePair, "filePair");
             Objects.requireNonNull(surfaceKind, "surfaceKind");
@@ -612,9 +622,18 @@ public final class SFMReleaseReviewSurfaceV1 {
         }
     }
 
+    /** A per-source processing limitation, not corruption of the enclosing review. */
+    public static final class SourceLimitException extends IllegalArgumentException {
+        private SourceLimitException(Source source, int bytes, int limit) {
+            super("Review source exceeds process byte limit: " + source.path() + " (" + bytes
+                    + " bytes; limit " + limit + "; revision " + source.documentRevisionId() + ")");
+        }
+    }
+
     private static void sourceBytes(Source source, Limits limits) {
-        if (source.text().getBytes(StandardCharsets.UTF_8).length > limits.maximumSourceBytesPerSide()) {
-            throw new IllegalArgumentException("Review source exceeds process byte limit");
+        int bytes = source.text().getBytes(StandardCharsets.UTF_8).length;
+        if (bytes > limits.maximumSourceBytesPerSide()) {
+            throw new SourceLimitException(source, bytes, limits.maximumSourceBytesPerSide());
         }
     }
 

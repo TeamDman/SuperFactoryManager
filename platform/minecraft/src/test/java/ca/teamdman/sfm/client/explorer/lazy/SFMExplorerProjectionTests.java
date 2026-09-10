@@ -20,6 +20,26 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMExplorerProjectionTests {
+    @Test
+    void childIndexVisitsEdgesOnceAndQueriesDoNotRescanTheRelation() {
+        ArrayList<SFMChildEdge> edges = new ArrayList<>();
+        for (int index = 0; index < 2048; index++) {
+            edges.add(new SFMChildEdge(FILE_ROOT, SFMPath.parse("file:///C:/project/File" + index + ".java")));
+        }
+        int[] visits = {0};
+        Iterable<SFMChildEdge> counted = () -> new java.util.Iterator<>() {
+            private final java.util.Iterator<SFMChildEdge> delegate = edges.iterator();
+            public boolean hasNext() { return delegate.hasNext(); }
+            public SFMChildEdge next() { visits[0]++; return delegate.next(); }
+        };
+        Map<SFMPath, List<SFMPath>> index = SFMExplorerProjection.indexChildren(counted);
+        for (SFMChildEdge edge : edges) {
+            assertFalse(index.containsKey(edge.child()), "leaf queries do not scan unrelated siblings");
+        }
+        assertEquals(edges.size(), index.get(FILE_ROOT).size());
+        assertEquals(edges.size(), visits[0], "one edge visit per projection, regardless of node count");
+    }
+
     private static final SFMPath FILE_ROOT = SFMPath.parse("file:///C:/project");
     private static final SFMPath REGISTRY_ROOT = SFMPath.parse("registry://minecraft/item/");
     private static final SFMPath ALPHA = SFMPath.parse("file:///C:/project/alpha.txt");
@@ -196,6 +216,7 @@ public class SFMExplorerProjectionTests {
         );
         assertFalse(session.snapshot().expanded().contains(DIRECTORY));
 
+        session.setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions.legacyFuzzy());
         session.setFilterQuery("nstd");
         SFMExplorerProjection.Result typo = SFMExplorerProjection.project(
                 session.snapshot(), relations.snapshot(), entries
@@ -256,6 +277,7 @@ public class SFMExplorerProjectionTests {
         SFMExplorerSession session = new SFMExplorerSession(
                 new SFMExplorerId("filter-shared-ancestry"), source, new SFMSelectionRepository()
         );
+        session.setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions.legacyFuzzy());
         session.setFilterQuery("qzxv-needle-7391");
 
         SFMExplorerProjection.Result result = SFMExplorerProjection.project(
@@ -296,6 +318,75 @@ public class SFMExplorerProjectionTests {
     }
 
     @Test
+    public void explicitlyExpandedFilterMatchShowsImmediateContextChildrenOnly() {
+        SFMPath root = SFMPath.parse("registry://test/review");
+        SFMPath file = SFMPath.parse("registry://test/review/sfm.java");
+        SFMPath before = SFMPath.parse("registry://test/review/sfm.java/000-before");
+        SFMPath after = SFMPath.parse("registry://test/review/sfm.java/001-after");
+        SFMPath structured = SFMPath.parse("registry://test/review/sfm.java/002-structured");
+        SFMPath hiddenGrandchild = SFMPath.parse("registry://test/review/sfm.java/002-structured/region");
+        SFMChildRelationRepository relations = new SFMChildRelationRepository();
+        publish(relations, root, List.of(file), 1);
+        publish(relations, file, List.of(before, after, structured), 1);
+        publish(relations, structured, List.of(hiddenGrandchild), 1);
+        Map<SFMPath, SFMExplorerEntry> entries = entries(
+                entry(root, "Review changes", true, Optional.of("folder")),
+                entryWithSearchTerms(file, "SFM.java", true, Optional.of("code"), List.of("SFM.java")),
+                entryWithSearchTerms(before, "before", false, Optional.of("code"), List.of("before")),
+                entryWithSearchTerms(after, "after", false, Optional.of("code"), List.of("after")),
+                entryWithSearchTerms(
+                        structured,
+                        "structured diff",
+                        true,
+                        Optional.of("diff"),
+                        List.of("structured diff")
+                ),
+                entryWithSearchTerms(
+                        hiddenGrandchild,
+                        "changed method",
+                        false,
+                        Optional.of("diff"),
+                        List.of("changed method")
+                )
+        );
+        SFMExplorerSession session = new SFMExplorerSession(
+                new SFMExplorerId("filter-expanded-context"), root, new SFMSelectionRepository()
+        );
+        session.setFilterQuery("sfm.java");
+
+        SFMExplorerProjection.Result compact = SFMExplorerProjection.project(
+                session.snapshot(), relations.snapshot(), entries
+        );
+        assertEquals(List.of(file), paths(compact), "matches remain compact until explicitly expanded");
+        assertEquals(0, compact.filter().contextDescendantCount());
+
+        session.expand(file);
+        SFMExplorerProjection.Result expanded = SFMExplorerProjection.project(
+                session.snapshot(), relations.snapshot(), entries
+        );
+
+        assertEquals(List.of(file, before, after, structured), paths(expanded));
+        assertEquals(List.of(
+                SFMExplorerProjection.FilterRole.MATCH,
+                SFMExplorerProjection.FilterRole.CONTEXT_DESCENDANT,
+                SFMExplorerProjection.FilterRole.CONTEXT_DESCENDANT,
+                SFMExplorerProjection.FilterRole.CONTEXT_DESCENDANT
+        ), expanded.rows().stream().map(SFMExplorerProjection.Row::filterRole).toList());
+        assertEquals(1, expanded.filter().matchCount());
+        assertEquals(0, expanded.filter().contextAncestorCount());
+        assertEquals(3, expanded.filter().contextDescendantCount());
+        assertFalse(paths(expanded).contains(hiddenGrandchild),
+                "context descendants are not recursively forced open by filtering");
+        session.expand(structured);
+        var nested = SFMExplorerProjection.project(session.snapshot(), relations.snapshot(), entries);
+        assertEquals(List.of(file, before, after, structured, hiddenGrandchild), paths(nested),
+                "an explicit expansion inside contextual children must remain usable while filtering");
+        assertEquals(4, nested.filter().contextDescendantCount());
+        session.collapse(structured);
+        assertEquals(paths(expanded), paths(SFMExplorerProjection.project(session.snapshot(), relations.snapshot(), entries)));
+    }
+
+    @Test
     public void filteredSubtreesUseBestDescendantScoreAcrossMultipleRoots() {
         SFMPath rootA = SFMPath.parse("registry://test/a");
         SFMPath rootB = SFMPath.parse("registry://test/b");
@@ -315,6 +406,7 @@ public class SFMExplorerProjectionTests {
         );
         session.addRoot(rootB);
         session.setManualRootOrder(List.of(rootA, rootB));
+        session.setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions.legacyFuzzy());
         session.setFilterQuery("needle");
 
         SFMExplorerProjection.Result result = SFMExplorerProjection.project(
@@ -391,6 +483,91 @@ public class SFMExplorerProjectionTests {
         assertEquals(1, result.filter().candidateCount());
     }
 
+    @Test void literalDefaultDoesNotInventTheRequestedFilenameAndFuzzyRemainsAvailable() {
+        var relations = new SFMChildRelationRepository();
+        publish(relations, FILE_ROOT, List.of(ALPHA, ZETA), 1);
+        String requested = "ExploreReviewInteractivelyPuppetAction.java";
+        var entries = entries(entry(ALPHA, "ExerciseReviewInteractivelyPuppetAction.java", false, Optional.empty()),
+                entry(ZETA, "ReleaseReviewJourneyPuppetAction.java", false, Optional.empty()));
+        var session = new SFMExplorerSession(new SFMExplorerId("literal"), FILE_ROOT, new SFMSelectionRepository());
+        session.setFilterQuery(requested);
+        var absent = SFMExplorerProjection.project(session.snapshot(), relations.snapshot(), entries);
+        assertTrue(absent.rows().isEmpty());
+        assertFalse(absent.filter().incompleteMaterialization());
+        session.setFilterOptions(ca.teamdman.sfm.client.search.SFMTextMatchOptions.legacyFuzzy());
+        assertFalse(SFMExplorerProjection.project(session.snapshot(), relations.snapshot(), entries).rows().isEmpty());
+        assertTrue(absent.withDomainEvidence(false, List.of("index bounded")).filter().incompleteMaterialization());
+    }
+
+    @Test void fourSelfAndDescendantStatesRetainGlyphEvidenceAndUnknownLazyDescendants() {
+        var relations = new SFMChildRelationRepository();
+        publish(relations, FILE_ROOT, List.of(DIRECTORY, ALPHA, README, ZETA), 1);
+        publish(relations, DIRECTORY, List.of(NESTED), 1);
+        var entries = entries(
+                entryWithSearchTerms(FILE_ROOT, "needle root", true, Optional.empty(), List.of("needle root")),
+                entryWithSearchTerms(DIRECTORY, "folder", true, Optional.empty(), List.of("folder")),
+                entryWithSearchTerms(NESTED, "needle child", false, Optional.empty(), List.of("needle child")),
+                entryWithSearchTerms(ALPHA, "needle leaf", false, Optional.empty(), List.of("needle leaf")),
+                entryWithSearchTerms(README, "plain", false, Optional.empty(), List.of("plain")),
+                entryWithSearchTerms(ZETA, "lazy", true, Optional.empty(), List.of("lazy")));
+        var session = new SFMExplorerSession(new SFMExplorerId("evidence"), FILE_ROOT, new SFMSelectionRepository());
+        session.setHoist(SFMExplorerProjection.Hoist.SHOW_ROOTS);
+        session.setFilterQuery("needle");
+        var result = SFMExplorerProjection.project(session.snapshot(), relations.snapshot(), entries);
+        var both = result.matchEvidence().get(FILE_ROOT);
+        assertTrue(both.self().matches());
+        assertTrue(both.descendantMatch());
+        assertFalse(both.descendantsComplete());
+        var childOnly = result.matchEvidence().get(DIRECTORY);
+        assertFalse(childOnly.self().matches());
+        assertTrue(childOnly.descendantMatch());
+        assertTrue(childOnly.descendantsComplete());
+        var selfOnly = result.matchEvidence().get(ALPHA);
+        assertTrue(selfOnly.self().matches());
+        assertFalse(selfOnly.descendantMatch());
+        assertTrue(selfOnly.descendantsComplete());
+        assertEquals(List.of(new ca.teamdman.sfm.client.search.SFMTextMatcher.Fragment(0, 6)), selfOnly.self().labelFragments());
+        var neither = result.matchEvidence().get(README);
+        assertFalse(neither.self().matches());
+        assertFalse(neither.descendantMatch());
+        assertTrue(neither.descendantsComplete());
+        assertFalse(result.matchEvidence().get(ZETA).descendantsComplete());
+        assertTrue(result.filter().incompleteMaterialization());
+    }
+
+    @Test void findTraversalFollowsLabelsAndHierarchyRatherThanCanonicalPathsOrFuzzyRank() {
+        var relations = new SFMChildRelationRepository();
+        publish(relations, FILE_ROOT, List.of(DIRECTORY, ALPHA), 1);
+        publish(relations, DIRECTORY, List.of(NESTED), 1);
+        var entries = entries(entry(DIRECTORY, "A folder", true, Optional.empty()),
+                entry(NESTED, "Z nested", false, Optional.empty()), entry(ALPHA, "B leaf", false, Optional.empty()));
+        var session = new SFMExplorerSession(new SFMExplorerId("traversal"), FILE_ROOT, new SFMSelectionRepository());
+        var before = session.snapshot();
+        var matches = Set.of(DIRECTORY, NESTED, ALPHA);
+        assertEquals(List.of(DIRECTORY, NESTED, ALPHA),
+                SFMExplorerMatchTraversal.order(matches, before, relations.snapshot(), entries));
+        assertEquals(before, session.snapshot(), "order calculation does not expand or select anything");
+        session.setGroup(SFMExplorerProjection.Group.NONE);
+        assertEquals(List.of(DIRECTORY, ALPHA, NESTED),
+                SFMExplorerMatchTraversal.order(matches, session.snapshot(), relations.snapshot(), entries));
+    }
+
+    @Test void preparedBackgroundEvidenceIsReusedByProjection() {
+        var relations = new SFMChildRelationRepository();
+        publish(relations, FILE_ROOT, List.of(ALPHA), 1);
+        var entries = entries(entry(ALPHA, "a file", false, Optional.empty()));
+        var session = new SFMExplorerSession(new SFMExplorerId("prepared"), FILE_ROOT, new SFMSelectionRepository());
+        var regex = ca.teamdman.sfm.client.search.SFMTextMatchOptions.defaults().toggleRegex();
+        session.setFilterOptions(regex);
+        session.setFilterQuery("a+");
+        var prepared = SFMExplorerEntryMatch.evaluate(entries.get(ALPHA),
+                ca.teamdman.sfm.client.search.SFMTextMatcher.compile("a+", regex));
+        var projection = SFMExplorerProjection.project(session.snapshot(), relations.snapshot(), entries, Map.of(ALPHA, prepared));
+        org.junit.jupiter.api.Assertions.assertSame(prepared, projection.matchEvidence().get(ALPHA).self(),
+                "prepared evidence is consumed without a second regex match");
+        assertEquals(List.of(ALPHA), paths(projection));
+    }
+
     private static void publish(
             SFMChildRelationRepository relations,
             SFMPath parent,
@@ -415,6 +592,24 @@ public class SFMExplorerProjectionTests {
             Optional<String> icon
     ) {
         return SFMExplorerEntry.simple(path, label, expandable, icon);
+    }
+
+    private static SFMExplorerEntry entryWithSearchTerms(
+            SFMPath path,
+            String label,
+            boolean expandable,
+            Optional<String> icon,
+            List<String> searchTerms
+    ) {
+        SFMExplorerEntry simple = SFMExplorerEntry.simple(path, label, expandable, icon);
+        return new SFMExplorerEntry(
+                simple.path(),
+                simple.label(),
+                simple.expandable(),
+                simple.sortKeys(),
+                searchTerms,
+                simple.diagnostics()
+        );
     }
 
     private static Map<SFMPath, SFMExplorerEntry> entries(SFMExplorerEntry... entries) {

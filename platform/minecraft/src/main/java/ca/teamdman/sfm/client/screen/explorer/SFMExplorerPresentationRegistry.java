@@ -1,6 +1,12 @@
 package ca.teamdman.sfm.client.screen.explorer;
 
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.explorer.SFMPath;
+import ca.teamdman.sfm.client.theme.SFMClientThemeService;
+import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewCache;
+import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewRegistry;
+import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewSubject;
+import ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewRules;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -86,6 +92,7 @@ public final class SFMExplorerPresentationRegistry {
             .build();
 
     private final List<Registration> registrations;
+    private final SFMItemstackPreviewCache previewCache = new SFMItemstackPreviewCache();
 
     private SFMExplorerPresentationRegistry(List<Registration> registrations) {
         ArrayList<Registration> ordered = new ArrayList<>(registrations);
@@ -102,6 +109,27 @@ public final class SFMExplorerPresentationRegistry {
     }
 
     public Resolution resolve(SFMExplorerProjection.Row row) {
+        Resolution baseline=resolveBaseline(row);
+        if (this!=MINECRAFT_DEFAULTS) return baseline;
+        var decision=previewDecision(row);
+        if (decision.winner().isPresent()) {
+            var winner=decision.winner().orElseThrow();
+            // Resolver-specific item/reference/review decorations remain their own defaults.
+            if (winner.layer()!=SFMItemstackPreviewRules.Layer.DEFAULT || row.path().kind()==SFMPath.Kind.FILE)
+                return new Resolution(baseline.contributorId(),new SFMExplorerPresentation(baseline.presentation().label(),
+                        new SFMExplorerPresentation.ItemIcon(winner.icon())));
+        }
+        if (decision.status()==SFMItemstackPreviewRules.Status.AMBIGUOUS || decision.status()==SFMItemstackPreviewRules.Status.UNAVAILABLE)
+            return new Resolution(baseline.contributorId(),new SFMExplorerPresentation(baseline.presentation().label(),
+                    new SFMExplorerPresentation.DegradedIcon(baseline.presentation().icon())));
+        return baseline;
+    }
+
+    public SFMItemstackPreviewRules.Decision previewDecision(SFMExplorerProjection.Row row) {
+        return previewCache.resolve(SFMClientThemeService.active(),SFMItemstackPreviewRegistry.snapshot(),SFMItemstackPreviewSubject.from(row.entry()));
+    }
+
+    private Resolution resolveBaseline(SFMExplorerProjection.Row row) {
         Objects.requireNonNull(row, "row");
         for (Registration registration : registrations) {
             Optional<SFMExplorerPresentation> candidate = Objects.requireNonNull(

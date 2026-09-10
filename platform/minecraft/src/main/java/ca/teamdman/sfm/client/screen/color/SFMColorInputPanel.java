@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.screen.color;
 
+import ca.teamdman.sfm.client.input.SFMSingleLineInput;
+import ca.teamdman.sfm.client.input.SFMSingleLineInputView;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.SFMGuiCrosshair;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
@@ -33,6 +35,8 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
     private Focus focus = Focus.FIELD;
     private int recentIndex;
     private String hexText;
+    private final SFMSingleLineInput hexInput;
+    private final SFMSingleLineInputView hexView = new SFMSingleLineInputView();
     private @Nullable String diagnostic;
     private @Nullable SFMArgbColor confirmedResult;
     private @Nullable Minecraft minecraft;
@@ -50,6 +54,7 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
         this.confirmCallback = Objects.requireNonNull(confirmCallback);
         this.cancelCallback = Objects.requireNonNull(cancelCallback);
         hexText = initial.toHex(model.hexOrder());
+        hexInput = new SFMSingleLineInput(hexText, 9, true, value -> value.matches("#?[0-9A-Fa-f]*"));
     }
 
     public SFMColorInputModel model() { return model; }
@@ -143,6 +148,8 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
             updateValue(mouseX);
         } else if (layout.hex().contains(mouseX, mouseY)) {
             focus = Focus.HEX;
+            drag = Drag.HEX;
+            moveHexCaret(mouseX, minecraft != null && net.minecraft.client.gui.screens.Screen.hasShiftDown());
         } else if (layout.order().contains(mouseX, mouseY)) {
             model.toggleHexOrder();
             syncHex();
@@ -170,6 +177,7 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
         if (button != GLFW.GLFW_MOUSE_BUTTON_LEFT || model.resolution() != SFMColorInputModel.Resolution.EDITING) return false;
         if (drag == Drag.FIELD) updateField(mouseX, mouseY);
         else if (drag == Drag.VALUE) updateValue(mouseX);
+        else if (drag == Drag.HEX) moveHexCaret(mouseX, true);
         else return false;
         return true;
     }
@@ -188,15 +196,12 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
             cycleFocus((modifiers & GLFW.GLFW_MOD_SHIFT) != 0 ? -1 : 1);
             return true;
         }
-        if (keyCode == GLFW.GLFW_KEY_BACKSPACE && focus == Focus.HEX) {
-            if (!hexText.isEmpty()) hexText = hexText.substring(0, hexText.length() - 1);
+        if (focus == Focus.HEX && hexInput.keyPressed(keyCode, modifiers,
+                () -> minecraft == null ? "" : sanitizeHex(minecraft.keyboardHandler.getClipboard()),
+                value -> { if (minecraft != null) minecraft.keyboardHandler.setClipboard(value); })) {
+            hexText = hexInput.text();
             diagnostic = null;
-            return true;
-        }
-        if (keyCode == GLFW.GLFW_KEY_V && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0 && focus == Focus.HEX
-                && minecraft != null) {
-            hexText = sanitizeHex(minecraft.keyboardHandler.getClipboard());
-            applyHex();
+            if (keyCode == GLFW.GLFW_KEY_V && (modifiers & GLFW.GLFW_MOD_CONTROL) != 0) applyHex();
             return true;
         }
         if (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) {
@@ -215,8 +220,9 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
     @Override
     public boolean charTyped(char character, int modifiers) {
         if (focus != Focus.HEX || model.resolution() != SFMColorInputModel.Resolution.EDITING) return false;
-        if ((character == '#' && hexText.isEmpty()) || Character.digit(character, 16) >= 0) {
-            if (hexText.length() < 9) hexText += Character.toUpperCase(character);
+        if (character == '#' || Character.digit(character, 16) >= 0) {
+            if (!hexInput.charTyped(Character.toUpperCase(character), modifiers)) return false;
+            hexText = hexInput.text();
             diagnostic = null;
             return true;
         }
@@ -283,8 +289,9 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
     private void renderHex(PoseStack poseStack, Minecraft minecraft) {
         fill(poseStack, layout.hex(), 0xFF101419);
         outline(poseStack, layout.hex(), focus == Focus.HEX ? FOCUSED : BORDER);
-        String shown = hexText + (focus == Focus.HEX && model.resolution() == SFMColorInputModel.Resolution.EDITING ? "_" : "");
-        SFMFontUtils.draw(poseStack, minecraft.font, shown, layout.hex().x() + 4, layout.hex().y() + 6, TEXT, false);
+        hexView.render(poseStack, minecraft.font, hexInput, layout.hex().x() + 4, layout.hex().y() + 6,
+                layout.hex().width() - 8, focus == Focus.HEX
+                        && model.resolution() == SFMColorInputModel.Resolution.EDITING, "", TEXT, MUTED);
         renderButton(poseStack, minecraft, layout.order(), model.hexOrder().name(), false);
     }
 
@@ -424,7 +431,14 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
 
     private void syncHex() {
         hexText = model.current().toHex(model.hexOrder());
+        hexInput.setText(hexText);
         diagnostic = null;
+    }
+
+    private void moveHexCaret(double x, boolean extend) {
+        if (minecraft == null) return;
+        int at = hexView.indexAt(hexInput, minecraft.font, layout.hex().width() - 8, x - layout.hex().x() - 4);
+        hexInput.select(extend ? hexInput.anchor() : at, at);
     }
 
     private void cycleFocus(int direction) {
@@ -472,7 +486,7 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
         centered(poseStack, minecraft, text, rect.x(), rect.width(), rect.y() + 6, TEXT);
     }
 
-    private enum Drag { NONE, FIELD, VALUE }
+    private enum Drag { NONE, FIELD, VALUE, HEX }
     private enum Focus {
         FIELD("hue and saturation", -1), VALUE("value", -1), HEX("hexadecimal", -1),
         ALPHA("alpha", 0), RED("red", 1), GREEN("green", 2), BLUE("blue", 3),

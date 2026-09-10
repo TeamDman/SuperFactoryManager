@@ -29,4 +29,13 @@ public record SFMTextDocumentSelection(
     public void validateAgainst(String text) {
         orderedRange().validateAgainst(text);
     }
+
+    /** Validate many selections with one source index instead of one document scan per endpoint. */
+    public static void validateAllAgainst(String text, java.util.List<SFMTextDocumentSelection> selections) {
+        var index = new ca.teamdman.sfm.client.context.SFMTextCoordinateIndex(text);
+        for (var selection : selections) {
+            index.utf16(selection.anchor());
+            index.utf16(selection.active());
+        }
+    }
 }

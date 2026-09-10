@@ -213,6 +213,38 @@ public final class SFMWorkspaceLayout {
         return true;
     }
 
+    /**
+     * Moves one entry into the exact stack containing {@code destination}.
+     * The entry identity, panel instance, metadata, and reopen state remain attached.
+     */
+    public boolean moveToStack(
+            SFMWorkspacePanelId panelId,
+            SFMWorkspacePanelId destination
+    ) {
+        Objects.requireNonNull(panelId);
+        Objects.requireNonNull(destination);
+        if (panelId.equals(destination)) return false;
+        PanelNode moved = find(root, panelId);
+        if (moved == null || find(root, destination) == null) return false;
+        if (!visiblePanels().stream().anyMatch(entry -> entry.id().equals(panelId))) return false;
+        if (!visiblePanels().stream().anyMatch(entry -> entry.id().equals(destination))) return false;
+        Optional<SFMWorkspaceStackId> sourceStack = stackId(panelId);
+        Optional<SFMWorkspaceStackId> destinationStack = stackId(destination);
+        if (sourceStack.isPresent() && sourceStack.equals(destinationStack)) return false;
+
+        Node previousRoot = root;
+        root = normalize(remove(root, panelId));
+        if (find(root, destination) == null) {
+            root = previousRoot;
+            return false;
+        }
+        root = pushIntoNearestStack(root, destination, moved);
+        focusedPanel = panelId;
+        mutationRevision++;
+        pruneDividerLinks();
+        return true;
+    }
+
     /** Traverses visible slots and then entries within a stacked slot. */
     public boolean traverse(int direction) {
         if (direction == 0) return false;

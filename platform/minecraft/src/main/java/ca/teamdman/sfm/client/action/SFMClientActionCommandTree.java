@@ -240,6 +240,26 @@ public final class SFMClientActionCommandTree {
             String command,
             ParseResults<SFMClientActionSource> parsed
     ) {
+        return getPaletteCandidates(command, parsed, command.length());
+    }
+
+    public CompletableFuture<List<SFMPaletteCandidate>> getPaletteCandidates(
+            String command, ParseResults<SFMClientActionSource> parsed, int cursor
+    ) {
+        // This seam is opt-in; it never probes arbitrary Brigadier providers or registry values.
+        if (command.startsWith(PALETTE_ACTION_PREFIX)) {
+            int end = command.indexOf(' ', PALETTE_ACTION_PREFIX.length());
+            if (end > 0 && cursor > end) {
+                ResourceLocation id = ResourceLocation.tryParse(command.substring(PALETTE_ACTION_PREFIX.length(), end));
+                SFMClientAction<?> action = id == null ? null : actions.get(id);
+                if (action instanceof SFMClientActionCompletion completion
+                        && isAvailable(id, parsed.getContext().getSource())) {
+                    var answer = completion.argumentCandidates(command, end + 1, cursor,
+                            parsed.getContext().getSource().context());
+                    if (answer.isPresent()) return CompletableFuture.completedFuture(answer.get().stream().limit(256).toList());
+                }
+            }
+        }
         StringRange choiceRange = paletteChoiceRange(command);
         if (choiceRange != null) {
             String query = command.substring(choiceRange.getStart(), choiceRange.getEnd())
@@ -359,6 +379,15 @@ public final class SFMClientActionCommandTree {
                             score - historyBoost,
                             action.getKey().toString()
                     ));
+                    if (!query.isBlank() && action.getValue() instanceof SFMClientActionCompletion completion) {
+                        for (var continuation : completion.contextualContinuations(source.context()).stream().limit(256).toList()) {
+                            String tail = action.getKey() + " " + continuation.arguments();
+                            ranked.add(new RankedPaletteCandidate(SFMPaletteCandidate.activatable(
+                                    new Suggestion(actionRange, tail), continuation.displayText(),
+                                    SFMPaletteCandidate.Kind.LITERAL_CONTINUATION, SFMPaletteCandidate.Origin.LITERAL_DISCOVERY,
+                                    action.getKey(), frontierId, SFMPaletteCandidate.NO_HISTORY, null), score + 0.01f, tail));
+                        }
+                    }
                 }
             }
             if (!query.isBlank()) {

@@ -111,6 +111,21 @@ public final class SFMKeyBindingProfile {
                 .toList();
     }
 
+    /**
+     * Returns bindings for one exact command rather than every parameterized
+     * invocation in the same action family.
+     */
+    public synchronized List<SFMKeyBinding> bindingsForCommand(
+            String actionId,
+            String commandDraft
+    ) {
+        String expected = normalizeCommandDraft(commandDraft);
+        return effectiveBindings().values().stream()
+                .filter(binding -> binding.actionId().equals(actionId))
+                .filter(binding -> normalizeCommandDraft(binding.commandDraft()).equals(expected))
+                .toList();
+    }
+
     public synchronized List<SFMKeyBinding> tombstonedBuiltInsForAction(String actionId) {
         return builtIns.values().stream()
                 .filter(binding -> binding.actionId().equals(actionId))
@@ -171,5 +186,10 @@ public final class SFMKeyBindingProfile {
         }
         effective.putAll(ephemeralBindings);
         return effective;
+    }
+
+    private static String normalizeCommandDraft(String commandDraft) {
+        String normalized = commandDraft.strip();
+        return normalized.startsWith("/") ? normalized.substring(1).stripLeading() : normalized;
     }
 }

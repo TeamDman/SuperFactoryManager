@@ -17,7 +17,12 @@ use std::collections::BTreeSet;
 use unicode_normalization::UnicodeNormalization as _;
 
 pub const SCHEMA: &str = "sfm.release-review/1";
-pub const HASH_DOMAIN: &str = "sfm.release-review/1:semantic-state\n";
+pub const WORKING_TREE_SCHEMA: &str = "sfm.release-review/2";
+/// Transient resolved ledger view, never the sparse durable ledger itself.
+pub const OBSERVATION_SCHEMA: &str = "sfm.release-review-observation/3";
+pub const EVIDENCE_OWNER: &str = "sfm:review-evidence";
+pub const HASH_DOMAIN: &str = "sfm.release-review/1:semantic-state:exact-coverage/2\n";
+pub const WORKING_TREE_HASH_DOMAIN: &str = "sfm.release-review/2:semantic-state:exact-coverage/2\n";
 
 #[derive(Clone, Debug, Facet, PartialEq)]
 #[facet(deny_unknown_fields)]
@@ -45,9 +50,49 @@ pub struct RepositoryBindingV1 {
     pub before_commit: String,
     pub before_tree: String,
     pub after_label: String,
-    pub candidate_commit: String,
-    pub candidate_tree: String,
+    #[facet(skip_serializing_if = Option::is_none)]
+    pub candidate_commit: Option<String>,
+    #[facet(skip_serializing_if = Option::is_none)]
+    pub candidate_tree: Option<String>,
     pub review_evidence_paths: Vec<String>,
+    #[facet(skip_serializing_if = Option::is_none)]
+    pub working_tree_capture: Option<crate::release_review_capture::WorkingTreeCaptureV1>,
+}
+
+impl RepositoryBindingV1 {
+    /// Immutable candidate source address, never ambient HEAD.
+    #[must_use]
+    pub fn candidate_identity(&self) -> Option<&str> {
+        self.working_tree_capture
+            .as_ref()
+            .map(|capture| capture.id.as_str())
+            .or(self.candidate_commit.as_deref())
+    }
+
+    /// # Errors
+    /// A captured working tree is not a Git revision; callers must handle it explicitly.
+    pub fn git_candidate(&self) -> eyre::Result<&str> {
+        if self.working_tree_capture.is_some() {
+            return Err(eyre!(
+                "operation requires a Git candidate, not a working-tree capture"
+            ));
+        }
+        self.candidate_commit
+            .as_deref()
+            .ok_or_else(|| eyre!("missing Git candidate"))
+    }
+
+    fn matches_snapshot_atom(&self, atom: &str) -> bool {
+        atom.eq_ignore_ascii_case(&self.before_commit)
+            || atom.eq_ignore_ascii_case(&format!("git:{}", self.before_commit))
+            || self
+                .candidate_identity()
+                .is_some_and(|id| atom.eq_ignore_ascii_case(id))
+            || self
+                .candidate_commit
+                .as_ref()
+                .is_some_and(|commit| atom.eq_ignore_ascii_case(&format!("git:{commit}")))
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Facet, Ord, PartialEq, PartialOrd)]
@@ -349,6 +394,7 @@ pub struct ReleaseReviewQueryResultV1 {
     pub expression: String,
     pub normalized_expression: String,
     pub review_unit_ids: Vec<String>,
+    pub surface_coverage: Vec<UnitSurfaceCoverage>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, Facet, Ord, PartialEq, PartialOrd)]
@@ -394,12 +440,36 @@ pub struct CompletionReportV1 {
     pub stale_producer: usize,
     pub witnesses: CompletionWitnessesV1,
     pub diagnostics: Vec<String>,
+    pub surface_coverage: Vec<UnitSurfaceCoverage>,
+}
+
+/// Pinned interval evidence, distinct from a query's work-unit membership.
+#[derive(Clone, Debug, Facet, PartialEq)]
+pub struct UnitSurfaceCoverage {
+    pub review_unit_id: String,
+    pub bounded: bool,
+    pub required: Vec<DocumentRangeV1>,
+    pub approved: Vec<DocumentRangeV1>,
+    pub remaining: Vec<DocumentRangeV1>,
+}
+
+impl UnitSurfaceCoverage {
+    fn fully_approved(&self) -> bool {
+        self.bounded && !self.required.is_empty() && self.remaining.is_empty()
+    }
 }
 
 #[derive(Facet)]
 struct ReleaseReviewTaggedSurfaceJson {
     review_session: facet_json::RawJson<'static>,
     selector_bindings: Vec<facet_json::RawJson<'static>>,
+    repository_bindings: Vec<RepositoryBindingTaggedSurfaceJson>,
+}
+
+#[derive(Facet)]
+struct RepositoryBindingTaggedSurfaceJson {
+    #[facet(default)]
+    working_tree_capture: Option<facet_json::RawJson<'static>>,
 }
 
 #[derive(Facet)]
@@ -681,10 +751,15 @@ pub fn parse(input: &str) -> eyre::Result<ReleaseReviewDocumentV1> {
     Ok(document)
 }
 
-fn validate_tagged_contract_json(input: &str) -> eyre::Result<()> {
+pub(crate) fn validate_tagged_contract_json(input: &str) -> eyre::Result<()> {
     let surface: ReleaseReviewTaggedSurfaceJson = facet_json::from_str(input)
         .map_err(|error| eyre!("invalid release-review tagged surface: {error:?}"))?;
     review_session_v2::validate_tagged_contract_json(surface.review_session.as_str())?;
+    for binding in surface.repository_bindings {
+        if let Some(capture) = binding.working_tree_capture {
+            crate::release_review_capture::validate_wire_types(capture.as_str())?;
+        }
+    }
     for binding in surface.selector_bindings {
         let binding: SelectorBindingTaggedSurfaceJson = facet_json::from_str(binding.as_str())
             .map_err(|error| eyre!("invalid selector-binding tagged surface: {error:?}"))?;
@@ -797,13 +872,36 @@ fn canonicalize(document: &mut ReleaseReviewDocumentV1) -> eyre::Result<()> {
 }
 
 fn validate(document: &ReleaseReviewDocumentV1) -> eyre::Result<()> {
-    if document.schema != SCHEMA {
+    if document.schema != SCHEMA
+        && document.schema != WORKING_TREE_SCHEMA
+        && document.schema != OBSERVATION_SCHEMA
+    {
         return Err(eyre!(
             "unsupported release-review schema '{}'",
             document.schema
         ));
     }
     review_session_v2::validate(&document.review_session)?;
+    if document.schema != SCHEMA {
+        for identifier in document.named_queries.iter().map(|q| q.id.as_str()).chain(
+            document
+                .review_session
+                .revision_lanes
+                .iter()
+                .map(|lane| lane.id.as_str()),
+        ) {
+            if identifier.eq_ignore_ascii_case("candidate")
+                || document
+                    .repository_bindings
+                    .iter()
+                    .any(|b| b.matches_snapshot_atom(identifier))
+            {
+                return Err(eyre!(
+                    "query/lane identifier collides with immutable source address: {identifier}"
+                ));
+            }
+        }
+    }
     let evaluations = review_session_v2::evaluate_all(&document.review_session)?;
 
     validate_unique_identities(document)?;
@@ -886,11 +984,31 @@ fn validate_repository_corpus(document: &ReleaseReviewDocumentV1) -> eyre::Resul
     let mut repository_bindings = BTreeMap::new();
     for binding in &document.repository_bindings {
         validate_repository_binding(binding)?;
+        if binding.working_tree_capture.is_some() && document.schema == SCHEMA {
+            return Err(eyre!("working-tree bindings require release-review/2"));
+        }
         if !session_lanes.contains_key(binding.lane_id.as_str()) {
             return Err(eyre!(
                 "repository binding has no embedded lane '{}'",
                 binding.lane_id
             ));
+        }
+        let lane = session_lanes[binding.lane_id.as_str()];
+        if document.schema != SCHEMA
+            && ((binding.before_commit != lane.before.id
+                && format!("git:{}", binding.before_commit) != lane.before.id)
+                || (binding.candidate_identity() != Some(lane.after.id.as_str())
+                    && binding
+                        .candidate_commit
+                        .as_ref()
+                        .is_none_or(|commit| format!("git:{commit}") != lane.after.id)))
+        {
+            return Err(eyre!(
+                "repository source identity disagrees with embedded snapshots"
+            ));
+        }
+        if let Some(capture) = &binding.working_tree_capture {
+            capture.validate_against(lane, document)?;
         }
         repository_bindings.insert(binding.lane_id.as_str(), binding);
     }
@@ -899,7 +1017,9 @@ fn validate_repository_corpus(document: &ReleaseReviewDocumentV1) -> eyre::Resul
     let mut corpus_by_revision = BTreeMap::new();
     for corpus in &document.corpus_documents {
         validate_corpus_document(corpus)?;
-        if !repository_bindings.contains_key(corpus.lane_id.as_str()) {
+        if !repository_bindings.contains_key(corpus.lane_id.as_str())
+            && !is_historical_evidence(document, corpus)
+        {
             return Err(eyre!(
                 "corpus document has no repository binding '{}'",
                 corpus.id
@@ -931,6 +1051,36 @@ fn validate_repository_corpus(document: &ReleaseReviewDocumentV1) -> eyre::Resul
         }
     }
     Ok(())
+}
+
+fn is_historical_evidence(document: &ReleaseReviewDocumentV1, corpus: &CorpusDocumentV1) -> bool {
+    if document.schema != OBSERVATION_SCHEMA
+        || corpus.source_owner != EVIDENCE_OWNER
+        || corpus.snapshot_side != SnapshotSideV1::After
+        || corpus.lane_id
+            != format!(
+                "review-evidence:{}",
+                review_session_v1::sha256(corpus.document_revision_id.as_bytes())
+            )
+        || corpus.source_locator != format!("review-evidence://sha256/{}", corpus.sha256)
+    {
+        return false;
+    }
+    document.review_session.revision_lanes.iter().any(|lane| {
+        lane.id == corpus.lane_id
+            && lane.repository.id == EVIDENCE_OWNER
+            && lane.before.id == "evidence:empty"
+            && lane.before.documents.is_empty()
+            && lane.after.id == format!("evidence:sha256:{}", corpus.sha256)
+            && match corpus.materialization {
+                MaterializationV1::Complete => {
+                    lane.after.documents.len() == 1
+                        && lane.after.documents[0].id == corpus.document_revision_id
+                }
+                MaterializationV1::Missing => lane.after.documents.is_empty(),
+                MaterializationV1::Partial => false,
+            }
+    })
 }
 
 fn validate_units_and_resume(document: &ReleaseReviewDocumentV1) -> eyre::Result<()> {
@@ -969,6 +1119,14 @@ fn validate_units_and_resume(document: &ReleaseReviewDocumentV1) -> eyre::Result
         .into_iter()
         .flatten()
         {
+            if document.schema == OBSERVATION_SCHEMA
+                && document.corpus_documents.iter().any(|corpus| {
+                    corpus.document_revision_id == revision
+                        && !repository_bindings.contains(corpus.lane_id.as_str())
+                })
+            {
+                return Err(eyre!("current review unit cannot use historical evidence"));
+            }
             if !corpus_revisions.contains(revision) {
                 return Err(eyre!(
                     "review unit '{}' references unknown corpus revision '{}'",
@@ -1081,7 +1239,7 @@ fn validate_named_queries(
     Ok(())
 }
 
-fn validate_repository_binding(binding: &RepositoryBindingV1) -> eyre::Result<()> {
+pub(crate) fn validate_repository_binding(binding: &RepositoryBindingV1) -> eyre::Result<()> {
     require_text(&binding.lane_id, "repositoryBinding.laneId")?;
     require_text(&binding.repository_id, "repositoryBinding.repositoryId")?;
     require_text(&binding.root_hint, "repositoryBinding.rootHint")?;
@@ -1089,11 +1247,22 @@ fn validate_repository_binding(binding: &RepositoryBindingV1) -> eyre::Result<()
     require_git_sha1(&binding.before_commit, "repositoryBinding.beforeCommit")?;
     require_git_sha1(&binding.before_tree, "repositoryBinding.beforeTree")?;
     require_text(&binding.after_label, "repositoryBinding.afterLabel")?;
-    require_git_sha1(
+    match (
         &binding.candidate_commit,
-        "repositoryBinding.candidateCommit",
-    )?;
-    require_git_sha1(&binding.candidate_tree, "repositoryBinding.candidateTree")?;
+        &binding.candidate_tree,
+        &binding.working_tree_capture,
+    ) {
+        (Some(commit), Some(tree), None) => {
+            require_git_sha1(commit, "repositoryBinding.candidateCommit")?;
+            require_git_sha1(tree, "repositoryBinding.candidateTree")?;
+        }
+        (None, None, Some(capture)) => capture.validate()?,
+        _ => {
+            return Err(eyre!(
+                "candidate must be exactly one Git pair or working-tree capture"
+            ));
+        }
+    }
     ensure_unique(
         binding.review_evidence_paths.iter().map(String::as_str),
         "review evidence path",
@@ -1341,6 +1510,7 @@ struct QueryContext<'a> {
     deferred: BTreeSet<String>,
     unsupported: BTreeSet<String>,
     stale_producer: BTreeSet<String>,
+    surface_coverage: Vec<UnitSurfaceCoverage>,
 }
 
 impl<'a> QueryContext<'a> {
@@ -1367,7 +1537,15 @@ impl<'a> QueryContext<'a> {
             normalize_hashtag(&document.review_session.completion_policy.approval_hashtag);
         let approved_raw = hashtag_units(document, &comments, &evaluations, &approval, false);
         let mut blocking = BTreeSet::new();
+        let mut blocking_ranges = Vec::new();
         for hashtag in &document.review_session.completion_policy.blocking_hashtags {
+            blocking_ranges.extend(hashtag_ranges(
+                document,
+                &comments,
+                &evaluations,
+                &normalize_hashtag(hashtag),
+                false,
+            ));
             blocking.extend(hashtag_units(
                 document,
                 &comments,
@@ -1376,9 +1554,19 @@ impl<'a> QueryContext<'a> {
                 false,
             ));
         }
-        let approved_candidate = hashtag_units(document, &comments, &evaluations, &approval, true);
+        let approval_ranges = hashtag_ranges(document, &comments, &evaluations, &approval, true);
+        let resolved_approval = units_intersecting(document, &approval_ranges);
+        let surface_coverage = surface_coverage(document, &approval_ranges, &blocking_ranges);
+        let approved_candidate = surface_coverage
+            .iter()
+            .filter(|unit| unit.fully_approved())
+            .map(|unit| unit.review_unit_id.clone())
+            .collect();
         let approved_effective = set_difference(&approved_candidate, &blocking);
-        let suspended = set_difference(&approved_raw, &approved_effective);
+        let suspended = set_difference(
+            &approved_raw,
+            &set_difference(&resolved_approval, &blocking),
+        );
         let missing = unresolved_units(document, &comments, &evaluations);
         let deferred = document
             .resume_state
@@ -1425,6 +1613,7 @@ impl<'a> QueryContext<'a> {
             deferred,
             unsupported,
             stale_producer,
+            surface_coverage,
         }
     }
 }
@@ -1447,13 +1636,18 @@ pub fn query(
     let evaluations = review_session_v2::evaluate_all(&document.review_session)?;
     let context = QueryContext::new_unchecked(document, evaluations);
     let mut stack = Vec::new();
-    let review_unit_ids = evaluate_expression(&context, &parsed, false, &mut stack)?
+    let review_unit_ids: Vec<String> = evaluate_expression(&context, &parsed, false, &mut stack)?
         .into_iter()
         .collect();
     Ok(ReleaseReviewQueryResultV1 {
-        schema: "sfm.release-review-query-result/1".to_owned(),
+        schema: "sfm.release-review-query-result/2".to_owned(),
         expression: expression.to_owned(),
         normalized_expression: parsed.normalized(),
+        surface_coverage: context
+            .surface_coverage
+            .into_iter()
+            .filter(|unit| review_unit_ids.contains(&unit.review_unit_id))
+            .collect(),
         review_unit_ids,
     })
 }
@@ -1483,6 +1677,9 @@ pub fn completion(document: &ReleaseReviewDocumentV1) -> eyre::Result<Completion
     }
     if !remaining.is_empty() {
         diagnostics.push("Review units remain without effective approval".to_owned());
+    }
+    if context.surface_coverage.iter().any(|unit| !unit.bounded) {
+        diagnostics.push("Some review operations lack a fully materialized nonempty source domain; byte approval cannot complete them".to_owned());
     }
     let stale_query_revision = active_query_revision_stale(document)?;
     if stale_query_revision {
@@ -1532,7 +1729,7 @@ pub fn completion(document: &ReleaseReviewDocumentV1) -> eyre::Result<Completion
         stale_producer: context.stale_producer.iter().cloned().collect(),
     };
     Ok(CompletionReportV1 {
-        schema: "sfm.release-review-status/1".to_owned(),
+        schema: "sfm.release-review-status/2".to_owned(),
         status,
         review_semantic_state_hash,
         changed_domain: context.domain.len(),
@@ -1547,6 +1744,7 @@ pub fn completion(document: &ReleaseReviewDocumentV1) -> eyre::Result<Completion
         stale_producer: context.stale_producer.len(),
         witnesses,
         diagnostics,
+        surface_coverage: context.surface_coverage,
     })
 }
 
@@ -1563,8 +1761,15 @@ pub fn semantic_state_hash(document: &ReleaseReviewDocumentV1) -> eyre::Result<S
     projection.completion_attestations.clear();
     projection.review_session.style_rules.clear();
     let canonical = to_canonical_json(&projection)?;
+    let domain = if document.schema == OBSERVATION_SCHEMA {
+        "sfm.release-review-observation/3:semantic-state:exact-coverage/2\n"
+    } else if document.schema == WORKING_TREE_SCHEMA {
+        WORKING_TREE_HASH_DOMAIN
+    } else {
+        HASH_DOMAIN
+    };
     Ok(review_session_v1::sha256(
-        format!("{HASH_DOMAIN}{canonical}").as_bytes(),
+        format!("{domain}{canonical}").as_bytes(),
     ))
 }
 
@@ -1695,6 +1900,26 @@ fn evaluate_atom(
         query_stack.pop();
         return result;
     }
+    // Existing v1 lane/named-query meanings take precedence over additive aliases.
+    if lower == "candidate" {
+        return Ok(context.domain.clone());
+    }
+    let lanes = context
+        .document
+        .repository_bindings
+        .iter()
+        .filter(|b| b.matches_snapshot_atom(value))
+        .map(|b| b.lane_id.as_str())
+        .collect::<BTreeSet<_>>();
+    if !lanes.is_empty() {
+        return Ok(context
+            .document
+            .review_units
+            .iter()
+            .filter(|unit| lanes.contains(unit.lane_id.as_str()))
+            .map(|unit| unit.id.clone())
+            .collect());
+    }
     Err(eyre!("unknown release-review query atom '{value}'"))
 }
 
@@ -1705,7 +1930,20 @@ fn hashtag_units(
     hashtag: &str,
     effective: bool,
 ) -> BTreeSet<String> {
-    let mut answer = BTreeSet::new();
+    units_intersecting(
+        document,
+        &hashtag_ranges(document, comments, evaluations, hashtag, effective),
+    )
+}
+
+fn hashtag_ranges(
+    document: &ReleaseReviewDocumentV1,
+    comments: &BTreeMap<String, &review_session_v2::CommentV2>,
+    evaluations: &BTreeMap<String, CommentEvaluationV2>,
+    hashtag: &str,
+    effective: bool,
+) -> Vec<DocumentRangeV1> {
+    let mut answer = Vec::new();
     let approval = normalize_hashtag(&document.review_session.completion_policy.approval_hashtag);
     let blocking_tags = document
         .review_session
@@ -1716,7 +1954,7 @@ fn hashtag_units(
         .collect::<BTreeSet<_>>();
     for comment in comments.values() {
         let tags = review_session_v1::derived_hashtags(&comment.text);
-        if !tags.iter().any(|tag| tag == hashtag) {
+        if tags.iter().any(|tag| tag == "#archived") || !tags.iter().any(|tag| tag == hashtag) {
             continue;
         }
         let Some(evaluation) = evaluations.get(&comment.id) else {
@@ -1731,6 +1969,9 @@ fn hashtag_units(
                 continue;
             };
             if candidate_promotion.is_some() {
+                continue;
+            }
+            if has_unresolved_migration_evidence(document, &comment.id) {
                 continue;
             }
             let resolved = evaluation.status == EvaluationStatusV2::ResolvedExactly
@@ -1748,9 +1989,122 @@ fn hashtag_units(
         } else {
             original_ranges(&comment.target)
         };
-        answer.extend(units_intersecting(document, &ranges));
+        answer.extend(ranges);
     }
-    answer
+    review_session_v1::normalize(answer)
+}
+
+fn has_unresolved_migration_evidence(document: &ReleaseReviewDocumentV1, comment_id: &str) -> bool {
+    document
+        .selector_bindings
+        .iter()
+        .find(|binding| binding.comment_id == comment_id)
+        .is_some_and(|binding| {
+            document.migration_reports.iter().any(|report| {
+                report.source_selector_id == binding.selected_proposal.id
+                    && matches!(
+                        report.decision,
+                        MigrationDecisionV1::Unresolved | MigrationDecisionV1::Deferred
+                    )
+                    && report.candidate_evaluation.status != SelectorEvaluationStatusV1::Exact
+            })
+        })
+}
+
+fn surface_coverage(
+    document: &ReleaseReviewDocumentV1,
+    approvals: &[DocumentRangeV1],
+    blockers: &[DocumentRangeV1],
+) -> Vec<UnitSurfaceCoverage> {
+    let sources = document
+        .review_session
+        .revision_lanes
+        .iter()
+        .flat_map(|lane| lane.before.documents.iter().chain(&lane.after.documents))
+        .map(|source| (source.id.as_str(), source))
+        .collect::<BTreeMap<_, _>>();
+    let corpus = document
+        .corpus_documents
+        .iter()
+        .map(|source| (source.document_revision_id.as_str(), source))
+        .collect::<BTreeMap<_, _>>();
+    let mut approved_by_revision = BTreeMap::<String, Vec<DocumentRangeV1>>::new();
+    for range in review_session_v1::difference(approvals, blockers) {
+        approved_by_revision
+            .entry(range.document_revision_id.clone())
+            .or_default()
+            .push(range);
+    }
+    let mut result = Vec::new();
+    for unit in &document.review_units {
+        let mut required = Vec::new();
+        let mut bounded = true;
+        for (revision, ranges) in [
+            (&unit.before_document_revision_id, &unit.before_ranges),
+            (&unit.after_document_revision_id, &unit.after_ranges),
+        ] {
+            let Some(id) = revision.as_deref() else {
+                bounded &= ranges.is_empty();
+                continue;
+            };
+            let source = sources.get(id);
+            if corpus
+                .get(id)
+                .is_none_or(|entry| entry.materialization != MaterializationV1::Complete)
+                || source.is_none()
+            {
+                bounded = false;
+                continue;
+            }
+            let text = &source.expect("checked source").text;
+            if ranges.is_empty() {
+                if text.is_empty() {
+                    bounded = false;
+                } else {
+                    required.push(DocumentRangeV1 {
+                        document_revision_id: id.to_owned(),
+                        start_byte: 0,
+                        end_byte: text.len(),
+                    });
+                }
+            } else {
+                for range in ranges {
+                    if range.end_byte < range.start_byte
+                        || !text.is_char_boundary(range.start_byte)
+                        || !text.is_char_boundary(range.end_byte)
+                    {
+                        bounded = false;
+                    } else if range.start_byte < range.end_byte {
+                        required.push(DocumentRangeV1 {
+                            document_revision_id: id.to_owned(),
+                            start_byte: range.start_byte,
+                            end_byte: range.end_byte,
+                        });
+                    }
+                }
+            }
+        }
+        let required = review_session_v1::normalize(required);
+        let revisions = required
+            .iter()
+            .map(|range| range.document_revision_id.as_str())
+            .collect::<BTreeSet<_>>();
+        let applicable = revisions
+            .iter()
+            .filter_map(|id| approved_by_revision.get(*id))
+            .flatten()
+            .cloned()
+            .collect::<Vec<_>>();
+        result.push(UnitSurfaceCoverage {
+            review_unit_id: unit.id.clone(),
+            bounded: bounded && !required.is_empty(),
+            approved: review_session_v1::intersection(&required, &applicable),
+            remaining: review_session_v1::difference(&required, &applicable),
+            required,
+        });
+    }
+    result.sort_by(|left, right| left.review_unit_id.cmp(&right.review_unit_id));
+    result
 }
 
 fn unresolved_units(
@@ -2173,8 +2527,9 @@ pub(crate) mod test_support {
                 before_commit: "1".repeat(40),
                 before_tree: "2".repeat(40),
                 after_label: "HEAD".to_owned(),
-                candidate_commit: "3".repeat(40),
-                candidate_tree: "4".repeat(40),
+                candidate_commit: Some("3".repeat(40)),
+                candidate_tree: Some("4".repeat(40)),
+                working_tree_capture: None,
                 review_evidence_paths: vec!["docs/reviews/release.sfm-review.json".to_owned()],
             }],
             corpus_documents: vec![
@@ -2282,6 +2637,25 @@ pub(crate) mod test_support {
         document
     }
 
+    pub fn fully_reviewed_document() -> ReleaseReviewDocumentV1 {
+        let mut document = exact_document();
+        let before = document.review_session.revision_lanes[0].before.documents[0].clone();
+        let mut approval = document.review_session.comments[0].clone();
+        approval.id = "test:approved-before".to_owned();
+        approval.target = CommentTargetV2::CommittedSelection {
+            selection_rule: SelectionRuleV1::LiteralUtf8Range {
+                document_revision_id: before.id,
+                start_byte: 0,
+                end_byte: before.text.len(),
+                document_sha256: before.sha256.clone(),
+                selected_text_sha256: before.sha256,
+            },
+            candidate_promotion: None,
+        };
+        document.review_session.comments.push(approval);
+        document
+    }
+
     pub fn in_progress_document() -> ReleaseReviewDocumentV1 {
         let mut document = exact_document();
         document.review_session.comments[0].text = "review pending".to_owned();
@@ -2335,8 +2709,8 @@ mod tests {
         repository.lane_id = "1.20.1".to_owned();
         repository.before_commit = "5".repeat(40);
         repository.before_tree = "6".repeat(40);
-        repository.candidate_commit = "7".repeat(40);
-        repository.candidate_tree = "8".repeat(40);
+        repository.candidate_commit = Some("7".repeat(40));
+        repository.candidate_tree = Some("8".repeat(40));
         document.repository_bindings.push(repository);
 
         let mut before_corpus = document
@@ -2370,6 +2744,147 @@ mod tests {
         unit.after_document_revision_id = Some("after-1.20.1:A.java".to_owned());
         document.review_units.push(unit);
         document
+    }
+
+    fn fully_reviewed_document() -> ReleaseReviewDocumentV1 {
+        let mut document = test_support::exact_document();
+        let before = document.review_session.revision_lanes[0].before.documents[0].clone();
+        document.review_session.comments.push(literal_comment(
+            &before,
+            "test:approved-before",
+            "#approved Explicit before-surface test evidence",
+            0,
+            before.text.len(),
+            None,
+        ));
+        document
+    }
+
+    #[test]
+    fn one_byte_approval_leaves_the_rest_of_the_unit_unreviewed() {
+        let mut document = parse(JAVA_CANONICAL_FIXTURE).expect("fixture");
+        let after = document.review_session.revision_lanes[0].after.documents[0].clone();
+        let partial = literal_comment(
+            &after,
+            "human:approved-value",
+            "#approved One test byte",
+            35,
+            36,
+            None,
+        );
+        *document
+            .review_session
+            .comments
+            .iter_mut()
+            .find(|comment| comment.id == "human:approved-value")
+            .expect("approval") = partial;
+        assert_eq!(
+            query(&document, "#approved").unwrap().review_unit_ids,
+            ["unit:src/Cafe.java:value"]
+        );
+        assert!(
+            query(&document, "effective(#approved)")
+                .unwrap()
+                .review_unit_ids
+                .is_empty()
+        );
+        let report = completion(&document).unwrap();
+        let surface = report
+            .surface_coverage
+            .iter()
+            .find(|unit| unit.review_unit_id == "unit:src/Cafe.java:value")
+            .unwrap();
+        assert_eq!(
+            surface.remaining,
+            vec![
+                DocumentRangeV1 {
+                    document_revision_id: after.id.clone(),
+                    start_byte: 36,
+                    end_byte: 60
+                },
+                DocumentRangeV1 {
+                    document_revision_id: "1.19.2:before:src/Cafe.java".to_owned(),
+                    start_byte: 35,
+                    end_byte: 60
+                },
+            ]
+        );
+        assert_eq!(
+            report.suspended, 0,
+            "Partial exact approval is not suspended"
+        );
+    }
+
+    #[test]
+    fn overlapping_approvals_union_without_filling_a_one_byte_gap() {
+        let mut document = parse(JAVA_CANONICAL_FIXTURE).expect("fixture");
+        document
+            .review_session
+            .comments
+            .iter_mut()
+            .find(|comment| comment.id == "human:approved-value")
+            .unwrap()
+            .text = "Test note".to_owned();
+        let before = document.review_session.revision_lanes[0].before.documents[0].clone();
+        let after = document.review_session.revision_lanes[0].after.documents[0].clone();
+        for (index, (source, start, end)) in [
+            (&before, 35, 60),
+            (&after, 35, 45),
+            (&after, 40, 45),
+            (&after, 46, 60),
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            document.review_session.comments.push(literal_comment(
+                source,
+                &format!("test:approval:{index}"),
+                "#approved Test fragment",
+                start,
+                end,
+                None,
+            ));
+        }
+        let report = completion(&document).unwrap();
+        let surface = report
+            .surface_coverage
+            .iter()
+            .find(|unit| unit.review_unit_id == "unit:src/Cafe.java:value")
+            .unwrap();
+        assert_eq!(
+            surface.remaining,
+            vec![DocumentRangeV1 {
+                document_revision_id: after.id.clone(),
+                start_byte: 45,
+                end_byte: 46
+            }]
+        );
+        assert_eq!(
+            surface
+                .approved
+                .iter()
+                .map(|range| range.end_byte - range.start_byte)
+                .sum::<usize>(),
+            49
+        );
+        document.review_session.comments.push(literal_comment(
+            &after,
+            "test:gap",
+            "#approved Test gap",
+            45,
+            46,
+            None,
+        ));
+        assert_eq!(
+            query(&document, "effective(#approved)")
+                .unwrap()
+                .review_unit_ids,
+            ["unit:src/Cafe.java:value"]
+        );
+        assert_eq!(
+            query(&document, "remaining").unwrap().review_unit_ids,
+            ["unit:src/Other.java:file"]
+        );
     }
 
     fn literal_comment(
@@ -2521,12 +3036,15 @@ mod tests {
             .iter()
             .find(|binding| binding.lane_id == "1.19.2-live")
             .expect("live repository binding");
-        assert_eq!(pinned_repository.candidate_commit, pinned_lane.after.id);
+        assert_eq!(
+            pinned_repository.git_candidate().unwrap(),
+            pinned_lane.after.id
+        );
         assert_eq!(
             live_repository.before_commit,
-            pinned_repository.candidate_commit
+            pinned_repository.git_candidate().unwrap()
         );
-        assert_eq!(live_repository.candidate_commit, live_lane.after.id);
+        assert_eq!(live_repository.git_candidate().unwrap(), live_lane.after.id);
         assert_ne!(
             pinned_repository.candidate_commit,
             live_repository.candidate_commit
@@ -2574,7 +3092,7 @@ mod tests {
         );
         assert_eq!(
             binding.selected_proposal.source_snapshot_id,
-            pinned_repository.candidate_commit
+            pinned_repository.git_candidate().unwrap()
         );
         assert_eq!(
             binding
@@ -2820,7 +3338,7 @@ mod tests {
 
     #[test]
     fn changed_and_uncovered_aliases_and_empty_configured_lanes_are_queryable() {
-        let exact = test_support::exact_document();
+        let exact = fully_reviewed_document();
         assert_eq!(
             query(&exact, "changed")
                 .expect("changed alias")
@@ -3041,8 +3559,8 @@ mod tests {
                 statement: "I reviewed the pinned release domain.".to_owned(),
             });
 
-        document.repository_bindings[0].candidate_commit = "a".repeat(40);
-        document.repository_bindings[0].candidate_tree = "b".repeat(40);
+        document.repository_bindings[0].candidate_commit = Some("a".repeat(40));
+        document.repository_bindings[0].candidate_tree = Some("b".repeat(40));
         assert_eq!(document.resume_state, original_cursor);
         assert_ne!(
             semantic_state_hash(&document).expect("changed candidate semantic state"),
@@ -3204,7 +3722,7 @@ mod tests {
 
     #[test]
     fn completion_is_ready_complete_in_progress_or_stale_fail_closed() {
-        let ready_document = test_support::exact_document();
+        let ready_document = fully_reviewed_document();
         let ready = completion(&ready_document).expect("ready completion");
         assert_eq!(
             ready.status,
@@ -3246,7 +3764,7 @@ mod tests {
 
     #[test]
     fn completion_is_stale_when_attestation_no_longer_matches_semantic_state() {
-        let mut document = test_support::exact_document();
+        let mut document = fully_reviewed_document();
         let attested_hash = semantic_state_hash(&document).expect("attested semantic state");
         document
             .completion_attestations

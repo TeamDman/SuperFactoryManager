@@ -199,7 +199,6 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private List<SFMPath> referenceLeaves = List.of();
     private int referenceIndex;
     private SFMExplorerRuntime.ReferenceLeafNavigation pendingReferenceNavigation;
-    private int interactionFocusRequests;
     private int performanceFocusRequests;
     private boolean performanceMeasurementStarted;
     private int performanceWarmupInteractionIndex;
@@ -331,21 +330,6 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
 
     private boolean prepareHover() {
         SFMScreenMultiplexer workspace = requireWorkspace();
-        SFMGamePuppetForegroundWindow.Observation observation =
-                SFMGamePuppetForegroundWindow.request(Minecraft.getInstance());
-        interactionFocusRequests++;
-        if (!observation.readyForVisibleLatency()) {
-            if (phaseTicks > 40) {
-                fail("The native Ctrl-hover checkpoint could not make its preview window foreground: "
-                        + observation);
-            }
-            return false;
-        }
-        // GLFW only delivers a programmatic cursor move to Minecraft's mouse
-        // callback while this window owns foreground input. Let that ownership
-        // settle before moving the real pointer so the native and cached
-        // coordinates remain independently observable.
-        if (phaseTicks < 10) return false;
         SFMSourcePuppetProbe.EditorHandle source = restoreSource(workspace);
         if (C11SourceNavigationPuppetProbe.spatialCoverage(source).isEmpty()) return false;
         SFMTextDocumentSnapshot document = source.state().documentSnapshot().orElseThrow();
@@ -356,18 +340,11 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
                         "The ProgramContext canvas point has no generation-consistent semantic witness"));
         hoverTopologyBefore = C11SourceNavigationPuppetProbe.topology(workspace);
         JsonObject focus = new JsonObject();
-        focus.addProperty("required_for_native_pointer", true);
-        focus.addProperty("glfw_focused", observation.glfwFocused());
-        focus.addProperty("iconified", observation.iconified());
-        focus.addProperty("platform_probe_available", observation.platformProbeAvailable());
-        focus.addProperty("platform_foreground", observation.platformForeground());
-        focus.addProperty("platform_window", Long.toUnsignedString(observation.platformWindow()));
-        focus.addProperty("platform_foreground_window",
-                Long.toUnsignedString(observation.platformForegroundWindow()));
-        focus.addProperty("focus_requests", interactionFocusRequests);
-        focus.addProperty("settle_ticks", phaseTicks);
+        focus.addProperty("virtual_pointer", true);
+        focus.addProperty("foreground_required", false);
+        focus.addProperty("operating_system_cursor_injection", false);
         evidence.add("interaction_window", focus);
-        SFMGamePuppetPointer.moveNative(workspace, hoverPointer.globalX(), hoverPointer.globalY());
+        SFMGamePuppetPointer.moveVirtual(workspace, hoverPointer.globalX(), hoverPointer.globalY());
         advance(Phase.WAIT_HOVER_POINTER);
         return false;
     }
@@ -377,27 +354,21 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
         SFMGamePuppetPointer.Position current = SFMGamePuppetPointer.current();
         if (!current.callbackIsWithin(hoverPointer.globalX(), hoverPointer.globalY(), 1.0D)) {
             if (phaseTicks > 20) {
-                fail("Native mouse callback did not settle at the Ctrl-hover target: expected="
+                fail("Virtual mouse callback did not settle at the Ctrl-hover target: expected="
                         + hoverPointer.globalX() + "," + hoverPointer.globalY()
-                        + " glfwLogical=" + current.logicalX() + "," + current.logicalY()
                         + " cachedLogical=" + current.cachedLogicalX() + "," + current.cachedLogicalY()
-                        + " glfwNative=" + current.nativeX() + "," + current.nativeY()
                         + " cachedNative=" + current.cachedNativeX() + "," + current.cachedNativeY());
             }
             return false;
         }
         JsonObject pointerDelivery = new JsonObject();
         pointerDelivery.addProperty("minecraft_callback_confirmed", true);
-        pointerDelivery.addProperty("glfw_polled_position_confirmed",
-                current.glfwIsWithin(hoverPointer.globalX(), hoverPointer.globalY(), 1.0D));
+        pointerDelivery.addProperty("operating_system_cursor_injection", false);
         pointerDelivery.addProperty("expected_logical_x", hoverPointer.globalX());
         pointerDelivery.addProperty("expected_logical_y", hoverPointer.globalY());
-        pointerDelivery.addProperty("glfw_logical_x", current.logicalX());
-        pointerDelivery.addProperty("glfw_logical_y", current.logicalY());
         pointerDelivery.addProperty("minecraft_cached_logical_x", current.cachedLogicalX());
         pointerDelivery.addProperty("minecraft_cached_logical_y", current.cachedLogicalY());
-        evidence.add("native_pointer_delivery", pointerDelivery);
-        SFMGamePuppetPointer.moveWorkspace(workspace, hoverPointer.globalX(), hoverPointer.globalY());
+        evidence.add("virtual_pointer_delivery", pointerDelivery);
         workspace.keyPressed(GLFW.GLFW_KEY_LEFT_CONTROL, 0, GLFW.GLFW_MOD_CONTROL);
         advance(Phase.WAIT_HOVER);
         return false;
@@ -676,7 +647,7 @@ public final class AssertSourceNavigationJourneyPuppetAction implements SFMPuppe
     private boolean invokeRightClick() {
         SFMScreenMultiplexer workspace = requireWorkspace();
         restoreSource(workspace);
-        SFMGamePuppetPointer.moveNative(workspace, contextPointer.globalX(), contextPointer.globalY());
+        SFMGamePuppetPointer.moveVirtual(workspace, contextPointer.globalX(), contextPointer.globalY());
         require(workspace.mouseClicked(
                         contextPointer.globalX(), contextPointer.globalY(), GLFW.GLFW_MOUSE_BUTTON_RIGHT),
                 "The editor did not route the contextual right-click");

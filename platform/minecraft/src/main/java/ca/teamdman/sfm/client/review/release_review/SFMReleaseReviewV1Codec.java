@@ -31,7 +31,10 @@ public final class SFMReleaseReviewV1Codec {
                 "selector_bindings", "migration_reports", "named_queries", "resume_state",
                 "producer_generations", "completion_attestations"
         ));
-        equal(text(root, "schema"), SFMReleaseReviewV1.SCHEMA, "schema");
+        String schema = text(root, "schema");
+        if (!SFMReleaseReviewV1.SCHEMA.equals(schema) && !SFMReleaseReviewV1.WORKING_TREE_SCHEMA.equals(schema)
+                && !SFMReleaseReviewV1.OBSERVATION_SCHEMA.equals(schema))
+            throw new IllegalArgumentException("Unsupported release-review schema " + schema);
         SFMReviewSessionV2 session = SFMReviewSessionV2Codec.parse(GSON.toJson(object(root, "review_session")));
         List<SFMReleaseReviewV1.RepositoryBinding> bindings = new ArrayList<>();
         for (JsonElement value : array(root, "repository_bindings")) bindings.add(parseBinding(value.getAsJsonObject()));
@@ -62,9 +65,14 @@ public final class SFMReleaseReviewV1Codec {
     }
 
     public static String write(SFMReleaseReviewV1 document) {
+        return GSON.toJson(writeTree(document)) + "\n";
+    }
+
+    /** Fresh owned tree; callers cannot mutate a cached representation of another save. */
+    static JsonObject writeTree(SFMReleaseReviewV1 document) {
         JsonObject root = new JsonObject();
         root.addProperty("schema", document.schema());
-        root.add("review_session", JsonParser.parseString(SFMReviewSessionV2Codec.write(document.reviewSession())));
+        root.add("review_session", SFMReviewSessionV2Codec.writeTree(document.reviewSession()));
         JsonArray bindings = new JsonArray();
         document.repositoryBindings().forEach(value -> bindings.add(writeBinding(value)));
         root.add("repository_bindings", bindings);
@@ -90,20 +98,32 @@ public final class SFMReleaseReviewV1Codec {
         JsonArray attestations = new JsonArray();
         document.completionAttestations().forEach(value -> attestations.add(writeAttestation(value)));
         root.add("completion_attestations", attestations);
-        return GSON.toJson(root) + "\n";
+        return root;
     }
 
     private static SFMReleaseReviewV1.RepositoryBinding parseBinding(JsonObject value) {
         fields(value, "repository binding", Set.of(
                 "lane_id", "repository_id", "root_hint", "before_label", "before_commit", "before_tree",
-                "after_label", "candidate_commit", "candidate_tree", "review_evidence_paths"
+                "after_label", "candidate_commit", "candidate_tree", "review_evidence_paths", "working_tree_capture"
         ));
         return new SFMReleaseReviewV1.RepositoryBinding(
                 text(value, "lane_id"), text(value, "repository_id"), text(value, "root_hint"),
                 text(value, "before_label"), text(value, "before_commit"), text(value, "before_tree"),
-                text(value, "after_label"), text(value, "candidate_commit"), text(value, "candidate_tree"),
-                strings(value, "review_evidence_paths")
+                text(value, "after_label"), value.has("candidate_commit") ? text(value, "candidate_commit") : null,
+                value.has("candidate_tree") ? text(value, "candidate_tree") : null,
+                strings(value, "review_evidence_paths"), value.has("working_tree_capture")
+                        ? Optional.of(SFMWorkingTreeCaptureV1Codec.readObject(object(value, "working_tree_capture")))
+                        : Optional.empty()
         );
+    }
+
+    static String writeSourceBindings(List<SFMReleaseReviewV1.RepositoryBinding> values) {
+        var root = new JsonObject();
+        root.addProperty("schema", SFMReleaseReviewV1.WORKING_TREE_SCHEMA);
+        var bindings = new JsonArray();
+        values.forEach(value -> bindings.add(writeBinding(value)));
+        root.add("repository_bindings", bindings);
+        return root.toString();
     }
 
     private static JsonObject writeBinding(SFMReleaseReviewV1.RepositoryBinding value) {
@@ -115,9 +135,10 @@ public final class SFMReleaseReviewV1Codec {
         answer.addProperty("before_commit", value.beforeCommit());
         answer.addProperty("before_tree", value.beforeTree());
         answer.addProperty("after_label", value.afterLabel());
-        answer.addProperty("candidate_commit", value.candidateCommit());
-        answer.addProperty("candidate_tree", value.candidateTree());
+        if (value.candidateCommit() != null) answer.addProperty("candidate_commit", value.candidateCommit());
+        if (value.candidateTree() != null) answer.addProperty("candidate_tree", value.candidateTree());
         answer.add("review_evidence_paths", strings(value.reviewEvidencePaths()));
+        value.workingTreeCapture().ifPresent(capture -> answer.add("working_tree_capture", SFMWorkingTreeCaptureV1Codec.writeObject(capture)));
         return answer;
     }
 

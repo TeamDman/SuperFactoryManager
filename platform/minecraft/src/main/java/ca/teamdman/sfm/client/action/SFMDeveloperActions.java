@@ -2,7 +2,6 @@ package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
-import ca.teamdman.sfm.client.screen.SFMTitleScreenDevScreen;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMRegistryObject;
 import net.minecraftforge.eventbus.api.IEventBus;
@@ -11,16 +10,16 @@ public final class SFMDeveloperActions {
     private static final SFMDeferredRegister<SFMClientAction<?>> REGISTERER =
             SFMClientActions.createContributor(SFM.MOD_ID);
 
-    public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> TEXT_EDITOR =
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenDeveloperPanelAction> TEXT_EDITOR =
             REGISTERER.register(
                     "developer/open_text_editor",
-                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.TEXT_EDITOR)
+                    () -> new OpenDeveloperPanelAction(OpenDeveloperPanelAction.Scene.TEXT_EDITOR)
             );
 
-    public static final SFMRegistryObject<SFMClientAction<?>, OpenTitleScreenDevScreenAction> INPUT_DIAGNOSTICS =
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenDeveloperPanelAction> INPUT_DIAGNOSTICS =
             REGISTERER.register(
                     "developer/open_input_diagnostics",
-                    () -> new OpenTitleScreenDevScreenAction(SFMTitleScreenDevScreen.INPUT_DIAG)
+                    () -> new OpenDeveloperPanelAction(OpenDeveloperPanelAction.Scene.INPUT_DIAGNOSTICS)
             );
 
     public static final SFMRegistryObject<SFMClientAction<?>, CreateDeveloperWorldAction> CREATE_WORLD =

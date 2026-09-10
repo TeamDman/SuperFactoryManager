@@ -27,7 +27,8 @@ public record SFMTextDocumentSnapshot(
         Optional<SFMTextDocumentRange> targetRange,
         List<String> diagnostics,
         Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity,
-        Optional<AnalysisIdentity> analysisIdentity
+        Optional<AnalysisIdentity> analysisIdentity,
+        SFMTextDocumentLanguage language
 ) {
     /**
      * Optional native identity used only to ask language workers about immutable
@@ -82,6 +83,7 @@ public record SFMTextDocumentSnapshot(
         diagnostics = List.copyOf(diagnostics);
         sourceRootIdentity = Objects.requireNonNull(sourceRootIdentity, "sourceRootIdentity");
         analysisIdentity = Objects.requireNonNull(analysisIdentity, "analysisIdentity");
+        Objects.requireNonNull(language, "language");
         if (state == State.READY) {
             if (sha256.isEmpty() || byteLength.isEmpty() || lineEndingKind.isEmpty()) {
                 throw new IllegalArgumentException("A ready document requires hash, byte length, and line endings");
@@ -93,6 +95,27 @@ public record SFMTextDocumentSnapshot(
             // document and must never escape into the editor presentation.
             targetRange = Optional.empty();
         }
+    }
+
+    /** Backwards-compatible construction that derives language before it becomes renderer input. */
+    public SFMTextDocumentSnapshot(
+            State state,
+            String text,
+            MutationCapability mutationCapability,
+            Optional<SFMPath> path,
+            Optional<SFMPath> authorizedRoot,
+            Optional<String> sha256,
+            OptionalLong byteLength,
+            Optional<Instant> lastModified,
+            Optional<SFMResolverTextResult.LineEndingKind> lineEndingKind,
+            Optional<SFMTextDocumentRange> targetRange,
+            List<String> diagnostics,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity,
+            Optional<AnalysisIdentity> analysisIdentity
+    ) {
+        this(state, text, mutationCapability, path, authorizedRoot, sha256, byteLength, lastModified,
+                lineEndingKind, targetRange, diagnostics, sourceRootIdentity, analysisIdentity,
+                defaultLanguage(state, path));
     }
 
     /** Backwards-compatible construction for documents without a distinct analysis identity. */
@@ -166,7 +189,12 @@ public record SFMTextDocumentSnapshot(
     }
 
     public static SFMTextDocumentSnapshot literal(String text) {
+        return literal(text, SFMTextDocumentLanguage.sfml());
+    }
+
+    public static SFMTextDocumentSnapshot literal(String text, SFMTextDocumentLanguage language) {
         Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(language, "language");
         byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
         return new SFMTextDocumentSnapshot(
                 State.READY,
@@ -180,7 +208,9 @@ public record SFMTextDocumentSnapshot(
                 Optional.of(detectLineEndings(text)),
                 Optional.empty(),
                 List.of(),
-                Optional.empty()
+                Optional.empty(),
+                Optional.empty(),
+                language
         );
     }
 
@@ -204,6 +234,20 @@ public record SFMTextDocumentSnapshot(
             Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity,
             Optional<AnalysisIdentity> analysisIdentity
     ) {
+        return pinned(path, authorizedRoot, text, expectedSha256, targetRange, sourceRootIdentity,
+                analysisIdentity, SFMTextDocumentLanguage.fromPath(path));
+    }
+
+    public static SFMTextDocumentSnapshot pinned(
+            SFMPath path,
+            SFMPath authorizedRoot,
+            String text,
+            String expectedSha256,
+            Optional<SFMTextDocumentRange> targetRange,
+            Optional<SFMTextDocumentSourceRootIdentity> sourceRootIdentity,
+            Optional<AnalysisIdentity> analysisIdentity,
+            SFMTextDocumentLanguage language
+    ) {
         Objects.requireNonNull(path, "path");
         Objects.requireNonNull(authorizedRoot, "authorizedRoot");
         Objects.requireNonNull(text, "text");
@@ -211,6 +255,7 @@ public record SFMTextDocumentSnapshot(
         Objects.requireNonNull(targetRange, "targetRange");
         Objects.requireNonNull(sourceRootIdentity, "sourceRootIdentity");
         Objects.requireNonNull(analysisIdentity, "analysisIdentity");
+        Objects.requireNonNull(language, "language");
         byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
         String actualSha256 = sha256(bytes);
         if (!actualSha256.equals(expectedSha256)) {
@@ -246,7 +291,8 @@ public record SFMTextDocumentSnapshot(
                 targetRange,
                 List.of(),
                 sourceRootIdentity,
-                analysisIdentity
+                analysisIdentity,
+                language
         );
     }
 
@@ -267,7 +313,8 @@ public record SFMTextDocumentSnapshot(
                 Optional.empty(),
                 diagnostics,
                 sourceRootIdentity,
-                analysisIdentity
+                analysisIdentity,
+                language
         );
     }
 
@@ -286,7 +333,8 @@ public record SFMTextDocumentSnapshot(
                 targetRange,
                 diagnostics,
                 identity.sourceRootIdentity(),
-                Optional.empty()
+                Optional.empty(),
+                language
         ));
     }
 
@@ -331,7 +379,9 @@ public record SFMTextDocumentSnapshot(
                     result.lineEndingKind(),
                     targetRange,
                     List.of(),
-                    sourceRootIdentity
+                    sourceRootIdentity,
+                    Optional.empty(),
+                    SFMTextDocumentLanguage.fromPath(result.path())
             );
         }
         return new SFMTextDocumentSnapshot(
@@ -346,7 +396,9 @@ public record SFMTextDocumentSnapshot(
                 Optional.empty(),
                 Optional.empty(),
                 result.diagnostic().stream().toList(),
-                sourceRootIdentity
+                sourceRootIdentity,
+                Optional.empty(),
+                SFMTextDocumentLanguage.plainText()
         );
     }
 
@@ -379,8 +431,15 @@ public record SFMTextDocumentSnapshot(
                 Optional.empty(),
                 Optional.empty(),
                 diagnostics,
-                sourceRootIdentity
+                sourceRootIdentity,
+                Optional.empty(),
+                SFMTextDocumentLanguage.plainText()
         );
+    }
+
+    private static SFMTextDocumentLanguage defaultLanguage(State state, Optional<SFMPath> path) {
+        if (state != State.READY) return SFMTextDocumentLanguage.plainText();
+        return path.map(SFMTextDocumentLanguage::fromPath).orElseGet(SFMTextDocumentLanguage::sfml);
     }
 
     private static String sha256(byte[] bytes) {

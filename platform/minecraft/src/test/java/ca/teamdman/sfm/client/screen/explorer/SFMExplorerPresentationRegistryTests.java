@@ -15,6 +15,26 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 public class SFMExplorerPresentationRegistryTests {
     @Test
+    public void authoredRuleReplacesOnlyTheIconAndReloadInvalidatesItsDecision() {
+        var row=row(SFMPath.parse("file:///C:/work/abc.json"),"abc.json",false,Optional.empty());
+        var registry=SFMExplorerPresentationRegistry.minecraftDefaults();
+        try {
+            String rules=ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewRuleCodec.write(List.of(
+                    ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewRules.Rule.user(
+                            ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewExpression.parse(
+                                    "sfm:string/equals sfm:entry/name \"abc.json\"",
+                                    ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewOperators.builtins()),
+                            ca.teamdman.sfm.client.presentation.SFMItemIcon.vanilla("diamond","diamond"))));
+            org.junit.jupiter.api.Assertions.assertTrue(ca.teamdman.sfm.client.theme.SFMClientThemeService.reloadText("schema_version=1\n"+rules).valid());
+            var first=registry.resolve(row);
+            assertEquals("abc.json",first.presentation().label());
+            assertEquals(new ResourceLocation("minecraft:diamond"),assertInstanceOf(SFMExplorerPresentation.ItemIcon.class,first.presentation().icon()).item().requestedItem());
+            ca.teamdman.sfm.client.theme.SFMClientThemeService.resetForTests();
+            assertEquals(new ResourceLocation("minecraft:written_book"),assertInstanceOf(SFMExplorerPresentation.ItemIcon.class,registry.resolve(row).presentation().icon()).item().requestedItem());
+            assertEquals(SFMPath.parse("file:///C:/work/abc.json"),row.path());
+        } finally { ca.teamdman.sfm.client.theme.SFMClientThemeService.resetForTests(); }
+    }
+    @Test
     public void lowerOrderedCustomContributorIsSelectedDeterministically() {
         SFMExplorerPresentationRegistry registry = SFMExplorerPresentationRegistry.builder()
                 .register("test:z_later", 20, row -> Optional.of(marker(row, "later", "[L]")))
@@ -65,7 +85,7 @@ public class SFMExplorerPresentationRegistryTests {
                         Optional.of("file:txt")
                 ));
 
-        assertEquals(SFMFilePathExplorerPresenter.ID, resolution.contributorId());
+        assertEquals("sfm:file_extension", resolution.contributorId());
         SFMExplorerPresentation.ItemIcon icon = assertInstanceOf(
                 SFMExplorerPresentation.ItemIcon.class,
                 resolution.presentation().icon()

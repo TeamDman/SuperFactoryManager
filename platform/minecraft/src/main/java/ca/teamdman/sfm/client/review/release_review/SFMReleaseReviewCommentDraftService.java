@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Bounded one-shot registry for comment choices captured from an exact editor
@@ -48,6 +49,10 @@ public final class SFMReleaseReviewCommentDraftService {
 
     private final SFMReleaseReviewRuntime runtime;
     private final LinkedHashMap<String, Draft> drafts = new LinkedHashMap<>();
+    private record PendingDraft(String text, long operationId,
+                                CompletableFuture<SFMReleaseReviewRuntime.CommentMutationResult> result) { }
+    private final LinkedHashMap<String, PendingDraft> pendingDrafts = new LinkedHashMap<>();
+    public enum Cancellation { DISCARDED, REQUESTED_BEFORE_COMMIT, COMMITTING, ABSENT }
     private long nextId = 1;
 
     SFMReleaseReviewCommentDraftService(SFMReleaseReviewRuntime runtime) {
@@ -76,7 +81,8 @@ public final class SFMReleaseReviewCommentDraftService {
         );
         drafts.put(id, draft);
         while (drafts.size() > MAXIMUM_DRAFTS) {
-            drafts.remove(drafts.keySet().iterator().next());
+            String evicted = drafts.keySet().stream().filter(key -> !pendingDrafts.containsKey(key)).findFirst().orElseThrow();
+            drafts.remove(evicted);
         }
         return draft;
     }
@@ -120,7 +126,7 @@ public final class SFMReleaseReviewCommentDraftService {
     public synchronized SFMReleaseReviewRuntime.CommentMutationResult apply(String id, String text) {
         Draft draft = requireCurrent(id);
         SFMReleaseReviewRuntime.CommentMutationResult result = runtime.createComment(
-                requireText(text, "text"),
+                requireCommentText(text),
                 draft.capture().adapted().pinnedSelection(),
                 draft.proposal()
         );
@@ -128,18 +134,63 @@ public final class SFMReleaseReviewCommentDraftService {
         return result;
     }
 
+    public synchronized CompletableFuture<SFMReleaseReviewRuntime.CommentMutationResult> applyAsync(
+            String id,
+            String text
+    ) {
+        PendingDraft previous = pendingDrafts.get(id);
+        if (previous != null) {
+            return previous.text().equals(text) ? previous.result() : CompletableFuture.failedFuture(
+                    new IllegalStateException("This comment draft already has a different save pending"));
+        }
+        Draft draft = requireCurrent(id);
+        var persistence = runtime.createCommentAsync(
+                requireCommentText(text),
+                draft.capture().adapted().pinnedSelection(),
+                draft.proposal()
+        );
+        var completion = new CompletableFuture<SFMReleaseReviewRuntime.CommentMutationResult>();
+        var work = new PendingDraft(text,
+                runtime.pendingOperation().map(SFMReleaseReviewRuntime.OperationSnapshot::id).orElse(0L), completion);
+        pendingDrafts.put(id, work);
+        persistence.whenComplete((result, failure) -> {
+            synchronized (SFMReleaseReviewCommentDraftService.this) {
+                pendingDrafts.remove(id, work);
+                if (failure == null && result.mutation().saved()) drafts.remove(id, draft);
+            }
+            if (failure != null) completion.completeExceptionally(failure);
+            else completion.complete(result);
+        });
+        return completion;
+    }
+
     public synchronized boolean cancel(String id) {
-        return drafts.remove(requireText(id, "id")) != null;
+        Cancellation result = cancelChoice(id);
+        return result == Cancellation.DISCARDED || result == Cancellation.REQUESTED_BEFORE_COMMIT;
+    }
+
+    public synchronized Cancellation cancelChoice(String id) {
+        id = requireText(id, "id");
+        PendingDraft pending = pendingDrafts.get(id);
+        if (pending != null) return runtime.cancelOperation(pending.operationId())
+                ? Cancellation.REQUESTED_BEFORE_COMMIT : Cancellation.COMMITTING;
+        return drafts.remove(id) != null ? Cancellation.DISCARDED : Cancellation.ABSENT;
     }
 
     public synchronized List<String> recentTemplates() {
-        SFMReleaseReviewV1 review = requireOpenSnapshot().document().orElseThrow();
+        return recentHumanTemplates(requireOpenSnapshot().document().orElseThrow().reviewSession().comments());
+    }
+
+    static List<String> recentHumanTemplates(
+            List<ca.teamdman.sfm.client.review.session.SFMReviewSessionV2.Comment> comments
+    ) {
         LinkedHashSet<String> newestFirst = new LinkedHashSet<>();
-        List<ca.teamdman.sfm.client.review.session.SFMReviewSessionV2.Comment> comments =
-                review.reviewSession().comments();
         for (int index = comments.size() - 1; index >= 0 && newestFirst.size() < MAXIMUM_RECENT_TEMPLATES; index--) {
-            String text = comments.get(index).text().strip();
-            if (!text.isEmpty()) newestFirst.add(text);
+            var comment = comments.get(index);
+            // Generated units are useful review objects, but are not human writing templates.
+            // Eligibility is provenance, not a blacklist of words a human might legitimately use.
+            if (!"human".equals(comment.provenance().kind())) continue;
+            if (!comment.text().isBlank()) newestFirst.add(comment.text());
         }
         return List.copyOf(newestFirst);
     }
@@ -149,6 +200,8 @@ public final class SFMReleaseReviewCommentDraftService {
     }
 
     synchronized void clearForTests() {
+        pendingDrafts.values().forEach(work -> runtime.cancelOperation(work.operationId()));
+        pendingDrafts.clear();
         drafts.clear();
         nextId = 1;
     }
@@ -175,5 +228,11 @@ public final class SFMReleaseReviewCommentDraftService {
         String answer = value.strip();
         if (answer.isEmpty()) throw new IllegalArgumentException(name + " must not be blank");
         return answer;
+    }
+
+    private static String requireCommentText(String value) {
+        Objects.requireNonNull(value, "text");
+        if (value.isBlank()) throw new IllegalArgumentException("Comment text must not be blank");
+        return value;
     }
 }

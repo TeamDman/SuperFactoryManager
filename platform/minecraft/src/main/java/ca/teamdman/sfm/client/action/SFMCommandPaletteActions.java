@@ -97,6 +97,32 @@ public final class SFMCommandPaletteActions {
             ClosePaletteAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMFocusAction> FOCUS = REGISTERER.register(
+            "focus",
+            SFMFocusAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMClipboardCopyAction> COPY_ACTION_COMMAND = REGISTERER.register(
+            "clipboard/copy/action",
+            SFMClipboardCopyAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMPaletteCandidateCopyAction> COPY_PALETTE_CANDIDATE = REGISTERER.register(
+            "palette/candidate/copy",
+            SFMPaletteCandidateCopyAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMScreenDiagnosticsAction> SCREEN_DIAGNOSTICS = REGISTERER.register(
+            "screen/diagnostics",
+            SFMScreenDiagnosticsAction::new
+    );
+
+    /** Compatibility alias: overlays are included in the same screen snapshot. */
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMScreenDiagnosticsAction> OVERLAY_DIAGNOSTICS = REGISTERER.register(
+            "overlay/diagnostics",
+            SFMScreenDiagnosticsAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, CommandPaletteSuggestionSelectionAction>
             SELECT_FIRST_PALETTE_SUGGESTION = REGISTERER.register(
             "palette/suggestion/select/first",
@@ -111,6 +137,13 @@ public final class SFMCommandPaletteActions {
                     CommandPaletteSuggestionSelectionAction.Boundary.LAST)
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> COPY_TOAST_PATH =
+            REGISTERER.register("toast/path/copy", () -> new SFMToastPathAction(SFMToastPathAction.Operation.COPY));
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> OPEN_TOAST_PATH_TEXT =
+            REGISTERER.register("toast/path/text/open", () -> new SFMToastPathAction(SFMToastPathAction.Operation.OPEN_TEXT));
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastPathAction> OPEN_TOAST_PATH_EXPLORER =
+            REGISTERER.register("toast/path/explorer/open", () -> new SFMToastPathAction(SFMToastPathAction.Operation.OPEN_EXPLORER));
+
     public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST = REGISTERER.register(
             "toast/copy",
             () -> new SFMToastAction(SFMToastAction.Operation.COPY)
@@ -120,6 +153,9 @@ public final class SFMCommandPaletteActions {
             "toast/timer/stop",
             () -> new SFMToastAction(SFMToastAction.Operation.STOP_TIMER)
     );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> COPY_TOAST_DETAILS = REGISTERER.register(
+            "toast/details/copy", () -> new SFMToastAction(SFMToastAction.Operation.COPY_DETAILS));
 
     public static final SFMRegistryObject<SFMClientAction<?>, SFMToastAction> RESUME_TOAST_TIMER = REGISTERER.register(
             "toast/timer/resume",
@@ -281,9 +317,24 @@ public final class SFMCommandPaletteActions {
             OpenKeyBindingScreenAction::new
     );
 
-    public static final SFMRegistryObject<SFMClientAction<?>, OpenMinecraftControlsAction> OPEN_MINECRAFT_CONTROLS = REGISTERER.register(
-            "controls/open",
-            OpenMinecraftControlsAction::new
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMKeyBindingManagerAction> KEY_BINDINGS_SORT_SET = REGISTERER.register(
+            "keybindings/sort/set",
+            () -> new SFMKeyBindingManagerAction(SFMKeyBindingManagerAction.Kind.SORT_SET)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMKeyBindingManagerAction> KEY_BINDINGS_SCOPE_SET = REGISTERER.register(
+            "keybindings/scope/set",
+            () -> new SFMKeyBindingManagerAction(SFMKeyBindingManagerAction.Kind.SCOPE_SET)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMKeyBindingManagerAction> KEY_BINDINGS_DISPLAY_SET = REGISTERER.register(
+            "keybindings/display/set",
+            () -> new SFMKeyBindingManagerAction(SFMKeyBindingManagerAction.Kind.DISPLAY_SET)
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, OpenMinecraftScreenAction> OPEN_MINECRAFT_SCREEN = REGISTERER.register(
+            "minecraft/screen/open",
+            OpenMinecraftScreenAction::new
     );
 
     public static final SFMRegistryObject<SFMClientAction<?>, ManagerEditAction> MANAGER_EDIT = REGISTERER.register(

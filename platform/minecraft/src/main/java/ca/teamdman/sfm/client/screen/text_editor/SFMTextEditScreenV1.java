@@ -87,6 +87,8 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
 
     private boolean suppressNextCharTypedForIntellisenseAccept = false;
     private Optional<Component> saveDiagnostic = Optional.empty();
+    private final ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession asyncSave =
+            new ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession();
 
     public SFMTextEditScreenV1(
             ISFMTextEditScreenOpenContext openContext
@@ -111,8 +113,27 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
      * The user has indicated to save by hitting Shift+Enter or by pressing the Done button
      */
     public void saveAndClose() {
+        if (openContext.asynchronousSave()) {
+            saveDiagnostic = Optional.of(ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession.SAVING.getComponent());
+            asyncSave.submit(textarea.getValue(), true, openContext::saveDocumentAsync,
+                    work -> Minecraft.getInstance().execute(work), completion -> {
+                        if (!openContext.saveHostIsCurrent()) return;
+                        saveDiagnostic = completion.result().diagnostic();
+                        if (completion.result().saved()) {
+                            openContext.documentSaved(completion.submittedText());
+                            if (completion.mayClose(textarea.getValue())) openContext.finishAsyncSaveClose();
+                            else if (!completion.submittedText().equals(textarea.getValue())) {
+                                saveDiagnostic = Optional.of(ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession
+                                        .SAVED_NEWER_EDITS.getComponent());
+                            }
+                        }
+                    });
+            return;
+        }
         SFMTextDocumentSaveResult result = openContext.trySaveAndClose(textarea.getValue());
         saveDiagnostic = result.diagnostic();
+        SFM.LOGGER.info("SFM_TEXT_EDITOR_SAVE_COMPLETED editor=sfm:v1 saved={} diagnostic={}",
+                result.saved(), result.diagnostic().map(Component::getString).orElse("none"));
     }
 
     /**
@@ -185,7 +206,7 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         // indent - decrease
         // save and close - hold to arm
         // save and close - execute
-        if ((pKeyCode == GLFW.GLFW_KEY_ENTER || pKeyCode == GLFW.GLFW_KEY_KP_ENTER) && Screen.hasShiftDown()) {
+        if (isSaveAndCloseShortcut(pKeyCode, pModifiers)) {
             saveAndClose();
             return true;
         }
@@ -261,6 +282,17 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         return super.keyPressed(pKeyCode, pScanCode, pModifiers);
     }
 
+    static boolean isSaveAndCloseShortcut(int keyCode, int modifiers) {
+        // Use the event's state, including virtual inputs, not an OS key poll.
+        return (keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER)
+                && (modifiers & GLFW.GLFW_MOD_SHIFT) != 0;
+    }
+
+    @Override
+    public void onDocumentHostClosed() {
+        asyncSave.detach();
+    }
+
     @Override
     public void resize(
             Minecraft mc,
@@ -303,7 +335,10 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
         }
 
         // render tooltips
-        SFMWidgetUtils.hideTooltipsWhenNotFocused(this, this.renderables);
+        // A panel-hosted editor is not Minecraft.screen: the multiplexer is.
+        // Do not clear widget keyboard focus while drawing tooltips. Doing so
+        // accepts one character after a click, then drops all later typing on
+        // the next rendered frame. Tooltips already require a hovered widget.
         SFMWidgetUtils.renderChildTooltips(poseStack, mx, my, this.renderables);
     }
 
@@ -636,7 +671,12 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
                 }
                 if (pButton == 0 && this.visible && this.withinContentAreaPoint(pMouseX, pMouseY)) {
                     if (content.isEmpty()) {
-                        return false;
+                        // Empty literal documents (including a new review note)
+                        // still need a focusable insertion target. Returning false
+                        // here prevents Screen from routing subsequent characters.
+                        this.setFocused(true);
+                        this.textField.setSelecting(true);
+                        return true;
                     }
                     // Focus the editor so the caret blinks and keys go here
                     this.setFocused(true);

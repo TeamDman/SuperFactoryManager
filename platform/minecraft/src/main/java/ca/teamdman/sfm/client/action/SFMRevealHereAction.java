@@ -221,8 +221,10 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
                     feedback.accept(failure("Reveal here failed", revealFailure));
                     return;
                 }
-                feedback.accept(Component.literal(
-                        "Revealed " + resolved.explorerPath().canonical() + " in this Explorer"
+                feedback.accept(ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
+                        "Revealed ", resolved.explorerPath(), " in this Explorer",
+                        sourcePath.segments().isEmpty() ? sourcePath.authority()
+                                : sourcePath.segments().get(sourcePath.segments().size() - 1)
                 ));
             });
         });

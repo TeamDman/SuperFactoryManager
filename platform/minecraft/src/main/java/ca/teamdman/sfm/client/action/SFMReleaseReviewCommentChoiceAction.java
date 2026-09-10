@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
+import ca.teamdman.sfm.client.presentation.SFMTextSummary;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewCommentDraftService;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
@@ -9,7 +10,6 @@ import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
-import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
 import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
@@ -123,8 +123,13 @@ public final class SFMReleaseReviewCommentChoiceAction
                 );
                 case OTHER -> openOtherEditor(target, draftId);
                 case CANCEL -> {
-                    SFMReleaseReviewCommentDraftService.get().cancel(draftId);
-                    context.getSource().sendFeedback(Component.literal("Review comment cancelled"));
+                    var cancellation = SFMReleaseReviewCommentDraftService.get().cancelChoice(draftId);
+                    context.getSource().sendFeedback(Component.literal(switch (cancellation) {
+                        case DISCARDED -> "Review comment draft discarded";
+                        case REQUESTED_BEFORE_COMMIT -> "Cancellation requested; the comment draft is retained for retry";
+                        case COMMITTING -> "Comment commit is already in progress; waiting for its durable result";
+                        case ABSENT -> "That comment draft was already saved, discarded, or expired";
+                    }));
                     yield 1;
                 }
                 case REOPEN_WRITABLE -> reopenWritable(target, draftId, context);
@@ -156,8 +161,7 @@ public final class SFMReleaseReviewCommentChoiceAction
         unique.remove(APPROVED);
         unique.remove(NEEDS_CHANGE);
         for (String value : unique) {
-            String compact = value.replace('\r', ' ').replace('\n', ' ').strip();
-            if (compact.length() > 80) compact = compact.substring(0, 79) + "…";
+            String compact = SFMTextSummary.codePoints(SFMTextSummary.singleLine(value), 80);
             answer.add(applyChoice(draftArgument, value, "Recent · " + compact));
         }
         answer.add(SFMActionChoice.invoke(Kind.OTHER.id(), draftArgument, "Other…"));
@@ -197,16 +201,36 @@ public final class SFMReleaseReviewCommentChoiceAction
             String text,
             CommandContext<SFMClientActionSource> context
     ) {
-        SFMReleaseReviewRuntime.CommentMutationResult result =
-                SFMReleaseReviewCommentDraftService.get().apply(draftId, text);
-        if (!result.mutation().saved()) {
-            throw new IllegalStateException(result.mutation().failure()
-                    .orElse("Unable to save release-review comment"));
-        }
-        refreshReviewExplorers(target);
-        context.getSource().sendFeedback(Component.literal(
-                "Created " + result.commentId() + " and refreshed review lenses"));
+        var continuation = captureReviewRefresh(target);
+        long reviewEpoch = SFMReleaseReviewRuntime.get().snapshot().openEpoch();
+        var persistence = SFMReleaseReviewCommentDraftService.get().applyAsync(draftId, text);
+        var status = new SFMReleaseReviewOperationFeedback(target,
+                SFMReleaseReviewRuntime.get().pendingOperation()
+                        .map(SFMReleaseReviewRuntime.OperationSnapshot::id).orElse(0L), context.getSource()::sendFeedback);
+        status.pending(Component.literal("Saving review comment…"));
+        persistence.whenComplete((result, failure) -> Minecraft.getInstance().execute(() -> {
+            if (failure != null) {
+                reportRetainedDraft(status, draftId, rootMessage(failure));
+                return;
+            }
+            if (!result.mutation().saved()) {
+                reportRetainedDraft(status, draftId, result.mutation().failure()
+                        .orElse("Unable to save release-review comment"));
+                return;
+            }
+            if (continuation.isCurrent() && SFMReleaseReviewRuntime.get().snapshot().openEpoch() == reviewEpoch) {
+                refreshReviewExplorers(continuation.context());
+            }
+            status.complete(Component.literal(
+                    "Saved review comment " + result.commentId()));
+        }));
         return 1;
+    }
+
+    private static void reportRetainedDraft(SFMReleaseReviewOperationFeedback status, String draftId, String details) {
+        status.failed("Comment not saved; draft retained. Right-click for details or retry.", details,
+                List.of(SFMActionChoice.invoke(Kind.OPEN.id(), StringArgumentType.escapeIfRequired(draftId),
+                        "Retry retained comment draft")));
     }
 
     private static int openOtherEditor(SFMClientActionContext target, String draftId) {
@@ -216,41 +240,31 @@ public final class SFMReleaseReviewCommentChoiceAction
             throw new IllegalStateException("Reopen this release review writable before adding a comment");
         }
         ResourceLocation editorId = preferredEditorId();
+        var continuation = captureReviewRefresh(target);
+        long reviewEpoch = SFMReleaseReviewRuntime.get().snapshot().openEpoch();
         var recipe = new SFMTextEditorPanelRecipe(
                 SCENE_ID,
                 editorId,
                 new SFMTextDocumentSource.Literal(""),
                 false,
-                "Review Comment Draft · Ctrl+S to apply",
-                () -> content -> saveDraft(target, draftId, content)
+                "Review Comment Draft · Use the editor's Save/Done action",
+                () -> new ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewCommentSaveHandler(
+                        SFMReleaseReviewRuntime.get(), service, draftId,
+                        () -> Minecraft.getInstance().execute(() -> {
+                            if (continuation.isCurrent()
+                                    && SFMReleaseReviewRuntime.get().snapshot().openEpoch() == reviewEpoch) {
+                                refreshReviewExplorers(continuation.context());
+                            }
+                        }))
         );
         int opened = OpenPanelAction.openPanel(
                 target,
                 recipe.reopen(),
-                OpenPanelAction.Direction.RIGHT,
+                OpenPanelAction.Direction.FOCUSED,
                 recipe
         );
         if (opened == 0) throw new IllegalStateException("The preferred review-comment editor could not be opened");
         return opened;
-    }
-
-    private static SFMTextDocumentSaveResult saveDraft(
-            SFMClientActionContext target,
-            String draftId,
-            String content
-    ) {
-        try {
-            SFMReleaseReviewRuntime.CommentMutationResult result =
-                    SFMReleaseReviewCommentDraftService.get().apply(draftId, content);
-            if (!result.mutation().saved()) {
-                return SFMTextDocumentSaveResult.rejected(Component.literal(
-                        result.mutation().failure().orElse("Unable to save release-review comment")));
-            }
-            refreshReviewExplorers(target);
-            return SFMTextDocumentSaveResult.success();
-        } catch (RuntimeException failure) {
-            return SFMTextDocumentSaveResult.rejected(Component.literal(rootMessage(failure)));
-        }
     }
 
     private static int reopenWritable(
@@ -260,21 +274,28 @@ public final class SFMReleaseReviewCommentChoiceAction
     ) throws IOException {
         SFMReleaseReviewCommentDraftService service = SFMReleaseReviewCommentDraftService.get();
         var draft = service.require(draftId);
-        var opened = SFMReleaseReviewRuntime.get().open(draft.reviewPath(), true);
-        if (opened.document().isEmpty()) {
-            throw new IllegalStateException(String.join("; ", opened.diagnostics()));
-        }
-        service.rebindAfterWritableOpen(draftId);
-        context.getSource().sendFeedback(Component.literal("Reopened release review writable"));
-        return openChoices(target, draftId);
+        return SFMReleaseReviewAction.queueOpen(target, draft.reviewPath(), true,
+                context.getSource()::sendFeedback, continuation -> {
+                    service.rebindAfterWritableOpen(draftId);
+                    openChoices(continuation, draftId);
+                });
     }
 
-    private static void refreshReviewExplorers(SFMClientActionContext target) {
+    /** A durable save updates surviving views, even after its initiating editor closes.
+     * This authority refreshes only; navigation keeps its stricter panel continuation. */
+    static SFMClientActionContinuation captureReviewRefresh(SFMClientActionContext target) {
+        return new SFMClientActionContinuation(target.originatingHost(), null, null);
+    }
+
+    static void refreshReviewExplorers(SFMClientActionContext target) {
         if (!(target.originatingHost() instanceof SFMScreenMultiplexer workspace)) return;
+        var review = SFMReleaseReviewRuntime.get().snapshot();
         for (var panel : workspace.panels()) {
             if (panel instanceof SFMExplorerPanel explorer
                     && ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime.get()
-                    .lensDescriptor(explorer.sessionSnapshot().roots()).isPresent()) {
+                    .lensDescriptor(explorer.sessionSnapshot().roots())
+                    .filter(lens -> lens.reviewOpenEpoch() == review.openEpoch()
+                            && review.path().filter(lens.reviewPath()::equals).isPresent()).isPresent()) {
                 explorer.refreshExpandedProjection();
             }
         }

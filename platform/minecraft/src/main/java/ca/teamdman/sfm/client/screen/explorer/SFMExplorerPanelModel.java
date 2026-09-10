@@ -4,7 +4,9 @@ import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMChildRelationRepository;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerEntry;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerRowSelection;
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 
@@ -15,6 +17,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Read-only explorer projection plus transient panel cursor/scroll state.
@@ -74,12 +78,51 @@ public final class SFMExplorerPanelModel {
             return session.navigationCursor();
         }
 
+        public Set<SFMPath> selectedPaths() { return session.selectedPaths(); }
+
         public Optional<SFMExplorerProjection.Row> selectedRow() {
             Optional<SFMPath> selectedPath = selectedPath();
             if (selectedPath.isEmpty()) return Optional.empty();
             return projection.rows().stream()
-                    .filter(row -> row.path().equals(selectedPath.orElseThrow()))
+                    .filter(row -> row.contains(selectedPath.orElseThrow()))
                     .findFirst();
+        }
+    }
+
+    /**
+     * Deterministic evidence that high-frequency viewport updates reuse the
+     * semantic projection and only materialize the bounded visible window.
+     */
+    public record ProjectionWorkTelemetry(
+            long projectionBuilds,
+            long projectionCacheHits,
+            long inlineLoadingBuilds,
+            long inlineLoadingCacheHits,
+            int latestProjectionRows,
+            int latestViewportCells
+    ) {
+        public ProjectionWorkTelemetry {
+            if (projectionBuilds < 0 || projectionCacheHits < 0
+                    || inlineLoadingBuilds < 0 || inlineLoadingCacheHits < 0
+                    || latestProjectionRows < 0 || latestViewportCells < 0) {
+                throw new IllegalArgumentException("Explorer projection telemetry must not be negative");
+            }
+        }
+    }
+
+    private record ProjectionCacheKey(
+            Set<SFMPath> roots,
+            List<SFMPath> manualRootOrder,
+            Set<SFMPath> expanded,
+            SFMExplorerProjection.Settings settings,
+            SFMLazyExplorerLoader.ProjectionGeneration loaderGeneration
+    ) {
+        private ProjectionCacheKey {
+            roots = Set.copyOf(roots);
+            manualRootOrder = List.copyOf(manualRootOrder);
+            expanded = Set.copyOf(expanded);
+            Objects.requireNonNull(settings, "settings");
+            Objects.requireNonNull(loaderGeneration, "loaderGeneration");
         }
     }
 
@@ -90,6 +133,26 @@ public final class SFMExplorerPanelModel {
     private final ArrayList<ScrollTrace> scrollTraces = new ArrayList<>();
     private long nextScrollSequence = 1;
     private long nextFrameSequence = 1;
+    private ProjectionCacheKey cachedProjectionKey;
+    private SFMExplorerProjection.Result cachedProjection;
+    private SFMChildRelationRepository.Snapshot cachedRelations;
+    private SFMExplorerProjection.Result cachedInlineLoadingBase;
+    private List<SFMExplorerSession.RequestObservation> cachedInlineLoadingRequests = List.of();
+    private SFMExplorerProjection.Result cachedInlineLoadingProjection;
+    private long projectionBuilds;
+    private long projectionCacheHits;
+    private long inlineLoadingBuilds;
+    private long inlineLoadingCacheHits;
+    private int latestProjectionRows;
+    private int latestViewportCells;
+    private java.util.function.IntSupplier toolbarHeight = () -> 0;
+    private boolean findVisible;
+
+    public void setFindVisible(boolean visible) { findVisible = visible; }
+
+    public void setToolbarHeight(java.util.function.IntSupplier height) {
+        toolbarHeight = Objects.requireNonNull(height, "height");
+    }
 
     public SFMExplorerPanelModel(
             SFMExplorerSession session,
@@ -114,11 +177,69 @@ public final class SFMExplorerPanelModel {
 
     public State state(SFMScreenPanelBounds bounds) {
         SFMExplorerSession.Snapshot sessionSnapshot = session.snapshot();
-        SFMChildRelationRepository.Snapshot relationSnapshot = loader.relationSnapshot();
-        SFMExplorerProjection.Result projection = SFMExplorerProjection.project(
+        ProjectionCacheKey projectionKey = new ProjectionCacheKey(
+                sessionSnapshot.roots(),
+                sessionSnapshot.manualRootOrder(),
+                sessionSnapshot.expanded(),
+                sessionSnapshot.settings(),
+                loader.projectionGeneration()
+        );
+        SFMChildRelationRepository.Snapshot relationSnapshot;
+        SFMExplorerProjection.Result projection;
+        // Check identity before copying/merging a complete filter domain.
+        if (projectionKey.equals(cachedProjectionKey)
+                && cachedProjection != null
+                && cachedRelations != null) {
+            relationSnapshot = cachedRelations;
+            projection = cachedProjection;
+            projectionCacheHits++;
+        } else {
+            Optional<SFMLazyExplorerLoader.FilterProjection> filterProjection =
+                    sessionSnapshot.settings().filterActive()
+                            ? loader.filterProjection(sessionSnapshot.roots(),
+                                    sessionSnapshot.settings().filterQuery(), sessionSnapshot.expanded(),
+                                    sessionSnapshot.settings().filterOptions())
+                            : Optional.empty();
+            boolean retainPreviousFilterWhilePending = sessionSnapshot.settings().filterActive()
+                    && filterProjection.isEmpty()
+                    && cachedProjection != null
+                    && cachedRelations != null
+                    && cachedProjection.filter().active()
+                    && loader.hasPendingFilterDomain(
+                            sessionSnapshot.roots(), sessionSnapshot.settings().filterQuery(),
+                            sessionSnapshot.settings().filterOptions());
+            if (retainPreviousFilterWhilePending) {
+                // Ordinary resolvers have no complete domain; absence is not pending.
+                relationSnapshot = cachedRelations;
+                projection = cachedProjection;
+                projectionCacheHits++;
+            } else {
+                relationSnapshot = filterProjection
+                        .map(SFMLazyExplorerLoader.FilterProjection::relations)
+                        .orElseGet(loader::relationSnapshot);
+                Map<SFMPath, SFMExplorerEntry> projectionEntries = filterProjection
+                        .map(SFMLazyExplorerLoader.FilterProjection::entries)
+                        .orElseGet(loader::entrySnapshot);
+                projection = SFMExplorerProjection.project(
+                        sessionSnapshot,
+                        relationSnapshot,
+                        projectionEntries,
+                        filterProjection.map(SFMLazyExplorerLoader.FilterProjection::matchEvidence).orElse(Map.of())
+                );
+                if (filterProjection.isPresent()) {
+                    var domain = filterProjection.orElseThrow();
+                    projection = projection.withDomainEvidence(domain.complete(), domain.diagnostics());
+                }
+                cachedProjectionKey = projectionKey;
+                cachedProjection = projection;
+                cachedRelations = relationSnapshot;
+                projectionBuilds++;
+            }
+        }
+        projection = withCachedInlineLoadingRows(
+                projection,
                 sessionSnapshot,
-                relationSnapshot,
-                loader.entrySnapshot()
+                session.activeRequestEvidence()
         );
         retainOrChooseSelection(sessionSnapshot, projection);
         sessionSnapshot = session.snapshot();
@@ -126,7 +247,8 @@ public final class SFMExplorerPanelModel {
                 bounds,
                 projection.settings().view(),
                 projection.rows(),
-                sessionSnapshot.scrollOffset()
+                sessionSnapshot.scrollOffset(),
+                toolbarHeight.getAsInt(), findVisible
         );
         if (!projection.filter().active()
                 && viewport.scrollRow() != sessionSnapshot.scrollOffset()) {
@@ -134,26 +256,46 @@ public final class SFMExplorerPanelModel {
             sessionSnapshot = session.snapshot();
         }
         State state = new State(sessionSnapshot, projection, viewport);
+        latestProjectionRows = projection.rows().size();
+        latestViewportCells = viewport.cells().size();
         if (!projection.filter().active()) requestNextPageNearViewport(state, relationSnapshot);
         return state;
     }
 
     public void select(SFMPath path, SFMScreenPanelBounds bounds) {
+        select(path, bounds, SFMExplorerRowSelection.Gesture.REPLACE);
+    }
+
+    public void select(SFMPath path, SFMScreenPanelBounds bounds, SFMExplorerRowSelection.Gesture gesture) {
         Objects.requireNonNull(path, "path");
         State state = state(bounds);
         int index = indexOf(state.projection().rows(), path);
-        if (index < 0) return;
-        session.navigateTo(path);
+        if (index < 0 || state.projection().rows().get(index).loading()) return;
+        session.selectRow(path, selectableOrder(state), gesture);
         revealIndex(index, state.viewport());
     }
 
+    /** Scroll a preview into view without changing the document/row selection. */
+    public boolean revealPreview(SFMPath path, SFMScreenPanelBounds bounds) {
+        State state = state(bounds);
+        int index = indexOf(state.projection().rows(), path);
+        if (index < 0) return false;
+        revealIndex(index, state.viewport());
+        return true;
+    }
+
     public void moveSelection(int delta, SFMScreenPanelBounds bounds) {
+        moveSelection(delta, bounds, SFMExplorerRowSelection.Gesture.REPLACE);
+    }
+
+    public void moveSelection(int delta, SFMScreenPanelBounds bounds, SFMExplorerRowSelection.Gesture gesture) {
         State state = state(bounds);
         List<SFMExplorerProjection.Row> rows = state.projection().rows();
         if (rows.isEmpty()) return;
         int current = state.selectedPath().map(path -> indexOf(rows, path)).orElse(-1);
-        int next = Math.max(0, Math.min(rows.size() - 1, current + delta));
-        session.navigateTo(rows.get(next).path());
+        int next = nextSelectableIndex(rows, current, delta);
+        if (next < 0) return;
+        session.selectRow(rows.get(next).path(), selectableOrder(state), gesture);
         revealIndex(next, state.viewport());
     }
 
@@ -163,6 +305,34 @@ public final class SFMExplorerPanelModel {
 
     public void selectLast(SFMScreenPanelBounds bounds) {
         selectBoundary(bounds, true);
+    }
+
+    public void selectBoundary(SFMScreenPanelBounds bounds, boolean last, SFMExplorerRowSelection.Gesture gesture) {
+        State state = state(bounds);
+        var rows = state.projection().rows();
+        int index = boundarySelectableIndex(rows, last);
+        if (index < 0) return;
+        session.selectRow(rows.get(index).path(), selectableOrder(state), gesture);
+        revealIndex(index, state.viewport());
+    }
+
+    private static List<SFMPath> selectableOrder(State state) {
+        return state.projection().rows().stream().filter(row -> !row.loading())
+                .flatMap(row -> row.paths().stream()).distinct().toList();
+    }
+
+    public void changeCompaction(ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCompaction.Options options,
+                                 Optional<SFMPath> local, SFMScreenPanelBounds bounds) {
+        var before = state(bounds);
+        var anchor = SFMExplorerScrollAnchor.capture(before.projection().rows(), before.viewport().scrollRow(),
+                before.viewport().columns(), local);
+        // Make previously implicit links explicit before a local/panel-wide split. No resolver IO.
+        for (var row : before.projection().rows()) for (int i = 0; i + 1 < row.segments().size(); i++)
+            if (!options.allows(row.segments().get(i).path())) session.expand(row.segments().get(i).path());
+        session.setSettings(session.snapshot().settings().withCompaction(options));
+        var after = state(bounds);
+        session.setScrollOffset(Math.min(after.viewport().maximumScrollRow(),
+                anchor.restore(after.projection().rows(), after.viewport().columns())));
     }
 
     public synchronized ScrollTrace scrollRows(int delta, SFMScreenPanelBounds bounds) {
@@ -213,6 +383,17 @@ public final class SFMExplorerPanelModel {
 
     public synchronized List<ScrollTrace> scrollTraceSnapshot() {
         return List.copyOf(scrollTraces);
+    }
+
+    public ProjectionWorkTelemetry projectionWorkTelemetry() {
+        return new ProjectionWorkTelemetry(
+                projectionBuilds,
+                projectionCacheHits,
+                inlineLoadingBuilds,
+                inlineLoadingCacheHits,
+                latestProjectionRows,
+                latestViewportCells
+        );
     }
 
     public boolean emitExpandSelected(SFMScreenPanelBounds bounds) {
@@ -289,7 +470,7 @@ public final class SFMExplorerPanelModel {
     ) {
         State state = state(bounds);
         Optional<SFMExplorerProjection.Row> selected = state.selectedRow();
-        if (selected.isEmpty() || selected.orElseThrow().entry().expandable()) return false;
+        if (selected.isEmpty() || !selected.orElseThrow().entry().opensOnActivate()) return false;
         actionSink.submit(SFMExplorerPanelActions.pathOpen(selected.orElseThrow().path(), mode));
         return true;
     }
@@ -322,11 +503,21 @@ public final class SFMExplorerPanelModel {
     }
 
     public void emitFilterSet(String query) {
-        actionSink.submit(SFMExplorerPanelActions.filterSet(explorerId(), query));
+        actionSink.submit(SFMExplorerPanelActions.matchQuery(explorerId(), false, query,
+                session.snapshot().settings().filterOptions()));
     }
 
     public void emitFilterClear() {
         actionSink.submit(SFMExplorerPanelActions.filterClear(explorerId()));
+    }
+
+    public void submitSearchCommand(String command) { actionSink.submit(command); }
+
+    public void emitFindSet(String query, ca.teamdman.sfm.client.search.SFMTextMatchOptions options) {
+        actionSink.submit(query.isEmpty()
+                ? "sfm action invoke sfm:explorer/find/clear " + ca.teamdman.sfm.client.explorer.SFMEntitySelector.exact(
+                        ca.teamdman.sfm.client.explorer.SFMEntitySelector.Domain.EXPLORER, explorerId().value()).canonical()
+                : SFMExplorerPanelActions.matchQuery(explorerId(), true, query, options));
     }
 
     private boolean emitSelected(SFMScreenPanelBounds bounds, NodeOperation operation) {
@@ -365,12 +556,7 @@ public final class SFMExplorerPanelModel {
     }
 
     private void selectBoundary(SFMScreenPanelBounds bounds, boolean last) {
-        State state = state(bounds);
-        List<SFMExplorerProjection.Row> rows = state.projection().rows();
-        if (rows.isEmpty()) return;
-        int index = last ? rows.size() - 1 : 0;
-        session.navigateTo(rows.get(index).path());
-        revealIndex(index, state.viewport());
+        selectBoundary(bounds, last, SFMExplorerRowSelection.Gesture.REPLACE);
     }
 
     private void revealIndex(int index, SFMExplorerPanelViewport.Snapshot viewport) {
@@ -386,12 +572,12 @@ public final class SFMExplorerPanelModel {
             SFMExplorerSession.Snapshot sessionSnapshot,
             SFMExplorerProjection.Result projection
     ) {
-        if (sessionSnapshot.navigationCursor().isPresent()
-                && indexOf(projection.rows(), sessionSnapshot.navigationCursor().orElseThrow()) >= 0) return;
-        if (projection.filter().active() && sessionSnapshot.navigationCursor().isPresent()) return;
+        // Projection changes are not selection edits. Preserve hidden membership and cursor.
+        if (sessionSnapshot.navigationCursor().isPresent() || sessionSnapshot.rowSelection().isPresent()) return;
         Optional<SFMPath> navigation = sessionSnapshot.navigationCursor()
                 .filter(path -> indexOf(projection.rows(), path) >= 0);
         Optional<SFMPath> next = navigation.or(() -> projection.rows().stream()
+                .filter(row -> !row.loading())
                 .findFirst()
                 .map(SFMExplorerProjection.Row::path));
         if (next.isPresent()) {
@@ -451,9 +637,139 @@ public final class SFMExplorerPanelModel {
 
     private static int indexOf(List<SFMExplorerProjection.Row> rows, SFMPath path) {
         for (int index = 0; index < rows.size(); index++) {
-            if (rows.get(index).path().equals(path)) return index;
+            if (rows.get(index).contains(path)) return index;
         }
         return -1;
+    }
+
+    private static int nextSelectableIndex(
+            List<SFMExplorerProjection.Row> rows,
+            int current,
+            int delta
+    ) {
+        if (rows.isEmpty()) return -1;
+        int direction = Integer.compare(delta, 0);
+        if (direction == 0) return current >= 0 && !rows.get(current).loading() ? current : -1;
+        int remaining = Math.abs(delta);
+        int index = current;
+        while (remaining > 0) {
+            index += direction;
+            while (index >= 0 && index < rows.size() && rows.get(index).loading()) index += direction;
+            if (index < 0 || index >= rows.size()) return boundarySelectableIndex(rows, direction > 0);
+            remaining--;
+        }
+        return index;
+    }
+
+    private static int boundarySelectableIndex(List<SFMExplorerProjection.Row> rows, boolean last) {
+        if (last) {
+            for (int index = rows.size() - 1; index >= 0; index--) {
+                if (!rows.get(index).loading()) return index;
+            }
+        } else {
+            for (int index = 0; index < rows.size(); index++) {
+                if (!rows.get(index).loading()) return index;
+            }
+        }
+        return -1;
+    }
+
+    private SFMExplorerProjection.Result withCachedInlineLoadingRows(
+            SFMExplorerProjection.Result projection,
+            SFMExplorerSession.Snapshot session,
+            List<SFMExplorerSession.RequestObservation> activeRequests
+    ) {
+        if (activeRequests.isEmpty()) return projection;
+        if (projection == cachedInlineLoadingBase
+                && activeRequests.equals(cachedInlineLoadingRequests)
+                && cachedInlineLoadingProjection != null) {
+            inlineLoadingCacheHits++;
+            return cachedInlineLoadingProjection;
+        }
+        SFMExplorerProjection.Result decorated = withInlineLoadingRows(
+                projection,
+                session,
+                activeRequests
+        );
+        cachedInlineLoadingBase = projection;
+        cachedInlineLoadingRequests = List.copyOf(activeRequests);
+        cachedInlineLoadingProjection = decorated;
+        inlineLoadingBuilds++;
+        return decorated;
+    }
+
+    private static SFMExplorerProjection.Result withInlineLoadingRows(
+            SFMExplorerProjection.Result projection,
+            SFMExplorerSession.Snapshot session,
+            List<SFMExplorerSession.RequestObservation> activeRequests
+    ) {
+        if (activeRequests.isEmpty()) return projection;
+        ArrayList<SFMExplorerProjection.Row> rows = new ArrayList<>(projection.rows());
+        Map<SFMPath, SFMExplorerSession.RequestObservation> byParent = new TreeMap<>();
+        activeRequests.forEach(observation -> byParent.put(observation.evidence().parent(), observation));
+        for (var request : byParent.entrySet()) {
+            SFMPath parent = request.getKey();
+            int parentIndex = indexOf(rows, parent);
+            int parentDepth;
+            int insertion;
+            if (parentIndex >= 0) {
+                SFMExplorerProjection.Row parentRow = rows.get(parentIndex);
+                if (!parentRow.expanded()) continue;
+                parentDepth = parentRow.depth();
+                insertion = request.getValue().evidence().mode()
+                        == SFMChildRelationRepository.RequestMode.REPLACE
+                        ? parentIndex + 1
+                        : afterSubtree(rows, parentIndex);
+            } else if (session.roots().contains(parent)) {
+                parentDepth = -1;
+                insertion = 0;
+            } else {
+                continue;
+            }
+            SFMPath loadingPath = loadingPath(parent, request.getValue().evidence().relationRequestId());
+            SFMExplorerEntry entry = SFMExplorerEntry.simple(
+                    loadingPath,
+                    "Loading children...",
+                    false,
+                    Optional.of("minecraft:clock")
+            );
+            rows.add(insertion, new SFMExplorerProjection.Row(
+                    loadingPath,
+                    entry,
+                    parentDepth + 1,
+                    false,
+                    false,
+                    entry.sortKey(SFMExplorerEntry.SORT_NAME),
+                    SFMExplorerProjection.FilterRole.NONE,
+                    SFMExplorerProjection.RowKind.LOADING
+            ));
+        }
+        return new SFMExplorerProjection.Result(
+                projection.settings(),
+                projection.relationRevision(),
+                rows,
+                projection.diagnostics(),
+                projection.filter(),
+                projection.matchEvidence()
+        );
+    }
+
+    private static int afterSubtree(List<SFMExplorerProjection.Row> rows, int parentIndex) {
+        int depth = rows.get(parentIndex).depth();
+        int index = parentIndex + 1;
+        while (index < rows.size() && rows.get(index).depth() > depth) index++;
+        return index;
+    }
+
+    private static SFMPath loadingPath(SFMPath parent, long requestId) {
+        return new SFMPath(
+                SFMPath.Kind.CONTRIBUTED,
+                "explorer-ui",
+                "loading",
+                List.of(parent.canonical(), Long.toString(requestId)),
+                Optional.empty(),
+                false
+        );
     }
 
     private enum NodeOperation {

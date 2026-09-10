@@ -17,12 +17,12 @@ public final class SFMPanelReopenCatalog {
     }
 
     public Optional<SFMPanelReopenRecipe> recipeFor(SFMScreenPanel panel) {
-        return Optional.ofNullable(recipes.get(panel));
+        return Optional.ofNullable(recipes.get(panel)).map(recipe -> SFMExplorerPresentationRecipe.capture(recipe, panel));
     }
 
     /** Creates but does not attach a fresh panel, retaining the same immutable recipe. */
     public Optional<ReopenedPanel> reopen(SFMScreenPanel source) {
-        SFMPanelReopenRecipe recipe = recipes.get(source);
+        SFMPanelReopenRecipe recipe = recipeFor(source).orElse(null);
         if (recipe == null) return Optional.empty();
         SFMScreenPanel reopened = recipe.reopen();
         if (reopened == source || recipes.containsKey(reopened)) {

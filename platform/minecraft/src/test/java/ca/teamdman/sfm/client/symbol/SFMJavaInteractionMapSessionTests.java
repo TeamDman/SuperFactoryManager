@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.context.SFMContextGenerationEvidence;
 import ca.teamdman.sfm.client.context.SFMContextOriginId;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentLanguage;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,78 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMJavaInteractionMapSessionTests {
+    @Test
+    void ordinaryNonJavaPathsDoNotRequestJavaWorkEvenWithFileAuthority() {
+        FakeLookupService service = new FakeLookupService();
+        var session = new SFMJavaInteractionMapSession(service);
+        long generation = 0;
+        for (String name : List.of("options.txt", "Cargo.lock", "README.md", "config.json",
+                "sample.rs", "program.sfml", "Fake.java.txt", "changes.diff")) {
+            var path = SFMPath.parse("file:///D:/workspace/" + name);
+            var baseline = SFMTextDocumentSnapshot.pinned(path, SFMPath.parse("file:///D:/workspace/"),
+                    "text", SFMTextDocumentSnapshot.literal("text").sha256().orElseThrow(), Optional.empty(), Optional.empty());
+            var context = contribution(baseline, "text", ++generation);
+            assertEquals(Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_LANGUAGE_NOT_JAVA),
+                    SFMJavaInteractionMapSession.structurallyUnavailable(context), name);
+            session.refresh(context, generation, SFMDefinitionRequest.sha256("text"));
+        }
+        assertEquals(0, service.results.size());
+        assertFalse(session.pending());
+    }
+
+    @Test
+    void declaredSourceLanguageSurvivesNativeMaterializationAndOverridesMisleadingFileNames() {
+        var root = SFMPath.parse("file:///D:/materialized/");
+        var path = SFMPath.parse("file:///D:/materialized/opaque-snapshot");
+        var java = SFMTextDocumentSnapshot.pinned(path, root, "class A {}", SFMTextDocumentSnapshot.literal("class A {}").sha256().orElseThrow(),
+                Optional.empty(), Optional.empty(), Optional.empty(), SFMTextDocumentLanguage.java());
+        assertTrue(SFMJavaInteractionMapSession.structurallyUnavailable(contribution(java, java.text(), 1)).isEmpty());
+        var diff = SFMTextDocumentSnapshot.pinned(SFMPath.parse("file:///D:/materialized/NotSource.java"), root,
+                "class A {}", java.sha256().orElseThrow(), Optional.empty(), Optional.empty(), Optional.empty(),
+                SFMTextDocumentLanguage.diff());
+        assertEquals(Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_LANGUAGE_NOT_JAVA),
+                SFMJavaInteractionMapSession.structurallyUnavailable(contribution(diff, diff.text(), 2)));
+        var review = SFMTextDocumentSnapshot.pinned(SFMPath.parse("review://fixture/after"), SFMPath.parse("review://fixture/"),
+                java.text(), java.sha256().orElseThrow(), Optional.empty(), Optional.empty(),
+                Optional.of(new SFMTextDocumentSnapshot.AnalysisIdentity(path, root, Optional.empty())),
+                SFMTextDocumentLanguage.java());
+        var nativeBaseline = review.semanticAnalysisSnapshot().orElseThrow();
+        assertEquals("java", nativeBaseline.language().id());
+        assertTrue(SFMJavaInteractionMapSession.structurallyUnavailable(contribution(nativeBaseline, java.text(), 3)).isEmpty());
+    }
+
+    @Test
+    void switchingAwayFromJavaCancelsPendingWorkAndRejectsItsLatePublication() {
+        var service = new FakeLookupService();
+        var session = new SFMJavaInteractionMapSession(service);
+        var request = SFMJavaInteractionMapProtocolTests.request();
+        session.refresh(contribution(request.document().text(), 3), 3, request.document().contentHash());
+        session.refresh(pathlessContribution("non-java scratch", 4), 4, SFMDefinitionRequest.sha256("non-java scratch"));
+        assertEquals(1, service.cancellations.get());
+        service.complete(0, lookup(request));
+        assertTrue(session.current(3, request.document().contentHash()).isEmpty());
+        assertFalse(session.pending());
+    }
+
+    @Test
+    void genuineJavaFailuresStillSubmitAndKeepCorrelatableNonContentEvidence() {
+        var service = new FakeLookupService();
+        var session = new SFMJavaInteractionMapSession(service);
+        var context = contribution("class A {}", 7);
+        var evidence = SFMJavaInteractionMapSession.requestEvidence(context);
+        assertEquals("java", evidence.language());
+        assertEquals("file", evidence.addressScheme());
+        assertEquals(SFMDefinitionRequest.sha256("file:///D:/workspace/source/A.java"), evidence.documentId());
+        assertEquals(SFMDefinitionRequest.sha256("class A {}"), evidence.contentHash());
+        assertFalse(evidence.toString().contains("D:/workspace"));
+        assertFalse(evidence.toString().contains("class A"));
+        session.refresh(context, 7, SFMDefinitionRequest.sha256("class A {}"));
+        assertEquals(1, service.results.size());
+        service.results.get(0).completeExceptionally(new IllegalStateException("A genuine worker failure"));
+        assertFalse(session.pending());
+        assertTrue(session.current(7, SFMDefinitionRequest.sha256("class A {}")).isEmpty());
+    }
+
     @Test
     void pathlessScratchRevisionsNeverSubmitInteractionMapWork() {
         FakeLookupService service = new FakeLookupService();
