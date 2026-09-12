@@ -454,6 +454,8 @@ public final class SFMReleaseReviewAction implements SFMClientAction<SFMClientAc
             status.complete(ca.teamdman.sfm.client.screen.workspace.toast.SFMWorkspaceToastContent.pathMessage(
                     "Opened ", ca.teamdman.sfm.client.explorer.SFMPath.fromNative(normalized),
                     writable ? " writable" : " read-only"));
+            ca.teamdman.sfm.client.explorer.SFMExplorerRuntime.get().mountedFileChanged(
+                    ca.teamdman.sfm.client.explorer.SFMPath.fromNative(normalized));
             if (!continuation.isCurrent()) {
                 status.complete(Component.literal("Review loaded; the originating panel closed, so no panel was opened"));
                 return;
@@ -495,7 +497,7 @@ public final class SFMReleaseReviewAction implements SFMClientAction<SFMClientAc
             var panel = workspace.panelInstance(id);
             if (!(panel instanceof ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel explorer)) continue;
             var lens = ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime.get()
-                    .lensDescriptor(explorer.sessionSnapshot().roots());
+                    .hostedLensDescriptor(explorer.sessionSnapshot().roots());
             if (lens.isEmpty() || lens.orElseThrow().reviewOpenEpoch() != oldEpoch
                     || !lens.orElseThrow().reviewPath().equals(path)) continue;
             answer.add(new ReopenedExplorer(

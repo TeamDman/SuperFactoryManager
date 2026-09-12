@@ -1,7 +1,7 @@
 # Diff-first review usability — discussion draft
 
-Status: completed and verified 2026-09-09; final acceptance below supersedes
-chronological pending checkpoints. Approved 2026-09-09. Predecessor: single-file lazy review
+Status: 2026-09-09 baseline completed and verified; the 2026-09-12 follow-on
+workbench revision below is implemented and verified. Approved 2026-09-09. Predecessor: single-file lazy review
 overnight plan.md. Inherit goal execution and testing readiness guidelines.md:
 frozen dependency declarations/lockfiles, existing-lock cache recovery only,
 no new dependencies/clones, no Gradle, no commits/push/propagation, preserve user
@@ -17,6 +17,93 @@ verify availability and compatibility before selection. No unrelated upgrades,
 reference clones, permissive local-artifact bypass or other declaration changes.
 Record exact identities, lockfile diff, dependency-policy checks, installer and
 syntax coverage evidence before completion. All other dependencies remain frozen.
+
+## Follow-on workbench revision — 2026-09-12
+
+This revision incorporates the narrated maintainer journey after the diff-first
+baseline. Its north-star is one ordinary, inspectable Explorer and editor system,
+not another review-only shell. The dependency exception above remains recorded,
+but this follow-on currently changes no dependency declaration or lockfile.
+
+### Requirement atoms
+
+1. **Expandable review files.** An ordinary `.sfm-review.json` file row remains a
+   file: Enter can open its raw JSON and its file URI remains canonical. Its
+   chevron may additionally mount the review's Changes hierarchy in place.
+   Mounting is a typed Explorer capability, not a filename-specific directory lie.
+2. **Explicit authority.** Incidental expansion opens read-only. A separately
+   named action enables commenting/writable authority, and another restores
+   read-only authority. The same mounted hierarchy is reused in either mode.
+3. **Root composition.** Mount-capable files participate in both “use as only
+   root” and “add as root” without losing multi-root Explorer behavior. Children
+   may use another resolver scheme while retaining their stable identities.
+4. **Stable comment projection.** Before/After source rows have stable paths both
+   before and after the first comment. Saving a comment refreshes surviving
+   mounted/review explorers, and the source row immediately gains expandable
+   comment children without closing or reopening the review.
+5. **Canonical commands.** `sfm choose` remains a constrained internal surface,
+   but the selected candidate's standalone `sfm action invoke ...` command is
+   always visible and copyable. Execution/provenance/history use that canonical
+   command. Candidate context actions can copy all visible display values,
+   surface values, canonical commands, or structured details.
+6. **Useful comment proposals.** Semantically equivalent effective selectors are
+   deduplicated while genuinely different exact/declaration/signature/body
+   proposals remain. The local review target continues to lead supporting
+   definition evidence.
+7. **Correct split diffs.** Added imports/declarations retain After source order;
+   Before-only declarations anchor predictably. Equal-sized replacement line
+   hunks refine independently so repeated suffixes such as `.register(bus)` and
+   unchanged annotations such as `@Override` remain neutral. Inserted/deleted
+   lines alone receive whole-line backgrounds.
+8. **Addressable generated UI.** Before/After headers, generated-diff status and
+   visible diagnostics are hoverable regions. Their context actions copy or open
+   a versioned metadata payload instead of requiring screenshots or log hunting.
+9. **Language and navigation honesty.** Freeform comment creation and editing are
+   both plain text. Exact or stale Java review snapshots may use the worker's
+   existing one-document source overlay while normal disk editors retain their
+   last-modified/content-hash guard. This is not a whole historical workspace:
+   other compilation units remain the ambient checkout, and Rust semantic
+   navigation/inlay inference remains explicitly unsupported follow-on work.
+10. **Feedback.** Copying an exact source selection produces a short localized
+    workspace acknowledgement. Async comment saves remain durable and
+    recoverable: the editor closes only after success, retains newer edits, and
+    leaves rejected/conflicting drafts available for retry rather than reporting
+    a false save.
+11. **Presentation family.** Review-lens actions share one recognizable icon.
+    Generated details and mount failures expose concrete diagnostics. A mounted
+    review never silently steals writable authority from another review.
+
+### Accepted limitation and extension seam
+
+`SFMReleaseReviewRuntime` currently owns one active review. Multiple Explorer
+panels may show that same authority, but mounting a different review replaces the
+clean current review; a dirty or pending review fails safely. The mount-provider
+interface deliberately isolates this singleton so later independent concurrent
+review runtimes do not require changing generic Explorer rows or navigation.
+
+### Verification ledger (completed 2026-09-12)
+
+- Rust structured-diff unit family: 11 passed, including After-order and repeated
+  registration/unchanged-syntax regressions.
+- Focused Explorer and release-review suites passed after the final Java edits.
+  The complete Java suite also returned exit 0; its remaining aborts are explicit
+  opt-in installed-worker and release-scale assumptions, not failed tests.
+- Rust `check-all.ps1` passed with 715 unit tests passed, three ignored, and the
+  10, 12 and 40 test integration families passing. The changed CLI was installed
+  successfully. Datagen passed.
+- The preferred live puppet `sfm:title_screen_release_review_explorer_ux` passed
+  and exited normally. Its final evidence directory is
+  `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-title_screen-20260912-164933-008`.
+  It proves ordinary-file read-only mounting, explicit writable promotion,
+  comment persistence and all six lenses, exact changed-span diff styling,
+  reveal and close behavior, and zero OS pointer injection.
+- The live journey found and closed two observer/harness defects before acceptance:
+  an empty mounted lens is now recognized by its hosted lens descriptor rather
+  than requiring a visible `review-tree:` row, and transient locked/minimized
+  GLFW dimensions below 320x320 are no longer treated as a restoration target.
+- No Cargo/Gradle dependency declaration or lockfile changed. The approved
+  exact-pinned grammar exception remains recorded but was not exercised by this
+  follow-on revision.
 
 ## Evidence and uncertainty
 
@@ -1132,3 +1219,74 @@ Manual start from the repo root:
 Follow docs/live review capture-on-comment guide.md: Explorer writable review,
 source and inline/split diffs, select/comment/read/reopen, then Z/S and M/R controls.
 User testing is now usability feedback, not an outstanding completion gate.
+
+## Post-acceptance review interaction revision — 2026-09-12
+
+The next usability pass separates a compact **raw text patch** from the complete
+source-interposed **text diff (inline)** instead of presenting one ambiguous text
+surface. The Rust protocol has an explicit `text-patch` kind; full text diff asks
+for enough unified context to retain the complete source, while raw patch keeps
+the bounded compact context. Structured split output is completed in Java against
+the exact Before and After source documents, restoring source order and whitespace
+without turning unchanged syntax into additions or removals. Exact producer spans
+win over neutral gap completion, so only actually mapped changes receive change
+backgrounds. Split-side comment gutters retain source mappings and provide
+separate hit lanes for overlaps.
+
+Generated documents now preserve their origin row identity so Reveal targets the
+review hierarchy rather than the ephemeral `review-surface:` address. Human
+comment removal is writable-only, confirmation-bound and atomic. Freeform
+Save-and-close transfers the immutable draft to a durable operation and closes
+immediately; failures keep an explicit retryable draft. These contracts require
+focused protocol/model/runtime tests, full Java and Rust gates, datagen, installed
+CLI verification and a virtual-input puppet before this checkpoint is accepted.
+No dependency or lockfile change is permitted by this pass.
+
+### Final comment-lifecycle acceptance — 2026-09-12
+
+The implementation gate is complete. The full Java run passed 2059 tests with
+zero failures and five explicitly opt-in aborts (2064 discovered); its log is
+`platform/minecraft/build/review-comment-removal-java-full-20260912.ndjson`.
+Datagen completed with exit 0 and published the localized removing/removed and
+durable saving/saved/failure messages. Rust `check-all.ps1` passed dependency
+policy, formatting, clippy, build, 716 unit tests (three ignored), and the
+10 + 12 + 40 integration groups. The exact checked CLI was installed at
+`G:/Programming/Caches/CARGO_HOME/bin/sfm-propagate-changes.exe`; its smoke
+identity is `0.1.1 (rev 53b9b3021, built 2026-09-12 18:41:10 -04:00)` and its
+SHA-256 is `F61D905EB8FE7E8680BCFE12260A80BC15838F8ADA57C3E86E122932BC7A543C`.
+
+The supported-viewport virtual-input journey passed at 3840x2130 GUI scale 2
+in run `sfm-title_screen-20260912-190026-697` (2m42s, exit 0). Its artifacts
+prove an ordinary `.sfm-review.json` mount, exact generated split reveal,
+complete structured split source order, a pointer-opened split comment gutter,
+comment persistence, writable reopen, confirmed removal from runtime and disk,
+provider cleanup, and `os_pointer_injection=false`. Visual inspection confirms
+that the structured fixture colors only the changed literal (`1` removed, `2`
+added), the full text-inline surface retains source context, and the split view
+shows independently syntax-colored Before/After source with a visible gutter.
+
+The live gate found and corrected two acceptance-driver defects without bypassing
+the product: canned-comment completion now dismisses its bounded parent palette
+stack through visible Cancel actions before continuing, and canvas-local gutter
+coordinates now pass through the workspace's physical/logical panel transform.
+An earlier invocation used a viewport outside the puppet's declared matrix and
+never entered the journey. A later compile briefly encountered a full D drive;
+ten old disposable puppet snapshots were moved to a recovery directory, then
+restored byte-for-byte to their original paths after capacity recovered. Neither
+event is counted as product acceptance evidence.
+
+No dependency declaration or lockfile changed. The previously authorized
+exact-pinned Arborium grammar set remains the only dependency exception; there
+was no cache rehydration or unrelated upgrade. The puppet operated solely on
+`runGameTestPreview/sfm-puppet/release-review-journey.sfm-review.json`; no user
+review authority was opened or overwritten. No commit, push, Gradle invocation,
+or cross-lane propagation was performed by this checkpoint.
+
+Final readiness inspection found no in-scope Java, Javaw, Cargo, rustc, SFM CLI
+or propagation process. All ten temporarily moved historical puppet snapshots
+are restored (303224331 bytes total), and the recovery directory is absent.
+`git diff --check` passes when the datagen-owned tab-delimited cache sentinel is
+excluded; that sentinel is the only reported whitespace diagnostic. Cargo
+manifests, Cargo lockfiles and `platform/minecraft/sfm-toolchain.lock.json` have
+no diff. Source HEAD is `53b9b302117289c945def6ed73297f2997901559` and the
+existing dirty worktree remains intentionally uncommitted.

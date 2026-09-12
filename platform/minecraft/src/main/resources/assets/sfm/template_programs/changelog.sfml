@@ -7,6 +7,19 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Remove human review comments through a stale-safe writable confirmation, refreshing surviving review Explorers without disturbing shared evidence
+-- Reveal raw, inline and split generated review surfaces at their exact originating Explorer rows
+-- Separate compact raw text patches from complete source-interposed inline text diffs
+-- Restore complete source order, whitespace, syntax, copying and exact change spans in structured split Before/After views
+-- Show independently clickable comment gutter lanes on both split-diff sides, including overlapping comments
+-- Close freeform review editors immediately after Save and close while a durable saving operation retains exact retryable drafts on failure
+-- Expand .sfm-review.json files in place inside the ordinary multi-root Explorer while retaining raw JSON opening and explicit read-only/writable authority
+-- Show canonical standalone commands beneath constrained choice palettes and copy all visible candidates at useful detail levels
+-- Keep review source row identities stable so newly saved comments appear as expandable children without reopening the review
+-- Preserve true source order and unchanged shared syntax in structured split diffs, including added imports and repeated registration calls
+-- Make split-diff Before/After headers, generation status and warnings hoverable and action-backed with copyable structured details
+-- Use exact displayed Java review bytes as a one-document semantic-analysis overlay while retaining disk freshness guards for ordinary files
+-- Use plain-text language for both creating and editing comments, acknowledge copied source selections, deduplicate equivalent target choices and visually group review-lens actions
 -- Keep pointer mode actions available in asynchronously loaded source and diff editors
 -- Honor virtual pointer modifiers for horizontal Shift-wheel scrolling in the canvas editor
 -- Honor explicit Alt pointer input for panel movement without inheriting physical keyboard state

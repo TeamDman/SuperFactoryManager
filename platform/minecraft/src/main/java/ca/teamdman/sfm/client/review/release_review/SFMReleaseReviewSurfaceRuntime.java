@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -284,6 +285,10 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
                             .orElse("producer returned an incomplete surface");
                     throw new SurfaceUnavailableException("review.surface.incomplete", diagnostic);
                 }
+                if (recipe.split()
+                        && surface.surfaceKind() == SFMReleaseReviewSurfaceV1.SurfaceKind.JAVA_STRUCTURED_DIFF) {
+                    surface = completeStructuredSplitSurface(surface, request);
+                }
                 GeneratedDocument answer = new GeneratedDocument(
                         new GeneratedDocumentIdentity(
                                 generatedPath(recipe),
@@ -360,6 +365,109 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
             if (failure != null) cache.remove(cacheKey, created);
         });
         return created;
+    }
+
+    /**
+     * A structural producer is free to emit only meaningful declarations. A split editor is
+     * instead a complete source presentation, so rebuild its display in immutable source order
+     * and retain the producer's exact changed-byte kinds as an overlay classification.
+     */
+    static SFMReleaseReviewSurfaceV1.Surface completeStructuredSplitSurface(
+            SFMReleaseReviewSurfaceV1.Surface surface,
+            SFMReleaseReviewSurfaceV1.Request request
+    ) {
+        surface.validateAgainst(request);
+        StringBuilder text = new StringBuilder();
+        ArrayList<SFMReleaseReviewSurfaceV1.Mapping> mappings = new ArrayList<>();
+        int surfaceByteCursor = 0;
+        for (SFMReleaseReviewV1.SnapshotSide side : SFMReleaseReviewV1.SnapshotSide.values()) {
+            Optional<SFMReleaseReviewSurfaceV1.Source> optional = request.filePair().source(side);
+            if (optional.isEmpty()) continue;
+            SFMReleaseReviewSurfaceV1.Source source = optional.orElseThrow();
+            byte[] sourceBytes = source.text().getBytes(StandardCharsets.UTF_8);
+            TreeSet<Integer> boundaries = new TreeSet<>();
+            boundaries.add(0);
+            boundaries.add(sourceBytes.length);
+            for (SFMReleaseReviewSurfaceV1.Mapping mapping : surface.mappings()) {
+                for (SFMReleaseReviewSurfaceV1.SourceRange range : mapping.sourceRanges()) {
+                    if (range.side() != side) continue;
+                    boundaries.add(range.range().startByte());
+                    boundaries.add(range.range().endByte());
+                }
+            }
+            List<Integer> ordered = List.copyOf(boundaries);
+            for (int index = 0; index + 1 < ordered.size(); index++) {
+                int start = ordered.get(index);
+                int end = ordered.get(index + 1);
+                if (start == end) continue;
+                if (mappings.size() >= request.maximumMappings()) {
+                    throw new IllegalArgumentException(
+                            "Complete structured split exceeds the requested mapping bound");
+                }
+                String exact = new String(sourceBytes, start, end - start, StandardCharsets.UTF_8);
+                text.append(exact);
+                int displayEnd = surfaceByteCursor + end - start;
+                mappings.add(new SFMReleaseReviewSurfaceV1.Mapping(
+                        new SFMReleaseReviewSurfaceV1.Utf8Range(surfaceByteCursor, displayEnd),
+                        splitMappingKind(surface, side, start, end),
+                        List.of(new SFMReleaseReviewSurfaceV1.SourceRange(
+                                side,
+                                source.documentRevisionId(),
+                                source.sha256(),
+                                source.path(),
+                                new SFMReleaseReviewSurfaceV1.Utf8Range(start, end)))));
+                surfaceByteCursor = displayEnd;
+            }
+        }
+        if (surfaceByteCursor > request.maximumOutputBytes()) {
+            throw new IllegalArgumentException(
+                    "Complete structured split exceeds the requested output-byte bound");
+        }
+        SFMReleaseReviewSurfaceV1.Surface completed = new SFMReleaseReviewSurfaceV1.Surface(
+                surface.schema(), surface.requestId(), surface.requestGeneration(), surface.filePairId(),
+                surface.surfaceKind(), surface.algorithm() + ";split-source-order-v1", surface.outcome(),
+                surface.complete(), surface.fallbackKind(), text.toString(),
+                SFMReleaseReviewSurfaceV1.sha256(text.toString()), mappings, List.of(),
+                surface.correspondence(), surface.diagnostics());
+        completed.validateAgainst(request);
+        return completed;
+    }
+
+    private static SFMReleaseReviewSurfaceV1.MappingKind splitMappingKind(
+            SFMReleaseReviewSurfaceV1.Surface surface,
+            SFMReleaseReviewV1.SnapshotSide side,
+            int start,
+            int end
+    ) {
+        SFMReleaseReviewSurfaceV1.MappingKind answer = SFMReleaseReviewSurfaceV1.MappingKind.CONTEXT;
+        int answerPriority = 0;
+        for (SFMReleaseReviewSurfaceV1.Mapping mapping : surface.mappings()) {
+            for (SFMReleaseReviewSurfaceV1.SourceRange range : mapping.sourceRanges()) {
+                if (range.side() != side || range.range().startByte() > start || range.range().endByte() < end) {
+                    continue;
+                }
+                int priority = splitMappingPriority(mapping.kind(), side);
+                if (priority > answerPriority) {
+                    answer = mapping.kind();
+                    answerPriority = priority;
+                }
+            }
+        }
+        return answer;
+    }
+
+    private static int splitMappingPriority(
+            SFMReleaseReviewSurfaceV1.MappingKind kind,
+            SFMReleaseReviewV1.SnapshotSide side
+    ) {
+        return switch (kind) {
+            case DELETION -> side == SFMReleaseReviewV1.SnapshotSide.BEFORE ? 4 : 0;
+            case ADDITION -> side == SFMReleaseReviewV1.SnapshotSide.AFTER ? 4 : 0;
+            case STRUCTURAL_BEFORE -> side == SFMReleaseReviewV1.SnapshotSide.BEFORE ? 3 : 0;
+            case STRUCTURAL_AFTER -> side == SFMReleaseReviewV1.SnapshotSide.AFTER ? 3 : 0;
+            case STRUCTURAL_CORRESPONDENCE -> 2;
+            case CONTEXT -> 1;
+        };
     }
 
     public Optional<SFMReleaseReviewSurfaceV1.Surface> sourceMap(SFMTextDocumentSnapshot snapshot) {

@@ -3189,6 +3189,109 @@ suggestion, and migration are proven. Compiler/audit comment production,
 colour-rule editing, multi-version approval, and release completion remain
 separate follow-up goals.
 
+## 2026-09-12 review-workbench atoms
+
+The narrated review journey adds the following durable design requirements. They
+are recorded here even where the current vertical slice implements only the first
+usable form.
+
+- Files and structured domains are orthogonal capabilities. A file may be opened
+  as text and also expanded as a mounted hierarchy. `.sfm-review.json` is the
+  first provider; JSON object/array exploration, archives and logs may later use
+  the same mount contract without pretending to be directories.
+- Expansion is read-only discovery. Mutation authority is explicit and visible.
+  Reusing a hierarchy must never make opening a chevron equivalent to granting
+  write access.
+- Review comments attach to exact source identities, not generated diff glyphs.
+  Diff-side selections translate back to before/after sources; source rows expose
+  those comment objects as stable children immediately after persistence.
+- Canonical standalone commands are the transferable/provenance surface even
+  when a temporary `sfm choose` command powers constrained solicitation. The UI
+  must show the canonical command before execution and permit copying one or all
+  candidates at distinct detail levels.
+- Generated warnings, fallback notices, headers and provenance labels are real
+  addressable regions. Hover explains the concise surface; context actions expose
+  complete machine-readable details. Geometry and explanation remain separate
+  actions when both exist.
+- Snapshot semantic analysis may overlay the exact displayed document into an
+  existing worker workspace. This proves single-document identity only; it must
+  not be described as an immutable historical workspace unless every dependency
+  source and build context is pinned. Unsupported language semantics remain
+  explicit rather than being inferred from syntax highlighting.
+- Explorer/review refresh cannot change a source row's address merely because its
+  first comment made it expandable. Durable identity precedes presentation state.
+- Diff background ownership is source-aware: unchanged shared syntax is neutral,
+  additions/removals are exact, and syntax foreground color composes independently.
+  Line-level fallback is acceptable only when exact structural correspondence is
+  unavailable and is labelled as such.
+- One active review runtime is an accepted initial implementation constraint, not
+  a property of the Explorer mount abstraction. Dirty/pending authority must fail
+  closed when a different review is requested.
+
+### 2026-09-12 implementation checkpoint
+
+The first vertical slice of these atoms is complete. Ordinary
+`.sfm-review.json` rows now expose a typed mount capability while retaining raw
+text opening; chevron/Space mounts read-only, contextual actions explicitly
+promote or demote commenting authority, and mount-capable files may replace or
+join Explorer roots. Cross-scheme children are permitted only by the mount
+provider. Empty lenses remain valid mounted views and no longer look like a
+failed expansion merely because they contain no `review-tree:` rows.
+
+Source row identities no longer change when the first comment is added, so a
+successful save publishes comment children into surviving Explorers immediately.
+Choice palettes expose the selected canonical standalone command and can copy
+all visible candidates at several detail levels. Diff headers and warnings are
+addressable, lens actions share a recognizable presentation, exact Java snapshots
+can be overlaid for single-document definition analysis, and unsupported Rust
+semantic navigation remains explicit.
+
+Final verification combined focused Explorer/review suites, a complete Java
+suite, Rust formatting/lint/build and tests, CLI installation, datagen, and the
+preferred virtual-input title-screen journey. The accepted live artifact is
+`sfm-title_screen-20260912-164933-008`; it injected no OS pointer input. That run
+also hardened the harness against transient locked/minimized window dimensions.
+No dependency declaration or lockfile changed; the exact-pinning policy and its
+previously authorized narrow grammar exception remain in force.
+
+### 2026-09-12 comment lifecycle and diff identity checkpoint
+
+- Writable human comments have a canonical, separately confirmed removal action.
+  Confirmation binds review epoch, comment id and semantic hash; stale/read-only
+  invocations fail closed. Persistence removes the comment and only selector
+  state no longer referenced by another comment, then refreshes active lenses.
+  Generated release evidence remains non-removable through this route.
+- Generated surfaces carry a typed origin identity `(file pair, surface kind,
+  layout)` through deferred materialization. Reveal resolves this identity back
+  to the exact review-tree row instead of trying to find a generated URI in the
+  Explorer, including mounted and filtered review trees.
+- Raw compact patch, complete source-interposed text diff, structured inline,
+  text split and structured split are distinct leaves with honest names. Sparse
+  structural producer fragments are completed against exact Before/After source
+  order before split layout; mappings retain independent syntax, copy, comment
+  and exact addition/removal channels.
+- Split comments use per-side gutter lanes and exact hit rectangles. Overlapping
+  markers remain independently addressable without taking left-drag selection
+  away from source glyphs.
+- Freeform Save-and-close transfers an immutable draft submission to a durable
+  workspace operation before closing immediately. Failure preserves that exact
+  draft for explicit reopen/retry. Ordinary Save remains an in-editor operation.
+- Dependency declarations and lockfiles stay frozen. These changes extend the
+  already-authorized exact-pinned grammar set neither transitively nor directly.
+
+Final acceptance for this checkpoint passed on 2026-09-12. The complete Java
+suite reports 2059 passed, zero failed and five opt-in aborts; Rust dependency,
+format, lint, build, unit and integration gates are green; datagen is current;
+and the installed CLI is revision `53b9b3021` with SHA-256
+`F61D905EB8FE7E8680BCFE12260A80BC15838F8ADA57C3E86E122932BC7A543C`.
+Virtual-input run `sfm-title_screen-20260912-190026-697` proves exact generated
+split reveal, an independently clickable split-side comment gutter, durable
+comment creation and confirmed runtime/disk removal without OS pointer injection.
+Its structured witness changes only literal `1` to `2`; shared syntax stays
+neutral. The journey used a disposable staged review and left user review files
+outside its authority. Historical disposable puppet snapshots temporarily moved
+to recover from a full drive were restored to their exact original paths.
+
 ## Acceptance criteria
 
 - No `.g4` modification is required for review filtering or wildcard safety.

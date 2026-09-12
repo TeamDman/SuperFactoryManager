@@ -6,6 +6,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewCommentDraftServiceTests.*;
@@ -78,6 +79,34 @@ class SFMReleaseReviewCommentSaveHandlerTests {
             runtime.discardAndClose();
             runtime.open(file, false);
             assertEquals("Updated note\n\n", runtime.document().orElseThrow().reviewSession().comments().get(before).text());
+        }
+    }
+
+    @Test
+    void saveAndCloseCanDetachAfterPublishingDurableOperationFeedback(@TempDir Path directory) throws Exception {
+        Path file = copyFixture(directory);
+        var worker = new ArrayDeque<Runnable>();
+        try (var runtime = new SFMReleaseReviewRuntime(worker::add)) {
+            runtime.open(file, true);
+            var service = new SFMReleaseReviewCommentDraftService(runtime);
+            var capture = firstCapture(runtime.document().orElseThrow());
+            var draft = service.create(capture, literalProposal(capture));
+            var submissions = new ArrayList<SFMReleaseReviewCommentSaveHandler.Submission>();
+            var handler = new SFMReleaseReviewCommentSaveHandler(
+                    runtime, service, draft.id(), () -> { }, submissions::add);
+
+            assertTrue(handler.asynchronous());
+            assertTrue(handler.detachSaveAndCloseAfterSubmission());
+            var saving = handler.saveAsync("Detached exact draft\n");
+            assertEquals(1, submissions.size());
+            assertEquals(draft.id(), submissions.get(0).draftId());
+            assertSame(saving, submissions.get(0).completion());
+            assertTrue(submissions.get(0).operationId() > 0);
+            assertFalse(saving.isDone());
+
+            worker.remove().run();
+            assertTrue(saving.join().saved());
+            assertTrue(Files.readString(file).contains("Detached exact draft\\n"));
         }
     }
 

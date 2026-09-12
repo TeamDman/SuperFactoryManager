@@ -118,6 +118,12 @@ class SFMReleaseReviewCommentChoiceActionTests {
         assertTrue(choices.get(1).command().contains("cancel"));
     }
 
+    @Test
+    void newAndReopenedCommentValuesUseTheSamePlainTextLanguage() {
+        var source = SFMReleaseReviewCommentChoiceAction.newCommentDocumentSource();
+        assertEquals("text", source.language().id());
+    }
+
     private static boolean executable(SFMReleaseReviewCommentChoiceAction.Kind kind, String command) {
         CommandDispatcher<SFMClientActionSource> dispatcher = new CommandDispatcher<>();
         LiteralArgumentBuilder<SFMClientActionSource> node = LiteralArgumentBuilder.literal("action");

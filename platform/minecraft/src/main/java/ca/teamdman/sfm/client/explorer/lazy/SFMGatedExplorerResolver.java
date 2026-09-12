@@ -85,6 +85,11 @@ public final class SFMGatedExplorerResolver implements SFMExplorerResolver {
     }
 
     @Override
+    public boolean permitsCrossSchemeChildren(SFMPath parent) {
+        return delegate.permitsCrossSchemeChildren(parent);
+    }
+
+    @Override
     public boolean supportsTextRead() {
         return delegate.supportsTextRead();
     }

@@ -45,7 +45,8 @@ class SFMReleaseReviewActionSurfaceTests {
             var choices = SFMReleaseReviewCommentDetailsAction.rowChoices(commentId, runtime.snapshot().openEpoch());
             var panelIds = workspace.panelIds();
             runtime.open(path, true);
-            for (var choice : choices) {
+            for (var choice : choices.stream()
+                    .filter(value -> value.actionId().equals(SFMReleaseReviewCommentDetailsAction.ID)).toList()) {
                 String command = "action" + choice.command().substring(
                         ("sfm action invoke " + choice.actionId()).length());
                 assertTrue(SFMClientActionExecutor.isExecutable(dispatcher.parse(command, source)), command);
@@ -112,10 +113,15 @@ class SFMReleaseReviewActionSurfaceTests {
             dispatcher.register(node);
             for (var comment : fixture().reviewSession().comments()) {
                 var choices = SFMReleaseReviewCommentDetailsAction.sectionChoices(comment.id());
-                assertEquals(6, choices.size());
+                boolean removable = !ca.teamdman.sfm.client.review.release_review
+                        .SFMReleaseReviewGeneratedMarkers.isChangeMarker(comment);
+                assertEquals(removable ? 7 : 6, choices.size());
                 assertTrue(choices.stream().anyMatch(choice -> choice.command().endsWith(" text")));
                 assertTrue(choices.stream().anyMatch(choice -> choice.command().endsWith(" reveal")));
-                for (var choice : choices) {
+                assertEquals(removable, choices.stream().anyMatch(choice -> choice.actionId().equals(
+                        SFMReleaseReviewCommentRemoveAction.Phase.REQUEST.id())));
+                for (var choice : choices.stream()
+                        .filter(value -> value.actionId().equals(SFMReleaseReviewCommentDetailsAction.ID)).toList()) {
                     String arguments = choice.command().substring(
                             ("sfm action invoke " + choice.actionId()).length());
                     var parsed = dispatcher.parse("action" + arguments, new SFMClientActionSource(CURRENT_CONTEXT));
@@ -132,6 +138,37 @@ class SFMReleaseReviewActionSurfaceTests {
             }
         } finally {
             SFMReleaseReviewRuntime.get().discardAndClose();
+            deleteMachineLocalState(path);
+        }
+    }
+
+    @Test
+    void humanCommentRemovalChoicesAreCanonicalAndIdentityBound(@TempDir Path directory) throws Exception {
+        Path path = directory.resolve("remove-comment-choice.sfm-review.json");
+        Files.writeString(path, SFMReleaseReviewV1Codec.write(fixture()), StandardCharsets.UTF_8);
+        var runtime = SFMReleaseReviewRuntime.get();
+        runtime.open(path, true);
+        try {
+            var comment = runtime.document().orElseThrow().reviewSession().comments().stream()
+                    .filter(value -> !ca.teamdman.sfm.client.review.release_review
+                            .SFMReleaseReviewGeneratedMarkers.isChangeMarker(value))
+                    .findFirst().orElseThrow();
+            var request = SFMReleaseReviewCommentRemoveAction.requestChoice(
+                    comment.id(), runtime.snapshot().openEpoch()).orElseThrow();
+            assertEquals(SFMReleaseReviewCommentRemoveAction.Phase.REQUEST.id(), request.actionId());
+            assertTrue(request.command().contains(Long.toString(runtime.snapshot().openEpoch())));
+            assertTrue(request.command().contains(SFMReleaseReviewKernel.semanticStateHash(
+                    runtime.document().orElseThrow())));
+
+            var confirmation = SFMReleaseReviewCommentRemoveAction.confirmationChoices(
+                    comment.id(), runtime.snapshot().openEpoch(),
+                    SFMReleaseReviewKernel.semanticStateHash(runtime.document().orElseThrow()));
+            assertEquals(2, confirmation.size());
+            assertEquals(SFMReleaseReviewCommentRemoveAction.Phase.CONFIRM.id(), confirmation.get(0).actionId());
+            assertEquals(new net.minecraft.resources.ResourceLocation("sfm", "palette/close"),
+                    confirmation.get(1).actionId());
+        } finally {
+            runtime.discardAndClose();
             deleteMachineLocalState(path);
         }
     }

@@ -74,6 +74,15 @@ public interface SFMExplorerResolver {
 
     CompletableFuture<ChildPage> resolveChildren(ChildRequest request);
 
+    /**
+     * Explicit capability for mount resolvers whose children are owned by a
+     * different registered scheme. Ordinary resolvers remain same-scheme by
+     * default so a malformed page cannot silently cross an authority boundary.
+     */
+    default boolean permitsCrossSchemeChildren(SFMPath parent) {
+        return false;
+    }
+
     /** Whether this resolver can satisfy bounded text reads for its paths. */
     default boolean supportsTextRead() {
         return false;

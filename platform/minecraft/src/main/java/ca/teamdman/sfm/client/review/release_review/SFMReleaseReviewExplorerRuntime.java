@@ -11,6 +11,7 @@ import ca.teamdman.sfm.client.explorer.SFMChildPage;
 import ca.teamdman.sfm.client.explorer.SFMExplorerRuntime;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.SFMPathExpression;
+import ca.teamdman.sfm.client.explorer.SFMPathHierarchy;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerCancellationToken;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerEntry;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerFilterDomainResolver;
@@ -107,7 +108,25 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
     }
 
     private record ChangesIndex(SFMReleaseReviewV1 source, Map<String, SFMPath> nodePaths,
-                                Map<DocumentIdentity, List<SFMPath>> revealPaths) {}
+                                Map<DocumentIdentity, List<SFMPath>> revealPaths,
+                                Map<GeneratedSurfaceIdentity, List<SFMPath>> generatedRevealPaths) {}
+
+    /** Stable generated-surface identity; unlike the rendered URI it is also known before generation. */
+    private record GeneratedSurfaceIdentity(
+            String filePairId,
+            SFMReleaseReviewSurfaceV1.SurfaceKind surfaceKind,
+            boolean split
+    ) {
+        private GeneratedSurfaceIdentity {
+            Objects.requireNonNull(filePairId, "filePairId");
+            Objects.requireNonNull(surfaceKind, "surfaceKind");
+        }
+
+        private static GeneratedSurfaceIdentity from(SFMReleaseReviewSurfaceV1.Recipe recipe) {
+            return new GeneratedSurfaceIdentity(
+                    recipe.filePair().id(), recipe.surfaceKind(), recipe.split());
+        }
+    }
 
     private static final class ProjectionSnapshot {
         private final long generation;
@@ -118,7 +137,9 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
         private final Map<SFMPath, String> nodeIds = new TreeMap<>();
         private final Map<String, SFMPath> pathsByNodeId = new HashMap<>();
         private Map<DocumentIdentity, List<SFMPath>> revealPaths = new HashMap<>();
+        private Map<GeneratedSurfaceIdentity, List<SFMPath>> generatedRevealPaths = new HashMap<>();
         private Map<String, SFMPath> sharedNodePaths = Map.of();
+        private final SFMReleaseReviewSurfaceRuntime surfaceRuntime;
         private final ChangesIndex changesIndex;
 
         private ProjectionSnapshot(
@@ -132,6 +153,7 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
         ) {
             this.generation = generation;
             this.root = Objects.requireNonNull(root, "root");
+            this.surfaceRuntime = Objects.requireNonNull(surfaceRuntime, "surfaceRuntime");
             Objects.requireNonNull(modelRoot, "modelRoot");
             entries.put(root, SFMReleaseReviewExplorerRuntime.entry(
                     root, modelRoot, SFMItemIcon.vanilla("spyglass", "Release review")));
@@ -141,11 +163,12 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
             if (reusableIndex != null) {
                 sharedNodePaths = reusableIndex.nodePaths();
                 revealPaths = reusableIndex.revealPaths();
+                generatedRevealPaths = reusableIndex.generatedRevealPaths();
                 changesIndex = reusableIndex;
             } else {
                 indexRevealPaths(root, modelRoot, review, surfaceRuntime, changesOnly);
                 changesIndex = changesOnly ? new ChangesIndex(review.document().orElseThrow(),
-                        Map.copyOf(pathsByNodeId), Map.copyOf(revealPaths)) : null;
+                        Map.copyOf(pathsByNodeId), Map.copyOf(revealPaths), Map.copyOf(generatedRevealPaths)) : null;
             }
         }
 
@@ -418,9 +441,16 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
         }
 
         private synchronized List<SFMPath> revealPaths(SFMTextDocumentSnapshot document) {
-            return DocumentIdentity.from(document)
+            List<SFMPath> pinned = DocumentIdentity.from(document)
                     .map(identity -> revealPaths.getOrDefault(identity, List.of()))
                     .orElseGet(List::of);
+            if (!pinned.isEmpty()) return pinned;
+            return surfaceRuntime.sourceMap(document).map(surface -> generatedRevealPaths.getOrDefault(
+                    new GeneratedSurfaceIdentity(
+                            surface.filePairId(),
+                            surface.surfaceKind(),
+                            surfaceRuntime.splitDocument(document).isPresent()),
+                    List.of())).orElseGet(List::of);
         }
 
         private void indexRevealPaths(
@@ -449,6 +479,14 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
                         );
                         paths.add(childPath);
                         revealPaths.put(identity, List.copyOf(paths));
+                }
+                if (leaf != null && !leaf.missing() && leaf.generatedSurface().isPresent()) {
+                    GeneratedSurfaceIdentity identity = GeneratedSurfaceIdentity.from(
+                            leaf.generatedSurface().orElseThrow());
+                    ArrayList<SFMPath> paths = new ArrayList<>(
+                            generatedRevealPaths.getOrDefault(identity, List.of()));
+                    paths.add(childPath);
+                    generatedRevealPaths.put(identity, List.copyOf(paths));
                 }
                 // In Changes, revision children are comment values, not pinned source
                 // targets. Index those lazily through childSlice; never cache stale comments.
@@ -534,6 +572,7 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
     private final SFMReleaseReviewSurfaceRuntime surfaceRuntime;
     private volatile java.util.concurrent.Executor commentNavigationExecutor = ForkJoinPool.commonPool();
     private final Map<SFMPath, Lens> lenses = new TreeMap<>();
+    private final Map<Path, SFMPath> mountedLensRoots = new HashMap<>();
     private final Map<String, ProjectionSnapshot> cachedProjections = new HashMap<>();
     private final SFMReviewExplorerModel.ChangesCache changesCache = new SFMReviewExplorerModel.ChangesCache();
     private final Map<SFMPath, ChangesIndex> cachedChangesIndexes = new LinkedHashMap<>();
@@ -621,6 +660,7 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
         // A replacement/reopen invalidates every prior ephemeral review-tree identity. Ordinary
         // review mutations retain the open epoch and therefore keep existing Explorer panels live.
         lenses.entrySet().removeIf(entry -> entry.getValue().reviewOpenEpoch() != openEpoch);
+        mountedLensRoots.entrySet().removeIf(entry -> !lenses.containsKey(entry.getValue()));
         lenses.put(root, new Lens(
                 root,
                 normalizedReviewPath,
@@ -631,6 +671,39 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
                 title(projection, changesPathLayout)
         ));
         return root;
+    }
+
+    /** Selects the projection contributed beneath one ordinary review-file row. */
+    synchronized SFMPath prepareMountedLens(
+            Path reviewPath,
+            SFMReleaseReviewExplorerScreenType.Projection projection,
+            Optional<String> query,
+            SFMReviewExplorerModel.PathLayout changesPathLayout
+    ) {
+        Path normalized = Objects.requireNonNull(reviewPath, "reviewPath").toAbsolutePath().normalize();
+        SFMPath root = prepareLens(normalized, projection, query, changesPathLayout);
+        mountedLensRoots.put(normalized, root);
+        return root;
+    }
+
+    /** Returns the current mounted projection, creating the default Changes lens on first expansion. */
+    synchronized SFMPath mountedLens(
+            Path reviewPath,
+            SFMReviewExplorerModel.PathLayout defaultChangesPathLayout
+    ) {
+        Path normalized = Objects.requireNonNull(reviewPath, "reviewPath").toAbsolutePath().normalize();
+        SFMPath current = mountedLensRoots.get(normalized);
+        Lens lens = current == null ? null : lenses.get(current);
+        long openEpoch = requireOpenReview().openEpoch();
+        if (lens != null && lens.reviewOpenEpoch() == openEpoch && lens.reviewPath().equals(normalized)) {
+            return current;
+        }
+        return prepareMountedLens(
+                normalized,
+                SFMReleaseReviewExplorerScreenType.Projection.CHANGES,
+                Optional.empty(),
+                defaultChangesPathLayout
+        );
     }
 
     public Optional<DocumentTarget> documentTarget(SFMPath path) {
@@ -718,6 +791,19 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
     }
 
     /**
+     * Returns the exact review-lens roots represented by already-published Explorer rows.
+     * This lets an ordinary file Explorer host a mounted review without pretending its
+     * {@code file:} root is itself a review authority.
+     */
+    public synchronized Set<SFMPath> lensRootsContaining(Set<SFMPath> representedPaths) {
+        TreeSet<SFMPath> answer = new TreeSet<>();
+        for (SFMPath path : Set.copyOf(Objects.requireNonNull(representedPaths, "representedPaths"))) {
+            lensFor(path).map(Lens::root).ifPresent(answer::add);
+        }
+        return Set.copyOf(answer);
+    }
+
+    /**
      * Identifies an exact review Explorer without guessing across mixed or
      * multi-root locations. This is intentionally bounded enough for paint,
      * focus, and action-availability queries.
@@ -727,6 +813,27 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
         if (captured.size() != 1) return Optional.empty();
         Lens lens = lenses.get(captured.iterator().next());
         if (lens == null) return Optional.empty();
+        return Optional.of(descriptor(lens));
+    }
+
+    /**
+     * Identifies either a direct review projection or the one review-file mount
+     * contained by an ordinary Explorer's roots.
+     */
+    public synchronized Optional<LensDescriptor> hostedLensDescriptor(Set<SFMPath> roots) {
+        Set<SFMPath> captured = Set.copyOf(Objects.requireNonNull(roots, "roots"));
+        Optional<LensDescriptor> direct = lensDescriptor(captured);
+        if (direct.isPresent()) return direct;
+        SFMReleaseReviewRuntime.Snapshot review = reviewRuntime.snapshot();
+        if (review.document().isEmpty() || review.path().isEmpty()) return Optional.empty();
+        Path reviewPath = review.path().orElseThrow().toAbsolutePath().normalize();
+        SFMPath mountPath = SFMPath.fromNative(reviewPath);
+        if (captured.stream().noneMatch(root -> SFMPathHierarchy.contains(root, mountPath))) {
+            return Optional.empty();
+        }
+        SFMPath lensRoot = mountedLensRoots.get(reviewPath);
+        Lens lens = lensRoot == null ? null : lenses.get(lensRoot);
+        if (lens == null || lens.reviewOpenEpoch() != review.openEpoch()) return Optional.empty();
         return Optional.of(descriptor(lens));
     }
 
@@ -753,7 +860,7 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
     /** Read-only work navigation must not restart an equivalent queue projection. */
     public java.util.concurrent.CompletionStage<LensDescriptor> ensureActiveWorkQueueLens(SFMExplorerPanel explorer) {
         Objects.requireNonNull(explorer, "explorer");
-        LensDescriptor current = lensDescriptor(explorer.sessionSnapshot().roots()).orElseThrow(() ->
+        LensDescriptor current = hostedLensDescriptor(explorer.sessionSnapshot().roots()).orElseThrow(() ->
                 new IllegalStateException("The originating Explorer no longer hosts one exact release-review lens"));
         SFMReleaseReviewRuntime.Snapshot review = requireOpenReview();
         if (review.openEpoch() != current.reviewOpenEpoch()
@@ -782,7 +889,9 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
         Objects.requireNonNull(explorer, "explorer");
         Objects.requireNonNull(projection, "projection");
         query = Objects.requireNonNull(query, "query").map(String::strip).filter(value -> !value.isEmpty());
-        LensDescriptor current = lensDescriptor(explorer.sessionSnapshot().roots()).orElseThrow(() ->
+        Set<SFMPath> explorerRoots = explorer.sessionSnapshot().roots();
+        boolean directHost = lensDescriptor(explorerRoots).isPresent();
+        LensDescriptor current = hostedLensDescriptor(explorerRoots).orElseThrow(() ->
                 new IllegalStateException("The originating Explorer no longer hosts one exact release-review lens"));
         SFMReleaseReviewRuntime.Snapshot review = requireOpenReview();
         if (review.openEpoch() != current.reviewOpenEpoch()
@@ -792,13 +901,13 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
         Optional<String> effectiveQuery = projection == SFMReleaseReviewExplorerScreenType.Projection.QUERY
                 ? query
                 : Optional.empty();
-        SFMPath nextRoot = prepareLens(
-                current.reviewPath(),
-                projection,
-                effectiveQuery,
-                current.changesPathLayout()
-        );
+        SFMPath nextRoot = directHost
+                ? prepareLens(current.reviewPath(), projection, effectiveQuery, current.changesPathLayout())
+                : prepareMountedLens(current.reviewPath(), projection, effectiveQuery, current.changesPathLayout());
         LensDescriptor next = lensDescriptor(Set.of(nextRoot)).orElseThrow();
+        if (!directHost) {
+            return explorer.refreshMountedProjection(SFMPath.fromNative(current.reviewPath())).thenApply(ignored -> next);
+        }
         if (explorer.sessionSnapshot().roots().equals(Set.of(nextRoot))) {
             return explorer.refreshExpandedProjection().thenApply(ignored -> next);
         }
@@ -812,7 +921,9 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
     ) {
         Objects.requireNonNull(explorer, "explorer");
         Objects.requireNonNull(changesPathLayout, "changesPathLayout");
-        LensDescriptor current = lensDescriptor(explorer.sessionSnapshot().roots()).orElseThrow(() ->
+        Set<SFMPath> explorerRoots = explorer.sessionSnapshot().roots();
+        boolean directHost = lensDescriptor(explorerRoots).isPresent();
+        LensDescriptor current = hostedLensDescriptor(explorerRoots).orElseThrow(() ->
                 new IllegalStateException("The originating Explorer no longer hosts one exact release-review lens"));
         if (current.projection() != SFMReleaseReviewExplorerScreenType.Projection.CHANGES) {
             throw new IllegalStateException("Changed-path layout can only be set from the Changes lens");
@@ -822,14 +933,14 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
                 || !review.path().orElseThrow().toAbsolutePath().normalize().equals(current.reviewPath())) {
             throw new IllegalStateException("The release-review lens belongs to a replaced review session");
         }
-        SFMPath nextRoot = prepareLens(
-                current.reviewPath(),
-                current.projection(),
-                current.query(),
-                changesPathLayout
-        );
+        SFMPath nextRoot = directHost
+                ? prepareLens(current.reviewPath(), current.projection(), current.query(), changesPathLayout)
+                : prepareMountedLens(current.reviewPath(), current.projection(), current.query(), changesPathLayout);
         LensDescriptor next = lensDescriptor(Set.of(nextRoot)).orElseThrow();
-        return explorer.replaceProjectionRoot(nextRoot).thenApply(ignored -> next);
+        return (directHost
+                ? explorer.replaceProjectionRoot(nextRoot)
+                : explorer.refreshMountedProjection(SFMPath.fromNative(current.reviewPath())))
+                .thenApply(ignored -> next);
     }
 
     /**
@@ -1210,13 +1321,16 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
     ) {
         ArrayList<String> segments = new ArrayList<>(parentPath.segments());
         segments.add(String.format(Locale.ROOT, "%06d-%s", index, stableToken(child.id())));
+        // Revision leaves can acquire comment children after a writable mutation.
+        // Give them their potential-container identity from the outset so adding
+        // the first comment cannot invalidate reveal paths or existing relations.
         return new SFMPath(
                 SFMPath.Kind.CONTRIBUTED,
                 PATH_SCHEME,
                 parentPath.authority(),
                 segments,
                 Optional.empty(),
-                child.expandable()
+                child.expandable() || child.kind() == SFMReviewExplorerModel.Kind.REVISION && child.leaf() != null
         );
     }
 
@@ -1342,10 +1456,11 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
             if (node.label().startsWith("after ·")) return "01-after";
         }
         if (node.id().startsWith("release/diff/")) {
-            if (node.label().startsWith("text diff (inline) ·")) return "02-text-diff";
-            if (node.label().startsWith("structured diff (inline) ·")) return "03-structured-diff";
-            if (node.label().startsWith("text diff (split) ·")) return "04-text-diff-split";
-            if (node.label().startsWith("structured diff (split) ·")) return "05-structured-diff-split";
+            if (node.label().startsWith("raw text patch ·")) return "02-raw-text-patch";
+            if (node.label().startsWith("text diff (inline) ·")) return "03-text-diff";
+            if (node.label().startsWith("structured diff (inline) ·")) return "04-structured-diff";
+            if (node.label().startsWith("text diff (split) ·")) return "05-text-diff-split";
+            if (node.label().startsWith("structured diff (split) ·")) return "06-structured-diff-split";
         }
         return node.label();
     }

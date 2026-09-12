@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
+import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
@@ -48,12 +50,12 @@ public final class SFMReviewLensSetAction implements SFMClientAction<SFMReviewLe
             var review = ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime.get().snapshot();
             return SFMClientActionContinuation.capture(actionContext).isCurrent()
                     && workspace.panelInstance(panelId) == explorer
-                    && explorer.sessionSnapshot().roots().equals(java.util.Set.of(lens.root()))
                     && review.openEpoch() == lens.reviewOpenEpoch()
                     && review.path().filter(lens.reviewPath()::equals).isPresent()
                     && SFMReleaseReviewExplorerRuntime.get()
-                    .lensDescriptor(explorer.sessionSnapshot().roots())
-                    .map(current -> current.reviewOpenEpoch() == lens.reviewOpenEpoch()
+                    .hostedLensDescriptor(explorer.sessionSnapshot().roots())
+                    .map(current -> current.root().equals(lens.root())
+                            && current.reviewOpenEpoch() == lens.reviewOpenEpoch()
                             && current.reviewPath().equals(lens.reviewPath()))
                     .orElse(false);
         }
@@ -67,6 +69,11 @@ public final class SFMReviewLensSetAction implements SFMClientAction<SFMReviewLe
     @Override
     public Component description() {
         return Component.literal("Replace the projection in this exact review Explorer without replacing its panel");
+    }
+
+    @Override
+    public Optional<SFMItemIcon> itemIcon(SFMClientActionContext context) {
+        return Optional.of(SFMItemIcon.vanilla("spyglass", "Release-review lens"));
     }
 
     @Override
@@ -88,7 +95,7 @@ public final class SFMReviewLensSetAction implements SFMClientAction<SFMReviewLe
             ));
         }
         Optional<SFMReleaseReviewExplorerRuntime.LensDescriptor> lens =
-                SFMReleaseReviewExplorerRuntime.get().lensDescriptor(explorer.sessionSnapshot().roots());
+                SFMReleaseReviewExplorerRuntime.get().hostedLensDescriptor(explorer.sessionSnapshot().roots());
         if (lens.isEmpty()) {
             return SFMClientActionAvailability.unavailable(Component.literal(
                     "This Explorer does not host one exact release-review lens"
@@ -205,14 +212,20 @@ public final class SFMReviewLensSetAction implements SFMClientAction<SFMReviewLe
             throw new SimpleCommandExceptionType(Component.literal(failure.getMessage())).create();
         }
         context.getSource().sendFeedback(Component.literal("Switching review lens to " + title(projection)));
+        SFM.LOGGER.info("SFM_REVIEW_LENS_SWITCH_STARTED explorer={} projection={} root={}",
+                target.explorer().explorerId().value(), projection, target.lens().root().canonical());
         SFMReleaseReviewExplorerRuntime.get().switchLens(target.explorer(), projection, Optional.empty())
                 .whenComplete((lens, failure) -> {
                     if (failure != null) {
+                        SFM.LOGGER.error("SFM_REVIEW_LENS_SWITCH_FAILED explorer={} projection={}",
+                                target.explorer().explorerId().value(), projection, failure);
                         context.getSource().sendFeedback(Component.literal(
                                 "Review lens switch failed: " + message(failure)
                         ).withStyle(ChatFormatting.RED));
                         return;
                     }
+                    SFM.LOGGER.info("SFM_REVIEW_LENS_SWITCH_COMPLETED explorer={} projection={} root={}",
+                            target.explorer().explorerId().value(), projection, lens.root().canonical());
                     context.getSource().sendFeedback(Component.literal(
                             "Review lens is now " + shortTitle(lens) + "; "
                                     + filterDescription(target.explorer().sessionSnapshot().settings().filterQuery())

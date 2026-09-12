@@ -29,7 +29,13 @@ final class SFMGamePuppetViewportController {
     boolean tick(Minecraft minecraft, ActivePuppet active) {
         if (original == null) {
             SFMGamePuppetViewportObservation observation = observe(minecraft);
-            original = new SFMGamePuppetViewportVariant(observation.windowWidth(), observation.windowHeight(), minecraft.options.guiScale().get());
+            // A minimized, locked, or not-yet-presented GLFW window may briefly report 0x0.
+            // That is not a restorable viewport, but it must not prevent the puppet from
+            // requesting its deterministic size and continuing without touching the OS cursor.
+            if (observation.windowWidth() >= 320 && observation.windowHeight() >= 320) {
+                original = new SFMGamePuppetViewportVariant(
+                        observation.windowWidth(), observation.windowHeight(), minecraft.options.guiScale().get());
+            }
         }
         if (!requestedSize) {
             requestedSize = true;

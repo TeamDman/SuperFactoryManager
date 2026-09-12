@@ -279,7 +279,11 @@ public final class SFMDefinitionContextAdapter {
                         mapping.sourceSet(),
                         document.currentText(),
                         currentHash,
-                        Optional.of(diskHash)
+                        // An alternate analysis identity is the explicit witness that these
+                        // immutable bytes are a one-document overlay. Ordinary and acquired
+                        // file sources keep their disk hash even if their resolver cannot
+                        // provide a last-modified timestamp.
+                        baseline.analysisIdentity().isPresent() ? Optional.empty() : Optional.of(diskHash)
                 ),
                 new SFMDefinitionRequest.Position(
                         (long) cursor.line() + 1,

@@ -41,6 +41,65 @@ class SFMReleaseReviewExplorerRuntimeTests {
     @TempDir Path temporaryDirectory;
 
     @Test
+    void reviewFileMountOpensReadOnlyAndPublishesChangesChildrenWithoutChangingTheBackingPath() throws Exception {
+        Path file = temporaryDirectory.resolve("mounted.sfm-review.json");
+        Files.copy(fixture(), file);
+        try (var runtime = new SFMReleaseReviewRuntime(Runnable::run)) {
+            var resolver = new SFMReleaseReviewExplorerRuntime(runtime);
+            var mount = new SFMReleaseReviewFileMountProvider(runtime, resolver);
+            SFMPath filePath = SFMPath.fromNative(file);
+            var backing = new SFMExplorerEntry(
+                    filePath,
+                    file.getFileName().toString(),
+                    false,
+                    java.util.Map.of(
+                            SFMExplorerEntry.SORT_NAME, SFMExplorerEntry.SortKey.available(file.getFileName().toString()),
+                            SFMExplorerEntry.SUBJECT_KIND, SFMExplorerEntry.SortKey.available("file")
+                    ),
+                    List.of(filePath.canonical()),
+                    List.of()
+            );
+
+            var page = mount.resolveChildren(new SFMExplorerResolver.ChildRequest(
+                    filePath,
+                    Optional.empty(),
+                    128,
+                    1,
+                    new SFMExplorerCancellationToken()
+            ), backing).join();
+
+            assertFalse(runtime.snapshot().writable(), "expansion must not silently acquire a writer lease");
+            assertEquals(file.toAbsolutePath().normalize(), runtime.snapshot().path().orElseThrow());
+            assertFalse(page.entries().isEmpty());
+            assertTrue(page.entries().stream().allMatch(entry -> entry.path().scheme().equals(
+                    SFMReleaseReviewExplorerRuntime.PATH_SCHEME)));
+            assertTrue(page.diagnostics().stream().anyMatch(diagnostic -> diagnostic.contains("read-only")));
+
+            var mountedChanges = resolver.hostedLensDescriptor(Set.of(SFMPath.fromNative(temporaryDirectory)))
+                    .orElseThrow();
+            assertEquals(SFMReleaseReviewExplorerScreenType.Projection.CHANGES, mountedChanges.projection());
+            SFMPath commentsRoot = resolver.prepareMountedLens(
+                    file,
+                    SFMReleaseReviewExplorerScreenType.Projection.COMMENTS,
+                    Optional.empty(),
+                    SFMReviewExplorerModel.PathLayout.HIERARCHY
+            );
+            var commentsPage = mount.resolveChildren(new SFMExplorerResolver.ChildRequest(
+                    filePath,
+                    Optional.empty(),
+                    128,
+                    1,
+                    new SFMExplorerCancellationToken()
+            ), backing).join();
+            assertEquals(Set.of(commentsRoot), resolver.lensRootsContaining(commentsPage.entries().stream()
+                    .map(SFMExplorerEntry::path).collect(java.util.stream.Collectors.toSet())));
+            assertEquals(SFMReleaseReviewExplorerScreenType.Projection.COMMENTS,
+                    resolver.hostedLensDescriptor(Set.of(SFMPath.fromNative(temporaryDirectory)))
+                            .orElseThrow().projection());
+        }
+    }
+
+    @Test
     void newCommentReusesSourceRevealIndexButReopenDoesNot() throws Exception {
         Path file = temporaryDirectory.resolve("incremental-review.json");
         Files.copy(fixture(), file);
@@ -74,9 +133,12 @@ class SFMReleaseReviewExplorerRuntimeTests {
                         r.reviewUnits(), bindings, r.migrationReports(), r.namedQueries(), r.resumeState(),
                         r.producerGenerations(), r.completionAttestations());
             });
+            var refreshedRows = descendants(resolver, root);
             for (SFMPath path : oldSourceRows) {
                 assertTrue(resolver.documentTarget(path).isPresent(),
                         () -> "Source/diff row must open after comment save without re-expanding: " + path);
+                assertTrue(refreshedRows.stream().anyMatch(row -> row.path().equals(path)),
+                        () -> "Comment expandability must not change source row identity: " + path);
                 SFMPath oppositeExpandability = new SFMPath(path.kind(), path.scheme(), path.authority(),
                         path.segments(), path.revision(), !path.trailingSlash());
                 assertTrue(resolver.documentTarget(oppositeExpandability).isPresent(),
@@ -434,12 +496,12 @@ class SFMReleaseReviewExplorerRuntimeTests {
                         new SFMExplorerCancellationToken()
                 )).join();
             }
-            assertEquals(List.of("before", "after", "text diff (inline)", "structured diff (inline)",
+            assertEquals(List.of("before", "after", "raw text patch", "text diff (inline)", "structured diff (inline)",
                     "text diff (split)", "structured diff (split)"), descendants.entries().stream()
                     .map(entry -> entry.label().split(" · ")[0])
                     .toList());
             assertEquals(
-                    List.of("00-before", "01-after", "02-text-diff", "03-structured-diff", "04-text-diff-split", "05-structured-diff-split"),
+                    List.of("00-before", "01-after", "02-raw-text-patch", "03-text-diff", "04-structured-diff", "05-text-diff-split", "06-structured-diff-split"),
                     descendants.entries().stream()
                             .map(entry -> entry.sortKey(SFMExplorerEntry.SORT_NAME).value().orElseThrow())
                             .toList(),
@@ -453,7 +515,7 @@ class SFMReleaseReviewExplorerRuntimeTests {
                     "release-review source revisions must share the central Java file icon mapping");
             assertTrue(descendants.entries().stream().filter(entry -> entry.expandable()).allMatch(entry ->
                     entry.label().startsWith("before ·") || entry.label().startsWith("after ·")),
-                    "only source documents may expose comments beneath the four presentation rows");
+                    "only source documents may expose comments beneath generated presentation rows");
             assertTrue(descendants.entries().stream().anyMatch(entry -> entry.expandable()),
                     "the fixture's commented source is expandable without losing its openable document");
             assertTrue(descendants.entries().stream()
@@ -817,26 +879,33 @@ class SFMReleaseReviewExplorerRuntimeTests {
                     reviewPath, SFMReleaseReviewExplorerScreenType.Projection.CHANGES, Optional.empty());
             var allRows = descendants(resolver, root);
             assertEquals(0, invocations.get(), "describing and expanding the tree must not launch the producer");
-            SFMPath textDiff = allRows.stream()
-                    .filter(entry -> entry.label().startsWith("text diff (inline) ·"))
-                    .map(entry -> entry.path())
-                    .findFirst().orElseThrow();
-            var source = resolver.documentTarget(textDiff).orElseThrow().source();
-            assertEquals(0, invocations.get(), "creating a generated source must remain lazy");
+            var generatedRows = allRows.stream()
+                    .filter(entry -> resolver.documentTarget(entry.path())
+                            .map(target -> target.leaf().generatedSurface().isPresent()).orElse(false))
+                    .toList();
+            assertTrue(generatedRows.size() >= 4,
+                    "changed files expose inline/split text/structured surfaces");
+            assertEquals(0, invocations.get(), "creating generated sources must remain lazy");
 
-            SFMTextDocumentSnapshot snapshot = source.load(new SFMExplorerCancellationToken()).join();
+            for (var generatedRow : generatedRows) {
+                var source = resolver.documentTarget(generatedRow.path()).orElseThrow().source();
+                SFMTextDocumentSnapshot snapshot = source.load(new SFMExplorerCancellationToken()).join();
 
-            assertEquals(1, invocations.get());
-            assertTrue(snapshot.ready());
-            assertTrue(snapshot.readOnly());
-            assertEquals(SFMTextDocumentLanguage.diff(), snapshot.language());
-            assertFalse(snapshot.language().usesLocalSfmlHighlighting());
-            assertTrue(resolver.generatedSurface(snapshot).isPresent());
-            int bytes = snapshot.text().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
-            assertFalse(resolver.projectGeneratedSelection(
-                    snapshot, new SFMReleaseReviewSurfaceV1.Utf8Range(0, bytes)).isEmpty());
-            source.load(new SFMExplorerCancellationToken()).join();
-            assertEquals(1, invocations.get(), "reopening immutable generated content must use the cache");
+                assertTrue(snapshot.ready());
+                assertTrue(snapshot.readOnly());
+                assertEquals(SFMTextDocumentLanguage.diff(), snapshot.language());
+                assertFalse(snapshot.language().usesLocalSfmlHighlighting());
+                assertTrue(resolver.generatedSurface(snapshot).isPresent());
+                assertEquals(List.of(new SFMReleaseReviewExplorerRuntime.RevealTarget(root, generatedRow.path())),
+                        resolver.revealTargets(java.util.Set.of(root), snapshot),
+                        () -> "generated surface must reveal its exact row: " + generatedRow.label());
+                int bytes = snapshot.text().getBytes(java.nio.charset.StandardCharsets.UTF_8).length;
+                assertFalse(resolver.projectGeneratedSelection(
+                        snapshot, new SFMReleaseReviewSurfaceV1.Utf8Range(0, bytes)).isEmpty());
+                source.load(new SFMExplorerCancellationToken()).join();
+            }
+            assertEquals(generatedRows.size(), invocations.get(),
+                    "each immutable surface should generate once then use its cache");
         } finally {
             surfaces.close();
             reviewRuntime.discardAndClose();

@@ -11,6 +11,7 @@ import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextResult;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSourceRootIdentity;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentLanguage;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -26,6 +27,53 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class SFMDefinitionContextAdapterTests {
     private static final SFMContextOriginId ORIGIN =
             new SFMContextOriginId("sfm:text-editor", "panel-7", "document");
+
+    @Test
+    void explicitPinnedAnalysisIdentitySuppressesOnlyTheAmbientDiskHash() {
+        Path repoRoot = Path.of("D:/workspace/sfm");
+        Path sourceRoot = repoRoot.resolve("src/main/java");
+        Path nativePath = sourceRoot.resolve("example/A.java");
+        SFMPath durableRoot = SFMPath.parse("review://release/revision/");
+        SFMPath durablePath = SFMPath.parse("review://release/revision/example/A.java");
+        String pinned = "package example; class A { int oldValue; }\n";
+        var identity = new SFMTextDocumentSnapshot.AnalysisIdentity(
+                SFMPath.fromNative(nativePath), SFMPath.fromNative(repoRoot), Optional.empty());
+        SFMTextDocumentSnapshot semantic = SFMTextDocumentSnapshot.pinned(
+                durablePath,
+                durableRoot,
+                pinned,
+                rawSha256(pinned),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.of(identity),
+                SFMTextDocumentLanguage.java()
+        ).semanticAnalysisSnapshot().orElseThrow();
+        var position = new SFMContextPosition.Text(
+                SFMContextTextCoordinates.atLineColumn(pinned, 0, 31));
+        SFMContextDocumentProjection projection = SFMContextDocumentProjection.capture(
+                "review-editor",
+                semantic,
+                pinned,
+                false,
+                true,
+                List.of(new SFMContextCursorProjection("primary", position, true, true)),
+                List.of()
+        );
+
+        var adapted = new SFMDefinitionContextAdapter().adapt(
+                contribution(projection),
+                Optional.of(hello(7, List.of(root(
+                        "main-java", "main", sourceRoot, "src/main/java")))),
+                10,
+                3
+        );
+
+        assertTrue(adapted.success());
+        assertEquals(SFMDefinitionRequest.sha256(pinned),
+                adapted.request().orElseThrow().document().contentHash());
+        assertTrue(adapted.request().orElseThrow().document().diskContentHash().isEmpty(),
+                "only explicit pinned overlays may bypass ambient disk equality");
+    }
 
     @Test
     void dirtyUnicodeCrlfOverlayUsesDeepestAnalysisRootAndBothExactHashes() {

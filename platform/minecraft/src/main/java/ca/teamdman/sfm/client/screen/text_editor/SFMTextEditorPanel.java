@@ -1072,7 +1072,9 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         }
         historyFocused = false;
         screen.removed();
-        openContext.saveHandler().cancelPendingSave();
+        if (!openContext.saveHandler().detachSaveAndCloseAfterSubmission()) {
+            openContext.saveHandler().cancelPendingSave();
+        }
         if (screen instanceof ISFMTextEditScreen editor) editor.onDocumentHostClosed();
         panelContext = null;
     }
@@ -1132,6 +1134,13 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
     @Override
     public Optional<SFMPanelTooltip> tooltipAt(double mouseX, double mouseY) {
         if (!pointerInside || !(screen instanceof SFMDrawCanvasScreen drawCanvas)) return Optional.empty();
+        var metadata = drawCanvas.reviewSurfaceMetadataAtScreen(lastMouseX, lastMouseY);
+        if (metadata.isPresent()) {
+            ArrayList<Component> lines = new ArrayList<>();
+            lines.add(Component.literal(metadata.orElseThrow().headline()));
+            metadata.orElseThrow().detailLines().forEach(line -> lines.add(Component.literal(line)));
+            return Optional.of(new SFMPanelTooltip(lines));
+        }
         List<SFMTextDocumentDecoration.InteractiveObject> objects = reviewObjectsAt(
                 drawCanvas, lastMouseX, lastMouseY, false);
         if (objects.isEmpty()) return Optional.empty();
@@ -1308,6 +1317,8 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
         }
         if (screen instanceof SFMDrawCanvasScreen drawCanvas
                 && button == drawCanvas.pointerSettings().actionButton()) {
+            var metadata = drawCanvas.reviewSurfaceMetadataAtScreen(mouseX, mouseY);
+            if (metadata.isPresent() && openReviewSurfaceDetails(metadata.orElseThrow())) return true;
             List<SFMTextDocumentDecoration.InteractiveObject> reviewObjects = reviewObjectsAt(
                     drawCanvas, mouseX, mouseY, false);
             if (!reviewObjects.isEmpty() && openReviewDecorationDetails(reviewObjects)) return true;
@@ -1354,6 +1365,19 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             return true;
         }
         return screen.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private boolean openReviewSurfaceDetails(SFMReviewSplitCanvas.MetadataObject metadata) {
+        if (panelContext == null) return false;
+        var captured = panelContext;
+        SFMClientActionContext actionContext = new SFMClientActionContext(
+                captured.host(), () -> panelContext == captured, captured.panelId());
+        SFMCommandPaletteScreen.openChoices(
+                actionContext,
+                Component.literal(metadata.headline()),
+                ca.teamdman.sfm.client.action.SFMReleaseReviewSurfaceDetailsAction.choices(
+                        metadata.kind().replace('-', ' '), metadata.detailsPayload()));
+        return true;
     }
 
     private List<SFMTextDocumentDecoration.InteractiveObject> reviewObjectsAt(
@@ -1824,6 +1848,9 @@ public final class SFMTextEditorPanel implements SFMScreenPanel, SFMTextDocument
             @Override public boolean asynchronousSave() { return context.saveHandler().asynchronous(); }
             @Override public CompletableFuture<ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveResult>
             saveDocumentAsync(String value) { return context.saveHandler().saveAsync(value); }
+            @Override public boolean detachSaveAndCloseAfterSubmission() {
+                return context.saveHandler().detachSaveAndCloseAfterSubmission();
+            }
             @Override public void documentSaved(String value) {
                 savedValue = value;
                 savedDocument.accept(value);

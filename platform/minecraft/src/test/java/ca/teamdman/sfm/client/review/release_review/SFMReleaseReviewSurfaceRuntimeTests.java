@@ -24,6 +24,61 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMReleaseReviewSurfaceRuntimeTests {
     @Test
+    void structuredSplitCompletesSparseFragmentsInExactSourceOrder() {
+        var before = SFMReleaseReviewSurfaceV1.Source.fromCorpus(
+                "before-revision", "src/Example.java", "java", "top\nold\nbottom\n");
+        var after = SFMReleaseReviewSurfaceV1.Source.fromCorpus(
+                "after-revision", "src/Example.java", "java", "top\nnew\nbottom\n");
+        var pair = new SFMReleaseReviewSurfaceV1.FilePair(
+                "pair", "1.19.2", SFMReleaseReviewV1.ChangeOperation.MODIFIED, List.of("unit"),
+                java.util.Optional.of(before), java.util.Optional.of(after));
+        var request = new SFMReleaseReviewSurfaceV1.Recipe(
+                pair, SFMReleaseReviewSurfaceV1.SurfaceKind.JAVA_STRUCTURED_DIFF).request(1, 1);
+        var beforeChanged = new SFMReleaseReviewSurfaceV1.SourceRange(
+                SFMReleaseReviewV1.SnapshotSide.BEFORE, before.documentRevisionId(), before.sha256(), before.path(),
+                new SFMReleaseReviewSurfaceV1.Utf8Range(4, 8));
+        var afterChanged = new SFMReleaseReviewSurfaceV1.SourceRange(
+                SFMReleaseReviewV1.SnapshotSide.AFTER, after.documentRevisionId(), after.sha256(), after.path(),
+                new SFMReleaseReviewSurfaceV1.Utf8Range(4, 8));
+        String sparseText = "old\nnew\n";
+        var sparse = new SFMReleaseReviewSurfaceV1.Surface(
+                SFMReleaseReviewSurfaceV1.SURFACE_SCHEMA, 1, 1, pair.id(),
+                SFMReleaseReviewSurfaceV1.SurfaceKind.JAVA_STRUCTURED_DIFF, "fixture-structural",
+                SFMReleaseReviewSurfaceV1.Outcome.PRODUCED, true, java.util.Optional.empty(), sparseText,
+                SFMReleaseReviewSurfaceV1.sha256(sparseText),
+                List.of(
+                        new SFMReleaseReviewSurfaceV1.Mapping(
+                                new SFMReleaseReviewSurfaceV1.Utf8Range(0, 4),
+                                SFMReleaseReviewSurfaceV1.MappingKind.STRUCTURAL_BEFORE, List.of(beforeChanged)),
+                        new SFMReleaseReviewSurfaceV1.Mapping(
+                                new SFMReleaseReviewSurfaceV1.Utf8Range(4, 8),
+                                SFMReleaseReviewSurfaceV1.MappingKind.STRUCTURAL_AFTER, List.of(afterChanged))),
+                List.of(),
+                new SFMReleaseReviewSurfaceV1.CorrespondenceReport(
+                        SFMReleaseReviewSurfaceV1.CORRESPONDENCE_SCHEMA, pair.id(), true, List.of(), List.of()),
+                List.of());
+
+        var completed = SFMReleaseReviewSurfaceRuntime.completeStructuredSplitSurface(sparse, request);
+        assertEquals(before.text() + after.text(), completed.text());
+        assertTrue(completed.algorithm().endsWith(";split-source-order-v1"));
+        assertEquals(List.of(
+                        SFMReleaseReviewSurfaceV1.MappingKind.CONTEXT,
+                        SFMReleaseReviewSurfaceV1.MappingKind.STRUCTURAL_BEFORE,
+                        SFMReleaseReviewSurfaceV1.MappingKind.CONTEXT,
+                        SFMReleaseReviewSurfaceV1.MappingKind.CONTEXT,
+                        SFMReleaseReviewSurfaceV1.MappingKind.STRUCTURAL_AFTER,
+                        SFMReleaseReviewSurfaceV1.MappingKind.CONTEXT),
+                completed.mappings().stream().map(SFMReleaseReviewSurfaceV1.Mapping::kind).toList());
+        var layout = SFMReleaseReviewSplitLayout.from(completed, request);
+        assertEquals(before.text(), layout.selectAll(SFMReleaseReviewV1.SnapshotSide.BEFORE).text());
+        assertEquals(after.text(), layout.selectAll(SFMReleaseReviewV1.SnapshotSide.AFTER).text());
+        assertEquals("top", layout.rows().get(0).before().orElseThrow().displayText());
+        assertEquals("top", layout.rows().get(0).after().orElseThrow().displayText());
+        assertEquals("bottom", layout.rows().get(2).before().orElseThrow().displayText());
+        assertEquals("bottom", layout.rows().get(2).after().orElseThrow().displayText());
+    }
+
+    @Test
     void generationIsLazyOffCallerThreadCachedAndSourceMappedByImmutableDocumentIdentity() {
         AtomicInteger invocations = new AtomicInteger();
         AtomicReference<Thread> generatorThread = new AtomicReference<>();

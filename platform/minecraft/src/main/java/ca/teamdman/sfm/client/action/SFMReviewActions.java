@@ -117,6 +117,21 @@ public final class SFMReviewActions {
                     "review/comment/details/open",
                     SFMReleaseReviewCommentDetailsAction::new
             );
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentRemoveAction>
+            RELEASE_COMMENT_REMOVE = REGISTERER.register(
+                    SFMReleaseReviewCommentRemoveAction.Phase.REQUEST.id().getPath(),
+                    () -> new SFMReleaseReviewCommentRemoveAction(SFMReleaseReviewCommentRemoveAction.Phase.REQUEST)
+            );
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewCommentRemoveAction>
+            RELEASE_COMMENT_REMOVE_CONFIRM = REGISTERER.register(
+                    SFMReleaseReviewCommentRemoveAction.Phase.CONFIRM.id().getPath(),
+                    () -> new SFMReleaseReviewCommentRemoveAction(SFMReleaseReviewCommentRemoveAction.Phase.CONFIRM)
+            );
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMReleaseReviewSurfaceDetailsAction>
+            RELEASE_SURFACE_DETAILS = REGISTERER.register(
+                    "review/surface/details",
+                    SFMReleaseReviewSurfaceDetailsAction::new
+            );
 
     private SFMReviewActions() {
     }

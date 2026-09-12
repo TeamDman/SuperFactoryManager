@@ -657,7 +657,7 @@ public final class SFMLazyExplorerLoader {
                 }
                 try {
                     handle.cancellation.throwIfCancelled();
-                    validatePage(request, page);
+                    validatePage(request, page, resolver);
                     ArrayList<SFMChildEdge> edges = new ArrayList<>();
                     page.entries().forEach(entry -> edges.add(new SFMChildEdge(parent, entry.path())));
                     SFMChildPage relationPage = new SFMChildPage(
@@ -942,7 +942,8 @@ public final class SFMLazyExplorerLoader {
 
     private static void validatePage(
             SFMExplorerResolver.ChildRequest request,
-            SFMExplorerResolver.ChildPage page
+            SFMExplorerResolver.ChildPage page,
+            SFMExplorerResolver resolver
     ) {
         Objects.requireNonNull(page, "page");
         if (!page.parent().equals(request.parent())) {
@@ -958,7 +959,8 @@ public final class SFMLazyExplorerLoader {
             throw new IllegalStateException("Resolver returned more entries than the requested page bound");
         }
         for (SFMExplorerEntry entry : page.entries()) {
-            if (!entry.path().scheme().equals(request.parent().scheme())) {
+            if (!entry.path().scheme().equals(request.parent().scheme())
+                    && !resolver.permitsCrossSchemeChildren(request.parent())) {
                 throw new IllegalStateException("A resolver returned a child owned by another scheme");
             }
         }

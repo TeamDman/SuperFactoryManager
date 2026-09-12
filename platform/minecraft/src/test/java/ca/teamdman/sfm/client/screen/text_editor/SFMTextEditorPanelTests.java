@@ -258,6 +258,7 @@ class SFMTextEditorPanelTests {
         var closed = new AtomicBoolean();
         var handler = new ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveHandler() {
             @Override public boolean asynchronous() { return true; }
+            @Override public boolean detachSaveAndCloseAfterSubmission() { return true; }
             @Override public SFMTextDocumentSaveResult save(String text) { throw new AssertionError("sync save invoked"); }
             @Override public java.util.concurrent.CompletableFuture<SFMTextDocumentSaveResult> saveAsync(String text) {
                 assertEquals("submitted", text);
@@ -268,6 +269,7 @@ class SFMTextEditorPanelTests {
         var saved = new java.util.ArrayList<String>();
         var screenContext = SFMTextEditorPanel.screenContext(panelContext, () -> closed.set(true), saved::add);
         assertTrue(screenContext.asynchronousSave());
+        assertTrue(screenContext.detachSaveAndCloseAfterSubmission());
         assertSame(durable, screenContext.saveDocumentAsync("submitted"));
         assertEquals("baseline", screenContext.initialValue());
         assertFalse(closed.get());

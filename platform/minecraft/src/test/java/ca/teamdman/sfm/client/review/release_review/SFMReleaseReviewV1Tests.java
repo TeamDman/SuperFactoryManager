@@ -424,8 +424,8 @@ class SFMReleaseReviewV1Tests {
                 .filter(node -> node.label().equals("src/Other.java"))
                 .findFirst().orElseThrow();
         assertEquals(1, other.children().size());
-        assertEquals(6, other.children().get(0).children().size(),
-                "each immutable file pair exposes before, after, inline diffs, and split diffs");
+        assertEquals(7, other.children().get(0).children().size(),
+                "each immutable file pair exposes before, after, a raw patch, inline diffs, and split diffs");
         assertTrue(other.children().get(0).children().get(0).leaf().missing());
         assertFalse(other.children().get(0).children().get(1).leaf().missing());
 
@@ -843,6 +843,89 @@ class SFMReleaseReviewV1Tests {
             assertEquals(generationBefore + 1, runtime.generation());
             assertEquals(commentsBefore + 1,
                     runtime.document().orElseThrow().reviewSession().comments().size());
+        }
+    }
+
+    @Test
+    void confirmedCommentRemovalPersistsOnlyThatCommentsOwnedState(@TempDir Path directory) throws Exception {
+        Path path = directory.resolve("remove-comment.sfm-review.json");
+        SFMReleaseReviewV1 original = fixture();
+        SFMReleaseReviewV1.CommentSelectorBinding removedBinding = original.selectorBindings().get(0);
+        String removedCommentId = removedBinding.commentId();
+        String retainedCommentId = original.reviewSession().comments().stream()
+                .map(SFMReviewSessionV2.Comment::id)
+                .filter(id -> !id.equals(removedCommentId))
+                .filter(id -> original.selectorBindings().stream().anyMatch(binding -> binding.commentId().equals(id)))
+                .findFirst().orElseThrow();
+
+        try (SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime(Runnable::run)) {
+            runtime.create(path, original);
+            var snapshot = runtime.snapshot();
+            String semanticHash = SFMReleaseReviewKernel.semanticStateHash(snapshot.document().orElseThrow());
+            SFMReleaseReviewRuntime.MutationResult removed = runtime.removeCommentAsync(
+                    path, snapshot.openEpoch(), removedCommentId, semanticHash).join();
+
+            assertTrue(removed.saved(), removed.failure().orElse("removal should save"));
+            assertFalse(runtime.document().orElseThrow().reviewSession().comments().stream()
+                    .anyMatch(comment -> comment.id().equals(removedCommentId)));
+            assertFalse(runtime.document().orElseThrow().selectorBindings().stream()
+                    .anyMatch(binding -> binding.commentId().equals(removedCommentId)));
+            assertTrue(runtime.document().orElseThrow().reviewSession().comments().stream()
+                    .anyMatch(comment -> comment.id().equals(retainedCommentId)));
+            assertTrue(runtime.document().orElseThrow().selectorBindings().stream()
+                    .anyMatch(binding -> binding.commentId().equals(retainedCommentId)));
+        }
+
+        SFMReleaseReviewV1 reopened = SFMReleaseReviewV1Codec.parse(Files.readString(path));
+        assertFalse(reopened.reviewSession().comments().stream()
+                .anyMatch(comment -> comment.id().equals(removedCommentId)));
+        assertFalse(reopened.selectorBindings().stream()
+                .anyMatch(binding -> binding.commentId().equals(removedCommentId)));
+        assertTrue(reopened.reviewSession().comments().stream()
+                .anyMatch(comment -> comment.id().equals(retainedCommentId)));
+    }
+
+    @Test
+    void commentRemovalRejectsAStaleSemanticConfirmation(@TempDir Path directory) throws Exception {
+        Path path = directory.resolve("stale-remove-comment.sfm-review.json");
+        try (SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime(Runnable::run)) {
+            runtime.create(path, fixture());
+            var snapshot = runtime.snapshot();
+            String commentId = snapshot.document().orElseThrow().selectorBindings().get(0).commentId();
+            int before = snapshot.document().orElseThrow().reviewSession().comments().size();
+
+            SFMReleaseReviewRuntime.MutationResult rejected = runtime.removeCommentAsync(
+                    path, snapshot.openEpoch(), commentId, "stale-semantic-hash").join();
+
+            assertFalse(rejected.saved());
+            assertTrue(rejected.failure().orElseThrow().contains("reopen the comment menu"));
+            assertEquals(before, runtime.document().orElseThrow().reviewSession().comments().size());
+        }
+    }
+
+    @Test
+    void commentRemovalProtectsMigrationDecisionEvidence(@TempDir Path directory) throws Exception {
+        Path path = directory.resolve("protected-migration-decision.sfm-review.json");
+        try (SFMReleaseReviewRuntime runtime = new SFMReleaseReviewRuntime(Runnable::run)) {
+            runtime.create(path, withMigration(
+                    fixture(), SFMReleaseReviewV1.EvaluationStatus.CONTENT_CHANGED, List.of()));
+            assertTrue(runtime.decideMigration(
+                    "migration:fixture-value",
+                    SFMReleaseReviewV1.MigrationDecision.DEFERRED,
+                    java.util.OptionalInt.empty(),
+                    "Keep this decision as independent review evidence."
+            ).mutation().saved());
+            var snapshot = runtime.snapshot();
+            String decisionCommentId = snapshot.document().orElseThrow().migrationReports().get(0)
+                    .decisionCommentId().orElseThrow();
+
+            var rejected = runtime.removeCommentAsync(path, snapshot.openEpoch(), decisionCommentId,
+                    SFMReleaseReviewKernel.semanticStateHash(snapshot.document().orElseThrow())).join();
+
+            assertFalse(rejected.saved());
+            assertTrue(rejected.failure().orElseThrow().contains("migration decision"));
+            assertTrue(runtime.document().orElseThrow().reviewSession().comments().stream()
+                    .anyMatch(comment -> comment.id().equals(decisionCommentId)));
         }
     }
 

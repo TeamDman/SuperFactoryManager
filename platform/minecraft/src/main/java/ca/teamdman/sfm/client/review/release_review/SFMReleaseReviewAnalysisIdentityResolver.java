@@ -3,7 +3,6 @@ package ca.teamdman.sfm.client.review.release_review;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
@@ -11,8 +10,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Borrows an exact candidate-checkout file identity for language analysis while
- * the editor and durable comment continue to use their pinned review:// address.
+ * Borrows a candidate-checkout file identity for language analysis while the
+ * editor and durable comment continue to use their pinned review:// address.
+ * The worker receives the pinned text as an explicit one-document source
+ * overlay, so the current disk bytes need not equal the review bytes.
  */
 public final class SFMReleaseReviewAnalysisIdentityResolver {
     private SFMReleaseReviewAnalysisIdentityResolver() {
@@ -29,9 +30,7 @@ public final class SFMReleaseReviewAnalysisIdentityResolver {
         SFMReleaseReviewV1.CorpusDocument corpus = review.corpusDocuments().stream()
                 .filter(value -> value.documentRevisionId().equals(documentRevisionId))
                 .findFirst().orElse(null);
-        if (corpus == null
-                || corpus.snapshotSide() != SFMReleaseReviewV1.SnapshotSide.AFTER
-                || corpus.materialization() != SFMReleaseReviewV1.Materialization.COMPLETE) {
+        if (corpus == null || corpus.materialization() != SFMReleaseReviewV1.Materialization.COMPLETE) {
             return Optional.empty();
         }
         SFMReleaseReviewV1.RepositoryBinding repository = review.repositoryBindings().stream()
@@ -63,13 +62,6 @@ public final class SFMReleaseReviewAnalysisIdentityResolver {
         if (!Files.exists(normalizedRoot.resolve(".git"))) return Optional.empty();
         Path document = normalizedRoot.resolve(corpus.path()).normalize();
         if (!document.startsWith(normalizedRoot) || !Files.isRegularFile(document)) return Optional.empty();
-        try {
-            if (!SFMReleaseReviewKernel.sha256(Files.readAllBytes(document)).equals(corpus.sha256())) {
-                return Optional.empty();
-            }
-        } catch (IOException unreadable) {
-            return Optional.empty();
-        }
         return Optional.of(new SFMTextDocumentSnapshot.AnalysisIdentity(
                 SFMPath.fromNative(document),
                 SFMPath.fromNative(normalizedRoot),

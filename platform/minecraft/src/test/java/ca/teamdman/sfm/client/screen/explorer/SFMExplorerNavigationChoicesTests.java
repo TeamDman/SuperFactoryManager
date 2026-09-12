@@ -21,6 +21,22 @@ class SFMExplorerNavigationChoicesTests {
         assertTrue(SFMExplorerNavigationChoices.row(session.snapshot(),directory).stream()
                 .anyMatch(c->c.command().contains("sfm:explorer/root/add ") && c.command().endsWith("/nested")));
     }
+    @Test void mountedFileCanReplaceOrJoinTheCurrentRootSetWithoutPretendingToBeADirectory() {
+        var root=SFMPath.parse("file:///C:/fixture");
+        var mountedPath=SFMPath.parse("file:///C:/fixture/review.sfm-review.json");
+        var session=new SFMExplorerSession(new SFMExplorerId("mounted-navigation-test"),root,new SFMSelectionRepository());
+        var mounted=new SFMExplorerEntry(mountedPath,"review.sfm-review.json",true,
+                Map.of(SFMExplorerEntry.SUBJECT_KIND,SFMExplorerEntry.SortKey.available("file"),
+                        SFMExplorerEntry.MOUNT_PROVIDER,SFMExplorerEntry.SortKey.available("sfm:release-review"),
+                        SFMExplorerEntry.SORT_NAME,SFMExplorerEntry.SortKey.available("review.sfm-review.json")),
+                List.of("review.sfm-review.json"),List.of());
+
+        var choices=SFMExplorerNavigationChoices.row(session.snapshot(),mounted);
+        assertTrue(choices.stream().anyMatch(c->c.command().contains("sfm:explorer/location/set ")
+                && c.command().contains(mountedPath.canonical())));
+        assertTrue(choices.stream().anyMatch(c->c.command().contains("sfm:explorer/root/add ")
+                && c.command().endsWith(mountedPath.canonical())));
+    }
     @Test void volumeAndContributedAuthoritiesDoNotInventParents() {
         assertTrue(SFMExplorerNavigationChoices.parent(SFMPath.parse("file:///C:/")).isEmpty());
         assertTrue(SFMExplorerNavigationChoices.parent(SFMPath.parse("registry://minecraft/item/")).isEmpty());

@@ -29,10 +29,17 @@ public final class SFMExplorerNavigationChoices {
         var choices = new ArrayList<>(roots(snapshot));
         if (entry.expandable()) choices.add(SFMActionChoice.invoke(new ResourceLocation("sfm", "explorer/node/refresh"),
                 selector(snapshot) + " " + entry.path().canonical(), value(SFMExplorerNavigationText.REFRESH_NODE)));
-        if (entry.expandable() && entry.sortKey(SFMExplorerEntry.SUBJECT_KIND).value().filter("container"::equals).isPresent()
-                && !snapshot.roots().contains(entry.path()))
+        boolean rootCapable = entry.expandable()
+                && (entry.sortKey(SFMExplorerEntry.SUBJECT_KIND).value().filter("container"::equals).isPresent()
+                || entry.sortKey(SFMExplorerEntry.MOUNT_PROVIDER).available());
+        if (rootCapable && !snapshot.roots().contains(entry.path())) {
+            choices.add(SFMActionChoice.invoke(new ResourceLocation("sfm", "explorer/location/set"),
+                    selector(snapshot) + " " + new SFMPathExpression.Literal(entry.path()).canonical()
+                            + " --expected-revision " + snapshot.revision(),
+                    value(SFMExplorerNavigationText.SET_ROOT)));
             choices.add(SFMActionChoice.invoke(new ResourceLocation("sfm", "explorer/root/add"),
                     selector(snapshot) + " " + entry.path().canonical(), value(SFMExplorerNavigationText.ADD_ROOT)));
+        }
         return List.copyOf(choices);
     }
     public static Optional<SFMPath> parent(SFMPath root) {

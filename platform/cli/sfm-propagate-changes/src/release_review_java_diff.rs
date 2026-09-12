@@ -800,7 +800,7 @@ fn build_structured_surface(
         return Ok(None);
     }
     classified.sort_by(|(left, _), (right, _)| {
-        pair_sort_key(left, before, after).cmp(&pair_sort_key(right, before, after))
+        pair_sort_key(left, before, after, pairs).cmp(&pair_sort_key(right, before, after, pairs))
     });
 
     let before_path = request
@@ -998,6 +998,73 @@ fn changed_spans(
             message: "Java changed-span refinement exceeds bounded comparison work".to_owned(),
         });
     }
+    let before_lines = line_ranges(before);
+    let after_lines = line_ranges(after);
+    let mut input = gix::diff::blob::InternedInput::<&str>::default();
+    input.update_before(before_lines.iter().map(|range| &before[range.clone()]));
+    input.update_after(after_lines.iter().map(|range| &after[range.clone()]));
+    let diff =
+        gix::diff::blob::diff_with_slider_heuristics(gix::diff::blob::Algorithm::Myers, &input);
+    let mut before_changes = Vec::new();
+    let mut after_changes = Vec::new();
+    for hunk in diff.hunks() {
+        let before_hunk = &before_lines[hunk.before.start as usize..hunk.before.end as usize];
+        let after_hunk = &after_lines[hunk.after.start as usize..hunk.after.end as usize];
+        if !before_hunk.is_empty() && before_hunk.len() == after_hunk.len() {
+            // Refine paired replacement lines by character. Keeping the first
+            // pass line-aware prevents repeated suffixes on unrelated source
+            // lines (for example `.register(bus)`) from cross-aligning.
+            for (before_line, after_line) in before_hunk.iter().zip(after_hunk) {
+                let (line_before, line_after) = character_changed_spans(
+                    &before[before_line.clone()],
+                    &after[after_line.clone()],
+                );
+                before_changes.extend(line_before.into_iter().map(|range| Utf8RangeV1 {
+                    start_byte: before_line.start + range.start_byte,
+                    end_byte: before_line.start + range.end_byte,
+                }));
+                after_changes.extend(line_after.into_iter().map(|range| Utf8RangeV1 {
+                    start_byte: after_line.start + range.start_byte,
+                    end_byte: after_line.start + range.end_byte,
+                }));
+            }
+        } else {
+            if let Some(range) = covering_range(before_hunk) {
+                before_changes.push(range);
+            }
+            if let Some(range) = covering_range(after_hunk) {
+                after_changes.push(range);
+            }
+        }
+    }
+    Ok((before_changes, after_changes))
+}
+
+fn line_ranges(text: &str) -> Vec<std::ops::Range<usize>> {
+    let mut ranges = Vec::new();
+    let mut start = 0;
+    for (offset, character) in text.char_indices() {
+        if character != '\n' {
+            continue;
+        }
+        let end = offset + character.len_utf8();
+        ranges.push(start..end);
+        start = end;
+    }
+    if start < text.len() {
+        ranges.push(start..text.len());
+    }
+    ranges
+}
+
+fn covering_range(lines: &[std::ops::Range<usize>]) -> Option<Utf8RangeV1> {
+    Some(Utf8RangeV1 {
+        start_byte: lines.first()?.start,
+        end_byte: lines.last()?.end,
+    })
+}
+
+fn character_changed_spans(before: &str, after: &str) -> (Vec<Utf8RangeV1>, Vec<Utf8RangeV1>) {
     let offsets = |text: &str| {
         text.char_indices()
             .map(|(offset, _)| offset)
@@ -1035,7 +1102,7 @@ fn changed_spans(
             });
         }
     }
-    Ok((before_changes, after_changes))
+    (before_changes, after_changes)
 }
 
 fn classify_pair(
@@ -1102,16 +1169,44 @@ fn pair_sort_key(
     pair: &DeclarationPair,
     before: &[JavaDeclaration],
     after: &[JavaDeclaration],
-) -> (usize, usize, String) {
-    (
-        pair.before
-            .map_or(usize::MAX, |index| before[index].ordinal),
-        pair.after.map_or(usize::MAX, |index| after[index].ordinal),
-        pair.after
-            .map(|index| after[index].semantic_key.clone())
-            .or_else(|| pair.before.map(|index| before[index].semantic_key.clone()))
-            .unwrap_or_default(),
-    )
+    all_pairs: &[DeclarationPair],
+) -> (usize, usize, usize, String) {
+    let semantic_key = pair
+        .after
+        .map(|index| after[index].semantic_key.clone())
+        .or_else(|| pair.before.map(|index| before[index].semantic_key.clone()))
+        .unwrap_or_default();
+    if let Some(after_index) = pair.after {
+        return (
+            after[after_index].ordinal,
+            1,
+            pair.before
+                .map_or(usize::MAX, |index| before[index].ordinal),
+            semantic_key,
+        );
+    }
+
+    // The split surface is After-source authoritative: every declaration that
+    // exists there must retain its real source order. A deleted-only row is
+    // inserted immediately before the next declaration that survived from the
+    // Before side, or after the complete After sequence when no such anchor
+    // exists. Sorting deleted rows by their Before ordinal keeps consecutive
+    // deletions stable without sending newly-added imports to the end merely
+    // because they have no Before ordinal.
+    let before_ordinal = pair
+        .before
+        .map_or(usize::MAX, |index| before[index].ordinal);
+    let next_after_anchor = all_pairs
+        .iter()
+        .filter_map(|candidate| {
+            let candidate_before = candidate.before?;
+            let candidate_after = candidate.after?;
+            (before[candidate_before].ordinal > before_ordinal)
+                .then_some(after[candidate_after].ordinal)
+        })
+        .min()
+        .unwrap_or(usize::MAX);
+    (next_after_anchor, 0, before_ordinal, semantic_key)
 }
 
 fn correspondence_label(
@@ -1263,6 +1358,47 @@ mod tests {
     }
 
     #[test]
+    fn repeated_registration_suffixes_do_not_color_unchanged_sibling_lines() {
+        let before = "class A {\n    A() {\n        Alpha.register(bus);\n        Beta.register(bus);\n    }\n}\n";
+        let after = "class A {\n    A() {\n        Alpha.register(bus);\n        Added.register(bus);\n        Beta.register(bus);\n    }\n}\n";
+        let request = request(before, after);
+        let surface = produce_java_structured_diff(&request, ReviewSurfaceLimitsV1::default())
+            .expect("line-aware structured diff");
+        let before_colored = surface
+            .mappings
+            .iter()
+            .filter(|mapping| mapping.kind == ReviewSurfaceMappingKindV1::StructuralBefore)
+            .map(|mapping| {
+                &surface.text[mapping.surface_range.start_byte..mapping.surface_range.end_byte]
+            })
+            .collect::<Vec<_>>();
+        let after_colored = surface
+            .mappings
+            .iter()
+            .filter(|mapping| mapping.kind == ReviewSurfaceMappingKindV1::StructuralAfter)
+            .map(|mapping| {
+                &surface.text[mapping.surface_range.start_byte..mapping.surface_range.end_byte]
+            })
+            .collect::<Vec<_>>();
+
+        assert!(
+            before_colored.is_empty(),
+            "an insertion removes no Before bytes"
+        );
+        assert_eq!(after_colored, vec!["        Added.register(bus);\n"]);
+        assert!(surface.mappings.iter().any(|mapping| {
+            mapping.kind == ReviewSurfaceMappingKindV1::StructuralCorrespondence
+                && surface.text[mapping.surface_range.start_byte..mapping.surface_range.end_byte]
+                    .contains("Alpha.register(bus)")
+        }));
+        assert!(surface.mappings.iter().any(|mapping| {
+            mapping.kind == ReviewSurfaceMappingKindV1::StructuralCorrespondence
+                && surface.text[mapping.surface_range.start_byte..mapping.surface_range.end_byte]
+                    .contains("Beta.register(bus)")
+        }));
+    }
+
+    #[test]
     fn matches_edited_moved_renamed_and_reordered_declarations() {
         let before = r#"
             import java.util.List;
@@ -1397,6 +1533,28 @@ mod tests {
                 .regions
                 .iter()
                 .any(|region| region.kind == ReviewSurfaceRegionKindV1::JavaImport)
+        );
+    }
+
+    #[test]
+    fn newly_added_imports_keep_after_source_order_ahead_of_changed_declarations() {
+        let request = request(
+            "import java.util.List;\nclass A { void changed() { oldCall(); } }\n",
+            "import java.util.Set;\nimport java.util.List;\nclass A { void changed() { newCall(); } }\n",
+        );
+        let surface = produce_java_structured_diff(&request, ReviewSurfaceLimitsV1::default())
+            .expect("ordered structured diff");
+        surface
+            .validate_against(&request, ReviewSurfaceLimitsV1::default())
+            .expect("ordered exact mappings");
+        let import = surface
+            .text
+            .find("import java.util.Set;")
+            .expect("added import");
+        let method = surface.text.find("void changed()").expect("changed method");
+        assert!(
+            import < method,
+            "the After source places the added import before the changed method"
         );
     }
 

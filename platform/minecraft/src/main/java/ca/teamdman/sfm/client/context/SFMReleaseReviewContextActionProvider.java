@@ -40,7 +40,8 @@ public final class SFMReleaseReviewContextActionProvider implements SFMContextAc
                 request.actionContext(), request.snapshot(), review.orElseThrow());
         ArrayList<Offer> answer = new ArrayList<>();
         int rank = 0;
-        for (SFMReleaseReviewV1.SelectorProposal proposal : capture.proposals().proposals()) {
+        for (SFMReleaseReviewV1.SelectorProposal proposal : distinctEffectiveTargets(
+                capture.proposals().proposals())) {
             String target = label(capture.documents(), proposal);
             var draft = SFMReleaseReviewCommentDraftService.get().create(capture, proposal);
             answer.add(new Offer(rank++, SFMActionChoice.invoke(
@@ -70,6 +71,25 @@ public final class SFMReleaseReviewContextActionProvider implements SFMContextAc
                     answer.add(new Offer(rank++, choice));
                 }
             }
+        }
+        return List.copyOf(answer);
+    }
+
+    /**
+     * Multiple semantic providers can describe the same durable selection rule.
+     * Showing each one as a separate Comment row makes provenance look like a
+     * different attachment target. Keep the first deterministic proposal for
+     * each exact rule while retaining genuinely different literal, declaration,
+     * signature, and body targets.
+     */
+    static List<SFMReleaseReviewV1.SelectorProposal> distinctEffectiveTargets(
+            List<SFMReleaseReviewV1.SelectorProposal> proposals
+    ) {
+        LinkedHashSet<ca.teamdman.sfm.client.review.session.SFMReviewSessionV1.SelectionRule> seen =
+                new LinkedHashSet<>();
+        ArrayList<SFMReleaseReviewV1.SelectorProposal> answer = new ArrayList<>();
+        for (SFMReleaseReviewV1.SelectorProposal proposal : proposals) {
+            if (seen.add(proposal.selectionRule())) answer.add(proposal);
         }
         return List.copyOf(answer);
     }

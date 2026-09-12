@@ -320,7 +320,9 @@ public record SFMTextDocumentSnapshot(
 
     /** File-backed worker baseline that preserves the durable review identity in the owning snapshot. */
     public Optional<SFMTextDocumentSnapshot> semanticAnalysisSnapshot() {
-        return analysisIdentity.map(identity -> new SFMTextDocumentSnapshot(
+        return analysisIdentity.filter(identity -> !path.equals(Optional.of(identity.path()))
+                        || !authorizedRoot.equals(Optional.of(identity.authorizedRoot())))
+                .map(identity -> new SFMTextDocumentSnapshot(
                 state,
                 text,
                 mutationCapability,
@@ -333,7 +335,10 @@ public record SFMTextDocumentSnapshot(
                 targetRange,
                 diagnostics,
                 identity.sourceRootIdentity(),
-                Optional.empty(),
+                // Retain the explicit overlay witness on the worker projection.
+                // The file path grants workspace identity; the pinned text remains
+                // authoritative and must not be compared with ambient disk bytes.
+                Optional.of(identity),
                 language
         ));
     }

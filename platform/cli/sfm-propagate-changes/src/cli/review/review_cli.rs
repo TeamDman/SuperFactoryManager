@@ -110,7 +110,9 @@ impl ReviewSurfaceGenerateArgs {
         let limits = ReviewSurfaceLimitsV1::default();
         request.validate(limits)?;
         let surface = match request.surface_kind {
-            ReviewSurfaceKindV1::TextDiff => produce_text_diff(&request, limits)?,
+            ReviewSurfaceKindV1::TextPatch | ReviewSurfaceKindV1::TextDiff => {
+                produce_text_diff(&request, limits)?
+            }
             ReviewSurfaceKindV1::JavaStructuredDiff => {
                 produce_java_structured_diff(&request, limits)?
             }

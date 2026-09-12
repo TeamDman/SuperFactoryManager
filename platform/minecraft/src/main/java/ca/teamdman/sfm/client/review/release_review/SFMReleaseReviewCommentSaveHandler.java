@@ -6,13 +6,21 @@ import net.minecraft.network.chat.Component;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 /** A freeform editor retains its exact draft, then edits the same durable comment on subsequent saves. */
 public final class SFMReleaseReviewCommentSaveHandler implements SFMTextDocumentSaveHandler {
+    public record Submission(
+            long operationId,
+            String draftId,
+            CompletableFuture<SFMTextDocumentSaveResult> completion
+    ) { }
+
     private final SFMReleaseReviewRuntime runtime;
     private final SFMReleaseReviewCommentDraftService service;
     private final SFMReleaseReviewCommentDraftService.Draft draft;
     private final Runnable afterSave;
+    private final Consumer<Submission> afterSubmit;
     private String commentId;
     private String savedText;
     private CompletableFuture<SFMTextDocumentSaveResult> pending;
@@ -22,13 +30,23 @@ public final class SFMReleaseReviewCommentSaveHandler implements SFMTextDocument
             SFMReleaseReviewRuntime runtime, SFMReleaseReviewCommentDraftService service,
             String draftId, Runnable afterSave
     ) {
+        this(runtime, service, draftId, afterSave, ignored -> { });
+    }
+
+    public SFMReleaseReviewCommentSaveHandler(
+            SFMReleaseReviewRuntime runtime, SFMReleaseReviewCommentDraftService service,
+            String draftId, Runnable afterSave, Consumer<Submission> afterSubmit
+    ) {
         this.runtime = runtime;
         this.service = service;
         this.draft = service.requireCurrent(draftId);
         this.afterSave = afterSave;
+        this.afterSubmit = afterSubmit;
     }
 
     @Override public boolean asynchronous() { return true; }
+
+    @Override public boolean detachSaveAndCloseAfterSubmission() { return true; }
 
     @Override public SFMTextDocumentSaveResult save(String content) {
         return SFMTextDocumentSaveResult.rejected(Component.literal(
@@ -81,6 +99,13 @@ public final class SFMReleaseReviewCommentSaveHandler implements SFMTextDocument
             }
             return SFMTextDocumentSaveResult.success();
         });
+        try {
+            afterSubmit.accept(new Submission(operationId, draft.id(), pending));
+        } catch (RuntimeException presentationFailure) {
+            ca.teamdman.sfm.SFM.LOGGER.warn(
+                    "SFM_REVIEW_COMMENT_SAVE_FEEDBACK_FAILED draft={} review={}",
+                    draft.id(), draft.reviewPath(), presentationFailure);
+        }
         return pending;
     }
 

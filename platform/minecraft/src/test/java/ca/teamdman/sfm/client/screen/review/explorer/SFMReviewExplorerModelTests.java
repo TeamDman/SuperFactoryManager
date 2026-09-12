@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen.review.explorer;
 
 import ca.teamdman.sfm.client.history.SFMHistoryGraphContract;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewKernel;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewSurfaceV1;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1Codec;
 import ca.teamdman.sfm.client.review.session.SFMReviewSessionV1;
@@ -381,7 +382,7 @@ class SFMReviewExplorerModelTests {
     }
 
     @Test
-    void releaseChangesProjectExactlyFourLazyLeavesPerFileLaneIncludingAddedTombstones() throws Exception {
+    void releaseChangesProjectRawAndSourceDiffLeavesPerFileLaneIncludingAddedTombstones() throws Exception {
         SFMReviewExplorerModel model = SFMReviewExplorerModel.releaseChanges(releaseReviewFixture());
         List<SFMReviewExplorerModel.Node> lanes = model.root().children().stream()
                 .flatMap(file -> file.children().stream())
@@ -392,7 +393,7 @@ class SFMReviewExplorerModelTests {
                 model.root().children().stream().map(SFMReviewExplorerModel.Node::label).toList(),
                 "the Changes projection must retain corpus-only pinned files outside the review-unit domain");
         for (SFMReviewExplorerModel.Node lane : lanes) {
-            assertEquals(List.of("before", "after", "text diff (inline)", "structured diff (inline)",
+            assertEquals(List.of("before", "after", "raw text patch", "text diff (inline)", "structured diff (inline)",
                             "text diff (split)", "structured diff (split)"),
                     lane.children().stream().map(child -> child.leaf().title().split(" · ")[0]).toList());
             assertEquals(List.of(
@@ -401,11 +402,12 @@ class SFMReviewExplorerModelTests {
                             SFMReviewExplorerModel.Kind.DIFF,
                             SFMReviewExplorerModel.Kind.DIFF,
                             SFMReviewExplorerModel.Kind.DIFF,
+                            SFMReviewExplorerModel.Kind.DIFF,
                             SFMReviewExplorerModel.Kind.DIFF),
                     lane.children().stream().map(SFMReviewExplorerModel.Node::kind).toList());
             assertEquals(
                     lane.children().get(2).leaf().generatedSurface().isPresent(),
-                    lane.children().get(3).leaf().generatedSurface().isPresent(),
+                    lane.children().get(4).leaf().generatedSurface().isPresent(),
                     "text and structured diff availability must agree for one immutable file pair");
         }
         assertEquals(2, lanes.stream()
@@ -473,12 +475,14 @@ class SFMReviewExplorerModelTests {
                 .findFirst().orElseThrow();
         assertEquals(1, renamed.children().size(), "rename must remain one lane/file pair rather than two path rows");
         List<SFMReviewExplorerModel.Node> leaves = renamed.children().get(0).children();
-        assertEquals(6, leaves.size());
-        assertTrue(leaves.get(4).leaf().generatedSurface().orElseThrow().split());
+        assertEquals(7, leaves.size());
         assertTrue(leaves.get(5).leaf().generatedSurface().orElseThrow().split());
+        assertTrue(leaves.get(6).leaf().generatedSurface().orElseThrow().split());
         assertFalse(leaves.get(2).leaf().generatedSurface().orElseThrow().split());
-        var text = leaves.get(2).leaf().generatedSurface().orElseThrow();
-        var structured = leaves.get(3).leaf().generatedSurface().orElseThrow();
+        assertEquals(SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_PATCH,
+                leaves.get(2).leaf().generatedSurface().orElseThrow().surfaceKind());
+        var text = leaves.get(3).leaf().generatedSurface().orElseThrow();
+        var structured = leaves.get(4).leaf().generatedSurface().orElseThrow();
         assertEquals(SFMReleaseReviewV1.ChangeOperation.RENAMED, text.filePair().operation());
         assertEquals("src/Cafe.java", text.filePair().before().orElseThrow().path());
         assertEquals("src/CafeRenamed.txt", text.filePair().after().orElseThrow().path());

@@ -36,6 +36,7 @@ public final class SFMReleaseReviewSurfaceV1 {
     }
 
     public enum SurfaceKind {
+        TEXT_PATCH("text-patch"),
         TEXT_DIFF("text-diff"),
         JAVA_STRUCTURED_DIFF("java-structured-diff");
 

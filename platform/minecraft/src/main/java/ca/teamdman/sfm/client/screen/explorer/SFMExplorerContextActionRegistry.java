@@ -17,10 +17,10 @@ import java.util.Objects;
 /** Deterministic one-to-many context-action registry for generic explorer rows. */
 public final class SFMExplorerContextActionRegistry {
     private static final ResourceLocation PATH_OPEN = new ResourceLocation("sfm", "path/open");
-    private static final ResourceLocation REVIEW_OPEN_VIEW = new ResourceLocation(
-            "sfm", SFMReleaseReviewAction.Kind.OPEN_VIEW.path());
-    private static final ResourceLocation REVIEW_OPEN_READ_ONLY_VIEW = new ResourceLocation(
-            "sfm", SFMReleaseReviewAction.Kind.OPEN_READ_ONLY_VIEW.path());
+    private static final ResourceLocation REVIEW_OPEN = new ResourceLocation(
+            "sfm", SFMReleaseReviewAction.Kind.OPEN.path());
+    private static final ResourceLocation REVIEW_OPEN_READ_ONLY = new ResourceLocation(
+            "sfm", SFMReleaseReviewAction.Kind.OPEN_READ_ONLY.path());
     private static final SFMExplorerContextActionRegistry MINECRAFT_DEFAULTS =
             new SFMExplorerContextActionRegistry(List.of(
                     new ExplorerRowDetailsProvider(),
@@ -93,21 +93,20 @@ public final class SFMExplorerContextActionRegistry {
         @Override
         public List<SFMActionChoice> choices(Request request) {
             SFMPath path = request.path();
-            if (request.entry().expandable()
-                    || path.kind() != SFMPath.Kind.FILE
+            if (path.kind() != SFMPath.Kind.FILE
                     || !fileName(path).endsWith(".sfm-review.json")) return List.of();
             Path nativePath = path.toNativePath();
             String greedyPath = SFMReleaseReviewAction.greedyPathArgument(nativePath);
             return List.of(
                     SFMActionChoice.invoke(PATH_OPEN, path.canonical() + " focus", "Open review JSON as text"),
-                    SFMActionChoice.invoke(REVIEW_OPEN_VIEW, greedyPath, "Open release review writable"),
+                    SFMActionChoice.invoke(REVIEW_OPEN, greedyPath, "Enable commenting in this mounted review"),
                     SFMActionChoice.invoke(ca.teamdman.sfm.client.action.SFMReviewOfflineOpenAction.ID,
                             com.mojang.brigadier.arguments.StringArgumentType.escapeIfRequired(nativePath.toString()),
                             "Open retained review evidence (offline, v3)"),
                     SFMActionChoice.invoke(
-                            REVIEW_OPEN_READ_ONLY_VIEW,
+                            REVIEW_OPEN_READ_ONLY,
                             greedyPath,
-                            "Open release review read-only"
+                            "Reopen mounted review read-only"
                     )
             );
         }

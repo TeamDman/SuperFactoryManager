@@ -29,6 +29,8 @@ public record SFMExplorerEntry(
     public static final String SUBJECT_KIND = "sfm:subject/kind";
     /** An entry may open a document while also exposing children through its chevron. */
     public static final String PRIMARY_ACTION_OPEN = "sfm:interaction/primary-open";
+    /** Stable id of the capability that contributes children to a non-container entry. */
+    public static final String MOUNT_PROVIDER = "sfm:interaction/mount-provider";
 
     public boolean opensOnActivate() {
         return !expandable || sortKey(PRIMARY_ACTION_OPEN).value().filter("true"::equals).isPresent();

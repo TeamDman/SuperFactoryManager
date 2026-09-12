@@ -156,7 +156,10 @@ pub fn produce_text_diff(
     limits: ReviewSurfaceLimitsV1,
 ) -> eyre::Result<ReviewSurfaceV1> {
     request.validate(limits)?;
-    if request.surface_kind != ReviewSurfaceKindV1::TextDiff {
+    if !matches!(
+        request.surface_kind,
+        ReviewSurfaceKindV1::TextPatch | ReviewSurfaceKindV1::TextDiff
+    ) {
         eyre::bail!("text-diff producer received a non-text surface request");
     }
     Ok(produce_validated_text_diff(request))
@@ -179,12 +182,14 @@ pub(crate) fn produce_validated_text_diff(request: &ReviewSurfaceRequestV1) -> R
     if hunks.is_empty() {
         return unchanged_surface(request);
     }
-    let groups = group_hunks(
-        &hunks,
-        before_lines.len(),
-        after_lines.len(),
-        request.context_lines,
-    );
+    let context = match request.surface_kind {
+        // The inline and split text-diff presentations are source surfaces, not
+        // abbreviated patches. One maximal group retains every unchanged line.
+        ReviewSurfaceKindV1::TextDiff => before_lines.len().max(after_lines.len()),
+        ReviewSurfaceKindV1::TextPatch => request.context_lines,
+        ReviewSurfaceKindV1::JavaStructuredDiff => unreachable!("validated text producer kind"),
+    };
+    let groups = group_hunks(&hunks, before_lines.len(), after_lines.len(), context);
     match build_text_surface(request, &before_lines, &after_lines, &groups) {
         Ok(surface) => surface,
         Err(error) => limit_surface(request, error.message),
@@ -797,5 +802,27 @@ mod tests {
         surface
             .validate_against(&request, ReviewSurfaceLimitsV1::default())
             .expect("bounded terminal result remains valid");
+    }
+
+    #[test]
+    fn compact_patch_and_full_text_diff_are_distinct_honest_surfaces() {
+        let before = (0..200)
+            .map(|line| format!("line {line}\n"))
+            .collect::<String>();
+        let after = before.replace("line 100\n", "changed 100\n");
+        let full_request = request(&before, &after);
+        let full = produce_text_diff(&full_request, ReviewSurfaceLimitsV1::default())
+            .expect("full text diff");
+        assert!(full.text.contains(" line 0\n"));
+        assert!(full.text.contains(" line 199\n"));
+
+        let mut patch_request = full_request.clone();
+        patch_request.surface_kind = ReviewSurfaceKindV1::TextPatch;
+        let patch = produce_text_diff(&patch_request, ReviewSurfaceLimitsV1::default())
+            .expect("compact text patch");
+        assert!(!patch.text.contains(" line 0\n"));
+        assert!(!patch.text.contains(" line 199\n"));
+        assert!(patch.text.contains("-line 100\n"));
+        assert!(patch.text.contains("+changed 100\n"));
     }
 }

@@ -112,12 +112,14 @@ public final class SFMReleaseReviewCommentDetailsAction
 
     public static List<SFMActionChoice> rowChoices(String commentId, long openEpoch) {
         String id = StringArgumentType.escapeIfRequired(commentId);
-        return List.of(
+        ArrayList<SFMActionChoice> choices = new ArrayList<>(List.of(
                 SFMActionChoice.invoke(ID, id + " text " + openEpoch, "Open comment as text"),
                 SFMActionChoice.invoke(ID, id + " reveal " + openEpoch, "Reveal comment in Explorer"),
                 SFMActionChoice.invoke(ID, id + " matches " + openEpoch, "Show comment targets in Explorer"),
                 SFMActionChoice.invoke(ID, id + " selector " + openEpoch, "Inspect comment selector")
-        );
+        ));
+        SFMReleaseReviewCommentRemoveAction.requestChoice(commentId, openEpoch).ifPresent(choices::add);
+        return List.copyOf(choices);
     }
 
     public static List<SFMActionChoice> commentChoices(List<String> commentIds) {
@@ -149,6 +151,8 @@ public final class SFMReleaseReviewCommentDetailsAction
                 "Open comment as text"));
         choices.add(SFMActionChoice.invoke(ID, StringArgumentType.escapeIfRequired(commentId) + " reveal",
                 "Reveal comment in Explorer"));
+        SFMReleaseReviewCommentRemoveAction.requestChoice(
+                commentId, SFMReleaseReviewRuntime.get().snapshot().openEpoch()).ifPresent(choices::add);
         choices.addAll(SFMReviewMigrationAction.choices(commentId));
         for (SFMReviewExplorerModel.Node child : object.children()) {
             String section = child.id().substring(child.id().lastIndexOf('/') + 1);
@@ -210,7 +214,7 @@ public final class SFMReleaseReviewCommentDetailsAction
         for (SFMWorkspacePanelId panelId : workspace.panelIds()) {
             if (!(workspace.panelInstance(panelId) instanceof SFMExplorerPanel candidate)) continue;
             Optional<SFMReleaseReviewExplorerRuntime.LensDescriptor> descriptor =
-                    runtime.lensDescriptor(candidate.sessionSnapshot().roots());
+                    runtime.hostedLensDescriptor(candidate.sessionSnapshot().roots());
             if (descriptor.isEmpty() || descriptor.orElseThrow().reviewOpenEpoch() != review.openEpoch()
                     || !review.path().filter(descriptor.orElseThrow().reviewPath()::equals).isPresent()) continue;
             if (existingReviewArea == null) existingReviewArea = panelId;

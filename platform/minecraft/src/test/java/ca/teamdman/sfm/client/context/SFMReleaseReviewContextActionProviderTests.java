@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -105,5 +106,42 @@ class SFMReleaseReviewContextActionProviderTests {
         );
         assertTrue(semantic.startsWith("target Local.java [0..9) · symbol evidence → "));
         assertTrue(semantic.endsWith("jdk-source://java.base/java/lang/Override.java"));
+    }
+
+    @Test
+    void duplicateProvidersDoNotProduceDuplicateEffectiveCommentTargets() {
+        String hash = "a".repeat(64);
+        var range = new ca.teamdman.sfm.client.review.session.SFMReviewSessionV1.LiteralUtf8Range(
+                "after", 2, 7, hash, hash);
+        var witness = selection("after", 2, 7);
+        var first = proposal("first", range, witness, "provider:a");
+        var duplicate = proposal("duplicate", range, witness, "provider:b");
+        var wider = proposal("wider", new ca.teamdman.sfm.client.review.session.SFMReviewSessionV1.LiteralUtf8Range(
+                "after", 0, 9, hash, hash), witness, "provider:c");
+
+        assertEquals(List.of(first, wider),
+                SFMReleaseReviewContextActionProvider.distinctEffectiveTargets(
+                        List.of(first, duplicate, wider)));
+    }
+
+    private static SFMReleaseReviewV1.SelectorProposal proposal(
+            String id,
+            ca.teamdman.sfm.client.review.session.SFMReviewSessionV1.SelectionRule rule,
+            SFMReleaseReviewV1.PinnedSelection witness,
+            String provider
+    ) {
+        return new SFMReleaseReviewV1.SelectorProposal(
+                id,
+                SFMReleaseReviewV1.SelectorKind.SYMBOL,
+                rule,
+                witness,
+                Optional.of(provider),
+                Optional.of("semantic:" + id),
+                List.of(),
+                SFMReleaseReviewV1.ProposalConfidence.EXACT,
+                "b".repeat(64),
+                "snapshot",
+                List.of()
+        );
     }
 }

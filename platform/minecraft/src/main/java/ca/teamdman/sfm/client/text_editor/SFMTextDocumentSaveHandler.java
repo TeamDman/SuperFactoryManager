@@ -12,6 +12,13 @@ public interface SFMTextDocumentSaveHandler {
         return java.util.concurrent.CompletableFuture.completedFuture(save(content));
     }
 
+    /**
+     * Opt-in for durable handlers whose Save-and-close operation is observed outside the
+     * transient editor. The editor may close as soon as submission succeeds; ordinary Save
+     * still remains open and ordinary handlers still wait for acknowledgement.
+     */
+    default boolean detachSaveAndCloseAfterSubmission() { return false; }
+
     /** Requests cancellation before commit; false means not pending or too late, not discarded. */
     default boolean cancelPendingSave() { return false; }
 

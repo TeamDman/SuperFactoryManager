@@ -471,6 +471,8 @@ public final class SFMReviewExplorerModel {
                 SourceLeaf afterLeaf = releaseLeaf(corpus, laneId, pair.pathAfter().orElse(fileLabel),
                         pair.after().orElse(null), false, "");
                 Optional<SFMReleaseReviewSurfaceV1.FilePair> surfacePair = releaseSurfacePair(corpus, pair);
+                SourceLeaf textPatch = releaseDiffLeaf(
+                        pair, surfacePair, SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_PATCH, "raw text patch");
                 SourceLeaf textDiff = releaseDiffLeaf(
                         pair, surfacePair, SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_DIFF, "text diff (inline)");
                 SourceLeaf structuredDiff = releaseDiffLeaf(
@@ -487,6 +489,7 @@ public final class SFMReviewExplorerModel {
                                         beforeLeaf.documentRevisionId().map(documentComments::get).orElse(List.of()), beforeLeaf, false),
                                 node(afterLeaf.id(), afterLeaf.title(), Kind.REVISION,
                                         afterLeaf.documentRevisionId().map(documentComments::get).orElse(List.of()), afterLeaf, false),
+                                node(textPatch.id(), textPatch.title(), Kind.DIFF, List.of(), textPatch, true),
                                 node(textDiff.id(), textDiff.title(), Kind.DIFF, List.of(), textDiff, true),
                                 node(structuredDiff.id(), structuredDiff.title(), Kind.DIFF,
                                         List.of(), structuredDiff, true),

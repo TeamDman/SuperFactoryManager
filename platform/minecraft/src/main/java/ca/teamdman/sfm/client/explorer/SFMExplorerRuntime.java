@@ -17,8 +17,12 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMFilesystemExplorerResolver;
 import ca.teamdman.sfm.client.explorer.lazy.SFMGatedExplorerResolver;
 import ca.teamdman.sfm.client.explorer.lazy.SFMItemRegistryExplorerResolver;
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
+import ca.teamdman.sfm.client.explorer.lazy.SFMMountingExplorerResolver;
 import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextRequest;
 import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextResult;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewFileMountProvider;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
@@ -117,6 +121,7 @@ public final class SFMExplorerRuntime implements AutoCloseable {
     private final SFMChildRelationRepository relations;
     private final SFMExplorerResolverRegistry resolvers;
     private final SFMFilesystemExplorerResolver filesystem;
+    private final SFMMountingExplorerResolver mountedFilesystem;
     private final SFMGatedExplorerResolver gatedFilesystem;
     private final SFMExplorerIoCounter filesystemIo;
     private final SFMLazyExplorerLoader loader;
@@ -147,8 +152,17 @@ public final class SFMExplorerRuntime implements AutoCloseable {
                 filesystemIo,
                 DEFAULT_PAGE_SIZE
         );
-        gatedFilesystem = new SFMGatedExplorerResolver(filesystem);
+        SFMReleaseReviewExplorerRuntime releaseReviewExplorer = SFMReleaseReviewExplorerRuntime.get();
+        mountedFilesystem = new SFMMountingExplorerResolver(
+                filesystem,
+                List.of(new SFMReleaseReviewFileMountProvider(
+                        SFMReleaseReviewRuntime.get(),
+                        releaseReviewExplorer
+                ))
+        );
+        gatedFilesystem = new SFMGatedExplorerResolver(mountedFilesystem);
         resolvers.register(gatedFilesystem);
+        resolvers.register(releaseReviewExplorer);
         resolvers.register(SFMItemRegistryExplorerResolver.minecraft(
                 resolverExecutor,
                 DEFAULT_PAGE_SIZE
@@ -200,6 +214,24 @@ public final class SFMExplorerRuntime implements AutoCloseable {
                     new SFMExplorerActionRequest.NodeRefresh(path, DEFAULT_PAGE_SIZE), SFMExplorerActionRequest.IfNoMatch.FAIL));
             // A never-expanded parent is intentionally unknown and needs no invalidation.
             if (result.status() == SFMExplorerActionResult.Status.SUCCEEDED) break;
+        }
+    }
+
+    /** Refreshes every materialized mount for one backing file after its mounted authority changes. */
+    public void mountedFileChanged(SFMPath path) {
+        ensureOpen();
+        Objects.requireNonNull(path, "path");
+        if (path.kind() != SFMPath.Kind.FILE) return;
+        Set<SFMPath> materializedParents = relations.snapshot().pageStates().keySet();
+        for (var explorer : explorers.explorersInStableOrder()) {
+            if (!materializedParents.contains(path)) continue;
+            if (explorer.session().snapshot().roots().stream().noneMatch(root ->
+                    SFMPathHierarchy.contains(root, path))) continue;
+            execute(new SFMExplorerActionRequest(
+                    SFMEntitySelector.exact(SFMEntitySelector.Domain.EXPLORER, explorer.id().value()),
+                    new SFMExplorerActionRequest.NodeRefresh(path, DEFAULT_PAGE_SIZE),
+                    SFMExplorerActionRequest.IfNoMatch.FAIL
+            ));
         }
     }
 

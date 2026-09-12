@@ -7,6 +7,7 @@ import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextDocumentPanelState;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSnapshot;
 import com.mojang.brigadier.context.CommandContext;
@@ -18,6 +19,8 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
@@ -34,7 +37,8 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
             SFMWorkspacePanelId documentPanelId,
             SFMScreenPanel documentPanel,
             SFMTextDocumentSnapshot documentSnapshot,
-            Optional<SFMPath> directContainingRoot
+            Optional<SFMPath> directContainingRoot,
+            Set<SFMPath> representedReviewRoots
     ) {
         Target {
             Objects.requireNonNull(actionContext, "actionContext");
@@ -45,6 +49,8 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
             Objects.requireNonNull(documentPanel, "documentPanel");
             Objects.requireNonNull(documentSnapshot, "documentSnapshot");
             directContainingRoot = Objects.requireNonNull(directContainingRoot, "directContainingRoot");
+            representedReviewRoots = Set.copyOf(Objects.requireNonNull(
+                    representedReviewRoots, "representedReviewRoots"));
         }
 
         boolean stillCurrent() {
@@ -110,9 +116,15 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
                 explorer.sessionSnapshot().roots(),
                 path
         ).orElse(null);
-        if (containingRoot == null && !SFMReleaseReviewExplorerRuntime.get().hasLensRoot(
-                explorer.sessionSnapshot().roots()
-        )) {
+        TreeSet<SFMPath> reviewRoots = new TreeSet<>(explorer.sessionSnapshot().roots());
+        SFMScreenPanelBounds explorerBounds = workspace.panelContentBounds(context.originatingPanelId());
+        if (explorerBounds != null) {
+            TreeSet<SFMPath> representedPaths = new TreeSet<>();
+            explorer.model().state(explorerBounds).projection().rows().forEach(row ->
+                    row.segments().forEach(segment -> representedPaths.add(segment.path())));
+            reviewRoots.addAll(SFMReleaseReviewExplorerRuntime.get().lensRootsContaining(representedPaths));
+        }
+        if (containingRoot == null && !SFMReleaseReviewExplorerRuntime.get().hasLensRoot(reviewRoots)) {
             return SFMClientActionAvailability.unavailable(Component.literal(
                     "This Explorer is not authorized to reveal " + path.canonical()
             ));
@@ -125,7 +137,8 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
                 recent.id(),
                 recent.panel(),
                 snapshot,
-                Optional.ofNullable(containingRoot)
+                Optional.ofNullable(containingRoot),
+                reviewRoots
         ));
     }
 
@@ -178,7 +191,7 @@ public final class SFMRevealHereAction implements SFMClientAction<SFMRevealHereA
         } else {
             feedback.accept(Component.literal("Finding the exact review row for " + sourcePath.canonical()));
             resolution = SFMReleaseReviewExplorerRuntime.get().revealTargetsAsync(
-                    target.explorer().sessionSnapshot().roots(),
+                    target.representedReviewRoots(),
                     target.documentSnapshot()
             );
         }

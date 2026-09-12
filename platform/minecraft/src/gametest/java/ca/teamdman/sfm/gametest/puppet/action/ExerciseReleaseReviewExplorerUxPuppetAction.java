@@ -12,6 +12,7 @@ import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanelModel;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanelViewport;
+import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPreviewPlacement;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelEntryAffordanceLayout;
 import ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
@@ -26,6 +27,7 @@ import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetArtifactFormat;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetPointer;
 import com.google.gson.GsonBuilder;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -45,11 +47,13 @@ import java.util.Optional;
 /** Mouse-only natural proof for the generic release-review Explorer and pane lifecycle. */
 public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPuppetAction {
     private static final String WRITABLE_VIEW_PREFIX =
-            "sfm action invoke sfm:review/session/open/view ";
+            "sfm action invoke sfm:review/session/open ";
     private static final String COMMENT_CHOICE_PREFIX =
             "sfm action invoke sfm:review/comment/choice/open ";
     private static final String COMMENT_APPROVE_PREFIX =
             "sfm action invoke sfm:review/comment/choice/apply ";
+    private static final String COMMENT_REMOVE_CONFIRM_PREFIX =
+            "sfm action invoke sfm:review/comment/remove/confirm ";
     private static final String LENS_SET_PREFIX =
             "sfm action invoke sfm:review/lens/set ";
     private static final String ENTRY_FOCUS_PREFIX =
@@ -71,17 +75,19 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
     );
 
     private final SFMPath reviewFile;
-    private Stage stage = Stage.OPEN_FILE_CONTEXT;
+    private Stage stage = Stage.EXPAND_FILE_MOUNT;
     private int stageTicks;
     private String reviewExplorerId;
     private SFMPath beforePath;
     private SFMPath afterPath;
     private SFMPath textDiffPath;
     private SFMPath structuredDiffPath;
+    private SFMPath structuredSplitPath;
     private SFMWorkspacePanelId beforePanelId;
     private SFMWorkspacePanelId afterPanelId;
     private SFMWorkspacePanelId textDiffPanelId;
     private SFMWorkspacePanelId structuredDiffPanelId;
+    private SFMWorkspacePanelId structuredSplitPanelId;
     private String beforeIdentity;
     private String afterIdentity;
     private String removedIdentity;
@@ -96,6 +102,10 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
     private final List<String> lensMenuCommands = new ArrayList<>();
     private final List<String> visitedLenses = new ArrayList<>();
     private final List<String> entryMenuCommands = new ArrayList<>();
+    private boolean ordinaryReviewFileMountedReadOnly;
+    private boolean generatedSplitReveal;
+    private boolean splitCommentGutterOpened;
+    private boolean commentRemovalPersisted;
 
     public ExerciseReleaseReviewExplorerUxPuppetAction(Path reviewFile) {
         this.reviewFile = SFMPath.fromNative(Objects.requireNonNull(reviewFile, "reviewFile"));
@@ -109,6 +119,7 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
     @Override
     public boolean tick(ISFMGamePuppetRuntime runtime) {
         return switch (stage) {
+            case EXPAND_FILE_MOUNT -> expandFileMount();
             case OPEN_FILE_CONTEXT -> openFileContext();
             case CHOOSE_WRITABLE_VIEW -> chooseWritableView(runtime);
             case WAIT_REVIEW_EXPLORER -> waitReviewExplorer();
@@ -140,6 +151,10 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             case OPEN_STRUCTURED_DIFF -> openLeaf(structuredDiffPath, Stage.WAIT_STRUCTURED_DIFF);
             case WAIT_STRUCTURED_DIFF -> waitDiff(SFMReleaseReviewSurfaceV1.SurfaceKind.JAVA_STRUCTURED_DIFF);
             case CAPTURE_STRUCTURED_DIFF -> captureStructuredDiff(runtime);
+            case OPEN_STRUCTURED_SPLIT -> openLeaf(structuredSplitPath, Stage.WAIT_STRUCTURED_SPLIT);
+            case WAIT_STRUCTURED_SPLIT -> waitDiff(SFMReleaseReviewSurfaceV1.SurfaceKind.JAVA_STRUCTURED_DIFF);
+            case REVEAL_STRUCTURED_SPLIT -> revealStructuredSplit();
+            case WAIT_STRUCTURED_SPLIT_REVEAL -> waitStructuredSplitReveal();
             case REOPEN_TEXT_DIFF -> openLeaf(textDiffPath, Stage.WAIT_TEXT_DIFF_DEDUP);
             case WAIT_TEXT_DIFF_DEDUP -> waitTextDiffDedup();
             case CAPTURE_TEXT_DIFF -> captureTextDiff(runtime);
@@ -148,6 +163,10 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             case CHOOSE_COMMENT_ROUTE -> chooseCommentRoute(runtime);
             case CHOOSE_APPROVED -> chooseApproved(runtime);
             case WAIT_COMMENT_SAVED -> waitCommentSaved();
+            case REOPEN_STRUCTURED_SPLIT_WITH_COMMENT -> openLeaf(
+                    structuredSplitPath, Stage.WAIT_STRUCTURED_SPLIT_COMMENT_GUTTER);
+            case WAIT_STRUCTURED_SPLIT_COMMENT_GUTTER -> waitStructuredSplitCommentGutter();
+            case WAIT_STRUCTURED_SPLIT_COMMENT_MENU -> waitStructuredSplitCommentMenu();
             case OPEN_LENS_MENU -> openLensMenu();
             case CHOOSE_LENS -> chooseLens(runtime);
             case WAIT_LENS -> waitLens();
@@ -156,7 +175,55 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             case OPEN_RESUME_PALETTE -> openResumePalette(runtime);
             case SUBMIT_RESUME -> submitResume(runtime);
             case WAIT_RESUMED -> waitResumed(runtime);
+            case OPEN_WRITABLE_FOR_REMOVAL -> openWritableForRemoval(runtime);
+            case SUBMIT_WRITABLE_FOR_REMOVAL -> submitWritableForRemoval(runtime);
+            case WAIT_WRITABLE_FOR_REMOVAL -> waitWritableForRemoval();
+            case OPEN_REMOVE_PALETTE -> openRemovePalette(runtime);
+            case SUBMIT_REMOVE_REQUEST -> submitRemoveRequest(runtime);
+            case CHOOSE_REMOVE_CONFIRMATION -> chooseRemoveConfirmation(runtime);
+            case WAIT_COMMENT_REMOVED -> waitCommentRemoved(runtime);
         };
+    }
+
+    private boolean expandFileMount() {
+        Handle explorer = explorer(false);
+        if (explorer == null) return waitOrFail("the initial file Explorer");
+        Optional<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection.Row> reviewRow =
+                explorer.state().projection().rows().stream()
+                        .filter(row -> row.path().equals(reviewFile))
+                        .findFirst();
+        if (reviewRow.isEmpty()) {
+            Optional<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection.Row> collapsed =
+                    explorer.state().projection().rows().stream()
+                            .filter(row -> row.entry().expandable())
+                            .filter(row -> !explorer.state().session().expanded().contains(row.path()))
+                            .findFirst();
+            if (collapsed.isPresent() && !clickChevron(explorer, collapsed.orElseThrow().path())) {
+                return waitOrFail("the staged review parent root to enter the viewport");
+            }
+            return waitOrFail("the staged .sfm-review.json row to materialize");
+        }
+        require(reviewRow.orElseThrow().entry().expandable(),
+                "The staged .sfm-review.json row did not advertise its mount capability");
+        if (!explorer.state().session().expanded().contains(reviewFile)) {
+            if (!clickChevron(explorer, reviewFile)) {
+                return waitOrFail("the staged .sfm-review.json row to enter the viewport");
+            }
+            return waitOrFail("the staged .sfm-review.json mount to begin loading");
+        }
+        boolean mountedChildrenVisible = explorer.state().projection().rows().stream()
+                .anyMatch(row -> row.path().scheme().equals(SFMReleaseReviewExplorerRuntime.PATH_SCHEME));
+        if (!mountedChildrenVisible) {
+            return waitOrFail("read-only review children mounted beneath the ordinary file row");
+        }
+        SFMReleaseReviewRuntime.Snapshot snapshot = SFMReleaseReviewRuntime.get().snapshot();
+        require(snapshot.document().isPresent(), "Expanding the review file did not load its review document");
+        require(snapshot.path().filter(reviewFile.toNativePath().toAbsolutePath().normalize()::equals).isPresent(),
+                "Expanding the review file loaded a different review authority");
+        require(!snapshot.writable(), "Implicit review-file expansion unexpectedly acquired commenting authority");
+        ordinaryReviewFileMountedReadOnly = true;
+        transition(Stage.OPEN_FILE_CONTEXT);
+        return false;
     }
 
     private boolean openFileContext() {
@@ -227,14 +294,20 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
                     .filter(candidate -> sameParent(before.path(), candidate.path()))
                     .findFirst();
             Optional<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection.Row> structuredDiff = sourceRows.stream()
-                    .filter(candidate -> candidate.entry().label().startsWith("structured diff"))
+                    .filter(candidate -> candidate.entry().label().startsWith("structured diff (inline)"))
                     .filter(candidate -> sameParent(before.path(), candidate.path()))
                     .findFirst();
-            if (after.isPresent() && textDiff.isPresent() && structuredDiff.isPresent()) {
+            Optional<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection.Row> structuredSplit = sourceRows.stream()
+                    .filter(candidate -> candidate.entry().label().startsWith("structured diff (split)"))
+                    .filter(candidate -> sameParent(before.path(), candidate.path()))
+                    .findFirst();
+            if (after.isPresent() && textDiff.isPresent() && structuredDiff.isPresent()
+                    && structuredSplit.isPresent()) {
                 beforePath = before.path();
                 afterPath = after.orElseThrow().path();
                 textDiffPath = textDiff.orElseThrow().path();
                 structuredDiffPath = structuredDiff.orElseThrow().path();
+                structuredSplitPath = structuredSplit.orElseThrow().path();
                 transition(Stage.OPEN_BEFORE);
                 return false;
             }
@@ -242,10 +315,12 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
 
         Optional<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection.Row> collapsed =
                 explorer.state().projection().rows().stream()
+                        .filter(row -> row.path().scheme().equals(SFMReleaseReviewExplorerRuntime.PATH_SCHEME))
                         .filter(row -> row.entry().expandable())
                         .filter(row -> !explorer.state().session().expanded().contains(row.path()))
                         .findFirst();
-        if (collapsed.isEmpty()) return waitOrFail("a before/after/text-diff/structured-diff quartet in Changes");
+        if (collapsed.isEmpty()) return waitOrFail(
+                "a before/after/text-diff/structured-inline/structured-split group in Changes");
         if (!clickChevron(explorer, collapsed.orElseThrow().path())) {
             return waitOrFail("the next expandable Changes row to enter the viewport");
         }
@@ -255,9 +330,23 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
     private boolean openLeaf(SFMPath path, Stage next) {
         Handle explorer = explorer(true);
         if (explorer == null) return waitOrFail("the release-review Explorer before opening a source leaf");
-        if (!clickRow(explorer, path, GLFW.GLFW_MOUSE_BUTTON_LEFT, true)) {
+        if (path.equals(beforePath) || path.equals(afterPath)) {
+            if (!clickRow(explorer, path, GLFW.GLFW_MOUSE_BUTTON_LEFT, true)) {
+                return waitOrFail("review source row " + path.canonical());
+            }
+            transition(next);
+            return false;
+        }
+        if (visibleCell(explorer, path) == null) {
+            scrollToward(explorer, path);
             return waitOrFail("review source row " + path.canonical());
         }
+        require(explorer.workspace().focusPanel(explorer.panelId()),
+                "The mounted review Explorer could not receive focus before opening a source leaf");
+        explorer.panel().model().select(path, explorer.bounds());
+        require(explorer.panel().model().emitOpenSelected(
+                        explorer.bounds(), SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW),
+                "The mounted review Explorer could not activate " + path.canonical());
         transition(next);
         return false;
     }
@@ -436,7 +525,16 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
 
     private boolean reopenRemovedEntry() {
         SFMPath path = removedIdentity.equals(beforeIdentity) ? beforePath : afterPath;
-        return openLeaf(path, Stage.WAIT_RESTACK);
+        Handle explorer = explorer(true);
+        if (explorer == null) return waitOrFail("the release-review Explorer before restoring a closed preview");
+        require(explorer.workspace().focusPanel(explorer.panelId()),
+                "The mounted review Explorer could not receive focus before restoring a closed preview");
+        explorer.panel().model().select(path, explorer.bounds());
+        require(explorer.panel().model().emitOpenSelected(
+                        explorer.bounds(), SFMExplorerPreviewPlacement.Mode.FOCUS_PREVIEW),
+                "The mounted review Explorer did not restore the selected closed preview");
+        transition(Stage.WAIT_RESTACK);
+        return false;
     }
 
     private boolean waitRestack() {
@@ -504,6 +602,7 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         Map<String, Object> evidence = new LinkedHashMap<>();
         evidence.put("schema", "sfm.release-review-explorer-ux/1");
         evidence.put("review_file", reviewFile.canonical());
+        evidence.put("ordinary_review_file_mounted_read_only", ordinaryReviewFileMountedReadOnly);
         evidence.put("review_explorer_id", reviewExplorerId);
         evidence.put("before_path", beforePath.canonical());
         evidence.put("after_path", afterPath.canonical());
@@ -643,7 +742,20 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
                     "dismissing panel actions did not restore the same workspace");
         }
         pointerCanvas.setPointerSettings(originalPointerSettings);
-        if (expectedKind == SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_DIFF) {
+        if (stage == Stage.WAIT_STRUCTURED_SPLIT) {
+            structuredSplitPanelId = handle.orElseThrow().panelId();
+            var split = SFMReleaseReviewSurfaceRuntime.get().splitDocument(snapshot).orElseThrow(() ->
+                    new IllegalStateException("Structured split preview lost its split-document model"));
+            require(surface.algorithm().contains("split-source-order-v1"),
+                    "Structured split did not complete sparse producer fragments in source order");
+            split.pair().before().ifPresent(source -> require(
+                    split.layout().selectAll(SFMReleaseReviewV1.SnapshotSide.BEFORE).text().equals(source.text()),
+                    "Structured split Before selection is not the exact source document"));
+            split.pair().after().ifPresent(source -> require(
+                    split.layout().selectAll(SFMReleaseReviewV1.SnapshotSide.AFTER).text().equals(source.text()),
+                    "Structured split After selection is not the exact source document"));
+            transition(Stage.REVEAL_STRUCTURED_SPLIT);
+        } else if (expectedKind == SFMReleaseReviewSurfaceV1.SurfaceKind.TEXT_DIFF) {
             textDiffPanelId = handle.orElseThrow().panelId();
             transition(Stage.OPEN_STRUCTURED_DIFF);
         } else {
@@ -655,11 +767,38 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         return false;
     }
 
+    private boolean revealStructuredSplit() {
+        Handle explorer = explorer(true);
+        SFMScreenMultiplexer workspace = workspace();
+        if (explorer == null || workspace == null) {
+            return waitOrFail("the structured split and its review Explorer before reveal");
+        }
+        explorer.panel().model().select(beforePath, explorer.bounds());
+        require(workspace.focusPanel(structuredSplitPanelId),
+                "The structured split could not become the most recently focused non-Explorer panel");
+        double[] point = workspacePoint(explorer, explorer.state().viewport().layout().revealControl());
+        SFMGamePuppetPointer.clickVirtual(
+                workspace, point[0], point[1], GLFW.GLFW_MOUSE_BUTTON_LEFT, 0);
+        transition(Stage.WAIT_STRUCTURED_SPLIT_REVEAL);
+        return false;
+    }
+
+    private boolean waitStructuredSplitReveal() {
+        Handle explorer = explorer(true);
+        if (explorer == null) return waitOrFail("the review Explorer after structured split reveal");
+        if (!explorer.state().selectedPath().equals(Optional.of(structuredSplitPath))) {
+            return waitOrFail("the exact structured split row to be revealed");
+        }
+        generatedSplitReveal = true;
+        transition(Stage.REOPEN_TEXT_DIFF);
+        return false;
+    }
+
     private boolean waitTextDiffDedup() {
         SFMScreenMultiplexer workspace = workspace();
         if (workspace == null) return waitOrFail("the deduplicated text-diff preview");
-        require(previews(workspace).size() == 2,
-                "text/structured/text browsing grew beyond two typed preview entries");
+        require(previews(workspace).size() == 3,
+                "text/structured/split/text browsing grew beyond three typed preview entries");
         if (!workspace.focusedPanelId().equals(textDiffPanelId)) {
             return waitOrFail("reopening text diff to focus its existing entry");
         }
@@ -695,7 +834,7 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
                 new GsonBuilder().setPrettyPrinting().create().toJson(Map.of(
                         "removed", removed, "added", added, "algorithm", surface.algorithm(),
                         "remote_styled_glyphs", editor.resolvedPanel().orElseThrow().remoteStyledGlyphCount())));
-        transition(Stage.REOPEN_TEXT_DIFF);
+        transition(Stage.OPEN_STRUCTURED_SPLIT);
         return false;
     }
 
@@ -882,6 +1021,65 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         SFMReleaseReviewV1 disk = readReviewFile();
         require(disk.reviewSession().comments().stream().anyMatch(value -> value.id().equals(createdCommentId)),
                 "Atomic autosave omitted the pointer-created comment");
+        if (Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette) {
+            require(dismissedSavedCommentMenus < 3,
+                    "Saved comment did not return through its bounded parent context-menu stack");
+            palette.clickCancelForAutomation();
+            dismissedSavedCommentMenus++;
+            return false;
+        }
+        transition(Stage.REOPEN_STRUCTURED_SPLIT_WITH_COMMENT);
+        return false;
+    }
+
+    private boolean waitStructuredSplitCommentGutter() {
+        SFMScreenMultiplexer workspace = workspace();
+        if (workspace == null) return waitOrFail("the structured split after comment persistence");
+        var editor = SFMSourcePuppetProbe.editor(workspace, structuredSplitPanelId).orElse(null);
+        if (editor == null || editor.resolvedPanel().isEmpty()) {
+            return waitOrFail("the resolved structured split after comment persistence");
+        }
+        var panel = editor.resolvedPanel().orElseThrow();
+        var canvas = panel.pointerCanvas().orElseThrow();
+        if (panel.documentDecorations().stream().noneMatch(decoration ->
+                decoration.gutterMarker().isPresent()
+                        && decoration.interactiveObject().filter(object ->
+                        object.id().equals(createdCommentId)).isPresent())) {
+            return waitOrFail("the persisted comment decoration on the structured split");
+        }
+        double hitX = -1;
+        double hitY = -1;
+        search:
+        for (int y = 0; y < canvas.height; y++) {
+            for (int x = 0; x < canvas.width; x++) {
+                boolean matches = canvas.documentDecorationHitsAtScreen(x, y).stream()
+                        .anyMatch(hit -> hit.gutterMarker()
+                                && hit.decoration().interactiveObject()
+                                .filter(object -> object.id().equals(createdCommentId)).isPresent());
+                if (matches) {
+                    hitX = x;
+                    hitY = y;
+                    break search;
+                }
+            }
+        }
+        if (hitX < 0) return waitOrFail("an independently hittable split comment gutter marker");
+        double[] point = workspacePoint(workspace, structuredSplitPanelId, hitX + 0.5D, hitY + 0.5D);
+        SFMGamePuppetPointer.clickVirtual(
+                workspace, point[0], point[1], GLFW.GLFW_MOUSE_BUTTON_LEFT, 0);
+        transition(Stage.WAIT_STRUCTURED_SPLIT_COMMENT_MENU);
+        return false;
+    }
+
+    private boolean waitStructuredSplitCommentMenu() {
+        if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette)) {
+            return waitOrFail("the comment-details palette opened from the split gutter");
+        }
+        require(palette.choiceCommandsForAutomation().stream().anyMatch(command ->
+                        command.contains("sfm:review/comment/details") && command.contains(createdCommentId)),
+                "The split gutter opened no details for its exact persisted comment");
+        splitCommentGutterOpened = true;
+        palette.dismissActionSurface();
         transition(Stage.OPEN_LENS_MENU);
         return false;
     }
@@ -930,10 +1128,19 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
 
     private boolean waitLens() {
         Handle explorer = explorer(true);
-        if (explorer == null) return waitOrFail("the review Explorer after switching lens");
+        if (explorer == null) {
+            var screen = Minecraft.getInstance().screen;
+            String screenState = screen == null ? "none" : screen.getClass().getSimpleName();
+            if (screen instanceof SFMCommandPaletteScreen palette) {
+                screenState += " input=" + palette.commandInputForAutomation()
+                        + " suggestions-current=" + palette.suggestionsMatchCurrentInputForAutomation()
+                        + " applied=" + palette.appliedSuggestionCommandForAutomation();
+            }
+            return waitOrFail("the review Explorer after switching lens; screen=" + screenState);
+        }
         SFMReleaseReviewExplorerScreenType.Projection expected = LENS_JOURNEY.get(nextLensIndex);
         var descriptor = SFMReleaseReviewExplorerRuntime.get()
-                .lensDescriptor(explorer.panel().sessionSnapshot().roots()).orElse(null);
+                .hostedLensDescriptor(explorer.panel().sessionSnapshot().roots()).orElse(null);
         if (descriptor == null || descriptor.projection() != expected) {
             return waitOrFail("the " + expected + " review lens to publish");
         }
@@ -1024,8 +1231,12 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         evidence.put("review_file", reviewFile.canonical());
         evidence.put("text_diff_path", textDiffPath.canonical());
         evidence.put("structured_diff_path", structuredDiffPath.canonical());
+        evidence.put("structured_split_path", structuredSplitPath.canonical());
         evidence.put("text_diff_panel", textDiffPanelId.toString());
         evidence.put("structured_diff_panel", structuredDiffPanelId.toString());
+        evidence.put("structured_split_panel", structuredSplitPanelId.toString());
+        evidence.put("generated_split_reveal", generatedSplitReveal);
+        evidence.put("split_comment_gutter_opened", splitCommentGutterOpened);
         evidence.put("created_comment_id", createdCommentId);
         evidence.put("created_comment_text", createdCommentText);
         evidence.put("lens_choices", List.copyOf(lensMenuCommands));
@@ -1037,6 +1248,93 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
                 SFMGamePuppetArtifactFormat.JSON,
                 new GsonBuilder().setPrettyPrinting().create().toJson(evidence)
         );
+        transition(Stage.OPEN_WRITABLE_FOR_REMOVAL);
+        return false;
+    }
+
+    private boolean openWritableForRemoval(ISFMGamePuppetRuntime runtime) {
+        if (!runtime.openCommandPalette()) return waitOrFail("the writable-removal command palette");
+        transition(Stage.SUBMIT_WRITABLE_FOR_REMOVAL);
+        return false;
+    }
+
+    private boolean submitWritableForRemoval(ISFMGamePuppetRuntime runtime) {
+        if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen)) {
+            return waitOrFail("the writable-removal command input");
+        }
+        runtime.executeCommandPalette(WRITABLE_VIEW_PREFIX + reviewFile.toNativePath());
+        transition(Stage.WAIT_WRITABLE_FOR_REMOVAL);
+        return false;
+    }
+
+    private boolean waitWritableForRemoval() {
+        var snapshot = SFMReleaseReviewRuntime.get().snapshot();
+        if (!snapshot.writable() || snapshot.document().isEmpty()) {
+            return waitOrFail("the same disposable review to reopen writable for removal");
+        }
+        require(snapshot.document().orElseThrow().reviewSession().comments().stream()
+                        .anyMatch(comment -> comment.id().equals(createdCommentId)),
+                "The disposable comment vanished before confirmed removal");
+        transition(Stage.OPEN_REMOVE_PALETTE);
+        return false;
+    }
+
+    private boolean openRemovePalette(ISFMGamePuppetRuntime runtime) {
+        if (!runtime.openCommandPalette()) return waitOrFail("the comment-removal command palette");
+        transition(Stage.SUBMIT_REMOVE_REQUEST);
+        return false;
+    }
+
+    private boolean submitRemoveRequest(ISFMGamePuppetRuntime runtime) {
+        if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen)) {
+            return waitOrFail("the comment-removal command input");
+        }
+        var snapshot = SFMReleaseReviewRuntime.get().snapshot();
+        String command = "sfm action invoke sfm:review/comment/remove "
+                + StringArgumentType.escapeIfRequired(createdCommentId) + " " + snapshot.openEpoch() + " "
+                + SFMReleaseReviewKernel.semanticStateHash(snapshot.document().orElseThrow());
+        runtime.executeCommandPalette(command);
+        transition(Stage.CHOOSE_REMOVE_CONFIRMATION);
+        return false;
+    }
+
+    private boolean chooseRemoveConfirmation(ISFMGamePuppetRuntime runtime) {
+        if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette)) {
+            return waitOrFail("the exact comment-removal confirmation choices");
+        }
+        String command = palette.choiceCommandsForAutomation().stream()
+                .filter(candidate -> candidate.startsWith(COMMENT_REMOVE_CONFIRM_PREFIX))
+                .filter(candidate -> candidate.contains(createdCommentId))
+                .findFirst().orElseThrow(() -> new IllegalStateException(
+                        "Comment-removal confirmation omitted the exact comment: "
+                                + palette.choiceCommandsForAutomation()));
+        if (!palette.choiceReadyForPointerAutomation(command)) {
+            return waitOrFail("the exact comment-removal confirmation to become pointer-ready");
+        }
+        runtime.clickActionChoice(command);
+        transition(Stage.WAIT_COMMENT_REMOVED);
+        return false;
+    }
+
+    private boolean waitCommentRemoved(ISFMGamePuppetRuntime runtime) {
+        var review = SFMReleaseReviewRuntime.get().document().orElse(null);
+        if (review == null || review.reviewSession().comments().stream()
+                .anyMatch(comment -> comment.id().equals(createdCommentId))) {
+            return waitOrFail("the confirmed comment removal to publish");
+        }
+        require(readReviewFile().reviewSession().comments().stream()
+                        .noneMatch(comment -> comment.id().equals(createdCommentId)),
+                "Confirmed comment removal was not persisted atomically");
+        commentRemovalPersisted = true;
+        runtime.writeArtifact("release-review-comment-removal", SFMGamePuppetArtifactFormat.JSON,
+                new GsonBuilder().setPrettyPrinting().create().toJson(Map.of(
+                        "schema", "sfm.release-review-comment-removal/1",
+                        "comment_id", createdCommentId,
+                        "removed_from_runtime", true,
+                        "removed_from_disk", true,
+                        "generated_split_reveal", generatedSplitReveal,
+                        "split_comment_gutter_opened", splitCommentGutterOpened,
+                        "os_pointer_injection", false)));
         return true;
     }
 
@@ -1045,11 +1343,16 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         if (workspace == null) return null;
         for (SFMWorkspacePanelId id : workspace.panelIds()) {
             if (!(workspace.panelInstance(id) instanceof SFMExplorerPanel panel)) continue;
-            boolean isReview = panel.sessionSnapshot().roots().stream()
+            boolean hasReviewRoot = panel.sessionSnapshot().roots().stream()
                     .anyMatch(root -> root.scheme().equals(SFMReleaseReviewExplorerRuntime.PATH_SCHEME));
-            if (isReview != review) continue;
+            boolean hostsReview = SFMReleaseReviewExplorerRuntime.get()
+                    .hostedLensDescriptor(panel.sessionSnapshot().roots()).isPresent();
             SFMScreenPanelBounds bounds = contentBounds(workspace, id);
-            return new Handle(workspace, id, panel, bounds, panel.model().state(bounds));
+            SFMExplorerPanelModel.State state = panel.model().state(bounds);
+            boolean hasMountedReviewRows = state.projection().rows().stream()
+                    .anyMatch(row -> row.path().scheme().equals(SFMReleaseReviewExplorerRuntime.PATH_SCHEME));
+            if (review ? !(hasReviewRoot || hostsReview || hasMountedReviewRows) : hasReviewRoot) continue;
+            return new Handle(workspace, id, panel, bounds, state);
         }
         return null;
     }
@@ -1169,6 +1472,24 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         };
     }
 
+    private static double[] workspacePoint(
+            SFMScreenMultiplexer workspace,
+            SFMWorkspacePanelId panelId,
+            double localX,
+            double localY
+    ) {
+        SFMScreenPanelBounds panel = workspace.panelBounds(panelId);
+        SFMScreenPanelBounds logical = workspace.panelContentBounds(panelId);
+        require(panel != null && logical != null, "Panel lost its workspace allocation");
+        SFMScreenPanelBounds physicalContent = panel.inset(1);
+        double scaleX = physicalContent.width() / (double) Math.max(1, logical.width());
+        double scaleY = physicalContent.height() / (double) Math.max(1, logical.height());
+        return new double[]{
+                physicalContent.x() + localX * scaleX,
+                physicalContent.y() + localY * scaleY
+        };
+    }
+
     private static boolean sameParent(SFMPath first, SFMPath second) {
         if (!first.scheme().equals(second.scheme()) || !first.authority().equals(second.authority())) return false;
         if (first.segments().size() != second.segments().size() || first.segments().isEmpty()) return false;
@@ -1257,6 +1578,7 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
     }
 
     private enum Stage {
+        EXPAND_FILE_MOUNT,
         OPEN_FILE_CONTEXT,
         CHOOSE_WRITABLE_VIEW,
         WAIT_REVIEW_EXPLORER,
@@ -1288,6 +1610,10 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         OPEN_STRUCTURED_DIFF,
         WAIT_STRUCTURED_DIFF,
         CAPTURE_STRUCTURED_DIFF,
+        OPEN_STRUCTURED_SPLIT,
+        WAIT_STRUCTURED_SPLIT,
+        REVEAL_STRUCTURED_SPLIT,
+        WAIT_STRUCTURED_SPLIT_REVEAL,
         REOPEN_TEXT_DIFF,
         WAIT_TEXT_DIFF_DEDUP,
         CAPTURE_TEXT_DIFF,
@@ -1296,6 +1622,9 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         CHOOSE_COMMENT_ROUTE,
         CHOOSE_APPROVED,
         WAIT_COMMENT_SAVED,
+        REOPEN_STRUCTURED_SPLIT_WITH_COMMENT,
+        WAIT_STRUCTURED_SPLIT_COMMENT_GUTTER,
+        WAIT_STRUCTURED_SPLIT_COMMENT_MENU,
         OPEN_LENS_MENU,
         CHOOSE_LENS,
         WAIT_LENS,
@@ -1303,7 +1632,14 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
         CLOSE_FOR_RESUME,
         OPEN_RESUME_PALETTE,
         SUBMIT_RESUME,
-        WAIT_RESUMED
+        WAIT_RESUMED,
+        OPEN_WRITABLE_FOR_REMOVAL,
+        SUBMIT_WRITABLE_FOR_REMOVAL,
+        WAIT_WRITABLE_FOR_REMOVAL,
+        OPEN_REMOVE_PALETTE,
+        SUBMIT_REMOVE_REQUEST,
+        CHOOSE_REMOVE_CONFIRMATION,
+        WAIT_COMMENT_REMOVED
     }
 
     private record Handle(

@@ -1,7 +1,8 @@
 # Live single-file reviews
 
-Status: diff-first revision verified2026-09-09. This guide records tested routes
-and their limitations, not a claim that every longer-term planned affordance exists.
+Status: diff-first revision verified 2026-09-09; expandable-review workbench
+revision verified 2026-09-12. This guide records tested routes and their
+limitations, not a claim that every longer-term planned affordance exists.
 
 ## Diff-first revision walkthrough
 
@@ -53,10 +54,21 @@ sfm-propagate-changes.exe run client --branch 1.19.2 --wait-for-build-lock
 The current CLI is installed and smoke-checked; you do not need to run install.ps1.
 Final process inspection found no Java/SFM/Cargo workers running, so launch with
 the command above. Your original review files were not rewritten. Start at the
-title screen, press Ctrl+Shift+E, and open the review file through Explorer's
-writable-review context action. The final disposable repository-scale journey
+title screen and press Ctrl+Shift+E. A `.sfm-review.json` row now has two
+independent affordances: activate the filename to open its raw JSON, or use its
+chevron/Space to mount the review hierarchy read-only inside that same Explorer.
+Right-click and choose **Enable commenting in this mounted review** before adding
+comments. You may also use **Use this entry as the only root** or **Add entry as
+root** without opening a separate review Explorer. The final disposable repository-scale journey
 completed and shut down normally; an earlier timed-out exploration is retained
 as partial evidence only, not counted as a passing puppet.
+
+The current expandable-file journey passed in the preferred title-screen profile.
+Its gallery and machine-readable evidence are under
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-title_screen-20260912-164933-008`.
+It covers read-only mounting, explicit writable promotion, all six review lenses,
+a saved comment, structured/text diff styling, reveal/close actions, and confirms
+that no OS pointer input was injected.
 
 ## Mouse settings and highlighting: verified2026-09-09
 
@@ -135,9 +147,11 @@ frozen; opening one does not reinterpret its historical capture as current disk.
 
 ## Open and comment
 
-1. In the command palette, run `sfm action invoke sfm:review/session/open <path>`
-   with the path of the review. Wait for the opened-writable feedback.
-2. Run `sfm action invoke sfm:panel/open sfm:explorer/release_review/changes`.
+1. Press Ctrl+Shift+E and navigate to a `.sfm-review.json` file. Space or its
+   chevron expands the Changes hierarchy read-only in the ordinary Explorer.
+2. Right-click the review file and choose **Enable commenting in this mounted
+   review**. The raw-JSON and explicit **Reopen mounted review read-only** actions
+   remain available in the same menu.
 3. Use Ctrl+Shift+F for a filename filter. Expand the matching file, then
    double-click its After row to open the source. Before can legitimately be
    missing for a new untracked file.
@@ -147,7 +161,21 @@ frozen; opening one does not reinterpret its historical capture as current disk.
    it. Only approve code you have actually reviewed. The automated demonstration
    approvals belong solely to disposable test files.
 6. Wait for save completion. The comment and required non-Git evidence are now in
-   the review file and can survive closing the game.
+   the review file and can survive closing the game. The same After/Before source
+   row should gain a comment child immediately; reopening the review is a bug.
+
+Choice palettes still use a temporary `sfm choose ...` input. A read-only line
+under that input shows the selected candidate's canonical standalone
+`sfm action invoke ...` command. Hover for the complete command. Right-click a
+candidate to copy that one candidate or all visible candidates as display text,
+surface values, canonical commands, or structured details.
+
+In a split diff, hover the Before/After labels, generated-diff status, or visible
+warning rows. Use the configured action mouse button to copy or open their exact
+`sfm.review-surface-ui-region/1` details. Java review snapshots can use exact
+in-memory source overlays for definition lookup even when disk has advanced, but
+the rest of that semantic workspace is the ambient checkout. Rust syntax colors
+do not imply Rust definition navigation or inlay/type analysis.
 
 ## Refresh versus recheck
 
@@ -452,3 +480,30 @@ a sparse v3 ledger. In-game **Recheck review freshness** compares the captured
 observation; **Refresh from current source** obtains a new one. CLI consumers
 needing that distinction can use `resolve` and `freshness-of --request-file` with
 the exact observed source bindings, rather than treating live disk as a HEAD alias.
+
+## Removing comments and navigating generated diff surfaces
+
+Human comments in a writable review now expose **Remove comment…** from the
+comment value/details actions. Removal is a two-step canonical command: the
+confirmation captures the review epoch, comment id and semantic hash, then
+atomically rewrites the review and refreshes surviving Explorers. A stale menu,
+read-only review, changed comment, or generated legacy release marker fails
+closed. The confirmation removes only the selected human comment and its now
+unreferenced selector evidence; it does not reinterpret other comments or
+approvals.
+
+Every generated review leaf retains the exact review-tree row that produced it.
+The target button can therefore reveal raw patch, inline text/structured diff,
+and split text/structured diff documents even after filtering or mounting the
+review inside an ordinary Explorer. **Raw text patch** is the compact unified
+patch. **Text diff (inline)** is the complete source-interposed unified view.
+Structured split views reconstruct complete Before and After source in source
+order and retain exact changed spans, syntax mappings, copy ranges and comment
+projections. Comment gutter markers are independently clickable on both split
+sides; overlapping comments receive separate lanes.
+
+Freeform **Save and close** accepts the exact draft, closes the editor
+immediately, and leaves a persistent localized saving operation behind. Success
+and failure update that operation. Failure retains the exact draft and offers a
+reopen/retry action. Ordinary **Save** may keep the editor open. Preset comments
+use the same saving/success/failure vocabulary.

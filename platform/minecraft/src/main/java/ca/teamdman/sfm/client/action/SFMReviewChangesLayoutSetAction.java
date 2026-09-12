@@ -47,8 +47,9 @@ public final class SFMReviewChangesLayoutSetAction
             return actionContext.originatingHostIsCurrent().getAsBoolean()
                     && workspace.panelInstance(panelId) == explorer
                     && SFMReleaseReviewExplorerRuntime.get()
-                    .lensDescriptor(explorer.sessionSnapshot().roots())
-                    .map(current -> current.reviewOpenEpoch() == lens.reviewOpenEpoch()
+                    .hostedLensDescriptor(explorer.sessionSnapshot().roots())
+                    .map(current -> current.root().equals(lens.root())
+                            && current.reviewOpenEpoch() == lens.reviewOpenEpoch()
                             && current.reviewPath().equals(lens.reviewPath())
                             && current.projection() == SFMReleaseReviewExplorerScreenType.Projection.CHANGES)
                     .orElse(false);
@@ -84,7 +85,7 @@ public final class SFMReviewChangesLayoutSetAction
             ));
         }
         Optional<SFMReleaseReviewExplorerRuntime.LensDescriptor> lens =
-                SFMReleaseReviewExplorerRuntime.get().lensDescriptor(explorer.sessionSnapshot().roots());
+                SFMReleaseReviewExplorerRuntime.get().hostedLensDescriptor(explorer.sessionSnapshot().roots());
         if (lens.isEmpty()
                 || lens.orElseThrow().projection() != SFMReleaseReviewExplorerScreenType.Projection.CHANGES) {
             return SFMClientActionAvailability.unavailable(Component.literal(

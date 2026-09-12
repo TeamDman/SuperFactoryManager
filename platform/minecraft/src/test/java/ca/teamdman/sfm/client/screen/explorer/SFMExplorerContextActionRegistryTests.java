@@ -18,9 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMExplorerContextActionRegistryTests {
     @Test
-    void trackedReviewFileOffersPlainWritableAndReadOnlyOpenActions() {
+    void expandableReviewFileRetainsPlainWritableAndReadOnlyOpenActions() {
         SFMPath path = SFMPath.fromNative(Path.of("reviews", "candidate.sfm-review.json"));
-        SFMExplorerEntry entry = SFMExplorerEntry.simple(path, "candidate.sfm-review.json", false, Optional.empty());
+        SFMExplorerEntry entry = SFMExplorerEntry.simple(path, "candidate.sfm-review.json", true, Optional.empty());
         var choices = SFMExplorerContextActionRegistry.minecraftDefaults().resolve(
                 request(path, entry)
         );
@@ -28,9 +28,9 @@ class SFMExplorerContextActionRegistryTests {
         assertEquals(5, choices.size());
         assertEquals("sfm:explorer/row/details/copy", choices.get(0).actionId().toString());
         assertEquals("sfm:path/open", choices.get(1).actionId().toString());
-        assertEquals("sfm:review/session/open/view", choices.get(2).actionId().toString());
+        assertEquals("sfm:review/session/open", choices.get(2).actionId().toString());
         assertEquals("sfm:review/evidence/open", choices.get(3).actionId().toString());
-        assertEquals("sfm:review/session/open/read_only/view", choices.get(4).actionId().toString());
+        assertEquals("sfm:review/session/open/read_only", choices.get(4).actionId().toString());
         assertTrue(choices.stream().allMatch(choice -> choice.command().startsWith("sfm action invoke ")));
     }
 

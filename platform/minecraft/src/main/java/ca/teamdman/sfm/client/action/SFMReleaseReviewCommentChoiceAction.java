@@ -10,9 +10,12 @@ import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
+import ca.teamdman.sfm.client.text_editor.SFMTextDocumentLanguage;
 import ca.teamdman.sfm.client.text_editor.SFMTextDocumentSource;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditorPanelRecipe;
 import ca.teamdman.sfm.common.config.SFMClientTextEditorConfig;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -29,6 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 /** Action-backed constrained choice flow for one immutable review selection. */
 public final class SFMReleaseReviewCommentChoiceAction
@@ -36,6 +40,18 @@ public final class SFMReleaseReviewCommentChoiceAction
     static final String APPROVED = "#approved Reviewed through the in-game release-review surface.";
     static final String NEEDS_CHANGE = "#needs-change Requires follow-up from the in-game release-review surface.";
     private static final ResourceLocation SCENE_ID = new ResourceLocation(SFM.MOD_ID, "text_editor");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SAVING_COMMENT = new LocalizationEntry(
+            "gui.sfm.release_review.comment.saving", "Saving review comment…");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SAVED_COMMENT = new LocalizationEntry(
+            "gui.sfm.release_review.comment.saved", "Saved review comment");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry SAVED_COMMENT_WITH_ID = new LocalizationEntry(
+            "gui.sfm.release_review.comment.saved_with_id", "Saved review comment %s");
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry COMMENT_NOT_SAVED = new LocalizationEntry(
+            "gui.sfm.release_review.comment.failed", "Comment not saved; draft retained. Right-click for details or retry.");
 
     public enum Kind {
         OPEN("review/comment/choice/open", "Comment on review selection",
@@ -121,7 +137,7 @@ public final class SFMReleaseReviewCommentChoiceAction
                         StringArgumentType.getString(context, "text"),
                         context
                 );
-                case OTHER -> openOtherEditor(target, draftId);
+                case OTHER -> openOtherEditor(target, draftId, context.getSource()::sendFeedback);
                 case CANCEL -> {
                     var cancellation = SFMReleaseReviewCommentDraftService.get().cancelChoice(draftId);
                     context.getSource().sendFeedback(Component.literal(switch (cancellation) {
@@ -207,7 +223,7 @@ public final class SFMReleaseReviewCommentChoiceAction
         var status = new SFMReleaseReviewOperationFeedback(target,
                 SFMReleaseReviewRuntime.get().pendingOperation()
                         .map(SFMReleaseReviewRuntime.OperationSnapshot::id).orElse(0L), context.getSource()::sendFeedback);
-        status.pending(Component.literal("Saving review comment…"));
+        status.pending(SAVING_COMMENT.getComponent());
         persistence.whenComplete((result, failure) -> Minecraft.getInstance().execute(() -> {
             if (failure != null) {
                 reportRetainedDraft(status, draftId, rootMessage(failure));
@@ -221,19 +237,22 @@ public final class SFMReleaseReviewCommentChoiceAction
             if (continuation.isCurrent() && SFMReleaseReviewRuntime.get().snapshot().openEpoch() == reviewEpoch) {
                 refreshReviewExplorers(continuation.context());
             }
-            status.complete(Component.literal(
-                    "Saved review comment " + result.commentId()));
+            status.complete(SAVED_COMMENT_WITH_ID.getComponent(result.commentId()));
         }));
         return 1;
     }
 
     private static void reportRetainedDraft(SFMReleaseReviewOperationFeedback status, String draftId, String details) {
-        status.failed("Comment not saved; draft retained. Right-click for details or retry.", details,
+        status.failed(COMMENT_NOT_SAVED.getComponent().getString(), details,
                 List.of(SFMActionChoice.invoke(Kind.OPEN.id(), StringArgumentType.escapeIfRequired(draftId),
                         "Retry retained comment draft")));
     }
 
-    private static int openOtherEditor(SFMClientActionContext target, String draftId) {
+    private static int openOtherEditor(
+            SFMClientActionContext target,
+            String draftId,
+            Consumer<Component> console
+    ) {
         SFMReleaseReviewCommentDraftService service = SFMReleaseReviewCommentDraftService.get();
         service.requireCurrent(draftId);
         if (!SFMReleaseReviewRuntime.get().snapshot().writable()) {
@@ -245,7 +264,7 @@ public final class SFMReleaseReviewCommentChoiceAction
         var recipe = new SFMTextEditorPanelRecipe(
                 SCENE_ID,
                 editorId,
-                new SFMTextDocumentSource.Literal(""),
+                newCommentDocumentSource(),
                 false,
                 "Review Comment Draft · Use the editor's Save/Done action",
                 () -> new ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewCommentSaveHandler(
@@ -255,7 +274,8 @@ public final class SFMReleaseReviewCommentChoiceAction
                                     && SFMReleaseReviewRuntime.get().snapshot().openEpoch() == reviewEpoch) {
                                 refreshReviewExplorers(continuation.context());
                             }
-                        }))
+                        }),
+                        submission -> observeDetachedCommentSave(target, console, submission))
         );
         int opened = OpenPanelAction.openPanel(
                 target,
@@ -265,6 +285,29 @@ public final class SFMReleaseReviewCommentChoiceAction
         );
         if (opened == 0) throw new IllegalStateException("The preferred review-comment editor could not be opened");
         return opened;
+    }
+
+    private static void observeDetachedCommentSave(
+            SFMClientActionContext target,
+            Consumer<Component> console,
+            ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewCommentSaveHandler.Submission submission
+    ) {
+        var status = new SFMReleaseReviewOperationFeedback(target, submission.operationId(), console);
+        status.pending(SAVING_COMMENT.getComponent());
+        submission.completion().whenComplete((result, failure) -> Minecraft.getInstance().execute(() -> {
+            if (failure != null) {
+                reportRetainedDraft(status, submission.draftId(), rootMessage(failure));
+            } else if (!result.saved()) {
+                reportRetainedDraft(status, submission.draftId(), result.diagnostic()
+                        .map(Component::getString).orElse("Unable to save release-review comment"));
+            } else {
+                status.complete(SAVED_COMMENT.getComponent());
+            }
+        }));
+    }
+
+    static SFMTextDocumentSource.Literal newCommentDocumentSource() {
+        return new SFMTextDocumentSource.Literal("", SFMTextDocumentLanguage.plainText());
     }
 
     private static int reopenWritable(
@@ -293,7 +336,7 @@ public final class SFMReleaseReviewCommentChoiceAction
         for (var panel : workspace.panels()) {
             if (panel instanceof SFMExplorerPanel explorer
                     && ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime.get()
-                    .lensDescriptor(explorer.sessionSnapshot().roots())
+                    .hostedLensDescriptor(explorer.sessionSnapshot().roots())
                     .filter(lens -> lens.reviewOpenEpoch() == review.openEpoch()
                             && review.path().filter(lens.reviewPath()::equals).isPresent()).isPresent()) {
                 explorer.refreshExpandedProjection();

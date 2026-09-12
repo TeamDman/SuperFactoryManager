@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMReleaseReviewAnalysisIdentityResolverTests {
     @Test
-    void exactCandidateBytesBorrowAFileIdentityWithoutReplacingReviewIdentity(@TempDir Path root)
+    void pinnedReviewBytesBorrowAnOverlayIdentityWithoutReplacingReviewIdentity(@TempDir Path root)
             throws Exception {
         SFMReleaseReviewV1 review = fixture();
         Files.createDirectories(root.resolve(".git"));
@@ -64,20 +64,22 @@ class SFMReleaseReviewAnalysisIdentityResolverTests {
         assertEquals(identity.authorizedRoot(), semantic.authorizedRoot().orElseThrow());
         assertEquals(durable.text(), semantic.text());
         assertEquals(durable.sha256(), semantic.sha256());
-        assertTrue(semantic.analysisIdentity().isEmpty(),
-                "the worker projection must not recursively retain an alternate identity");
+        assertEquals(Optional.of(identity), semantic.analysisIdentity(),
+                "the worker projection retains an explicit pinned-overlay witness");
+        assertTrue(semantic.semanticAnalysisSnapshot().isEmpty(),
+                "an already-native worker projection must not recursively remap itself");
 
         SFMReleaseReviewV1.CorpusDocument before = review.corpusDocuments().stream()
                 .filter(value -> value.snapshotSide() == SFMReleaseReviewV1.SnapshotSide.BEFORE)
                 .findFirst().orElseThrow();
         assertTrue(SFMReleaseReviewAnalysisIdentityResolver.resolve(
-                review, reviewPath, before.documentRevisionId()).isEmpty(),
-                "historical bytes must not borrow the candidate checkout identity");
+                review, reviewPath, before.documentRevisionId()).isPresent(),
+                "historical bytes use the same authorized path with their pinned text as an overlay");
 
         Files.writeString(candidate, text + "// stale\n", StandardCharsets.UTF_8);
         assertTrue(SFMReleaseReviewAnalysisIdentityResolver.resolve(
-                review, reviewPath, after.documentRevisionId()).isEmpty(),
-                "a checkout whose bytes differ from the pinned corpus must fail closed");
+                review, reviewPath, after.documentRevisionId()).isPresent(),
+                "a changed checkout still supplies path/root authority for the pinned source overlay");
     }
 
     private static SFMReleaseReviewV1 fixture() throws Exception {

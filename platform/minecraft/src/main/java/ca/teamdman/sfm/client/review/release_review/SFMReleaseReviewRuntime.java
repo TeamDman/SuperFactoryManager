@@ -710,6 +710,70 @@ public final class SFMReleaseReviewRuntime implements AutoCloseable {
         });
     }
 
+    /**
+     * Removes one durable comment and the selector/migration state owned by it.
+     * A comment used as another migration's decision evidence is deliberately
+     * protected: deleting it would silently rewrite that independent decision.
+     */
+    public CompletableFuture<MutationResult> removeCommentAsync(
+            Path reviewPath,
+            long reviewEpoch,
+            String commentId,
+            String expectedSemanticStateHash
+    ) {
+        Objects.requireNonNull(reviewPath, "reviewPath");
+        Objects.requireNonNull(commentId, "commentId");
+        Objects.requireNonNull(expectedSemanticStateHash, "expectedSemanticStateHash");
+        Snapshot captured = snapshot();
+        if (captured.openEpoch() != reviewEpoch
+                || !captured.path().filter(reviewPath.toAbsolutePath().normalize()::equals).isPresent()) {
+            return CompletableFuture.failedFuture(new IllegalStateException(
+                    "The review was replaced after comment removal was requested"));
+        }
+        return mutateAsync(captured, value -> {
+            if (!SFMReleaseReviewKernel.semanticStateHash(value).equals(expectedSemanticStateHash)) {
+                throw new IllegalStateException(
+                        "The review changed after comment removal was confirmed; reopen the comment menu");
+            }
+            var comments = new ArrayList<>(value.reviewSession().comments());
+            if (comments.stream().noneMatch(comment -> comment.id().equals(commentId))) {
+                throw new IllegalStateException("The comment is no longer present: " + commentId);
+            }
+            var ownedSelectorIds = value.selectorBindings().stream()
+                    .filter(binding -> binding.commentId().equals(commentId))
+                    .map(binding -> binding.selectedProposal().id())
+                    .collect(java.util.stream.Collectors.toSet());
+            var retainedSelectorIds = value.selectorBindings().stream()
+                    .filter(binding -> !binding.commentId().equals(commentId))
+                    .map(binding -> binding.selectedProposal().id())
+                    .collect(java.util.stream.Collectors.toSet());
+            var removableSelectorIds = new java.util.HashSet<>(ownedSelectorIds);
+            removableSelectorIds.removeAll(retainedSelectorIds);
+            boolean ownsDecisionForAnotherSelector = value.migrationReports().stream()
+                    .anyMatch(report -> report.decisionCommentId().filter(commentId::equals).isPresent()
+                            && !removableSelectorIds.contains(report.sourceSelectorId()));
+            if (ownsDecisionForAnotherSelector) {
+                throw new IllegalStateException(
+                        "This comment records a migration decision and cannot be removed independently");
+            }
+            comments.removeIf(comment -> comment.id().equals(commentId));
+            var bindings = value.selectorBindings().stream()
+                    .filter(binding -> !binding.commentId().equals(commentId))
+                    .toList();
+            var reports = value.migrationReports().stream()
+                    .filter(report -> !removableSelectorIds.contains(report.sourceSelectorId()))
+                    .filter(report -> report.decisionCommentId().filter(commentId::equals).isEmpty())
+                    .toList();
+            var previous = value.reviewSession();
+            var session = new SFMReviewSessionV2(previous.schema(), previous.id(), previous.title(),
+                    previous.coordinateSystem(), previous.revisionLanes(), comments, previous.styleRules(),
+                    previous.completionPolicy());
+            return new SFMReleaseReviewV1(value.schema(), session, value.repositoryBindings(), value.corpusDocuments(),
+                    value.reviewUnits(), bindings, reports, value.namedQueries(), value.resumeState(),
+                    value.producerGenerations(), value.completionAttestations());
+        });
+    }
+
     /** Records a human migration decision and any explicit retargeting as one portable mutation. */
     public synchronized MigrationMutationResult decideMigration(
             String migrationId,

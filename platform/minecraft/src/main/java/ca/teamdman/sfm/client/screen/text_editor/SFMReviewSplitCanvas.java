@@ -17,32 +17,62 @@ import static ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1.Sn
 /** A single measured canvas: visual columns are not concatenated into a fictitious source file. */
 public final class SFMReviewSplitCanvas {
     private record Hit(SnapshotSide side, int row, int column) { }
+    public record DecorationHit(SFMTextDocumentDecoration decoration, boolean gutterMarker) {
+        public DecorationHit {
+            Objects.requireNonNull(decoration, "decoration");
+        }
+    }
+    private record GutterMarker(
+            SnapshotSide side,
+            int row,
+            int lane,
+            String text,
+            SFMTextDocumentDecoration decoration
+    ) { }
+    public record MetadataObject(String kind, String headline, List<String> detailLines, String detailsPayload) {
+        public MetadataObject {
+            Objects.requireNonNull(kind, "kind");
+            Objects.requireNonNull(headline, "headline");
+            detailLines = List.copyOf(detailLines);
+            Objects.requireNonNull(detailsPayload, "detailsPayload");
+        }
+    }
     private final SFMReleaseReviewSurfaceRuntime.SplitDocument document;
     private final Font font;
-    private final double rightX;
-    private final double width;
+    private final int leftWidth;
+    private final int rightWidth;
+    private double gutterWidth = 16;
+    private double rightX;
+    private double width;
     private Hit anchor, active;
     private boolean dragging;
     private boolean allSelected;
     private List<FormattingSpan> styles = List.of();
     private List<SFMTextDocumentDecoration> decorations = List.of();
+    private List<GutterMarker> gutterMarkers = List.of();
 
     public SFMReviewSplitCanvas(SFMReleaseReviewSurfaceRuntime.SplitDocument document, Font font) {
         this.document = document; this.font = font;
-        int leftWidth = 120, rightWidth = 120;
+        int measuredLeftWidth = 120, measuredRightWidth = 120;
         for (var row : document.layout().rows()) {
-            if (row.before().isPresent()) leftWidth = Math.max(leftWidth, font.width(row.before().orElseThrow().displayText()));
-            if (row.after().isPresent()) rightWidth = Math.max(rightWidth, font.width(row.after().orElseThrow().displayText()));
+            if (row.before().isPresent()) measuredLeftWidth = Math.max(
+                    measuredLeftWidth, font.width(row.before().orElseThrow().displayText()));
+            if (row.after().isPresent()) measuredRightWidth = Math.max(
+                    measuredRightWidth, font.width(row.after().orElseThrow().displayText()));
         }
-        rightX = leftWidth + 40;
-        width = rightX + rightWidth + 20;
+        leftWidth = measuredLeftWidth;
+        rightWidth = measuredRightWidth;
+        updateGeometry();
     }
     public double width() { return width; }
     public double contentLeft() { return document.pair().before().isEmpty() ? rightX : 0; }
     public double contentRight() { return document.pair().after().isEmpty() ? rightX - 40 : width; }
     public double contentHeight() { return Math.max(font.lineHeight, document.layout().rows().size() * font.lineHeight); }
     public void styles(List<FormattingSpan> value) { styles = List.copyOf(value); }
-    public void decorations(List<SFMTextDocumentDecoration> value) { decorations = List.copyOf(value); }
+    public void decorations(List<SFMTextDocumentDecoration> value) {
+        decorations = List.copyOf(value);
+        rebuildGutterMarkers();
+    }
     public SFMReleaseReviewSplitLayout.Selection selection() {
         if (allSelected) return document.layout().selectAll(selectedSide());
         return anchor == null ? new SFMReleaseReviewSplitLayout.Selection(List.of(), "")
@@ -107,7 +137,7 @@ public final class SFMReviewSplitCanvas {
         SnapshotSide side = fixedSide != null ? fixedSide : x < rightX - 20 ? SnapshotSide.BEFORE : SnapshotSide.AFTER;
         if (document.pair().source(side).isEmpty()) return null;
         String text = document.layout().rows().get(row).cell(side).map(SFMReleaseReviewSplitLayout.Cell::displayText).orElse("");
-        double local = x - (side == SnapshotSide.AFTER ? rightX : 0);
+        double local = x - textX(side);
         int column = 0; double advance = 0;
         for (int offset = 0; offset < text.length();) {
             int next = offset + Character.charCount(text.codePointAt(offset));
@@ -117,8 +147,17 @@ public final class SFMReviewSplitCanvas {
         }
         return new Hit(side, row, column);
     }
-    public List<SFMTextDocumentDecoration> hits(double x, double y) {
+    public List<DecorationHit> hits(double x, double y) {
         if (x < 0 || x > width || y < 0 || y >= document.layout().rows().size() * font.lineHeight) return List.of();
+        int row = (int)Math.floor(y / font.lineHeight);
+        ArrayList<DecorationHit> answer = new ArrayList<>();
+        for (GutterMarker marker : gutterMarkers) {
+            if (marker.row() != row) continue;
+            double left = gutterX(marker.side(), marker.lane(), marker.text());
+            double right = left + Math.max(1, font.width(marker.text()));
+            if (x >= left && x < right) answer.add(new DecorationHit(marker.decoration(), true));
+        }
+        if (!answer.isEmpty()) return List.copyOf(answer);
         Hit hit = hit(x, y, null);
         if (hit == null) return List.of();
         var cell = document.layout().rows().get(hit.row()).cell(hit.side());
@@ -127,7 +166,88 @@ public final class SFMReviewSplitCanvas {
         int offset = text.offsetByCodePoints(0, hit.column());
         int byteOffset = cell.orElseThrow().surfaceRange().startByte() + text.substring(0, offset).getBytes(StandardCharsets.UTF_8).length;
         return decorations.stream().filter(value -> value.interactiveObject().isPresent()
-                && value.range().start().byteOffset() <= byteOffset && value.range().end().byteOffset() > byteOffset).toList();
+                        && value.range().start().byteOffset() <= byteOffset
+                        && value.range().end().byteOffset() > byteOffset)
+                .map(value -> new DecorationHit(value, false)).toList();
+    }
+
+    /** Canvas-relative Before/After headers remain inspectable while the camera pans. */
+    public Optional<MetadataObject> canvasMetadataAt(double x, double y) {
+        if (y < -18 || y >= -18 + font.lineHeight) return Optional.empty();
+        SnapshotSide side;
+        if (x >= textX(SnapshotSide.BEFORE)
+                && x < textX(SnapshotSide.BEFORE) + font.width("Before")) side = SnapshotSide.BEFORE;
+        else if (x >= textX(SnapshotSide.AFTER)
+                && x < textX(SnapshotSide.AFTER) + font.width("After")) side = SnapshotSide.AFTER;
+        else return Optional.empty();
+        return document.pair().source(side).map(source -> sourceMetadata(side, source));
+    }
+
+    /** Panel-relative generated status/diagnostic rows stay addressable above the panning canvas. */
+    public Optional<MetadataObject> fixedMetadataAt(double x, double y) {
+        String status = statusText();
+        if (containsTextRow(x, y, 6, status)) return Optional.of(statusMetadata(status));
+        int diagnosticY = 18;
+        int index = 0;
+        for (var diagnostic : document.surface().diagnostics()) {
+            if (diagnosticY >= 6 + 4 * font.lineHeight) break;
+            String text = diagnostic.displayText();
+            if (containsTextRow(x, y, diagnosticY, text)) {
+                return Optional.of(diagnosticMetadata(index, diagnostic));
+            }
+            diagnosticY += font.lineHeight;
+            index++;
+        }
+        return Optional.empty();
+    }
+
+    private boolean containsTextRow(double x, double y, int top, String text) {
+        return x >= 6 && x < 6 + font.width(text) && y >= top && y < top + font.lineHeight;
+    }
+
+    private MetadataObject sourceMetadata(SnapshotSide side, SFMReleaseReviewSurfaceV1.Source source) {
+        String title = side == SnapshotSide.BEFORE ? "Before source" : "After source";
+        String payload = "schema: sfm.review-surface-ui-region/1\n"
+                + "region-kind: source-header\n"
+                + "side: " + side.name().toLowerCase(Locale.ROOT) + "\n"
+                + "file-pair-id: " + document.surface().filePairId() + "\n"
+                + "document-revision-id: " + source.documentRevisionId() + "\n"
+                + "path: " + source.path() + "\n"
+                + "language: " + source.language() + "\n"
+                + "sha256: " + source.sha256() + "\n";
+        return new MetadataObject("source-header", title,
+                List.of(source.path(), source.documentRevisionId(), "Right-click for actions"), payload);
+    }
+
+    private MetadataObject statusMetadata(String status) {
+        var surface = document.surface();
+        String payload = "schema: sfm.review-surface-ui-region/1\n"
+                + "region-kind: generation-status\n"
+                + "file-pair-id: " + surface.filePairId() + "\n"
+                + "surface-kind: " + surface.surfaceKind().wireName() + "\n"
+                + "algorithm: " + surface.algorithm() + "\n"
+                + "outcome: " + surface.outcome().wireName() + "\n"
+                + "complete: " + surface.complete() + "\n"
+                + "fallback-kind: " + surface.fallbackKind().map(SFMReleaseReviewSurfaceV1.SurfaceKind::wireName)
+                .orElse("none") + "\n"
+                + "text-sha256: " + surface.textSha256() + "\n";
+        return new MetadataObject("generation-status", "Generated diff status",
+                List.of(status, "Right-click for actions"), payload);
+    }
+
+    private MetadataObject diagnosticMetadata(int index, SFMReleaseReviewSurfaceV1.Diagnostic diagnostic) {
+        String payload = "schema: sfm.review-surface-ui-region/1\n"
+                + "region-kind: diagnostic\n"
+                + "diagnostic-index: " + index + "\n"
+                + "file-pair-id: " + document.surface().filePairId() + "\n"
+                + "code: " + diagnostic.code() + "\n"
+                + "severity: " + diagnostic.severity().wireName() + "\n"
+                + "message: " + diagnostic.message() + "\n"
+                + "side: " + diagnostic.side().map(value -> value.name().toLowerCase(Locale.ROOT)).orElse("none") + "\n"
+                + "source-range: " + diagnostic.sourceRange()
+                .map(value -> value.startByte() + ".." + value.endByte()).orElse("none") + "\n";
+        return new MetadataObject("diagnostic", "Generated diff diagnostic",
+                List.of(diagnostic.displayText(), "Right-click for actions"), payload);
     }
     public SFMContextDocumentProjection projection(String editorId) {
         SnapshotSide side = anchor == null ? (document.pair().after().isPresent() ? SnapshotSide.AFTER : SnapshotSide.BEFORE) : anchor.side();
@@ -160,15 +280,15 @@ public final class SFMReviewSplitCanvas {
         int first = Math.max(0, (int)Math.floor(-originY / zoom / font.lineHeight));
         int last = Math.min(document.layout().rows().size(), (int)Math.ceil((viewportHeight - originY) / zoom / font.lineHeight) + 1);
         pose.pushPose(); pose.translate(originX, originY, 0); pose.scale((float)zoom, (float)zoom, 1);
-        font.draw(pose, "Before", 0, -18, 0xFFFFAAAA);
-        font.draw(pose, "After", (float)rightX, -18, 0xFFAAFFAA);
+        font.draw(pose, "Before", (float)textX(SnapshotSide.BEFORE), -18, 0xFFFFAAAA);
+        font.draw(pose, "After", (float)textX(SnapshotSide.AFTER), -18, 0xFFAAFFAA);
         var selected = selection();
         for (int row = first; row < last; row++) for (SnapshotSide side : SnapshotSide.values()) {
             var optional = document.layout().rows().get(row).cell(side);
             if (optional.isEmpty()) continue;
             var cell = optional.orElseThrow();
             String text = cell.displayText();
-            int x = side == SnapshotSide.BEFORE ? 0 : (int)rightX, y = row * font.lineHeight;
+            int x = (int)textX(side), y = row * font.lineHeight;
             for (var decoration : decorations) {
                 int start = Math.max((int)decoration.range().start().byteOffset(), cell.surfaceRange().startByte());
                 int end = Math.min((int)decoration.range().end().byteOffset(), cell.surfaceRange().startByte() + text.getBytes(StandardCharsets.UTF_8).length);
@@ -208,15 +328,19 @@ public final class SFMReviewSplitCanvas {
             String text = document.layout().rows().get(active.row()).cell(active.side())
                     .map(SFMReleaseReviewSplitLayout.Cell::displayText).orElse("");
             int column = Math.min(active.column(), text.codePointCount(0, text.length()));
-            int x = (active.side() == SnapshotSide.AFTER ? (int)rightX : 0)
+            int x = (int)textX(active.side())
                     + font.width(text.substring(0, text.offsetByCodePoints(0, column)));
             int y = active.row() * font.lineHeight;
             GuiComponent.fill(pose, x, y, x + 1, y + font.lineHeight, 0xFFFFFFFF);
         }
+        for (GutterMarker marker : gutterMarkers) {
+            if (marker.row() < first || marker.row() >= last) continue;
+            int colour = marker.decoration().underlineArgb().orElse(0xFF60A5FA);
+            font.draw(pose, marker.text(), (float)gutterX(marker.side(), marker.lane(), marker.text()),
+                    marker.row() * font.lineHeight, colour);
+        }
         pose.popPose();
-        String status = document.surface().algorithm();
-        if (document.surface().fallbackKind().isPresent()) status += " · text fallback";
-        if (document.layout().rows().isEmpty()) status += " · no mapped source changes";
+        String status = statusText();
         font.draw(pose, status, 6, 6, 0xFFCCCCCC);
         int diagnosticY = 18;
         for (var diagnostic : document.surface().diagnostics()) {
@@ -224,5 +348,70 @@ public final class SFMReviewSplitCanvas {
             diagnosticY += font.lineHeight;
             if (diagnosticY >= 6 + 4 * font.lineHeight) break;
         }
+    }
+
+    private String statusText() {
+        String status = document.surface().algorithm();
+        if (document.surface().fallbackKind().isPresent()) status += " · text fallback";
+        if (document.layout().rows().isEmpty()) status += " · no mapped source changes";
+        return status;
+    }
+
+    private double textX(SnapshotSide side) {
+        return (side == SnapshotSide.AFTER ? rightX : 0) + gutterWidth;
+    }
+
+    private double gutterX(SnapshotSide side, int lane, String marker) {
+        int step = Math.max(3, font.width(marker) + 2);
+        return (side == SnapshotSide.AFTER ? rightX : 0) + 2.0 + (double)lane * step;
+    }
+
+    private void updateGeometry() {
+        rightX = gutterWidth + leftWidth + 40;
+        width = rightX + gutterWidth + rightWidth + 20;
+    }
+
+    private void rebuildGutterMarkers() {
+        record Key(SnapshotSide side, String kind, String id) { }
+        LinkedHashMap<Key, GutterMarker> first = new LinkedHashMap<>();
+        for (SFMTextDocumentDecoration decoration : decorations) {
+            if (decoration.gutterMarker().isEmpty() || decoration.interactiveObject().isEmpty()) continue;
+            var object = decoration.interactiveObject().orElseThrow();
+            for (SnapshotSide side : SnapshotSide.values()) {
+                Key key = new Key(side, object.kind(), object.id());
+                for (int row = 0; row < document.layout().rows().size(); row++) {
+                    var cell = document.layout().rows().get(row).cell(side);
+                    if (cell.isEmpty() || !overlaps(decoration, cell.orElseThrow())) continue;
+                    GutterMarker current = first.get(key);
+                    if (current == null || row < current.row()) {
+                        first.put(key, new GutterMarker(
+                                side, row, 0, decoration.gutterMarker().orElseThrow(), decoration));
+                    }
+                    break;
+                }
+            }
+        }
+        Map<String, Integer> nextLane = new HashMap<>();
+        ArrayList<GutterMarker> positioned = new ArrayList<>();
+        int widestRow = 0;
+        int widestMarker = 1;
+        for (GutterMarker marker : first.values()) {
+            String rowKey = marker.side().name() + ":" + marker.row();
+            int lane = nextLane.getOrDefault(rowKey, 0);
+            nextLane.put(rowKey, lane + 1);
+            positioned.add(new GutterMarker(
+                    marker.side(), marker.row(), lane, marker.text(), marker.decoration()));
+            widestRow = Math.max(widestRow, lane + 1);
+            widestMarker = Math.max(widestMarker, font.width(marker.text()) + 2);
+        }
+        gutterMarkers = List.copyOf(positioned);
+        gutterWidth = Math.max(16, 4.0 + (double)widestRow * widestMarker);
+        updateGeometry();
+    }
+
+    private static boolean overlaps(SFMTextDocumentDecoration decoration, SFMReleaseReviewSplitLayout.Cell cell) {
+        long start = decoration.range().start().byteOffset();
+        long end = decoration.range().end().byteOffset();
+        return start < cell.surfaceRange().endByte() && end > cell.surfaceRange().startByte();
     }
 }

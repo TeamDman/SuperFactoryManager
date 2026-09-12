@@ -1250,6 +1250,17 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         return result;
     }
 
+    /** Refreshes one mounted child relation without replacing this Explorer's ordinary roots. */
+    public CompletionStage<Void> refreshMountedProjection(SFMPath mountPath) {
+        Objects.requireNonNull(mountPath, "mountPath");
+        if (closed || !session.snapshot().expanded().contains(mountPath)) {
+            return java.util.concurrent.CompletableFuture.failedFuture(
+                    new IllegalStateException("The release-review file is no longer expanded in this Explorer")
+            );
+        }
+        return session.requestChildren(mountPath, loader, 128).completion().thenApply(ignored -> null);
+    }
+
     private void activateSelected(SFMExplorerPreviewPlacement.Mode mode) {
         SFMExplorerPanelModel.State state = model.state(bounds);
         if (state.selectedRow().map(row -> !row.entry().opensOnActivate()).orElse(false)) {
@@ -1382,7 +1393,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     private Optional<SFMReleaseReviewExplorerRuntime.LensDescriptor> reviewLensDescriptor() {
-        return SFMReleaseReviewExplorerRuntime.get().lensDescriptor(session.snapshot().roots());
+        return SFMReleaseReviewExplorerRuntime.get().hostedLensDescriptor(session.snapshot().roots());
     }
 
     private boolean lensControlVisible() {

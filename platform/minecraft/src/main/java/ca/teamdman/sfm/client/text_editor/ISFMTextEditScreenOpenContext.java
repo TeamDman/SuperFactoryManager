@@ -119,6 +119,9 @@ public interface ISFMTextEditScreenOpenContext {
         return java.util.concurrent.CompletableFuture.completedFuture(saveDocument(content));
     }
 
+    /** Whether Save-and-close may hand an accepted async operation to durable host feedback. */
+    default boolean detachSaveAndCloseAfterSubmission() { return false; }
+
     /** Called on the client thread only after durable async success. */
     default void documentSaved(String submittedText) { }
 

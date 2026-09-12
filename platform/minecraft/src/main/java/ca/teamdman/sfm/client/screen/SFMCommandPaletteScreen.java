@@ -10,6 +10,7 @@ import ca.teamdman.sfm.client.action.SFMCompletionApplication;
 import ca.teamdman.sfm.client.action.SFMFocusTargetHost;
 import ca.teamdman.sfm.client.action.SFMPaletteCandidate;
 import ca.teamdman.sfm.client.action.SFMPaletteCandidateCopyAction;
+import ca.teamdman.sfm.client.action.SFMPaletteCandidateSetCopyAction;
 import ca.teamdman.sfm.client.action.SFMPaletteCandidateInspection;
 import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
 import ca.teamdman.sfm.client.history.SFMDocumentHistoryHost;
@@ -71,7 +72,8 @@ import java.util.function.Consumer;
  */
 public final class SFMCommandPaletteScreen extends Screen implements SFMTransientActionScreen,
         SFMDocumentHistoryHost, SFMDocumentHistoryInputTarget, SFMKeyboardUsageContextProvider,
-        SFMFocusTargetHost, SFMScreenDiagnosticsContributor, SFMPaletteCandidateCopyAction.Host {
+        SFMFocusTargetHost, SFMScreenDiagnosticsContributor, SFMPaletteCandidateCopyAction.Host,
+        SFMPaletteCandidateSetCopyAction.Host {
     public static final String DEFAULT_QUERY = "sfm action invoke ";
 
     @SFMLocalizationDatagen
@@ -158,6 +160,18 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             "Right-click this row for full details or to copy its complete value."
     );
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CANONICAL_COMMAND = new LocalizationEntry(
+            "gui.sfm.client_action.palette.canonical_command",
+            "Canonical: %s"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CANONICAL_COMMAND_PENDING = new LocalizationEntry(
+            "gui.sfm.client_action.palette.canonical_command_pending",
+            "Canonical: select a complete action"
+    );
+
     private static final int MAX_SUGGESTIONS = 8;
     private static final int CONSOLE_HEIGHT = 72;
     private static final int EMPTY_CONSOLE_HEIGHT = 18;
@@ -172,6 +186,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private static final int BUTTON_GAP = 4;
     private static final int SUGGESTION_ROW_HEIGHT = 18;
     private static final int SUGGESTION_ROW_CONTENT_HEIGHT = 16;
+    private static final int CANONICAL_PREVIEW_HEIGHT = 20;
     private static final int SCROLLBAR_WIDTH = 6;
     private static final int SCROLLBAR_GAP = 4;
     private static final int SCROLLBAR_MIN_THUMB_HEIGHT = 12;
@@ -220,6 +235,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private boolean historyInputFocused;
     private long nextCandidateInspectionId;
     private @Nullable CapturedCandidateInspection capturedCandidateInspection;
+    private @Nullable CapturedCandidateSetInspection capturedCandidateSetInspection;
 
     @FunctionalInterface
     interface PaletteActionExecutor {
@@ -284,6 +300,14 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         CapturedCandidateInspection {
             if (id <= 0) throw new IllegalArgumentException("Candidate inspection id must be positive");
             Objects.requireNonNull(inspection, "inspection");
+        }
+    }
+
+    record CapturedCandidateSetInspection(long id, List<SFMPaletteCandidateInspection> inspections) {
+        CapturedCandidateSetInspection {
+            if (id <= 0) throw new IllegalArgumentException("Candidate-set inspection id must be positive");
+            inspections = List.copyOf(inspections);
+            if (inspections.isEmpty()) throw new IllegalArgumentException("Candidate-set inspection must not be empty");
         }
     }
 
@@ -567,7 +591,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         int width = panelWidth();
         int left = panelLeft();
         int top = panelTop();
-        ControlsLayout controls = controlsLayout(this.width, top);
+        ControlsLayout controls = controlsLayoutForPalette(top);
         this.input = this.addRenderableWidget(new ca.teamdman.sfm.client.input.SFMSingleLineEditBox(
                 this.font,
                 controls.input().x(),
@@ -992,7 +1016,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 this.font,
                 guidance,
                 left + 10,
-                top + GUIDANCE_TOP_OFFSET,
+                top + shiftedOffset(GUIDANCE_TOP_OFFSET),
                 muted,
                 false
         );
@@ -1002,7 +1026,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                     this.font,
                     EMPTY_RESULTS.getComponent(),
                     left + 10,
-                    top + SUGGESTION_TOP_OFFSET + 2,
+                    top + shiftedOffset(SUGGESTION_TOP_OFFSET) + 2,
                     muted,
                     false
             );
@@ -1033,6 +1057,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             }
             renderSuggestionScrollbar(poseStack, mouseX, mouseY, scrollbar);
         }
+        renderCanonicalCommandPreview(poseStack, mouseX, mouseY, top, panel, border, muted);
         if (!this.error.isEmpty()) {
             SFMFontUtils.draw(
                     poseStack,
@@ -1359,17 +1384,20 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     }
 
     private int panelHeight() {
-        return PANEL_BASE_HEIGHT + visibleSuggestionCount() * SUGGESTION_ROW_HEIGHT + consoleHeight();
+        return PANEL_BASE_HEIGHT + choicePreviewHeight()
+                + visibleSuggestionCount() * SUGGESTION_ROW_HEIGHT + consoleHeight();
     }
 
     private int consoleTop(int panelTop) {
-        return panelTop + CONSOLE_TOP_OFFSET + visibleSuggestionCount() * SUGGESTION_ROW_HEIGHT;
+        return panelTop + shiftedOffset(CONSOLE_TOP_OFFSET)
+                + visibleSuggestionCount() * SUGGESTION_ROW_HEIGHT;
     }
 
     private int visibleSuggestionCount() {
         int availableRows = Math.max(
                 1,
-                (this.height - PANEL_MARGIN * 2 - PANEL_BASE_HEIGHT - desiredConsoleHeight())
+                (this.height - PANEL_MARGIN * 2 - PANEL_BASE_HEIGHT - choicePreviewHeight()
+                        - desiredConsoleHeight())
                         / SUGGESTION_ROW_HEIGHT
         );
         int suggestionCount = Math.min(MAX_SUGGESTIONS, this.suggestions.size());
@@ -1380,6 +1408,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         int availableHeight = this.height
                 - PANEL_MARGIN * 2
                 - PANEL_BASE_HEIGHT
+                - choicePreviewHeight()
                 - visibleSuggestionCount() * SUGGESTION_ROW_HEIGHT;
         return Math.max(EMPTY_CONSOLE_HEIGHT, Math.min(desiredConsoleHeight(), availableHeight));
     }
@@ -1394,7 +1423,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             return;
         }
         int top = panelTop();
-        ControlsLayout controls = controlsLayout(this.width, top);
+        ControlsLayout controls = controlsLayoutForPalette(top);
         this.input.setX(controls.input().x());
         this.input.y = controls.input().y();
         this.executeButton.x = controls.execute().x();
@@ -1427,6 +1456,70 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                         20
                 )
         );
+    }
+
+    private ControlsLayout controlsLayoutForPalette(int panelTop) {
+        ControlsLayout base = controlsLayout(this.width, panelTop);
+        int shift = choicePreviewHeight();
+        if (shift == 0) return base;
+        return new ControlsLayout(
+                base.input(),
+                new ControlBounds(base.execute().x(), base.execute().y() + shift,
+                        base.execute().width(), base.execute().height()),
+                new ControlBounds(base.cancel().x(), base.cancel().y() + shift,
+                        base.cancel().width(), base.cancel().height())
+        );
+    }
+
+    private int choicePreviewHeight() {
+        return choiceSession == null ? 0 : CANONICAL_PREVIEW_HEIGHT;
+    }
+
+    private int shiftedOffset(int base) {
+        return base + choicePreviewHeight();
+    }
+
+    private Optional<String> canonicalPreviewCommand() {
+        int selected = suggestionViewport.selectedRow();
+        if (selected >= 0 && selected < suggestions.size()) {
+            Optional<String> command = canonicalCommandForSuggestion(suggestions.get(selected));
+            if (command.isPresent()) return command;
+        }
+        return choiceSession == null
+                ? Optional.empty()
+                : choiceSession.canonicalCommandForSurfaceCommand(commandInput());
+    }
+
+    private void renderCanonicalCommandPreview(
+            PoseStack poseStack,
+            int mouseX,
+            int mouseY,
+            int top,
+            int background,
+            int border,
+            int textColour
+    ) {
+        if (choiceSession == null) return;
+        ControlBounds inputBounds = controlsLayoutForPalette(top).input();
+        ControlBounds bounds = new ControlBounds(
+                inputBounds.x(),
+                top + BUTTON_ROW_TOP_OFFSET,
+                inputBounds.width(),
+                CANONICAL_PREVIEW_HEIGHT
+        );
+        fill(poseStack, bounds.x(), bounds.y(), bounds.right(), bounds.y() + bounds.height(), background);
+        fill(poseStack, bounds.x(), bounds.y(), bounds.right(), bounds.y() + 1, border);
+        fill(poseStack, bounds.x(), bounds.y() + bounds.height() - 1,
+                bounds.right(), bounds.y() + bounds.height(), border);
+        Component complete = canonicalPreviewCommand()
+                .map(command -> CANONICAL_COMMAND.getComponent(Component.literal(command)))
+                .orElseGet(CANONICAL_COMMAND_PENDING::getComponent);
+        String fitted = SFMTextSummary.fitLine(complete.getString(), Math.max(1, bounds.width() - 8), font::width);
+        SFMFontUtils.draw(poseStack, font, fitted, bounds.x() + 4, bounds.y() + 6, textColour, false);
+        if (mouseX >= bounds.x() && mouseX < bounds.right()
+                && mouseY >= bounds.y() && mouseY < bounds.y() + bounds.height()) {
+            renderTooltip(poseStack, complete, mouseX, mouseY);
+        }
     }
 
     static Button createCancelButton(ControlBounds bounds, Runnable onPress) {
@@ -1472,6 +1565,10 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         if (captureId <= 0) throw new IllegalStateException("Palette candidate inspection id space exhausted");
         CapturedCandidateInspection capture = new CapturedCandidateInspection(captureId, inspection);
         capturedCandidateInspection = capture;
+        List<SFMPaletteCandidateInspection> set = suggestions.stream().map(this::candidateInspection).toList();
+        long setCaptureId = ++nextCandidateInspectionId;
+        CapturedCandidateSetInspection setCapture = new CapturedCandidateSetInspection(setCaptureId, set);
+        capturedCandidateSetInspection = setCapture;
         SFMClientActionContext targetContext = SFMClientActionContext.create(
                 this,
                 () -> capturedCandidateInspection == capture
@@ -1480,13 +1577,18 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             SFMCommandPaletteScreen.openChoices(
                     targetContext,
                     Component.literal("Candidate actions"),
-                    SFMPaletteCandidateCopyAction.choices(captureId, inspection),
+                    java.util.stream.Stream.concat(
+                            SFMPaletteCandidateCopyAction.choices(captureId, inspection).stream(),
+                            SFMPaletteCandidateSetCopyAction.choices(setCaptureId, set).stream()
+                    ).toList(),
                     () -> {
                         if (capturedCandidateInspection == capture) capturedCandidateInspection = null;
+                        if (capturedCandidateSetInspection == setCapture) capturedCandidateSetInspection = null;
                     }
             );
         } catch (RuntimeException exception) {
             if (capturedCandidateInspection == capture) capturedCandidateInspection = null;
+            if (capturedCandidateSetInspection == setCapture) capturedCandidateSetInspection = null;
             throw exception;
         }
     }
@@ -1496,6 +1598,14 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         CapturedCandidateInspection capture = capturedCandidateInspection;
         return capture != null && capture.id() == captureId
                 ? Optional.of(capture.inspection())
+                : Optional.empty();
+    }
+
+    @Override
+    public Optional<List<SFMPaletteCandidateInspection>> paletteCandidateSetInspection(long captureId) {
+        CapturedCandidateSetInspection capture = capturedCandidateSetInspection;
+        return capture != null && capture.id() == captureId
+                ? Optional.of(capture.inspections())
                 : Optional.empty();
     }
 
@@ -1565,7 +1675,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     private SFMVerticalListViewport.Bounds suggestionListBounds() {
         return new SFMVerticalListViewport.Bounds(
                 panelLeft() + 6,
-                panelTop() + SUGGESTION_TOP_OFFSET,
+                panelTop() + shiftedOffset(SUGGESTION_TOP_OFFSET),
                 Math.max(0, panelWidth() - 12),
                 visibleSuggestionCount() * SUGGESTION_ROW_HEIGHT);
     }
@@ -2104,7 +2214,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     }
 
     private CancelControlAutomationSnapshot cancelControlSnapshotForAutomation() {
-        ControlBounds bounds = controlsLayout(this.width, panelTop()).cancel();
+        ControlBounds bounds = controlsLayoutForPalette(panelTop()).cancel();
         return new CancelControlAutomationSnapshot(
                 cancelButton.getMessage().getString(),
                 bounds.x(),
@@ -2256,6 +2366,11 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
 
     public String appliedSuggestionCommandForAutomation() {
         return appliedSuggestionCommand;
+    }
+
+    /** Normalized command text currently shown by the automation-driven palette. */
+    public String commandInputForAutomation() {
+        return commandInput();
     }
 
     public long appliedSuggestionRevisionForAutomation() {

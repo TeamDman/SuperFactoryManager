@@ -115,19 +115,25 @@ public class SFMTextEditScreenV1 extends Screen implements ISFMTextEditScreen {
     public void saveAndClose() {
         if (openContext.asynchronousSave()) {
             saveDiagnostic = Optional.of(ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession.SAVING.getComponent());
-            asyncSave.submit(textarea.getValue(), true, openContext::saveDocumentAsync,
+            boolean submitted = asyncSave.submit(textarea.getValue(), true, openContext::saveDocumentAsync,
                     work -> Minecraft.getInstance().execute(work), completion -> {
                         if (!openContext.saveHostIsCurrent()) return;
                         saveDiagnostic = completion.result().diagnostic();
                         if (completion.result().saved()) {
                             openContext.documentSaved(completion.submittedText());
-                            if (completion.mayClose(textarea.getValue())) openContext.finishAsyncSaveClose();
+                            if (completion.mayClose(textarea.getValue())
+                                    && !openContext.detachSaveAndCloseAfterSubmission()) {
+                                openContext.finishAsyncSaveClose();
+                            }
                             else if (!completion.submittedText().equals(textarea.getValue())) {
                                 saveDiagnostic = Optional.of(ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession
                                         .SAVED_NEWER_EDITS.getComponent());
                             }
                         }
                     });
+            if (submitted && openContext.detachSaveAndCloseAfterSubmission()) {
+                openContext.finishAsyncSaveClose();
+            }
             return;
         }
         SFMTextDocumentSaveResult result = openContext.trySaveAndClose(textarea.getValue());

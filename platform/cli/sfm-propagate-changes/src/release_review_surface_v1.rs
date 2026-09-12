@@ -208,6 +208,7 @@ impl ReviewFilePairV1 {
 #[facet(rename_all = "kebab-case")]
 #[repr(u8)]
 pub enum ReviewSurfaceKindV1 {
+    TextPatch,
     TextDiff,
     JavaStructuredDiff,
 }

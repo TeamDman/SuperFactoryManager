@@ -73,6 +73,11 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             "gui.sfm.text_editor_v3.done_button.tooltip.suffix",
             " to save"
     );
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry TEXT_EDITOR_V3_COPIED_SELECTION = new LocalizationEntry(
+            "gui.sfm.text_editor_v3.copied_selection",
+            "Copied selection to clipboard"
+    );
 
     private static final int BACKGROUND = 0xFF15191E;
     private static final int MINOR_GRID = 0xFF252C34;
@@ -1722,7 +1727,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
      */
     public List<DocumentDecorationHit> documentDecorationHitsAtScreen(double mouseX, double mouseY) {
         if (splitCanvas != null) return splitCanvas.hits(screenToCanvasX(mouseX), screenToCanvasY(mouseY))
-                .stream().map(decoration -> new DocumentDecorationHit(decoration, false)).toList();
+                .stream().map(hit -> new DocumentDecorationHit(hit.decoration(), hit.gutterMarker())).toList();
         ArrayList<DocumentDecorationHit> hits = new ArrayList<>();
         for (SFMTextDocumentDecoration decoration : documentDecorations) {
             List<TextHighlightRow> rows;
@@ -1756,6 +1761,15 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
             if (rangeHit || gutterHit) hits.add(new DocumentDecorationHit(decoration, gutterHit));
         }
         return List.copyOf(hits);
+    }
+
+    public Optional<ca.teamdman.sfm.client.screen.text_editor.SFMReviewSplitCanvas.MetadataObject>
+    reviewSurfaceMetadataAtScreen(double mouseX, double mouseY) {
+        if (splitCanvas == null) return Optional.empty();
+        Optional<ca.teamdman.sfm.client.screen.text_editor.SFMReviewSplitCanvas.MetadataObject> fixed =
+                splitCanvas.fixedMetadataAt(mouseX, mouseY);
+        return fixed.isPresent() ? fixed
+                : splitCanvas.canvasMetadataAt(screenToCanvasX(mouseX), screenToCanvasY(mouseY));
     }
 
     private Optional<SFMTextDocumentPosition> contextTextPosition(
@@ -2051,7 +2065,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
 
     private void saveDocumentAsync(boolean closeAfter) {
         saveDiagnostic = Optional.of(ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession.SAVING.getComponent());
-        asyncSave.submit(getCurrentText(), closeAfter, openContext::saveDocumentAsync,
+        boolean submitted = asyncSave.submit(getCurrentText(), closeAfter, openContext::saveDocumentAsync,
                 work -> Minecraft.getInstance().execute(work), completion -> {
                     if (!openContext.saveHostIsCurrent()) return;
                     saveDiagnostic = completion.result().diagnostic();
@@ -2059,13 +2073,17 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                         openContext.documentSaved(completion.submittedText());
                         baselineExactText = completion.submittedText();
                         initialCanvasProjectionText = completion.submittedText();
-                        if (completion.mayClose(getCurrentText())) finishClose();
+                        if (completion.mayClose(getCurrentText())
+                                && !openContext.detachSaveAndCloseAfterSubmission()) finishClose();
                         else if (!completion.submittedText().equals(getCurrentText())) {
                             saveDiagnostic = Optional.of(ca.teamdman.sfm.client.text_editor.SFMTextDocumentSaveSession
                                     .SAVED_NEWER_EDITS.getComponent());
                         }
                     }
                 });
+        if (submitted && closeAfter && openContext.detachSaveAndCloseAfterSubmission()) {
+            openContext.finishAsyncSaveClose();
+        }
     }
 
     @Override
@@ -3111,7 +3129,7 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
 
     private void copyCanvasTextToClipboard() {
         if (splitCanvas != null) {
-            Minecraft.getInstance().keyboardHandler.setClipboard(splitCanvas.selection().text());
+            copyCanvasText(splitCanvas.selection().text());
             return;
         }
         try {
@@ -3127,12 +3145,21 @@ public class SFMDrawCanvasScreen extends Screen implements ISFMTextEditScreen, S
                     if (start < end) selected.add(new String(bytes, start, end - start, java.nio.charset.StandardCharsets.UTF_8));
                 }
                 if (!selected.isEmpty()) {
-                    Minecraft.getInstance().keyboardHandler.setClipboard(String.join("\n", selected));
+                    copyCanvasText(String.join("\n", selected));
                     return;
                 }
             }
-            Minecraft.getInstance().keyboardHandler.setClipboard(model().copyableText(this.font.width(" "), this.font.lineHeight));
+            copyCanvasText(model().copyableText(this.font.width(" "), this.font.lineHeight));
         } catch (Throwable ignored) {
+        }
+    }
+
+    private static void copyCanvasText(String text) {
+        Minecraft minecraft = Minecraft.getInstance();
+        minecraft.keyboardHandler.setClipboard(text);
+        if (!text.isEmpty() && minecraft.screen instanceof
+                ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer workspace) {
+            workspace.showClipboardCopyConfirmation(TEXT_EDITOR_V3_COPIED_SELECTION.getComponent());
         }
     }
 
