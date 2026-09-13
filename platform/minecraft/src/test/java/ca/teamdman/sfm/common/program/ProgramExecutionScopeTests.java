@@ -3,6 +3,8 @@ package ca.teamdman.sfm.common.program;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfml.ast.InputStatement;
+import ca.teamdman.sfml.ast.ASTBuilder;
+import ca.teamdman.sfml.ast.Block;
 import ca.teamdman.sfml.ast.Label;
 import ca.teamdman.sfml.ast.LabelAccess;
 import ca.teamdman.sfml.ast.NumberRangeSet;
@@ -10,6 +12,8 @@ import ca.teamdman.sfml.ast.ResourceIdSet;
 import ca.teamdman.sfml.ast.ResourceLimits;
 import ca.teamdman.sfml.ast.RoundRobin;
 import ca.teamdman.sfml.ast.SideQualifier;
+import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfml.ast.Trigger;
 import org.jetbrains.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +21,9 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -94,6 +100,82 @@ class ProgramExecutionScopeTests {
         owner.free();
 
         assertEquals(1, resource.freeCalls);
+    }
+
+    @Test
+    void cleanupContinuesAcrossFailingInputsAndResources() {
+        ProgramExecutionScope scope = new ProgramExecutionScope();
+        RuntimeException inputFailure = new RuntimeException("input cleanup failed");
+        ThrowingInputSource failingInput = new ThrowingInputSource(inputFailure);
+        RecordingInputSource healthyInput = new RecordingInputSource();
+        ThrowingResource failingResource = scope.ephemeralResources().own(
+                new ThrowingResource(new RuntimeException("resource cleanup failed"))
+        );
+        CountingResource healthyResource = scope.ephemeralResources().own(new CountingResource());
+        scope.addInput(failingInput);
+        scope.addInput(healthyInput);
+        scope.variables().set("value", SFMValue.of("cleanup"));
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, scope::free);
+
+        assertSame(inputFailure, thrown);
+        assertEquals(1, thrown.getSuppressed().length);
+        assertEquals(1, failingInput.freeCalls);
+        assertEquals(1, healthyInput.freeCalls);
+        assertEquals(1, failingResource.freeCalls);
+        assertEquals(1, healthyResource.freeCalls);
+        assertTrue(scope.variables().isFreed());
+        assertTrue(scope.ephemeralResources().isFreed());
+        assertTrue(scope.isFreed());
+
+        scope.free();
+        assertEquals(1, healthyInput.freeCalls);
+        assertEquals(1, healthyResource.freeCalls);
+    }
+
+    @Test
+    void triggerFailureRemainsPrimaryWhenCleanupAlsoFails() {
+        RuntimeException triggerFailure = new RuntimeException("trigger failed");
+        RuntimeException cleanupFailure = new RuntimeException("cleanup failed");
+        AtomicReference<ProgramContext> triggerContext = new AtomicReference<>();
+        Block block = new Block(List.of(context -> {
+            triggerContext.set(context);
+            context.addInput(new ThrowingInputSource(cleanupFailure));
+            throw triggerFailure;
+        }));
+        Trigger trigger = new Trigger() {
+            @Override
+            public boolean shouldTick(ProgramContext context) {
+                return true;
+            }
+
+            @Override
+            public Block getBlock() {
+                return block;
+            }
+
+            @Override
+            public void tick(ProgramContext context) {
+                block.tick(context);
+            }
+        };
+        Program program = new Program(
+                new ASTBuilder(),
+                "failing trigger cleanup",
+                List.of(trigger),
+                Set.of(),
+                Set.of()
+        );
+        ProgramContext parent = ProgramContext.createDetachedTestContext(program, new ExecuteProgramBehaviour());
+
+        RuntimeException thrown = assertThrows(RuntimeException.class, () -> program.tick(parent));
+
+        assertSame(triggerFailure, thrown);
+        assertEquals(1, thrown.getSuppressed().length);
+        assertSame(cleanupFailure, thrown.getSuppressed()[0]);
+        assertTrue(triggerContext.get().getExecutionScope().isFreed());
+
+        parent.free();
     }
 
     @Test
@@ -197,6 +279,20 @@ class ProgramExecutionScopeTests {
         }
     }
 
+    private static final class ThrowingResource extends CountingResource {
+        private final RuntimeException failure;
+
+        private ThrowingResource(RuntimeException failure) {
+            this.failure = failure;
+        }
+
+        @Override
+        public void free() {
+            super.free();
+            throw failure;
+        }
+    }
+
     private static final class RecordingInputSource implements ProgramInputSource {
         private int freeCalls;
 
@@ -218,6 +314,36 @@ class ProgramExecutionScopeTests {
         @Override
         public void free() {
             freeCalls++;
+        }
+    }
+
+    private static final class ThrowingInputSource implements ProgramInputSource {
+        private final RuntimeException failure;
+        private int freeCalls;
+
+        private ThrowingInputSource(RuntimeException failure) {
+            this.failure = failure;
+        }
+
+        @Override
+        public void gatherSlots(
+                ProgramContext context,
+                Consumer<LimitedInputSlot<?, ?, ?>> slotConsumer
+        ) {
+        }
+
+        @Override
+        public @Nullable ProgramInputSource forget(
+                ProgramContext context,
+                ProgramInputForgetRequest request
+        ) {
+            return this;
+        }
+
+        @Override
+        public void free() {
+            freeCalls++;
+            throw failure;
         }
     }
 }

@@ -68,7 +68,7 @@ public class GeneratedPacketInputSourceGameTest extends SFMGameTestDefinition {
         );
         context.addInput(source);
 
-        SFMValue firstDemand = source.value(context.getEphemeralResourceOwner());
+        SFMValue firstDemand = source.value(context);
         List<LimitedInputSlot<?, ?, ?>> gathered = new ArrayList<>();
         source.gatherSlots(context, gathered::add);
         source.gatherSlots(context, slot -> helper.assertTrue(
@@ -78,7 +78,7 @@ public class GeneratedPacketInputSourceGameTest extends SFMGameTestDefinition {
         LimitedInputSlot<ItemStack, Item, IItemHandler> input =
                 (LimitedInputSlot<ItemStack, Item, IItemHandler>) gathered.get(0);
 
-        helper.assertTrue(firstDemand == source.value(context.getEphemeralResourceOwner()),
+        helper.assertTrue(firstDemand == source.value(context),
                           "Repeated value demand must reuse the same logical value");
         helper.assertTrue(constructorCalls.get() == 1, "Generated constructor must run exactly once");
         helper.assertTrue(context.getEphemeralResourceOwner().size() == 1,

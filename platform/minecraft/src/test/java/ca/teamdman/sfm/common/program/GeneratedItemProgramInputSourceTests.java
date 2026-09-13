@@ -1,14 +1,17 @@
 package ca.teamdman.sfm.common.program;
 
-import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfml.ast.ForgetStatement;
+import ca.teamdman.sfml.ast.ASTBuilder;
+import ca.teamdman.sfml.ast.Block;
 import ca.teamdman.sfml.ast.Label;
 import ca.teamdman.sfml.ast.OutputStatement;
+import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.ast.ResourceIdSet;
 import ca.teamdman.sfml.ast.ResourceLimit;
+import ca.teamdman.sfml.ast.Trigger;
 import net.minecraft.SharedConstants;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.Bootstrap;
@@ -24,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,12 +51,13 @@ class GeneratedItemProgramInputSourceTests {
         AtomicInteger constructorCalls = new AtomicInteger();
         SFMValue expected = SFMValue.object(java.util.Map.of("job", SFMValue.of("same")));
         GeneratedItemProgramInputSource source = source(constructorCalls, expected, "create input sfm:packet row 1");
+        context.addInput(source);
 
         assertFalse(source.isMaterialized());
         assertEquals(0, constructorCalls.get());
 
-        SFMValue firstValue = source.value(context.getEphemeralResourceOwner());
-        SFMValue secondValue = source.value(context.getEphemeralResourceOwner());
+        SFMValue firstValue = source.value(context);
+        SFMValue secondValue = source.value(context);
         LimitedInputSlot<ItemStack, Item, IItemHandler> firstSlot = gatherOne(source, context);
         LimitedInputSlot<ItemStack, Item, IItemHandler> secondSlot = gatherOne(source, context);
 
@@ -74,9 +79,10 @@ class GeneratedItemProgramInputSourceTests {
         AtomicInteger constructorCalls = new AtomicInteger();
         SFMValue expected = SFMValue.of("resource-first");
         GeneratedItemProgramInputSource source = source(constructorCalls, expected, "resource-first occurrence");
+        context.addInput(source);
 
         LimitedInputSlot<ItemStack, Item, IItemHandler> slot = gatherOne(source, context);
-        SFMValue laterValue = source.value(context.getEphemeralResourceOwner());
+        SFMValue laterValue = source.value(context);
 
         assertSame(expected, laterValue);
         assertSame(Items.PAPER, slot.peekStackInSlot().getItem());
@@ -112,7 +118,8 @@ class GeneratedItemProgramInputSourceTests {
         ProgramContext context = context();
         SFMValue expected = SFMValue.object(java.util.Map.of("response", SFMValue.of(42L)));
         GeneratedItemProgramInputSource source = source(new AtomicInteger(), expected, "movable occurrence");
-        assertSame(expected, source.value(context.getEphemeralResourceOwner()));
+        context.addInput(source);
+        assertSame(expected, source.value(context));
         LimitedInputSlot<ItemStack, Item, IItemHandler> input = gatherOne(source, context);
         ItemStackHandler destinationHandler = new ItemStackHandler(1);
         LimitedOutputSlot<ItemStack, Item, IItemHandler> output = new LimitedOutputSlot<>(
@@ -177,16 +184,93 @@ class GeneratedItemProgramInputSourceTests {
 
         assertSame(failure, assertThrows(
                 IllegalStateException.class,
-                () -> source.value(context.getEphemeralResourceOwner())
+                () -> source.value(context)
         ));
         assertSame(failure, assertThrows(
                 IllegalStateException.class,
-                () -> source.value(context.getEphemeralResourceOwner())
+                () -> source.value(context)
         ));
         assertEquals(1, constructorCalls.get());
         assertEquals(0, context.getEphemeralResourceOwner().size());
 
         context.free();
+    }
+
+    @Test
+    void simulationCannotMaterializeGeneratedValuesOrItems() {
+        ProgramContext simulation = ProgramContext.createSimulationContext(
+                null,
+                ca.teamdman.sfm.common.label.LabelPositionHolder.empty(),
+                0,
+                new SimulateExploreAllPathsProgramBehaviour()
+        );
+        AtomicInteger constructorCalls = new AtomicInteger();
+        GeneratedItemProgramInputSource source = source(
+                constructorCalls,
+                SFMValue.of("must-not-exist"),
+                "simulated occurrence"
+        );
+
+        assertThrows(IllegalStateException.class, () -> source.value(simulation));
+        assertThrows(IllegalStateException.class, () -> source.gatherSlots(simulation, ignored -> {
+        }));
+        assertEquals(0, constructorCalls.get());
+        assertFalse(source.isMaterialized());
+        assertEquals(0, simulation.getEphemeralResourceOwner().size());
+
+        simulation.free();
+    }
+
+    @Test
+    void exceptionalTriggerTeardownClearsGeneratedLeftovers() {
+        AtomicInteger constructorCalls = new AtomicInteger();
+        AtomicReference<ProgramContext> triggerContext = new AtomicReference<>();
+        AtomicReference<LimitedInputSlot<ItemStack, Item, IItemHandler>> generatedSlot = new AtomicReference<>();
+        RuntimeException failure = new RuntimeException("trigger failed after materialization");
+        GeneratedItemProgramInputSource source = source(
+                constructorCalls,
+                SFMValue.of("leftover"),
+                "exceptional occurrence"
+        );
+        Block block = new Block(List.of(context -> {
+            triggerContext.set(context);
+            context.addInput(source);
+            generatedSlot.set(gatherOne(source, context));
+            throw failure;
+        }));
+        Trigger trigger = new Trigger() {
+            @Override
+            public boolean shouldTick(ProgramContext context) {
+                return true;
+            }
+
+            @Override
+            public Block getBlock() {
+                return block;
+            }
+
+            @Override
+            public void tick(ProgramContext context) {
+                block.tick(context);
+            }
+        };
+        Program program = new Program(
+                new ASTBuilder(),
+                "exception-safe generated source",
+                List.of(trigger),
+                Set.of(),
+                Set.of()
+        );
+        ProgramContext parent = ProgramContext.createDetachedTestContext(program, new ExecuteProgramBehaviour());
+
+        assertSame(failure, assertThrows(RuntimeException.class, () -> program.tick(parent)));
+
+        assertEquals(1, constructorCalls.get());
+        assertTrue(triggerContext.get().getExecutionScope().isFreed());
+        assertTrue(triggerContext.get().getEphemeralResourceOwner().isFreed());
+        assertTrue(generatedSlot.get().getHandler().getStackInSlot(0).isEmpty());
+
+        parent.free();
     }
 
     private GeneratedItemProgramInputSource source(
@@ -221,12 +305,7 @@ class GeneratedItemProgramInputSourceTests {
     }
 
     private static ProgramContext context() {
-        return ProgramContext.createSimulationContext(
-                null,
-                LabelPositionHolder.empty(),
-                0,
-                new SimulateExploreAllPathsProgramBehaviour()
-        );
+        return ProgramContext.createDetachedTestContext(null, new ExecuteProgramBehaviour());
     }
 
     private static final class AcceptAllOutputTracker implements IOutputResourceTracker {

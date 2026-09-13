@@ -67,8 +67,8 @@ public final class GeneratedItemProgramInputSource implements ProgramInputSource
     }
 
     /** Resolve this occurrence's immutable logical value exactly once. */
-    public SFMValue value(ProgramEphemeralResourceOwner owner) {
-        return materialize(owner).value();
+    public SFMValue value(ProgramContext context) {
+        return materialize(context).value();
     }
 
     @Override
@@ -76,7 +76,7 @@ public final class GeneratedItemProgramInputSource implements ProgramInputSource
             ProgramContext context,
             Consumer<LimitedInputSlot<?, ?, ?>> slotConsumer
     ) {
-        Materialization materialization = materialize(context.getEphemeralResourceOwner());
+        Materialization materialization = materialize(context);
         ItemStack current = materialization.resource().handler().getStackInSlot(0);
         if (current.isEmpty()) {
             return;
@@ -124,7 +124,11 @@ public final class GeneratedItemProgramInputSource implements ProgramInputSource
         return "GeneratedItemProgramInputSource{" + sourceDescription + '}';
     }
 
-    private Materialization materialize(ProgramEphemeralResourceOwner owner) {
+    private Materialization materialize(ProgramContext context) {
+        if (!context.getBehaviour().allowsRuntimeMaterialization()) {
+            throw new IllegalStateException("Program behavior does not allow runtime resource materialization");
+        }
+        ProgramEphemeralResourceOwner owner = context.getEphemeralResourceOwner();
         Objects.requireNonNull(owner);
         if (materializedOwner != null && materializedOwner != owner) {
             throw new IllegalStateException("A generated input occurrence cannot be shared across execution scopes");

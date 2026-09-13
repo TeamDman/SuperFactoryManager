@@ -1,6 +1,6 @@
 # SFM packet computation: single-player MVP
 
-**Status:** Slice A complete through A4.2 and Slice B complete through B3 lazy generated sources; B4 lifetime and simulation is next
+**Status:** Slice A complete through A4.2 and Slice B complete through B4 lifetime and simulation; B5 observation is next
 **Implementation branch:** `feat/1.19.2/packet-computation`  
 **Implementation baseline:** `1be4b3cff9387f0b2870bc281017b3589f0119ef`  
 **Design-inspection baseline:** `53b9b302117289c945def6ed73297f2997901559`
@@ -152,8 +152,10 @@ reviewable before language syntax depends on them:
   are evaluated and memoized once per occurrence on first value or resource
   demand. Drained handlers release themselves from the execution owner, while
   forgotten materialized handlers remain owner-held until trigger teardown.
-- **B4 — lifetime and simulation:** make cleanup exception-safe and ensure
-  simulation/lint forks cannot materialize runtime GUIDs, items, or effects.
+- **B4 — lifetime and simulation:** completed with exception-safe trigger,
+  execution-scope, and ephemeral-owner teardown. Simulation/lint behavior
+  rejects lazy runtime materialization before constructors, GUIDs, items, or
+  effects can be created.
 - **B5 — observation path:** traverse eligible resources without extraction or
   transfer bookkeeping, preserving item-count occurrences for stackable
   packets and leaving normal output quantity available.
@@ -199,7 +201,7 @@ sfm packet send --side north -- minecraft:overworld 12 64 -7 '{"value":1}'
 | C10 | A1/C | Immutable construction and copied item-read tests | A1 copy boundary covered; language capture remains for C |
 | C11 | B/C | Peek/peek/output uses one memoized generated item | B3 proves both value-first and resource-first demand, repeated value/slot reuse, failure memoization, and ordinary movement of the same carrier; language-level create/broadcast/output remains for C |
 | C12 | B/C | Repeated broadcast does not consume output quantity | Pending |
-| C13 | B | Normal/exceptional context teardown frees leftovers | B2 provides context-owned, identity-based, exactly-once cleanup; B3 proves unmoved generated handlers are cleared at normal teardown and drained handlers release early without affecting moved items; exception-safe trigger teardown remains B4 |
+| C13 | B | Normal/exceptional context teardown frees leftovers | Covered: B2 provides context-owned, identity-based, exactly-once cleanup; B3 proves unmoved generated handlers are cleared at normal teardown and drained handlers release early without affecting moved items; B4 frees every trigger fork and root context through `finally`, continues after individual cleanup failures, and preserves the trigger exception as primary when cleanup also fails |
 | C14 | B/C | Bare/selective forget clears inputs but retains variables | B2 separates variables, active views, and owned resources; B3 preserves bare `FORGET` explicitly, proves selective forget retains an unlabelled generated view, and proves bare forget detaches it without prematurely disposing owner-held storage; language bindings remain for C |
 | C15 | B/C | Accumulated source/generated inputs move independently | B1 makes ordinary output gather every active source; B3 proves equal generated occurrences accumulate as distinct handlers and one generated packet moves through ordinary item machinery; mixed text/generated language input remains for C |
 | C16 | A2/A4 | GUI-closed loaded-inventory insertion and negative destinations | Covered: A2.3 exercises unsided/exact-face success and negative destinations without an open menu; A4.1 runs the external CLI through the in-game terminal and delivers its response to the exact loaded chest after the terminal closes |
@@ -434,6 +436,32 @@ B3 lazy-generated-source evidence on 13 September 2026:
 - `game-test run-server --branch feat/1.19.2/packet-computation --filter
   forget*`: all four established world-input forget regressions passed.
 - The complete unit suite found 2,107 tests: 2,102 passed, none failed, and five
+  opt-in integration fixtures were assumption-aborted as designed.
+
+B4 lifetime-and-simulation evidence on 13 September 2026:
+
+- Runtime resource materialization is an explicit `ProgramBehaviour`
+  capability. Normal execution permits it, while simulation and lint behavior
+  reject both value and resource demand before invoking the lazy constructor or
+  registering an ephemeral resource.
+- Every trigger fork and root execution context is freed from `finally`.
+  Execution-scope and ephemeral-owner teardown attempt every remaining cleanup,
+  are idempotent after failure, and aggregate later cleanup failures as
+  suppressed exceptions; a trigger failure remains the primary exception.
+- `test run --branch feat/1.19.2/packet-computation --filter
+  GeneratedItemProgramInputSourceTests`: 8/8 passed, including denied
+  simulation materialization and exceptional-trigger cleanup of a generated
+  leftover.
+- `test run --branch feat/1.19.2/packet-computation --filter
+  ProgramExecutionScopeTests`: 7/7 passed, including cleanup continuation and
+  trigger-versus-cleanup exception ordering.
+- `game-test run-client --branch feat/1.19.2/packet-computation --filter
+  generated_packet_input_source`: 1/1 required test passed after the runtime
+  behavior boundary was made explicit.
+- `game-test run-client --branch feat/1.19.2/packet-computation --filter
+  forget*`: all four ordinary scheduled-program regressions passed through the
+  new root/fork teardown paths.
+- The complete unit suite found 2,111 tests: 2,106 passed, none failed, and five
   opt-in integration fixtures were assumption-aborted as designed.
 
 ## Exclusions

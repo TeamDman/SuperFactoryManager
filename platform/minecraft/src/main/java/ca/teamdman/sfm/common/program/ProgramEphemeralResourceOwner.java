@@ -35,7 +35,15 @@ public final class ProgramEphemeralResourceOwner {
         freed = true;
         var ownedResources = List.copyOf(resources);
         resources.clear();
-        ownedResources.forEach(ProgramEphemeralResource::free);
+        Throwable failure = null;
+        for (ProgramEphemeralResource resource : ownedResources) {
+            try {
+                resource.free();
+            } catch (RuntimeException | Error cleanupFailure) {
+                failure = collectFailure(failure, cleanupFailure);
+            }
+        }
+        rethrow(failure);
     }
 
     public int size() {
@@ -44,5 +52,26 @@ public final class ProgramEphemeralResourceOwner {
 
     public boolean isFreed() {
         return freed;
+    }
+
+    private static Throwable collectFailure(
+            Throwable first,
+            Throwable next
+    ) {
+        if (first == null) {
+            return next;
+        }
+        first.addSuppressed(next);
+        return first;
+    }
+
+    private static void rethrow(Throwable failure) {
+        if (failure == null) {
+            return;
+        }
+        if (failure instanceof RuntimeException runtimeException) {
+            throw runtimeException;
+        }
+        throw (Error) failure;
     }
 }

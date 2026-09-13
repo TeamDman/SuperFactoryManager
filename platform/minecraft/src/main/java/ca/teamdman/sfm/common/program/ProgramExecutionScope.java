@@ -41,11 +41,28 @@ public final class ProgramExecutionScope {
         if (freed) {
             return;
         }
-        activeInputs.forEach(ProgramInputSource::free);
-        activeInputs.clear();
-        ephemeralResources.free();
-        variables.free();
         freed = true;
+        List<ProgramInputSource> inputs = List.copyOf(activeInputs);
+        activeInputs.clear();
+        Throwable failure = null;
+        for (ProgramInputSource input : inputs) {
+            try {
+                input.free();
+            } catch (RuntimeException | Error cleanupFailure) {
+                failure = collectFailure(failure, cleanupFailure);
+            }
+        }
+        try {
+            ephemeralResources.free();
+        } catch (RuntimeException | Error cleanupFailure) {
+            failure = collectFailure(failure, cleanupFailure);
+        }
+        try {
+            variables.free();
+        } catch (RuntimeException | Error cleanupFailure) {
+            failure = collectFailure(failure, cleanupFailure);
+        }
+        rethrow(failure);
     }
 
     public boolean isFreed() {
@@ -56,5 +73,26 @@ public final class ProgramExecutionScope {
         if (freed) {
             throw new IllegalStateException("Execution scope has been freed");
         }
+    }
+
+    private static Throwable collectFailure(
+            Throwable first,
+            Throwable next
+    ) {
+        if (first == null) {
+            return next;
+        }
+        first.addSuppressed(next);
+        return first;
+    }
+
+    private static void rethrow(Throwable failure) {
+        if (failure == null) {
+            return;
+        }
+        if (failure instanceof RuntimeException runtimeException) {
+            throw runtimeException;
+        }
+        throw (Error) failure;
     }
 }

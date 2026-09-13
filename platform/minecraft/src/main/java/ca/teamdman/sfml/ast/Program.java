@@ -153,11 +153,16 @@ public record Program(
         }
 
 
-        tick(context);
-
-        manager.clearRedstonePulseQueue();
-
-        return context.didSomething();
+        try {
+            tick(context);
+            return context.didSomething();
+        } finally {
+            try {
+                context.free();
+            } finally {
+                manager.clearRedstonePulseQueue();
+            }
+        }
     }
 
     @Override
@@ -172,6 +177,19 @@ public record Program(
         LimitedInputSlotObjectPool.checkInvariant();
         LimitedOutputSlotObjectPool.checkInvariant();
 
+        try {
+            tickTriggers(context);
+        } finally {
+            LimitedInputSlotObjectPool.checkInvariant();
+            LimitedOutputSlotObjectPool.checkInvariant();
+        }
+
+        if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {
+            simulation.onProgramFinished(context, this);
+        }
+    }
+
+    private void tickTriggers(ProgramContext context) {
         for (Trigger trigger : triggers) {
             // Only process triggers that should tick
             if (!trigger.shouldTick(context)) {
@@ -204,8 +222,7 @@ public record Program(
                     int numPossibleStates = (int) Math.max(1, Math.pow(2, conditionCount));
                     for (int i = 0; i < numPossibleStates; i++) {
                         ProgramContext forkedContext = context.fork();
-                        trigger.tick(forkedContext);
-                        forkedContext.free();
+                        tickTriggerAndFree(trigger, forkedContext);
                         ((SimulateExploreAllPathsProgramBehaviour) forkedContext.getBehaviour()).terminatePathAndBeginAnew();
                     }
                 } else {
@@ -218,8 +235,7 @@ public record Program(
                 simulation.prepareNextTrigger();
             } else {
                 ProgramContext forkedContext = context.fork();
-                trigger.tick(forkedContext);
-                forkedContext.free();
+                tickTriggerAndFree(trigger, forkedContext);
             }
 
             // End stopwatch
@@ -232,11 +248,28 @@ public record Program(
             )));
         }
 
-        LimitedInputSlotObjectPool.checkInvariant();
-        LimitedOutputSlotObjectPool.checkInvariant();
+    }
 
-        if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {
-            simulation.onProgramFinished(context, this);
+    private static void tickTriggerAndFree(
+            Trigger trigger,
+            ProgramContext forkedContext
+    ) {
+        Throwable triggerFailure = null;
+        try {
+            trigger.tick(forkedContext);
+        } catch (RuntimeException | Error failure) {
+            triggerFailure = failure;
+            throw failure;
+        } finally {
+            try {
+                forkedContext.free();
+            } catch (RuntimeException | Error cleanupFailure) {
+                if (triggerFailure != null) {
+                    triggerFailure.addSuppressed(cleanupFailure);
+                } else {
+                    throw cleanupFailure;
+                }
+            }
         }
     }
 

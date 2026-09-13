@@ -123,6 +123,23 @@ public class ProgramContext {
         );
     }
 
+    /** World-free execution context used by focused runtime ownership tests. */
+    static ProgramContext createDetachedTestContext(
+            Program program,
+            ProgramBehaviour behaviour
+    ) {
+        return new ProgramContext(
+                program,
+                null,
+                null,
+                null,
+                0,
+                behaviour,
+                LabelPositionHolder.empty(),
+                new TranslatableLogger("detached-test-" + System.identityHashCode(behaviour))
+        );
+    }
+
     public static ProgramContext createSimulationContext(
             Program program,
             ManagerBlockEntity manager,

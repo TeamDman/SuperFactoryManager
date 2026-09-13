@@ -110,6 +110,11 @@ public class SimulateExploreAllPathsProgramBehaviour implements ProgramBehaviour
         return new SimulateExploreAllPathsProgramBehaviour(this.seenPaths, this.currentPath, this.triggerPathCount);
     }
 
+    @Override
+    public boolean allowsRuntimeMaterialization() {
+        return false;
+    }
+
     public ExecutionPath getCurrentPath() {
         return currentPath;
     }
