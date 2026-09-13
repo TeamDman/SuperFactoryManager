@@ -12,11 +12,12 @@ import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public final class InputStatement implements IOStatement {
+public final class InputStatement implements IOStatement, ProgramInputSource {
     @SFMLocalizationDatagen
     public static final LocalizationEntry LOG_PROGRAM_TICK_IO_STATEMENT_GATHER_SLOTS_CACHE_MISS = new LocalizationEntry(
             "log.sfm.statement.tick.io.gather_slots.cache_miss",
@@ -66,6 +67,7 @@ public final class InputStatement implements IOStatement {
         }
     }
 
+    @Override
     @SuppressWarnings({"unchecked"}) // basically impossible to make this method generic safe
     public void gatherSlots(
             ProgramContext context,
@@ -245,6 +247,11 @@ public final class InputStatement implements IOStatement {
         }
     }
 
+    @Override
+    public void free() {
+        freeSlots();
+    }
+
     public void freeSlotsIf(Predicate<LimitedInputSlot<?, ?, ?>> condition) {
 
         if (limitedInputSlotsCache != null) {
@@ -271,6 +278,44 @@ public final class InputStatement implements IOStatement {
             other.limitedInputSlotsCache.addAll(limitedInputSlotsCache);
         }
         limitedInputSlotsCache = null;
+    }
+
+    @Override
+    public @Nullable ProgramInputSource forget(
+            ProgramContext context,
+            Set<Label> labels
+    ) {
+
+        var retainedLabels = labelAccess.labels().stream()
+                .filter(label -> !labels.contains(label))
+                .toList();
+
+        InputStatement retainedInput = new InputStatement(
+                new LabelAccess(
+                        retainedLabels,
+                        labelAccess.sides(),
+                        labelAccess.slots(),
+                        labelAccess.roundRobin()
+                ),
+                resourceLimits,
+                each
+        );
+        if (!(context.getBehaviour() instanceof ExecuteProgramBehaviour)) {
+            // Runtime execution does not need source locations on transient views.
+            context.getProgram().astBuilder().setLocationFromOtherNode(retainedInput, this);
+        }
+        if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {
+            simulation.onInputStatementForgetTransform(context, this, retainedInput);
+        }
+
+        freeSlotsIf(slot -> labels.contains(slot.label));
+        transferSlotsTo(retainedInput);
+
+        if (retainedLabels.isEmpty()) {
+            freeSlots();
+            return null;
+        }
+        return retainedInput;
     }
 
     private <STACK, ITEM, CAP> void gatherSlotsForCap(

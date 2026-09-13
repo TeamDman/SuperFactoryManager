@@ -95,6 +95,9 @@ public record ServerboundOutputInspectionRequestPacket(
                         List<Pair<LimitedInputSlot<?, ?, ?>, LabelAccess>> inputSlots = new ArrayList<>();
                         context
                                 .getInputs()
+                                .stream()
+                                .filter(InputStatement.class::isInstance)
+                                .map(InputStatement.class::cast)
                                 .forEach(inputStatement -> inputStatement.gatherSlots(
                                         context,
                                         slot -> inputSlots.add(new Pair<>(

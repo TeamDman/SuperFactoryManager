@@ -5,12 +5,15 @@ use facet::Facet;
 use std::collections::BTreeSet;
 use vox::service;
 
-pub const CONTROL_PROTOCOL_VERSION: u16 = 1;
+pub const CONTROL_PROTOCOL_VERSION: u16 = 2;
 pub const INSTANCE_DESCRIPTOR_SCHEMA: &str = "sfm.game-instance/1";
 pub const MAX_AUTHENTICATION_TOKEN_BYTES: usize = 256;
 pub const MAX_ACTION_TOKENS: usize = 128;
 pub const MAX_ACTION_TOKEN_BYTES: usize = 4096;
 pub const MAX_ACTION_FEEDBACK_ENTRIES: usize = 64;
+pub const MAX_ACTION_RESULT_SCHEMA_BYTES: usize = 128;
+pub const MAX_ACTION_RESULT_JSON_BYTES: usize = 512 * 1024;
+pub const MAX_PACKET_VALUE_JSON_BYTES: usize = 3_072;
 pub const MAX_REQUEST_ID_BYTES: usize = 128;
 pub const MAX_EXPLORER_SELECTOR_BYTES: usize = 4096;
 pub const MAX_EXPLORER_PATH_BYTES: usize = 16 * 1024;
@@ -21,6 +24,7 @@ pub const MAX_EXPLORER_VISIBLE_PATHS: usize = 512;
 pub const MAX_EXPLORER_FEEDBACK_ENTRIES: usize = 128;
 pub const MAX_EXPLORER_EVIDENCE_TEXT_BYTES: usize = 16 * 1024;
 pub const EXPLORER_CONTROL_CAPABILITY: &str = "explorer.control.v1";
+pub const STRUCTURED_ACTION_RESULT_CAPABILITY: &str = "client-action.structured-result.v1";
 
 /// Operations hosted by one live SFM Minecraft client.
 #[service]
@@ -118,6 +122,9 @@ pub struct SfmControlInvokeClientActionResult {
     pub canonical_action: String,
     pub result_code: i32,
     pub feedback: Vec<String>,
+    pub structured_result_present: bool,
+    pub structured_result_schema: String,
+    pub structured_result_json: String,
     pub resulting_screen_present: bool,
     pub resulting_screen: String,
     pub workspace_present: bool,
@@ -375,7 +382,7 @@ impl SfmGameInstanceDescriptor {
 ///
 /// # Errors
 ///
-/// Returns an error for an empty, oversized, or NUL-containing action.
+/// Returns an error for an empty, oversized, NUL-containing, or escaped-oversized action.
 pub fn validate_action_tokens(tokens: &[String]) -> eyre::Result<()> {
     eyre::ensure!(
         !tokens.is_empty(),
@@ -383,13 +390,107 @@ pub fn validate_action_tokens(tokens: &[String]) -> eyre::Result<()> {
     );
     eyre::ensure!(tokens.len() <= MAX_ACTION_TOKENS, "too many action tokens");
     for token in tokens {
+        eyre::ensure!(!token.is_empty(), "action token is empty");
         eyre::ensure!(
             token.len() <= MAX_ACTION_TOKEN_BYTES,
             "action token is too long"
         );
         eyre::ensure!(!token.contains('\0'), "action token contains NUL");
+        eyre::ensure!(
+            escaped_action_token_len_bytes(token) <= MAX_ACTION_TOKEN_BYTES,
+            "escaped action token is too long"
+        );
     }
     Ok(())
+}
+
+/// Validate the optional machine result before rendering or interpreting it.
+///
+/// # Errors
+///
+/// Returns an error when feedback or structured-result presence, schema,
+/// bounds, or JSON shape violates the control contract.
+pub fn validate_invoke_client_action_result(
+    result: &SfmControlInvokeClientActionResult,
+) -> eyre::Result<()> {
+    eyre::ensure!(
+        result.feedback.len() <= MAX_ACTION_FEEDBACK_ENTRIES,
+        "action result has too many feedback entries"
+    );
+    if !result.structured_result_present {
+        eyre::ensure!(
+            result.structured_result_schema.is_empty() && result.structured_result_json.is_empty(),
+            "absent structured action result must have empty schema and JSON"
+        );
+        return Ok(());
+    }
+
+    eyre::ensure!(
+        result.structured_result_schema.len() <= MAX_ACTION_RESULT_SCHEMA_BYTES,
+        "structured action result schema is too long"
+    );
+    eyre::ensure!(
+        valid_action_result_schema(&result.structured_result_schema),
+        "structured action result schema is invalid"
+    );
+    eyre::ensure!(
+        result.structured_result_json.len() <= MAX_ACTION_RESULT_JSON_BYTES,
+        "structured action result JSON is too long"
+    );
+    let trimmed = result.structured_result_json.trim();
+    eyre::ensure!(
+        trimmed.starts_with('{') && trimmed.ends_with('}'),
+        "structured action result JSON must be an object"
+    );
+    let _: facet_json::RawJson<'_> = facet_json::from_str_borrowed(trimmed)
+        .map_err(|failure| eyre::eyre!("structured action result JSON is malformed: {failure}"))?;
+    Ok(())
+}
+
+fn valid_action_result_schema(schema: &str) -> bool {
+    let Some((name, version)) = schema.split_once('/') else {
+        return false;
+    };
+    if name.is_empty() || version.is_empty() || version.contains('/') {
+        return false;
+    }
+    let mut name_bytes = name.bytes();
+    let Some(first) = name_bytes.next() else {
+        return false;
+    };
+    if !first.is_ascii_lowercase() && !first.is_ascii_digit() {
+        return false;
+    }
+    if !name_bytes.all(|byte| {
+        byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'.' | b'_' | b'-')
+    }) {
+        return false;
+    }
+    let mut version_bytes = version.bytes();
+    matches!(version_bytes.next(), Some(b'1'..=b'9'))
+        && version_bytes.all(|byte| byte.is_ascii_digit())
+}
+
+/// Return the UTF-8 size of the exact Brigadier token reconstructed by Java.
+///
+/// The control server quotes tokens containing whitespace, a quote, or a
+/// backslash, then escapes every quote and backslash inside that wrapper.
+/// JSON always takes this path, so the wire-facing raw size alone is not a
+/// sufficient framing check.
+#[must_use]
+pub fn escaped_action_token_len_bytes(token: &str) -> usize {
+    let requires_quoting = token
+        .chars()
+        .any(|character| character.is_whitespace() || matches!(character, '"' | '\\'));
+    if !requires_quoting {
+        return token.len();
+    }
+    token.len()
+        + 2
+        + token
+            .bytes()
+            .filter(|byte| matches!(byte, b'"' | b'\\'))
+            .count()
 }
 
 const EXPLORER_VIEW_IDS: &[&str] = &["sfm:list", "sfm:small_icons"];
@@ -840,6 +941,62 @@ mod tests {
         validate_action_tokens(&["sfm:panel/open".to_owned(), "sfm:size_display".to_owned()])
             .expect("known-sized action");
         let _ = validate_action_tokens(&[]).expect_err("empty action");
+        let _ = validate_action_tokens(&[String::new()]).expect_err("empty token");
+    }
+
+    #[test]
+    fn action_tokens_measure_the_reconstructed_brigadier_form() {
+        let exact_boundary = "\"".repeat(2_047);
+        assert_eq!(
+            escaped_action_token_len_bytes(&exact_boundary),
+            MAX_ACTION_TOKEN_BYTES
+        );
+        validate_action_tokens(&[exact_boundary]).expect("exact escaped boundary");
+
+        let escaped_oversize = "\"".repeat(2_048);
+        assert!(escaped_oversize.len() <= MAX_ACTION_TOKEN_BYTES);
+        assert!(escaped_action_token_len_bytes(&escaped_oversize) > MAX_ACTION_TOKEN_BYTES);
+        let failure = validate_action_tokens(&[escaped_oversize]).expect_err("escaped oversize");
+        assert!(failure.to_string().contains("escaped action token"));
+    }
+
+    #[test]
+    fn bounded_json_can_still_exceed_the_escaped_action_budget() {
+        let quote_heavy_json = format!("\"{}\"", "\\\"".repeat(1_023));
+        assert!(quote_heavy_json.len() <= 3_072);
+        assert!(escaped_action_token_len_bytes(&quote_heavy_json) > MAX_ACTION_TOKEN_BYTES);
+        let _ = validate_action_tokens(&[quote_heavy_json]).expect_err("escaped JSON oversize");
+    }
+
+    #[test]
+    fn structured_action_results_are_optional_bounded_json_objects() {
+        let mut result = SfmControlInvokeClientActionResult {
+            instance_id: "instance".to_owned(),
+            process_id: 1,
+            request_id: "request".to_owned(),
+            canonical_action: "sfm action invoke sfm:packet/list".to_owned(),
+            result_code: 1,
+            feedback: vec!["human feedback".to_owned()],
+            structured_result_present: false,
+            structured_result_schema: String::new(),
+            structured_result_json: String::new(),
+            resulting_screen_present: false,
+            resulting_screen: String::new(),
+            workspace_present: false,
+            workspace_panel_count: 0,
+        };
+        validate_invoke_client_action_result(&result).expect("legacy action result");
+
+        result.structured_result_present = true;
+        result.structured_result_schema = "sfm.packet.list/1".to_owned();
+        result.structured_result_json = r#"{"schema":"sfm.packet.list/1","entries":[]}"#.to_owned();
+        validate_invoke_client_action_result(&result).expect("structured action result");
+
+        result.structured_result_schema = "unversioned".to_owned();
+        let _ = validate_invoke_client_action_result(&result).expect_err("invalid schema");
+        result.structured_result_schema = "sfm.packet.list/1".to_owned();
+        result.structured_result_json = "[]".to_owned();
+        let _ = validate_invoke_client_action_result(&result).expect_err("non-object JSON");
     }
 
     #[test]

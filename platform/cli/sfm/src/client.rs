@@ -4,7 +4,7 @@ use crate::protocol::{
     SfmControlExplorerIfNoMatch, SfmControlExplorerOperation, SfmControlExplorerOperationRequest,
     SfmControlExplorerOperationResult, SfmControlInvokeClientActionRequest,
     SfmControlInvokeClientActionResult, SfmControlPingRequest, validate_explorer_operation_request,
-    validate_explorer_operation_result,
+    validate_explorer_operation_result, validate_invoke_client_action_result,
 };
 use std::time::Duration;
 
@@ -92,6 +92,7 @@ pub(crate) async fn invoke_client_action(
             result.process_id == descriptor.process_id,
             "action process id mismatch"
         );
+        validate_invoke_client_action_result(&result)?;
         let _ = connection.shutdown();
         Ok(result)
     })
@@ -232,6 +233,10 @@ mod tests {
             request: SfmControlInvokeClientActionRequest,
         ) -> Result<SfmControlInvokeClientActionResult, SfmControlError> {
             *self.captured_action.lock().expect("capture lock") = Some(request.clone());
+            let structured = request
+                .action_tokens
+                .first()
+                .is_some_and(|token| token == "sfm:packet/list");
             Ok(SfmControlInvokeClientActionResult {
                 instance_id: "instance-test".to_owned(),
                 process_id: 42,
@@ -239,6 +244,17 @@ mod tests {
                 canonical_action: request.action_tokens.join(" "),
                 result_code: 0,
                 feedback: Vec::new(),
+                structured_result_present: structured,
+                structured_result_schema: if structured {
+                    "sfm.packet.list/1".to_owned()
+                } else {
+                    String::new()
+                },
+                structured_result_json: if structured {
+                    r#"{"schema":"sfm.packet.list/1","status":"ok","entries":[]}"#.to_owned()
+                } else {
+                    String::new()
+                },
                 resulting_screen_present: false,
                 resulting_screen: String::new(),
                 workspace_present: false,
@@ -319,6 +335,7 @@ mod tests {
             world_label: String::new(),
             capabilities: vec![
                 EXPLORER_CONTROL_CAPABILITY.to_owned(),
+                crate::protocol::STRUCTURED_ACTION_RESULT_CAPABILITY.to_owned(),
                 "client-action.invoke".to_owned(),
             ],
             request_id,
@@ -356,6 +373,18 @@ mod tests {
         assert_eq!(
             action_result.canonical_action,
             "sfm:spatial/coverage/run workspace focused sfm:strict_java_navigation sfm:auto_1_through_8 7 100000 auto"
+        );
+    }
+
+    async fn assert_packet_action_round_trip(live: &LiveInstance) {
+        let packet_result = invoke_client_action(live, vec!["sfm:packet/list".to_owned()])
+            .await
+            .expect("structured packet-action round trip");
+        assert!(packet_result.structured_result_present);
+        assert_eq!(packet_result.structured_result_schema, "sfm.packet.list/1");
+        assert_eq!(
+            packet_result.structured_result_json,
+            r#"{"schema":"sfm.packet.list/1","status":"ok","entries":[]}"#
         );
     }
 
@@ -458,6 +487,7 @@ mod tests {
         assert_eq!(captured_node.if_no_match, SfmControlExplorerIfNoMatch::Fail);
 
         assert_spatial_coverage_round_trip(&live, &captured_action).await;
+        assert_packet_action_round_trip(&live).await;
         server.abort();
     }
 }

@@ -44,6 +44,10 @@ public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
         basicItem(SFMItems.EXPERIENCE_GOOP);
         basicItem(SFMItems.EXPERIENCE_SHARD);
         basicItem(SFMItems.NETWORK_TOOL);
+        withExistingParent(
+                SFMItems.PACKET.getPath(),
+                mcLoc("item/generated")
+        ).texture("layer0", mcLoc("item/paper"));
 
         // force custom renderer
         getBuilder(SFMItems.FORM)

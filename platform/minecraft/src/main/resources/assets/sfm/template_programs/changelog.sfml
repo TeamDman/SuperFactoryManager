@@ -7,6 +7,10 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Keep dedicated servers from initializing client-action contributors and exclude integrated-client-only packet GameTests before class loading
+-- List bounded, session-aware packet observations and attempt exact-address packet sends through versioned structured client-action and sfm CLI results
+-- Allow private integrated-world packet responses to insert one data packet into an exact loaded inventory address without opening a menu
+-- Add the stackable sfm:packet generic data carrier and its bounded, versioned value codec
 -- Remove human review comments through a stale-safe writable confirmation, refreshing surviving review Explorers without disturbing shared evidence
 -- Reveal raw, inline and split generated review surfaces at their exact originating Explorer rows
 -- Separate compact raw text patches from complete source-interposed inline text diffs

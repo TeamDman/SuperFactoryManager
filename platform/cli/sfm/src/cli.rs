@@ -6,7 +6,8 @@ use crate::discovery::{
 use crate::explorer::{EntitySelector, SelectorDomain, SfmPath};
 use crate::output::{CliOutput, OutputFormat};
 use crate::protocol::{
-    SfmControlExplorerIfNoMatch, SfmControlExplorerOperation, SfmControlExplorerOperationResult,
+    MAX_PACKET_VALUE_JSON_BYTES, STRUCTURED_ACTION_RESULT_CAPABILITY, SfmControlExplorerIfNoMatch,
+    SfmControlExplorerOperation, SfmControlExplorerOperationResult,
     SfmControlExplorerOperationStatus, SfmControlExplorerTargetResult, validate_action_tokens,
     validate_explorer_projection_id,
 };
@@ -41,6 +42,8 @@ pub enum Command {
     Instance(InstanceArgs),
     /// Query and mutate generic explorer sessions in a selected game.
     Explorer(ExplorerArgs),
+    /// Observe and send bounded packet values in a private integrated world.
+    Packet(PacketArgs),
     /// Run spatial analysis and coverage operations in a selected game.
     Spatial(SpatialArgs),
     /// Invoke one registered SFM client action in a selected game.
@@ -52,6 +55,7 @@ impl Command {
         match self {
             Self::Instance(args) => args.invoke().await,
             Self::Explorer(args) => args.invoke().await,
+            Self::Packet(args) => args.invoke().await,
             Self::Spatial(args) => args.invoke().await,
             Self::Invoke(args) => args.invoke().await,
         }
@@ -757,6 +761,9 @@ impl SpatialCoverageRunArgs {
                 canonical_action: result.canonical_action,
                 result_code: result.result_code,
                 feedback: result.feedback,
+                structured_result_present: result.structured_result_present,
+                structured_result_schema: result.structured_result_schema,
+                structured_result_json: result.structured_result_json,
                 resulting_screen_present: result.resulting_screen_present,
                 resulting_screen: result.resulting_screen,
                 workspace_present: result.workspace_present,
@@ -764,6 +771,348 @@ impl SpatialCoverageRunArgs {
             },
         }))
     }
+}
+
+const PACKET_LIST_SCHEMA: &str = "sfm.packet.list/1";
+const PACKET_SEND_SCHEMA: &str = "sfm.packet.send/1";
+
+#[derive(Debug, Facet)]
+#[allow(dead_code, clippy::struct_excessive_bools)]
+struct PacketListPayload<'a> {
+    schema: String,
+    status: String,
+    session_id_present: bool,
+    session_id: String,
+    requested_session_id_present: bool,
+    requested_session_id: String,
+    requested_after_sequence_present: bool,
+    requested_after_sequence: u64,
+    oldest_sequence: u64,
+    newest_sequence: u64,
+    retained_entry_count: u32,
+    retained_payload_bytes: u32,
+    continuity: String,
+    entries: Vec<PacketListEntry<'a>>,
+    next_after_sequence: u64,
+    has_more: bool,
+}
+
+#[derive(Debug, Facet)]
+#[allow(dead_code)]
+struct PacketListEntry<'a> {
+    sequence: u64,
+    payload_bytes: u32,
+    value: facet_json::RawJson<'a>,
+}
+
+#[derive(Debug, Facet)]
+#[allow(dead_code, clippy::struct_excessive_bools)]
+struct PacketSendPayload<'a> {
+    schema: String,
+    status: String,
+    session_id_present: bool,
+    session_id: String,
+    requested_session_id_present: bool,
+    requested_session_id: String,
+    dimension: String,
+    x: i32,
+    y: i32,
+    z: i32,
+    side_present: bool,
+    side: String,
+    value: facet_json::RawJson<'a>,
+    local_transport_accepted: bool,
+}
+
+#[derive(Debug, Facet)]
+pub struct PacketArgs {
+    #[facet(args::subcommand)]
+    pub command: PacketCommand,
+}
+
+impl PacketArgs {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        self.command.invoke().await
+    }
+}
+
+#[derive(Debug, Facet)]
+#[repr(u8)]
+pub enum PacketCommand {
+    /// Read one bounded page from the current packet observation session.
+    List(PacketListArgs),
+    /// Attempt one exact-address packet insertion through the local client.
+    Send(PacketSendArgs),
+}
+
+impl PacketCommand {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        match self {
+            Self::List(args) => args.invoke().await,
+            Self::Send(args) => args.invoke().await,
+        }
+    }
+}
+
+#[derive(Debug, Facet)]
+pub struct PacketListArgs {
+    /// Continue strictly after this sequence number.
+    #[facet(default, args::named)]
+    pub after_sequence: Option<u64>,
+    /// Return between 1 and 100 retained observations (default 50).
+    #[facet(default, args::named)]
+    pub limit: Option<u16>,
+    /// Require this exact world-session UUID.
+    #[facet(default, args::named)]
+    pub session_id: Option<String>,
+    #[facet(default, flatten)]
+    pub target: TargetArgs,
+}
+
+impl PacketListArgs {
+    fn action_tokens(&self) -> eyre::Result<Vec<String>> {
+        if let Some(after) = self.after_sequence {
+            eyre::ensure!(
+                i64::try_from(after).is_ok(),
+                "after-sequence exceeds the signed 64-bit cursor range"
+            );
+        }
+        if let Some(limit) = self.limit {
+            eyre::ensure!(
+                (1..=100).contains(&limit),
+                "packet list limit must be between 1 and 100"
+            );
+        }
+        if let Some(session) = self.session_id.as_deref() {
+            validate_packet_session_id(session)?;
+        }
+
+        let mut action = vec!["sfm:packet/list".to_owned()];
+        if let Some(after) = self.after_sequence {
+            action.extend(["after".to_owned(), after.to_string()]);
+        }
+        if let Some(limit) = self.limit {
+            action.extend(["limit".to_owned(), limit.to_string()]);
+        }
+        if let Some(session) = &self.session_id {
+            action.extend(["session".to_owned(), session.clone()]);
+        }
+        validate_action_tokens(&action)?;
+        Ok(action)
+    }
+
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        let action = self.action_tokens()?;
+        invoke_packet_action(action, self.target, PACKET_LIST_SCHEMA, "list").await
+    }
+}
+
+#[derive(Debug, Facet)]
+pub struct PacketSendArgs {
+    /// Exact target dimension resource location, such as minecraft:overworld.
+    #[facet(args::positional)]
+    pub dimension: String,
+    #[facet(args::positional)]
+    pub x: i32,
+    #[facet(args::positional)]
+    pub y: i32,
+    #[facet(args::positional)]
+    pub z: i32,
+    /// One bounded generic SFM JSON value.
+    #[facet(args::positional)]
+    pub value_json: String,
+    /// Optional exact Forge capability side.
+    #[facet(default, args::named)]
+    pub side: Option<String>,
+    /// Require this exact world-session UUID.
+    #[facet(default, args::named)]
+    pub session_id: Option<String>,
+    #[facet(default, flatten)]
+    pub target: TargetArgs,
+}
+
+impl PacketSendArgs {
+    fn action_tokens(&self) -> eyre::Result<Vec<String>> {
+        validate_packet_dimension(&self.dimension)?;
+        eyre::ensure!(
+            self.value_json.len() <= MAX_PACKET_VALUE_JSON_BYTES,
+            "packet value JSON exceeds {MAX_PACKET_VALUE_JSON_BYTES} UTF-8 bytes"
+        );
+        let _: facet_json::RawJson<'_> = facet_json::from_str_borrowed(self.value_json.trim())
+            .map_err(|failure| eyre::eyre!("packet value JSON is malformed: {failure}"))?;
+        let side = self.side.as_ref().map(|side| side.to_ascii_lowercase());
+        if let Some(side) = side.as_deref() {
+            eyre::ensure!(
+                matches!(side, "down" | "up" | "north" | "south" | "west" | "east"),
+                "packet side must be down, up, north, south, west, or east"
+            );
+        }
+        if let Some(session) = self.session_id.as_deref() {
+            validate_packet_session_id(session)?;
+        }
+
+        let mut action = vec![
+            "sfm:packet/send".to_owned(),
+            self.dimension.clone(),
+            self.x.to_string(),
+            self.y.to_string(),
+            self.z.to_string(),
+        ];
+        if let Some(side) = side {
+            action.extend(["side".to_owned(), side]);
+        }
+        if let Some(session) = &self.session_id {
+            action.extend(["session".to_owned(), session.clone()]);
+        }
+        action.push(self.value_json.clone());
+        validate_action_tokens(&action)?;
+        Ok(action)
+    }
+
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        let action = self.action_tokens()?;
+        invoke_packet_action(action, self.target, PACKET_SEND_SCHEMA, "send").await
+    }
+}
+
+async fn invoke_packet_action(
+    action: Vec<String>,
+    target: TargetArgs,
+    expected_schema: &str,
+    action_name: &str,
+) -> eyre::Result<CliOutput> {
+    validate_action_tokens(&action)?;
+    let snapshot = discover_instances().await?;
+    let selected = select_instance(
+        &snapshot,
+        target.instance_pid,
+        target.instance_id.as_deref(),
+    )?;
+    eyre::ensure!(
+        selected
+            .description
+            .capabilities
+            .iter()
+            .any(|capability| capability == STRUCTURED_ACTION_RESULT_CAPABILITY),
+        "selected instance does not advertise {STRUCTURED_ACTION_RESULT_CAPABILITY}"
+    );
+    let result = invoke_client_action(&selected, action).await?;
+    eyre::ensure!(
+        result.structured_result_present,
+        "packet {action_name} action returned no structured result"
+    );
+    eyre::ensure!(
+        result.structured_result_schema == expected_schema,
+        "packet {action_name} action returned schema {}, expected {expected_schema}",
+        result.structured_result_schema
+    );
+    let status = validate_packet_action_payload(expected_schema, &result.structured_result_json)?;
+    let feedback = if result.feedback.is_empty() {
+        "(none)".to_owned()
+    } else {
+        result.feedback.join("\n- ")
+    };
+    let text = format!(
+        "packet-action: {action_name}\nschema: {expected_schema}\nstatus: {status}\ninstance-id: {}\nresult-code: {}\nfeedback:\n- {feedback}\npayload: {}",
+        result.instance_id, result.result_code, result.structured_result_json
+    );
+    CliOutput::structured_json(result.structured_result_json, text, 0)
+}
+
+fn validate_packet_action_payload(schema: &str, json: &str) -> eyre::Result<String> {
+    match schema {
+        PACKET_LIST_SCHEMA => {
+            let payload: PacketListPayload<'_> =
+                facet_json::from_str_borrowed(json).map_err(|failure| {
+                    eyre::eyre!("invalid {PACKET_LIST_SCHEMA} payload: {failure}")
+                })?;
+            eyre::ensure!(
+                payload.schema == PACKET_LIST_SCHEMA,
+                "packet list payload schema mismatch"
+            );
+            eyre::ensure!(
+                matches!(
+                    payload.status.as_str(),
+                    "ok" | "no_session" | "session_changed"
+                ),
+                "packet list payload has unknown status"
+            );
+            eyre::ensure!(
+                payload.entries.len() <= 100,
+                "packet list payload exceeds page limit"
+            );
+            eyre::ensure!(
+                matches!(
+                    payload.continuity.as_str(),
+                    "CONTIGUOUS"
+                        | "EVICTED_GAP"
+                        | "SESSION_CHANGED"
+                        | "CURSOR_AHEAD"
+                        | "no_session"
+                ),
+                "packet list payload has unknown continuity"
+            );
+            Ok(payload.status)
+        }
+        PACKET_SEND_SCHEMA => {
+            let payload: PacketSendPayload<'_> =
+                facet_json::from_str_borrowed(json).map_err(|failure| {
+                    eyre::eyre!("invalid {PACKET_SEND_SCHEMA} payload: {failure}")
+                })?;
+            eyre::ensure!(
+                payload.schema == PACKET_SEND_SCHEMA,
+                "packet send payload schema mismatch"
+            );
+            eyre::ensure!(
+                matches!(
+                    payload.status.as_str(),
+                    "send_attempted" | "effects_disabled" | "session_changed" | "no_session"
+                ),
+                "packet send payload has unknown status"
+            );
+            eyre::ensure!(
+                payload.local_transport_accepted == (payload.status == "send_attempted"),
+                "packet send payload local transport status is inconsistent"
+            );
+            Ok(payload.status)
+        }
+        _ => eyre::bail!("unsupported packet action schema {schema}"),
+    }
+}
+
+fn validate_packet_session_id(session: &str) -> eyre::Result<()> {
+    let valid = session.len() == 36
+        && session.bytes().enumerate().all(|(index, byte)| {
+            if matches!(index, 8 | 13 | 18 | 23) {
+                byte == b'-'
+            } else {
+                byte.is_ascii_hexdigit()
+            }
+        });
+    eyre::ensure!(valid, "packet session id must be a UUID");
+    Ok(())
+}
+
+fn validate_packet_dimension(dimension: &str) -> eyre::Result<()> {
+    let Some((namespace, path)) = dimension.split_once(':') else {
+        eyre::bail!("packet dimension must be an explicit resource location");
+    };
+    let valid_namespace = !namespace.is_empty()
+        && namespace.bytes().all(|byte| {
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'-' | b'.')
+        });
+    let valid_path = !path.is_empty()
+        && !path.contains(':')
+        && path.bytes().all(|byte| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit()
+                || matches!(byte, b'_' | b'-' | b'.' | b'/')
+        });
+    eyre::ensure!(
+        valid_namespace && valid_path,
+        "packet dimension is not a valid resource location"
+    );
+    Ok(())
 }
 
 #[derive(Debug, Facet)]
@@ -793,6 +1142,9 @@ impl InvokeArgs {
             canonical_action: result.canonical_action,
             result_code: result.result_code,
             feedback: result.feedback,
+            structured_result_present: result.structured_result_present,
+            structured_result_schema: result.structured_result_schema,
+            structured_result_json: result.structured_result_json,
             resulting_screen_present: result.resulting_screen_present,
             resulting_screen: result.resulting_screen,
             workspace_present: result.workspace_present,
@@ -831,6 +1183,9 @@ struct InvokeOutput {
     canonical_action: String,
     result_code: i32,
     feedback: Vec<String>,
+    structured_result_present: bool,
+    structured_result_schema: String,
+    structured_result_json: String,
     resulting_screen_present: bool,
     resulting_screen: String,
     workspace_present: bool,
@@ -856,6 +1211,9 @@ struct SpatialCoverageInvocationOutput {
     canonical_action: String,
     result_code: i32,
     feedback: Vec<String>,
+    structured_result_present: bool,
+    structured_result_schema: String,
+    structured_result_json: String,
     resulting_screen_present: bool,
     resulting_screen: String,
     workspace_present: bool,
@@ -1016,6 +1374,148 @@ mod tests {
             panic!("expected invoke command");
         };
         assert_eq!(invoke.action, ["sfm:panel/open", "sfm:size_display"]);
+    }
+
+    #[test]
+    fn packet_list_cli_builds_the_versioned_action_contract() {
+        let parsed = parse(&[
+            "packet",
+            "list",
+            "--after-sequence",
+            "7",
+            "--limit",
+            "2",
+            "--session-id",
+            "123e4567-e89b-12d3-a456-426614174000",
+            "--instance-id",
+            "game-1",
+        ]);
+        let Command::Packet(PacketArgs {
+            command: PacketCommand::List(list),
+        }) = parsed.command
+        else {
+            panic!("expected packet list command");
+        };
+        assert_eq!(list.target.instance_id.as_deref(), Some("game-1"));
+        assert_eq!(
+            list.action_tokens().expect("packet list tokens"),
+            [
+                "sfm:packet/list",
+                "after",
+                "7",
+                "limit",
+                "2",
+                "session",
+                "123e4567-e89b-12d3-a456-426614174000",
+            ]
+        );
+    }
+
+    #[test]
+    fn packet_send_cli_builds_exact_address_side_session_and_value_tokens() {
+        let parsed = parse(&[
+            "packet",
+            "send",
+            "--side",
+            "NORTH",
+            "--session-id",
+            "123e4567-e89b-12d3-a456-426614174000",
+            "--",
+            "minecraft:overworld",
+            "12",
+            "64",
+            "-7",
+            r#"{"message":"hello world"}"#,
+        ]);
+        let Command::Packet(PacketArgs {
+            command: PacketCommand::Send(send),
+        }) = parsed.command
+        else {
+            panic!("expected packet send command");
+        };
+        assert_eq!(
+            send.action_tokens().expect("packet send tokens"),
+            [
+                "sfm:packet/send",
+                "minecraft:overworld",
+                "12",
+                "64",
+                "-7",
+                "side",
+                "north",
+                "session",
+                "123e4567-e89b-12d3-a456-426614174000",
+                r#"{"message":"hello world"}"#,
+            ]
+        );
+    }
+
+    #[test]
+    fn packet_send_rejects_raw_bounded_json_that_overflows_after_escaping() {
+        let send = PacketSendArgs {
+            dimension: "minecraft:overworld".to_owned(),
+            x: 0,
+            y: 64,
+            z: 0,
+            value_json: format!("\"{}\"", "\\\"".repeat(1_023)),
+            side: None,
+            session_id: None,
+            target: TargetArgs::default(),
+        };
+        let failure = send.action_tokens().expect_err("escaped value overflow");
+        assert!(failure.to_string().contains("escaped action token"));
+    }
+
+    #[test]
+    fn packet_payload_contracts_are_typed_and_status_consistent() {
+        let list = r#"{
+            "schema":"sfm.packet.list/1",
+            "status":"ok",
+            "session_id_present":true,
+            "session_id":"123e4567-e89b-12d3-a456-426614174000",
+            "requested_session_id_present":false,
+            "requested_session_id":"",
+            "requested_after_sequence_present":false,
+            "requested_after_sequence":0,
+            "oldest_sequence":1,
+            "newest_sequence":1,
+            "retained_entry_count":1,
+            "retained_payload_bytes":7,
+            "continuity":"CONTIGUOUS",
+            "entries":[{"sequence":1,"payload_bytes":7,"value":{"x":1}}],
+            "next_after_sequence":1,
+            "has_more":false
+        }"#;
+        assert_eq!(
+            validate_packet_action_payload(PACKET_LIST_SCHEMA, list).expect("list payload"),
+            "ok"
+        );
+
+        let send = r#"{
+            "schema":"sfm.packet.send/1",
+            "status":"send_attempted",
+            "session_id_present":true,
+            "session_id":"123e4567-e89b-12d3-a456-426614174000",
+            "requested_session_id_present":false,
+            "requested_session_id":"",
+            "dimension":"minecraft:overworld",
+            "x":0,
+            "y":64,
+            "z":0,
+            "side_present":false,
+            "side":"",
+            "value":[null,true,42],
+            "local_transport_accepted":true
+        }"#;
+        assert_eq!(
+            validate_packet_action_payload(PACKET_SEND_SCHEMA, send).expect("send payload"),
+            "send_attempted"
+        );
+        let inconsistent = send.replace(
+            "\"local_transport_accepted\":true",
+            "\"local_transport_accepted\":false",
+        );
+        assert!(validate_packet_action_payload(PACKET_SEND_SCHEMA, &inconsistent).is_err());
     }
 
     #[test]

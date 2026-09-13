@@ -386,9 +386,22 @@ public final class SFMGamePuppetHarness {
             if (matches.size() != 1) {
                 throw new IllegalStateException("Expected exactly one SFM GameTest named " + testName + ", found " + matches.size());
             }
+            startGameTest(active, server, matches.get(0));
+        } catch (Throwable throwable) {
+            active.gameTestStartFailure = throwable;
+        }
+    }
+
+    public static void startGameTest(
+            ActivePuppet active,
+            MinecraftServer server,
+            SFMGameTestDefinition definition
+    ) {
+        try {
+            String testName = definition.testName();
             ServerLevel level = server.overworld();
             configureWorld(server, level);
-            TestFunction test = matches.get(0).intoTestFunction();
+            TestFunction test = definition.intoTestFunction();
             BlockPos startPos = new BlockPos(0, level.getMinBuildHeight() + 4, 0);
             GameTestTicker.SINGLETON.clear();
             GameTestRunner.clearMarkers(level);

@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.client.handler.SFMCommandPaletteKeyHandler;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
@@ -51,6 +52,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.FormattedCharSequence;
+import net.minecraft.util.HttpUtil;
 import net.minecraft.util.Mth;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.InteractionHand;
@@ -137,8 +139,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
-    public boolean runGameTest(String testName) {
-
+    public boolean startGameTest(String testName) {
         if (active.gameTestStartFailure != null) {
             throw new IllegalStateException("Could not start GameTest " + testName, active.gameTestStartFailure);
         }
@@ -148,8 +149,46 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         }
         if (!active.gameTestStartRequested) {
             active.gameTestStartRequested = true;
+            active.gameTestName = testName;
             server.execute(() -> SFMGamePuppetHarness.startGameTest(active, server, testName));
             return false;
+        }
+        requireSelectedGameTest(testName);
+        return active.gameTestTracker != null
+                && active.gameTestInfo != null
+                && active.gameTestOrigin != null;
+    }
+
+    @Override
+    public boolean startGameTest(SFMGameTestDefinition testDefinition) {
+        String testName = testDefinition.testName();
+        if (active.gameTestStartFailure != null) {
+            throw new IllegalStateException("Could not start GameTest " + testName, active.gameTestStartFailure);
+        }
+        IntegratedServer server = minecraft.getSingleplayerServer();
+        if (server == null || !server.isReady()) {
+            return false;
+        }
+        if (!active.gameTestStartRequested) {
+            active.gameTestStartRequested = true;
+            active.gameTestName = testName;
+            server.execute(() -> SFMGamePuppetHarness.startGameTest(active, server, testDefinition));
+            return false;
+        }
+        requireSelectedGameTest(testName);
+        return active.gameTestTracker != null
+                && active.gameTestInfo != null
+                && active.gameTestOrigin != null;
+    }
+
+    @Override
+    public boolean waitForGameTest(String testName) {
+        if (!active.gameTestStartRequested) {
+            throw new IllegalStateException("GameTest " + testName + " has not been started");
+        }
+        requireSelectedGameTest(testName);
+        if (active.gameTestStartFailure != null) {
+            throw new IllegalStateException("Could not start GameTest " + testName, active.gameTestStartFailure);
         }
         MultipleTestTracker tracker = active.gameTestTracker;
         if (tracker == null || !tracker.isDone()) {
@@ -875,6 +914,42 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         return true;
     }
 
+    @Override
+    public boolean publishIntegratedServerToLan() {
+        if (active.integratedServerPublishFailure != null) {
+            throw new IllegalStateException(
+                    "Could not publish the integrated server to LAN",
+                    active.integratedServerPublishFailure
+            );
+        }
+        IntegratedServer server = minecraft.getSingleplayerServer();
+        if (server == null || !server.isReady()) {
+            return false;
+        }
+        if (server.isPublished()) {
+            return true;
+        }
+        if (!active.integratedServerPublishRequested) {
+            active.integratedServerPublishRequested = true;
+            server.execute(() -> {
+                try {
+                    int port = HttpUtil.getAvailablePort();
+                    if (!server.publishServer(GameType.CREATIVE, false, port)) {
+                        throw new IllegalStateException("Integrated server rejected LAN publication on port " + port);
+                    }
+                    SFM.LOGGER.info(
+                            "SFM_GAME_PUPPET_LAN_PUBLISHED puppet={} port={}",
+                            active.definition.puppetName(),
+                            port
+                    );
+                } catch (Throwable failure) {
+                    active.integratedServerPublishFailure = failure;
+                }
+            });
+        }
+        return false;
+    }
+
     private void reportTerminalPropertiesWait(String artifactName, String state) {
         String identified = artifactName + " " + state;
         if (identified.equals(active.terminalPropertiesWaitState)) return;
@@ -932,6 +1007,23 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
                     + actualFocus + " instead of " + expectedFocus);
         }
         return true;
+    }
+
+    @Override
+    public boolean runGameTest(String testName) {
+        if (!startGameTest(testName)) {
+            return false;
+        }
+        return waitForGameTest(testName);
+    }
+
+    private void requireSelectedGameTest(String testName) {
+        if (!testName.equals(active.gameTestName)) {
+            throw new IllegalStateException(
+                    "Game puppet already selected GameTest " + active.gameTestName
+                            + " and cannot operate " + testName
+            );
+        }
     }
 
     private static void assertTerminalProperty(

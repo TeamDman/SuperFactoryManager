@@ -5,7 +5,6 @@ import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
-import ca.teamdman.sfml.ast.InputStatement;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.world.level.Level;
 
@@ -20,7 +19,7 @@ public class ProgramContext {
 
     private final CableNetwork NETWORK;
 
-    private final List<InputStatement> INPUTS = new ArrayList<>();
+    private final List<ProgramInputSource> INPUTS = new ArrayList<>();
 
     private final Level LEVEL;
 
@@ -178,7 +177,7 @@ public class ProgramContext {
 
     public void free() {
 
-        INPUTS.forEach(InputStatement::freeSlots);
+        INPUTS.forEach(ProgramInputSource::free);
     }
 
 
@@ -192,12 +191,12 @@ public class ProgramContext {
         return LOGGER;
     }
 
-    public void addInput(InputStatement input) {
+    public void addInput(ProgramInputSource input) {
 
         INPUTS.add(input);
     }
 
-    public List<InputStatement> getInputs() {
+    public List<ProgramInputSource> getInputs() {
 
         return INPUTS;
     }

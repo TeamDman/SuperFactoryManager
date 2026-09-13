@@ -90,6 +90,9 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, FormItem> FORM
             = REGISTRY.register("form", FormItem::new);
 
+    public static final SFMRegistryObject<Item, PacketItem> PACKET
+            = REGISTRY.register("packet", PacketItem::new);
+
     public static final SFMRegistryObject<Item, ExperienceShardItem> EXPERIENCE_SHARD
             = REGISTRY.register(
             "xp_shard",
