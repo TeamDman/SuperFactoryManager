@@ -1,6 +1,6 @@
 # SFM packet computation: single-player MVP
 
-**Status:** Slice A complete through A4.2 and Slice B complete through B4 lifetime and simulation; B5 observation is next
+**Status:** Slices A and B complete; Slice C language and text is next
 **Implementation branch:** `feat/1.19.2/packet-computation`  
 **Implementation baseline:** `1be4b3cff9387f0b2870bc281017b3589f0119ef`  
 **Design-inspection baseline:** `53b9b302117289c945def6ed73297f2997901559`
@@ -74,6 +74,7 @@ change must update this section and its boundary tests deliberately.
 | List action | `sfm:packet/list` accepts optional `after`, `limit`, and `session` terms in that order. Its JSON reports requested/current sessions, oldest/newest sequences, retained count/bytes, continuity, entries, the last returned sequence as the next cursor, and `has_more`. A stale session is explicit and returns no current-session entries. |
 | Send action | `sfm:packet/send` accepts an exact dimension and integer block position, optional `side` then `session` terms, and one strict bounded value. Status is one of `send_attempted`, `effects_disabled`, `session_changed`, or `no_session`; only `send_attempted` sets local transport acceptance, and no status claims inventory delivery. |
 | Packet stacking | `sfm:packet` has a maximum stack size of 64. Packets stack only when their complete item data, including codec version and canonical payload, is equal. Every item count is one packet occurrence; stacking never deduplicates application events or job IDs. |
+| Observation identity | One observation statement emits at most the largest eligible quantity for a physical resource type/handler/slot, even when overlapping input matches produce duplicate handles. Equal values in distinct slots or generated handlers remain distinct occurrences. Independent input declarations do not make duplicate views of the same physical slot into new occurrences. |
 | GameTest distribution | `@SFMGameTest` reuses the existing `SFMDist[]` physical-side vocabulary and defaults to client plus dedicated server. Integrated-client packet tests declare `SFMDist.CLIENT` and are excluded from dedicated-server discovery before their classes are loaded. Client-action contributor classes are likewise not initialized on a dedicated server. |
 | Item availability | The carrier has no recipe and is not listed as a blank creative-tab item. Production creation is limited to packet construction/sending paths; operator commands remain ordinary Minecraft authority. |
 | Initial model | The generated model uses the vanilla paper texture as a neutral carrier icon. Bespoke packet art is outside A1. |
@@ -156,9 +157,11 @@ reviewable before language syntax depends on them:
   execution-scope, and ephemeral-owner teardown. Simulation/lint behavior
   rejects lazy runtime materialization before constructors, GUIDs, items, or
   effects can be created.
-- **B5 — observation path:** traverse eligible resources without extraction or
-  transfer bookkeeping, preserving item-count occurrences for stackable
-  packets and leaving normal output quantity available.
+- **B5 — observation path:** completed with detached stack snapshots and a
+  transactional tracker view that applies current shared/expanded quantity and
+  retention state without extraction or live bookkeeping. Stack counts remain
+  occurrence counts, duplicate physical handles collapse, and normal output
+  quantity remains available.
 
 The production byte cap is intentionally retained even though it is currently
 secondary: 256 values at the 3,072-byte value maximum total 786,432 bytes,
@@ -197,10 +200,10 @@ sfm packet send --side north -- minecraft:overworld 12 64 -7 '{"value":1}'
 | C06 | A1 | One `sfm:packet` item round-trips every supported value kind | Covered by the all-kind codec round trip and registered-item GameTest |
 | C07 | C | Equivalent alias-pattern tests | Pending |
 | C08 | C/D | Open-object matching retains extra fields | Pending |
-| C09 | B/C | Equal inputs retain separate occurrence rows and IDs | B2 ownership uses identity rather than value equality, and B3 proves equal generated values retain distinct source occurrences, handlers, and owner entries; relation-row mapping and generated IDs remain for C |
+| C09 | B/C | Equal inputs retain separate occurrence rows and IDs | B2 ownership uses identity rather than value equality, B3 proves equal generated values retain distinct source occurrences, handlers, and owner entries, and B5 preserves equal stacks in distinct handlers while collapsing overlapping handles to the same physical slot; relation-row mapping and generated IDs remain for C |
 | C10 | A1/C | Immutable construction and copied item-read tests | A1 copy boundary covered; language capture remains for C |
 | C11 | B/C | Peek/peek/output uses one memoized generated item | B3 proves both value-first and resource-first demand, repeated value/slot reuse, failure memoization, and ordinary movement of the same carrier; language-level create/broadcast/output remains for C |
-| C12 | B/C | Repeated broadcast does not consume output quantity | Pending |
+| C12 | B/C | Repeated broadcast does not consume output quantity | B5 proves repeated observation performs no extraction or live retention/transfer bookkeeping and leaves the same generated/world quantity available to ordinary output; the language-level broadcast statement remains for C |
 | C13 | B | Normal/exceptional context teardown frees leftovers | Covered: B2 provides context-owned, identity-based, exactly-once cleanup; B3 proves unmoved generated handlers are cleared at normal teardown and drained handlers release early without affecting moved items; B4 frees every trigger fork and root context through `finally`, continues after individual cleanup failures, and preserves the trigger exception as primary when cleanup also fails |
 | C14 | B/C | Bare/selective forget clears inputs but retains variables | B2 separates variables, active views, and owned resources; B3 preserves bare `FORGET` explicitly, proves selective forget retains an unlabelled generated view, and proves bare forget detaches it without prematurely disposing owner-held storage; language bindings remain for C |
 | C15 | B/C | Accumulated source/generated inputs move independently | B1 makes ordinary output gather every active source; B3 proves equal generated occurrences accumulate as distinct handlers and one generated packet moves through ordinary item machinery; mixed text/generated language input remains for C |
@@ -462,6 +465,35 @@ B4 lifetime-and-simulation evidence on 13 September 2026:
   forget*`: all four ordinary scheduled-program regressions passed through the
   new root/fork teardown paths.
 - The complete unit suite found 2,111 tests: 2,106 passed, none failed, and five
+  opt-in integration fixtures were assumption-aborted as designed.
+
+B5 observation-path evidence on 13 September 2026:
+
+- `ProgramResourceObserver` gathers active inputs lazily, filters before
+  applying selection budgets, and returns detached stack snapshots. It neither
+  calls extraction nor mutates a live input tracker.
+- Each live input tracker supplies one per-observation transactional view.
+  Hypothetical retention and transfer progress uses the same shared versus
+  per-item expansion rules while incorporating any progress already present on
+  the live tracker.
+- Observation identity is resource type plus handler identity plus slot. The
+  largest eligible overlap is retained once for that physical slot; equal
+  stacks in distinct handlers remain separate. A stack amount is preserved as
+  that many packet occurrences for the later broadcast adapter.
+- `test run --branch feat/1.19.2/packet-computation --filter
+  ProgramResourceObserverTests`: 5/5 passed, covering non-consuming
+  quantity/retention, later output and depletion, ignored-resource filtering,
+  physical overlap, distinct equal stacks, and all shared/expanded tracker
+  groupings.
+- `test run --branch feat/1.19.2/packet-computation --filter
+  GeneratedItemProgramInputSourceTests`: 9/9 passed. Two observations reused
+  one lazy construction and left all four generated units available for normal
+  movement; mutating an observed snapshot did not mutate owned storage.
+- `game-test run-server --branch feat/1.19.2/packet-computation --filter
+  generated_packet_input_source`: 1/1 required test passed without a connected
+  client. Three equal registered `sfm:packet` items stacked, were observed as
+  three occurrences twice, and then moved together through ordinary output.
+- The complete unit suite found 2,117 tests: 2,112 passed, none failed, and five
   opt-in integration fixtures were assumption-aborted as designed.
 
 ## Exclusions

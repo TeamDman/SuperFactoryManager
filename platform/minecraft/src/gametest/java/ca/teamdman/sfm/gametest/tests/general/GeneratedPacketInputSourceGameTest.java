@@ -7,6 +7,8 @@ import ca.teamdman.sfm.common.program.GeneratedItemProgramInputSource;
 import ca.teamdman.sfm.common.program.LimitedInputSlot;
 import ca.teamdman.sfm.common.program.LimitedOutputSlot;
 import ca.teamdman.sfm.common.program.ProgramContext;
+import ca.teamdman.sfm.common.program.ProgramResourceObservation;
+import ca.teamdman.sfm.common.program.ProgramResourceObserver;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
@@ -86,6 +88,29 @@ public class GeneratedPacketInputSourceGameTest extends SFMGameTestDefinition {
         helper.assertTrue(PacketItem.getValue(input.peekStackInSlot()).orElseThrow().equals(expected),
                           "The generated carrier must contain the memoized value");
 
+        ItemStack twoMoreOccurrences = PacketItem.create(expected);
+        twoMoreOccurrences.setCount(2);
+        helper.assertTrue(input.getHandler().insertItem(0, twoMoreOccurrences, false).isEmpty(),
+                          "Equal packet values must stack in generated storage");
+        List<ProgramResourceObservation> firstObservation = ProgramResourceObserver.observe(
+                context,
+                (type, stack) -> stack instanceof ItemStack itemStack
+                                 && itemStack.getItem() == SFMItems.PACKET.get()
+        );
+        List<ProgramResourceObservation> secondObservation = ProgramResourceObserver.observe(
+                context,
+                (type, stack) -> stack instanceof ItemStack itemStack
+                                 && itemStack.getItem() == SFMItems.PACKET.get()
+        );
+        helper.assertTrue(firstObservation.size() == 1 && firstObservation.get(0).amount() == 3,
+                          "A stack of three packets must observe three packet occurrences");
+        helper.assertTrue(secondObservation.size() == 1 && secondObservation.get(0).amount() == 3,
+                          "Repeated observation must preserve the same three occurrences");
+        helper.assertTrue(PacketItem.getValue((ItemStack) firstObservation.get(0).stack()).orElseThrow().equals(expected),
+                          "Observed packet snapshots must retain the generated value");
+        helper.assertTrue(input.peekStackInSlot().getCount() == 3,
+                          "Observation must not consume generated packet items");
+
         IItemHandler destinationHandler = helper.getItemHandler(destinationPos);
         LimitedOutputSlot<ItemStack, Item, IItemHandler> output = new LimitedOutputSlot<>(
                 new Label("destination"),
@@ -101,6 +126,8 @@ public class GeneratedPacketInputSourceGameTest extends SFMGameTestDefinition {
 
         helper.assertTrue(PacketItem.getValue(destinationHandler.getStackInSlot(0)).orElseThrow().equals(expected),
                           "Ordinary resource movement must transfer the generated packet");
+        helper.assertTrue(destinationHandler.getStackInSlot(0).getCount() == 3,
+                          "Ordinary output must retain all three observed packet occurrences");
         helper.assertTrue(input.peekStackInSlot().isEmpty(), "Generated storage must be empty after transfer");
         helper.assertTrue(context.getEphemeralResourceOwner().size() == 0,
                           "Drained generated storage must release itself from the execution owner");

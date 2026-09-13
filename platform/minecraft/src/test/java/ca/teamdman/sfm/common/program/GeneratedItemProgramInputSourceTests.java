@@ -144,6 +144,52 @@ class GeneratedItemProgramInputSourceTests {
     }
 
     @Test
+    void repeatedObservationPreservesGeneratedStackForOrdinaryMove() {
+        ProgramContext context = context();
+        AtomicInteger constructorCalls = new AtomicInteger();
+        SFMValue expected = SFMValue.of("observe without consuming");
+        GeneratedItemProgramInputSource source = new GeneratedItemProgramInputSource(
+                "stacked observed occurrence",
+                () -> {
+                    constructorCalls.incrementAndGet();
+                    return expected;
+                },
+                ignored -> new ItemStack(Items.PAPER, 4),
+                () -> itemResourceType
+        );
+        context.addInput(source);
+
+        List<ProgramResourceObservation> first = ProgramResourceObserver.observe(context, (type, stack) -> true);
+        List<ProgramResourceObservation> second = ProgramResourceObserver.observe(context, (type, stack) -> true);
+
+        assertEquals(1, first.size());
+        assertEquals(4, first.get(0).amount());
+        assertEquals(4, second.get(0).amount());
+        assertEquals(1, constructorCalls.get());
+        ItemStack observedCopy = (ItemStack) first.get(0).stack();
+        observedCopy.shrink(1);
+        LimitedInputSlot<ItemStack, Item, IItemHandler> input = gatherOne(source, context);
+        assertEquals(4, input.peekStackInSlot().getCount());
+
+        ItemStackHandler destinationHandler = new ItemStackHandler(1);
+        LimitedOutputSlot<ItemStack, Item, IItemHandler> output = new LimitedOutputSlot<>(
+                new Label("destination"),
+                BlockPos.ZERO,
+                null,
+                0,
+                destinationHandler,
+                new AcceptAllOutputTracker(),
+                ItemStack.EMPTY,
+                itemResourceType
+        );
+        OutputStatement.moveTo(context, input, output);
+
+        assertEquals(4, destinationHandler.getStackInSlot(0).getCount());
+        assertEquals(0, context.getEphemeralResourceOwner().size());
+        context.free();
+    }
+
+    @Test
     void selectiveForgetRetainsGeneratedViewAndBareForgetOnlyDetachesIt() {
         ProgramContext context = context();
         GeneratedItemProgramInputSource source = source(
@@ -308,7 +354,7 @@ class GeneratedItemProgramInputSourceTests {
         return ProgramContext.createDetachedTestContext(null, new ExecuteProgramBehaviour());
     }
 
-    private static final class AcceptAllOutputTracker implements IOutputResourceTracker {
+    static final class AcceptAllOutputTracker implements IOutputResourceTracker {
         private long transferred;
 
         @Override
@@ -360,10 +406,11 @@ class GeneratedItemProgramInputSourceTests {
     }
 
     /** Avoids Forge capability bootstrap in the plain-JUnit runner. */
-    private static final class TestItemResourceType extends ResourceType<ItemStack, Item, IItemHandler> {
+    static final class TestItemResourceType extends ResourceType<ItemStack, Item, IItemHandler> {
         private static final ResourceLocation PAPER_ID = new ResourceLocation("minecraft", "paper");
+        private static final ResourceLocation BOOK_ID = new ResourceLocation("minecraft", "book");
 
-        private TestItemResourceType() {
+        TestItemResourceType() {
             super(null);
         }
 
@@ -434,32 +481,35 @@ class GeneratedItemProgramInputSourceTests {
 
         @Override
         public boolean registryKeyExists(ResourceLocation location) {
-            return PAPER_ID.equals(location);
+            return PAPER_ID.equals(location) || BOOK_ID.equals(location);
         }
 
         @Override
         public ResourceLocation getRegistryKeyForStack(ItemStack stack) {
-            return PAPER_ID;
+            return getRegistryKeyForItem(stack.getItem());
         }
 
         @Override
         public ResourceLocation getRegistryKeyForItem(Item item) {
-            return PAPER_ID;
+            return item == Items.BOOK ? BOOK_ID : PAPER_ID;
         }
 
         @Override
         public Item getItemFromRegistryKey(ResourceLocation location) {
-            return PAPER_ID.equals(location) ? Items.PAPER : null;
+            if (PAPER_ID.equals(location)) {
+                return Items.PAPER;
+            }
+            return BOOK_ID.equals(location) ? Items.BOOK : null;
         }
 
         @Override
         public Set<ResourceLocation> getRegistryKeys() {
-            return Set.of(PAPER_ID);
+            return Set.of(PAPER_ID, BOOK_ID);
         }
 
         @Override
         public Iterable<Item> getItems() {
-            return List.of(Items.PAPER);
+            return List.of(Items.PAPER, Items.BOOK);
         }
 
         @Override
