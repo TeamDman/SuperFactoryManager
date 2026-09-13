@@ -11,9 +11,32 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static ca.teamdman.sfml.test.SFMLTestHelpers.compile;
 
 class ProgramInputSourceTests {
+    @Test
+    void parserPreservesBareForgetAsAnAllInputOperation() {
+        var program = compile("""
+                                      EVERY 20 TICKS DO
+                                          INPUT FROM source
+                                          FORGET
+                                          INPUT FROM source
+                                          FORGET source
+                                      END
+                              """);
+        var statements = program.triggers().get(0).getBlock().statements();
+        ForgetStatement bare = (ForgetStatement) statements.get(1);
+        ForgetStatement selective = (ForgetStatement) statements.get(3);
+
+        assertTrue(bare.allInputs());
+        assertTrue(bare.labelToForget().isEmpty());
+        assertFalse(selective.allInputs());
+        assertEquals(Set.of(new Label("source")), selective.labelToForget());
+    }
+
     @Test
     void contextStoresAndCleansAbstractInputSources() {
         ProgramContext context = simulationContext();
@@ -46,8 +69,8 @@ class ProgramInputSourceTests {
 
         new ForgetStatement(forgottenLabels).tick(context);
 
-        assertEquals(forgottenLabels, retained.forgottenLabels);
-        assertEquals(forgottenLabels, dropped.forgottenLabels);
+        assertEquals(ProgramInputForgetRequest.labels(forgottenLabels), retained.forgetRequest);
+        assertEquals(ProgramInputForgetRequest.labels(forgottenLabels), dropped.forgetRequest);
         assertEquals(1, context.getInputs().size());
         assertSame(replacement, context.getInputs().get(0));
         assertEquals(
@@ -68,7 +91,7 @@ class ProgramInputSourceTests {
     private static final class RecordingInputSource implements ProgramInputSource {
         private final @Nullable ProgramInputSource retainedAfterForget;
         private int freeCalls;
-        private Set<Label> forgottenLabels = Set.of();
+        private ProgramInputForgetRequest forgetRequest = ProgramInputForgetRequest.labels(Set.of());
 
         private RecordingInputSource(@Nullable ProgramInputSource retainedAfterForget) {
             this.retainedAfterForget = retainedAfterForget;
@@ -84,9 +107,9 @@ class ProgramInputSourceTests {
         @Override
         public @Nullable ProgramInputSource forget(
                 ProgramContext context,
-                Set<Label> labels
+                ProgramInputForgetRequest request
         ) {
-            forgottenLabels = Set.copyOf(labels);
+            forgetRequest = request;
             return retainedAfterForget;
         }
 

@@ -1,6 +1,6 @@
 # SFM packet computation: single-player MVP
 
-**Status:** Slice A complete through A4.2 and Slice B complete through B2 context ownership; B3 lazy generated source is next
+**Status:** Slice A complete through A4.2 and Slice B complete through B3 lazy generated sources; B4 lifetime and simulation is next
 **Implementation branch:** `feat/1.19.2/packet-computation`  
 **Implementation baseline:** `1be4b3cff9387f0b2870bc281017b3589f0119ef`  
 **Design-inspection baseline:** `53b9b302117289c945def6ed73297f2997901559`
@@ -147,9 +147,11 @@ reviewable before language syntax depends on them:
   World-input slot caches now live on execution-local views rather than cached
   `InputStatement` nodes; no new mutable values or generated stacks live in the
   cached AST/program.
-- **B3 — lazy generated source:** add an ephemeral item-handler-backed source
-  whose constructor is evaluated and memoized once per occurrence on first
-  value or resource demand.
+- **B3 — lazy generated source:** completed with an ephemeral
+  item-handler-backed source whose constructor, immutable value, and carrier
+  are evaluated and memoized once per occurrence on first value or resource
+  demand. Drained handlers release themselves from the execution owner, while
+  forgotten materialized handlers remain owner-held until trigger teardown.
 - **B4 — lifetime and simulation:** make cleanup exception-safe and ensure
   simulation/lint forks cannot materialize runtime GUIDs, items, or effects.
 - **B5 — observation path:** traverse eligible resources without extraction or
@@ -193,13 +195,13 @@ sfm packet send --side north -- minecraft:overworld 12 64 -7 '{"value":1}'
 | C06 | A1 | One `sfm:packet` item round-trips every supported value kind | Covered by the all-kind codec round trip and registered-item GameTest |
 | C07 | C | Equivalent alias-pattern tests | Pending |
 | C08 | C/D | Open-object matching retains extra fields | Pending |
-| C09 | B/C | Equal inputs retain separate occurrence rows and IDs | B2 ephemeral ownership uses identity rather than value equality, so equal-but-distinct resources cannot collapse; relation rows and generated IDs remain for B3/C |
+| C09 | B/C | Equal inputs retain separate occurrence rows and IDs | B2 ownership uses identity rather than value equality, and B3 proves equal generated values retain distinct source occurrences, handlers, and owner entries; relation-row mapping and generated IDs remain for C |
 | C10 | A1/C | Immutable construction and copied item-read tests | A1 copy boundary covered; language capture remains for C |
-| C11 | B/C | Peek/peek/output uses one memoized generated item | Pending |
+| C11 | B/C | Peek/peek/output uses one memoized generated item | B3 proves both value-first and resource-first demand, repeated value/slot reuse, failure memoization, and ordinary movement of the same carrier; language-level create/broadcast/output remains for C |
 | C12 | B/C | Repeated broadcast does not consume output quantity | Pending |
-| C13 | B | Normal/exceptional context teardown frees leftovers | B2 provides context-owned, identity-based, exactly-once normal cleanup; generated leftovers arrive in B3 and exception-safe trigger teardown remains B4 |
-| C14 | B/C | Bare/selective forget clears inputs but retains variables | B2 keeps variables and owned resources in stores separate from the active input list; context tests prove forget replacement leaves a binding intact, while generated-source behavior remains B3/C |
-| C15 | B/C | Accumulated source/generated inputs move independently | B1 makes ordinary output gather every active `ProgramInputSource` and preserves shared/expanded input-retention behavior; generated-source accumulation remains for B3/C |
+| C13 | B | Normal/exceptional context teardown frees leftovers | B2 provides context-owned, identity-based, exactly-once cleanup; B3 proves unmoved generated handlers are cleared at normal teardown and drained handlers release early without affecting moved items; exception-safe trigger teardown remains B4 |
+| C14 | B/C | Bare/selective forget clears inputs but retains variables | B2 separates variables, active views, and owned resources; B3 preserves bare `FORGET` explicitly, proves selective forget retains an unlabelled generated view, and proves bare forget detaches it without prematurely disposing owner-held storage; language bindings remain for C |
+| C15 | B/C | Accumulated source/generated inputs move independently | B1 makes ordinary output gather every active source; B3 proves equal generated occurrences accumulate as distinct handlers and one generated packet moves through ordinary item machinery; mixed text/generated language input remains for C |
 | C16 | A2/A4 | GUI-closed loaded-inventory insertion and negative destinations | Covered: A2.3 exercises unsided/exact-face success and negative destinations without an open menu; A4.1 runs the external CLI through the in-game terminal and delivers its response to the exact loaded chest after the terminal closes |
 
 Cross-cutting A1 checks also cover malformed/oversize JSON, nesting/container
@@ -400,6 +402,39 @@ B2 context-ownership evidence on 13 September 2026:
   opt-in integration fixtures were assumption-aborted as designed. That run
   also compiled the main, gametest, datagen, and test source sets with zero
   errors; test compilation retained 75 pre-existing `Unsafe` warnings.
+
+B3 lazy-generated-source evidence on 13 September 2026:
+
+- `GeneratedItemProgramInputSource` captures one occurrence constructor and
+  materializes its immutable value, packet carrier, and one-slot item handler
+  together on first value or resource demand. Both success and failure are
+  memoized, and a source cannot cross execution owners.
+- The handler is registered with the identity-based ephemeral owner. Complete
+  extraction through ordinary movement releases an empty handler immediately;
+  an unmoved or forgotten materialization remains owner-held and is cleared at
+  scope teardown. The active source owns only its pooled limited-slot view.
+- Generated limited slots carry an explicit source description and no fake
+  block position, label, or side. Resource-loss diagnostics report that source
+  without querying an unrelated world block.
+- Bare `FORGET` is now represented as an explicit all-input operation instead
+  of being expanded to the labels known while parsing. Selective labelled
+  forget retains unlabelled generated sources, while bare forget detaches them;
+  existing world-source cache transformation remains unchanged.
+- `test run --branch feat/1.19.2/packet-computation --filter
+  GeneratedItemProgramInputSourceTests`: 6/6 passed, covering both demand
+  orders, single materialization, failure memoization, equal-occurrence
+  independence, owner/view forgetting, normal teardown, and ordinary movement.
+- `test run --branch feat/1.19.2/packet-computation --filter
+  ProgramInputSourceTests`: 9/9 passed, including the generated-source suite
+  selected by the shared name plus parser-level bare/selective forget evidence.
+- `game-test run-server --branch feat/1.19.2/packet-computation --filter
+  generated_packet_input_source`: 1/1 required test passed with the registered
+  `sfm:packet` item and `sfm:item` resource type, proving repeated demands use
+  one value/carrier and ordinary movement transfers it into world storage.
+- `game-test run-server --branch feat/1.19.2/packet-computation --filter
+  forget*`: all four established world-input forget regressions passed.
+- The complete unit suite found 2,107 tests: 2,102 passed, none failed, and five
+  opt-in integration fixtures were assumption-aborted as designed.
 
 ## Exclusions
 

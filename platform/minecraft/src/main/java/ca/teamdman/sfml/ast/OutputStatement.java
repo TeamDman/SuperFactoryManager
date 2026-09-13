@@ -697,6 +697,16 @@ public class OutputStatement implements IOStatement {
     ) {
 
         report.append("Slot: ").append(slot.getSlot()).append("\n");
+        if (slot instanceof LimitedInputSlot<?, ?, ?> inputSlot && inputSlot.isGeneratedSource()) {
+            report.append("Source: ").append(inputSlot.getGeneratedSourceDescription()).append("\n");
+            report
+                    .append("Capability: ")
+                    .append(slot.getHandler())
+                    .append(" (")
+                    .append(slot.getHandler().getClass().getName())
+                    .append(")\n");
+            return;
+        }
         report.append("Position: ").append(slot.getPos()).append("\n");
         report.append("Direction: ").append(slot.getDirection()).append("\n");
         report

@@ -17,7 +17,6 @@ import java.lang.reflect.Modifier;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -211,7 +210,7 @@ class ProgramExecutionScopeTests {
         @Override
         public @Nullable ProgramInputSource forget(
                 ProgramContext context,
-                Set<Label> labels
+                ProgramInputForgetRequest request
         ) {
             return this;
         }

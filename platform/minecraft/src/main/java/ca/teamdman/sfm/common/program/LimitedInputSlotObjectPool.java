@@ -59,6 +59,34 @@ public class LimitedInputSlotObjectPool {
         }
     }
 
+    /** Acquire a slot whose source is an execution-local generated resource. */
+    public static <STACK, ITEM, CAP> LimitedInputSlot<STACK, ITEM, CAP> acquireGenerated(
+            String sourceDescription,
+            int slot,
+            CAP handler,
+            IInputResourceTracker tracker,
+            STACK stack,
+            ResourceType<STACK, ITEM, CAP> type
+    ) {
+        if (!SFMPerformanceTweaks.OBJECT_POOL_ENABLED) {
+            return new LimitedInputSlot<>(sourceDescription, slot, handler, tracker, stack, type);
+        }
+        if (index == -1) {
+            var rtn = new LimitedInputSlot<>(sourceDescription, slot, handler, tracker, stack, type);
+            if (SFMPerformanceTweaks.OBJECT_POOL_VALIDATION && LEASED.put(rtn, true) != null) {
+                SFM.LOGGER.warn("new generated input slot was somehow already leased: {}", rtn);
+            }
+            return rtn;
+        }
+        @SuppressWarnings("unchecked") LimitedInputSlot<STACK, ITEM, CAP> obj = pool[index];
+        index--;
+        obj.initGenerated(handler, sourceDescription, slot, tracker, stack, type);
+        if (SFMPerformanceTweaks.OBJECT_POOL_VALIDATION && LEASED.put(obj, true) != null) {
+            SFM.LOGGER.warn("tried to lease generated input slot a second time: {}", obj);
+        }
+        return obj;
+    }
+
     /**
      * Release a {@link LimitedInputSlot} back into the pool for it to be reused instead of garbage collected
      */

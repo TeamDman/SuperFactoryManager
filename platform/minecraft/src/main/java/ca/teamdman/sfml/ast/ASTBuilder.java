@@ -732,10 +732,9 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 .map(this::visit)
                 .map(Label.class::cast)
                 .collect(Collectors.toSet());
-        if (labels.isEmpty()) {
-            labels = USED_LABELS;
-        }
-        ForgetStatement rtn = new ForgetStatement(labels);
+        ForgetStatement rtn = labels.isEmpty()
+                              ? ForgetStatement.allInputsStatement()
+                              : new ForgetStatement(labels);
         trackNode(rtn, ctx);
         return rtn;
     }

@@ -92,8 +92,11 @@ public final class WorldProgramInputSource implements ProgramInputSource {
     @Override
     public @Nullable ProgramInputSource forget(
             ProgramContext context,
-            Set<Label> labels
+            ProgramInputForgetRequest request
     ) {
+        Set<Label> labels = request.allInputs()
+                            ? Set.copyOf(statement.labelAccess().labels())
+                            : request.labels();
         var retainedLabels = statement.labelAccess().labels().stream()
                 .filter(label -> !labels.contains(label))
                 .toList();

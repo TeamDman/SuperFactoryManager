@@ -4,17 +4,18 @@ import ca.teamdman.sfm.common.resourcetype.ResourceType;
 import ca.teamdman.sfml.ast.Label;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import org.jetbrains.annotations.Nullable;
 
 public interface LimitedSlot<STACK, ITEM, CAP> {
     ResourceType<STACK, ITEM, CAP> getType();
 
     CAP getHandler();
 
-    BlockPos getPos();
+    @Nullable BlockPos getPos();
 
-    Label getLabel();
+    @Nullable Label getLabel();
 
-    Direction getDirection();
+    @Nullable Direction getDirection();
 
     int getSlot();
 }

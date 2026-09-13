@@ -1,11 +1,9 @@
 package ca.teamdman.sfm.common.program;
 
-import ca.teamdman.sfml.ast.Label;
 import ca.teamdman.sfml.ast.InputStatement;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -24,7 +22,7 @@ public interface ProgramInputSource {
 
     @Nullable ProgramInputSource forget(
             ProgramContext context,
-            Set<Label> labels
+            ProgramInputForgetRequest request
     );
 
     default Optional<InputStatement> inputStatement() {
