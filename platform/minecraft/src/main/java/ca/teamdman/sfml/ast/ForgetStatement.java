@@ -30,8 +30,7 @@ public record ForgetStatement(
                 newInputs.add(retainedSource);
             }
         }
-        context.getInputs().clear();
-        context.getInputs().addAll(newInputs);
+        context.replaceInputs(newInputs);
         context.getLogger().debug(x -> x.accept(LOG_PROGRAM_TICK_FORGET_STATEMENT.get(
                 labelToForget.stream().map(Objects::toString).collect(Collectors.joining(", "))
         )));

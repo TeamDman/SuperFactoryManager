@@ -1,6 +1,6 @@
 # SFM packet computation: single-player MVP
 
-**Status:** Slice A complete through A4.2 and Slice B1 input-source abstraction complete; B2 context ownership is next  
+**Status:** Slice A complete through A4.2 and Slice B complete through B2 context ownership; B3 lazy generated source is next
 **Implementation branch:** `feat/1.19.2/packet-computation`  
 **Implementation baseline:** `1be4b3cff9387f0b2870bc281017b3589f0119ef`  
 **Design-inspection baseline:** `53b9b302117289c945def6ed73297f2997901559`
@@ -142,9 +142,11 @@ reviewable before language syntax depends on them:
   forgetting operate on `ProgramInputSource`; the existing labelled
   `InputStatement` owns its current gather/cache/forget behavior behind that
   interface. No grammar or gameplay behavior changes.
-- **B2 — context ownership:** separate trigger-local variable state, active
-  input views, and the owner of ephemeral generated resources. No mutable
-  values or generated stacks may live in the cached AST/program.
+- **B2 — context ownership:** completed by separating trigger-local variable
+  state, active input views, and the owner of ephemeral generated resources.
+  World-input slot caches now live on execution-local views rather than cached
+  `InputStatement` nodes; no new mutable values or generated stacks live in the
+  cached AST/program.
 - **B3 — lazy generated source:** add an ephemeral item-handler-backed source
   whose constructor is evaluated and memoized once per occurrence on first
   value or resource demand.
@@ -191,12 +193,12 @@ sfm packet send --side north -- minecraft:overworld 12 64 -7 '{"value":1}'
 | C06 | A1 | One `sfm:packet` item round-trips every supported value kind | Covered by the all-kind codec round trip and registered-item GameTest |
 | C07 | C | Equivalent alias-pattern tests | Pending |
 | C08 | C/D | Open-object matching retains extra fields | Pending |
-| C09 | B/C | Equal inputs retain separate occurrence rows and IDs | Pending |
+| C09 | B/C | Equal inputs retain separate occurrence rows and IDs | B2 ephemeral ownership uses identity rather than value equality, so equal-but-distinct resources cannot collapse; relation rows and generated IDs remain for B3/C |
 | C10 | A1/C | Immutable construction and copied item-read tests | A1 copy boundary covered; language capture remains for C |
 | C11 | B/C | Peek/peek/output uses one memoized generated item | Pending |
 | C12 | B/C | Repeated broadcast does not consume output quantity | Pending |
-| C13 | B | Normal/exceptional context teardown frees leftovers | Pending |
-| C14 | B/C | Bare/selective forget clears inputs but retains variables | B1 delegates forgetting to each active source and preserves all existing bare/selective world-input behavior; generated sources and trigger-local variables remain for B2/C |
+| C13 | B | Normal/exceptional context teardown frees leftovers | B2 provides context-owned, identity-based, exactly-once normal cleanup; generated leftovers arrive in B3 and exception-safe trigger teardown remains B4 |
+| C14 | B/C | Bare/selective forget clears inputs but retains variables | B2 keeps variables and owned resources in stores separate from the active input list; context tests prove forget replacement leaves a binding intact, while generated-source behavior remains B3/C |
 | C15 | B/C | Accumulated source/generated inputs move independently | B1 makes ordinary output gather every active `ProgramInputSource` and preserves shared/expanded input-retention behavior; generated-source accumulation remains for B3/C |
 | C16 | A2/A4 | GUI-closed loaded-inventory insertion and negative destinations | Covered: A2.3 exercises unsided/exact-face success and negative destinations without an open menu; A4.1 runs the external CLI through the in-game terminal and delivers its response to the exact loaded chest after the terminal closes |
 
@@ -374,6 +376,30 @@ B1 input-source-abstraction evidence on 13 September 2026:
   opt-in integration fixtures were assumption-aborted as designed.
 - `run compile --branch feat/1.19.2/packet-computation`: all main, gametest,
   datagen, and test source sets compiled after the final B1 changes.
+
+B2 context-ownership evidence on 13 September 2026:
+
+- Each trigger execution or simulated path now receives an isolated
+  `ProgramExecutionScope` containing three separate stores: a variable
+  environment, active input views, and an identity-owned ephemeral-resource
+  owner. Normal teardown is idempotent and frees each owned resource once.
+- `InputStatement` no longer implements `ProgramInputSource` or stores a
+  limited-slot cache. Its execution creates a fresh `WorldProgramInputSource`,
+  which preserves the established gather/cache/forget and diagnostic-source
+  behavior without putting per-trigger state on the cached AST node.
+- `test run --branch feat/1.19.2/packet-computation --filter
+  ProgramExecutionScopeTests`: 5/5 passed, covering fork isolation, immutable
+  variable snapshots, identity-based ownership, release/teardown behavior, and
+  fresh world-input views from a reused AST statement.
+- `test run --branch feat/1.19.2/packet-computation --filter
+  ProgramInputSourceTests`: 2/2 passed after extending the forget test to prove
+  its active-input replacement leaves trigger-local variables intact.
+- Dedicated-server regressions passed 4/4 for `forget*`, 4/4 for
+  `regression_input_retain*`, and 4/4 for `round_robin*`.
+- The complete unit suite found 2,100 tests: 2,095 passed, none failed, and five
+  opt-in integration fixtures were assumption-aborted as designed. That run
+  also compiled the main, gametest, datagen, and test source sets with zero
+  errors; test compilation retained 75 pre-existing `Unsafe` warnings.
 
 ## Exclusions
 

@@ -101,8 +101,7 @@ public class SimulateExploreAllPathsProgramBehaviour implements ProgramBehaviour
             @SuppressWarnings("unused") Trigger trigger
     ) {
         context.getInputs().stream()
-                .filter(InputStatement.class::isInstance)
-                .map(InputStatement.class::cast)
+                .flatMap(inputSource -> inputSource.inputStatement().stream())
                 .forEach(inputStatement -> onInputStatementDropped(context, inputStatement));
     }
 

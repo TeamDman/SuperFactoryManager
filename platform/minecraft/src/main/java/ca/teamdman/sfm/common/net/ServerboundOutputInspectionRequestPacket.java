@@ -96,14 +96,14 @@ public record ServerboundOutputInspectionRequestPacket(
                         context
                                 .getInputs()
                                 .stream()
-                                .filter(InputStatement.class::isInstance)
-                                .map(InputStatement.class::cast)
-                                .forEach(inputStatement -> inputStatement.gatherSlots(
-                                        context,
-                                        slot -> inputSlots.add(new Pair<>(
-                                                slot,
-                                                inputStatement.labelAccess()
-                                        ))
+                                .forEach(inputSource -> inputSource.inputStatement().ifPresent(inputStatement ->
+                                        inputSource.gatherSlots(
+                                                context,
+                                                slot -> inputSlots.add(new Pair<>(
+                                                        slot,
+                                                        inputStatement.labelAccess()
+                                                ))
+                                        )
                                 ));
                         List<InputStatement> inputStatements = inputSlots.stream()
                                 .map(slot -> SFMASTUtils.getInputStatementForSlot(slot.a, slot.b))

@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.common.program;
 
 import ca.teamdman.sfml.ast.Label;
+import ca.teamdman.sfml.ast.InputStatement;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -24,6 +26,10 @@ public interface ProgramInputSource {
             ProgramContext context,
             Set<Label> labels
     );
+
+    default Optional<InputStatement> inputStatement() {
+        return Optional.empty();
+    }
 
     void free();
 }

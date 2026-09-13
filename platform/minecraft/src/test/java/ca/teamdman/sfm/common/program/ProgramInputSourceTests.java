@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.program;
 
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfml.ast.ForgetStatement;
 import ca.teamdman.sfml.ast.Label;
 import org.jetbrains.annotations.Nullable;
@@ -40,6 +41,7 @@ class ProgramInputSourceTests {
         RecordingInputSource dropped = new RecordingInputSource(null);
         context.addInput(retained);
         context.addInput(dropped);
+        context.getVariableEnvironment().set("captured", SFMValue.of("unchanged"));
         Set<Label> forgottenLabels = Set.of(new Label("source"));
 
         new ForgetStatement(forgottenLabels).tick(context);
@@ -48,6 +50,10 @@ class ProgramInputSourceTests {
         assertEquals(forgottenLabels, dropped.forgottenLabels);
         assertEquals(1, context.getInputs().size());
         assertSame(replacement, context.getInputs().get(0));
+        assertEquals(
+                SFMValue.of("unchanged"),
+                context.getVariableEnvironment().get("captured").orElseThrow()
+        );
     }
 
     private static ProgramContext simulationContext() {

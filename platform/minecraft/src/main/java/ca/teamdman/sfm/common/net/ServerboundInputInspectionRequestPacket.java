@@ -2,6 +2,7 @@ package ca.teamdman.sfm.common.net;
 
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.SimulateExploreAllPathsProgramBehaviour;
+import ca.teamdman.sfm.common.program.WorldProgramInputSource;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.SFMASTUtils;
 import ca.teamdman.sfml.ast.InputStatement;
@@ -65,17 +66,22 @@ public record ServerboundInputInspectionRequestPacket(
                                                 new SimulateExploreAllPathsProgramBehaviour()
                                         );
                                         int preLen = payload.length();
-                                        inputStatement.gatherSlots(
-                                                programContext,
-                                                slot -> SFMASTUtils
-                                                        .getInputStatementForSlot(
-                                                                slot,
-                                                                inputStatement.labelAccess()
-                                                        )
-                                                        .ifPresent(is -> payload
-                                                                .append(is.toStringPretty())
-                                                                .append("\n"))
-                                        );
+                                        WorldProgramInputSource inputSource = new WorldProgramInputSource(inputStatement);
+                                        try {
+                                            inputSource.gatherSlots(
+                                                    programContext,
+                                                    slot -> SFMASTUtils
+                                                            .getInputStatementForSlot(
+                                                                    slot,
+                                                                    inputStatement.labelAccess()
+                                                            )
+                                                            .ifPresent(is -> payload
+                                                                    .append(is.toStringPretty())
+                                                                    .append("\n"))
+                                            );
+                                        } finally {
+                                            inputSource.free();
+                                        }
                                         if (payload.length() == preLen) {
                                             payload.append("none");
                                         }
