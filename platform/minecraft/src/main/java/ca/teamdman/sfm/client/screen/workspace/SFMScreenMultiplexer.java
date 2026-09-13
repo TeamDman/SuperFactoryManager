@@ -1323,6 +1323,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             SFMFontUtils.draw(poseStack, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
         super.render(poseStack, mouseX, mouseY, partialTick);
+        // Forge HUD overlays are painted before Screen content. Repaint the
+        // declarative passive scene here so a visible FPS overlay is not
+        // hidden behind this full-screen workspace.
+        if (!this.minecraft.options.hideGui && this.minecraft.level != null) {
+            ca.teamdman.sfm.client.overlay.scene.SFMClientOverlayRuntime.get().renderPassive(
+                    poseStack, this.minecraft, this.width, this.height, mouseX, mouseY, partialTick);
+        }
         renderWorkspaceToasts(poseStack, mouseX, mouseY);
         renderPanelTooltip(poseStack, mouseX, mouseY);
         renderPanelEntryTooltip(poseStack, mouseX, mouseY);
@@ -1406,7 +1413,11 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
         if (focused instanceof SFMInputDiagnosticsPanel) {
             choices.add(SFMActionChoice.invoke(CLOSE_PANEL, ""));
         } else {
+            choices.add(SFMActionChoice.invoke(OPEN_PANEL, "sfm:input_diagnostics"));
+            choices.add(SFMActionChoice.invoke(OPEN_PANEL_LEFT, "sfm:input_diagnostics"));
             choices.add(SFMActionChoice.invoke(OPEN_PANEL_RIGHT, "sfm:input_diagnostics"));
+            choices.add(SFMActionChoice.invoke(OPEN_PANEL_ABOVE, "sfm:input_diagnostics"));
+            choices.add(SFMActionChoice.invoke(OPEN_PANEL_BELOW, "sfm:input_diagnostics"));
         }
         choices.add(SFMActionChoice.invoke(
                 TOGGLE_OVERLAY_VISIBILITY,

@@ -172,6 +172,12 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             "Canonical: select a complete action"
     );
 
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry CANONICAL_COMMAND_COPIED = new LocalizationEntry(
+            "gui.sfm.client_action.palette.canonical.copied",
+            "Copied canonical command"
+    );
+
     private static final int MAX_SUGGESTIONS = 8;
     private static final int CONSOLE_HEIGHT = 72;
     private static final int EMPTY_CONSOLE_HEIGHT = 18;
@@ -249,6 +255,10 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
     record ControlBounds(int x, int y, int width, int height) {
         int right() {
             return x + width;
+        }
+
+        boolean contains(double pointX, double pointY) {
+            return pointX >= x && pointX < right() && pointY >= y && pointY < y + height;
         }
     }
 
@@ -889,6 +899,18 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
         if (this.consoleWidget.mouseClicked(mouseX, mouseY, button)) {
             return true;
         }
+        if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT
+                && canonicalPreviewBounds(panelTop()).filter(bounds -> bounds.contains(mouseX, mouseY)).isPresent()) {
+            Optional<String> command = canonicalPreviewCommand();
+            if (command.isPresent()) {
+                ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceCopyFeedback.production().copy(
+                        actionContext,
+                        command.orElseThrow(),
+                        CANONICAL_COMMAND_COPIED.getComponent()
+                );
+                return true;
+            }
+        }
         if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
             if (executeButton.isMouseOver(mouseX, mouseY)) {
                 openFocusControlActions(EXECUTE_FOCUS_TARGET, EXECUTE.getComponent());
@@ -1362,6 +1384,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 actionId.map(ResourceLocation::toString).orElse(null),
                 action == null ? null : action.title().getString(),
                 action == null ? null : action.description().getString(),
+                actionIcon(suggestion).map(icon -> icon.requestedItem().toString()).orElse(null),
                 actionIcon(suggestion).map(icon -> icon.accessibleLabel()).orElse(null),
                 bindings
         );
@@ -1490,6 +1513,17 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
                 : choiceSession.canonicalCommandForSurfaceCommand(commandInput());
     }
 
+    private Optional<ControlBounds> canonicalPreviewBounds(int top) {
+        if (choiceSession == null) return Optional.empty();
+        ControlBounds inputBounds = controlsLayoutForPalette(top).input();
+        return Optional.of(new ControlBounds(
+                inputBounds.x(),
+                top + BUTTON_ROW_TOP_OFFSET,
+                inputBounds.width(),
+                CANONICAL_PREVIEW_HEIGHT
+        ));
+    }
+
     private void renderCanonicalCommandPreview(
             PoseStack poseStack,
             int mouseX,
@@ -1500,13 +1534,7 @@ public final class SFMCommandPaletteScreen extends Screen implements SFMTransien
             int textColour
     ) {
         if (choiceSession == null) return;
-        ControlBounds inputBounds = controlsLayoutForPalette(top).input();
-        ControlBounds bounds = new ControlBounds(
-                inputBounds.x(),
-                top + BUTTON_ROW_TOP_OFFSET,
-                inputBounds.width(),
-                CANONICAL_PREVIEW_HEIGHT
-        );
+        ControlBounds bounds = canonicalPreviewBounds(top).orElseThrow();
         fill(poseStack, bounds.x(), bounds.y(), bounds.right(), bounds.y() + bounds.height(), background);
         fill(poseStack, bounds.x(), bounds.y(), bounds.right(), bounds.y() + 1, border);
         fill(poseStack, bounds.x(), bounds.y() + bounds.height() - 1,

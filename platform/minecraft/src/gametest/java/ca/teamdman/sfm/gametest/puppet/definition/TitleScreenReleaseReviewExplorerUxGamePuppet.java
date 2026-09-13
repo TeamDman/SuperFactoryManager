@@ -38,7 +38,7 @@ public final class TitleScreenReleaseReviewExplorerUxGamePuppet {
                 "release-review-explorer-mouse-ux",
                 Component.literal("SFM Release Review — ").withStyle(ChatFormatting.GOLD)
                         .append(Component.literal(
-                                "Mouse-complete lazy diffs, pinned approval, six lenses, and close/reopen resume."
+                                "Mouse-complete lazy diffs, pinned approval, six projections, and close/reopen resume."
                         ).withStyle(ChatFormatting.BLACK))
         );
         puppet.releaseReviewJourney(ReleaseReviewJourneyPuppetAction.Operation.CLEANUP);

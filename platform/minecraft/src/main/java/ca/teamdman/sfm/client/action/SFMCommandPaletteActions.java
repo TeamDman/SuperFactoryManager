@@ -117,6 +117,11 @@ public final class SFMCommandPaletteActions {
             SFMPaletteCandidateSetCopyAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMDocumentSelectionCopyAction> COPY_DOCUMENT_SELECTION = REGISTERER.register(
+            "document/selection/copy",
+            SFMDocumentSelectionCopyAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, SFMScreenDiagnosticsAction> SCREEN_DIAGNOSTICS = REGISTERER.register(
             "screen/diagnostics",
             SFMScreenDiagnosticsAction::new

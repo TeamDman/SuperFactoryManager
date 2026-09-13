@@ -59,7 +59,9 @@ class SFMPaletteCandidateSetCopyActionTests {
 
         assertEquals(3, action.copyProjection(
                 host, CAPTURE_ID, SFMPaletteCandidateSetCopyAction.Projection.DISPLAY, feedback::add));
-        assertEquals("First" + System.lineSeparator() + "Second" + System.lineSeparator() + "Third",
+        assertEquals("First\t[itemstack=minecraft:paper; label=Paper]" + System.lineSeparator()
+                        + "Second\t[itemstack=minecraft:paper; label=Paper]" + System.lineSeparator()
+                        + "Third\t[itemstack=minecraft:paper; label=Paper]",
                 clipboard.get(0));
 
         assertEquals(2, action.copyProjection(
@@ -107,6 +109,7 @@ class SFMPaletteCandidateSetCopyActionTests {
                 "Open panel",
                 "Open addressed content in the focused pane",
                 "minecraft:paper",
+                "Paper",
                 List.of()
         );
     }

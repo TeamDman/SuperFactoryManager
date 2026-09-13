@@ -60,6 +60,17 @@ class SFMReleaseReviewSplitLayoutTests {
         assertTrue(removed.rows().get(0).after().isEmpty());
         assertEquals("gone", removed.select(SnapshotSide.BEFORE, 0, 0, 0, 20).text());
     }
+    @Test void wholeFileOperationOverridesNeutralStructuralCorrespondenceColoring() {
+        var added = layout(null, "// comment\npackage example;\nclass Added {}\n",
+                SurfaceKind.JAVA_STRUCTURED_DIFF, true);
+        assertTrue(added.rows().stream().flatMap(row -> row.after().stream())
+                .allMatch(cell -> cell.kind() == MappingKind.ADDITION));
+
+        var deleted = layout("// comment\npackage example;\nclass Gone {}\n", null,
+                SurfaceKind.JAVA_STRUCTURED_DIFF, true);
+        assertTrue(deleted.rows().stream().flatMap(row -> row.before().stream())
+                .allMatch(cell -> cell.kind() == MappingKind.DELETION));
+    }
     private static SFMReleaseReviewSplitLayout layout(String before, String after, SurfaceKind kind) {
         return layout(before, after, kind, false);
     }

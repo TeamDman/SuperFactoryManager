@@ -158,12 +158,20 @@ public final class SFMExplorerPanelViewport {
             SFMScreenPanelBounds bounds, SFMExplorerProjection.View view,
             List<SFMExplorerProjection.Row> rows, int requestedScrollRow, int toolbarHeight, boolean findVisible
     ) {
+        return calculate(bounds, view, rows, requestedScrollRow, toolbarHeight, findVisible, true);
+    }
+
+    public static Snapshot calculate(
+            SFMScreenPanelBounds bounds, SFMExplorerProjection.View view,
+            List<SFMExplorerProjection.Row> rows, int requestedScrollRow, int toolbarHeight,
+            boolean findVisible, boolean searchRowsVisible
+    ) {
         Objects.requireNonNull(bounds, "bounds");
         Objects.requireNonNull(view, "view");
         rows = List.copyOf(Objects.requireNonNull(rows, "rows"));
         if (requestedScrollRow < 0) throw new IllegalArgumentException("Scroll row must not be negative");
 
-        Layout layout = layout(bounds, false, true, toolbarHeight, findVisible);
+        Layout layout = layout(bounds, false, true, toolbarHeight, findVisible, searchRowsVisible);
         int columns = view == SFMExplorerProjection.View.LIST
                 ? 1
                 : Math.max(1, layout.bodyFrame().width() / SMALL_ICON_MINIMUM_WIDTH);
@@ -242,15 +250,21 @@ public final class SFMExplorerPanelViewport {
 
     public static Layout layout(SFMScreenPanelBounds rawBounds, boolean lensControlVisible,
                                 boolean revealControlVisible, int requestedToolbarHeight, boolean findVisible) {
+        return layout(rawBounds, lensControlVisible, revealControlVisible, requestedToolbarHeight, findVisible, true);
+    }
+
+    public static Layout layout(SFMScreenPanelBounds rawBounds, boolean lensControlVisible,
+                                boolean revealControlVisible, int requestedToolbarHeight, boolean findVisible,
+                                boolean searchRowsVisible) {
         if (requestedToolbarHeight < 0) throw new IllegalArgumentException("Toolbar height must not be negative");
         int margin = rawBounds.width() < 220 || rawBounds.height() < 140 ? 3 : 6;
         SFMScreenPanelBounds inset = rawBounds.inset(margin);
         Rect content = new Rect(inset.x(), inset.y(), inset.width(), inset.height());
         int headerHeight = Math.min(24, content.height());
         int remainingAfterHeader = Math.max(0, content.height() - headerHeight);
-        int filterHeight = Math.min(18, remainingAfterHeader);
+        int filterHeight = Math.min(searchRowsVisible ? 18 : 0, remainingAfterHeader);
         int remainingAfterFilter = Math.max(0, remainingAfterHeader - filterHeight);
-        int findHeight = Math.min(findVisible ? 18 : 0, remainingAfterFilter);
+        int findHeight = Math.min(searchRowsVisible && findVisible ? 18 : 0, remainingAfterFilter);
         remainingAfterFilter -= findHeight;
         int toolbarHeight = Math.min(requestedToolbarHeight, remainingAfterFilter);
         int statusHeight = Math.min(14, remainingAfterFilter - toolbarHeight);

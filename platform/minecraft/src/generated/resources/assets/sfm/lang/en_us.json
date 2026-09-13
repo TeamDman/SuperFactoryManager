@@ -72,6 +72,7 @@
   "gui.sfm.client_action.help.title": "Command palette help",
   "gui.sfm.client_action.palette.accept_suggestion": "Press %s to accept the suggestion",
   "gui.sfm.client_action.palette.cancel": "Cancel",
+  "gui.sfm.client_action.palette.canonical.copied": "Copied canonical command",
   "gui.sfm.client_action.palette.canonical_command": "Canonical: %s",
   "gui.sfm.client_action.palette.canonical_command_pending": "Canonical: select a complete action",
   "gui.sfm.client_action.palette.control_actions": "%s actions",

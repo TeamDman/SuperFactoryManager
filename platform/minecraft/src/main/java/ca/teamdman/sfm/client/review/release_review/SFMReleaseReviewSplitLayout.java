@@ -101,7 +101,8 @@ public final class SFMReleaseReviewSplitLayout {
                     int sourceStart = source.range().startByte() + start - mapping.surfaceRange().startByte();
                     target.add(new Cell(new String(bytes, start, end - start, StandardCharsets.UTF_8),
                             new SourceRange(source.side(), source.documentRevisionId(), source.documentSha256(),
-                                    source.path(), new Utf8Range(sourceStart, sourceStart + end - start)), mapping.kind(),
+                                    source.path(), new Utf8Range(sourceStart, sourceStart + end - start)),
+                            effectiveKind(request.filePair().operation(), source.side(), mapping.kind()),
                             new Utf8Range(start, end)));
                     start = end;
                 }
@@ -121,6 +122,20 @@ public final class SFMReleaseReviewSplitLayout {
         }
         flush(rows, pendingBefore, pendingAfter);
         return new SFMReleaseReviewSplitLayout(rows);
+    }
+
+    private static MappingKind effectiveKind(
+            SFMReleaseReviewV1.ChangeOperation operation,
+            SnapshotSide side,
+            MappingKind mapped
+    ) {
+        if (operation == SFMReleaseReviewV1.ChangeOperation.ADDED && side == SnapshotSide.AFTER) {
+            return MappingKind.ADDITION;
+        }
+        if (operation == SFMReleaseReviewV1.ChangeOperation.DELETED && side == SnapshotSide.BEFORE) {
+            return MappingKind.DELETION;
+        }
+        return mapped;
     }
 
     private static void appendCells(List<Cell> target, List<Cell> fragments) {

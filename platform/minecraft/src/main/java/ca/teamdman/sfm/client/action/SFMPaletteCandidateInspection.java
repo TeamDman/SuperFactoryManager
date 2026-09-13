@@ -31,6 +31,7 @@ public record SFMPaletteCandidateInspection(
         String deliberateSeparator,
         @Nullable String helpTitle,
         @Nullable String helpDescription,
+        @Nullable String iconItemId,
         @Nullable String iconLabel,
         List<String> keyBindings
 ) {
@@ -65,6 +66,7 @@ public record SFMPaletteCandidateInspection(
             @Nullable String actionId,
             @Nullable String helpTitle,
             @Nullable String helpDescription,
+            @Nullable String iconItemId,
             @Nullable String iconLabel,
             List<String> keyBindings
     ) {
@@ -92,6 +94,7 @@ public record SFMPaletteCandidateInspection(
                 candidate.insertionIntent().deliberateSeparator(),
                 helpTitle,
                 helpDescription,
+                iconItemId,
                 iconLabel,
                 keyBindings
         );
@@ -99,6 +102,12 @@ public record SFMPaletteCandidateInspection(
 
     public String displayTextPayload() {
         return displayText;
+    }
+
+    /** What the user saw, including a stable textual representation of its ItemStack preview. */
+    public String displayRepresentationPayload() {
+        return displayText + "\t[itemstack=" + (iconItemId == null ? "unavailable" : iconItemId)
+                + (iconLabel == null ? "" : "; label=" + iconLabel) + "]";
     }
 
     public String replacementSurfacePayload() {
@@ -131,6 +140,7 @@ public record SFMPaletteCandidateInspection(
         lines.add("deliberate-separator: " + quote(deliberateSeparator));
         lines.add("help-title: " + optionalQuoted(helpTitle));
         lines.add("help-description: " + optionalQuoted(helpDescription));
+        lines.add("icon-item-id: " + optionalQuoted(iconItemId));
         lines.add("icon-label: " + optionalQuoted(iconLabel));
         lines.add("key-bindings: " + keyBindings.size());
         for (int index = 0; index < keyBindings.size(); index++) {

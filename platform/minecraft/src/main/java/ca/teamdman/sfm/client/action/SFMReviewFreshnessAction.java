@@ -112,10 +112,7 @@ public final class SFMReviewFreshnessAction implements SFMClientAction<SFMReview
             }
             SFMReleaseReviewAction.queueOpen(target.actionContext(), snapshot.path().orElseThrow(), snapshot.writable(),
                     context.getSource()::sendFeedback, current -> {
-                        var recipe = new ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType.Recipe(
-                                new ResourceLocation("sfm", "explorer/release_review/changes"),
-                                ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType.Projection.CHANGES,
-                                java.util.Optional.empty());
+                        var recipe = SFMReleaseReviewAction.mountedExplorerRecipe(snapshot.path().orElseThrow());
                         OpenPanelAction.openPanel(current, recipe.reopen(), OpenPanelAction.Direction.FOCUSED, recipe);
                     });
             return 1;
@@ -152,10 +149,7 @@ public final class SFMReviewFreshnessAction implements SFMClientAction<SFMReview
                         }
                         SFMReleaseReviewAction.queueOpen(continuation.context(), created, true,
                                 context.getSource()::sendFeedback, current -> {
-                                    var recipe = new ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType.Recipe(
-                                            new ResourceLocation("sfm", "explorer/release_review/changes"),
-                                            ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType.Projection.CHANGES,
-                                            java.util.Optional.empty());
+                                    var recipe = SFMReleaseReviewAction.mountedExplorerRecipe(created);
                                     OpenPanelAction.openPanel(current, recipe.reopen(), OpenPanelAction.Direction.FOCUSED, recipe);
                                 });
                     });

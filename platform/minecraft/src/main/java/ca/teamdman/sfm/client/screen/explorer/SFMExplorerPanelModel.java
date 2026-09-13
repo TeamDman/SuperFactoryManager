@@ -147,8 +147,13 @@ public final class SFMExplorerPanelModel {
     private int latestViewportCells;
     private java.util.function.IntSupplier toolbarHeight = () -> 0;
     private boolean findVisible;
+    private java.util.function.BooleanSupplier searchRowsVisible = () -> true;
 
     public void setFindVisible(boolean visible) { findVisible = visible; }
+
+    public void setSearchRowsVisible(java.util.function.BooleanSupplier visible) {
+        searchRowsVisible = Objects.requireNonNull(visible, "visible");
+    }
 
     public void setToolbarHeight(java.util.function.IntSupplier height) {
         toolbarHeight = Objects.requireNonNull(height, "height");
@@ -248,7 +253,7 @@ public final class SFMExplorerPanelModel {
                 projection.settings().view(),
                 projection.rows(),
                 sessionSnapshot.scrollOffset(),
-                toolbarHeight.getAsInt(), findVisible
+                toolbarHeight.getAsInt(), findVisible, searchRowsVisible.getAsBoolean()
         );
         if (!projection.filter().active()
                 && viewport.scrollRow() != sessionSnapshot.scrollOffset()) {

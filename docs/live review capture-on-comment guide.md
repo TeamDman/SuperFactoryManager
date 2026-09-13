@@ -507,3 +507,20 @@ immediately, and leaves a persistent localized saving operation behind. Success
 and failure update that operation. Failure retains the exact draft and offers a
 reopen/retry action. Ordinary **Save** may keep the editor open. Preset comments
 use the same saving/success/failure vocabulary.
+
+## Expanding a review as ordinary Explorer data
+
+Expand a `.sfm-review.json` file directly to reveal **Changes**, **Comments**,
+**Hashtags**, **Query**, **Status**, and **Migrations** as first-level children.
+This is the preferred navigation route: the selected projection is visible in
+the hierarchy instead of living in a hidden lens setting. Right-click the review
+file or any review descendant for freshness, capture, storage/export, remaining
+work and saved-work queue actions.
+
+Explorer row context menus provide both **Copy row summary** and **Copy entry
+details to clipboard**. The summary is intended for ordinary bug reports and
+contains the displayed label/ItemStack, internal row address, review file and
+logical source identity. Complete details retain pagination, loading, selection,
+rule and rendering evidence. In a text editor, right-click a non-empty selection
+and choose **Copy selected text** when a mouse-visible equivalent to Ctrl+C is
+needed.

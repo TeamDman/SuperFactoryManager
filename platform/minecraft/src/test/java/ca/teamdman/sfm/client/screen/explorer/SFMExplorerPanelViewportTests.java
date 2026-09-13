@@ -170,6 +170,19 @@ public class SFMExplorerPanelViewportTests {
     }
 
     @Test
+    public void emptyUnfocusedSearchRowsReturnTheirHeightToTheBody() {
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 360, 240);
+        var visible = SFMExplorerPanelViewport.layout(bounds, false, true, 0, true, true);
+        var hidden = SFMExplorerPanelViewport.layout(bounds, false, true, 0, true, false);
+
+        assertEquals(18, visible.filterControl().height());
+        assertEquals(18, visible.findControl().height());
+        assertEquals(0, hidden.filterControl().height());
+        assertEquals(0, hidden.findControl().height());
+        assertEquals(visible.body().height() + 36, hidden.body().height());
+    }
+
+    @Test
     public void bodyViewportIsInsetOnAllFourEdgesSoRowsCannotPaintOverFocusChrome() {
         for (SFMScreenPanelBounds bounds : List.of(
                 new SFMScreenPanelBounds(0, 0, 90, 80),

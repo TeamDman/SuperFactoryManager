@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
-/** Mounts the Changes hierarchy directly beneath an ordinary review-file row. */
+/** Mounts explicit review projections beneath an ordinary review-file row. */
 public final class SFMReleaseReviewFileMountProvider implements SFMExplorerMountProvider {
     public static final String ID = "sfm:release-review";
 
@@ -54,25 +54,16 @@ public final class SFMReleaseReviewFileMountProvider implements SFMExplorerMount
                     "Path is not a release-review mount: " + request.parent().canonical()));
         }
         Path reviewPath = request.parent().toNativePath().toAbsolutePath().normalize();
-        return ensureOpen(reviewPath).thenCompose(review -> {
+        return ensureOpen(reviewPath).thenApply(review -> {
             request.cancellation().throwIfCancelled();
-            SFMPath lensRoot = reviewExplorer.mountedLens(
+            var entries = reviewExplorer.mountedProjectionEntries(
                     reviewPath,
                     SFMReviewExplorerModel.PathLayout.HIERARCHY
             );
-            long reviewGeneration = reviewExplorer.generation();
-            return reviewExplorer.resolveChildren(new SFMExplorerResolver.ChildRequest(
-                    lensRoot,
-                    request.continuation(),
-                    request.pageSize(),
-                    reviewGeneration,
-                    request.cancellation()
-            )).thenApply(page -> {
-                ArrayList<String> diagnostics = new ArrayList<>(page.diagnostics());
-                diagnostics.add("Mounted release review " + (review.writable() ? "writable" : "read-only")
-                        + "; the JSON file remains independently openable as text");
-                return new Page(page.entries(), page.continuation(), diagnostics, page.observedEntries());
-            });
+            ArrayList<String> diagnostics = new ArrayList<>();
+            diagnostics.add("Mounted release review " + (review.writable() ? "writable" : "read-only")
+                    + "; projections are explicit children and JSON remains independently openable as text");
+            return new Page(entries, Optional.empty(), diagnostics, entries.size());
         });
     }
 

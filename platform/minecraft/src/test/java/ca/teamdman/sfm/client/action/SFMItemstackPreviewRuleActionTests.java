@@ -55,7 +55,8 @@ public class SFMItemstackPreviewRuleActionTests {
         for(var target:SFMExplorerContextActionProvider.Target.values()) {
             var choices=registry.resolve(new SFMExplorerContextActionProvider.Request(context,inspection.row().explorerId(),entry.path(),entry,inspection.row(),target,Optional.of(inspection)));
             assertEquals(1,choices.stream().filter(choice->choice.actionId().equals(SFMExplorerRowCopyDetailsAction.ID)).count());
-            if(target==SFMExplorerContextActionProvider.Target.ROW) assertEquals(2,choices.size());
+            assertEquals(1,choices.stream().filter(choice->choice.actionId().equals(SFMExplorerRowCopySummaryAction.ID)).count());
+            if(target==SFMExplorerContextActionProvider.Target.ROW) assertEquals(3,choices.size());
             else {
                 for(var kind:SFMItemstackPreviewInspectionAction.Kind.values()) assertTrue(choices.stream().anyMatch(choice->choice.actionId().equals(kind.id())));
                 assertTrue(choices.stream().filter(choice->choice.actionId().equals(SFMItemstackPreviewRuleAction.ID)).allMatch(ca.teamdman.sfm.client.screen.SFMActionChoice::continuation));

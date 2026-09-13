@@ -127,6 +127,7 @@ class SFMPaletteCandidateCopyActionTests {
                 "Open panel",
                 "Open addressed content in the focused pane",
                 "minecraft:paper",
+                "Paper",
                 List.of("Ctrl Shift T")
         );
     }

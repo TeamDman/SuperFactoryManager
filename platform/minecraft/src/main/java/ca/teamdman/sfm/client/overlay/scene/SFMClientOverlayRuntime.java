@@ -280,6 +280,33 @@ public final class SFMClientOverlayRuntime {
             int mouseY,
             float partialTick
     ) {
+        render(poseStack, minecraft, screenWidth, screenHeight, mouseX, mouseY, partialTick, Optional.empty());
+    }
+
+    /** Repaints passive overlays above a full-screen workspace without duplicating interactive surfaces. */
+    public synchronized void renderPassive(
+            PoseStack poseStack,
+            Minecraft minecraft,
+            int screenWidth,
+            int screenHeight,
+            int mouseX,
+            int mouseY,
+            float partialTick
+    ) {
+        render(poseStack, minecraft, screenWidth, screenHeight, mouseX, mouseY, partialTick,
+                Optional.of(InputMode.PASSIVE));
+    }
+
+    private void render(
+            PoseStack poseStack,
+            Minecraft minecraft,
+            int screenWidth,
+            int screenHeight,
+            int mouseX,
+            int mouseY,
+            float partialTick,
+            Optional<InputMode> inputMode
+    ) {
         if (minecraft.level == null) return;
         viewportWidth = Math.max(0, screenWidth);
         viewportHeight = Math.max(0, screenHeight);
@@ -287,6 +314,7 @@ public final class SFMClientOverlayRuntime {
         SceneState scene = scene();
         List<OverlayState> visible = scene.overlays().stream()
                 .filter(OverlayState::visible)
+                .filter(state -> inputMode.map(state.inputMode()::equals).orElse(true))
                 .sorted(Comparator.comparingInt(OverlayState::zOrder).thenComparing(OverlayState::id))
                 .toList();
         for (OverlayState state : visible) {

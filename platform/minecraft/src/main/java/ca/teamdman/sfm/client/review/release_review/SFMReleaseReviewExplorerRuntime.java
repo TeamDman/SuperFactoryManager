@@ -107,6 +107,35 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
         }
     }
 
+    /** Human-meaningful identity behind one opaque review-tree resolver row. */
+    public record RowIdentity(
+            Path reviewPath,
+            SFMReleaseReviewExplorerScreenType.Projection projection,
+            Optional<String> sourcePath,
+            Optional<String> nodeId
+    ) {
+        public RowIdentity {
+            reviewPath = Objects.requireNonNull(reviewPath, "reviewPath").toAbsolutePath().normalize();
+            Objects.requireNonNull(projection, "projection");
+            sourcePath = Objects.requireNonNull(sourcePath, "sourcePath");
+            nodeId = Objects.requireNonNull(nodeId, "nodeId");
+        }
+
+        public String detailsPayload() {
+            return "review.file-address: \"" + escape(SFMPath.fromNative(reviewPath).canonical()) + "\"\n"
+                    + "review.projection: " + projection.name().toLowerCase(Locale.ROOT) + "\n"
+                    + "review.source-path: " + sourcePath.map(value -> "\"" + escape(value) + "\"")
+                            .orElse("unavailable") + "\n"
+                    + "review.node-id: " + nodeId.map(value -> "\"" + escape(value) + "\"")
+                            .orElse("unavailable");
+        }
+
+        private static String escape(String value) {
+            return value.replace("\\", "\\\\").replace("\"", "\\\"")
+                    .replace("\r", "\\r").replace("\n", "\\n");
+        }
+    }
+
     private record ChangesIndex(SFMReleaseReviewV1 source, Map<String, SFMPath> nodePaths,
                                 Map<DocumentIdentity, List<SFMPath>> revealPaths,
                                 Map<GeneratedSurfaceIdentity, List<SFMPath>> generatedRevealPaths) {}
@@ -706,6 +735,57 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
         );
     }
 
+    /** Explicit first-level children contributed beneath an ordinary review file. */
+    public synchronized List<SFMExplorerEntry> mountedProjectionEntries(
+            Path reviewPath,
+            SFMReviewExplorerModel.PathLayout changesPathLayout
+    ) {
+        Path normalized = Objects.requireNonNull(reviewPath, "reviewPath").toAbsolutePath().normalize();
+        ArrayList<SFMExplorerEntry> entries = new ArrayList<>();
+        for (SFMReleaseReviewExplorerScreenType.Projection projection
+                : SFMReleaseReviewExplorerScreenType.Projection.values()) {
+            SFMPath root = prepareLens(normalized, projection, Optional.empty(), changesPathLayout);
+            if (projection == SFMReleaseReviewExplorerScreenType.Projection.CHANGES) {
+                // Retain a deterministic compatibility target for actions which predate
+                // the explicit multi-projection mount.
+                mountedLensRoots.put(normalized, root);
+            }
+            SFMItemIcon icon = projectionIcon(projection);
+            entries.add(SFMExplorerEntry.simple(
+                    root,
+                    projectionLabel(projection),
+                    true,
+                    Optional.of(icon.requestedItem().toString())
+            ));
+        }
+        return List.copyOf(entries);
+    }
+
+    /** Resolves semantic review/source addresses for diagnostics without serializing the corpus. */
+    public Optional<RowIdentity> rowIdentity(SFMPath path) {
+        Objects.requireNonNull(path, "path");
+        Lens lens;
+        synchronized (this) {
+            lens = lensFor(path).orElse(null);
+        }
+        if (lens == null) return Optional.empty();
+        SFMReleaseReviewRuntime.Snapshot review = reviewRuntime.snapshot();
+        if (review.document().isEmpty() || review.path().isEmpty()
+                || review.openEpoch() != lens.reviewOpenEpoch()
+                || !review.path().orElseThrow().toAbsolutePath().normalize().equals(lens.reviewPath())) {
+            return Optional.empty();
+        }
+        ProjectionSnapshot projected = projection(review, lens);
+        SFMReviewExplorerModel.SourceLeaf leaf = projected.leaf(path, review.document().orElseThrow());
+        return Optional.of(new RowIdentity(
+                lens.reviewPath(),
+                lens.projection(),
+                Optional.ofNullable(leaf).map(SFMReviewExplorerModel.SourceLeaf::path)
+                        .filter(value -> !value.isBlank()),
+                Optional.ofNullable(projected.nodeId(path))
+        ));
+    }
+
     public Optional<DocumentTarget> documentTarget(SFMPath path) {
         Objects.requireNonNull(path, "path");
         Lens lens;
@@ -1055,6 +1135,12 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
             choices.addAll(SFMReviewChangesLayoutSetAction.alternativeChoice(lens.changesPathLayout()));
         }
         SFMReleaseReviewRuntime.Snapshot review = requireOpenReview();
+        choices.addAll(ca.teamdman.sfm.client.action.SFMReviewRemainingWorkAction.choices(
+                review.document().orElseThrow()));
+        ca.teamdman.sfm.client.action.SFMReviewWorkQueueControls.CONTROLS.stream()
+                .map(ca.teamdman.sfm.client.action.SFMReviewWorkQueueControls.Control::choice)
+                .forEach(choices::add);
+        choices.addAll(ca.teamdman.sfm.client.action.SFMReviewFreshnessAction.choices());
         var projected = projection(review, lens);
         String nodeId = projected.nodeId(path);
         projected.nodeAction(path).filter(SFMReviewExplorerModel.CommentNavigation.class::isInstance)
@@ -1655,6 +1741,28 @@ public final class SFMReleaseReviewExplorerRuntime implements SFMExplorerFilterD
             case QUERY -> "Release review work queue";
             case STATUS -> "Release review status witnesses";
             case MIGRATIONS -> "Release review migrations";
+        };
+    }
+
+    private static String projectionLabel(SFMReleaseReviewExplorerScreenType.Projection projection) {
+        return switch (projection) {
+            case CHANGES -> "Changes";
+            case COMMENTS -> "Comments";
+            case HASHTAGS -> "Hashtags";
+            case QUERY -> "Query";
+            case STATUS -> "Status";
+            case MIGRATIONS -> "Migrations";
+        };
+    }
+
+    private static SFMItemIcon projectionIcon(SFMReleaseReviewExplorerScreenType.Projection projection) {
+        return switch (projection) {
+            case CHANGES -> icon("comparator", "Review changes");
+            case COMMENTS -> icon("writable_book", "Review comments");
+            case HASHTAGS -> icon("name_tag", "Review hashtags");
+            case QUERY -> icon("spyglass", "Review query");
+            case STATUS -> icon("redstone_torch", "Review status");
+            case MIGRATIONS -> icon("compass", "Review migrations");
         };
     }
 }

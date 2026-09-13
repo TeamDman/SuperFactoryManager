@@ -54,8 +54,6 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             "sfm action invoke sfm:review/comment/choice/apply ";
     private static final String COMMENT_REMOVE_CONFIRM_PREFIX =
             "sfm action invoke sfm:review/comment/remove/confirm ";
-    private static final String LENS_SET_PREFIX =
-            "sfm action invoke sfm:review/lens/set ";
     private static final String ENTRY_FOCUS_PREFIX =
             "sfm action invoke sfm:panel/entry/focus ";
     private static final String ENTRY_CLOSE_PREFIX =
@@ -1093,35 +1091,32 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             return false;
         }
         Handle explorer = explorer(true);
-        if (explorer == null) return waitOrFail("the review Explorer lens control");
-        SFMExplorerPanelViewport.Rect control = explorer.panel().interactionLayout().lensControl();
-        require(control.width() > 0 && control.height() > 0, "Review lens control is absent from layout");
-        double[] point = workspacePoint(explorer, control);
-        require(explorer.workspace().mouseClicked(point[0], point[1], GLFW.GLFW_MOUSE_BUTTON_LEFT),
-                "Review lens control click was not handled");
-        transition(Stage.CHOOSE_LENS);
+        if (explorer == null) return waitOrFail("the mounted review projection tree");
+        SFMReleaseReviewExplorerScreenType.Projection expected = LENS_JOURNEY.get(nextLensIndex);
+        Optional<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection.Row> projectionRoot =
+                explorer.state().projection().rows().stream()
+                        .filter(row -> SFMReleaseReviewExplorerRuntime.get().rowIdentity(row.path())
+                                .map(identity -> identity.projection() == expected)
+                                .orElse(false))
+                        .min(java.util.Comparator.comparingInt(
+                                ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection.Row::depth));
+        if (projectionRoot.isEmpty()) {
+            return waitOrFail("the " + expected + " projection row beneath the review file");
+        }
+        SFMPath root = projectionRoot.orElseThrow().path();
+        String treeAddress = "tree:" + lensToken(expected) + " " + root.canonical();
+        if (!lensMenuCommands.contains(treeAddress)) lensMenuCommands.add(treeAddress);
+        if (!explorer.state().session().expanded().contains(root)) {
+            if (!clickChevron(explorer, root)) {
+                return waitOrFail("the " + expected + " projection row to enter the viewport");
+            }
+        }
+        transition(Stage.WAIT_LENS);
         return false;
     }
 
     private boolean chooseLens(ISFMGamePuppetRuntime runtime) {
-        if (!(Minecraft.getInstance().screen instanceof SFMCommandPaletteScreen palette)) {
-            return waitOrFail("the constrained review-lens palette");
-        }
-        if (lensMenuCommands.isEmpty()) {
-            lensMenuCommands.addAll(palette.choiceCommandsForAutomation());
-            for (SFMReleaseReviewExplorerScreenType.Projection projection
-                    : SFMReleaseReviewExplorerScreenType.Projection.values()) {
-                String expected = LENS_SET_PREFIX + lensToken(projection);
-                require(lensMenuCommands.contains(expected),
-                        "Review lens palette omitted " + expected + ": " + lensMenuCommands);
-            }
-        }
-        SFMReleaseReviewExplorerScreenType.Projection projection = LENS_JOURNEY.get(nextLensIndex);
-        String command = LENS_SET_PREFIX + lensToken(projection);
-        if (!palette.choiceReadyForPointerAutomation(command)) {
-            return waitOrFail("the " + projection + " lens choice to become pointer-ready");
-        }
-        runtime.clickActionChoice(command);
+        // Compatibility stage for captures started by an older compiled journey.
         transition(Stage.WAIT_LENS);
         return false;
     }
@@ -1139,13 +1134,16 @@ public final class ExerciseReleaseReviewExplorerUxPuppetAction implements SFMPup
             return waitOrFail("the review Explorer after switching lens; screen=" + screenState);
         }
         SFMReleaseReviewExplorerScreenType.Projection expected = LENS_JOURNEY.get(nextLensIndex);
-        var descriptor = SFMReleaseReviewExplorerRuntime.get()
-                .hostedLensDescriptor(explorer.panel().sessionSnapshot().roots()).orElse(null);
-        if (descriptor == null || descriptor.projection() != expected) {
-            return waitOrFail("the " + expected + " review lens to publish");
+        List<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection.Row> projectionRows =
+                explorer.state().projection().rows().stream()
+                        .filter(row -> SFMReleaseReviewExplorerRuntime.get().rowIdentity(row.path())
+                                .map(identity -> identity.projection() == expected)
+                                .orElse(false))
+                        .toList();
+        if (projectionRows.isEmpty()) {
+            return waitOrFail("the " + expected + " review projection to publish");
         }
-        List<String> labels = explorer.state().projection().rows().stream()
-                .map(row -> row.entry().label()).toList();
+        List<String> labels = projectionRows.stream().map(row -> row.entry().label()).toList();
         if (expected == SFMReleaseReviewExplorerScreenType.Projection.COMMENTS) {
             if (labels.stream().noneMatch(label -> label.contains(createdCommentId)
                     || label.contains(createdCommentText))) {

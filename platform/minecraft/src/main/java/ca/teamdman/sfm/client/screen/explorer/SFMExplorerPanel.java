@@ -286,6 +286,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         model = new SFMExplorerPanelModel(session, this.loader, actionSink);
         model.setToolbarHeight(this::reviewToolbarHeight);
         model.setFindVisible(true);
+        model.setSearchRowsVisible(this::searchRowsVisible);
         finder = new SFMExplorerPanelFind(session, loader, model);
         this.focusObserver = Objects.requireNonNull(focusObserver, "focusObserver");
         this.closeObserver = Objects.requireNonNull(closeObserver, "closeObserver");
@@ -963,8 +964,11 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 .colour(ca.teamdman.sfm.client.theme.SFMColourRole.PANEL_BACKGROUND));
         border(poseStack, layout.content(), BORDER);
         renderHeader(poseStack, minecraft, state, chrome.location(), chrome.lens(), chrome.reveal());
-        renderFilter(poseStack, minecraft, state, chrome.filter());
-        renderSearchBar(poseStack, minecraft, layout.findControl(), true, focused && keyboardFocus == KeyboardFocus.FIND);
+        if (layout.filterControl().height() > 0) {
+            renderFilter(poseStack, minecraft, state, chrome.filter());
+            renderSearchBar(poseStack, minecraft, layout.findControl(), true,
+                    focused && keyboardFocus == KeyboardFocus.FIND);
+        }
         renderFreshness(poseStack, minecraft, layout);
         renderWorkControls(poseStack, minecraft, layout, focused);
         for (SFMExplorerPanelViewport.Cell cell : state.viewport().cells()) {
@@ -1397,12 +1401,10 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     private boolean lensControlVisible() {
-        if (panelContext == null || closed) return false;
-        return SFMReviewLensSetAction.isControlVisible(new SFMClientActionContext(
-                panelContext.host(),
-                () -> panelContext != null && !closed,
-                panelContext.panelId()
-        ));
+        // Review projections are ordinary first-level Explorer children now.
+        // Retain the legacy action implementation for old reopen recipes, but
+        // do not hide projection state in dedicated header chrome.
+        return false;
     }
 
     private boolean revealControlVisible() {
@@ -1416,14 +1418,20 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
 
     private SFMExplorerPanelViewport.Layout effectiveLayout(SFMExplorerPanelModel.State state) {
         Objects.requireNonNull(state, "state");
-        return SFMExplorerPanelViewport.layout(bounds, lensControlVisible(), revealControlVisible(), reviewToolbarHeight(), true);
+        return SFMExplorerPanelViewport.layout(bounds, false, revealControlVisible(),
+                0, true, searchRowsVisible());
+    }
+
+    private boolean searchRowsVisible() {
+        return keyboardFocus == KeyboardFocus.FILTER || keyboardFocus == KeyboardFocus.FIND
+                || !filterInput.text().isEmpty() || !findInput.text().isEmpty();
     }
 
     private int freshnessHeight() {
-        return !closed && panelContext != null && reviewLensDescriptor().isPresent() ? 20 : 0;
+        return 0;
     }
 
-    private int reviewToolbarHeight() { return freshnessHeight() + workToolbarHeight(); }
+    private int reviewToolbarHeight() { return 0; }
 
     private Optional<ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime.Snapshot> currentReviewSnapshot() {
         var review = ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime.get().snapshot();
@@ -1482,9 +1490,7 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
     }
 
     private int workToolbarHeight() {
-        return !closed && panelContext != null && reviewLensDescriptor().filter(lens ->
-                lens.projection() == ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType.Projection.QUERY)
-                .isPresent() ? 20 : 0;
+        return 0;
     }
 
     private int workFocusIndex() {

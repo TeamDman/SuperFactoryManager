@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.screen.explorer;
 
 import ca.teamdman.sfm.client.action.SFMReleaseReviewAction;
 import ca.teamdman.sfm.client.action.SFMExplorerRowCopyDetailsAction;
+import ca.teamdman.sfm.client.action.SFMExplorerRowCopySummaryAction;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
 import ca.teamdman.sfm.client.screen.SFMActionChoice;
@@ -54,6 +55,7 @@ public final class SFMExplorerContextActionRegistry {
         if(request.iconInspection().isPresent()) {
             var inspection=request.iconInspection().orElseThrow();
             var capture=ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewCaptures.retain(request.actionContext(),inspection);
+            answer.add(SFMExplorerRowCopySummaryAction.captureChoice(inspection));
             answer.add(SFMExplorerRowCopyDetailsAction.captureChoice(inspection));
             answer.add(ca.teamdman.sfm.client.action.SFMItemstackPreviewRulePromptAction.choice(capture.id()));
             if(request.target()!=SFMExplorerContextActionProvider.Target.ROW) {
@@ -97,7 +99,7 @@ public final class SFMExplorerContextActionRegistry {
                     || !fileName(path).endsWith(".sfm-review.json")) return List.of();
             Path nativePath = path.toNativePath();
             String greedyPath = SFMReleaseReviewAction.greedyPathArgument(nativePath);
-            return List.of(
+            ArrayList<SFMActionChoice> choices = new ArrayList<>(List.of(
                     SFMActionChoice.invoke(PATH_OPEN, path.canonical() + " focus", "Open review JSON as text"),
                     SFMActionChoice.invoke(REVIEW_OPEN, greedyPath, "Enable commenting in this mounted review"),
                     SFMActionChoice.invoke(ca.teamdman.sfm.client.action.SFMReviewOfflineOpenAction.ID,
@@ -108,7 +110,18 @@ public final class SFMExplorerContextActionRegistry {
                             greedyPath,
                             "Reopen mounted review read-only"
                     )
-            );
+            ));
+            var review = ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime.get().snapshot();
+            if (review.path().map(value -> value.toAbsolutePath().normalize().equals(
+                    nativePath.toAbsolutePath().normalize())).orElse(false) && review.document().isPresent()) {
+                choices.addAll(ca.teamdman.sfm.client.action.SFMReviewRemainingWorkAction.choices(
+                        review.document().orElseThrow()));
+                ca.teamdman.sfm.client.action.SFMReviewWorkQueueControls.CONTROLS.stream()
+                        .map(ca.teamdman.sfm.client.action.SFMReviewWorkQueueControls.Control::choice)
+                        .forEach(choices::add);
+                choices.addAll(ca.teamdman.sfm.client.action.SFMReviewFreshnessAction.choices());
+            }
+            return List.copyOf(choices);
         }
 
         private static String fileName(SFMPath path) {

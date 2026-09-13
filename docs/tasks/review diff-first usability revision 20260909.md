@@ -1290,3 +1290,65 @@ excluded; that sentinel is the only reported whitespace diagnostic. Cargo
 manifests, Cargo lockfiles and `platform/minecraft/sfm-toolchain.lock.json` have
 no diff. Source HEAD is `53b9b302117289c945def6ed73297f2997901559` and the
 existing dirty worktree remains intentionally uncommitted.
+
+## Mounted review hierarchy and compact interaction diagnostics — 2026-09-12
+
+The next interaction pass makes an ordinary `.sfm-review.json` row the explicit
+parent of the review's projections. Its first-level children are Changes,
+Comments, Hashtags, Query, Status and Migrations; projection choice is therefore
+visible tree state instead of a hidden top-right lens. Review freshness, queue
+movement, storage/export and capture-scope actions belong in the context menu of
+the review file and its descendants. The old lens dropdown, queue toolbar and
+continuously changing freshness banner no longer consume document space.
+
+Explorer diagnostics gain a compact summary alongside the complete forensic
+payload. The summary must retain the displayed label and ItemStack plus the
+internal row address, review-file address, logical source path, projection and
+node identity when available. Complete details retain those semantic addresses
+as well. Command-palette aggregate display copies include the textual ItemStack
+identity, and a constrained palette's canonical preview is itself clickable to
+copy the exact standalone command with acknowledgement.
+
+Empty Filter and Find rows collapse when neither owns focus, while their normal
+shortcuts reveal and focus them without losing either query. Text selections
+gain an explicit **Copy selected text** context action in addition to Ctrl+C.
+F3 exposes every directional input-diagnostics panel opener just as it does for
+size diagnostics, and the passive FPS overlay must remain visible above the SFM
+workspace screen after its visibility command succeeds.
+
+For split diffs, a wholly added or deleted file is authoritative over structural
+correspondence classifications: every actual source byte on the sole existing
+side receives the added or removed background while syntax coloring remains a
+separate layer. No dependency declaration, lockfile or pinned grammar may change
+for this pass.
+
+### Mounted-hierarchy acceptance — 2026-09-12
+
+The implementation now opens writable, read-only, freshly created and refreshed
+reviews as ordinary Explorers rooted at the exact `.sfm-review.json` authority.
+Expanding the file publishes six explicit projection rows; expanding those rows
+publishes their normal lazy hierarchy. The obsolete lens selector, queue toolbar
+and freshness banner have zero layout height, while their operations remain
+available from review-row context actions. Empty Filter and Find controls now
+consume and paint no pixels; the live gallery caught and corrected an initial
+zero-height placeholder-rendering leak before acceptance.
+
+The final full Java suite passed with 2071 tests found, 2066 passed, zero failed
+and five expected environment-gated aborts. Datagen passed and refreshed the
+generated localization/cache outputs. Focused Explorer panel tests also passed
+after the paint guard. The virtual-input
+`sfm:title_screen_release_review_explorer_ux` journey then passed at its declared
+3840x2130 GUI-scale-4 witness in run
+`sfm-title_screen-20260912-205019-826`. Its second inspected gallery shows the
+mounted projections without the former Filter/Find overlap, and the journey
+proved lazy source/diff previews, exact generated-split reveal, comment creation,
+split-gutter inspection, all six projection roots, read-only restart persistence,
+confirmed comment removal and cleanup. It staged only the disposable
+`runGameTestPreview/sfm-puppet/release-review-journey.sfm-review.json` authority
+and reported no OS-pointer injection.
+
+No dependency manifest, lockfile or grammar pin changed. The source diff passes
+`git diff --check` when the datagen-owned cache sentinel is excluded; that
+generated sentinel remains the only whitespace exception. An initial puppet
+invocation at unsupported 1920x1080@2 was rejected during viewport preflight and
+is not counted as product evidence.

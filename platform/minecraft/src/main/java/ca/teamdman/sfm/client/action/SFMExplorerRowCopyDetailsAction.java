@@ -46,12 +46,13 @@ public final class SFMExplorerRowCopyDetailsAction implements SFMClientAction<SF
     }
 
     public static SFMActionChoice captureChoice(SFMExplorerRowInspection inspection) {
-        long captureId = retain(Objects.requireNonNull(inspection, "inspection"),inspection.detailsPayload());
+        long captureId = retain(Objects.requireNonNull(inspection, "inspection"), enrich(inspection,
+                inspection.detailsPayload()));
         return SFMActionChoice.invoke(ID, Long.toString(captureId), "Copy row details");
     }
 
     public static SFMActionChoice captureChoice(ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewInspection inspection) {
-        long captureId=retain(inspection.row(),inspection.detailsPayload());
+        long captureId=retain(inspection.row(),enrich(inspection.row(), inspection.detailsPayload()));
         return SFMActionChoice.invoke(ID,Long.toString(captureId),ENTRY_DETAILS.getComponent().getString());
     }
 
@@ -121,5 +122,12 @@ public final class SFMExplorerRowCopyDetailsAction implements SFMClientAction<SF
 
     private static synchronized Optional<Capture> lookup(long captureId) {
         return Optional.ofNullable(CAPTURES.get(captureId));
+    }
+
+    private static String enrich(SFMExplorerRowInspection row, String payload) {
+        return ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime.get()
+                .rowIdentity(row.rowAddress())
+                .map(identity -> payload + System.lineSeparator() + identity.detailsPayload())
+                .orElse(payload);
     }
 }

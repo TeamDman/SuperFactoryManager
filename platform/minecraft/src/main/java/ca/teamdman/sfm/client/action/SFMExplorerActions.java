@@ -35,6 +35,8 @@ public final class SFMExplorerActions {
             REGISTERER.register("explorer/location/copy", SFMExplorerLocationCopyAction::new);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerRowCopyDetailsAction> ROW_DETAILS_COPY =
             REGISTERER.register("explorer/row/details/copy", SFMExplorerRowCopyDetailsAction::new);
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMExplorerRowCopySummaryAction> ROW_SUMMARY_COPY =
+            REGISTERER.register("explorer/row/summary/copy", SFMExplorerRowCopySummaryAction::new);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMItemstackPreviewRuleAction> PREVIEW_RULE_ADD =
             REGISTERER.register("explorer/itemstack_preview_rule/add", SFMItemstackPreviewRuleAction::new);
     public static final SFMRegistryObject<SFMClientAction<?>, SFMItemstackPreviewRulePromptAction> PREVIEW_RULE_PROMPT =

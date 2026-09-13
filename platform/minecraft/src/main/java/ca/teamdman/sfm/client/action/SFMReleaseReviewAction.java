@@ -4,8 +4,10 @@ import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewKernel;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewEditorCapture;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime;
 import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewV1;
+import ca.teamdman.sfm.client.explorer.SFMPath;
+import ca.teamdman.sfm.client.explorer.SFMPathExpression;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
-import ca.teamdman.sfm.client.screen.workspace.SFMReleaseReviewExplorerScreenType;
+import ca.teamdman.sfm.client.screen.workspace.SFMExplorerScreenType;
 import ca.teamdman.sfm.client.screen.workspace.SFMPanelReopenRecipe;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import net.minecraft.resources.ResourceLocation;
@@ -49,6 +51,14 @@ public final class SFMReleaseReviewAction implements SFMClientAction<SFMClientAc
      */
     public static String greedyPathArgument(Path path) {
         return path.toString();
+    }
+
+    /** Primary review presentation: an ordinary Explorer rooted at the mountable review file. */
+    public static SFMExplorerScreenType.Recipe mountedExplorerRecipe(Path path) {
+        return new SFMExplorerScreenType.Recipe(
+                new ResourceLocation("sfm", "explorer"),
+                new SFMPathExpression.Literal(SFMPath.fromNative(path.toAbsolutePath().normalize()))
+        );
     }
 
     public enum Kind {
@@ -251,9 +261,7 @@ public final class SFMReleaseReviewAction implements SFMClientAction<SFMClientAc
                                     return;
                                 }
                                 queueOpen(continuation.context(), output, true, context.getSource()::sendFeedback, current -> {
-                                    var scene = new ResourceLocation("sfm", "explorer/release_review/changes");
-                                    var recipe = new SFMReleaseReviewExplorerScreenType.Recipe(scene,
-                                            SFMReleaseReviewExplorerScreenType.Projection.CHANGES, Optional.empty());
+                                    var recipe = mountedExplorerRecipe(output);
                                     OpenPanelAction.openPanel(current, recipe.reopen(),
                                             current.originatingHost() instanceof SFMScreenMultiplexer
                                                     ? OpenPanelAction.Direction.RIGHT : OpenPanelAction.Direction.FOCUSED, recipe);
@@ -275,13 +283,7 @@ public final class SFMReleaseReviewAction implements SFMClientAction<SFMClientAc
                     boolean writable = kind == Kind.OPEN || kind == Kind.OPEN_VIEW;
                     yield queueOpen(target, path, writable, context.getSource()::sendFeedback, continuation -> {
                         if (kind != Kind.OPEN_VIEW && kind != Kind.OPEN_READ_ONLY_VIEW) return;
-                        ResourceLocation sceneId = new ResourceLocation(
-                                "sfm", "explorer/release_review/changes");
-                        SFMPanelReopenRecipe recipe = new SFMReleaseReviewExplorerScreenType.Recipe(
-                                sceneId,
-                                SFMReleaseReviewExplorerScreenType.Projection.CHANGES,
-                                Optional.empty()
-                        );
+                        SFMPanelReopenRecipe recipe = mountedExplorerRecipe(path);
                         SFMScreenPanel panel = recipe.reopen();
                         OpenPanelAction.Direction direction = continuation.originatingHost() instanceof SFMScreenMultiplexer
                                 ? OpenPanelAction.Direction.RIGHT

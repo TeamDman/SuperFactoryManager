@@ -41,7 +41,7 @@ class SFMReleaseReviewExplorerRuntimeTests {
     @TempDir Path temporaryDirectory;
 
     @Test
-    void reviewFileMountOpensReadOnlyAndPublishesChangesChildrenWithoutChangingTheBackingPath() throws Exception {
+    void reviewFileMountOpensReadOnlyAndPublishesExplicitProjectionChildrenWithoutChangingTheBackingPath() throws Exception {
         Path file = temporaryDirectory.resolve("mounted.sfm-review.json");
         Files.copy(fixture(), file);
         try (var runtime = new SFMReleaseReviewRuntime(Runnable::run)) {
@@ -73,29 +73,19 @@ class SFMReleaseReviewExplorerRuntimeTests {
             assertFalse(page.entries().isEmpty());
             assertTrue(page.entries().stream().allMatch(entry -> entry.path().scheme().equals(
                     SFMReleaseReviewExplorerRuntime.PATH_SCHEME)));
+            assertEquals(List.of("Changes", "Comments", "Hashtags", "Query", "Status", "Migrations"),
+                    page.entries().stream().map(SFMExplorerEntry::label).toList());
+            assertTrue(page.entries().stream().allMatch(SFMExplorerEntry::expandable));
             assertTrue(page.diagnostics().stream().anyMatch(diagnostic -> diagnostic.contains("read-only")));
 
             var mountedChanges = resolver.hostedLensDescriptor(Set.of(SFMPath.fromNative(temporaryDirectory)))
                     .orElseThrow();
             assertEquals(SFMReleaseReviewExplorerScreenType.Projection.CHANGES, mountedChanges.projection());
-            SFMPath commentsRoot = resolver.prepareMountedLens(
-                    file,
-                    SFMReleaseReviewExplorerScreenType.Projection.COMMENTS,
-                    Optional.empty(),
-                    SFMReviewExplorerModel.PathLayout.HIERARCHY
-            );
-            var commentsPage = mount.resolveChildren(new SFMExplorerResolver.ChildRequest(
-                    filePath,
-                    Optional.empty(),
-                    128,
-                    1,
-                    new SFMExplorerCancellationToken()
-            ), backing).join();
-            assertEquals(Set.of(commentsRoot), resolver.lensRootsContaining(commentsPage.entries().stream()
-                    .map(SFMExplorerEntry::path).collect(java.util.stream.Collectors.toSet())));
-            assertEquals(SFMReleaseReviewExplorerScreenType.Projection.COMMENTS,
-                    resolver.hostedLensDescriptor(Set.of(SFMPath.fromNative(temporaryDirectory)))
-                            .orElseThrow().projection());
+            for (SFMExplorerEntry entry : page.entries()) {
+                var identity = resolver.rowIdentity(entry.path()).orElseThrow();
+                assertEquals(file.toAbsolutePath().normalize(), identity.reviewPath());
+                assertEquals(entry.label().toUpperCase(java.util.Locale.ROOT), identity.projection().name());
+            }
         }
     }
 
@@ -771,10 +761,12 @@ class SFMReleaseReviewExplorerRuntimeTests {
             }
             assertFalse(actionable == null, "fixture must expose an unresolved migration row");
             var choices = resolver.contextChoices(actionable);
-            assertTrue(choices.size() >= 3);
-            assertTrue(choices.stream().allMatch(choice -> choice.command().startsWith(
-                    "sfm action invoke sfm:review/session/migration/decide ")));
-            assertTrue(choices.stream().anyMatch(choice -> choice.displayText().contains("Defer migration")));
+            var migrationChoices = choices.stream().filter(choice -> choice.command().startsWith(
+                    "sfm action invoke sfm:review/session/migration/decide ")).toList();
+            assertTrue(migrationChoices.size() >= 3);
+            assertTrue(migrationChoices.stream().anyMatch(choice -> choice.displayText().contains("Defer migration")));
+            assertTrue(choices.stream().anyMatch(choice -> choice.displayText().equals("Recheck review freshness")),
+                    "review descendants also expose session-level management actions");
         } finally {
             runtime.discardAndClose();
         }

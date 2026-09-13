@@ -7,6 +7,10 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Expand review files into explicit Changes, Comments, Hashtags, Query, Status and Migrations children instead of hiding projection state in header controls
+-- Add compact Explorer row summaries with review/source identities, clickable canonical-command copying and explicit selected-text copying
+-- Collapse empty Explorer search rows, expose every input-diagnostics panel direction in F3 and keep the FPS overlay visible above workspaces
+-- Color every source byte in wholly added or deleted structured split files while retaining independent syntax highlighting
 -- Remove human review comments through a stale-safe writable confirmation, refreshing surviving review Explorers without disturbing shared evidence
 -- Reveal raw, inline and split generated review surfaces at their exact originating Explorer rows
 -- Separate compact raw text patches from complete source-interposed inline text diffs

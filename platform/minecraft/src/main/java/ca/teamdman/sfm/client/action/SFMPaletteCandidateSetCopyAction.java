@@ -129,7 +129,7 @@ public final class SFMPaletteCandidateSetCopyAction
         List<SFMPaletteCandidateInspection> candidates = host.paletteCandidateSetInspection(captureId)
                 .orElseThrow(CAPTURE_EXPIRED::create);
         List<String> values = switch (projection) {
-            case DISPLAY -> candidates.stream().map(SFMPaletteCandidateInspection::displayTextPayload).toList();
+            case DISPLAY -> candidates.stream().map(SFMPaletteCandidateInspection::displayRepresentationPayload).toList();
             case SURFACE -> candidates.stream().map(SFMPaletteCandidateInspection::replacementSurfacePayload).toList();
             case COMMAND -> candidates.stream().map(SFMPaletteCandidateInspection::canonicalCommandPayload)
                     .flatMap(Optional::stream).toList();
