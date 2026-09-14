@@ -7,9 +7,25 @@ grammar SFML;
     public INCLUDE_UNUSED: boolean = false; // we want syntax highlighting to not break on unexpected tokens
 }
 
-program : name? trigger* EOF;
+program : name? declaration* trigger* EOF;
 
 name: NAME string ;
+
+declaration : LET identifier BE PLAYER OF identifier #PlayerDeclaration
+            | LET identifier BE LIKE valuePattern     #PatternDeclaration
+            ;
+
+valuePattern : GUID                                                   #GuidValuePattern
+             | STRING_TYPE                                            #StringValuePattern
+             | string                                                 #LiteralValuePattern
+             | OBJECT WITH FIELD patternField (AND FIELD patternField)* #ObjectValuePattern
+             | identifier                                             #AliasValuePattern
+             ;
+
+patternField : identifier OF string          #LiteralPatternField
+             | identifier LIKE identifier    #LikePatternField
+             | identifier                    #AliasPatternField
+             ;
 
 //
 // TRIGGERS
@@ -31,13 +47,32 @@ statement       : inputStatement
                 | outputStatement
                 | ifStatement
                 | forgetStatement
+                | letValueStatement
+                | createStatement
+                | broadcastStatement
                 ;
+
+letValueStatement : LET identifier BE valueExpression;
+valueExpression : STRING_TYPE OF INVOKE qualifiedId WITH identifier                         #InvokeTextValueExpression
+                | identifier WITH FIELD constructionField (AND FIELD constructionField)*    #ObjectConstructionValueExpression
+                ;
+constructionField : identifier OF fieldValueExpression;
+fieldValueExpression : NEW GUID #NewGuidFieldValue
+                     | string   #LiteralFieldValue
+                     | identifier #VariableFieldValue
+                     ;
+createStatement : CREATE INPUT qualifiedId WITH identifier;
+broadcastStatement : BROADCAST TO identifier;
 
 // IO STATEMENT
 forgetStatement : FORGET label? (COMMA label)* COMMA?;
-inputStatement  : INPUT inputResourceLimits? resourceExclusion? FROM EACH? labelAccess
-                | FROM EACH? labelAccess INPUT inputResourceLimits? resourceExclusion?
+inputStatement  : INPUT inputSelection? inputResourceLimits? resourceExclusion? FROM EACH? labelAccess inputBinding?
+                | FROM EACH? labelAccess INPUT inputSelection? inputResourceLimits? resourceExclusion? inputBinding?
                 ;
+inputSelection  : WITH CAPABILITY qualifiedId #CapabilityInputSelection
+                | LIKE identifier             #PatternInputSelection
+                ;
+inputBinding    : AS identifier;
 outputStatement : OUTPUT outputResourceLimits? resourceExclusion? TO emptyslots? EACH? labelAccess
                 | TO emptyslots? EACH? labelAccess OUTPUT outputResourceLimits? resourceExclusion?
                 ;
@@ -81,6 +116,8 @@ withClause  : LPAREN withClause RPAREN           # WithParen
 tagMatcher  : identifier COLON identifier (SLASH identifier)*
             | identifier (SLASH identifier)*
             ;
+
+qualifiedId : identifier COLON identifier (SLASH identifier)*;
 
 
 sidequalifier   : EACH SIDE                  #EachSide
@@ -151,7 +188,9 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK) ;
+identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK
+           | LET | BE | PLAYER | OF | LIKE | OBJECT | FIELD | GUID | STRING_TYPE | INVOKE | CAPABILITY
+           | AS | CREATE | BROADCAST | NEW) ;
 
 // GENERAL
 string: STRING ;
@@ -252,6 +291,21 @@ PULSE           : P U L S E;
 DO              : D O ;
 END             : E N D ;
 NAME            : N A M E ;
+LET             : L E T ;
+BE              : B E ;
+PLAYER          : P L A Y E R ;
+OF              : O F ;
+LIKE            : L I K E ;
+OBJECT          : O B J E C T ;
+FIELD           : F I E L D ;
+GUID            : G U I D ;
+STRING_TYPE     : S T R I N G ;
+INVOKE          : I N V O K E ;
+CAPABILITY      : C A P A B I L I T Y ;
+AS              : A S ;
+CREATE          : C R E A T E ;
+BROADCAST       : B R O A D C A S T ;
+NEW             : N E W ;
 
 // GENERAL SYMBOLS
 // used by triggers and as a set operator

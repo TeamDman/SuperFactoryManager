@@ -28,11 +28,21 @@ public final class ProgramResourceObserver {
             ProgramContext context,
             BiPredicate<ResourceType<?, ?, ?>, Object> selector
     ) {
+        return observe(context, context.getInputs(), selector);
+    }
+
+    /** Observe only the supplied input views. */
+    public static List<ProgramResourceObservation> observe(
+            ProgramContext context,
+            Iterable<? extends ProgramInputSource> inputSources,
+            BiPredicate<ResourceType<?, ?, ?>, Object> selector
+    ) {
         Objects.requireNonNull(context);
+        Objects.requireNonNull(inputSources);
         Objects.requireNonNull(selector);
 
         List<LimitedInputSlot<?, ?, ?>> slots = new ArrayList<>();
-        for (ProgramInputSource inputSource : context.getInputs()) {
+        for (ProgramInputSource inputSource : inputSources) {
             inputSource.gatherSlots(context, slots::add);
         }
 

@@ -6,6 +6,8 @@ import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.net.ServerboundLabelGunSetActiveLabelPacket;
 import ca.teamdman.sfm.properties.SFMProperties;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
+import ca.teamdman.sfml.ast.*;
+import ca.teamdman.sfm.common.value.SFMValuePattern;
 import com.google.common.collect.Sets;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
@@ -29,6 +31,75 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @SuppressWarnings("unchecked")
 public class SFMLTests {
+
+    @Test
+    public void packetComputationLanguageSurfaceBuildsDefinitionsAndStatements() {
+        String source = """
+                let me be player of TeamDman
+                let JobId be like guid
+                let Request be like object with field type of "Request"
+                    and field prompt like string
+                    and field JobId
+                let Response be like object with field type of "Response"
+                    and field JobId like guid
+                    and field text like string
+
+                every 20 ticks do
+                    input WITH CAPABILITY sfm:text from chest as userinput
+                    let userinputstring be string of invoke sfm:text/read with userinput
+                    let request be Request with field prompt of userinputstring
+                        and field JobId of new guid
+                    create input sfm:packet with request
+                    broadcast to me
+                    output to chest1
+                end
+
+                every 20 ticks do
+                    input like Response from inbox as r
+                    output to responsechest
+                end
+                """;
+
+        assertNoCompileErrors(source);
+        Program program = compile(source);
+        assertEquals("TeamDman", program.definitions().player("ME").orElseThrow());
+        assertSame(SFMValuePattern.GUID, program.definitions().pattern("jobid").orElseThrow());
+        assertTrue(program.definitions().pattern("request").orElseThrow() instanceof SFMValuePattern.ObjectPattern);
+        assertEquals(
+                java.util.List.of(
+                        InputStatement.class,
+                        LetStatement.class,
+                        LetStatement.class,
+                        CreateInputStatement.class,
+                        BroadcastStatement.class,
+                        OutputStatement.class
+                ),
+                program.triggers().get(0).getStatements().get(0).getStatements().stream()
+                        .map(Object::getClass)
+                        .toList()
+        );
+        assertNoCompileErrors(program.toString());
+        assertTrue(program.astBuilder().getNodesUnderCursor(source.indexOf("broadcast"))
+                                  .stream()
+                                  .map(com.mojang.datafixers.util.Pair::getFirst)
+                                  .anyMatch(BroadcastStatement.class::isInstance));
+        assertTrue(program.astBuilder().getNodesUnderCursor(source.indexOf("let Request"))
+                                  .stream()
+                                  .map(com.mojang.datafixers.util.Pair::getFirst)
+                                  .anyMatch(ProgramPatternDeclaration.class::isInstance));
+    }
+
+    @Test
+    public void newKeywordsRemainLegalLegacyLabels() {
+        assertNoCompileErrors("""
+                every 20 ticks do
+                    input from let
+                    output to like
+                    input from object
+                    output to broadcast
+                end
+                """);
+    }
 
     @Test
     public void resourceIdentifierClassLoadingRegression() {

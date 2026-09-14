@@ -115,6 +115,15 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.TRUE:
             case SFMLLexer.FALSE:
             case SFMLLexer.FORGET:
+            case SFMLLexer.LET:
+            case SFMLLexer.BE:
+            case SFMLLexer.PLAYER:
+            case SFMLLexer.LIKE:
+            case SFMLLexer.OBJECT:
+            case SFMLLexer.INVOKE:
+            case SFMLLexer.CREATE:
+            case SFMLLexer.BROADCAST:
+            case SFMLLexer.NEW:
                 return "keyword";
             case SFMLLexer.IDENTIFIER:
             case SFMLLexer.STRING:
@@ -138,6 +147,12 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.OR:
             case SFMLLexer.IN:
             case SFMLLexer.EMPTY:
+            case SFMLLexer.OF:
+            case SFMLLexer.FIELD:
+            case SFMLLexer.GUID:
+            case SFMLLexer.STRING_TYPE:
+            case SFMLLexer.CAPABILITY:
+            case SFMLLexer.AS:
                 return "modifier";
             case SFMLLexer.NUMBER:
             case SFMLLexer.PLUS:

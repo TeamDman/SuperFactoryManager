@@ -1,6 +1,6 @@
 # SFM packet computation: single-player MVP
 
-**Status:** Slices A and B complete; Slice C language and text is next
+**Status:** Slices A through C complete; Slice D player circuit and handoff is next
 **Implementation branch:** `feat/1.19.2/packet-computation`  
 **Implementation baseline:** `1be4b3cff9387f0b2870bc281017b3589f0119ef`  
 **Design-inspection baseline:** `53b9b302117289c945def6ed73297f2997901559`
@@ -162,6 +162,12 @@ reviewable before language syntax depends on them:
   retention state without extraction or live bookkeeping. Stack counts remain
   occurrence counts, duplicate physical handles collapse, and normal output
   quantity remains available.
+- **C — language and text:** completed with structural aliases and open object
+  patterns, occurrence-preserving relations, copied disk/book text adapters,
+  lazy object/GUID construction, filtered/bound inputs, lazy packet creation,
+  non-consuming player broadcast, source mapping, syntax highlighting, parser
+  round trips, and completion candidates. The VS Code grammar source mirrors
+  the game grammar; its generated TypeScript remains build-generated.
 
 The production byte cap is intentionally retained even though it is currently
 secondary: 256 values at the 3,072-byte value maximum total 786,432 bytes,
@@ -195,18 +201,18 @@ sfm packet send --side north -- minecraft:overworld 12 64 -7 '{"value":1}'
 | C01 | A2/A4 | Unit/negative network tests plus private integrated-world proof | Covered: A4.1 proves the complete private integrated-world terminal circuit; A4.2 publishes that same integrated server to LAN, observes `effects_disabled` with `local_transport_accepted=false`, verifies the server-side gate is closed, and finds no packet in the target chest |
 | C02 | A2/A4 | Missing/full/unloaded destinations produce no retry or delivery claim | Covered: A2.3 drops each condition without loading chunks, retaining requests, or acknowledging delivery; A4.2 attempts missing-dimension, unloaded, no-handler, and full targets through the real terminal/CLI, observes only local `send_attempted` with no delivery acknowledgement, and proves no delayed replay after capacity becomes available |
 | C03 | A2/D | Mailbox-loaded/manager-unloaded journey | Pending |
-| C04 | C/D | Ordinary timed-trigger response routing | Pending |
+| C04 | C/D | Ordinary timed-trigger response routing | C supplies timed `like` input syntax and execution; end-to-end response routing remains for D |
 | C05 | A2/A3 | Arbitrary shapes survive log/list unchanged | A2.2 packet-to-log GameTest covers arbitrary nested value retention; A3 returns canonical nested values directly in bounded list JSON and its registered-action GameTest observes the real client log |
 | C06 | A1 | One `sfm:packet` item round-trips every supported value kind | Covered by the all-kind codec round trip and registered-item GameTest |
-| C07 | C | Equivalent alias-pattern tests | Pending |
-| C08 | C/D | Open-object matching retains extra fields | Pending |
-| C09 | B/C | Equal inputs retain separate occurrence rows and IDs | B2 ownership uses identity rather than value equality, B3 proves equal generated values retain distinct source occurrences, handlers, and owner entries, and B5 preserves equal stacks in distinct handlers while collapsing overlapping handles to the same physical slot; relation-row mapping and generated IDs remain for C |
-| C10 | A1/C | Immutable construction and copied item-read tests | A1 copy boundary covered; language capture remains for C |
-| C11 | B/C | Peek/peek/output uses one memoized generated item | B3 proves both value-first and resource-first demand, repeated value/slot reuse, failure memoization, and ordinary movement of the same carrier; language-level create/broadcast/output remains for C |
-| C12 | B/C | Repeated broadcast does not consume output quantity | B5 proves repeated observation performs no extraction or live retention/transfer bookkeeping and leaves the same generated/world quantity available to ordinary output; the language-level broadcast statement remains for C |
+| C07 | C | Equivalent alias-pattern tests | Covered: aliases resolve to structural patterns; equivalent aliases match the same values and GUID remains an unbranded canonical string constraint |
+| C08 | C/D | Open-object matching retains extra fields | C unit coverage proves successful matches retain the complete object and missing/wrong fields contribute no match; D retains the extra field through ordinary response routing |
+| C09 | B/C | Equal inputs retain separate occurrence rows and IDs | Covered: B establishes identity-owned sources and observation; C relation mapping preserves reference identities, and the integrated language circuit turns two equal physical prompts into two requests with distinct GUIDs |
+| C10 | A1/C | Immutable construction and copied item-read tests | Covered: C snapshots selected item resources and reads disk, writable-book, and written-book content from copies; later source mutation cannot alter the captured value |
+| C11 | B/C | Peek/peek/output uses one memoized generated item | Covered: B proves demand-order memoization and repeated observation; C registers one lazy packet source per relation row and the integrated language circuit broadcasts the exact values later moved by ordinary output |
+| C12 | B/C | Repeated broadcast does not consume output quantity | Covered: B proves repeated read-only observation leaves live transfer budgets unchanged; C's language-level broadcast observes the generated values before ordinary output moves the same carriers |
 | C13 | B | Normal/exceptional context teardown frees leftovers | Covered: B2 provides context-owned, identity-based, exactly-once cleanup; B3 proves unmoved generated handlers are cleared at normal teardown and drained handlers release early without affecting moved items; B4 frees every trigger fork and root context through `finally`, continues after individual cleanup failures, and preserves the trigger exception as primary when cleanup also fails |
-| C14 | B/C | Bare/selective forget clears inputs but retains variables | B2 separates variables, active views, and owned resources; B3 preserves bare `FORGET` explicitly, proves selective forget retains an unlabelled generated view, and proves bare forget detaches it without prematurely disposing owner-held storage; language bindings remain for C |
-| C15 | B/C | Accumulated source/generated inputs move independently | B1 makes ordinary output gather every active source; B3 proves equal generated occurrences accumulate as distinct handlers and one generated packet moves through ordinary item machinery; mixed text/generated language input remains for C |
+| C14 | B/C | Bare/selective forget clears inputs but retains variables | Covered: B separates variables from views and proves bare/selective source behavior; C bindings live only in the trigger-local variable environment and filtered-source forgetting cannot delete them |
+| C15 | B/C | Accumulated source/generated inputs move independently | Covered: the integrated C circuit accumulates the selected world input plus three generated sources, then ordinary unfiltered output moves all three original text items and all three independently generated packets |
 | C16 | A2/A4 | GUI-closed loaded-inventory insertion and negative destinations | Covered: A2.3 exercises unsided/exact-face success and negative destinations without an open menu; A4.1 runs the external CLI through the in-game terminal and delivers its response to the exact loaded chest after the terminal closes |
 
 Cross-cutting A1 checks also cover malformed/oversize JSON, nesting/container
@@ -495,6 +501,41 @@ B5 observation-path evidence on 13 September 2026:
   three occurrences twice, and then moved together through ordinary output.
 - The complete unit suite found 2,117 tests: 2,112 passed, none failed, and five
   opt-in integration fixtures were assumption-aborted as designed.
+
+Slice C language-and-text evidence on 13 September 2026:
+
+- The game and VS Code grammar sources accept player and structural-pattern
+  declarations, `WITH CAPABILITY sfm:text` and `LIKE` input selections, `AS`
+  occurrence bindings, text-read and object-construction expressions, lazy
+  `CREATE INPUT sfm:packet`, and `BROADCAST TO`. Existing forward/reverse IO
+  forms remain accepted, new keyword tokens remain usable as legacy labels,
+  and Program rendering reparses successfully.
+- AST construction rejects unknown aliases, unsupported capabilities and
+  carriers, duplicate fields, and constructors that combine unrelated
+  relation variables. Every new executable node and declaration has source
+  mapping; editor highlighting and grammar-derived completion cover the new
+  declaration and statement starters.
+- `ProgramRelationTests`, `SFMValuePatternTests`, and
+  `ProgramValueExecutionTests` cover reference-identity occurrences, lazy
+  success/failure memoization, case-insensitive variable lookup, structural
+  aliases, open-object matches retaining extra fields, missing/wrong-field
+  rejection, copied book text, empty relation propagation, independent GUIDs,
+  unrelated-relation rejection, and lazy source registration.
+- `test run --branch feat/1.19.2/packet-computation --filter SFMLTests`: 51/51
+  passed, including the complete proposed language surface, legacy keyword
+  labels, declaration/executable source mapping, and parse/render/parse.
+- `test run --branch feat/1.19.2/packet-computation --filter
+  SFMLIntellisenseTests`: all completion regressions passed, including `LET` at
+  program scope and `LET`/`CREATE`/`BROADCAST` inside a trigger.
+- `game-test run-client --branch feat/1.19.2/packet-computation --filter
+  packet_language_circuit`: 1/1 required client test passed. A real manager
+  read one disk plus writable and written books, preserved two equal prompts as
+  separate occurrences, allocated three distinct GUIDs, broadcast the three
+  values to the actual client log, and moved those exact three packet carriers
+  together with the three source items through ordinary output.
+- The complete unit suite found 2,131 tests: 2,126 passed, none failed, and five
+  opt-in integration fixtures were assumption-aborted as designed. The final
+  compile also passed through `sfm-propagate-changes.exe` without propagation.
 
 ## Exclusions
 

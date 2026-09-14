@@ -5,6 +5,9 @@ import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.program.*;
 
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public final class InputStatement implements IOStatement {
@@ -32,26 +35,69 @@ public final class InputStatement implements IOStatement {
 
     private final boolean each;
 
+    private final ProgramInputSelection selection;
+
+    private final String bindingName;
+
     public InputStatement(
             LabelAccess labelAccess,
             ResourceLimits resourceLimits,
             boolean each
     ) {
 
+        this(labelAccess, resourceLimits, each, ProgramInputSelection.ANY, null);
+    }
+
+    public InputStatement(
+            LabelAccess labelAccess,
+            ResourceLimits resourceLimits,
+            boolean each,
+            ProgramInputSelection selection,
+            String bindingName
+    ) {
+
         this.labelAccess = labelAccess;
         this.resourceLimits = resourceLimits;
         this.each = each;
+        this.selection = Objects.requireNonNull(selection);
+        this.bindingName = bindingName;
     }
 
     @Override
     public void tick(ProgramContext context) {
 
-        context.addInput(new WorldProgramInputSource(this));
+        ProgramInputSource inputSource = new WorldProgramInputSource(this);
+        if (selection != ProgramInputSelection.ANY) {
+            inputSource = new FilteringProgramInputSource(inputSource, selection);
+        }
+        context.addInput(inputSource);
         context.getLogger().debug(x -> x.accept(LOG_PROGRAM_TICK_INPUT_STATEMENT.get(toString())));
 
         // Track simulation
         if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {
+            if (bindingName != null) {
+                context.getVariableEnvironment().setRelation(bindingName, ProgramRelation.EMPTY);
+            }
             simulation.onInputStatementExecution(context, this);
+            return;
+        }
+
+        if (bindingName != null) {
+            List<ProgramRelationRow> rows = new ArrayList<>();
+            for (ProgramResourceObservation observation : ProgramResourceObserver.observe(
+                    context,
+                    List.of(inputSource),
+                    (resourceType, stack) -> true
+            )) {
+                for (long occurrence = 0; occurrence < observation.amount(); occurrence++) {
+                    ProgramResourceValue resourceValue = ProgramResourceValue.fromObservation(observation);
+                    rows.add(new ProgramRelationRow(
+                            ProgramOccurrenceId.create(),
+                            selection.bind(resourceValue.resourceType(), resourceValue.stack())
+                    ));
+                }
+            }
+            context.getVariableEnvironment().setRelation(bindingName, new ProgramRelation(rows));
         }
     }
 
@@ -60,11 +106,13 @@ public final class InputStatement implements IOStatement {
 
         StringBuilder rtn = new StringBuilder();
         rtn.append("INPUT ");
+        if (selection != ProgramInputSelection.ANY) rtn.append(selection.toSource()).append(" ");
         String limits = resourceLimits.toStringCondensed(Limit.MAX_QUANTITY_NO_RETENTION);
         if (!limits.isEmpty()) rtn.append(limits).append(" ");
         rtn.append("FROM ");
         if (each) rtn.append("EACH ");
         rtn.append(labelAccess);
+        if (bindingName != null) rtn.append(" AS ").append(bindingName);
         return rtn.toString();
     }
 
@@ -73,6 +121,7 @@ public final class InputStatement implements IOStatement {
 
         StringBuilder sb = new StringBuilder();
         sb.append("INPUT");
+        if (selection != ProgramInputSelection.ANY) sb.append(" ").append(selection.toSource());
         String rls = resourceLimits.toStringCondensed(Limit.MAX_QUANTITY_NO_RETENTION);
         if (rls.lines().count() > 1) {
             sb.append("\n");
@@ -88,6 +137,7 @@ public final class InputStatement implements IOStatement {
         sb.append("FROM ");
         sb.append(each ? "EACH " : "");
         sb.append(labelAccess);
+        if (bindingName != null) sb.append(" AS ").append(bindingName);
         return sb.toString();
     }
 
@@ -109,6 +159,14 @@ public final class InputStatement implements IOStatement {
         return each;
     }
 
+    public ProgramInputSelection selection() {
+        return selection;
+    }
+
+    public Optional<String> bindingName() {
+        return Optional.ofNullable(bindingName);
+    }
+
     @Override
     public boolean equals(Object obj) {
 
@@ -118,13 +176,15 @@ public final class InputStatement implements IOStatement {
         return Objects.equals(this.labelAccess, that.labelAccess) && Objects.equals(
                 this.resourceLimits,
                 that.resourceLimits
-        ) && this.each == that.each;
+        ) && this.each == that.each
+          && Objects.equals(this.selection, that.selection)
+          && Objects.equals(this.bindingName, that.bindingName);
     }
 
     @Override
     public int hashCode() {
 
-        return Objects.hash(labelAccess, resourceLimits, each);
+        return Objects.hash(labelAccess, resourceLimits, each, selection, bindingName);
     }
 
 }

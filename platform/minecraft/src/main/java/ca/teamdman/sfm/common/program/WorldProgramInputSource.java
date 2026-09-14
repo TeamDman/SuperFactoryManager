@@ -108,7 +108,9 @@ public final class WorldProgramInputSource implements ProgramInputSource {
                         statement.labelAccess().roundRobin()
                 ),
                 statement.resourceLimits(),
-                statement.each()
+                statement.each(),
+                statement.selection(),
+                statement.bindingName().orElse(null)
         );
         if (!(context.getBehaviour() instanceof ExecuteProgramBehaviour)) {
             context.getProgram().astBuilder().setLocationFromOtherNode(retainedStatement, statement);

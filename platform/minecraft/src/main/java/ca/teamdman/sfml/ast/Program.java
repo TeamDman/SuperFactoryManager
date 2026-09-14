@@ -37,8 +37,19 @@ public record Program(
 
         Set<String> referencedLabels,
 
-        Set<ResourceIdentifier<?, ?, ?>> referencedResources
+        Set<ResourceIdentifier<?, ?, ?>> referencedResources,
+
+        ProgramDefinitions definitions
 ) implements Statement {
+    public Program(
+            ASTBuilder astBuilder,
+            String name,
+            List<Trigger> triggers,
+            Set<String> referencedLabels,
+            Set<ResourceIdentifier<?, ?, ?>> referencedResources
+    ) {
+        this(astBuilder, name, triggers, referencedLabels, referencedResources, ProgramDefinitions.EMPTY);
+    }
     /**
      * This comes from {@link java.io.DataOutputStream#writeUTF(String, DataOutput)}
      * and {@link NetworkHooks#openScreen(ServerPlayer, MenuProvider, Consumer)}
@@ -289,6 +300,7 @@ public record Program(
 
         var rtn = new StringBuilder();
         rtn.append("NAME \"").append(name).append("\"\n");
+        rtn.append(definitions.toSource());
         for (Trigger trigger : triggers) {
             rtn.append(trigger).append("\n");
         }
