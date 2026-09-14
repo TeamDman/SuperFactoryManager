@@ -1,6 +1,6 @@
 # SFM packet computation: single-player MVP
 
-**Status:** Slices A through C complete; Slice D player circuit and handoff is next
+**Status:** Slices A through D complete
 **Implementation branch:** `feat/1.19.2/packet-computation`  
 **Implementation baseline:** `1be4b3cff9387f0b2870bc281017b3589f0119ef`  
 **Design-inspection baseline:** `53b9b302117289c945def6ed73297f2997901559`
@@ -168,6 +168,11 @@ reviewable before language syntax depends on them:
   non-consuming player broadcast, source mapping, syntax highlighting, parser
   round trips, and completion candidates. The VS Code grammar source mirrors
   the game grammar; its generated TypeScript remains build-generated.
+- **D — player circuit and handoff:** completed with ordinary ACK/Response
+  routing, a manager-absent mailbox-persistence journey, a deterministic
+  terminal worker that lists a language-created request and sends an ACK plus
+  two equal responses, localized broadcast diagnostics, a complete template,
+  changelog coverage, and checkout-local CLI verification.
 
 The production byte cap is intentionally retained even though it is currently
 secondary: 256 values at the 3,072-byte value maximum total 786,432 bytes,
@@ -200,12 +205,12 @@ sfm packet send --side north -- minecraft:overworld 12 64 -7 '{"value":1}'
 | --- | --- | --- | --- |
 | C01 | A2/A4 | Unit/negative network tests plus private integrated-world proof | Covered: A4.1 proves the complete private integrated-world terminal circuit; A4.2 publishes that same integrated server to LAN, observes `effects_disabled` with `local_transport_accepted=false`, verifies the server-side gate is closed, and finds no packet in the target chest |
 | C02 | A2/A4 | Missing/full/unloaded destinations produce no retry or delivery claim | Covered: A2.3 drops each condition without loading chunks, retaining requests, or acknowledging delivery; A4.2 attempts missing-dimension, unloaded, no-handler, and full targets through the real terminal/CLI, observes only local `send_attempted` with no delivery acknowledgement, and proves no delayed replay after capacity becomes available |
-| C03 | A2/D | Mailbox-loaded/manager-unloaded journey | Pending |
-| C04 | C/D | Ordinary timed-trigger response routing | C supplies timed `like` input syntax and execution; end-to-end response routing remains for D |
+| C03 | A2/D | Mailbox-loaded/manager-unloaded journey | Covered: the server-safe mailbox-persistence GameTest inserts into an already-loaded ordinary chest while no manager runtime exists, retains the packet through a 20-tick inactive interval, and then routes it with a newly started ordinary timed manager; no replay or manager-specific storage participates |
+| C04 | C/D | Ordinary timed-trigger response routing | Covered: D routes ACK and Response values from an ordinary inventory with a normal 20-tick trigger, both in a dedicated-server GameTest and after external terminal/CLI delivery in the complete player circuit |
 | C05 | A2/A3 | Arbitrary shapes survive log/list unchanged | A2.2 packet-to-log GameTest covers arbitrary nested value retention; A3 returns canonical nested values directly in bounded list JSON and its registered-action GameTest observes the real client log |
 | C06 | A1 | One `sfm:packet` item round-trips every supported value kind | Covered by the all-kind codec round trip and registered-item GameTest |
 | C07 | C | Equivalent alias-pattern tests | Covered: aliases resolve to structural patterns; equivalent aliases match the same values and GUID remains an unbranded canonical string constraint |
-| C08 | C/D | Open-object matching retains extra fields | C unit coverage proves successful matches retain the complete object and missing/wrong fields contribute no match; D retains the extra field through ordinary response routing |
+| C08 | C/D | Open-object matching retains extra fields | Covered: C unit coverage proves successful matches retain the complete object and missing/wrong fields contribute no match; D routes complete ACK/Response values containing the undeclared `worker` field, while wrong-type and invalid-GUID near-matches remain in the mailbox |
 | C09 | B/C | Equal inputs retain separate occurrence rows and IDs | Covered: B establishes identity-owned sources and observation; C relation mapping preserves reference identities, and the integrated language circuit turns two equal physical prompts into two requests with distinct GUIDs |
 | C10 | A1/C | Immutable construction and copied item-read tests | Covered: C snapshots selected item resources and reads disk, writable-book, and written-book content from copies; later source mutation cannot alter the captured value |
 | C11 | B/C | Peek/peek/output uses one memoized generated item | Covered: B proves demand-order memoization and repeated observation; C registers one lazy packet source per relation row and the integrated language circuit broadcasts the exact values later moved by ordinary output |
@@ -536,6 +541,43 @@ Slice C language-and-text evidence on 13 September 2026:
 - The complete unit suite found 2,131 tests: 2,126 passed, none failed, and five
   opt-in integration fixtures were assumption-aborted as designed. The final
   compile also passed through `sfm-propagate-changes.exe` without propagation.
+
+Slice D player-circuit evidence on 13 September 2026:
+
+- The server-compatible packet routing test moves one open-pattern ACK and two
+  equal Response occurrences while preserving their extra `worker` fields;
+  wrong-type and invalid-GUID near-matches remain in the ordinary inbox.
+- The mailbox-persistence test inserts a response into an already-loaded chest
+  while no manager exists, observes it still present after 20 ticks, and then
+  creates a normal manager whose timed trigger routes it. The grouped dedicated
+  server run matched and passed all three compatible `packet_*` tests while
+  excluding five client-only tests before class loading.
+- `in_world_packet_language_worker` passed through the actual in-game Rust PTY.
+  Its manager read disk text, constructed and broadcast a Request with a fresh
+  `JobId`, and archived the same carrier. The terminal ran the absolute
+  checkout-local `sfm.exe`, listed schema `sfm.packet.list/1`, sent one locally
+  accepted ACK and two independently accepted equal Responses, and the second
+  ordinary timed trigger routed all three while retaining the extra `worker`
+  fields. The retained terminal artifact records
+  `SFM_D_PACKET_RESPONSE_ATTEMPTS=2` and the three successful schema/status
+  witnesses.
+- `in_world_packet_terminal_loss` passed again through that source-matched CLI,
+  covering missing dimension, unloaded position, absent handler, and full
+  inventory with no delayed replay after capacity becomes available.
+- The integrated client `packet_*` run matched and passed all eight packet
+  GameTests: carrier, structured control actions, positive/negative insertion,
+  observation log, language circuit, mailbox persistence, and response routing.
+- The new `packet_computation.sfml` template compiles under `SFMLTests` and the
+  generated English localization contains the offline-player and disabled-
+  effect broadcast diagnostics. Datagen and the final source-set compile both
+  completed through `sfm-propagate-changes.exe`.
+- The checkout-local Rust CLI passed formatting, Clippy, generated-Java checks,
+  and all 56 tests. Its `packet` help exposes the bounded `list` and `send`
+  commands. The Java puppet harness injects its absolute path through
+  `sfm.controlCliExecutable`; packet terminal actions require that property and
+  never fall back to a PATH-installed executable.
+- The complete Java suite found 2,131 tests: 2,126 passed, none failed, and five
+  opt-in integration fixtures were assumption-aborted as designed.
 
 ## Exclusions
 

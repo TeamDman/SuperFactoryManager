@@ -445,6 +445,8 @@
   "log.sfm.resource_type.get_capabilities.begin": "Gathering capabilities of type %s (%s) against labels %s",
   "log.sfm.resource_type.get_capabilities.not_present": "Capability %s %s direction=%s not present",
   "log.sfm.resource_type.get_capabilities.present": "Capability %s %s direction=%s present",
+  "log.sfm.statement.tick.broadcast.effects_disabled": "Packet broadcast to %s was skipped because packet effects are unavailable",
+  "log.sfm.statement.tick.broadcast.player_not_connected": "Packet broadcast target player %s is not connected",
   "log.sfm.statement.tick.forget": "FORGET %s",
   "log.sfm.statement.tick.if.false": "FALSE: %s",
   "log.sfm.statement.tick.if.true": "TRUE: %s",

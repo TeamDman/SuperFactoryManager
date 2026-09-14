@@ -61,6 +61,11 @@ public final class SFMGamePuppetHelper {
         add(new WaitForPacketFixtureObservationPuppetAction(fixtureId));
     }
 
+    /** Runs the Slice D deterministic ACK and duplicate-response worker in the real terminal. */
+    public void invokePacketLanguageWorkerThroughTerminal() {
+        add(new InvokePacketLanguageWorkerThroughTerminalPuppetAction());
+    }
+
     public void runGameTest(String testName) {
         requireGameTestName(testName);
         add(new RunGameTestPuppetAction(testName));

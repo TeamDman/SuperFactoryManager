@@ -7,6 +7,8 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Add packet-computation SFML for structural aliases and patterns, copied text reads, lazy packet creation, player broadcast, and ordinary ACK/Response routing
+-- Add a complete packet-computation template and a deterministic in-game terminal worker journey using the source-matched sfm CLI
 -- Keep dedicated servers from initializing client-action contributors and exclude integrated-client-only packet GameTests before class loading
 -- List bounded, session-aware packet observations and attempt exact-address packet sends through versioned structured client-action and sfm CLI results
 -- Allow private integrated-world packet responses to insert one data packet into an exact loaded inventory address without opening a menu

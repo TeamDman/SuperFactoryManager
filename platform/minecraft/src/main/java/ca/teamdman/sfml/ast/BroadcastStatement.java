@@ -1,6 +1,9 @@
 package ca.teamdman.sfml.ast;
 
 import ca.teamdman.sfm.common.item.PacketItem;
+import ca.teamdman.sfm.common.localization.LocalizationEntry;
+import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
+import ca.teamdman.sfm.common.net.SFMPacketEffectGate;
 import ca.teamdman.sfm.common.program.ProgramContext;
 import ca.teamdman.sfm.common.program.ProgramResourceObserver;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
@@ -13,6 +16,18 @@ import java.util.Objects;
 
 /** Non-consuming, best-effort observation of selected packet inputs by one player. */
 public record BroadcastStatement(String playerAlias) implements Statement {
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_BROADCAST_PLAYER_NOT_CONNECTED = new LocalizationEntry(
+            "log.sfm.statement.tick.broadcast.player_not_connected",
+            "Packet broadcast target player %s is not connected"
+    );
+
+    @SFMLocalizationDatagen
+    public static final LocalizationEntry LOG_PROGRAM_TICK_BROADCAST_EFFECTS_DISABLED = new LocalizationEntry(
+            "log.sfm.statement.tick.broadcast.effects_disabled",
+            "Packet broadcast to %s was skipped because packet effects are unavailable"
+    );
+
     public BroadcastStatement {
         Objects.requireNonNull(playerAlias);
     }
@@ -29,6 +44,11 @@ public record BroadcastStatement(String playerAlias) implements Statement {
         }
         ServerPlayer player = server.getPlayerList().getPlayerByName(playerName);
         if (player == null) {
+            context.getLogger().debug(LOG_PROGRAM_TICK_BROADCAST_PLAYER_NOT_CONNECTED.get(playerName));
+            return;
+        }
+        if (!SFMPacketEffectGate.allowsServerEffects(player)) {
+            context.getLogger().debug(LOG_PROGRAM_TICK_BROADCAST_EFFECTS_DISABLED.get(playerName));
             return;
         }
         ProgramResourceObserver.observe(
