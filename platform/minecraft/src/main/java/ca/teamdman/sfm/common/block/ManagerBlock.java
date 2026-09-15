@@ -133,7 +133,10 @@ public class ManagerBlock extends BaseEntityBlock implements EntityBlock, ICable
             boolean isMoving
     ) {
 
-        CableNetworkManager.onCablePlaced(world, pos);
+        // If old block == new block, it was just a redstone update and there is no need to update the cable network.
+        if (oldState.getBlock() != state.getBlock()) {
+            CableNetworkManager.onCablePlaced(world, pos);
+        }
     }
 
     @Override
