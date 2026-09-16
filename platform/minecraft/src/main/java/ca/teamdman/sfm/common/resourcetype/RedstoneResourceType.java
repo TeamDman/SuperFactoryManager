@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.common.resourcetype;
 
-import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.blockentity.BufferBlockEntityContents;
 import ca.teamdman.sfm.common.capability.IRedstoneSignalStorage;
 import ca.teamdman.sfm.common.capability.RedstoneSignalStorage;
@@ -20,11 +19,12 @@ public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalSto
         return new RedstoneSignalStorage(0, contents.tier.getIntScalarMaxStackSize()) {
             @Override
             public boolean canReceive() {
-                boolean isValid = this.getStoredAmount() > 0 || contents.isEmpty();
-                if (isValid) {
-                    contents.lastUsedResource = BufferBlock.ContainedResource.Redstone;
-                }
-                return isValid;
+                return contents.allowInsertion(RedstoneResourceType.this);
+            }
+
+            @Override
+            protected void onContentsChanged() {
+                contents.onRedstoneChanged();
             }
         };
     }
@@ -44,7 +44,18 @@ public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalSto
             long amount,
             boolean simulate
     ) {
-        return 0;
+        int requested = (int) Math.max(0L, Math.min(amount, Integer.MAX_VALUE));
+        return redstoneCapability.extract(requested, simulate);
+    }
+
+    @Override
+    public boolean canExtract(IRedstoneSignalStorage capability, int slot) {
+        return capability.canExtract();
+    }
+
+    @Override
+    public boolean canInsert(IRedstoneSignalStorage capability, int slot) {
+        return capability.canReceive();
     }
 
     @Override
@@ -57,7 +68,7 @@ public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalSto
             IRedstoneSignalStorage redstoneCapability,
             int slot
     ) {
-        return 15;
+        return redstoneCapability.getMaxStoredAmount();
     }
 
     @Override
@@ -67,7 +78,7 @@ public class RedstoneResourceType extends IntegerResourceType<IRedstoneSignalSto
             Integer integer,
             boolean simulate
     ) {
-        return 0;
+        return integer - redstoneCapability.insert(integer, simulate);
     }
 
     @Override

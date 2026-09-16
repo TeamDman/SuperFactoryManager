@@ -9,6 +9,7 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -32,7 +33,23 @@ public class BufferBlockEntity extends BlockEntity {
         BufferBlockTier tier = pBlockState.getBlock() instanceof BufferBlock bufferBlock
                                ? bufferBlock.tier
                                : BufferBlockTier.Unit;
-        this.contents = new BufferBlockEntityContents(tier);
+        this.contents = new BufferBlockEntityContents(tier, this::setChanged);
+    }
+
+    @MCVersionDependentBehaviour
+    @Override
+    public void load(CompoundTag tag) {
+        super.load(tag);
+        contents.loadRedstone(tag.getLong("redstone"));
+        // Also refresh comparators when NBT is applied to an existing block.
+        setChanged();
+    }
+
+    @MCVersionDependentBehaviour
+    @Override
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
+        tag.putInt("redstone", contents.getStoredRedstone());
     }
 
     @Override

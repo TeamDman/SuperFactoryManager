@@ -13,9 +13,9 @@ public interface IRedstoneSignalStorage {
     /// @return The maximum amount of redstone that can be stored.
     int getMaxStoredAmount();
 
-    /// @return If false, insert will always return 0.
+    /// @return If false, extract will always return 0.
     boolean canExtract();
 
-    /// @return If false, extract will always return 0.
+    /// @return If false, insert will always return 0.
     boolean canReceive();
 }

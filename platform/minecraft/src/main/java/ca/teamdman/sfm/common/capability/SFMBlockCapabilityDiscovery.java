@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.capability;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.block_network.CableNetwork;
 import ca.teamdman.sfm.common.block_network.SFMBlockCapabilityCacheForLevel;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
@@ -137,6 +138,13 @@ public class SFMBlockCapabilityDiscovery {
             BlockPos pos
     ) {
 
+        // Redstone can be queried at any position, including air. Only actual
+        // signal sources should gain cable connections and survive label cleanup.
+        // isSignalSource remains true for sources such as switched-off levers.
+        BlockState state = level.getBlockState(pos);
+        // A buffer containing only redstone deliberately hides its other
+        // resource capabilities, but must remain a valid cable endpoint.
+        if (state.isSignalSource() || state.getBlock() instanceof BufferBlock) return true;
         return SFMWellKnownCapabilities.streamCapabilities()
                 .filter(cap -> !cap.equals(SFMWellKnownCapabilities.REDSTONE_HANDLER))
                 .anyMatch(cap -> {
