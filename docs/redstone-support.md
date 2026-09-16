@@ -2,6 +2,7 @@
 
 Reviewed on 16 September 2026. Implementation target: Minecraft 1.19.2.
 This is an implementation checkpoint, not a published-release announcement.
+Local integration checkpoint: `57a9cfb56` on branch `1.19.2`.
 
 SFM can now read live redstone signals from labelled blocks and use experimental
 resource buffers as persistent counters. These features reuse existing SFML
