@@ -517,10 +517,38 @@ the hierarchy instead of living in a hidden lens setting. Right-click the review
 file or any review descendant for freshness, capture, storage/export, remaining
 work and saved-work queue actions.
 
+Each projection is a different index over the same review authority:
+
+- **Changes** is the diff-first source browser. It groups changed files by path
+  and lane, then exposes before, after, raw patch, inline diff, and split diff
+  surfaces. Use it to read changed code and attach comments to exact source or
+  diff ranges.
+- **Comments** is the newest-first object view of authored review observations.
+  Expand a comment to inspect or act on its value, durable selector, current
+  matches, and provenance. The selector records intent; matches are derived and
+  may become relocated, ambiguous, or missing without rewriting that intent.
+- **Hashtags** is an inverted index over comment text. Use policy tags such as
+  `#approved` and `#needs-change` to jump from a tag to the files and ranges that
+  carry it; tags are derived conveniences, not separate authoritative records.
+- **Migrations** shows persisted selector-retargeting evidence when source
+  revisions change. It keeps old witnesses, proposed new candidates, evaluation
+  status, and the explicit decision together so approval never silently moves.
+- **Query** is a deterministic work queue over review units and coverage. Use
+  its expression plus the saved/deferred cursor controls to traverse remaining
+  or policy-selected work without treating view position as review state.
+- **Status** is the fail-closed completion report. Its expandable categories
+  show the exact witnesses behind changed, approved, remaining, blocking,
+  suspended, missing/ambiguous, deferred, unsupported, and stale-producer
+  counts, plus maintainer-attestation evidence.
+
 Explorer row context menus provide both **Copy row summary** and **Copy entry
 details to clipboard**. The summary is intended for ordinary bug reports and
 contains the displayed label/ItemStack, internal row address, review file and
 logical source identity. Complete details retain pagination, loading, selection,
-rule and rendering evidence. In a text editor, right-click a non-empty selection
-and choose **Copy selected text** when a mouse-visible equivalent to Ctrl+C is
-needed.
+rule and rendering evidence. Expandable rows also provide **Copy children
+summary**, which captures only their immediate currently published children and
+states whether lazy pagination or loading can add more. When multiple rows are
+selected, **Copy selected entries summary** captures the complete selection
+scope (bounded to 256 detailed entries) rather than silently acting only on the
+clicked row. In a text editor, right-click a non-empty selection and choose
+**Copy selected text** when a mouse-visible equivalent to Ctrl+C is needed.
