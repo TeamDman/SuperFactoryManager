@@ -1,4 +1,16 @@
 use super::ArtifactAuditIssueKind;
+
+#[test]
+fn interactive_and_puppet_hotswap_release_the_build_lock() {
+    let enabled = RunOptions { client_hotswap_port: Some(5006), ..RunOptions::default() };
+    for kind in [RunKind::Client, RunKind::GameTestPreview] {
+        assert!(super::releases_build_cache_lock_before_launch(kind, &enabled));
+        assert!(!super::releases_build_cache_lock_before_launch(kind, &RunOptions::default()));
+    }
+    for kind in [RunKind::Server, RunKind::ClientSmoke, RunKind::GameTestServer, RunKind::Test] {
+        assert!(!super::releases_build_cache_lock_before_launch(kind, &enabled));
+    }
+}
 use super::ArtifactAuditSeverity;
 use super::ArtifactId;
 use super::ArtifactLockEntry;

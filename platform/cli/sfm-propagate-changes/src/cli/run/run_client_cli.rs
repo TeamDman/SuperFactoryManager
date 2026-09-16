@@ -80,20 +80,15 @@ impl RunClientArgs {
             mute,
             keep_open,
         } = self;
+        let client_hotswap_port = resolve_hotswap_port(hotswap, hotswap_port)?;
         if smoke && puppet.is_some() {
             eyre::bail!("--smoke and --puppet cannot be used together.");
         }
         if let Some(puppet) = puppet {
-            if text_editor
-                || input_diag
-                || title_screen.is_some()
-                || solo
-                || hotswap
-                || hotswap_port.is_some()
-            {
+            if text_editor || input_diag || title_screen.is_some() || solo {
                 eyre::bail!("--puppet cannot be combined with interactive client flags.");
             }
-            return super::invoke_game_puppet(
+            return super::invoke_game_puppet_with_hotswap(
                 options,
                 &puppet,
                 game_test,
@@ -102,6 +97,7 @@ impl RunClientArgs {
                 "declared",
                 mute,
                 keep_open,
+                client_hotswap_port,
                 cancellation_token,
             );
         }
@@ -140,19 +136,42 @@ impl RunClientArgs {
             );
         }
         let title_screen = resolve_title_screen(title_screen, text_editor, input_diag)?;
-        let hotswap_port = hotswap.then_some(hotswap_port.unwrap_or(5005));
         RunCommand::with_run_options(
             options.into_options(BuildMode::Build)?,
             RunKind::Client,
             RunOptions {
                 client_title_screen: title_screen,
                 client_solo: solo,
-                client_hotswap_port: hotswap_port,
+                client_hotswap_port,
                 ..RunOptions::default()
             },
             cancellation_token,
         )
         .invoke()
+    }
+}
+
+fn resolve_hotswap_port(enabled: bool, port: Option<u16>) -> eyre::Result<Option<u16>> {
+    if !enabled && port.is_some() {
+        eyre::bail!("--hotswap-port requires --hotswap.");
+    }
+    if port == Some(0) {
+        eyre::bail!("--hotswap-port must be greater than zero.");
+    }
+    Ok(enabled.then_some(port.unwrap_or(5005)))
+}
+
+#[cfg(test)]
+mod hotswap_tests {
+    use super::resolve_hotswap_port;
+
+    #[test]
+    fn hotswap_port_is_explicit_and_never_silently_ignored() {
+        assert_eq!(resolve_hotswap_port(false, None).unwrap(), None);
+        assert_eq!(resolve_hotswap_port(true, None).unwrap(), Some(5005));
+        assert_eq!(resolve_hotswap_port(true, Some(5006)).unwrap(), Some(5006));
+        assert!(resolve_hotswap_port(false, Some(5006)).is_err());
+        assert!(resolve_hotswap_port(true, Some(0)).is_err());
     }
 }
 

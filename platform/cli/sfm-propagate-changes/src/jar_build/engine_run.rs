@@ -761,7 +761,7 @@ fn execute_run(
         "-XX:+AllowEnhancedClassRedefinition".to_string(),
         "-XX:+AllowRedefinitionToAddDeleteMethods".to_string(),
     ]);
-    if matches!(kind, RunKind::Client) && let Some(port) = run_options.client_hotswap_port {
+    if matches!(kind, RunKind::Client | RunKind::GameTestPreview) && let Some(port) = run_options.client_hotswap_port {
         jvm_args.push(format!(
             "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=127.0.0.1:{port}"
         ));

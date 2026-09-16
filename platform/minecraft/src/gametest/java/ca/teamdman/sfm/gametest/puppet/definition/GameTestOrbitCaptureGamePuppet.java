@@ -12,7 +12,7 @@ import net.minecraft.network.chat.Component;
  * <p>Pass the GameTest through {@code --game-test sfm:<name>} on the puppet command.
  * Purpose-built puppets remain the right choice for interaction and GUI captures.</p>
  */
-@SFMGamePuppet
+@SFMGamePuppet(timeoutTicks = 20 * 12 * 60)
 public final class GameTestOrbitCaptureGamePuppet {
     private static final int ORBIT_CAPTURE_COUNT = 8;
 

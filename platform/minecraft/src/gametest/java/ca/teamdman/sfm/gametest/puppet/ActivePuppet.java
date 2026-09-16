@@ -4,6 +4,7 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.MultipleTestTracker;
+import net.minecraft.world.phys.AABB;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -50,6 +51,9 @@ public final class ActivePuppet {
     public volatile BlockPos gameTestOrigin;
 
     public volatile GameTestInfo gameTestInfo;
+
+    /** Captured while the structure block still exists; successful tests may remove it. */
+    public volatile AABB gameTestBounds;
 
     public volatile Throwable gameTestStartFailure;
 

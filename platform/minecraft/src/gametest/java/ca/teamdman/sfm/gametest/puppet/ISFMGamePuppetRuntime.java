@@ -14,6 +14,9 @@ public interface ISFMGamePuppetRuntime {
 
     boolean runGameTest(String testName);
 
+    /** Begin another fixture run in the same disposable world, after the previous run finishes. */
+    void prepareGameTest();
+
     void positionOrbitCamera(BlockPos localTarget, double radius, double height, double angleRadians);
 
     void positionGameTestOrbitCamera(double angleRadians);
