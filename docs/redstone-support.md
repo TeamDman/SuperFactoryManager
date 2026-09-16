@@ -264,8 +264,9 @@ are related timing proposals. None is delivered by the counter implementation.
 
 ## Validation and source map
 
-The feature checkpoint passed 61 required GameTests in a 1.19.2 integrated client
-on 15 September 2026:
+The checkpoint passed all 61 required GameTests in both a dedicated server and
+an integrated client on 16 September 2026, after integrating current main.
+The original feature also passed the client suite on 15 September.
 
 | Group | Cases | Evidence covered |
 | --- | ---: | --- |
@@ -277,9 +278,10 @@ The [checkpoint integration plan](tasks/redstone%20checkpoint%20integration%20pl
 records validation against the current main branch and the merge result. The
 earlier [labelled-query plan](tasks/labeled%20redstone%20queries%20plan.md) and
 [buffer-counter plan](tasks/buffer%20redstone%20counter%20plan.md) retain the original
-implementation evidence. The original feature base had a dedicated-server
-startup failure before tests could run; that historical failure is separate
-from redstone behavior.
+implementation evidence. Main's existing client-registration fix resolved the
+original feature base's dedicated-server startup failure. Both final runs exited
+successfully against integration commit `b08513e01`; later checkpoint changes
+only update documentation.
 
 Run the focused suite from a checkout containing this checkpoint:
 
@@ -287,9 +289,10 @@ Run the focused suite from a checkout containing this checkpoint:
 sfm-propagate-changes.exe game-test run-client --branch 1.19.2 --filter 'buffer_redstone_*,redstone_query_*,circle_redstone,side_resolve_direction,move_1_stack_direct' --keep-open
 ```
 
-Omit `--keep-open` for an automated run. Before integration, select the feature
-branch `feat/1.19.2/contraption-as-code` instead. Use the repository CLI, not the
-historical Gradle commands quoted in older discussions.
+Omit `--keep-open` for an automated run. Replace `run-client` with `run-server`
+and omit `--keep-open` to run the dedicated-server suite. Use the repository CLI;
+older discussions contain historical Gradle commands that no longer match the
+repository workflow.
 
 | Source | Responsibility |
 | --- | --- |
