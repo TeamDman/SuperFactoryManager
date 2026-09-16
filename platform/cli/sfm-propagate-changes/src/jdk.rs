@@ -137,9 +137,56 @@ fn compare_jdk_preference(left: &JdkInstallation, right: &JdkInstallation) -> Or
         .is_jbr
         .cmp(&left.is_jbr)
         .then_with(|| left.major_version.cmp(&right.major_version))
+        .then_with(|| {
+            numeric_runtime_version(&right.version_output)
+                .cmp(&numeric_runtime_version(&left.version_output))
+        })
         .then_with(|| source_rank(left).cmp(&source_rank(right)))
         .then_with(|| left.home.cmp(&right.home))
         .then_with(|| left.java_executable.cmp(&right.java_executable))
+}
+
+fn numeric_runtime_version(output: &str) -> Vec<u32> {
+    output
+        .split('"')
+        .nth(1)
+        .unwrap_or_default()
+        .split(|character: char| !character.is_ascii_digit())
+        .filter_map(|part| part.parse().ok())
+        .collect()
+}
+
+/// Reject JBR17 build families that predate the JDWP tag-map repair (JBR-6648).
+/// Other runtimes can still provide standard, body-only redefinition.
+pub(crate) fn ensure_hotswap_runtime(version_output: &str) -> eyre::Result<()> {
+    let lower = version_output.to_ascii_lowercase();
+    if !lower.contains("jbr") || parse_java_major_version(version_output) != Some(17) {
+        return Ok(());
+    }
+    let build = jbr_build(&lower);
+    if build.is_some_and(|build| build >= (1207, 6)) {
+        return Ok(());
+    }
+    eyre::bail!(
+        "This JBR17 build is not verified for repeated enhanced hotswap (JBR-6648). \
+         Use an exact fixed build, such as JBRSDK 17.0.14 b1367.22, with --java-home. \
+         Older b829/b1000/b1087 families remain affected even with a newer Java patch version. \
+         Runtime: {version_output}"
+    );
+}
+
+fn jbr_build(lower_version_output: &str) -> Option<(u32, u32)> {
+    let vendor = lower_version_output
+        .split_whitespace()
+        .find(|token| token.starts_with("jbr-") || token.starts_with("jbrsdk-"))?;
+    let build = vendor
+        .split_once('+')?
+        .1
+        .split('-')
+        .nth(1)?
+        .trim_start_matches('b');
+    let (family, revision) = build.split_once('.')?;
+    Some((family.parse().ok()?, revision.parse().ok()?))
 }
 
 fn source_rank(jdk: &JdkInstallation) -> u8 {
@@ -370,6 +417,45 @@ mod tests {
         assert_eq!(select_jdk(&jdks, 17).unwrap().major_version, 21);
         assert_eq!(select_jdk(&jdks, 25).unwrap().major_version, 25);
         assert!(select_jdk(&jdks, 26).is_none());
+    }
+
+    #[test]
+    fn hotswap_rejects_jbr_6648_builds_not_just_old_java_patch_versions() {
+        for (patch, build) in [(6, "829.9"), (10, "1207.2"), (12, "1087.25")] {
+            let version = format!(
+                "openjdk version \"17.0.{patch}\"\nOpenJDK Runtime Environment JBR-17.0.{patch}+1-{build}-nomod"
+            );
+            assert!(
+                super::ensure_hotswap_runtime(&version)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("JBR-6648")
+            );
+        }
+        for (patch, build) in [(10, "1207.6"), (12, "1207.37"), (14, "1367.22")] {
+            let version = format!(
+                "openjdk version \"17.0.{patch}\"\nOpenJDK Runtime Environment JBR-17.0.{patch}+1-{build}-nomod"
+            );
+            super::ensure_hotswap_runtime(&version).unwrap();
+        }
+        super::ensure_hotswap_runtime("openjdk version \"17.0.19\"\nMicrosoft OpenJDK").unwrap();
+        assert!(
+            super::ensure_hotswap_runtime("openjdk version \"17.0.10\"\nJBR unknown-build")
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn selects_newest_patch_within_the_preferred_java_major() {
+        let mut old = fake_jdk("a-old-jbr", 17, true);
+        old.version_output = "openjdk version \"17.0.6\"".to_string();
+        let mut fixed = fake_jdk("z-fixed-jbr", 17, true);
+        fixed.version_output = "openjdk version \"17.0.14\"".to_string();
+        let jdks = vec![old, fixed, fake_jdk("jbr-21", 21, true)];
+        assert_eq!(
+            select_jdk(&jdks, 17).unwrap().home.as_ref().unwrap(),
+            &PathBuf::from("z-fixed-jbr")
+        );
     }
 
     #[test]

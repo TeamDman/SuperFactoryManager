@@ -238,3 +238,54 @@ cargo run -- audit --branch core --version-surfaces
 | Main source gains gametest coupling | Main-defined event/request and gametest-only subscriber. |
 | Save collisions or deletion | Timestamp-plus-suffix IDs; no cleanup of ordinary developer saves. |
 | Cross-version merge damage | Baseline-first work, source exclusions, SFM CLI propagation, version-surface audit. |
+
+## Persistent hotswap collaboration follow-up — 2026-09-13
+
+The modes at the time of this report left an avoidable gap. `run client --hotswap` started an
+ordinary interactive client at the title screen, while `--puppet` owns a fixed
+declarative run and was rejected when combined with interactive/hotswap flags.
+The review exploration request-file controller is adaptive, but its operations
+are review-UI-specific. A future relaunch intended for agent/user collaboration
+should support one persistent disposable world session with both hotswap and a
+bounded, typed control protocol.
+
+Required atoms:
+
+Rollout update (2026-09-15): the combined `--hotswap --puppet` launch and
+build-lock release are implemented. `game_test_hotswap_round_trip` creates one
+disposable world and runs the selected test three times, with the existing
+request-file exploration pauses between runs. This is not completion of the
+typed command/block/chat controller below. Runtime selection, target validation,
+the exact JBR pin and acceptance evidence are tracked in
+[the runtime rollout plan](hotswap-runtime-rollout.md).
+
+- Preserve virtual in-process input. The controller must never reposition or
+  click the operating-system cursor.
+- Create a fresh disposable world and run an exact named GameTest on request,
+  rather than requiring a person to navigate the title screen.
+- Add correlated request/response operations for an allowlisted server command,
+  exact GameTest execution, bounded block inspection, native capture, and a
+  structured latest-chat query. Chat responses should use a monotonic sequence
+  cursor plus caller-supplied count and byte limits so agents do not scrape a
+  large log repeatedly.
+- Block inspection should accept bounded positions or boxes and return registry
+  id, block state, and an allowlisted block-entity summary. It must not serialize
+  an unbounded world or arbitrary implementation object graph.
+- Every response must include operation id, terminal status, concise diagnostic,
+  and any artifact paths. Long-running operations should expose progress without
+  forcing log polling.
+- The whole-puppet watchdog must be derived from, or safely exceed, the selected
+  GameTest timeout plus world-start and capture budgets. The generic orbit
+  capture currently uses a twelve-minute watchdog so it can supervise GameTests
+  whose own allowance exceeds the former two-minute default.
+- Document the hotswap boundary: redefining bytecode does not rerun `<clinit>` or
+  initialize newly added static fields. Prefer narrow method-body reload seams in
+  code under active iteration, without replacing ordinary constants and sound
+  object ownership throughout the codebase. Class shape, static initialization,
+  registration, resource lifecycle, and accumulated runtime drift remain clear
+  reasons to relaunch.
+
+Acceptance should demonstrate one client launch that creates its disposable
+world, runs a named GameTest, returns a typed result, performs a bounded block
+query and chat-tail query, applies a method-body hotswap from both active main
+and GameTest class directories, reruns the test, and emits a native screenshot.

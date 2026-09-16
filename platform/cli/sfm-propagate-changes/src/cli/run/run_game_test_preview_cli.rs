@@ -84,6 +84,38 @@ pub(crate) fn invoke_game_puppet(
     keep_open: Option<Option<String>>,
     cancellation_token: CancellationToken,
 ) -> eyre::Result<()> {
+    invoke_game_puppet_with_hotswap(
+        options,
+        puppet,
+        game_test,
+        width,
+        height,
+        variant,
+        mute,
+        keep_open,
+        None,
+        cancellation_token,
+    )
+}
+
+/// Launch a puppet with optional loopback JDWP for repeated virtual-input experiments.
+#[expect(
+    clippy::option_option,
+    clippy::too_many_arguments,
+    reason = "Shared launch boundary preserves the existing puppet adapters and optional JDWP port."
+)]
+pub(crate) fn invoke_game_puppet_with_hotswap(
+    options: JarBuildOptionsArgs,
+    puppet: &str,
+    game_test: Option<String>,
+    width: Option<u16>,
+    height: Option<u16>,
+    variant: &str,
+    mute: bool,
+    keep_open: Option<Option<String>>,
+    client_hotswap_port: Option<u16>,
+    cancellation_token: CancellationToken,
+) -> eyre::Result<()> {
     let puppet_filter = puppet.trim();
     if puppet_filter.is_empty() {
         eyre::bail!("puppet selector must not be empty");
@@ -96,6 +128,7 @@ pub(crate) fn invoke_game_puppet(
         options.into_options(BuildMode::Build)?,
         RunKind::GameTestPreview,
         RunOptions {
+            client_hotswap_port,
             game_puppet_filter: Some(puppet_filter.to_string()),
             game_puppet_game_test,
             game_puppet_viewport_selection: viewport_selection,

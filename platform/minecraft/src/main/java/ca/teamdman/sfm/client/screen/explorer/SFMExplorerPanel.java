@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.screen.explorer;
 import static ca.teamdman.sfm.client.search.SFMExplorerSearchText.*;
 
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
+import ca.teamdman.sfm.client.action.SFMExplorerCollectionCopySummaryAction;
 import ca.teamdman.sfm.client.action.SFMExplorerActions;
 import ca.teamdman.sfm.client.action.SFMExplorerSearchAction;
 import ca.teamdman.sfm.client.search.SFMTextMatchOptions;
@@ -20,6 +21,7 @@ import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
 import ca.teamdman.sfm.client.input.SFMSingleLineInput;
 import ca.teamdman.sfm.client.input.SFMSingleLineInputView;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerEntry;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerPathReveal;
 import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
 import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
@@ -759,33 +761,22 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
                 () -> panelContext != null && !closed,
                 panelContext.panelId()
         );
-        SFMExplorerSession.Snapshot snapshot = session.snapshot();
+        SFMExplorerPanelModel.State state = model.state(bounds);
+        SFMExplorerSession.Snapshot snapshot = state.session();
+        var relationSnapshot = loader.relationSnapshot();
+        var activeRequests = session.activeRequestEvidence();
         SFMExplorerRowInspection inspection = SFMExplorerRowInspection.capture(
                 snapshot,
                 row,
-                loader.relationSnapshot(),
-                session.activeRequestEvidence(),
+                relationSnapshot,
+                activeRequests,
                 wasFocused,
                 keyboardFocus.name().toLowerCase(Locale.ROOT).replace('_', '-')
         );
-        var resolved=presentationRegistry.resolve(row);
-        var icon=resolved.presentation().icon();
-        if (icon instanceof SFMExplorerPresentation.DegradedIcon degraded) icon=degraded.baseline();
-        java.util.Optional<ca.teamdman.sfm.client.presentation.SFMItemIcon> requested=icon instanceof SFMExplorerPresentation.ItemIcon item
-                ? java.util.Optional.of(item.item()) : java.util.Optional.empty();
-        var rendered=requested.map(value->{
-            var evidence=ca.teamdman.sfm.client.presentation.SFMItemIconRenderer.inspect(Minecraft.getInstance(),value);
-            var actual=ca.teamdman.sfm.common.registry.SFMWellKnownRegistries.ITEMS.getId(evidence.resolved().stack().getItem());
-            return new ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewInspection.Rendered(
-                    actual==null ? "unavailable" : actual.toString(),evidence.resolved().usedFallback(),evidence.levelAvailable(),evidence.reason());
-        });
         var viewport=model.state(bounds).viewport();
         var geometry=viewport.cells().stream().filter(cell->cell.row().path().equals(row.path())).findFirst()
                 .map(cell->SFMExplorerPanelViewport.iconBounds(cell,viewport.view()));
-        var iconInspection=new ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewInspection(
-                inspection,ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewSubject.from(row.entry()),
-                ca.teamdman.sfm.client.theme.SFMClientThemeService.activeAuthority(),presentationRegistry.previewDecision(row),
-                resolved.contributorId(),requested,rendered,geometry);
+        var iconInspection = previewInspection(row, inspection, geometry);
         List<SFMActionChoice> choices = contextActions.resolve(new SFMExplorerContextActionProvider.Request(
                 actionContext,
                 snapshot.id(),
@@ -797,6 +788,26 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         ));
         choices = new ArrayList<>(choices);
         if (target != SFMExplorerContextActionProvider.Target.ICON) {
+            int summaryInsertion = Math.min(1, choices.size());
+            java.util.Set<SFMPath> children = relationSnapshot.relation().childrenOf(row.path());
+            if (row.entry().expandable() || !children.isEmpty()) {
+                choices.add(summaryInsertion++, SFMExplorerCollectionCopySummaryAction.captureChoice(
+                        SFMExplorerCollectionCopySummaryAction.Kind.CHILDREN,
+                        inspection,
+                        collectionInspections(snapshot, relationSnapshot, activeRequests,
+                                state.projection().rows(), children),
+                        children.size()
+                ));
+            }
+            if (snapshot.selectedPaths().size() > 1) {
+                choices.add(summaryInsertion, SFMExplorerCollectionCopySummaryAction.captureChoice(
+                        SFMExplorerCollectionCopySummaryAction.Kind.SELECTION,
+                        inspection,
+                        collectionInspections(snapshot, relationSnapshot, activeRequests,
+                                state.projection().rows(), snapshot.selectedPaths().stream().sorted().toList()),
+                        snapshot.selectedPaths().size()
+                ));
+            }
             choices.addAll(SFMExplorerNavigationChoices.row(snapshot, row.entry()));
             choices.addAll(compactChoices(row));
         }
@@ -804,8 +815,69 @@ public final class SFMExplorerPanel implements SFMScreenPanel, SFMFileDropTarget
         SFMCommandPaletteScreen.openChoices(
                 actionContext,
                 Component.literal((target==SFMExplorerContextActionProvider.Target.ICON ? "Icon actions · " : "Row actions · ") + row.entry().label()
-                        + (snapshot.selectedPaths().size() > 1 ? " · this row only (" + snapshot.selectedPaths().size() + " selected)" : "")),
+                        + (snapshot.selectedPaths().size() > 1
+                                ? " · " + snapshot.selectedPaths().size() + " selected · scopes are explicit"
+                                : "")),
                 choices
+        );
+    }
+
+    private ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewInspection previewInspection(
+            SFMExplorerProjection.Row row,
+            SFMExplorerRowInspection inspection,
+            Optional<SFMExplorerPanelViewport.Rect> geometry
+    ) {
+        var resolved = presentationRegistry.resolve(row);
+        var icon = resolved.presentation().icon();
+        if (icon instanceof SFMExplorerPresentation.DegradedIcon degraded) icon = degraded.baseline();
+        Optional<SFMItemIcon> requested = icon instanceof SFMExplorerPresentation.ItemIcon item
+                ? Optional.of(item.item()) : Optional.empty();
+        var rendered = requested.map(value -> {
+            var evidence = SFMItemIconRenderer.inspect(Minecraft.getInstance(), value);
+            var actual = ca.teamdman.sfm.common.registry.SFMWellKnownRegistries.ITEMS
+                    .getId(evidence.resolved().stack().getItem());
+            return new ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewInspection.Rendered(
+                    actual == null ? "unavailable" : actual.toString(), evidence.resolved().usedFallback(),
+                    evidence.levelAvailable(), evidence.reason());
+        });
+        return new ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewInspection(
+                inspection,
+                ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewSubject.from(row.entry()),
+                ca.teamdman.sfm.client.theme.SFMClientThemeService.activeAuthority(),
+                presentationRegistry.previewDecision(row), resolved.contributorId(), requested, rendered, geometry);
+    }
+
+    private List<ca.teamdman.sfm.client.theme.preview.SFMItemstackPreviewInspection> collectionInspections(
+            SFMExplorerSession.Snapshot snapshot,
+            ca.teamdman.sfm.client.explorer.SFMChildRelationRepository.Snapshot relationSnapshot,
+            List<SFMExplorerSession.RequestObservation> activeRequests,
+            List<SFMExplorerProjection.Row> projectedRows,
+            java.util.Collection<SFMPath> paths
+    ) {
+        java.util.LinkedHashMap<SFMPath, SFMExplorerProjection.Row> rows = new java.util.LinkedHashMap<>();
+        for (SFMPath path : paths.stream().sorted().limit(256).toList()) {
+            SFMExplorerProjection.Row projected = projectedRows.stream()
+                    .filter(candidate -> !candidate.loading() && candidate.contains(path))
+                    .findFirst()
+                    .orElseGet(() -> loader.entry(path).map(entry -> summaryRow(snapshot, entry)).orElse(null));
+            if (projected != null) rows.putIfAbsent(projected.path(), projected);
+        }
+        return rows.values().stream().map(projected -> {
+            SFMExplorerRowInspection inspection = SFMExplorerRowInspection.capture(
+                    snapshot, projected, relationSnapshot, activeRequests, wasFocused,
+                    keyboardFocus.name().toLowerCase(Locale.ROOT).replace('_', '-'));
+            return previewInspection(projected, inspection, Optional.empty());
+        }).toList();
+    }
+
+    private static SFMExplorerProjection.Row summaryRow(
+            SFMExplorerSession.Snapshot snapshot,
+            SFMExplorerEntry entry
+    ) {
+        return new SFMExplorerProjection.Row(
+                entry.path(), entry, 0, snapshot.roots().contains(entry.path()),
+                snapshot.expanded().contains(entry.path()),
+                entry.sortKey(snapshot.settings().sort().contributionId())
         );
     }
 

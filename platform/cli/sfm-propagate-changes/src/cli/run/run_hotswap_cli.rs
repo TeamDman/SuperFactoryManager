@@ -58,17 +58,11 @@ impl RunHotswapArgs {
             .as_path()
             .join("platform")
             .join("minecraft");
-        let classes_dir = minecraft_dir
+        let project_classes_dir = minecraft_dir
             .join("build")
             .join("sfm-toolchain")
-            .join("project")
-            .join("classes");
-        if !classes_dir.is_dir() {
-            eyre::bail!(
-                "Compiled main classes directory does not exist: {}",
-                classes_dir.display()
-            );
-        }
+            .join("project");
+        let classes_dirs = client_hotswap_class_directories(&project_classes_dir)?;
 
         let helper_classes_dir = minecraft_dir
             .join("build")
@@ -88,10 +82,28 @@ impl RunHotswapArgs {
             &java,
             &helper_classes_dir,
             self.port.unwrap_or(DEFAULT_HOTSWAP_PORT),
-            &classes_dir,
             &class_selector,
+            &classes_dirs,
         )
     }
+}
+
+fn client_hotswap_class_directories(project_dir: &Path) -> eyre::Result<Vec<PathBuf>> {
+    let candidates = [
+        project_dir.join("classes"),
+        project_dir.join("gametest").join("classes"),
+    ];
+    let classes_dirs = candidates
+        .into_iter()
+        .filter(|path| path.is_dir())
+        .collect::<Vec<_>>();
+    if classes_dirs.is_empty() {
+        eyre::bail!(
+            "No compiled class directories active in the interactive client exist under {}",
+            project_dir.display()
+        );
+    }
+    Ok(classes_dirs)
 }
 
 fn compile_hotswap_helper(
@@ -142,8 +154,8 @@ fn run_hotswap_helper(
     java: &crate::jdk::ResolvedJava,
     helper_classes_dir: &Path,
     port: u16,
-    classes_dir: &Path,
     class_prefix: &str,
+    classes_dirs: &[PathBuf],
 ) -> eyre::Result<()> {
     let mut command = Command::new(&java.executable);
     command
@@ -154,8 +166,8 @@ fn run_hotswap_helper(
         .arg("SfmHotswapHelper")
         .arg("127.0.0.1")
         .arg(port.to_string())
-        .arg(classes_dir)
-        .arg(class_prefix);
+        .arg(class_prefix)
+        .args(classes_dirs);
     let output = command
         .output()
         .wrap_err("Failed to launch hotswap helper")?;
@@ -165,6 +177,53 @@ fn run_hotswap_helper(
         eyre::bail!("hotswap helper failed with {}", output.status);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::client_hotswap_class_directories;
+    use std::fs;
+
+    #[test]
+    fn discovers_every_class_directory_active_in_an_interactive_client() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let project = temp.path().join("project");
+        let main = project.join("classes");
+        let gametest = project.join("gametest").join("classes");
+        let datagen = project.join("datagen").join("classes");
+        let test = project.join("test").join("classes");
+        for directory in [&main, &gametest, &datagen, &test] {
+            fs::create_dir_all(directory).expect("class directory");
+        }
+
+        assert_eq!(
+            client_hotswap_class_directories(&project).expect("interactive class directories"),
+            vec![main, gametest]
+        );
+    }
+
+    #[test]
+    fn permits_a_client_without_the_optional_gametest_source_set() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let project = temp.path().join("project");
+        let main = project.join("classes");
+        fs::create_dir_all(&main).expect("main class directory");
+
+        assert_eq!(
+            client_hotswap_class_directories(&project).expect("main class directory"),
+            vec![main]
+        );
+    }
+
+    #[test]
+    fn rejects_missing_interactive_client_outputs() {
+        let temp = tempfile::tempdir().expect("tempdir");
+
+        let error = client_hotswap_class_directories(temp.path())
+            .expect_err("missing class directories should fail");
+
+        assert!(error.to_string().contains("No compiled class directories"));
+    }
 }
 
 fn javac_executable(java: &crate::jdk::ResolvedJava) -> PathBuf {

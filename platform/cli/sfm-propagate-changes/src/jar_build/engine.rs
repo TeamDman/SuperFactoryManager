@@ -632,6 +632,9 @@ fn execute_run_target(
 ) -> eyre::Result<BuildPlan> {
     cancellation_token.bail_if_cancelled()?;
     let plan = create_plan_for_target(options, target, cancellation_token)?;
+    if run_options.client_hotswap_port.is_some() {
+        crate::jdk::ensure_hotswap_runtime(&plan.java.version_output)?;
+    }
     cancellation_token.bail_if_cancelled()?;
     write_last_plan_output(&plan)?;
     print_plan_summary(&plan);
@@ -674,7 +677,8 @@ fn execute_run_target(
 }
 
 fn releases_build_cache_lock_before_launch(kind: RunKind, run_options: &RunOptions) -> bool {
-    matches!(kind, RunKind::Client) && run_options.client_hotswap_port.is_some()
+    matches!(kind, RunKind::Client | RunKind::GameTestPreview)
+        && run_options.client_hotswap_port.is_some()
 }
 
 fn execute_run_test_target(

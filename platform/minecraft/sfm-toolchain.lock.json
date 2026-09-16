@@ -178,7 +178,22 @@
             "expected_hash": "blake3:bc1f50c87ba5bb4279f457cf4e480fb546b97dce",
             "cache_path": "$sfm-cache\\maven\\appeng\\appliedenergistics2-forge\\12.9.9\\appliedenergistics2-forge-12.9.9.jar"
           },
-          "source_providers": []
+          "source_providers": [
+            {
+              "decompile": {
+                "id": "vineflower",
+                "declaration": {
+                  "roots": []
+                },
+                "derived_checks": {
+                  "binary_artifact_id": "appeng-appliedenergistics2-forge-12-9-9-bc1f50c8",
+                  "decompiler_artifact_id": "org-vineflower-vineflower-1-12-0-865bc756",
+                  "fingerprint": "blake3:6d15a1c6c266e94955ce50cc6d20b4acbc06697d",
+                  "tree_cache_path": "$sfm-cache/sources\\decompiled\\bc1f50c87ba5bb4279f457cf4e480fb546b97dce\\blake3-6d15a1c6c266e94955ce50cc6d20b4acbc06697d-7815128c7d46cc61\\tree"
+                }
+              }
+            }
+          ]
         }
       ]
     },

@@ -137,6 +137,20 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public void prepareGameTest() {
+        if (active.gameTestStartRequested
+                && (active.gameTestTracker == null || !active.gameTestTracker.isDone())) {
+            throw new IllegalStateException("Cannot replace a GameTest that is still running");
+        }
+        active.gameTestStartRequested = false;
+        active.gameTestStartFailure = null;
+        active.gameTestTracker = null;
+        active.gameTestInfo = null;
+        active.gameTestOrigin = null;
+        active.gameTestBounds = null;
+    }
+
+    @Override
     public boolean runGameTest(String testName) {
 
         if (active.gameTestStartFailure != null) {
@@ -186,7 +200,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         if (gameTestInfo == null) {
             throw new IllegalStateException("No completed GameTest is available for orbit capture");
         }
-        AABB bounds = gameTestInfo.getStructureBounds();
+        AABB bounds = active.gameTestBounds != null
+                ? active.gameTestBounds
+                : gameTestInfo.getStructureBounds();
         if (bounds == null) {
             throw new IllegalStateException("Completed GameTest has no structure bounds for orbit capture");
         }

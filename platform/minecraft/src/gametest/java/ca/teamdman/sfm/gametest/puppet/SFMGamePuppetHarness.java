@@ -407,6 +407,7 @@ public final class SFMGamePuppetHarness {
             GameTestInfo info = new ArrayList<>(started).get(0);
             active.gameTestOrigin = info.getStructureBlockPos();
             active.gameTestInfo = info;
+            active.gameTestBounds = info.getStructureBounds();
             active.gameTestTracker = new MultipleTestTracker(started);
             active.gameTestTracker.addFailureListener(failed -> SFM.LOGGER.error(
                     "SFM_GAME_PUPPET_GAME_TEST_FAILED puppet={} test={} error={}",

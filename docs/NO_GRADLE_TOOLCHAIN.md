@@ -580,7 +580,7 @@ Run command status:
 
 ### Client, test, and puppet commands
 
-- `run client` opens an ordinary interactive Forge client. `run client --smoke` verifies it reaches the title screen and exits. `run client --puppet <selector>` is identical to `puppet run <selector>`.
+- `run client` opens an ordinary interactive Forge client. `run client --smoke` verifies it reaches the title screen and exits. `run client --puppet <selector>` is identical to `puppet run <selector>`. `run client --hotswap` adds the JDWP/HotswapAgent launch configuration used by the separate `run hotswap` command.
 - `sfm:game_test_orbit_capture` is a reusable eight-angle overview puppet: run `puppet run game_test_orbit_capture --game-test sfm:move_1_stack_direct --branch 1.19.2` to capture one exact GameTest. Its camera derives from the completed test structure's bounds. It complements, rather than replaces, purpose-built walkthrough puppets that interact with blocks or screens.
 - `test run` runs JUnit. `game-test run-client` runs the SFM GameTest suite in an integrated client; `game-test run-server` runs it in Forge's headless GameTest server.
 - `test list|show`, `game-test list|show`, and `puppet list|show` inspect the selected branch's Java source before a userdev launch. The catalog honors the version's source exclusions and marks `@SFMGameTestGenerator` entries dynamic, because generated children only exist at runtime.
@@ -615,7 +615,27 @@ platform/minecraft/build/sfm-toolchain/assets/
 - `MOD_CLASSES` points at `build/sfm-toolchain/project/staged-resources` and `build/sfm-toolchain/project/classes`.
 - If future Rust-owned `datagen` or `gametest` class/resource directories exist under `build/sfm-toolchain/project`, the matching run command includes them automatically.
 - `run data` filters the known Mouse Tweaks runtime jar from its launch classpath, preserving the existing Gradle note that Mouse Tweaks crashes datagen by touching the Minecraft client during mod init.
-- Debug-agent support is intentionally out of scope for this slice; these commands launch normally and leave debugger attachment as a later explicit feature.
+- `run hotswap --branch 1.19.2 [--class-name <selector>]` recompiles and redefines matching loaded classes in a `run client --hotswap` process. It scans both active interactive-client outputs—`project/classes` and `project/gametest/classes` when present—and submits all matches in one redefine transaction. Datagen and JUnit-only outputs are deliberately excluded. Redefinition does not rerun class initializers, initialize newly added static fields, replay registrations, or make arbitrary class-shape changes safe; relaunch after those changes or after runtime state has drifted. `run client --hotswap --puppet <selector>` now combines JDWP with disposable virtual-input automation and releases the build lock before launch. The broader typed world-controller follow-up remains tracked in the client execution cleanup plan.
+
+### Repeated hotswap runtime
+
+Use the complete JBRSDK 17.0.14 b1367.22 for the validated Java-17 development
+lane. Upstream JBR-6648 repairs stale JDWP class-mirror tags during enhanced
+redefinition. It first appears in the Java-17 b1207.6 line; a Java patch number
+alone does not prove the repair is present (b829/b1000/b1087 builds remain affected).
+Both launch and attach validate the runtime. Attach reads the target's bootstrap
+version constants without invoking application code; updating only the helper
+cannot repair an old running client. Use a complete SDK, not mixed debugger DLLs.
+
+```powershell
+sfm-propagate-changes.exe run client --branch 1.19.2 --hotswap --java-home "$env:USERPROFILE/.jdks/jbrsdk-17.0.14-windows-x64-b1367.22"
+sfm-propagate-changes.exe run hotswap --branch 1.19.2 --class-name ca.teamdman.sfm.gametest.tests.compat.multiple.Ae2MekanismInfusionBankAutocraftingGameTest
+```
+
+Automatic selection now prefers the newest Java patch within the preferred
+compatible major; `--java-home` remains authoritative. Stock Java may provide
+body-only redefinition, not JBR structural capabilities. See
+[runtime rollout evidence and remaining limits](tasks/hotswap-runtime-rollout.md).
 - Warm-cache run commands now print build-node progress and Java tool start/finish messages before launching.
 - Warm-cache builds reuse the existing Rust-owned MCP joined source jar and Forge dev compile jar unless `--refresh` is supplied, so a normal run command does not immediately redo the expensive MCP/Forge FART/decompile/setup chain.
 - `--debug` enables Rust/tracing debug logs, including low-level HTTP client connection pool messages. Normal progress output is clearer without `--debug`.

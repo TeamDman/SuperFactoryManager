@@ -7,6 +7,9 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Make Text Editor v3 Backspace and Delete directional across glyphs, blank lines, joined lines and multi-cursor boundaries
+-- Add an AE2/Mekanism autocrafting GameTest with eight banks of 64 ultimate infusing factories, fully stocked interfaces and ten crafting CPUs
+-- Copy bounded summaries for an Explorer row's immediate published children or its current multi-selection, retaining display, internal, review and lazy-completeness evidence
 -- Fix labeled redstone:: conditions to read live emitted signals, with strongest-face defaults and explicit block-face selection
 -- Recognize redstone sources in label validation and fancy cable connections, including switched-off sources
 -- Keep world redstone signal queries read-only and reject unsupported signal transfers

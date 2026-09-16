@@ -30,7 +30,7 @@ pub struct JarBuildOptionsArgs {
     #[facet(default, args::named)]
     pub plan_json: Option<PathBuf>,
 
-    /// Optional Java home to use for tool execution. Defaults to `JAVA_HOME`, then java on PATH.
+    /// Explicit Java home. Otherwise discover installed SDKs, preferring JBR and the newest patch of the lowest compatible Java major.
     #[facet(default, args::named)]
     pub java_home: Option<PathBuf>,
 

@@ -42,6 +42,8 @@ public final class SFMExplorerActions {
     public static final SFMRegistryObject<SFMClientAction<?>, SFMItemstackPreviewRulePromptAction> PREVIEW_RULE_PROMPT =
             REGISTERER.register("explorer/itemstack_preview_rule/prompt/copy", SFMItemstackPreviewRulePromptAction::new);
     static {
+        for (var kind : SFMExplorerCollectionCopySummaryAction.Kind.values())
+            REGISTERER.register(kind.path(), () -> new SFMExplorerCollectionCopySummaryAction(kind));
         for (var kind : SFMExplorerCompactAction.Kind.values())
             REGISTERER.register(kind.path, () -> new SFMExplorerCompactAction(kind));
         for (var kind : SFMExplorerSearchAction.Kind.values())
