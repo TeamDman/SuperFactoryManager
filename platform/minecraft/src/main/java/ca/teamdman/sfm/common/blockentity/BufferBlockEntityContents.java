@@ -2,8 +2,12 @@ package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.block.BufferBlockTier;
+import ca.teamdman.sfm.common.capability.IRedstoneSignalStorage;
+import ca.teamdman.sfm.common.capability.RedstoneSignalStorage;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import net.minecraft.nbt.IntTag;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
@@ -18,12 +22,43 @@ public class BufferBlockEntityContents {
     /// Mapping from resource type to the handler.
     private final Map<ResourceType<?, ?, ?>, Object> contents = new HashMap<>();
     public final BufferBlockTier tier;
+    private final Runnable onChanged;
 
     public BufferBlockEntityContents(BufferBlockTier tier) {
+        this(tier, () -> {});
+    }
+
+    public BufferBlockEntityContents(BufferBlockTier tier, Runnable onChanged) {
         this.tier = tier;
+        this.onChanged = onChanged;
     }
 
     public BufferBlock.ContainedResource lastUsedResource = BufferBlock.ContainedResource.Unknown;
+
+    public int getStoredRedstone() {
+        Object handler = contents.get(SFMResourceTypes.REDSTONE.get());
+        return handler instanceof IRedstoneSignalStorage storage ? storage.getStoredAmount() : 0;
+    }
+
+    public void onRedstoneChanged() {
+        lastUsedResource = getBlockIconType();
+        onChanged.run();
+    }
+
+    /// Restore in place so existing capability handles observe the loaded count.
+    /// Other experimental buffer resource types do not yet have persistence.
+    public void loadRedstone(long amount) {
+        var type = SFMResourceTypes.REDSTONE.get();
+        Object existing = contents.get(type);
+        if (existing instanceof RedstoneSignalStorage storage) {
+            storage.deserializeNBT(IntTag.valueOf(0));
+        }
+        if (amount > 0 && isEmpty()) {
+            var storage = (RedstoneSignalStorage) getCapability(type).unwrap();
+            storage.deserializeNBT(IntTag.valueOf((int) Math.min(amount, Integer.MAX_VALUE)));
+        }
+        lastUsedResource = getBlockIconType();
+    }
 
 
     /// Should return None if querying for a resource type when other resource types are not empty.

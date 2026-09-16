@@ -6,6 +6,35 @@ every redstone pulse do
 end
 
 every 20 ticks do
+    -- Label a lever, comparator, redstone block, or other signal source "abc".
+    -- Connect it to this manager's cable network and push the labels.
+    -- With no side specified, read its strongest emitted signal (0-15).
+    if abc has gt 0 redstone:: then
+        input from a
+        output to b
+    end
+end
+
+every 20 ticks do
+    -- A side reads the signal emitted through that face of the labeled block.
+    if abc east side has ge 8 redstone:: then
+        input from a
+        output to b
+    end
+end
+
+-- Labeled queries read emitted signals, not incoming neighbor power.
+-- Readings update when the source changes. Reading does not consume redstone.
+-- redstone:: reads signal strength on world sources and stored units in buffers.
+-- The redstone item is a different resource. World signals remain read-only.
+-- Experimental buffers transfer stored units and expose them to comparators.
+-- See "Buffer redstone counter (experimental)" for a counter example.
+-- Use SOME/EVERY to query multiple labeled sources individually:
+-- IF SOME abc HAS GT 0 redstone:: THEN ... END
+-- OVERALL adds their strengths; EACH SIDE also adds the selected face readings,
+-- including NULL's strongest-face reading. Omit sides to read each block once.
+
+every 20 ticks do
     -- this checks the redstone signal on the manager block
     if redstone ge 2 then
         input from a

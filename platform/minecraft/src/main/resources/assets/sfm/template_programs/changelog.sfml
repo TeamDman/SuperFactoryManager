@@ -10,6 +10,11 @@ NAME "Changelog"
 -- Make Text Editor v3 Backspace and Delete directional across glyphs, blank lines, joined lines and multi-cursor boundaries
 -- Add an AE2/Mekanism autocrafting GameTest with eight banks of 64 ultimate infusing factories, fully stocked interfaces and ten crafting CPUs
 -- Copy bounded summaries for an Explorer row's immediate published children or its current multi-selection, retaining display, internal, review and lazy-completeness evidence
+-- Fix labeled redstone:: conditions to read live emitted signals, with strongest-face defaults and explicit block-face selection
+-- Recognize redstone sources in label validation and fancy cable connections, including switched-off sources
+-- Keep world redstone signal queries read-only and reject unsupported signal transfers
+-- Support redstone:: transfers between experimental resource buffers, with exact stored counts and comparator output capped at 15
+-- Save and restore buffer redstone counts, and update comparators when counters change or buffers are removed
 -- Expand review files into explicit Changes, Comments, Hashtags, Query, Status and Migrations children instead of hiding projection state in header controls
 -- Add compact Explorer row summaries with review/source identities, clickable canonical-command copying and explicit selected-text copying
 -- Collapse empty Explorer search rows, expose every input-diagnostics panel direction in F3 and keep the FPS overlay visible above workspaces
