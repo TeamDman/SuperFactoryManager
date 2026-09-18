@@ -185,6 +185,9 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         if (SFMConfig.getOrDefault(SFMConfig.SERVER_CONFIG.disableProgramExecution)) {
             throw new AssertionError("Program execution is disabled via config");
         }
+        ProgramExecutionSideDeclaration executionSideDeclaration = ctx.executionSideDeclaration() == null
+                                                                 ? null
+                                                                 : visitExecutionSideDeclaration(ctx.executionSideDeclaration());
         var name = visitName(ctx.name());
         ctx.declaration().forEach(this::visit);
         var triggers = ctx
@@ -203,10 +206,22 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 triggers,
                 labels,
                 USED_RESOURCES,
-                new ProgramDefinitions(PATTERN_DEFINITIONS, PLAYER_DEFINITIONS)
+                new ProgramDefinitions(PATTERN_DEFINITIONS, PLAYER_DEFINITIONS),
+                executionSideDeclaration
         );
         trackNode(program, ctx);
         return program;
+    }
+
+    @Override
+    public ProgramExecutionSideDeclaration visitExecutionSideDeclaration(
+            SFMLParser.ExecutionSideDeclarationContext ctx
+    ) {
+        ProgramExecutionSideDeclaration declaration = new ProgramExecutionSideDeclaration(
+                ctx.CLIENT() != null ? ProgramExecutionSide.CLIENT : ProgramExecutionSide.SERVER
+        );
+        trackNode(declaration, ctx);
+        return declaration;
     }
 
     @Override
@@ -355,61 +370,63 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
     @Override
     public ASTNode visitIntervalSpace(SFMLParser.IntervalSpaceContext ctx) {
-
-        TerminalNode firstNumber = ctx.NUMBER(0);
-        int ticks;
-        if (firstNumber == null) {
-            ticks = 1;
-        } else {
-            ticks = Integer.parseInt(firstNumber.getText());
-        }
-        if (ctx.SECONDS() != null || ctx.SECOND() != null) {
-            ticks *= 20;
-        }
-
-        Interval.IntervalAlignment alignment = Interval.IntervalAlignment.LOCAL;
-        if (ctx.GLOBAL() != null) {
-            alignment = Interval.IntervalAlignment.GLOBAL;
-        }
-
-        int offset = 0;
-        TerminalNode secondNumber = ctx.NUMBER(1);
-        if (secondNumber != null) {
-            offset = Integer.parseInt(secondNumber.getText());
-            if (ctx.SECONDS() != null || ctx.SECOND() != null) {
-                offset *= 20;
-            }
-        }
-
-        Interval interval = new Interval(ticks, alignment, offset);
+        Interval interval = buildInterval(
+                ctx.period == null ? null : ctx.period.getText(),
+                ctx.legacyOffset == null ? null : ctx.legacyOffset.getText(),
+                ctx.newOffset == null ? null : ctx.newOffset.getText(),
+                ctx.unit,
+                ctx.offsetUnit,
+                ctx.GLOBAL() == null ? Interval.IntervalAlignment.LOCAL : Interval.IntervalAlignment.GLOBAL
+        );
         trackNode(interval, ctx);
         return interval;
     }
 
     @Override
     public ASTNode visitIntervalNoSpace(SFMLParser.IntervalNoSpaceContext ctx) {
-
-        String firstNumber = ctx.NUMBER_WITH_G_SUFFIX().getText();
-        String front = firstNumber.substring(0, firstNumber.length() - 1);
-        int ticks = Integer.parseInt(front);
-        if (ctx.SECONDS() != null || ctx.SECOND() != null) {
-            ticks *= 20;
-        }
-
-        Interval.IntervalAlignment alignment = Interval.IntervalAlignment.GLOBAL;
-
-        int offset = 0;
-        TerminalNode secondNumber = ctx.NUMBER();
-        if (secondNumber != null) {
-            offset = Integer.parseInt(secondNumber.getText());
-            if (ctx.SECONDS() != null || ctx.SECOND() != null) {
-                offset *= 20;
-            }
-        }
-
-        Interval interval = new Interval(ticks, alignment, offset);
+        String suffixedPeriod = ctx.period.getText();
+        Interval interval = buildInterval(
+                suffixedPeriod.substring(0, suffixedPeriod.length() - 1),
+                ctx.legacyOffset == null ? null : ctx.legacyOffset.getText(),
+                ctx.newOffset == null ? null : ctx.newOffset.getText(),
+                ctx.unit,
+                ctx.offsetUnit,
+                Interval.IntervalAlignment.GLOBAL
+        );
         trackNode(interval, ctx);
         return interval;
+    }
+
+    private static Interval buildInterval(
+            @Nullable String periodText,
+            @Nullable String legacyOffsetText,
+            @Nullable String newOffsetText,
+            SFMLParser.TimeUnitContext unit,
+            @Nullable SFMLParser.TimeUnitContext offsetUnit,
+            Interval.IntervalAlignment alignment
+    ) {
+        if (legacyOffsetText != null && newOffsetText != null) {
+            throw new IllegalArgumentException("Use either legacy + offset or OFFSET BY, not both");
+        }
+        int ticks = intervalTicks(periodText == null ? "1" : periodText, unit);
+        int offset = legacyOffsetText != null
+                     ? intervalTicks(legacyOffsetText, unit)
+                     : newOffsetText != null
+                       ? intervalTicks(newOffsetText, Objects.requireNonNull(offsetUnit))
+                       : 0;
+        return new Interval(ticks, alignment, offset, legacyOffsetText != null);
+    }
+
+    private static int intervalTicks(String number, SFMLParser.TimeUnitContext unit) {
+        int value = Integer.parseInt(number);
+        if (unit.SECOND() == null && unit.SECONDS() == null) {
+            return value;
+        }
+        try {
+            return Math.multiplyExact(value, 20);
+        } catch (ArithmeticException overflow) {
+            throw new IllegalArgumentException("Interval exceeds supported tick count", overflow);
+        }
     }
 
     @Override
@@ -531,7 +548,10 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         if (!PLAYER_DEFINITIONS.containsKey(playerAlias.toLowerCase(Locale.ROOT))) {
             throw new IllegalArgumentException("Unknown player alias: " + playerAlias);
         }
-        BroadcastStatement statement = new BroadcastStatement(playerAlias);
+        BroadcastStatement statement = new BroadcastStatement(
+                playerAlias,
+                ctx.qualifiedId() == null ? null : new net.minecraft.resources.ResourceLocation(ctx.qualifiedId().getText())
+        );
         trackNode(statement, ctx);
         return statement;
     }

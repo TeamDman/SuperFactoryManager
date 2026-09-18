@@ -124,7 +124,11 @@ public class DiskItem extends Item {
         AtomicReference<Program> rtn = new AtomicReference<>(null);
         String programString = getProgramString(stack);
 
-        new ProgramBuilder(programString).build()
+        ProgramBuilder builder = new ProgramBuilder(programString);
+        if (manager != null) {
+            builder.forExecutionSide(ca.teamdman.sfml.ast.ProgramExecutionSide.SERVER);
+        }
+        builder.build()
                 .caseSuccess((successProgram, metadata) -> {
                     if (updateWarnings) {
                         Collection<TranslatableContents> warnings = ProgramLinter.gatherWarnings(

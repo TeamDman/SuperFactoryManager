@@ -7,6 +7,7 @@ import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMEntityUtils;
 import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfml.ast.ProgramExecutionSide;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
@@ -157,6 +158,7 @@ public class SFMPacketHandlingContext {
         //todo: localize
 
         new ProgramBuilder(programString)
+                .forExecutionSide(ProgramExecutionSide.SERVER)
                 .useCache(!willMutateProgram)
                 .build()
                 .caseSuccess((program, metadata) -> callback.accept(

@@ -7,7 +7,9 @@ grammar SFML;
     public INCLUDE_UNUSED: boolean = false; // we want syntax highlighting to not break on unexpected tokens
 }
 
-program : name? declaration* trigger* EOF;
+program : executionSideDeclaration? name? declaration* trigger* EOF;
+
+executionSideDeclaration : (CLIENT | SERVER) BTW;
 
 name: NAME string ;
 
@@ -35,8 +37,9 @@ trigger : EVERY interval DO block END           #TimerTrigger
         | EVERY REDSTONE PULSE DO block END     #PulseTrigger
         ;
 
-interval: NUMBER? GLOBAL? (PLUS NUMBER)? (TICKS | TICK | SECONDS | SECOND)      # IntervalSpace
-        | NUMBER_WITH_G_SUFFIX (PLUS NUMBER)? (TICKS | TICK | SECONDS | SECOND) # IntervalNoSpace;
+interval: period=NUMBER? GLOBAL? (PLUS legacyOffset=NUMBER)? unit=timeUnit (OFFSET BY newOffset=NUMBER offsetUnit=timeUnit)?      # IntervalSpace
+        | period=NUMBER_WITH_G_SUFFIX (PLUS legacyOffset=NUMBER)? unit=timeUnit (OFFSET BY newOffset=NUMBER offsetUnit=timeUnit)? # IntervalNoSpace;
+timeUnit: TICKS | TICK | SECONDS | SECOND;
 
 //
 // BLOCK STATEMENT
@@ -62,7 +65,7 @@ fieldValueExpression : NEW GUID #NewGuidFieldValue
                      | identifier #VariableFieldValue
                      ;
 createStatement : CREATE INPUT qualifiedId WITH identifier;
-broadcastStatement : BROADCAST TO identifier;
+broadcastStatement : BROADCAST TO identifier (CHANNEL qualifiedId)?;
 
 // IO STATEMENT
 forgetStatement : FORGET label? (COMMA label)* COMMA?;
@@ -190,7 +193,7 @@ emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
 identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK
            | LET | BE | PLAYER | OF | LIKE | OBJECT | FIELD | GUID | STRING_TYPE | INVOKE | CAPABILITY
-           | AS | CREATE | BROADCAST | NEW) ;
+           | AS | CREATE | BROADCAST | CHANNEL | NEW | CLIENT | SERVER | BTW | OFFSET) ;
 
 // GENERAL
 string: STRING ;
@@ -282,6 +285,7 @@ SECONDS : S E C O N D S ;
 SECOND  : S E C O N D ;
 GLOBAL  : (G L O B A L) | G;
 PLUS    : '+' | P L U S;
+OFFSET  : O F F S E T;
 
 // REDSTONE TRIGGER
 REDSTONE        : R E D S T O N E ;
@@ -305,7 +309,11 @@ CAPABILITY      : C A P A B I L I T Y ;
 AS              : A S ;
 CREATE          : C R E A T E ;
 BROADCAST       : B R O A D C A S T ;
+CHANNEL         : C H A N N E L ;
 NEW             : N E W ;
+CLIENT          : C L I E N T ;
+SERVER          : S E R V E R ;
+BTW             : B T W ;
 
 // GENERAL SYMBOLS
 // used by triggers and as a set operator

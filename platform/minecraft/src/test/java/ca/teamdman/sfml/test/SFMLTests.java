@@ -90,6 +90,25 @@ public class SFMLTests {
     }
 
     @Test
+    public void addressedBroadcastPreservesLegacyFormAndSourceRoundTrip() {
+        String source = """
+                let viewer be player of TeamDman
+                every 20 ticks do
+                    broadcast to viewer
+                    broadcast to viewer channel sfm:dashboard_state
+                end
+                """;
+        assertNoCompileErrors(source);
+        Program program = compile(source);
+        var statements = program.triggers().get(0).getStatements().get(0).getStatements();
+        BroadcastStatement legacy = (BroadcastStatement) statements.get(0);
+        BroadcastStatement addressed = (BroadcastStatement) statements.get(1);
+        assertNull(legacy.channel());
+        assertEquals("sfm:dashboard_state", addressed.channel().toString());
+        assertNoCompileErrors(program.toString());
+    }
+
+    @Test
     public void newKeywordsRemainLegalLegacyLabels() {
         assertNoCompileErrors("""
                 every 20 ticks do
@@ -97,6 +116,7 @@ public class SFMLTests {
                     output to like
                     input from object
                     output to broadcast
+                    input from channel
                 end
                 """);
     }

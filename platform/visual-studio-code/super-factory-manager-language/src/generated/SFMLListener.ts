@@ -5,6 +5,23 @@ import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener";
 
 import { ResourceContext } from "./SFMLParser";
 import { StringResourceContext } from "./SFMLParser";
+import { LiteralPatternFieldContext } from "./SFMLParser";
+import { LikePatternFieldContext } from "./SFMLParser";
+import { AliasPatternFieldContext } from "./SFMLParser";
+import { EachSideContext } from "./SFMLParser";
+import { ListedSidesContext } from "./SFMLParser";
+import { CapabilityInputSelectionContext } from "./SFMLParser";
+import { PatternInputSelectionContext } from "./SFMLParser";
+import { QuantityRetentionLimitContext } from "./SFMLParser";
+import { RetentionLimitContext } from "./SFMLParser";
+import { QuantityLimitContext } from "./SFMLParser";
+import { IntervalSpaceContext } from "./SFMLParser";
+import { IntervalNoSpaceContext } from "./SFMLParser";
+import { NewGuidFieldValueContext } from "./SFMLParser";
+import { LiteralFieldValueContext } from "./SFMLParser";
+import { VariableFieldValueContext } from "./SFMLParser";
+import { InvokeTextValueExpressionContext } from "./SFMLParser";
+import { ObjectConstructionValueExpressionContext } from "./SFMLParser";
 import { BooleanTrueContext } from "./SFMLParser";
 import { BooleanFalseContext } from "./SFMLParser";
 import { BooleanParenContext } from "./SFMLParser";
@@ -13,11 +30,11 @@ import { BooleanConjunctionContext } from "./SFMLParser";
 import { BooleanDisjunctionContext } from "./SFMLParser";
 import { BooleanHasContext } from "./SFMLParser";
 import { BooleanRedstoneContext } from "./SFMLParser";
-import { EachSideContext } from "./SFMLParser";
-import { ListedSidesContext } from "./SFMLParser";
-import { QuantityRetentionLimitContext } from "./SFMLParser";
-import { RetentionLimitContext } from "./SFMLParser";
-import { QuantityLimitContext } from "./SFMLParser";
+import { GuidValuePatternContext } from "./SFMLParser";
+import { StringValuePatternContext } from "./SFMLParser";
+import { LiteralValuePatternContext } from "./SFMLParser";
+import { ObjectValuePatternContext } from "./SFMLParser";
+import { AliasValuePatternContext } from "./SFMLParser";
 import { TimerTriggerContext } from "./SFMLParser";
 import { PulseTriggerContext } from "./SFMLParser";
 import { RawLabelContext } from "./SFMLParser";
@@ -27,16 +44,29 @@ import { WithNegationContext } from "./SFMLParser";
 import { WithConjunctionContext } from "./SFMLParser";
 import { WithDisjunctionContext } from "./SFMLParser";
 import { WithTagContext } from "./SFMLParser";
-import { IntervalSpaceContext } from "./SFMLParser";
-import { IntervalNoSpaceContext } from "./SFMLParser";
+import { PlayerDeclarationContext } from "./SFMLParser";
+import { PatternDeclarationContext } from "./SFMLParser";
 import { ProgramContext } from "./SFMLParser";
+import { ExecutionSideDeclarationContext } from "./SFMLParser";
 import { NameContext } from "./SFMLParser";
+import { DeclarationContext } from "./SFMLParser";
+import { ValuePatternContext } from "./SFMLParser";
+import { PatternFieldContext } from "./SFMLParser";
 import { TriggerContext } from "./SFMLParser";
 import { IntervalContext } from "./SFMLParser";
+import { TimeUnitContext } from "./SFMLParser";
 import { BlockContext } from "./SFMLParser";
 import { StatementContext } from "./SFMLParser";
+import { LetValueStatementContext } from "./SFMLParser";
+import { ValueExpressionContext } from "./SFMLParser";
+import { ConstructionFieldContext } from "./SFMLParser";
+import { FieldValueExpressionContext } from "./SFMLParser";
+import { CreateStatementContext } from "./SFMLParser";
+import { BroadcastStatementContext } from "./SFMLParser";
 import { ForgetStatementContext } from "./SFMLParser";
 import { InputStatementContext } from "./SFMLParser";
+import { InputSelectionContext } from "./SFMLParser";
+import { InputBindingContext } from "./SFMLParser";
 import { OutputStatementContext } from "./SFMLParser";
 import { InputResourceLimitsContext } from "./SFMLParser";
 import { OutputResourceLimitsContext } from "./SFMLParser";
@@ -52,6 +82,7 @@ import { ResourceIdDisjunctionContext } from "./SFMLParser";
 import { WithContext } from "./SFMLParser";
 import { WithClauseContext } from "./SFMLParser";
 import { TagMatcherContext } from "./SFMLParser";
+import { QualifiedIdContext } from "./SFMLParser";
 import { SidequalifierContext } from "./SFMLParser";
 import { SideContext } from "./SFMLParser";
 import { SlotqualifierContext } from "./SFMLParser";
@@ -64,6 +95,7 @@ import { SetOpContext } from "./SFMLParser";
 import { LabelAccessContext } from "./SFMLParser";
 import { RoundrobinContext } from "./SFMLParser";
 import { LabelContext } from "./SFMLParser";
+import { EmptyslotsContext } from "./SFMLParser";
 import { IdentifierContext } from "./SFMLParser";
 import { StringContext } from "./SFMLParser";
 import { NumberContext } from "./SFMLParser";
@@ -99,6 +131,227 @@ export interface SFMLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitStringResource?: (ctx: StringResourceContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `LiteralPatternField`
+	 * labeled alternative in `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 */
+	enterLiteralPatternField?: (ctx: LiteralPatternFieldContext) => void;
+	/**
+	 * Exit a parse tree produced by the `LiteralPatternField`
+	 * labeled alternative in `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 */
+	exitLiteralPatternField?: (ctx: LiteralPatternFieldContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `LikePatternField`
+	 * labeled alternative in `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 */
+	enterLikePatternField?: (ctx: LikePatternFieldContext) => void;
+	/**
+	 * Exit a parse tree produced by the `LikePatternField`
+	 * labeled alternative in `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 */
+	exitLikePatternField?: (ctx: LikePatternFieldContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `AliasPatternField`
+	 * labeled alternative in `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 */
+	enterAliasPatternField?: (ctx: AliasPatternFieldContext) => void;
+	/**
+	 * Exit a parse tree produced by the `AliasPatternField`
+	 * labeled alternative in `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 */
+	exitAliasPatternField?: (ctx: AliasPatternFieldContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `EachSide`
+	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * @param ctx the parse tree
+	 */
+	enterEachSide?: (ctx: EachSideContext) => void;
+	/**
+	 * Exit a parse tree produced by the `EachSide`
+	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * @param ctx the parse tree
+	 */
+	exitEachSide?: (ctx: EachSideContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `ListedSides`
+	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * @param ctx the parse tree
+	 */
+	enterListedSides?: (ctx: ListedSidesContext) => void;
+	/**
+	 * Exit a parse tree produced by the `ListedSides`
+	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * @param ctx the parse tree
+	 */
+	exitListedSides?: (ctx: ListedSidesContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `CapabilityInputSelection`
+	 * labeled alternative in `SFMLParser.inputSelection`.
+	 * @param ctx the parse tree
+	 */
+	enterCapabilityInputSelection?: (ctx: CapabilityInputSelectionContext) => void;
+	/**
+	 * Exit a parse tree produced by the `CapabilityInputSelection`
+	 * labeled alternative in `SFMLParser.inputSelection`.
+	 * @param ctx the parse tree
+	 */
+	exitCapabilityInputSelection?: (ctx: CapabilityInputSelectionContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `PatternInputSelection`
+	 * labeled alternative in `SFMLParser.inputSelection`.
+	 * @param ctx the parse tree
+	 */
+	enterPatternInputSelection?: (ctx: PatternInputSelectionContext) => void;
+	/**
+	 * Exit a parse tree produced by the `PatternInputSelection`
+	 * labeled alternative in `SFMLParser.inputSelection`.
+	 * @param ctx the parse tree
+	 */
+	exitPatternInputSelection?: (ctx: PatternInputSelectionContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `QuantityRetentionLimit`
+	 * labeled alternative in `SFMLParser.limit`.
+	 * @param ctx the parse tree
+	 */
+	enterQuantityRetentionLimit?: (ctx: QuantityRetentionLimitContext) => void;
+	/**
+	 * Exit a parse tree produced by the `QuantityRetentionLimit`
+	 * labeled alternative in `SFMLParser.limit`.
+	 * @param ctx the parse tree
+	 */
+	exitQuantityRetentionLimit?: (ctx: QuantityRetentionLimitContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `RetentionLimit`
+	 * labeled alternative in `SFMLParser.limit`.
+	 * @param ctx the parse tree
+	 */
+	enterRetentionLimit?: (ctx: RetentionLimitContext) => void;
+	/**
+	 * Exit a parse tree produced by the `RetentionLimit`
+	 * labeled alternative in `SFMLParser.limit`.
+	 * @param ctx the parse tree
+	 */
+	exitRetentionLimit?: (ctx: RetentionLimitContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `QuantityLimit`
+	 * labeled alternative in `SFMLParser.limit`.
+	 * @param ctx the parse tree
+	 */
+	enterQuantityLimit?: (ctx: QuantityLimitContext) => void;
+	/**
+	 * Exit a parse tree produced by the `QuantityLimit`
+	 * labeled alternative in `SFMLParser.limit`.
+	 * @param ctx the parse tree
+	 */
+	exitQuantityLimit?: (ctx: QuantityLimitContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `IntervalSpace`
+	 * labeled alternative in `SFMLParser.interval`.
+	 * @param ctx the parse tree
+	 */
+	enterIntervalSpace?: (ctx: IntervalSpaceContext) => void;
+	/**
+	 * Exit a parse tree produced by the `IntervalSpace`
+	 * labeled alternative in `SFMLParser.interval`.
+	 * @param ctx the parse tree
+	 */
+	exitIntervalSpace?: (ctx: IntervalSpaceContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `IntervalNoSpace`
+	 * labeled alternative in `SFMLParser.interval`.
+	 * @param ctx the parse tree
+	 */
+	enterIntervalNoSpace?: (ctx: IntervalNoSpaceContext) => void;
+	/**
+	 * Exit a parse tree produced by the `IntervalNoSpace`
+	 * labeled alternative in `SFMLParser.interval`.
+	 * @param ctx the parse tree
+	 */
+	exitIntervalNoSpace?: (ctx: IntervalNoSpaceContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `NewGuidFieldValue`
+	 * labeled alternative in `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 */
+	enterNewGuidFieldValue?: (ctx: NewGuidFieldValueContext) => void;
+	/**
+	 * Exit a parse tree produced by the `NewGuidFieldValue`
+	 * labeled alternative in `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 */
+	exitNewGuidFieldValue?: (ctx: NewGuidFieldValueContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `LiteralFieldValue`
+	 * labeled alternative in `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 */
+	enterLiteralFieldValue?: (ctx: LiteralFieldValueContext) => void;
+	/**
+	 * Exit a parse tree produced by the `LiteralFieldValue`
+	 * labeled alternative in `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 */
+	exitLiteralFieldValue?: (ctx: LiteralFieldValueContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `VariableFieldValue`
+	 * labeled alternative in `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 */
+	enterVariableFieldValue?: (ctx: VariableFieldValueContext) => void;
+	/**
+	 * Exit a parse tree produced by the `VariableFieldValue`
+	 * labeled alternative in `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 */
+	exitVariableFieldValue?: (ctx: VariableFieldValueContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `InvokeTextValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 */
+	enterInvokeTextValueExpression?: (ctx: InvokeTextValueExpressionContext) => void;
+	/**
+	 * Exit a parse tree produced by the `InvokeTextValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 */
+	exitInvokeTextValueExpression?: (ctx: InvokeTextValueExpressionContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `ObjectConstructionValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 */
+	enterObjectConstructionValueExpression?: (ctx: ObjectConstructionValueExpressionContext) => void;
+	/**
+	 * Exit a parse tree produced by the `ObjectConstructionValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 */
+	exitObjectConstructionValueExpression?: (ctx: ObjectConstructionValueExpressionContext) => void;
 
 	/**
 	 * Enter a parse tree produced by the `BooleanTrue`
@@ -205,69 +458,69 @@ export interface SFMLListener extends ParseTreeListener {
 	exitBooleanRedstone?: (ctx: BooleanRedstoneContext) => void;
 
 	/**
-	 * Enter a parse tree produced by the `EachSide`
-	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * Enter a parse tree produced by the `GuidValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 */
-	enterEachSide?: (ctx: EachSideContext) => void;
+	enterGuidValuePattern?: (ctx: GuidValuePatternContext) => void;
 	/**
-	 * Exit a parse tree produced by the `EachSide`
-	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * Exit a parse tree produced by the `GuidValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 */
-	exitEachSide?: (ctx: EachSideContext) => void;
+	exitGuidValuePattern?: (ctx: GuidValuePatternContext) => void;
 
 	/**
-	 * Enter a parse tree produced by the `ListedSides`
-	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * Enter a parse tree produced by the `StringValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 */
-	enterListedSides?: (ctx: ListedSidesContext) => void;
+	enterStringValuePattern?: (ctx: StringValuePatternContext) => void;
 	/**
-	 * Exit a parse tree produced by the `ListedSides`
-	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * Exit a parse tree produced by the `StringValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 */
-	exitListedSides?: (ctx: ListedSidesContext) => void;
+	exitStringValuePattern?: (ctx: StringValuePatternContext) => void;
 
 	/**
-	 * Enter a parse tree produced by the `QuantityRetentionLimit`
-	 * labeled alternative in `SFMLParser.limit`.
+	 * Enter a parse tree produced by the `LiteralValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 */
-	enterQuantityRetentionLimit?: (ctx: QuantityRetentionLimitContext) => void;
+	enterLiteralValuePattern?: (ctx: LiteralValuePatternContext) => void;
 	/**
-	 * Exit a parse tree produced by the `QuantityRetentionLimit`
-	 * labeled alternative in `SFMLParser.limit`.
+	 * Exit a parse tree produced by the `LiteralValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 */
-	exitQuantityRetentionLimit?: (ctx: QuantityRetentionLimitContext) => void;
+	exitLiteralValuePattern?: (ctx: LiteralValuePatternContext) => void;
 
 	/**
-	 * Enter a parse tree produced by the `RetentionLimit`
-	 * labeled alternative in `SFMLParser.limit`.
+	 * Enter a parse tree produced by the `ObjectValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 */
-	enterRetentionLimit?: (ctx: RetentionLimitContext) => void;
+	enterObjectValuePattern?: (ctx: ObjectValuePatternContext) => void;
 	/**
-	 * Exit a parse tree produced by the `RetentionLimit`
-	 * labeled alternative in `SFMLParser.limit`.
+	 * Exit a parse tree produced by the `ObjectValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 */
-	exitRetentionLimit?: (ctx: RetentionLimitContext) => void;
+	exitObjectValuePattern?: (ctx: ObjectValuePatternContext) => void;
 
 	/**
-	 * Enter a parse tree produced by the `QuantityLimit`
-	 * labeled alternative in `SFMLParser.limit`.
+	 * Enter a parse tree produced by the `AliasValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 */
-	enterQuantityLimit?: (ctx: QuantityLimitContext) => void;
+	enterAliasValuePattern?: (ctx: AliasValuePatternContext) => void;
 	/**
-	 * Exit a parse tree produced by the `QuantityLimit`
-	 * labeled alternative in `SFMLParser.limit`.
+	 * Exit a parse tree produced by the `AliasValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 */
-	exitQuantityLimit?: (ctx: QuantityLimitContext) => void;
+	exitAliasValuePattern?: (ctx: AliasValuePatternContext) => void;
 
 	/**
 	 * Enter a parse tree produced by the `TimerTrigger`
@@ -387,30 +640,30 @@ export interface SFMLListener extends ParseTreeListener {
 	exitWithTag?: (ctx: WithTagContext) => void;
 
 	/**
-	 * Enter a parse tree produced by the `IntervalSpace`
-	 * labeled alternative in `SFMLParser.interval`.
+	 * Enter a parse tree produced by the `PlayerDeclaration`
+	 * labeled alternative in `SFMLParser.declaration`.
 	 * @param ctx the parse tree
 	 */
-	enterIntervalSpace?: (ctx: IntervalSpaceContext) => void;
+	enterPlayerDeclaration?: (ctx: PlayerDeclarationContext) => void;
 	/**
-	 * Exit a parse tree produced by the `IntervalSpace`
-	 * labeled alternative in `SFMLParser.interval`.
+	 * Exit a parse tree produced by the `PlayerDeclaration`
+	 * labeled alternative in `SFMLParser.declaration`.
 	 * @param ctx the parse tree
 	 */
-	exitIntervalSpace?: (ctx: IntervalSpaceContext) => void;
+	exitPlayerDeclaration?: (ctx: PlayerDeclarationContext) => void;
 
 	/**
-	 * Enter a parse tree produced by the `IntervalNoSpace`
-	 * labeled alternative in `SFMLParser.interval`.
+	 * Enter a parse tree produced by the `PatternDeclaration`
+	 * labeled alternative in `SFMLParser.declaration`.
 	 * @param ctx the parse tree
 	 */
-	enterIntervalNoSpace?: (ctx: IntervalNoSpaceContext) => void;
+	enterPatternDeclaration?: (ctx: PatternDeclarationContext) => void;
 	/**
-	 * Exit a parse tree produced by the `IntervalNoSpace`
-	 * labeled alternative in `SFMLParser.interval`.
+	 * Exit a parse tree produced by the `PatternDeclaration`
+	 * labeled alternative in `SFMLParser.declaration`.
 	 * @param ctx the parse tree
 	 */
-	exitIntervalNoSpace?: (ctx: IntervalNoSpaceContext) => void;
+	exitPatternDeclaration?: (ctx: PatternDeclarationContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `SFMLParser.program`.
@@ -424,6 +677,17 @@ export interface SFMLListener extends ParseTreeListener {
 	exitProgram?: (ctx: ProgramContext) => void;
 
 	/**
+	 * Enter a parse tree produced by `SFMLParser.executionSideDeclaration`.
+	 * @param ctx the parse tree
+	 */
+	enterExecutionSideDeclaration?: (ctx: ExecutionSideDeclarationContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.executionSideDeclaration`.
+	 * @param ctx the parse tree
+	 */
+	exitExecutionSideDeclaration?: (ctx: ExecutionSideDeclarationContext) => void;
+
+	/**
 	 * Enter a parse tree produced by `SFMLParser.name`.
 	 * @param ctx the parse tree
 	 */
@@ -433,6 +697,39 @@ export interface SFMLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitName?: (ctx: NameContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.declaration`.
+	 * @param ctx the parse tree
+	 */
+	enterDeclaration?: (ctx: DeclarationContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.declaration`.
+	 * @param ctx the parse tree
+	 */
+	exitDeclaration?: (ctx: DeclarationContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.valuePattern`.
+	 * @param ctx the parse tree
+	 */
+	enterValuePattern?: (ctx: ValuePatternContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.valuePattern`.
+	 * @param ctx the parse tree
+	 */
+	exitValuePattern?: (ctx: ValuePatternContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 */
+	enterPatternField?: (ctx: PatternFieldContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 */
+	exitPatternField?: (ctx: PatternFieldContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `SFMLParser.trigger`.
@@ -457,6 +754,17 @@ export interface SFMLListener extends ParseTreeListener {
 	exitInterval?: (ctx: IntervalContext) => void;
 
 	/**
+	 * Enter a parse tree produced by `SFMLParser.timeUnit`.
+	 * @param ctx the parse tree
+	 */
+	enterTimeUnit?: (ctx: TimeUnitContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.timeUnit`.
+	 * @param ctx the parse tree
+	 */
+	exitTimeUnit?: (ctx: TimeUnitContext) => void;
+
+	/**
 	 * Enter a parse tree produced by `SFMLParser.block`.
 	 * @param ctx the parse tree
 	 */
@@ -479,6 +787,72 @@ export interface SFMLListener extends ParseTreeListener {
 	exitStatement?: (ctx: StatementContext) => void;
 
 	/**
+	 * Enter a parse tree produced by `SFMLParser.letValueStatement`.
+	 * @param ctx the parse tree
+	 */
+	enterLetValueStatement?: (ctx: LetValueStatementContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.letValueStatement`.
+	 * @param ctx the parse tree
+	 */
+	exitLetValueStatement?: (ctx: LetValueStatementContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 */
+	enterValueExpression?: (ctx: ValueExpressionContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 */
+	exitValueExpression?: (ctx: ValueExpressionContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.constructionField`.
+	 * @param ctx the parse tree
+	 */
+	enterConstructionField?: (ctx: ConstructionFieldContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.constructionField`.
+	 * @param ctx the parse tree
+	 */
+	exitConstructionField?: (ctx: ConstructionFieldContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 */
+	enterFieldValueExpression?: (ctx: FieldValueExpressionContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 */
+	exitFieldValueExpression?: (ctx: FieldValueExpressionContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.createStatement`.
+	 * @param ctx the parse tree
+	 */
+	enterCreateStatement?: (ctx: CreateStatementContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.createStatement`.
+	 * @param ctx the parse tree
+	 */
+	exitCreateStatement?: (ctx: CreateStatementContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.broadcastStatement`.
+	 * @param ctx the parse tree
+	 */
+	enterBroadcastStatement?: (ctx: BroadcastStatementContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.broadcastStatement`.
+	 * @param ctx the parse tree
+	 */
+	exitBroadcastStatement?: (ctx: BroadcastStatementContext) => void;
+
+	/**
 	 * Enter a parse tree produced by `SFMLParser.forgetStatement`.
 	 * @param ctx the parse tree
 	 */
@@ -499,6 +873,28 @@ export interface SFMLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitInputStatement?: (ctx: InputStatementContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.inputSelection`.
+	 * @param ctx the parse tree
+	 */
+	enterInputSelection?: (ctx: InputSelectionContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.inputSelection`.
+	 * @param ctx the parse tree
+	 */
+	exitInputSelection?: (ctx: InputSelectionContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.inputBinding`.
+	 * @param ctx the parse tree
+	 */
+	enterInputBinding?: (ctx: InputBindingContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.inputBinding`.
+	 * @param ctx the parse tree
+	 */
+	exitInputBinding?: (ctx: InputBindingContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `SFMLParser.outputStatement`.
@@ -666,6 +1062,17 @@ export interface SFMLListener extends ParseTreeListener {
 	exitTagMatcher?: (ctx: TagMatcherContext) => void;
 
 	/**
+	 * Enter a parse tree produced by `SFMLParser.qualifiedId`.
+	 * @param ctx the parse tree
+	 */
+	enterQualifiedId?: (ctx: QualifiedIdContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.qualifiedId`.
+	 * @param ctx the parse tree
+	 */
+	exitQualifiedId?: (ctx: QualifiedIdContext) => void;
+
+	/**
 	 * Enter a parse tree produced by `SFMLParser.sidequalifier`.
 	 * @param ctx the parse tree
 	 */
@@ -796,6 +1203,17 @@ export interface SFMLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitLabel?: (ctx: LabelContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.emptyslots`.
+	 * @param ctx the parse tree
+	 */
+	enterEmptyslots?: (ctx: EmptyslotsContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.emptyslots`.
+	 * @param ctx the parse tree
+	 */
+	exitEmptyslots?: (ctx: EmptyslotsContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `SFMLParser.identifier`.

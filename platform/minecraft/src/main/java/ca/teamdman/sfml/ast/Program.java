@@ -15,6 +15,7 @@ import net.minecraftforge.network.NetworkHooks;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.DataOutput;
 import java.time.Duration;
@@ -39,8 +40,21 @@ public record Program(
 
         Set<ResourceIdentifier<?, ?, ?>> referencedResources,
 
-        ProgramDefinitions definitions
+        ProgramDefinitions definitions,
+
+        @Nullable ProgramExecutionSideDeclaration executionSideDeclaration
 ) implements Statement {
+    public Program(
+            ASTBuilder astBuilder,
+            String name,
+            List<Trigger> triggers,
+            Set<String> referencedLabels,
+            Set<ResourceIdentifier<?, ?, ?>> referencedResources,
+            ProgramDefinitions definitions
+    ) {
+        this(astBuilder, name, triggers, referencedLabels, referencedResources, definitions, null);
+    }
+
     public Program(
             ASTBuilder astBuilder,
             String name,
@@ -48,7 +62,7 @@ public record Program(
             Set<String> referencedLabels,
             Set<ResourceIdentifier<?, ?, ?>> referencedResources
     ) {
-        this(astBuilder, name, triggers, referencedLabels, referencedResources, ProgramDefinitions.EMPTY);
+        this(astBuilder, name, triggers, referencedLabels, referencedResources, ProgramDefinitions.EMPTY, null);
     }
     /**
      * This comes from {@link java.io.DataOutputStream#writeUTF(String, DataOutput)}
@@ -153,6 +167,8 @@ public record Program(
      * @return {@code true} if a trigger entered its body
      */
     public boolean tick(ManagerBlockEntity manager) {
+
+        assertCompatibleWith(ProgramExecutionSide.SERVER);
 
         var context = new ProgramContext(this, manager, new ExecuteProgramBehaviour());
 
@@ -299,12 +315,24 @@ public record Program(
     public String toString() {
 
         var rtn = new StringBuilder();
+        if (executionSideDeclaration != null) {
+            rtn.append(executionSideDeclaration).append("\n");
+        }
         rtn.append("NAME \"").append(name).append("\"\n");
         rtn.append(definitions.toSource());
         for (Trigger trigger : triggers) {
             rtn.append(trigger).append("\n");
         }
         return rtn.toString();
+    }
+
+    public void assertCompatibleWith(ProgramExecutionSide host) {
+        if (executionSideDeclaration != null && executionSideDeclaration.side() != host) {
+            throw new IllegalArgumentException(
+                    "Program asserts " + executionSideDeclaration.side()
+                    + " BTW but is hosted by a " + host + " Manager"
+            );
+        }
     }
 
     public void replaceOutputStatement(
