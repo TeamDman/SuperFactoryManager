@@ -58,11 +58,11 @@ public class LimitedInputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, IT
             done = true;
             return true;
         }
-        if (!tracker.matchesStack(stack)) {
+        if (tracker.isDone(type, stack)) {
             done = true;
             return true;
         }
-        if (tracker.isDone(type, stack)) {
+        if (!tracker.matchesStack(stack)) {
             done = true;
             return true;
         }
