@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
 import ca.teamdman.sfm.client.registry.SFMClientActions;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
@@ -48,10 +48,11 @@ public final class SFMKeyBindingScreen extends Screen {
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        renderBackground(poseStack);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics);
         Component heading = title.copy().withStyle(ChatFormatting.BOLD);
-        SFMFontUtils.draw(poseStack, font, heading, width / 2 - font.width(heading) / 2, 14, 0xFFFFFFFF, true);
+        SFMFontUtils.draw(graphics, font, heading, width / 2 - font.width(heading) / 2, 14, 0xFFFFFFFF, true);
         int rowWidth = Math.min(420, width - 24);
         int left = (width - rowWidth) / 2;
         int y = 68;
@@ -59,16 +60,16 @@ public final class SFMKeyBindingScreen extends Screen {
             var action = SFMClientActions.registry().get(actionId);
             if (action == null) continue;
             boolean hovered = mouseX >= left && mouseX < left + rowWidth && mouseY >= y - 4 && mouseY < y + 18;
-            fill(poseStack, left, y - 4, left + rowWidth, y + 18, hovered ? 0xFF404040 : 0xCC252525);
+            graphics.fill(left, y - 4, left + rowWidth, y + 18, hovered ? 0xFF404040 : 0xCC252525);
             String actionTitle = font.plainSubstrByWidth(action.title().getString(), Math.max(20, rowWidth - 145));
-            SFMFontUtils.draw(poseStack, font, actionTitle, left + 6, y + 2, 0xFFFFFFFF, false);
+            SFMFontUtils.draw(graphics, font, actionTitle, left + 6, y + 2, 0xFFFFFFFF, false);
             String count = ca.teamdman.sfm.client.keybinding.SFMKeyBindingService.INSTANCE
                     .bindingsForAction(actionId).size() + " bindings   [?]";
-            SFMFontUtils.draw(poseStack, font, count, left + rowWidth - 6 - font.width(count), y + 2,
+            SFMFontUtils.draw(graphics, font, count, left + rowWidth - 6 - font.width(count), y + 2,
                     0xFF80D8FF, false);
             y += ROW_HEIGHT;
         }
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override
