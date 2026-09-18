@@ -6,9 +6,8 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
@@ -92,28 +91,29 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
     }
 
     @Override
-    public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds, int mouseX, int mouseY,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void render(GuiGraphics graphics, Minecraft minecraft, SFMScreenPanelBounds bounds, int mouseX, int mouseY,
                        float partialTick, boolean focused) {
         SFMColorInputPanelLayout.Rect panel = layout.panel();
-        fill(poseStack, panel, PANEL);
-        outline(poseStack, panel, focused ? FOCUSED : BORDER);
+        fillRect(graphics, panel, PANEL);
+        outline(graphics, panel, focused ? FOCUSED : BORDER);
         String heading = panel.width() < 260 ? "ARGB colour" : "Reusable ARGB colour input";
         String subtitle = panel.width() < 260 ? "HSV • hex • channels"
                 : layout.compact() ? "HSV field • value • hex • channels"
                 : "Hue + saturation field • value slider • typed channels";
-        centered(poseStack, minecraft, heading, panel.x(), panel.width(), panel.y() + 12,
+        centered(graphics, minecraft, heading, panel.x(), panel.width(), panel.y() + 12,
                 0xFFFFAA00);
-        centered(poseStack, minecraft, subtitle, panel.x(), panel.width(), panel.y() + 26, MUTED);
+        centered(graphics, minecraft, subtitle, panel.x(), panel.width(), panel.y() + 26, MUTED);
 
-        renderHueSaturationField(poseStack);
-        renderValueSlider(poseStack);
-        renderSwatch(poseStack, minecraft);
-        renderHex(poseStack, minecraft);
-        renderChannels(poseStack, minecraft);
-        renderRecents(poseStack, minecraft);
-        renderButton(poseStack, minecraft, layout.reset(), "Reset", focus == Focus.RESET);
-        renderButton(poseStack, minecraft, layout.cancel(), "Cancel", focus == Focus.CANCEL);
-        renderButton(poseStack, minecraft, layout.confirm(), "Confirm", focus == Focus.CONFIRM);
+        renderHueSaturationField(graphics);
+        renderValueSlider(graphics);
+        renderSwatch(graphics, minecraft);
+        renderHex(graphics, minecraft);
+        renderChannels(graphics, minecraft);
+        renderRecents(graphics, minecraft);
+        renderButton(graphics, minecraft, layout.reset(), "Reset", focus == Focus.RESET);
+        renderButton(graphics, minecraft, layout.cancel(), "Cancel", focus == Focus.CANCEL);
+        renderButton(graphics, minecraft, layout.confirm(), "Confirm", focus == Focus.CONFIRM);
 
         String status = diagnostic != null ? diagnostic
                 : model.resolution() == SFMColorInputModel.Resolution.CONFIRMED
@@ -122,7 +122,7 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
                 ? "Cancelled — no result was applied"
                 : "Tab navigates • arrows adjust • Enter activates";
         if (panel.height() >= 280) {
-            centered(poseStack, minecraft, fitText(minecraft, status, panel.width() - 16), panel.x(), panel.width(),
+            centered(graphics, minecraft, fitText(minecraft, status, panel.width() - 16), panel.x(), panel.width(),
                     layout.reset().y() - 13,
                     diagnostic == null ? MUTED : ERROR);
         }
@@ -223,7 +223,8 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
         return false;
     }
 
-    private void renderHueSaturationField(PoseStack poseStack) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderHueSaturationField(GuiGraphics graphics) {
         SFMColorInputPanelLayout.Rect field = layout.hueSaturation();
         int columns = 45;
         int rows = 24;
@@ -236,59 +237,63 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
                 int bottom = field.y() + (row + 1) * field.height() / rows;
                 int rgb = SFMArgbColor.fromHsv(255, column / (double) (columns - 1),
                         1D - row / (double) (rows - 1), value).argb();
-                GuiComponent.fill(poseStack, left, top, right, bottom, rgb);
+                graphics.fill(left, top, right, bottom, rgb);
             }
         }
-        outline(poseStack, field, focus == Focus.FIELD ? FOCUSED : BORDER);
+        outline(graphics, field, focus == Focus.FIELD ? FOCUSED : BORDER);
         SFMArgbColor.Hsv hsv = model.current().toHsv();
         int x = field.x() + (int) Math.round(hsv.hue() * (field.width() - 1));
         int y = field.y() + (int) Math.round((1D - hsv.saturation()) * (field.height() - 1));
-        SFMGuiCrosshair.draw(poseStack, x, y, 5, TEXT);
+        SFMGuiCrosshair.draw(graphics, x, y, 5, TEXT);
     }
 
-    private void renderValueSlider(PoseStack poseStack) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderValueSlider(GuiGraphics graphics) {
         SFMColorInputPanelLayout.Rect slider = layout.valueSlider();
         SFMArgbColor.Hsv hsv = model.current().toHsv();
         int columns = Math.max(1, slider.width() / 4);
         for (int i = 0; i < columns; i++) {
             int left = slider.x() + i * slider.width() / columns;
             int right = slider.x() + (i + 1) * slider.width() / columns;
-            fill(poseStack, new SFMColorInputPanelLayout.Rect(left, slider.y(), right - left, slider.height()),
+            fillRect(graphics, new SFMColorInputPanelLayout.Rect(left, slider.y(), right - left, slider.height()),
                     SFMArgbColor.fromHsv(255, hsv.hue(), hsv.saturation(),
                             columns == 1 ? 0D : i / (double) (columns - 1)).argb());
         }
-        outline(poseStack, slider, focus == Focus.VALUE ? FOCUSED : BORDER);
+        outline(graphics, slider, focus == Focus.VALUE ? FOCUSED : BORDER);
         int thumb = slider.x() + (int) Math.round(hsv.value() * (slider.width() - 1));
-        GuiComponent.fill(poseStack, thumb - 1, slider.y() - 2, thumb + 2, slider.bottom() + 2, TEXT);
+        graphics.fill(thumb - 1, slider.y() - 2, thumb + 2, slider.bottom() + 2, TEXT);
     }
 
-    private void renderSwatch(PoseStack poseStack, Minecraft minecraft) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderSwatch(GuiGraphics graphics, Minecraft minecraft) {
         SFMColorInputPanelLayout.Rect swatch = layout.swatch();
         int checker = 8;
         for (int y = swatch.y(); y < swatch.bottom(); y += checker) {
             for (int x = swatch.x(); x < swatch.right(); x += checker) {
                 int colour = ((x / checker + y / checker) & 1) == 0 ? 0xFF555555 : 0xFFAAAAAA;
-                GuiComponent.fill(poseStack, x, y, Math.min(x + checker, swatch.right()),
+                graphics.fill(x, y, Math.min(x + checker, swatch.right()),
                         Math.min(y + checker, swatch.bottom()), colour);
             }
         }
-        fill(poseStack, swatch, model.current().argb());
-        outline(poseStack, swatch, BORDER);
+        fillRect(graphics, swatch, model.current().argb());
+        outline(graphics, swatch, BORDER);
         if (swatch.width() >= 80) {
-            centered(poseStack, minecraft, model.current().toHex(SFMArgbColor.HexOrder.ARGB), swatch.x(),
+            centered(graphics, minecraft, model.current().toHex(SFMArgbColor.HexOrder.ARGB), swatch.x(),
                     swatch.width(), swatch.y() + (swatch.height() - 8) / 2, TEXT);
         }
     }
 
-    private void renderHex(PoseStack poseStack, Minecraft minecraft) {
-        fill(poseStack, layout.hex(), 0xFF101419);
-        outline(poseStack, layout.hex(), focus == Focus.HEX ? FOCUSED : BORDER);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderHex(GuiGraphics graphics, Minecraft minecraft) {
+        fillRect(graphics, layout.hex(), 0xFF101419);
+        outline(graphics, layout.hex(), focus == Focus.HEX ? FOCUSED : BORDER);
         String shown = hexText + (focus == Focus.HEX && model.resolution() == SFMColorInputModel.Resolution.EDITING ? "_" : "");
-        SFMFontUtils.draw(poseStack, minecraft.font, shown, layout.hex().x() + 4, layout.hex().y() + 6, TEXT, false);
-        renderButton(poseStack, minecraft, layout.order(), model.hexOrder().name(), false);
+        SFMFontUtils.draw(graphics, minecraft.font, shown, layout.hex().x() + 4, layout.hex().y() + 6, TEXT, false);
+        renderButton(graphics, minecraft, layout.order(), model.hexOrder().name(), false);
     }
 
-    private void renderChannels(PoseStack poseStack, Minecraft minecraft) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderChannels(GuiGraphics graphics, Minecraft minecraft) {
         String[] names = {"A", "R", "G", "B"};
         int[] values = {model.current().alpha(), model.current().red(), model.current().green(), model.current().blue()};
         int rowHeight = layout.channels().height() / 4;
@@ -296,21 +301,22 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
             int y = layout.channels().y() + i * rowHeight;
             int textY = y + Math.max(1, (rowHeight - 8) / 2);
             boolean selected = focus.channel == i;
-            if (selected) GuiComponent.fill(poseStack, layout.channels().x(), y,
+            if (selected) graphics.fill(layout.channels().x(), y,
                     layout.channels().right(), y + rowHeight - 1, 0x4433FFFF);
-            SFMFontUtils.draw(poseStack, minecraft.font, names[i] + "  " + values[i],
+            SFMFontUtils.draw(graphics, minecraft.font, names[i] + "  " + values[i],
                     layout.channels().x() + 3, textY, selected ? FOCUSED : TEXT, false);
             int minusX = layout.channels().right() - 38;
-            GuiComponent.fill(poseStack, minusX, y + 1, minusX + 17, y + rowHeight - 2, BUTTON);
-            GuiComponent.fill(poseStack, minusX + 20, y + 1, minusX + 37, y + rowHeight - 2, BUTTON);
-            centered(poseStack, minecraft, "−", minusX, 17, textY, TEXT);
-            centered(poseStack, minecraft, "+", minusX + 20, 17, textY, TEXT);
+            graphics.fill(minusX, y + 1, minusX + 17, y + rowHeight - 2, BUTTON);
+            graphics.fill(minusX + 20, y + 1, minusX + 37, y + rowHeight - 2, BUTTON);
+            centered(graphics, minecraft, "−", minusX, 17, textY, TEXT);
+            centered(graphics, minecraft, "+", minusX + 20, 17, textY, TEXT);
         }
     }
 
-    private void renderRecents(PoseStack poseStack, Minecraft minecraft) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderRecents(GuiGraphics graphics, Minecraft minecraft) {
         if (layout.panel().height() >= 280) {
-            SFMFontUtils.draw(poseStack, minecraft.font, "Recent", layout.recents().x(), layout.recents().y() - 11,
+            SFMFontUtils.draw(graphics, minecraft.font, "Recent", layout.recents().x(), layout.recents().y() - 11,
                     MUTED, false);
         }
         int size = Math.min(20, layout.recents().height());
@@ -318,8 +324,8 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
             int x = layout.recents().x() + i * (size + 4);
             if (x + size > layout.recents().right()) break;
             SFMColorInputPanelLayout.Rect rect = new SFMColorInputPanelLayout.Rect(x, layout.recents().y(), size, size);
-            fill(poseStack, rect, model.recent().get(i).argb());
-            outline(poseStack, rect, focus == Focus.RECENTS && recentIndex == i ? FOCUSED : BORDER);
+            fillRect(graphics, rect, model.recent().get(i).argb());
+            outline(graphics, rect, focus == Focus.RECENTS && recentIndex == i ? FOCUSED : BORDER);
         }
     }
 
@@ -445,17 +451,20 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
     }
 
     private static double unit(double value) { return Math.max(0D, Math.min(1D, value)); }
-    private static void fill(PoseStack poseStack, SFMColorInputPanelLayout.Rect rect, int colour) {
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), rect.right(), rect.bottom(), colour);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void fillRect(GuiGraphics graphics, SFMColorInputPanelLayout.Rect rect, int colour) {
+        graphics.fill(rect.x(), rect.y(), rect.right(), rect.bottom(), colour);
     }
-    private static void outline(PoseStack poseStack, SFMColorInputPanelLayout.Rect rect, int colour) {
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), rect.right(), rect.y() + 1, colour);
-        GuiComponent.fill(poseStack, rect.x(), rect.bottom() - 1, rect.right(), rect.bottom(), colour);
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), rect.x() + 1, rect.bottom(), colour);
-        GuiComponent.fill(poseStack, rect.right() - 1, rect.y(), rect.right(), rect.bottom(), colour);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void outline(GuiGraphics graphics, SFMColorInputPanelLayout.Rect rect, int colour) {
+        graphics.fill(rect.x(), rect.y(), rect.right(), rect.y() + 1, colour);
+        graphics.fill(rect.x(), rect.bottom() - 1, rect.right(), rect.bottom(), colour);
+        graphics.fill(rect.x(), rect.y(), rect.x() + 1, rect.bottom(), colour);
+        graphics.fill(rect.right() - 1, rect.y(), rect.right(), rect.bottom(), colour);
     }
-    private static void centered(PoseStack poseStack, Minecraft minecraft, String text, int x, int width, int y, int colour) {
-        SFMFontUtils.draw(poseStack, minecraft.font, text, x + (width - minecraft.font.width(text)) / 2, y,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void centered(GuiGraphics graphics, Minecraft minecraft, String text, int x, int width, int y, int colour) {
+        SFMFontUtils.draw(graphics, minecraft.font, text, x + (width - minecraft.font.width(text)) / 2, y,
                 colour, false);
     }
     private static String fitText(Minecraft minecraft, String text, int width) {
@@ -465,11 +474,12 @@ public final class SFMColorInputPanel implements SFMScreenPanel {
         while (end > 0 && minecraft.font.width(text.substring(0, end) + suffix) > width) end--;
         return text.substring(0, end) + suffix;
     }
-    private static void renderButton(PoseStack poseStack, Minecraft minecraft, SFMColorInputPanelLayout.Rect rect,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void renderButton(GuiGraphics graphics, Minecraft minecraft, SFMColorInputPanelLayout.Rect rect,
                                      String text, boolean selected) {
-        fill(poseStack, rect, BUTTON);
-        outline(poseStack, rect, selected ? FOCUSED : BORDER);
-        centered(poseStack, minecraft, text, rect.x(), rect.width(), rect.y() + 6, TEXT);
+        fillRect(graphics, rect, BUTTON);
+        outline(graphics, rect, selected ? FOCUSED : BORDER);
+        centered(graphics, minecraft, text, rect.x(), rect.width(), rect.y() + 6, TEXT);
     }
 
     private enum Drag { NONE, FIELD, VALUE }

@@ -1,14 +1,5 @@
 package ca.teamdman.sfm;
 
-import ca.teamdman.sfm.client.registry.SFMClientActions;
-import ca.teamdman.sfm.client.registry.SFMClientScreenTypes;
-import ca.teamdman.sfm.client.registry.SFMMenuScreens;
-import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
-import ca.teamdman.sfm.client.registry.SFMTextEditors;
-import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
-import ca.teamdman.sfm.client.action.SFMDeveloperActions;
-import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
-import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceScreenTypes;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.event_bus.SFMAutomaticEventSubscriber;
 import ca.teamdman.sfm.common.event_bus.SFMEventBus;
@@ -18,7 +9,6 @@ import ca.teamdman.sfm.common.registry.registration.*;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModLoadingContext;
 import net.neoforged.fml.common.Mod;
-import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -65,21 +55,9 @@ public class SFM {
 
         SFMGlobalBlockCapabilityProviders.register(bus);
 
-        SFMTextEditors.register(bus);
-
-        SFMTextEditorActions.register(bus);
-
-        SFMClientActions.register(bus);
-
-        SFMClientScreenTypes.register(bus);
-
-        SFMWorkspaceScreenTypes.register(bus);
-
-        SFMDocumentActionTarget.Actions.register(bus);
-
-        SFMCommandPaletteActions.register(bus);
-
-        SFMDeveloperActions.register(bus);
+        if (ca.teamdman.sfm.common.util.SFMEnvironmentUtils.isClient()) {
+            ca.teamdman.sfm.client.SFMClientRegistrations.register(bus);
+        }
 
         SFMMenus.register(bus);
 
@@ -89,10 +67,6 @@ public class SFM {
 
         SFMConfig.register(ModLoadingContext.get());
 
-        bus.addListener((FMLClientSetupEvent e) -> {
-            SFMMenuScreens.register();
-            SFMClientActions.commandTree();
-        });
 
         SFMAutomaticEventSubscriber.attachEventBusSubscribers();
     }

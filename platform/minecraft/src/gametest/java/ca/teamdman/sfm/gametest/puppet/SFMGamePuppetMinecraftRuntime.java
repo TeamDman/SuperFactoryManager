@@ -348,11 +348,12 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     public void scrollTerminal(double delta) {
         SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
         SFMScreenPanelBounds bounds = terminalBounds(multiplexer);
         multiplexer.mouseScrolled(bounds.x() + bounds.width() / 2D,
-                bounds.y() + bounds.height() / 2D, delta);
+                bounds.y() + bounds.height() / 2D, 0D, delta);
     }
 
     @Override

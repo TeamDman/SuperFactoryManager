@@ -7,10 +7,9 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelIntent;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
@@ -165,8 +164,9 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     }
 
     @Override
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     public void render(
-            PoseStack poseStack,
+            GuiGraphics graphics,
             Minecraft minecraft,
             SFMScreenPanelBounds bounds,
             int mouseX,
@@ -176,23 +176,23 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
     ) {
         this.mouseX = mouseX;
         this.mouseY = mouseY;
-        fill(poseStack, layout.content(), PANEL);
-        fill(poseStack, layout.header(), HEADER);
-        border(poseStack, layout.content(), focused ? 0xFF55FFFF : BORDER);
+        fillRect(graphics, layout.content(), PANEL);
+        fillRect(graphics, layout.header(), HEADER);
+        border(graphics, layout.content(), focused ? 0xFF55FFFF : BORDER);
         int inset = layout.compact() ? 5 : 9;
-        SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD),
+        SFMFontUtils.draw(graphics, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD),
                 layout.header().x() + inset, layout.header().y() + 7, TEXT, true);
         if (!layout.compact()) {
             String count = model.filtered().size() + " / " + model.entries().size() + " items";
-            SFMFontUtils.draw(poseStack, minecraft.font, count,
+            SFMFontUtils.draw(graphics, minecraft.font, count,
                     layout.header().x() + layout.header().width() - minecraft.font.width(count) - inset,
                     layout.header().y() + 7, MUTED, true);
         }
-        renderSearch(poseStack, minecraft, inset);
-        renderItems(poseStack, minecraft);
-        renderPreview(poseStack, minecraft);
-        renderFooter(poseStack, minecraft);
-        renderTooltip(poseStack, minecraft);
+        renderSearch(graphics, minecraft, inset);
+        renderItems(graphics, minecraft);
+        renderPreview(graphics, minecraft);
+        renderFooter(graphics, minecraft);
+        renderTooltip(graphics, minecraft);
     }
 
     public void setQueryForAutomation(String query) {
@@ -216,18 +216,20 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
         keepSelectionVisible();
     }
 
-    private void renderSearch(PoseStack poseStack, Minecraft minecraft, int inset) {
-        fill(poseStack, layout.search(), 0xFF101010);
-        border(poseStack, layout.search(), 0xFF8A8A8A);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderSearch(GuiGraphics graphics, Minecraft minecraft, int inset) {
+        fillRect(graphics, layout.search(), 0xFF101010);
+        border(graphics, layout.search(), 0xFF8A8A8A);
         String query = model.query();
         Component value = query.isEmpty()
                 ? Component.literal("Search names, ids, or an SFML matcher...").withStyle(ChatFormatting.DARK_GRAY)
                 : Component.literal(query + "_");
-        SFMFontUtils.draw(poseStack, minecraft.font, value,
+        SFMFontUtils.draw(graphics, minecraft.font, value,
                 layout.search().x() + inset, layout.search().y() + 7, TEXT, true);
     }
 
-    private void renderItems(PoseStack poseStack, Minecraft minecraft) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderItems(GuiGraphics graphics, Minecraft minecraft) {
         List<SFMItemPickerEntry> entries = model.filtered();
         int start = firstVisibleRow * layout.columns();
         int end = Math.min(entries.size(), (firstVisibleRow + visibleRows()) * layout.columns());
@@ -240,33 +242,34 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
             SFMItemPickerLayout.Rect cell = new SFMItemPickerLayout.Rect(
                     x, y, layout.cellWidth(), layout.cellHeight()
             );
-            if (index == model.selectionIndex()) fill(poseStack, cell, SELECTED);
-            else if (cell.contains(mouseX, mouseY)) fill(poseStack, cell, HOVERED);
-            border(poseStack, cell, 0xFF3A3A3A);
+            if (index == model.selectionIndex()) fillRect(graphics, cell, SELECTED);
+            else if (cell.contains(mouseX, mouseY)) fillRect(graphics, cell, HOVERED);
+            border(graphics, cell, 0xFF3A3A3A);
             SFMItemPickerEntry entry = entries.get(index);
             if (model.viewMode() == SFMItemPickerModel.ViewMode.DENSE_ICONS) {
-                SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x + 3, y + 3);
+                SFMItemIconRenderer.render(graphics, minecraft, entry.toIcon(model.fallbackItem()), x + 3, y + 3);
                 continue;
             }
-            SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x + 5, y + 8);
+            SFMItemIconRenderer.render(graphics, minecraft, entry.toIcon(model.fallbackItem()), x + 5, y + 8);
             int textX = x + 26;
             int available = Math.max(1, layout.cellWidth() - 30);
-            SFMFontUtils.draw(poseStack, minecraft.font,
+            SFMFontUtils.draw(graphics, minecraft.font,
                     trim(minecraft, entry.accessibleName(), available), textX, y + 6, TEXT, true);
-            SFMFontUtils.draw(poseStack, minecraft.font,
+            SFMFontUtils.draw(graphics, minecraft.font,
                     trim(minecraft, entry.itemId().toString(), available), textX, y + 18, MUTED, true);
         }
         if (entries.isEmpty()) {
-            SFMFontUtils.draw(poseStack, minecraft.font, "No matching registry items",
+            SFMFontUtils.draw(graphics, minecraft.font, "No matching registry items",
                     layout.results().x() + 8, layout.results().y() + 10, ERROR, true);
         }
     }
 
-    private void renderPreview(PoseStack poseStack, Minecraft minecraft) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderPreview(GuiGraphics graphics, Minecraft minecraft) {
         if (layout.preview().width() <= 0) return;
         if (layout.compact()) {
-            fill(poseStack, layout.preview(), 0xF0282828);
-            border(poseStack, layout.preview(), BORDER);
+            fillRect(graphics, layout.preview(), 0xF0282828);
+            border(graphics, layout.preview(), BORDER);
             int x = layout.preview().x() + 5;
             int y = layout.preview().y() + 3;
             if (!model.diagnostic().isEmpty()) {
@@ -275,86 +278,88 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
                         Component.literal(model.diagnostic()),
                         layout.preview().width() - 10
                 )) {
-                    SFMFontUtils.draw(poseStack, minecraft.font, line, x, lineY, ERROR, true);
+                    SFMFontUtils.draw(graphics, minecraft.font, line, x, lineY, ERROR, true);
                     lineY += minecraft.font.lineHeight;
                     if (lineY >= layout.preview().y() + layout.preview().height() - 2) break;
                 }
                 return;
             }
             model.selection().ifPresent(entry -> {
-                SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x, y + 1);
-                SFMFontUtils.draw(poseStack, minecraft.font,
+                SFMItemIconRenderer.render(graphics, minecraft, entry.toIcon(model.fallbackItem()), x, y + 1);
+                SFMFontUtils.draw(graphics, minecraft.font,
                         trim(minecraft, "Current: " + entry.accessibleName(), layout.preview().width() - 28),
                         x + 22, y, TEXT, true);
-                SFMFontUtils.draw(poseStack, minecraft.font,
+                SFMFontUtils.draw(graphics, minecraft.font,
                         trim(minecraft, entry.itemId().toString(), layout.preview().width() - 28),
                         x + 22, y + minecraft.font.lineHeight, MUTED, true);
             });
             return;
         }
-        fill(poseStack, layout.preview(), 0xF0282828);
-        border(poseStack, layout.preview(), BORDER);
+        fillRect(graphics, layout.preview(), 0xF0282828);
+        border(graphics, layout.preview(), BORDER);
         int x = layout.preview().x() + 10;
         int y = layout.preview().y() + 10;
-        SFMFontUtils.draw(poseStack, minecraft.font, "Current selection", x, y, SUCCESS, true);
+        SFMFontUtils.draw(graphics, minecraft.font, "Current selection", x, y, SUCCESS, true);
         model.selection().ifPresent(entry -> {
-            SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x, y + 18);
-            SFMFontUtils.draw(poseStack, minecraft.font,
+            SFMItemIconRenderer.render(graphics, minecraft, entry.toIcon(model.fallbackItem()), x, y + 18);
+            SFMFontUtils.draw(graphics, minecraft.font,
                     trim(minecraft, entry.accessibleName(), layout.preview().width() - 38),
                     x + 22, y + 22, TEXT, true);
-            SFMFontUtils.draw(poseStack, minecraft.font,
+            SFMFontUtils.draw(graphics, minecraft.font,
                     trim(minecraft, entry.itemId().toString(), layout.preview().width() - 20),
                     x, y + 44, MUTED, true);
-            SFMFontUtils.draw(poseStack, minecraft.font,
+            SFMFontUtils.draw(graphics, minecraft.font,
                     "Fallback: " + model.fallbackItem(), x, y + 60, MUTED, true);
         });
         String diagnostic = model.diagnostic();
         if (!diagnostic.isEmpty()) {
             int lineY = y + 84;
             for (var line : minecraft.font.split(Component.literal(diagnostic), layout.preview().width() - 20)) {
-                SFMFontUtils.draw(poseStack, minecraft.font, line, x, lineY, ERROR, true);
+                SFMFontUtils.draw(graphics, minecraft.font, line, x, lineY, ERROR, true);
                 lineY += minecraft.font.lineHeight;
                 if (lineY > y + 120) break;
             }
         }
-        SFMFontUtils.draw(poseStack, minecraft.font,
+        SFMFontUtils.draw(graphics, minecraft.font,
                 trim(minecraft, model.interaction(), layout.preview().width() - 20),
                 x, Math.max(y + 104, layout.preview().y() + layout.preview().height() - 18), MUTED, true);
     }
 
-    private void renderFooter(PoseStack poseStack, Minecraft minecraft) {
-        fill(poseStack, layout.footer(), HEADER);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderFooter(GuiGraphics graphics, Minecraft minecraft) {
+        fillRect(graphics, layout.footer(), HEADER);
         String toggle = model.viewMode() == SFMItemPickerModel.ViewMode.DETAILED
                 ? "Ctrl+G Grid" : "Ctrl+G List";
         if (layout.compact()) {
             int half = Math.max(1, layout.footer().width() / 2);
             int topY = layout.footer().y() + 2;
             int bottomY = layout.footer().y() + 16;
-            drawCentered(poseStack, minecraft, "Ctrl+R Reset", layout.footer().x(), half, topY, MUTED);
-            drawCentered(poseStack, minecraft, toggle, layout.footer().x() + half,
+            drawCentered(graphics, minecraft, "Ctrl+R Reset", layout.footer().x(), half, topY, MUTED);
+            drawCentered(graphics, minecraft, toggle, layout.footer().x() + half,
                     layout.footer().width() - half, topY, MUTED);
-            drawCentered(poseStack, minecraft, "Esc Cancel", layout.footer().x(), half, bottomY, MUTED);
-            drawCentered(poseStack, minecraft, "Enter Confirm", layout.footer().x() + half,
+            drawCentered(graphics, minecraft, "Esc Cancel", layout.footer().x(), half, bottomY, MUTED);
+            drawCentered(graphics, minecraft, "Enter Confirm", layout.footer().x() + half,
                     layout.footer().width() - half, bottomY, SUCCESS);
         } else {
             int quarter = Math.max(1, layout.footer().width() / 4);
             int y = layout.footer().y() + 5;
-            drawCentered(poseStack, minecraft, "Ctrl+R Reset", layout.footer().x(), quarter, y, MUTED);
-            drawCentered(poseStack, minecraft, toggle, layout.footer().x() + quarter, quarter, y, MUTED);
-            drawCentered(poseStack, minecraft, "Esc Cancel",
+            drawCentered(graphics, minecraft, "Ctrl+R Reset", layout.footer().x(), quarter, y, MUTED);
+            drawCentered(graphics, minecraft, toggle, layout.footer().x() + quarter, quarter, y, MUTED);
+            drawCentered(graphics, minecraft, "Esc Cancel",
                     layout.footer().x() + quarter * 2, quarter, y, MUTED);
-            drawCentered(poseStack, minecraft, "Enter Confirm", layout.footer().x() + quarter * 3,
+            drawCentered(graphics, minecraft, "Enter Confirm", layout.footer().x() + quarter * 3,
                     layout.footer().width() - quarter * 3, y, SUCCESS);
-            drawCentered(poseStack, minecraft, "Arrow keys navigate • typing filters",
+            drawCentered(graphics, minecraft, "Arrow keys navigate • typing filters",
                     layout.footer().x(), layout.footer().width(), y + 14, MUTED);
         }
         if (layout.belowMinimum()) {
-            SFMFontUtils.draw(poseStack, minecraft.font, "Viewport below 140x150 minimum",
+            SFMFontUtils.draw(graphics, minecraft.font, "Viewport below 140x150 minimum",
                     layout.footer().x() + 4, layout.footer().y() - 11, ERROR, true);
         }
     }
 
-    private void renderTooltip(PoseStack poseStack, Minecraft minecraft) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderTooltip(GuiGraphics graphics, Minecraft minecraft) {
         int index = automationTooltipIndex >= 0 ? automationTooltipIndex : itemIndexAt(mouseX, mouseY);
         if (minecraft.screen == null) return;
         if (index < 0) {
@@ -366,7 +371,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
                 if (!model.diagnostic().isEmpty()) {
                     lines.add(Component.literal(model.diagnostic()).withStyle(ChatFormatting.RED));
                 }
-                minecraft.screen.renderComponentTooltip(poseStack, lines, mouseX, mouseY);
+                graphics.renderComponentTooltip(minecraft.font, lines, mouseX, mouseY);
             });
             return;
         }
@@ -385,7 +390,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
         if (index == model.selectionIndex() && !model.diagnostic().isEmpty()) {
             lines.add(Component.literal(model.diagnostic()).withStyle(ChatFormatting.RED));
         }
-        minecraft.screen.renderComponentTooltip(poseStack, lines, tooltipX, tooltipY);
+        graphics.renderComponentTooltip(minecraft.font, lines, tooltipX, tooltipY);
     }
 
     private int itemIndexAt(double x, double y) {
@@ -444,22 +449,25 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
         firstVisibleRow = Math.max(0, Math.min(firstVisibleRow, maximum));
     }
 
-    private static void fill(PoseStack poseStack, SFMItemPickerLayout.Rect rect, int colour) {
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), rect.x() + rect.width(), rect.y() + rect.height(), colour);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void fillRect(GuiGraphics graphics, SFMItemPickerLayout.Rect rect, int colour) {
+        graphics.fill(rect.x(), rect.y(), rect.x() + rect.width(), rect.y() + rect.height(), colour);
     }
 
-    private static void border(PoseStack poseStack, SFMItemPickerLayout.Rect rect, int colour) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void border(GuiGraphics graphics, SFMItemPickerLayout.Rect rect, int colour) {
         int right = rect.x() + rect.width();
         int bottom = rect.y() + rect.height();
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), right, rect.y() + 1, colour);
-        GuiComponent.fill(poseStack, rect.x(), bottom - 1, right, bottom, colour);
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), rect.x() + 1, bottom, colour);
-        GuiComponent.fill(poseStack, right - 1, rect.y(), right, bottom, colour);
+        graphics.fill(rect.x(), rect.y(), right, rect.y() + 1, colour);
+        graphics.fill(rect.x(), bottom - 1, right, bottom, colour);
+        graphics.fill(rect.x(), rect.y(), rect.x() + 1, bottom, colour);
+        graphics.fill(right - 1, rect.y(), right, bottom, colour);
     }
 
-    private static void drawCentered(PoseStack poseStack, Minecraft minecraft, String text,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void drawCentered(GuiGraphics graphics, Minecraft minecraft, String text,
                                      int x, int width, int y, int colour) {
-        SFMFontUtils.draw(poseStack, minecraft.font, text,
+        SFMFontUtils.draw(graphics, minecraft.font, text,
                 x + Math.max(0, (width - minecraft.font.width(text)) / 2), y, colour, true);
     }
 
