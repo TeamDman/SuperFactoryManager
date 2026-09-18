@@ -428,7 +428,7 @@ public final class SFMCommandPaletteScreen extends Screen {
             if (suggestionIndex >= suggestions.size()) break;
             int y = panelTop() + 68 + index * SUGGESTION_ROW_HEIGHT;
             actionIcon(suggestions.get(suggestionIndex)).ifPresent(icon ->
-                    SFMItemIconRenderer.render(minecraft, icon, panelLeft() + 10, y)
+                    SFMItemIconRenderer.render(poseStack, minecraft, icon, panelLeft() + 10, y)
             );
         }
     }

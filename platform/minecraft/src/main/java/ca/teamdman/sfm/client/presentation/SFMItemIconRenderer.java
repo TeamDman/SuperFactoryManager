@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.presentation;
 
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 
 /** Shared fixed-size renderer for file and action icons. */
@@ -9,9 +11,10 @@ public final class SFMItemIconRenderer {
     private SFMItemIconRenderer() {
     }
 
-    public static SFMResolvedItemIcon render(Minecraft minecraft, SFMItemIcon icon, int x, int y) {
+    @MCVersionDependentBehaviour
+    public static SFMResolvedItemIcon render(PoseStack poseStack, Minecraft minecraft, SFMItemIcon icon, int x, int y) {
         SFMResolvedItemIcon resolved = SFMItemIconResolver.resolve(icon);
-        minecraft.getItemRenderer().renderAndDecorateItem(resolved.stack(), x, y);
+        minecraft.getItemRenderer().renderAndDecorateItem(poseStack, resolved.stack(), x, y);
         return resolved;
     }
 }

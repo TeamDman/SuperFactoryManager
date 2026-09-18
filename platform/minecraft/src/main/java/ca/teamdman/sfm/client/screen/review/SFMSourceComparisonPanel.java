@@ -153,7 +153,7 @@ public final class SFMSourceComparisonPanel implements SFMScreenPanel {
             int y = top + i * ROW_HEIGHT;
             if (i == selectedIndex) GuiComponent.fill(poseStack, x, y, x + width, y + ROW_HEIGHT - 1,
                     theme.colour(SFMColourRole.PANEL_SELECTION));
-            SFMItemIconRenderer.render(minecraft, theme.fileIcon(extensionKey(operation.displayPath())), x + 3, y + 7);
+            SFMItemIconRenderer.render(poseStack, minecraft, theme.fileIcon(extensionKey(operation.displayPath())), x + 3, y + 7);
             String stale = decision.isStale(operation) ? " | STALE" : "";
             String row = operationMarker(operation.kind()) + " " + operation.label();
             draw(poseStack, minecraft, row, x + 23, y + 4, width - 26,
@@ -170,7 +170,7 @@ public final class SFMSourceComparisonPanel implements SFMScreenPanel {
                               int x, int y, int width, int bottom) {
         var operation = selectedOperation();
         var decision = selectedDecision();
-        SFMItemIconRenderer.render(minecraft, theme.fileIcon(extensionKey(operation.displayPath())), x, y);
+        SFMItemIconRenderer.render(poseStack, minecraft, theme.fileIcon(extensionKey(operation.displayPath())), x, y);
         draw(poseStack, minecraft, operation.label(), x + 21, y + 3, width - 21,
                 theme.colour(SFMColourRole.TEXT_PRIMARY), true);
         draw(poseStack, minecraft, operation.displayPath() + " | " + operation.equivalence(), x, y + 21, width,

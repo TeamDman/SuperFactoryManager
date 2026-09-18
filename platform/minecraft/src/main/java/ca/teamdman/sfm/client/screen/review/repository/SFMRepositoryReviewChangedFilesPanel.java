@@ -86,7 +86,7 @@ public final class SFMRepositoryReviewChangedFilesPanel implements SFMScreenPane
             String path = SFMRepositoryReviewWorkspaceModel.displayPath(file);
             var presentation = presentations.presentationFor(SFMFileExplorerEntry.file(path,
                     SFMRepositoryReviewPanelSupport.fileName(path)));
-            SFMItemIconRenderer.render(minecraft, presentation.itemIcon(), bounds.x() + 7, y + 2);
+            SFMItemIconRenderer.render(poseStack, minecraft, presentation.itemIcon(), bounds.x() + 7, y + 2);
             SFMRepositoryReviewPanelSupport.renderText(poseStack, minecraft,
                     SFMRepositoryReviewWorkspaceModel.kind(file).toUpperCase(Locale.ROOT) + "  " + path,
                     bounds.x() + 29, y + 6, bounds.width() - 36, presentation.textColour(), index == model.selectedIndex());

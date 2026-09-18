@@ -81,7 +81,7 @@ public final class SFMFalsifiedInventoryReplayPanel implements SFMSeekableTimeli
         double progress = state.cursorPathPosition();
         int cursorX = (int) Math.round(source.x() + (destination.x() - source.x()) * progress);
         int cursorY = (int) Math.round(source.y() + (destination.y() - source.y()) * progress);
-        renderStack(minecraft, state.cursorStack(), cursorX - 8, cursorY - 8);
+        renderStack(poseStack, minecraft, state.cursorStack(), cursorX - 8, cursorY - 8);
         poseStack.pushPose();
         poseStack.translate(0D, 0D, 250D);
         SFMGuiCrosshair.draw(poseStack, cursorX, cursorY, 7, 0xFF55FFFF);
@@ -119,14 +119,15 @@ public final class SFMFalsifiedInventoryReplayPanel implements SFMSeekableTimeli
             int y = top + index / columns * slotSize;
             GuiComponent.fill(poseStack, x, y, x + slotSize - 1, y + slotSize - 1, 0xFF8B8B8B);
             GuiComponent.fill(poseStack, x + 1, y + 1, x + slotSize - 2, y + slotSize - 2, 0xFF373737);
-            renderStack(minecraft, stacks.get(stackOffset + index), x + (slotSize - 16) / 2,
+            renderStack(poseStack, minecraft, stacks.get(stackOffset + index), x + (slotSize - 16) / 2,
                     y + (slotSize - 16) / 2);
         }
     }
 
-    private static void renderStack(Minecraft minecraft, ItemStack stack, int x, int y) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void renderStack(PoseStack poseStack, Minecraft minecraft, ItemStack stack, int x, int y) {
         if (stack.isEmpty()) return;
-        minecraft.getItemRenderer().renderAndDecorateItem(stack, x, y);
-        minecraft.getItemRenderer().renderGuiItemDecorations(minecraft.font, stack, x, y);
+        minecraft.getItemRenderer().renderAndDecorateItem(poseStack, stack, x, y);
+        minecraft.getItemRenderer().renderGuiItemDecorations(poseStack, minecraft.font, stack, x, y);
     }
 }

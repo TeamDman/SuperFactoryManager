@@ -245,10 +245,10 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
             border(poseStack, cell, 0xFF3A3A3A);
             SFMItemPickerEntry entry = entries.get(index);
             if (model.viewMode() == SFMItemPickerModel.ViewMode.DENSE_ICONS) {
-                SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x + 3, y + 3);
+                SFMItemIconRenderer.render(poseStack, minecraft, entry.toIcon(model.fallbackItem()), x + 3, y + 3);
                 continue;
             }
-            SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x + 5, y + 8);
+            SFMItemIconRenderer.render(poseStack, minecraft, entry.toIcon(model.fallbackItem()), x + 5, y + 8);
             int textX = x + 26;
             int available = Math.max(1, layout.cellWidth() - 30);
             SFMFontUtils.draw(poseStack, minecraft.font,
@@ -282,7 +282,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
                 return;
             }
             model.selection().ifPresent(entry -> {
-                SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x, y + 1);
+                SFMItemIconRenderer.render(poseStack, minecraft, entry.toIcon(model.fallbackItem()), x, y + 1);
                 SFMFontUtils.draw(poseStack, minecraft.font,
                         trim(minecraft, "Current: " + entry.accessibleName(), layout.preview().width() - 28),
                         x + 22, y, TEXT, true);
@@ -298,7 +298,7 @@ public final class SFMItemPickerPanel implements SFMScreenPanel {
         int y = layout.preview().y() + 10;
         SFMFontUtils.draw(poseStack, minecraft.font, "Current selection", x, y, SUCCESS, true);
         model.selection().ifPresent(entry -> {
-            SFMItemIconRenderer.render(minecraft, entry.toIcon(model.fallbackItem()), x, y + 18);
+            SFMItemIconRenderer.render(poseStack, minecraft, entry.toIcon(model.fallbackItem()), x, y + 18);
             SFMFontUtils.draw(poseStack, minecraft.font,
                     trim(minecraft, entry.accessibleName(), layout.preview().width() - 38),
                     x + 22, y + 22, TEXT, true);

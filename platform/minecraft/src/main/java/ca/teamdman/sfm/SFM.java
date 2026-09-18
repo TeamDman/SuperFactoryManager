@@ -1,14 +1,5 @@
 package ca.teamdman.sfm;
 
-import ca.teamdman.sfm.client.registry.SFMClientActions;
-import ca.teamdman.sfm.client.registry.SFMClientScreenTypes;
-import ca.teamdman.sfm.client.registry.SFMMenuScreens;
-import ca.teamdman.sfm.client.registry.SFMTextEditorActions;
-import ca.teamdman.sfm.client.registry.SFMTextEditors;
-import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
-import ca.teamdman.sfm.client.action.SFMDeveloperActions;
-import ca.teamdman.sfm.client.screen.text_editor.SFMDocumentActionTarget;
-import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceScreenTypes;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.event_bus.SFMAutomaticEventSubscriber;
 import ca.teamdman.sfm.common.event_bus.SFMEventBus;
@@ -17,7 +8,6 @@ import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.*;
 import net.minecraftforge.fml.ModLoadingContext;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.apache.logging.log4j.LogManager;
@@ -68,21 +58,9 @@ public class SFM {
 
         SFMGlobalBlockCapabilityProviders.register(bus);
 
-        SFMTextEditors.register(bus);
-
-        SFMTextEditorActions.register(bus);
-
-        SFMClientActions.register(bus);
-
-        SFMClientScreenTypes.register(bus);
-
-        SFMWorkspaceScreenTypes.register(bus);
-
-        SFMDocumentActionTarget.Actions.register(bus);
-
-        SFMCommandPaletteActions.register(bus);
-
-        SFMDeveloperActions.register(bus);
+        if (ca.teamdman.sfm.common.util.SFMEnvironmentUtils.isClient()) {
+            ca.teamdman.sfm.client.SFMClientRegistrations.register(bus);
+        }
 
         SFMMenus.register(bus);
 
@@ -91,11 +69,6 @@ public class SFM {
         SFMRecipeSerializers.register(bus);
 
         SFMConfig.register(ModLoadingContext.get());
-
-        bus.addListener((FMLClientSetupEvent e) -> {
-            SFMMenuScreens.register();
-            SFMClientActions.commandTree();
-        });
 
         bus.addListener((FMLCommonSetupEvent e) -> SFMPackets.register());
 
