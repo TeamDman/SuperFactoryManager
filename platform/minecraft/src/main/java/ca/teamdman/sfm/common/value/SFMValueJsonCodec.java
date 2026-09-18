@@ -34,6 +34,18 @@ public final class SFMValueJsonCodec {
         return encoded;
     }
 
+    /** Same strict value writer with a caller-owned envelope budget. */
+    static String encodeWithByteLimit(SFMValue value, int maxEncodedUtf8Bytes) {
+        if (maxEncodedUtf8Bytes < MAX_ENCODED_UTF8_BYTES || maxEncodedUtf8Bytes > 64 * 1024) {
+            throw new IllegalArgumentException("Invalid SFM value envelope budget");
+        }
+        String encoded = write(value, "");
+        if (encoded.getBytes(StandardCharsets.UTF_8).length > maxEncodedUtf8Bytes) {
+            throw new IllegalArgumentException("SFM value exceeds its encoded UTF-8 envelope budget");
+        }
+        return encoded;
+    }
+
     /**
      * Formats a value for human inspection after enforcing the same value
      * limits as the canonical wire representation.

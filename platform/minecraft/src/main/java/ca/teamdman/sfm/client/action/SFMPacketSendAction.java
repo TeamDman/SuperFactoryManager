@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.net.SFMPacketObservationRuntime;
 import ca.teamdman.sfm.common.net.SFMPacketInventoryAddress;
 import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfm.common.value.SFMValueJsonCodec;
+import ca.teamdman.sfm.common.value.SFMValueSchema;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.brigadier.StringReader;
@@ -24,6 +25,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Locale;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -32,6 +35,8 @@ import java.util.function.Supplier;
 /** Strict exact-address packet insertion request for private integrated worlds. */
 public final class SFMPacketSendAction implements SFMClientAction<SFMClientActionContext> {
     public static final String RESULT_SCHEMA = "sfm.packet.send/1";
+    private static final ResourceLocation PROGRAMMATIC_ID = new ResourceLocation("sfm", "packet/send");
+    private static final SFMClientActionDescriptor PROGRAMMATIC_DESCRIPTOR = createProgrammaticDescriptor();
     private static final String DIMENSION = "dimension";
     private static final String X = "x";
     private static final String Y = "y";
@@ -82,6 +87,89 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
     @Override
     public SFMClientActionRequirement<SFMClientActionContext> requirement() {
         return SFMClientActionAvailability::available;
+    }
+
+    @Override
+    public Optional<SFMClientActionDescriptor> programmaticDescriptor() {
+        return Optional.of(PROGRAMMATIC_DESCRIPTOR);
+    }
+
+    /** A typed program contract; the existing human Brigadier grammar is unchanged. */
+    private static SFMClientActionDescriptor createProgrammaticDescriptor() {
+        SFMValueSchema direction = SFMValueSchema.union(List.of(
+                SFMValueSchema.literal(SFMValue.of("down")),
+                SFMValueSchema.literal(SFMValue.of("up")),
+                SFMValueSchema.literal(SFMValue.of("north")),
+                SFMValueSchema.literal(SFMValue.of("south")),
+                SFMValueSchema.literal(SFMValue.of("west")),
+                SFMValueSchema.literal(SFMValue.of("east"))
+        ));
+        SFMValueSchema input = SFMValueSchema.object(Map.of(
+                "dimension", SFMValueSchema.Field.required(SFMValueSchema.string(1, 256)),
+                "x", SFMValueSchema.Field.required(SFMValueSchema.integer(Integer.MIN_VALUE, Integer.MAX_VALUE)),
+                "y", SFMValueSchema.Field.required(SFMValueSchema.integer(Integer.MIN_VALUE, Integer.MAX_VALUE)),
+                "z", SFMValueSchema.Field.required(SFMValueSchema.integer(Integer.MIN_VALUE, Integer.MAX_VALUE)),
+                "side", SFMValueSchema.Field.optional(SFMValueSchema.optional(direction)),
+                "value", SFMValueSchema.Field.required(SFMValueSchema.any())
+        ), false);
+        SFMValueSchema status = SFMValueSchema.union(List.of(
+                SFMValueSchema.literal(SFMValue.of("send_attempted")),
+                SFMValueSchema.literal(SFMValue.of("effects_disabled")),
+                SFMValueSchema.literal(SFMValue.of("session_changed")),
+                SFMValueSchema.literal(SFMValue.of("no_session"))
+        ));
+        SFMValueSchema result = SFMValueSchema.object(Map.of(
+                "status", SFMValueSchema.Field.required(status),
+                "local_transport_accepted", SFMValueSchema.Field.required(SFMValueSchema.bool())
+        ), true);
+        return new SFMClientActionDescriptor(
+                PROGRAMMATIC_ID,
+                input,
+                result,
+                SFMClientActionDescriptor.ExecutionSide.CLIENT,
+                PROGRAMMATIC_ID,
+                SFMPacketSendAction::resolveProgrammaticScope,
+                SFMClientActionDescriptor.CostClass.SERVER_EFFECT,
+                SFMClientActionDescriptor.Acknowledgement.LOCAL_TRANSPORT_ATTEMPT_ONLY,
+                Map.of(
+                        "send_attempted", SFMClientActionDescriptor.StatusKind.ATTEMPTED,
+                        "effects_disabled", SFMClientActionDescriptor.StatusKind.REJECTED,
+                        "session_changed", SFMClientActionDescriptor.StatusKind.REJECTED,
+                        "no_session", SFMClientActionDescriptor.StatusKind.REJECTED
+                )
+        );
+    }
+
+    private static SFMClientActionDescriptor.InputCheck resolveProgrammaticScope(SFMValue input) {
+        Map<String, SFMValue> fields = ((SFMValue.ObjectValue) input).fields();
+        try {
+            SFMValueJsonCodec.encode(fields.get("value"));
+        } catch (IllegalArgumentException invalid) {
+            return new SFMClientActionDescriptor.InputCheck.Rejected(
+                    new SFMValueSchema.Failure("packet_value_out_of_bounds", "/value")
+            );
+        }
+        String dimension = ((SFMValue.StringValue) fields.get("dimension")).value();
+        try {
+            ResourceLocation parsed = new ResourceLocation(dimension);
+            if (dimension.indexOf(':') <= 0 || !parsed.toString().equals(dimension)) {
+                throw new IllegalArgumentException("non-canonical dimension");
+            }
+        } catch (RuntimeException invalid) {
+            return new SFMClientActionDescriptor.InputCheck.Rejected(
+                    new SFMValueSchema.Failure("invalid_identifier", "/dimension")
+            );
+        }
+        SFMValue subject = SFMValue.object(Map.of(
+                "dimension", fields.get("dimension"),
+                "x", fields.get("x"),
+                "y", fields.get("y"),
+                "z", fields.get("z"),
+                "side", fields.getOrDefault("side", SFMValue.nullValue())
+        ));
+        return new SFMClientActionDescriptor.InputCheck.Accepted(List.of(
+                new SFMClientActionDescriptor.DataScope(PROGRAMMATIC_ID, subject)
+        ));
     }
 
     @Override
