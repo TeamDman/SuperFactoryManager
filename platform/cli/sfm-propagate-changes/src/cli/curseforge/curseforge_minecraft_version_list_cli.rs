@@ -12,17 +12,17 @@ use figue as args;
 use tracing::info;
 
 /// Arguments for listing Minecraft game versions from CurseForge.
-#[derive(Facet, Debug)]
+#[derive(Facet)]
 pub struct CurseforgeMinecraftVersionListArgs {
     /// Branch selector expression.
     #[facet(args::named)]
     pub branch: BranchSelector,
 
     /// CurseForge API token (optional for this endpoint).
-    #[facet(default, args::named)]
+    #[facet(default, sensitive, args::named)]
     pub token: Option<String>,
 
-    /// 1Password secret reference used when token is omitted and env var is missing.
+    /// Explicit author token reference; no implicit environment or 1Password lookup.
     #[facet(default, args::named)]
     pub op_secret: Option<String>,
 }
@@ -78,4 +78,11 @@ fn list_minecraft_versions(
     }
 
     Ok(())
+}
+
+impl std::fmt::Debug for CurseforgeMinecraftVersionListArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CurseforgeMinecraftVersionListArgs")
+            .finish_non_exhaustive()
+    }
 }

@@ -1,7 +1,7 @@
+use crate::curseforge::CurseforgeHttpClient;
 use crate::curseforge::CurseforgeProjectFileItem;
 use crate::curseforge::CurseforgeProjectId;
 use facet::Facet;
-use reqwest::blocking::Client;
 
 pub const CURSEFORGE_CORE_API_ROOT: &str = "https://api.curseforge.com/v1";
 const MINECRAFT_GAME_ID: u32 = 432;
@@ -135,7 +135,7 @@ pub trait CurseforgeProjectMetadata {
     ) -> eyre::Result<CurseforgeProjectFileItem>;
 }
 
-impl CurseforgeProjectMetadata for Client {
+impl CurseforgeProjectMetadata for CurseforgeHttpClient {
     fn fetch_project(&self, project_id: CurseforgeProjectId) -> eyre::Result<CurseforgeMod> {
         fetch_project(self, project_id)
     }
@@ -156,7 +156,7 @@ impl CurseforgeProjectMetadata for Client {
 /// Returns an error when the query is empty, the API request fails, or a paginated response is
 /// malformed.
 pub fn search_mods(
-    client: &Client,
+    client: &CurseforgeHttpClient,
     query: &str,
     minecraft_version: &str,
     loader: CurseforgeModLoader,
@@ -192,7 +192,7 @@ pub fn search_mods(
 ///
 /// Returns an error when the API request fails or a paginated response is malformed.
 pub fn list_project_files_for_version(
-    client: &Client,
+    client: &CurseforgeHttpClient,
     project_id: CurseforgeProjectId,
     minecraft_version: &str,
     loader: CurseforgeModLoader,
@@ -263,7 +263,7 @@ pub fn file_supported_loaders(file: &CurseforgeProjectFileItem) -> Vec<Curseforg
 /// Returns an error when the request fails, the response is invalid, or its `modId` does not match
 /// `project_id`.
 pub fn fetch_project_file(
-    client: &Client,
+    client: &CurseforgeHttpClient,
     project_id: CurseforgeProjectId,
     file_id: crate::curseforge::CurseforgeProjectFileId,
 ) -> eyre::Result<CurseforgeProjectFileItem> {
@@ -271,7 +271,7 @@ pub fn fetch_project_file(
 }
 
 fn fetch_project_file_at(
-    client: &Client,
+    client: &CurseforgeHttpClient,
     api_root: &str,
     project_id: CurseforgeProjectId,
     file_id: crate::curseforge::CurseforgeProjectFileId,
@@ -296,14 +296,14 @@ fn fetch_project_file_at(
 ///
 /// Returns an error when the request fails or the API response is invalid.
 pub fn fetch_project(
-    client: &Client,
+    client: &CurseforgeHttpClient,
     project_id: CurseforgeProjectId,
 ) -> eyre::Result<CurseforgeMod> {
     fetch_project_at(client, CURSEFORGE_CORE_API_ROOT, project_id)
 }
 
 fn fetch_project_at(
-    client: &Client,
+    client: &CurseforgeHttpClient,
     api_root: &str,
     project_id: CurseforgeProjectId,
 ) -> eyre::Result<CurseforgeMod> {
@@ -320,12 +320,12 @@ fn fetch_project_at(
 }
 
 fn get_core_response(
-    client: &Client,
+    client: &CurseforgeHttpClient,
     endpoint: &str,
     parameters: &[(&str, String)],
 ) -> eyre::Result<String> {
     let response = client
-        .get(endpoint)
+        .get(endpoint)?
         .query(parameters)
         .send()
         .map_err(|error| eyre::eyre!("Failed to query CurseForge Core API {endpoint}: {error}"))?;
@@ -490,14 +490,16 @@ mod tests {
 
     #[test]
     fn exact_project_and_file_requests_surface_not_found_responses() {
-        let client = Client::builder()
+        let client = reqwest::blocking::Client::builder()
             .no_proxy()
             .build()
             .expect("test HTTP client");
         let project_server = serve_one_response("404 Not Found", "unknown project");
+        let project_client =
+            CurseforgeHttpClient::test_client(client.clone(), project_server.endpoint().to_owned());
 
         let project_error = fetch_project_at(
-            &client,
+            &project_client,
             project_server.endpoint(),
             CurseforgeProjectId(268_560),
         )
@@ -506,9 +508,11 @@ mod tests {
         assert!(project_error.to_string().contains("404 Not Found"));
         assert!(project_error.to_string().contains("unknown project"));
         let file_server = serve_one_response("404 Not Found", "unknown file");
+        let file_client =
+            CurseforgeHttpClient::test_client(client, file_server.endpoint().to_owned());
 
         let file_error = fetch_project_file_at(
-            &client,
+            &file_client,
             file_server.endpoint(),
             CurseforgeProjectId(268_560),
             CurseforgeProjectFileId(4_644_795),

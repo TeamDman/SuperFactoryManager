@@ -39,7 +39,7 @@ use figue as args;
 use std::collections::BTreeSet;
 use std::path::PathBuf;
 
-#[derive(Facet, Debug)]
+#[derive(Facet)]
 pub struct DependencyAddArgs {
     /// Stable logical dependency ID.
     #[facet(args::positional)]
@@ -63,12 +63,12 @@ pub struct DependencyAddArgs {
     #[facet(default, args::named)]
     pub(crate) role: Option<DependencyRoleV3>,
     /// `CurseForge` Core API key used only to validate exact project/file metadata.
-    #[facet(default, args::named)]
+    #[facet(default, sensitive, args::named)]
     pub curseforge_api_key: Option<String>,
-    /// Legacy `CurseForge` API token fallback; prefer `--curseforge-api-key`.
-    #[facet(default, args::named)]
+    /// Rejected legacy author-token argument; use discovery login or a Core API key.
+    #[facet(default, sensitive, args::named)]
     pub curseforge_token: Option<String>,
-    /// 1Password secret reference used when no `CurseForge` API key is configured.
+    /// Rejected implicit-secret argument; use `curseforge auth login --op-secret` instead.
     #[facet(default, args::named)]
     pub curseforge_op_secret: Option<String>,
     /// Semantic scope. Repeat for every required scope.
@@ -121,7 +121,7 @@ impl DependencyAddArgs {
                     self.curseforge_token.clone(),
                     self.curseforge_op_secret.clone(),
                 )?;
-                let client = CurseforgeHttpClient::new_core_api(&key)?;
+                let client = CurseforgeHttpClient::new_core_api(key)?;
                 add_curseforge_dependency(
                     inventory,
                     &self,
@@ -250,7 +250,7 @@ pub(super) fn add_component(
         evidence,
         append_artifact,
     );
-    let output = inventory.lockfile.to_canonical_json()?;
+    let output = inventory.to_canonical_json()?;
     write_lockfile_atomically(
         &inventory.lockfile_path,
         &inventory.original_input,
@@ -443,7 +443,7 @@ fn add_curseforge_dependency(
             },
         },
     );
-    let output = inventory.lockfile.to_canonical_json()?;
+    let output = inventory.to_canonical_json()?;
     write_lockfile_atomically(
         &inventory.lockfile_path,
         &inventory.original_input,
@@ -978,3 +978,9 @@ impl MavenCoordinate {
 #[cfg(test)]
 #[path = "dependency_add_tests.rs"]
 mod tests;
+
+impl std::fmt::Debug for DependencyAddArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DependencyAddArgs").finish_non_exhaustive()
+    }
+}

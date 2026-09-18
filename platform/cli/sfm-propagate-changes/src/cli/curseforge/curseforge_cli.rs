@@ -10,6 +10,7 @@ use crate::branch_targets::select_required_minecraft_versions;
 use crate::curseforge::CurseforgeAmendFilePayload;
 use crate::curseforge::CurseforgeGameVersion;
 use crate::curseforge::CurseforgeGameVersionId;
+use crate::curseforge::CurseforgeHttpClient;
 use crate::curseforge::CurseforgeProjectFileHash;
 use crate::curseforge::CurseforgeProjectFileId;
 use crate::curseforge::CurseforgeProjectFileItem;
@@ -107,13 +108,13 @@ pub(super) fn resolve_project_id(project: Option<u64>) -> eyre::Result<Curseforg
 }
 
 pub(super) fn fetch_project_files(
-    client: &Client,
+    client: &CurseforgeHttpClient,
     project_id: CurseforgeProjectId,
     credential_source: &str,
 ) -> eyre::Result<Vec<CurseforgeProjectFileItem>> {
     let url = format!("{CURSEFORGE_CORE_API_ROOT}/mods/{project_id}/files");
     let response = client
-        .get(&url)
+        .get(&url)?
         .send()
         .wrap_err_with(|| format!("Failed to query project files: {url}"))?;
 
@@ -128,7 +129,7 @@ pub(super) fn fetch_project_files(
             eyre::bail!(
                 "CurseForge project files API failed (403 Forbidden) using credential from: {credential_source}.\n\
                  Ensure this is a CurseForge Core API key (x-api-key), not the upload token.\n\
-                 You can override with --api-key or --op-secret '<core-api-key-secret-ref>'."
+                 Use curseforge auth login --purpose discovery --ttl 20m, or an explicit Core API key."
             );
         }
 
@@ -395,7 +396,7 @@ pub(super) fn format_age(value: Duration) -> String {
 }
 
 pub(super) fn amend_file_changelog(
-    client: &Client,
+    client: &CurseforgeHttpClient,
     project_id: CurseforgeProjectId,
     file_id: CurseforgeProjectFileId,
     display_name: &str,
@@ -414,7 +415,7 @@ pub(super) fn amend_file_changelog(
 
     let url = format!("{CURSEFORGE_API_ROOT}/projects/{project_id}/update-file");
     let response = client
-        .post(&url)
+        .post(&url)?
         .multipart(form)
         .send()
         .wrap_err_with(|| format!("Failed to amend CurseForge file {file_id}"))?;
@@ -438,7 +439,7 @@ pub(super) fn amend_file_changelog(
 }
 
 pub(super) fn upload_project_file(
-    client: &Client,
+    client: &CurseforgeHttpClient,
     project_id: CurseforgeProjectId,
     jar_path: &Path,
     metadata: &UploadMetadata,
@@ -457,10 +458,11 @@ pub(super) fn upload_project_file(
         })?;
 
     let url = format!("{CURSEFORGE_API_ROOT}/projects/{project_id}/upload-file");
-    let response =
-        client.post(&url).multipart(form).send().wrap_err_with(|| {
-            format!("Failed to upload jar to CurseForge: {}", jar_path.display())
-        })?;
+    let response = client
+        .post(&url)?
+        .multipart(form)
+        .send()
+        .wrap_err_with(|| format!("Failed to upload jar to CurseForge: {}", jar_path.display()))?;
 
     let status = response.status();
     let body = response
@@ -619,10 +621,12 @@ pub(super) fn parse_mc_version_from_jar_name(jar_path: &Path) -> eyre::Result<St
     Ok(version.to_string())
 }
 
-pub(super) fn fetch_game_versions(client: &Client) -> eyre::Result<Vec<CurseforgeGameVersion>> {
+pub(super) fn fetch_game_versions(
+    client: &CurseforgeHttpClient,
+) -> eyre::Result<Vec<CurseforgeGameVersion>> {
     let url = format!("{CURSEFORGE_API_ROOT}/game/versions");
     let response = client
-        .get(&url)
+        .get(&url)?
         .send()
         .wrap_err_with(|| format!("Failed to query game versions: {url}"))?;
 
@@ -655,8 +659,10 @@ pub(super) fn find_sha1_hash(hashes: &[CurseforgeProjectFileHash]) -> Option<Str
     })
 }
 
-pub(super) fn download_sha1(client: &Client, url: &str) -> eyre::Result<String> {
-    let response = client
+pub(super) fn download_sha1(_client: &CurseforgeHttpClient, url: &str) -> eyre::Result<String> {
+    let response = Client::builder()
+        .timeout(Duration::from_mins(2))
+        .build()?
         .get(url)
         .send()
         .wrap_err_with(|| format!("Failed to download file from {url}"))?;

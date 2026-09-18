@@ -27,7 +27,7 @@ use std::ffi::OsStr;
 use tracing::info;
 
 /// Arguments for uploading release jars to CurseForge.
-#[derive(Facet, Debug)]
+#[derive(Facet)]
 pub struct CurseforgeReleaseNowArgs {
     /// Branch selector expression.
     #[facet(args::named)]
@@ -37,11 +37,11 @@ pub struct CurseforgeReleaseNowArgs {
     #[facet(default, args::named)]
     pub project: Option<u64>,
 
-    /// CurseForge API token; if omitted, CURSEFORGE_API_TOKEN is used, then 1Password lookup.
-    #[facet(default, args::named)]
+    /// Explicit author API token; prefer --op-secret to avoid secrets in shell arguments.
+    #[facet(default, sensitive, args::named)]
     pub token: Option<String>,
 
-    /// 1Password secret reference used for Core API key lookup.
+    /// Explicit author token reference for this upload invocation.
     #[facet(default, args::named)]
     pub op_secret: Option<String>,
 
@@ -225,4 +225,11 @@ fn release_now(
     info!("{}", curseforge_files_url(project_id));
 
     Ok(())
+}
+
+impl std::fmt::Debug for CurseforgeReleaseNowArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CurseforgeReleaseNowArgs")
+            .finish_non_exhaustive()
+    }
 }

@@ -75,7 +75,7 @@ impl DependencySourceConfigureArgs {
         let provider =
             configure_source_provider(&inventory, selected, configuration, cancellation_token)?;
         replace_source_provider(&mut inventory, selected, provider.clone(), prefer);
-        let output = inventory.lockfile.to_canonical_json()?;
+        let output = inventory.to_canonical_json()?;
         write_lockfile_atomically(
             &inventory.lockfile_path,
             &inventory.original_input,

@@ -30,7 +30,7 @@ use std::time::Duration;
 use tracing::info;
 
 /// Arguments for amending CurseForge changelogs for current release jars.
-#[derive(Facet, Debug)]
+#[derive(Facet)]
 pub struct CurseforgeReleaseAmendArgs {
     /// Branch selector expression.
     #[facet(args::named)]
@@ -41,14 +41,14 @@ pub struct CurseforgeReleaseAmendArgs {
     pub project: Option<u64>,
 
     /// CurseForge Core API key; if omitted, CURSEFORGE_CORE_API_KEY is used.
-    #[facet(default, args::named)]
+    #[facet(default, sensitive, args::named)]
     pub api_key: Option<String>,
 
-    /// CurseForge API token; if omitted, CURSEFORGE_API_TOKEN is used, then 1Password lookup.
-    #[facet(default, args::named)]
+    /// Explicit author API token; prefer --op-secret to avoid secrets in shell arguments.
+    #[facet(default, sensitive, args::named)]
     pub token: Option<String>,
 
-    /// 1Password secret reference used when credentials are omitted.
+    /// Explicit author token reference for publishing; discovery uses its separate login.
     #[facet(default, args::named)]
     pub op_secret: Option<String>,
 
@@ -104,7 +104,7 @@ fn release_amend(
     let upload_client = if dry_run {
         None
     } else {
-        let token_value = CurseforgeApiSecret::resolve(token.clone(), op_secret.clone())?;
+        let token_value = CurseforgeApiSecret::resolve(token, op_secret)?;
         Some(CurseforgeHttpClient::new(&token_value)?)
     };
 
@@ -126,9 +126,8 @@ fn release_amend(
         }
     }
 
-    let (core_key, credential_source) =
-        CurseforgeApiSecret::resolve_core(api_key, token, op_secret)?;
-    let client = CurseforgeHttpClient::new_core_api(&core_key)?;
+    let (core_key, credential_source) = CurseforgeApiSecret::resolve_core(api_key, None, None)?;
+    let client = CurseforgeHttpClient::new_core_api(core_key)?;
     let files = fetch_project_files(&client, project_id, &credential_source)?;
 
     let safety_age_text = safety_age.unwrap_or_else(|| DEFAULT_AMEND_SAFETY_AGE.to_string());
@@ -258,4 +257,11 @@ fn release_amend(
     );
 
     Ok(())
+}
+
+impl std::fmt::Debug for CurseforgeReleaseAmendArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CurseforgeReleaseAmendArgs")
+            .finish_non_exhaustive()
+    }
 }

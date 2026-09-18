@@ -1,5 +1,8 @@
 mod curseforge_amend_file_payload;
 mod curseforge_api_secret;
+mod curseforge_auth;
+#[cfg(windows)]
+mod curseforge_auth_windows;
 mod curseforge_discovery;
 mod curseforge_game_version;
 mod curseforge_game_version_id;
@@ -18,6 +21,7 @@ mod upload_plan;
 
 pub use curseforge_amend_file_payload::*;
 pub use curseforge_api_secret::*;
+pub use curseforge_auth::*;
 pub use curseforge_discovery::*;
 pub use curseforge_game_version::*;
 pub use curseforge_game_version_id::*;

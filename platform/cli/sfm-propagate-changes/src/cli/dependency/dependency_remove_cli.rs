@@ -99,7 +99,7 @@ fn remove_target(mut inventory: DependencyInventory, target: &str) -> eyre::Resu
             false
         }
     });
-    let output = inventory.lockfile.to_canonical_json()?;
+    let output = inventory.to_canonical_json()?;
     write_lockfile_atomically(
         &inventory.lockfile_path,
         &inventory.original_input,

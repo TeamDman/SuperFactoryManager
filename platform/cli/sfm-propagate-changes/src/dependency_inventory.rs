@@ -3,6 +3,9 @@ use crate::branch_targets::WorktreeTarget;
 use crate::branch_targets::select_single_worktree_target;
 use crate::paths::CacheHome;
 use crate::source_provider::SourceProviderView;
+use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
+use crate::toolchain_lockfile_schema::parse_document;
+#[cfg(test)]
 use crate::toolchain_lockfile_schema::read_current;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactV3;
@@ -38,7 +41,7 @@ impl DependencyInventory {
             .join("sfm-toolchain.lock.json");
         let input = std::fs::read_to_string(&lockfile_path)
             .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
-        let lockfile = read_current(&input)
+        let lockfile = read_editable(&input)
             .wrap_err_with(|| format!("Failed to load {}", lockfile_path.display()))?;
         Ok(Self {
             target,
@@ -51,6 +54,26 @@ impl DependencyInventory {
 
     pub fn dependencies(&self) -> impl Iterator<Item = &DependencyV3> {
         self.lockfile.dependencies.iter()
+    }
+
+    /// Persist edits without replacing schema-4 feature/profile authority with a runtime projection.
+    pub(crate) fn to_canonical_json(&self) -> eyre::Result<String> {
+        match parse_document(&self.original_input)? {
+            ToolchainLockfileDocument::V4(mut document) => {
+                document.platform = self.lockfile.platform.clone();
+                document.policy = self.lockfile.policy.clone();
+                document
+                    .repositories
+                    .clone_from(&self.lockfile.repositories);
+                document
+                    .dependencies
+                    .clone_from(&self.lockfile.dependencies);
+                document.artifacts.clone_from(&self.lockfile.artifacts);
+                document.to_canonical_json()
+            }
+            ToolchainLockfileDocument::V3(_) => self.lockfile.to_canonical_json(),
+            _ => eyre::bail!("Dependency editing requires schema version 3 or 4"),
+        }
     }
 
     pub fn dependency(&self, id: &str) -> eyre::Result<&DependencyV3> {
@@ -144,6 +167,23 @@ impl DependencyInventory {
             .iter()
             .enumerate()
             .map(|(priority, provider)| SourceProviderView::new(self, provider, priority))
+    }
+}
+
+fn read_editable(input: &str) -> eyre::Result<ArtifactLockfileV3> {
+    match parse_document(input)? {
+        ToolchainLockfileDocument::V3(document) => Ok(document),
+        ToolchainLockfileDocument::V4(document) => Ok(ArtifactLockfileV3 {
+            schema_version: crate::toolchain_lockfile_schema::version::v3::SCHEMA_VERSION,
+            platform: document.platform,
+            policy: document.policy,
+            repositories: document.repositories,
+            dependencies: document.dependencies,
+            artifacts: document.artifacts,
+        }),
+        _ => eyre::bail!(
+            "Dependency editing requires schema version 3 or 4; run dependency migrate first"
+        ),
     }
 }
 
@@ -270,6 +310,51 @@ mod tests {
     use crate::branch_targets::WorktreePath;
     use crate::jar_build::hash::ContentHash;
     use crate::jar_build::hash::ContentHashAlgorithm;
+
+    #[test]
+    fn editing_preserves_schema_four_profiles_and_inactive_components() {
+        let input = include_str!("../../../minecraft/sfm-toolchain.lock.json");
+        let ToolchainLockfileDocument::V4(mut original) = parse_document(input).unwrap() else {
+            panic!("expected schema-4 fixture");
+        };
+        original
+            .profiles
+            .iter_mut()
+            .find(|p| p.id == "rust-toolchain")
+            .unwrap()
+            .features
+            .clear();
+        let input = original.to_canonical_json().unwrap();
+        let mut inventory = fixture(CacheHome(PathBuf::from("unused-cache")));
+        inventory.lockfile = read_editable(&input).unwrap();
+        inventory.original_input = input;
+        assert_eq!(inventory.lockfile.dependencies, original.dependencies);
+        let vox = inventory
+            .lockfile
+            .dependencies
+            .iter_mut()
+            .find(|d| d.id == "vox-java")
+            .unwrap();
+        vox.notes = Some("edited without activating feature".to_owned());
+        let output = inventory.to_canonical_json().unwrap();
+        let ToolchainLockfileDocument::V4(updated) = parse_document(&output).unwrap() else {
+            panic!("editing must not downgrade the schema");
+        };
+        assert_eq!(updated.features, original.features);
+        assert_eq!(updated.profiles, original.profiles);
+        assert_eq!(updated.artifacts, original.artifacts);
+        assert_eq!(updated.dependencies.len(), original.dependencies.len());
+        assert_eq!(
+            updated
+                .dependencies
+                .iter()
+                .find(|d| d.id == "vox-java")
+                .unwrap()
+                .notes
+                .as_deref(),
+            Some("edited without activating feature")
+        );
+    }
 
     #[test]
     fn injected_cache_reports_missing_stale_and_acquired_bytes() {

@@ -23,7 +23,7 @@ use figue as args;
 use tracing::info;
 
 /// Arguments for validating remote CurseForge files against local release jars.
-#[derive(Facet, Debug)]
+#[derive(Facet)]
 pub struct CurseforgeReleaseValidateArgs {
     /// Branch selector expression.
     #[facet(args::named)]
@@ -34,14 +34,14 @@ pub struct CurseforgeReleaseValidateArgs {
     pub project: Option<u64>,
 
     /// CurseForge Core API key; if omitted, CURSEFORGE_CORE_API_KEY is used.
-    #[facet(default, args::named)]
+    #[facet(default, sensitive, args::named)]
     pub api_key: Option<String>,
 
-    /// CurseForge API token; if omitted, CURSEFORGE_API_TOKEN is used, then 1Password lookup.
-    #[facet(default, args::named)]
+    /// Explicit author API token; prefer --op-secret to avoid secrets in shell arguments.
+    #[facet(default, sensitive, args::named)]
     pub token: Option<String>,
 
-    /// 1Password secret reference used when credentials are omitted.
+    /// Explicit author token reference for publishing; discovery uses its separate login.
     #[facet(default, args::named)]
     pub op_secret: Option<String>,
 }
@@ -81,7 +81,7 @@ fn validate_release_hashes(
 
     let (core_key, credential_source) =
         CurseforgeApiSecret::resolve_core(api_key, token, op_secret)?;
-    let core_client = CurseforgeHttpClient::new_core_api(&core_key)?;
+    let core_client = CurseforgeHttpClient::new_core_api(core_key)?;
     let project_files = fetch_project_files(&core_client, project_id, &credential_source)?;
 
     info!("{} {}", "Project ID:".cyan().bold(), project_id);
@@ -172,4 +172,11 @@ fn validate_release_hashes(
     );
 
     Ok(())
+}
+
+impl std::fmt::Debug for CurseforgeReleaseValidateArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CurseforgeReleaseValidateArgs")
+            .finish_non_exhaustive()
+    }
 }

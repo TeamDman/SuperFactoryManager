@@ -1,3 +1,4 @@
+use super::CurseforgeAuthArgs;
 use super::CurseforgeMinecraftArgs;
 use super::CurseforgeModArgs;
 use super::CurseforgePopularArgs;
@@ -27,6 +28,8 @@ impl CurseforgeArgs {
 #[derive(Facet, Debug)]
 #[repr(u8)]
 pub enum CurseforgeCommand {
+    /// Explicit, expiring discovery authentication
+    Auth(CurseforgeAuthArgs),
     /// Project-related operations
     Project(CurseforgeProjectArgs),
     /// Minecraft metadata operations
@@ -45,6 +48,7 @@ impl CurseforgeCommand {
     /// This function will return an error if the subcommand fails.
     pub fn invoke(self) -> eyre::Result<()> {
         match self {
+            Self::Auth(args) => args.invoke(),
             Self::Project(args) => args.invoke(),
             Self::Minecraft(args) => args.invoke(),
             Self::Mod(args) => args.invoke(),

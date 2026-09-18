@@ -8,7 +8,7 @@ use facet::Facet;
 use figue as args;
 
 /// Search `CurseForge` projects without changing an SFM lockfile.
-#[derive(Facet, Debug)]
+#[derive(Facet)]
 pub struct CurseforgeModSearchArgs {
     /// Name or keyword to search for.
     #[facet(args::positional)]
@@ -19,13 +19,13 @@ pub struct CurseforgeModSearchArgs {
     /// Mod loader to match.
     #[facet(args::named)]
     pub loader: CurseforgeModLoader,
-    /// `CurseForge` Core API key; if omitted, configured secret sources are tried.
-    #[facet(default, args::named)]
+    /// Explicit Core API key; otherwise use its environment variable or a discovery lease.
+    #[facet(default, sensitive, args::named)]
     pub api_key: Option<String>,
-    /// Legacy API token fallback; prefer `--api-key` for Core API queries.
-    #[facet(default, args::named)]
+    /// Removed author-token fallback; use explicit discovery login instead.
+    #[facet(default, sensitive, args::named)]
     pub token: Option<String>,
-    /// 1Password secret reference used when no API key is configured.
+    /// Removed implicit lookup; pass this option to auth login instead.
     #[facet(default, args::named)]
     pub op_secret: Option<String>,
 }
@@ -37,7 +37,7 @@ impl CurseforgeModSearchArgs {
     pub fn invoke(self) -> eyre::Result<()> {
         let (key, _credential_source) =
             CurseforgeApiSecret::resolve_core(self.api_key, self.token, self.op_secret)?;
-        let client = CurseforgeHttpClient::new_core_api(&key)?;
+        let client = CurseforgeHttpClient::new_core_api(key)?;
         let mods = search_mods(&client, &self.query, &self.minecraft, self.loader)?;
         print_mods(&mods)
     }
@@ -79,5 +79,12 @@ mod tests {
         };
         assert_eq!(mod_.id.to_string(), "268560");
         assert_eq!(mod_.slug.as_deref(), Some("mekanism"));
+    }
+}
+
+impl std::fmt::Debug for CurseforgeModSearchArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CurseforgeModSearchArgs")
+            .finish_non_exhaustive()
     }
 }

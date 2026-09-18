@@ -11,18 +11,18 @@ use figue as args;
 use tracing::info;
 
 /// Arguments for listing CurseForge project files.
-#[derive(Facet, Debug)]
+#[derive(Facet)]
 pub struct CurseforgeProjectFileListArgs {
     /// CurseForge project ID (defaults to configured default project).
     #[facet(default, args::named)]
     pub project: Option<u64>,
 
     /// CurseForge Core API key; if omitted, CURSEFORGE_CORE_API_KEY is used.
-    #[facet(default, args::named)]
+    #[facet(default, sensitive, args::named)]
     pub api_key: Option<String>,
 
-    /// CurseForge API token; if omitted, CURSEFORGE_API_TOKEN is used, then 1Password lookup.
-    #[facet(default, args::named)]
+    /// Explicit author API token; prefer --op-secret to avoid secrets in shell arguments.
+    #[facet(default, sensitive, args::named)]
     pub token: Option<String>,
 
     /// 1Password secret reference used when token is omitted.
@@ -58,7 +58,7 @@ fn list_project_files(
 ) -> eyre::Result<()> {
     let project_id = resolve_project_id(project)?;
     let (key, credential_source) = CurseforgeApiSecret::resolve_core(api_key, token, op_secret)?;
-    let client = CurseforgeHttpClient::new_core_api(&key)?;
+    let client = CurseforgeHttpClient::new_core_api(key)?;
     let mut files = fetch_project_files(&client, project_id, &credential_source)?;
 
     if popular {
@@ -117,4 +117,11 @@ fn print_file(file: &CurseforgeProjectFileItem) {
         file_status,
         game_versions
     );
+}
+
+impl std::fmt::Debug for CurseforgeProjectFileListArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CurseforgeProjectFileListArgs")
+            .finish_non_exhaustive()
+    }
 }

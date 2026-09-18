@@ -136,18 +136,18 @@ impl CurseforgePopularListArgs {
 }
 
 /// Arguments for syncing the local popular cache from CurseForge.
-#[derive(Facet, Debug)]
+#[derive(Facet)]
 pub struct CurseforgePopularSyncArgs {
     /// CurseForge project ID (defaults to configured default project).
     #[facet(default, args::named)]
     pub project: Option<u64>,
 
     /// CurseForge Core API key; if omitted, CURSEFORGE_CORE_API_KEY is used.
-    #[facet(default, args::named)]
+    #[facet(default, sensitive, args::named)]
     pub api_key: Option<String>,
 
-    /// CurseForge API token; if omitted, CURSEFORGE_API_TOKEN is used, then 1Password lookup.
-    #[facet(default, args::named)]
+    /// Explicit author API token; prefer --op-secret to avoid secrets in shell arguments.
+    #[facet(default, sensitive, args::named)]
     pub token: Option<String>,
 
     /// 1Password secret reference used when token is omitted.
@@ -228,7 +228,7 @@ fn sync_popular_minecraft_versions(
 ) -> eyre::Result<()> {
     let project_id = resolve_project_id(project)?;
     let (key, credential_source) = CurseforgeApiSecret::resolve_core(api_key, token, op_secret)?;
-    let core_client = CurseforgeHttpClient::new_core_api(&key)?;
+    let core_client = CurseforgeHttpClient::new_core_api(key)?;
     let public_client = Client::builder()
         .timeout(Duration::from_mins(2))
         .build()
@@ -310,4 +310,11 @@ struct CurseforgePublicFileEnvelope {
 struct CurseforgePublicFile {
     #[facet(rename = "totalDownloads")]
     total_downloads: u64,
+}
+
+impl std::fmt::Debug for CurseforgePopularSyncArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CurseforgePopularSyncArgs")
+            .finish_non_exhaustive()
+    }
 }

@@ -55,18 +55,44 @@ gap and prints the typed `dependency source acquire` command needed to populate 
 version/loader-filtered files with `curseforge mod search` and `curseforge mod files`, then choose
 the exact IDs yourself. `dependency add` accepts both `--curseforge-project` and
 `--curseforge-file`, validates them through the Core API, and resolves only the resulting
-CurseMaven coordinate. Core API credentials resolve from `--api-key`, then
-`CURSEFORGE_CORE_API_KEY`, then an explicit or configured `1Password` secret. For a sequence of
-read-only discovery commands, set that environment variable once in the current shell instead of
-placing a key on the command line:
+CurseMaven coordinate. Dependency edits preserve schema-4 features and profiles, including
+components that are inactive in the current build profile.
+
+## Temporary CurseForge discovery login
+
+On Windows, authorize a bounded discovery session explicitly:
 
 ```pwsh
-$env:CURSEFORGE_CORE_API_KEY = & op read '<your-1password-secret-reference>'
+cargo run -- curseforge auth login --purpose discovery --ttl 20m
 cargo run -- curseforge mod search Mekanism --minecraft 1.19.2 --loader forge
 cargo run -- curseforge mod files 268560 --minecraft 1.19.2 --loader forge
+cargo run -- curseforge auth status
+cargo run -- curseforge auth logout
 ```
 
-This keeps the key out of command history and prompts `1Password` only once for that shell.
+Only `auth login` reads the configured Core API key from 1Password. Pass
+`--op-secret '<Core-key-reference>'` to login to select a different item. A TTL of 1 second
+through 1 hour is required; use `10m`, `20m` or `1h`. Repeated discovery commands reuse the lease
+without opening further 1Password prompts. Missing or expired authentication fails with a login
+command rather than silently requesting a secret.
+
+The lease is DPAPI-encrypted for the current Windows user and stored outside the repository in
+the application's private local-data directory with a user-only ACL. A native scheduled task
+deletes its exact lease file and unregisters itself. It can catch up after a missed run, and it
+cannot delete a newer lease. Request-time expiry checks do not depend on the task running on time.
+The `auth cleanup --lease <generated-name>` command is the task's narrow cleanup entry point;
+it does not accept arbitrary file paths. Logout removes all of this application's discovery
+leases, not the underlying API key. Expiry also does not revoke that key upstream, and DPAPI is
+not protection against another process running as the same Windows user.
+
+Explicit `--api-key` and `CURSEFORGE_CORE_API_KEY` remain available, including on other platforms.
+They are process-supplied credentials, not TTL-managed leases; prefer login over putting secrets
+on command lines. Discovery never falls back to an author/upload token and only sends its key
+to the Core API origin for GET requests. Download URLs use an unauthenticated client.
+
+Publishing uses the separate author API and requires explicit per-invocation authorization:
+`--op-secret '<author-token-reference>'` or `--token`. It cannot use discovery leases or silently
+inherit `CURSEFORGE_API_TOKEN`. No upload is performed by login, search or file listing.
 
 ## Cross-version source audit
 

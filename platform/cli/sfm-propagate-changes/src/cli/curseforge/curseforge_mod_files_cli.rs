@@ -10,7 +10,7 @@ use facet::Facet;
 use figue as args;
 
 /// List `CurseForge` files for one selected project without changing an SFM lockfile.
-#[derive(Facet, Debug)]
+#[derive(Facet)]
 pub struct CurseforgeModFilesArgs {
     /// Exact `CurseForge` project ID chosen from `curseforge mod search`.
     #[facet(args::positional)]
@@ -21,13 +21,13 @@ pub struct CurseforgeModFilesArgs {
     /// Mod loader to match.
     #[facet(args::named)]
     pub loader: CurseforgeModLoader,
-    /// `CurseForge` Core API key; if omitted, configured secret sources are tried.
-    #[facet(default, args::named)]
+    /// Explicit Core API key; otherwise use its environment variable or a discovery lease.
+    #[facet(default, sensitive, args::named)]
     pub api_key: Option<String>,
-    /// Legacy API token fallback; prefer `--api-key` for Core API queries.
-    #[facet(default, args::named)]
+    /// Removed author-token fallback; use explicit discovery login instead.
+    #[facet(default, sensitive, args::named)]
     pub token: Option<String>,
-    /// 1Password secret reference used when no API key is configured.
+    /// Removed implicit lookup; pass this option to auth login instead.
     #[facet(default, args::named)]
     pub op_secret: Option<String>,
 }
@@ -39,7 +39,7 @@ impl CurseforgeModFilesArgs {
     pub fn invoke(self) -> eyre::Result<()> {
         let (key, _credential_source) =
             CurseforgeApiSecret::resolve_core(self.api_key, self.token, self.op_secret)?;
-        let client = CurseforgeHttpClient::new_core_api(&key)?;
+        let client = CurseforgeHttpClient::new_core_api(key)?;
         let files = list_project_files_for_version(
             &client,
             CurseforgeProjectId(self.project),
@@ -94,5 +94,12 @@ mod tests {
         assert_eq!(release_type_label(Some(2)), "beta");
         assert_eq!(release_type_label(Some(3)), "alpha");
         assert_eq!(release_type_label(None), "unknown");
+    }
+}
+
+impl std::fmt::Debug for CurseforgeModFilesArgs {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CurseforgeModFilesArgs")
+            .finish_non_exhaustive()
     }
 }

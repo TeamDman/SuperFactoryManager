@@ -120,7 +120,7 @@ fn refresh_dependencies(
             new_hash: hash,
         });
     }
-    let output = inventory.lockfile.to_canonical_json()?;
+    let output = inventory.to_canonical_json()?;
     write_lockfile_atomically(
         &inventory.lockfile_path,
         &inventory.original_input,
@@ -174,7 +174,7 @@ fn fetch_curseforge_fallback(
         eyre::bail!("Remote artifact not found: {}", candidate.url);
     };
     let (api_key, _) = CurseforgeApiSecret::resolve_core(None, None, None)?;
-    let client = CurseforgeHttpClient::new_core_api(&api_key)?;
+    let client = CurseforgeHttpClient::new_core_api(api_key)?;
     let file = client.fetch_project_file(project_id, file_id)?;
     let url = file.download_url.ok_or_else(|| {
         eyre::eyre!(
