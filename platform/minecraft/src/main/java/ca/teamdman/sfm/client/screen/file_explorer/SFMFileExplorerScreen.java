@@ -3,7 +3,7 @@ package ca.teamdman.sfm.client.screen.file_explorer;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -91,10 +91,11 @@ public class SFMFileExplorerScreen extends Screen {
     public void onFilesDrop(List<Path> paths) { panel.onFilesDrop(List.copyOf(paths)); }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        renderBackground(poseStack);
-        panel.render(poseStack, minecraft, new SFMScreenPanelBounds(0, 0, width, height),
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics);
+        panel.render(graphics, minecraft, new SFMScreenPanelBounds(0, 0, width, height),
                 mouseX, mouseY, partialTick, true);
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        super.render(graphics, mouseX, mouseY, partialTick);
     }
 }
