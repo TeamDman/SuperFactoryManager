@@ -30,6 +30,7 @@ import ca.teamdman.sfm.client.screen.workspace.timeline.SFMTimelinePanel;
 import ca.teamdman.sfm.client.screen.color.SFMArgbColor;
 import ca.teamdman.sfm.client.screen.color.SFMColorInputPanel;
 import ca.teamdman.sfm.client.screen.color.SFMColorInputPanelLayout;
+import ca.teamdman.sfm.common.block.TouchDisplaySurface;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.pipeline.TextureTarget;
@@ -44,11 +45,13 @@ import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.server.IntegratedServer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.MultipleTestTracker;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.protocol.game.ServerboundSetCarriedItemPacket;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.FormattedCharSequence;
@@ -264,6 +267,73 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     public boolean isScreen(Class<?> expectedType) {
 
         return expectedType.isInstance(minecraft.screen);
+    }
+
+    @Override
+    public void positionForTouchDisplayFace(BlockPos localTarget, Direction face, double u, double v) {
+        if (minecraft.screen != null || minecraft.player == null) {
+            throw new IllegalStateException("Touch Display aiming requires an in-world client player");
+        }
+        selectEmptyHotbarSlot();
+        Vec3 hit = touchDisplayHit(absolute(localTarget), face, u, v);
+        // Stay inside the 5x5x5 GameTest structure; 2.5 blocks would put the
+        // camera behind its north boundary wall and hide the display entirely.
+        Vec3 eye = hit.add(face.getStepX() * 1.25D, face.getStepY() * 1.25D, face.getStepZ() * 1.25D);
+        // The player settles onto the template floor before the next rendered
+        // observation. Aim from that stable eye height, not a transient
+        // mid-air teleport position that gravity invalidates a few ticks later.
+        double floorY = active.gameTestOrigin.getY();
+        double eyeHeight = minecraft.player.getEyeHeight();
+        teleportAndLook(new Vec3(eye.x, floorY, eye.z), hit.add(0D, -eyeHeight, 0D));
+    }
+
+    @Override
+    public void pressTouchDisplayFace(BlockPos localTarget, Direction face, double u, double v) {
+        if (minecraft.screen != null || minecraft.player == null || minecraft.gameMode == null) {
+            throw new IllegalStateException("Touch Display pressing requires an in-world client player");
+        }
+        if (!minecraft.player.getMainHandItem().isEmpty()) {
+            throw new IllegalStateException("Touch Display proof requires an empty main hand");
+        }
+        BlockPos target = absolute(localTarget);
+        InteractionResult result = minecraft.gameMode.useItemOn(
+                minecraft.player,
+                InteractionHand.MAIN_HAND,
+                new BlockHitResult(touchDisplayHit(target, face, u, v), face, target, false)
+        );
+        if (result == InteractionResult.FAIL) {
+            throw new IllegalStateException("Client gameplay interaction failed at " + target);
+        }
+    }
+
+    @Override
+    public BlockPos absoluteGameTestPos(BlockPos localTarget) {
+        return absolute(localTarget);
+    }
+
+    private void selectEmptyHotbarSlot() {
+        for (int slot = 0; slot < 9; slot++) {
+            if (minecraft.player.getInventory().getItem(slot).isEmpty()) {
+                minecraft.player.getInventory().selected = slot;
+                minecraft.player.connection.send(new ServerboundSetCarriedItemPacket(slot));
+                return;
+            }
+        }
+        throw new IllegalStateException("Touch Display proof needs an empty hotbar slot");
+    }
+
+    private static Vec3 touchDisplayHit(BlockPos target, Direction face, double u, double v) {
+        if (!Double.isFinite(u) || !Double.isFinite(v) || u < 0D || u > 1D || v < 0D || v > 1D) {
+            throw new IllegalArgumentException("Touch Display U/V must be finite and in [0,1]");
+        }
+        TouchDisplaySurface.Basis basis = TouchDisplaySurface.basis(face);
+        double right = (u - 0.5D) * 2D * TouchDisplaySurface.HALF_IMAGE_SIZE;
+        double up = (0.5D - v) * 2D * TouchDisplaySurface.HALF_IMAGE_SIZE;
+        return new Vec3(
+                target.getX() + 0.5D + face.getStepX() * 0.5D + basis.rightX() * right + basis.upX() * up,
+                target.getY() + 0.5D + face.getStepY() * 0.5D + basis.rightY() * right + basis.upY() * up,
+                target.getZ() + 0.5D + face.getStepZ() * 0.5D + basis.rightZ() * right + basis.upZ() * up
+        );
     }
 
     @Override

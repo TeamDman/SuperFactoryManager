@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceAxis;
 import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMSizeDisplayWorkspace;
+import ca.teamdman.sfm.common.block.TouchDisplaySurface;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
@@ -16,6 +17,7 @@ import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import java.nio.file.Path;
 
@@ -403,6 +405,11 @@ public final class SFMGamePuppetHelper {
 
     public void exploreReviewInteractively() {
         add(new ca.teamdman.sfm.gametest.puppet.action.ExploreReviewInteractivelyPuppetAction());
+    }
+
+    /** Wait for bounded file requests to inspect and press a real in-world Touch Display fixture. */
+    public void exploreTouchDisplayInteractively(AtomicReference<TouchDisplaySurface.UV> requestedTouch) {
+        add(new ExploreTouchDisplayInteractivelyPuppetAction(requestedTouch));
     }
 
     public void exactReleaseReviewJourney(boolean resume) {

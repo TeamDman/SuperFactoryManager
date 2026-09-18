@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.terminal.SFMTerminalInteractionPuppetProbe;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
@@ -34,6 +35,15 @@ public interface ISFMGamePuppetRuntime {
     void positionForBlockUse(BlockPos localTarget);
 
     void useBlock(BlockPos localTarget);
+
+    /** Aim at one point on the visible Touch Display face without OS pointer input. */
+    void positionForTouchDisplayFace(BlockPos localTarget, Direction face, double u, double v);
+
+    /** Send a normal client gameplay use packet with the specified face hit. */
+    void pressTouchDisplayFace(BlockPos localTarget, Direction face, double u, double v);
+
+    /** Resolve a fixture-local position using the active GameTest origin. */
+    BlockPos absoluteGameTestPos(BlockPos localTarget);
 
     boolean isScreen(Class<?> expectedType);
 
