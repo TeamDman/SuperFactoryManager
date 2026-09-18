@@ -6,7 +6,7 @@ Last updated: 18 September 2026.
 
 Intent audit: passed 17 September 2026 against the available user discussion and the pasted historical messages; some earlier assistant replies are unavailable except as pasted excerpts.
 
-Current focus: P3 server-authoritative touch input, then P2B generic image transfer. P0 and P1 are complete; P2A code and focused tests pass, but a direct in-world pixel check remains before marking it `[x]`. The active goal covers every remaining phase through P10, including the later multiplayer and in-world terminal work. Checkpoints record progress and do not end that goal. Gates O1–O13 are closed with reasoned, tested implementation decisions as their dependent work begins.
+Current focus: P6B Client Manager runtime and P8A typed action descriptors in parallel. P0–P6A are complete except the later P6B runtime integration; P7–P10 remain. The active goal covers every remaining phase through P10, including the multiplayer and in-world terminal work. Checkpoints record progress and do not end that goal. Gates O1–O13 are closed with reasoned, tested implementation decisions as their dependent work begins.
 
 Implementation branch: `feat/1.19.2/packet-computation`.
 Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`; finite-value/touch-schema checkpoint: `1a8cd9b84`.
@@ -62,7 +62,7 @@ Evidence labels in this document mean:
 | G18 | Confirmed | Capability-level controls allow graceful degradation: lack of permission to draw or invoke an action need not erase every approved program behaviour. | Consent; P6A, P8D |
 | G19 | Confirmed | Public-key author attribution and trusted signers are client-side trust aids. Private keys never go to the server or into a program. Preserve exact previous source for consent comparison. | Signatures; P8E |
 | G20 | Confirmed | Signing is explicit after confirming the server-stored revision. A drawing pad is aesthetic; first pen contact may unlock Sign and its strokes do not prove identity. | Signatures; P8E, P8F |
-| G21 | Confirmed | Ordinary client-only GameTests should construct and check the world without opening screens or monopolising keyboard/window focus; puppets remain for actual GUI proofs. | Tests; P9 |
+| G21 | Confirmed | Ordinary client-only GameTests should construct and check the world without opening screens or monopolising keyboard/window focus. Opt-in file-driven puppets may prove actual in-world client interactions and GUI flows; do not use OS-level computer control for these game checks. | Tests; P2A, P3, P8F, P9 |
 | G22 | Confirmed | `SFMDist.CLIENT` already marks integrated-client GameTests. Physical distribution is distinct from a program's logical execution side. | Tests; P5, P9 |
 | G23 | Confirmed | Support image resources and static image movement through the generic resource system; live frame transfer is a different, latest-wins stream. | Images; P2, P7 |
 | G24 | Proposed | Add readable interval syntax `EVERY ... GLOBAL TICKS` and `OFFSET BY`, preserving old programs through a migration window. | Grammar; P5 |
@@ -205,9 +205,9 @@ Done when: tests cover old-item reads, canonical round trips, equality and hashi
 
 Evidence: `test run --branch feat/1.19.2/packet-computation --filter SFMValueDoubleTests` passed 6/6; `--filter SFMTouchValueTests` passed 4/4. The final unfiltered Java suite passed 2,148, failed 0, with five expected assumption aborts (2,153 found). `game-test run-server --branch feat/1.19.2/packet-computation --filter packet_item` passed 1/1, including exact v1 item reads and v2 double writes. `SFMPacketContractTests` in the full suite prove v1 envelope dispatch, v2 double payloads, unknown-future fail-closed behaviour and bit-exact widened-float wire roundtrip. Commit: `1a8cd9b84`; staged diff whitespace check passed.
 
-### [~] P2A. Static interactive surface with fixture — G01, G04, G32, G34
+### [x] P2A. Static interactive surface with fixture — G01, G04, G32, G34
 
-Completion notes: static six-face block, atomic persisted and client-synchronized content tuple, bundled red/blue fixtures, renderer, registration and generated assets implemented in `2f057a24c`. Identical content is a no-op; malformed stored image IDs fail closed without reusing a revision. The ambient client probe retries from server GameTest ticks, never recursively on the client thread, and does not police unrelated screens. Direct proof of visible pixels on the block face remains pending, so this task stays `[~]` while P3 proceeds.
+Completion notes: static six-face block, atomic persisted and client-synchronized content tuple, bundled red/blue fixtures, renderer, registration and generated assets implemented in `2f057a24c`; full-bright image-quad fix in `90758015b`. Identical content is a no-op; malformed stored image IDs fail closed without reusing a revision. The ambient client probe retries from server GameTest ticks, never recursively on the client thread, and does not police unrelated screens. The opt-in file-driven puppet in `54f37c508` supplied direct visible-pixel proof while preserving a normal free-moving client window.
 
 Dependencies: P1.
 
@@ -217,21 +217,21 @@ Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/p
 
 Done when: one client sees the fixture on the active face without opening a GUI; the server persists orientation, image reference, state and revision as specified; a red/blue commit never exposes one revision's image with another revision's interaction state; unchanged static content reuses the same resource-managed texture without a dynamic upload.
 
-Evidence: `run compile` and `run data` passed. The focused server GameTest passed 1/1 after the malformed-image regression; the focused integrated-client GameTest passed 1/1 after correcting its asynchronous retry and ambient-screen assumptions. The unfiltered Java suite passed 2,148, failed 0, with five expected assumption aborts (2,153 found). The client test verifies synchronized fixture and renderer/resource registration, not a rendered screenshot. Static fixtures reuse Minecraft's red and blue concrete textures through a resource-managed renderer; there is no dynamic texture upload path in P2A. Direct visual inspection remains pending.
+Evidence: `run compile` and `run data` passed. The focused server GameTest passed 1/1 after the malformed-image regression; the focused integrated-client GameTest passed 1/1 after correcting its asynchronous retry and ambient-screen assumptions. The unfiltered Java suite passed 2,148, failed 0, with five expected assumption aborts (2,153 found). Static fixtures reuse Minecraft's red and blue concrete textures through a resource-managed renderer; there is no dynamic texture upload path in P2A. The JSON-controlled `sfm:in_world_touch_display_exploratory` puppet exited 0 with no GUI or OS pointer injection. Its durable aim capture visibly shows the red face, with interior RGB `(104,25,25)` after full-bright rendering versus `(10,2,2)` before, while the client observed the red image reference at revision 1.
 
-### [ ] P2B. Generic image resource and display sink — G23, G34
+### [x] P2B. Generic image resource and display sink — G23, G34
 
 Dependencies: P2A. This is not a prerequisite for the first press proof in P3.
 
 Work: choose immutable image descriptor/payload ownership, content identity and deduplication, quantified slot semantics, byte/dimension/format limits, save/load behaviour and missing-payload recovery. Content-addressed snapshots are a reversible default. Register `sfm:image` with a buffer handler and consuming Touch Display sink. Give the manager an atomic way to supply `IMAGE::` plus arbitrary interaction state to the same content commit from P2A. Keep high-frequency frames outside item movement. Cache GPU resources by identity and release them on lifecycle changes.
 
-Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-computation --filter SFMImageResourceTests` and `sfm-propagate-changes.exe game-test run-server --branch feat/1.19.2/packet-computation --filter sfm:image_resource_transfer`.
+Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-computation --filter SFMImageResourceTests`, `sfm-propagate-changes.exe game-test run-server --branch feat/1.19.2/packet-computation --filter sfm:touch_display_image_transfer`, and `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/packet-computation --filter sfm:touch_display_dynamic_image`.
 
 Done when: the chosen payload and descriptor survive the stated save/reload cycle; oversize or malformed images fail whole; simulated transfer is side-effect-free; a server-safe real-resource GameTest moves an image through a buffer into the display; a paired image/state update never exposes a mismatched revision.
 
-Evidence: pending.
+Evidence: `90758015b` adds immutable exact-byte-SHA-256 PNG snapshots capped at 64 KiB encoded, 512×512 and 262,144 decoded pixels; strict chunk/order/CRC and decode checks reject malformed content, while versioned NBT reloads fail closed. A one-unit `sfm:image` resource stack carries both image and arbitrary bounded interaction state. Image buffers persist their snapshot/state without changing other resource types; the consuming display sink commits image/state/revision together. The client texture cache uploads a digest once while resident, with bounded admission and unload/reload cleanup. Focused snapshot tests passed 6/6, resource tests 1/1, texture-cache tests 3/3, and the client-only dynamic image GameTest passed 1/1 for synced PNG/state and dynamic texture registration/reuse. `run compile` and `run data` passed. The dedicated-server real-manager `sfm:touch_display_image_transfer` GameTest passed 1/1, proving real `IMAGE::` movement, buffer save/load and atomic sink commit. The file-driven puppet in `54f37c508` separately proves visible output on the face after the renderer lighting fix.
 
-### [~] P3. Server-authoritative press to rear inventory — G02, G03, G04, G27
+### [x] P3. Server-authoritative press to rear inventory — G02, G03, G04, G27
 
 Dependencies: P1, P2A, O1, O2, O9 and O10 resolved. Generic `sfm:image` movement in P2B is not needed for the first touch proof.
 
@@ -241,9 +241,9 @@ Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/p
 
 Done when: known UV points and all rotations produce exactly one packet with server-owned state/revision; wrong-face and out-of-bounds hits fail; no client hit can nominate an arbitrary inventory because the server derives the rear target from the reached display; full/missing rear inventory follows O1 without duplicate/spill; offhand fallback is absent. Vanilla does not independently reconstruct the ray, so a plausible claimed hit on another reachable display remains a separate permissions concern.
 
-Evidence: the server uses the vanilla `BlockHitResult`, validates the active face, inset, reach and unobstructed line of sight, and derives its rear target from server block orientation. The six-face UV unit tests passed 5/5. The dedicated-server GameTest passed 1/1 for all six faces, packet state/revision snapshots, stacking, malformed hits, offhand/spectator rejection, occlusion, oversized-state preflight and full/missing rear inventories. The integrated-client GameTest passed 1/1 without opening a screen or moving the player. The unfiltered Java suite passed 2,153/2,158, failed 0, with five expected assumption aborts. `run compile` and `run data` passed. A file-driven in-world puppet still needs to prove pixels and a physical/vanilla client-to-server click path; direct block-use GameTests alone do not prove that path. Therefore this task stays `[~]`.
+Evidence: the server uses the vanilla `BlockHitResult`, validates the active face, inset, reach and unobstructed line of sight, and derives its rear target from server block orientation. The six-face UV unit tests passed 5/5. The dedicated-server GameTest passed 1/1 for all six faces, packet state/revision snapshots, stacking, malformed hits, offhand/spectator rejection, occlusion, oversized-state preflight and full/missing rear inventories. The integrated-client GameTest passed 1/1 without opening a screen or moving the player. The unfiltered Java suite passed 2,153/2,158, failed 0, with five expected assumption aborts. `run compile` and `run data` passed. The opt-in file-driven in-world puppet `54f37c508` completed exit 0: a normal `Minecraft.gameMode.useItemOn` click on the aimed north face produced exactly one rear `sfm:packet` with `sfm:touch@1`, server-owned red state/revision and floating UVs matching `(0.25, 0.75)`, without a screen or OS pointer control.
 
-### [ ] P4A. Bounded server-to-client value delivery — G10, G13
+### [x] P4A. Bounded server-to-client value delivery — G10, G13
 
 Dependencies: P0. This task builds a new delivery path; the existing packet feature contributes value semantics, not this transport.
 
@@ -253,9 +253,9 @@ Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-comput
 
 Done when: one integrated client receives bounded addressed values; source edits have defined subscription behaviour; multi-viewer fan-out has a documented later path; stale session/cursor and overflow are explicit; unload/logout clears or suspends according to contract; unopened inventory contents never enter the path implicitly.
 
-Evidence: pending.
+Evidence: addressed values use a stable recipient UUID, dimension and channel ID, separate from program source/consent identity. Private integrated-world effect gating, explicit session-scoped subscriptions, closeable client handles, client page cursors/eviction reporting and bounded server send budgets are implemented in `f2163736e`. The Forge packet IDs were appended and strict channel version advanced to 1.2.0. Focused client unit tests passed 4/4, the three-case `SFMClientInboxServerTests` rerun exited 0, and integrated-client `sfm:client_inbox_delivery` passed 1/1 without opening a screen.
 
-### [ ] P4B. Semantic broadcast and dashboard accounting — G04, G10, G11, G13
+### [x] P4B. Semantic broadcast and dashboard accounting — G04, G10, G11, G13
 
 Dependencies: P3, P4A.
 
@@ -265,9 +265,9 @@ Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/p
 
 Done when: one integrated client receives coherent red/blue values; repeated or dropped snapshots cannot be counted as transfers; an occurrence broadcast from the mover yields the correct throughput total; no client sends duplicate frame-state reports.
 
-Evidence: pending.
+Evidence: optional `BROADCAST TO playerAlias CHANNEL sfm:channel` syntax routes selected packet values through P4A's addressed private-world transport; legacy `BROADCAST TO playerAlias` retains the observation path. Both Minecraft and VS Code grammars/highlighting were updated, and parser regression coverage was added in `09217d141`. `sfm:touch_display_broadcast` passed 1/1 in the integrated client: two red/blue server-owned state revisions arrived as two values, while three actual iron-transfer occurrences arrived as three distinct values through a separate channel. Neither program used a GUI or moved the player. The addressed broadcast stops on a rejected send rather than looping through an exhausted per-tick budget.
 
-### [ ] P5. Logical execution side and compatible grammar — G06, G07, G22, G24, G29
+### [x] P5. Logical execution side and compatible grammar — G06, G07, G22, G24, G29
 
 Dependencies: P0.
 
@@ -277,25 +277,25 @@ Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-comput
 
 Done when: old programs parse; explicit mismatch fails before effects; editors agree; client/server logical-side tests pass; target adapters use `ResourceLocation` or `Identifier` without changing public identifier text.
 
-Evidence: pending.
+Evidence: optional first `CLIENT BTW` / `SERVER BTW` assertions reject host mismatch before server Manager effects, including the inspection compile path; absent headers remain compatible. Both parsers accept legacy integer offsets and worded `GLOBAL` / `OFFSET BY`; canonical printing uses the latter and the linter warns on legacy offset spelling. Code and generated parser are in `09217d141`. `run compile` passed; `ProgramExecutionSideTests` and `IntervalGrammarCompatibilityTests` passed 3/3 each; existing timer tests and `SFMLTests` passed (52/52). The VS Code parser was regenerated with the matching local antlr4ts version and TypeScript type-check passed without a dependency or lockfile change. `run data` emitted the new linter localization key.
 
-### [ ] P6A. Program identity and minimum consent gate — G16–G18
+### [x] P6A. Program identity and minimum consent gate — G16–G18
 
 Dependencies: P5. This precedes all Client Manager ticking.
 
-Work: derive exact program identity from source, host side, world, dimension, manager position and runtime revision. Implement absent, pending, approved and denied states for the base `sfm:client_program/execute` and `sfm:touch_display/render` capabilities. Requests are idempotent; denial suppresses automatic re-prompt. Passive proximity shows an inert placeholder and coalesced notice rather than a modal. P8D later adds the full management/history model.
+Work: derive exact program identity from source, host side, world, dimension, manager position and runtime revision. Implement absent, pending, approved and denied states for the base `sfm:client_program/execute` and `sfm:touch_display/render` capabilities. Requests are idempotent; denial suppresses automatic re-prompt. The gate itself opens no modal; P6B supplies the inert placeholder and coalesced proximity notice. P8D later adds the full management/history model.
 
 Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-computation --filter ClientProgramConsentGateTests`.
 
 Done when: the execution gate refuses an unapproved tick in unit tests; approval applies only to its exact scope; source/capability/location changes return to absent; pending and denied cannot spam prompts; approved-but-policy-blocked is distinguishable from denied. P6B proves the gate on a real Client Manager.
 
-Evidence: pending.
+Evidence: `abb6cb6a8` adds an exact-scope identity bound to stored UTF-8 source hash, logical host, normalized endpoint/world UUID, dimension, manager position, runtime revision and capability manifest. The default-deny, UI-free gate models absent/pending/approved/denied, idempotent requests, explicit reopening of denial and separate policy blockers. `ClientProgramConsentGateTests` passed all six cases. P6B must connect this gate to actual client ticks and placeholder/notice presentation; P8D must persist consent history.
 
 ### [ ] P6B. Client Manager block and render scheduler — G06, G08, G09, G16, G18
 
 Dependencies: P2A, P5, P6A. Generic image transfer in P2B is not needed for client-local frame computation.
 
-Work: add a visibly distinct block and a client visual runtime rather than reusing the server `ProgramContext`. Implement `EVERY FRAME FOR displays AS display DO` once per eligible Touch Display found through existing label-gun bindings. Resolve O12 for missing, duplicate and competing labelled targets. Reversible defaults: one writer per display and loaded, render-selected, front-facing and viewport-size eligibility; no chunk tickets and no exact-occlusion promise. Program logic may vary each frame without any world/inbox read. Compare output identity before repaint/upload.
+Work: add a visibly distinct block and a client visual runtime rather than reusing the server `ProgramContext`. Implement `EVERY FRAME FOR displays AS display DO` once per eligible Touch Display found through existing label-gun bindings. Resolve O12 for missing, duplicate and competing labelled targets. Reversible defaults: one writer per display and loaded, render-selected, front-facing and viewport-size eligibility; no chunk tickets and no exact-occlusion promise. An unapproved program shows an inert placeholder and coalesced proximity notice, never a passive modal. Program logic may vary each frame without any world/inbox read. Compare output identity before repaint/upload.
 
 Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/packet-computation --filter sfm:client_manager_frame`.
 
