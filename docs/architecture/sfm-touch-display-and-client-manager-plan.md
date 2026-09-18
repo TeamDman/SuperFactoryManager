@@ -2,14 +2,14 @@
 
 Plan status: active. No Touch Display or Client Manager implementation is claimed here.
 
-Last updated: 17 September 2026.
+Last updated: 18 September 2026.
 
 Intent audit: passed 17 September 2026 against the available user discussion and the pasted historical messages; some earlier assistant replies are unavailable except as pasted excerpts.
 
-Next eligible focus: `[ ] P1` finite floating values and touch schema. P0 is complete; no Touch Display implementation is active. Gates O1–O13 remain attached to the later tasks that depend on them; accepting this plan does not silently close those design choices.
+Current focus: `[~] P2A` static Touch Display with fixture. P0 and P1 are complete; no Touch Display implementation is claimed yet. The active goal covers every remaining phase through P10, including the later multiplayer and in-world terminal work. Checkpoints record progress and do not end that goal. Gates O1–O13 are closed with reasoned, tested implementation decisions as their dependent work begins.
 
 Implementation branch: `feat/1.19.2/packet-computation`.
-Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`.
+Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`; finite-value/touch-schema checkpoint: `1a8cd9b84`.
 Companion contract: `docs/architecture/sfm-packet-computation-mvp.md`. That document remains authoritative for the existing packet-computation slices A–D. This plan builds on them and does not redefine their completed behaviour by implication.
 
 This is an evidence-led plan, not a calendar estimate. Work advances when its dependency and acceptance gates pass. The packet value, item, editor and terminal baseline was reconciled and committed in P0. Future implementation must inspect current worktree state and rerun validation against its final source.
@@ -28,9 +28,9 @@ This plan distils the available user discussion and the historical messages past
 
 | Audit pass | Check performed | Result |
 | --- | --- | --- |
-| 1. Extraction | Re-read the available user messages and the pasted historical user/assistant exchanges from first in-world screen idea through the later click-flow correction. | Added G32–G35 and separated the user's choices from superseded assistant proposals below. |
-| 2. Traceability | Matched every active guidance entry to a contract, task, test, non-goal or open gate. | Corrected the static-fixture-first order, labelled-target proof, terminal follow-up and P0 test filter. No calendar estimate is a completion condition. |
-| 3. Adversarial review | Rechecked later user corrections against earlier assistant recommendations after those repairs. | Fixed-point UV, server-side `EVERY FRAME`, hard-coded sharing modes, exact visual/frame correlation, solid-block power derivation and a signing-stroke threshold remain superseded. |
+| 1. Extraction | Re-read the available user messages and the pasted historical user/assistant exchanges from first in-world screen idea through the later click-flow correction, then the 17 September full-goal clarification. | Added G32–G38 and separated the user's choices from superseded assistant proposals below. |
+| 2. Traceability | Matched every active guidance entry to a contract, task, test, non-goal or open gate. | Corrected the static-fixture-first order, labelled-target proof, terminal follow-up and P0 test filter. The new full-goal instruction covers P1–P10, including P8G and P10; no calendar estimate or checkpoint is a completion condition. |
+| 3. Adversarial review | Rechecked later user corrections against earlier assistant recommendations after those repairs. | Fixed-point UV, server-side `EVERY FRAME`, hard-coded sharing modes, exact visual/frame correlation, solid-block power derivation and a signing-stroke threshold remain superseded. The new authority to choose reversible details does not waive feature tests, security checks or unrelated repository permissions. |
 
 Evidence labels in this document mean:
 
@@ -78,6 +78,8 @@ Evidence labels in this document mean:
 | G34 | Confirmed | A manager-facing content update must pair an image reference with arbitrary interaction state before advancing the server revision. | P2A, P2B, P3 |
 | G35 | Confirmed | Touch packets are the first input mechanism; dedicated `EVERY TOUCH` grammar is a later convenience only after queue, ordering, overflow and unloaded-manager semantics are defined. | Non-goals; P10 |
 | G36 | Proposed | Rename the whole-number grammar rule to `integer` for control quantities if doing so improves clarity; do not broaden the existing `NUMBER` control token to floating values. | P1, P5 |
+| G37 | Confirmed | Pursue one goal to complete the entire remaining plan after P0, including later P8G multiplayer and P10 in-world terminal integration. Passing a phase checkpoint is progress, not a stopping point. | Full-goal scope; P1–P10; overall acceptance |
+| G38 | Confirmed | Resolve in-scope design questions with best judgment during implementation, favouring testable reversible choices; refine with the user after observing working behaviour instead of waiting on hypotheses. | O1–O13; completion notes; validation |
 
 Earlier proposals that later user choices superseded must not become implementation requirements: `sfm:touch/1` and scaled-integer UV, unique click sequence/frame generation, nesting the position/UV fields, server-manager frame triggers, permanent shared/private/published block modes, solid-block redstone inference, a minimum scribble-length requirement, and the claim that 26.1.2 `Identifier` implies Yarn mappings. Existing structured action-result schema IDs using `/1` also remain unchanged; `sfm:touch@1` does not trigger a global schema migration.
 
@@ -143,7 +145,7 @@ The existing `SFMClientPacketTransport.sendInsertion` and `SFMServerPacketTransp
 
 ### Value, resource and raster foundations
 
-`platform/minecraft/src/main/java/ca/teamdman/sfm/common/value/SFMValue.java` has a long-number value but no floating-number value. `SFMValueJsonCodec` currently uses version 1 and rejects decimal/exponent numbers. The file also has uncommitted work; inspect it afresh before editing.
+`platform/minecraft/src/main/java/ca/teamdman/sfm/common/value/SFMValue.java` originally had only a long-number variant. P1 added a finite binary64 variant; `SFMValueJsonCodec` now writes version 2 and reads strict integral version 1 as well as version 2. Inspect the current source before any later edit rather than relying on this historical boundary note.
 
 `ResourceType` already models quantified slotted resources and simulated/actual transfer. `SFMResourceTypes` registers items, fluids, energy and redstone. The existing wildcard resource grammar can already parse an `IMAGE::`-shaped resource expression; the missing work is registration, capability semantics and storage, not merely a grammar token. `BufferBlockEntityContents` can create handlers for registered types and enforces one nonempty type at a time. Registering `sfm:image` alone will not create durable storage: `BufferBlockEntity` has no save/load implementation for its contents. Decide image payload ownership, slot quantity and persistence before promising image buffers.
 
@@ -159,7 +161,7 @@ The 1.19.2 source uses Parchment layered on Mojang names and imports `net.minecr
 
 ## Implementation tasks and gates
 
-Each task leaves focused automated evidence. Use a separate implementation goal when a task crosses a public contract or security boundary. Test names below are the required stable filters; create them as part of the task if they do not yet exist. Add `Evidence: <command, result, commit>` only after the task passes.
+Each task leaves focused automated evidence. Public-contract and security boundaries require their own tested checkpoints within the active full-feature goal, not a new goal or an automatic pause. Only an authority or external-state blocker outside this goal calls for user direction. Test names below are the required stable filters; create them as part of the task if they do not yet exist. Add `Evidence: <command, result, commit>` only after the task passes.
 
 ### [x] R0. Review and accept this contract
 
@@ -189,7 +191,9 @@ Done when: the client-only test runs without a full-screen UI or exclusive input
 
 Evidence: `SFMGameTestDiscoveryTests` passed and guards the side filter before client-only class loading. `game-test run-client --filter sfm:packet_item_tooltip` passed 1/1 without opening an SFM screen; its first exact run exposed an invalid simulated-key assertion, which was corrected through a deterministic renderer seam without changing physical key polling. `game-test run-server --filter packet_item` passed 1/1; its discovery log lists `packet_item` but not `packet_item_tooltip`. `game-test run-client --filter packet_item` also passed 1/1 for the older carrier test only—selection is exact, not prefix matching. `run data` and `run compile` passed. The full Java suite passed 2,136 with zero failures and five expected assumption aborts (2,141 found). Commit: `43cfe001f`. Generated cache whitespace remains generator-owned; the rest of the staged diff passed `git diff --check`.
 
-### [ ] P1. Finite floating values and touch schema — G03, G05
+### [x] P1. Finite floating values and touch schema — G03, G05
+
+Completion notes: completed 18 September 2026 in `1a8cd9b84`. `SFMValue.DoubleValue` stores only finite binary64 values and normalises negative zero. Integer-shaped JSON remains an exact `LongValue`; decimal/exponent JSON is a distinct `DoubleValue`, with integral doubles retaining their decimal marker when written. Codec v2 is written for new items/envelopes; v1 integer data remains readable without mutating old item NBT; unknown future versions cannot dispatch. `SFMTouchValue.press` constructs the flat `sfm:touch@1` value with named position fields, bounded floating UVs and a complete-packet byte check. Numeric JSON parsing uses binary64 rounding, so an extremely tiny nonzero decimal may round to zero; this follows the chosen finite-binary64 model and can be revisited if a use case needs decimal underflow rejection. The outer Forge channel was unchanged. The companion contract and player-visible changelog now reflect v2. The installed CLI remained unchanged (revision `ea4dcc9aa`); preflight found no competing SFM/Minecraft/toolchain process, and dependency declarations/lockfiles were not changed.
 
 Dependencies: P0.
 
@@ -199,17 +203,19 @@ Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-comput
 
 Done when: tests cover old-item reads, canonical round trips, equality and hashing, malformed/non-finite values, negative zero, float-to-double wire precision and `[0, 1]` UV validation.
 
-Evidence: pending.
+Evidence: `test run --branch feat/1.19.2/packet-computation --filter SFMValueDoubleTests` passed 6/6; `--filter SFMTouchValueTests` passed 4/4. The final unfiltered Java suite passed 2,148, failed 0, with five expected assumption aborts (2,153 found). `game-test run-server --branch feat/1.19.2/packet-computation --filter packet_item` passed 1/1, including exact v1 item reads and v2 double writes. `SFMPacketContractTests` in the full suite prove v1 envelope dispatch, v2 double payloads, unknown-future fail-closed behaviour and bit-exact widened-float wire roundtrip. Commit: `1a8cd9b84`; staged diff whitespace check passed.
 
-### [ ] P2A. Static interactive surface with fixture — G01, G04, G32, G34
+### [~] P2A. Static interactive surface with fixture — G01, G04, G32, G34
+
+Completion notes: started 18 September 2026 after the tested P1 checkpoint. Registration, rendering and GameTest paths are under source inspection; no Touch Display implementation is claimed yet.
 
 Dependencies: P1.
 
 Work: add a distinct Touch Display block and one outward raster face. Render a deterministic bundled test image without requiring `sfm:image` registration or a terminal. Add server-owned orientation and an atomic `semanticContent` record containing fixture image reference, arbitrary interaction state and revision. Provide an internal content commit that copies image reference and state together, then advances the revision once. Keep the first fixture path private to tests or operator setup; P2B adds the manager-facing resource path.
 
-Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/packet-computation --filter sfm:touch_display_render` and `sfm-propagate-changes.exe game-test run-server --branch feat/1.19.2/packet-computation --filter sfm:touch_display_content_commit`.
+Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/packet-computation --filter sfm:touch_display_render` checks the integrated client projection, fixture selection and absence of a GUI while leaving the window free; a visual capture or direct in-world inspection separately confirms the actual pixels. `sfm-propagate-changes.exe game-test run-server --branch feat/1.19.2/packet-computation --filter sfm:touch_display_content_commit` checks the authoritative atomic tuple and persistence. A GameTest body runs server-side even when its discovery requires a client, so its ordinary assertions alone cannot establish rendered pixel output.
 
-Done when: one client sees the fixture on the active face without opening a GUI; the server persists orientation, image reference, state and revision as specified; a red/blue commit never exposes one revision's image with another revision's interaction state; unchanged content does not upload the texture again.
+Done when: one client sees the fixture on the active face without opening a GUI; the server persists orientation, image reference, state and revision as specified; a red/blue commit never exposes one revision's image with another revision's interaction state; unchanged static content reuses the same resource-managed texture without a dynamic upload.
 
 Evidence: pending.
 
@@ -395,7 +401,7 @@ Evidence: pending.
 
 ### [ ] P8G. Remote multiplayer bidirectional packet boundary — G14, G15
 
-Dependencies: P4A, P4B, P8B–P8D. Deferred beyond first feature acceptance unless separately authorised.
+Dependencies: P4A, P4B, P8B–P8D. Later than first feature acceptance, but explicitly included in the active full-feature goal by G37.
 
 Work: add a separately versioned, negotiated, server-authorised protocol for both client-to-server action/packet send and server-to-client addressed inbox/broadcast delivery. Define recipient and target policy, player/program/action/channel byte and operation budgets, session/subscription identity, acknowledgement meaning, privacy and abuse telemetry. Preserve the old private-world gates until all peers negotiate the new protocol.
 
@@ -419,13 +425,13 @@ Evidence: pending.
 
 ### [ ] P10. Deferred in-world terminal integration — G23, G25, G35
 
-Dependencies: P9. A later product milestone, not part of first Touch Display and Client Manager acceptance.
+Dependencies: P9. A later product milestone, not part of first Touch Display and Client Manager acceptance, but included in the active full-feature goal by G37.
 
 Work: mount terminal raster on a Touch Display and route touch events to an authorised desktop terminal session without opening a full-screen Minecraft UI. Define input focus/lease, session selection, logical resolution and multi-viewer behaviour. Investigate a newline-delimited JSON test shell so tests need not parse PowerShell prompts. Decide whether `EVERY TOUCH` adds value after packet queue semantics are defined. Screen sharing requires explicit bandwidth/security policy and must not inherit a generous single-terminal limit accidentally.
 
 Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/packet-computation --filter sfm:touch_display_terminal_integration`.
 
-Done when: a separately scoped implementation goal proves terminal raster on the block face and one authorised touch-to-desktop event, with bounded process ownership, structured I/O, session selection and teardown; the earlier touch packet circuit remains independently testable.
+Done when: this full-feature goal proves terminal raster on the block face and one authorised touch-to-desktop event, with bounded process ownership, structured I/O, session selection and teardown; the earlier touch packet circuit remains independently testable.
 
 Evidence: pending.
 
@@ -500,3 +506,5 @@ Update `platform/minecraft/src/main/resources/assets/sfm/template_programs/chang
 ## Acceptance for the overall feature
 
 The first Touch Display and Client Manager release review is ready when a player can place a Touch Display, supply a static or client-produced image, press a known point, receive one correctly addressed packet carrying the corresponding server semantic state behind it, and use server-manager broadcast plus Client Manager inbox/render logic to update it. The player can run the client-only GameTests with one normal game window and without surrendering control to test UI. Unauthorised client programs do not tick, denied prompts do not spam, and programmatic actions cannot bypass shared permission or rate checks. Author signing remains off by default but passes source/revision/trust tests when enabled. Save/reload, old packet values, dedicated-server class loading and forward version propagation have explicit passing evidence. Exact local-frame click correlation, remote multiplayer packet send, screen sharing and decorative signature retention are outside this first acceptance. P10 retains the in-world terminal and touch-to-desktop experience as a later milestone.
+
+The active full-feature goal is complete only after P1–P10 are all `[x]`, including the later remote multiplayer boundary and in-world terminal integration, and the support-matrix propagation, unfiltered validation, operational readiness and manual acceptance have evidence. First-release acceptance is an intermediate checkpoint, not permission to close the goal.
