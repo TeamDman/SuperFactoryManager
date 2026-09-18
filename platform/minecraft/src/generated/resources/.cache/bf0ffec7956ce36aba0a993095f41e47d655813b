@@ -1,5 +1,5 @@
-// 1.19.2	2026-09-18T00:23:10.7700596	Block States: sfm
-6a4e3ee4c0c8d070519225c335fe0857b0b627fd assets/sfm/blockstates/buffer.json
+// 1.19.2	2026-09-18T08:29:32.1594386	Block States: sfm
+2fcc3d9961109b2934a22f2e0b60d1eb502314a1 assets/sfm/blockstates/buffer.json
 f303dc233cde263e111cfdb2e2cbc48b93521724 assets/sfm/blockstates/cable.json
 f303dc233cde263e111cfdb2e2cbc48b93521724 assets/sfm/blockstates/cable_facade.json
 0a672c9322f8bb4628d2c78d1f2d4edf3099aa31 assets/sfm/blockstates/fancy_cable.json
@@ -22,6 +22,7 @@ f3c25839c6554e631061f91277bc687aebc38fd7 assets/sfm/blockstates/water_tank.json
 7bdfac5c4908a054cd1db2c13b98fc4eb38551c2 assets/sfm/models/block/buffer_chemical.json
 5251601313f2c1ff68793c74cd83f01be4200c70 assets/sfm/models/block/buffer_energy.json
 944d2c4ff1276ef6420b0da975e8c7fa0f246621 assets/sfm/models/block/buffer_fluid.json
+8db51bbc41602c77c9fe7e119f90935e28626565 assets/sfm/models/block/buffer_image.json
 519d20be773ac6f84c4df9e445098d2bda68b7ec assets/sfm/models/block/buffer_item.json
 343fbedad0cce9788889cd55b2e62acd9e92a39b assets/sfm/models/block/buffer_redstone.json
 8db51bbc41602c77c9fe7e119f90935e28626565 assets/sfm/models/block/buffer_unknown.json

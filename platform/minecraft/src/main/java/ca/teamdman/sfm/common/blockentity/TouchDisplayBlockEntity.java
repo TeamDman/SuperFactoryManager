@@ -1,7 +1,12 @@
 package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.common.block.TouchDisplayBlock;
+import ca.teamdman.sfm.common.capability.IImageHandler;
+import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
+import ca.teamdman.sfm.common.image.SFMImageSnapshot;
+import ca.teamdman.sfm.common.image.SFMImageSnapshotCodec;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
+import ca.teamdman.sfm.common.resourcetype.SFMImageStack;
 import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfm.common.value.SFMValueJsonCodec;
 import ca.teamdman.sfm.common.value.SFMTouchValue;
@@ -17,6 +22,9 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraftforge.common.capabilities.Capability;
+import net.minecraftforge.common.util.LazyOptional;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
@@ -28,6 +36,7 @@ public class TouchDisplayBlockEntity extends BlockEntity {
     private static final String STATE_TAG = "state";
     private static final String VALUE_CODEC_TAG = "value_codec";
     private static final String REVISION_TAG = "revision";
+    private static final String SNAPSHOT_TAG = "snapshot";
 
     /** A bundled static placeholder; no client-side upload or image transport is needed for P2A. */
     public static final ResourceLocation DEFAULT_IMAGE = new ResourceLocation(
@@ -41,18 +50,65 @@ public class TouchDisplayBlockEntity extends BlockEntity {
     );
 
     /** Image and interaction state always share the same server-assigned revision. */
-    public record DisplayContent(ResourceLocation imageRef, SFMValue state, long revision) {
+    public record DisplayContent(
+            ResourceLocation imageRef,
+            @Nullable SFMImageSnapshot imageSnapshot,
+            SFMValue state,
+            long revision
+    ) {
         public DisplayContent {
             Objects.requireNonNull(imageRef, "imageRef");
             Objects.requireNonNull(state, "state");
             if (revision < 0) {
                 throw new IllegalArgumentException("Display content revision must be non-negative");
             }
+            if (imageSnapshot != null && !imageRef.equals(snapshotLocation(imageSnapshot))) {
+                throw new IllegalArgumentException("Image reference does not match snapshot digest");
+            }
             SFMValueJsonCodec.encode(state);
+        }
+
+        public DisplayContent(ResourceLocation imageRef, SFMValue state, long revision) {
+            this(imageRef, null, state, revision);
         }
     }
 
     private volatile DisplayContent content = new DisplayContent(DEFAULT_IMAGE, SFMValue.nullValue(), 0);
+    private final IImageHandler imageSink = new IImageHandler() {
+        @Override
+        public SFMImageStack getImage() {
+            // A display consumes an image; a previous image never fills its sink slot.
+            return SFMImageStack.EMPTY;
+        }
+
+        @Override
+        public SFMImageStack insertImage(SFMImageStack image, boolean simulate) {
+            if (image.isEmpty() || level == null || level.isClientSide()) return image;
+            try {
+                if (content.revision() == Long.MAX_VALUE) return image;
+                SFMTouchValue.requireCommitEnvelopeFits(
+                        level.dimension().location(), worldPosition,
+                        getBlockState().getValue(TouchDisplayBlock.FACING),
+                        content.revision() + 1, image.interactionState()
+                );
+                if (!simulate) commitContent(image);
+                return SFMImageStack.EMPTY;
+            } catch (IllegalArgumentException | IllegalStateException rejected) {
+                return image;
+            }
+        }
+
+        @Override
+        public SFMImageStack extractImage(boolean simulate) {
+            return SFMImageStack.EMPTY;
+        }
+
+        @Override
+        public boolean canExtract() {
+            return false;
+        }
+    };
+    private final LazyOptional<IImageHandler> imageSinkCapability = LazyOptional.of(() -> imageSink);
 
     public TouchDisplayBlockEntity(BlockPos pos, BlockState state) {
         super(SFMBlockEntities.TOUCH_DISPLAY.get(), pos, state);
@@ -69,6 +125,22 @@ public class TouchDisplayBlockEntity extends BlockEntity {
      * @return whether a new revision was committed
      */
     public boolean commitContent(ResourceLocation imageRef, SFMValue state) {
+        return commitContent(imageRef, null, state);
+    }
+
+    /** Atomically commits one transferred image with its interaction state. */
+    public boolean commitContent(SFMImageStack image) {
+        SFMImageSnapshot snapshot = image.snapshot().orElseThrow(
+                () -> new IllegalArgumentException("Cannot display an empty image stack")
+        );
+        return commitContent(snapshotLocation(snapshot), snapshot, image.interactionState());
+    }
+
+    private boolean commitContent(
+            ResourceLocation imageRef,
+            @Nullable SFMImageSnapshot snapshot,
+            SFMValue state
+    ) {
         if (level == null || level.isClientSide()) {
             throw new IllegalStateException("Touch Display content must be committed on the server");
         }
@@ -76,7 +148,9 @@ public class TouchDisplayBlockEntity extends BlockEntity {
         Objects.requireNonNull(state, "state");
 
         DisplayContent previous = content;
-        if (previous.imageRef().equals(imageRef) && previous.state().equals(state)) {
+        if (previous.imageRef().equals(imageRef)
+            && Objects.equals(previous.imageSnapshot(), snapshot)
+            && previous.state().equals(state)) {
             return false;
         }
         if (previous.revision() == Long.MAX_VALUE) {
@@ -94,7 +168,7 @@ public class TouchDisplayBlockEntity extends BlockEntity {
                 state
         );
 
-        DisplayContent next = new DisplayContent(imageRef, state, previous.revision() + 1);
+        DisplayContent next = new DisplayContent(imageRef, snapshot, state, previous.revision() + 1);
         content = next;
         setChanged();
         BlockState blockState = getBlockState();
@@ -117,6 +191,9 @@ public class TouchDisplayBlockEntity extends BlockEntity {
         saved.putInt(VALUE_CODEC_TAG, SFMValueJsonCodec.VERSION);
         saved.putString(STATE_TAG, SFMValueJsonCodec.encode(snapshot.state()));
         saved.putLong(REVISION_TAG, snapshot.revision());
+        if (snapshot.imageSnapshot() != null) {
+            saved.put(SNAPSHOT_TAG, SFMImageSnapshotCodec.toTag(snapshot.imageSnapshot()));
+        }
         tag.put(CONTENT_TAG, saved);
     }
 
@@ -139,6 +216,14 @@ public class TouchDisplayBlockEntity extends BlockEntity {
             SFMValue state = SFMValueJsonCodec.decode(
                     saved.getString(STATE_TAG), saved.getInt(VALUE_CODEC_TAG)
             );
+            if (saved.contains(SNAPSHOT_TAG, Tag.TAG_COMPOUND)) {
+                SFMImageSnapshot snapshot = SFMImageSnapshotCodec.fromTag(saved.getCompound(SNAPSHOT_TAG))
+                        .orElseThrow(() -> new IllegalArgumentException("Invalid persisted display image"));
+                return new DisplayContent(image, snapshot, state, saved.getLong(REVISION_TAG));
+            }
+            if (image.getNamespace().equals("sfm") && image.getPath().startsWith("image/")) {
+                throw new IllegalArgumentException("Missing persisted display image payload");
+            }
             return new DisplayContent(image, state, saved.getLong(REVISION_TAG));
         } catch (IllegalArgumentException | ResourceLocationException invalid) {
             // Fail closed on unknown content, but do not reuse a persisted revision.
@@ -148,6 +233,25 @@ public class TouchDisplayBlockEntity extends BlockEntity {
 
     private static DisplayContent fallbackContent(long revision) {
         return new DisplayContent(DEFAULT_IMAGE, SFMValue.nullValue(), revision);
+    }
+
+    private static ResourceLocation snapshotLocation(SFMImageSnapshot snapshot) {
+        return new ResourceLocation("sfm", "image/" + snapshot.sha256());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public @NotNull <T> LazyOptional<T> getCapability(@NotNull Capability<T> cap, @Nullable net.minecraft.core.Direction side) {
+        if (cap == SFMWellKnownCapabilities.IMAGE_HANDLER.capabilityKind()) {
+            return imageSinkCapability.cast();
+        }
+        return super.getCapability(cap, side);
+    }
+
+    @Override
+    public void invalidateCaps() {
+        imageSinkCapability.invalidate();
+        super.invalidateCaps();
     }
 
     @Override

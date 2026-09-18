@@ -327,9 +327,13 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         getVariantBuilder(SFMBlocks.BUFFER_BLOCK.get())
                 .forAllStates(state -> {
                     BufferBlock.ContainedResource containedResource = state.getValue(BufferBlock.CONTAINED_RESOURCE);
+                    // The image buffer uses the existing neutral texture until it has dedicated art.
+                    String texture = containedResource == BufferBlock.ContainedResource.Image
+                                     ? "unknown"
+                                     : containedResource.getSerializedName();
                     ModelFile modelFile = models().cubeAll(
                             SFMBlocks.BUFFER_BLOCK.getPath() + "_" + containedResource.getSerializedName(),
-                            modLoc("block/buffer_" + containedResource.getSerializedName())
+                            modLoc("block/buffer_" + texture)
                     );
                     return ConfiguredModel.builder().modelFile(modelFile).build();
                 });

@@ -1,0 +1,121 @@
+package ca.teamdman.sfm.gametest.tests.general;
+
+import ca.teamdman.sfm.common.block.TouchDisplayBlock;
+import ca.teamdman.sfm.common.blockentity.BufferBlockEntity;
+import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.blockentity.TouchDisplayBlockEntity;
+import ca.teamdman.sfm.common.capability.IImageHandler;
+import ca.teamdman.sfm.common.image.SFMImageSnapshot;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
+import ca.teamdman.sfm.common.resourcetype.SFMImageStack;
+import ca.teamdman.sfm.common.util.SFMDist;
+import ca.teamdman.sfm.common.value.SFMValue;
+import ca.teamdman.sfm.gametest.SFMGameTest;
+import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
+import ca.teamdman.sfm.gametest.SFMGameTestHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
+
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Objects;
+
+/** Real SFML IMAGE:: movement from a durable buffer into the consuming display sink. */
+@SFMGameTest(SFMDist.DEDICATED_SERVER)
+public final class TouchDisplayImageTransferGameTest extends SFMGameTestDefinition {
+    @Override
+    public String template() {
+        return "5x3x1";
+    }
+
+    @Override
+    public int maxTicks() {
+        return 20 * 10;
+    }
+
+    @Override
+    public void run(SFMGameTestHelper helper) {
+        BlockPos sourcePos = new BlockPos(0, 2, 0);
+        BlockPos managerPos = new BlockPos(2, 2, 0);
+        BlockPos displayPos = new BlockPos(4, 2, 0);
+        helper.setBlock(sourcePos, SFMBlocks.BUFFER_BLOCK.get());
+        helper.setBlock(new BlockPos(1, 2, 0), SFMBlocks.CABLE.get());
+        helper.setBlock(managerPos, SFMBlocks.MANAGER.get());
+        helper.setBlock(new BlockPos(3, 2, 0), SFMBlocks.CABLE.get());
+        helper.setBlock(displayPos, SFMBlocks.TOUCH_DISPLAY.get().defaultBlockState()
+                .setValue(TouchDisplayBlock.FACING, Direction.EAST));
+
+        BufferBlockEntity source = helper.getBlockEntity(sourcePos, BufferBlockEntity.class);
+        IImageHandler sourceImages = source.getContents().getCapability(SFMResourceTypes.IMAGE.get()).unwrap();
+        SFMValue interactionState = SFMValue.object(Map.of("button", SFMValue.of("red")));
+        SFMImageStack image = SFMImageStack.of(fixture(), interactionState);
+        helper.assertTrue(sourceImages.insertImage(image, true).isEmpty()
+                          && sourceImages.getImage().isEmpty(),
+                "Simulated image insertion must not change the buffer");
+        helper.assertTrue(sourceImages.insertImage(image, false).isEmpty(),
+                "Image buffer rejected a bounded image");
+
+        CompoundTag savedBuffer = source.saveWithFullMetadata();
+        BufferBlockEntity restoredBuffer = new BufferBlockEntity(helper.absolutePos(sourcePos), source.getBlockState());
+        restoredBuffer.load(savedBuffer);
+        helper.assertTrue(restoredBuffer.getContents().getCapability(SFMResourceTypes.IMAGE.get())
+                                  .unwrap().getImage().equals(image),
+                "Image bytes and interaction state did not survive buffer save/load");
+
+        ManagerBlockEntity manager = helper.getBlockEntity(managerPos, ManagerBlockEntity.class);
+        manager.setItem(0, new ItemStack(SFMItems.DISK.get()));
+        manager.setProgram("""
+                EVERY 20 TICKS DO
+                    INPUT 1 IMAGE:: FROM images
+                    OUTPUT 1 IMAGE:: TO display
+                END
+                """);
+        LabelPositionHolder.empty()
+                .add("images", helper.absolutePos(sourcePos))
+                .add("display", helper.absolutePos(displayPos))
+                .save(Objects.requireNonNull(manager.getDisk()));
+        helper.assertManagerRunning(manager);
+
+        TouchDisplayBlockEntity display = helper.getBlockEntity(displayPos, TouchDisplayBlockEntity.class);
+        helper.succeedWhen(() -> {
+            helper.assertTrue(sourceImages.getImage().isEmpty(),
+                    "Manager has not extracted the image from its buffer");
+            TouchDisplayBlockEntity.DisplayContent committed = display.content();
+            helper.assertTrue(committed.imageSnapshot() != null
+                              && committed.imageSnapshot().equals(image.snapshot().orElseThrow())
+                              && committed.state().equals(interactionState)
+                              && committed.revision() == 1,
+                    "Manager did not atomically commit the image, state and revision");
+
+            TouchDisplayBlockEntity restored = new TouchDisplayBlockEntity(
+                    helper.absolutePos(displayPos), display.getBlockState()
+            );
+            restored.load(display.getUpdateTag());
+            helper.assertTrue(restored.content().equals(committed),
+                    "Display image payload did not survive saved/client-synced content");
+        });
+    }
+
+    private static SFMImageSnapshot fixture() {
+        BufferedImage pixels = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
+        pixels.setRGB(0, 0, 0xFFFF0000);
+        pixels.setRGB(1, 1, 0xFF0000FF);
+        try {
+            ByteArrayOutputStream output = new ByteArrayOutputStream();
+            if (!ImageIO.write(pixels, "png", output)) {
+                throw new IllegalStateException("No PNG writer is available");
+            }
+            return SFMImageSnapshot.fromPng(output.toByteArray());
+        } catch (IOException e) {
+            throw new IllegalStateException("Could not make bounded PNG fixture", e);
+        }
+    }
+}

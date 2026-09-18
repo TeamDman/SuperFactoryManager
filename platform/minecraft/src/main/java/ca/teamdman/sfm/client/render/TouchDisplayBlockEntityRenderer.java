@@ -7,13 +7,14 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Matrix3f;
 import com.mojang.math.Matrix4f;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
 import net.minecraft.core.Direction;
 
-/** Draws the server-selected static image on the outward face of a Touch Display. */
+/** Draws server-selected static or bounded snapshot imagery on the outward face. */
 public class TouchDisplayBlockEntityRenderer implements BlockEntityRenderer<TouchDisplayBlockEntity> {
     private static final float SURFACE_OFFSET = 1F / 1024F;
 
@@ -34,7 +35,14 @@ public class TouchDisplayBlockEntityRenderer implements BlockEntityRenderer<Touc
         TouchDisplayBlockEntity.DisplayContent content = blockEntity.content();
         Direction face = blockEntity.getBlockState().getValue(TouchDisplayBlock.FACING);
         TouchDisplaySurface.Basis basis = TouchDisplaySurface.basis(face);
-        VertexConsumer vertices = bufferSource.getBuffer(RenderType.entityCutoutNoCull(content.imageRef()));
+        // The cache uploads each digest at most once while resident. If its
+        // bounded admission is full or decoding fails, render the bundled
+        // placeholder instead of binding an unregistered synthetic image ID.
+        var imageLocation = content.imageSnapshot() == null
+                ? content.imageRef()
+                : TouchDisplayTextureRuntime.textureFor(content.imageSnapshot(), blockEntity.getLevel())
+                        .orElse(TouchDisplayBlockEntity.DEFAULT_IMAGE);
+        VertexConsumer vertices = bufferSource.getBuffer(RenderType.entityCutoutNoCull(imageLocation));
         PoseStack.Pose pose = poseStack.last();
 
         float centerX = 0.5F + face.getStepX() * (0.5F + SURFACE_OFFSET);
@@ -43,10 +51,13 @@ public class TouchDisplayBlockEntityRenderer implements BlockEntityRenderer<Touc
 
         // The basis always satisfies right x up = outward normal. This fixes
         // top/left orientation for every face and keeps future click UVs stable.
-        vertex(vertices, pose, centerX, centerY, centerZ, basis, -1, 1, 0, 0, face, packedLight, packedOverlay);
-        vertex(vertices, pose, centerX, centerY, centerZ, basis, -1, -1, 0, 1, face, packedLight, packedOverlay);
-        vertex(vertices, pose, centerX, centerY, centerZ, basis, 1, -1, 1, 1, face, packedLight, packedOverlay);
-        vertex(vertices, pose, centerX, centerY, centerZ, basis, 1, 1, 1, 0, face, packedLight, packedOverlay);
+        // A display emits its image rather than reflecting ambient block light.
+        // The block bezel remains world-lit; only the raster surface is full-bright.
+        int surfaceLight = LightTexture.FULL_BRIGHT;
+        vertex(vertices, pose, centerX, centerY, centerZ, basis, -1, 1, 0, 0, face, surfaceLight, packedOverlay);
+        vertex(vertices, pose, centerX, centerY, centerZ, basis, -1, -1, 0, 1, face, surfaceLight, packedOverlay);
+        vertex(vertices, pose, centerX, centerY, centerZ, basis, 1, -1, 1, 1, face, surfaceLight, packedOverlay);
+        vertex(vertices, pose, centerX, centerY, centerZ, basis, 1, 1, 1, 0, face, surfaceLight, packedOverlay);
     }
 
     private static void vertex(

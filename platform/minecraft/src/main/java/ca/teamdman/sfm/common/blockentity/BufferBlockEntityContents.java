@@ -18,9 +18,15 @@ public class BufferBlockEntityContents {
     /// Mapping from resource type to the handler.
     private final Map<ResourceType<?, ?, ?>, Object> contents = new HashMap<>();
     public final BufferBlockTier tier;
+    private final Runnable onChange;
 
-    public BufferBlockEntityContents(BufferBlockTier tier) {
+    public BufferBlockEntityContents(BufferBlockTier tier, Runnable onChange) {
         this.tier = tier;
+        this.onChange = onChange;
+    }
+
+    public void markChanged() {
+        onChange.run();
     }
 
     public BufferBlock.ContainedResource lastUsedResource = BufferBlock.ContainedResource.Unknown;

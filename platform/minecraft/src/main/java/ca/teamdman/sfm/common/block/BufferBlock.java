@@ -98,6 +98,7 @@ public class BufferBlock extends BaseEntityBlock {
         Energy,
         Chemical,
         Redstone,
+        Image,
         Unknown;
 
         @Override
@@ -109,6 +110,7 @@ public class BufferBlock extends BaseEntityBlock {
                 case Energy -> "energy";
                 case Chemical -> "chemical";
                 case Redstone -> "redstone";
+                case Image -> "image";
                 case Unknown -> "unknown";
             };
         }
@@ -124,6 +126,8 @@ public class BufferBlock extends BaseEntityBlock {
                 return Energy;
             } else if (name.equals("redstone")) {
                 return Redstone;
+            } else if (name.equals("image")) {
+                return Image;
             } else if (SFMModCompat.isMekanismLoaded()) {
                 if (name.equals("gas") || name.equals("infusion") || name.equals("pigment") || name.equals("slurry")) {
                     return Chemical;

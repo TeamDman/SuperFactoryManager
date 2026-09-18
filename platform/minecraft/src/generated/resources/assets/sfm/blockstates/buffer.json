@@ -9,6 +9,9 @@
     "resource=fluid": {
       "model": "sfm:block/buffer_fluid"
     },
+    "resource=image": {
+      "model": "sfm:block/buffer_image"
+    },
     "resource=item": {
       "model": "sfm:block/buffer_item"
     },
