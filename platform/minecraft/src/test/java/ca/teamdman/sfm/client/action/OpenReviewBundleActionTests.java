@@ -1,11 +1,13 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.review.repository.SFMRepositoryReviewException;
 import ca.teamdman.sfm.client.review.repository.SFMRepositoryReviewRepository;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +33,7 @@ class OpenReviewBundleActionTests {
             }
         });
         CommandDispatcher<SFMClientActionSource> dispatcher = SFMClientActionDispatcherCompiler.compile(List.of(
-                Map.entry(new ResourceLocation("sfm", "review/open_bundle"), new OpenReviewBundleAction())
+                Map.entry(SFMResourceLocation.fromNamespaceAndPath("sfm", "review/open_bundle"), new OpenReviewBundleAction())
         ));
         SFMClientActionSource source = new SFMClientActionSource(
                 SFMClientActionContext.create(new Object(), () -> true));

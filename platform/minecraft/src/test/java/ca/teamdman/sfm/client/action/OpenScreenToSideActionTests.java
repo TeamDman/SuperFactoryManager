@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.screen.workspace.SFMTestScreenType;
 import com.mojang.brigadier.ParseResults;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -13,8 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OpenScreenToSideActionTests {
-    private static final ResourceLocation ACTION_ID = new ResourceLocation("sfm", "workspace/open_to_side");
-    private static final ResourceLocation SCREEN_ID = new ResourceLocation("sfm", "test_screen");
+    private static final Identifier ACTION_ID = SFMResourceLocation.fromNamespaceAndPath("sfm", "workspace/open_to_side");
+    private static final Identifier SCREEN_ID = SFMResourceLocation.fromNamespaceAndPath("sfm", "test_screen");
 
     @Test
     void registeredScreenTypeContributesItsTypedArgumentsToTheActionTree() {

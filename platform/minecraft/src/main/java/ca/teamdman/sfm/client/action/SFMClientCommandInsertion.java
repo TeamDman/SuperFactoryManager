@@ -3,7 +3,7 @@ package ca.teamdman.sfm.client.action;
 import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.context.ParsedCommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
@@ -23,7 +23,7 @@ public final class SFMClientCommandInsertion {
         ParsedCommandNode<SFMClientActionSource> parsedNode = nodes.get(nodes.size() - 1);
         if (parsedNode.getRange().getEnd() != command.length()) return command;
         if (!(parsedNode.getNode() instanceof LiteralCommandNode<SFMClientActionSource> literal)) return command;
-        if (!literal.getLiteral().contains(":") || ResourceLocation.tryParse(literal.getLiteral()) == null) return command;
+        if (!literal.getLiteral().contains(":") || Identifier.tryParse(literal.getLiteral()) == null) return command;
         if (literal.getCommand() != null || literal.getChildren().isEmpty()) return command;
         return command + " ";
     }

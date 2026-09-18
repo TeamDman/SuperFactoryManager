@@ -55,6 +55,12 @@ import java.util.List;
 import java.util.UUID;
 
 final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static net.minecraft.client.input.MouseButtonEvent leftButtonEvent(double x, double y) {
+        return new net.minecraft.client.input.MouseButtonEvent(x, y,
+                new net.minecraft.client.input.MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
+    }
+
     private final ActivePuppet active;
 
     private final Minecraft minecraft;
@@ -309,8 +315,8 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         SFMScreenPanelBounds bounds = terminalBounds(multiplexer);
         double x = bounds.x() + bounds.width() / 2D;
         double y = bounds.y() + bounds.height() / 2D;
-        multiplexer.mouseClicked(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
-        multiplexer.mouseReleased(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseClicked(leftButtonEvent(x, y), false);
+        multiplexer.mouseReleased(leftButtonEvent(x, y));
     }
 
     @Override
@@ -320,13 +326,13 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         double y = bounds.y() + bounds.height() / 2D;
         double fromX = bounds.x() + bounds.width() / 3D;
         double toX = bounds.x() + bounds.width() * 2D / 3D;
-        multiplexer.mouseClicked(fromX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseClicked(leftButtonEvent(fromX, y), false);
         // A real GLFW drag is observed as pointer motion while the button is
         // held. Exercise that dispatch path directly so the puppet does not
         // depend on Screen's internal mouse-capture bookkeeping.
         multiplexer.mouseMoved(toX, y);
-        multiplexer.mouseDragged(toX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT, toX - fromX, 0D);
-        multiplexer.mouseReleased(toX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseDragged(leftButtonEvent(toX, y), toX - fromX, 0D);
+        multiplexer.mouseReleased(leftButtonEvent(toX, y));
     }
 
     @Override
@@ -335,11 +341,12 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     public void scrollTerminal(double delta) {
         SFMScreenMultiplexer multiplexer = requireTerminalMultiplexer();
         SFMScreenPanelBounds bounds = terminalBounds(multiplexer);
         multiplexer.mouseScrolled(bounds.x() + bounds.width() / 2D,
-                bounds.y() + bounds.height() / 2D, delta);
+                bounds.y() + bounds.height() / 2D, 0D, delta);
     }
 
     @Override
@@ -418,7 +425,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         double mouseX = layout.list().x() + Math.max(1, layout.list().width() / 2D);
         double mouseY = layout.list().y() + visibleRowIndex * SFMFileExplorerPanel.ROW_HEIGHT
                 + SFMFileExplorerPanel.ROW_HEIGHT / 2D;
-        multiplexer.mouseClicked(mouseX, mouseY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseClicked(leftButtonEvent(mouseX, mouseY), false);
     }
 
     @Override
@@ -634,7 +641,7 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         }
         double mouseX = (panelIndex + 0.5D) * multiplexer.width / multiplexer.panels().size();
         double mouseY = multiplexer.height / 2D;
-        multiplexer.mouseClicked(mouseX, mouseY, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseClicked(leftButtonEvent(mouseX, mouseY), false);
         return multiplexer.focusedPanel() == panelIndex;
     }
 
@@ -674,9 +681,9 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         double fromX = timeline.xForTimestep(fromTimestep);
         double toX = timeline.xForTimestep(toTimestep);
         double y = timeline.trackY();
-        multiplexer.mouseClicked(fromX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
-        multiplexer.mouseDragged(toX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT, toX - fromX, 0D);
-        multiplexer.mouseReleased(toX, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseClicked(leftButtonEvent(fromX, y), false);
+        multiplexer.mouseDragged(leftButtonEvent(toX, y), toX - fromX, 0D);
+        multiplexer.mouseReleased(leftButtonEvent(toX, y));
         if (timeline.model().current() != toTimestep) {
             throw new IllegalStateException(
                     "Timeline drag selected " + timeline.model().current() + " instead of " + toTimestep
@@ -789,8 +796,8 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
         if (!(minecraft.screen instanceof SFMScreenMultiplexer multiplexer)) {
             throw new IllegalStateException("Expected SFM workspace before mouse input");
         }
-        multiplexer.mouseClicked(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
-        multiplexer.mouseReleased(x, y, GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        multiplexer.mouseClicked(leftButtonEvent(x, y), false);
+        multiplexer.mouseReleased(leftButtonEvent(x, y));
     }
 
     @MCVersionDependentBehaviour

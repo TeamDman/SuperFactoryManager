@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -51,18 +51,26 @@ public final class SFMItemPickerScreen extends Screen {
     public Component getNarrationMessage() { return panel.narration(); }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        return panel.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(keyCode, scanCode, modifiers);
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        int modifiers = event.modifiers();
+        return panel.keyPressed(keyCode, scanCode, modifiers) || super.keyPressed(event);
     }
 
     @Override
-    public boolean charTyped(char character, int modifiers) {
-        return panel.charTyped(character, modifiers) || super.charTyped(character, modifiers);
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
+        char character = (char) event.codepoint();
+        int modifiers = 0;
+        return panel.charTyped(character, modifiers) || super.charTyped(event);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        return panel.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(mouseX, mouseY, button);
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
+        return panel.mouseClicked(mouseX, mouseY, button) || super.mouseClicked(event, doubleClick);
     }
 
     @Override
@@ -72,8 +80,9 @@ public final class SFMItemPickerScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
-        return panel.mouseScrolled(mouseX, mouseY, delta) || super.mouseScrolled(mouseX, mouseY, delta);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalDelta, double delta) {
+        return panel.mouseScrolled(mouseX, mouseY, delta) || super.mouseScrolled(mouseX, mouseY, horizontalDelta, delta);
     }
 
     @Override
@@ -87,10 +96,10 @@ public final class SFMItemPickerScreen extends Screen {
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        renderBackground(poseStack);
-        panel.render(poseStack, minecraft, new SFMScreenPanelBounds(0, 0, width, height),
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        panel.render(graphics, minecraft, new SFMScreenPanelBounds(0, 0, width, height),
                 mouseX, mouseY, partialTick, true);
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 }

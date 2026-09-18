@@ -3,9 +3,8 @@ package ca.teamdman.sfm.client.screen.workspace.diagnostic;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 
 import java.util.Objects;
@@ -56,8 +55,9 @@ public final class SFMSizeDisplayPanel implements SFMScreenPanel {
     }
 
     @Override
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     public void render(
-            PoseStack poseStack,
+            GuiGraphicsExtractor graphics,
             Minecraft minecraft,
             SFMScreenPanelBounds bounds,
             int mouseX,
@@ -65,9 +65,7 @@ public final class SFMSizeDisplayPanel implements SFMScreenPanel {
             float partialTick,
             boolean focused
     ) {
-        GuiComponent.fill(
-                poseStack,
-                bounds.x(),
+        graphics.fill(bounds.x(),
                 bounds.y(),
                 bounds.x() + bounds.width(),
                 bounds.y() + bounds.height(),
@@ -84,7 +82,7 @@ public final class SFMSizeDisplayPanel implements SFMScreenPanel {
                 backgroundColour
         );
         SFMFontUtils.draw(
-                poseStack,
+                graphics,
                 minecraft.font,
                 text,
                 geometry.textX(),

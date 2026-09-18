@@ -7,8 +7,8 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyModifier;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.event.TickEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.EnumSet;
@@ -28,6 +28,7 @@ public final class SFMDynamicKeyBindingHandler {
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     public static void onKey(InputEvent.Key event) {
         SFMKeyInputEvent.Type type = switch (event.getAction()) {
             case GLFW.GLFW_PRESS -> SFMKeyInputEvent.Type.PRESS;
@@ -46,9 +47,9 @@ public final class SFMDynamicKeyBindingHandler {
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
-    public static void onClientTick(TickEvent.ClientTickEvent event) {
-        if (event.phase != TickEvent.Phase.END) return;
-        long window = Minecraft.getInstance().getWindow().getWindow();
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public static void onClientTick(ClientTickEvent.Post event) {
+        long window = Minecraft.getInstance().getWindow().handle();
         boolean focused = GLFW.glfwGetWindowAttrib(window, GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
         if (windowFocused && !focused) resetForFocusLoss();
         windowFocused = focused;

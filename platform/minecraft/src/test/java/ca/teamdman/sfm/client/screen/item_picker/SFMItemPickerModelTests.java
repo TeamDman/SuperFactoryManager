@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.client.screen.item_picker;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -13,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class SFMItemPickerModelTests {
-    private static final ResourceLocation PAPER = id("minecraft:paper");
+    private static final Identifier PAPER = id("minecraft:paper");
     private static final List<SFMItemPickerEntry> ITEMS = List.of(
             entry("sfm:disk", "SFM Program Disk"),
             entry("minecraft:chest", "Chest"),
@@ -134,7 +136,7 @@ public class SFMItemPickerModelTests {
         SFMItemPickerModel model = model("minecraft:chest");
         model.setQuery("minecraft");
         model.move(1, 0, 2);
-        ResourceLocation selected = model.selection().orElseThrow().itemId();
+        Identifier selected = model.selection().orElseThrow().itemId();
         model.toggleViewMode();
         assertEquals(SFMItemPickerModel.ViewMode.DENSE_ICONS, model.viewMode());
         assertEquals("minecraft", model.query());
@@ -176,5 +178,5 @@ public class SFMItemPickerModelTests {
         return new SFMItemPickerEntry(id(id), name);
     }
 
-    private static ResourceLocation id(String value) { return new ResourceLocation(value); }
+    private static Identifier id(String value) { return SFMResourceLocation.parse(value); }
 }

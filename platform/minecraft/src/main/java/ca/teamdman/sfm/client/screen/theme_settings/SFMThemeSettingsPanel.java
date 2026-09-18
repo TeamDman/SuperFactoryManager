@@ -7,11 +7,10 @@ import ca.teamdman.sfm.client.screen.color.SFMColorInputPanel;
 import ca.teamdman.sfm.client.screen.item_picker.SFMItemPickerPanel;
 import ca.teamdman.sfm.client.screen.workspace.*;
 import ca.teamdman.sfm.client.theme.*;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -33,11 +32,11 @@ public final class SFMThemeSettingsPanel implements SFMScreenPanel {
     @Override public void resized(Minecraft minecraft, SFMScreenPanelBounds bounds) { this.bounds=bounds; }
     @Override public void closed() { context=null; }
 
-    @Override public void render(PoseStack ps, Minecraft mc, SFMScreenPanelBounds b, int mx, int my, float pt, boolean focused) {
+    @Override public void render(GuiGraphicsExtractor ps, Minecraft mc, SFMScreenPanelBounds b, int mx, int my, float pt, boolean focused) {
         this.bounds=b;
         SFMClientTheme theme=model.draft();
         int right=b.x()+b.width(), bottom=b.y()+b.height();
-        GuiComponent.fill(ps,b.x(),b.y(),right,bottom,theme.colour(SFMColourRole.PANEL_BACKGROUND));
+        ps.fill(b.x(),b.y(),right,bottom,theme.colour(SFMColourRole.PANEL_BACKGROUND));
         SFMFontUtils.draw(ps,mc.font,"Theme settings"+(model.dirty()?" *":""),b.x()+8,b.y()+7,theme.colour(SFMColourRole.TEXT_ACCENT),false);
         SFMFontUtils.draw(ps,mc.font,"Colours · syntax · file icons · action icons",b.x()+8,b.y()+20,theme.colour(SFMColourRole.TEXT_MUTED),false);
         int previewH=Math.max(72,Math.min(112,b.height()/3));
@@ -47,19 +46,19 @@ public final class SFMThemeSettingsPanel implements SFMScreenPanel {
         if(model.selectedIndex()>=firstRow+visible) firstRow=model.selectedIndex()-visible+1;
         for(int i=firstRow;i<Math.min(model.properties().size(),firstRow+visible);i++){
             int y=listTop+(i-firstRow)*15;
-            if(i==model.selectedIndex()) GuiComponent.fill(ps,b.x()+5,y-2,right-5,y+12,theme.colour(SFMColourRole.PANEL_SELECTION));
+            if(i==model.selectedIndex()) ps.fill(b.x()+5,y-2,right-5,y+12,theme.colour(SFMColourRole.PANEL_SELECTION));
             String text=model.properties().get(i).label();
             if(mc.font.width(text)>b.width()-18) text=mc.font.plainSubstrByWidth(text,b.width()-28)+"…";
             SFMFontUtils.draw(ps,mc.font,text,b.x()+9,y,theme.colour(SFMColourRole.TEXT_PRIMARY),false);
         }
         int py=listBottom+5;
-        GuiComponent.fill(ps,b.x()+6,py,right-6,bottom-25,theme.colour(SFMColourRole.PANEL_SELECTION));
+        ps.fill(b.x()+6,py,right-6,bottom-25,theme.colour(SFMColourRole.PANEL_SELECTION));
         SFMFontUtils.draw(ps,mc.font,"Live preview",b.x()+11,py+6,theme.colour(SFMColourRole.TEXT_ACCENT),false);
         SFMFontUtils.draw(ps,mc.font,"EVERY INPUT example \"hello\" 42",b.x()+11,py+20,theme.syntax("keyword").colour(),false);
         SFMFontUtils.draw(ps,mc.font,"program.sfml",b.x()+31,py+38,theme.colour(SFMColourRole.TEXT_PRIMARY),false);
         SFMFontUtils.draw(ps,mc.font,"palette/open",b.x()+132,py+38,theme.colour(SFMColourRole.TEXT_PRIMARY),false);
-        SFMItemIconRenderer.render(mc,theme.fileIcon(".sfml"),b.x()+11,py+34);
-        SFMItemIconRenderer.render(mc,theme.actionIcon(SFMThemeSettingsModel.PALETTE_ACTION,theme.fileIcon("unknown")),b.x()+112,py+34);
+        SFMItemIconRenderer.render(ps,mc,theme.fileIcon(".sfml"),b.x()+11,py+34);
+        SFMItemIconRenderer.render(ps,mc,theme.actionIcon(SFMThemeSettingsModel.PALETTE_ACTION,theme.fileIcon("unknown")),b.x()+112,py+34);
         SFMFontUtils.draw(ps,mc.font,"Enter edit · Ctrl+S save · R reset · D defaults · T TOML",b.x()+8,bottom-21,theme.colour(SFMColourRole.TEXT_MUTED),false);
         SFMFontUtils.draw(ps,mc.font,model.status(),b.x()+8,bottom-10,model.status().startsWith("Invalid")?theme.colour(SFMColourRole.TEXT_ERROR):theme.colour(SFMColourRole.TEXT_PRIMARY),false);
     }

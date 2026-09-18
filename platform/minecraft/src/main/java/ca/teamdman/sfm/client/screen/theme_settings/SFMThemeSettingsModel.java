@@ -1,10 +1,12 @@
 package ca.teamdman.sfm.client.screen.theme_settings;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.theme.SFMClientTheme;
 import ca.teamdman.sfm.client.theme.SFMColourRole;
 import ca.teamdman.sfm.client.theme.SFMSyntaxStyle;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -14,7 +16,7 @@ import java.util.Map;
 
 /** Pure structured draft over the same immutable theme snapshot consumed by runtime rendering. */
 public final class SFMThemeSettingsModel {
-    public static final ResourceLocation PALETTE_ACTION = new ResourceLocation("sfm:palette/open");
+    public static final Identifier PALETTE_ACTION = SFMResourceLocation.parse("sfm:palette/open");
     private SFMClientTheme baseline;
     private SFMClientTheme draft;
     private List<SFMThemeProperty> properties;
@@ -66,7 +68,7 @@ public final class SFMThemeSettingsModel {
         SFMThemeProperty property = selected();
         return switch (property.kind()) {
             case FILE_ICON -> draft.fileIcons().get(property.id());
-            case ACTION_ICON -> draft.actionIcons().get(new ResourceLocation(property.id()));
+            case ACTION_ICON -> draft.actionIcons().get(SFMResourceLocation.parse(property.id()));
             default -> throw new IllegalStateException("Selected property is not icon-backed: " + property.id());
         };
     }
@@ -96,8 +98,8 @@ public final class SFMThemeSettingsModel {
             icons.put(property.id(), icon);
             draft = new SFMClientTheme(draft.colours(), draft.sfmlSyntax(), icons, draft.actionIcons());
         } else if (property.kind() == SFMThemeProperty.Kind.ACTION_ICON) {
-            Map<ResourceLocation, SFMItemIcon> icons = new LinkedHashMap<>(draft.actionIcons());
-            icons.put(new ResourceLocation(property.id()), icon);
+            Map<Identifier, SFMItemIcon> icons = new LinkedHashMap<>(draft.actionIcons());
+            icons.put(SFMResourceLocation.parse(property.id()), icon);
             draft = new SFMClientTheme(draft.colours(), draft.sfmlSyntax(), draft.fileIcons(), icons);
         } else {
             throw new IllegalStateException("Selected property is not icon-backed");
@@ -152,7 +154,7 @@ public final class SFMThemeSettingsModel {
     }
 
     private static SFMClientTheme normalize(SFMClientTheme theme) {
-        Map<ResourceLocation, SFMItemIcon> actions = new LinkedHashMap<>(theme.actionIcons());
+        Map<Identifier, SFMItemIcon> actions = new LinkedHashMap<>(theme.actionIcons());
         actions.putIfAbsent(PALETTE_ACTION, SFMItemIcon.vanilla("compass", "Open command palette"));
         return new SFMClientTheme(theme.colours(), theme.sfmlSyntax(), theme.fileIcons(), actions);
     }
@@ -166,7 +168,7 @@ public final class SFMThemeSettingsModel {
                 answer.add(new SFMThemeProperty(SFMThemeProperty.Kind.SYNTAX, id, "Syntax · " + id)));
         theme.fileIcons().keySet().stream().sorted().forEach(id ->
                 answer.add(new SFMThemeProperty(SFMThemeProperty.Kind.FILE_ICON, id, "File icon · " + id)));
-        theme.actionIcons().keySet().stream().map(ResourceLocation::toString).sorted().forEach(id ->
+        theme.actionIcons().keySet().stream().map(Identifier::toString).sorted().forEach(id ->
                 answer.add(new SFMThemeProperty(SFMThemeProperty.Kind.ACTION_ICON, id, "Action icon · " + id)));
         return List.copyOf(answer);
     }

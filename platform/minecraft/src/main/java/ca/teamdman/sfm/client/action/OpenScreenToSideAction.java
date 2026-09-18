@@ -12,7 +12,7 @@ import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -35,13 +35,13 @@ public final class OpenScreenToSideAction implements SFMClientAction<SFMClientAc
             "Open registered SFM content in a side-by-side workspace"
     );
 
-    private final Supplier<List<Map.Entry<ResourceLocation, SFMClientScreenType>>> screenTypes;
+    private final Supplier<List<Map.Entry<Identifier, SFMClientScreenType>>> screenTypes;
 
     public OpenScreenToSideAction() {
         this(OpenScreenToSideAction::registeredScreenTypes);
     }
 
-    OpenScreenToSideAction(Supplier<List<Map.Entry<ResourceLocation, SFMClientScreenType>>> screenTypes) {
+    OpenScreenToSideAction(Supplier<List<Map.Entry<Identifier, SFMClientScreenType>>> screenTypes) {
         this.screenTypes = screenTypes;
     }
 
@@ -64,7 +64,7 @@ public final class OpenScreenToSideAction implements SFMClientAction<SFMClientAc
 
     @Override
     public void configureCommandNode(LiteralArgumentBuilder<SFMClientActionSource> node) {
-        for (Map.Entry<ResourceLocation, SFMClientScreenType> registration : screenTypes.get()) {
+        for (Map.Entry<Identifier, SFMClientScreenType> registration : screenTypes.get()) {
             node.then(registration.getValue().createCommandNode(registration.getKey(), this::open));
         }
     }
@@ -91,10 +91,10 @@ public final class OpenScreenToSideAction implements SFMClientAction<SFMClientAc
         return 1;
     }
 
-    private static List<Map.Entry<ResourceLocation, SFMClientScreenType>> registeredScreenTypes() {
-        List<Map.Entry<ResourceLocation, SFMClientScreenType>> registrations = new ArrayList<>();
-        for (ResourceLocation id : SFMClientScreenTypes.registry().keys()) {
-            registrations.add(Map.entry(id, Objects.requireNonNull(SFMClientScreenTypes.registry().get(id))));
+    private static List<Map.Entry<Identifier, SFMClientScreenType>> registeredScreenTypes() {
+        List<Map.Entry<Identifier, SFMClientScreenType>> registrations = new ArrayList<>();
+        for (Identifier id : SFMClientScreenTypes.registry().keys()) {
+            registrations.add(Map.entry(id, Objects.requireNonNull(SFMClientScreenTypes.registry().get(id).map(reference -> reference.value()).orElse(null))));
         }
         registrations.sort(Comparator.comparing(entry -> entry.getKey().toString()));
         return registrations;

@@ -33,8 +33,8 @@ final class SFMGamePuppetViewportController {
         if (!requestedChange) {
             requestedChange = true;
             minecraft.options.guiScale().set(requested.guiScale());
-            GLFW.glfwSetWindowSize(minecraft.getWindow().getWindow(), requested.width(), requested.height());
-            minecraft.resizeDisplay();
+            GLFW.glfwSetWindowSize(minecraft.getWindow().handle(), requested.width(), requested.height());
+            minecraft.resizeGui();
             SFM.LOGGER.info("SFM_GAME_PUPPET_VIEWPORT_REQUESTED puppet={} variant={} requested_width={} requested_height={} requested_gui_scale={}",
                     active.definition.puppetName(), requested.id(), requested.width(), requested.height(), requested.requestedScaleName());
             return false;
@@ -60,8 +60,8 @@ final class SFMGamePuppetViewportController {
         if (original == null) return;
         restorationTarget = original;
         minecraft.options.guiScale().set(restorationTarget.guiScale());
-        GLFW.glfwSetWindowSize(minecraft.getWindow().getWindow(), restorationTarget.width(), restorationTarget.height());
-        minecraft.resizeDisplay();
+        GLFW.glfwSetWindowSize(minecraft.getWindow().handle(), restorationTarget.width(), restorationTarget.height());
+        minecraft.resizeGui();
         SFM.LOGGER.info("SFM_GAME_PUPPET_VIEWPORT_RESTORE_REQUESTED requested_width={} requested_height={} requested_gui_scale={}", restorationTarget.width(), restorationTarget.height(), restorationTarget.requestedScaleName());
     }
 
@@ -91,7 +91,7 @@ final class SFMGamePuppetViewportController {
     }
 
     private static SFMGamePuppetViewportObservation observe(Minecraft minecraft) {
-        long handle = minecraft.getWindow().getWindow();
+        long handle = minecraft.getWindow().handle();
         try (MemoryStack stack = MemoryStack.stackPush()) {
             IntBuffer windowWidth = stack.mallocInt(1);
             IntBuffer windowHeight = stack.mallocInt(1);

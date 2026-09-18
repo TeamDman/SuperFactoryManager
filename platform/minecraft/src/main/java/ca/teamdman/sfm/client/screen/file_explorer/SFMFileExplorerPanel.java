@@ -7,11 +7,10 @@ import ca.teamdman.sfm.client.screen.workspace.SFMFileDropTarget;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.ChatFormatting;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
@@ -171,8 +170,9 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
     }
 
     @Override
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     public void render(
-            PoseStack poseStack,
+            GuiGraphicsExtractor graphics,
             Minecraft minecraft,
             SFMScreenPanelBounds bounds,
             int mouseX,
@@ -180,45 +180,46 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
             float partialTick,
             boolean focused
     ) {
-        fillRect(poseStack, layout.content(), PANEL);
-        fillRect(poseStack, layout.header(), HEADER);
-        drawBorder(poseStack, layout.content());
+        fillRect(graphics, layout.content(), PANEL);
+        fillRect(graphics, layout.header(), HEADER);
+        drawBorder(graphics, layout.content());
         int inset = layout.compact() ? 4 : 8;
         int titleY = layout.header().y() + (layout.compact() ? 3 : 6);
-        SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD),
+        SFMFontUtils.draw(graphics, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD),
                 layout.header().x() + inset, titleY, TEXT, true);
         if (!layout.compact()) {
-            SFMFontUtils.draw(poseStack, minecraft.font, "Source: " + model.sourceName() + " (read-only)",
+            SFMFontUtils.draw(graphics, minecraft.font, "Source: " + model.sourceName() + " (read-only)",
                     layout.header().x() + inset, titleY + 13, MUTED, true);
         }
-        renderRows(poseStack, minecraft);
+        renderRows(graphics, minecraft);
         int statusColour = model.snapshot().state() == SFMFileExplorerSnapshot.State.ERROR
                 || statusMessage.startsWith("Drop rejected") ? ERROR : MUTED;
         String status = model.visibleEntries().isEmpty() && statusMessage.equals("Read-only")
                 ? model.stateDescription() : statusMessage;
         if (layout.belowMinimum()) status = "Viewport below supported 180x120 minimum; " + status;
-        SFMFontUtils.draw(poseStack, minecraft.font,
+        SFMFontUtils.draw(graphics, minecraft.font,
                 trimToWidth(minecraft, status, layout.status().width() - inset * 2),
                 layout.status().x() + inset, layout.status().y() + 2, statusColour, true);
-        renderIconTooltip(poseStack, minecraft, mouseX, mouseY);
+        renderIconTooltip(graphics, minecraft, mouseX, mouseY);
     }
 
-    private void renderRows(PoseStack poseStack, Minecraft minecraft) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderRows(GuiGraphicsExtractor graphics, Minecraft minecraft) {
         List<SFMFileExplorerModel.VisibleEntry> rows = model.visibleEntries();
         int end = Math.min(rows.size(), firstVisibleRow + visibleRowCount());
         for (int index = firstVisibleRow; index < end; index++) {
             SFMFileExplorerModel.VisibleEntry row = rows.get(index);
             int y = layout.list().y() + (index - firstVisibleRow) * ROW_HEIGHT;
-            if (index == model.selectionIndex()) GuiComponent.fill(poseStack, layout.list().x() + 1, y,
+            if (index == model.selectionIndex()) graphics.fill(layout.list().x() + 1, y,
                     layout.list().x() + layout.list().width() - 1, y + ROW_HEIGHT, SELECTED);
             SFMFileExplorerEntry entry = row.entry();
             SFMFilePresentation presentation = presentations.presentationFor(entry);
             String disclosure = entry.directory() ? (model.isExpanded(entry) ? "v" : ">") : "";
             int disclosureX = layout.list().x() + 4 + row.depth() * 12;
             int iconX = disclosureX + 10;
-            SFMFontUtils.draw(poseStack, minecraft.font, disclosure, disclosureX, y + 5,
+            SFMFontUtils.draw(graphics, minecraft.font, disclosure, disclosureX, y + 5,
                     presentation.textColour(), true);
-            SFMItemIconRenderer.render(minecraft, presentation.itemIcon(), iconX, y + 1);
+            SFMItemIconRenderer.render(graphics, minecraft, presentation.itemIcon(), iconX, y + 1);
             String text = entry.name() + " (" + presentation.kindLabel() + ")";
             Style style = Style.EMPTY.withColor(TextColor.fromRgb(presentation.textColour() & 0xFFFFFF));
             style = switch (presentation.emphasis()) {
@@ -226,7 +227,7 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
                 case BOLD -> style.withBold(true);
                 case ITALIC -> style.withItalic(true);
             };
-            SFMFontUtils.draw(poseStack, minecraft.font,
+            SFMFontUtils.draw(graphics, minecraft.font,
                     Component.literal(trimToWidth(
                             minecraft,
                             text,
@@ -236,7 +237,8 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
         }
     }
 
-    private void renderIconTooltip(PoseStack poseStack, Minecraft minecraft, int mouseX, int mouseY) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderIconTooltip(GuiGraphicsExtractor graphics, Minecraft minecraft, int mouseX, int mouseY) {
         if (minecraft.screen == null || !layout.list().contains(mouseX, mouseY)) return;
         int index = firstVisibleRow + (mouseY - layout.list().y()) / ROW_HEIGHT;
         if (index < 0 || index >= model.visibleEntries().size()) return;
@@ -250,8 +252,8 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
                 presentation.itemIcon()
         );
         String fallback = resolved.usedFallback() ? " (using fallback item)" : "";
-        minecraft.screen.renderTooltip(
-                poseStack,
+        graphics.setTooltipForNextFrame(
+                minecraft.font,
                 Component.literal(resolved.accessibleLabel() + fallback),
                 mouseX,
                 mouseY
@@ -293,16 +295,18 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
                 Math.max(0, availableWidth - minecraft.font.width(suffix))) + suffix;
     }
 
-    private static void fillRect(PoseStack poseStack, SFMFileExplorerLayout.Rect rect, int colour) {
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), rect.x() + rect.width(), rect.y() + rect.height(), colour);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void fillRect(GuiGraphicsExtractor graphics, SFMFileExplorerLayout.Rect rect, int colour) {
+        graphics.fill(rect.x(), rect.y(), rect.x() + rect.width(), rect.y() + rect.height(), colour);
     }
 
-    private static void drawBorder(PoseStack poseStack, SFMFileExplorerLayout.Rect rect) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void drawBorder(GuiGraphicsExtractor graphics, SFMFileExplorerLayout.Rect rect) {
         int right = rect.x() + rect.width();
         int bottom = rect.y() + rect.height();
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), right, rect.y() + 1, BORDER);
-        GuiComponent.fill(poseStack, rect.x(), bottom - 1, right, bottom, BORDER);
-        GuiComponent.fill(poseStack, rect.x(), rect.y(), rect.x() + 1, bottom, BORDER);
-        GuiComponent.fill(poseStack, right - 1, rect.y(), right, bottom, BORDER);
+        graphics.fill(rect.x(), rect.y(), right, rect.y() + 1, BORDER);
+        graphics.fill(rect.x(), bottom - 1, right, bottom, BORDER);
+        graphics.fill(rect.x(), rect.y(), rect.x() + 1, bottom, BORDER);
+        graphics.fill(right - 1, rect.y(), right, bottom, BORDER);
     }
 }

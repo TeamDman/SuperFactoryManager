@@ -64,7 +64,7 @@ public final class SFMItemPickerQuery {
         return matcher.resourceIds().stream().anyMatch(resource ->
                         resource.resourceTypeNamespace.equals(SFM.MOD_ID)
                                 && resource.resourceTypeName.equals("item")
-                                && resource.matchesResourceLocation(entry.itemId()))
+                                && resource.matchesIdentifier(entry.itemId()))
                 && matches(matcher.with(), entry.tags());
     }
 
@@ -82,13 +82,13 @@ public final class SFMItemPickerQuery {
         return false;
     }
 
-    private static boolean matches(WithClause clause, List<net.minecraft.resources.ResourceLocation> tags) {
+    private static boolean matches(WithClause clause, List<net.minecraft.resources.Identifier> tags) {
         if (clause instanceof With with) {
             boolean matched = matches(with.condition(), tags);
             return with.mode() == With.WithMode.WITH ? matched : !matched;
         }
         if (clause instanceof WithAlwaysTrue) return true;
-        if (clause instanceof WithTag tag) return tags.stream().anyMatch(tag.tagMatcher()::testResourceLocation);
+        if (clause instanceof WithTag tag) return tags.stream().anyMatch(tag.tagMatcher()::testIdentifier);
         if (clause instanceof WithConjunction both) {
             return matches(both.left(), tags) && matches(both.right(), tags);
         }

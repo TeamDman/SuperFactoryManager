@@ -1,11 +1,13 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -14,11 +16,11 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SFMClientCommandInsertionTests {
-    private static final ResourceLocation ECHO = new ResourceLocation("sfm", "echo");
-    private static final ResourceLocation TERMINAL = new ResourceLocation("sfm", "terminal");
-    private static final ResourceLocation OPTIONAL = new ResourceLocation("sfm", "optional");
+    private static final Identifier ECHO = SFMResourceLocation.fromNamespaceAndPath("sfm", "echo");
+    private static final Identifier TERMINAL = SFMResourceLocation.fromNamespaceAndPath("sfm", "terminal");
+    private static final Identifier OPTIONAL = SFMResourceLocation.fromNamespaceAndPath("sfm", "optional");
     private final SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(
-            List.<Map.Entry<ResourceLocation, SFMClientAction<?>>>of(
+            List.<Map.Entry<Identifier, SFMClientAction<?>>>of(
                     Map.entry(ECHO, new EchoAction()),
                     Map.entry(TERMINAL, new TerminalAction()),
                     Map.entry(OPTIONAL, new OptionalAction())

@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -205,20 +205,20 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(poseStack);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
             SFMScreenPanelBounds bounds = panelBounds.get(entry.id());
             if (bounds == null) continue;
-            fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), PANEL_BACKGROUND);
+            graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), PANEL_BACKGROUND);
             int border = entry.id().equals(layout.focusedPanel()) ? FOCUSED_BORDER : UNFOCUSED_BORDER;
-            fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + 1, border);
-            fill(poseStack, bounds.x(), bounds.y() + bounds.height() - 1, bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
-            fill(poseStack, bounds.x(), bounds.y(), bounds.x() + 1, bounds.y() + bounds.height(), border);
-            fill(poseStack, bounds.x() + bounds.width() - 1, bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
-            enableScissor(bounds.inset(1));
+            graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + 1, border);
+            graphics.fill(bounds.x(), bounds.y() + bounds.height() - 1, bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
+            graphics.fill(bounds.x(), bounds.y(), bounds.x() + 1, bounds.y() + bounds.height(), border);
+            graphics.fill(bounds.x() + bounds.width() - 1, bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
+            enableScissor(graphics, bounds.inset(1));
             entry.panel().render(
-                    poseStack,
+                    graphics,
                     this.minecraft,
                     bounds.inset(1),
                     mouseX,
@@ -226,17 +226,20 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                     partialTick,
                     entry.id().equals(layout.focusedPanel())
             );
-            RenderSystem.disableScissor();
+            graphics.disableScissor();
         }
         if (dropFeedback != null) {
-            SFMFontUtils.draw(poseStack, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
+            SFMFontUtils.draw(graphics, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (panelGroup != null && Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_M) {
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        int modifiers = event.modifiers();
+        if (panelGroup != null && net.minecraft.client.Minecraft.getInstance().hasControlDown() && keyCode == GLFW.GLFW_KEY_M) {
             SFMScreenPanel focused = layout.panel(layout.focusedPanel());
             if (focused != null) {
                 panelGroup.toggleMaximize(focused);
@@ -244,7 +247,7 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
                 return true;
             }
         }
-        if (Screen.hasControlDown() && keyCode >= GLFW.GLFW_KEY_1 && keyCode <= GLFW.GLFW_KEY_9) {
+        if (net.minecraft.client.Minecraft.getInstance().hasControlDown() && keyCode >= GLFW.GLFW_KEY_1 && keyCode <= GLFW.GLFW_KEY_9) {
             int requestedIndex = keyCode - GLFW.GLFW_KEY_1;
             List<SFMWorkspaceLayout.PanelEntry> panels = layout.panels();
             if (requestedIndex < panels.size()) layout.focus(panels.get(requestedIndex).id());
@@ -256,32 +259,40 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             onClose();
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
-    public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+    public boolean keyReleased(net.minecraft.client.input.KeyEvent event) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        int modifiers = event.modifiers();
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         return focused != null && (focused.keyReleased(keyCode, scanCode, modifiers)
-                || super.keyReleased(keyCode, scanCode, modifiers));
+                || super.keyReleased(event));
     }
 
     @Override
-    public boolean charTyped(char character, int modifiers) {
+    public boolean charTyped(net.minecraft.client.input.CharacterEvent event) {
+        char character = (char) event.codepoint();
+        int modifiers = 0;
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         return focused != null && (focused.charTyped(character, modifiers)
-                || super.charTyped(character, modifiers));
+                || super.charTyped(event));
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
         if (entry != null) {
             layout.focus(entry.id());
             entry.panel().mouseClicked(mouseX, mouseY, button);
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
@@ -292,26 +303,33 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+    public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         return focused != null && (focused.mouseReleased(mouseX, mouseY, button)
-                || super.mouseReleased(mouseX, mouseY, button));
+                || super.mouseReleased(event));
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+    public boolean mouseDragged(net.minecraft.client.input.MouseButtonEvent event, double dragX, double dragY) {
+        double mouseX = event.x();
+        double mouseY = event.y();
+        int button = event.button();
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         return focused != null && (focused.mouseDragged(mouseX, mouseY, button, dragX, dragY)
-                || super.mouseDragged(mouseX, mouseY, button, dragX, dragY));
+                || super.mouseDragged(event, dragX, dragY));
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalDelta, double delta) {
         SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
         if (entry != null) layout.focus(entry.id());
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         return focused != null && (focused.mouseScrolled(mouseX, mouseY, delta)
-                || super.mouseScrolled(mouseX, mouseY, delta));
+                || super.mouseScrolled(mouseX, mouseY, horizontalDelta, delta));
     }
 
     @Override
@@ -339,18 +357,8 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     @MCVersionDependentBehaviour
-    private static void enableScissor(SFMScreenPanelBounds bounds) {
-        var window = Minecraft.getInstance().getWindow();
-        double scale = window.getGuiScale();
-        int left = (int) Math.floor(bounds.x() * scale);
-        int right = (int) Math.ceil((bounds.x() + bounds.width()) * scale);
-        int top = (int) Math.floor(bounds.y() * scale);
-        int bottom = (int) Math.ceil((bounds.y() + bounds.height()) * scale);
-        RenderSystem.enableScissor(
-                left,
-                window.getHeight() - bottom,
-                Math.max(0, right - left),
-                Math.max(0, bottom - top)
-        );
+    private static void enableScissor(GuiGraphicsExtractor graphics, SFMScreenPanelBounds bounds) {
+        graphics.enableScissor(bounds.x(), bounds.y(),
+                bounds.x() + bounds.width(), bounds.y() + bounds.height());
     }
 }

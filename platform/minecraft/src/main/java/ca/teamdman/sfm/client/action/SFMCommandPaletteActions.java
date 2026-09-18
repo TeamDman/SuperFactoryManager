@@ -32,7 +32,7 @@ public final class SFMCommandPaletteActions {
 
     public static final SFMRegistryObject<SFMClientAction<?>, OpenScreenToSideAction> OPEN_SCREEN_TO_SIDE = REGISTERER.register(
             "workspace/open_to_side",
-            OpenScreenToSideAction::new
+            () -> new OpenScreenToSideAction()
     );
 
     public static final SFMRegistryObject<SFMClientAction<?>, OpenKeyBindingScreenAction> MANAGE_KEY_BINDINGS = REGISTERER.register(

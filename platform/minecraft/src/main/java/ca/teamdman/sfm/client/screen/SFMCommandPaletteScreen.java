@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
@@ -33,7 +35,7 @@ import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
@@ -167,9 +169,9 @@ public final class SFMCommandPaletteScreen extends Screen {
     @Override
     public Component getNarrationMessage() {
         if (selectedSuggestion < 0 || selectedSuggestion >= suggestions.size()) return TITLE.getComponent();
-        Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(selectedSuggestion));
+        Optional<Identifier> actionId = suggestionActionId(suggestions.get(selectedSuggestion));
         if (actionId.isEmpty()) return TITLE.getComponent();
-        var action = SFMClientActions.registry().get(actionId.get());
+        var action = SFMClientActions.registry().get(actionId.get()).map(reference -> reference.value()).orElse(null);
         if (action == null) return TITLE.getComponent();
         var narration = TITLE.getComponent().copy().append(". ").append(action.title()).append(". ")
                 .append(action.description());
@@ -301,7 +303,7 @@ public final class SFMCommandPaletteScreen extends Screen {
                     && visibleIndex < visibleSuggestionCount()
                     && suggestionIndex < suggestions.size()) {
                 if (mouseX >= left + width - 28) {
-                    Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
+                    Optional<Identifier> actionId = suggestionActionId(suggestions.get(suggestionIndex));
                     if (actionId.isPresent()) {
                         SFMScreenChangeHelpers.setOrPushScreen(new SFMKeyBindingDetailsScreen(this, actionId.get()));
                         return true;
@@ -425,9 +427,9 @@ public final class SFMCommandPaletteScreen extends Screen {
     }
 
     private Optional<ca.teamdman.sfm.client.presentation.SFMItemIcon> actionIcon(Suggestion suggestion) {
-        Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
+        Optional<Identifier> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return Optional.empty();
-        var action = SFMClientActions.registry().get(actionId.get());
+        var action = SFMClientActions.registry().get(actionId.get()).map(reference -> reference.value()).orElse(null);
         if (action == null) return Optional.empty();
         var themed = SFMClientThemeService.active().actionIcons().get(actionId.get());
         return themed == null ? action.itemIcon(actionContext) : Optional.of(themed);
@@ -455,9 +457,9 @@ public final class SFMCommandPaletteScreen extends Screen {
         if (visibleIndex < 0 || visibleIndex >= visibleSuggestionCount() || suggestionIndex >= suggestions.size()
                 || mouseX < iconX || mouseX >= iconX + SFMItemIconRenderer.SIZE
                 || mouseY < iconY || mouseY >= iconY + SFMItemIconRenderer.SIZE) return;
-        Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
+        Optional<Identifier> actionId = suggestionActionId(suggestions.get(suggestionIndex));
         if (actionId.isEmpty()) return;
-        var action = SFMClientActions.registry().get(actionId.get());
+        var action = SFMClientActions.registry().get(actionId.get()).map(reference -> reference.value()).orElse(null);
         if (action == null) return;
         action.itemIcon(actionContext).ifPresent(icon -> {
             var resolved = SFMItemIconResolver.resolve(icon);
@@ -467,7 +469,7 @@ public final class SFMCommandPaletteScreen extends Screen {
     }
 
     private void renderBindingSummary(GuiGraphicsExtractor graphics, Suggestion suggestion, int right, int y) {
-        Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
+        Optional<Identifier> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return;
         List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId.get());
         String bindingText = SFMKeyBindingCycle.displayedSequence(bindings, bindingCycleTicks);
@@ -487,9 +489,9 @@ public final class SFMCommandPaletteScreen extends Screen {
         int suggestionIndex = firstVisibleSuggestion + visibleIndex;
         if (mouseX < right - 28 || mouseX > right - 6 || visibleIndex < 0
                 || visibleIndex >= visibleSuggestionCount() || suggestionIndex >= suggestions.size()) return;
-        Optional<ResourceLocation> actionId = suggestionActionId(suggestions.get(suggestionIndex));
+        Optional<Identifier> actionId = suggestionActionId(suggestions.get(suggestionIndex));
         if (actionId.isEmpty()) return;
-        var action = SFMClientActions.registry().get(actionId.get());
+        var action = SFMClientActions.registry().get(actionId.get()).map(reference -> reference.value()).orElse(null);
         if (action == null) return;
         List<Component> tooltip = new ArrayList<>();
         tooltip.add(action.title().copy().withStyle(ChatFormatting.AQUA));
@@ -509,10 +511,10 @@ public final class SFMCommandPaletteScreen extends Screen {
         return font.plainSubstrByWidth(suggestion.getText(), Math.max(20, panelWidth() - 150 - leftInset));
     }
 
-    private static Optional<ResourceLocation> suggestionActionId(Suggestion suggestion) {
+    private static Optional<Identifier> suggestionActionId(Suggestion suggestion) {
         try {
-            ResourceLocation id = new ResourceLocation(suggestion.getText());
-            return SFMClientActions.registry().get(id) == null ? Optional.empty() : Optional.of(id);
+            Identifier id = SFMResourceLocation.parse(suggestion.getText());
+            return SFMClientActions.registry().get(id).map(reference -> reference.value()).orElse(null) == null ? Optional.empty() : Optional.of(id);
         } catch (RuntimeException ignored) {
             return Optional.empty();
         }

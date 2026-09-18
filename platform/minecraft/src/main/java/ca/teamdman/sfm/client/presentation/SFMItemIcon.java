@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.client.presentation;
 
-import net.minecraft.resources.ResourceLocation;
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
+import net.minecraft.resources.Identifier;
 
 import java.util.Objects;
 
@@ -12,11 +14,11 @@ import java.util.Objects;
  * missing registry entry can never produce an empty or unnamed icon.</p>
  */
 public record SFMItemIcon(
-        ResourceLocation requestedItem,
-        ResourceLocation fallbackItem,
+        Identifier requestedItem,
+        Identifier fallbackItem,
         String accessibleLabel
 ) {
-    public static final ResourceLocation PAPER = new ResourceLocation("minecraft", "paper");
+    public static final Identifier PAPER = SFMResourceLocation.fromNamespaceAndPath("minecraft", "paper");
 
     public SFMItemIcon {
         Objects.requireNonNull(requestedItem, "requestedItem");
@@ -26,6 +28,6 @@ public record SFMItemIcon(
     }
 
     public static SFMItemIcon vanilla(String itemPath, String accessibleLabel) {
-        return new SFMItemIcon(new ResourceLocation("minecraft", itemPath), PAPER, accessibleLabel);
+        return new SFMItemIcon(SFMResourceLocation.fromNamespaceAndPath("minecraft", itemPath), PAPER, accessibleLabel);
     }
 }

@@ -4,12 +4,12 @@ import ca.teamdman.sfm.client.action.SFMClientActionSource;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public final class SFMTestScreenType implements SFMClientScreenType {
     @Override
     public LiteralArgumentBuilder<SFMClientActionSource> createCommandNode(
-            ResourceLocation screenTypeId,
+            Identifier screenTypeId,
             Opener opener
     ) {
         return LiteralArgumentBuilder.<SFMClientActionSource>literal(screenTypeId.toString())

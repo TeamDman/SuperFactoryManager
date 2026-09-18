@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.client.theme;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.EnumMap;
 import java.util.LinkedHashMap;
@@ -13,7 +15,7 @@ public record SFMClientTheme(
         Map<SFMColourRole, Integer> colours,
         Map<String, SFMSyntaxStyle> sfmlSyntax,
         Map<String, SFMItemIcon> fileIcons,
-        Map<ResourceLocation, SFMItemIcon> actionIcons
+        Map<Identifier, SFMItemIcon> actionIcons
 ) {
     public static final String DEFAULT_SYNTAX = "default";
 
@@ -35,7 +37,7 @@ public record SFMClientTheme(
         return fileIcons.getOrDefault(key, fileIcons.get("unknown"));
     }
 
-    public SFMItemIcon actionIcon(ResourceLocation actionId, SFMItemIcon fallback) {
+    public SFMItemIcon actionIcon(Identifier actionId, SFMItemIcon fallback) {
         return actionIcons.getOrDefault(actionId, Objects.requireNonNull(fallback));
     }
 
@@ -71,6 +73,6 @@ public record SFMClientTheme(
     }
 
     private static SFMItemIcon icon(String id, String label) {
-        return new SFMItemIcon(new ResourceLocation(id), SFMItemIcon.PAPER, label);
+        return new SFMItemIcon(SFMResourceLocation.parse(id), SFMItemIcon.PAPER, label);
     }
 }

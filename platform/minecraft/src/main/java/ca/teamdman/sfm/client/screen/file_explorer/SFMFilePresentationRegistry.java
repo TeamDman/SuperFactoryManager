@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.client.screen.file_explorer;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -93,7 +95,7 @@ public final class SFMFilePresentationRegistry {
     }
 
     private static SFMItemIcon icon(String itemId, String accessibleLabel) {
-        return new SFMItemIcon(new ResourceLocation(itemId), SFMItemIcon.PAPER, accessibleLabel);
+        return new SFMItemIcon(SFMResourceLocation.parse(itemId), SFMItemIcon.PAPER, accessibleLabel);
     }
 
     private static String normalizeSuffix(String suffix) {

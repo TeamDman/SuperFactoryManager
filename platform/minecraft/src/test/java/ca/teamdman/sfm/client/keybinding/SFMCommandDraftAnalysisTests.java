@@ -1,12 +1,14 @@
 package ca.teamdman.sfm.client.keybinding;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.action.EchoAction;
 import ca.teamdman.sfm.client.action.SFMClientAction;
 import ca.teamdman.sfm.client.action.SFMClientActionCommandTree;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionDispatcherCompiler;
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -18,8 +20,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMCommandDraftAnalysisTests {
     private final SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(
-            List.<Map.Entry<ResourceLocation, SFMClientAction<?>>>of(
-                    Map.entry(new ResourceLocation("sfm", "echo"), new EchoAction())
+            List.<Map.Entry<Identifier, SFMClientAction<?>>>of(
+                    Map.entry(SFMResourceLocation.fromNamespaceAndPath("sfm", "echo"), new EchoAction())
             )
     );
     private final SFMClientActionSource source = new SFMClientActionSource(

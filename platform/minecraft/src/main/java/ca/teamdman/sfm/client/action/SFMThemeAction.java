@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.theme.SFMClientThemeService;
 import ca.teamdman.sfm.client.theme.SFMThemeLoadResult;
 import com.mojang.brigadier.context.CommandContext;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import net.minecraft.network.chat.Component;
 
 import java.util.Optional;

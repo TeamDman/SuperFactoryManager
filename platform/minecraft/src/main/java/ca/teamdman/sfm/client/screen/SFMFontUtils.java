@@ -159,4 +159,17 @@ public class SFMFontUtils {
         return colour;
     }
 
+    @MCVersionDependentBehaviour
+    public static void draw(
+            GuiGraphicsExtractor graphics,
+            Font font,
+            net.minecraft.util.FormattedCharSequence text,
+            int x,
+            int y,
+            int colour,
+            boolean shadow
+    ) {
+        graphics.text(font, text, x, y, normalizeLegacyRgb(colour), shadow);
+    }
+
 }

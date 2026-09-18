@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -18,8 +18,9 @@ public record SFMTestScreenPanel(String displayText) implements SFMScreenPanel {
     }
 
     @Override
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     public void render(
-            PoseStack poseStack,
+            GuiGraphicsExtractor graphics,
             Minecraft minecraft,
             SFMScreenPanelBounds bounds,
             int mouseX,
@@ -28,7 +29,7 @@ public record SFMTestScreenPanel(String displayText) implements SFMScreenPanel {
             boolean focused
     ) {
         SFMFontUtils.draw(
-                poseStack,
+                graphics,
                 minecraft.font,
                 title().copy().withStyle(ChatFormatting.BOLD),
                 bounds.x() + 10,
@@ -37,7 +38,7 @@ public record SFMTestScreenPanel(String displayText) implements SFMScreenPanel {
                 false
         );
         SFMFontUtils.draw(
-                poseStack,
+                graphics,
                 minecraft.font,
                 minecraft.font.plainSubstrByWidth(displayText, Math.max(0, bounds.width() - 20)),
                 bounds.x() + 10,

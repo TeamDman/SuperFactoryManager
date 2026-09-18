@@ -5,9 +5,8 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.theme.SFMClientThemeService;
 import ca.teamdman.sfm.client.theme.SFMColourRole;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -53,26 +52,26 @@ public final class SFMRepositoryReviewSourcePanel implements SFMScreenPanel {
         return model.selectSourceLine(side, line);
     }
 
-    @Override public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
+    @Override public void render(GuiGraphicsExtractor graphics, Minecraft minecraft, SFMScreenPanelBounds bounds,
                                  int mouseX, int mouseY, float partialTick, boolean focused) {
         lastBounds = bounds;
         var theme = SFMClientThemeService.active();
-        GuiComponent.fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(),
+        graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(),
                 theme.colour(SFMColourRole.PANEL_BACKGROUND));
         var document = model.document(side);
         int accent = side == SFMReviewCommentDataSource.Side.BEFORE ? 0xFFFF7777 : 0xFF55FFFF;
         String label = side.name() + " SOURCE";
-        SFMRepositoryReviewPanelSupport.renderText(poseStack, minecraft, label + " · Ctrl+M maximize · N comment",
+        SFMRepositoryReviewPanelSupport.renderText(graphics, minecraft, label + " · Ctrl+M maximize · N comment",
                 bounds.x() + 7, bounds.y() + 7, bounds.width() - 14, accent, true);
         if (document == null) {
-            SFMRepositoryReviewPanelSupport.renderText(poseStack, minecraft, "No " + side.name().toLowerCase(Locale.ROOT)
+            SFMRepositoryReviewPanelSupport.renderText(graphics, minecraft, "No " + side.name().toLowerCase(Locale.ROOT)
                             + " document for this change", bounds.x() + 7, bounds.y() + 30, bounds.width() - 14,
                     theme.colour(SFMColourRole.TEXT_MUTED), false);
             return;
         }
-        SFMRepositoryReviewPanelSupport.renderText(poseStack, minecraft, document.path(), bounds.x() + 7,
+        SFMRepositoryReviewPanelSupport.renderText(graphics, minecraft, document.path(), bounds.x() + 7,
                 bounds.y() + 21, bounds.width() - 14, theme.colour(SFMColourRole.TEXT_PRIMARY), false);
-        SFMRepositoryReviewPanelSupport.renderText(poseStack, minecraft,
+        SFMRepositoryReviewPanelSupport.renderText(graphics, minecraft,
                 "scroll " + (model.sourceScroll() + 1) + " · horizontal +" + model.horizontalScroll()
                         + " · Backspace files", bounds.x() + 7, bounds.y() + 35, bounds.width() - 14,
                 theme.colour(SFMColourRole.TEXT_MUTED), false);
@@ -90,18 +89,18 @@ public final class SFMRepositoryReviewSourcePanel implements SFMScreenPanel {
                     .flatMap(comment -> comment.ranges().stream())
                     .anyMatch(range -> range.documentRevisionId().equals(document.id())
                             && range.startByte() < Math.max(start + 1, end) && range.endByte() > start);
-            if (changed) GuiComponent.fill(poseStack, bounds.x() + 3, y - 2, bounds.x() + bounds.width() - 3,
+            if (changed) graphics.fill(bounds.x() + 3, y - 2, bounds.x() + bounds.width() - 3,
                     y + LINE_HEIGHT - 1, side == SFMReviewCommentDataSource.Side.BEFORE ? 0x55441111 : 0x55336677);
-            if (selected) GuiComponent.fill(poseStack, bounds.x() + 3, y - 2, bounds.x() + bounds.width() - 3,
+            if (selected) graphics.fill(bounds.x() + 3, y - 2, bounds.x() + bounds.width() - 3,
                     y + LINE_HEIGHT - 1, 0x885588CC);
             String content = lines[line];
             if (model.horizontalScroll() < content.length()) content = content.substring(model.horizontalScroll());
             else content = "";
-            SFMRepositoryReviewPanelSupport.renderText(poseStack, minecraft,
+            SFMRepositoryReviewPanelSupport.renderText(graphics, minecraft,
                     String.format("%4d %s%s", line + 1, changed ? "Δ " : "  ", content), bounds.x() + 5, y,
                     bounds.width() - 10, changed ? accent : theme.colour(SFMColourRole.TEXT_PRIMARY), selected || changed);
         }
-        SFMRepositoryReviewPanelSupport.renderText(poseStack, minecraft,
+        SFMRepositoryReviewPanelSupport.renderText(graphics, minecraft,
                 model.status(), bounds.x() + 7, bounds.y() + bounds.height() - 17, bounds.width() - 14,
                 theme.colour(SFMColourRole.TEXT_ACCENT), false);
     }

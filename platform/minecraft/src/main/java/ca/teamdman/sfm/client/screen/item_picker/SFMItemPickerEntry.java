@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.client.screen.item_picker;
 
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.Locale;
 import java.util.List;
@@ -9,11 +9,11 @@ import java.util.Objects;
 
 /** Registry-backed item identity plus text that remains useful without its icon. */
 public record SFMItemPickerEntry(
-        ResourceLocation itemId,
+        Identifier itemId,
         String accessibleName,
-        List<ResourceLocation> tags
+        List<Identifier> tags
 ) {
-    public SFMItemPickerEntry(ResourceLocation itemId, String accessibleName) {
+    public SFMItemPickerEntry(Identifier itemId, String accessibleName) {
         this(itemId, accessibleName, List.of());
     }
 
@@ -31,7 +31,7 @@ public record SFMItemPickerEntry(
                 || accessibleName.toLowerCase(Locale.ROOT).contains(needle);
     }
 
-    public SFMItemIcon toIcon(ResourceLocation fallbackItem) {
+    public SFMItemIcon toIcon(Identifier fallbackItem) {
         return new SFMItemIcon(itemId, fallbackItem, accessibleName);
     }
 

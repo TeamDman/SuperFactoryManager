@@ -1,6 +1,8 @@
 package ca.teamdman.sfm.client.screen.item_picker;
 
-import net.minecraft.resources.ResourceLocation;
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
+import net.minecraft.resources.Identifier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -11,13 +13,13 @@ public class SFMItemPickerEntryTests {
     @Test
     public void accessibleNameCannotBeBlank() {
         assertThrows(IllegalArgumentException.class,
-                () -> new SFMItemPickerEntry(new ResourceLocation("minecraft:paper"), "  "));
+                () -> new SFMItemPickerEntry(SFMResourceLocation.parse("minecraft:paper"), "  "));
     }
 
     @Test
     public void accessibleNameParticipatesInSearchWithoutReplacingStableId() {
         SFMItemPickerEntry entry = new SFMItemPickerEntry(
-                new ResourceLocation("sfm:disk"), "SFM Program Disk"
+                SFMResourceLocation.parse("sfm:disk"), "SFM Program Disk"
         );
         assertTrue(entry.matches("program"));
         assertTrue(entry.matches("sfm:disk"));

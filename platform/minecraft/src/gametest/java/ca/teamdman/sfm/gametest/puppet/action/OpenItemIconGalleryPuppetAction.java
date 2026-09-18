@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.presentation.SFMItemIconResolver;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerEntry;
@@ -11,7 +13,7 @@ import ca.teamdman.sfm.gametest.puppet.SFMFileIconGalleryFixtureSource;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
 import ca.teamdman.sfm.common.registry.SFMWellKnownRegistries;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public final class OpenItemIconGalleryPuppetAction implements SFMPuppetAction {
     private boolean requested;
@@ -28,7 +30,7 @@ public final class OpenItemIconGalleryPuppetAction implements SFMPuppetAction {
             requested = true;
             Minecraft minecraft = Minecraft.getInstance();
             SFMItemIcon unavailableIcon = new SFMItemIcon(
-                    new ResourceLocation("missing_theme", "unavailable_item"),
+                    SFMResourceLocation.fromNamespaceAndPath("missing_theme", "unavailable_item"),
                     SFMItemIcon.PAPER,
                     "unavailable themed item"
             );
@@ -74,7 +76,7 @@ public final class OpenItemIconGalleryPuppetAction implements SFMPuppetAction {
     ) {
         var resolved = SFMItemIconResolver.resolve(presentations.presentationFor(entry).itemIcon());
         var presentation = presentations.presentationFor(entry);
-        ResourceLocation actualId = SFMWellKnownRegistries.ITEMS.getId(resolved.stack().getItem());
+        Identifier actualId = SFMWellKnownRegistries.ITEMS.getId(resolved.stack().getItem());
         if (resolved.usedFallback() || !expectedItemId.equals(String.valueOf(actualId))) {
             throw new IllegalStateException(entry.name() + " resolved to " + actualId
                     + " (directory=" + entry.directory()

@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.keybinding.SFMKeyBinding;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.keybinding.SFMKeyInputEvent;
@@ -13,7 +15,7 @@ import ca.teamdman.sfm.client.screen.SFMKeyBindingScreen;
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Set;
@@ -24,7 +26,7 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
         ACTIVATE_FIRST, ACTIVATE_SECOND, INCOMPLETE, CONFIRMATION, DETAILS_AFTER_REMOVAL
     }
 
-    private static final ResourceLocation ACTION = new ResourceLocation("sfm", "keybindings/manage");
+    private static final Identifier ACTION = SFMResourceLocation.fromNamespaceAndPath("sfm", "keybindings/manage");
     private final View view;
     private boolean requested;
     private int ticks;

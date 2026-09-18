@@ -7,9 +7,8 @@ import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.client.theme.SFMClientTheme;
 import ca.teamdman.sfm.client.theme.SFMClientThemeService;
 import ca.teamdman.sfm.client.theme.SFMColourRole;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -76,30 +75,31 @@ public final class SFMTimelinePanel implements SFMScreenPanel {
     }
 
     @Override
-    public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds ignored, int mouseX, int mouseY,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void render(GuiGraphicsExtractor graphics, Minecraft minecraft, SFMScreenPanelBounds ignored, int mouseX, int mouseY,
                        float partialTick, boolean focused) {
-        child.render(poseStack, minecraft, childBounds, mouseX, mouseY, partialTick, focused);
+        child.render(graphics, minecraft, childBounds, mouseX, mouseY, partialTick, focused);
         SFMClientTheme theme = SFMClientThemeService.active();
         int transportY = transportY();
-        GuiComponent.fill(poseStack, bounds.x() + 1, transportY, bounds.x() + bounds.width() - 1,
+        graphics.fill(bounds.x() + 1, transportY, bounds.x() + bounds.width() - 1,
                 bounds.y() + bounds.height() - 1, theme.colour(SFMColourRole.TIMELINE_BACKGROUND));
-        renderButton(poseStack, minecraft, previousButtonX(), transportY + 16, "|<", theme);
-        renderButton(poseStack, minecraft, playButtonX(), transportY + 16, model.playing() ? "||" : ">", theme);
-        renderButton(poseStack, minecraft, nextButtonX(), transportY + 16, ">|", theme);
+        renderButton(graphics, minecraft, previousButtonX(), transportY + 16, "|<", theme);
+        renderButton(graphics, minecraft, playButtonX(), transportY + 16, model.playing() ? "||" : ">", theme);
+        renderButton(graphics, minecraft, nextButtonX(), transportY + 16, ">|", theme);
 
-        renderTrack(poseStack, keyframeTrackY(), xForKeyframePosition(model.keyframePosition()),
+        renderTrack(graphics, keyframeTrackY(), xForKeyframePosition(model.keyframePosition()),
                 theme.colour(SFMColourRole.TIMELINE_KEYFRAME), theme);
         for (int keyframe = model.bounds().first(); keyframe <= model.bounds().last(); keyframe++) {
             int markerX = xForKeyframePosition(keyframe);
-            GuiComponent.fill(poseStack, markerX, keyframeTrackY() - 2,
+            graphics.fill(markerX, keyframeTrackY() - 2,
                     markerX + 1, keyframeTrackY() + TRACK_HEIGHT + 2, theme.colour(SFMColourRole.TIMELINE_MARKER));
         }
-        renderTrack(poseStack, timeTrackY(), xForElapsedTicks(model.elapsedTicks()),
+        renderTrack(graphics, timeTrackY(), xForElapsedTicks(model.elapsedTicks()),
                 theme.colour(SFMColourRole.TIMELINE_TIME), theme);
-        SFMFontUtils.draw(poseStack, minecraft.font,
+        SFMFontUtils.draw(graphics, minecraft.font,
                 String.format("K %.2f / %d", model.keyframePosition(), model.bounds().last()),
                 readoutX(), transportY + 4, theme.colour(SFMColourRole.TIMELINE_KEYFRAME), false);
-        SFMFontUtils.draw(poseStack, minecraft.font,
+        SFMFontUtils.draw(graphics, minecraft.font,
                 String.format("T %.0f / %d ticks", model.elapsedTicks(), model.timeline().totalTicks()),
                 readoutX(), transportY + 29, theme.colour(SFMColourRole.TIMELINE_TIME), false);
     }
@@ -215,11 +215,12 @@ public final class SFMTimelinePanel implements SFMScreenPanel {
         return Math.max(0D, Math.min(1D,
                 (mouseX - trackStartX()) / Math.max(1D, trackEndX() - trackStartX())));
     }
-    private void renderTrack(PoseStack poseStack, int y, int thumb, int color, SFMClientTheme theme) {
-        GuiComponent.fill(poseStack, trackStartX(), y, trackEndX(), y + TRACK_HEIGHT,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderTrack(GuiGraphicsExtractor graphics, int y, int thumb, int color, SFMClientTheme theme) {
+        graphics.fill(trackStartX(), y, trackEndX(), y + TRACK_HEIGHT,
                 theme.colour(SFMColourRole.TIMELINE_TRACK));
-        GuiComponent.fill(poseStack, trackStartX(), y, thumb, y + TRACK_HEIGHT, color);
-        GuiComponent.fill(poseStack, thumb - 2, y - 2, thumb + 3, y + TRACK_HEIGHT + 2,
+        graphics.fill(trackStartX(), y, thumb, y + TRACK_HEIGHT, color);
+        graphics.fill(thumb - 2, y - 2, thumb + 3, y + TRACK_HEIGHT + 2,
                 theme.colour(SFMColourRole.TEXT_PRIMARY));
     }
     private boolean insideTrack(double mouseX, double mouseY, int y) {
@@ -235,11 +236,12 @@ public final class SFMTimelinePanel implements SFMScreenPanel {
     private int keyframeTrackY() { return transportY() + 8; }
     private int timeTrackY() { return transportY() + 33; }
     private static boolean insideX(double mouseX, int left, int width) { return mouseX >= left && mouseX < left + width; }
-    private static void renderButton(PoseStack poseStack, Minecraft minecraft, int x, int y, String label,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void renderButton(GuiGraphicsExtractor graphics, Minecraft minecraft, int x, int y, String label,
                                      SFMClientTheme theme) {
-        GuiComponent.fill(poseStack, x, y, x + BUTTON_WIDTH, y + 18,
+        graphics.fill(x, y, x + BUTTON_WIDTH, y + 18,
                 theme.colour(SFMColourRole.PANEL_SELECTION));
-        SFMFontUtils.draw(poseStack, minecraft.font, label, x + (BUTTON_WIDTH - minecraft.font.width(label)) / 2,
+        SFMFontUtils.draw(graphics, minecraft.font, label, x + (BUTTON_WIDTH - minecraft.font.width(label)) / 2,
                 y + 5, theme.colour(SFMColourRole.TEXT_PRIMARY), false);
     }
     private enum DragTrack { NONE, KEYFRAME, TIME }

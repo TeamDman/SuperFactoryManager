@@ -7,9 +7,8 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.theme.SFMClientTheme;
 import ca.teamdman.sfm.client.theme.SFMClientThemeService;
 import ca.teamdman.sfm.client.theme.SFMColourRole;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -118,20 +117,21 @@ public final class SFMSourceComparisonPanel implements SFMScreenPanel {
     }
 
     @Override
-    public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void render(GuiGraphicsExtractor graphics, Minecraft minecraft, SFMScreenPanelBounds bounds,
                        int mouseX, int mouseY, float partialTick, boolean focused) {
         SFMClientTheme theme = SFMClientThemeService.active();
         int x = bounds.x() + 8;
         int y = bounds.y() + 7;
-        GuiComponent.fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(),
+        graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(),
                 theme.colour(SFMColourRole.PANEL_BACKGROUND));
-        draw(poseStack, minecraft, "Source Review Ledger", x, y, bounds.width() - 16,
+        draw(graphics, minecraft, "Source Review Ledger", x, y, bounds.width() - 16,
                 theme.colour(SFMColourRole.TEXT_PRIMARY), true);
-        draw(poseStack, minecraft, comparison.beforeSnapshot() + "  ->  " + comparison.afterSnapshot(), x, y + 13,
+        draw(graphics, minecraft, comparison.beforeSnapshot() + "  ->  " + comparison.afterSnapshot(), x, y + 13,
                 bounds.width() - 16, theme.colour(SFMColourRole.TEXT_MUTED), false);
-        draw(poseStack, minecraft, "UP/DOWN select   R reviewed   A approve   X reject", x, y + 26,
+        draw(graphics, minecraft, "UP/DOWN select   R reviewed   A approve   X reject", x, y + 26,
                 bounds.width() - 16, theme.colour(SFMColourRole.TEXT_MUTED), false);
-        draw(poseStack, minecraft, ledger.persistenceStatus(), x, y + 39, bounds.width() - 16,
+        draw(graphics, minecraft, ledger.persistenceStatus(), x, y + 39, bounds.width() - 16,
                 theme.colour(SFMColourRole.TEXT_ACCENT), false);
 
         int top = bounds.y() + HEADER_HEIGHT;
@@ -139,73 +139,76 @@ public final class SFMSourceComparisonPanel implements SFMScreenPanel {
         operationListTop = top;
         operationListLeft = x;
         operationListRight = x + listWidth;
-        renderOperationList(poseStack, minecraft, theme, x, top, listWidth);
+        renderOperationList(graphics, minecraft, theme, x, top, listWidth);
         int detailX = x + listWidth + 8;
-        renderDetail(poseStack, minecraft, theme, detailX, top,
+        renderDetail(graphics, minecraft, theme, detailX, top,
                 Math.max(0, bounds.x() + bounds.width() - detailX - 8), bounds.y() + bounds.height());
     }
 
-    private void renderOperationList(PoseStack poseStack, Minecraft minecraft, SFMClientTheme theme,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderOperationList(GuiGraphicsExtractor graphics, Minecraft minecraft, SFMClientTheme theme,
                                      int x, int top, int width) {
         for (int i = 0; i < comparison.operations().size(); i++) {
             var operation = comparison.operations().get(i);
             var decision = ledger.get(comparison, operation);
             int y = top + i * ROW_HEIGHT;
-            if (i == selectedIndex) GuiComponent.fill(poseStack, x, y, x + width, y + ROW_HEIGHT - 1,
+            if (i == selectedIndex) graphics.fill(x, y, x + width, y + ROW_HEIGHT - 1,
                     theme.colour(SFMColourRole.PANEL_SELECTION));
-            SFMItemIconRenderer.render(minecraft, theme.fileIcon(extensionKey(operation.displayPath())), x + 3, y + 7);
+            SFMItemIconRenderer.render(graphics, minecraft, theme.fileIcon(extensionKey(operation.displayPath())), x + 3, y + 7);
             String stale = decision.isStale(operation) ? " | STALE" : "";
             String row = operationMarker(operation.kind()) + " " + operation.label();
-            draw(poseStack, minecraft, row, x + 23, y + 4, width - 26,
+            draw(graphics, minecraft, row, x + 23, y + 4, width - 26,
                     decision.isStale(operation) ? theme.colour(SFMColourRole.TEXT_ERROR)
                             : theme.colour(SFMColourRole.TEXT_PRIMARY), false);
-            draw(poseStack, minecraft, reviewIndicator(decision) + " | audit " + operation.auditStatus() + stale,
+            draw(graphics, minecraft, reviewIndicator(decision) + " | audit " + operation.auditStatus() + stale,
                     x + 23, y + 17, width - 26,
                     decision.isStale(operation) ? theme.colour(SFMColourRole.TEXT_ERROR)
                             : theme.colour(SFMColourRole.TEXT_MUTED), false);
         }
     }
 
-    private void renderDetail(PoseStack poseStack, Minecraft minecraft, SFMClientTheme theme,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderDetail(GuiGraphicsExtractor graphics, Minecraft minecraft, SFMClientTheme theme,
                               int x, int y, int width, int bottom) {
         var operation = selectedOperation();
         var decision = selectedDecision();
-        SFMItemIconRenderer.render(minecraft, theme.fileIcon(extensionKey(operation.displayPath())), x, y);
-        draw(poseStack, minecraft, operation.label(), x + 21, y + 3, width - 21,
+        SFMItemIconRenderer.render(graphics, minecraft, theme.fileIcon(extensionKey(operation.displayPath())), x, y);
+        draw(graphics, minecraft, operation.label(), x + 21, y + 3, width - 21,
                 theme.colour(SFMColourRole.TEXT_PRIMARY), true);
-        draw(poseStack, minecraft, operation.displayPath() + " | " + operation.equivalence(), x, y + 21, width,
+        draw(graphics, minecraft, operation.displayPath() + " | " + operation.equivalence(), x, y + 21, width,
                 theme.colour(SFMColourRole.TEXT_MUTED), false);
-        draw(poseStack, minecraft, "Reviewed: " + decision.reviewState(), x, y + 36, width,
+        draw(graphics, minecraft, "Reviewed: " + decision.reviewState(), x, y + 36, width,
                 theme.colour(SFMColourRole.TEXT_ACCENT), true);
-        draw(poseStack, minecraft, "Human approval: " + decision.humanDecision(), x, y + 49, width,
+        draw(graphics, minecraft, "Human approval: " + decision.humanDecision(), x, y + 49, width,
                 decision.isStale(operation) ? theme.colour(SFMColourRole.TEXT_ERROR)
                         : theme.colour(SFMColourRole.TEXT_ACCENT), true);
-        draw(poseStack, minecraft, "Audit policy: " + operation.auditStatus(), x, y + 62, width,
+        draw(graphics, minecraft, "Audit policy: " + operation.auditStatus(), x, y + 62, width,
                 operation.auditStatus() == SFMSourceComparison.AuditStatus.FORBIDDEN
                         ? theme.colour(SFMColourRole.TEXT_ERROR) : theme.colour(SFMColourRole.TEXT_ACCENT), true);
-        if (decision.isStale(operation)) draw(poseStack, minecraft, "!!! STALE: HASH CHANGED !!!",
+        if (decision.isStale(operation)) draw(graphics, minecraft, "!!! STALE: HASH CHANGED !!!",
                 x, y + 75, width, theme.colour(SFMColourRole.TEXT_ERROR), true);
-        draw(poseStack, minecraft, operation.diagnostic(), x, y + 88, width,
+        draw(graphics, minecraft, operation.diagnostic(), x, y + 88, width,
                 theme.colour(SFMColourRole.TEXT_MUTED), false);
 
         int codeY = y + 108;
         int gap = 6;
         int columnWidth = Math.max(0, (width - gap) / 2);
-        GuiComponent.fill(poseStack, x, codeY, x + columnWidth, bottom - 7, 0x803C2020);
-        GuiComponent.fill(poseStack, x + columnWidth + gap, codeY, x + width, bottom - 7, 0x80203C28);
-        draw(poseStack, minecraft, "BEFORE", x + 4, codeY + 5, columnWidth - 8,
+        graphics.fill(x, codeY, x + columnWidth, bottom - 7, 0x803C2020);
+        graphics.fill(x + columnWidth + gap, codeY, x + width, bottom - 7, 0x80203C28);
+        draw(graphics, minecraft, "BEFORE", x + 4, codeY + 5, columnWidth - 8,
                 theme.colour(SFMColourRole.TEXT_ERROR), true);
-        draw(poseStack, minecraft, "AFTER", x + columnWidth + gap + 4, codeY + 5, columnWidth - 8,
+        draw(graphics, minecraft, "AFTER", x + columnWidth + gap + 4, codeY + 5, columnWidth - 8,
                 theme.colour(SFMColourRole.TEXT_ACCENT), true);
-        renderCode(poseStack, minecraft, theme, operation.beforeLines(), x, codeY + 20, columnWidth, "- ");
-        renderCode(poseStack, minecraft, theme, operation.afterLines(), x + columnWidth + gap, codeY + 20, columnWidth, "+ ");
+        renderCode(graphics, minecraft, theme, operation.beforeLines(), x, codeY + 20, columnWidth, "- ");
+        renderCode(graphics, minecraft, theme, operation.afterLines(), x + columnWidth + gap, codeY + 20, columnWidth, "+ ");
     }
 
-    private static void renderCode(PoseStack poseStack, Minecraft minecraft, SFMClientTheme theme,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void renderCode(GuiGraphicsExtractor graphics, Minecraft minecraft, SFMClientTheme theme,
                                    List<String> lines, int x, int y, int width, String prefix) {
-        if (lines.isEmpty()) draw(poseStack, minecraft, "(none)", x + 4, y, width - 8,
+        if (lines.isEmpty()) draw(graphics, minecraft, "(none)", x + 4, y, width - 8,
                 theme.colour(SFMColourRole.TEXT_MUTED), false);
-        for (int i = 0; i < lines.size(); i++) draw(poseStack, minecraft, prefix + lines.get(i), x + 4,
+        for (int i = 0; i < lines.size(); i++) draw(graphics, minecraft, prefix + lines.get(i), x + 4,
                 y + i * 13, width - 8, theme.colour(SFMColourRole.TEXT_PRIMARY), false);
     }
 
@@ -224,10 +227,11 @@ public final class SFMSourceComparisonPanel implements SFMScreenPanel {
         return dot < 0 ? "extensionless" : path.substring(dot).toLowerCase(java.util.Locale.ROOT);
     }
 
-    private static void draw(PoseStack poseStack, Minecraft minecraft, String text, int x, int y,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void draw(GuiGraphicsExtractor graphics, Minecraft minecraft, String text, int x, int y,
                              int width, int colour, boolean shadow) {
         if (width <= 0) return;
-        SFMFontUtils.draw(poseStack, minecraft.font, minecraft.font.plainSubstrByWidth(text, width),
+        SFMFontUtils.draw(graphics, minecraft.font, minecraft.font.plainSubstrByWidth(text, width),
                 x, y, colour, shadow);
     }
 }

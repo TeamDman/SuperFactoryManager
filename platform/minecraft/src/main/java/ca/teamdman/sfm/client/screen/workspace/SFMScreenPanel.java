@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
@@ -36,8 +36,9 @@ public interface SFMScreenPanel {
     default void tick() {
     }
 
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     void render(
-            PoseStack poseStack,
+            GuiGraphicsExtractor graphics,
             Minecraft minecraft,
             SFMScreenPanelBounds bounds,
             int mouseX,

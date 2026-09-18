@@ -23,6 +23,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.gamerules.GameRules;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**

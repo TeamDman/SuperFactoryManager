@@ -11,7 +11,7 @@ import com.mojang.brigadier.ParseResults;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.List;
 
@@ -32,7 +32,7 @@ public final class SFMKeyBindingService {
         return profile;
     }
 
-    public List<SFMKeyBinding> bindingsForAction(ResourceLocation actionId) {
+    public List<SFMKeyBinding> bindingsForAction(Identifier actionId) {
         return profile.bindingsForAction(actionId.toString());
     }
 

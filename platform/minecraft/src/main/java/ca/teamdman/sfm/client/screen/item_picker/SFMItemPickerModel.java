@@ -1,7 +1,7 @@
 package ca.teamdman.sfm.client.screen.item_picker;
 
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,8 +23,8 @@ public final class SFMItemPickerModel {
     }
 
     private final List<SFMItemPickerEntry> entries;
-    private final Map<ResourceLocation, SFMItemPickerEntry> byId;
-    private final ResourceLocation fallbackItem;
+    private final Map<Identifier, SFMItemPickerEntry> byId;
+    private final Identifier fallbackItem;
     private List<SFMItemPickerEntry> filtered;
     private String query = "";
     private int selectionIndex;
@@ -36,7 +36,7 @@ public final class SFMItemPickerModel {
     public SFMItemPickerModel(List<SFMItemPickerEntry> entries, SFMItemIcon current) {
         Objects.requireNonNull(entries, "entries");
         Objects.requireNonNull(current, "current");
-        LinkedHashMap<ResourceLocation, SFMItemPickerEntry> unique = new LinkedHashMap<>();
+        LinkedHashMap<Identifier, SFMItemPickerEntry> unique = new LinkedHashMap<>();
         for (SFMItemPickerEntry entry : entries) unique.putIfAbsent(entry.itemId(), entry);
         this.entries = List.copyOf(unique.values());
         this.byId = Map.copyOf(unique);
@@ -51,7 +51,7 @@ public final class SFMItemPickerModel {
     public int selectionIndex() { return selectionIndex; }
     public String diagnostic() { return queryDiagnostic.isEmpty() ? diagnostic : queryDiagnostic; }
     public String interaction() { return interaction; }
-    public ResourceLocation fallbackItem() { return fallbackItem; }
+    public Identifier fallbackItem() { return fallbackItem; }
     public ViewMode viewMode() { return viewMode; }
 
     public Optional<SFMItemPickerEntry> selection() {
@@ -60,7 +60,7 @@ public final class SFMItemPickerModel {
 
     public void setQuery(String value) {
         query = Objects.requireNonNull(value, "value");
-        ResourceLocation prior = selection().map(SFMItemPickerEntry::itemId).orElse(null);
+        Identifier prior = selection().map(SFMItemPickerEntry::itemId).orElse(null);
         diagnostic = "";
         if (SFMItemPickerQuery.usesSFMLSyntax(query)) {
             SFMItemPickerQuery.ParseResult parsed = SFMItemPickerQuery.parse(query);
@@ -138,7 +138,7 @@ public final class SFMItemPickerModel {
         interaction = "Reset to fallback: " + fallback.accessibleName();
     }
 
-    public void showUnavailable(ResourceLocation unavailable) {
+    public void showUnavailable(Identifier unavailable) {
         clearQuery();
         selectRequested(unavailable);
     }
@@ -152,7 +152,7 @@ public final class SFMItemPickerModel {
                 + problem;
     }
 
-    private void selectRequested(ResourceLocation requested) {
+    private void selectRequested(Identifier requested) {
         SFMItemPickerEntry requestedEntry = byId.get(requested);
         if (requestedEntry != null) {
             selectionIndex = indexOf(filtered, requested);
@@ -166,7 +166,7 @@ public final class SFMItemPickerModel {
         interaction = fallback == null ? "No available fallback" : "Fallback selected: " + fallback.accessibleName();
     }
 
-    private static int indexOf(List<SFMItemPickerEntry> haystack, ResourceLocation itemId) {
+    private static int indexOf(List<SFMItemPickerEntry> haystack, Identifier itemId) {
         if (itemId == null) return -1;
         for (int index = 0; index < haystack.size(); index++) {
             if (haystack.get(index).itemId().equals(itemId)) return index;

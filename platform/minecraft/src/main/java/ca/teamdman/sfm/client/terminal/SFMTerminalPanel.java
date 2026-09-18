@@ -6,10 +6,9 @@ import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -108,9 +107,10 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
     }
 
     @Override
-    public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void render(GuiGraphicsExtractor graphics, Minecraft minecraft, SFMScreenPanelBounds bounds,
                        int mouseX, int mouseY, float partialTick, boolean focused) {
-        GuiComponent.fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), PANEL);
+        graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), PANEL);
         int left = bounds.x() + 8;
         int width = Math.max(1, bounds.width() - 16);
         int lineHeight = minecraft.font.lineHeight + 2;
@@ -123,11 +123,11 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         renderTop = contentTop;
         renderWidth = width;
         renderHeight = Math.max(1, contentBottom - contentTop - 4);
-        SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
+        SFMFontUtils.draw(graphics, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD), left,
                 bounds.y() + 8, TEXT, false);
-        if (remoteService != null && pngRenderer.render(poseStack, minecraft, left, contentTop, width,
+        if (remoteService != null && pngRenderer.render(graphics, minecraft, left, contentTop, width,
                 renderHeight, remoteService.latestFrame())) {
-            renderFocusHint(poseStack, minecraft, left, width, contentBottom);
+            renderFocusHint(graphics, minecraft, left, width, contentBottom);
             return;
         }
         int y = contentTop;
@@ -139,15 +139,15 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
             do {
                 String rendered = minecraft.font.plainSubstrByWidth(remaining, width);
                 if (rendered.isEmpty()) rendered = remaining.substring(0, 1);
-                SFMFontUtils.draw(poseStack, minecraft.font, rendered, left, y, color, false);
+                SFMFontUtils.draw(graphics, minecraft.font, rendered, left, y, color, false);
                 y += lineHeight;
                 remaining = remaining.substring(rendered.length());
             } while (!remaining.isEmpty() && y < contentBottom);
         }
         if (remoteService == null) {
-            renderInput(poseStack, minecraft, left, width, inputY, focused);
+            renderInput(graphics, minecraft, left, width, inputY, focused);
         }
-        renderFocusHint(poseStack, minecraft, left, width, contentBottom);
+        renderFocusHint(graphics, minecraft, left, width, contentBottom);
     }
 
     @Override
@@ -430,16 +430,18 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
                 && (modifiers & (GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) == 0;
     }
 
-    private void renderInput(PoseStack poseStack, Minecraft minecraft, int left, int width, int inputY,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderInput(GuiGraphicsExtractor graphics, Minecraft minecraft, int left, int width, int inputY,
                              boolean focused) {
-        GuiComponent.fill(poseStack, bounds.x() + 4, inputY - 4, bounds.x() + bounds.width() - 4,
+        graphics.fill(bounds.x() + 4, inputY - 4, bounds.x() + bounds.width() - 4,
                 bounds.y() + bounds.height() - 4, INPUT);
         String prompt = "> " + input + (focused ? "_" : "");
-        SFMFontUtils.draw(poseStack, minecraft.font,
+        SFMFontUtils.draw(graphics, minecraft.font,
                 minecraft.font.plainSubstrByWidth(prompt, width), left, inputY, MUTED, false);
     }
 
-    private void renderFocusHint(PoseStack poseStack, Minecraft minecraft, int left, int width, int contentBottom) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderFocusHint(GuiGraphicsExtractor graphics, Minecraft minecraft, int left, int width, int contentBottom) {
         SFMTerminalFocusSequence.Hint hint = focusSequence.hint(System.nanoTime());
         if (hint == null) return;
         LocalizationEntry entry = hint.kind() == SFMTerminalFocusSequence.HintKind.ESCAPE
@@ -449,9 +451,9 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         int lineHeight = minecraft.font.lineHeight + 2;
         int y = contentBottom - lineHeight - 2;
         int boxTop = y - 4;
-        GuiComponent.fill(poseStack, bounds.x() + 4, boxTop,
+        graphics.fill(bounds.x() + 4, boxTop,
                 bounds.x() + bounds.width() - 4, contentBottom, 0xD0101218);
-        SFMFontUtils.draw(poseStack, minecraft.font,
+        SFMFontUtils.draw(graphics, minecraft.font,
                 minecraft.font.plainSubstrByWidth(message.getString(), width), left, y, MUTED, false);
     }
 }

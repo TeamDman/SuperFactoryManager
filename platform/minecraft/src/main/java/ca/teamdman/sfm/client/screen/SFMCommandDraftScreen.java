@@ -8,7 +8,7 @@ import ca.teamdman.sfm.client.keybinding.SFMActionInvocationIntent;
 import ca.teamdman.sfm.client.keybinding.SFMCommandDraftAnalysis;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -101,71 +101,76 @@ public final class SFMCommandDraftScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
+        int keyCode = event.key();
+        int scanCode = event.scancode();
+        int modifiers = event.modifiers();
         if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
             onClose();
             return true;
         }
         if ((keyCode == GLFW.GLFW_KEY_ENTER || keyCode == GLFW.GLFW_KEY_KP_ENTER) && primary != null && primary.active) {
-            primary.onPress();
+            primary.onPress(event);
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        renderBackground(poseStack);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         int left = panelLeft();
         int top = panelTop();
         int right = left + panelWidth();
         int bottom = top + panelHeight();
-        fill(poseStack, left, top, right, bottom, 0xF0202020);
-        outline(poseStack, left, top, right, bottom, 0xFF55FFFF);
-        SFMFontUtils.draw(poseStack, font, title.copy().withStyle(ChatFormatting.BOLD), left + 12, top + 12,
+        graphics.fill(left, top, right, bottom, 0xF0202020);
+        outline(graphics, left, top, right, bottom, 0xFF55FFFF);
+        SFMFontUtils.draw(graphics, font, title.copy().withStyle(ChatFormatting.BOLD), left + 12, top + 12,
                 0xFFFFFFFF, false);
-        SFMFontUtils.draw(poseStack, font,
+        SFMFontUtils.draw(graphics, font,
                 "Binding " + intent.bindingId() + "  •  revision " + intent.bindingRevision(),
                 left + 12, top + 28, 0xFF80D8FF, false);
 
-        if (stage == Stage.PROMPT) renderPrompt(poseStack, left, top);
-        else renderSummary(poseStack, left, top);
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        if (stage == Stage.PROMPT) renderPrompt(graphics, left, top);
+        else renderSummary(graphics, left, top);
+        super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
-    private void renderPrompt(PoseStack poseStack, int left, int top) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderPrompt(GuiGraphicsExtractor graphics, int left, int top) {
         SFMCommandDraftAnalysis.MissingParameter missing = analysis.missingParameter();
         String name = missing == null ? "unknown" : missing.name();
         String type = missing == null ? "unsupported" : missing.displayType();
-        SFMFontUtils.draw(poseStack, font, "Required parameter", left + 12, top + 50, 0xFFAAAAAA, false);
-        SFMFontUtils.draw(poseStack, font, name + " : " + type, left + 12, top + 64, 0xFFFFFF55, false);
-        SFMFontUtils.draw(poseStack, font, analysis.diagnostic(), left + 12, top + 114,
+        SFMFontUtils.draw(graphics, font, "Required parameter", left + 12, top + 50, 0xFFAAAAAA, false);
+        SFMFontUtils.draw(graphics, font, name + " : " + type, left + 12, top + 64, 0xFFFFFF55, false);
+        SFMFontUtils.draw(graphics, font, analysis.diagnostic(), left + 12, top + 114,
                 analysis.state() == SFMCommandDraftAnalysis.State.INVALID ? 0xFFFF7777 : 0xFFAAAAAA, false);
     }
 
-    private void renderSummary(PoseStack poseStack, int left, int top) {
-        SFMFontUtils.draw(poseStack, font, "Properties", left + 12, top + 50, 0xFFFFFFFF, false);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private void renderSummary(GuiGraphicsExtractor graphics, int left, int top) {
+        SFMFontUtils.draw(graphics, font, "Properties", left + 12, top + 50, 0xFFFFFFFF, false);
         int y = top + 64;
         if (completed.isEmpty()) {
-            SFMFontUtils.draw(poseStack, font, "No supplied parameters", left + 18, y, 0xFF999999, false);
+            SFMFontUtils.draw(graphics, font, "No supplied parameters", left + 18, y, 0xFF999999, false);
             y += 14;
         } else {
             for (CompletedParameter parameter : completed) {
-                SFMFontUtils.draw(poseStack, font,
+                SFMFontUtils.draw(graphics, font,
                         parameter.name() + " : " + parameter.type() + " = " + parameter.value() + "  [typed]",
                         left + 18, y, 0xFFDDDDDD, false);
                 y += 14;
             }
         }
-        SFMFontUtils.draw(poseStack, font, "Final command (click to edit; Brigadier reparses)", left + 12,
+        SFMFontUtils.draw(graphics, font, "Final command (click to edit; Brigadier reparses)", left + 12,
                 top + 74, 0xFFAAAAAA, false);
         int statusY = Math.max(top + 116, y + 8);
         int colour = analysis.state() == SFMCommandDraftAnalysis.State.COMPLETE ? 0xFF55FF88 : 0xFFFF7777;
         String status = stage == Stage.EXECUTED ? "Executed through contextual action dispatcher" : analysis.diagnostic();
-        SFMFontUtils.draw(poseStack, font, status, left + 12, statusY, colour, false);
+        SFMFontUtils.draw(graphics, font, status, left + 12, statusY, colour, false);
         int feedbackY = statusY + 15;
         for (Component line : feedback) {
-            SFMFontUtils.draw(poseStack, font, line, left + 18, feedbackY, 0xFF80D8FF, false);
+            SFMFontUtils.draw(graphics, font, line, left + 18, feedbackY, 0xFF80D8FF, false);
             feedbackY += 12;
         }
     }
@@ -237,11 +242,12 @@ public final class SFMCommandDraftScreen extends Screen {
     private int panelLeft() { return (width - panelWidth()) / 2; }
     private int panelTop() { return (height - panelHeight()) / 2; }
 
-    private static void outline(PoseStack poseStack, int left, int top, int right, int bottom, int colour) {
-        fill(poseStack, left, top, right, top + 1, colour);
-        fill(poseStack, left, bottom - 1, right, bottom, colour);
-        fill(poseStack, left, top, left + 1, bottom, colour);
-        fill(poseStack, right - 1, top, right, bottom, colour);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    private static void outline(GuiGraphicsExtractor graphics, int left, int top, int right, int bottom, int colour) {
+        graphics.fill(left, top, right, top + 1, colour);
+        graphics.fill(left, bottom - 1, right, bottom, colour);
+        graphics.fill(left, top, left + 1, bottom, colour);
+        graphics.fill(right - 1, top, right, bottom, colour);
     }
 
     private record CompletedParameter(String name, String type, String value) {
