@@ -195,7 +195,9 @@ public class Ae2MekanismInfusionBankAutocraftingGameTest extends SFMGameTestDefi
                         "gold",
                         MekanismItems.ENRICHED_GOLD.asItem(),
                         MekanismInfuseTypes.GOLD.get(),
-                        List.of(recipe(Items.NETHERITE_SCRAP, 4, MekanismItems.NETHERITE_DUST.asItem(), 1))
+                        // Request twice the actual four-scrap recipe input without promising extra
+                        // output: RETAIN 18 can strand partial batches in separate factories.
+                        List.of(recipe(Items.NETHERITE_SCRAP, 8, MekanismItems.NETHERITE_DUST.asItem(), 1))
                 ),
                 new BankSpec(
                         "biomass",
@@ -270,8 +272,8 @@ public class Ae2MekanismInfusionBankAutocraftingGameTest extends SFMGameTestDefi
             PatternProviderBlockEntity provider = helper.getBlockEntity(providerPos, PatternProviderBlockEntity.class);
             provider.setPushDirection(Direction.WEST);
             for (ProcessingRecipe recipe : spec.recipes()) {
-                // One AE2 pattern operation represents 64 underlying Mekanism recipe executions,
-                // preserving ratios while feeding each 64-machine bank in a single provider push.
+                // Scale the declared pattern by 64 to feed each bank in one provider push.
+                // The netherite pattern deliberately over-provisions input for stranded batches.
                 ItemStack encoded = PatternDetailsHelper.encodeProcessingPattern(
                         new GenericStack[]{new GenericStack(
                                 AEItemKey.of(recipe.input()),
