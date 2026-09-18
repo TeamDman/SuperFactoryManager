@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.gametest.tests.compat.computercraft;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.item.LabelGunItem;
@@ -64,7 +66,7 @@ public class ComputerCraftTurtleLabelerGameTest extends SFMGameTestDefinition {
         ItemStack blankGun = new ItemStack(SFMItems.LABEL_GUN.get());
         ITurtleUpgrade upgrade = findTurtleUpgrade(blankGun);
         helper.assertTrue(
-                upgrade != null && upgrade.getUpgradeID().equals(new ResourceLocation("sfm", "labeler")),
+                upgrade != null && upgrade.getUpgradeID().equals(SFMResourceLocation.fromNamespaceAndPath("sfm", "labeler")),
                 "The blank SFM label gun was not registered as the turtle labeler upgrade"
         );
         ItemStack nonBlankGun = new ItemStack(SFMItems.LABEL_GUN.get());

@@ -9,7 +9,7 @@ import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfm.common.util.SFMResourceLocation;
 import net.minecraft.core.Registry;
 import net.minecraft.resources.ResourceKey;
-import net.minecraftforge.eventbus.api.IEventBus;
+import net.neoforged.bus.api.IEventBus;
 
 public final class SFMClientScreenTypes {
     public static final ResourceKey<Registry<SFMClientScreenType>> REGISTRY_ID =
@@ -34,6 +34,7 @@ public final class SFMClientScreenTypes {
                 .build();
     }
 
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     public static void register(IEventBus bus) {
         REGISTRY_CREATOR.register(bus);
     }

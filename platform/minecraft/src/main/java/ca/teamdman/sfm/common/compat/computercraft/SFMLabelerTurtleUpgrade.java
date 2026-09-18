@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.common.compat.computercraft;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
@@ -19,7 +21,7 @@ import javax.annotation.Nonnull;
 public final class SFMLabelerTurtleUpgrade extends AbstractTurtleUpgrade {
     @SFMLocalizationDatagen
     public static final LocalizationEntry ADJECTIVE = new LocalizationEntry(
-            UpgradeBase.getDefaultAdjective(new ResourceLocation(SFM.MOD_ID, "labeler")),
+            UpgradeBase.getDefaultAdjective(SFMResourceLocation.fromNamespaceAndPath(SFM.MOD_ID, "labeler")),
             "Labeler"
     );
 

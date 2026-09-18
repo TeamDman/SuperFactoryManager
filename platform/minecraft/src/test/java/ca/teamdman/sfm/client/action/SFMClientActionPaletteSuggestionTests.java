@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
@@ -25,15 +27,15 @@ class SFMClientActionPaletteSuggestionTests {
         AtomicInteger workspaceCount = new AtomicInteger();
         SFMClientActionCommandTree tree = tree(
                 Map.entry(
-                        new ResourceLocation("sfm", "terminal/open"),
+                        SFMResourceLocation.fromNamespaceAndPath("sfm", "terminal/open"),
                         new TestAction("Open terminal", terminalCount, true)
                 ),
                 Map.entry(
-                        new ResourceLocation("sfm", "workspace/open"),
+                        SFMResourceLocation.fromNamespaceAndPath("sfm", "workspace/open"),
                         new TestAction("Open workspace", workspaceCount, true)
                 ),
                 Map.entry(
-                        new ResourceLocation("sfm", "terminal/close"),
+                        SFMResourceLocation.fromNamespaceAndPath("sfm", "terminal/close"),
                         new TestAction("Close terminal", new AtomicInteger(), true)
                 )
         );
@@ -54,8 +56,8 @@ class SFMClientActionPaletteSuggestionTests {
 
     @Test
     void fuzzyQueryExcludesUnavailableActions() {
-        ResourceLocation availableId = new ResourceLocation("sfm", "terminal/open");
-        ResourceLocation unavailableId = new ResourceLocation("sfm", "workspace/open");
+        ResourceLocation availableId = SFMResourceLocation.fromNamespaceAndPath("sfm", "terminal/open");
+        ResourceLocation unavailableId = SFMResourceLocation.fromNamespaceAndPath("sfm", "workspace/open");
         SFMClientActionCommandTree tree = tree(
                 Map.entry(availableId, new TestAction("Open terminal", new AtomicInteger(), true)),
                 Map.entry(unavailableId, new TestAction("Open workspace", new AtomicInteger(), false))

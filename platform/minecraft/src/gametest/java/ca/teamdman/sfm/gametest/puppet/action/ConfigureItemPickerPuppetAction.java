@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.screen.item_picker.SFMItemPickerPanel;
 import ca.teamdman.sfm.client.screen.item_picker.SFMItemPickerScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
@@ -94,7 +96,7 @@ public record ConfigureItemPickerPuppetAction(View view) implements SFMPuppetAct
                 }
             }
             case UNAVAILABLE -> {
-                panel.showUnavailableForAutomation(new ResourceLocation("missing_theme:unavailable_icon"));
+                panel.showUnavailableForAutomation(SFMResourceLocation.parse("missing_theme:unavailable_icon"));
                 assertSelected(panel, "minecraft:paper");
                 if (!panel.model().diagnostic().contains("missing_theme:unavailable_icon")) {
                     throw new IllegalStateException("Missing item diagnostic was not retained");

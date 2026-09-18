@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.theme;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.presentation.SFMItemIconResolver;
 import net.minecraft.resources.ResourceLocation;
@@ -89,8 +91,8 @@ public class SFMClientThemeTests {
 
     @Test
     public void unavailableRegistryItemUsesConfiguredFallbackThenPaper() {
-        ResourceLocation missing = new ResourceLocation("example", "missing");
-        ResourceLocation fallback = new ResourceLocation("minecraft", "book");
+        ResourceLocation missing = SFMResourceLocation.fromNamespaceAndPath("example", "missing");
+        ResourceLocation fallback = SFMResourceLocation.fromNamespaceAndPath("minecraft", "book");
         SFMItemIcon icon = new SFMItemIcon(missing, fallback, "missing icon");
 
         assertEquals(fallback, SFMItemIconResolver.selectAvailableId(icon, fallback::equals));
@@ -106,7 +108,7 @@ public class SFMClientThemeTests {
         Map<String,SFMItemIcon> icons = new LinkedHashMap<>(original.fileIcons());
         icons.put(".sfml", SFMItemIcon.vanilla("chest", "SFM program"));
         SFMClientTheme edited = new SFMClientTheme(colours, original.sfmlSyntax(), icons,
-                Map.of(new ResourceLocation("sfm:palette/open"), SFMItemIcon.vanilla("compass", "palette")));
+                Map.of(SFMResourceLocation.parse("sfm:palette/open"), SFMItemIcon.vanilla("compass", "palette")));
 
         SFMThemeLoadResult result = SFMClientThemeLoader.load(SFMClientThemeTomlWriter.write(edited), original);
         assertTrue(result.valid(), result.diagnostics().toString());
@@ -114,7 +116,7 @@ public class SFMClientThemeTests {
         assertEquals(edited.colours(), parsed.colours());
         assertEquals(edited.sfmlSyntax(), parsed.sfmlSyntax());
         assertEquals("minecraft:chest", parsed.fileIcon(".sfml").requestedItem().toString());
-        assertEquals("minecraft:compass", parsed.actionIcons().get(new ResourceLocation("sfm:palette/open")).requestedItem().toString());
+        assertEquals("minecraft:compass", parsed.actionIcons().get(SFMResourceLocation.parse("sfm:palette/open")).requestedItem().toString());
     }
 
     @Test

@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.presentation;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.Objects;
@@ -16,7 +18,7 @@ public record SFMItemIcon(
         ResourceLocation fallbackItem,
         String accessibleLabel
 ) {
-    public static final ResourceLocation PAPER = new ResourceLocation("minecraft", "paper");
+    public static final ResourceLocation PAPER = SFMResourceLocation.fromNamespaceAndPath("minecraft", "paper");
 
     public SFMItemIcon {
         Objects.requireNonNull(requestedItem, "requestedItem");
@@ -26,6 +28,6 @@ public record SFMItemIcon(
     }
 
     public static SFMItemIcon vanilla(String itemPath, String accessibleLabel) {
-        return new SFMItemIcon(new ResourceLocation("minecraft", itemPath), PAPER, accessibleLabel);
+        return new SFMItemIcon(SFMResourceLocation.fromNamespaceAndPath("minecraft", itemPath), PAPER, accessibleLabel);
     }
 }

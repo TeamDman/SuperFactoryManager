@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
@@ -14,9 +16,9 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class SFMClientCommandInsertionTests {
-    private static final ResourceLocation ECHO = new ResourceLocation("sfm", "echo");
-    private static final ResourceLocation TERMINAL = new ResourceLocation("sfm", "terminal");
-    private static final ResourceLocation OPTIONAL = new ResourceLocation("sfm", "optional");
+    private static final ResourceLocation ECHO = SFMResourceLocation.fromNamespaceAndPath("sfm", "echo");
+    private static final ResourceLocation TERMINAL = SFMResourceLocation.fromNamespaceAndPath("sfm", "terminal");
+    private static final ResourceLocation OPTIONAL = SFMResourceLocation.fromNamespaceAndPath("sfm", "optional");
     private final SFMClientActionCommandTree tree = SFMClientActionDispatcherCompiler.compileCommandTree(
             List.<Map.Entry<ResourceLocation, SFMClientAction<?>>>of(
                     Map.entry(ECHO, new EchoAction()),

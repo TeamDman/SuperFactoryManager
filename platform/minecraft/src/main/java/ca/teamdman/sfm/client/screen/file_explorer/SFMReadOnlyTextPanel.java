@@ -4,10 +4,9 @@ import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
 import ca.teamdman.sfm.client.screen.workspace.SFMFileDropTarget;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -72,15 +71,16 @@ public final class SFMReadOnlyTextPanel implements SFMScreenPanel, SFMFileDropTa
     }
 
     @Override
-    public void render(PoseStack poseStack, Minecraft minecraft, SFMScreenPanelBounds bounds,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void render(GuiGraphics graphics, Minecraft minecraft, SFMScreenPanelBounds bounds,
                        int mouseX, int mouseY, float partialTick, boolean focused) {
-        GuiComponent.fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + 24, 0xF02A2A2A);
-        SFMFontUtils.draw(poseStack, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD),
+        graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + 24, 0xF02A2A2A);
+        SFMFontUtils.draw(graphics, minecraft.font, title().copy().withStyle(ChatFormatting.BOLD),
                 bounds.x() + 8, bounds.y() + 7, 0xFFFFFFFF, true);
         int visible = Math.max(0, (bounds.height() - 30) / ROW_HEIGHT);
         for (int i = 0; i < visible && firstLine + i < lines.size(); i++) {
             String line = minecraft.font.plainSubstrByWidth(lines.get(firstLine + i), Math.max(0, bounds.width() - 16));
-            SFMFontUtils.draw(poseStack, minecraft.font, line, bounds.x() + 8, bounds.y() + 28 + i * ROW_HEIGHT,
+            SFMFontUtils.draw(graphics, minecraft.font, line, bounds.x() + 8, bounds.y() + 28 + i * ROW_HEIGHT,
                     0xFFE0E0E0, true);
         }
     }

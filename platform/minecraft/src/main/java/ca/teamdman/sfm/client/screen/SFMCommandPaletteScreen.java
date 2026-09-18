@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.screen;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
@@ -420,6 +422,7 @@ public final class SFMCommandPaletteScreen extends Screen {
         return themed == null ? action.itemIcon(actionContext) : Optional.of(themed);
     }
 
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     private void renderActionIconsOnTop(GuiGraphics graphics) {
         // The palette is translucent and intentionally preserves the title/world colour buffer.
         // Clear only stale scene depth before GUI item models so they cannot be hidden by the origin screen.
@@ -430,11 +433,12 @@ public final class SFMCommandPaletteScreen extends Screen {
             if (suggestionIndex >= suggestions.size()) break;
             int y = panelTop() + 68 + index * SUGGESTION_ROW_HEIGHT;
             actionIcon(suggestions.get(suggestionIndex)).ifPresent(icon ->
-                    SFMItemIconRenderer.render(minecraft, icon, panelLeft() + 10, y)
+                    SFMItemIconRenderer.render(graphics, minecraft, icon, panelLeft() + 10, y)
             );
         }
     }
 
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     private void renderActionIconTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
         int firstY = panelTop() + 68;
         int visibleIndex = (mouseY - firstY) / SUGGESTION_ROW_HEIGHT;
@@ -455,6 +459,7 @@ public final class SFMCommandPaletteScreen extends Screen {
         });
     }
 
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     private void renderBindingSummary(GuiGraphics graphics, Suggestion suggestion, int right, int y) {
         Optional<ResourceLocation> actionId = suggestionActionId(suggestion);
         if (actionId.isEmpty()) return;
@@ -469,6 +474,7 @@ public final class SFMCommandPaletteScreen extends Screen {
                 SFMClientThemeService.active().colour(SFMColourRole.TEXT_ACCENT), false);
     }
 
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
     private void renderActionDetailsTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
         int right = panelLeft() + panelWidth();
         int firstY = panelTop() + 70;
@@ -500,7 +506,7 @@ public final class SFMCommandPaletteScreen extends Screen {
 
     private static Optional<ResourceLocation> suggestionActionId(Suggestion suggestion) {
         try {
-            ResourceLocation id = new ResourceLocation(suggestion.getText());
+            ResourceLocation id = SFMResourceLocation.parse(suggestion.getText());
             return SFMClientActions.registry().get(id) == null ? Optional.empty() : Optional.of(id);
         } catch (RuntimeException ignored) {
             return Optional.empty();

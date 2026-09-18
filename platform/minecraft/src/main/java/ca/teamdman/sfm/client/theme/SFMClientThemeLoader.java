@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.theme;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import com.electronwill.nightconfig.core.Config;
 import com.electronwill.nightconfig.toml.TomlFormat;
@@ -91,7 +93,7 @@ public final class SFMClientThemeLoader {
         if (actionIconConfig != null) {
             for (Map.Entry<String, Object> entry : actionIconConfig.valueMap().entrySet()) {
                 try {
-                    ResourceLocation actionId = new ResourceLocation(entry.getKey());
+                    ResourceLocation actionId = SFMResourceLocation.parse(entry.getKey());
                     parseIcon(entry.getValue(), "icons.actions.\"" + entry.getKey() + "\"", entry.getKey(), diagnostics)
                             .ifPresent(icon -> actionIcons.put(actionId, icon));
                 } catch (RuntimeException e) {
@@ -158,7 +160,7 @@ public final class SFMClientThemeLoader {
             return Optional.empty();
         }
         try {
-            return Optional.of(new SFMItemIcon(new ResourceLocation(text), SFMItemIcon.PAPER, label));
+            return Optional.of(new SFMItemIcon(SFMResourceLocation.parse(text), SFMItemIcon.PAPER, label));
         } catch (RuntimeException e) {
             diagnostics.add(path + " has invalid item id: " + text);
             return Optional.empty();
