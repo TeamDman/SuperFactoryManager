@@ -7,6 +7,9 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Repair release-branch rendering, input and identifier adapters through 26.1.2, and keep client GUI registrations out of dedicated-server startup
+-- Add real Just Dire Things and Mekanism GameTests demonstrating one-FE-gap downstream starvation and label-order/retention controls without changing production energy transfers
+-- Double the AE2/Mekanism fixture's netherite scrap pattern input without increasing its declared output, allowing for partial batches stranded across factories
 -- Make Text Editor v3 Backspace and Delete directional across glyphs, blank lines, joined lines and multi-cursor boundaries
 -- Add an AE2/Mekanism autocrafting GameTest with eight banks of 64 ultimate infusing factories, fully stocked interfaces and ten crafting CPUs
 -- Copy bounded summaries for an Explorer row's immediate published children or its current multi-selection, retaining display, internal, review and lazy-completeness evidence
