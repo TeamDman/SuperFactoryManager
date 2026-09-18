@@ -45,6 +45,26 @@ class SFMTerminalPanelInteractionTests {
     }
 
     @Test
+    void keypadEnterIsForwardedAsTerminalEnter() {
+        RecordingRemoteService service = new RecordingRemoteService();
+        SFMTerminalPanel panel = new SFMTerminalPanel(service);
+        SFMScreenPanelBounds bounds = new SFMScreenPanelBounds(0, 0, 960, 540);
+        panel.resizeRemoteViewport(bounds, CELL_WIDTH, LINE_HEIGHT);
+        SFMTerminalPanel.ViewportGeometry viewport = remoteViewport(bounds);
+        SFMPanelWidgetHost widgets = panel.widgetHost().orElseThrow();
+
+        assertTrue(widgets.mouseClicked(viewport.left() + 2, viewport.top() + 2, 0));
+        assertTrue(widgets.keyPressed(GLFW.GLFW_KEY_KP_ENTER, 0, 0));
+        assertTrue(widgets.keyReleased(GLFW.GLFW_KEY_KP_ENTER, 0, 0));
+
+        assertEquals(List.of(
+                        new KeyInput(GLFW.GLFW_KEY_ENTER, true),
+                        new KeyInput(GLFW.GLFW_KEY_ENTER, false)
+                ), service.keyInputs,
+                "keypad Enter must use the same PTY input as the main Enter key");
+    }
+
+    @Test
     void terminalPixelsInvalidateTheOldDisconnectedStartButtonBeforeMouseRouting() {
         RecordingRemoteService service = new RecordingRemoteService();
         SFMTerminalPanel panel = new SFMTerminalPanel(service, () -> {

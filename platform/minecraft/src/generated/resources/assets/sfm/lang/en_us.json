@@ -403,6 +403,8 @@
   "item.sfm.network_tool.tooltip.7": "Ctrl-alt-click to facade entire network.",
   "item.sfm.network_tool.tooltip.8": "Hold %s and right-click a block to attune the tool to that position.",
   "item.sfm.packet": "Data Packet",
+  "item.sfm.packet.contains_data": "Contains packet data",
+  "item.sfm.packet.invalid_data": "Packet data is missing or invalid",
   "item.sfm.xp_goop": "Experience Goop",
   "item.sfm.xp_shard": "Experience Shard",
   "item_group.sfm": "Super Factory Manager",

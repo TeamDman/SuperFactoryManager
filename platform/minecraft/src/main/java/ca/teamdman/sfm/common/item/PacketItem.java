@@ -4,12 +4,19 @@ import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import ca.teamdman.sfm.common.util.SFMItemUtils;
 import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfm.common.value.SFMValueJsonCodec;
+import ca.teamdman.sfm.common.value.SFMPacketTooltipFormatter;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.Optional;
 
 /** A stackable item carrier for one generic SFM value per item unit. */
@@ -65,6 +72,29 @@ public class PacketItem extends Item {
         } catch (IllegalArgumentException invalid) {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public void appendHoverText(
+            ItemStack stack,
+            @Nullable Level level,
+            List<Component> lines,
+            TooltipFlag detail
+    ) {
+        appendTooltipLines(stack, lines, SFMItemUtils.isClientAndMoreInfoKeyPressed());
+    }
+
+    /** Renders the tooltip for a supplied more-info state without polling physical keyboard input. */
+    public static void appendTooltipLines(ItemStack stack, List<Component> lines, boolean expanded) {
+        Optional<SFMValue> value = getValue(stack);
+        lines.addAll(SFMPacketTooltipFormatter.describe(value, expanded, getNameLength(stack)));
+        if (!expanded && value.isPresent()) {
+            SFMItemUtils.appendMoreInfoKeyReminderTextIfOnClient(lines);
+        }
+    }
+
+    private static int getNameLength(ItemStack stack) {
+        return stack.getHoverName().getString().length();
     }
 
     private static void requirePacketStack(ItemStack stack) {

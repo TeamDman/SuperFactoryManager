@@ -33,6 +33,19 @@ class SFMValueJsonCodecTests {
         );
         assertEquals(value, SFMValueJsonCodec.decode(encoded));
         assertEquals(encoded, SFMValueJsonCodec.encode(SFMValueJsonCodec.decode(encoded)));
+        assertEquals(
+                "{\n"
+                + "  \"a\": [\n"
+                + "    null,\n"
+                + "    true,\n"
+                + "    false,\n"
+                + "    -9223372036854775808,\n"
+                + "    9223372036854775807\n"
+                + "  ],\n"
+                + "  \"z\": \"snowman ☃\"\n"
+                + "}",
+                SFMValueJsonCodec.encodePretty(value)
+        );
     }
 
     @Test

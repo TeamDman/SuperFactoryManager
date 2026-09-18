@@ -28,18 +28,32 @@ public final class SFMValueJsonCodec {
     }
 
     public static String encode(SFMValue value) {
+        String encoded = write(value, "");
+        requireWithinByteLimit(encoded);
+        return encoded;
+    }
+
+    /**
+     * Formats a value for human inspection after enforcing the same value
+     * limits as the canonical wire representation.
+     */
+    public static String encodePretty(SFMValue value) {
+        encode(value);
+        return write(value, "  ");
+    }
+
+    private static String write(SFMValue value, String indent) {
         Objects.requireNonNull(value, "value");
         StringWriter target = new StringWriter();
         try (JsonWriter writer = new JsonWriter(target)) {
             writer.setHtmlSafe(false);
             writer.setSerializeNulls(true);
+            writer.setIndent(indent);
             writeValue(writer, value, 0);
         } catch (IOException impossible) {
             throw new IllegalStateException("String-backed JSON writing failed", impossible);
         }
-        String encoded = target.toString();
-        requireWithinByteLimit(encoded);
-        return encoded;
+        return target.toString();
     }
 
     public static SFMValue decode(String encoded) {

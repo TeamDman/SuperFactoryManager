@@ -1,4 +1,4 @@
-// 1.19.2	2026-09-12T20:52:46.6731697	Item Models: sfm
+// 1.19.2	2026-09-15T02:41:30.2055607	Item Models: sfm
 c30f68ac136d6a8ae24eee7845de7afb19597988 assets/sfm/models/item/buffer.json
 8518af52bb22ef1d984719f3534ff29e08cca857 assets/sfm/models/item/cable.json
 bee75adb2bb431a6b671015aa9bac0d68a98f5fb assets/sfm/models/item/disk.json
@@ -8,7 +8,7 @@ a74b029bcf88d674c6a4c4eaece9426cfd9c4533 assets/sfm/models/item/form_base.json
 a70b1032681b30f1066fdfb8b28870e87e51c261 assets/sfm/models/item/labelgun.json
 e945e739059a159bb1d4de5af118d412b50aae6c assets/sfm/models/item/manager.json
 d35a3dbb1180878d85e94f3f00812e5f34a4b2da assets/sfm/models/item/network_tool.json
-9186aec3aa11a45a2b24103e84126c200f2ac5c2 assets/sfm/models/item/packet.json
+e1976933fa6bff6dcbc7d886da696fb134a7b4ef assets/sfm/models/item/packet.json
 cd81e93f92577f247bb4bd12e01494d83e0733ce assets/sfm/models/item/printing_press.json
 8d90463a71d47caeb291325ebcf624e889b069c8 assets/sfm/models/item/tough_cable.json
 1bcd55df1fd3c6689055b8ba86acc6c516260e47 assets/sfm/models/item/tough_fancy_cable.json
