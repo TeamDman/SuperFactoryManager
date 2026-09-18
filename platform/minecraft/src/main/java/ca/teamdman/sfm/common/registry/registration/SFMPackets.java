@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 public class SFMPackets {
-    public static final String SFM_CHANNEL_VERSION="1.1.0";
+    public static final String SFM_CHANNEL_VERSION="1.2.0";
     public static final SimpleChannel SFM_CHANNEL = NetworkRegistry.newSimpleChannel(
             SFMResourceLocation.fromSFMPath("manager"),
             SFM_CHANNEL_VERSION::toString,
@@ -83,6 +83,8 @@ public class SFMPackets {
         // Packet IDs are append-only so existing packet discriminators remain stable.
         registerPacket(new ClientboundPacketObservationPacket.Daddy());
         registerPacket(new ServerboundPacketInsertionPacket.Daddy());
+        registerPacket(new ClientboundClientInboxValuePacket.Daddy());
+        registerPacket(new ServerboundClientInboxSubscriptionPacket.Daddy());
     }
 
     public static void sendToServer(
