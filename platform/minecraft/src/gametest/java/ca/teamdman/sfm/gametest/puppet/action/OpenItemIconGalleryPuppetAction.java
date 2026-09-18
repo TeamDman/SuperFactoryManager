@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.presentation.SFMItemIconResolver;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerEntry;
@@ -28,7 +30,7 @@ public final class OpenItemIconGalleryPuppetAction implements SFMPuppetAction {
             requested = true;
             Minecraft minecraft = Minecraft.getInstance();
             SFMItemIcon unavailableIcon = new SFMItemIcon(
-                    new ResourceLocation("missing_theme", "unavailable_item"),
+                    SFMResourceLocation.fromNamespaceAndPath("missing_theme", "unavailable_item"),
                     SFMItemIcon.PAPER,
                     "unavailable themed item"
             );

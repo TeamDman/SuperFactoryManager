@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.screen.theme_settings;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import ca.teamdman.sfm.client.theme.SFMClientTheme;
 import ca.teamdman.sfm.client.theme.SFMColourRole;
@@ -14,7 +16,7 @@ import java.util.Map;
 
 /** Pure structured draft over the same immutable theme snapshot consumed by runtime rendering. */
 public final class SFMThemeSettingsModel {
-    public static final ResourceLocation PALETTE_ACTION = new ResourceLocation("sfm:palette/open");
+    public static final ResourceLocation PALETTE_ACTION = SFMResourceLocation.parse("sfm:palette/open");
     private SFMClientTheme baseline;
     private SFMClientTheme draft;
     private List<SFMThemeProperty> properties;
@@ -66,7 +68,7 @@ public final class SFMThemeSettingsModel {
         SFMThemeProperty property = selected();
         return switch (property.kind()) {
             case FILE_ICON -> draft.fileIcons().get(property.id());
-            case ACTION_ICON -> draft.actionIcons().get(new ResourceLocation(property.id()));
+            case ACTION_ICON -> draft.actionIcons().get(SFMResourceLocation.parse(property.id()));
             default -> throw new IllegalStateException("Selected property is not icon-backed: " + property.id());
         };
     }
@@ -97,7 +99,7 @@ public final class SFMThemeSettingsModel {
             draft = new SFMClientTheme(draft.colours(), draft.sfmlSyntax(), icons, draft.actionIcons());
         } else if (property.kind() == SFMThemeProperty.Kind.ACTION_ICON) {
             Map<ResourceLocation, SFMItemIcon> icons = new LinkedHashMap<>(draft.actionIcons());
-            icons.put(new ResourceLocation(property.id()), icon);
+            icons.put(SFMResourceLocation.parse(property.id()), icon);
             draft = new SFMClientTheme(draft.colours(), draft.sfmlSyntax(), draft.fileIcons(), icons);
         } else {
             throw new IllegalStateException("Selected property is not icon-backed");

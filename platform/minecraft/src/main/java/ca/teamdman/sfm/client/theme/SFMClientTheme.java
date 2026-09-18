@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.theme;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import net.minecraft.resources.ResourceLocation;
 
@@ -71,6 +73,6 @@ public record SFMClientTheme(
     }
 
     private static SFMItemIcon icon(String id, String label) {
-        return new SFMItemIcon(new ResourceLocation(id), SFMItemIcon.PAPER, label);
+        return new SFMItemIcon(SFMResourceLocation.parse(id), SFMItemIcon.PAPER, label);
     }
 }

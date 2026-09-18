@@ -9,7 +9,7 @@ import ca.teamdman.sfm.client.keybinding.SFMKeySequence;
 import ca.teamdman.sfm.client.keybinding.SFMKeyStroke;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.screen.widget.SFMButtonBuilder;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.CommonComponents;
@@ -96,24 +96,25 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        renderBackground(poseStack);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        renderBackground(graphics, mouseX, mouseY, partialTick);
         var action = SFMClientActions.registry().get(actionId);
         if (action == null) return;
         int left = width / 2 - 190;
-        SFMFontUtils.draw(poseStack, font, action.title().copy().withStyle(ChatFormatting.BOLD), left, 18, 0xFFFFFFFF, false);
-        SFMFontUtils.draw(poseStack, font, actionId.toString(), left, 34, 0xFF80D8FF, false);
-        SFMFontUtils.draw(poseStack, font, action.description(), left, 52, 0xFFCCCCCC, false);
+        SFMFontUtils.draw(graphics, font, action.title().copy().withStyle(ChatFormatting.BOLD), left, 18, 0xFFFFFFFF, false);
+        SFMFontUtils.draw(graphics, font, actionId.toString(), left, 34, 0xFF80D8FF, false);
+        SFMFontUtils.draw(graphics, font, action.description(), left, 52, 0xFFCCCCCC, false);
         var availability = action.requirement().resolve(SFMClientActionContext.create(parent, () -> true));
         Component status = availability.isAvailable()
                 ? Component.literal("Available").withStyle(ChatFormatting.GREEN)
                 : Component.literal("Unavailable: ").append(availability.unavailableReason()).withStyle(ChatFormatting.RED);
-        SFMFontUtils.draw(poseStack, font, status, left, 72, 0xFFFFFFFF, false);
-        SFMFontUtils.draw(poseStack, font, "Key sequences", left, 94, 0xFFFFFFFF, false);
+        SFMFontUtils.draw(graphics, font, status, left, 72, 0xFFFFFFFF, false);
+        SFMFontUtils.draw(graphics, font, "Key sequences", left, 94, 0xFFFFFFFF, false);
         int y = 118;
         List<SFMKeyBinding> bindings = SFMKeyBindingService.INSTANCE.bindingsForAction(actionId);
         if (bindings.isEmpty()) {
-            SFMFontUtils.draw(poseStack, font, "No bindings", left, y, 0xFF999999, false);
+            SFMFontUtils.draw(graphics, font, "No bindings", left, y, 0xFF999999, false);
         } else {
             for (SFMKeyBinding binding : bindings) {
                 String text = SFMKeyBindingDisplay.format(binding.sequence());
@@ -121,7 +122,7 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                 boolean conflict = !SFMKeyBindingService.INSTANCE.profile().conflictsWith(binding).isEmpty();
                 if (conflict) text += "  CONFLICT";
                 SFMFontUtils.draw(
-                        poseStack,
+                        graphics,
                         font,
                         text,
                         left,
@@ -129,7 +130,7 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
                         conflict ? 0xFFFF5555 : binding.enabled() ? 0xFFFFFFFF : 0xFF888888,
                         false
                 );
-                SFMFontUtils.draw(poseStack, font, font.plainSubstrByWidth(binding.commandDraft(), 168),
+                SFMFontUtils.draw(graphics, font, font.plainSubstrByWidth(binding.commandDraft(), 168),
                         left, y + 10, 0xFF777777, false);
                 y += 26;
             }
@@ -138,10 +139,10 @@ public final class SFMKeyBindingDetailsScreen extends Screen {
             String preview = captured.isEmpty()
                     ? "Press a shortcut, then Enter to save"
                     : SFMKeyBindingDisplay.format(new SFMKeySequence(captured)) + "   [Enter to save]";
-            fill(poseStack, left, height - 58, left + 376, height - 38, 0xEE303030);
-            SFMFontUtils.draw(poseStack, font, preview, left + 6, height - 52, 0xFFFFFF55, false);
+            graphics.fill(left, height - 58, left + 376, height - 38, 0xEE303030);
+            SFMFontUtils.draw(graphics, font, preview, left + 6, height - 52, 0xFFFFFF55, false);
         }
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override

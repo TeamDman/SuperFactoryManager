@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.review.repository.SFMRepositoryReviewException;
 import ca.teamdman.sfm.client.review.repository.SFMRepositoryReviewRepository;
@@ -31,7 +33,7 @@ class OpenReviewBundleActionTests {
             }
         });
         CommandDispatcher<SFMClientActionSource> dispatcher = SFMClientActionDispatcherCompiler.compile(List.of(
-                Map.entry(new ResourceLocation("sfm", "review/open_bundle"), new OpenReviewBundleAction())
+                Map.entry(SFMResourceLocation.fromNamespaceAndPath("sfm", "review/open_bundle"), new OpenReviewBundleAction())
         ));
         SFMClientActionSource source = new SFMClientActionSource(
                 SFMClientActionContext.create(new Object(), () -> true));

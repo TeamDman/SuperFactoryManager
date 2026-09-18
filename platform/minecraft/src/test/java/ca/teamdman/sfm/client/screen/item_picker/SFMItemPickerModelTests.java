@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.screen.item_picker;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import ca.teamdman.sfm.client.presentation.SFMItemIcon;
 import net.minecraft.resources.ResourceLocation;
 import org.junit.jupiter.api.Test;
@@ -176,5 +178,5 @@ public class SFMItemPickerModelTests {
         return new SFMItemPickerEntry(id(id), name);
     }
 
-    private static ResourceLocation id(String value) { return new ResourceLocation(value); }
+    private static ResourceLocation id(String value) { return SFMResourceLocation.parse(value); }
 }

@@ -4,7 +4,7 @@ import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.screen.SFMFontUtils;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
@@ -205,20 +205,21 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTick) {
-        this.renderBackground(poseStack);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
+        this.renderBackground(graphics, mouseX, mouseY, partialTick);
         for (SFMWorkspaceLayout.PanelEntry entry : layout.panels()) {
             SFMScreenPanelBounds bounds = panelBounds.get(entry.id());
             if (bounds == null) continue;
-            fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), PANEL_BACKGROUND);
+            graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), PANEL_BACKGROUND);
             int border = entry.id().equals(layout.focusedPanel()) ? FOCUSED_BORDER : UNFOCUSED_BORDER;
-            fill(poseStack, bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + 1, border);
-            fill(poseStack, bounds.x(), bounds.y() + bounds.height() - 1, bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
-            fill(poseStack, bounds.x(), bounds.y(), bounds.x() + 1, bounds.y() + bounds.height(), border);
-            fill(poseStack, bounds.x() + bounds.width() - 1, bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
+            graphics.fill(bounds.x(), bounds.y(), bounds.x() + bounds.width(), bounds.y() + 1, border);
+            graphics.fill(bounds.x(), bounds.y() + bounds.height() - 1, bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
+            graphics.fill(bounds.x(), bounds.y(), bounds.x() + 1, bounds.y() + bounds.height(), border);
+            graphics.fill(bounds.x() + bounds.width() - 1, bounds.y(), bounds.x() + bounds.width(), bounds.y() + bounds.height(), border);
             enableScissor(bounds.inset(1));
             entry.panel().render(
-                    poseStack,
+                    graphics,
                     this.minecraft,
                     bounds.inset(1),
                     mouseX,
@@ -229,9 +230,9 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
             RenderSystem.disableScissor();
         }
         if (dropFeedback != null) {
-            SFMFontUtils.draw(poseStack, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
+            SFMFontUtils.draw(graphics, this.font, dropFeedback, 6, Math.max(2, this.height - 12), 0xFFFF7777, true);
         }
-        super.render(poseStack, mouseX, mouseY, partialTick);
+        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     @Override
@@ -306,12 +307,13 @@ public final class SFMScreenMultiplexer extends Screen implements SFMWorkspacePa
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalDelta, double delta) {
         SFMWorkspaceLayout.PanelEntry entry = panelAt(mouseX, mouseY);
         if (entry != null) layout.focus(entry.id());
         SFMScreenPanel focused = layout.panel(layout.focusedPanel());
         return focused != null && (focused.mouseScrolled(mouseX, mouseY, delta)
-                || super.mouseScrolled(mouseX, mouseY, delta));
+                || super.mouseScrolled(mouseX, mouseY, horizontalDelta, delta));
     }
 
     @Override

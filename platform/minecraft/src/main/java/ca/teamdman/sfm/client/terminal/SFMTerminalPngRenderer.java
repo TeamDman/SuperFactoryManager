@@ -1,9 +1,10 @@
 package ca.teamdman.sfm.client.terminal;
 
+import ca.teamdman.sfm.common.util.SFMResourceLocation;
+
 import com.mojang.blaze3d.platform.NativeImage;
-import com.mojang.blaze3d.vertex.PoseStack;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiComponent;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -15,7 +16,7 @@ import java.util.Optional;
 
 /** Uploads the latest Rust-owned full-frame PNG on the Minecraft render thread. */
 final class SFMTerminalPngRenderer {
-    private static final ResourceLocation TEXTURE = new ResourceLocation("sfm", "terminal_rust_frame");
+    private static final ResourceLocation TEXTURE = SFMResourceLocation.fromNamespaceAndPath("sfm", "terminal_rust_frame");
     private static final int MAX_IMAGE_DIMENSION = 4096;
     private static final long MAX_IMAGE_PIXELS = 16L * 1024L * 1024L;
 
@@ -25,7 +26,8 @@ final class SFMTerminalPngRenderer {
     private int imageHeight;
     private boolean failed;
 
-    boolean render(PoseStack poseStack, Minecraft minecraft, int x, int y, int width, int height,
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    boolean render(GuiGraphics graphics, Minecraft minecraft, int x, int y, int width, int height,
                    Optional<SFMTerminalFrame> snapshot) {
         if (snapshot.isEmpty()) return false;
         SFMTerminalFrame frame = snapshot.get();
@@ -47,9 +49,7 @@ final class SFMTerminalPngRenderer {
         int drawHeight = Math.max(1, (int) Math.floor(imageHeight * scale));
         int drawX = x + (width - drawWidth) / 2;
         int drawY = y + (height - drawHeight) / 2;
-        minecraft.getTextureManager().bindForSetup(TEXTURE);
-        RenderSystem.setShaderTexture(0, TEXTURE);
-        GuiComponent.blit(poseStack, drawX, drawY, drawWidth, drawHeight,
+        graphics.blit(TEXTURE, drawX, drawY, drawWidth, drawHeight,
                 0, 0, imageWidth, imageHeight, imageWidth, imageHeight);
         return true;
     }
