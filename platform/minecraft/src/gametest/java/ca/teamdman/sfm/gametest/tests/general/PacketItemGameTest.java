@@ -66,6 +66,27 @@ public class PacketItemGameTest extends SFMGameTestDefinition {
         helper.assertTrue(PacketItem.getValue(blank).isEmpty(), "Blank packet must not decode a value");
         helper.assertTrue(!blank.hasTag(), "Reading a blank packet must not create NBT");
 
+        ItemStack old = new ItemStack(first.getItem());
+        old.getOrCreateTag().putInt(PacketItem.CODEC_VERSION_TAG, 1);
+        old.getOrCreateTag().putString(PacketItem.VALUE_JSON_TAG, "{\"count\":9007199254740993}");
+        helper.assertTrue(
+                PacketItem.getValue(old).orElseThrow().equals(SFMValue.object(Map.of(
+                        "count", SFMValue.of(9_007_199_254_740_993L)
+                ))),
+                "Version 1 packet items must retain exact integer values"
+        );
+        helper.assertTrue(
+                old.getOrCreateTag().getInt(PacketItem.CODEC_VERSION_TAG) == 1,
+                "Reading an old packet must not rewrite its stored version"
+        );
+
+        ItemStack floating = PacketItem.create(SFMValue.of(0.5));
+        helper.assertTrue(
+                floating.getOrCreateTag().getInt(PacketItem.CODEC_VERSION_TAG) == 2
+                && PacketItem.getValue(floating).orElseThrow().equals(SFMValue.of(0.5)),
+                "Version 2 packet items must carry finite floating values"
+        );
+
         ItemStack malformed = new ItemStack(first.getItem());
         malformed.getOrCreateTag().putInt(PacketItem.CODEC_VERSION_TAG, SFMValueJsonCodec.VERSION);
         malformed.getOrCreateTag().putString(PacketItem.VALUE_JSON_TAG, "{");

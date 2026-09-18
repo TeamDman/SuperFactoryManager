@@ -95,7 +95,7 @@ class SFMPacketActionsTests {
                     return true;
                 }
         );
-        String valueJson = "{\"message\":\"hello world\",\"sequence\":7}";
+        String valueJson = "{\"message\":\"hello world\",\"ratio\":0.5,\"sequence\":7}";
 
         Invocation invocation = invoke(
                 action,
@@ -109,6 +109,10 @@ class SFMPacketActionsTests {
         assertEquals(-7, address.get().position().getZ());
         assertEquals("north", address.get().side().orElseThrow().getName());
         assertEquals(valueJson, SFMValueJsonCodec.encode(value.get()));
+        assertEquals(
+                SFMValue.of(0.5),
+                ((SFMValue.ObjectValue) value.get()).fields().get("ratio")
+        );
         JsonObject json = JsonParser.parseString(invocation.result().json()).getAsJsonObject();
         assertEquals("send_attempted", json.get("status").getAsString());
         assertTrue(json.get("local_transport_accepted").getAsBoolean());
@@ -171,7 +175,7 @@ class SFMPacketActionsTests {
         );
 
         assertThrows(CommandSyntaxException.class,
-                () -> invoke(action, "sfm:packet/send minecraft:overworld 0 0 0 1.5"));
+                () -> invoke(action, "sfm:packet/send minecraft:overworld 0 0 0 1e309"));
         assertThrows(CommandSyntaxException.class,
                 () -> invoke(action, "sfm:packet/send overworld 0 0 0 null"));
         assertThrows(CommandSyntaxException.class,

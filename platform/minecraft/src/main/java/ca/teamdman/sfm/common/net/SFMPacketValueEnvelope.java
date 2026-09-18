@@ -30,8 +30,8 @@ public record SFMPacketValueEnvelope(
                     + " UTF-8 bytes"
             );
         }
-        if (codecVersion == SFMValueJsonCodec.VERSION) {
-            SFMValue decoded = SFMValueJsonCodec.decode(canonicalJson);
+        if (SFMValueJsonCodec.isReadableVersion(codecVersion)) {
+            SFMValue decoded = SFMValueJsonCodec.decode(canonicalJson, codecVersion);
             if (!canonicalJson.equals(SFMValueJsonCodec.encode(decoded))) {
                 throw new IllegalArgumentException("Packet value JSON is not canonical");
             }
@@ -45,11 +45,12 @@ public record SFMPacketValueEnvelope(
         );
     }
 
+    /** Returns a value from any readable codec version; unknown future versions remain opaque. */
     public Optional<SFMValue> currentValue() {
-        if (codecVersion != SFMValueJsonCodec.VERSION) {
+        if (!SFMValueJsonCodec.isReadableVersion(codecVersion)) {
             return Optional.empty();
         }
-        return Optional.of(SFMValueJsonCodec.decode(canonicalJson));
+        return Optional.of(SFMValueJsonCodec.decode(canonicalJson, codecVersion));
     }
 
     public void encode(FriendlyByteBuf target) {

@@ -65,7 +65,7 @@ class SFMValueJsonCodecTests {
     }
 
     @Test
-    void rejectsMalformedAndNonIntegralJson() {
+    void rejectsMalformedAndOutOfRangeJson() {
         assertThrows(NullPointerException.class, () -> SFMValueJsonCodec.encode(null));
         for (String invalid : List.of(
                 "{",
@@ -73,10 +73,10 @@ class SFMValueJsonCodecTests {
                 "/* comment */ null",
                 "{unquoted:true}",
                 "{\"x\":1,\"x\":2}",
-                "1.0",
-                "1e2",
                 "9223372036854775808",
-                "-9223372036854775809"
+                "-9223372036854775809",
+                "1e309",
+                "-1e309"
         )) {
             assertThrows(
                     IllegalArgumentException.class,

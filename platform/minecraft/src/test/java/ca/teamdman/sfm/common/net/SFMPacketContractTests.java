@@ -35,6 +35,44 @@ class SFMPacketContractTests {
     }
 
     @Test
+    void versionOneEnvelopeStillDispatchesWhileVersionTwoCarriesDoubles() {
+        SFMPacketValueEnvelope old = new SFMPacketValueEnvelope(1, "{\"count\":9007199254740993}");
+        FriendlyByteBuf oldBuffer = new FriendlyByteBuf(Unpooled.buffer());
+        old.encode(oldBuffer);
+        SFMPacketValueEnvelope copiedOld = SFMPacketValueEnvelope.decode(oldBuffer);
+        SFMValue exact = SFMValue.object(Map.of("count", SFMValue.of(9_007_199_254_740_993L)));
+        AtomicReference<SFMValue> received = new AtomicReference<>();
+
+        assertEquals(old, copiedOld);
+        assertEquals(Optional.of(exact), copiedOld.currentValue());
+        assertEquals(
+                SFMPacketValueDispatch.Result.DISPATCHED,
+                SFMPacketValueDispatch.dispatch(true, copiedOld, received::set)
+        );
+        assertEquals(exact, received.get());
+        assertThrows(IllegalArgumentException.class, () -> new SFMPacketValueEnvelope(1, "1.0"));
+
+        SFMPacketValueEnvelope current = SFMPacketValueEnvelope.fromValue(SFMValue.of(0.5));
+        assertEquals(2, current.codecVersion());
+        assertEquals("0.5", current.canonicalJson());
+        assertEquals(Optional.of(SFMValue.of(0.5)), current.currentValue());
+    }
+
+    @Test
+    void widenedFloatPreservesItsExactBinaryValueAcrossTheEnvelopeWire() {
+        double widened = 0.731f;
+        FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
+        SFMPacketValueEnvelope.fromValue(SFMValue.of(widened)).encode(buffer);
+
+        SFMValue.DoubleValue decoded = (SFMValue.DoubleValue) SFMPacketValueEnvelope
+                .decode(buffer)
+                .currentValue()
+                .orElseThrow();
+
+        assertEquals(Double.doubleToLongBits(widened), Double.doubleToLongBits(decoded.value()));
+    }
+
+    @Test
     void valueEnvelopeRejectsNonCanonicalMalformedOversizeAndTruncatedPayloads() {
         assertThrows(
                 IllegalArgumentException.class,

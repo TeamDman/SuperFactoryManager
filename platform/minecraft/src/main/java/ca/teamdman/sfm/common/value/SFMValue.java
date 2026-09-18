@@ -16,6 +16,7 @@ public sealed interface SFMValue permits
         SFMValue.NullValue,
         SFMValue.BooleanValue,
         SFMValue.LongValue,
+        SFMValue.DoubleValue,
         SFMValue.StringValue,
         SFMValue.ArrayValue,
         SFMValue.ObjectValue {
@@ -30,6 +31,10 @@ public sealed interface SFMValue permits
 
     static SFMValue of(long value) {
         return new LongValue(value);
+    }
+
+    static SFMValue of(double value) {
+        return new DoubleValue(value);
     }
 
     static SFMValue of(String value) {
@@ -55,6 +60,17 @@ public sealed interface SFMValue permits
     }
 
     record LongValue(long value) implements SFMValue {
+    }
+
+    record DoubleValue(double value) implements SFMValue {
+        public DoubleValue {
+            if (!Double.isFinite(value)) {
+                throw new IllegalArgumentException("Packet value doubles must be finite");
+            }
+            if (value == 0.0d) {
+                value = 0.0d;
+            }
+        }
     }
 
     record StringValue(String value) implements SFMValue {

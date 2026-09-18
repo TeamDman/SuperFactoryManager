@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Let data packets carry finite floating-point values with codec-v2 writing while preserving codec-v1 packet reads
 -- Treat keypad Enter like normal Enter in the integrated terminal
 -- Give data packets a spiral-notebook icon and reveal their pretty-printed value while the more-info key is held
 -- Make Alt+D open a read-only tooltip, item ID, item data, and packet-value snapshot when hovering any container item

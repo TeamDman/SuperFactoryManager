@@ -64,11 +64,14 @@ public class PacketItem extends Item {
         if (tag == null
             || !tag.contains(CODEC_VERSION_TAG, Tag.TAG_INT)
             || !tag.contains(VALUE_JSON_TAG, Tag.TAG_STRING)
-            || tag.getInt(CODEC_VERSION_TAG) != SFMValueJsonCodec.VERSION) {
+            || !SFMValueJsonCodec.isReadableVersion(tag.getInt(CODEC_VERSION_TAG))) {
             return Optional.empty();
         }
         try {
-            return Optional.of(SFMValueJsonCodec.decode(tag.getString(VALUE_JSON_TAG)));
+            return Optional.of(SFMValueJsonCodec.decode(
+                    tag.getString(VALUE_JSON_TAG),
+                    tag.getInt(CODEC_VERSION_TAG)
+            ));
         } catch (IllegalArgumentException invalid) {
             return Optional.empty();
         }
