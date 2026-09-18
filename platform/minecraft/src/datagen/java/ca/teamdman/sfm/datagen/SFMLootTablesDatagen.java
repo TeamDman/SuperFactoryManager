@@ -39,6 +39,7 @@ public class SFMLootTablesDatagen extends MCVersionAgnosticLootTablesDataGen {
         writer.dropSelf(SFMBlocks.FANCY_CABLE);
         writer.dropOther(SFMBlocks.FANCY_CABLE_FACADE, SFMBlocks.FANCY_CABLE);
         writer.dropSelf(SFMBlocks.PRINTING_PRESS);
+        writer.dropSelf(SFMBlocks.TOUCH_DISPLAY);
         writer.dropSelf(SFMBlocks.WATER_TANK);
     }
 

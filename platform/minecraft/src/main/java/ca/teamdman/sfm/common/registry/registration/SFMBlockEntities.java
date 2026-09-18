@@ -79,6 +79,14 @@ public final class SFMBlockEntities {
                     .build(null)
     );
 
+    public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<TouchDisplayBlockEntity>>
+            TOUCH_DISPLAY = REGISTERER.register(
+            "touch_display",
+            () -> BlockEntityType.Builder
+                    .of(TouchDisplayBlockEntity::new, SFMBlocks.TOUCH_DISPLAY.get())
+                    .build(null)
+    );
+
     public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<WaterTankBlockEntity>>
             WATER_TANK = REGISTERER.register(
             "water_tank",

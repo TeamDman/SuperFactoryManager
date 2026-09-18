@@ -14,6 +14,7 @@
     "sfm:tunnelled_fancy_cable_facade",
     "sfm:manager",
     "sfm:tunnelled_manager",
+    "sfm:touch_display",
     "sfm:printing_press"
   ]
 }

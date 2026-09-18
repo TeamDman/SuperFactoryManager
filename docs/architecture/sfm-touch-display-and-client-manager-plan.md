@@ -1,12 +1,12 @@
 # Touch Display and Client Manager: living implementation plan
 
-Plan status: active. No Touch Display or Client Manager implementation is claimed here.
+Plan status: active. The Touch Display static-content code checkpoint is implemented; direct pixel evidence, interaction and Client Manager work remain.
 
 Last updated: 18 September 2026.
 
 Intent audit: passed 17 September 2026 against the available user discussion and the pasted historical messages; some earlier assistant replies are unavailable except as pasted excerpts.
 
-Current focus: `[~] P2A` static Touch Display with fixture. P0 and P1 are complete; no Touch Display implementation is claimed yet. The active goal covers every remaining phase through P10, including the later multiplayer and in-world terminal work. Checkpoints record progress and do not end that goal. Gates O1–O13 are closed with reasoned, tested implementation decisions as their dependent work begins.
+Current focus: P3 server-authoritative touch input, then P2B generic image transfer. P0 and P1 are complete; P2A code and focused tests pass, but a direct in-world pixel check remains before marking it `[x]`. The active goal covers every remaining phase through P10, including the later multiplayer and in-world terminal work. Checkpoints record progress and do not end that goal. Gates O1–O13 are closed with reasoned, tested implementation decisions as their dependent work begins.
 
 Implementation branch: `feat/1.19.2/packet-computation`.
 Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`; finite-value/touch-schema checkpoint: `1a8cd9b84`.
@@ -207,17 +207,17 @@ Evidence: `test run --branch feat/1.19.2/packet-computation --filter SFMValueDou
 
 ### [~] P2A. Static interactive surface with fixture — G01, G04, G32, G34
 
-Completion notes: started 18 September 2026 after the tested P1 checkpoint. Registration, rendering and GameTest paths are under source inspection; no Touch Display implementation is claimed yet.
+Completion notes: static six-face block, atomic persisted and client-synchronized content tuple, bundled red/blue fixtures, renderer, registration and generated assets implemented. Identical content is a no-op; malformed stored image IDs fail closed without reusing a revision. The ambient client probe retries from server GameTest ticks, never recursively on the client thread, and does not police unrelated screens. Direct proof of visible pixels on the block face remains pending, so this task stays `[~]` while P3 proceeds.
 
 Dependencies: P1.
 
 Work: add a distinct Touch Display block and one outward raster face. Render a deterministic bundled test image without requiring `sfm:image` registration or a terminal. Add server-owned orientation and an atomic `semanticContent` record containing fixture image reference, arbitrary interaction state and revision. Provide an internal content commit that copies image reference and state together, then advances the revision once. Keep the first fixture path private to tests or operator setup; P2B adds the manager-facing resource path.
 
-Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/packet-computation --filter sfm:touch_display_render` checks the integrated client projection, fixture selection and absence of a GUI while leaving the window free; a visual capture or direct in-world inspection separately confirms the actual pixels. `sfm-propagate-changes.exe game-test run-server --branch feat/1.19.2/packet-computation --filter sfm:touch_display_content_commit` checks the authoritative atomic tuple and persistence. A GameTest body runs server-side even when its discovery requires a client, so its ordinary assertions alone cannot establish rendered pixel output.
+Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/packet-computation --filter sfm:touch_display_render` checks the integrated client projection, fixture selection and renderer registration without opening or policing the player's current screen; a visual capture or direct in-world inspection separately confirms the actual pixels and no display-owned GUI. `sfm-propagate-changes.exe game-test run-server --branch feat/1.19.2/packet-computation --filter sfm:touch_display_content_commit` checks the authoritative atomic tuple and persistence. A GameTest body runs server-side even when its discovery requires a client, so its ordinary assertions alone cannot establish rendered pixel output.
 
 Done when: one client sees the fixture on the active face without opening a GUI; the server persists orientation, image reference, state and revision as specified; a red/blue commit never exposes one revision's image with another revision's interaction state; unchanged static content reuses the same resource-managed texture without a dynamic upload.
 
-Evidence: pending.
+Evidence: `run compile` and `run data` passed. The focused server GameTest passed 1/1 after the malformed-image regression; the focused integrated-client GameTest passed 1/1 after correcting its asynchronous retry and ambient-screen assumptions. The unfiltered Java suite passed 2,148, failed 0, with five expected assumption aborts (2,153 found). The client test verifies synchronized fixture and renderer/resource registration, not a rendered screenshot. Static fixtures reuse Minecraft's red and blue concrete textures through a resource-managed renderer; there is no dynamic texture upload path in P2A. Direct visual inspection remains pending.
 
 ### [ ] P2B. Generic image resource and display sink — G23, G34
 

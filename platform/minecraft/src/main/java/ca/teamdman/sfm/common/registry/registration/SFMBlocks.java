@@ -44,6 +44,10 @@ public class SFMBlocks {
             =
             REGISTERER.register("printing_press", PrintingPressBlock::new);
 
+    public static final SFMRegistryObject<Block, TouchDisplayBlock> TOUCH_DISPLAY
+            =
+            REGISTERER.register("touch_display", TouchDisplayBlock::new);
+
     public static final SFMRegistryObject<Block, WaterTankBlock> WATER_TANK
             =
             REGISTERER.register("water_tank", WaterTankBlock::new);

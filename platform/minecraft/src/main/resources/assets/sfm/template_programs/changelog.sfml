@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Add a six-direction Touch Display that shows a static server-selected image on its outward face with an atomic, persistent interaction-state revision
 -- Let data packets carry finite floating-point values with codec-v2 writing while preserving codec-v1 packet reads
 -- Treat keypad Enter like normal Enter in the integrated terminal
 -- Give data packets a spiral-notebook icon and reveal their pretty-printed value while the more-info key is held

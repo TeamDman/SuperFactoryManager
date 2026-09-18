@@ -62,6 +62,9 @@ public class SFMItems {
             PrintingPressBlockItem::new
     );
 
+    public static final SFMRegistryObject<Item, BlockItem> TOUCH_DISPLAY
+            = register("touch_display", SFMBlocks.TOUCH_DISPLAY);
+
     public static final SFMRegistryObject<Item, BlockItem> WATER_TANK
             = register(
             "water_tank",

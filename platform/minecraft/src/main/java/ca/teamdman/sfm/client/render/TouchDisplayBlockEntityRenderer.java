@@ -1,0 +1,93 @@
+package ca.teamdman.sfm.client.render;
+
+import ca.teamdman.sfm.common.block.TouchDisplayBlock;
+import ca.teamdman.sfm.common.blockentity.TouchDisplayBlockEntity;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.math.Matrix3f;
+import com.mojang.math.Matrix4f;
+import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
+import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
+import net.minecraft.core.Direction;
+
+/** Draws the server-selected static image on the outward face of a Touch Display. */
+public class TouchDisplayBlockEntityRenderer implements BlockEntityRenderer<TouchDisplayBlockEntity> {
+    private static final float HALF_IMAGE_SIZE = 7F / 16F;
+    private static final float SURFACE_OFFSET = 1F / 1024F;
+
+    public TouchDisplayBlockEntityRenderer(BlockEntityRendererProvider.Context ignoredContext) {
+    }
+
+    @Override
+    public void render(
+            TouchDisplayBlockEntity blockEntity,
+            float partialTick,
+            PoseStack poseStack,
+            MultiBufferSource bufferSource,
+            int packedLight,
+            int packedOverlay
+    ) {
+        // Keep the image reference, interaction state, and revision from one atomic snapshot.
+        // In particular, a content commit must not change the selected texture mid-render.
+        TouchDisplayBlockEntity.DisplayContent content = blockEntity.content();
+        Direction face = blockEntity.getBlockState().getValue(TouchDisplayBlock.FACING);
+        Basis basis = Basis.forFace(face);
+        VertexConsumer vertices = bufferSource.getBuffer(RenderType.entityCutoutNoCull(content.imageRef()));
+        PoseStack.Pose pose = poseStack.last();
+
+        float centerX = 0.5F + face.getStepX() * (0.5F + SURFACE_OFFSET);
+        float centerY = 0.5F + face.getStepY() * (0.5F + SURFACE_OFFSET);
+        float centerZ = 0.5F + face.getStepZ() * (0.5F + SURFACE_OFFSET);
+
+        // The basis always satisfies right x up = outward normal. This fixes
+        // top/left orientation for every face and keeps future click UVs stable.
+        vertex(vertices, pose, centerX, centerY, centerZ, basis, -1, 1, 0, 0, face, packedLight, packedOverlay);
+        vertex(vertices, pose, centerX, centerY, centerZ, basis, -1, -1, 0, 1, face, packedLight, packedOverlay);
+        vertex(vertices, pose, centerX, centerY, centerZ, basis, 1, -1, 1, 1, face, packedLight, packedOverlay);
+        vertex(vertices, pose, centerX, centerY, centerZ, basis, 1, 1, 1, 0, face, packedLight, packedOverlay);
+    }
+
+    private static void vertex(
+            VertexConsumer vertices,
+            PoseStack.Pose pose,
+            float centerX,
+            float centerY,
+            float centerZ,
+            Basis basis,
+            int horizontal,
+            int vertical,
+            float u,
+            float v,
+            Direction face,
+            int packedLight,
+            int packedOverlay
+    ) {
+        float x = centerX + HALF_IMAGE_SIZE * (horizontal * basis.rightX + vertical * basis.upX);
+        float y = centerY + HALF_IMAGE_SIZE * (horizontal * basis.rightY + vertical * basis.upY);
+        float z = centerZ + HALF_IMAGE_SIZE * (horizontal * basis.rightZ + vertical * basis.upZ);
+        Matrix4f matrix = pose.pose();
+        Matrix3f normal = pose.normal();
+        vertices.vertex(matrix, x, y, z)
+                .color(255, 255, 255, 255)
+                .uv(u, v)
+                .overlayCoords(packedOverlay)
+                .uv2(packedLight)
+                .normal(normal, face.getStepX(), face.getStepY(), face.getStepZ())
+                .endVertex();
+    }
+
+    private record Basis(int rightX, int rightY, int rightZ, int upX, int upY, int upZ) {
+        static Basis forFace(Direction face) {
+            return switch (face) {
+                case NORTH -> new Basis(-1, 0, 0, 0, 1, 0);
+                case SOUTH -> new Basis(1, 0, 0, 0, 1, 0);
+                case WEST -> new Basis(0, 0, 1, 0, 1, 0);
+                case EAST -> new Basis(0, 0, -1, 0, 1, 0);
+                case UP -> new Basis(1, 0, 0, 0, 0, -1);
+                case DOWN -> new Basis(1, 0, 0, 0, 0, 1);
+            };
+        }
+    }
+}

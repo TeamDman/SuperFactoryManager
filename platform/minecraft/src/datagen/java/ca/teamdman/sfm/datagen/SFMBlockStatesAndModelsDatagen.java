@@ -50,6 +50,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
 
         );
         registerPrintingPress();
+        registerTouchDisplay();
         registerWaterTank();
         registerTestBarrel();
         registerBuffer();
@@ -105,6 +106,57 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     private void registerPrintingPress() {
 
         simpleBlock(SFMBlocks.PRINTING_PRESS.get(), models().getExistingFile(modLoc("block/printing_press")));
+    }
+
+    private void registerTouchDisplay() {
+
+        // The model's top is the display face; rotate it to the block's FACING direction.
+        ModelFile displayModel = models().cubeBottomTop(
+                SFMBlocks.TOUCH_DISPLAY.getPath(),
+                modLoc("block/manager_side"),
+                modLoc("block/manager_bot"),
+                modLoc("block/buffer_unknown")
+        ).texture("particle", "#top");
+
+        getVariantBuilder(SFMBlocks.TOUCH_DISPLAY.get())
+                .forAllStates(state -> {
+                    Direction facing = state.getValue(BlockStateProperties.FACING);
+                    int x;
+                    int y;
+
+                    switch (facing) {
+                        case DOWN -> {
+                            x = 180;
+                            y = 0;
+                        }
+                        case NORTH -> {
+                            x = 90;
+                            y = 0;
+                        }
+                        case SOUTH -> {
+                            x = 90;
+                            y = 180;
+                        }
+                        case WEST -> {
+                            x = 90;
+                            y = 270;
+                        }
+                        case EAST -> {
+                            x = 90;
+                            y = 90;
+                        }
+                        default -> { // up
+                            x = 0;
+                            y = 0;
+                        }
+                    }
+
+                    return ConfiguredModel.builder()
+                            .modelFile(displayModel)
+                            .rotationX(x)
+                            .rotationY(y)
+                            .build();
+                });
     }
 
     private void registerTestBarrelTank() {
