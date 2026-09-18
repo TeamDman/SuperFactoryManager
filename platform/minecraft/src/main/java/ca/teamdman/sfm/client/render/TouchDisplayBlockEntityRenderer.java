@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.render;
 
 import ca.teamdman.sfm.common.block.TouchDisplayBlock;
+import ca.teamdman.sfm.common.block.TouchDisplaySurface;
 import ca.teamdman.sfm.common.blockentity.TouchDisplayBlockEntity;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -14,7 +15,6 @@ import net.minecraft.core.Direction;
 
 /** Draws the server-selected static image on the outward face of a Touch Display. */
 public class TouchDisplayBlockEntityRenderer implements BlockEntityRenderer<TouchDisplayBlockEntity> {
-    private static final float HALF_IMAGE_SIZE = 7F / 16F;
     private static final float SURFACE_OFFSET = 1F / 1024F;
 
     public TouchDisplayBlockEntityRenderer(BlockEntityRendererProvider.Context ignoredContext) {
@@ -33,7 +33,7 @@ public class TouchDisplayBlockEntityRenderer implements BlockEntityRenderer<Touc
         // In particular, a content commit must not change the selected texture mid-render.
         TouchDisplayBlockEntity.DisplayContent content = blockEntity.content();
         Direction face = blockEntity.getBlockState().getValue(TouchDisplayBlock.FACING);
-        Basis basis = Basis.forFace(face);
+        TouchDisplaySurface.Basis basis = TouchDisplaySurface.basis(face);
         VertexConsumer vertices = bufferSource.getBuffer(RenderType.entityCutoutNoCull(content.imageRef()));
         PoseStack.Pose pose = poseStack.last();
 
@@ -55,7 +55,7 @@ public class TouchDisplayBlockEntityRenderer implements BlockEntityRenderer<Touc
             float centerX,
             float centerY,
             float centerZ,
-            Basis basis,
+            TouchDisplaySurface.Basis basis,
             int horizontal,
             int vertical,
             float u,
@@ -64,9 +64,9 @@ public class TouchDisplayBlockEntityRenderer implements BlockEntityRenderer<Touc
             int packedLight,
             int packedOverlay
     ) {
-        float x = centerX + HALF_IMAGE_SIZE * (horizontal * basis.rightX + vertical * basis.upX);
-        float y = centerY + HALF_IMAGE_SIZE * (horizontal * basis.rightY + vertical * basis.upY);
-        float z = centerZ + HALF_IMAGE_SIZE * (horizontal * basis.rightZ + vertical * basis.upZ);
+        float x = centerX + TouchDisplaySurface.HALF_IMAGE_SIZE * (horizontal * basis.rightX() + vertical * basis.upX());
+        float y = centerY + TouchDisplaySurface.HALF_IMAGE_SIZE * (horizontal * basis.rightY() + vertical * basis.upY());
+        float z = centerZ + TouchDisplaySurface.HALF_IMAGE_SIZE * (horizontal * basis.rightZ() + vertical * basis.upZ());
         Matrix4f matrix = pose.pose();
         Matrix3f normal = pose.normal();
         vertices.vertex(matrix, x, y, z)
@@ -78,16 +78,4 @@ public class TouchDisplayBlockEntityRenderer implements BlockEntityRenderer<Touc
                 .endVertex();
     }
 
-    private record Basis(int rightX, int rightY, int rightZ, int upX, int upY, int upZ) {
-        static Basis forFace(Direction face) {
-            return switch (face) {
-                case NORTH -> new Basis(-1, 0, 0, 0, 1, 0);
-                case SOUTH -> new Basis(1, 0, 0, 0, 1, 0);
-                case WEST -> new Basis(0, 0, 1, 0, 1, 0);
-                case EAST -> new Basis(0, 0, -1, 0, 1, 0);
-                case UP -> new Basis(1, 0, 0, 0, 0, -1);
-                case DOWN -> new Basis(1, 0, 0, 0, 0, 1);
-            };
-        }
-    }
 }

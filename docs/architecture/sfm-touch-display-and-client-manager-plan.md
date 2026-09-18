@@ -207,7 +207,7 @@ Evidence: `test run --branch feat/1.19.2/packet-computation --filter SFMValueDou
 
 ### [~] P2A. Static interactive surface with fixture — G01, G04, G32, G34
 
-Completion notes: static six-face block, atomic persisted and client-synchronized content tuple, bundled red/blue fixtures, renderer, registration and generated assets implemented. Identical content is a no-op; malformed stored image IDs fail closed without reusing a revision. The ambient client probe retries from server GameTest ticks, never recursively on the client thread, and does not police unrelated screens. Direct proof of visible pixels on the block face remains pending, so this task stays `[~]` while P3 proceeds.
+Completion notes: static six-face block, atomic persisted and client-synchronized content tuple, bundled red/blue fixtures, renderer, registration and generated assets implemented in `2f057a24c`. Identical content is a no-op; malformed stored image IDs fail closed without reusing a revision. The ambient client probe retries from server GameTest ticks, never recursively on the client thread, and does not police unrelated screens. Direct proof of visible pixels on the block face remains pending, so this task stays `[~]` while P3 proceeds.
 
 Dependencies: P1.
 
@@ -231,7 +231,7 @@ Done when: the chosen payload and descriptor survive the stated save/reload cycl
 
 Evidence: pending.
 
-### [ ] P3. Server-authoritative press to rear inventory — G02, G03, G04, G27
+### [~] P3. Server-authoritative press to rear inventory — G02, G03, G04, G27
 
 Dependencies: P1, P2A, O1, O2, O9 and O10 resolved. Generic `sfm:image` movement in P2B is not needed for the first touch proof.
 
@@ -241,7 +241,7 @@ Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/p
 
 Done when: known UV points and all rotations produce exactly one packet with server-owned state/revision; wrong-face and out-of-bounds hits fail; no client hit can nominate an arbitrary inventory because the server derives the rear target from the reached display; full/missing rear inventory follows O1 without duplicate/spill; offhand fallback is absent. Vanilla does not independently reconstruct the ray, so a plausible claimed hit on another reachable display remains a separate permissions concern.
 
-Evidence: pending.
+Evidence: the server uses the vanilla `BlockHitResult`, validates the active face, inset, reach and unobstructed line of sight, and derives its rear target from server block orientation. The six-face UV unit tests passed 5/5. The dedicated-server GameTest passed 1/1 for all six faces, packet state/revision snapshots, stacking, malformed hits, offhand/spectator rejection, occlusion, oversized-state preflight and full/missing rear inventories. The integrated-client GameTest passed 1/1 without opening a screen or moving the player. The unfiltered Java suite passed 2,153/2,158, failed 0, with five expected assumption aborts. `run compile` and `run data` passed. A file-driven in-world puppet still needs to prove pixels and a physical/vanilla client-to-server click path; direct block-use GameTests alone do not prove that path. Therefore this task stays `[~]`.
 
 ### [ ] P4A. Bounded server-to-client value delivery — G10, G13
 
@@ -489,16 +489,16 @@ Update `platform/minecraft/src/main/resources/assets/sfm/template_programs/chang
 
 | Gate | Why it remains open | Default until resolved |
 | --- | --- | --- |
-| O1. Rear inventory failure | Full/missing handler needs observable feedback without packet loss being mistaken for success. | Consume the press once; log/test failure, then choose player-facing feedback before release. |
-| O2. Held-item priority | Forge can let an item handle use before the block. | Test empty hands first; decide whether special items should win before promising universal touch. |
+| O1. Rear inventory failure — resolved for P3 | A full/missing handler must not be mistaken for delivery. | Consume once, show an actionbar failure to the player, and neither insert nor spill a packet; dedicated-server tests cover both cases. |
+| O2. Held-item priority — scoped for P3 | Forge can let an item handle use before the block. | Promise the empty-hand vanilla use path and consume main-hand block use to prevent offhand fallback. A held item that intercepts use before the block retains its vanilla priority; the file-driven physical-click check will record actual dispatch. |
 | O3. Image storage | Generic resource handlers do not yet make images durable or define payload ownership. | Immutable bounded snapshots; no durable buffer claim until save/load proof. |
 | O4. Program capability scopes | Exact action schema and dynamic-argument scope syntax are not defined. | Default-deny undescribed actions; require invocation-time checks. |
 | O5. Multiplayer packet transport | Current send is deliberately private-world-only. | Keep gate unchanged; touch clicks use normal server block interaction. |
 | O6. Decorative signature strokes | Persisting a scribble offers novelty but creates privacy/data obligations. | Ephemeral drawing; signature cryptography ignores it. |
 | O7. Exact visibility test | Render-selected/front-facing is cheaper than exact occlusion. | Use conservative eligibility and measure false positives before expanding. |
 | O8. Exact rendered-frame click correlation | Server semantic revision can lag or differ from a client-only animation. | `sfm:touch@1` reports server state only; version and constrain a client report if a later use case needs exact local-frame identity. |
-| O9. UV convention | Origin, handedness, face rotations, edge inclusion and float tolerance are not yet frozen. | Define one table for all six faces and reject values outside its documented tolerance before schema version 1. |
-| O10. Content revision lifecycle | Initial value, persistence, wrap and block-copy/reset behaviour affect click correlation. | Use a server-owned persisted monotonic value; freeze exact overflow/reset semantics before P3. |
+| O9. UV convention — resolved for P3 | Face rotation and hit rounding affect what a press reports. | U increases viewer-left to viewer-right and V viewer-top to viewer-bottom. `TouchDisplaySurface` defines a basis for all six faces; the image inset spans local ±7/16, both edges are inclusive, and at most 1e-5 face/edge float error is clamped. Other faces, inside hits and farther coordinates fail. |
+| O10. Content revision lifecycle — resolved for P3 | Click correlation needs a stable server-owned content generation. | Start at 0; increment on each changed atomic image/state commit, persist and synchronize it, leave it unchanged for identical content, and reject a change at `Long.MAX_VALUE`. Breaking/replacing the block starts a new entity at 0; copying saved entity NBT retains its revision. Malformed content loads a safe fallback without reusing a lower revision. |
 | O11. Computed action IDs | Static manifests cannot infer the capability of an arbitrary runtime action ID. | Forbid them initially unless the user explicitly grants a declared broad action scope. |
 | O12. Label binding | Missing, duplicate or competing Touch Display labels could create nondeterministic writers. | Reuse label-gun semantics; diagnose ambiguous targets and reject multiple writers before P6B. |
 | O13. Inbox addressing | Binding delivery to a source hash could orphan messages after edits and complicate multi-viewer fan-out. | Separate stable channel/recipient identity from exact consent identity before P4A. |

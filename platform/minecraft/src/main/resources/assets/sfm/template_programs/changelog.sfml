@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Turn a Touch Display main-hand press into one server-validated, stackable touch packet in its rear inventory, with normalized face coordinates and an explicit delivery-failure notice
 -- Add a six-direction Touch Display that shows a static server-selected image on its outward face with an atomic, persistent interaction-state revision
 -- Let data packets carry finite floating-point values with codec-v2 writing while preserving codec-v1 packet reads
 -- Treat keypad Enter like normal Enter in the integrated terminal

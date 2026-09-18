@@ -4,12 +4,18 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Objects;
 
 /** Constructs the flat first-version value emitted by a Touch Display press. */
 public final class SFMTouchValue {
     public static final String SCHEMA = "sfm:touch@1";
+    /**
+     * A 0.0 probe uses three bytes per UV. Reserve more than 32 additional
+     * bytes per finite binary64 coordinate, plus space for a later face rotation.
+     */
+    private static final int COMMIT_ENVELOPE_RESERVE_BYTES = 80;
 
     private SFMTouchValue() {
     }
@@ -44,6 +50,28 @@ public final class SFMTouchValue {
         SFMValue.ObjectValue value = (SFMValue.ObjectValue) SFMValue.object(fields);
         SFMValueJsonCodec.encode(value);
         return value;
+    }
+
+    /**
+     * Rejects server-owned semantic state before committing it when no touch
+     * packet at this world address could carry it. The probe includes the real
+     * dimension, position, face, revision, and state. The remaining reserve
+     * covers any accepted UV coordinate and all six face-name lengths.
+     */
+    public static void requireCommitEnvelopeFits(
+            ResourceLocation dimension,
+            BlockPos position,
+            Direction face,
+            long contentRevision,
+            SFMValue state
+    ) {
+        SFMValue.ObjectValue probe = press(
+                dimension, position, face, 0.0, 0.0, contentRevision, state
+        );
+        int bytes = SFMValueJsonCodec.encode(probe).getBytes(StandardCharsets.UTF_8).length;
+        if (bytes > SFMValueJsonCodec.MAX_ENCODED_UTF8_BYTES - COMMIT_ENVELOPE_RESERVE_BYTES) {
+            throw new IllegalArgumentException("Touch Display state leaves insufficient room for touch coordinates");
+        }
     }
 
     private static SFMValue unitCoordinate(double coordinate, String name) {

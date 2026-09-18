@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.common.blockentity;
 
+import ca.teamdman.sfm.common.block.TouchDisplayBlock;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfm.common.value.SFMValueJsonCodec;
+import ca.teamdman.sfm.common.value.SFMTouchValue;
 import net.minecraft.ResourceLocationException;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
@@ -80,6 +82,17 @@ public class TouchDisplayBlockEntity extends BlockEntity {
         if (previous.revision() == Long.MAX_VALUE) {
             throw new IllegalStateException("Touch Display content revision exhausted");
         }
+
+        // A state can fit its own value codec but overflow the touch event
+        // after dimension, position, UV and revision are added. Commit neither
+        // image nor state unless the complete event has sufficient headroom.
+        SFMTouchValue.requireCommitEnvelopeFits(
+                level.dimension().location(),
+                worldPosition,
+                getBlockState().getValue(TouchDisplayBlock.FACING),
+                previous.revision() + 1,
+                state
+        );
 
         DisplayContent next = new DisplayContent(imageRef, state, previous.revision() + 1);
         content = next;
