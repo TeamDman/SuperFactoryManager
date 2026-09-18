@@ -6,7 +6,7 @@ Last updated: 18 September 2026.
 
 Intent audit: passed 17 September 2026 against the available user discussion and the pasted historical messages; some earlier assistant replies are unavailable except as pasted excerpts.
 
-Current focus: P6B Client Manager runtime and P8A typed action descriptors in parallel. P0–P6A are complete except the later P6B runtime integration; P7–P10 remain. The active goal covers every remaining phase through P10, including the multiplayer and in-world terminal work. Checkpoints record progress and do not end that goal. Gates O1–O13 are closed with reasoned, tested implementation decisions as their dependent work begins.
+Current focus: P6B Client Manager runtime, P7A client read surface, and P8B principal-aware effects in parallel. P0 through P6A and P8A are complete; P6B, P7 and the later P8–P10 phases remain. The active goal covers every remaining phase through P10, including the multiplayer and in-world terminal work. Checkpoints record progress and do not end that goal. Gates O1–O13 are closed with reasoned, tested implementation decisions as their dependent work begins.
 
 Implementation branch: `feat/1.19.2/packet-computation`.
 Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`; finite-value/touch-schema checkpoint: `1a8cd9b84`.
@@ -327,7 +327,7 @@ Done when: stale frames cannot replace newer ones; a client animation can change
 
 Evidence: pending.
 
-### [ ] P8A. Common action value-schema algebra — G14, G28
+### [x] P8A. Common action value-schema algebra — G14, G28
 
 Dependencies: P1.
 
@@ -337,7 +337,7 @@ Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-comput
 
 Done when: descriptors express numeric, array, union, optional and closed/open object requirements; typed failures are stable; existing palette/CLI actions remain compatible; filesystem, clipboard and process actions stay program-inaccessible without explicit descriptors.
 
-Evidence: pending.
+Evidence: `764062120` adds a bounded `SFMValueSchema` separate from packet-matching patterns, plus opt-in action descriptors and a typed `sfm:packet/send` descriptor. Inputs validate integer and finite floating ranges, arrays, unions, nullable or omitted fields, and open/closed objects with stable failure paths. A separate 16 KiB action envelope does not narrow the established 3,072-byte packet payload limit. The descriptor declares client execution, exact target scope, server-effect cost and local-transport-attempt-only acknowledgement; registration alone grants no program access. Undescribed clipboard, filesystem and process actions remain unavailable to programs. `SFMClientActionDescriptorTests` passed 6/6 and existing `SFMPacketActionsTests` passed 7/7. P8B adds real principal/rate authorization; P8C adds invocation from Client Manager programs.
 
 ### [ ] P8B. Principal-aware shared effect service — G14, G15, G18
 
