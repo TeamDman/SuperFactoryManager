@@ -1,18 +1,18 @@
 package ca.teamdman.sfm.client.screen;
 
-import com.mojang.blaze3d.vertex.PoseStack;
-import net.minecraft.client.gui.GuiComponent;
+import net.minecraft.client.gui.GuiGraphics;
 
 /** Shared pixel-aligned crosshair used by Draw cursors and read-only visualizations. */
 public final class SFMGuiCrosshair {
     private SFMGuiCrosshair() {
     }
 
-    public static void draw(PoseStack poseStack, int x, int y, int radius, int color) {
-        GuiComponent.fill(poseStack, x - radius, y, x - 2, y + 1, color);
-        GuiComponent.fill(poseStack, x + 3, y, x + radius + 1, y + 1, color);
-        GuiComponent.fill(poseStack, x, y - radius, x + 1, y - 2, color);
-        GuiComponent.fill(poseStack, x, y + 3, x + 1, y + radius + 1, color);
-        GuiComponent.fill(poseStack, x, y, x + 1, y + 1, color);
+    @ca.teamdman.sfm.common.util.MCVersionDependentBehaviour
+    public static void draw(GuiGraphics graphics, int x, int y, int radius, int color) {
+        graphics.fill(x - radius, y, x - 2, y + 1, color);
+        graphics.fill(x + 3, y, x + radius + 1, y + 1, color);
+        graphics.fill(x, y - radius, x + 1, y - 2, color);
+        graphics.fill(x, y + 3, x + 1, y + radius + 1, color);
+        graphics.fill(x, y, x + 1, y + 1, color);
     }
 }
