@@ -346,6 +346,7 @@ public record Program(
     private static boolean containsClientOnlyOperation(Block block) {
         for (Statement statement : block.statements()) {
             if (statement instanceof RenderImageStatement) return true;
+            if (statement instanceof LetStatement let && let.expression() instanceof ClientValueExpression) return true;
             if (statement instanceof IfStatement branch) {
                 if (containsFrameCondition(branch.condition())
                     || containsClientOnlyOperation(branch.trueBlock())
@@ -356,7 +357,7 @@ public record Program(
     }
 
     private static boolean containsFrameCondition(BoolExpr condition) {
-        if (condition instanceof BoolFrameModulo) return true;
+        if (condition instanceof BoolFrameModulo || condition instanceof BoolClientValueEquals) return true;
         if (condition instanceof BoolParen parenthesized) return containsFrameCondition(parenthesized.inner());
         if (condition instanceof BoolNegation negated) return containsFrameCondition(negated.inner());
         if (condition instanceof BoolConjunction both) {

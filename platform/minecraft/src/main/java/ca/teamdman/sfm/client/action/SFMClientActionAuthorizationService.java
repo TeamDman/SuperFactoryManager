@@ -116,6 +116,8 @@ public final class SFMClientActionAuthorizationService {
 
     private final DescriptorLookup descriptors;
     private final SFMBoundedEffectBudget budget;
+    // Cached reads must not starve the shared desktop/server-effect allowance.
+    private final SFMBoundedEffectBudget readBudget = new SFMBoundedEffectBudget(2048, 1024 * 1024);
     private final LongSupplier secondWindow;
     private final LiveProgramLookup livePrograms;
     private final ArrayDeque<Trace> traces = new ArrayDeque<>();
@@ -136,6 +138,10 @@ public final class SFMClientActionAuthorizationService {
     }
 
     public static SFMClientActionAuthorizationService shared() { return SHARED; }
+
+    boolean matchesDescriptor(ResourceLocation id, SFMClientActionDescriptor expected) {
+        return descriptors.apply(id).filter(expected::equals).isPresent();
+    }
 
     /** Only human action adapters in this package may choose this principal. */
     Authorization authorizeHuman(SFMClientActionDescriptor descriptor, SFMValue input,
@@ -221,7 +227,9 @@ public final class SFMClientActionAuthorizationService {
                 }
                 if (status == Status.ALLOWED) {
                     int cost = SFMValueSchema.boundedEncodedBytes(input);
-                    if (budget.reserve(LOCAL_CONNECTION_BUDGET_KEY, secondWindow.getAsLong(), cost)
+                    SFMBoundedEffectBudget selectedBudget = descriptor.costClass() == SFMClientActionDescriptor.CostClass.LOCAL_READ
+                            ? readBudget : budget;
+                    if (selectedBudget.reserve(LOCAL_CONNECTION_BUDGET_KEY, secondWindow.getAsLong(), cost)
                             != SFMBoundedEffectBudget.Result.ALLOWED) {
                         status = Status.RATE_LIMITED;
                     } else {

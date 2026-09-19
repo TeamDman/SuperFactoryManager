@@ -522,6 +522,37 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     }
 
     @Override
+    public ASTNode visitClientJsonValueExpression(SFMLParser.ClientJsonValueExpressionContext ctx) {
+        var expression = new ClientValueExpression.JsonLiteral(
+                ca.teamdman.sfm.common.value.SFMValueSchema.decodeActionJson(visitString(ctx.string()).value()));
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    @Override
+    public ASTNode visitClientInvokeValueExpression(SFMLParser.ClientInvokeValueExpressionContext ctx) {
+        var expression = new ClientValueExpression.Invoke(new ResourceLocation(ctx.qualifiedId().getText()),
+                ctx.identifier().getText());
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    @Override
+    public ASTNode visitClientFieldValueExpression(SFMLParser.ClientFieldValueExpressionContext ctx) {
+        var expression = new ClientValueExpression.Field(visitString(ctx.string()).value(), ctx.identifier().getText());
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    @Override
+    public ASTNode visitBooleanClientValueEquals(SFMLParser.BooleanClientValueEqualsContext ctx) {
+        var condition = new BoolClientValueEquals(ctx.identifier().getText(),
+                ca.teamdman.sfm.common.value.SFMValueSchema.decodeActionJson(visitString(ctx.string()).value()));
+        trackNode(condition, ctx);
+        return condition;
+    }
+
+    @Override
     public ASTNode visitObjectConstructionValueExpression(SFMLParser.ObjectConstructionValueExpressionContext ctx) {
         String alias = ctx.identifier().getText();
         SFMValuePattern pattern = resolvePattern(alias);

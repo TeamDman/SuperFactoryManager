@@ -5,6 +5,7 @@ import ca.teamdman.sfm.client.action.SFMClientAction;
 import ca.teamdman.sfm.client.action.SFMClientActionCommandTree;
 import ca.teamdman.sfm.client.action.SFMClientActionDispatcherCompiler;
 import ca.teamdman.sfm.client.action.SFMClientActionDescriptor;
+import ca.teamdman.sfm.client.action.SFMClientProgramActionDispatcher;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegisterBuilder;
 import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
@@ -60,6 +61,14 @@ public final class SFMClientActions {
         SFMClientAction<?> action = registry().get(Objects.requireNonNull(actionId));
         return action == null ? Optional.empty()
                 : action.programmaticDescriptor().filter(descriptor -> descriptor.actionId().equals(actionId));
+    }
+
+    public static Optional<SFMClientProgramActionDispatcher.Binding> programmaticBinding(ResourceLocation actionId) {
+        SFMClientAction<?> action = registry().get(Objects.requireNonNull(actionId));
+        if (action == null) return Optional.empty();
+        return action.programmaticDescriptor().filter(descriptor -> descriptor.actionId().equals(actionId))
+                .flatMap(descriptor -> action.programmaticHandler()
+                        .map(handler -> new SFMClientProgramActionDispatcher.Binding(descriptor, handler)));
     }
 
     public static synchronized SFMClientActionCommandTree commandTree() {

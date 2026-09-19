@@ -4,6 +4,7 @@ import ca.teamdman.sfml.ast.ProgramExecutionSide;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Objects;
 
 /** A UI-free, default-deny gate. A caller must explicitly present any request to the player. */
@@ -76,7 +77,8 @@ public final class ClientProgramConsentGate {
             Policy policy
     ) {
         ConsentState consent = state(identity, capability);
-        List<String> blockers = List.copyOf(Objects.requireNonNull(policy, "policy").blockers(identity, capability));
+        List<String> blockers = new ArrayList<>(Objects.requireNonNull(policy, "policy").blockers(identity, capability));
+        if (store.stoppedAll()) blockers.add("client_programs_stopped_by_user");
         EffectiveState effective = !blockers.isEmpty()
                 ? EffectiveState.BLOCKED_BY_POLICY
                 : switch (consent) {

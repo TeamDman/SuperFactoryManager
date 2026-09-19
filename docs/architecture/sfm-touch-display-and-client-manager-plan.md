@@ -1,12 +1,12 @@
 # Touch Display and Client Manager: living implementation plan
 
-Plan status: active. Static Touch Display rendering, rear-inventory interaction and the consented Client Manager frame runtime are proven; typed invocation, full consent controls and later phases remain.
+Plan status: active. Static Touch Display interaction, the consented Client Manager frame runtime, typed invocation, bounded raster rendering and the consent review controls are proven. Runtime read binding, signer authority and later phases remain.
 
 Last updated: 19 September 2026.
 
 Intent audit: passed 17 September 2026 against the available user discussion and the pasted historical messages; some earlier assistant replies are unavailable except as pasted excerpts.
 
-Current focus: checkpoint the verified P6B runtime, P7B inbox foundation, P8B principal-aware effects and independent P8D persistence model. Next parallel tracks are P8C typed invocation, P8D consent service/panel and P7B GPU integration; an independent P8E signature model may proceed without enabling signer authority. P0 through P6B and P8A–P8B are complete; P7A has tested read surfaces but needs runtime binding and an integrated GameTest. The remaining P7 work and later P8–P10 phases remain. The full goal covers every remaining phase through P10, including the multiplayer and in-world terminal work. Checkpoints record progress and do not end that goal. Gates O1–O13 are closed with reasoned, tested implementation decisions as their dependent work begins.
+Current focus: checkpoint the verified P7B renderer, P8C typed invocation, P8D production consent controls and independent P8E signature model after `264e4e97d`. The next parallel tracks are P7A runtime read binding, P8E protected keys and acknowledged signing, and the independent P10 structured worker foundation. Signer matching is not yet runtime authority. P0 through P6B, P7B and P8A–P8C are complete. The remaining P7A and P8D–P10 acceptance remains required. The full goal includes multiplayer and in-world terminal work; checkpoints do not end it. Gates O1–O13 close with recorded, tested decisions as their dependent work begins.
 
 Implementation branch: `feat/1.19.2/packet-computation`.
 Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`; finite-value/touch-schema checkpoint: `1a8cd9b84`.
@@ -317,7 +317,7 @@ Done when: approved programs read permitted loaded state and inbox values; repea
 
 Evidence: `cc3159201` adds a consent-aware, bounded client block-state read surface and P4A inbox wrapper. Exact bound or radius-limited loaded-block reads project immutable block-state properties, including integer redstone dust `POWER`, with 128 unique reads per frame and a 256-position cache keyed by observed state revision; unload/world change fails closed. Inbox pages require an exact allowed channel, reuse P4A cursors/subscriptions and release them on revocation/close. Typed outcomes distinguish awaiting consent, user denial and policy block. `ClientProgramBlockReadSurfaceTests` passed 5/5 and `ClientProgramInboxReadSurfaceTests` passed 2/2. P6B frame-context binding and the named integrated-client GameTest remain pending; plain JUnit cannot prove a real redstone block projection in-game.
 
-### [~] P7B. Live raster path and budgets — G09, G23
+### [x] P7B. Live raster path and budgets — G09, G23
 
 Dependencies: P2A, P6B. World and inbox reads in P7A are optional inputs, not a condition for client-local frame changes.
 
@@ -327,7 +327,11 @@ Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/p
 
 Done when: stale frames cannot replace newer ones; a client animation can change independently of server semantic revision; unchanged frames do not upload; a many-display load test stays within selected budgets and releases resources.
 
-Evidence: the independent bounded latest-wins frame inbox passed final `TouchDisplayRasterInboxTests` 12/12 on 19 September, exit 0. Opaque per-display writer leases reject late writes after replacement/unload; dirty regions name the latest accepted base sequence; image dimensions and retained memory are bounded. Separate ingress, reconstruction and upload-delivery budgets account for the full-image work caused by small patches. Defaults are 512 by 512 pixels per image, 8 MiB retained pixels, 64 MiB/s local ingress/upload delivery, 128 MiB/s reconstruction and 4,096 processed frames per window. Lease churn does not reset budgets. Renderer and multi-display integration remain pending; these local decoded-byte limits do not define future network limits.
+Foundation evidence: the independent bounded latest-wins frame inbox passed final `TouchDisplayRasterInboxTests` 12/12 on 19 September, exit 0. Opaque per-display writer leases reject late writes after replacement/unload; dirty regions name the latest accepted base sequence; image dimensions and retained memory are bounded. Separate ingress, reconstruction and upload-delivery budgets account for the full-image work caused by small patches. Defaults are 512 by 512 pixels per image, 8 MiB retained pixels, 64 MiB/s local ingress/upload delivery, 128 MiB/s reconstruction and 4,096 processed frames per window. Lease churn does not reset budgets. These local decoded-byte limits do not define future network limits.
+
+Final renderer evidence: `test run --branch feat/1.19.2/packet-computation --filter TouchDisplayRaster --wait-for-build-lock` passed 20/20 on 19 September, exit 0. The eight GPU-cache tests add a separate 8 MiB and 128-texture allocation cap, including retired textures awaiting deletion. A rejected resize retains the previous image; failed uploads have bounded retry metadata. Production rendering uses dynamic textures, fresh presentation authority, newest-frame selection and at most one upload per selected epoch. Visibility-only suspension retains program state and writer leases but performs no evaluation or upload. Revocation, stale source or label scope, removed managers, chunk/world unload and resource reload invalidate the appropriate state.
+
+`game-test run-client --branch feat/1.19.2/packet-computation --filter sfm:client_program_invocation,sfm:client_manager_frame,sfm:touch_display_raster_inbox --wait-for-build-lock` passed 3/3, exit 0. The raster test verifies actual native RGBA pixel order, dirty updates, unchanged-content reuse, newest-frame presentation, hidden/resumed operation, revoked hidden streams, GPU admission and client-tick cleanup. It leaves the current screen and camera untouched. Cleanup probes produce missing-resource warnings after released textures; these do not indicate a failed upload. The client exited normally. These local decoded-byte limits do not grant future network bandwidth.
 
 ### [x] P8A. Common action value-schema algebra — G14, G28
 
@@ -353,17 +357,19 @@ Done when: every adapter reaches the same target/rate enforcement, principal pol
 
 Evidence: `SFMClientActionAuthorizationService` distinguishes human and program principals. It checks the registry descriptor, typed input, declared and approved capabilities, evaluated target scope, current loaded manager identity and shared quotas before dispatch. A stale saved approval cannot survive source, binding, location or world changes. CLI/palette packet send uses the human adapter; program callers cannot fall back to it. The local server-effect allowance is 32 operations and 64 KiB per second across both principals. The server independently enforces its private-world owner/spectator/thread checks and per-sender 32-operation/64-KiB tick budget. Capacity pressure cannot evict an active quota to reset it. Traces retain bounded identity/scope hashes and consent provenance, not source or packet bodies. The `SFMClientAction` filtered suite exited 0; `SFMBoundedEffectBudgetTests` passed 3/3 and final `SFMPacketActionsTests` passed 8/8 on 19 September. Static invocation manifests and production program dispatch remain P8C work; local reads will need their own cost-class budget rather than inheriting server-effect cadence.
 
-### [ ] P8C. Client Manager action invocation — G14, G28
+### [x] P8C. Client Manager action invocation — G14, G28
 
 Dependencies: P5, P6B, P8A, P8B.
 
 Work: freeze an SFML grammar and AST node for invoking a literal action ID with typed SFM arguments and binding a typed result. Preserve source mapping and useful diagnostics. Add the literal action and scope to the program's capability manifest, then dispatch through P8B with program identity and revision. Forbid computed action IDs initially under O11. Use typed `sfm:packet/send` as the first end-to-end effect.
 
-Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-computation --filter ClientActionInvocationProgramTests`.
+Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-computation --filter ClientProgramInvocationTests`.
 
 Done when: parse/type/source-map tests pass; a result is bound without reparsing human console text; dispatch carries program/revision provenance into P8B; malformed, unauthorised and rate-limited calls return typed failures. P8D proves real user consent and private-world packet send.
 
-Evidence: pending.
+Implementation decision: typed local bindings use `LET request BE JSON "..."`, `LET response BE INVOKE sfm:packet/send WITH request` and `LET status BE FIELD "status" OF response`. Action IDs are literal. Initial inputs and target scopes must resolve statically; the dispatcher rechecks evaluated input and scope. Typed results use a bounded `status`/`result` envelope, not parsed console text. The common AST never loads client registry classes. Execution, drawing and action permissions are separate; an execute-only program can inspect a typed denial without drawing. Local reads use their own bounded cost class rather than the server-effect allowance.
+
+Validation: the final `test run --branch feat/1.19.2/packet-computation --filter ClientProgram --wait-for-build-lock` passed 47/47 on 19 September, exit 0, including ten invocation tests. They cover exact source locations and cursor mapping, grammar round-tripping, typed input/result failures, declared capabilities and exact subjects, stale callers, per-operation consent and separate local-read quotas. The first test attempt used a one-tick legacy timer below the existing configured minimum; correcting the fixture to 20 ticks also prevents that negative test from passing for the wrong reason. Editor parser generation and `tsc --noEmit` passed with existing pinned dependencies. The `sfm:client_program_invocation` ambient test passed in the 3/3 combined client run above. It compiles synchronized source, observes absent and denied send permission, approves the exact capability, sends one packet through the real client/server transport, binds the typed result and rejects a changed source revision without borrowing approval. No human command adapter, screen or camera control is involved.
 
 ### [~] P8D. Full consent store and management model — G16–G18
 
@@ -371,13 +377,15 @@ Dependencies: P6A, P8A–P8C.
 
 Work: expand the minimum store to exact source copy/hash, runtime plus SFM/Minecraft/loader/build context, declared/resolved capabilities, location, decision and history. Seed `sfm:client_program/execute`, `sfm:touch_display/render`, `sfm:world/block_state/read_loaded`, `sfm:client_inbox/read`, `sfm:packet/send` and `sfm:terminal/input`. Add typed idempotent request/status actions and the existing panel-action route. Effective policy is registered capability intersected with server policy and client/parental policy. Within it, user authority is either an exact-program grant or a matching trusted-signer-and-capability grant, further restricted by its world/dimension/position/time scope. New actions never enter an old wildcard grant silently.
 
-Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-computation --filter ClientProgramConsentStoreTests` and `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/packet-computation --filter sfm:client_manager_packet_send_action`.
+Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-computation --filter ClientProgramConsent` and `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/packet-computation --filter sfm:client_program_invocation`.
 
 Done when: previous/current source and capability diffs are reviewable; denial and retry-after policies survive restart as specified; fine permission loss degrades predictably; changed resolved capability sets re-consent; policy-blocked stays distinct from denial; signer grants cannot exceed their capability and location scope; an approved Client Manager sends only to an authorised target in a private integrated world while LAN and remote remain rejected.
 
-Evidence: independent storage foundation passed `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-computation --filter ClientProgramConsent --wait-for-build-lock` on 19 September: 13/13 (seven storage tests plus six existing gate tests), exit 0. The local store retains exact source, label bindings, observed version context and bounded per-capability decision history with the version context at decision time. Approval expiry and denial retry-after are checked at evaluation; absent expiry means a persistent approval and absent retry-after means no automatic reopening. Explicit forgetting frees a bounded record and revokes its grants. Files are bounded, source and binding hashes are recomputed on load, and saves require atomic replacement. Corrupt storage fails closed without a last-valid backup, because restoring an older file could resurrect revoked approval. Runtime persistence wiring, panel/actions, signer trust and the packet-send GameTest remain pending.
+Foundation evidence: `test run --branch feat/1.19.2/packet-computation --filter ClientProgramConsent --wait-for-build-lock` passed 13/13 on 19 September. The local store retains exact source, label bindings, observed versions and bounded per-capability decision history. Approval expiry and denial retry-after are checked at evaluation. Absent expiry means persistent approval; absent retry-after means no automatic reopening. Explicit forgetting frees a bounded record. Source and binding hashes are recomputed on load, and saves require atomic replacement. Corrupt storage fails closed without a last-valid backup, which could resurrect revoked approval.
 
-### [ ] P8E. Author signatures and trust — G19, G20
+Production evidence: the final 47/47 `ClientProgram` suite includes 23 consent tests. The lazy local service persists explicit requests and user decisions, not incidental test approvals or passive observation. Store v2 persists stop-all and reads v1. The panel exposes source, previous source, diff, scope, history, capability, expiry, denial cooldown, revoke, forget and stop/resume controls. Typed self-only request/status actions never open a modal. Save failure stops execution locally and warns that restart may restore older disk decisions. The integrated invocation test proves a consented private-world send. The 33-step real consent puppet below proves the review controls. Loader/build context, signer authority and its policy/denial precedence remain pending; this phase is not complete.
+
+### [~] P8E. Author signatures and trust — G19, G20
 
 Dependencies: P8D. The feature is advanced and off by default, but its implementation is part of the full feature contract.
 
@@ -387,7 +395,7 @@ Validate: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-comput
 
 Done when: a trusted Alice signature within the granted capability subset authorises an otherwise unchanged program; Bob cannot; Bob's edit invalidates Alice's active authority without deleting history; exact reversion can restore it; Bob's extra signature cannot veto trusted Alice; stale revisions cannot be signed; private keys and strokes never reach the server or program.
 
-Evidence: pending.
+Evidence: seven `ClientProgramSignatureTests` passed within the final 47/47 `ClientProgram` suite on 19 September, exit 0. The independent model uses JCA Ed25519 without new dependencies, a canonical `sfm:program_descriptor@1` JSON representation, and strict UTF-8 with LF-only source normalization. Signatures cover source hash, runtime and sorted resolved capability IDs, not other signatures. Bounded history rejects overflow without evicting earlier attestations. A local signer rule initially fixes world, dimension, manager position and label-binding digest, plus an exact allowed capability set and optional expiry. Source revisions may change under that rule only if the trusted author signs the new descriptor and its capabilities remain a subset. Tests prove independent Alice/Bob attestations, tamper rejection, edit/reversion behaviour, portable line endings and exact local scope. This pure matching model is not wired to runtime authority. Key storage, revision acknowledgement, compare-and-swap signing, durable trust controls, explicit denial/revocation precedence and UI evidence remain pending.
 
 ### [ ] P8F. Consent and signing UI acceptance — G17, G20, G21
 
@@ -399,7 +407,9 @@ Validate: `sfm-propagate-changes.exe puppet run sfm:client_program_consent_and_s
 
 Done when: the bounded puppet captures the review and signing journey with assertions, restores the viewport and exits; the ambient GameTests remain screen-free.
 
-Evidence: pending.
+Consent evidence: `sfm-propagate-changes.exe puppet run sfm:client_program_consent_review --branch feat/1.19.2/packet-computation --variant 1280x720@auto --wait-for-build-lock` passed on 19 September, exit 0. All 33 numbered request files reported `dispatched` with zero failed requests. Actual panel clicks proved initial absence, source review, disabled Confirm with enabled/focused Cancel, cancellation without approval, separate execute/render approval, denial and explicit reopening. Capture 19 shows blue local output over red semantic content; a real vanilla-use press produced exactly one rear packet. Capture 25 shows red after revocation. Stop-all revoked both capabilities; explicit delayed resume restored neither. The puppet closed the workspace, forgot its exact durable fixture and exited normally, without OS pointer injection. Evidence: `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-client_progr-20260919-145431-472/`.
+
+Two prior attempts exposed harness assumptions: command submission requires an open palette, and Escape opens the workspace close chooser. The puppet now opens the palette explicitly and invokes `sfm:screen/close`; any failed request makes review mode fail overall. The failed attempts are not acceptance evidence. Ordinary timeout/exception invokes bounded fixture cleanup; forced process termination cannot guarantee it. Review mode rejects direct approval shortcuts. The combined previous-version/signing journey remains pending, so this task is not complete.
 
 ### [ ] P8G. Remote multiplayer bidirectional packet boundary — G14, G15
 

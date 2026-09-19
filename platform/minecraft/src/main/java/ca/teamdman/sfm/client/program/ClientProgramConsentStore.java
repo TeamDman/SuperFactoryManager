@@ -19,7 +19,7 @@ public final class ClientProgramConsentStore {
     public static final int MAX_HISTORY = 32;
     public static final int MAX_FILE_BYTES = 12 * 1024 * 1024;
     private static final int MAGIC = 0x53464353;
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     public record Evidence(String source, String bindings, Map<String, String> versions, long observedAt) {
         public Evidence {
@@ -76,9 +76,18 @@ public final class ClientProgramConsentStore {
 
     private final Map<ClientProgramIdentity, Entry> entries = new LinkedHashMap<>();
     private final LongSupplier clock;
+    private boolean stoppedAll;
 
     public ClientProgramConsentStore() { this(System::currentTimeMillis); }
     public ClientProgramConsentStore(LongSupplier clock) { this.clock = Objects.requireNonNull(clock); }
+
+    public synchronized boolean stoppedAll() { return stoppedAll; }
+
+    /** A durable policy switch. Resuming does not resurrect grants revoked by stopping. */
+    public synchronized void setStoppedAll(boolean stopped) {
+        if (stopped) revokeAll();
+        stoppedAll = stopped;
+    }
 
     /** Register only client-observed source and bindings; hashes are recomputed before accepting evidence. */
     public synchronized void observe(ClientProgramIdentity identity, String source, String bindings,
@@ -195,12 +204,20 @@ public final class ClientProgramConsentStore {
 
     /** Write one atomic replacement. No last-valid fallback: that could resurrect a revoked approval. */
     public synchronized void save(Path destination) throws IOException {
+        save(destination, Set.copyOf(entries.keySet()));
+    }
+
+    /** Persist only service-owned durable records, never incidental test/observer decisions. */
+    public synchronized void save(Path destination, Set<ClientProgramIdentity> durableIdentities) throws IOException {
+        Objects.requireNonNull(durableIdentities);
+        var selected = entries.entrySet().stream().filter(e -> durableIdentities.contains(e.getKey())).toList();
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (DataOutputStream out = new DataOutputStream(bytes)) {
             out.writeInt(MAGIC);
             out.writeInt(VERSION);
-            out.writeInt(entries.size());
-            for (var item : entries.entrySet()) {
+            out.writeBoolean(stoppedAll);
+            out.writeInt(selected.size());
+            for (var item : selected) {
                 writeEntry(out, item.getKey(), item.getValue());
                 if (bytes.size() > MAX_FILE_BYTES) throw new IOException("Consent store exceeds its byte budget");
             }
@@ -229,7 +246,10 @@ public final class ClientProgramConsentStore {
             byte[] bytes = input.readNBytes(MAX_FILE_BYTES + 1);
             if (bytes.length > MAX_FILE_BYTES) throw new IOException("Consent store exceeds its byte budget");
             try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes))) {
-                if (in.readInt() != MAGIC || in.readInt() != VERSION) throw new IOException("Unknown consent store format");
+                if (in.readInt() != MAGIC) throw new IOException("Unknown consent store format");
+                int version = in.readInt();
+                if (version < 1 || version > VERSION) throw new IOException("Unknown consent store format");
+                store.stoppedAll = version >= 2 && in.readBoolean();
                 int count = count(in, MAX_PROGRAMS);
                 for (int i = 0; i < count; i++) store.readEntry(in);
                 if (in.read() != -1) throw new IOException("Trailing consent store data");

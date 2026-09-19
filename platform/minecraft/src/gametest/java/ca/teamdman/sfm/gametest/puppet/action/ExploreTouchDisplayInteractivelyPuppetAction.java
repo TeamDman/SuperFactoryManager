@@ -4,6 +4,10 @@ import ca.teamdman.sfm.common.block.TouchDisplaySurface;
 import ca.teamdman.sfm.client.program.ClientManagerFrameRuntime;
 import ca.teamdman.sfm.client.program.ClientProgramConsentGate;
 import ca.teamdman.sfm.client.program.ClientProgramIdentity;
+import ca.teamdman.sfm.client.program.ClientProgramConsentRuntime;
+import ca.teamdman.sfm.client.program.ClientProgramConsentsPanel;
+import ca.teamdman.sfm.client.screen.SFMConfirmationScreen;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.common.blockentity.ClientManagerBlockEntity;
 import ca.teamdman.sfm.common.blockentity.TouchDisplayBlockEntity;
 import ca.teamdman.sfm.common.item.DiskItem;
@@ -13,11 +17,14 @@ import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetRenderHarness;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonParser;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 
@@ -32,7 +39,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * Opt-in file-driven in-world proof. It never opens a screen or moves the OS pointer.
+ * Opt-in file-driven in-world proof. Default mode never opens a screen; the
+ * separate consent-review puppet explicitly enables UI. Neither moves the OS pointer.
  * The ordinary ambient GameTest suite does not discover or run this puppet.
  */
 public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPuppetAction {
@@ -41,8 +49,8 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
     private static final Direction FACE = Direction.NORTH;
 
     private final AtomicReference<TouchDisplaySurface.UV> requestedTouch;
-    private final Path directory = Minecraft.getInstance().gameDirectory.toPath()
-            .resolve("sfm-puppet/touch-display-control/session-" + UUID.randomUUID());
+    private final Path directory;
+    private final boolean reviewMode;
     private CompletableFuture<JsonObject> read;
     private CompletableFuture<Void> write;
     private JsonObject request;
@@ -57,9 +65,17 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
     private boolean aimed;
     private boolean pressed;
     private boolean finish;
+    private int failedRequests;
 
     public ExploreTouchDisplayInteractivelyPuppetAction(AtomicReference<TouchDisplaySurface.UV> requestedTouch) {
+        this(requestedTouch, false);
+    }
+
+    public ExploreTouchDisplayInteractivelyPuppetAction(AtomicReference<TouchDisplaySurface.UV> requestedTouch, boolean reviewMode) {
         this.requestedTouch = requestedTouch;
+        this.reviewMode = reviewMode;
+        directory = Minecraft.getInstance().gameDirectory.toPath().resolve("sfm-puppet/"
+                + (reviewMode ? "client-consent-control" : "touch-display-control") + "/session-" + UUID.randomUUID());
     }
 
     @Override
@@ -81,7 +97,11 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
             ready.addProperty("example_press", "{\"op\":\"press\",\"u\":0.25,\"v\":0.75}");
             ready.addProperty("example_finish", "{\"op\":\"finish\"}");
             ready.addProperty("client_manager_fixture_operations",
+                    reviewMode ? "install_client_manager" :
                     "install_client_manager, approve_fixture_client_program, revoke_fixture_client_program");
+            ready.addProperty("consent_review_mode", reviewMode);
+            if (reviewMode) ready.addProperty("review_operations",
+                    "open_consent_panel, panel_control (control), confirmation_button (label), close_review, assert_consent (capability,state)");
             write = writeAsync(directory.resolve("ready.json"), ready);
             return false;
         }
@@ -89,7 +109,12 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
             if (!write.isDone()) return false;
             write.join();
             write = null;
-            if (finish) return true;
+            if (finish) {
+                if (reviewMode && failedRequests != 0) {
+                    throw new IllegalStateException("Consent review had " + failedRequests + " failed requests; inspect its responses");
+                }
+                return true;
+            }
         }
         if (request != null) {
             if (SFMGamePuppetRenderHarness.completedFrames() <= frame) return false;
@@ -125,6 +150,7 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
             apply(runtime, request);
             result.addProperty("status", "dispatched");
         } catch (RuntimeException failure) {
+            failedRequests++;
             result.addProperty("status", "error");
             result.addProperty("error", failure.toString());
             ca.teamdman.sfm.SFM.LOGGER.error("SFM_TOUCH_DISPLAY_EXPLORATION_INPUT_FAILED sequence={}", sequence, failure);
@@ -138,7 +164,32 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
         switch (string(step, "op", "observe")) {
             case "observe" -> { }
             case "install_client_manager" -> installClientManagerFixture();
-            case "approve_fixture_client_program" -> approveClientManagerFixture();
+            case "open_consent_panel" -> {
+                requireReviewMode();
+                requireFixtureIdentity();
+                if (!runtime.openCommandPalette()) throw new IllegalStateException("Could not open the command palette");
+                runtime.executeCommandPalette("sfm action invoke sfm:panel/open sfm:client_script_consents");
+            }
+            case "panel_control" -> clickConsentControl(step);
+            case "confirmation_button" -> clickConfirmationButton(step);
+            case "close_review" -> {
+                requireReviewMode();
+                // Escape opens the workspace's close chooser; use its actual explicit action.
+                if (!runtime.openCommandPalette()) throw new IllegalStateException("Could not open the close command palette");
+                runtime.executeCommandPalette("sfm action invoke sfm:screen/close");
+            }
+            case "assert_consent" -> {
+                requireReviewMode();
+                var identity = requireFixtureIdentity();
+                var capability = new ResourceLocation(string(step, "capability", "sfm:client_program/execute"));
+                var expected = ClientProgramConsentGate.ConsentState.valueOf(string(step, "state", "ABSENT"));
+                var actual = ClientManagerFrameRuntime.consent().state(identity, capability);
+                if (actual != expected) throw new IllegalStateException("Expected " + expected + " but observed " + actual);
+            }
+            case "approve_fixture_client_program" -> {
+                if (reviewMode) throw new IllegalStateException("Consent review must use the real approval controls");
+                approveClientManagerFixture();
+            }
             case "assert_client_program_rendered" -> {
                 var minecraft = Minecraft.getInstance();
                 if (minecraft.level == null || minecraft.screen != null
@@ -153,6 +204,7 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
                 }
             }
             case "revoke_fixture_client_program" -> {
+                if (reviewMode) throw new IllegalStateException("Consent review must use the real revocation controls");
                 if (fixtureIdentity == null) throw new IllegalStateException("No fixture program was approved");
                 ClientManagerFrameRuntime.consent().revoke(fixtureIdentity, ClientProgramConsentGate.EXECUTE);
             }
@@ -176,11 +228,29 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
             }
             case "finish" -> {
                 if (!pressed) throw new IllegalStateException("A press is required before finishing the proof");
-                if (fixtureIdentity != null) ClientManagerFrameRuntime.consent().store().forget(fixtureIdentity);
+                if (reviewMode) {
+                    if (Minecraft.getInstance().screen != null) throw new IllegalStateException("Close the review UI before finishing");
+                    var service = ClientProgramConsentRuntime.service();
+                    if (service.store().stoppedAll()) throw new IllegalStateException("Resume review before finishing this isolated fixture");
+                    if (fixtureIdentity != null && !service.forget(fixtureIdentity).successful()) {
+                        throw new IllegalStateException("Fixture consent cleanup did not persist");
+                    }
+                } else if (fixtureIdentity != null) ClientManagerFrameRuntime.consent().store().forget(fixtureIdentity);
                 finish = true;
             }
             default -> throw new IllegalArgumentException("Unsupported Touch Display operation: " + step);
         }
+    }
+
+    @Override
+    public void abort() {
+        if (fixtureIdentity == null) return;
+        if (reviewMode) {
+            if (!ClientProgramConsentRuntime.service().forget(fixtureIdentity).successful()) {
+                throw new IllegalStateException("Failed to persist fixture consent cleanup; local runtime remains stopped");
+            }
+        } else ClientManagerFrameRuntime.consent().store().forget(fixtureIdentity);
+        fixtureIdentity = null;
     }
 
     /** Installs a fixed test-only program; file input cannot supply arbitrary source or consent identity. */
@@ -205,6 +275,17 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
     }
 
     private void approveClientManagerFixture() {
+        var identity = requireFixtureIdentity();
+        var gate = ClientManagerFrameRuntime.consent();
+        for (var capability : identity.requestedCapabilities()) {
+            var request = gate.reopenDenied(identity, capability);
+            if (request.state() == ClientProgramConsentGate.ConsentState.PENDING) {
+                gate.decide(identity, capability, ClientProgramConsentGate.Decision.APPROVE);
+            }
+        }
+    }
+
+    private ClientProgramIdentity requireFixtureIdentity() {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null || !(minecraft.level.getBlockEntity(absoluteDisplay.offset(-1, -1, 0))
                 instanceof ClientManagerBlockEntity manager)) {
@@ -215,13 +296,46 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
         }
         fixtureIdentity = ClientManagerFrameRuntime.identityFor(manager)
                 .orElseThrow(() -> new IllegalStateException("The fixture program has not synchronized yet"));
-        var gate = ClientManagerFrameRuntime.consent();
-        for (var capability : fixtureIdentity.requestedCapabilities()) {
-            var request = gate.reopenDenied(fixtureIdentity, capability);
-            if (request.state() == ClientProgramConsentGate.ConsentState.PENDING) {
-                gate.decide(fixtureIdentity, capability, ClientProgramConsentGate.Decision.APPROVE);
-            }
+        return fixtureIdentity;
+    }
+
+    private void requireReviewMode() {
+        if (!reviewMode) throw new IllegalStateException("UI requires the separate consent-review puppet");
+    }
+
+    private void clickConsentControl(JsonObject step) {
+        requireReviewMode();
+        var identity = requireFixtureIdentity();
+        var minecraft = Minecraft.getInstance();
+        if (!(minecraft.screen instanceof SFMScreenMultiplexer workspace)
+            || !(workspace.focusedPanelInstance() instanceof ClientProgramConsentsPanel panel)
+            || !panel.selectedIdentity().filter(identity::equals).isPresent()) {
+            throw new IllegalStateException("Focus the consent panel on the exact fixture program");
         }
+        var control = ClientProgramConsentsPanel.Control.valueOf(string(step, "control", "VIEW").toUpperCase(Locale.ROOT));
+        if ((control == ClientProgramConsentsPanel.Control.STOP_ALL || control == ClientProgramConsentsPanel.Control.RESUME)
+            && ClientProgramConsentRuntime.service().store().snapshots().stream().anyMatch(record -> !record.identity().equals(identity))) {
+            throw new IllegalStateException("Global controls require a store containing only this fixture");
+        }
+        var local = panel.controlBoundsForAutomation(control).orElseThrow(() -> new IllegalStateException("Control is not visible"));
+        var bounds = workspace.measure(workspace.focusedPanelId(), local).orElseThrow().globalGuiLogicalBounds();
+        double x = bounds.x() + bounds.width() / 2.0;
+        double y = bounds.y() + bounds.height() / 2.0;
+        if (!workspace.mouseClicked(x, y, 0)) throw new IllegalStateException("Panel did not accept the control click");
+        workspace.mouseReleased(x, y, 0);
+    }
+
+    private void clickConfirmationButton(JsonObject step) {
+        requireReviewMode();
+        var screen = Minecraft.getInstance().screen;
+        if (!(screen instanceof SFMConfirmationScreen)) throw new IllegalStateException("No consent confirmation is open");
+        String label = string(step, "label", "Cancel");
+        var button = screen.children().stream().filter(AbstractWidget.class::isInstance).map(AbstractWidget.class::cast)
+                .filter(widget -> widget.getMessage().getString().equals(label)).findFirst().orElseThrow();
+        if (!button.active || !button.visible) throw new IllegalStateException("Confirmation choice is not enabled");
+        double x = button.x + button.getWidth() / 2.0, y = button.y + button.getHeight() / 2.0;
+        if (!screen.mouseClicked(x, y, 0)) throw new IllegalStateException("Confirmation did not accept the click");
+        screen.mouseReleased(x, y, 0);
     }
 
     private static String fixtureSource() {
@@ -235,6 +349,32 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
         state.addProperty("schema", "sfm.touch-display-exploration-observation/1");
         state.addProperty("process_id", ProcessHandle.current().pid());
         state.addProperty("screen", minecraft.screen == null ? "none" : minecraft.screen.getClass().getName());
+        if (reviewMode) {
+            state.addProperty("failed_requests", failedRequests);
+            state.addProperty("consent_store_stopped", ClientProgramConsentRuntime.service().store().stoppedAll());
+            if (fixtureIdentity != null) {
+                JsonObject consents = new JsonObject();
+                fixtureIdentity.requestedCapabilities().stream().sorted().forEach(capability -> consents.addProperty(
+                        capability.toString(), ClientManagerFrameRuntime.consent().state(fixtureIdentity, capability).name()));
+                state.add("fixture_consents", consents);
+            }
+            if (minecraft.screen instanceof SFMConfirmationScreen) {
+                JsonArray choices = new JsonArray();
+                minecraft.screen.children().stream().filter(AbstractWidget.class::isInstance).map(AbstractWidget.class::cast)
+                        .forEach(widget -> {
+                            JsonObject choice = new JsonObject();
+                            choice.addProperty("label", widget.getMessage().getString());
+                            choice.addProperty("active", widget.active);
+                            choice.addProperty("focused", minecraft.screen.getFocused() == widget);
+                            choices.add(choice);
+                        });
+                state.add("confirmation_choices", choices);
+            }
+            if (minecraft.screen instanceof SFMScreenMultiplexer workspace
+                && workspace.focusedPanelInstance() instanceof ClientProgramConsentsPanel panel) {
+                state.addProperty("consent_panel_message", panel.statusMessage());
+            }
+        }
         state.addProperty("completed_frames", SFMGamePuppetRenderHarness.completedFrames());
         state.addProperty("os_pointer_injection", false);
         state.addProperty("aimed", aimed);

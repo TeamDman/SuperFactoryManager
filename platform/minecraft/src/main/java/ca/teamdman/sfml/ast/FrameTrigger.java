@@ -30,6 +30,10 @@ public record FrameTrigger(List<Label> labels, String binding, Block block) impl
                 if (!render.binding().equalsIgnoreCase(binding)) {
                     throw new IllegalArgumentException("RENDER target must be the frame binding " + binding);
                 }
+            } else if (statement instanceof LetStatement let && let.expression() instanceof ClientValueExpression) {
+                if (let.variableName().equalsIgnoreCase(binding)) {
+                    throw new IllegalArgumentException("A value binding cannot replace the frame display binding");
+                }
             } else if (statement instanceof IfStatement condition) {
                 validateBoolean(condition.condition(), nodes, depth + 1);
                 validateBlock(condition.trueBlock(), binding, nodes, depth + 1);
@@ -44,7 +48,8 @@ public record FrameTrigger(List<Label> labels, String binding, Block block) impl
 
     private static void validateBoolean(BoolExpr condition, int[] nodes, int depth) {
         checkBudget(nodes, depth);
-        if (condition instanceof BoolFrameModulo || condition instanceof BoolTrue || condition instanceof BoolFalse) {
+        if (condition instanceof BoolFrameModulo || condition instanceof BoolTrue || condition instanceof BoolFalse
+            || condition instanceof BoolClientValueEquals) {
             return;
         }
         if (condition instanceof BoolParen paren) {

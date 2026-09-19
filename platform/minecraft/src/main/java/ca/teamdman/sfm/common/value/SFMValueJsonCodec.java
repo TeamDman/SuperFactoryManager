@@ -78,6 +78,13 @@ public final class SFMValueJsonCodec {
     }
 
     public static SFMValue decode(String encoded, int version) {
+        return decodeWithByteLimit(encoded, version, MAX_ENCODED_UTF8_BYTES);
+    }
+
+    static SFMValue decodeWithByteLimit(String encoded, int version, int byteLimit) {
+        if (byteLimit < MAX_ENCODED_UTF8_BYTES || byteLimit > 64 * 1024) {
+            throw new IllegalArgumentException("Invalid SFM value envelope budget");
+        }
         if (!isReadableVersion(version)) {
             throw new IllegalArgumentException("Unsupported packet value codec version " + version);
         }
@@ -85,7 +92,9 @@ public final class SFMValueJsonCodec {
             throw new IllegalArgumentException("Packet value JSON is required");
         }
         requireWellFormedUnicode(encoded, "packet value JSON");
-        requireWithinByteLimit(encoded);
+        if (encoded.getBytes(StandardCharsets.UTF_8).length > byteLimit) {
+            throw new IllegalArgumentException("SFM value exceeds its encoded UTF-8 envelope budget");
+        }
         try (JsonReader reader = new JsonReader(new StringReader(encoded))) {
             reader.setLenient(false);
             SFMValue value = readValue(reader, 0, version);

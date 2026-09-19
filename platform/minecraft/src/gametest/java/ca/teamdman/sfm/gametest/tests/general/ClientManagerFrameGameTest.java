@@ -130,15 +130,22 @@ public final class ClientManagerFrameGameTest extends SFMGameTestDefinition {
                                 approve(identity, ClientProgramConsentGate.RENDER);
                                 check(frame(display, 102).orElseThrow().equals(RED), "Approved static program did not render red");
                                 check(frame(display, 103).orElseThrow().equals(RED), "Static output changed");
-                                check(ClientManagerFrameRuntime.observation(display).evaluations() == 2
+                                check(ClientManagerFrameRuntime.observation(display).evaluations() == 3
                                       && ClientManagerFrameRuntime.observation(display).changedFrames() == 1,
                                         "Equal output should evaluate again without repainting");
                                 frame(display, 103);
-                                check(ClientManagerFrameRuntime.observation(display).evaluations() == 2,
+                                check(ClientManagerFrameRuntime.observation(display).evaluations() == 3,
                                         "Same render epoch executed twice");
                                 check(ClientManagerFrameRuntime.textureForSelectedFrame(display, 104, false).isEmpty(),
                                         "Ineligible display executed");
+                                check(ClientManagerFrameRuntime.observation(display).evaluations() == 3
+                                      && ClientManagerFrameRuntime.observation(display).nextFrameIndex() == 3,
+                                        "Transient invisibility reset or advanced frame state");
+                                check(ClientManagerFrameRuntime.presentationIdentity(display).filter(identity::equals).isPresent(),
+                                        "Transient invisibility revoked presentation authority");
                                 check(frame(display, 105).orElseThrow().equals(RED), "Eligible display did not resume");
+                                check(ClientManagerFrameRuntime.observation(display).nextFrameIndex() == 4,
+                                        "Resumed display did not continue its prior frame index");
                                 revoke(identity);
                                 check(frame(display, 106).isEmpty(), "Revocation did not stop execution");
                                 approveBoth(identity);

@@ -125,7 +125,7 @@ class ClientProgramConsentStoreTests {
         Path path = directory.resolve("consents.bin");
         store.save(path);
         byte[] bytes = Files.readAllBytes(path);
-        bytes[16] ^= 1; // First source byte follows magic, version, record count and length.
+        bytes[17] ^= 1; // V2 source follows magic, version, stop flag, count and length.
         Files.write(path, bytes);
         assertTrue(ClientProgramConsentStore.load(path, clock::get).store().snapshots().isEmpty());
         store.save(path);
@@ -174,5 +174,49 @@ class ClientProgramConsentStoreTests {
         unevidenced.request(program, EXECUTE);
         unevidenced.decide(program, EXECUTE, Decision.APPROVE, null, null);
         assertThrows(IOException.class, () -> unevidenced.save(directory.resolve("unverified.bin")));
+    }
+
+    @Test
+    void stopAllIsAtomicWithDecisionsAndCannotBeBypassedByCustomPolicy() throws IOException {
+        var program = identity(SOURCE, BINDINGS);
+        var store = observed(program, SOURCE, BINDINGS);
+        store.request(program, EXECUTE);
+        store.decide(program, EXECUTE, Decision.APPROVE, null, null);
+        store.setStoppedAll(true);
+        Path path = directory.resolve("stop.bin");
+        store.save(path);
+        var restored = ClientProgramConsentStore.load(path, clock::get).store();
+        assertTrue(restored.stoppedAll());
+        var gate = new ClientProgramConsentGate(restored);
+        assertEquals(EffectiveState.BLOCKED_BY_POLICY, gate.execution(program, (id, cap) -> List.of()).effective());
+        restored.setStoppedAll(false);
+        assertEquals(ConsentState.ABSENT, gate.state(program, EXECUTE));
+        assertFalse(gate.execution(program, (id, cap) -> List.of()).allowed());
+    }
+
+    @Test
+    void legacyV1LoadsAndFilteredSaveKeepsSelectedEvidenceStrict() throws IOException {
+        var program = identity(SOURCE, BINDINGS);
+        var store = observed(program, SOURCE, BINDINGS);
+        Path path = directory.resolve("legacy.bin");
+        store.save(path);
+        byte[] version2 = Files.readAllBytes(path);
+        byte[] version1 = new byte[version2.length - 1];
+        System.arraycopy(version2, 0, version1, 0, 8);
+        version1[7] = 1;
+        System.arraycopy(version2, 9, version1, 8, version2.length - 9);
+        Files.write(path, version1);
+        var restored = ClientProgramConsentStore.load(path, clock::get);
+        assertTrue(restored.diagnostics().isEmpty());
+        assertFalse(restored.store().stoppedAll());
+        assertEquals(store.snapshots(), restored.store().snapshots());
+
+        var fixture = identity("fixture", "");
+        store.request(fixture, EXECUTE);
+        store.decide(fixture, EXECUTE, Decision.APPROVE, null, null);
+        assertThrows(IOException.class, () -> store.save(path));
+        store.save(path, Set.of(program));
+        assertEquals(1, ClientProgramConsentStore.load(path, clock::get).store().snapshots().size());
+        assertThrows(IOException.class, () -> store.save(path, Set.of(fixture)));
     }
 }

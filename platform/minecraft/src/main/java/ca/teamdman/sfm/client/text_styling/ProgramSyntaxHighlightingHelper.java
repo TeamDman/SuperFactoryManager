@@ -121,6 +121,7 @@ public class ProgramSyntaxHighlightingHelper {
             case SFMLLexer.LIKE:
             case SFMLLexer.OBJECT:
             case SFMLLexer.INVOKE:
+            case SFMLLexer.JSON:
             case SFMLLexer.CREATE:
             case SFMLLexer.BROADCAST:
             case SFMLLexer.NEW:

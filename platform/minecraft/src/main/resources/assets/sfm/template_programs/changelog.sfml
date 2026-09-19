@@ -7,8 +7,11 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Review exact Client Manager source, bindings, capability history, approval expiry and denial cooldown in the client_script_consents panel, with persistent revocation and stop-all controls
 -- Report local packet-send rate limits and enforce shared server quotas with private-world owner and spectator checks
 -- Add a separate Client Manager for consented EVERY FRAME display programs, with label-gun targets, bounded pure animation, and cached unchanged frames
+-- Let Client Managers invoke approved typed actions and inspect results with JSON, INVOKE and FIELD bindings, independently of drawing permission
+-- Support bounded live Touch Display rasters with approved writers, unchanged-frame caching, visibility suspension and automatic unload cleanup
 -- Turn a Touch Display main-hand press into one server-validated, stackable touch packet in its rear inventory, with normalized face coordinates and an explicit delivery-failure notice
 -- Add a six-direction Touch Display that shows a static server-selected image on its outward face with an atomic, persistent interaction-state revision
 -- Let data packets carry finite floating-point values with codec-v2 writing while preserving codec-v1 packet reads

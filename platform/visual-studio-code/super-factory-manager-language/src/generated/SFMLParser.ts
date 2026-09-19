@@ -1,4 +1,4 @@
-// Generated from SFML.g4 by ANTLR 4.9.0-SNAPSHOT
+// Generated from syntaxes/SFML.g4 by ANTLR 4.9.0-SNAPSHOT
 
 
 import { ATN } from "antlr4ts/atn/ATN";
@@ -121,20 +121,21 @@ export class SFMLParser extends Parser {
 	public static readonly CLIENT = 91;
 	public static readonly SERVER = 92;
 	public static readonly BTW = 93;
-	public static readonly EVERY = 94;
-	public static readonly COMMA = 95;
-	public static readonly COLON = 96;
-	public static readonly SLASH = 97;
-	public static readonly DASH = 98;
-	public static readonly LPAREN = 99;
-	public static readonly RPAREN = 100;
-	public static readonly NUMBER_WITH_G_SUFFIX = 101;
-	public static readonly NUMBER = 102;
-	public static readonly IDENTIFIER = 103;
-	public static readonly STRING = 104;
-	public static readonly LINE_COMMENT = 105;
-	public static readonly WS = 106;
-	public static readonly UNUSED = 107;
+	public static readonly JSON = 94;
+	public static readonly EVERY = 95;
+	public static readonly COMMA = 96;
+	public static readonly COLON = 97;
+	public static readonly SLASH = 98;
+	public static readonly DASH = 99;
+	public static readonly LPAREN = 100;
+	public static readonly RPAREN = 101;
+	public static readonly NUMBER_WITH_G_SUFFIX = 102;
+	public static readonly NUMBER = 103;
+	public static readonly IDENTIFIER = 104;
+	public static readonly STRING = 105;
+	public static readonly LINE_COMMENT = 106;
+	public static readonly WS = 107;
+	public static readonly UNUSED = 108;
 	public static readonly RULE_program = 0;
 	public static readonly RULE_executionSideDeclaration = 1;
 	public static readonly RULE_name = 2;
@@ -220,7 +221,8 @@ export class SFMLParser extends Parser {
 		undefined, undefined, undefined, undefined, undefined, undefined, undefined,
 		undefined, undefined, undefined, undefined, undefined, undefined, undefined,
 		undefined, undefined, undefined, undefined, undefined, undefined, undefined,
-		undefined, undefined, undefined, "','", "':'", "'/'", "'-'", "'('", "')'",
+		undefined, undefined, undefined, undefined, "','", "':'", "'/'", "'-'",
+		"'('", "')'",
 	];
 	private static readonly _SYMBOLIC_NAMES: Array<string | undefined> = [
 		undefined, "IF", "THEN", "ELSE", "HAS", "OVERALL", "SOME", "ONE", "LONE",
@@ -234,7 +236,7 @@ export class SFMLParser extends Parser {
 		"RENDER", "IMAGE", "REDSTONE", "PULSE", "DO", "END", "NAME", "LET", "BE",
 		"PLAYER", "OF", "LIKE", "OBJECT", "FIELD", "GUID", "STRING_TYPE", "INVOKE",
 		"CAPABILITY", "AS", "CREATE", "BROADCAST", "CHANNEL", "NEW", "CLIENT",
-		"SERVER", "BTW", "EVERY", "COMMA", "COLON", "SLASH", "DASH", "LPAREN",
+		"SERVER", "BTW", "JSON", "EVERY", "COMMA", "COLON", "SLASH", "DASH", "LPAREN",
 		"RPAREN", "NUMBER_WITH_G_SUFFIX", "NUMBER", "IDENTIFIER", "STRING", "LINE_COMMENT",
 		"WS", "UNUSED",
 	];
@@ -1094,7 +1096,7 @@ export class SFMLParser extends Parser {
 		this.enterRule(_localctx, 28, SFMLParser.RULE_valueExpression);
 		let _la: number;
 		try {
-			this.state = 292;
+			this.state = 304;
 			this._errHandler.sync(this);
 			switch ( this.interpreter.adaptivePredict(this._input, 20, this._ctx) ) {
 			case 1:
@@ -1148,6 +1150,47 @@ export class SFMLParser extends Parser {
 				}
 				}
 				break;
+
+			case 3:
+				_localctx = new ClientJsonValueExpressionContext(_localctx);
+				this.enterOuterAlt(_localctx, 3);
+				{
+				this.state = 292;
+				this.match(SFMLParser.JSON);
+				this.state = 293;
+				this.string();
+				}
+				break;
+
+			case 4:
+				_localctx = new ClientInvokeValueExpressionContext(_localctx);
+				this.enterOuterAlt(_localctx, 4);
+				{
+				this.state = 294;
+				this.match(SFMLParser.INVOKE);
+				this.state = 295;
+				this.qualifiedId();
+				this.state = 296;
+				this.match(SFMLParser.WITH);
+				this.state = 297;
+				this.identifier();
+				}
+				break;
+
+			case 5:
+				_localctx = new ClientFieldValueExpressionContext(_localctx);
+				this.enterOuterAlt(_localctx, 5);
+				{
+				this.state = 299;
+				this.match(SFMLParser.FIELD);
+				this.state = 300;
+				this.string();
+				this.state = 301;
+				this.match(SFMLParser.OF);
+				this.state = 302;
+				this.identifier();
+				}
+				break;
 			}
 		}
 		catch (re) {
@@ -1171,11 +1214,11 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 294;
+			this.state = 306;
 			this.identifier();
-			this.state = 295;
+			this.state = 307;
 			this.match(SFMLParser.OF);
-			this.state = 296;
+			this.state = 308;
 			this.fieldValueExpression();
 			}
 		}
@@ -1198,16 +1241,16 @@ export class SFMLParser extends Parser {
 		let _localctx: FieldValueExpressionContext = new FieldValueExpressionContext(this._ctx, this.state);
 		this.enterRule(_localctx, 32, SFMLParser.RULE_fieldValueExpression);
 		try {
-			this.state = 302;
+			this.state = 314;
 			this._errHandler.sync(this);
 			switch ( this.interpreter.adaptivePredict(this._input, 21, this._ctx) ) {
 			case 1:
 				_localctx = new NewGuidFieldValueContext(_localctx);
 				this.enterOuterAlt(_localctx, 1);
 				{
-				this.state = 298;
+				this.state = 310;
 				this.match(SFMLParser.NEW);
-				this.state = 299;
+				this.state = 311;
 				this.match(SFMLParser.GUID);
 				}
 				break;
@@ -1216,7 +1259,7 @@ export class SFMLParser extends Parser {
 				_localctx = new LiteralFieldValueContext(_localctx);
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 300;
+				this.state = 312;
 				this.string();
 				}
 				break;
@@ -1225,7 +1268,7 @@ export class SFMLParser extends Parser {
 				_localctx = new VariableFieldValueContext(_localctx);
 				this.enterOuterAlt(_localctx, 3);
 				{
-				this.state = 301;
+				this.state = 313;
 				this.identifier();
 				}
 				break;
@@ -1252,15 +1295,15 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 304;
+			this.state = 316;
 			this.match(SFMLParser.CREATE);
-			this.state = 305;
+			this.state = 317;
 			this.match(SFMLParser.INPUT);
-			this.state = 306;
+			this.state = 318;
 			this.qualifiedId();
-			this.state = 307;
+			this.state = 319;
 			this.match(SFMLParser.WITH);
-			this.state = 308;
+			this.state = 320;
 			this.identifier();
 			}
 		}
@@ -1286,20 +1329,20 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 310;
+			this.state = 322;
 			this.match(SFMLParser.BROADCAST);
-			this.state = 311;
+			this.state = 323;
 			this.match(SFMLParser.TO);
-			this.state = 312;
+			this.state = 324;
 			this.identifier();
-			this.state = 315;
+			this.state = 327;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (_la === SFMLParser.CHANNEL) {
 				{
-				this.state = 313;
+				this.state = 325;
 				this.match(SFMLParser.CHANNEL);
-				this.state = 314;
+				this.state = 326;
 				this.qualifiedId();
 				}
 			}
@@ -1329,42 +1372,42 @@ export class SFMLParser extends Parser {
 			let _alt: number;
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 317;
+			this.state = 329;
 			this.match(SFMLParser.FORGET);
-			this.state = 319;
+			this.state = 331;
 			this._errHandler.sync(this);
 			switch ( this.interpreter.adaptivePredict(this._input, 23, this._ctx) ) {
 			case 1:
 				{
-				this.state = 318;
+				this.state = 330;
 				this.label();
 				}
 				break;
 			}
-			this.state = 325;
+			this.state = 337;
 			this._errHandler.sync(this);
 			_alt = this.interpreter.adaptivePredict(this._input, 24, this._ctx);
 			while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
 				if (_alt === 1) {
 					{
 					{
-					this.state = 321;
+					this.state = 333;
 					this.match(SFMLParser.COMMA);
-					this.state = 322;
+					this.state = 334;
 					this.label();
 					}
 					}
 				}
-				this.state = 327;
+				this.state = 339;
 				this._errHandler.sync(this);
 				_alt = this.interpreter.adaptivePredict(this._input, 24, this._ctx);
 			}
-			this.state = 329;
+			this.state = 341;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (_la === SFMLParser.COMMA) {
 				{
-				this.state = 328;
+				this.state = 340;
 				this.match(SFMLParser.COMMA);
 				}
 			}
@@ -1391,64 +1434,64 @@ export class SFMLParser extends Parser {
 		this.enterRule(_localctx, 40, SFMLParser.RULE_inputStatement);
 		let _la: number;
 		try {
-			this.state = 367;
+			this.state = 379;
 			this._errHandler.sync(this);
 			switch (this._input.LA(1)) {
 			case SFMLParser.INPUT:
 				this.enterOuterAlt(_localctx, 1);
 				{
-				this.state = 331;
+				this.state = 343;
 				this.match(SFMLParser.INPUT);
-				this.state = 333;
+				this.state = 345;
 				this._errHandler.sync(this);
 				switch ( this.interpreter.adaptivePredict(this._input, 26, this._ctx) ) {
 				case 1:
 					{
-					this.state = 332;
+					this.state = 344;
 					this.inputSelection();
 					}
 					break;
 				}
-				this.state = 336;
+				this.state = 348;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
-				if (((((_la - 31)) & ~0x1F) === 0 && ((1 << (_la - 31)) & ((1 << (SFMLParser.RETAIN - 31)) | (1 << (SFMLParser.WITHOUT - 31)) | (1 << (SFMLParser.WITH - 31)) | (1 << (SFMLParser.TOP - 31)) | (1 << (SFMLParser.BOTTOM - 31)) | (1 << (SFMLParser.LEFT - 31)) | (1 << (SFMLParser.RIGHT - 31)) | (1 << (SFMLParser.FRONT - 31)) | (1 << (SFMLParser.BACK - 31)) | (1 << (SFMLParser.SECONDS - 31)) | (1 << (SFMLParser.SECOND - 31)) | (1 << (SFMLParser.GLOBAL - 31)))) !== 0) || ((((_la - 64)) & ~0x1F) === 0 && ((1 << (_la - 64)) & ((1 << (SFMLParser.OFFSET - 64)) | (1 << (SFMLParser.FRAME - 64)) | (1 << (SFMLParser.FOR - 64)) | (1 << (SFMLParser.MOD - 64)) | (1 << (SFMLParser.RENDER - 64)) | (1 << (SFMLParser.IMAGE - 64)) | (1 << (SFMLParser.REDSTONE - 64)) | (1 << (SFMLParser.LET - 64)) | (1 << (SFMLParser.BE - 64)) | (1 << (SFMLParser.PLAYER - 64)) | (1 << (SFMLParser.OF - 64)) | (1 << (SFMLParser.LIKE - 64)) | (1 << (SFMLParser.OBJECT - 64)) | (1 << (SFMLParser.FIELD - 64)) | (1 << (SFMLParser.GUID - 64)) | (1 << (SFMLParser.STRING_TYPE - 64)) | (1 << (SFMLParser.INVOKE - 64)) | (1 << (SFMLParser.CAPABILITY - 64)) | (1 << (SFMLParser.AS - 64)) | (1 << (SFMLParser.CREATE - 64)) | (1 << (SFMLParser.BROADCAST - 64)) | (1 << (SFMLParser.CHANNEL - 64)) | (1 << (SFMLParser.NEW - 64)) | (1 << (SFMLParser.CLIENT - 64)) | (1 << (SFMLParser.SERVER - 64)) | (1 << (SFMLParser.BTW - 64)))) !== 0) || ((((_la - 102)) & ~0x1F) === 0 && ((1 << (_la - 102)) & ((1 << (SFMLParser.NUMBER - 102)) | (1 << (SFMLParser.IDENTIFIER - 102)) | (1 << (SFMLParser.STRING - 102)))) !== 0)) {
+				if (((((_la - 31)) & ~0x1F) === 0 && ((1 << (_la - 31)) & ((1 << (SFMLParser.RETAIN - 31)) | (1 << (SFMLParser.WITHOUT - 31)) | (1 << (SFMLParser.WITH - 31)) | (1 << (SFMLParser.TOP - 31)) | (1 << (SFMLParser.BOTTOM - 31)) | (1 << (SFMLParser.LEFT - 31)) | (1 << (SFMLParser.RIGHT - 31)) | (1 << (SFMLParser.FRONT - 31)) | (1 << (SFMLParser.BACK - 31)) | (1 << (SFMLParser.SECONDS - 31)) | (1 << (SFMLParser.SECOND - 31)) | (1 << (SFMLParser.GLOBAL - 31)))) !== 0) || ((((_la - 64)) & ~0x1F) === 0 && ((1 << (_la - 64)) & ((1 << (SFMLParser.OFFSET - 64)) | (1 << (SFMLParser.FRAME - 64)) | (1 << (SFMLParser.FOR - 64)) | (1 << (SFMLParser.MOD - 64)) | (1 << (SFMLParser.RENDER - 64)) | (1 << (SFMLParser.IMAGE - 64)) | (1 << (SFMLParser.REDSTONE - 64)) | (1 << (SFMLParser.LET - 64)) | (1 << (SFMLParser.BE - 64)) | (1 << (SFMLParser.PLAYER - 64)) | (1 << (SFMLParser.OF - 64)) | (1 << (SFMLParser.LIKE - 64)) | (1 << (SFMLParser.OBJECT - 64)) | (1 << (SFMLParser.FIELD - 64)) | (1 << (SFMLParser.GUID - 64)) | (1 << (SFMLParser.STRING_TYPE - 64)) | (1 << (SFMLParser.INVOKE - 64)) | (1 << (SFMLParser.CAPABILITY - 64)) | (1 << (SFMLParser.AS - 64)) | (1 << (SFMLParser.CREATE - 64)) | (1 << (SFMLParser.BROADCAST - 64)) | (1 << (SFMLParser.CHANNEL - 64)) | (1 << (SFMLParser.NEW - 64)) | (1 << (SFMLParser.CLIENT - 64)) | (1 << (SFMLParser.SERVER - 64)) | (1 << (SFMLParser.BTW - 64)) | (1 << (SFMLParser.JSON - 64)))) !== 0) || ((((_la - 103)) & ~0x1F) === 0 && ((1 << (_la - 103)) & ((1 << (SFMLParser.NUMBER - 103)) | (1 << (SFMLParser.IDENTIFIER - 103)) | (1 << (SFMLParser.STRING - 103)))) !== 0)) {
 					{
-					this.state = 335;
+					this.state = 347;
 					this.inputResourceLimits();
 					}
 				}
 
-				this.state = 339;
+				this.state = 351;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.EXCEPT) {
 					{
-					this.state = 338;
+					this.state = 350;
 					this.resourceExclusion();
 					}
 				}
 
-				this.state = 341;
+				this.state = 353;
 				this.match(SFMLParser.FROM);
-				this.state = 343;
+				this.state = 355;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.EACH) {
 					{
-					this.state = 342;
+					this.state = 354;
 					this.match(SFMLParser.EACH);
 					}
 				}
 
-				this.state = 345;
+				this.state = 357;
 				this.labelAccess();
-				this.state = 347;
+				this.state = 359;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.AS) {
 					{
-					this.state = 346;
+					this.state = 358;
 					this.inputBinding();
 					}
 				}
@@ -1458,58 +1501,58 @@ export class SFMLParser extends Parser {
 			case SFMLParser.FROM:
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 349;
+				this.state = 361;
 				this.match(SFMLParser.FROM);
-				this.state = 351;
+				this.state = 363;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.EACH) {
 					{
-					this.state = 350;
+					this.state = 362;
 					this.match(SFMLParser.EACH);
 					}
 				}
 
-				this.state = 353;
+				this.state = 365;
 				this.labelAccess();
-				this.state = 354;
+				this.state = 366;
 				this.match(SFMLParser.INPUT);
-				this.state = 356;
+				this.state = 368;
 				this._errHandler.sync(this);
 				switch ( this.interpreter.adaptivePredict(this._input, 32, this._ctx) ) {
 				case 1:
 					{
-					this.state = 355;
+					this.state = 367;
 					this.inputSelection();
 					}
 					break;
 				}
-				this.state = 359;
+				this.state = 371;
 				this._errHandler.sync(this);
 				switch ( this.interpreter.adaptivePredict(this._input, 33, this._ctx) ) {
 				case 1:
 					{
-					this.state = 358;
+					this.state = 370;
 					this.inputResourceLimits();
 					}
 					break;
 				}
-				this.state = 362;
+				this.state = 374;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.EXCEPT) {
 					{
-					this.state = 361;
+					this.state = 373;
 					this.resourceExclusion();
 					}
 				}
 
-				this.state = 365;
+				this.state = 377;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.AS) {
 					{
-					this.state = 364;
+					this.state = 376;
 					this.inputBinding();
 					}
 				}
@@ -1539,18 +1582,18 @@ export class SFMLParser extends Parser {
 		let _localctx: InputSelectionContext = new InputSelectionContext(this._ctx, this.state);
 		this.enterRule(_localctx, 42, SFMLParser.RULE_inputSelection);
 		try {
-			this.state = 374;
+			this.state = 386;
 			this._errHandler.sync(this);
 			switch (this._input.LA(1)) {
 			case SFMLParser.WITH:
 				_localctx = new CapabilityInputSelectionContext(_localctx);
 				this.enterOuterAlt(_localctx, 1);
 				{
-				this.state = 369;
+				this.state = 381;
 				this.match(SFMLParser.WITH);
-				this.state = 370;
+				this.state = 382;
 				this.match(SFMLParser.CAPABILITY);
-				this.state = 371;
+				this.state = 383;
 				this.qualifiedId();
 				}
 				break;
@@ -1558,9 +1601,9 @@ export class SFMLParser extends Parser {
 				_localctx = new PatternInputSelectionContext(_localctx);
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 372;
+				this.state = 384;
 				this.match(SFMLParser.LIKE);
-				this.state = 373;
+				this.state = 385;
 				this.identifier();
 				}
 				break;
@@ -1589,9 +1632,9 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 376;
+			this.state = 388;
 			this.match(SFMLParser.AS);
-			this.state = 377;
+			this.state = 389;
 			this.identifier();
 			}
 		}
@@ -1615,105 +1658,105 @@ export class SFMLParser extends Parser {
 		this.enterRule(_localctx, 46, SFMLParser.RULE_outputStatement);
 		let _la: number;
 		try {
-			this.state = 409;
+			this.state = 421;
 			this._errHandler.sync(this);
 			switch (this._input.LA(1)) {
 			case SFMLParser.OUTPUT:
 				this.enterOuterAlt(_localctx, 1);
 				{
-				this.state = 379;
+				this.state = 391;
 				this.match(SFMLParser.OUTPUT);
-				this.state = 381;
+				this.state = 393;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
-				if (((((_la - 31)) & ~0x1F) === 0 && ((1 << (_la - 31)) & ((1 << (SFMLParser.RETAIN - 31)) | (1 << (SFMLParser.WITHOUT - 31)) | (1 << (SFMLParser.WITH - 31)) | (1 << (SFMLParser.TOP - 31)) | (1 << (SFMLParser.BOTTOM - 31)) | (1 << (SFMLParser.LEFT - 31)) | (1 << (SFMLParser.RIGHT - 31)) | (1 << (SFMLParser.FRONT - 31)) | (1 << (SFMLParser.BACK - 31)) | (1 << (SFMLParser.SECONDS - 31)) | (1 << (SFMLParser.SECOND - 31)) | (1 << (SFMLParser.GLOBAL - 31)))) !== 0) || ((((_la - 64)) & ~0x1F) === 0 && ((1 << (_la - 64)) & ((1 << (SFMLParser.OFFSET - 64)) | (1 << (SFMLParser.FRAME - 64)) | (1 << (SFMLParser.FOR - 64)) | (1 << (SFMLParser.MOD - 64)) | (1 << (SFMLParser.RENDER - 64)) | (1 << (SFMLParser.IMAGE - 64)) | (1 << (SFMLParser.REDSTONE - 64)) | (1 << (SFMLParser.LET - 64)) | (1 << (SFMLParser.BE - 64)) | (1 << (SFMLParser.PLAYER - 64)) | (1 << (SFMLParser.OF - 64)) | (1 << (SFMLParser.LIKE - 64)) | (1 << (SFMLParser.OBJECT - 64)) | (1 << (SFMLParser.FIELD - 64)) | (1 << (SFMLParser.GUID - 64)) | (1 << (SFMLParser.STRING_TYPE - 64)) | (1 << (SFMLParser.INVOKE - 64)) | (1 << (SFMLParser.CAPABILITY - 64)) | (1 << (SFMLParser.AS - 64)) | (1 << (SFMLParser.CREATE - 64)) | (1 << (SFMLParser.BROADCAST - 64)) | (1 << (SFMLParser.CHANNEL - 64)) | (1 << (SFMLParser.NEW - 64)) | (1 << (SFMLParser.CLIENT - 64)) | (1 << (SFMLParser.SERVER - 64)) | (1 << (SFMLParser.BTW - 64)))) !== 0) || ((((_la - 102)) & ~0x1F) === 0 && ((1 << (_la - 102)) & ((1 << (SFMLParser.NUMBER - 102)) | (1 << (SFMLParser.IDENTIFIER - 102)) | (1 << (SFMLParser.STRING - 102)))) !== 0)) {
+				if (((((_la - 31)) & ~0x1F) === 0 && ((1 << (_la - 31)) & ((1 << (SFMLParser.RETAIN - 31)) | (1 << (SFMLParser.WITHOUT - 31)) | (1 << (SFMLParser.WITH - 31)) | (1 << (SFMLParser.TOP - 31)) | (1 << (SFMLParser.BOTTOM - 31)) | (1 << (SFMLParser.LEFT - 31)) | (1 << (SFMLParser.RIGHT - 31)) | (1 << (SFMLParser.FRONT - 31)) | (1 << (SFMLParser.BACK - 31)) | (1 << (SFMLParser.SECONDS - 31)) | (1 << (SFMLParser.SECOND - 31)) | (1 << (SFMLParser.GLOBAL - 31)))) !== 0) || ((((_la - 64)) & ~0x1F) === 0 && ((1 << (_la - 64)) & ((1 << (SFMLParser.OFFSET - 64)) | (1 << (SFMLParser.FRAME - 64)) | (1 << (SFMLParser.FOR - 64)) | (1 << (SFMLParser.MOD - 64)) | (1 << (SFMLParser.RENDER - 64)) | (1 << (SFMLParser.IMAGE - 64)) | (1 << (SFMLParser.REDSTONE - 64)) | (1 << (SFMLParser.LET - 64)) | (1 << (SFMLParser.BE - 64)) | (1 << (SFMLParser.PLAYER - 64)) | (1 << (SFMLParser.OF - 64)) | (1 << (SFMLParser.LIKE - 64)) | (1 << (SFMLParser.OBJECT - 64)) | (1 << (SFMLParser.FIELD - 64)) | (1 << (SFMLParser.GUID - 64)) | (1 << (SFMLParser.STRING_TYPE - 64)) | (1 << (SFMLParser.INVOKE - 64)) | (1 << (SFMLParser.CAPABILITY - 64)) | (1 << (SFMLParser.AS - 64)) | (1 << (SFMLParser.CREATE - 64)) | (1 << (SFMLParser.BROADCAST - 64)) | (1 << (SFMLParser.CHANNEL - 64)) | (1 << (SFMLParser.NEW - 64)) | (1 << (SFMLParser.CLIENT - 64)) | (1 << (SFMLParser.SERVER - 64)) | (1 << (SFMLParser.BTW - 64)) | (1 << (SFMLParser.JSON - 64)))) !== 0) || ((((_la - 103)) & ~0x1F) === 0 && ((1 << (_la - 103)) & ((1 << (SFMLParser.NUMBER - 103)) | (1 << (SFMLParser.IDENTIFIER - 103)) | (1 << (SFMLParser.STRING - 103)))) !== 0)) {
 					{
-					this.state = 380;
+					this.state = 392;
 					this.outputResourceLimits();
 					}
 				}
 
-				this.state = 384;
+				this.state = 396;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.EXCEPT) {
 					{
-					this.state = 383;
+					this.state = 395;
 					this.resourceExclusion();
 					}
 				}
 
-				this.state = 386;
+				this.state = 398;
 				this.match(SFMLParser.TO);
-				this.state = 388;
+				this.state = 400;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.EMPTY) {
 					{
-					this.state = 387;
+					this.state = 399;
 					this.emptyslots();
 					}
 				}
 
-				this.state = 391;
+				this.state = 403;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.EACH) {
 					{
-					this.state = 390;
+					this.state = 402;
 					this.match(SFMLParser.EACH);
 					}
 				}
 
-				this.state = 393;
+				this.state = 405;
 				this.labelAccess();
 				}
 				break;
 			case SFMLParser.TO:
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 394;
+				this.state = 406;
 				this.match(SFMLParser.TO);
-				this.state = 396;
+				this.state = 408;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.EMPTY) {
 					{
-					this.state = 395;
+					this.state = 407;
 					this.emptyslots();
 					}
 				}
 
-				this.state = 399;
+				this.state = 411;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.EACH) {
 					{
-					this.state = 398;
+					this.state = 410;
 					this.match(SFMLParser.EACH);
 					}
 				}
 
-				this.state = 401;
+				this.state = 413;
 				this.labelAccess();
-				this.state = 402;
+				this.state = 414;
 				this.match(SFMLParser.OUTPUT);
-				this.state = 404;
+				this.state = 416;
 				this._errHandler.sync(this);
 				switch ( this.interpreter.adaptivePredict(this._input, 44, this._ctx) ) {
 				case 1:
 					{
-					this.state = 403;
+					this.state = 415;
 					this.outputResourceLimits();
 					}
 					break;
 				}
-				this.state = 407;
+				this.state = 419;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.EXCEPT) {
 					{
-					this.state = 406;
+					this.state = 418;
 					this.resourceExclusion();
 					}
 				}
@@ -1745,7 +1788,7 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 411;
+			this.state = 423;
 			this.resourceLimitList();
 			}
 		}
@@ -1770,7 +1813,7 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 413;
+			this.state = 425;
 			this.resourceLimitList();
 			}
 		}
@@ -1797,32 +1840,32 @@ export class SFMLParser extends Parser {
 			let _alt: number;
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 415;
+			this.state = 427;
 			this.resourceLimit();
-			this.state = 420;
+			this.state = 432;
 			this._errHandler.sync(this);
 			_alt = this.interpreter.adaptivePredict(this._input, 47, this._ctx);
 			while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
 				if (_alt === 1) {
 					{
 					{
-					this.state = 416;
+					this.state = 428;
 					this.match(SFMLParser.COMMA);
-					this.state = 417;
+					this.state = 429;
 					this.resourceLimit();
 					}
 					}
 				}
-				this.state = 422;
+				this.state = 434;
 				this._errHandler.sync(this);
 				_alt = this.interpreter.adaptivePredict(this._input, 47, this._ctx);
 			}
-			this.state = 424;
+			this.state = 436;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (_la === SFMLParser.COMMA) {
 				{
-				this.state = 423;
+				this.state = 435;
 				this.match(SFMLParser.COMMA);
 				}
 			}
@@ -1849,30 +1892,30 @@ export class SFMLParser extends Parser {
 		this.enterRule(_localctx, 54, SFMLParser.RULE_resourceLimit);
 		let _la: number;
 		try {
-			this.state = 438;
+			this.state = 450;
 			this._errHandler.sync(this);
 			switch ( this.interpreter.adaptivePredict(this._input, 52, this._ctx) ) {
 			case 1:
 				this.enterOuterAlt(_localctx, 1);
 				{
-				this.state = 427;
+				this.state = 439;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.RETAIN || _la === SFMLParser.NUMBER) {
 					{
-					this.state = 426;
+					this.state = 438;
 					this.limit();
 					}
 				}
 
-				this.state = 429;
+				this.state = 441;
 				this.resourceIdDisjunction();
-				this.state = 431;
+				this.state = 443;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.WITHOUT || _la === SFMLParser.WITH) {
 					{
-					this.state = 430;
+					this.state = 442;
 					this.with();
 					}
 				}
@@ -1883,14 +1926,14 @@ export class SFMLParser extends Parser {
 			case 2:
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 433;
+				this.state = 445;
 				this.limit();
-				this.state = 435;
+				this.state = 447;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (_la === SFMLParser.WITHOUT || _la === SFMLParser.WITH) {
 					{
-					this.state = 434;
+					this.state = 446;
 					this.with();
 					}
 				}
@@ -1901,7 +1944,7 @@ export class SFMLParser extends Parser {
 			case 3:
 				this.enterOuterAlt(_localctx, 3);
 				{
-				this.state = 437;
+				this.state = 449;
 				this.with();
 				}
 				break;
@@ -1926,16 +1969,16 @@ export class SFMLParser extends Parser {
 		let _localctx: LimitContext = new LimitContext(this._ctx, this.state);
 		this.enterRule(_localctx, 56, SFMLParser.RULE_limit);
 		try {
-			this.state = 445;
+			this.state = 457;
 			this._errHandler.sync(this);
 			switch ( this.interpreter.adaptivePredict(this._input, 53, this._ctx) ) {
 			case 1:
 				_localctx = new QuantityRetentionLimitContext(_localctx);
 				this.enterOuterAlt(_localctx, 1);
 				{
-				this.state = 440;
+				this.state = 452;
 				this.quantity();
-				this.state = 441;
+				this.state = 453;
 				this.retention();
 				}
 				break;
@@ -1944,7 +1987,7 @@ export class SFMLParser extends Parser {
 				_localctx = new RetentionLimitContext(_localctx);
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 443;
+				this.state = 455;
 				this.retention();
 				}
 				break;
@@ -1953,7 +1996,7 @@ export class SFMLParser extends Parser {
 				_localctx = new QuantityLimitContext(_localctx);
 				this.enterOuterAlt(_localctx, 3);
 				{
-				this.state = 444;
+				this.state = 456;
 				this.quantity();
 				}
 				break;
@@ -1981,14 +2024,14 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 447;
+			this.state = 459;
 			this.number();
-			this.state = 449;
+			this.state = 461;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (_la === SFMLParser.EACH) {
 				{
-				this.state = 448;
+				this.state = 460;
 				this.match(SFMLParser.EACH);
 				}
 			}
@@ -2017,16 +2060,16 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 451;
+			this.state = 463;
 			this.match(SFMLParser.RETAIN);
-			this.state = 452;
+			this.state = 464;
 			this.number();
-			this.state = 454;
+			this.state = 466;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (_la === SFMLParser.EACH) {
 				{
-				this.state = 453;
+				this.state = 465;
 				this.match(SFMLParser.EACH);
 				}
 			}
@@ -2054,9 +2097,9 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 456;
+			this.state = 468;
 			this.match(SFMLParser.EXCEPT);
-			this.state = 457;
+			this.state = 469;
 			this.resourceIdList();
 			}
 		}
@@ -2079,7 +2122,7 @@ export class SFMLParser extends Parser {
 		let _localctx: ResourceIdContext = new ResourceIdContext(this._ctx, this.state);
 		this.enterRule(_localctx, 64, SFMLParser.RULE_resourceId);
 		try {
-			this.state = 479;
+			this.state = 491;
 			this._errHandler.sync(this);
 			switch (this._input.LA(1)) {
 			case SFMLParser.TOP:
@@ -2117,61 +2160,62 @@ export class SFMLParser extends Parser {
 			case SFMLParser.CLIENT:
 			case SFMLParser.SERVER:
 			case SFMLParser.BTW:
+			case SFMLParser.JSON:
 			case SFMLParser.IDENTIFIER:
 				_localctx = new ResourceContext(_localctx);
 				this.enterOuterAlt(_localctx, 1);
 				{
 				{
-				this.state = 459;
+				this.state = 471;
 				this.identifier();
 				}
-				this.state = 476;
+				this.state = 488;
 				this._errHandler.sync(this);
 				switch ( this.interpreter.adaptivePredict(this._input, 61, this._ctx) ) {
 				case 1:
 					{
-					this.state = 460;
+					this.state = 472;
 					this.match(SFMLParser.COLON);
-					this.state = 462;
+					this.state = 474;
 					this._errHandler.sync(this);
 					switch ( this.interpreter.adaptivePredict(this._input, 56, this._ctx) ) {
 					case 1:
 						{
-						this.state = 461;
+						this.state = 473;
 						this.identifier();
 						}
 						break;
 					}
-					this.state = 474;
+					this.state = 486;
 					this._errHandler.sync(this);
 					switch ( this.interpreter.adaptivePredict(this._input, 60, this._ctx) ) {
 					case 1:
 						{
-						this.state = 464;
+						this.state = 476;
 						this.match(SFMLParser.COLON);
-						this.state = 466;
+						this.state = 478;
 						this._errHandler.sync(this);
 						switch ( this.interpreter.adaptivePredict(this._input, 57, this._ctx) ) {
 						case 1:
 							{
-							this.state = 465;
+							this.state = 477;
 							this.identifier();
 							}
 							break;
 						}
-						this.state = 472;
+						this.state = 484;
 						this._errHandler.sync(this);
 						switch ( this.interpreter.adaptivePredict(this._input, 59, this._ctx) ) {
 						case 1:
 							{
-							this.state = 468;
+							this.state = 480;
 							this.match(SFMLParser.COLON);
-							this.state = 470;
+							this.state = 482;
 							this._errHandler.sync(this);
 							switch ( this.interpreter.adaptivePredict(this._input, 58, this._ctx) ) {
 							case 1:
 								{
-								this.state = 469;
+								this.state = 481;
 								this.identifier();
 								}
 								break;
@@ -2191,7 +2235,7 @@ export class SFMLParser extends Parser {
 				_localctx = new StringResourceContext(_localctx);
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 478;
+				this.state = 490;
 				this.string();
 				}
 				break;
@@ -2221,32 +2265,32 @@ export class SFMLParser extends Parser {
 			let _alt: number;
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 481;
+			this.state = 493;
 			this.resourceId();
-			this.state = 486;
+			this.state = 498;
 			this._errHandler.sync(this);
 			_alt = this.interpreter.adaptivePredict(this._input, 63, this._ctx);
 			while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
 				if (_alt === 1) {
 					{
 					{
-					this.state = 482;
+					this.state = 494;
 					this.match(SFMLParser.COMMA);
-					this.state = 483;
+					this.state = 495;
 					this.resourceId();
 					}
 					}
 				}
-				this.state = 488;
+				this.state = 500;
 				this._errHandler.sync(this);
 				_alt = this.interpreter.adaptivePredict(this._input, 63, this._ctx);
 			}
-			this.state = 490;
+			this.state = 502;
 			this._errHandler.sync(this);
 			switch ( this.interpreter.adaptivePredict(this._input, 64, this._ctx) ) {
 			case 1:
 				{
-				this.state = 489;
+				this.state = 501;
 				this.match(SFMLParser.COMMA);
 				}
 				break;
@@ -2275,32 +2319,32 @@ export class SFMLParser extends Parser {
 			let _alt: number;
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 492;
+			this.state = 504;
 			this.resourceId();
-			this.state = 497;
+			this.state = 509;
 			this._errHandler.sync(this);
 			_alt = this.interpreter.adaptivePredict(this._input, 65, this._ctx);
 			while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
 				if (_alt === 1) {
 					{
 					{
-					this.state = 493;
+					this.state = 505;
 					this.match(SFMLParser.OR);
-					this.state = 494;
+					this.state = 506;
 					this.resourceId();
 					}
 					}
 				}
-				this.state = 499;
+				this.state = 511;
 				this._errHandler.sync(this);
 				_alt = this.interpreter.adaptivePredict(this._input, 65, this._ctx);
 			}
-			this.state = 501;
+			this.state = 513;
 			this._errHandler.sync(this);
 			switch ( this.interpreter.adaptivePredict(this._input, 66, this._ctx) ) {
 			case 1:
 				{
-				this.state = 500;
+				this.state = 512;
 				this.match(SFMLParser.OR);
 				}
 				break;
@@ -2326,24 +2370,24 @@ export class SFMLParser extends Parser {
 		let _localctx: WithContext = new WithContext(this._ctx, this.state);
 		this.enterRule(_localctx, 70, SFMLParser.RULE_with);
 		try {
-			this.state = 507;
+			this.state = 519;
 			this._errHandler.sync(this);
 			switch (this._input.LA(1)) {
 			case SFMLParser.WITH:
 				this.enterOuterAlt(_localctx, 1);
 				{
-				this.state = 503;
+				this.state = 515;
 				this.match(SFMLParser.WITH);
-				this.state = 504;
+				this.state = 516;
 				this.withClause(0);
 				}
 				break;
 			case SFMLParser.WITHOUT:
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 505;
+				this.state = 517;
 				this.match(SFMLParser.WITHOUT);
-				this.state = 506;
+				this.state = 518;
 				this.withClause(0);
 				}
 				break;
@@ -2385,7 +2429,7 @@ export class SFMLParser extends Parser {
 			let _alt: number;
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 524;
+			this.state = 536;
 			this._errHandler.sync(this);
 			switch (this._input.LA(1)) {
 			case SFMLParser.LPAREN:
@@ -2394,11 +2438,11 @@ export class SFMLParser extends Parser {
 				this._ctx = _localctx;
 				_prevctx = _localctx;
 
-				this.state = 510;
+				this.state = 522;
 				this.match(SFMLParser.LPAREN);
-				this.state = 511;
+				this.state = 523;
 				this.withClause(0);
-				this.state = 512;
+				this.state = 524;
 				this.match(SFMLParser.RPAREN);
 				}
 				break;
@@ -2407,9 +2451,9 @@ export class SFMLParser extends Parser {
 				_localctx = new WithNegationContext(_localctx);
 				this._ctx = _localctx;
 				_prevctx = _localctx;
-				this.state = 514;
+				this.state = 526;
 				this.match(SFMLParser.NOT);
-				this.state = 515;
+				this.state = 527;
 				this.withClause(4);
 				}
 				break;
@@ -2419,19 +2463,19 @@ export class SFMLParser extends Parser {
 				_localctx = new WithTagContext(_localctx);
 				this._ctx = _localctx;
 				_prevctx = _localctx;
-				this.state = 521;
+				this.state = 533;
 				this._errHandler.sync(this);
 				switch (this._input.LA(1)) {
 				case SFMLParser.TAG:
 					{
-					this.state = 516;
+					this.state = 528;
 					this.match(SFMLParser.TAG);
-					this.state = 518;
+					this.state = 530;
 					this._errHandler.sync(this);
 					_la = this._input.LA(1);
 					if (_la === SFMLParser.HASHTAG) {
 						{
-						this.state = 517;
+						this.state = 529;
 						this.match(SFMLParser.HASHTAG);
 						}
 					}
@@ -2440,14 +2484,14 @@ export class SFMLParser extends Parser {
 					break;
 				case SFMLParser.HASHTAG:
 					{
-					this.state = 520;
+					this.state = 532;
 					this.match(SFMLParser.HASHTAG);
 					}
 					break;
 				default:
 					throw new NoViableAltException(this);
 				}
-				this.state = 523;
+				this.state = 535;
 				this.tagMatcher();
 				}
 				break;
@@ -2455,7 +2499,7 @@ export class SFMLParser extends Parser {
 				throw new NoViableAltException(this);
 			}
 			this._ctx._stop = this._input.tryLT(-1);
-			this.state = 534;
+			this.state = 546;
 			this._errHandler.sync(this);
 			_alt = this.interpreter.adaptivePredict(this._input, 72, this._ctx);
 			while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
@@ -2465,20 +2509,20 @@ export class SFMLParser extends Parser {
 					}
 					_prevctx = _localctx;
 					{
-					this.state = 532;
+					this.state = 544;
 					this._errHandler.sync(this);
 					switch ( this.interpreter.adaptivePredict(this._input, 71, this._ctx) ) {
 					case 1:
 						{
 						_localctx = new WithConjunctionContext(new WithClauseContext(_parentctx, _parentState));
 						this.pushNewRecursionContext(_localctx, _startState, SFMLParser.RULE_withClause);
-						this.state = 526;
+						this.state = 538;
 						if (!(this.precpred(this._ctx, 3))) {
 							throw this.createFailedPredicateException("this.precpred(this._ctx, 3)");
 						}
-						this.state = 527;
+						this.state = 539;
 						this.match(SFMLParser.AND);
-						this.state = 528;
+						this.state = 540;
 						this.withClause(4);
 						}
 						break;
@@ -2487,20 +2531,20 @@ export class SFMLParser extends Parser {
 						{
 						_localctx = new WithDisjunctionContext(new WithClauseContext(_parentctx, _parentState));
 						this.pushNewRecursionContext(_localctx, _startState, SFMLParser.RULE_withClause);
-						this.state = 529;
+						this.state = 541;
 						if (!(this.precpred(this._ctx, 2))) {
 							throw this.createFailedPredicateException("this.precpred(this._ctx, 2)");
 						}
-						this.state = 530;
+						this.state = 542;
 						this.match(SFMLParser.OR);
-						this.state = 531;
+						this.state = 543;
 						this.withClause(3);
 						}
 						break;
 					}
 					}
 				}
-				this.state = 536;
+				this.state = 548;
 				this._errHandler.sync(this);
 				_alt = this.interpreter.adaptivePredict(this._input, 72, this._ctx);
 			}
@@ -2526,33 +2570,33 @@ export class SFMLParser extends Parser {
 		this.enterRule(_localctx, 74, SFMLParser.RULE_tagMatcher);
 		try {
 			let _alt: number;
-			this.state = 555;
+			this.state = 567;
 			this._errHandler.sync(this);
 			switch ( this.interpreter.adaptivePredict(this._input, 75, this._ctx) ) {
 			case 1:
 				this.enterOuterAlt(_localctx, 1);
 				{
-				this.state = 537;
+				this.state = 549;
 				this.identifier();
-				this.state = 538;
+				this.state = 550;
 				this.match(SFMLParser.COLON);
-				this.state = 539;
+				this.state = 551;
 				this.identifier();
-				this.state = 544;
+				this.state = 556;
 				this._errHandler.sync(this);
 				_alt = this.interpreter.adaptivePredict(this._input, 73, this._ctx);
 				while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
 					if (_alt === 1) {
 						{
 						{
-						this.state = 540;
+						this.state = 552;
 						this.match(SFMLParser.SLASH);
-						this.state = 541;
+						this.state = 553;
 						this.identifier();
 						}
 						}
 					}
-					this.state = 546;
+					this.state = 558;
 					this._errHandler.sync(this);
 					_alt = this.interpreter.adaptivePredict(this._input, 73, this._ctx);
 				}
@@ -2562,23 +2606,23 @@ export class SFMLParser extends Parser {
 			case 2:
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 547;
+				this.state = 559;
 				this.identifier();
-				this.state = 552;
+				this.state = 564;
 				this._errHandler.sync(this);
 				_alt = this.interpreter.adaptivePredict(this._input, 74, this._ctx);
 				while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
 					if (_alt === 1) {
 						{
 						{
-						this.state = 548;
+						this.state = 560;
 						this.match(SFMLParser.SLASH);
-						this.state = 549;
+						this.state = 561;
 						this.identifier();
 						}
 						}
 					}
-					this.state = 554;
+					this.state = 566;
 					this._errHandler.sync(this);
 					_alt = this.interpreter.adaptivePredict(this._input, 74, this._ctx);
 				}
@@ -2608,25 +2652,25 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 557;
+			this.state = 569;
 			this.identifier();
-			this.state = 558;
+			this.state = 570;
 			this.match(SFMLParser.COLON);
-			this.state = 559;
+			this.state = 571;
 			this.identifier();
-			this.state = 564;
+			this.state = 576;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			while (_la === SFMLParser.SLASH) {
 				{
 				{
-				this.state = 560;
+				this.state = 572;
 				this.match(SFMLParser.SLASH);
-				this.state = 561;
+				this.state = 573;
 				this.identifier();
 				}
 				}
-				this.state = 566;
+				this.state = 578;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 			}
@@ -2652,16 +2696,16 @@ export class SFMLParser extends Parser {
 		this.enterRule(_localctx, 78, SFMLParser.RULE_sidequalifier);
 		let _la: number;
 		try {
-			this.state = 579;
+			this.state = 591;
 			this._errHandler.sync(this);
 			switch (this._input.LA(1)) {
 			case SFMLParser.EACH:
 				_localctx = new EachSideContext(_localctx);
 				this.enterOuterAlt(_localctx, 1);
 				{
-				this.state = 567;
+				this.state = 579;
 				this.match(SFMLParser.EACH);
-				this.state = 568;
+				this.state = 580;
 				this.match(SFMLParser.SIDE);
 				}
 				break;
@@ -2679,25 +2723,25 @@ export class SFMLParser extends Parser {
 				_localctx = new ListedSidesContext(_localctx);
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 569;
+				this.state = 581;
 				this.side();
-				this.state = 574;
+				this.state = 586;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				while (_la === SFMLParser.COMMA) {
 					{
 					{
-					this.state = 570;
+					this.state = 582;
 					this.match(SFMLParser.COMMA);
-					this.state = 571;
+					this.state = 583;
 					this.side();
 					}
 					}
-					this.state = 576;
+					this.state = 588;
 					this._errHandler.sync(this);
 					_la = this._input.LA(1);
 				}
-				this.state = 577;
+				this.state = 589;
 				this.match(SFMLParser.SIDE);
 				}
 				break;
@@ -2727,7 +2771,7 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 581;
+			this.state = 593;
 			_la = this._input.LA(1);
 			if (!(((((_la - 46)) & ~0x1F) === 0 && ((1 << (_la - 46)) & ((1 << (SFMLParser.TOP - 46)) | (1 << (SFMLParser.BOTTOM - 46)) | (1 << (SFMLParser.NORTH - 46)) | (1 << (SFMLParser.EAST - 46)) | (1 << (SFMLParser.SOUTH - 46)) | (1 << (SFMLParser.WEST - 46)) | (1 << (SFMLParser.LEFT - 46)) | (1 << (SFMLParser.RIGHT - 46)) | (1 << (SFMLParser.FRONT - 46)) | (1 << (SFMLParser.BACK - 46)) | (1 << (SFMLParser.NULL - 46)))) !== 0))) {
 			this._errHandler.recoverInline(this);
@@ -2763,7 +2807,7 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 583;
+			this.state = 595;
 			_la = this._input.LA(1);
 			if (!(_la === SFMLParser.SLOTS || _la === SFMLParser.SLOT)) {
 			this._errHandler.recoverInline(this);
@@ -2775,7 +2819,7 @@ export class SFMLParser extends Parser {
 				this._errHandler.reportMatch(this);
 				this.consume();
 			}
-			this.state = 584;
+			this.state = 596;
 			this.rangeset();
 			}
 		}
@@ -2801,21 +2845,21 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 586;
+			this.state = 598;
 			this.range();
-			this.state = 591;
+			this.state = 603;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			while (_la === SFMLParser.COMMA) {
 				{
 				{
-				this.state = 587;
+				this.state = 599;
 				this.match(SFMLParser.COMMA);
-				this.state = 588;
+				this.state = 600;
 				this.range();
 				}
 				}
-				this.state = 593;
+				this.state = 605;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 			}
@@ -2843,16 +2887,16 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 594;
+			this.state = 606;
 			this.number();
-			this.state = 597;
+			this.state = 609;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (_la === SFMLParser.DASH) {
 				{
-				this.state = 595;
+				this.state = 607;
 				this.match(SFMLParser.DASH);
-				this.state = 596;
+				this.state = 608;
 				this.number();
 				}
 			}
@@ -2882,51 +2926,51 @@ export class SFMLParser extends Parser {
 			let _alt: number;
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 599;
-			this.match(SFMLParser.IF);
-			this.state = 600;
-			this.boolexpr(0);
-			this.state = 601;
-			this.match(SFMLParser.THEN);
-			this.state = 602;
-			this.block();
 			this.state = 611;
+			this.match(SFMLParser.IF);
+			this.state = 612;
+			this.boolexpr(0);
+			this.state = 613;
+			this.match(SFMLParser.THEN);
+			this.state = 614;
+			this.block();
+			this.state = 623;
 			this._errHandler.sync(this);
 			_alt = this.interpreter.adaptivePredict(this._input, 81, this._ctx);
 			while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
 				if (_alt === 1) {
 					{
 					{
-					this.state = 603;
+					this.state = 615;
 					this.match(SFMLParser.ELSE);
-					this.state = 604;
+					this.state = 616;
 					this.match(SFMLParser.IF);
-					this.state = 605;
+					this.state = 617;
 					this.boolexpr(0);
-					this.state = 606;
+					this.state = 618;
 					this.match(SFMLParser.THEN);
-					this.state = 607;
+					this.state = 619;
 					this.block();
 					}
 					}
 				}
-				this.state = 613;
+				this.state = 625;
 				this._errHandler.sync(this);
 				_alt = this.interpreter.adaptivePredict(this._input, 81, this._ctx);
 			}
-			this.state = 616;
+			this.state = 628;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (_la === SFMLParser.ELSE) {
 				{
-				this.state = 614;
+				this.state = 626;
 				this.match(SFMLParser.ELSE);
-				this.state = 615;
+				this.state = 627;
 				this.block();
 				}
 			}
 
-			this.state = 618;
+			this.state = 630;
 			this.match(SFMLParser.END);
 			}
 		}
@@ -2964,7 +3008,7 @@ export class SFMLParser extends Parser {
 			let _alt: number;
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 658;
+			this.state = 675;
 			this._errHandler.sync(this);
 			switch ( this.interpreter.adaptivePredict(this._input, 88, this._ctx) ) {
 			case 1:
@@ -2973,7 +3017,7 @@ export class SFMLParser extends Parser {
 				this._ctx = _localctx;
 				_prevctx = _localctx;
 
-				this.state = 621;
+				this.state = 633;
 				this.match(SFMLParser.TRUE);
 				}
 				break;
@@ -2983,7 +3027,7 @@ export class SFMLParser extends Parser {
 				_localctx = new BooleanFalseContext(_localctx);
 				this._ctx = _localctx;
 				_prevctx = _localctx;
-				this.state = 622;
+				this.state = 634;
 				this.match(SFMLParser.FALSE);
 				}
 				break;
@@ -2993,11 +3037,11 @@ export class SFMLParser extends Parser {
 				_localctx = new BooleanParenContext(_localctx);
 				this._ctx = _localctx;
 				_prevctx = _localctx;
-				this.state = 623;
+				this.state = 635;
 				this.match(SFMLParser.LPAREN);
-				this.state = 624;
+				this.state = 636;
 				this.boolexpr(0);
-				this.state = 625;
+				this.state = 637;
 				this.match(SFMLParser.RPAREN);
 				}
 				break;
@@ -3007,10 +3051,10 @@ export class SFMLParser extends Parser {
 				_localctx = new BooleanNegationContext(_localctx);
 				this._ctx = _localctx;
 				_prevctx = _localctx;
-				this.state = 627;
+				this.state = 639;
 				this.match(SFMLParser.NOT);
-				this.state = 628;
-				this.boolexpr(6);
+				this.state = 640;
+				this.boolexpr(7);
 				}
 				break;
 
@@ -3019,52 +3063,52 @@ export class SFMLParser extends Parser {
 				_localctx = new BooleanHasContext(_localctx);
 				this._ctx = _localctx;
 				_prevctx = _localctx;
-				this.state = 630;
+				this.state = 642;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 				if (((((_la - 5)) & ~0x1F) === 0 && ((1 << (_la - 5)) & ((1 << (SFMLParser.OVERALL - 5)) | (1 << (SFMLParser.SOME - 5)) | (1 << (SFMLParser.ONE - 5)) | (1 << (SFMLParser.LONE - 5)) | (1 << (SFMLParser.EACH - 5)))) !== 0) || _la === SFMLParser.EVERY) {
 					{
-					this.state = 629;
+					this.state = 641;
 					this.setOp();
 					}
 				}
 
-				this.state = 632;
+				this.state = 644;
 				this.labelAccess();
-				this.state = 633;
+				this.state = 645;
 				this.match(SFMLParser.HAS);
-				this.state = 634;
+				this.state = 646;
 				this.comparisonOp();
-				this.state = 635;
+				this.state = 647;
 				this.number();
-				this.state = 637;
+				this.state = 649;
 				this._errHandler.sync(this);
 				switch ( this.interpreter.adaptivePredict(this._input, 84, this._ctx) ) {
 				case 1:
 					{
-					this.state = 636;
+					this.state = 648;
 					this.resourceIdDisjunction();
 					}
 					break;
 				}
-				this.state = 640;
+				this.state = 652;
 				this._errHandler.sync(this);
 				switch ( this.interpreter.adaptivePredict(this._input, 85, this._ctx) ) {
 				case 1:
 					{
-					this.state = 639;
+					this.state = 651;
 					this.with();
 					}
 					break;
 				}
-				this.state = 644;
+				this.state = 656;
 				this._errHandler.sync(this);
 				switch ( this.interpreter.adaptivePredict(this._input, 86, this._ctx) ) {
 				case 1:
 					{
-					this.state = 642;
+					this.state = 654;
 					this.match(SFMLParser.EXCEPT);
-					this.state = 643;
+					this.state = 655;
 					this.resourceIdList();
 					}
 					break;
@@ -3077,16 +3121,16 @@ export class SFMLParser extends Parser {
 				_localctx = new BooleanRedstoneContext(_localctx);
 				this._ctx = _localctx;
 				_prevctx = _localctx;
-				this.state = 646;
+				this.state = 658;
 				this.match(SFMLParser.REDSTONE);
-				this.state = 650;
+				this.state = 662;
 				this._errHandler.sync(this);
 				switch ( this.interpreter.adaptivePredict(this._input, 87, this._ctx) ) {
 				case 1:
 					{
-					this.state = 647;
+					this.state = 659;
 					this.comparisonOp();
-					this.state = 648;
+					this.state = 660;
 					this.number();
 					}
 					break;
@@ -3099,21 +3143,47 @@ export class SFMLParser extends Parser {
 				_localctx = new BooleanFrameModuloContext(_localctx);
 				this._ctx = _localctx;
 				_prevctx = _localctx;
-				this.state = 652;
+				this.state = 664;
 				this.match(SFMLParser.FRAME);
-				this.state = 653;
+				this.state = 665;
 				this.match(SFMLParser.MOD);
-				this.state = 654;
+				this.state = 666;
 				this.number();
-				this.state = 655;
+				this.state = 667;
 				this.comparisonOp();
-				this.state = 656;
+				this.state = 668;
 				this.number();
+				}
+				break;
+
+			case 8:
+				{
+				_localctx = new BooleanClientValueEqualsContext(_localctx);
+				this._ctx = _localctx;
+				_prevctx = _localctx;
+				this.state = 670;
+				this.identifier();
+				this.state = 671;
+				_la = this._input.LA(1);
+				if (!(_la === SFMLParser.EQ || _la === SFMLParser.EQ_SYMBOL)) {
+				this._errHandler.recoverInline(this);
+				} else {
+					if (this._input.LA(1) === Token.EOF) {
+						this.matchedEOF = true;
+					}
+
+					this._errHandler.reportMatch(this);
+					this.consume();
+				}
+				this.state = 672;
+				this.match(SFMLParser.JSON);
+				this.state = 673;
+				this.string();
 				}
 				break;
 			}
 			this._ctx._stop = this._input.tryLT(-1);
-			this.state = 668;
+			this.state = 685;
 			this._errHandler.sync(this);
 			_alt = this.interpreter.adaptivePredict(this._input, 90, this._ctx);
 			while (_alt !== 2 && _alt !== ATN.INVALID_ALT_NUMBER) {
@@ -3123,21 +3193,21 @@ export class SFMLParser extends Parser {
 					}
 					_prevctx = _localctx;
 					{
-					this.state = 666;
+					this.state = 683;
 					this._errHandler.sync(this);
 					switch ( this.interpreter.adaptivePredict(this._input, 89, this._ctx) ) {
 					case 1:
 						{
 						_localctx = new BooleanConjunctionContext(new BoolexprContext(_parentctx, _parentState));
 						this.pushNewRecursionContext(_localctx, _startState, SFMLParser.RULE_boolexpr);
-						this.state = 660;
-						if (!(this.precpred(this._ctx, 5))) {
-							throw this.createFailedPredicateException("this.precpred(this._ctx, 5)");
+						this.state = 677;
+						if (!(this.precpred(this._ctx, 6))) {
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 6)");
 						}
-						this.state = 661;
+						this.state = 678;
 						this.match(SFMLParser.AND);
-						this.state = 662;
-						this.boolexpr(6);
+						this.state = 679;
+						this.boolexpr(7);
 						}
 						break;
 
@@ -3145,20 +3215,20 @@ export class SFMLParser extends Parser {
 						{
 						_localctx = new BooleanDisjunctionContext(new BoolexprContext(_parentctx, _parentState));
 						this.pushNewRecursionContext(_localctx, _startState, SFMLParser.RULE_boolexpr);
-						this.state = 663;
-						if (!(this.precpred(this._ctx, 4))) {
-							throw this.createFailedPredicateException("this.precpred(this._ctx, 4)");
+						this.state = 680;
+						if (!(this.precpred(this._ctx, 5))) {
+							throw this.createFailedPredicateException("this.precpred(this._ctx, 5)");
 						}
-						this.state = 664;
+						this.state = 681;
 						this.match(SFMLParser.OR);
-						this.state = 665;
-						this.boolexpr(5);
+						this.state = 682;
+						this.boolexpr(6);
 						}
 						break;
 					}
 					}
 				}
-				this.state = 670;
+				this.state = 687;
 				this._errHandler.sync(this);
 				_alt = this.interpreter.adaptivePredict(this._input, 90, this._ctx);
 			}
@@ -3186,7 +3256,7 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 671;
+			this.state = 688;
 			_la = this._input.LA(1);
 			if (!((((_la) & ~0x1F) === 0 && ((1 << _la) & ((1 << SFMLParser.GT) | (1 << SFMLParser.GT_SYMBOL) | (1 << SFMLParser.LT) | (1 << SFMLParser.LT_SYMBOL) | (1 << SFMLParser.EQ) | (1 << SFMLParser.EQ_SYMBOL) | (1 << SFMLParser.LE) | (1 << SFMLParser.LE_SYMBOL) | (1 << SFMLParser.GE) | (1 << SFMLParser.GE_SYMBOL))) !== 0))) {
 			this._errHandler.recoverInline(this);
@@ -3222,7 +3292,7 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 673;
+			this.state = 690;
 			_la = this._input.LA(1);
 			if (!(((((_la - 5)) & ~0x1F) === 0 && ((1 << (_la - 5)) & ((1 << (SFMLParser.OVERALL - 5)) | (1 << (SFMLParser.SOME - 5)) | (1 << (SFMLParser.ONE - 5)) | (1 << (SFMLParser.LONE - 5)) | (1 << (SFMLParser.EACH - 5)))) !== 0) || _la === SFMLParser.EVERY)) {
 			this._errHandler.recoverInline(this);
@@ -3258,50 +3328,50 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 675;
+			this.state = 692;
 			this.label();
-			this.state = 680;
+			this.state = 697;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			while (_la === SFMLParser.COMMA) {
 				{
 				{
-				this.state = 676;
+				this.state = 693;
 				this.match(SFMLParser.COMMA);
-				this.state = 677;
+				this.state = 694;
 				this.label();
 				}
 				}
-				this.state = 682;
+				this.state = 699;
 				this._errHandler.sync(this);
 				_la = this._input.LA(1);
 			}
-			this.state = 684;
+			this.state = 701;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (_la === SFMLParser.ROUND) {
 				{
-				this.state = 683;
+				this.state = 700;
 				this.roundrobin();
 				}
 			}
 
-			this.state = 687;
+			this.state = 704;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (((((_la - 32)) & ~0x1F) === 0 && ((1 << (_la - 32)) & ((1 << (SFMLParser.EACH - 32)) | (1 << (SFMLParser.TOP - 32)) | (1 << (SFMLParser.BOTTOM - 32)) | (1 << (SFMLParser.NORTH - 32)) | (1 << (SFMLParser.EAST - 32)) | (1 << (SFMLParser.SOUTH - 32)) | (1 << (SFMLParser.WEST - 32)) | (1 << (SFMLParser.LEFT - 32)) | (1 << (SFMLParser.RIGHT - 32)) | (1 << (SFMLParser.FRONT - 32)) | (1 << (SFMLParser.BACK - 32)) | (1 << (SFMLParser.NULL - 32)))) !== 0)) {
 				{
-				this.state = 686;
+				this.state = 703;
 				this.sidequalifier();
 				}
 			}
 
-			this.state = 690;
+			this.state = 707;
 			this._errHandler.sync(this);
 			_la = this._input.LA(1);
 			if (_la === SFMLParser.SLOTS || _la === SFMLParser.SLOT) {
 				{
-				this.state = 689;
+				this.state = 706;
 				this.slotqualifier();
 				}
 			}
@@ -3330,13 +3400,13 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 692;
+			this.state = 709;
 			this.match(SFMLParser.ROUND);
-			this.state = 693;
+			this.state = 710;
 			this.match(SFMLParser.ROBIN);
-			this.state = 694;
+			this.state = 711;
 			this.match(SFMLParser.BY);
-			this.state = 695;
+			this.state = 712;
 			_la = this._input.LA(1);
 			if (!(_la === SFMLParser.LABEL || _la === SFMLParser.BLOCK)) {
 			this._errHandler.recoverInline(this);
@@ -3369,7 +3439,7 @@ export class SFMLParser extends Parser {
 		let _localctx: LabelContext = new LabelContext(this._ctx, this.state);
 		this.enterRule(_localctx, 100, SFMLParser.RULE_label);
 		try {
-			this.state = 699;
+			this.state = 716;
 			this._errHandler.sync(this);
 			switch (this._input.LA(1)) {
 			case SFMLParser.TOP:
@@ -3407,12 +3477,13 @@ export class SFMLParser extends Parser {
 			case SFMLParser.CLIENT:
 			case SFMLParser.SERVER:
 			case SFMLParser.BTW:
+			case SFMLParser.JSON:
 			case SFMLParser.IDENTIFIER:
 				_localctx = new RawLabelContext(_localctx);
 				this.enterOuterAlt(_localctx, 1);
 				{
 				{
-				this.state = 697;
+				this.state = 714;
 				this.identifier();
 				}
 				}
@@ -3421,7 +3492,7 @@ export class SFMLParser extends Parser {
 				_localctx = new StringLabelContext(_localctx);
 				this.enterOuterAlt(_localctx, 2);
 				{
-				this.state = 698;
+				this.state = 715;
 				this.string();
 				}
 				break;
@@ -3451,9 +3522,9 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 701;
+			this.state = 718;
 			this.match(SFMLParser.EMPTY);
-			this.state = 702;
+			this.state = 719;
 			_la = this._input.LA(1);
 			if (!(_la === SFMLParser.SLOTS || _la === SFMLParser.SLOT)) {
 			this._errHandler.recoverInline(this);
@@ -3465,7 +3536,7 @@ export class SFMLParser extends Parser {
 				this._errHandler.reportMatch(this);
 				this.consume();
 			}
-			this.state = 703;
+			this.state = 720;
 			this.match(SFMLParser.IN);
 			}
 		}
@@ -3491,9 +3562,9 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 705;
+			this.state = 722;
 			_la = this._input.LA(1);
-			if (!(((((_la - 46)) & ~0x1F) === 0 && ((1 << (_la - 46)) & ((1 << (SFMLParser.TOP - 46)) | (1 << (SFMLParser.BOTTOM - 46)) | (1 << (SFMLParser.LEFT - 46)) | (1 << (SFMLParser.RIGHT - 46)) | (1 << (SFMLParser.FRONT - 46)) | (1 << (SFMLParser.BACK - 46)) | (1 << (SFMLParser.SECONDS - 46)) | (1 << (SFMLParser.SECOND - 46)) | (1 << (SFMLParser.GLOBAL - 46)) | (1 << (SFMLParser.OFFSET - 46)) | (1 << (SFMLParser.FRAME - 46)) | (1 << (SFMLParser.FOR - 46)) | (1 << (SFMLParser.MOD - 46)) | (1 << (SFMLParser.RENDER - 46)) | (1 << (SFMLParser.IMAGE - 46)) | (1 << (SFMLParser.REDSTONE - 46)) | (1 << (SFMLParser.LET - 46)) | (1 << (SFMLParser.BE - 46)) | (1 << (SFMLParser.PLAYER - 46)))) !== 0) || ((((_la - 78)) & ~0x1F) === 0 && ((1 << (_la - 78)) & ((1 << (SFMLParser.OF - 78)) | (1 << (SFMLParser.LIKE - 78)) | (1 << (SFMLParser.OBJECT - 78)) | (1 << (SFMLParser.FIELD - 78)) | (1 << (SFMLParser.GUID - 78)) | (1 << (SFMLParser.STRING_TYPE - 78)) | (1 << (SFMLParser.INVOKE - 78)) | (1 << (SFMLParser.CAPABILITY - 78)) | (1 << (SFMLParser.AS - 78)) | (1 << (SFMLParser.CREATE - 78)) | (1 << (SFMLParser.BROADCAST - 78)) | (1 << (SFMLParser.CHANNEL - 78)) | (1 << (SFMLParser.NEW - 78)) | (1 << (SFMLParser.CLIENT - 78)) | (1 << (SFMLParser.SERVER - 78)) | (1 << (SFMLParser.BTW - 78)) | (1 << (SFMLParser.IDENTIFIER - 78)))) !== 0))) {
+			if (!(((((_la - 46)) & ~0x1F) === 0 && ((1 << (_la - 46)) & ((1 << (SFMLParser.TOP - 46)) | (1 << (SFMLParser.BOTTOM - 46)) | (1 << (SFMLParser.LEFT - 46)) | (1 << (SFMLParser.RIGHT - 46)) | (1 << (SFMLParser.FRONT - 46)) | (1 << (SFMLParser.BACK - 46)) | (1 << (SFMLParser.SECONDS - 46)) | (1 << (SFMLParser.SECOND - 46)) | (1 << (SFMLParser.GLOBAL - 46)) | (1 << (SFMLParser.OFFSET - 46)) | (1 << (SFMLParser.FRAME - 46)) | (1 << (SFMLParser.FOR - 46)) | (1 << (SFMLParser.MOD - 46)) | (1 << (SFMLParser.RENDER - 46)) | (1 << (SFMLParser.IMAGE - 46)) | (1 << (SFMLParser.REDSTONE - 46)) | (1 << (SFMLParser.LET - 46)) | (1 << (SFMLParser.BE - 46)) | (1 << (SFMLParser.PLAYER - 46)))) !== 0) || ((((_la - 78)) & ~0x1F) === 0 && ((1 << (_la - 78)) & ((1 << (SFMLParser.OF - 78)) | (1 << (SFMLParser.LIKE - 78)) | (1 << (SFMLParser.OBJECT - 78)) | (1 << (SFMLParser.FIELD - 78)) | (1 << (SFMLParser.GUID - 78)) | (1 << (SFMLParser.STRING_TYPE - 78)) | (1 << (SFMLParser.INVOKE - 78)) | (1 << (SFMLParser.CAPABILITY - 78)) | (1 << (SFMLParser.AS - 78)) | (1 << (SFMLParser.CREATE - 78)) | (1 << (SFMLParser.BROADCAST - 78)) | (1 << (SFMLParser.CHANNEL - 78)) | (1 << (SFMLParser.NEW - 78)) | (1 << (SFMLParser.CLIENT - 78)) | (1 << (SFMLParser.SERVER - 78)) | (1 << (SFMLParser.BTW - 78)) | (1 << (SFMLParser.JSON - 78)) | (1 << (SFMLParser.IDENTIFIER - 78)))) !== 0))) {
 			this._errHandler.recoverInline(this);
 			} else {
 				if (this._input.LA(1) === Token.EOF) {
@@ -3526,7 +3597,7 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 707;
+			this.state = 724;
 			this.match(SFMLParser.STRING);
 			}
 		}
@@ -3551,7 +3622,7 @@ export class SFMLParser extends Parser {
 		try {
 			this.enterOuterAlt(_localctx, 1);
 			{
-			this.state = 709;
+			this.state = 726;
 			this.match(SFMLParser.NUMBER);
 			}
 		}
@@ -3593,17 +3664,17 @@ export class SFMLParser extends Parser {
 	private boolexpr_sempred(_localctx: BoolexprContext, predIndex: number): boolean {
 		switch (predIndex) {
 		case 2:
-			return this.precpred(this._ctx, 5);
+			return this.precpred(this._ctx, 6);
 
 		case 3:
-			return this.precpred(this._ctx, 4);
+			return this.precpred(this._ctx, 5);
 		}
 		return true;
 	}
 
 	private static readonly _serializedATNSegments: number = 2;
 	private static readonly _serializedATNSegment0: string =
-		"\x03\uC91D\uCABA\u058D\uAFBA\u4F53\u0607\uEA8B\uC241\x03m\u02CA\x04\x02" +
+		"\x03\uC91D\uCABA\u058D\uAFBA\u4F53\u0607\uEA8B\uC241\x03n\u02DB\x04\x02" +
 		"\t\x02\x04\x03\t\x03\x04\x04\t\x04\x04\x05\t\x05\x04\x06\t\x06\x04\x07" +
 		"\t\x07\x04\b\t\b\x04\t\t\t\x04\n\t\n\x04\v\t\v\x04\f\t\f\x04\r\t\r\x04" +
 		"\x0E\t\x0E\x04\x0F\t\x0F\x04\x10\t\x10\x04\x11\t\x11\x04\x12\t\x12\x04" +
@@ -3631,73 +3702,75 @@ export class SFMLParser extends Parser {
 		"\x03\x0E\x03\x0E\x03\x0E\x03\x0E\x03\x0F\x03\x0F\x03\x0F\x03\x0F\x03\x0F" +
 		"\x03\x10\x03\x10\x03\x10\x03\x10\x03\x10\x03\x10\x03\x10\x03\x10\x03\x10" +
 		"\x03\x10\x03\x10\x03\x10\x03\x10\x03\x10\x07\x10\u0122\n\x10\f\x10\x0E" +
-		"\x10\u0125\v\x10\x05\x10\u0127\n\x10\x03\x11\x03\x11\x03\x11\x03\x11\x03" +
-		"\x12\x03\x12\x03\x12\x03\x12\x05\x12\u0131\n\x12\x03\x13\x03\x13\x03\x13" +
-		"\x03\x13\x03\x13\x03\x13\x03\x14\x03\x14\x03\x14\x03\x14\x03\x14\x05\x14" +
-		"\u013E\n\x14\x03\x15\x03\x15\x05\x15\u0142\n\x15\x03\x15\x03\x15\x07\x15" +
-		"\u0146\n\x15\f\x15\x0E\x15\u0149\v\x15\x03\x15\x05\x15\u014C\n\x15\x03" +
-		"\x16\x03\x16\x05\x16\u0150\n\x16\x03\x16\x05\x16\u0153\n\x16\x03\x16\x05" +
-		"\x16\u0156\n\x16\x03\x16\x03\x16\x05\x16\u015A\n\x16\x03\x16\x03\x16\x05" +
-		"\x16\u015E\n\x16\x03\x16\x03\x16\x05\x16\u0162\n\x16\x03\x16\x03\x16\x03" +
-		"\x16\x05\x16\u0167\n\x16\x03\x16\x05\x16\u016A\n\x16\x03\x16\x05\x16\u016D" +
-		"\n\x16\x03\x16\x05\x16\u0170\n\x16\x05\x16\u0172\n\x16\x03\x17\x03\x17" +
-		"\x03\x17\x03\x17\x03\x17\x05\x17\u0179\n\x17\x03\x18\x03\x18\x03\x18\x03" +
-		"\x19\x03\x19\x05\x19\u0180\n\x19\x03\x19\x05\x19\u0183\n\x19\x03\x19\x03" +
-		"\x19\x05\x19\u0187\n\x19\x03\x19\x05\x19\u018A\n\x19\x03\x19\x03\x19\x03" +
-		"\x19\x05\x19\u018F\n\x19\x03\x19\x05\x19\u0192\n\x19\x03\x19\x03\x19\x03" +
-		"\x19\x05\x19\u0197\n\x19\x03\x19\x05\x19\u019A\n\x19\x05\x19\u019C\n\x19" +
-		"\x03\x1A\x03\x1A\x03\x1B\x03\x1B\x03\x1C\x03\x1C\x03\x1C\x07\x1C\u01A5" +
-		"\n\x1C\f\x1C\x0E\x1C\u01A8\v\x1C\x03\x1C\x05\x1C\u01AB\n\x1C\x03\x1D\x05" +
-		"\x1D\u01AE\n\x1D\x03\x1D\x03\x1D\x05\x1D\u01B2\n\x1D\x03\x1D\x03\x1D\x05" +
-		"\x1D\u01B6\n\x1D\x03\x1D\x05\x1D\u01B9\n\x1D\x03\x1E\x03\x1E\x03\x1E\x03" +
-		"\x1E\x03\x1E\x05\x1E\u01C0\n\x1E\x03\x1F\x03\x1F\x05\x1F\u01C4\n\x1F\x03" +
-		" \x03 \x03 \x05 \u01C9\n \x03!\x03!\x03!\x03\"\x03\"\x03\"\x05\"\u01D1" +
-		"\n\"\x03\"\x03\"\x05\"\u01D5\n\"\x03\"\x03\"\x05\"\u01D9\n\"\x05\"\u01DB" +
-		"\n\"\x05\"\u01DD\n\"\x05\"\u01DF\n\"\x03\"\x05\"\u01E2\n\"\x03#\x03#\x03" +
-		"#\x07#\u01E7\n#\f#\x0E#\u01EA\v#\x03#\x05#\u01ED\n#\x03$\x03$\x03$\x07" +
-		"$\u01F2\n$\f$\x0E$\u01F5\v$\x03$\x05$\u01F8\n$\x03%\x03%\x03%\x03%\x05" +
-		"%\u01FE\n%\x03&\x03&\x03&\x03&\x03&\x03&\x03&\x03&\x03&\x05&\u0209\n&" +
-		"\x03&\x05&\u020C\n&\x03&\x05&\u020F\n&\x03&\x03&\x03&\x03&\x03&\x03&\x07" +
-		"&\u0217\n&\f&\x0E&\u021A\v&\x03\'\x03\'\x03\'\x03\'\x03\'\x07\'\u0221" +
-		"\n\'\f\'\x0E\'\u0224\v\'\x03\'\x03\'\x03\'\x07\'\u0229\n\'\f\'\x0E\'\u022C" +
-		"\v\'\x05\'\u022E\n\'\x03(\x03(\x03(\x03(\x03(\x07(\u0235\n(\f(\x0E(\u0238" +
-		"\v(\x03)\x03)\x03)\x03)\x03)\x07)\u023F\n)\f)\x0E)\u0242\v)\x03)\x03)" +
-		"\x05)\u0246\n)\x03*\x03*\x03+\x03+\x03+\x03,\x03,\x03,\x07,\u0250\n,\f" +
-		",\x0E,\u0253\v,\x03-\x03-\x03-\x05-\u0258\n-\x03.\x03.\x03.\x03.\x03." +
-		"\x03.\x03.\x03.\x03.\x03.\x07.\u0264\n.\f.\x0E.\u0267\v.\x03.\x03.\x05" +
-		".\u026B\n.\x03.\x03.\x03/\x03/\x03/\x03/\x03/\x03/\x03/\x03/\x03/\x03" +
-		"/\x05/\u0279\n/\x03/\x03/\x03/\x03/\x03/\x05/\u0280\n/\x03/\x05/\u0283" +
-		"\n/\x03/\x03/\x05/\u0287\n/\x03/\x03/\x03/\x03/\x05/\u028D\n/\x03/\x03" +
-		"/\x03/\x03/\x03/\x03/\x05/\u0295\n/\x03/\x03/\x03/\x03/\x03/\x03/\x07" +
-		"/\u029D\n/\f/\x0E/\u02A0\v/\x030\x030\x031\x031\x032\x032\x032\x072\u02A9" +
-		"\n2\f2\x0E2\u02AC\v2\x032\x052\u02AF\n2\x032\x052\u02B2\n2\x032\x052\u02B5" +
-		"\n2\x033\x033\x033\x033\x033\x034\x034\x054\u02BE\n4\x035\x035\x035\x03" +
-		"5\x036\x036\x037\x037\x038\x038\x038\x02\x02\x04J\\9\x02\x02\x04\x02\x06" +
-		"\x02\b\x02\n\x02\f\x02\x0E\x02\x10\x02\x12\x02\x14\x02\x16\x02\x18\x02" +
-		"\x1A\x02\x1C\x02\x1E\x02 \x02\"\x02$\x02&\x02(\x02*\x02,\x02.\x020\x02" +
-		"2\x024\x026\x028\x02:\x02<\x02>\x02@\x02B\x02D\x02F\x02H\x02J\x02L\x02" +
-		"N\x02P\x02R\x02T\x02V\x02X\x02Z\x02\\\x02^\x02`\x02b\x02d\x02f\x02h\x02" +
-		"j\x02l\x02n\x02\x02\n\x03\x02]^\x03\x02<?\x04\x02057;\x03\x02\x1F \x03" +
-		"\x02\x10\x19\x05\x02\x07\n\"\"``\x03\x02./\b\x02017:>@BHM_ii\x02\u0306" +
+		"\x10\u0125\v\x10\x03\x10\x03\x10\x03\x10\x03\x10\x03\x10\x03\x10\x03\x10" +
+		"\x03\x10\x03\x10\x03\x10\x03\x10\x03\x10\x05\x10\u0133\n\x10\x03\x11\x03" +
+		"\x11\x03\x11\x03\x11\x03\x12\x03\x12\x03\x12\x03\x12\x05\x12\u013D\n\x12" +
+		"\x03\x13\x03\x13\x03\x13\x03\x13\x03\x13\x03\x13\x03\x14\x03\x14\x03\x14" +
+		"\x03\x14\x03\x14\x05\x14\u014A\n\x14\x03\x15\x03\x15\x05\x15\u014E\n\x15" +
+		"\x03\x15\x03\x15\x07\x15\u0152\n\x15\f\x15\x0E\x15\u0155\v\x15\x03\x15" +
+		"\x05\x15\u0158\n\x15\x03\x16\x03\x16\x05\x16\u015C\n\x16\x03\x16\x05\x16" +
+		"\u015F\n\x16\x03\x16\x05\x16\u0162\n\x16\x03\x16\x03\x16\x05\x16\u0166" +
+		"\n\x16\x03\x16\x03\x16\x05\x16\u016A\n\x16\x03\x16\x03\x16\x05\x16\u016E" +
+		"\n\x16\x03\x16\x03\x16\x03\x16\x05\x16\u0173\n\x16\x03\x16\x05\x16\u0176" +
+		"\n\x16\x03\x16\x05\x16\u0179\n\x16\x03\x16\x05\x16\u017C\n\x16\x05\x16" +
+		"\u017E\n\x16\x03\x17\x03\x17\x03\x17\x03\x17\x03\x17\x05\x17\u0185\n\x17" +
+		"\x03\x18\x03\x18\x03\x18\x03\x19\x03\x19\x05\x19\u018C\n\x19\x03\x19\x05" +
+		"\x19\u018F\n\x19\x03\x19\x03\x19\x05\x19\u0193\n\x19\x03\x19\x05\x19\u0196" +
+		"\n\x19\x03\x19\x03\x19\x03\x19\x05\x19\u019B\n\x19\x03\x19\x05\x19\u019E" +
+		"\n\x19\x03\x19\x03\x19\x03\x19\x05\x19\u01A3\n\x19\x03\x19\x05\x19\u01A6" +
+		"\n\x19\x05\x19\u01A8\n\x19\x03\x1A\x03\x1A\x03\x1B\x03\x1B\x03\x1C\x03" +
+		"\x1C\x03\x1C\x07\x1C\u01B1\n\x1C\f\x1C\x0E\x1C\u01B4\v\x1C\x03\x1C\x05" +
+		"\x1C\u01B7\n\x1C\x03\x1D\x05\x1D\u01BA\n\x1D\x03\x1D\x03\x1D\x05\x1D\u01BE" +
+		"\n\x1D\x03\x1D\x03\x1D\x05\x1D\u01C2\n\x1D\x03\x1D\x05\x1D\u01C5\n\x1D" +
+		"\x03\x1E\x03\x1E\x03\x1E\x03\x1E\x03\x1E\x05\x1E\u01CC\n\x1E\x03\x1F\x03" +
+		"\x1F\x05\x1F\u01D0\n\x1F\x03 \x03 \x03 \x05 \u01D5\n \x03!\x03!\x03!\x03" +
+		"\"\x03\"\x03\"\x05\"\u01DD\n\"\x03\"\x03\"\x05\"\u01E1\n\"\x03\"\x03\"" +
+		"\x05\"\u01E5\n\"\x05\"\u01E7\n\"\x05\"\u01E9\n\"\x05\"\u01EB\n\"\x03\"" +
+		"\x05\"\u01EE\n\"\x03#\x03#\x03#\x07#\u01F3\n#\f#\x0E#\u01F6\v#\x03#\x05" +
+		"#\u01F9\n#\x03$\x03$\x03$\x07$\u01FE\n$\f$\x0E$\u0201\v$\x03$\x05$\u0204" +
+		"\n$\x03%\x03%\x03%\x03%\x05%\u020A\n%\x03&\x03&\x03&\x03&\x03&\x03&\x03" +
+		"&\x03&\x03&\x05&\u0215\n&\x03&\x05&\u0218\n&\x03&\x05&\u021B\n&\x03&\x03" +
+		"&\x03&\x03&\x03&\x03&\x07&\u0223\n&\f&\x0E&\u0226\v&\x03\'\x03\'\x03\'" +
+		"\x03\'\x03\'\x07\'\u022D\n\'\f\'\x0E\'\u0230\v\'\x03\'\x03\'\x03\'\x07" +
+		"\'\u0235\n\'\f\'\x0E\'\u0238\v\'\x05\'\u023A\n\'\x03(\x03(\x03(\x03(\x03" +
+		"(\x07(\u0241\n(\f(\x0E(\u0244\v(\x03)\x03)\x03)\x03)\x03)\x07)\u024B\n" +
+		")\f)\x0E)\u024E\v)\x03)\x03)\x05)\u0252\n)\x03*\x03*\x03+\x03+\x03+\x03" +
+		",\x03,\x03,\x07,\u025C\n,\f,\x0E,\u025F\v,\x03-\x03-\x03-\x05-\u0264\n" +
+		"-\x03.\x03.\x03.\x03.\x03.\x03.\x03.\x03.\x03.\x03.\x07.\u0270\n.\f.\x0E" +
+		".\u0273\v.\x03.\x03.\x05.\u0277\n.\x03.\x03.\x03/\x03/\x03/\x03/\x03/" +
+		"\x03/\x03/\x03/\x03/\x03/\x05/\u0285\n/\x03/\x03/\x03/\x03/\x03/\x05/" +
+		"\u028C\n/\x03/\x05/\u028F\n/\x03/\x03/\x05/\u0293\n/\x03/\x03/\x03/\x03" +
+		"/\x05/\u0299\n/\x03/\x03/\x03/\x03/\x03/\x03/\x03/\x03/\x03/\x03/\x03" +
+		"/\x05/\u02A6\n/\x03/\x03/\x03/\x03/\x03/\x03/\x07/\u02AE\n/\f/\x0E/\u02B1" +
+		"\v/\x030\x030\x031\x031\x032\x032\x032\x072\u02BA\n2\f2\x0E2\u02BD\v2" +
+		"\x032\x052\u02C0\n2\x032\x052\u02C3\n2\x032\x052\u02C6\n2\x033\x033\x03" +
+		"3\x033\x033\x034\x034\x054\u02CF\n4\x035\x035\x035\x035\x036\x036\x03" +
+		"7\x037\x038\x038\x038\x02\x02\x04J\\9\x02\x02\x04\x02\x06\x02\b\x02\n" +
+		"\x02\f\x02\x0E\x02\x10\x02\x12\x02\x14\x02\x16\x02\x18\x02\x1A\x02\x1C" +
+		"\x02\x1E\x02 \x02\"\x02$\x02&\x02(\x02*\x02,\x02.\x020\x022\x024\x026" +
+		"\x028\x02:\x02<\x02>\x02@\x02B\x02D\x02F\x02H\x02J\x02L\x02N\x02P\x02" +
+		"R\x02T\x02V\x02X\x02Z\x02\\\x02^\x02`\x02b\x02d\x02f\x02h\x02j\x02l\x02" +
+		"n\x02\x02\v\x03\x02]^\x03\x02<?\x04\x02057;\x03\x02\x1F \x03\x02\x14\x15" +
+		"\x03\x02\x10\x19\x05\x02\x07\n\"\"aa\x03\x02./\b\x02017:>@BHM`jj\x02\u031B" +
 		"\x02q\x03\x02\x02\x02\x04\x84\x03\x02\x02\x02\x06\x87\x03\x02\x02\x02" +
 		"\b\x97\x03\x02\x02\x02\n\xA9\x03\x02\x02\x02\f\xB4\x03\x02\x02\x02\x0E" +
 		"\xCD\x03\x02\x02\x02\x10\xCF\x03\x02\x02\x02\x12\xF4\x03\x02\x02\x02\x14" +
 		"\xF6\x03\x02\x02\x02\x16\xFB\x03\x02\x02\x02\x18\u0106\x03\x02\x02\x02" +
-		"\x1A\u0108\x03\x02\x02\x02\x1C\u010E\x03\x02\x02\x02\x1E\u0126\x03\x02" +
-		"\x02\x02 \u0128\x03\x02\x02\x02\"\u0130\x03\x02\x02\x02$\u0132\x03\x02" +
-		"\x02\x02&\u0138\x03\x02\x02\x02(\u013F\x03\x02\x02\x02*\u0171\x03\x02" +
-		"\x02\x02,\u0178\x03\x02\x02\x02.\u017A\x03\x02\x02\x020\u019B\x03\x02" +
-		"\x02\x022\u019D\x03\x02\x02\x024\u019F\x03\x02\x02\x026\u01A1\x03\x02" +
-		"\x02\x028\u01B8\x03\x02\x02\x02:\u01BF\x03\x02\x02\x02<\u01C1\x03\x02" +
-		"\x02\x02>\u01C5\x03\x02\x02\x02@\u01CA\x03\x02\x02\x02B\u01E1\x03\x02" +
-		"\x02\x02D\u01E3\x03\x02\x02\x02F\u01EE\x03\x02\x02\x02H\u01FD\x03\x02" +
-		"\x02\x02J\u020E\x03\x02\x02\x02L\u022D\x03\x02\x02\x02N\u022F\x03\x02" +
-		"\x02\x02P\u0245\x03\x02\x02\x02R\u0247\x03\x02\x02\x02T\u0249\x03\x02" +
-		"\x02\x02V\u024C\x03\x02\x02\x02X\u0254\x03\x02\x02\x02Z\u0259\x03\x02" +
-		"\x02\x02\\\u0294\x03\x02\x02\x02^\u02A1\x03\x02\x02\x02`\u02A3\x03\x02" +
-		"\x02\x02b\u02A5\x03\x02\x02\x02d\u02B6\x03\x02\x02\x02f\u02BD\x03\x02" +
-		"\x02\x02h\u02BF\x03\x02\x02\x02j\u02C3\x03\x02\x02\x02l\u02C5\x03\x02" +
-		"\x02\x02n\u02C7\x03\x02\x02\x02pr\x05\x04\x03\x02qp\x03\x02\x02\x02qr" +
+		"\x1A\u0108\x03\x02\x02\x02\x1C\u010E\x03\x02\x02\x02\x1E\u0132\x03\x02" +
+		"\x02\x02 \u0134\x03\x02\x02\x02\"\u013C\x03\x02\x02\x02$\u013E\x03\x02" +
+		"\x02\x02&\u0144\x03\x02\x02\x02(\u014B\x03\x02\x02\x02*\u017D\x03\x02" +
+		"\x02\x02,\u0184\x03\x02\x02\x02.\u0186\x03\x02\x02\x020\u01A7\x03\x02" +
+		"\x02\x022\u01A9\x03\x02\x02\x024\u01AB\x03\x02\x02\x026\u01AD\x03\x02" +
+		"\x02\x028\u01C4\x03\x02\x02\x02:\u01CB\x03\x02\x02\x02<\u01CD\x03\x02" +
+		"\x02\x02>\u01D1\x03\x02\x02\x02@\u01D6\x03\x02\x02\x02B\u01ED\x03\x02" +
+		"\x02\x02D\u01EF\x03\x02\x02\x02F\u01FA\x03\x02\x02\x02H\u0209\x03\x02" +
+		"\x02\x02J\u021A\x03\x02\x02\x02L\u0239\x03\x02\x02\x02N\u023B\x03\x02" +
+		"\x02\x02P\u0251\x03\x02\x02\x02R\u0253\x03\x02\x02\x02T\u0255\x03\x02" +
+		"\x02\x02V\u0258\x03\x02\x02\x02X\u0260\x03\x02\x02\x02Z\u0265\x03\x02" +
+		"\x02\x02\\\u02A5\x03\x02\x02\x02^\u02B2\x03\x02\x02\x02`\u02B4\x03\x02" +
+		"\x02\x02b\u02B6\x03\x02\x02\x02d\u02C7\x03\x02\x02\x02f\u02CE\x03\x02" +
+		"\x02\x02h\u02D0\x03\x02\x02\x02j\u02D4\x03\x02\x02\x02l\u02D6\x03\x02" +
+		"\x02\x02n\u02D8\x03\x02\x02\x02pr\x05\x04\x03\x02qp\x03\x02\x02\x02qr" +
 		"\x03\x02\x02\x02rt\x03\x02\x02\x02su\x05\x06\x04\x02ts\x03\x02\x02\x02" +
 		"tu\x03\x02\x02\x02uy\x03\x02\x02\x02vx\x05\b\x05\x02wv\x03\x02\x02\x02" +
 		"x{\x03\x02\x02\x02yw\x03\x02\x02\x02yz\x03\x02\x02\x02z\x7F\x03\x02\x02" +
@@ -3722,27 +3795,27 @@ export class SFMLParser extends Parser {
 		"\x02\x02\x02\xAF\xB0\x05j6\x02\xB0\xB1\x07Q\x02\x02\xB1\xB2\x05j6\x02" +
 		"\xB2\xB5\x03\x02\x02\x02\xB3\xB5\x05j6\x02\xB4\xAB\x03\x02\x02\x02\xB4" +
 		"\xAF\x03\x02\x02\x02\xB4\xB3\x03\x02\x02\x02\xB5\r\x03\x02\x02\x02\xB6" +
-		"\xB7\x07`\x02\x02\xB7\xB8\x05\x12\n\x02\xB8\xB9\x07J\x02\x02\xB9\xBA\x05" +
-		"\x16\f\x02\xBA\xBB\x07K\x02\x02\xBB\xCE\x03\x02\x02\x02\xBC\xBD\x07`\x02" +
+		"\xB7\x07a\x02\x02\xB7\xB8\x05\x12\n\x02\xB8\xB9\x07J\x02\x02\xB9\xBA\x05" +
+		"\x16\f\x02\xBA\xBB\x07K\x02\x02\xBB\xCE\x03\x02\x02\x02\xBC\xBD\x07a\x02" +
 		"\x02\xBD\xBE\x07H\x02\x02\xBE\xBF\x07I\x02\x02\xBF\xC0\x07J\x02\x02\xC0" +
 		"\xC1\x05\x16\f\x02\xC1\xC2\x07K\x02\x02\xC2\xCE\x03\x02\x02\x02\xC3\xC4" +
-		"\x07`\x02\x02\xC4\xC5\x07C\x02\x02\xC5\xC6\x07D\x02\x02\xC6\xC7\x05\x10" +
+		"\x07a\x02\x02\xC4\xC5\x07C\x02\x02\xC5\xC6\x07D\x02\x02\xC6\xC7\x05\x10" +
 		"\t\x02\xC7\xC8\x07X\x02\x02\xC8\xC9\x05j6\x02\xC9\xCA\x07J\x02\x02\xCA" +
 		"\xCB\x05\x16\f\x02\xCB\xCC\x07K\x02\x02\xCC\xCE\x03\x02\x02\x02\xCD\xB6" +
 		"\x03\x02\x02\x02\xCD\xBC\x03\x02\x02\x02\xCD\xC3\x03\x02\x02\x02\xCE\x0F" +
-		"\x03\x02\x02\x02\xCF\xD4\x05f4\x02\xD0\xD1\x07a\x02\x02\xD1\xD3\x05f4" +
+		"\x03\x02\x02\x02\xCF\xD4\x05f4\x02\xD0\xD1\x07b\x02\x02\xD1\xD3\x05f4" +
 		"\x02\xD2\xD0\x03\x02\x02\x02\xD3\xD6\x03\x02\x02\x02\xD4\xD2\x03\x02\x02" +
 		"\x02\xD4\xD5\x03\x02\x02\x02\xD5\x11\x03\x02\x02\x02\xD6\xD4\x03\x02\x02" +
-		"\x02\xD7\xD9\x07h\x02\x02\xD8\xD7\x03\x02\x02\x02\xD8\xD9\x03\x02\x02" +
+		"\x02\xD7\xD9\x07i\x02\x02\xD8\xD7\x03\x02\x02\x02\xD8\xD9\x03\x02\x02" +
 		"\x02\xD9\xDB\x03\x02\x02\x02\xDA\xDC\x07@\x02\x02\xDB\xDA\x03\x02\x02" +
 		"\x02\xDB\xDC\x03\x02\x02\x02\xDC\xDF\x03\x02\x02\x02\xDD\xDE\x07A\x02" +
-		"\x02\xDE\xE0\x07h\x02\x02\xDF\xDD\x03\x02\x02\x02\xDF\xE0\x03\x02\x02" +
+		"\x02\xDE\xE0\x07i\x02\x02\xDF\xDD\x03\x02\x02\x02\xDF\xE0\x03\x02\x02" +
 		"\x02\xE0\xE1\x03\x02\x02\x02\xE1\xE6\x05\x14\v\x02\xE2\xE3\x07B\x02\x02" +
-		"\xE3\xE4\x07-\x02\x02\xE4\xE5\x07h\x02\x02\xE5\xE7\x05\x14\v\x02\xE6\xE2" +
+		"\xE3\xE4\x07-\x02\x02\xE4\xE5\x07i\x02\x02\xE5\xE7\x05\x14\v\x02\xE6\xE2" +
 		"\x03\x02\x02\x02\xE6\xE7\x03\x02\x02\x02\xE7\xF5\x03\x02\x02\x02\xE8\xEB" +
-		"\x07g\x02\x02\xE9\xEA\x07A\x02\x02\xEA\xEC\x07h\x02\x02\xEB\xE9\x03\x02" +
+		"\x07h\x02\x02\xE9\xEA\x07A\x02\x02\xEA\xEC\x07i\x02\x02\xEB\xE9\x03\x02" +
 		"\x02\x02\xEB\xEC\x03\x02\x02\x02\xEC\xED\x03\x02\x02\x02\xED\xF2\x05\x14" +
-		"\v\x02\xEE\xEF\x07B\x02\x02\xEF\xF0\x07-\x02\x02\xF0\xF1\x07h\x02\x02" +
+		"\v\x02\xEE\xEF\x07B\x02\x02\xEF\xF0\x07-\x02\x02\xF0\xF1\x07i\x02\x02" +
 		"\xF1\xF3\x05\x14\v\x02\xF2\xEE\x03\x02\x02\x02\xF2\xF3\x03\x02\x02\x02" +
 		"\xF3\xF5\x03\x02\x02\x02\xF4\xD8\x03\x02\x02\x02\xF4\xE8\x03\x02\x02\x02" +
 		"\xF5\x13\x03\x02\x02\x02\xF6\xF7\t\x03\x02\x02\xF7\x15\x03\x02\x02\x02" +
@@ -3760,206 +3833,213 @@ export class SFMLParser extends Parser {
 		"M\x02\x02\u010F\u0110\x05j6\x02\u0110\u0111\x07N\x02\x02\u0111\u0112\x05" +
 		"\x1E\x10\x02\u0112\x1D\x03\x02\x02\x02\u0113\u0114\x07U\x02\x02\u0114" +
 		"\u0115\x07P\x02\x02\u0115\u0116\x07V\x02\x02\u0116\u0117\x05N(\x02\u0117" +
-		"\u0118\x07(\x02\x02\u0118\u0119\x05j6\x02\u0119\u0127\x03\x02\x02\x02" +
+		"\u0118\x07(\x02\x02\u0118\u0119\x05j6\x02\u0119\u0133\x03\x02\x02\x02" +
 		"\u011A\u011B\x05j6\x02\u011B\u011C\x07(\x02\x02\u011C\u011D\x07S\x02\x02" +
 		"\u011D\u0123\x05 \x11\x02\u011E\u011F\x07\x0E\x02\x02\u011F\u0120\x07" +
 		"S\x02\x02\u0120\u0122\x05 \x11\x02\u0121\u011E\x03\x02\x02\x02\u0122\u0125" +
 		"\x03\x02\x02\x02\u0123\u0121\x03\x02\x02\x02\u0123\u0124\x03\x02\x02\x02" +
-		"\u0124\u0127\x03\x02\x02\x02\u0125\u0123\x03\x02\x02\x02\u0126\u0113\x03" +
-		"\x02\x02\x02\u0126\u011A\x03\x02\x02\x02\u0127\x1F\x03\x02\x02\x02\u0128" +
-		"\u0129\x05j6\x02\u0129\u012A\x07P\x02\x02\u012A\u012B\x05\"\x12\x02\u012B" +
-		"!\x03\x02\x02\x02\u012C\u012D\x07\\\x02\x02\u012D\u0131\x07T\x02\x02\u012E" +
-		"\u0131\x05l7\x02\u012F\u0131\x05j6\x02\u0130\u012C\x03\x02\x02\x02\u0130" +
-		"\u012E\x03\x02\x02\x02\u0130\u012F\x03\x02\x02\x02\u0131#\x03\x02\x02" +
-		"\x02\u0132\u0133\x07Y\x02\x02\u0133\u0134\x07\x1C\x02\x02\u0134\u0135" +
-		"\x05N(\x02\u0135\u0136\x07(\x02\x02\u0136\u0137\x05j6\x02\u0137%\x03\x02" +
-		"\x02\x02\u0138\u0139\x07Z\x02\x02\u0139\u013A\x07\x1B\x02\x02\u013A\u013D" +
-		"\x05j6\x02\u013B\u013C\x07[\x02\x02\u013C\u013E\x05N(\x02\u013D\u013B" +
-		"\x03\x02\x02\x02\u013D\u013E\x03\x02\x02\x02\u013E\'\x03\x02\x02\x02\u013F" +
-		"\u0141\x07$\x02\x02\u0140\u0142\x05f4\x02\u0141\u0140\x03\x02\x02\x02" +
-		"\u0141\u0142\x03\x02\x02\x02\u0142\u0147\x03\x02\x02\x02\u0143\u0144\x07" +
-		"a\x02\x02\u0144\u0146\x05f4\x02\u0145\u0143\x03\x02\x02\x02\u0146\u0149" +
-		"\x03\x02\x02\x02\u0147\u0145\x03\x02\x02\x02\u0147\u0148\x03\x02\x02\x02" +
-		"\u0148\u014B\x03\x02\x02\x02\u0149\u0147\x03\x02\x02\x02\u014A\u014C\x07" +
-		"a\x02\x02\u014B\u014A\x03\x02\x02\x02\u014B\u014C\x03\x02\x02\x02\u014C" +
-		")\x03\x02\x02\x02\u014D\u014F\x07\x1C\x02\x02\u014E\u0150\x05,\x17\x02" +
-		"\u014F\u014E\x03\x02\x02\x02\u014F\u0150\x03\x02\x02\x02\u0150\u0152\x03" +
-		"\x02\x02\x02\u0151\u0153\x052\x1A\x02\u0152\u0151\x03\x02\x02\x02\u0152" +
-		"\u0153\x03\x02\x02\x02\u0153\u0155\x03\x02\x02\x02\u0154\u0156\x05@!\x02" +
-		"\u0155\u0154\x03\x02\x02\x02\u0155\u0156\x03\x02\x02\x02\u0156\u0157\x03" +
-		"\x02\x02\x02\u0157\u0159\x07\x1A\x02\x02\u0158\u015A\x07\"\x02\x02\u0159" +
-		"\u0158\x03\x02\x02\x02\u0159\u015A\x03\x02\x02\x02\u015A\u015B\x03\x02" +
-		"\x02\x02\u015B\u015D\x05b2\x02\u015C\u015E\x05.\x18\x02\u015D\u015C\x03" +
-		"\x02\x02\x02\u015D\u015E\x03\x02\x02\x02\u015E\u0172\x03\x02\x02\x02\u015F" +
-		"\u0161\x07\x1A\x02\x02\u0160\u0162\x07\"\x02\x02\u0161\u0160\x03\x02\x02" +
-		"\x02\u0161\u0162\x03\x02\x02\x02\u0162\u0163\x03\x02\x02\x02\u0163\u0164" +
-		"\x05b2\x02\u0164\u0166\x07\x1C\x02\x02\u0165\u0167\x05,\x17\x02\u0166" +
-		"\u0165\x03\x02\x02\x02\u0166\u0167\x03\x02\x02\x02\u0167\u0169\x03\x02" +
-		"\x02\x02\u0168\u016A\x052\x1A\x02\u0169\u0168\x03\x02\x02\x02\u0169\u016A" +
-		"\x03\x02\x02\x02\u016A\u016C\x03\x02\x02\x02\u016B\u016D\x05@!\x02\u016C" +
-		"\u016B\x03\x02\x02\x02\u016C\u016D\x03\x02\x02\x02\u016D\u016F\x03\x02" +
-		"\x02\x02\u016E\u0170\x05.\x18\x02\u016F\u016E\x03\x02\x02\x02\u016F\u0170" +
-		"\x03\x02\x02\x02\u0170\u0172\x03\x02\x02\x02\u0171\u014D\x03\x02\x02\x02" +
-		"\u0171\u015F\x03\x02\x02\x02\u0172+\x03\x02\x02\x02\u0173\u0174\x07(\x02" +
-		"\x02\u0174\u0175\x07W\x02\x02\u0175\u0179\x05N(\x02\u0176\u0177\x07Q\x02" +
-		"\x02\u0177\u0179\x05j6\x02\u0178\u0173\x03\x02\x02\x02\u0178\u0176\x03" +
-		"\x02\x02\x02\u0179-\x03\x02\x02\x02\u017A\u017B\x07X\x02\x02\u017B\u017C" +
-		"\x05j6\x02\u017C/\x03\x02\x02\x02\u017D\u017F\x07\x1D\x02\x02\u017E\u0180" +
-		"\x054\x1B\x02\u017F\u017E\x03\x02\x02\x02\u017F\u0180\x03\x02\x02\x02" +
-		"\u0180\u0182\x03\x02\x02\x02\u0181\u0183\x05@!\x02\u0182\u0181\x03\x02" +
-		"\x02\x02\u0182\u0183\x03\x02\x02\x02\u0183\u0184\x03\x02\x02\x02\u0184" +
-		"\u0186\x07\x1B\x02\x02\u0185\u0187\x05h5\x02\u0186\u0185\x03\x02\x02\x02" +
-		"\u0186\u0187\x03\x02\x02\x02\u0187\u0189\x03\x02\x02\x02\u0188\u018A\x07" +
-		"\"\x02\x02\u0189\u0188\x03\x02\x02\x02\u0189\u018A\x03\x02\x02\x02\u018A" +
-		"\u018B\x03\x02\x02\x02\u018B\u019C\x05b2\x02\u018C\u018E\x07\x1B\x02\x02" +
-		"\u018D\u018F\x05h5\x02\u018E\u018D\x03\x02\x02\x02\u018E\u018F\x03\x02" +
-		"\x02\x02\u018F\u0191\x03\x02\x02\x02\u0190\u0192\x07\"\x02\x02\u0191\u0190" +
-		"\x03\x02\x02\x02\u0191\u0192\x03\x02\x02\x02\u0192\u0193\x03\x02\x02\x02" +
-		"\u0193\u0194\x05b2\x02\u0194\u0196\x07\x1D\x02\x02\u0195\u0197\x054\x1B" +
-		"\x02\u0196\u0195\x03\x02\x02\x02\u0196\u0197\x03\x02\x02\x02\u0197\u0199" +
-		"\x03\x02\x02\x02\u0198\u019A\x05@!\x02\u0199\u0198\x03\x02\x02\x02\u0199" +
-		"\u019A\x03\x02\x02\x02\u019A\u019C\x03\x02\x02\x02\u019B\u017D\x03\x02" +
-		"\x02\x02\u019B\u018C\x03\x02\x02\x02\u019C1\x03\x02\x02\x02\u019D\u019E" +
-		"\x056\x1C\x02\u019E3\x03\x02\x02\x02\u019F\u01A0\x056\x1C\x02\u01A05\x03" +
-		"\x02\x02\x02\u01A1\u01A6\x058\x1D\x02\u01A2\u01A3\x07a\x02\x02\u01A3\u01A5" +
-		"\x058\x1D\x02\u01A4\u01A2\x03\x02\x02\x02\u01A5\u01A8\x03\x02\x02\x02" +
-		"\u01A6\u01A4\x03\x02\x02\x02\u01A6\u01A7\x03\x02\x02\x02\u01A7\u01AA\x03" +
-		"\x02\x02\x02\u01A8\u01A6\x03\x02\x02\x02\u01A9\u01AB\x07a\x02\x02\u01AA" +
-		"\u01A9\x03\x02\x02\x02\u01AA\u01AB\x03\x02\x02\x02\u01AB7\x03\x02\x02" +
-		"\x02\u01AC\u01AE\x05:\x1E\x02\u01AD\u01AC\x03\x02\x02\x02\u01AD\u01AE" +
-		"\x03\x02\x02\x02\u01AE\u01AF\x03\x02\x02\x02\u01AF\u01B1\x05F$\x02\u01B0" +
-		"\u01B2\x05H%\x02\u01B1\u01B0\x03\x02\x02\x02\u01B1\u01B2\x03\x02\x02\x02" +
-		"\u01B2\u01B9\x03\x02\x02\x02\u01B3\u01B5\x05:\x1E\x02\u01B4\u01B6\x05" +
-		"H%\x02\u01B5\u01B4\x03\x02\x02\x02\u01B5\u01B6\x03\x02\x02\x02\u01B6\u01B9" +
-		"\x03\x02\x02\x02\u01B7\u01B9\x05H%\x02\u01B8\u01AD\x03\x02\x02\x02\u01B8" +
-		"\u01B3\x03\x02\x02\x02\u01B8\u01B7\x03\x02\x02\x02\u01B99\x03\x02\x02" +
-		"\x02\u01BA\u01BB\x05<\x1F\x02\u01BB\u01BC\x05> \x02\u01BC\u01C0\x03\x02" +
-		"\x02\x02\u01BD\u01C0\x05> \x02\u01BE\u01C0\x05<\x1F\x02\u01BF\u01BA\x03" +
-		"\x02\x02\x02\u01BF\u01BD\x03\x02\x02\x02\u01BF\u01BE\x03\x02\x02\x02\u01C0" +
-		";\x03\x02\x02\x02\u01C1\u01C3\x05n8\x02\u01C2\u01C4\x07\"\x02\x02\u01C3" +
-		"\u01C2\x03\x02\x02\x02\u01C3\u01C4\x03\x02\x02\x02\u01C4=\x03\x02\x02" +
-		"\x02\u01C5\u01C6\x07!\x02\x02\u01C6\u01C8\x05n8\x02\u01C7\u01C9\x07\"" +
-		"\x02\x02\u01C8\u01C7\x03\x02\x02\x02\u01C8\u01C9\x03\x02\x02\x02\u01C9" +
-		"?\x03\x02\x02\x02\u01CA\u01CB\x07#\x02\x02\u01CB\u01CC\x05D#\x02\u01CC" +
-		"A\x03\x02\x02\x02\u01CD\u01DE\x05j6\x02\u01CE\u01D0\x07b\x02\x02\u01CF" +
-		"\u01D1\x05j6\x02\u01D0\u01CF\x03\x02\x02\x02\u01D0\u01D1\x03\x02\x02\x02" +
-		"\u01D1\u01DC\x03\x02\x02\x02\u01D2\u01D4\x07b\x02\x02\u01D3\u01D5\x05" +
-		"j6\x02\u01D4\u01D3\x03\x02\x02\x02\u01D4\u01D5\x03\x02\x02\x02\u01D5\u01DA" +
-		"\x03\x02\x02\x02\u01D6\u01D8\x07b\x02\x02\u01D7\u01D9\x05j6\x02\u01D8" +
-		"\u01D7\x03\x02\x02\x02\u01D8\u01D9\x03\x02\x02\x02\u01D9\u01DB\x03\x02" +
-		"\x02\x02\u01DA\u01D6\x03\x02\x02\x02\u01DA\u01DB\x03\x02\x02\x02\u01DB" +
-		"\u01DD\x03\x02\x02\x02\u01DC\u01D2\x03\x02\x02\x02\u01DC\u01DD\x03\x02" +
-		"\x02\x02\u01DD\u01DF\x03\x02\x02\x02\u01DE\u01CE\x03\x02\x02\x02\u01DE" +
-		"\u01DF\x03\x02\x02\x02\u01DF\u01E2\x03\x02\x02\x02\u01E0\u01E2\x05l7\x02" +
-		"\u01E1\u01CD\x03\x02\x02\x02\u01E1\u01E0\x03\x02\x02\x02\u01E2C\x03\x02" +
-		"\x02\x02\u01E3\u01E8\x05B\"\x02\u01E4\u01E5\x07a\x02\x02\u01E5\u01E7\x05" +
-		"B\"\x02\u01E6\u01E4\x03\x02\x02\x02\u01E7\u01EA\x03\x02\x02\x02\u01E8" +
-		"\u01E6\x03\x02\x02\x02\u01E8\u01E9\x03\x02\x02\x02\u01E9\u01EC\x03\x02" +
-		"\x02\x02\u01EA\u01E8\x03\x02\x02\x02\u01EB\u01ED\x07a\x02\x02\u01EC\u01EB" +
-		"\x03\x02\x02\x02\u01EC\u01ED\x03\x02\x02\x02\u01EDE\x03\x02\x02\x02\u01EE" +
-		"\u01F3\x05B\"\x02\u01EF\u01F0\x07\x0F\x02\x02\u01F0\u01F2\x05B\"\x02\u01F1" +
-		"\u01EF\x03\x02\x02\x02\u01F2\u01F5\x03\x02\x02\x02\u01F3\u01F1\x03\x02" +
-		"\x02\x02\u01F3\u01F4\x03\x02\x02\x02\u01F4\u01F7\x03\x02\x02\x02\u01F5" +
-		"\u01F3\x03\x02\x02\x02\u01F6\u01F8\x07\x0F\x02\x02\u01F7\u01F6\x03\x02" +
-		"\x02\x02\u01F7\u01F8\x03\x02\x02\x02\u01F8G\x03\x02\x02\x02\u01F9\u01FA" +
-		"\x07(\x02\x02\u01FA\u01FE\x05J&\x02\u01FB\u01FC\x07\'\x02\x02\u01FC\u01FE" +
-		"\x05J&\x02\u01FD\u01F9\x03\x02\x02\x02\u01FD\u01FB\x03\x02\x02\x02\u01FE" +
-		"I\x03\x02\x02\x02\u01FF\u0200\b&\x01\x02\u0200\u0201\x07e\x02\x02\u0201" +
-		"\u0202\x05J&\x02\u0202\u0203\x07f\x02\x02\u0203\u020F\x03\x02\x02\x02" +
-		"\u0204\u0205\x07\r\x02\x02\u0205\u020F\x05J&\x06\u0206\u0208\x07)\x02" +
-		"\x02\u0207\u0209\x07*\x02\x02\u0208\u0207\x03\x02\x02\x02\u0208\u0209" +
-		"\x03\x02\x02\x02\u0209";
+		"\u0124\u0133\x03\x02\x02\x02\u0125\u0123\x03\x02\x02\x02\u0126\u0127\x07" +
+		"`\x02\x02\u0127\u0133\x05l7\x02\u0128\u0129\x07V\x02\x02\u0129\u012A\x05" +
+		"N(\x02\u012A\u012B\x07(\x02\x02\u012B\u012C\x05j6\x02\u012C\u0133\x03" +
+		"\x02\x02\x02\u012D\u012E\x07S\x02\x02\u012E\u012F\x05l7\x02\u012F\u0130" +
+		"\x07P\x02\x02\u0130\u0131\x05j6\x02\u0131\u0133\x03\x02\x02\x02\u0132" +
+		"\u0113\x03\x02\x02\x02\u0132\u011A\x03\x02\x02\x02\u0132\u0126\x03\x02" +
+		"\x02\x02\u0132\u0128\x03\x02\x02\x02\u0132\u012D\x03\x02\x02\x02\u0133" +
+		"\x1F\x03\x02\x02\x02\u0134\u0135\x05j6\x02\u0135\u0136\x07P\x02\x02\u0136" +
+		"\u0137\x05\"\x12\x02\u0137!\x03\x02\x02\x02\u0138\u0139\x07\\\x02\x02" +
+		"\u0139\u013D\x07T\x02\x02\u013A\u013D\x05l7\x02\u013B\u013D\x05j6\x02" +
+		"\u013C\u0138\x03\x02\x02\x02\u013C\u013A\x03\x02\x02\x02\u013C\u013B\x03" +
+		"\x02\x02\x02\u013D#\x03\x02\x02\x02\u013E\u013F\x07Y\x02\x02\u013F\u0140" +
+		"\x07\x1C\x02\x02\u0140\u0141\x05N(\x02\u0141\u0142\x07(\x02\x02\u0142" +
+		"\u0143\x05j6\x02\u0143%\x03\x02\x02\x02\u0144\u0145\x07Z\x02\x02\u0145" +
+		"\u0146\x07\x1B\x02\x02\u0146\u0149\x05j6\x02\u0147\u0148\x07[\x02\x02" +
+		"\u0148\u014A\x05N(\x02\u0149\u0147\x03\x02\x02\x02\u0149\u014A\x03\x02" +
+		"\x02\x02\u014A\'\x03\x02\x02\x02\u014B\u014D\x07$\x02\x02\u014C\u014E" +
+		"\x05f4\x02\u014D\u014C\x03\x02\x02\x02\u014D\u014E\x03\x02\x02\x02\u014E" +
+		"\u0153\x03\x02\x02\x02\u014F\u0150\x07b\x02\x02\u0150\u0152\x05f4\x02" +
+		"\u0151\u014F\x03\x02\x02\x02\u0152\u0155\x03\x02\x02\x02\u0153\u0151\x03" +
+		"\x02\x02\x02\u0153\u0154\x03\x02\x02\x02\u0154\u0157\x03\x02\x02\x02\u0155" +
+		"\u0153\x03\x02\x02\x02\u0156\u0158\x07b\x02\x02\u0157\u0156\x03\x02\x02" +
+		"\x02\u0157\u0158\x03\x02\x02\x02\u0158)\x03\x02\x02\x02\u0159\u015B\x07" +
+		"\x1C\x02\x02\u015A\u015C\x05,\x17\x02\u015B\u015A\x03\x02\x02\x02\u015B" +
+		"\u015C\x03\x02\x02\x02\u015C\u015E\x03\x02\x02\x02\u015D\u015F\x052\x1A" +
+		"\x02\u015E\u015D\x03\x02\x02\x02\u015E\u015F\x03\x02\x02\x02\u015F\u0161" +
+		"\x03\x02\x02\x02\u0160\u0162\x05@!\x02\u0161\u0160\x03\x02\x02\x02\u0161" +
+		"\u0162\x03\x02\x02\x02\u0162\u0163\x03\x02\x02\x02\u0163\u0165\x07\x1A" +
+		"\x02\x02\u0164\u0166\x07\"\x02\x02\u0165\u0164\x03\x02\x02\x02\u0165\u0166" +
+		"\x03\x02\x02\x02\u0166\u0167\x03\x02\x02\x02\u0167\u0169\x05b2\x02\u0168" +
+		"\u016A\x05.\x18\x02\u0169\u0168\x03\x02\x02\x02\u0169\u016A\x03\x02\x02" +
+		"\x02\u016A\u017E\x03\x02\x02\x02\u016B\u016D\x07\x1A\x02\x02\u016C\u016E" +
+		"\x07\"\x02\x02\u016D\u016C\x03\x02\x02\x02\u016D\u016E\x03\x02\x02\x02" +
+		"\u016E\u016F\x03\x02\x02\x02\u016F\u0170\x05b2\x02\u0170\u0172\x07\x1C" +
+		"\x02\x02\u0171\u0173\x05,\x17\x02\u0172\u0171\x03\x02\x02\x02\u0172\u0173" +
+		"\x03\x02\x02\x02\u0173\u0175\x03\x02\x02\x02\u0174\u0176\x052\x1A\x02" +
+		"\u0175\u0174\x03\x02\x02\x02\u0175\u0176\x03\x02\x02\x02\u0176\u0178\x03" +
+		"\x02\x02\x02\u0177\u0179\x05@!\x02\u0178\u0177\x03\x02\x02\x02\u0178\u0179" +
+		"\x03\x02\x02\x02\u0179\u017B\x03\x02\x02\x02\u017A\u017C\x05.\x18\x02" +
+		"\u017B\u017A\x03\x02\x02\x02\u017B\u017C\x03\x02\x02\x02\u017C\u017E\x03" +
+		"\x02\x02\x02\u017D\u0159\x03\x02\x02\x02\u017D\u016B\x03\x02\x02\x02\u017E" +
+		"+\x03\x02\x02\x02\u017F\u0180\x07(\x02\x02\u0180\u0181\x07W\x02\x02\u0181" +
+		"\u0185\x05N(\x02\u0182\u0183\x07Q\x02\x02\u0183\u0185\x05j6\x02\u0184" +
+		"\u017F\x03\x02\x02\x02\u0184\u0182\x03\x02\x02\x02\u0185-\x03\x02\x02" +
+		"\x02\u0186\u0187\x07X\x02\x02\u0187\u0188\x05j6\x02\u0188/\x03\x02\x02" +
+		"\x02\u0189\u018B\x07\x1D\x02\x02\u018A\u018C\x054\x1B\x02\u018B\u018A" +
+		"\x03\x02\x02\x02\u018B\u018C\x03\x02\x02\x02\u018C\u018E\x03\x02\x02\x02" +
+		"\u018D\u018F\x05@!\x02\u018E\u018D\x03\x02\x02\x02\u018E\u018F\x03\x02" +
+		"\x02\x02\u018F\u0190\x03\x02\x02\x02\u0190\u0192\x07\x1B\x02\x02\u0191" +
+		"\u0193\x05h5\x02\u0192\u0191\x03\x02\x02\x02\u0192\u0193\x03\x02\x02\x02" +
+		"\u0193\u0195\x03\x02\x02\x02\u0194\u0196\x07\"\x02\x02\u0195\u0194\x03" +
+		"\x02\x02\x02\u0195\u0196\x03\x02\x02\x02\u0196\u0197\x03\x02\x02\x02\u0197" +
+		"\u01A8\x05b2\x02\u0198\u019A\x07\x1B\x02\x02\u0199\u019B\x05h5\x02\u019A" +
+		"\u0199\x03\x02\x02\x02\u019A\u019B\x03\x02\x02\x02\u019B\u019D\x03\x02" +
+		"\x02\x02\u019C\u019E\x07\"\x02\x02\u019D\u019C\x03\x02\x02\x02\u019D\u019E" +
+		"\x03\x02\x02\x02\u019E\u019F\x03\x02\x02\x02\u019F\u01A0\x05b2\x02\u01A0" +
+		"\u01A2\x07\x1D\x02\x02\u01A1\u01A3\x054\x1B\x02\u01A2\u01A1\x03\x02\x02" +
+		"\x02\u01A2\u01A3\x03\x02\x02\x02\u01A3\u01A5\x03\x02\x02\x02\u01A4\u01A6" +
+		"\x05@!\x02\u01A5\u01A4\x03\x02\x02\x02\u01A5\u01A6\x03\x02\x02\x02\u01A6" +
+		"\u01A8\x03\x02\x02\x02\u01A7\u0189\x03\x02\x02\x02\u01A7\u0198\x03\x02" +
+		"\x02\x02\u01A81\x03\x02\x02\x02\u01A9\u01AA\x056\x1C\x02\u01AA3\x03\x02" +
+		"\x02\x02\u01AB\u01AC\x056\x1C\x02\u01AC5\x03\x02\x02\x02\u01AD\u01B2\x05" +
+		"8\x1D\x02\u01AE\u01AF\x07b\x02\x02\u01AF\u01B1\x058\x1D\x02\u01B0\u01AE" +
+		"\x03\x02\x02\x02\u01B1\u01B4\x03\x02\x02\x02\u01B2\u01B0\x03\x02\x02\x02" +
+		"\u01B2\u01B3\x03\x02\x02\x02\u01B3\u01B6\x03\x02\x02\x02\u01B4\u01B2\x03" +
+		"\x02\x02\x02\u01B5\u01B7\x07b\x02\x02\u01B6\u01B5\x03\x02\x02\x02\u01B6" +
+		"\u01B7\x03\x02\x02\x02\u01B77\x03\x02\x02\x02\u01B8\u01BA\x05:\x1E\x02" +
+		"\u01B9\u01B8\x03\x02\x02\x02\u01B9\u01BA\x03\x02\x02\x02\u01BA\u01BB\x03" +
+		"\x02\x02\x02\u01BB\u01BD\x05F$\x02\u01BC\u01BE\x05H%\x02\u01BD\u01BC\x03" +
+		"\x02\x02\x02\u01BD\u01BE\x03\x02\x02\x02\u01BE\u01C5\x03\x02\x02\x02\u01BF" +
+		"\u01C1\x05:\x1E\x02\u01C0\u01C2\x05H%\x02\u01C1\u01C0\x03\x02\x02\x02" +
+		"\u01C1\u01C2\x03\x02\x02\x02\u01C2\u01C5\x03\x02\x02\x02\u01C3\u01C5\x05" +
+		"H%\x02\u01C4\u01B9\x03\x02\x02\x02\u01C4\u01BF\x03\x02\x02\x02\u01C4\u01C3" +
+		"\x03\x02\x02\x02\u01C59\x03\x02\x02\x02\u01C6\u01C7\x05<\x1F\x02\u01C7" +
+		"\u01C8\x05> \x02\u01C8\u01CC\x03\x02\x02\x02\u01C9\u01CC\x05> \x02\u01CA" +
+		"\u01CC\x05<\x1F\x02\u01CB\u01C6\x03\x02\x02\x02\u01CB\u01C9\x03\x02\x02" +
+		"\x02\u01CB\u01CA\x03\x02\x02\x02\u01CC;\x03\x02\x02\x02\u01CD\u01CF\x05" +
+		"n8\x02\u01CE\u01D0\x07\"\x02\x02\u01CF\u01CE\x03\x02\x02\x02\u01CF\u01D0" +
+		"\x03\x02\x02\x02\u01D0=\x03\x02\x02\x02\u01D1\u01D2\x07!\x02\x02\u01D2" +
+		"\u01D4\x05n8\x02\u01D3\u01D5\x07\"\x02\x02\u01D4\u01D3\x03\x02\x02\x02" +
+		"\u01D4\u01D5\x03\x02\x02\x02\u01D5?\x03\x02\x02\x02\u01D6\u01D7\x07#\x02" +
+		"\x02\u01D7\u01D8\x05D#\x02\u01D8A\x03\x02\x02\x02\u01D9\u01EA\x05j6\x02" +
+		"\u01DA\u01DC\x07c\x02\x02\u01DB\u01DD\x05j6\x02\u01DC\u01DB\x03\x02\x02" +
+		"\x02\u01DC\u01DD\x03\x02\x02\x02\u01DD\u01E8\x03\x02\x02\x02\u01DE\u01E0" +
+		"\x07c\x02\x02\u01DF\u01E1\x05j6\x02\u01E0\u01DF\x03\x02\x02\x02\u01E0" +
+		"\u01E1\x03\x02\x02\x02\u01E1\u01E6\x03\x02\x02\x02\u01E2\u01E4\x07c\x02" +
+		"\x02\u01E3\u01E5\x05j6\x02\u01E4\u01E3\x03\x02\x02\x02\u01E4\u01E5\x03" +
+		"\x02\x02\x02\u01E5\u01E7\x03\x02\x02\x02\u01E6\u01E2\x03\x02\x02\x02\u01E6" +
+		"\u01E7\x03\x02\x02\x02\u01E7\u01E9\x03\x02\x02\x02\u01E8\u01DE\x03\x02" +
+		"\x02\x02\u01E8\u01E9\x03\x02\x02\x02\u01E9\u01EB\x03\x02\x02\x02\u01EA" +
+		"\u01DA\x03\x02\x02\x02\u01EA\u01EB\x03\x02\x02\x02\u01EB\u01EE\x03\x02" +
+		"\x02\x02\u01EC\u01EE\x05l7\x02\u01ED\u01D9\x03\x02\x02\x02\u01ED\u01EC" +
+		"\x03\x02\x02\x02\u01EEC\x03\x02\x02\x02\u01EF\u01F4\x05B\"\x02\u01F0\u01F1" +
+		"\x07b\x02\x02\u01F1\u01F3\x05B\"\x02\u01F2\u01F0\x03\x02\x02\x02\u01F3" +
+		"\u01F6\x03\x02\x02\x02\u01F4\u01F2\x03\x02\x02\x02\u01F4\u01F5\x03\x02" +
+		"\x02\x02\u01F5\u01F8\x03\x02\x02\x02\u01F6\u01F4\x03\x02\x02\x02\u01F7" +
+		"\u01F9\x07b\x02\x02\u01F8\u01F7\x03\x02\x02\x02\u01F8\u01F9\x03\x02\x02" +
+		"\x02\u01F9E\x03\x02\x02\x02\u01FA\u01FF\x05B\"\x02\u01FB\u01FC\x07\x0F" +
+		"\x02\x02\u01FC\u01FE\x05B\"\x02\u01FD\u01FB\x03\x02\x02\x02\u01FE\u0201" +
+		"\x03\x02\x02\x02\u01FF\u01FD\x03\x02\x02\x02\u01FF\u0200\x03\x02\x02\x02" +
+		"\u0200\u0203\x03\x02\x02\x02\u0201\u01FF\x03\x02\x02\x02\u0202\u0204\x07" +
+		"\x0F\x02";
 	private static readonly _serializedATNSegment1: string =
-		"\u020C\x03\x02\x02\x02\u020A\u020C\x07*\x02\x02\u020B\u0206\x03\x02\x02" +
-		"\x02\u020B\u020A\x03\x02\x02\x02\u020C\u020D\x03\x02\x02\x02\u020D\u020F" +
-		"\x05L\'\x02\u020E\u01FF\x03\x02\x02\x02\u020E\u0204\x03\x02\x02\x02\u020E" +
-		"\u020B\x03\x02\x02\x02\u020F\u0218\x03\x02\x02\x02\u0210\u0211\f\x05\x02" +
-		"\x02\u0211\u0212\x07\x0E\x02\x02\u0212\u0217\x05J&\x06\u0213\u0214\f\x04" +
-		"\x02\x02\u0214\u0215\x07\x0F\x02\x02\u0215\u0217\x05J&\x05\u0216\u0210" +
-		"\x03\x02\x02\x02\u0216\u0213\x03\x02\x02\x02\u0217\u021A\x03\x02\x02\x02" +
-		"\u0218\u0216\x03\x02\x02\x02\u0218\u0219\x03\x02\x02\x02\u0219K\x03\x02" +
-		"\x02\x02\u021A\u0218\x03\x02\x02\x02\u021B\u021C\x05j6\x02\u021C\u021D" +
-		"\x07b\x02\x02\u021D\u0222\x05j6\x02\u021E\u021F\x07c\x02\x02\u021F\u0221" +
-		"\x05j6\x02\u0220\u021E\x03\x02\x02\x02\u0221\u0224\x03\x02\x02\x02\u0222" +
-		"\u0220\x03\x02\x02\x02\u0222\u0223\x03\x02\x02\x02\u0223\u022E\x03\x02" +
-		"\x02\x02\u0224\u0222\x03\x02\x02\x02\u0225\u022A\x05j6\x02\u0226\u0227" +
-		"\x07c\x02\x02\u0227\u0229\x05j6\x02\u0228\u0226\x03\x02\x02\x02\u0229" +
-		"\u022C\x03\x02\x02\x02\u022A\u0228\x03\x02\x02\x02\u022A\u022B\x03\x02" +
-		"\x02\x02\u022B\u022E\x03\x02\x02\x02\u022C\u022A\x03\x02\x02\x02\u022D" +
-		"\u021B\x03\x02\x02\x02\u022D\u0225\x03\x02\x02\x02\u022EM\x03\x02\x02" +
-		"\x02\u022F\u0230\x05j6\x02\u0230\u0231\x07b\x02\x02\u0231\u0236\x05j6" +
-		"\x02\u0232\u0233\x07c\x02\x02\u0233\u0235\x05j6\x02\u0234\u0232\x03\x02" +
-		"\x02\x02\u0235\u0238\x03\x02\x02\x02\u0236\u0234\x03\x02\x02\x02\u0236" +
-		"\u0237\x03\x02\x02\x02\u0237O\x03\x02\x02\x02\u0238\u0236\x03\x02\x02" +
-		"\x02\u0239\u023A\x07\"\x02\x02\u023A\u0246\x076\x02\x02\u023B\u0240\x05" +
-		"R*\x02\u023C\u023D\x07a\x02\x02\u023D\u023F\x05R*\x02\u023E\u023C\x03" +
-		"\x02\x02\x02\u023F\u0242\x03\x02\x02\x02\u0240\u023E\x03\x02\x02\x02\u0240" +
-		"\u0241\x03\x02\x02\x02\u0241\u0243\x03\x02\x02\x02\u0242\u0240\x03\x02" +
-		"\x02\x02\u0243\u0244\x076\x02\x02\u0244\u0246\x03\x02\x02\x02\u0245\u0239" +
-		"\x03\x02\x02\x02\u0245\u023B\x03\x02\x02\x02\u0246Q\x03\x02\x02\x02\u0247" +
-		"\u0248\t\x04\x02\x02\u0248S\x03\x02\x02\x02\u0249\u024A\t\x05\x02\x02" +
-		"\u024A\u024B\x05V,\x02\u024BU\x03\x02\x02\x02\u024C\u0251\x05X-\x02\u024D" +
-		"\u024E\x07a\x02\x02\u024E\u0250\x05X-\x02\u024F\u024D\x03\x02\x02\x02" +
-		"\u0250\u0253\x03\x02\x02\x02\u0251\u024F\x03\x02\x02\x02\u0251\u0252\x03" +
-		"\x02\x02\x02\u0252W\x03\x02\x02\x02\u0253\u0251\x03\x02\x02\x02\u0254" +
-		"\u0257\x05n8\x02\u0255\u0256\x07d\x02\x02\u0256\u0258\x05n8\x02\u0257" +
-		"\u0255\x03\x02\x02\x02\u0257\u0258\x03\x02\x02\x02\u0258Y\x03\x02\x02" +
-		"\x02\u0259\u025A\x07\x03\x02\x02\u025A\u025B\x05\\/\x02\u025B\u025C\x07" +
-		"\x04\x02\x02\u025C\u0265\x05\x16\f\x02\u025D\u025E\x07\x05\x02\x02\u025E" +
-		"\u025F\x07\x03\x02\x02\u025F\u0260\x05\\/\x02\u0260\u0261\x07\x04\x02" +
-		"\x02\u0261\u0262\x05\x16\f\x02\u0262\u0264\x03\x02\x02\x02\u0263\u025D" +
-		"\x03\x02\x02\x02\u0264\u0267\x03\x02\x02\x02\u0265\u0263\x03\x02\x02\x02" +
-		"\u0265\u0266\x03\x02\x02\x02\u0266\u026A\x03\x02\x02\x02\u0267\u0265\x03" +
-		"\x02\x02\x02\u0268\u0269\x07\x05\x02\x02\u0269\u026B\x05\x16\f\x02\u026A" +
-		"\u0268\x03\x02\x02\x02\u026A\u026B\x03\x02\x02\x02\u026B\u026C\x03\x02" +
-		"\x02\x02\u026C\u026D\x07K\x02\x02\u026D[\x03\x02\x02\x02\u026E\u026F\b" +
-		"/\x01\x02\u026F\u0295\x07\v\x02\x02\u0270\u0295\x07\f\x02\x02\u0271\u0272" +
-		"\x07e\x02\x02\u0272\u0273\x05\\/\x02\u0273\u0274\x07f\x02\x02\u0274\u0295" +
-		"\x03\x02\x02\x02\u0275\u0276\x07\r\x02\x02\u0276\u0295\x05\\/\b\u0277" +
-		"\u0279\x05`1\x02\u0278\u0277\x03\x02\x02\x02\u0278\u0279\x03\x02\x02\x02" +
-		"\u0279\u027A\x03\x02\x02\x02\u027A\u027B\x05b2\x02\u027B\u027C\x07\x06" +
-		"\x02\x02\u027C\u027D\x05^0\x02\u027D\u027F\x05n8\x02\u027E\u0280\x05F" +
-		"$\x02\u027F\u027E\x03\x02\x02\x02\u027F\u0280\x03\x02\x02\x02\u0280\u0282" +
-		"\x03\x02\x02\x02\u0281\u0283\x05H%\x02\u0282\u0281\x03\x02\x02\x02\u0282" +
-		"\u0283\x03\x02\x02\x02\u0283\u0286\x03\x02\x02\x02\u0284\u0285\x07#\x02" +
-		"\x02\u0285\u0287\x05D#\x02\u0286\u0284\x03\x02\x02\x02\u0286\u0287\x03" +
-		"\x02\x02\x02\u0287\u0295\x03\x02\x02\x02\u0288\u028C\x07H\x02\x02\u0289" +
-		"\u028A\x05^0\x02\u028A\u028B\x05n8\x02\u028B\u028D\x03\x02\x02\x02\u028C" +
-		"\u0289\x03\x02\x02\x02\u028C\u028D\x03\x02\x02\x02\u028D\u0295\x03\x02" +
-		"\x02\x02\u028E\u028F\x07C\x02\x02\u028F\u0290\x07E\x02\x02\u0290\u0291" +
-		"\x05n8\x02\u0291\u0292\x05^0\x02\u0292\u0293\x05n8\x02\u0293\u0295\x03" +
-		"\x02\x02\x02\u0294\u026E\x03\x02\x02\x02\u0294\u0270\x03\x02\x02\x02\u0294" +
-		"\u0271\x03\x02\x02\x02\u0294\u0275\x03\x02\x02\x02\u0294\u0278\x03\x02" +
-		"\x02\x02\u0294\u0288\x03\x02\x02\x02\u0294\u028E\x03\x02\x02\x02\u0295" +
-		"\u029E\x03\x02\x02\x02\u0296\u0297\f\x07\x02\x02\u0297\u0298\x07\x0E\x02" +
-		"\x02\u0298\u029D\x05\\/\b\u0299\u029A\f\x06\x02\x02\u029A\u029B\x07\x0F" +
-		"\x02\x02\u029B\u029D\x05\\/\x07\u029C\u0296\x03\x02\x02\x02\u029C\u0299" +
-		"\x03\x02\x02\x02\u029D\u02A0\x03\x02\x02\x02\u029E\u029C\x03\x02\x02\x02" +
-		"\u029E\u029F\x03\x02\x02\x02\u029F]\x03\x02\x02\x02\u02A0\u029E\x03\x02" +
-		"\x02\x02\u02A1\u02A2\t\x06\x02\x02\u02A2_\x03\x02\x02\x02\u02A3\u02A4" +
-		"\t\x07\x02\x02\u02A4a\x03\x02\x02\x02\u02A5\u02AA\x05f4\x02\u02A6\u02A7" +
-		"\x07a\x02\x02\u02A7\u02A9\x05f4\x02\u02A8\u02A6\x03\x02\x02\x02\u02A9" +
-		"\u02AC\x03\x02\x02\x02\u02AA\u02A8\x03\x02\x02\x02\u02AA\u02AB\x03\x02" +
-		"\x02\x02\u02AB\u02AE\x03\x02\x02\x02\u02AC\u02AA\x03\x02\x02\x02\u02AD" +
-		"\u02AF\x05d3\x02\u02AE\u02AD\x03\x02\x02\x02\u02AE\u02AF\x03\x02\x02\x02" +
-		"\u02AF\u02B1\x03\x02\x02\x02\u02B0\u02B2\x05P)\x02\u02B1\u02B0\x03\x02" +
-		"\x02\x02\u02B1\u02B2\x03\x02\x02\x02\u02B2\u02B4\x03\x02\x02\x02\u02B3" +
-		"\u02B5\x05T+\x02\u02B4\u02B3\x03\x02\x02\x02\u02B4\u02B5\x03\x02\x02\x02" +
-		"\u02B5c\x03\x02\x02\x02\u02B6\u02B7\x07+\x02\x02\u02B7\u02B8\x07,\x02" +
-		"\x02\u02B8\u02B9\x07-\x02\x02\u02B9\u02BA\t\b\x02\x02\u02BAe\x03\x02\x02" +
-		"\x02\u02BB\u02BE\x05j6\x02\u02BC\u02BE\x05l7\x02\u02BD\u02BB\x03\x02\x02" +
-		"\x02\u02BD\u02BC\x03\x02\x02\x02\u02BEg\x03\x02\x02\x02\u02BF\u02C0\x07" +
-		"%\x02\x02\u02C0\u02C1\t\x05\x02\x02\u02C1\u02C2\x07&\x02\x02\u02C2i\x03" +
-		"\x02\x02\x02\u02C3\u02C4\t\t\x02\x02\u02C4k\x03\x02\x02\x02\u02C5\u02C6" +
-		"\x07j\x02\x02\u02C6m\x03\x02\x02\x02\u02C7\u02C8\x07h\x02\x02\u02C8o\x03" +
-		"\x02\x02\x02bqty\x7F\x97\xA5\xA9\xB4\xCD\xD4\xD8\xDB\xDF\xE6\xEB\xF2\xF4" +
-		"\xFB\u0106\u0123\u0126\u0130\u013D\u0141\u0147\u014B\u014F\u0152\u0155" +
-		"\u0159\u015D\u0161\u0166\u0169\u016C\u016F\u0171\u0178\u017F\u0182\u0186" +
-		"\u0189\u018E\u0191\u0196\u0199\u019B\u01A6\u01AA\u01AD\u01B1\u01B5\u01B8" +
-		"\u01BF\u01C3\u01C8\u01D0\u01D4\u01D8\u01DA\u01DC\u01DE\u01E1\u01E8\u01EC" +
-		"\u01F3\u01F7\u01FD\u0208\u020B\u020E\u0216\u0218\u0222\u022A\u022D\u0236" +
-		"\u0240\u0245\u0251\u0257\u0265\u026A\u0278\u027F\u0282\u0286\u028C\u0294" +
-		"\u029C\u029E\u02AA\u02AE\u02B1\u02B4\u02BD";
+		"\x02\u0203\u0202\x03\x02\x02\x02\u0203\u0204\x03\x02\x02\x02\u0204G\x03" +
+		"\x02\x02\x02\u0205\u0206\x07(\x02\x02\u0206\u020A\x05J&\x02\u0207\u0208" +
+		"\x07\'\x02\x02\u0208\u020A\x05J&\x02\u0209\u0205\x03\x02\x02\x02\u0209" +
+		"\u0207\x03\x02\x02\x02\u020AI\x03\x02\x02\x02\u020B\u020C\b&\x01\x02\u020C" +
+		"\u020D\x07f\x02\x02\u020D\u020E\x05J&\x02\u020E\u020F\x07g\x02\x02\u020F" +
+		"\u021B\x03\x02\x02\x02\u0210\u0211\x07\r\x02\x02\u0211\u021B\x05J&\x06" +
+		"\u0212\u0214\x07)\x02\x02\u0213\u0215\x07*\x02\x02\u0214\u0213\x03\x02" +
+		"\x02\x02\u0214\u0215\x03\x02\x02\x02\u0215\u0218\x03\x02\x02\x02\u0216" +
+		"\u0218\x07*\x02\x02\u0217\u0212\x03\x02\x02\x02\u0217\u0216\x03\x02\x02" +
+		"\x02\u0218\u0219\x03\x02\x02\x02\u0219\u021B\x05L\'\x02\u021A\u020B\x03" +
+		"\x02\x02\x02\u021A\u0210\x03\x02\x02\x02\u021A\u0217\x03\x02\x02\x02\u021B" +
+		"\u0224\x03\x02\x02\x02\u021C\u021D\f\x05\x02\x02\u021D\u021E\x07\x0E\x02" +
+		"\x02\u021E\u0223\x05J&\x06\u021F\u0220\f\x04\x02\x02\u0220\u0221\x07\x0F" +
+		"\x02\x02\u0221\u0223\x05J&\x05\u0222\u021C\x03\x02\x02\x02\u0222\u021F" +
+		"\x03\x02\x02\x02\u0223\u0226\x03\x02\x02\x02\u0224\u0222\x03\x02\x02\x02" +
+		"\u0224\u0225\x03\x02\x02\x02\u0225K\x03\x02\x02\x02\u0226\u0224\x03\x02" +
+		"\x02\x02\u0227\u0228\x05j6\x02\u0228\u0229\x07c\x02\x02\u0229\u022E\x05" +
+		"j6\x02\u022A\u022B\x07d\x02\x02\u022B\u022D\x05j6\x02\u022C\u022A\x03" +
+		"\x02\x02\x02\u022D\u0230\x03\x02\x02\x02\u022E\u022C\x03\x02\x02\x02\u022E" +
+		"\u022F\x03\x02\x02\x02\u022F\u023A\x03\x02\x02\x02\u0230\u022E\x03\x02" +
+		"\x02\x02\u0231\u0236\x05j6\x02\u0232\u0233\x07d\x02\x02\u0233\u0235\x05" +
+		"j6\x02\u0234\u0232\x03\x02\x02\x02\u0235\u0238\x03\x02\x02\x02\u0236\u0234" +
+		"\x03\x02\x02\x02\u0236\u0237\x03\x02\x02\x02\u0237\u023A\x03\x02\x02\x02" +
+		"\u0238\u0236\x03\x02\x02\x02\u0239\u0227\x03\x02\x02\x02\u0239\u0231\x03" +
+		"\x02\x02\x02\u023AM\x03\x02\x02\x02\u023B\u023C\x05j6\x02\u023C\u023D" +
+		"\x07c\x02\x02\u023D\u0242\x05j6\x02\u023E\u023F\x07d\x02\x02\u023F\u0241" +
+		"\x05j6\x02\u0240\u023E\x03\x02\x02\x02\u0241\u0244\x03\x02\x02\x02\u0242" +
+		"\u0240\x03\x02\x02\x02\u0242\u0243\x03\x02\x02\x02\u0243O\x03\x02\x02" +
+		"\x02\u0244\u0242\x03\x02\x02\x02\u0245\u0246\x07\"\x02\x02\u0246\u0252" +
+		"\x076\x02\x02\u0247\u024C\x05R*\x02\u0248\u0249\x07b\x02\x02\u0249\u024B" +
+		"\x05R*\x02\u024A\u0248\x03\x02\x02\x02\u024B\u024E\x03\x02\x02\x02\u024C" +
+		"\u024A\x03\x02\x02\x02\u024C\u024D\x03\x02\x02\x02\u024D\u024F\x03\x02" +
+		"\x02\x02\u024E\u024C\x03\x02\x02\x02\u024F\u0250\x076\x02\x02\u0250\u0252" +
+		"\x03\x02\x02\x02\u0251\u0245\x03\x02\x02\x02\u0251\u0247\x03\x02\x02\x02" +
+		"\u0252Q\x03\x02\x02\x02\u0253\u0254\t\x04\x02\x02\u0254S\x03\x02\x02\x02" +
+		"\u0255\u0256\t\x05\x02\x02\u0256\u0257\x05V,\x02\u0257U\x03\x02\x02\x02" +
+		"\u0258\u025D\x05X-\x02\u0259\u025A\x07b\x02\x02\u025A\u025C\x05X-\x02" +
+		"\u025B\u0259\x03\x02\x02\x02\u025C\u025F\x03\x02\x02\x02\u025D\u025B\x03" +
+		"\x02\x02\x02\u025D\u025E\x03\x02\x02\x02\u025EW\x03\x02\x02\x02\u025F" +
+		"\u025D\x03\x02\x02\x02\u0260\u0263\x05n8\x02\u0261\u0262\x07e\x02\x02" +
+		"\u0262\u0264\x05n8\x02\u0263\u0261\x03\x02\x02\x02\u0263\u0264\x03\x02" +
+		"\x02\x02\u0264Y\x03\x02\x02\x02\u0265\u0266\x07\x03\x02\x02\u0266\u0267" +
+		"\x05\\/\x02\u0267\u0268\x07\x04\x02\x02\u0268\u0271\x05\x16\f\x02\u0269" +
+		"\u026A\x07\x05\x02\x02\u026A\u026B\x07\x03\x02\x02\u026B\u026C\x05\\/" +
+		"\x02\u026C\u026D\x07\x04\x02\x02\u026D\u026E\x05\x16\f\x02\u026E\u0270" +
+		"\x03\x02\x02\x02\u026F\u0269\x03\x02\x02\x02\u0270\u0273\x03\x02\x02\x02" +
+		"\u0271\u026F\x03\x02\x02\x02\u0271\u0272\x03\x02\x02\x02\u0272\u0276\x03" +
+		"\x02\x02\x02\u0273\u0271\x03\x02\x02\x02\u0274\u0275\x07\x05\x02\x02\u0275" +
+		"\u0277\x05\x16\f\x02\u0276\u0274\x03\x02\x02\x02\u0276\u0277\x03\x02\x02" +
+		"\x02\u0277\u0278\x03\x02\x02\x02\u0278\u0279\x07K\x02\x02\u0279[\x03\x02" +
+		"\x02\x02\u027A\u027B\b/\x01\x02\u027B\u02A6\x07\v\x02\x02\u027C\u02A6" +
+		"\x07\f\x02\x02\u027D\u027E\x07f\x02\x02\u027E\u027F\x05\\/\x02\u027F\u0280" +
+		"\x07g\x02\x02\u0280\u02A6\x03\x02\x02\x02\u0281\u0282\x07\r\x02\x02\u0282" +
+		"\u02A6\x05\\/\t\u0283\u0285\x05`1\x02\u0284\u0283\x03\x02\x02\x02\u0284" +
+		"\u0285\x03\x02\x02\x02\u0285\u0286\x03\x02\x02\x02\u0286\u0287\x05b2\x02" +
+		"\u0287\u0288\x07\x06\x02\x02\u0288\u0289\x05^0\x02\u0289\u028B\x05n8\x02" +
+		"\u028A\u028C\x05F$\x02\u028B\u028A\x03\x02\x02\x02\u028B\u028C\x03\x02" +
+		"\x02\x02\u028C\u028E\x03\x02\x02\x02\u028D\u028F\x05H%\x02\u028E\u028D" +
+		"\x03\x02\x02\x02\u028E\u028F\x03\x02\x02\x02\u028F\u0292\x03\x02\x02\x02" +
+		"\u0290\u0291\x07#\x02\x02\u0291\u0293\x05D#\x02\u0292\u0290\x03\x02\x02" +
+		"\x02\u0292\u0293\x03\x02\x02\x02\u0293\u02A6\x03\x02\x02\x02\u0294\u0298" +
+		"\x07H\x02\x02\u0295\u0296\x05^0\x02\u0296\u0297\x05n8\x02\u0297\u0299" +
+		"\x03\x02\x02\x02\u0298\u0295\x03\x02\x02\x02\u0298\u0299\x03\x02\x02\x02" +
+		"\u0299\u02A6\x03\x02\x02\x02\u029A\u029B\x07C\x02\x02\u029B\u029C\x07" +
+		"E\x02\x02\u029C\u029D\x05n8\x02\u029D\u029E\x05^0\x02\u029E\u029F\x05" +
+		"n8\x02\u029F\u02A6\x03\x02\x02\x02\u02A0\u02A1\x05j6\x02\u02A1\u02A2\t" +
+		"\x06\x02\x02\u02A2\u02A3\x07`\x02\x02\u02A3\u02A4\x05l7\x02\u02A4\u02A6" +
+		"\x03\x02\x02\x02\u02A5\u027A\x03\x02\x02\x02\u02A5\u027C\x03\x02\x02\x02" +
+		"\u02A5\u027D\x03\x02\x02\x02\u02A5\u0281\x03\x02\x02\x02\u02A5\u0284\x03" +
+		"\x02\x02\x02\u02A5\u0294\x03\x02\x02\x02\u02A5\u029A\x03\x02\x02\x02\u02A5" +
+		"\u02A0\x03\x02\x02\x02\u02A6\u02AF\x03\x02\x02\x02\u02A7\u02A8\f\b\x02" +
+		"\x02\u02A8\u02A9\x07\x0E\x02\x02\u02A9\u02AE\x05\\/\t\u02AA\u02AB\f\x07" +
+		"\x02\x02\u02AB\u02AC\x07\x0F\x02\x02\u02AC\u02AE\x05\\/\b\u02AD\u02A7" +
+		"\x03\x02\x02\x02\u02AD\u02AA\x03\x02\x02\x02\u02AE\u02B1\x03\x02\x02\x02" +
+		"\u02AF\u02AD\x03\x02\x02\x02\u02AF\u02B0\x03\x02\x02\x02\u02B0]\x03\x02" +
+		"\x02\x02\u02B1\u02AF\x03\x02\x02\x02\u02B2\u02B3\t\x07\x02\x02\u02B3_" +
+		"\x03\x02\x02\x02\u02B4\u02B5\t\b\x02\x02\u02B5a\x03\x02\x02\x02\u02B6" +
+		"\u02BB\x05f4\x02\u02B7\u02B8\x07b\x02\x02\u02B8\u02BA\x05f4\x02\u02B9" +
+		"\u02B7\x03\x02\x02\x02\u02BA\u02BD\x03\x02\x02\x02\u02BB\u02B9\x03\x02" +
+		"\x02\x02\u02BB\u02BC\x03\x02\x02\x02\u02BC\u02BF\x03\x02\x02\x02\u02BD" +
+		"\u02BB\x03\x02\x02\x02\u02BE\u02C0\x05d3\x02\u02BF\u02BE\x03\x02\x02\x02" +
+		"\u02BF\u02C0\x03\x02\x02\x02\u02C0\u02C2\x03\x02\x02\x02\u02C1\u02C3\x05" +
+		"P)\x02\u02C2\u02C1\x03\x02\x02\x02\u02C2\u02C3\x03\x02\x02\x02\u02C3\u02C5" +
+		"\x03\x02\x02\x02\u02C4\u02C6\x05T+\x02\u02C5\u02C4\x03\x02\x02\x02\u02C5" +
+		"\u02C6\x03\x02\x02\x02\u02C6c\x03\x02\x02\x02\u02C7\u02C8\x07+\x02\x02" +
+		"\u02C8\u02C9\x07,\x02\x02\u02C9\u02CA\x07-\x02\x02\u02CA\u02CB\t\t\x02" +
+		"\x02\u02CBe\x03\x02\x02\x02\u02CC\u02CF\x05j6\x02\u02CD\u02CF\x05l7\x02" +
+		"\u02CE\u02CC\x03\x02\x02\x02\u02CE\u02CD\x03\x02\x02\x02\u02CFg\x03\x02" +
+		"\x02\x02\u02D0\u02D1\x07%\x02\x02\u02D1\u02D2\t\x05\x02\x02\u02D2\u02D3" +
+		"\x07&\x02\x02\u02D3i\x03\x02\x02\x02\u02D4\u02D5\t\n\x02\x02\u02D5k\x03" +
+		"\x02\x02\x02\u02D6\u02D7\x07k\x02\x02\u02D7m\x03\x02\x02\x02\u02D8\u02D9" +
+		"\x07i\x02\x02\u02D9o\x03\x02\x02\x02bqty\x7F\x97\xA5\xA9\xB4\xCD\xD4\xD8" +
+		"\xDB\xDF\xE6\xEB\xF2\xF4\xFB\u0106\u0123\u0132\u013C\u0149\u014D\u0153" +
+		"\u0157\u015B\u015E\u0161\u0165\u0169\u016D\u0172\u0175\u0178\u017B\u017D" +
+		"\u0184\u018B\u018E\u0192\u0195\u019A\u019D\u01A2\u01A5\u01A7\u01B2\u01B6" +
+		"\u01B9\u01BD\u01C1\u01C4\u01CB\u01CF\u01D4\u01DC\u01E0\u01E4\u01E6\u01E8" +
+		"\u01EA\u01ED\u01F4\u01F8\u01FF\u0203\u0209\u0214\u0217\u021A\u0222\u0224" +
+		"\u022E\u0236\u0239\u0242\u024C\u0251\u025D\u0263\u0271\u0276\u0284\u028B" +
+		"\u028E\u0292\u0298\u02A5\u02AD\u02AF\u02BB\u02BF\u02C2\u02C5\u02CE";
 	public static readonly _serializedATN: string = Utils.join(
 		[
 			SFMLParser._serializedATNSegment0,
@@ -5056,6 +5136,104 @@ export class ObjectConstructionValueExpressionContext extends ValueExpressionCon
 	public accept<Result>(visitor: SFMLVisitor<Result>): Result {
 		if (visitor.visitObjectConstructionValueExpression) {
 			return visitor.visitObjectConstructionValueExpression(this);
+		} else {
+			return visitor.visitChildren(this);
+		}
+	}
+}
+export class ClientJsonValueExpressionContext extends ValueExpressionContext {
+	public JSON(): TerminalNode { return this.getToken(SFMLParser.JSON, 0); }
+	public string(): StringContext {
+		return this.getRuleContext(0, StringContext);
+	}
+	constructor(ctx: ValueExpressionContext) {
+		super(ctx.parent, ctx.invokingState);
+		this.copyFrom(ctx);
+	}
+	// @Override
+	public enterRule(listener: SFMLListener): void {
+		if (listener.enterClientJsonValueExpression) {
+			listener.enterClientJsonValueExpression(this);
+		}
+	}
+	// @Override
+	public exitRule(listener: SFMLListener): void {
+		if (listener.exitClientJsonValueExpression) {
+			listener.exitClientJsonValueExpression(this);
+		}
+	}
+	// @Override
+	public accept<Result>(visitor: SFMLVisitor<Result>): Result {
+		if (visitor.visitClientJsonValueExpression) {
+			return visitor.visitClientJsonValueExpression(this);
+		} else {
+			return visitor.visitChildren(this);
+		}
+	}
+}
+export class ClientInvokeValueExpressionContext extends ValueExpressionContext {
+	public INVOKE(): TerminalNode { return this.getToken(SFMLParser.INVOKE, 0); }
+	public qualifiedId(): QualifiedIdContext {
+		return this.getRuleContext(0, QualifiedIdContext);
+	}
+	public WITH(): TerminalNode { return this.getToken(SFMLParser.WITH, 0); }
+	public identifier(): IdentifierContext {
+		return this.getRuleContext(0, IdentifierContext);
+	}
+	constructor(ctx: ValueExpressionContext) {
+		super(ctx.parent, ctx.invokingState);
+		this.copyFrom(ctx);
+	}
+	// @Override
+	public enterRule(listener: SFMLListener): void {
+		if (listener.enterClientInvokeValueExpression) {
+			listener.enterClientInvokeValueExpression(this);
+		}
+	}
+	// @Override
+	public exitRule(listener: SFMLListener): void {
+		if (listener.exitClientInvokeValueExpression) {
+			listener.exitClientInvokeValueExpression(this);
+		}
+	}
+	// @Override
+	public accept<Result>(visitor: SFMLVisitor<Result>): Result {
+		if (visitor.visitClientInvokeValueExpression) {
+			return visitor.visitClientInvokeValueExpression(this);
+		} else {
+			return visitor.visitChildren(this);
+		}
+	}
+}
+export class ClientFieldValueExpressionContext extends ValueExpressionContext {
+	public FIELD(): TerminalNode { return this.getToken(SFMLParser.FIELD, 0); }
+	public string(): StringContext {
+		return this.getRuleContext(0, StringContext);
+	}
+	public OF(): TerminalNode { return this.getToken(SFMLParser.OF, 0); }
+	public identifier(): IdentifierContext {
+		return this.getRuleContext(0, IdentifierContext);
+	}
+	constructor(ctx: ValueExpressionContext) {
+		super(ctx.parent, ctx.invokingState);
+		this.copyFrom(ctx);
+	}
+	// @Override
+	public enterRule(listener: SFMLListener): void {
+		if (listener.enterClientFieldValueExpression) {
+			listener.enterClientFieldValueExpression(this);
+		}
+	}
+	// @Override
+	public exitRule(listener: SFMLListener): void {
+		if (listener.exitClientFieldValueExpression) {
+			listener.exitClientFieldValueExpression(this);
+		}
+	}
+	// @Override
+	public accept<Result>(visitor: SFMLVisitor<Result>): Result {
+		if (visitor.visitClientFieldValueExpression) {
+			return visitor.visitClientFieldValueExpression(this);
 		} else {
 			return visitor.visitChildren(this);
 		}
@@ -6993,6 +7171,41 @@ export class BooleanFrameModuloContext extends BoolexprContext {
 		}
 	}
 }
+export class BooleanClientValueEqualsContext extends BoolexprContext {
+	public identifier(): IdentifierContext {
+		return this.getRuleContext(0, IdentifierContext);
+	}
+	public JSON(): TerminalNode { return this.getToken(SFMLParser.JSON, 0); }
+	public string(): StringContext {
+		return this.getRuleContext(0, StringContext);
+	}
+	public EQ(): TerminalNode | undefined { return this.tryGetToken(SFMLParser.EQ, 0); }
+	public EQ_SYMBOL(): TerminalNode | undefined { return this.tryGetToken(SFMLParser.EQ_SYMBOL, 0); }
+	constructor(ctx: BoolexprContext) {
+		super(ctx.parent, ctx.invokingState);
+		this.copyFrom(ctx);
+	}
+	// @Override
+	public enterRule(listener: SFMLListener): void {
+		if (listener.enterBooleanClientValueEquals) {
+			listener.enterBooleanClientValueEquals(this);
+		}
+	}
+	// @Override
+	public exitRule(listener: SFMLListener): void {
+		if (listener.exitBooleanClientValueEquals) {
+			listener.exitBooleanClientValueEquals(this);
+		}
+	}
+	// @Override
+	public accept<Result>(visitor: SFMLVisitor<Result>): Result {
+		if (visitor.visitBooleanClientValueEquals) {
+			return visitor.visitBooleanClientValueEquals(this);
+		} else {
+			return visitor.visitChildren(this);
+		}
+	}
+}
 
 
 export class ComparisonOpContext extends ParserRuleContext {
@@ -7299,6 +7512,7 @@ export class IdentifierContext extends ParserRuleContext {
 	public MOD(): TerminalNode | undefined { return this.tryGetToken(SFMLParser.MOD, 0); }
 	public RENDER(): TerminalNode | undefined { return this.tryGetToken(SFMLParser.RENDER, 0); }
 	public IMAGE(): TerminalNode | undefined { return this.tryGetToken(SFMLParser.IMAGE, 0); }
+	public JSON(): TerminalNode | undefined { return this.tryGetToken(SFMLParser.JSON, 0); }
 	constructor(parent: ParserRuleContext | undefined, invokingState: number) {
 		super(parent, invokingState);
 	}

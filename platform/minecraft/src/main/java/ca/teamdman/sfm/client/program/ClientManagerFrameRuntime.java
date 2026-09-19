@@ -1,5 +1,9 @@
 package ca.teamdman.sfm.client.program;
 
+import ca.teamdman.sfm.client.action.SFMClientActionAuthorizationService;
+import ca.teamdman.sfm.client.action.SFMClientProgramActionDispatcher;
+import ca.teamdman.sfm.client.registry.SFMClientActions;
+import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfm.common.block.TouchDisplayBlock;
 import ca.teamdman.sfm.common.blockentity.ClientManagerBlockEntity;
 import ca.teamdman.sfm.common.blockentity.ClientManagerLoadedRegistry;
@@ -10,6 +14,9 @@ import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfml.ast.FrameTrigger;
+import ca.teamdman.sfml.ast.Block;
+import ca.teamdman.sfml.ast.IfStatement;
+import ca.teamdman.sfml.ast.RenderImageStatement;
 import ca.teamdman.sfml.ast.Program;
 import ca.teamdman.sfml.ast.ProgramExecutionSide;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
@@ -30,6 +37,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.HashSet;
 
 /** Executes consented client visual programs only for BER-selected Touch Displays. */
 public final class ClientManagerFrameRuntime {
@@ -44,12 +54,16 @@ public final class ClientManagerFrameRuntime {
             "Client Manager paused: approve its program before it can render"
     );
 
-    private static final ClientProgramConsentGate CONSENT = new ClientProgramConsentGate();
+    private static final SFMClientProgramActionDispatcher ACTIONS = new SFMClientProgramActionDispatcher(
+            SFMClientActions::programmaticBinding, SFMClientActionAuthorizationService.shared());
     private static final WeakHashMap<ClientManagerBlockEntity, Compiled> COMPILED = new WeakHashMap<>();
     private static final WeakHashMap<ClientManagerBlockEntity, Integer> COMPILE_COUNTS = new WeakHashMap<>();
     private static final WeakHashMap<TouchDisplayBlockEntity, FrameState> FRAMES = new WeakHashMap<>();
+    private static final WeakHashMap<TouchDisplayBlockEntity, Map<ExecutionKey, FrameState>> EXECUTIONS = new WeakHashMap<>();
+    private static final WeakHashMap<TouchDisplayBlockEntity, Long> DISPLAY_EPOCHS = new WeakHashMap<>();
     private static final WeakHashMap<TouchDisplayBlockEntity, String> DIAGNOSTICS = new WeakHashMap<>();
     private static final ClientFrameWorkBudget WORK_BUDGET = new ClientFrameWorkBudget(MAX_DISPLAY_EVALUATIONS_PER_FRAME);
+    private static final ClientFrameWorkBudget PROGRAM_WORK_BUDGET = new ClientFrameWorkBudget(MAX_DISPLAY_EVALUATIONS_PER_FRAME);
     private static @Nullable Level activeWorld;
     private static long renderEpoch;
     private static boolean consentNoticeShown;
@@ -57,7 +71,7 @@ public final class ClientManagerFrameRuntime {
     private ClientManagerFrameRuntime() {}
 
     public static ClientProgramConsentGate consent() {
-        return CONSENT;
+        return ClientProgramConsentRuntime.gate();
     }
 
     public static Optional<ClientProgramIdentity> identityFor(ClientManagerBlockEntity manager) {
@@ -113,28 +127,79 @@ public final class ClientManagerFrameRuntime {
         if (!privateWorldAvailable()) {
             DIAGNOSTICS.put(display, "Client Manager requires a private integrated world");
             FRAMES.remove(display);
+            EXECUTIONS.remove(display);
             return Optional.empty();
         }
         if (!eligible) {
-            FRAMES.remove(display);
+            // Visibility is a scheduling pause, not a loss of program authority
+            // or a fresh animation. Retain values/frame counters and stream leases.
             return Optional.empty();
         }
 
         FrameState cached = FRAMES.get(display);
-        if (cached != null && cached.lastEpoch == epoch) return retainedTexture(display, cached);
         // This is shared across all displays and uses the actual render event,
         // never an epoch supplied by the ambient scheduler test seam.
-        if (!WORK_BUDGET.tryAcquire(renderEpoch)) {
+        if (!Objects.equals(DISPLAY_EPOCHS.get(display), epoch) && !WORK_BUDGET.tryAcquire(renderEpoch)) {
             DIAGNOSTICS.put(display, "Client Manager display work budget exhausted for this frame");
             return retainedTexture(display, cached);
         }
+        DISPLAY_EPOCHS.put(display, epoch);
 
-        List<Writer> writers = new ArrayList<>();
+        List<Writer> programs = candidates(display);
+        List<Writer> writers = programs.stream().filter(Writer::renderAllowed).toList();
+        Map<ExecutionKey, FrameState> states = EXECUTIONS.computeIfAbsent(display, ignored -> new HashMap<>());
+        Set<ExecutionKey> active = new HashSet<>();
+        for (Writer writer : programs) {
+            ExecutionKey key = new ExecutionKey(writer.identity(), writer.triggerIndex());
+            active.add(key);
+            FrameState state = states.computeIfAbsent(key, ignored -> new FrameState(writer.identity()));
+            if (state.lastEpoch == epoch) continue;
+            if (!PROGRAM_WORK_BUDGET.tryAcquire(renderEpoch)) {
+                DIAGNOSTICS.put(display, "Client Manager program work budget exhausted for this frame");
+                continue;
+            }
+            state.lastEpoch = epoch;
+            try {
+                ClientFrameEvaluator.Evaluation evaluated = ClientFrameEvaluator.evaluate(writer.trigger(), state.frameIndex,
+                        (action, input) -> ACTIONS.invoke(action, input, writer.identity(), consent(),
+                                ClientManagerFrameRuntime::policyBlockers,
+                                (identity, scope) -> writer.manifest().permits(action, scope),
+                                ClientManagerFrameRuntime::privateWorldAvailable),
+                        writer.renderAllowed() && writers.size() == 1);
+                state.values = evaluated.values();
+                state.frameIndex++;
+                state.evaluations++;
+                if (evaluated.image().isPresent() && !Objects.equals(evaluated.image().get(), state.texture)) {
+                    state.texture = evaluated.image().get();
+                    state.changedFrames++;
+                }
+            } catch (RuntimeException failure) {
+                state.values = Map.of();
+                DIAGNOSTICS.put(display, "Client Manager frame evaluation failed");
+            }
+        }
+        states.keySet().retainAll(active);
+        if (writers.size() != 1) {
+            if (writers.size() > 1) DIAGNOSTICS.put(display, "Multiple approved Client Manager triggers target this display");
+            FRAMES.remove(display);
+            return Optional.empty();
+        }
+        Writer writer = writers.get(0);
+        FrameState state = states.get(new ExecutionKey(writer.identity(), writer.triggerIndex()));
+        FRAMES.put(display, state);
+        return retainedTexture(display, state);
+    }
+
+    private static List<Writer> candidates(TouchDisplayBlockEntity display) {
+        Minecraft minecraft = Minecraft.getInstance();
+        Level world = minecraft.level;
+        if (world == null || display.getLevel() != world || display.isRemoved() || !privateWorldAvailable()) return List.of();
+        List<Writer> programs = new ArrayList<>();
         Set<ClientManagerBlockEntity> managers = ClientManagerLoadedRegistry.snapshot(world);
         if (managers.size() > MAX_MANAGERS_PER_FRAME) {
             DIAGNOSTICS.put(display, "Loaded Client Manager count exceeds the per-frame budget");
             FRAMES.remove(display);
-            return Optional.empty();
+            return List.of();
         }
         for (ClientManagerBlockEntity manager : managers) {
             if (manager.isRemoved() || manager.getLevel() != world
@@ -145,50 +210,53 @@ public final class ClientManagerFrameRuntime {
 
             Compiled compiled = compiled(manager);
             if (compiled.program() == null || compiled.identity() == null) continue;
+            int triggerIndex = -1;
             for (var trigger : compiled.program().triggers()) {
+                triggerIndex++;
                 FrameTrigger frame = (FrameTrigger) trigger;
                 if (!ClientManagerTargetBindings.contains(frame, compiled.labels(), display.getBlockPos())) continue;
 
-                ClientProgramConsentGate.Evaluation execution = CONSENT.execution(compiled.identity(),
+                ClientProgramConsentGate.Evaluation execution = consent().execution(compiled.identity(),
                         ClientManagerFrameRuntime::policyBlockers);
-                ClientProgramConsentGate.Evaluation rendering = CONSENT.evaluate(compiled.identity(),
-                        ClientProgramConsentGate.RENDER, ClientManagerFrameRuntime::policyBlockers);
-                if (!execution.allowed() || !rendering.allowed()) {
+                boolean renderRequested = requestsRender(frame.block());
+                ClientProgramConsentGate.Evaluation rendering = renderRequested
+                        ? consent().evaluate(compiled.identity(), ClientProgramConsentGate.RENDER,
+                                ClientManagerFrameRuntime::policyBlockers) : null;
+                if (!execution.allowed() || rendering != null && !rendering.allowed()) {
                     if (execution.effective() == ClientProgramConsentGate.EffectiveState.AWAITING_CONSENT
-                        || rendering.effective() == ClientProgramConsentGate.EffectiveState.AWAITING_CONSENT) {
+                        || rendering != null && rendering.effective() == ClientProgramConsentGate.EffectiveState.AWAITING_CONSENT) {
                         showOneConsentNotice(minecraft);
                     }
-                    continue;
+                    if (!execution.allowed()) continue;
                 }
-                writers.add(new Writer(frame, compiled.identity()));
+                programs.add(new Writer(frame, compiled.identity(), compiled.manifest(), triggerIndex,
+                        rendering != null && rendering.allowed()));
             }
         }
 
-        if (writers.size() != 1) {
-            if (writers.size() > 1) DIAGNOSTICS.put(display, "Multiple approved Client Manager triggers target this display");
-            FRAMES.remove(display);
-            return Optional.empty();
-        }
+        return programs;
+    }
 
-        Writer writer = writers.get(0);
-        FrameState state = FRAMES.get(display);
-        if (state == null || !state.identity.equals(writer.identity())) {
-            state = new FrameState(writer.identity());
-            FRAMES.put(display, state);
-        }
-        if (state.lastEpoch == epoch) return Optional.ofNullable(state.texture);
-        state.lastEpoch = epoch;
+    private static boolean requestsRender(Block block) {
+        return block.statements().stream().anyMatch(statement -> statement instanceof RenderImageStatement
+                || statement instanceof IfStatement branch
+                   && (requestsRender(branch.trueBlock()) || requestsRender(branch.falseBlock())));
+    }
 
-        // Both execution and render grants have been checked above. Only now
-        // may the visual AST run or the client-local output change.
-        Optional<ResourceLocation> proposed = ClientFrameEvaluator.evaluate(writer.trigger(), state.frameIndex);
-        state.frameIndex++;
-        state.evaluations++;
-        if (proposed.isPresent() && !Objects.equals(proposed.get(), state.texture)) {
-            state.texture = proposed.get();
-            state.changedFrames++;
-        }
-        return Optional.ofNullable(state.texture);
+    /** The sole live approved presentation writer; independent of transient render eligibility. */
+    public static Optional<ClientProgramIdentity> presentationIdentity(TouchDisplayBlockEntity display) {
+        if (!Minecraft.getInstance().isSameThread()) return Optional.empty();
+        List<Writer> writers = candidates(display).stream().filter(Writer::renderAllowed).toList();
+        return writers.size() == 1 ? liveIdentityFor(writers.get(0).identity()) : Optional.empty();
+    }
+
+    /** Bounded ephemeral result observation for ambient integration tests and diagnostics. */
+    public static Optional<SFMValue> valueFor(TouchDisplayBlockEntity display, ClientProgramIdentity identity, String name) {
+        Map<ExecutionKey, FrameState> states = EXECUTIONS.get(display);
+        if (states == null || liveIdentityFor(identity).isEmpty()) return Optional.empty();
+        return states.entrySet().stream().filter(entry -> entry.getKey().identity().equals(identity))
+                .map(entry -> entry.getValue().values.get(ClientProgramActionManifest.key(name)))
+                .filter(Objects::nonNull).findFirst();
     }
 
     public static FrameObservation observation(TouchDisplayBlockEntity display) {
@@ -202,9 +270,7 @@ public final class ClientManagerFrameRuntime {
     private static Optional<ResourceLocation> retainedTexture(TouchDisplayBlockEntity display, @Nullable FrameState state) {
         if (state == null) return Optional.empty();
         if (liveIdentityFor(state.identity).isEmpty()
-            || !CONSENT.execution(state.identity, ClientManagerFrameRuntime::policyBlockers).allowed()
-            || !CONSENT.evaluate(state.identity, ClientProgramConsentGate.RENDER,
-                    ClientManagerFrameRuntime::policyBlockers).allowed()) {
+            || presentationIdentity(display).filter(state.identity::equals).isEmpty()) {
             FRAMES.remove(display);
             return Optional.empty();
         }
@@ -246,8 +312,11 @@ public final class ClientManagerFrameRuntime {
         COMPILED.clear();
         COMPILE_COUNTS.clear();
         FRAMES.clear();
+        EXECUTIONS.clear();
+        DISPLAY_EPOCHS.clear();
         DIAGNOSTICS.clear();
         WORK_BUDGET.clear();
+        PROGRAM_WORK_BUDGET.clear();
         consentNoticeShown = false;
         activeWorld = null;
     }
@@ -263,46 +332,48 @@ public final class ClientManagerFrameRuntime {
 
     private static Compiled compile(ClientManagerBlockEntity manager) {
         if (!privateWorldAvailable()) {
-            return new Compiled(manager.clientSnapshotRevision(), null, null, LabelPositionHolder.empty(),
+            return new Compiled(manager.clientSnapshotRevision(), null, null, null, LabelPositionHolder.empty(),
                     "Client Manager requires a private integrated world");
         }
         LabelPositionHolder labels = manager.labels();
         String source = manager.storedSource();
         if (source.isBlank() || manager.worldId() == null || manager.getLevel() == null) {
-            return new Compiled(manager.clientSnapshotRevision(), null, null, labels, "No synced program/world identity");
+            return new Compiled(manager.clientSnapshotRevision(), null, null, null, labels, "No synced program/world identity");
         }
         if (!ClientFrameSourceBudget.permits(source)) {
-            return new Compiled(manager.clientSnapshotRevision(), null, null, labels,
+            return new Compiled(manager.clientSnapshotRevision(), null, null, null, labels,
                     "Client program exceeds its source/token/nesting budget");
         }
         var result = new ProgramBuilder(source).forExecutionSide(ProgramExecutionSide.CLIENT).build();
         if (!result.isBuildSuccessful() || result.program() == null) {
-            return new Compiled(manager.clientSnapshotRevision(), null, null, labels,
+            return new Compiled(manager.clientSnapshotRevision(), null, null, null, labels,
                     "Client program did not compile: " + result.metadata().errors());
         }
         Program program = result.program();
         if (program.triggers().isEmpty() || program.triggers().size() > MAX_FRAME_TRIGGERS
             || program.triggers().stream().anyMatch(t -> !(t instanceof FrameTrigger))) {
-            return new Compiled(manager.clientSnapshotRevision(), null, null, labels,
+            return new Compiled(manager.clientSnapshotRevision(), null, null, null, labels,
                     "Client Manager currently supports only EVERY FRAME triggers");
         }
         try {
             String bindings = ClientManagerTargetBindings.canonical(program, labels);
+            ClientProgramActionManifest manifest = ClientProgramActionManifest.compile(program, SFMClientActions::programmaticBinding);
             ClientProgramIdentity identity = ClientProgramIdentity.fromStoredSourceAndBindings(
                     source, bindings, ProgramExecutionSide.CLIENT,
                     ClientProgramWorldIdentity.integrated(manager.worldId()),
                     manager.getLevel().dimension().location(), manager.getBlockPos(),
                     ClientProgramIdentity.CLIENT_MANAGER_RUNTIME,
-                    Set.of(ClientProgramConsentGate.EXECUTE, ClientProgramConsentGate.RENDER)
+                    manifest.capabilities()
             );
-            return new Compiled(manager.clientSnapshotRevision(), program, identity, labels, null);
+            ClientProgramConsentRuntime.observe(identity, source, bindings);
+            return new Compiled(manager.clientSnapshotRevision(), program, identity, manifest, labels, null);
         } catch (IllegalArgumentException invalidBindings) {
-            return new Compiled(manager.clientSnapshotRevision(), null, null, labels,
+            return new Compiled(manager.clientSnapshotRevision(), null, null, null, labels,
                     invalidBindings.getMessage());
         }
     }
 
-    private static List<String> policyBlockers(
+    public static List<String> policyBlockers(
             ClientProgramIdentity identity, ResourceLocation capability
     ) {
         if (!privateWorldAvailable()
@@ -317,6 +388,14 @@ public final class ClientManagerFrameRuntime {
         if (!minecraft.isSameThread()) return false;
         MinecraftServer server = minecraft.getSingleplayerServer();
         return server != null && server.isSingleplayer() && !server.isPublished();
+    }
+
+    public static boolean renderEligible(TouchDisplayBlockEntity display) {
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.isSameThread() && minecraft.level != null && display.getLevel() == minecraft.level
+                && !display.isRemoved() && minecraft.level.hasChunkAt(display.getBlockPos())
+                && minecraft.level.getBlockEntity(display.getBlockPos()) == display
+                && renderEligible(minecraft, display);
     }
 
     private static boolean renderEligible(Minecraft minecraft, TouchDisplayBlockEntity display) {
@@ -346,11 +425,14 @@ public final class ClientManagerFrameRuntime {
             long snapshotRevision,
             @Nullable Program program,
             @Nullable ClientProgramIdentity identity,
+            @Nullable ClientProgramActionManifest manifest,
             LabelPositionHolder labels,
             @Nullable String diagnostic
     ) {}
 
-    private record Writer(FrameTrigger trigger, ClientProgramIdentity identity) {}
+    private record Writer(FrameTrigger trigger, ClientProgramIdentity identity, ClientProgramActionManifest manifest,
+                          int triggerIndex, boolean renderAllowed) {}
+    private record ExecutionKey(ClientProgramIdentity identity, int triggerIndex) {}
 
     private static final class FrameState {
         final ClientProgramIdentity identity;
@@ -359,6 +441,7 @@ public final class ClientManagerFrameRuntime {
         long evaluations;
         long changedFrames;
         @Nullable ResourceLocation texture;
+        Map<String, SFMValue> values = Map.of();
 
         FrameState(ClientProgramIdentity identity) {
             this.identity = identity;

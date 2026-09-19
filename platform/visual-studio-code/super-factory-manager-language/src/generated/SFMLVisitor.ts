@@ -1,4 +1,4 @@
-// Generated from SFML.g4 by ANTLR 4.9.0-SNAPSHOT
+// Generated from syntaxes/SFML.g4 by ANTLR 4.9.0-SNAPSHOT
 
 
 import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor";
@@ -22,6 +22,9 @@ import { LiteralFieldValueContext } from "./SFMLParser";
 import { VariableFieldValueContext } from "./SFMLParser";
 import { InvokeTextValueExpressionContext } from "./SFMLParser";
 import { ObjectConstructionValueExpressionContext } from "./SFMLParser";
+import { ClientJsonValueExpressionContext } from "./SFMLParser";
+import { ClientInvokeValueExpressionContext } from "./SFMLParser";
+import { ClientFieldValueExpressionContext } from "./SFMLParser";
 import { BooleanTrueContext } from "./SFMLParser";
 import { BooleanFalseContext } from "./SFMLParser";
 import { BooleanParenContext } from "./SFMLParser";
@@ -31,6 +34,7 @@ import { BooleanDisjunctionContext } from "./SFMLParser";
 import { BooleanHasContext } from "./SFMLParser";
 import { BooleanRedstoneContext } from "./SFMLParser";
 import { BooleanFrameModuloContext } from "./SFMLParser";
+import { BooleanClientValueEqualsContext } from "./SFMLParser";
 import { GuidValuePatternContext } from "./SFMLParser";
 import { StringValuePatternContext } from "./SFMLParser";
 import { LiteralValuePatternContext } from "./SFMLParser";
@@ -266,6 +270,30 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	visitObjectConstructionValueExpression?: (ctx: ObjectConstructionValueExpressionContext) => Result;
 
 	/**
+	 * Visit a parse tree produced by the `ClientJsonValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitClientJsonValueExpression?: (ctx: ClientJsonValueExpressionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `ClientInvokeValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitClientInvokeValueExpression?: (ctx: ClientInvokeValueExpressionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `ClientFieldValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitClientFieldValueExpression?: (ctx: ClientFieldValueExpressionContext) => Result;
+
+	/**
 	 * Visit a parse tree produced by the `BooleanTrue`
 	 * labeled alternative in `SFMLParser.boolexpr`.
 	 * @param ctx the parse tree
@@ -336,6 +364,14 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitBooleanFrameModulo?: (ctx: BooleanFrameModuloContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `BooleanClientValueEquals`
+	 * labeled alternative in `SFMLParser.boolexpr`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitBooleanClientValueEquals?: (ctx: BooleanClientValueEqualsContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by the `GuidValuePattern`

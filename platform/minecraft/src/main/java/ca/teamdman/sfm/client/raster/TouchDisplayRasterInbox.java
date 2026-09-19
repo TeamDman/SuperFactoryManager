@@ -80,6 +80,9 @@ public final class TouchDisplayRasterInbox {
     }
 
     public record Delivery(long generation, long sequence, TouchDisplayRasterFrame.Image image) {}
+    public record FrameInfo(long sequence, int width, int height, String sha256, boolean pending) {
+        public int byteSize() { return width * height * 4; }
+    }
     public record Snapshot(
             int displays, long residentBytes, long ingressBytes, long processingBytes,
             long uploadBytes, int pendingDisplays
@@ -203,6 +206,14 @@ public final class TouchDisplayRasterInbox {
         if (entry == null) return;
         entry.deliveredDigest = null;
         entry.pending = entry.image != null;
+    }
+
+    /** Bounded metadata for texture admission; this does not consume a pending frame. */
+    public synchronized Optional<FrameInfo> latestInfo(WriterLease lease) {
+        Entry entry = current(lease);
+        if (entry == null || entry.image == null) return Optional.empty();
+        return Optional.of(new FrameInfo(entry.sequence, entry.image.width(), entry.image.height(),
+                entry.image.sha256(), entry.pending));
     }
 
     public synchronized void unloadChunk(UUID world, String dimension, int chunkX, int chunkZ) {

@@ -64,6 +64,9 @@ renderImageStatement : RENDER IMAGE string TO identifier;
 letValueStatement : LET identifier BE valueExpression;
 valueExpression : STRING_TYPE OF INVOKE qualifiedId WITH identifier                         #InvokeTextValueExpression
                 | identifier WITH FIELD constructionField (AND FIELD constructionField)*    #ObjectConstructionValueExpression
+                | JSON string                                                               #ClientJsonValueExpression
+                | INVOKE qualifiedId WITH identifier                                         #ClientInvokeValueExpression
+                | FIELD string OF identifier                                                 #ClientFieldValueExpression
                 ;
 constructionField : identifier OF fieldValueExpression;
 fieldValueExpression : NEW GUID #NewGuidFieldValue
@@ -161,6 +164,7 @@ boolexpr        : TRUE                              #BooleanTrue
                 | setOp? labelAccess HAS comparisonOp number resourceIdDisjunction? with? (EXCEPT resourceIdList)?  #BooleanHas
                 | REDSTONE (comparisonOp number)?   #BooleanRedstone
                 | FRAME MOD number comparisonOp number #BooleanFrameModulo
+                | identifier (EQ | EQ_SYMBOL) JSON string #BooleanClientValueEquals
                 ;
 
 comparisonOp    : GT
@@ -201,7 +205,7 @@ emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK
            | LET | BE | PLAYER | OF | LIKE | OBJECT | FIELD | GUID | STRING_TYPE | INVOKE | CAPABILITY
            | AS | CREATE | BROADCAST | CHANNEL | NEW | CLIENT | SERVER | BTW | OFFSET
-           | FRAME | FOR | MOD | RENDER | IMAGE) ;
+           | FRAME | FOR | MOD | RENDER | IMAGE | JSON) ;
 
 // GENERAL
 string: STRING ;
@@ -327,6 +331,7 @@ NEW             : N E W ;
 CLIENT          : C L I E N T ;
 SERVER          : S E R V E R ;
 BTW             : B T W ;
+JSON            : J S O N ;
 
 // GENERAL SYMBOLS
 // used by triggers and as a set operator

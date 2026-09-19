@@ -412,6 +412,11 @@ public final class SFMGamePuppetHelper {
         add(new ExploreTouchDisplayInteractivelyPuppetAction(requestedTouch));
     }
 
+    /** Separate opt-in consent UI journey; never part of the ambient GameTest suite. */
+    public void exploreClientProgramConsentInteractively(AtomicReference<TouchDisplaySurface.UV> requestedTouch) {
+        add(new ExploreTouchDisplayInteractivelyPuppetAction(requestedTouch, true));
+    }
+
     public void exactReleaseReviewJourney(boolean resume) {
         add(new ca.teamdman.sfm.gametest.puppet.action.ExactReleaseReviewJourneyPuppetAction(resume));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
@@ -1183,6 +1188,10 @@ public final class SFMGamePuppetHelper {
 
     public String currentActionDescription() {
         return isComplete() ? "complete" : actions.get(currentAction).description();
+    }
+
+    public void abortCurrentAction() {
+        if (!isComplete()) actions.get(currentAction).abort();
     }
 
     public void validate() {

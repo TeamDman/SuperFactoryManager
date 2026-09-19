@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.render;
 
 import ca.teamdman.sfm.client.program.ClientManagerFrameRuntime;
+import ca.teamdman.sfm.client.raster.TouchDisplayRasterRuntime;
 import ca.teamdman.sfm.common.block.TouchDisplayBlock;
 import ca.teamdman.sfm.common.block.TouchDisplaySurface;
 import ca.teamdman.sfm.common.blockentity.TouchDisplayBlockEntity;
@@ -39,7 +40,8 @@ public class TouchDisplayBlockEntityRenderer implements BlockEntityRenderer<Touc
         // The cache uploads each digest at most once while resident. If its
         // bounded admission is full or decoding fails, render the bundled
         // placeholder instead of binding an unregistered synthetic image ID.
-        var imageLocation = ClientManagerFrameRuntime.textureFor(blockEntity).orElseGet(() ->
+        var programTexture = ClientManagerFrameRuntime.textureFor(blockEntity);
+        var imageLocation = TouchDisplayRasterRuntime.textureFor(blockEntity).or(() -> programTexture).orElseGet(() ->
                 content.imageSnapshot() == null
                         ? content.imageRef()
                         : TouchDisplayTextureRuntime.textureFor(content.imageSnapshot(), blockEntity.getLevel())

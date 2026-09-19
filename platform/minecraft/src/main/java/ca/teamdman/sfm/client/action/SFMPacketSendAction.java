@@ -114,6 +114,24 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
         return Optional.of(PROGRAMMATIC_DESCRIPTOR);
     }
 
+    @Override
+    public Optional<SFMClientActionProgrammaticHandler> programmaticHandler() {
+        return Optional.of((input, context) -> {
+            Map<String, SFMValue> fields = ((SFMValue.ObjectValue) input).fields();
+            SFMValue side = fields.getOrDefault("side", SFMValue.nullValue());
+            SFMPacketInventoryAddress target = new SFMPacketInventoryAddress(
+                    new ResourceLocation(((SFMValue.StringValue) fields.get("dimension")).value()),
+                    new BlockPos((int) ((SFMValue.LongValue) fields.get("x")).value(),
+                            (int) ((SFMValue.LongValue) fields.get("y")).value(),
+                            (int) ((SFMValue.LongValue) fields.get("z")).value()),
+                    side instanceof SFMValue.StringValue name
+                            ? Optional.of(Direction.valueOf(name.value().toUpperCase(Locale.ROOT))) : Optional.empty());
+            boolean accepted = effectsAvailable.getAsBoolean() && sender.apply(target, fields.get("value"));
+            return SFMValue.object(Map.of("status", SFMValue.of(accepted ? "send_attempted" : "effects_disabled"),
+                    "local_transport_accepted", SFMValue.of(accepted)));
+        });
+    }
+
     /** A typed program contract; the existing human Brigadier grammar is unchanged. */
     private static SFMClientActionDescriptor createProgrammaticDescriptor() {
         SFMValueSchema direction = SFMValueSchema.union(List.of(

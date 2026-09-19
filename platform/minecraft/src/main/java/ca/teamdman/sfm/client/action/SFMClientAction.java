@@ -28,6 +28,11 @@ public interface SFMClientAction<T> {
         return Optional.empty();
     }
 
+    /** Invoked only through the principal-aware dispatcher, never the human command adapter. */
+    default Optional<SFMClientActionProgrammaticHandler> programmaticHandler() {
+        return Optional.empty();
+    }
+
     SFMClientActionRequirement<T> requirement();
 
     default boolean isPinnable() {

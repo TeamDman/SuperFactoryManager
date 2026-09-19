@@ -312,6 +312,11 @@ public final class SFMGamePuppetHarness {
         active.failureRecorded = true;
         active.success = false;
         failedPuppetCount++;
+        try {
+            active.helper.abortCurrentAction();
+        } catch (Throwable cleanupFailure) {
+            if (cleanupFailure != throwable) throwable.addSuppressed(cleanupFailure);
+        }
         SFM.LOGGER.error(
                 "SFM_GAME_PUPPET_FAILED puppet={} action={} error={}",
                 active.definition.puppetName(),

@@ -58,6 +58,10 @@ public sealed interface SFMValueSchema permits
         return SFMValueJsonCodec.encodeWithByteLimit(value, MAX_ACTION_ENCODED_UTF8_BYTES);
     }
 
+    static SFMValue decodeActionJson(String json) {
+        return SFMValueJsonCodec.decodeWithByteLimit(json, SFMValueJsonCodec.VERSION, MAX_ACTION_ENCODED_UTF8_BYTES);
+    }
+
     Optional<Failure> validateAt(SFMValue value, String path, int depth);
 
     static Optional<Failure> tooDeep(String path, int depth) {

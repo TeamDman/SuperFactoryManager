@@ -32,12 +32,17 @@ public final class InWorldTouchDisplayExploratoryGamePuppet {
     }
 
     public static void run(SFMGamePuppetHelper puppet) {
+        declare(puppet, false);
+    }
+
+    public static void declare(SFMGamePuppetHelper puppet, boolean consentReview) {
         AtomicReference<TouchDisplaySurface.UV> requestedTouch = new AtomicReference<>();
         TouchDisplayPuppetFixtureGameTest fixture = new TouchDisplayPuppetFixtureGameTest(requestedTouch);
         puppet.createFreshFlatWorld();
         puppet.startGameTest(fixture);
         puppet.waitTicks(20);
-        puppet.exploreTouchDisplayInteractively(requestedTouch);
+        if (consentReview) puppet.exploreClientProgramConsentInteractively(requestedTouch);
+        else puppet.exploreTouchDisplayInteractively(requestedTouch);
         puppet.waitForGameTest(fixture.testName());
     }
 
