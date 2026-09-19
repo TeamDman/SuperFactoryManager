@@ -1,0 +1,207 @@
+name: SFM 1.19.2 verification
+
+on:
+  push:
+    branches:
+      - '1.19.2'
+      - 'ci/1.19.2-container-puppet'
+  pull_request:
+    branches:
+      - '1.19.2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sfm-1.19.2-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  graphics-probe:
+    name: Container software graphics and isolation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the event revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the graphics probe without Minecraft dependencies
+        timeout-minutes: 12
+        run: |
+          mkdir -p build/graphics-probe
+          docker build --progress plain --target graphics-probe \
+            --file containers/sfm/Dockerfile --tag sfm-graphics:local . \
+            2>&1 | tee build/graphics-probe/image-build.log
+
+      - name: Verify software OpenGL inside the restricted container
+        timeout-minutes: 3
+        run: |
+          container=$(docker create --network none --read-only --user 10001:10001 \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            --pids-limit 128 --memory 1g --memory-swap 1g --cpus 2 --init \
+            --tmpfs /tmp:rw,exec,nosuid,nodev,size=128m,mode=1777 \
+            --tmpfs /home/sfm:rw,nosuid,nodev,size=32m,uid=10001,gid=10001,mode=700 \
+            sfm-graphics:local)
+          cleanup() {
+            status=$?
+            trap - EXIT
+            docker logs "$container" > build/graphics-probe/console.log 2>&1 || true
+            docker inspect "$container" > build/graphics-probe/docker-inspect.json || true
+            docker rm -f -v "$container" >/dev/null || true
+            exit "$status"
+          }
+          trap cleanup EXIT
+          timeout --signal=TERM --kill-after=10s 2m docker start --attach "$container"
+          test "$(docker inspect --format '{{.State.ExitCode}}' "$container")" = 0
+
+      - name: Upload graphics and isolation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sfm-graphics-evidence-${{ github.sha }}
+          path: build/graphics-probe/
+          if-no-files-found: warn
+          retention-days: 14
+
+  build:
+    name: Compile, test and package (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 110
+    env:
+      CARGO_TERM_COLOR: always
+      RUST_BACKTRACE: '1'
+      RUSTUP_TOOLCHAIN: '1.96.0'
+    steps:
+      - name: Check out the event revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Select the checked-out revision for the SFM CLI
+        run: |
+          # PR checkouts contain GitHub's merge revision. Keep that exact tree;
+          # the CLI discovers named worktrees and skips a detached HEAD.
+          git switch --create sfm-ci-checkout
+          mkdir -p build/ci
+          echo "SFM_PROPAGATE_CHANGES_HOME=$RUNNER_TEMP/sfm-home" >> "$GITHUB_ENV"
+          echo "SFM_PROPAGATE_CHANGES_CACHE=$RUNNER_TEMP/sfm-cache" >> "$GITHUB_ENV"
+          git rev-parse HEAD > build/ci/source-revision.txt
+          grep -Eq '^minecraft_version[[:space:]]*=[[:space:]]*1\.19\.2[[:space:]]*$' \
+            platform/minecraft/gradle.properties
+
+      - name: Set up Java 17
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up the Rust compiler
+        timeout-minutes: 10
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal
+          rustc --version
+          cargo --version
+
+      - name: Build the CLI from locked sources
+        timeout-minutes: 25
+        run: |
+          cargo build --locked --release \
+            --manifest-path platform/cli/sfm-propagate-changes/Cargo.toml \
+            2>&1 | tee build/ci/cargo-build.log
+          cli="$GITHUB_WORKSPACE/platform/cli/sfm-propagate-changes/target/release/sfm-propagate-changes"
+          "$cli" --version | tee build/ci/cli-version.txt
+          sha256sum "$cli" > build/ci/cli-sha256.txt
+          "$cli" repo-root set "$GITHUB_WORKSPACE"
+          echo "SFM_CI_CLI=$cli" >> "$GITHUB_ENV"
+
+      - name: Compile all Java source sets
+        timeout-minutes: 35
+        run: |
+          "$SFM_CI_CLI" --log-filter info --log-file build/ci/compile.ndjson \
+            run compile --branch sfm-ci-checkout --java-home "$JAVA_HOME" \
+            --require-portable-artifacts --plan-json build/ci/compile-plan.json \
+            2>&1 | tee build/ci/compile.log
+
+      - name: Run Java unit tests
+        timeout-minutes: 15
+        run: |
+          "$SFM_CI_CLI" --log-filter info --log-file build/ci/test.ndjson \
+            test run --branch sfm-ci-checkout --java-home "$JAVA_HOME" \
+            --require-portable-artifacts \
+            2>&1 | tee build/ci/test.log
+
+      - name: Package the distributable mod
+        timeout-minutes: 15
+        run: |
+          "$SFM_CI_CLI" --log-filter info --log-file build/ci/package.ndjson \
+            jar build --branch sfm-ci-checkout --java-home "$JAVA_HOME" \
+            --require-portable-artifacts --plan-json build/ci/package-plan.json \
+            2>&1 | tee build/ci/package.log
+
+      - name: Verify frozen dependency declarations
+        if: always()
+        run: |
+          git diff --exit-code -- '**/Cargo.toml' '**/Cargo.lock' \
+            platform/minecraft/sfm-toolchain.lock.json
+
+      - name: Upload the verified mod
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sfm-1.19.2-${{ github.sha }}
+          path: platform/minecraft/build/libs/*-rust.jar
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload build and test diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sfm-build-diagnostics-${{ github.sha }}
+          path: |
+            build/ci/
+            platform/minecraft/build/sfm-toolchain/**/*.log
+            platform/minecraft/build/sfm-toolchain/**/*.args
+            platform/minecraft/build/sfm-toolchain/run/**/*.json
+          if-no-files-found: warn
+          retention-days: 14
+
+  container-smoke:
+    name: Isolated Minecraft client (Mesa and Xvfb)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    steps:
+      - name: Check out the event revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build the prepared game image
+        timeout-minutes: 70
+        run: |
+          mkdir -p build/container-ci
+          docker build --progress plain \
+            --build-arg "SFM_SOURCE_REVISION=$(git rev-parse HEAD)" \
+            --file containers/sfm/Dockerfile --tag sfm-ci:local . \
+            2>&1 | tee build/container-ci/image-build.log
+
+      - name: Capture screenshots in an offline restricted container
+        timeout-minutes: 22
+        run: bash containers/sfm/smoke.sh sfm-ci:local build/container-smoke
+
+      - name: Upload container evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sfm-container-evidence-${{ github.sha }}
+          path: |
+            build/container-ci/
+            build/container-smoke/
+          if-no-files-found: warn
+          retention-days: 14

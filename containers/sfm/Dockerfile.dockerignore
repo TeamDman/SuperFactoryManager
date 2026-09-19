@@ -1,0 +1,17 @@
+.git
+**/.git
+**/target
+**/build
+**/.gradle
+**/.idea
+**/.vscode
+**/*.log
+**/.env
+**/.env.*
+**/*.pem
+**/*.key
+platform/minecraft/run*
+platform/minecraft/*.hprof
+platform/minecraft/hs_err_pid*
+platform/cli/sfm-propagate-changes/.sfm-*
+build
