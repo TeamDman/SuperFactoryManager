@@ -1,6 +1,7 @@
-// 1.19.2	2026-09-18T00:23:10.7720722	Item Models: sfm
+// 1.19.2	2026-09-19T13:54:01.9865906	Item Models: sfm
 c30f68ac136d6a8ae24eee7845de7afb19597988 assets/sfm/models/item/buffer.json
 8518af52bb22ef1d984719f3534ff29e08cca857 assets/sfm/models/item/cable.json
+f596ee152738b601264209fc18652b73fb536d0b assets/sfm/models/item/client_manager.json
 bee75adb2bb431a6b671015aa9bac0d68a98f5fb assets/sfm/models/item/disk.json
 3b5be3966b540f1e99a3d6fd8836ad39bf937e96 assets/sfm/models/item/fancy_cable.json
 2c8c32d785bfc59bf23083eff8838054ee580570 assets/sfm/models/item/form.json

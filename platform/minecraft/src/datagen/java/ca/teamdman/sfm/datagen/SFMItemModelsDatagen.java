@@ -24,6 +24,7 @@ public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
     @Override
     protected void registerModels() {
         justParent(SFMItems.MANAGER, SFMBlocks.MANAGER);
+        justParent(SFMItems.CLIENT_MANAGER, SFMBlocks.CLIENT_MANAGER);
         justParent(SFMItems.TUNNELLED_MANAGER, SFMBlocks.TUNNELLED_MANAGER);
         justParent(SFMItems.CABLE, SFMBlocks.CABLE);
         justParent(SFMItems.FANCY_CABLE, SFMBlocks.FANCY_CABLE, "_core");

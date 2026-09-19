@@ -1,7 +1,8 @@
-// 1.19.2	2026-09-18T00:23:10.7679831	LootTables
+// 1.19.2	2026-09-19T13:54:01.9875978	LootTables
 530958bfa0a0340b5c16ed70d416bfe5fb8776de data/sfm/loot_tables/blocks/buffer.json
 5286db740244722d7db672fc22de815fdd8ab330 data/sfm/loot_tables/blocks/cable.json
 5286db740244722d7db672fc22de815fdd8ab330 data/sfm/loot_tables/blocks/cable_facade.json
+0d3e1de91ecbfbdb19904d64833550981d06e189 data/sfm/loot_tables/blocks/client_manager.json
 9362833df3c9ef338cf4648460e7e1185154e2d7 data/sfm/loot_tables/blocks/fancy_cable.json
 9362833df3c9ef338cf4648460e7e1185154e2d7 data/sfm/loot_tables/blocks/fancy_cable_facade.json
 ef4bb95208a13cbe51de891c102654406caee78e data/sfm/loot_tables/blocks/manager.json

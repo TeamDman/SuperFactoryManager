@@ -27,9 +27,11 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.Locale;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 /** Strict exact-address packet insertion request for private integrated worlds. */
@@ -60,18 +62,36 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
 
     private final Supplier<Optional<SFMPacketObservationLog.SessionId>> sessionProvider;
     private final BiFunction<SFMPacketInventoryAddress, SFMValue, Boolean> sender;
+    private final SFMClientActionAuthorizationService authorization;
+    private final BooleanSupplier effectsAvailable;
 
     public SFMPacketSendAction() {
-        sessionProvider = SFMPacketObservationRuntime.get()::currentSessionId;
-        sender = SFMClientPacketTransport::sendInsertion;
+        this(SFMPacketObservationRuntime.get()::currentSessionId,
+                SFMClientPacketTransport::sendInsertion,
+                SFMClientActionAuthorizationService.shared(),
+                SFMClientPacketTransport::effectsAllowedNow);
     }
 
     SFMPacketSendAction(
             Supplier<Optional<SFMPacketObservationLog.SessionId>> sessionProvider,
             BiFunction<SFMPacketInventoryAddress, SFMValue, Boolean> sender
     ) {
+        this(sessionProvider, sender, new SFMClientActionAuthorizationService(
+                ignored -> Optional.of(PROGRAMMATIC_DESCRIPTOR),
+                new ca.teamdman.sfm.common.net.SFMBoundedEffectBudget(32, 64 * 1024),
+                () -> System.nanoTime() / 1_000_000_000L), () -> true);
+    }
+
+    SFMPacketSendAction(
+            Supplier<Optional<SFMPacketObservationLog.SessionId>> sessionProvider,
+            BiFunction<SFMPacketInventoryAddress, SFMValue, Boolean> sender,
+            SFMClientActionAuthorizationService authorization,
+            BooleanSupplier effectsAvailable
+    ) {
         this.sessionProvider = sessionProvider;
         this.sender = sender;
+        this.authorization = authorization;
+        this.effectsAvailable = effectsAvailable;
     }
 
     @Override
@@ -116,7 +136,10 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
                 SFMValueSchema.literal(SFMValue.of("send_attempted")),
                 SFMValueSchema.literal(SFMValue.of("effects_disabled")),
                 SFMValueSchema.literal(SFMValue.of("session_changed")),
-                SFMValueSchema.literal(SFMValue.of("no_session"))
+                SFMValueSchema.literal(SFMValue.of("no_session")),
+                SFMValueSchema.literal(SFMValue.of("rate_limited")),
+                SFMValueSchema.literal(SFMValue.of("target_unauthorized")),
+                SFMValueSchema.literal(SFMValue.of("invalid_input"))
         ));
         SFMValueSchema result = SFMValueSchema.object(Map.of(
                 "status", SFMValueSchema.Field.required(status),
@@ -135,7 +158,10 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
                         "send_attempted", SFMClientActionDescriptor.StatusKind.ATTEMPTED,
                         "effects_disabled", SFMClientActionDescriptor.StatusKind.REJECTED,
                         "session_changed", SFMClientActionDescriptor.StatusKind.REJECTED,
-                        "no_session", SFMClientActionDescriptor.StatusKind.REJECTED
+                        "no_session", SFMClientActionDescriptor.StatusKind.REJECTED,
+                        "rate_limited", SFMClientActionDescriptor.StatusKind.REJECTED,
+                        "target_unauthorized", SFMClientActionDescriptor.StatusKind.REJECTED,
+                        "invalid_input", SFMClientActionDescriptor.StatusKind.REJECTED
                 )
         );
     }
@@ -228,8 +254,21 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
                    && !requestedSession.orElseThrow().equals(currentSession.orElseThrow())) {
             status = "session_changed";
         } else {
-            locallyAccepted = sender.apply(target, value);
-            status = locallyAccepted ? "send_attempted" : "effects_disabled";
+            SFMClientActionAuthorizationService.EffectAttempt attempt = authorization.performHuman(
+                    PROGRAMMATIC_DESCRIPTOR,
+                    programmaticInput(target, value),
+                    effectsAvailable,
+                    validated -> sender.apply(target, value)
+            );
+            locallyAccepted = attempt.localTransportAccepted();
+            status = switch (attempt.authorization().status()) {
+                case ALLOWED -> locallyAccepted ? "send_attempted" : "effects_disabled";
+                case RATE_LIMITED -> "rate_limited";
+                case TARGET_UNAUTHORIZED, CAPABILITY_UNDECLARED, ACTION_UNDESCRIBED,
+                     WRONG_EXECUTION_SIDE, STALE_PROGRAM_CONTEXT, AWAITING_CONSENT, DENIED_BY_USER, BLOCKED_BY_POLICY -> "target_unauthorized";
+                case INVALID_INPUT -> "invalid_input";
+                case EFFECTS_DISABLED -> "effects_disabled";
+            };
         }
 
         JsonObject result = new JsonObject();
@@ -264,8 +303,23 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
             case "effects_disabled" -> "Packet send was not attempted because private integrated-world effects are disabled";
             case "session_changed" -> "Packet send was not attempted because the world session changed";
             case "no_session" -> "Packet send was not attempted because no packet observation session is active";
+            case "rate_limited" -> "Packet send was not attempted because the local effect rate limit was reached";
+            case "target_unauthorized" -> "Packet send was not attempted because the target is not authorized";
+            case "invalid_input" -> "Packet send was not attempted because its typed input is invalid";
             default -> throw new IllegalStateException("Unknown packet send status " + status);
         };
+    }
+
+    private static SFMValue programmaticInput(SFMPacketInventoryAddress target, SFMValue value) {
+        Map<String, SFMValue> fields = new HashMap<>(Map.of(
+                "dimension", SFMValue.of(target.dimension().toString()),
+                "x", SFMValue.of(target.position().getX()),
+                "y", SFMValue.of(target.position().getY()),
+                "z", SFMValue.of(target.position().getZ()),
+                "value", value
+        ));
+        target.side().ifPresent(side -> fields.put("side", SFMValue.of(side.getName().toLowerCase(Locale.ROOT))));
+        return SFMValue.object(fields);
     }
 
     private static SFMPacketInventoryAddress parseAddress(

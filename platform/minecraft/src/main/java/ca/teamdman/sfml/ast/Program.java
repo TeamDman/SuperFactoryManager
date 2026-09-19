@@ -333,6 +333,39 @@ public record Program(
                     + " BTW but is hosted by a " + host + " Manager"
             );
         }
+        if (host == ProgramExecutionSide.SERVER && triggers.stream().anyMatch(FrameTrigger.class::isInstance)) {
+            throw new IllegalArgumentException("EVERY FRAME requires a Client Manager");
+        }
+        if (host == ProgramExecutionSide.SERVER && triggers.stream()
+                .filter(trigger -> !(trigger instanceof FrameTrigger))
+                .anyMatch(trigger -> containsClientOnlyOperation(trigger.getBlock()))) {
+            throw new IllegalArgumentException("Client-only frame operations require a Client Manager");
+        }
+    }
+
+    private static boolean containsClientOnlyOperation(Block block) {
+        for (Statement statement : block.statements()) {
+            if (statement instanceof RenderImageStatement) return true;
+            if (statement instanceof IfStatement branch) {
+                if (containsFrameCondition(branch.condition())
+                    || containsClientOnlyOperation(branch.trueBlock())
+                    || containsClientOnlyOperation(branch.falseBlock())) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsFrameCondition(BoolExpr condition) {
+        if (condition instanceof BoolFrameModulo) return true;
+        if (condition instanceof BoolParen parenthesized) return containsFrameCondition(parenthesized.inner());
+        if (condition instanceof BoolNegation negated) return containsFrameCondition(negated.inner());
+        if (condition instanceof BoolConjunction both) {
+            return containsFrameCondition(both.left()) || containsFrameCondition(both.right());
+        }
+        if (condition instanceof BoolDisjunction either) {
+            return containsFrameCondition(either.left()) || containsFrameCondition(either.right());
+        }
+        return false;
     }
 
     public void replaceOutputStatement(

@@ -2,6 +2,7 @@ package ca.teamdman.sfm.client.action;
 
 import ca.teamdman.sfm.client.net.SFMPacketObservationLog;
 import ca.teamdman.sfm.common.net.SFMPacketInventoryAddress;
+import ca.teamdman.sfm.common.net.SFMBoundedEffectBudget;
 import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfm.common.value.SFMValueJsonCodec;
 import com.google.gson.JsonObject;
@@ -16,6 +17,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -181,6 +183,30 @@ class SFMPacketActionsTests {
         assertThrows(CommandSyntaxException.class,
                 () -> invoke(action, "sfm:packet/send minecraft:overworld 0 0 0 session 1-1-1-1-1 null"));
         assertFalse(called.get());
+    }
+
+    @Test
+    void brigadierSendCannotBypassSharedEffectAdmission() throws Exception {
+        SFMPacketObservationLog.SessionId session = new SFMPacketObservationLog.SessionId(UUID.randomUUID());
+        AtomicInteger calls = new AtomicInteger();
+        SFMClientActionDescriptor descriptor = new SFMPacketSendAction(Optional::empty, (target, value) -> false)
+                .programmaticDescriptor().orElseThrow();
+        SFMClientActionAuthorizationService admission = new SFMClientActionAuthorizationService(
+                id -> Optional.of(descriptor), new SFMBoundedEffectBudget(1, 4_096), () -> 1,
+                expected -> Optional.empty());
+        SFMPacketSendAction action = new SFMPacketSendAction(() -> Optional.of(session),
+                (target, value) -> { calls.incrementAndGet(); return true; }, admission, () -> true);
+        Invocation first = invoke(action, "sfm:packet/send minecraft:overworld 0 64 0 null");
+        Invocation second = invoke(action, "sfm:packet/send minecraft:overworld 1 64 0 null");
+        assertEquals("send_attempted", JsonParser.parseString(first.result().json()).getAsJsonObject()
+                .get("status").getAsString());
+        assertEquals("rate_limited", JsonParser.parseString(second.result().json()).getAsJsonObject()
+                .get("status").getAsString());
+        assertFalse(JsonParser.parseString(second.result().json()).getAsJsonObject()
+                .get("local_transport_accepted").getAsBoolean());
+        assertEquals(1, calls.get());
+        assertEquals(SFMClientActionAuthorizationService.PrincipalKind.HUMAN,
+                admission.traceSnapshot().get(0).principal());
     }
 
     private static Invocation invoke(SFMClientAction<?> action, String command) throws CommandSyntaxException {

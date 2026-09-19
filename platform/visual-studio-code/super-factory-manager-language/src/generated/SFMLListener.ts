@@ -1,4 +1,4 @@
-// Generated from ./syntaxes/SFML.g4 by ANTLR 4.9.0-SNAPSHOT
+// Generated from SFML.g4 by ANTLR 4.9.0-SNAPSHOT
 
 
 import { ParseTreeListener } from "antlr4ts/tree/ParseTreeListener";
@@ -30,6 +30,7 @@ import { BooleanConjunctionContext } from "./SFMLParser";
 import { BooleanDisjunctionContext } from "./SFMLParser";
 import { BooleanHasContext } from "./SFMLParser";
 import { BooleanRedstoneContext } from "./SFMLParser";
+import { BooleanFrameModuloContext } from "./SFMLParser";
 import { GuidValuePatternContext } from "./SFMLParser";
 import { StringValuePatternContext } from "./SFMLParser";
 import { LiteralValuePatternContext } from "./SFMLParser";
@@ -37,6 +38,7 @@ import { ObjectValuePatternContext } from "./SFMLParser";
 import { AliasValuePatternContext } from "./SFMLParser";
 import { TimerTriggerContext } from "./SFMLParser";
 import { PulseTriggerContext } from "./SFMLParser";
+import { FrameTriggerContext } from "./SFMLParser";
 import { RawLabelContext } from "./SFMLParser";
 import { StringLabelContext } from "./SFMLParser";
 import { WithParenContext } from "./SFMLParser";
@@ -53,10 +55,12 @@ import { DeclarationContext } from "./SFMLParser";
 import { ValuePatternContext } from "./SFMLParser";
 import { PatternFieldContext } from "./SFMLParser";
 import { TriggerContext } from "./SFMLParser";
+import { FrameLabelsContext } from "./SFMLParser";
 import { IntervalContext } from "./SFMLParser";
 import { TimeUnitContext } from "./SFMLParser";
 import { BlockContext } from "./SFMLParser";
 import { StatementContext } from "./SFMLParser";
+import { RenderImageStatementContext } from "./SFMLParser";
 import { LetValueStatementContext } from "./SFMLParser";
 import { ValueExpressionContext } from "./SFMLParser";
 import { ConstructionFieldContext } from "./SFMLParser";
@@ -458,6 +462,19 @@ export interface SFMLListener extends ParseTreeListener {
 	exitBooleanRedstone?: (ctx: BooleanRedstoneContext) => void;
 
 	/**
+	 * Enter a parse tree produced by the `BooleanFrameModulo`
+	 * labeled alternative in `SFMLParser.boolexpr`.
+	 * @param ctx the parse tree
+	 */
+	enterBooleanFrameModulo?: (ctx: BooleanFrameModuloContext) => void;
+	/**
+	 * Exit a parse tree produced by the `BooleanFrameModulo`
+	 * labeled alternative in `SFMLParser.boolexpr`.
+	 * @param ctx the parse tree
+	 */
+	exitBooleanFrameModulo?: (ctx: BooleanFrameModuloContext) => void;
+
+	/**
 	 * Enter a parse tree produced by the `GuidValuePattern`
 	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
@@ -547,6 +564,19 @@ export interface SFMLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitPulseTrigger?: (ctx: PulseTriggerContext) => void;
+
+	/**
+	 * Enter a parse tree produced by the `FrameTrigger`
+	 * labeled alternative in `SFMLParser.trigger`.
+	 * @param ctx the parse tree
+	 */
+	enterFrameTrigger?: (ctx: FrameTriggerContext) => void;
+	/**
+	 * Exit a parse tree produced by the `FrameTrigger`
+	 * labeled alternative in `SFMLParser.trigger`.
+	 * @param ctx the parse tree
+	 */
+	exitFrameTrigger?: (ctx: FrameTriggerContext) => void;
 
 	/**
 	 * Enter a parse tree produced by the `RawLabel`
@@ -743,6 +773,17 @@ export interface SFMLListener extends ParseTreeListener {
 	exitTrigger?: (ctx: TriggerContext) => void;
 
 	/**
+	 * Enter a parse tree produced by `SFMLParser.frameLabels`.
+	 * @param ctx the parse tree
+	 */
+	enterFrameLabels?: (ctx: FrameLabelsContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.frameLabels`.
+	 * @param ctx the parse tree
+	 */
+	exitFrameLabels?: (ctx: FrameLabelsContext) => void;
+
+	/**
 	 * Enter a parse tree produced by `SFMLParser.interval`.
 	 * @param ctx the parse tree
 	 */
@@ -785,6 +826,17 @@ export interface SFMLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitStatement?: (ctx: StatementContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.renderImageStatement`.
+	 * @param ctx the parse tree
+	 */
+	enterRenderImageStatement?: (ctx: RenderImageStatementContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.renderImageStatement`.
+	 * @param ctx the parse tree
+	 */
+	exitRenderImageStatement?: (ctx: RenderImageStatementContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `SFMLParser.letValueStatement`.

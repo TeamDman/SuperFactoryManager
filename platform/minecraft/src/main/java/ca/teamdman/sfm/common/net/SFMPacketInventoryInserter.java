@@ -29,6 +29,8 @@ public final class SFMPacketInventoryInserter {
     public enum Result {
         INSERTED,
         EFFECTS_DISABLED,
+        TARGET_UNAUTHORIZED,
+        RATE_LIMITED,
         UNSUPPORTED_CODEC_VERSION,
         NOT_SERVER_THREAD,
         DIMENSION_NOT_FOUND,

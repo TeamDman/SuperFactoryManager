@@ -72,7 +72,10 @@ public record SFMClientActionDescriptor(
 
     public sealed interface InputCheck permits InputCheck.Accepted, InputCheck.Rejected {
         record Accepted(List<DataScope> dataScopes) implements InputCheck {
-            public Accepted { dataScopes = List.copyOf(Objects.requireNonNull(dataScopes)); }
+            public Accepted {
+                dataScopes = List.copyOf(Objects.requireNonNull(dataScopes));
+                if (dataScopes.size() > 32) throw new IllegalArgumentException("Too many action data scopes");
+            }
         }
 
         record Rejected(SFMValueSchema.Failure failure) implements InputCheck {

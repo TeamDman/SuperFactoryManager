@@ -26,6 +26,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     protected void registerStatesAndModels() {
 
         registerManager();
+        registerClientManager();
         registerTunnelledManager();
         registerTestBarrelTank();
         registerCableVariants(
@@ -187,6 +188,18 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                 SFMBlocks.MANAGER.get(), models().cubeBottomTop(
                         SFMBlocks.MANAGER.getPath(),
                         modLoc("block/manager_side"),
+                        modLoc("block/manager_bot"),
+                        modLoc("block/manager_top")
+                ).texture("particle", "#top")
+        );
+    }
+
+    private void registerClientManager() {
+        // Cyan body and familiar manager face make the logical execution side visible in-world.
+        simpleBlock(
+                SFMBlocks.CLIENT_MANAGER.get(), models().cubeBottomTop(
+                        SFMBlocks.CLIENT_MANAGER.getPath(),
+                        mcLoc("block/cyan_concrete"),
                         modLoc("block/manager_bot"),
                         modLoc("block/manager_top")
                 ).texture("particle", "#top")

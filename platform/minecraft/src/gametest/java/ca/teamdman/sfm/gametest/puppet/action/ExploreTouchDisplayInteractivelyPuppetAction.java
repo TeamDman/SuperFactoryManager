@@ -1,7 +1,15 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
 import ca.teamdman.sfm.common.block.TouchDisplaySurface;
+import ca.teamdman.sfm.client.program.ClientManagerFrameRuntime;
+import ca.teamdman.sfm.client.program.ClientProgramConsentGate;
+import ca.teamdman.sfm.client.program.ClientProgramIdentity;
+import ca.teamdman.sfm.common.blockentity.ClientManagerBlockEntity;
 import ca.teamdman.sfm.common.blockentity.TouchDisplayBlockEntity;
+import ca.teamdman.sfm.common.item.DiskItem;
+import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
 import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetRenderHarness;
 import com.google.gson.JsonObject;
@@ -10,6 +18,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.BlockHitResult;
 
 import java.io.IOException;
@@ -39,6 +48,7 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
     private JsonObject request;
     private JsonObject result;
     private BlockPos absoluteDisplay;
+    private ClientProgramIdentity fixtureIdentity;
     private int sequence = 1;
     private long nextPoll;
     private long frame;
@@ -70,6 +80,8 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
             ready.addProperty("example_aim", "{\"op\":\"aim\",\"u\":0.25,\"v\":0.75}");
             ready.addProperty("example_press", "{\"op\":\"press\",\"u\":0.25,\"v\":0.75}");
             ready.addProperty("example_finish", "{\"op\":\"finish\"}");
+            ready.addProperty("client_manager_fixture_operations",
+                    "install_client_manager, approve_fixture_client_program, revoke_fixture_client_program");
             write = writeAsync(directory.resolve("ready.json"), ready);
             return false;
         }
@@ -125,6 +137,25 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
     private void apply(ISFMGamePuppetRuntime runtime, JsonObject step) {
         switch (string(step, "op", "observe")) {
             case "observe" -> { }
+            case "install_client_manager" -> installClientManagerFixture();
+            case "approve_fixture_client_program" -> approveClientManagerFixture();
+            case "assert_client_program_rendered" -> {
+                var minecraft = Minecraft.getInstance();
+                if (minecraft.level == null || minecraft.screen != null
+                    || !(minecraft.level.getBlockEntity(absoluteDisplay) instanceof TouchDisplayBlockEntity display)) {
+                    throw new IllegalStateException("The fixture is not in its screen-free world");
+                }
+                var observation = ClientManagerFrameRuntime.observation(display);
+                if (!TouchDisplayBlockEntity.BLUE_FIXTURE_IMAGE.equals(observation.texture())
+                    || observation.evaluations() < 2 || observation.changedFrames() != 1
+                    || !TouchDisplayBlockEntity.RED_FIXTURE_IMAGE.equals(display.content().imageRef())) {
+                    throw new IllegalStateException("The renderer did not present the unchanged blue client frame over red semantic content");
+                }
+            }
+            case "revoke_fixture_client_program" -> {
+                if (fixtureIdentity == null) throw new IllegalStateException("No fixture program was approved");
+                ClientManagerFrameRuntime.consent().revoke(fixtureIdentity, ClientProgramConsentGate.EXECUTE);
+            }
             case "aim" -> {
                 runtime.positionForTouchDisplayFace(DISPLAY, FACE, coordinate(step, "u"), coordinate(step, "v"));
                 aimed = true;
@@ -145,10 +176,57 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
             }
             case "finish" -> {
                 if (!pressed) throw new IllegalStateException("A press is required before finishing the proof");
+                if (fixtureIdentity != null) ClientManagerFrameRuntime.consent().store().forget(fixtureIdentity);
                 finish = true;
             }
             default -> throw new IllegalArgumentException("Unsupported Touch Display operation: " + step);
         }
+    }
+
+    /** Installs a fixed test-only program; file input cannot supply arbitrary source or consent identity. */
+    private void installClientManagerFixture() {
+        Minecraft minecraft = Minecraft.getInstance();
+        var server = minecraft.getSingleplayerServer();
+        if (server == null || server.isPublished() || minecraft.level == null) {
+            throw new IllegalStateException("The fixture requires its private integrated world");
+        }
+        var dimension = minecraft.level.dimension();
+        BlockPos managerPosition = absoluteDisplay.offset(-1, -1, 0);
+        server.execute(() -> {
+            var world = server.getLevel(dimension);
+            if (world == null || !(world.getBlockEntity(absoluteDisplay) instanceof TouchDisplayBlockEntity)) return;
+            world.setBlockAndUpdate(managerPosition, SFMBlocks.CLIENT_MANAGER.get().defaultBlockState());
+            if (!(world.getBlockEntity(managerPosition) instanceof ClientManagerBlockEntity manager)) return;
+            ItemStack disk = new ItemStack(SFMItems.DISK.get());
+            DiskItem.setProgram(disk, fixtureSource());
+            LabelPositionHolder.empty().add("displays", absoluteDisplay).save(disk);
+            manager.setDisk(disk);
+        });
+    }
+
+    private void approveClientManagerFixture() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.level == null || !(minecraft.level.getBlockEntity(absoluteDisplay.offset(-1, -1, 0))
+                instanceof ClientManagerBlockEntity manager)) {
+            throw new IllegalStateException("The fixture Client Manager has not synchronized yet");
+        }
+        if (!manager.storedSource().equals(fixtureSource())) {
+            throw new IllegalStateException("Only the exact fixed puppet program may receive this fixture approval");
+        }
+        fixtureIdentity = ClientManagerFrameRuntime.identityFor(manager)
+                .orElseThrow(() -> new IllegalStateException("The fixture program has not synchronized yet"));
+        var gate = ClientManagerFrameRuntime.consent();
+        for (var capability : fixtureIdentity.requestedCapabilities()) {
+            var request = gate.reopenDenied(fixtureIdentity, capability);
+            if (request.state() == ClientProgramConsentGate.ConsentState.PENDING) {
+                gate.decide(fixtureIdentity, capability, ClientProgramConsentGate.Decision.APPROVE);
+            }
+        }
+    }
+
+    private static String fixtureSource() {
+        return "CLIENT BTW\nEVERY FRAME FOR displays AS display DO\nRENDER IMAGE \""
+               + TouchDisplayBlockEntity.BLUE_FIXTURE_IMAGE + "\" TO display\nEND";
     }
 
     private JsonObject observation() {
@@ -174,6 +252,15 @@ public final class ExploreTouchDisplayInteractivelyPuppetAction implements SFMPu
                 state.addProperty("client_image_ref", display.content().imageRef().toString());
                 state.addProperty("client_content_revision", display.content().revision());
                 state.addProperty("client_has_image_snapshot", display.content().imageSnapshot() != null);
+                var frameState = ClientManagerFrameRuntime.observation(display);
+                state.addProperty("client_program_evaluations", frameState.evaluations());
+                state.addProperty("client_program_changed_frames", frameState.changedFrames());
+                state.addProperty("client_program_texture", frameState.texture() == null ? "none" : frameState.texture().toString());
+                state.addProperty("client_program_diagnostic", ClientManagerFrameRuntime.diagnosticFor(display).orElse("none"));
+                if (minecraft.level.getBlockEntity(absoluteDisplay.offset(-1, -1, 0)) instanceof ClientManagerBlockEntity manager) {
+                    state.addProperty("client_manager_synced", ClientManagerFrameRuntime.identityFor(manager).isPresent());
+                    state.addProperty("client_manager_diagnostic", ClientManagerFrameRuntime.diagnosticFor(manager).orElse("none"));
+                }
             }
         }
         if (minecraft.player != null) {

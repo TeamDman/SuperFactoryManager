@@ -35,7 +35,10 @@ patternField : identifier OF string          #LiteralPatternField
 
 trigger : EVERY interval DO block END           #TimerTrigger
         | EVERY REDSTONE PULSE DO block END     #PulseTrigger
+        | EVERY FRAME FOR frameLabels AS identifier DO block END #FrameTrigger
         ;
+
+frameLabels : label (COMMA label)*;
 
 interval: period=NUMBER? GLOBAL? (PLUS legacyOffset=NUMBER)? unit=timeUnit (OFFSET BY newOffset=NUMBER offsetUnit=timeUnit)?      # IntervalSpace
         | period=NUMBER_WITH_G_SUFFIX (PLUS legacyOffset=NUMBER)? unit=timeUnit (OFFSET BY newOffset=NUMBER offsetUnit=timeUnit)? # IntervalNoSpace;
@@ -53,7 +56,10 @@ statement       : inputStatement
                 | letValueStatement
                 | createStatement
                 | broadcastStatement
+                | renderImageStatement
                 ;
+
+renderImageStatement : RENDER IMAGE string TO identifier;
 
 letValueStatement : LET identifier BE valueExpression;
 valueExpression : STRING_TYPE OF INVOKE qualifiedId WITH identifier                         #InvokeTextValueExpression
@@ -154,6 +160,7 @@ boolexpr        : TRUE                              #BooleanTrue
                 | boolexpr OR boolexpr              #BooleanDisjunction
                 | setOp? labelAccess HAS comparisonOp number resourceIdDisjunction? with? (EXCEPT resourceIdList)?  #BooleanHas
                 | REDSTONE (comparisonOp number)?   #BooleanRedstone
+                | FRAME MOD number comparisonOp number #BooleanFrameModulo
                 ;
 
 comparisonOp    : GT
@@ -193,7 +200,8 @@ emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
 identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK
            | LET | BE | PLAYER | OF | LIKE | OBJECT | FIELD | GUID | STRING_TYPE | INVOKE | CAPABILITY
-           | AS | CREATE | BROADCAST | CHANNEL | NEW | CLIENT | SERVER | BTW | OFFSET) ;
+           | AS | CREATE | BROADCAST | CHANNEL | NEW | CLIENT | SERVER | BTW | OFFSET
+           | FRAME | FOR | MOD | RENDER | IMAGE) ;
 
 // GENERAL
 string: STRING ;
@@ -286,6 +294,11 @@ SECOND  : S E C O N D ;
 GLOBAL  : (G L O B A L) | G;
 PLUS    : '+' | P L U S;
 OFFSET  : O F F S E T;
+FRAME   : F R A M E ;
+FOR     : F O R ;
+MOD     : M O D ;
+RENDER  : R E N D E R ;
+IMAGE   : I M A G E ;
 
 // REDSTONE TRIGGER
 REDSTONE        : R E D S T O N E ;

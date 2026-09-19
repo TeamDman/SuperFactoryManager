@@ -40,6 +40,11 @@ public final class SFMClientPacketTransport {
         return true;
     }
 
+    /** The local optimistic check; the server independently rechecks before mutation. */
+    public static boolean effectsAllowedNow() {
+        return effectsAllowed(Minecraft.getInstance());
+    }
+
     @MCVersionDependentBehaviour
     static boolean effectsAllowed(Minecraft minecraft) {
         IntegratedServer server = minecraft.getSingleplayerServer();

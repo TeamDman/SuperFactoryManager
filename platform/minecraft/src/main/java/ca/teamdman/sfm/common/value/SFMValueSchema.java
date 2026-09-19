@@ -49,6 +49,15 @@ public sealed interface SFMValueSchema permits
         return validateAt(value, "", 0);
     }
 
+    /** Cost of the canonical action envelope after the action-specific bound. */
+    static int boundedEncodedBytes(SFMValue value) {
+        return canonicalActionJson(value).getBytes(StandardCharsets.UTF_8).length;
+    }
+
+    static String canonicalActionJson(SFMValue value) {
+        return SFMValueJsonCodec.encodeWithByteLimit(value, MAX_ACTION_ENCODED_UTF8_BYTES);
+    }
+
     Optional<Failure> validateAt(SFMValue value, String path, int depth);
 
     static Optional<Failure> tooDeep(String path, int depth) {

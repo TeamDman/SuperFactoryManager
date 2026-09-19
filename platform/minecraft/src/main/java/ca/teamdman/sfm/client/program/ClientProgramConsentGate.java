@@ -3,9 +3,7 @@ package ca.teamdman.sfm.client.program;
 import ca.teamdman.sfml.ast.ProgramExecutionSide;
 import net.minecraft.resources.ResourceLocation;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 /** A UI-free, default-deny gate. A caller must explicitly present any request to the player. */
@@ -35,47 +33,41 @@ public final class ClientProgramConsentGate {
         List<String> blockers(ClientProgramIdentity program, ResourceLocation capability);
     }
 
-    private record GrantKey(ClientProgramIdentity identity, ResourceLocation capability) {}
+    private final ClientProgramConsentStore store;
 
-    private final Map<GrantKey, ConsentState> decisions = new HashMap<>();
+    public ClientProgramConsentGate() {
+        this(new ClientProgramConsentStore());
+    }
+
+    public ClientProgramConsentGate(ClientProgramConsentStore store) {
+        this.store = Objects.requireNonNull(store);
+    }
+
+    public ClientProgramConsentStore store() {
+        return store;
+    }
 
     public synchronized ConsentState state(ClientProgramIdentity identity, ResourceLocation capability) {
-        return decisions.getOrDefault(key(identity, capability), ConsentState.ABSENT);
+        return store.state(identity, capability);
     }
 
     /** Creates pending state once. Repeated or denied requests never produce a fresh prompt. */
     public synchronized RequestResult request(ClientProgramIdentity identity, ResourceLocation capability) {
-        GrantKey key = key(identity, capability);
-        ConsentState existing = decisions.getOrDefault(key, ConsentState.ABSENT);
-        if (existing != ConsentState.ABSENT) {
-            return new RequestResult(existing, false);
-        }
-        decisions.put(key, ConsentState.PENDING);
-        return new RequestResult(ConsentState.PENDING, true);
+        return store.request(identity, capability);
     }
 
     /** A separate explicit user gesture may revisit a previous denial. */
     public synchronized RequestResult reopenDenied(ClientProgramIdentity identity, ResourceLocation capability) {
-        GrantKey key = key(identity, capability);
-        if (decisions.get(key) != ConsentState.DENIED) {
-            return request(identity, capability);
-        }
-        decisions.put(key, ConsentState.PENDING);
-        return new RequestResult(ConsentState.PENDING, true);
+        return store.reopenDenied(identity, capability);
     }
 
     /** Only a pending request can be decided; ordinary program execution cannot approve itself. */
     public synchronized void decide(ClientProgramIdentity identity, ResourceLocation capability, Decision decision) {
-        GrantKey key = key(identity, capability);
-        Objects.requireNonNull(decision, "decision");
-        if (decisions.get(key) != ConsentState.PENDING) {
-            throw new IllegalStateException("Consent is not pending");
-        }
-        decisions.put(key, decision == Decision.APPROVE ? ConsentState.APPROVED : ConsentState.DENIED);
+        store.decide(identity, capability, decision, null, null);
     }
 
     public synchronized void revoke(ClientProgramIdentity identity, ResourceLocation capability) {
-        decisions.remove(key(identity, capability));
+        store.revoke(identity, capability);
     }
 
     public synchronized Evaluation evaluate(
@@ -102,12 +94,4 @@ public final class ClientProgramConsentGate {
         return evaluate(identity, EXECUTE, policy);
     }
 
-    private static GrantKey key(ClientProgramIdentity identity, ResourceLocation capability) {
-        Objects.requireNonNull(identity, "identity");
-        Objects.requireNonNull(capability, "capability");
-        if (!identity.requestedCapabilities().contains(capability)) {
-            throw new IllegalArgumentException("Capability was not declared by this program: " + capability);
-        }
-        return new GrantKey(identity, capability);
-    }
 }

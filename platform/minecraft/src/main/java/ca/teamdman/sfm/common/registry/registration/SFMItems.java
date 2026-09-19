@@ -21,6 +21,9 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, BlockItem> MANAGER
             = register("manager", SFMBlocks.MANAGER);
 
+    public static final SFMRegistryObject<Item, BlockItem> CLIENT_MANAGER
+            = register("client_manager", SFMBlocks.CLIENT_MANAGER);
+
     public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_MANAGER
             = register(
             "tunnelled_manager",

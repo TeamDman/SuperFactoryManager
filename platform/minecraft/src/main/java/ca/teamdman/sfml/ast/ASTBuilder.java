@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfm.common.value.SFMValuePattern;
 import com.mojang.datafixers.util.Pair;
+import net.minecraft.resources.ResourceLocation;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -332,6 +333,38 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
         trackNode(timerTrigger, ctx);
         return timerTrigger;
+    }
+
+    @Override
+    public ASTNode visitFrameTrigger(SFMLParser.FrameTriggerContext ctx) {
+        List<Label> labels = ctx.frameLabels().label().stream()
+                .map(this::visit)
+                .map(Label.class::cast)
+                .toList();
+        FrameTrigger trigger = new FrameTrigger(labels, ctx.identifier().getText(), visitBlock(ctx.block()));
+        trackNode(trigger, ctx);
+        return trigger;
+    }
+
+    @Override
+    public ASTNode visitRenderImageStatement(SFMLParser.RenderImageStatementContext ctx) {
+        String image = visitString(ctx.string()).value();
+        RenderImageStatement statement = new RenderImageStatement(
+                new ResourceLocation(image), ctx.identifier().getText()
+        );
+        trackNode(statement, ctx);
+        return statement;
+    }
+
+    @Override
+    public BoolExpr visitBooleanFrameModulo(SFMLParser.BooleanFrameModuloContext ctx) {
+        BoolExpr condition = new BoolFrameModulo(
+                visitNumber(ctx.number(0)).value(),
+                visitComparisonOp(ctx.comparisonOp()),
+                visitNumber(ctx.number(1)).value()
+        );
+        trackNode(condition, ctx);
+        return condition;
     }
 
     @Override

@@ -1,4 +1,4 @@
-// Generated from ./syntaxes/SFML.g4 by ANTLR 4.9.0-SNAPSHOT
+// Generated from SFML.g4 by ANTLR 4.9.0-SNAPSHOT
 
 
 import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor";
@@ -30,6 +30,7 @@ import { BooleanConjunctionContext } from "./SFMLParser";
 import { BooleanDisjunctionContext } from "./SFMLParser";
 import { BooleanHasContext } from "./SFMLParser";
 import { BooleanRedstoneContext } from "./SFMLParser";
+import { BooleanFrameModuloContext } from "./SFMLParser";
 import { GuidValuePatternContext } from "./SFMLParser";
 import { StringValuePatternContext } from "./SFMLParser";
 import { LiteralValuePatternContext } from "./SFMLParser";
@@ -37,6 +38,7 @@ import { ObjectValuePatternContext } from "./SFMLParser";
 import { AliasValuePatternContext } from "./SFMLParser";
 import { TimerTriggerContext } from "./SFMLParser";
 import { PulseTriggerContext } from "./SFMLParser";
+import { FrameTriggerContext } from "./SFMLParser";
 import { RawLabelContext } from "./SFMLParser";
 import { StringLabelContext } from "./SFMLParser";
 import { WithParenContext } from "./SFMLParser";
@@ -53,10 +55,12 @@ import { DeclarationContext } from "./SFMLParser";
 import { ValuePatternContext } from "./SFMLParser";
 import { PatternFieldContext } from "./SFMLParser";
 import { TriggerContext } from "./SFMLParser";
+import { FrameLabelsContext } from "./SFMLParser";
 import { IntervalContext } from "./SFMLParser";
 import { TimeUnitContext } from "./SFMLParser";
 import { BlockContext } from "./SFMLParser";
 import { StatementContext } from "./SFMLParser";
+import { RenderImageStatementContext } from "./SFMLParser";
 import { LetValueStatementContext } from "./SFMLParser";
 import { ValueExpressionContext } from "./SFMLParser";
 import { ConstructionFieldContext } from "./SFMLParser";
@@ -326,6 +330,14 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	visitBooleanRedstone?: (ctx: BooleanRedstoneContext) => Result;
 
 	/**
+	 * Visit a parse tree produced by the `BooleanFrameModulo`
+	 * labeled alternative in `SFMLParser.boolexpr`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitBooleanFrameModulo?: (ctx: BooleanFrameModuloContext) => Result;
+
+	/**
 	 * Visit a parse tree produced by the `GuidValuePattern`
 	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
@@ -380,6 +392,14 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitPulseTrigger?: (ctx: PulseTriggerContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `FrameTrigger`
+	 * labeled alternative in `SFMLParser.trigger`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitFrameTrigger?: (ctx: FrameTriggerContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by the `RawLabel`
@@ -503,6 +523,13 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	visitTrigger?: (ctx: TriggerContext) => Result;
 
 	/**
+	 * Visit a parse tree produced by `SFMLParser.frameLabels`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitFrameLabels?: (ctx: FrameLabelsContext) => Result;
+
+	/**
 	 * Visit a parse tree produced by `SFMLParser.interval`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -529,6 +556,13 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitStatement?: (ctx: StatementContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.renderImageStatement`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitRenderImageStatement?: (ctx: RenderImageStatementContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `SFMLParser.letValueStatement`.
