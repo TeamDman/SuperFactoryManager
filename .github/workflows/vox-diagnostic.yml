@@ -5,6 +5,14 @@ on:
     branches:
       - 'ci/1.19.2-vox-diagnostic'
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Reduced baseline reproduction or full original/candidate comparison
+        type: choice
+        default: reduced
+        options:
+          - reduced
+          - full
 
 permissions:
   contents: read
@@ -18,8 +26,51 @@ defaults:
     shell: bash
 
 jobs:
+  reduced-baseline:
+    name: Reproduce exact baseline late-credit failure and closest passing input
+    if: github.event_name == 'push' || inputs.mode == 'reduced'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+    steps:
+      - name: Check out the diagnostic revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the exact Vox compiler
+        timeout-minutes: 10
+        run: |
+          mkdir -p build/vox-reduced-baseline
+          git rev-parse HEAD > build/vox-reduced-baseline/sfm-revision.txt
+          bash containers/sfm/install-jbr.sh "$RUNNER_TEMP/vox-diagnostic-jdk" \
+            2>&1 | tee build/vox-reduced-baseline/jdk-install.log
+          echo "SFM_DIAGNOSTIC_JAVA_HOME=$RUNNER_TEMP/vox-diagnostic-jdk" >> "$GITHUB_ENV"
+
+      - name: Compile unchanged baseline and require the two expected outcomes
+        timeout-minutes: 15
+        run: |
+          python3 containers/sfm/vox-diagnostic.py \
+            --workspace "$GITHUB_WORKSPACE" \
+            --scratch "$RUNNER_TEMP/vox-reduced-source" \
+            --artifacts "$GITHUB_WORKSPACE/build/vox-reduced-baseline" \
+            --java-home "$SFM_DIAGNOSTIC_JAVA_HOME" \
+            --reduced-only
+
+      - name: Preserve passing input and exact expected-failure evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vox-reduced-baseline-${{ github.sha }}
+          path: build/vox-reduced-baseline/
+          if-no-files-found: error
+          retention-days: 14
+
   original-test:
     name: Unchanged pinned VoxRuntimeTest with driver diagnostics
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
@@ -60,6 +111,7 @@ jobs:
 
   candidate-test:
     name: Review candidate in disposable pinned source only
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'full'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:

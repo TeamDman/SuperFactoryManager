@@ -14,6 +14,10 @@ the same pinned Java sources with JBR 17.0.6 exposed the earlier driver exceptio
 the original test failed while awaiting the first response instead of on its next
 call. That is a timing difference within the same first transfer.
 
+A later hosted comparison passed both the unchanged original and candidate tests.
+The original full-test failure is therefore timing-dependent; a single passing
+baseline run does not invalidate the preserved failures or prove the race is gone.
+
 The exception trace does not contain the channel message body. Late receiver
 credit is inferred from the sender/receiver roles and first-transfer test sequence,
 and tested directly with the deterministic driver probe. The closest passing
@@ -56,7 +60,17 @@ no-op would need a separate review.
 
 ## Validation contract
 
-Each workflow job runs the unchanged full `VoxRuntimeTest` once. The original job
+Pushes to the diagnostic branch and the default manual mode (`reduced`) compile
+fresh, untouched pinned sources and run only two deterministic probe inputs once:
+credit before local Close must pass; the same credit after Close must fail with
+`message for unknown channel 1:1` from `VoxConnection.processInboundChannel`.
+The receipt records both real exit codes and `baseline-failure-reproduced` only
+when both expected outcomes and the exact exception match. An unexpected pass,
+different failure, timeout, or build error fails the diagnostic job. This job
+proves the reduced baseline bug; its success does not mean the runtime is fixed.
+It does not run or retry the full original test.
+
+The explicit manual `full` mode runs the full comparison once. The original job
 uses untouched pinned sources and remains failed when that test fails. The
 candidate job applies only the proposed `VoxConnection.java` change, checks that
 the original test source is unchanged, and runs the same test plus each retained

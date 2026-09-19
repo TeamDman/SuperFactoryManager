@@ -15,7 +15,11 @@ def main():
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--candidate", action="store_true",
                         help="Apply the review candidate only to the disposable pinned source")
+    parser.add_argument("--reduced-only", action="store_true",
+                        help="Reproduce baseline active/closed credit ordering without the full test")
     args = parser.parse_args()
+    if args.candidate and args.reduced_only:
+        parser.error("--reduced-only records the unchanged baseline; omit --candidate")
     workspace = args.workspace.resolve()
     scratch = args.scratch.resolve()
     artifacts = args.artifacts.resolve()
@@ -24,7 +28,7 @@ def main():
     # A new disposable directory prevents this diagnostic from reusing stale classes.
     scratch.mkdir(parents=True, exist_ok=False)
     receipt = {"test_runs": 0, "outcome": "setup", "commands": [],
-               "candidate": args.candidate}
+               "candidate": args.candidate, "reduced_only": args.reduced_only}
 
     def save_receipt():
         (artifacts / "receipt.json").write_text(
@@ -114,12 +118,37 @@ def main():
         required([str(java), "-XshowSettings:properties", "-version"], "java-settings.log", 15,
                  env=environment)
         required([str(javac), "@" + str(argfile)], "javac.log", 180, env=environment)
-        if args.candidate:
+        if args.candidate or args.reduced_only:
             probe = workspace / "containers/sfm/vox-diagnostic/VoxMissingCreditProbe.java"
             receipt["probe_sha256"] = hashlib.sha256(probe.read_bytes()).hexdigest()
             required([str(javac), "--release", "17", "-Xlint:all", "-Werror", "-cp", str(classes),
                       "-d", str(classes), str(probe)], "probe-javac.log", 30, env=environment)
         environment["VOX_DLOG"] = "1"
+        if args.reduced_only:
+            # Both inputs use the unchanged baseline driver. The only difference
+            # is that one sends the same credit after the local sender Close.
+            receipt["variant_exit_codes"] = {}
+            for variant in ("active_credit_passes", "late_credit_after_close_passes"):
+                variant_code = run([str(java), "-ea",
+                                    "-Xlog:exceptions=info:file="
+                                    + str(artifacts / (variant + "-jvm-exceptions.log")),
+                                    "-cp", str(classes),
+                                    "org.facet.vox.VoxMissingCreditProbe", variant],
+                                   "variant-" + variant + ".log", 15, env=environment)
+                receipt["variant_exit_codes"][variant] = variant_code
+            active_code = receipt["variant_exit_codes"]["active_credit_passes"]
+            closed_code = receipt["variant_exit_codes"]["late_credit_after_close_passes"]
+            failure_log = (artifacts / "variant-late_credit_after_close_passes.log").read_text(
+                encoding="utf-8", errors="replace")
+            expected_error = "org.facet.vox.VoxException: message for unknown channel 1:1"
+            receipt["expected_failure"] = expected_error
+            reproduced = (active_code == 0 and closed_code == 1
+                          and expected_error in failure_log
+                          and "VoxConnection.processInboundChannel(" in failure_log)
+            receipt["outcome"] = ("baseline-failure-reproduced" if reproduced
+                                  else "baseline-reproduction-mismatch")
+            print(receipt["outcome"], flush=True)
+            return 0 if reproduced else 1
         receipt["test_runs"] = 1
         code = run([str(java), "-ea",
                     "-Xlog:exceptions=info:file=" + str(artifacts / "jvm-exceptions.log"),
