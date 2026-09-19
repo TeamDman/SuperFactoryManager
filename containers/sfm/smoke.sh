@@ -34,7 +34,7 @@ container=$(docker create --network none --read-only --user 10001:10001 \
     "$image" verify)
 
 # Enforce wall time outside the game JVM. Cleanup kills and removes this container and its volume.
-timeout --signal=TERM --kill-after=30s 12m docker start --attach "$container"
+timeout --signal=TERM --kill-after=30s 35m docker start --attach "$container"
 status=$(docker inspect --format '{{.State.ExitCode}}' "$container")
 if [[ "$status" != 0 ]]; then
     echo "Container fixture failed with exit code $status" >&2

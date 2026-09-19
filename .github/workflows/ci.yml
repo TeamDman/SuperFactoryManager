@@ -73,7 +73,7 @@ jobs:
   build:
     name: Compile, test and package (Linux)
     runs-on: ubuntu-24.04
-    timeout-minutes: 110
+    timeout-minutes: 140
     env:
       CARGO_TERM_COLOR: always
       RUST_BACKTRACE: '1'
@@ -102,6 +102,14 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Install the compiler for the frozen Vox artifact
+        timeout-minutes: 10
+        run: |
+          # Vox's locked manifest embeds this exact JDK vendor/version. The mod
+          # and game continue to use current Java 17 via explicit --java-home.
+          bash containers/sfm/install-jbr.sh "$RUNNER_TEMP/vox-build-jdk"
+          echo "SFM_VOX_BUILD_JDK=$RUNNER_TEMP/vox-build-jdk" >> "$GITHUB_ENV"
+
       - name: Set up the Rust compiler
         timeout-minutes: 10
         run: |
@@ -121,10 +129,18 @@ jobs:
           "$cli" repo-root set "$GITHUB_WORKSPACE"
           echo "SFM_CI_CLI=$cli" >> "$GITHUB_ENV"
 
+      - name: Test portable dependency paths on Linux
+        timeout-minutes: 15
+        run: |
+          cargo test --locked --release --lib \
+            --manifest-path platform/cli/sfm-propagate-changes/Cargo.toml \
+            json_path::tests 2>&1 | tee build/ci/portable-path-tests.log
+
       - name: Compile all Java source sets
         timeout-minutes: 35
         run: |
-          "$SFM_CI_CLI" --log-filter info --log-file build/ci/compile.ndjson \
+          JAVA_HOME="$SFM_VOX_BUILD_JDK" \
+            "$SFM_CI_CLI" --log-filter info --log-file build/ci/compile.ndjson \
             run compile --branch sfm-ci-checkout --java-home "$JAVA_HOME" \
             --require-portable-artifacts --plan-json build/ci/compile-plan.json \
             2>&1 | tee build/ci/compile.log
@@ -175,7 +191,7 @@ jobs:
   container-smoke:
     name: Isolated Minecraft client (Mesa and Xvfb)
     runs-on: ubuntu-24.04
-    timeout-minutes: 100
+    timeout-minutes: 120
     steps:
       - name: Check out the event revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -192,7 +208,7 @@ jobs:
             2>&1 | tee build/container-ci/image-build.log
 
       - name: Capture screenshots in an offline restricted container
-        timeout-minutes: 22
+        timeout-minutes: 40
         run: bash containers/sfm/smoke.sh sfm-ci:local build/container-smoke
 
       - name: Upload container evidence

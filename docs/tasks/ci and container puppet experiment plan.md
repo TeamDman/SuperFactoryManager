@@ -69,6 +69,12 @@ list`, and `podman system connection list`.
 
 ## [~] 2. Build and deliver a mod artifact from the feature branch
 
+**Completion notes:** Initial experiment commit `f7dc28338` pushed successfully.
+GitHub started [run 35460447959](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35460447959)
+from the feature branch without a default-branch merge. The workflow passed
+actionlint 1.7.12. This proves the branch trigger, not yet the build. The initial
+run has independent graphics, build/test/package, and full container jobs.
+
 **Work:** Add a push/PR workflow with least permissions, explicit 1.19.2 scope,
 fresh-checkout tooling, bounded jobs, preserved failure diagnostics, and mod
 artifacts. Confirm non-default branch behavior with a real run.
@@ -82,6 +88,20 @@ and produces the mod JAR, or a reproducible upstream blocker is precisely
 recorded without claiming a passing build.
 
 ## [~] 3. Run a graphical puppet inside a restricted Docker worker
+
+**Completion notes:** `containers/sfm/` contains a two-stage image, independent
+graphics probe, offline runtime wrapper and screenshot verifier. Static Bash
+syntax checks pass. The independent graphics job passed in run `35460447959`:
+Mesa 22.3.6 reports llvmpipe (LLVM 15.0.6), OpenGL core 4.5, and no hardware
+acceleration. Container inspection confirms exit 0, UID 10001, network `none`,
+read-only root, dropped `ALL` capabilities, no-new-privileges, no mounts, 1 GiB
+memory and 128 PIDs. The in-container assertions also verified seccomp filtering.
+The canonical path decoder needed a portability fix:
+`JsonPath` now accepts Windows separators on Unix and writes forward slashes,
+without changing the lockfile. Five regression tests cover cached artifacts,
+source-build outputs and optional paths; all five passed via `cargo test --locked
+json_path::tests --lib`. Full Minecraft execution and the all-feature Rust checks
+are pending.
 
 **Work:** Build the canonical Linux tool and prewarm pinned game inputs.
 Run the client using Xvfb and software OpenGL. Use a non-root worker with
@@ -125,7 +145,7 @@ and identify the remaining production decisions.
 
 - Target: `ci/1.19.2-container-puppet`, base `707f53f4a`.
 - Existing installed CLI reports `ea4dcc9aa`, older than this source; CI must build its own current-source executable.
-- Tooling source changes: none initially; installation responsibility must be revisited if portability fixes change Rust source.
+- Tooling source changes: portable serialized-path conversion in `jar_build/json_path.rs`; final rebuild/install and verification are required.
 - Dependency posture: frozen project dependencies; new container infrastructure as scoped above.
 - New developer/reference clones: none.
 - Process preflight: no local game launch or process termination is planned; hosted workers own their test processes.

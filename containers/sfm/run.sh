@@ -19,13 +19,6 @@ cp source-revision.txt "$artifacts/"
 collect_artifacts() {
     local status=$?
     trap - EXIT
-    local previews=/workspace/platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview
-    if [[ -d "$previews" ]]; then
-        cp -a "$previews" "$artifacts/previews"
-    fi
-    # Do not copy the home directory or game-instance descriptors: they contain RPC tokens.
-    local logs=/workspace/platform/minecraft/runGameTestPreview/logs
-    if [[ -d "$logs" ]]; then cp -a "$logs" "$artifacts/game-logs"; fi
     printf '%s\n' "$status" > "$artifacts/exit-code.txt"
     exit "$status"
 }
@@ -50,17 +43,49 @@ print('uid=10001 capabilities=none no_new_privileges=1 seccomp=filter network=lo
 PY
 fi
 
-# Keep one X server alive for both the renderer probe and the game; no host display/GPU.
+# Each puppet gets a fresh client. The title fixture requires the startup loading
+# overlay, which is not guaranteed when returning to the title after a world.
+# Keep one X server alive throughout; no host display/GPU.
 xvfb-run --auto-servernum --server-args='-screen 0 1280x720x24 -nolisten tcp' \
-    bash -euo pipefail -c '
-        glxinfo -B | tee /workspace/container-artifacts/glxinfo.txt
-        grep -qi llvmpipe /workspace/container-artifacts/glxinfo.txt
-        sfm-propagate-changes puppet run title_screen_capture,game_test_orbit_capture \
-            --game-test sfm:move_1_stack_direct --branch ci-container \
-            --width 1280 --height 720 --variant preferred --require-portable-artifacts \
-            2>&1 | tee /workspace/container-artifacts/console.log
-    '
+    bash -euo pipefail <<'BASH'
+glxinfo -B | tee /workspace/container-artifacts/glxinfo.txt
+grep -qi llvmpipe /workspace/container-artifacts/glxinfo.txt
 
-python3 /opt/sfm-container/verify.py \
-    /workspace/platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview \
-    "$artifacts/console.log" | tee "$artifacts/verification.json"
+previews=/workspace/platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview
+game_dir=/workspace/platform/minecraft/runGameTestPreview
+current_artifacts=
+snapshot_current() {
+    if [[ -z "$current_artifacts" ]]; then return; fi
+    if [[ -d "$previews" ]]; then
+        mkdir -p "$current_artifacts/previews"
+        cp -a "$previews/." "$current_artifacts/previews/"
+    fi
+    # Never copy the home directory or instance descriptors containing RPC tokens.
+    if [[ -d "$game_dir/logs" ]]; then
+        mkdir -p "$current_artifacts/game-logs"
+        cp -a "$game_dir/logs/." "$current_artifacts/game-logs/"
+    fi
+}
+trap snapshot_current EXIT
+
+for puppet in title_screen_capture game_test_orbit_capture; do
+    current_artifacts=/workspace/container-artifacts/$puppet
+    mkdir -p "$current_artifacts"
+    # Both the manifest and screenshots must belong to this invocation.
+    rm -rf "$previews" "$game_dir"
+    options=(--branch ci-container --java-home /opt/java --width 1280 --height 720
+             --variant preferred --require-portable-artifacts)
+    if [[ "$puppet" == game_test_orbit_capture ]]; then
+        options+=(--game-test sfm:move_1_stack_direct)
+    fi
+    status=0
+    sfm-propagate-changes puppet run "$puppet" "${options[@]}" \
+        2>&1 | tee "$current_artifacts/console.log" || status=$?
+    printf '%s\n' "$status" > "$current_artifacts/exit-code.txt"
+    snapshot_current
+    current_artifacts=
+    if [[ "$status" != 0 ]]; then exit "$status"; fi
+done
+BASH
+
+python3 /opt/sfm-container/verify.py "$artifacts" | tee "$artifacts/verification.json"

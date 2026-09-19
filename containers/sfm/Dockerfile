@@ -31,6 +31,11 @@ ENTRYPOINT ["/opt/sfm-container/graphics.sh"]
 FROM graphics-probe AS runtime
 USER root
 
+# Only the frozen Vox source-build needs this historical compiler. Keep the
+# current Debian JDK at /opt/java for SFM compilation and the game runtime.
+COPY containers/sfm/install-jbr.sh /opt/sfm-container/install-jbr.sh
+RUN bash /opt/sfm-container/install-jbr.sh /opt/vox-build-jdk
+
 WORKDIR /workspace
 COPY --chown=sfm:sfm platform/cli/sfm-propagate-changes/ platform/cli/sfm-propagate-changes/
 COPY --chown=sfm:sfm platform/cli/sfm/ platform/cli/sfm/
@@ -57,7 +62,8 @@ RUN test -n "$SFM_SOURCE_REVISION" \
 
 ENV PATH=/workspace/bin:/usr/local/cargo/bin:/opt/java/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RUN sfm-propagate-changes repo-root set /workspace \
-    && sfm-propagate-changes jar build --branch ci-container --require-portable-artifacts \
+    && JAVA_HOME=/opt/vox-build-jdk sfm-propagate-changes jar build \
+       --branch ci-container --require-portable-artifacts --java-home /opt/java \
     && /opt/sfm-container/run.sh prepare \
     && rm -rf /workspace/container-artifacts \
        /workspace/platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview \
