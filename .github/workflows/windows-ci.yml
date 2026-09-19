@@ -32,7 +32,9 @@ jobs:
       CARGO_BUILD_JOBS: '2'
       RUST_BACKTRACE: '1'
       RUSTUP_TOOLCHAIN: '1.96.0'
-      JAVA_TOOL_OPTIONS: '-Dfile.encoding=UTF-8'
+      # Keep UTF-8 source decoding scoped to javac. A JVM-wide option prints a
+      # banner to jdeps stderr, which the frozen Vox recipe treats as failure.
+      JDK_JAVAC_OPTIONS: '-encoding UTF-8'
     steps:
       - name: Check out the event revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

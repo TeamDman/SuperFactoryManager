@@ -79,7 +79,11 @@ for puppet in title_screen_capture game_test_orbit_capture; do
         options+=(--game-test sfm:move_1_stack_direct)
     fi
     status=0
-    sfm-propagate-changes puppet run "$puppet" "${options[@]}" \
+    # Scope limits to Java launchers during puppet preparation/runtime. The
+    # source-build recipe treats any jdeps output as unresolved dependencies;
+    # JAVA_TOOL_OPTIONS would make jdeps emit an unrelated startup banner.
+    JDK_JAVA_OPTIONS='-Xmx3g -XX:ActiveProcessorCount=4' \
+        sfm-propagate-changes puppet run "$puppet" "${options[@]}" \
         2>&1 | tee "$current_artifacts/console.log" || status=$?
     printf '%s\n' "$status" > "$current_artifacts/exit-code.txt"
     snapshot_current

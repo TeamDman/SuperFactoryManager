@@ -22,7 +22,6 @@ ENV JAVA_HOME=/opt/java \
     GALLIUM_DRIVER=llvmpipe \
     LP_NUM_THREADS=2 \
     ALSOFT_DRIVERS=null \
-    JAVA_TOOL_OPTIONS="-Xmx3g -XX:ActiveProcessorCount=4" \
     CARGO_BUILD_JOBS=2
 
 COPY containers/sfm/graphics.sh /opt/sfm-container/graphics.sh

@@ -59,6 +59,14 @@ property of the runner. The image currently keeps Rust and Cargo caches because
 the canonical puppet launcher builds the checkout-local `sfm` control CLI on
 every invocation.
 
+Initial dependency acquisition runs without global Java option variables. Puppet
+commands scope `JDK_JAVA_OPTIONS=-Xmx3g -XX:ActiveProcessorCount=4` to the Java
+launcher, preserving a 3 GiB game heap and four JVM processors. This leaves
+`jdeps`, `javac`, and `jar` free of the `JAVA_TOOL_OPTIONS` startup banner that
+the pinned source recipe would otherwise mistake for unresolved dependencies.
+The Java launcher still records its own options notice in the game logs.
+[Java launcher options](https://docs.oracle.com/en/java/javase/17/docs/specs/man/java.html#using-the-jdk_java_options-launcher-environment-variable).
+
 Evidence is copied to `build/container-smoke` even when the game fails:
 
 - `glxinfo.txt` and `isolation.txt`: actual renderer and runtime assertions.
