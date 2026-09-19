@@ -13,6 +13,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("workspace", "scratch", "artifacts", "java-home"):
         parser.add_argument("--" + name, type=Path, required=True)
+    parser.add_argument("--candidate", action="store_true",
+                        help="Apply the review candidate only to the disposable pinned source")
     args = parser.parse_args()
     workspace = args.workspace.resolve()
     scratch = args.scratch.resolve()
@@ -21,7 +23,8 @@ def main():
     artifacts.mkdir(parents=True, exist_ok=True)
     # A new disposable directory prevents this diagnostic from reusing stale classes.
     scratch.mkdir(parents=True, exist_ok=False)
-    receipt = {"test_runs": 0, "outcome": "setup", "commands": []}
+    receipt = {"test_runs": 0, "outcome": "setup", "commands": [],
+               "candidate": args.candidate}
 
     def save_receipt():
         (artifacts / "receipt.json").write_text(
@@ -74,6 +77,19 @@ def main():
         if actual != revision:
             raise RuntimeError("Fetched source revision differs from the SFM lock")
 
+        if args.candidate:
+            patch = workspace / "containers/sfm/vox-diagnostic/credit-candidate.patch"
+            receipt["candidate_patch_sha256"] = hashlib.sha256(patch.read_bytes()).hexdigest()
+            required(["git", "apply", "--check", str(patch)], "patch-check.log", 15, cwd=checkout)
+            required(["git", "apply", str(patch)], "patch-apply.log", 15, cwd=checkout)
+            changed = subprocess.check_output(["git", "diff", "--name-only"],
+                                              cwd=checkout, text=True).splitlines()
+            if changed != ["vox/java/runtime/src/main/java/org/facet/vox/VoxConnection.java"]:
+                raise RuntimeError("Candidate must change only the disposable VoxConnection.java")
+            required(["git", "diff", "--exit-code", "--",
+                      "vox/java/runtime/src/test/java/org/facet/vox/VoxRuntimeTest.java"],
+                     "original-test-unchanged.log", 15, cwd=checkout)
+
         roots = ("phon/java/runtime/src/main/java", "phon/java/runtime/src/test/java",
                  "vox/java/runtime/src/main/java", "vox/java/runtime/src/test/java",
                  "vox/java/generated/src/main/java", "vox/java/subject/src/main/java")
@@ -98,6 +114,11 @@ def main():
         required([str(java), "-XshowSettings:properties", "-version"], "java-settings.log", 15,
                  env=environment)
         required([str(javac), "@" + str(argfile)], "javac.log", 180, env=environment)
+        if args.candidate:
+            probe = workspace / "containers/sfm/vox-diagnostic/VoxMissingCreditProbe.java"
+            receipt["probe_sha256"] = hashlib.sha256(probe.read_bytes()).hexdigest()
+            required([str(javac), "--release", "17", "-Xlint:all", "-Werror", "-cp", str(classes),
+                      "-d", str(classes), str(probe)], "probe-javac.log", 30, env=environment)
         environment["VOX_DLOG"] = "1"
         receipt["test_runs"] = 1
         code = run([str(java), "-ea",
@@ -105,6 +126,28 @@ def main():
                     "-cp", str(classes), "org.facet.vox.VoxRuntimeTest"],
                    "original-test.log", 60, env=environment)
         receipt.update({"test_exit_code": code, "outcome": "passed" if code == 0 else "failed"})
+        if args.candidate:
+            variants = (
+                "active_credit_passes", "late_credit_after_close_passes",
+                "missing_credit_passes", "late_credit_has_no_history_window",
+                "credit_on_zero_channel_fails",
+                "credit_on_control_lane_fails", "credit_on_unopened_lane_fails",
+                "credit_on_opening_lane_fails", "credit_after_local_lane_close_passes",
+                "zero_credit_on_active_fails", "zero_credit_on_missing_fails",
+                "zero_credit_on_closed_fails", "overflow_credit_on_missing_fails",
+                "missing_credit_field_fails", "wrong_type_credit_fails",
+                "credit_to_active_receiver_fails", "item_to_closed_sender_fails",
+                "close_to_missing_channel_fails", "reset_to_closed_sender_fails_unchanged",
+            )
+            receipt["variant_exit_codes"] = {}
+            for variant in variants:
+                variant_code = run([str(java), "-ea", "-cp", str(classes),
+                                    "org.facet.vox.VoxMissingCreditProbe", variant],
+                                   "variant-" + variant + ".log", 15, env=environment)
+                receipt["variant_exit_codes"][variant] = variant_code
+            if any(receipt["variant_exit_codes"].values()):
+                receipt["outcome"] = "failed"
+                return 1
         return code
     except (OSError, ValueError, KeyError, RuntimeError, subprocess.SubprocessError) as failure:
         receipt.update({"outcome": "diagnostic-error", "error": str(failure)})
