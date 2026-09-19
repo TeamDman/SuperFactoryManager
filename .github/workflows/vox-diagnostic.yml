@@ -1,0 +1,59 @@
+name: Pinned Vox Linux diagnostic
+
+on:
+  push:
+    branches:
+      - 'ci/1.19.2-vox-diagnostic'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vox-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  original-test:
+    name: Unchanged pinned VoxRuntimeTest with driver diagnostics
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
+    steps:
+      - name: Check out the diagnostic revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install the exact Vox compiler
+        timeout-minutes: 10
+        run: |
+          mkdir -p build/vox-diagnostic
+          git rev-parse HEAD > build/vox-diagnostic/sfm-revision.txt
+          bash containers/sfm/install-jbr.sh "$RUNNER_TEMP/vox-diagnostic-jdk" \
+            2>&1 | tee build/vox-diagnostic/jdk-install.log
+          echo "SFM_DIAGNOSTIC_JAVA_HOME=$RUNNER_TEMP/vox-diagnostic-jdk" >> "$GITHUB_ENV"
+
+      - name: Compile locked Java sources and run the original test once
+        timeout-minutes: 10
+        run: |
+          python3 containers/sfm/vox-diagnostic.py \
+            --workspace "$GITHUB_WORKSPACE" \
+            --scratch "$RUNNER_TEMP/vox-diagnostic-source" \
+            --artifacts "$GITHUB_WORKSPACE/build/vox-diagnostic" \
+            --java-home "$SFM_DIAGNOSTIC_JAVA_HOME"
+
+      - name: Upload diagnostic evidence even when the test fails
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: vox-original-linux-diagnostic-${{ github.sha }}
+          path: build/vox-diagnostic/
+          if-no-files-found: error
+          retention-days: 14
