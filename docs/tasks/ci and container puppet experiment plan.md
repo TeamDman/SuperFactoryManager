@@ -72,8 +72,15 @@ list`, and `podman system connection list`.
 **Completion notes:** Initial experiment commit `f7dc28338` pushed successfully.
 GitHub started [run 35460447959](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35460447959)
 from the feature branch without a default-branch merge. The workflow passed
-actionlint 1.7.12. This proves the branch trigger, not yet the build. The initial
-run has independent graphics, build/test/package, and full container jobs.
+actionlint 1.7.12. This proves the branch trigger, not yet the build. Its Linux CLI
+compiled successfully; Java acquisition then failed inside pinned Vox's
+`VoxRuntimeTest.generatedChannelRoundTripHonorsCreditAndCancellation` with
+`lane is not open: CLOSED`. The initial Docker build independently stopped when
+`javac` treated UTF-8 Phon test sources as US-ASCII. Neither failure was bypassed.
+Commit `bd6aff529` adds UTF-8 locale after `10967aefc` introduced a checksum-pinned
+JBR 17.0.6 build compiler and independent puppet JVMs. Current Java 17 remains
+the explicit mod compiler/game runtime. [Run 35461041230](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35461041230)
+tests these fixes; the intervening superseded run was cancelled by concurrency.
 
 **Work:** Add a push/PR workflow with least permissions, explicit 1.19.2 scope,
 fresh-checkout tooling, bounded jobs, preserved failure diagnostics, and mod
@@ -100,8 +107,18 @@ The canonical path decoder needed a portability fix:
 `JsonPath` now accepts Windows separators on Unix and writes forward slashes,
 without changing the lockfile. Five regression tests cover cached artifacts,
 source-build outputs and optional paths; all five passed via `cargo test --locked
-json_path::tests --lib`. Full Minecraft execution and the all-feature Rust checks
-are pending.
+json_path::tests --lib`. The title and orbit fixtures now run in separate fresh
+clients because discovery sorts puppets alphabetically and the title capture
+requires the initial loading overlay. Full Minecraft execution is pending.
+
+Required `check-all.ps1` results: dependency policy, formatting, all-feature
+Clippy with denied warnings, and build pass. Outside the sandbox, 739 unit tests
+pass with four ignored, nine Java integration siblings pass, and the release
+review integration suites pass 12 and 40 tests. The Java analysis snapshot suite
+fails because installed JDK source content/hash differs from its recorded JDK
+fixtures (for example, `String.java` has 4660 lines instead of 4656). Snapshots
+were not changed. An initial sandbox-only inability to launch `rg` was resolved
+by the normal-user rerun. Doc tests report zero cases.
 
 **Work:** Build the canonical Linux tool and prewarm pinned game inputs.
 Run the client using Xvfb and software OpenGL. Use a non-root worker with
@@ -144,8 +161,8 @@ and identify the remaining production decisions.
 ## Operational readiness
 
 - Target: `ci/1.19.2-container-puppet`, base `707f53f4a`.
-- Existing installed CLI reports `ea4dcc9aa`, older than this source; CI must build its own current-source executable.
-- Tooling source changes: portable serialized-path conversion in `jar_build/json_path.rs`; final rebuild/install and verification are required.
+- Tooling source changes: portable serialized-path conversion in `jar_build/json_path.rs`.
+- Installer: `platform/cli/sfm-propagate-changes/install.ps1` completed successfully with locked offline acquisition. Installed command reports `10967aefc`; SHA-256 `95095EB678494595B6B40C7E37A1B155F2AB17EA713931235A111035ED82D5EF`. Its source subtree `d3785ff480719c67f1574efa5bfede644e653d93` is identical at `bd6aff529`. No user installer step is required. CI builds its own executable from each event revision.
 - Dependency posture: frozen project dependencies; new container infrastructure as scoped above.
 - New developer/reference clones: none.
 - Process preflight: no local game launch or process termination is planned; hosted workers own their test processes.
