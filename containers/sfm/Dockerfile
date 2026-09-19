@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && mkdir /workspace && chown sfm:sfm /workspace
 
 ENV JAVA_HOME=/opt/java \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
     HOME=/home/sfm \
     CARGO_HOME=/workspace/.cargo \
     SFM_PROPAGATE_CHANGES_HOME=/workspace/.sfm-config \
