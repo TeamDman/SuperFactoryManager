@@ -511,7 +511,7 @@ Evidence: baseline model, ambient and world-rendering results above. Session cre
 Release work remains explicit even though P0–P10 have baseline feature proofs:
 
 - [!] R1. Close baseline release regressions and packet-polish visual acceptance. The reload regression, packet inspector and final-source unit/server/client suites now pass. The exact remaining blocker is physical Shift acceptance: native polling is not exercised by file input. Unblock with a passing human check or explicit approval to document it as a manual follow-up; the async choice remains unanswered.
-- [ ] R2. Integrate canonical 1.19.2 and propagate the adjacent version chain. Preserve destination dependency bytes and target adapters, then compile and exercise the supported renderer/network surfaces.
+- [ ] R2. Integrate canonical 1.19.2 and propagate the adjacent version chain. Preserve destination dependency declarations, lockfiles and target adapters. Review nondependency feature metadata separately, then compile and exercise the supported renderer/network surfaces.
 - [~] R3. Finish operational readiness and manual handoff. The baseline installation, hashes, compile smoke and process cleanup passed below. Repeat the relevant freshness and target checks after propagation changes; this baseline checkpoint is not final multi-version acceptance.
 
 Final-source unit evidence on 20 September: `test run --branch feat/1.19.2/packet-computation --wait-for-build-lock --log-file platform/minecraft/build/touch-display-final-packet-inspection-unit-tests.log --log-filter info` passed 2,494 tests, zero failures or skips and 5 optional aborts (2,499 found), exit 0. This includes all 4 packet-inspection source guards and all 5 terminal visual-control regressions.
@@ -576,7 +576,50 @@ Propagation preflight on 19 September: all 10 canonical version worktrees were c
 
 The canonical pre-propagation `cargo run --locked --offline -- audit --branch core --version-surfaces` completed with exit 0 at `707f53f4a`. Its warnings are advisory, not clean acceptance: all 9 later branches have differing CLI source trees, and 19,312 Java hunks fall outside version-dependent annotations. Counts by target are 1.19.4: 1,667; 1.20: 1,951; 1.20.1: 1,954; 1.20.2: 2,022; 1.20.3: 2,060; 1.20.4: 2,083; 1.21.0: 2,349; 1.21.1: 2,371; 26.1.2: 2,855. The separate source audit reports 1,139 existing warnings. Canonical source and dependency hashes stayed unchanged; all audit-owned processes exited. The full canonical artifact is `platform/minecraft/build/pre-propagation-version-surfaces-console.log`, SHA-256 `8CD7B748757A634672380F6A3CBB76637CC308F93454A653F4223B295EAB16D3`. Post-propagation review must distinguish inherited backlog from feature adapter regressions.
 
-The later targets also have an existing propagation backlog: `1.19.4`, `1.21.1` and `26.1.2` each lacked 186 canonical commits, including 172 before the feature fork. Their dependency declarations already differ. Frozen dependency posture is destination-relative: preserve each destination's pre-merge manifests and lockfiles exactly. The existing `git merge` CLI commits clean hops automatically, and `--auto-abort` is not a read-only mode. It cannot guarantee that invariant before committing. Use a documented adjacent-version `git merge --no-commit --no-ff` review point if necessary, record each destination HEAD and explicit frozen paths, retain its dependency bytes, graft version adapters, then validate before committing. If the feature cannot compile against a destination's frozen dependency graph, request a narrow dependency amendment rather than accepting inherited dependency changes. No propagation has begun.
+The later targets also have an existing propagation backlog: `1.19.4`, `1.21.1` and `26.1.2` each lacked 186 canonical commits, including 172 before the feature fork. Their dependency declarations already differ. Frozen dependency posture is destination-relative: preserve each destination's dependency declarations and lockfiles. Nondependency feature metadata in a mixed manifest needs a separate, field-level review. The existing `git merge` CLI commits clean hops automatically, and `--auto-abort` is not a read-only mode. It cannot guarantee that invariant before committing. Use a documented adjacent-version `git merge --no-commit --no-ff` review point if necessary, record each destination HEAD and explicit frozen paths, retain its dependency bytes, graft version adapters, then validate before committing. If the feature cannot compile against a destination's frozen dependency graph, request a narrow dependency amendment rather than accepting inherited dependency changes. No propagation has begun.
+
+The 20 September read-only recheck found all 10 canonical worktrees clean, with
+no `MERGE_HEAD`. Their HEADs had not moved since 17 September. Canonical 1.19.2
+remains `707f53f4a`; feature checkpoint `0eeac903a` has 29 feature-only commits
+against 14 canonical-only commits. The fresh `git merge-tree --write-tree
+--name-only 1.19.2 0eeac903a` preview produced tree
+`b71e3c9d242025f5f0db5220db7a31530585b4b2` and the same 6 conflicts listed above.
+It wrote only unreferenced Git objects; no branch, index or worktree was merged.
+The preview retains captured GameTest bounds in the shared `startGameTest`
+overload; the name-based overload delegates there. This checks one automatic
+merge, not the unresolved runtime conflict or post-integration behaviour.
+
+The preview changes the editor's `package.json` only by adding 18 language
+keywords. Its dependency fields do not change. Restoring that entire file
+would discard approved editor metadata, so the earlier whole-manifest byte
+rule was too broad. Preserve dependency fields and the complete package
+lockfile while retaining the keyword additions. This correction does not
+authorise a dependency version, repository, feature or graph change.
+
+The frozen-input inventory for each hop includes:
+
+- all existing `Cargo.toml`, `Cargo.lock`, npm dependency fields and package
+  lockfiles, plus `platform/minecraft/sfm-toolchain.lock.json`
+- Minecraft `build.gradle`, `settings.gradle`, `gradle.properties`, wrapper
+  properties, versioned dependency, plugin and Java-toolchain declarations;
+  include `gradle/plugins/<version>/plugin-classpath.txt`, which also contains
+  external coordinates
+- shared repository, lockfile-feature and version-selection scripts; each
+  target tracks the whole versioned matrix, including directory `1.21` for
+  branch `1.21.0`
+- dependency ranges in `META-INF/mods.toml` or `neoforge.mods.toml`, separately
+  from ordinary mod metadata
+- configuration, source-set/exclusion, jar-in-jar and access-transformer
+  inputs where a change affects dependency activation, packaging or mappings
+
+New files also need review. Only canonical 1.19.2 currently tracks
+`platform/cli/sfm/Cargo.toml` and `Cargo.lock`; the 9 later targets do not.
+Copying them would add dependency declarations even if every existing file
+stayed unchanged. Do not import those manifests automatically under the
+frozen posture. Before that hop, establish whether the existing baseline-built
+worker can provide the required target support without adding declarations,
+or request a narrow dependency amendment. A clean Git merge is not dependency
+approval. The inventory and preview do not waive R1's physical-key gate.
 
 Read-only adapter map for R2, not target acceptance:
 
