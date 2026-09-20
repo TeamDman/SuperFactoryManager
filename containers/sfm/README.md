@@ -4,6 +4,25 @@ Run the graphics probe first, then the complete SFM puppet fixture. These are Li
 containers. Docker Desktop must use its Linux backend on Windows; no host display,
 GPU device, Minecraft account, or Discord token is passed into either fixture.
 
+## Verified result
+
+[PR run 35481820090](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35481820090)
+passed on Linux x86-64 at source `d7e22e73e` (tested merge `77e42edb0469ae9ca71b19b5b677c12cf245e79e`).
+The cold prepared-image build took 19 minutes 12 seconds. The two fresh offline
+client launches together took 3 minutes 42 seconds inside the container; image
+creation/copying and evidence collection add wrapper time. These are single-run
+measurements, not latency guarantees or memory-use measurements.
+
+The raw game logs report both puppet completions and
+`move_1_stack_direct passed!`. All three title and eight orbit PNGs passed the
+manifest checks and decoded during artifact inspection. Runtime inspection
+confirmed the restrictions below, exit 0 and no OOM kill.
+
+The first orbit image catches incomplete geometry while later views show the
+complete fixture. A help worker needs a visual-readiness check before selecting
+an image to return. This experiment proves game execution and screenshot capture;
+the future bot still needs an external Vox-control smoke test and broker wiring.
+
 ## Run the independent graphics probe
 
 From the repository root, in Bash with a running Docker daemon:
@@ -58,6 +77,13 @@ of minutes. A cached repeat should be much shorter; the smoke wrapper imposes a
 property of the runner. The image currently keeps Rust and Cargo caches because
 the canonical puppet launcher builds the checkout-local `sfm` control CLI on
 every invocation.
+
+The evidence validator's own regressions can be run without starting Minecraft:
+
+```bash
+python3 -B -m unittest discover -s containers/sfm -p test_verify.py -v
+bash containers/sfm/test_smoke.sh
+```
 
 Initial dependency acquisition runs without global Java option variables. Puppet
 commands scope `JDK_JAVA_OPTIONS=-Xmx3g -XX:ActiveProcessorCount=4` to the Java

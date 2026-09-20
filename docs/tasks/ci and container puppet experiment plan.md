@@ -1,9 +1,9 @@
 # CI and container puppet experiment
 
-**Plan status:** Active
+**Plan status:** Complete
 **Primary implementation root:** branch `ci/1.19.2-container-puppet`, based on `707f53f4a`
 **Last updated:** 2026-09-19
-**Intent audit:** Passed against the initial CI/container request
+**Intent audit:** Passed against U1-U8, including the authorized Vox update
 
 ## How to update this plan
 
@@ -69,9 +69,9 @@ or changing OS virtualization configuration.
 status`, `gh workflow list`, `wsl --status`, `podman version`, `podman machine
 list`, and `podman system connection list`.
 
-## [~] 2. Build and deliver a mod artifact from the feature branch
+## [x] 2. Build and deliver a mod artifact from the feature branch
 
-**Current checkpoint:** The latest native Linux and Windows runs compiled all
+**Portability repair checkpoint:** The earlier native Linux and Windows runs compiled all
 SFM Java source sets. Linux then exposed Windows-only paths in ten test classes;
 Windows exposed CRLF conversion of canonical replay JSON. Test fixtures now use
 native absolute paths/URIs, and the JSON fixtures explicitly use LF. The one
@@ -90,7 +90,25 @@ checks. The resulting artifact hash is
 `blake3:2be34a7d38bbd4a455d2a933c856c9462630f47a`.
 Only the Vox artifact hash, derived expected hash, source commit, branch and
 portable source-root reference changed in SFM's lock. Rust pins and all other
-dependencies remain unchanged. Fresh hosted builds will verify this exact pin.
+dependencies remain unchanged. The final hosted results below verify this pin.
+
+**Hosted acceptance update:** [PR #617](https://github.com/TeamDman/SuperFactoryManager/pull/617)
+tests source `d7e22e73e` as merge revision
+`77e42edb0469ae9ca71b19b5b677c12cf245e79e`.
+[Linux run 35481820090](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35481820090)
+passed all three jobs. Native JUnit reports 2,075 passed, zero failed, one
+Windows-only skip and six existing opt-in tests aborted by missing helper/fixture
+prerequisites. The mod JAR is 8,920,959 bytes, SHA-256
+`cb1ec405414992f3f37731dd3b8ddb9fcb142dc8aa96007d991b436208d14e5d`.
+Its embedded Vox JAR independently hashes to the approved new value above.
+[Windows run 35481820091](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35481820091)
+also passed, reporting 2,076 passed, zero failed/skipped and the same six opt-in
+aborts. Its mod JAR is 8,921,315 bytes, SHA-256
+`7b576c99b416ba1f40e63a70de116bf15f07ccd6a5768e2628a9824bf4a21491`.
+Both archives contain the required mod/mixin/refmap/jarjar entries and identical
+Vox JAR bytes. The complete mod archives are not byte-identical across platforms;
+this experiment does not claim cross-platform mod archive reproducibility.
+Windows completed in 33m17s; Linux native build completed in 14m28s.
 
 **Completion notes:** Initial experiment commit `f7dc28338` pushed successfully.
 GitHub started [run 35460447959](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35460447959)
@@ -171,9 +189,9 @@ instead of the authoritative child-process log. The raw completion marker must
 be checked in that child log, with fresh copies per puppet. Offline restricted
 execution is still a separate, pending check.
 
-**Remaining acceptance:** Verify the published Vox source/hash on fresh Linux
-and Windows runners, then pass the full canonical JUnit and packaging jobs.
-No source-test bypass, arbitrary cached JAR, or hash relaxation is accepted.
+**Acceptance complete:** Both operating systems independently rebuilt the exact
+published Vox pin, passed canonical JUnit and packaged the mod. No source-test
+bypass, arbitrary cached JAR or hash relaxation was used.
 
 **Work:** Add a push/PR workflow with least permissions, explicit 1.19.2 scope,
 fresh-checkout tooling, bounded jobs, preserved failure diagnostics, and mod
@@ -187,9 +205,25 @@ at the exact event commit so CLI worktree selection also works for PR checkouts.
 and produces the mod JAR, or a reproducible upstream blocker is precisely
 recorded without claiming a passing build.
 
-## [~] 3. Run a graphical puppet inside a restricted Docker worker
+## [x] 3. Run a graphical puppet inside a restricted Docker worker
 
-**Current checkpoint:** Run `35462847488` built the distributable mod and ran
+**Accepted result:** Run `35481820090` built the prepared image in 19m12s, then
+completed both fresh offline clients in 3m42s inside the container. Raw JVM logs
+contain one successful completion per puppet and the passed
+`move_1_stack_direct` GameTest. All 11 PNGs satisfy the strict manifest verifier
+and were separately decoded during artifact inspection. The source receipt is
+the exact tested merge revision above. Docker inspection confirms UID 10001,
+network `none`, no bind mounts, only the anonymous `/workspace` volume, read-only
+root, dropped `ALL` capabilities, no-new-privileges, 8 GiB memory/swap cap,
+four CPUs and 512 PIDs. In-container assertions confirm seccomp filtering;
+the process exited 0 without an OOM kill. Cleanup removes the worker and volume.
+
+The first orbit image has incomplete geometry; later views show the full SFM
+fixture. This is an observed capture-readiness limitation for the future bot,
+not evidence of a production screenshot-quality guarantee. An external Vox
+control smoke test and the Discord broker remain future integration work.
+
+**Earlier checkpoint:** Run `35462847488` built the distributable mod and ran
 both real puppets during Docker image preparation, generating three title and
 eight world captures. The final check failed because it read the CLI progress
 log instead of the raw JVM console. `run.sh` now preserves the fresh per-puppet
@@ -200,8 +234,8 @@ completion, extra/duplicate captures, missing images and failing process exits.
 The host wrapper refuses nonempty artifact destinations without deleting their
 contents; a stub-Docker regression checks both rejection and fresh destinations.
 These evidence tests run in the workflow alongside the graphics probe.
-The next run must repeat both puppets after disabling networking and applying
-all runtime restrictions; preparation screenshots alone do not satisfy that.
+The accepted final run repeated both puppets after disabling networking and
+applying all runtime restrictions; preparation screenshots alone were insufficient.
 
 **Completion notes:** `containers/sfm/` contains a two-stage image, independent
 graphics probe, offline runtime wrapper and screenshot verifier. Static Bash
@@ -224,9 +258,13 @@ Required `check-all.ps1` results: dependency policy, formatting, all-feature
 Clippy with denied warnings, and build pass. Outside the sandbox, 739 unit tests
 pass with four ignored, nine Java integration siblings pass, and the release
 review integration suites pass 12 and 40 tests. The Java analysis snapshot suite
-fails because installed JDK source content/hash differs from its recorded JDK
-fixtures (for example, `String.java` has 4660 lines instead of 4656). Snapshots
-were not changed. An initial sandbox-only inability to launch `rg` was resolved
+fails because the selected JDK source content/hash differs from its recorded JDK
+fixtures (for example, `String.java` has 4660 lines instead of 4656). An installed
+JBR 17.0.6 matches the expected complete source archive and all three checked
+source files, but the suite explicitly selects branch `1.19.2` and reads that
+busy checkout's saved JBR 17.0.14 plan. Its provider ignores `JAVA_HOME` and offers
+no task-local override. The busy plan and snapshots were not changed. An initial
+sandbox-only inability to launch `rg` was resolved
 by the normal-user rerun. Doc tests report zero cases.
 
 **Work:** Build the canonical Linux tool and prewarm pinned game inputs.
@@ -242,7 +280,18 @@ output from the actual game. Verify runtime settings with container inspection.
 operation under the stated restrictions, or records the first actual failing
 layer without substituting a desktop-only test.
 
-## [~] 4. Review isolation and provide reproducible handoff
+## [x] 4. Review isolation and provide reproducible handoff
+
+**Completion notes:** The container guide records exact commands, measured
+results, runtime restrictions and production limitations. Read-only reviews
+found and fixed stale host artifact merging, extra/duplicate screenshot entries
+and the diagnostic's accidental dependence on the newly updated SFM pin. The
+recorded original diagnostic remains independently reproducible. [SFM PR #617](https://github.com/TeamDman/SuperFactoryManager/pull/617)
+and [Facet PR #2](https://github.com/TeamDman/facet/pull/2) are drafts for review;
+neither was merged into a busy integration branch. Discord and Kubernetes were
+not deployed. Future worker work includes external Vox-control verification,
+capture readiness, broker/input/output boundaries, storage quotas and stronger
+sandboxing for arbitrary executable inputs.
 
 **Work:** Document exact tested commands, evidence and limitations. Describe a
 Discord broker/job boundary and Kubernetes translation, with ephemeral jobs,
@@ -271,7 +320,7 @@ and identify the remaining production decisions.
 
 - Target: `ci/1.19.2-container-puppet`, base `707f53f4a`.
 - Tooling source changes: portable serialized-path conversion in `jar_build/json_path.rs`.
-- Installer: `platform/cli/sfm-propagate-changes/install.ps1` completed successfully with locked offline acquisition. Installed command reports `10967aefc`; SHA-256 `95095EB678494595B6B40C7E37A1B155F2AB17EA713931235A111035ED82D5EF`. Its source subtree `d3785ff480719c67f1574efa5bfede644e653d93` is identical at `bd6aff529`. No user installer step is required. CI builds its own executable from each event revision.
+- Installer: `platform/cli/sfm-propagate-changes/install.ps1` completed successfully with locked offline acquisition. Installed command reports `10967aefc`; SHA-256 `95095EB678494595B6B40C7E37A1B155F2AB17EA713931235A111035ED82D5EF`. Its source subtree `d3785ff480719c67f1574efa5bfede644e653d93` is identical at `d7e22e73e`. User install required: no. CI builds its own executable from each event revision.
 - Dependency posture: mutable only for the explicitly authorized Vox Java update
   described above; all other project dependencies remain frozen.
 - New developer/reference clones: none.
@@ -286,16 +335,18 @@ and identify the remaining production decisions.
 - Cache rehydration: hosted runners acquired checked-in locked dependencies;
   diagnostics materialized only the exact pinned Facet commit in disposable
   source directories. Their candidate source is never a mod-build input.
-- Process state: no local Minecraft instance was launched. Hosted jobs own and
-  clean up their test processes. New combined verification is pending.
+- Process state: no local Minecraft instance was launched. The successful hosted
+  jobs finished and own/clean up their workers and test processes. No task-owned
+  local Minecraft, Cargo or helper process remains running.
 - Exact manual graphics check: from the worktree root on a Linux Docker host,
   use the two commands under `containers/sfm/README.md` / "Run the independent
   graphics probe". Expect `GRAPHICS_PROBE_PASSED renderer=llvmpipe`.
 - Exact full fixture commands: `docker build --build-arg
   SFM_SOURCE_REVISION="$(git rev-parse HEAD)" -f containers/sfm/Dockerfile
   -t sfm-ci:local .`, then `bash containers/sfm/smoke.sh sfm-ci:local
-  build/container-smoke`. Preparation has reached both real game puppets;
-  fresh offline execution remains the acceptance check.
-- Runtime limitation: this workstation has no running Linux container engine;
-  the proven graphics test ran on GitHub-hosted Linux. Discord and Kubernetes
+  build/container-smoke`. Use a fresh artifact directory on each run. Expect
+  `passed: true`, three title captures, eight orbit captures, two successful
+  raw JVM completion markers, and the stated restrictions in Docker inspection.
+- Runtime scope: the experiment ran on GitHub-hosted Linux Docker; no local
+  container engine was required or configured. Discord and Kubernetes
   remain design handoffs, not deployed services.

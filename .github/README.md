@@ -22,9 +22,16 @@ the SFM build.
 
 ## Observed experiment results
 
-The workflows are under development. Docker has built the mod and completed both
-puppets during image preparation, producing all 11 captures. The fresh offline
-run and complete native JUnit/package jobs remain the acceptance checks.
+The [final Linux/Docker PR run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35481820090)
+passed all three jobs at source `d7e22e73e`, tested as PR merge revision
+`77e42edb0469ae9ca71b19b5b677c12cf245e79e`. Linux passed 2,075 Java tests with
+zero failures, one Windows-only skip and six existing opt-in tests aborted by
+their prerequisites. Its packaged mod contains the new Vox JAR with the exact
+expected hash. The fresh offline container completed both puppets and all 11
+PNG files decoded successfully. The [Windows PR run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35481820091)
+also passed compilation, 2,076 Java tests and packaging, with zero failures and
+the same six opt-in tests aborted by their prerequisites. Both platforms embed
+identical Vox JAR bytes; the complete mod archives are not byte-identical.
 
 | Evidence | Result |
 | --- | --- |
@@ -36,6 +43,8 @@ run and complete native JUnit/package jobs remain the acceptance checks.
 | [First Windows build](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35461257226) | Vox suite and deterministic JAR passed; a global Java-options banner incorrectly failed the dependency check |
 | [Third Linux/Docker run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35462847488) | Linux compiled SFM then found Windows-specific JUnit fixtures; Docker built the mod and completed both puppets, but the verifier read CLI progress instead of the raw game log |
 | [Second Windows run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35462847520) | Mod compilation passed; two canonical replay tests found Git's CRLF conversion of their byte-exact JSON fixture |
+| [Final Linux/Docker PR run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35481820090) | All jobs passed: native compilation/JUnit/package, software graphics and the fresh restricted offline game |
+| [Final Windows PR run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35481820091) | Compilation, all enabled Java tests, packaging and dependency checks passed; verified mod uploaded |
 
 With the user's authorization, SFM now pins `org.facet:vox-java:0.10.0-rc.5`
 to Facet revision `4a079ac1c8a8bb8a914811ef55945bc1d9a9fef3`, published on
@@ -75,8 +84,8 @@ gh run download <run-id> --repo TeamDman/SuperFactoryManager --dir build/ci-down
 
 See [the container guide](../containers/sfm/README.md) for exact Docker commands,
 artifact checks and the Discord/Kubernetes deployment boundaries. The first
-graphics run established software OpenGL 4.5 under the restrictions; the complete
-game run is a separate acceptance check.
+graphics run established software OpenGL 4.5 under the restrictions; the final
+PR run also verified the complete game with networking disabled.
 
 Implementation progress and observed blockers are recorded in
 [the experiment plan](../docs/tasks/ci%20and%20container%20puppet%20experiment%20plan.md).
