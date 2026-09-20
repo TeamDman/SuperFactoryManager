@@ -6,7 +6,7 @@ Last updated: 20 September 2026.
 
 Intent audit: passed 17 September 2026 against the available user discussion and the pasted historical messages; some earlier assistant replies are unavailable except as pasted excerpts.
 
-Current focus: R2 canonical 1.19.2 integration is validated and ready to checkpoint. The combined tree passed 2,530 unit tests, 339 dedicated and 354 integrated GameTests, and the 11-step file puppet. Preserve the recorded intermittent anvil test and inherited tooling snapshot failures below. The merge checkpoint and launcher installation precede later-version hops. Native physical Shift is not a required human acceptance boundary. P0 through P10 have baseline feature evidence; cross-target/release acceptance remains required. Phase checkpoints do not end the full goal.
+Current focus: R2 canonical integration is committed as `93aed7de4`, the clean feature worktree has fast-forwarded to it, and the installed launcher is verified. The combined tree passed 2,530 unit tests, 339 dedicated and 354 integrated GameTests, and the 11-step file puppet. Preserve the recorded intermittent anvil test and inherited tooling snapshot failures below. The first adjacent hop is 1.19.4; no later target has changed yet. Native physical Shift is not a required human acceptance boundary. Cross-target/release acceptance remains required, and phase checkpoints do not end the full goal.
 
 Implementation branch: `feat/1.19.2/packet-computation`.
 Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`; finite-value/touch-schema checkpoint: `1a8cd9b84`.
@@ -587,8 +587,7 @@ the same 35 snapshot mismatches. The cause remains the selected JDK source
 corpus and missing versus partial dependency index, not an integration change.
 No snapshot was accepted. Logs: `packet-canonical-tooling-tests.log` and
 `packet-canonical-tooling-release-tests.log` under `platform/minecraft/build`.
-The current editor parser test also passed 9/9. Installation after the merge
-checkpoint remains a separate acceptance step.
+The current editor parser test also passed 9/9.
 
 The canonical `puppet run sfm:in_world_packet_inspection --branch 1.19.2
 --control-cli-source-root '<feature-checkout>' --variant 1280x720@auto
@@ -598,6 +597,26 @@ info` passed all 11 file requests, exit 0. Figures 2 and 3 were visually
 inspected for expanded formatted data and compact data hiding. The final
 request restored owned state, and client PID 10396 exited normally. Artifacts:
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-in_world_pac-20260920-034425-606/`.
+
+Canonical integration checkpoint: merge `93aed7de4` preserves canonical
+`707f53f4a` dependency declarations and lockfiles. The clean feature branch
+fast-forwarded to the combined canonical history, including its already
+existing dependency inputs. No new dependency was introduced into canonical.
+Both worktrees were clean after that fast-forward, and nothing was pushed.
+
+The canonical installer ran with locked/offline Cargo after this source
+checkpoint. The installed launcher reports revision `93aed7de4` and SHA-256
+`DBAE307AE5B826C878C0D2D2FBA09DCCDACAF9DCB6FD23929A55C2994806280B`, matching
+its release artifact. Its source tree is
+`de8c3a263944e225b9e88228809c942d913fec0b`. The installed command exposes
+`--control-cli-source-root` and passed `run compile --branch 1.19.2 --log-file
+platform/minecraft/build/packet-canonical-installed-compile.log --log-filter
+info` for all 4 Java source sets. User must run install script: no.
+The unchanged installed control worker retains SHA-256
+`21AF6650A09D2D8C198149B6E2274DA1C93AFE8CE345AA5BDB9B3E414720EB99` and source
+tree `e68c3f3aa7b71032d299d6eb2e1a257cefa4b72a`. No test-owned game, helper,
+worker, Cargo process or launcher remained before installation. The smoke
+compile acquired the branch lock without a wait override.
 
 First-hop preflight found another frozen boundary: 1.19.4's launcher manifest
 lacks dependencies used by the current baseline launcher source. Do not copy
