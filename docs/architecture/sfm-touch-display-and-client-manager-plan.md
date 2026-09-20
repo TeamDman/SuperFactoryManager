@@ -510,9 +510,9 @@ Evidence: baseline model, ambient and world-rendering results above. Session cre
 
 Release work remains explicit even though P0–P10 have baseline feature proofs:
 
-- [~] R1. Close baseline release regressions and packet-polish visual acceptance. The reload regression, packet inspector and final-source unit/server/client suites now pass. Physical Shift disposition awaits the user's answer; this remaining gate is not silently waived.
+- [!] R1. Close baseline release regressions and packet-polish visual acceptance. The reload regression, packet inspector and final-source unit/server/client suites now pass. The exact remaining blocker is physical Shift acceptance: native polling is not exercised by file input. Unblock with a passing human check or explicit approval to document it as a manual follow-up; the async choice remains unanswered.
 - [ ] R2. Integrate canonical 1.19.2 and propagate the adjacent version chain. Preserve destination dependency bytes and target adapters, then compile and exercise the supported renderer/network surfaces.
-- [ ] R3. Finish operational readiness and manual handoff. After the final relevant tooling change, install and verify the used executables, document known baseline exceptions, and confirm all owned test processes and locks are released.
+- [~] R3. Finish operational readiness and manual handoff. The baseline installation, hashes, compile smoke and process cleanup passed below. Repeat the relevant freshness and target checks after propagation changes; this baseline checkpoint is not final multi-version acceptance.
 
 Final-source unit evidence on 20 September: `test run --branch feat/1.19.2/packet-computation --wait-for-build-lock --log-file platform/minecraft/build/touch-display-final-packet-inspection-unit-tests.log --log-filter info` passed 2,494 tests, zero failures or skips and 5 optional aborts (2,499 found), exit 0. This includes all 4 packet-inspection source guards and all 5 terminal visual-control regressions.
 
@@ -521,6 +521,42 @@ Final-source runtime evidence: the unfiltered dedicated-server rerun passed 237/
 Final tooling-check evidence: the safe staged equivalent of `check-all.ps1` passed dependency-policy metadata, nonmutating nightly `fmt --check`, locked/offline all-feature Clippy and build. The script itself omits frozen Cargo flags and runs mutating formatting, so it was not executed unmodified. Tests passed 717 library cases (3 ignored), 12 release-review Git cases and 40 release materialization cases. Java-analysis integration passed 9 and failed 1 with the existing JDK/cache-identity snapshot mismatch; the overall test exit was 101. No snapshots were accepted. An initial elevated test attempt stopped on exact-worktree Git ownership; the rerun used process-local trust, not global configuration. Artifacts: `platform/minecraft/build/final-tooling-check-20260920/tests.log` and `stage-summary.json`. Dependency declarations and lockfiles stayed unchanged. Installation after the source checkpoint remains required.
 
 The installed `sfm.exe` was rechecked on 20 September: version 0.1.0, SHA-256 `21AF6650A09D2D8C198149B6E2274DA1C93AFE8CE345AA5BDB9B3E414720EB99`, matching the release artifact. Its source tree remains `e68c3f3aa7b71032d299d6eb2e1a257cefa4b72a`, with no worker or generated-protocol changes since the passing worker installation above. No worker reinstall is needed for this checkpoint.
+
+Baseline source checkpoint: `bc4689326` records terminal mounting, quoted INVOKE parser parity, recipes, buffer reload correction, file puppets and their evidence. The full integrated-client runner exited 0 after normal shutdown. The 53-file checkpoint excludes dependency declarations and lockfiles. Generated-resource cache whitespace remains generator-owned; the rest of the staged diff passed `git diff --check`. No remote push or canonical merge was performed.
+
+### Operational readiness at the baseline checkpoint
+
+Target: `feat/1.19.2/packet-computation` at `bc4689326`. The launcher source tree
+is `2a1322813b5ea097a79aacc3b7f442b6dfa81613`. Its changed automation-worker
+provisioning required rebuilding the installed tool. Running
+`platform/cli/sfm-propagate-changes/install.ps1` passed with locked/offline Cargo.
+The resolved `sfm-propagate-changes.exe` on PATH reports version 0.1.1, revision
+`bc4689326`, and SHA-256
+`9CAA419E4B0F73D70D25DB74B59FD4A278EAC55C410AB7B2435194FBC26C4613`, identical
+to the worktree release artifact. User must run install script: no.
+
+The newly installed command passed `run compile --branch
+feat/1.19.2/packet-computation --log-file
+platform/minecraft/build/touch-display-installed-final-compile.log --log-filter
+info`, compiling main, GameTest, datagen and test sources, exit 0. It acquired
+the branch lock without `--wait-for-build-lock`, proving the earlier tests had
+released it. This installation follows the final tooling mutation; later
+documentation-only commits do not change that source tree.
+
+Dependency posture remains frozen. Declarations and lockfiles are unchanged;
+no new developer/reference repository was acquired. The final builds reused
+locked caches. Final process inspection found no running branch-owned game,
+terminal worker/helper, Cargo or launcher. Packet-preview PID 16332,
+terminal-preview PID 2700 and final aggregate-client PID 36056 all exited
+normally; runtime fixtures verified owned helper cleanup. No test window is
+left open.
+
+The copyable handoff is in `docs/touch display and client manager testing.md`,
+including an ordinary client launch and a known-packet command for the
+physical-key check. Remaining limits are the unresolved physical Shift gate,
+the recorded tooling JDK/cache snapshot failure and unstarted canonical/version
+propagation. R2 is the next implementation work once R1's acceptance gate is
+resolved. The full goal remains active and incomplete.
 
 Full baseline unit evidence: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-computation --wait-for-build-lock --log-file platform/minecraft/build/touch-display-final-unit-tests.log --log-filter info` passed 2,489 tests with zero failures, zero skips and 5 optional aborts (2,494 found), exit 0. This includes 66 multiplayer, 49 terminal, 4 quoted-action grammar and 4 visual-control tests, including the absolute metadata-path guard. The previous aggregate run exposed a source-span test that equated original text with canonical formatting; the corrected regression now proves source mapping for both quoted and unquoted action IDs. Final `run compile` passed all four Java source sets. `run data` also passed with no tracked generated changes. Unfiltered runtime suites, remaining visual acceptance and target propagation are separate checks.
 

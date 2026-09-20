@@ -57,6 +57,23 @@ configured more-info key, and confirm the expanded pretty-printed value appears.
 Injected key callbacks cannot prove native GLFW key polling. The puppet reports
 that limitation explicitly.
 
+For this 1.19.2-only manual check, launch an ordinary client:
+
+```pwsh
+sfm-propagate-changes.exe run client --branch feat/1.19.2/packet-computation --wait-for-build-lock
+```
+
+Open a disposable world with cheats enabled and create a known packet:
+
+```text
+/give @s sfm:packet{"sfm:packet_codec":2,"sfm:packet_value":'{"status":"hello"}'} 1
+```
+
+Hover it in your inventory. The compact tooltip should show the more-info key
+reminder; holding that key should show the formatted `status` value. Release it
+to restore the compact tooltip. This command uses pre-component item NBT and
+must be adapted before documenting the same check for newer targets.
+
 ## Consent and signing review
 
 UI acceptance deliberately uses an opt-in file-driven puppet. It controls
