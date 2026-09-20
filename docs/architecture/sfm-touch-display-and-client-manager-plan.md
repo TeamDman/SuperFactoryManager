@@ -1,12 +1,12 @@
 # Touch Display and Client Manager: living implementation plan
 
-Plan status: active. Baseline feature evidence covers static Touch Display interaction, the consented Client Manager frame runtime, typed invocation, bounded raster rendering, consent review, explicit author signing, exact-grant remote multiplayer and in-world terminal integration. Aggregate release checks and target propagation remain.
+Plan status: paused after the completed 1.19.4 checkpoint, by G41. Baseline feature evidence covers static Touch Display interaction, the consented Client Manager frame runtime, typed invocation, bounded raster rendering, consent review, explicit author signing, exact-grant remote multiplayer and in-world terminal integration. Later-target propagation and aggregate multi-version release acceptance remain unfinished.
 
 Last updated: 20 September 2026.
 
 Intent audit: passed 17 September 2026 against the available user discussion and the pasted historical messages; some earlier assistant replies are unavailable except as pasted excerpts.
 
-Current focus: R2 canonical integration is committed as `93aed7de4`, the clean feature worktree has fast-forwarded to it, and the installed launcher is verified. The combined tree passed 2,530 unit tests, 339 dedicated and 354 integrated GameTests, and the 11-step file puppet. Preserve the recorded intermittent anvil test and inherited tooling snapshot failures below. The first adjacent hop is 1.19.4; no later target has changed yet. Native physical Shift is not a required human acceptance boundary. Cross-target/release acceptance remains required, and phase checkpoints do not end the full goal.
+Current focus: none. The 1.19.4 merge is committed as `f2f47ca45`, its visual journeys and final compile passed, and the post-commit audit found no new adapter defect. Stop before 1.20; resume feature iteration or later propagation only on user direction. G41 narrows the current execution scope without waiving unfinished targets. Canonical integration remains `93aed7de4`; its 2,530 unit tests, 339 dedicated and 354 integrated GameTests, and 11-step file puppet passed. Preserve the recorded intermittent anvil test and inherited tooling snapshot failures below. Native physical Shift is not a required human acceptance boundary.
 
 Implementation branch: `feat/1.19.2/packet-computation`.
 Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`; finite-value/touch-schema checkpoint: `1a8cd9b84`.
@@ -39,6 +39,14 @@ The adversarial pass preserves configured-key behaviour as the default and
 replaces the required human check, rather than claiming simulated native input.
 The original guidance ledger remains in force; no operating-system automation
 or dependency change is authorised by this amendment.
+
+20 September propagation-scope audit: extraction records the user's request
+to postpone later migration work and then finish the existing 1.19.4 work as
+G41. Traceability limits the current R2/R3 checkpoint to 1.19.4 validation,
+documentation and a local merge commit. Adversarial review preserves the
+already-merged canonical 1.19.2 history, the feature worktree and all later
+target HEADs. The broader goal remains incomplete; this instruction does not
+authorise a push or the next version hop.
 
 Evidence labels in this document mean:
 
@@ -90,6 +98,7 @@ Evidence labels in this document mean:
 | G38 | Confirmed | Resolve in-scope design questions with best judgment during implementation, favouring testable reversible choices; refine with the user after observing working behaviour instead of waiting on hypotheses. | O1–O13; completion notes; validation |
 | G39 | Confirmed on 19 September 2026 | Activate the separately negotiated multiplayer transport with default-deny, operator-owned grants for exact players, inventory targets, inbox channels and server-manager publishers. Preserve the legacy private-world gates. | P8G; operator policy persistence; remote transport acceptance |
 | G40 | Confirmed on 20 September 2026 | Decouple the tooltip's alternate presentation decision from configured-key polling. Add command-palette actions that tests can actuate, so native physical Shift verification is not a required human acceptance boundary. | R1; companion P03; semantic mode, action and file-puppet tests |
+| G41 | Confirmed on 20 September 2026 | Finish the already-started 1.19.4 work, then postpone propagation to 1.20 and later while feature iteration resumes. Preserve the feature worktree and existing canonical integration; do not push. | Current R2/R3 checkpoint; target acceptance matrix; final handoff. Narrows the current execution order of G37, without declaring later targets complete. |
 
 Earlier proposals that later user choices superseded must not become implementation requirements: `sfm:touch/1` and scaled-integer UV, unique click sequence/frame generation, nesting the position/UV fields, server-manager frame triggers, permanent shared/private/published block modes, solid-block redstone inference, a minimum scribble-length requirement, and the claim that 26.1.2 `Identifier` implies Yarn mappings. Existing structured action-result schema IDs using `/1` also remain unchanged; `sfm:touch@1` does not trigger a global schema migration.
 
@@ -520,8 +529,8 @@ Evidence: baseline model, ambient and world-rendering results above. Session cre
 Release work remains explicit even though P0–P10 have baseline feature proofs:
 
 - [x] R1. Close baseline release regressions and packet-polish visual acceptance. G40 replaces the physical Shift gate with a shared semantic mode and registered expand/compact/reset actions. Final unit, ambient client, dedicated-server and file-puppet validation passed, including actual rendered expanded/compact hover and cleanup.
-- [~] R2. Integrate canonical 1.19.2 and propagate the adjacent version chain. Preserve destination dependency declarations, lockfiles and target adapters. Review nondependency feature metadata separately, then compile and exercise the supported renderer/network surfaces.
-- [~] R3. Finish operational readiness and manual handoff. The baseline installation, hashes, compile smoke and process cleanup passed below. Repeat the relevant freshness and target checks after propagation changes; this baseline checkpoint is not final multi-version acceptance.
+- [~] R2. Integrate canonical 1.19.2 and propagate the adjacent version chain. Canonical and 1.19.4 checkpoints are complete; 1.20 and later are postponed by G41. Preserve destination dependency declarations, lockfiles and target adapters when resuming. Review nondependency feature metadata separately, then compile and exercise supported renderer/network surfaces.
+- [~] R3. Finish operational readiness and manual handoff. Baseline and 1.19.4 tool freshness, compile and process cleanup passed below. The 1.19.4 handoff is complete; later-target readiness remains postponed with R2, not accepted by implication.
 
 R2 integration work on 20 September: the fresh preflight found all 10 canonical
 worktrees clean, no active merge, and unchanged destination HEADs. Canonical
@@ -618,6 +627,12 @@ tree `e68c3f3aa7b71032d299d6eb2e1a257cefa4b72a`. No test-owned game, helper,
 worker, Cargo process or launcher remained before installation. The smoke
 compile acquired the branch lock without a wait override.
 
+#### [x] R2.1. Finish the 1.19.4 checkpoint — G41
+
+Completion notes: local merge `f2f47ca45` has parents `b98b06f80` and
+`451816b00`. All required first-hop validation below passed. Later targets
+remain at their preflight HEADs. No push was performed.
+
 First-hop preflight found another frozen boundary: 1.19.4's launcher manifest
 lacks dependencies used by the current baseline launcher source. Do not copy
 that source over the older manifest and leave an unbuildable crate. Preserve
@@ -628,6 +643,124 @@ Minecraft source of truth. The existing version-surface audit already reports
 later launcher divergence. Source-navigation C-11 is part of the unrelated
 pre-feature backlog and requires separate symbol-worker freshness evidence;
 packet/display runtime proof does not imply that acceptance.
+
+The 1.19.4 hop began from clean `b98b06f80` using `git merge --no-commit
+--no-ff 451816b00`. Destination Rust tooling trees, dependency declarations,
+lockfiles, source exclusions and access-transformer inputs are preserved.
+The copied worker crate was removed from the merge, not from canonical.
+Generated language/cache files temporarily retain destination content until
+data generation; they are not final output evidence. UI, registration and
+GameTest-harness adapters have independent owners; main owns new render/widget
+adapters, generated resources, build/test commands and the checkpoint.
+All first-hop merge conflicts are resolved. Compile attempts 1 and 2 exposed
+1.19.4 API adapters, not dependency gaps: the rendering interface is now
+`Renderable`, registry keys moved to `Registries`, and widgets use private
+coordinates, native tooltips and new rendering/narration hooks. Root owns
+the rendering and inventory adapters; parallel owners cover key/editor widgets,
+signing widgets and the terminal panel. The source-guard test must check the
+preserved target client-registration guard rather than require `DistExecutor`.
+Logs: `platform/minecraft/build/packet-propagation-1.19.4-compile.log` and
+`packet-propagation-1.19.4-compile-2.log`. Frozen inputs remain unchanged.
+Compile attempt 3 passed production source and found one remaining GameTest
+constructor change. Adapting the spectator fixture to the 1.19.4 four-argument
+`Player` constructor allowed `run data --branch 1.19.4 --log-file
+platform/minecraft/build/packet-propagation-1.19.4-datagen.log --log-filter info`
+to pass, exit 0. It compiled 1,549 main, 441 GameTest and 15 datagen sources,
+then regenerated models, recipes and localization. The temporary generated
+placeholders have now been replaced by target datagen output.
+
+The target editor's `node --test tests/quoted-invoke.test.cjs` passed 9/9.
+Its first attempt found no local `typescript` module. The passing run used a
+process-local `NODE_PATH` to canonical packages after checking byte-identical
+lockfiles and exact installed entries: TypeScript 5.9.3 and antlr4ts
+0.5.0-alpha.4. No packages were copied or installed; dependency files remain
+unchanged.
+
+The unfiltered Java unit suite passed 2,530 tests with zero failures or skips
+and 5 optional aborts (2,535 found), exit 0. Its first attempt stopped at two
+fixture compile errors. Target adapters now exercise real `nextFocusPath`
+navigation and implement the fake widget's focus contract, retaining their
+assertions. Log: `platform/minecraft/build/packet-propagation-1.19.4-unit-tests-2.log`.
+The unfiltered dedicated suite passed all 267 required tests on attempt 1,
+exit 0, with client-only definitions skipped before loading. The server saved
+and exited normally. Log: `platform/minecraft/build/packet-propagation-1.19.4-server-tests.log`.
+The unfiltered integrated-client suite passed all 282 required GameTests,
+exit 0. It used `--control-cli-source-root '<canonical-checkout>'`; launch
+properties record that source and its locked/offline worker build. The tooltip
+action test passed and the real terminal circuit passed in 7,040 ms. The client
+saved and exited normally. Log:
+`platform/minecraft/build/packet-propagation-1.19.4-client-tests.log`.
+Four missing `live_raster` warnings came from the raster fixture's post-release
+`TextureManager.getTexture` checks, which attempt to lazy-load deleted names.
+The same test-line warnings occur in the passing canonical run; they are not
+evidence of failed production frame uploads. The fixture and terminal circuit
+both passed. The visual acceptance below also passed. Targets from 1.20
+onward remain unchanged and are postponed by G41.
+
+1.19.4 visual acceptance on 20 September used the current canonical installed
+launcher, `--branch 1.19.4 --control-cli-source-root '<canonical-checkout>'
+--variant 1280x720@auto`, and the checked-in file drivers. No operating-system
+input was used. All 3 previews identify the same tested Minecraft source:
+`blake3:e8689218a34374cb986bf049e21e3f0dc662764a` at dirty merge parent
+`b98b06f80`. Subsequent checkpoint edits are documentation only.
+
+- `puppet run sfm:in_world_packet_inspection` passed 11/11 requests. Figures
+  2 and 3 show expanded formatted packet data and compact data hiding. The
+  last response restored tooltip mode and closed the fixture screen.
+  Artifacts: `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-in_world_pac-20260920-042423-803/`.
+- `puppet run sfm:in_world_touch_display_terminal` passed 5/5 requests, exit
+  0. Figures 2 and 4 show terminal pixels on the world block before and after
+  one normal gameplay press. The worker acknowledged exactly once; the raster
+  changed, rejection count stayed zero, and no Minecraft screen opened.
+  `synthetic_frame_selection` stayed false. Cleanup revoked the fixture grant,
+  unsubscribed and stopped owned processes. Artifacts:
+  `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-in_world_tou-20260920-043943-334/`.
+- `puppet run sfm:client_program_consent_and_signing` passed 96/96 requests,
+  exit 0, without skipping signer trust. It proved editor-save acknowledgement
+  without automatic signing, masked key input, pen and accessible ceremonies,
+  delayed arming, stale-revision rejection, remembered/current diff, two
+  independent signatures, scoped trust and exact-denial precedence. Figures
+  16, 23, 38, 49, 59, 88 and 93 were inspected. Its fixture consent/trust was
+  removed; disposable encrypted keys remain only in the ignored run directory.
+  Artifacts: `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-client_progr-20260920-044246-037/`.
+
+Independent final adapter review found no material regression. Destination
+tooling trees, absent worker crate, dependency declarations, locks, source
+exclusions and access transformer are byte-unchanged from `b98b06f80`. The
+editor manifest changes only 18 nondependency language keywords. The pending
+target adapter and updated documentation whitespace checks passed. The full
+incoming merge retains inherited canonical source/document CRLF and whitespace;
+generated `.cache` line endings also remain generator-owned.
+The pre-commit version-surface audit exited 0 but compares committed branch
+tips, not the pending merge. Its 1,999 target Java hunk warnings could not certify
+the pending merge. Source-rule warnings are inherited
+canonical review/font backlog, not newly introduced target adapters.
+
+The post-commit `audit --branch core --version-surfaces` exited 0 against
+`f2f47ca45`. Target warnings fell to 77 Java hunks and one intentional CLI
+source-tree difference (20,331 Java and 9 CLI warnings across all later
+targets). Review found no concrete regression or newly unisolated version API.
+New flagged calls use annotated focus, button, coordinate and tooltip adapters;
+signing-widget warnings cross annotation/signature hunk boundaries. Remaining
+warnings include existing target compatibility and canonical font-audit backlog.
+This is reviewed advisory evidence, not a warning-free audit. Report:
+`platform/minecraft/build/packet-propagation-1.19.4-version-surfaces-post-merge.log`,
+SHA-256 `AB545B0A395F7429C81C372E1C59858547970A7A4FD090DBE1A1EF203C6BB4B6`.
+The final `run compile --branch 1.19.4 --log-file
+platform/minecraft/build/packet-propagation-1.19.4-committed-compile.log
+--log-filter info` also passed all 4 Java source sets at the committed merge,
+exit 0. Final checkpoint edits after these checks are documentation only.
+
+1.19.4 operational checkpoint: no tooling source changed after the canonical
+installation recorded above. The installed launcher and worker hashes were
+rechecked after the visual tests and match that evidence. User must run install
+script: no. Both puppet clients saved and exited normally; their owned helper
+and worker were cleaned up. No matching in-scope process remained. The build
+lock was acquired normally by both serial launches. No dependency declarations
+or lockfiles changed, no new developer/reference repository was cloned, and
+nothing was pushed. The ordinary-client launch command and explicit canonical
+worker-root requirement are in `docs/touch display and client manager testing.md`.
+This checkpoint is complete. Do not start the 1.20 hop without user direction.
 
 Final-source unit evidence on 20 September: `test run --branch feat/1.19.2/packet-computation --wait-for-build-lock --log-file platform/minecraft/build/touch-display-final-packet-inspection-unit-tests.log --log-filter info` passed 2,494 tests, zero failures or skips and 5 optional aborts (2,499 found), exit 0. This includes all 4 packet-inspection source guards and all 5 terminal visual-control regressions.
 
@@ -691,11 +824,11 @@ Propagation preflight on 19 September: all 10 canonical version worktrees were c
 
 The canonical pre-propagation `cargo run --locked --offline -- audit --branch core --version-surfaces` completed with exit 0 at `707f53f4a`. Its warnings are advisory, not clean acceptance: all 9 later branches have differing CLI source trees, and 19,312 Java hunks fall outside version-dependent annotations. Counts by target are 1.19.4: 1,667; 1.20: 1,951; 1.20.1: 1,954; 1.20.2: 2,022; 1.20.3: 2,060; 1.20.4: 2,083; 1.21.0: 2,349; 1.21.1: 2,371; 26.1.2: 2,855. The separate source audit reports 1,139 existing warnings. Canonical source and dependency hashes stayed unchanged; all audit-owned processes exited. The full canonical artifact is `platform/minecraft/build/pre-propagation-version-surfaces-console.log`, SHA-256 `8CD7B748757A634672380F6A3CBB76637CC308F93454A653F4223B295EAB16D3`. Post-propagation review must distinguish inherited backlog from feature adapter regressions.
 
-The later targets also have an existing propagation backlog: `1.19.4`, `1.21.1` and `26.1.2` each lacked 186 canonical commits, including 172 before the feature fork. Their dependency declarations already differ. Frozen dependency posture is destination-relative: preserve each destination's dependency declarations and lockfiles. Nondependency feature metadata in a mixed manifest needs a separate, field-level review. The existing `git merge` CLI commits clean hops automatically, and `--auto-abort` is not a read-only mode. It cannot guarantee that invariant before committing. Use a documented adjacent-version `git merge --no-commit --no-ff` review point if necessary, record each destination HEAD and explicit frozen paths, retain its dependency bytes, graft version adapters, then validate before committing. If the feature cannot compile against a destination's frozen dependency graph, request a narrow dependency amendment rather than accepting inherited dependency changes. No propagation has begun.
+The later targets also have an existing propagation backlog: `1.19.4`, `1.21.1` and `26.1.2` each lacked 186 canonical commits, including 172 before the feature fork. Their dependency declarations already differ. Frozen dependency posture is destination-relative: preserve each destination's dependency declarations and lockfiles. Nondependency feature metadata in a mixed manifest needs a separate, field-level review. The existing `git merge` CLI commits clean hops automatically, and `--auto-abort` is not a read-only mode. It cannot guarantee that invariant before committing. Use a documented adjacent-version `git merge --no-commit --no-ff` review point if necessary, record each destination HEAD and explicit frozen paths, retain its dependency bytes, graft version adapters, then validate before committing. If the feature cannot compile against a destination's frozen dependency graph, request a narrow dependency amendment rather than accepting inherited dependency changes. This was preflight evidence; R2 above records the active 1.19.4 hop.
 
-The 20 September read-only recheck found all 10 canonical worktrees clean, with
+The earlier 20 September read-only recheck found all 10 canonical worktrees clean, with
 no `MERGE_HEAD`. Their HEADs had not moved since 17 September. Canonical 1.19.2
-remains `707f53f4a`; feature checkpoint `0eeac903a` has 29 feature-only commits
+was `707f53f4a`; feature checkpoint `0eeac903a` had 29 feature-only commits
 against 14 canonical-only commits. The fresh `git merge-tree --write-tree
 --name-only 1.19.2 0eeac903a` preview produced tree
 `b71e3c9d242025f5f0db5220db7a31530585b4b2` and the same 6 conflicts listed above.
@@ -833,8 +966,9 @@ Update `platform/minecraft/src/main/resources/assets/sfm/template_programs/chang
 
 | Surface | Baseline feature evidence | Remaining acceptance |
 | --- | --- | --- |
-| Minecraft 1.19.2 | 2,511 unit tests, 237 dedicated and 252 integrated GameTests passed after G40; final 11-step file-driven tooltip/inspection proof passed. | Canonical integration and post-integration operational checkpoint. |
-| Minecraft 1.19.4, 1.20, 1.20.1 | Not yet propagated; next adjacent targets. | Preserve target dependency files, compile and relevant runtime regression tests at each hop. |
+| Minecraft 1.19.2 | Canonical merge `93aed7de4`: 2,530 unit tests, 339 dedicated and 354 integrated GameTests passed; the 11-step file puppet and installed-launcher compile passed. | Retain intermittent anvil and inherited tooling snapshot evidence; repeat relevant checks if source changes. |
+| Minecraft 1.19.4 | Local merge `f2f47ca45`. Datagen, all 4 Java source sets, 2,530 unit tests, 267 dedicated and 282 integrated GameTests, 9 editor tests and all 3 file-puppet journeys passed. Frozen-input review, post-commit compile and version audit passed with the advisory caveats above. | None for this checkpoint; repeat relevant checks if source changes. |
+| Minecraft 1.20, 1.20.1 | Not yet propagated; postponed by G41. | Resume only on user direction; preserve target dependency files, compile and run relevant runtime tests at each hop. |
 | Minecraft 1.20.2, 1.20.3, 1.20.4 | Not yet propagated; loader/API adapters require review. | Preserve target adapters and dependencies, compile and focused renderer/network tests. |
 | Minecraft 1.21.0 | Not yet propagated; component and loader APIs require review. | Compile and focused component, renderer and network tests. |
 | Minecraft 1.21.1 | Not yet propagated; requires `ResourceLocation` adapters. | Compile and target-specific renderer/network tests. |

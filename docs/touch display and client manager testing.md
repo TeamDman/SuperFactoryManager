@@ -5,6 +5,28 @@ below from its repository root. Use `sfm-propagate-changes.exe`, not Gradle.
 The [living plan](architecture/sfm-touch-display-and-client-manager-plan.md)
 records which acceptance runs have passed against the latest source.
 
+## Launch the 1.19.4 checkpoint
+
+The packet feature is integrated into canonical 1.19.2 and the 1.19.4 version
+worktree. Propagation to 1.20 and later is postponed. Use the current launcher
+installed from canonical 1.19.2; the 1.19.4 checkout retains its older tooling
+and dependency files and does not contain the control-worker crate.
+
+From the 1.19.4 repository root, launch an ordinary client:
+
+```pwsh
+sfm-propagate-changes.exe run client --branch 1.19.4 --control-cli-source-root '<canonical-1.19.2-checkout>' --log-file platform/minecraft/build/packet-1.19.4-manual-client.log --log-filter info
+```
+
+Replace the placeholder with the absolute canonical checkout path. The client
+opens at the title screen; no puppet takes control. For the automated journeys
+below, replace the feature branch with `1.19.4` and add the same
+`--control-cli-source-root` argument. This builds the worker from that checkout's
+existing lockfile; it does not use an arbitrary `sfm.exe` from PATH.
+
+Do not reinstall the older launcher from 1.19.4. The canonical installed
+launcher supplies this explicit cross-checkout worker option.
+
 The Client Manager uses the ordinary Manager crafting layout with a comparator
 in place of the repeater. A Touch Display uses four iron bars in the corners,
 glass at the top and side centres, cable in the centre and redstone below.
