@@ -19,6 +19,8 @@ public final class SFMClientInboxRuntime {
 
     private final SFMClientInbox inbox;
     private final Map<ResourceLocation, Integer> references = new HashMap<>();
+    private final Map<ResourceLocation, Object> owners = new HashMap<>();
+    private static final Object HUMAN_OWNER = new Object();
     private @Nullable Object serverIdentity;
     private @Nullable Object levelIdentity;
     private @Nullable UUID recipient;
@@ -52,6 +54,7 @@ public final class SFMClientInboxRuntime {
             this.dimension = null;
             session = null;
             references.clear();
+            owners.clear();
             inbox.endSession();
             return;
         }
@@ -61,6 +64,7 @@ public final class SFMClientInboxRuntime {
         this.dimension = dimension;
         session = UUID.randomUUID();
         references.clear();
+        owners.clear();
         inbox.beginSession(session, recipient, dimension);
     }
 
@@ -68,13 +72,21 @@ public final class SFMClientInboxRuntime {
             SFMClientInboxAddress address,
             Consumer<ServerboundClientInboxSubscriptionPacket> sender
     ) {
+        return subscribe(address, HUMAN_OWNER, sender);
+    }
+
+    /** Remote channels pin one exact caller; same-owner references share, cross-owner piggybacking is rejected. */
+    public synchronized Optional<Subscription> subscribe(SFMClientInboxAddress address, Object owner,
+            Consumer<ServerboundClientInboxSubscriptionPacket> sender) {
         Objects.requireNonNull(address, "address");
+        Objects.requireNonNull(owner, "owner");
         Objects.requireNonNull(sender, "sender");
         if (session == null || !address.recipient().equals(recipient)
             || !address.dimension().equals(dimension)) {
             return Optional.empty();
         }
         int count = references.getOrDefault(address.channel(), 0);
+        if (count > 0 && !owner.equals(owners.get(address.channel()))) return Optional.empty();
         if (count == 0) {
             if (!inbox.subscribe(address.channel())) {
                 return Optional.empty();
@@ -89,7 +101,8 @@ public final class SFMClientInboxRuntime {
             }
         }
         references.put(address.channel(), count + 1);
-        return Optional.of(new Subscription(this, address.channel(), session, sender));
+        owners.put(address.channel(), owner);
+        return Optional.of(new Subscription(this, address.channel(), session, owner, sender));
     }
 
     public synchronized boolean receive(ClientboundClientInboxValuePacket packet) {
@@ -110,6 +123,14 @@ public final class SFMClientInboxRuntime {
         return Optional.ofNullable(session);
     }
 
+    private synchronized Optional<SFMClientInbox.Page> pageForSubscription(
+            ResourceLocation channel, UUID subscriptionSession, Object owner,
+            Optional<SFMClientInbox.Cursor> cursor, int limit
+    ) {
+        if (!subscriptionSession.equals(session) || !owner.equals(owners.get(channel))) return Optional.empty();
+        return inbox.page(channel, cursor, limit);
+    }
+
     private synchronized void close(
             ResourceLocation channel,
             UUID subscriptionSession,
@@ -123,6 +144,7 @@ public final class SFMClientInboxRuntime {
             references.put(channel, count - 1);
         } else if (count == 1) {
             references.remove(channel);
+            owners.remove(channel);
             inbox.unsubscribe(channel);
             sender.accept(new ServerboundClientInboxSubscriptionPacket(
                     subscriptionSession, dimension, channel, false
@@ -134,6 +156,7 @@ public final class SFMClientInboxRuntime {
         private final SFMClientInboxRuntime runtime;
         private final ResourceLocation channel;
         private final UUID session;
+        private final Object owner;
         private final Consumer<ServerboundClientInboxSubscriptionPacket> sender;
         private boolean closed;
 
@@ -141,12 +164,20 @@ public final class SFMClientInboxRuntime {
                 SFMClientInboxRuntime runtime,
                 ResourceLocation channel,
                 UUID session,
+                Object owner,
                 Consumer<ServerboundClientInboxSubscriptionPacket> sender
         ) {
             this.runtime = runtime;
             this.channel = channel;
             this.session = session;
+            this.owner = owner;
             this.sender = sender;
+        }
+
+        /** A retained handle cannot read a replacement stream after session rotation or caller handoff. */
+        public synchronized Optional<SFMClientInbox.Page> page(Optional<SFMClientInbox.Cursor> cursor, int limit) {
+            if (closed) return Optional.empty();
+            return runtime.pageForSubscription(channel, session, owner, cursor, limit);
         }
 
         @Override

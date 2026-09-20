@@ -7,6 +7,7 @@ import ca.teamdman.sfm.common.net.SFMClientInboxAddress;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -62,11 +63,27 @@ public final class ClientProgramInboxReadSurface implements AutoCloseable {
     }
 
     public static InboxAccess minecraftInbox() {
+        return minecraftInbox(Optional.empty());
+    }
+
+    public static InboxAccess minecraftInbox(ClientProgramIdentity program) {
+        return minecraftInbox(Optional.of(program));
+    }
+
+    private static InboxAccess minecraftInbox(Optional<ClientProgramIdentity> caller) {
         return new InboxAccess() {
+            private final Map<ResourceLocation, SFMClientInboxRuntime.Subscription> leases = new HashMap<>();
+
             @Override
             public Optional<Subscription> subscribe(SFMClientInboxAddress address) {
-                return SFMClientInboxTransport.subscribe(address)
-                        .map(active -> active::close);
+                return SFMClientInboxTransport.subscribe(address, caller)
+                        .map(active -> {
+                            leases.put(address.channel(), active);
+                            return () -> {
+                                leases.remove(address.channel(), active);
+                                active.close();
+                            };
+                        });
             }
 
             @Override
@@ -76,7 +93,9 @@ public final class ClientProgramInboxReadSurface implements AutoCloseable {
                     int limit
             ) {
                 SFMClientInboxTransport.observeCurrentWorld();
-                return SFMClientInboxRuntime.get().page(channel, cursor, limit);
+                if (caller.isPresent() && ClientManagerFrameRuntime.liveIdentityFor(caller.orElseThrow()).isEmpty()) return Optional.empty();
+                var lease = leases.get(channel);
+                return lease == null ? Optional.empty() : lease.page(cursor, limit);
             }
         };
     }
@@ -145,7 +164,7 @@ public final class ClientProgramInboxReadSurface implements AutoCloseable {
                 .map(page -> new Result(Status.PAGE, Optional.of(page)))
                 .orElseGet(() -> {
                     Subscription stale = subscriptions.remove(channel);
-                    if (stale != null) stale.close();
+                    if (stale != null) releaseSubscription(stale);
                     return Result.unavailable(Status.UNAVAILABLE_NO_SESSION);
                 });
     }
@@ -162,8 +181,20 @@ public final class ClientProgramInboxReadSurface implements AutoCloseable {
     }
 
     private void releaseSubscriptions() {
-        subscriptions.values().forEach(Subscription::close);
+        // Detach first: an unavailable transport must not strand other local leases,
+        // and callbacks cannot observe or close the same subscriptions a second time.
+        List<Subscription> releasing = List.copyOf(subscriptions.values());
         subscriptions.clear();
+        releasing.forEach(ClientProgramInboxReadSurface::releaseSubscription);
+    }
+
+    private static void releaseSubscription(Subscription subscription) {
+        try {
+            subscription.close();
+        } catch (RuntimeException unavailableTransport) {
+            // Local ownership is already relinquished. Disconnect/revocation cleanup
+            // does not retry network effects or prevent the remaining leases closing.
+        }
     }
 
     private static Status deniedStatus(ClientProgramConsentGate.Evaluation evaluation) {

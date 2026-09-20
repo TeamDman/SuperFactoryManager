@@ -3,6 +3,8 @@ package ca.teamdman.sfm.client.action;
 import ca.teamdman.sfm.client.net.SFMClientPacketTransport;
 import ca.teamdman.sfm.client.net.SFMPacketObservationLog;
 import ca.teamdman.sfm.client.net.SFMPacketObservationRuntime;
+import ca.teamdman.sfm.client.net.SFMMultiplayerClientRuntime;
+import ca.teamdman.sfm.client.program.ClientProgramIdentity;
 import ca.teamdman.sfm.common.net.SFMPacketInventoryAddress;
 import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfm.common.value.SFMValueJsonCodec;
@@ -62,14 +64,20 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
 
     private final Supplier<Optional<SFMPacketObservationLog.SessionId>> sessionProvider;
     private final BiFunction<SFMPacketInventoryAddress, SFMValue, Boolean> sender;
+    @FunctionalInterface
+    interface CallerSender {
+        boolean send(SFMPacketInventoryAddress target, SFMValue value, Optional<ClientProgramIdentity> caller);
+    }
+    private final CallerSender callerSender;
     private final SFMClientActionAuthorizationService authorization;
     private final BooleanSupplier effectsAvailable;
 
     public SFMPacketSendAction() {
-        this(SFMPacketObservationRuntime.get()::currentSessionId,
+        this(() -> SFMMultiplayerClientRuntime.session().map(SFMPacketObservationLog.SessionId::new)
+                        .or(SFMPacketObservationRuntime.get()::currentSessionId),
                 SFMClientPacketTransport::sendInsertion,
                 SFMClientActionAuthorizationService.shared(),
-                SFMClientPacketTransport::effectsAllowedNow);
+                SFMClientPacketTransport::effectsAllowedNow, SFMClientPacketTransport::sendInsertion);
     }
 
     SFMPacketSendAction(
@@ -88,10 +96,18 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
             SFMClientActionAuthorizationService authorization,
             BooleanSupplier effectsAvailable
     ) {
+        this(sessionProvider, sender, authorization, effectsAvailable, (target, value, caller) -> sender.apply(target, value));
+    }
+
+    SFMPacketSendAction(Supplier<Optional<SFMPacketObservationLog.SessionId>> sessionProvider,
+                       BiFunction<SFMPacketInventoryAddress, SFMValue, Boolean> sender,
+                       SFMClientActionAuthorizationService authorization, BooleanSupplier effectsAvailable,
+                       CallerSender callerSender) {
         this.sessionProvider = sessionProvider;
         this.sender = sender;
         this.authorization = authorization;
         this.effectsAvailable = effectsAvailable;
+        this.callerSender = callerSender;
     }
 
     @Override
@@ -101,7 +117,7 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
 
     @Override
     public Component description() {
-        return Component.literal("Attempt one exact-address packet insertion in this private integrated world");
+        return Component.literal("Attempt one exact-address insertion; remote worlds require a negotiated session and exact server grant");
     }
 
     @Override
@@ -126,7 +142,7 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
                             (int) ((SFMValue.LongValue) fields.get("z")).value()),
                     side instanceof SFMValue.StringValue name
                             ? Optional.of(Direction.valueOf(name.value().toUpperCase(Locale.ROOT))) : Optional.empty());
-            boolean accepted = effectsAvailable.getAsBoolean() && sender.apply(target, fields.get("value"));
+            boolean accepted = effectsAvailable.getAsBoolean() && callerSender.send(target, fields.get("value"), context.caller());
             return SFMValue.object(Map.of("status", SFMValue.of(accepted ? "send_attempted" : "effects_disabled"),
                     "local_transport_accepted", SFMValue.of(accepted)));
         });
@@ -317,8 +333,8 @@ public final class SFMPacketSendAction implements SFMClientAction<SFMClientActio
 
     private static String feedbackFor(String status) {
         return switch (status) {
-            case "send_attempted" -> "Packet send was accepted by the local client transport; delivery is not acknowledged";
-            case "effects_disabled" -> "Packet send was not attempted because private integrated-world effects are disabled";
+            case "send_attempted" -> "Packet send accepted locally; downstream processing is not acknowledged. Remote receipts: packet/remote_status";
+            case "effects_disabled" -> "Packet send was not attempted because the required private or negotiated remote transport is unavailable";
             case "session_changed" -> "Packet send was not attempted because the world session changed";
             case "no_session" -> "Packet send was not attempted because no packet observation session is active";
             case "rate_limited" -> "Packet send was not attempted because the local effect rate limit was reached";

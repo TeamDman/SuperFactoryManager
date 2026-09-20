@@ -14,8 +14,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 public class SFMPackets {
-    // Acknowledged Client Manager signing adds message types unknown to older peers.
-    public static final String SFM_CHANNEL_VERSION="1.3.0";
+    // The separately negotiated multiplayer boundary adds message types unknown to older peers.
+    public static final String SFM_CHANNEL_VERSION="1.4.0";
     public static final SimpleChannel SFM_CHANNEL = NetworkRegistry.newSimpleChannel(
             SFMResourceLocation.fromSFMPath("manager"),
             SFM_CHANNEL_VERSION::toString,
@@ -89,6 +89,8 @@ public class SFMPackets {
         registerPacket(new ServerboundClientManagerSigningRequestPacket.Daddy());
         registerPacket(new ServerboundClientManagerSignaturePacket.Daddy());
         registerPacket(new ClientboundClientManagerSigningResponsePacket.Daddy());
+        registerPacket(new ca.teamdman.sfm.common.net.multiplayer.ServerboundMultiplayerPacket.Daddy());
+        registerPacket(new ca.teamdman.sfm.common.net.multiplayer.ClientboundMultiplayerPacket.Daddy());
     }
 
     public static void sendToServer(

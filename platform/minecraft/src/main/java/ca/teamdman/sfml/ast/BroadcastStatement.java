@@ -61,7 +61,8 @@ public record BroadcastStatement(String playerAlias, @Nullable ResourceLocation 
             context.getLogger().debug(LOG_PROGRAM_TICK_BROADCAST_PLAYER_NOT_CONNECTED.get(playerName));
             return;
         }
-        if (!SFMPacketEffectGate.allowsServerEffects(player)) {
+        if (!SFMPacketEffectGate.allowsServerEffects(player)
+            && (channel == null || !ca.teamdman.sfm.common.net.multiplayer.SFMMultiplayerServerRuntime.negotiatedPathAvailable(player))) {
             context.getLogger().debug(LOG_PROGRAM_TICK_BROADCAST_EFFECTS_DISABLED.get(playerName));
             return;
         }
@@ -78,6 +79,7 @@ public record BroadcastStatement(String playerAlias, @Nullable ResourceLocation 
                         SFMPackets.sendPacketObservation(player, value);
                     } else {
                         SFMServerClientInboxTransport.Result result = SFMServerClientInboxTransport.publish(
+                                context.getManager(),
                                 player,
                                 new SFMClientInboxAddress(
                                         player.getUUID(), context.getLevel().dimension().location(), channel

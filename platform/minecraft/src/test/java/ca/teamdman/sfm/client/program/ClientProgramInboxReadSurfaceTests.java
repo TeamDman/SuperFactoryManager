@@ -52,6 +52,8 @@ class ClientProgramInboxReadSurfaceTests {
         final UUID session = UUID.randomUUID();
         int subscriptions;
         int releases;
+        boolean failRelease;
+        Runnable beforeRelease = () -> {};
 
         FakeInboxAccess() {
             inbox.beginSession(session, RECIPIENT, DIMENSION);
@@ -65,8 +67,10 @@ class ClientProgramInboxReadSurfaceTests {
             if (!inbox.subscribe(address.channel())) return Optional.empty();
             subscriptions++;
             return Optional.of(() -> {
+                beforeRelease.run();
                 releases++;
                 inbox.unsubscribe(address.channel());
+                if (failRelease) throw new IllegalStateException("Disconnected test transport");
             });
         }
 
@@ -141,5 +145,58 @@ class ClientProgramInboxReadSurfaceTests {
         assertEquals(UNAVAILABLE_NO_SESSION, surface.page(CHANNEL, Optional.empty(), 10).status());
         assertEquals(1, access.releases);
         surface.close();
+    }
+
+    @Test
+    void closeDetachesEveryLeaseBeforeCallbacksAndContinuesAfterTransportFailure() {
+        assertBulkCleanup(true);
+    }
+
+    @Test
+    void consentRevocationDetachesEveryLeaseDespiteTransportFailure() {
+        assertBulkCleanup(false);
+    }
+
+    private static void assertBulkCleanup(boolean close) {
+        ClientProgramIdentity program = identity();
+        ClientProgramConsentGate gate = new ClientProgramConsentGate();
+        approve(gate, program, EXECUTE);
+        approve(gate, program, READ);
+        FakeInboxAccess access = new FakeInboxAccess();
+        ResourceLocation second = new ResourceLocation("sfm", "second");
+        ClientProgramInboxReadSurface surface = new ClientProgramInboxReadSurface(
+                program, gate, ALLOW, RECIPIENT, Set.of(CHANNEL, second), access);
+        assertEquals(PAGE, surface.page(CHANNEL, Optional.empty(), 1).status());
+        assertEquals(PAGE, surface.page(second, Optional.empty(), 1).status());
+        access.failRelease = true;
+        access.beforeRelease = () -> assertEquals(0, surface.activeSubscriptions(), "Detach all leases before calling transport");
+        if (close) surface.close();
+        else {
+            gate.revoke(program, READ);
+            assertEquals(UNAVAILABLE_AWAITING_CONSENT, surface.page(CHANNEL, Optional.empty(), 1).status());
+        }
+        assertEquals(2, access.releases);
+        assertEquals(0, surface.activeSubscriptions());
+        surface.close();
+        assertEquals(2, access.releases, "Release is not retried after an ambiguous network failure");
+    }
+
+    @Test
+    void staleSingleLeaseFailureStillReturnsNoSessionAndDetachesOwnership() {
+        ClientProgramIdentity program = identity();
+        ClientProgramConsentGate gate = new ClientProgramConsentGate();
+        approve(gate, program, EXECUTE);
+        approve(gate, program, READ);
+        FakeInboxAccess access = new FakeInboxAccess();
+        ClientProgramInboxReadSurface surface = new ClientProgramInboxReadSurface(
+                program, gate, ALLOW, RECIPIENT, Set.of(CHANNEL), access);
+        assertEquals(PAGE, surface.page(CHANNEL, Optional.empty(), 1).status());
+        access.inbox.endSession();
+        access.failRelease = true;
+        assertEquals(UNAVAILABLE_NO_SESSION, surface.page(CHANNEL, Optional.empty(), 1).status());
+        assertEquals(0, surface.activeSubscriptions());
+        assertEquals(1, access.releases);
+        surface.close();
+        assertEquals(1, access.releases);
     }
 }

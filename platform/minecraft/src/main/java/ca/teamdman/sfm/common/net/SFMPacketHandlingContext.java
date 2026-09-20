@@ -33,6 +33,12 @@ public class SFMPacketHandlingContext {
         return inner.getSender();
     }
 
+    /** Local transport identity, never serialized or accepted from a peer. */
+    @MCVersionDependentBehaviour
+    public Object networkConnectionIdentity() {
+        return inner.getNetworkManager();
+    }
+
     @MCVersionDependentBehaviour
     public boolean hasExpectedDirection(SFMPacketDaddy.PacketDirection expected) {
         NetworkDirection actual = inner.getDirection();

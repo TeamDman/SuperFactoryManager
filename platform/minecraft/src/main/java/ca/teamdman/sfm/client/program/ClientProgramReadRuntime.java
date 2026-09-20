@@ -88,7 +88,7 @@ public final class ClientProgramReadRuntime {
                 }
             }
             return Optional.of(new ClientProgramReadService.Context<>(new MinecraftClientBlockStateSource(minecraft.level),
-                    minecraft.player.getUUID(), bound, loaded, channels, ClientProgramInboxReadSurface.minecraftInbox()));
+                    minecraft.player.getUUID(), bound, loaded, channels, ClientProgramInboxReadSurface.minecraftInbox(identity)));
         }
         @Override public boolean isCurrent(ClientProgramIdentity identity, ClientProgramReadService.Context<BlockState> context) {
             Minecraft minecraft = Minecraft.getInstance();

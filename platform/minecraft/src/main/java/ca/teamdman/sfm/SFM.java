@@ -133,6 +133,7 @@ public class SFM {
         SFMConfig.register(ModLoadingContext.get());
 
         bus.addListener((FMLClientSetupEvent e) -> {
+            ca.teamdman.sfm.client.net.SFMMultiplayerClientRuntime.initialize();
             SFMMenuScreens.register();
             SFMCommandHistoryService.initializeDefault();
             SFMClientActions.commandTree();

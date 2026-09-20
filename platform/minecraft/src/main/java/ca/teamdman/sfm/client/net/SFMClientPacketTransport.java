@@ -11,6 +11,8 @@ import ca.teamdman.sfm.common.value.SFMValue;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.server.IntegratedServer;
+import ca.teamdman.sfm.client.program.ClientProgramIdentity;
+import java.util.Optional;
 
 /** Client-thread transport boundary for the packet-computation MVP. */
 public final class SFMClientPacketTransport {
@@ -33,8 +35,13 @@ public final class SFMClientPacketTransport {
             SFMPacketInventoryAddress target,
             SFMValue value
     ) {
+        return sendInsertion(target, value, Optional.empty());
+    }
+
+    public static boolean sendInsertion(SFMPacketInventoryAddress target, SFMValue value,
+                                        Optional<ClientProgramIdentity> caller) {
         if (!effectsAllowed(Minecraft.getInstance())) {
-            return false;
+            return SFMMultiplayerClientRuntime.sendInsertion(target, value, caller);
         }
         SFMPackets.sendToServer(ServerboundPacketInsertionPacket.fromValue(target, value));
         return true;
@@ -42,7 +49,7 @@ public final class SFMClientPacketTransport {
 
     /** The local optimistic check; the server independently rechecks before mutation. */
     public static boolean effectsAllowedNow() {
-        return effectsAllowed(Minecraft.getInstance());
+        return effectsAllowed(Minecraft.getInstance()) || SFMMultiplayerClientRuntime.available();
     }
 
     @MCVersionDependentBehaviour

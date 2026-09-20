@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.program;
 import ca.teamdman.sfm.client.action.SFMClientActionAuthorizationService;
 import ca.teamdman.sfm.client.action.SFMClientProgramActionDispatcher;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
+import ca.teamdman.sfm.client.net.SFMMultiplayerClientRuntime;
 import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfm.common.block.TouchDisplayBlock;
 import ca.teamdman.sfm.common.blockentity.ClientManagerBlockEntity;
@@ -57,6 +58,7 @@ public final class ClientManagerFrameRuntime {
     private static final SFMClientProgramActionDispatcher ACTIONS = new SFMClientProgramActionDispatcher(
             SFMClientActions::programmaticBinding, SFMClientActionAuthorizationService.shared());
     private static final WeakHashMap<ClientManagerBlockEntity, Compiled> COMPILED = new WeakHashMap<>();
+    private static final WeakHashMap<ClientManagerBlockEntity, Optional<ClientProgramWorldIdentity>> COMPILED_WORLDS = new WeakHashMap<>();
     private static final WeakHashMap<ClientManagerBlockEntity, Integer> COMPILE_COUNTS = new WeakHashMap<>();
     private static final WeakHashMap<TouchDisplayBlockEntity, FrameState> FRAMES = new WeakHashMap<>();
     private static final WeakHashMap<TouchDisplayBlockEntity, Map<ExecutionKey, FrameState>> EXECUTIONS = new WeakHashMap<>();
@@ -75,7 +77,7 @@ public final class ClientManagerFrameRuntime {
     }
 
     public static Optional<ClientProgramIdentity> identityFor(ClientManagerBlockEntity manager) {
-        if (!privateWorldAvailable()) return Optional.empty();
+        if (!runtimeAvailable()) return Optional.empty();
         return Optional.ofNullable(compiled(manager).identity());
     }
 
@@ -124,8 +126,8 @@ public final class ClientManagerFrameRuntime {
         }
         observeWorld(world);
         DIAGNOSTICS.remove(display);
-        if (!privateWorldAvailable()) {
-            DIAGNOSTICS.put(display, "Client Manager requires a private integrated world");
+        if (!runtimeAvailable()) {
+            DIAGNOSTICS.put(display, "Client Manager requires a private world or negotiated remote session");
             FRAMES.remove(display);
             EXECUTIONS.remove(display);
             return Optional.empty();
@@ -164,7 +166,7 @@ public final class ClientManagerFrameRuntime {
                         (action, input) -> ACTIONS.invoke(action, input, writer.identity(), consent(),
                                 ClientManagerFrameRuntime::policyBlockers,
                                 (identity, scope) -> writer.manifest().permits(action, scope),
-                                ClientManagerFrameRuntime::privateWorldAvailable),
+                                ClientManagerFrameRuntime::runtimeAvailable),
                         writer.renderAllowed() && writers.size() == 1);
                 state.values = evaluated.values();
                 state.frameIndex++;
@@ -193,7 +195,7 @@ public final class ClientManagerFrameRuntime {
     private static List<Writer> candidates(TouchDisplayBlockEntity display) {
         Minecraft minecraft = Minecraft.getInstance();
         Level world = minecraft.level;
-        if (world == null || display.getLevel() != world || display.isRemoved() || !privateWorldAvailable()) return List.of();
+        if (world == null || display.getLevel() != world || display.isRemoved() || !runtimeAvailable()) return List.of();
         List<Writer> programs = new ArrayList<>();
         Set<ClientManagerBlockEntity> managers = ClientManagerLoadedRegistry.snapshot(world);
         if (managers.size() > MAX_MANAGERS_PER_FRAME) {
@@ -310,6 +312,7 @@ public final class ClientManagerFrameRuntime {
     private static void clearWorld() {
         if (activeWorld != null) ClientManagerLoadedRegistry.clear(activeWorld);
         COMPILED.clear();
+        COMPILED_WORLDS.clear();
         COMPILE_COUNTS.clear();
         FRAMES.clear();
         EXECUTIONS.clear();
@@ -323,21 +326,24 @@ public final class ClientManagerFrameRuntime {
 
     private static Compiled compiled(ClientManagerBlockEntity manager) {
         Compiled previous = COMPILED.get(manager);
-        if (previous != null && previous.snapshotRevision() == manager.clientSnapshotRevision()) return previous;
+        var world = worldIdentity(manager.worldId());
+        if (previous != null && previous.snapshotRevision() == manager.clientSnapshotRevision()
+                && world.equals(COMPILED_WORLDS.get(manager))) return previous;
         Compiled refreshed = compile(manager);
         COMPILED.put(manager, refreshed);
+        COMPILED_WORLDS.put(manager, world);
         COMPILE_COUNTS.merge(manager, 1, Integer::sum);
         return refreshed;
     }
 
     private static Compiled compile(ClientManagerBlockEntity manager) {
-        if (!privateWorldAvailable()) {
+        if (!runtimeAvailable()) {
             return new Compiled(manager.clientSnapshotRevision(), null, null, null, LabelPositionHolder.empty(),
-                    "Client Manager requires a private integrated world");
+                    "Client Manager requires a private world or negotiated remote session");
         }
         LabelPositionHolder labels = manager.labels();
         String source = manager.storedSource();
-        if (source.isBlank() || manager.worldId() == null || manager.getLevel() == null) {
+        if (source.isBlank() || worldIdentity(manager.worldId()).isEmpty() || manager.getLevel() == null) {
             return new Compiled(manager.clientSnapshotRevision(), null, null, null, labels, "No synced program/world identity");
         }
         if (!ClientFrameSourceBudget.permits(source)) {
@@ -360,7 +366,7 @@ public final class ClientManagerFrameRuntime {
             ClientProgramActionManifest manifest = ClientProgramActionManifest.compile(program, SFMClientActions::programmaticBinding);
             ClientProgramIdentity identity = ClientProgramIdentity.fromStoredSourceAndBindings(
                     source, bindings, ProgramExecutionSide.CLIENT,
-                    ClientProgramWorldIdentity.integrated(manager.worldId()),
+                    worldIdentity(manager.worldId()).orElseThrow(),
                     manager.getLevel().dimension().location(), manager.getBlockPos(),
                     ClientProgramIdentity.CLIENT_MANAGER_RUNTIME,
                     manifest.capabilities()
@@ -376,9 +382,8 @@ public final class ClientManagerFrameRuntime {
     public static List<String> policyBlockers(
             ClientProgramIdentity identity, ResourceLocation capability
     ) {
-        if (!privateWorldAvailable()
-            || !identity.world().serverEndpoint().equals("integrated")) {
-            return List.of("private_integrated_world_required");
+        if (worldIdentity(identity.world().worldId()).filter(identity.world()::equals).isEmpty()) {
+            return List.of("current_private_or_negotiated_world_required");
         }
         return List.of();
     }
@@ -388,6 +393,16 @@ public final class ClientManagerFrameRuntime {
         if (!minecraft.isSameThread()) return false;
         MinecraftServer server = minecraft.getSingleplayerServer();
         return server != null && server.isSingleplayer() && !server.isPublished();
+    }
+
+    private static boolean runtimeAvailable() {
+        return privateWorldAvailable() || SFMMultiplayerClientRuntime.available();
+    }
+
+    private static Optional<ClientProgramWorldIdentity> worldIdentity(@Nullable java.util.UUID worldId) {
+        if (worldId == null) return Optional.empty();
+        return privateWorldAvailable() ? Optional.of(ClientProgramWorldIdentity.integrated(worldId))
+                : SFMMultiplayerClientRuntime.worldIdentity(worldId);
     }
 
     public static boolean renderEligible(TouchDisplayBlockEntity display) {

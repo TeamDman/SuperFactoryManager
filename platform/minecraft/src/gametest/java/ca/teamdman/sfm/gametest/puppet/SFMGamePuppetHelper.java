@@ -1230,6 +1230,11 @@ public final class SFMGamePuppetHelper {
         }
     }
 
+    /** Opt-in normal remote connection controlled by bounded request files. */
+    public void remoteMultiplayerPacketBoundary() {
+        add(new RemoteMultiplayerPacketBoundaryPuppetAction());
+    }
+
     private void add(SFMPuppetAction action) {
         if (currentAction != 0) {
             throw new IllegalStateException("Cannot add game puppet actions after execution has begun");

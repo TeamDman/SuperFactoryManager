@@ -17,6 +17,9 @@ public final class SFMPacketActions {
     public static final SFMRegistryObject<SFMClientAction<?>, SFMPacketSendAction> SEND =
             REGISTERER.register("packet/send", SFMPacketSendAction::new);
 
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMPacketRemoteStatusAction> REMOTE_STATUS =
+            REGISTERER.register("packet/remote_status", SFMPacketRemoteStatusAction::new);
+
     private SFMPacketActions() {
     }
 

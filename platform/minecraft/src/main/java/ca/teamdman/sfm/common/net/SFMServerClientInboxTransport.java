@@ -56,11 +56,28 @@ public final class SFMServerClientInboxTransport {
             SFMClientInboxAddress address,
             SFMValue value
     ) {
+        return publish(null, recipient, address, value);
+    }
+
+    /** Remote delivery must carry a trusted server Manager as its publisher. */
+    public static Result publish(
+            @Nullable ca.teamdman.sfm.common.blockentity.ManagerBlockEntity publisher,
+            ServerPlayer recipient,
+            SFMClientInboxAddress address,
+            SFMValue value
+    ) {
         Objects.requireNonNull(recipient, "recipient");
         Objects.requireNonNull(address, "address");
         Objects.requireNonNull(value, "value");
         if (!SFMPacketEffectGate.allowsServerEffects(recipient)) {
-            return Result.EFFECTS_DISABLED;
+            if (publisher == null) return Result.EFFECTS_DISABLED;
+            return switch (ca.teamdman.sfm.common.net.multiplayer.SFMMultiplayerServerRuntime.publish(publisher, recipient, address, value)) {
+                case DELIVERED_TO_TRANSPORT -> Result.SENT;
+                case RATE_LIMITED -> Result.BUDGET_EXHAUSTED;
+                case NOT_SUBSCRIBED -> Result.NOT_SUBSCRIBED;
+                case FRAME_REJECTED, PAYLOAD_REJECTED, UNSUPPORTED_CODEC -> Result.PAYLOAD_REJECTED;
+                default -> Result.ADDRESS_REJECTED;
+            };
         }
         MinecraftServer server = recipient.getServer();
         if (server == null || !recipient.getUUID().equals(address.recipient())
