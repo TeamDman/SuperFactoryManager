@@ -2,7 +2,7 @@ grammar SFML;
 
 //Need to get rip of the @header when copying
 
-//go to SFMLLexer.ts after going antlr command on the package.json and solve the 2 issues
+//go to SFMLLexer.ts after going antlr command on the package.json and solve the 1 issues
 @lexer::members {
     public INCLUDE_UNUSED: boolean = false; // we want syntax highlighting to not break on unexpected tokens
 }
@@ -279,7 +279,7 @@ WS
         ;
 
 UNUSED
-        :   {this.INCLUDE_UNUSED}? . -> channel(HIDDEN)
+        :   {INCLUDE_UNUSED}? . -> channel(HIDDEN)
         ;
 
 fragment A  :('a' | 'A') ;

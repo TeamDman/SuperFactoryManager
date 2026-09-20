@@ -10,3 +10,5 @@ tsconfig.json
 vsce-versions/**
 out/**/*.map
 node_modules/**
+esbuild.mjs
+package-lock.json

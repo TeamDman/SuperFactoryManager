@@ -179,7 +179,12 @@ export class SFMLTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
         try 
         {
             const array: any[] = [];
-            const response = await axios.get(url);
+            const response = await axios.get(url, {
+                headers: {
+                    'User-Agent': 'VSCode-SuperFactoryManager-Language-Extension',
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
 
             response.data.forEach((element: { type: string; name: any; url: any; download_url: any; }
             ) => {
@@ -216,7 +221,12 @@ export class SFMLTreeDataProvider implements vscode.TreeDataProvider<vscode.Tree
     async loadGistContents(url: string): Promise<any[]> {
         try
         {
-            const response = await axios.get(url);
+            const response = await axios.get(url, {
+                headers: {
+                    'User-Agent': 'VSCode-SuperFactoryManager-Language-Extension',
+                    'Accept': 'application/vnd.github.v3+json'
+                }
+            });
             const files = response.data.files;
             const items: any[] = [];
 
@@ -467,7 +477,14 @@ export function getOpenCommand(tempFiles: Map<string, string>): vscode.Disposabl
             else //Get the file from github and its content
             {
                 try {
-                    const response = await axios.get(file.url, { responseType: 'arraybuffer' });
+                    const response = await axios.get(file.url, {
+                        responseType: 'arraybuffer',
+                        headers: {
+                            'User-Agent': 'VSCode-SuperFactoryManager-Language-Extension',
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+
                     fs.writeFileSync(tempFilePath, response.data);
                     tempFiles.set(tempFilePath, tempFilePath);
 

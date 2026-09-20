@@ -15,7 +15,7 @@
       "name": "Titop54"
     }
   ],
-  "version": "0.0.16",
+  "version": "0.0.17",
   "icon": "media/controller.png",
   "main": "./out/extension.js",
   "engines": {
@@ -104,7 +104,7 @@
           "sfml.enableWarningChecking": {
             "type": "boolean",
             "default": true,
-            "description": "Enable warning for code. Still on very early"
+            "description": "Enable warning for code."
           },
           "sfml.enableErrorChecking": {
             "type": "boolean",
@@ -157,12 +157,12 @@
           },
           "sfml.externalURLs": {
             "type": "string",
-            "description": "Useful repositories for SFM files (Only GitHub or local). Each repo / folder must be in between '' and separated via a comma",
+            "description": "Useful repositories for SFM files (Only GitHub repos, Github Gist and local folder). Each repo / folder must be in between \"\" and separated via a comma",
             "default": ""
           },
           "sfml.SnippetActivation": {
             "type": "string",
-            "description": "Prefix for activating snippets completion. For example: @energy or /energy.",
+            "description": "Prefix for activating snippets completion.\n This key needs to go before to activate snippets. For example: @energy or /energy.",
             "default": ""
           },
           "sfml.enableSnippets": {
@@ -199,10 +199,13 @@
                 "output",
                 "where",
                 "slots",
+                "slot",
                 "retain",
                 "each",
                 "except",
                 "forget",
+                "empty",
+                "in",
                 "without",
                 "with",
                 "tag",
@@ -218,11 +221,17 @@
                 "south",
                 "west",
                 "side",
+                "left",
+                "right",
+                "front",
+                "back",
+                "null",
                 "ticks",
                 "tick",
                 "seconds",
                 "second",
                 "global",
+                "g",
                 "plus",
                 "redstone",
                 "pulse",
@@ -235,6 +244,7 @@
                 "=",
                 "<=",
                 ">=",
+                "+",
                 ",",
                 ":",
                 "/",
@@ -252,16 +262,17 @@
     ]
   },
   "devDependencies": {
-    "antlr4ts-cli": "^0.5.0-alpha.4",
-    "@types/node": "^25.2.2",
+    "@types/node": "^26.1.1",
     "@types/vscode": "^1.0.0",
-    "axios": "^1.13.5",
+    "@vscode/vsce": "^3.9.2",
     "antlr4ts": "^0.5.0-alpha.4",
-    "esbuild": "^0.25.10",
-    "typescript": "^5.9.3",
-    "vsce": "^2.15.0"
+    "antlr4ts-cli": "^0.5.0-alpha.4",
+    "axios": "^1.18.1",
+    "esbuild": "^0.28.1",
+    "typescript": "^7.0.2"
   },
   "scripts": {
+    "setup": "npm install && npm run antlr && npm run compile",
     "vscode:prepublish": "npm run package-extension",
     "package-extension": "npm run check-types && node esbuild.mjs --production",
     "compile": "npm run check-types && node esbuild.mjs",
@@ -270,6 +281,5 @@
     "antlr": "antlr4ts -o src/generated -listener -visitor ./syntaxes/SFML.g4",
     "package": "vsce package -o vsce-versions",
     "publish": "vsce publish"
-  },
-  "dependencies": {}
+  }
 }
