@@ -91,6 +91,7 @@ import { WithContext } from "./SFMLParser";
 import { WithClauseContext } from "./SFMLParser";
 import { TagMatcherContext } from "./SFMLParser";
 import { QualifiedIdContext } from "./SFMLParser";
+import { InvokeActionIdContext } from "./SFMLParser";
 import { SidequalifierContext } from "./SFMLParser";
 import { SideContext } from "./SFMLParser";
 import { SlotqualifierContext } from "./SFMLParser";
@@ -1179,6 +1180,17 @@ export interface SFMLListener extends ParseTreeListener {
 	 * @param ctx the parse tree
 	 */
 	exitQualifiedId?: (ctx: QualifiedIdContext) => void;
+
+	/**
+	 * Enter a parse tree produced by `SFMLParser.invokeActionId`.
+	 * @param ctx the parse tree
+	 */
+	enterInvokeActionId?: (ctx: InvokeActionIdContext) => void;
+	/**
+	 * Exit a parse tree produced by `SFMLParser.invokeActionId`.
+	 * @param ctx the parse tree
+	 */
+	exitInvokeActionId?: (ctx: InvokeActionIdContext) => void;
 
 	/**
 	 * Enter a parse tree produced by `SFMLParser.sidequalifier`.

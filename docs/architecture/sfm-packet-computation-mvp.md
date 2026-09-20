@@ -1,6 +1,6 @@
 # SFM packet computation: single-player MVP
 
-**Status:** Slices A through D and interaction-polish follow-up complete; manual visual acceptance pending
+**Status:** Slices A through D and interaction-polish implementation complete; file-driven art and Alt+D acceptance passed; physical Shift acceptance pending
 **Implementation branch:** `feat/1.19.2/packet-computation`  
 **Implementation baseline:** `1be4b3cff9387f0b2870bc281017b3589f0119ef`  
 **Design-inspection baseline:** `53b9b302117289c945def6ed73297f2997901559`
@@ -601,9 +601,9 @@ stacking, or the disabled WIP clipboard keybinding.
 | ID | Requirement | Contract | Validation state |
 | --- | --- | --- | --- |
 | P01 | Keypad Enter parity | Normalize keypad Enter to Enter for both remote-key press and release; retain all other GLFW key codes. | Focused regression first failed with 335 instead of 257, then passed after normalization. |
-| P02 | Recognizable carrier art | Source the 16×16 transparent packet texture from the reviewed spiral-notebook concept and let item datagen reference `sfm:item/packet`. | Source and final-size textures visually inspected; datagen points the registered model at the SFM texture and the client item tests pass. |
+| P02 | Recognizable carrier art | Source the 16×16 transparent packet texture from the reviewed spiral-notebook concept and let item datagen reference `sfm:item/packet`. | Source and final-size textures visually inspected; datagen points the registered model at the SFM texture. The file-driven inventory screenshot was inspected on 20 September. |
 | P03 | Progressive packet tooltip | Compact hover states only that data is present and reminds the player of the existing more-info key; expanded hover shows complete pretty JSON; missing/invalid data fails closed. | Formatter/codec tests pass. A client-only GameTest exercises the registered item's compact and expanded rendering through a deterministic seam; physical Shift-hover still needs manual acceptance. |
-| P04 | Generic Alt+D item inspection | Opening the default text editor over a non-empty container slot produces an immutable read-only document with tooltip, ID, count, pretty stack SNBT, and decoded packet JSON when applicable. With no hovered item, the editor remains blank and writable. | Generic document and contextual editor-recipe tests pass; final human acceptance of the exact hover transition remains. |
+| P04 | Generic Alt+D item inspection | Opening the default text editor over a non-empty container slot produces an immutable read-only document with tooltip, ID, count, pretty stack SNBT, and decoded packet JSON when applicable. With no hovered item, the editor remains blank and writable. | Generic document and contextual editor-recipe tests pass. The eight-request file puppet passed actual vanilla rendered hover and Alt+D ingress on 20 September, including immutable snapshots and the no-hover writable fallback. |
 
 Interaction-polish evidence on 16 September 2026:
 
@@ -641,8 +641,17 @@ Baseline recheck on 17 September 2026:
   assumption-aborted. Generated cache whitespace is generator-owned; the
   rest of the diff passes `git diff --check`.
 
-A manual inventory check should still confirm the final 16×16 art, Shift-hover
-readability, and exact Alt+D transition before propagation or release.
+File-driven inventory acceptance on 20 September 2026:
+
+- `puppet run sfm:in_world_packet_inspection --branch feat/1.19.2/packet-computation --variant 1280x720@auto --wait-for-build-lock` passed all 8 requests, exit 0, driven by `platform/minecraft/Run-PacketInspectionPuppet.ps1`.
+- Actual mouse callbacks and vanilla rendered hover selected the packet and ordinary paper. Alt+D entered through Minecraft's keyboard handler and opened the real editor. The packet document included the visible tooltip, item ID, count, complete SNBT and pretty JSON. It stayed unchanged after source-item mutation and edit attempts. No-hover container background opened a blank writable editor.
+- Figures 1 and 2 were visually inspected for the rendered item, compact tooltip and read-only document. Artifacts: `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-in_world_pac-20260920-001217-374/`. The fixture restored its editor preference and pointer and closed only its owned screens. Client PID 16332 exited normally.
+
+Physical Shift-hover remains a manual acceptance gate before propagation or
+release. The file puppet explicitly records `physical_shift_proven: false`:
+Minecraft polls native GLFW state for this key, which callback injection does
+not simulate. The user has been asked whether to retain that gate or document
+it as a manual follow-up. No operating-system input automation was used.
 
 ## Exclusions
 

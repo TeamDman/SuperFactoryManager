@@ -28,7 +28,7 @@ public sealed interface ClientValueExpression extends ProgramValueExpression {
 
     record Invoke(ResourceLocation action, String argument) implements ClientValueExpression {
         public Invoke { Objects.requireNonNull(action); Objects.requireNonNull(argument); }
-        @Override public String toString() { return "INVOKE " + action + " WITH " + argument; }
+        @Override public String toString() { return "INVOKE \"" + action + "\" WITH " + argument; }
     }
 
     record Field(String field, String variable) implements ClientValueExpression {

@@ -54,6 +54,7 @@ public class RecipesGameTest extends SFMGameTestDefinition {
         exemptions.put(SFMItems.EXPERIENCE_SHARD, "xp shards are acquired through falling anvil crafting");
         exemptions.put(SFMItems.FORM, "forms are acquired through falling anvil crafting");
         exemptions.put(SFMItems.BUFFER, "buffer item is WIP");
+        exemptions.put(SFMItems.PACKET, "data packets are created by computation, touch events and authorised packet delivery");
         for (var exemption : exemptions.entrySet()) {
             var old = seenSFMItemIds.put(exemption.getKey().getId().get().location(), exemption.getValue());
             if (old != null) {

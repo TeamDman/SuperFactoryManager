@@ -7,6 +7,10 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Replace or clear persisted buffer images on reload without orphaning cached handlers or erasing occupied nonpersisted resources
+-- Craft Client Managers with a comparator-centered manager recipe and Touch Displays with glass, iron bars, cable and redstone
+-- Allow quoted static action IDs in INVOKE and STRING OF INVOKE so registry paths can contain SFML keywords without changing inventory syntax
+-- Create or connect an owned terminal session to a Touch Display, with separate raster and touch-input permissions and explicit teardown
 -- Add separate negotiated multiplayer packet transport with default-deny operator grants for exact players, inventory targets, inbox channels and server-manager publishers
 -- Review and explicitly sign the acknowledged Client Manager revision with protected local keys, a cosmetic signing pad or accessible confirmation; saving alone never signs
 -- Review scoped Client Manager signer trust separately from exact-program consent; explicit denials and policy still take precedence, and stop-all removes signer rules

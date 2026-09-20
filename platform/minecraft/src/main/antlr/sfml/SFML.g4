@@ -61,10 +61,10 @@ statement       : inputStatement
 renderImageStatement : RENDER IMAGE string TO identifier;
 
 letValueStatement : LET identifier BE valueExpression;
-valueExpression : STRING_TYPE OF INVOKE qualifiedId WITH identifier                         #InvokeTextValueExpression
+valueExpression : STRING_TYPE OF INVOKE invokeActionId WITH identifier                      #InvokeTextValueExpression
                 | identifier WITH FIELD constructionField (AND FIELD constructionField)*    #ObjectConstructionValueExpression
                 | JSON string                                                               #ClientJsonValueExpression
-                | INVOKE qualifiedId WITH identifier                                         #ClientInvokeValueExpression
+                | INVOKE invokeActionId WITH identifier                                      #ClientInvokeValueExpression
                 | FIELD string OF identifier                                                 #ClientFieldValueExpression
                 ;
 constructionField : identifier OF fieldValueExpression;
@@ -129,6 +129,8 @@ tagMatcher  : identifier COLON identifier (SLASH identifier)*
             ;
 
 qualifiedId : identifier COLON identifier (SLASH identifier)*;
+// Action IDs are static literals; quotes allow resource paths containing keywords or punctuation.
+invokeActionId : qualifiedId | string;
 
 
 sidequalifier   : EACH SIDE                  #EachSide

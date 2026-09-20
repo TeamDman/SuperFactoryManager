@@ -48,9 +48,14 @@ public class BufferBlockEntity extends BlockEntity {
     }
 
     /** Only image resources are durable in this first buffer persistence slice. */
+    @MCVersionDependentBehaviour
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
+        // Restore in place: cached capability handles must observe replacement
+        // and clearing, including absent or malformed image NBT. Capability
+        // exclusion leaves an occupied nonpersisted resource untouched.
+        imageHandler().ifPresent(handler -> handler.extractImage(false));
         if (!tag.contains(IMAGE_TAG, Tag.TAG_COMPOUND)
             || !tag.contains(IMAGE_STATE_TAG, Tag.TAG_STRING)
             || !tag.contains(IMAGE_STATE_CODEC_TAG, Tag.TAG_INT)) {
@@ -70,6 +75,7 @@ public class BufferBlockEntity extends BlockEntity {
         });
     }
 
+    @MCVersionDependentBehaviour
     @Override
     protected void saveAdditional(CompoundTag tag) {
         super.saveAdditional(tag);

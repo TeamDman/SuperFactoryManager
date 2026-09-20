@@ -111,6 +111,7 @@ public class SFM {
             SFMPacketActions.register(bus);
             SFMClientProgramConsentActions.register(bus);
             SFMClientProgramReadActions.register(bus);
+            ca.teamdman.sfm.client.action.SFMTerminalDisplayActions.register(bus);
             SFMSymbolActions.register(bus);
             SFMSpatialActions.register(bus);
             SFMTrajectoryActions.register(bus);

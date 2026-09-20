@@ -39,6 +39,6 @@ public record TextReadValueExpression(
 
     @Override
     public String toString() {
-        return "STRING OF INVOKE " + operationId + " WITH " + sourceVariable;
+        return "STRING OF INVOKE \"" + operationId + "\" WITH " + sourceVariable;
     }
 }

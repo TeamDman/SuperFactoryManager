@@ -91,6 +91,7 @@ import { WithContext } from "./SFMLParser";
 import { WithClauseContext } from "./SFMLParser";
 import { TagMatcherContext } from "./SFMLParser";
 import { QualifiedIdContext } from "./SFMLParser";
+import { InvokeActionIdContext } from "./SFMLParser";
 import { SidequalifierContext } from "./SFMLParser";
 import { SideContext } from "./SFMLParser";
 import { SlotqualifierContext } from "./SFMLParser";
@@ -781,6 +782,13 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitQualifiedId?: (ctx: QualifiedIdContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.invokeActionId`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitInvokeActionId?: (ctx: InvokeActionIdContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `SFMLParser.sidequalifier`.

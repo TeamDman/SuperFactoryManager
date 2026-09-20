@@ -3,6 +3,7 @@ package ca.teamdman.sfm.gametest.puppet;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.mixins.MouseHandlerInvoker;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import org.lwjgl.glfw.GLFW;
 
 /**
@@ -32,7 +33,12 @@ public final class SFMGamePuppetPointer {
 
     /** Routes one virtual move through Minecraft's real mouse callback. */
     public static void moveVirtual(SFMScreenMultiplexer workspace, double logicalX, double logicalY) {
-        requireTarget(workspace, logicalX, logicalY);
+        moveVirtual((Screen) workspace, logicalX, logicalY);
+    }
+
+    /** Also supports actual vanilla container hover without changing the desktop pointer. */
+    public static void moveVirtual(Screen screen, double logicalX, double logicalY) {
+        requireTarget(screen, logicalX, logicalY);
         Minecraft minecraft = Minecraft.getInstance();
         var window = minecraft.getWindow();
         double nativeX = logicalX
@@ -94,12 +100,12 @@ public final class SFMGamePuppetPointer {
         });
     }
 
-    private static void requireTarget(SFMScreenMultiplexer workspace, double logicalX, double logicalY) {
+    private static void requireTarget(Screen screen, double logicalX, double logicalY) {
         if (!Double.isFinite(logicalX) || !Double.isFinite(logicalY)) {
             throw new IllegalArgumentException("Puppet pointer coordinates must be finite");
         }
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.screen != workspace) {
+        if (minecraft.screen != screen) {
             throw new IllegalStateException("The puppet pointer target is not the active screen");
         }
     }

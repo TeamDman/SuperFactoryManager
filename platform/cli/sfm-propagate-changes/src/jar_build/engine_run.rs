@@ -2284,19 +2284,26 @@ fn game_puppet_control_cli_paths(worktree_path: &Path) -> (PathBuf, PathBuf, Pat
     (manifest, target_dir, executable)
 }
 
+fn client_automation_requires_control_cli(kind: RunKind) -> bool {
+    // Ambient client GameTests also use the checkout-local structured terminal
+    // worker. Provision it for run-all as well as filtered runs; keep ordinary
+    // interactive clients and dedicated servers independent of the CLI build.
+    matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview)
+}
+
 fn prepare_game_puppet_control_cli(
     plan: &BuildPlan,
     kind: RunKind,
     dry_run: bool,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<Option<PathBuf>> {
-    if !matches!(kind, RunKind::GameTestPreview) {
+    if !client_automation_requires_control_cli(kind) {
         return Ok(None);
     }
     let (manifest, target_dir, executable) = game_puppet_control_cli_paths(&plan.worktree_path);
     if !manifest.is_file() {
         eyre::bail!(
-            "Game-puppet runs require the checkout-local SFM control CLI manifest at {}",
+            "Client automation requires the checkout-local SFM control CLI manifest at {}",
             manifest.display()
         );
     }
@@ -2307,7 +2314,7 @@ fn prepare_game_puppet_control_cli(
     tracing::info!(
         manifest = %manifest.display(),
         executable = %executable.display(),
-        "Building checkout-local SFM control CLI for game-puppet automation"
+        "Building checkout-local SFM control CLI for client automation"
     );
     let mut command = Command::new("cargo");
     command
@@ -2344,7 +2351,7 @@ fn apply_game_puppet_control_cli_property(
     kind: RunKind,
     executable: Option<&Path>,
 ) {
-    if !matches!(kind, RunKind::GameTestPreview) {
+    if !client_automation_requires_control_cli(kind) {
         return;
     }
     if let Some(executable) = executable {
@@ -4654,6 +4661,7 @@ fn escape_html(value: &str) -> String {
 mod game_puppet_preview_tests {
     use super::RunKind;
     use super::apply_game_puppet_control_cli_property;
+    use super::client_automation_requires_control_cli;
     use super::ContentHash;
     use super::ContentHashAlgorithm;
     use super::GamePuppetPreviewArtifact;
@@ -4727,6 +4735,36 @@ mod game_puppet_preview_tests {
             Some(&executable),
         );
         assert!(ordinary_client_properties.is_empty());
+    }
+
+    #[test]
+    fn ambient_client_tests_provision_and_publish_the_same_control_cli_as_puppets() {
+        let (_, _, executable) = game_puppet_control_cli_paths(Path::new("example-checkout"));
+        for kind in [RunKind::ClientPuppet, RunKind::GameTestPreview] {
+            assert!(client_automation_requires_control_cli(kind));
+            let mut properties = BTreeMap::new();
+            apply_game_puppet_control_cli_property(&mut properties, kind, Some(&executable));
+            assert_eq!(
+                properties.get("sfm.controlCliExecutable"),
+                Some(&executable.display().to_string())
+            );
+            let mut missing = BTreeMap::new();
+            apply_game_puppet_control_cli_property(&mut missing, kind, None);
+            assert!(missing.is_empty());
+        }
+        for kind in [
+            RunKind::Client,
+            RunKind::ClientSmoke,
+            RunKind::Server,
+            RunKind::GameTestServer,
+            RunKind::Data,
+            RunKind::Test,
+        ] {
+            assert!(!client_automation_requires_control_cli(kind));
+            let mut properties = BTreeMap::new();
+            apply_game_puppet_control_cli_property(&mut properties, kind, Some(&executable));
+            assert!(properties.is_empty());
+        }
     }
 
     #[test]

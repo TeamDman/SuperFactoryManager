@@ -45,20 +45,25 @@ class ClientProgramInvocationTests {
 
     @Test
     void typedExpressionsAndComparisonRetainExactSourceLocations() {
-        String source = "CLIENT BTW\nEVERY FRAME FOR displays AS display DO\n" + body() + "\nEND";
-        var built = new ProgramBuilder(source).forExecutionSide(ProgramExecutionSide.CLIENT).build();
-        assertTrue(built.isBuildSuccessful(), () -> built.metadata().errors().toString());
-        FrameTrigger frame = (FrameTrigger) built.program().triggers().get(0);
-        ASTNode json = ((LetStatement) frame.block().statements().get(0)).expression();
-        ASTNode invoke = ((LetStatement) frame.block().statements().get(1)).expression();
-        ASTNode field = ((LetStatement) frame.block().statements().get(2)).expression();
-        ASTNode comparison = ((IfStatement) frame.block().statements().get(5)).condition();
-        for (ASTNode node : List.of(json, invoke, field, comparison)) {
-            var context = built.metadata().astBuilder().getContextForNode(node).orElseThrow();
-            assertEquals(node.toString(), source.substring(context.start.getStartIndex(), context.stop.getStopIndex() + 1));
-            assertTrue(built.metadata().astBuilder().getNodesUnderCursor(context.start.getStartIndex())
-                    .stream().anyMatch(mapped -> mapped.getFirst() == node));
-            assertTrue(built.metadata().astBuilder().getLineColumnForNode(node).startsWith("Line "));
+        for (String invocation : List.of("INVOKE sfm:packet/send WITH request", "INVOKE \"sfm:packet/send\" WITH request")) {
+            String source = "CLIENT BTW\nEVERY FRAME FOR displays AS display DO\n"
+                    + body().replace("INVOKE sfm:packet/send WITH request", invocation) + "\nEND";
+            var built = new ProgramBuilder(source).forExecutionSide(ProgramExecutionSide.CLIENT).build();
+            assertTrue(built.isBuildSuccessful(), () -> built.metadata().errors().toString());
+            FrameTrigger frame = (FrameTrigger) built.program().triggers().get(0);
+            ASTNode json = ((LetStatement) frame.block().statements().get(0)).expression();
+            ASTNode invoke = ((LetStatement) frame.block().statements().get(1)).expression();
+            ASTNode field = ((LetStatement) frame.block().statements().get(2)).expression();
+            ASTNode comparison = ((IfStatement) frame.block().statements().get(5)).condition();
+            for (ASTNode node : List.of(json, invoke, field, comparison)) {
+                var context = built.metadata().astBuilder().getContextForNode(node).orElseThrow();
+                // Source spans retain the author's spelling, not the canonical quoted formatting.
+                assertEquals(node == invoke ? invocation : node.toString(),
+                        source.substring(context.start.getStartIndex(), context.stop.getStopIndex() + 1));
+                assertTrue(built.metadata().astBuilder().getNodesUnderCursor(context.start.getStartIndex())
+                        .stream().anyMatch(mapped -> mapped.getFirst() == node));
+                assertTrue(built.metadata().astBuilder().getLineColumnForNode(node).startsWith("Line "));
+            }
         }
     }
 

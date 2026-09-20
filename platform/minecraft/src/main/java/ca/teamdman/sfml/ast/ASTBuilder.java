@@ -514,7 +514,7 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
     @Override
     public ASTNode visitInvokeTextValueExpression(SFMLParser.InvokeTextValueExpressionContext ctx) {
         TextReadValueExpression expression = new TextReadValueExpression(
-                ctx.qualifiedId().getText(),
+                invokeActionId(ctx.invokeActionId()),
                 ctx.identifier().getText()
         );
         trackNode(expression, ctx);
@@ -531,10 +531,20 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
     @Override
     public ASTNode visitClientInvokeValueExpression(SFMLParser.ClientInvokeValueExpressionContext ctx) {
-        var expression = new ClientValueExpression.Invoke(new ResourceLocation(ctx.qualifiedId().getText()),
+        var expression = new ClientValueExpression.Invoke(new ResourceLocation(invokeActionId(ctx.invokeActionId())),
                 ctx.identifier().getText());
         trackNode(expression, ctx);
         return expression;
+    }
+
+    private String invokeActionId(SFMLParser.InvokeActionIdContext ctx) {
+        if (ctx.qualifiedId() != null) return ctx.qualifiedId().getText();
+        String literal = visitString(ctx.string()).value();
+        int separator = literal.indexOf(':');
+        if (separator <= 0 || separator == literal.length() - 1) {
+            throw new IllegalArgumentException("INVOKE action IDs require an explicit namespace and path");
+        }
+        return new ResourceLocation(literal).toString();
     }
 
     @Override
