@@ -3,7 +3,10 @@ package ca.teamdman.sfml.ast;
 import ca.teamdman.langs.SFMLBaseVisitor;
 import ca.teamdman.langs.SFMLParser;
 import ca.teamdman.sfm.common.config.SFMConfig;
+import ca.teamdman.sfm.common.value.SFMValue;
+import ca.teamdman.sfm.common.value.SFMValuePattern;
 import com.mojang.datafixers.util.Pair;
+import net.minecraft.resources.ResourceLocation;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -22,6 +25,13 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
     /// Used for program editor context actions; ctrl+space on a token
     private final List<Pair<WeakReference<ASTNode>, ParserRuleContext>> AST_NODE_CONTEXTS = new LinkedList<>();
+
+    private final Map<String, SFMValuePattern> PATTERN_DEFINITIONS = new LinkedHashMap<>();
+
+    private final Map<String, String> PLAYER_DEFINITIONS = new LinkedHashMap<>();
+
+    // Strong references keep declaration nodes available to source mapping.
+    private final List<ASTNode> DECLARATION_NODES = new ArrayList<>();
 
     /// @return hierarchy of nodes; e.g., Program > Trigger > Block > IOStatement > LabelAccess > Label
     public List<Pair<ASTNode, ParserRuleContext>> getNodesUnderCursor(int cursorPos) {
@@ -176,7 +186,11 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         if (SFMConfig.getOrDefault(SFMConfig.SERVER_CONFIG.disableProgramExecution)) {
             throw new AssertionError("Program execution is disabled via config");
         }
+        ProgramExecutionSideDeclaration executionSideDeclaration = ctx.executionSideDeclaration() == null
+                                                                 ? null
+                                                                 : visitExecutionSideDeclaration(ctx.executionSideDeclaration());
         var name = visitName(ctx.name());
+        ctx.declaration().forEach(this::visit);
         var triggers = ctx
                 .trigger()
                 .stream()
@@ -187,9 +201,117 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 .stream()
                 .map(Label::name)
                 .collect(Collectors.toSet());
-        Program program = new Program(this, name.value(), triggers, labels, USED_RESOURCES);
+        Program program = new Program(
+                this,
+                name.value(),
+                triggers,
+                labels,
+                USED_RESOURCES,
+                new ProgramDefinitions(PATTERN_DEFINITIONS, PLAYER_DEFINITIONS),
+                executionSideDeclaration
+        );
         trackNode(program, ctx);
         return program;
+    }
+
+    @Override
+    public ProgramExecutionSideDeclaration visitExecutionSideDeclaration(
+            SFMLParser.ExecutionSideDeclarationContext ctx
+    ) {
+        ProgramExecutionSideDeclaration declaration = new ProgramExecutionSideDeclaration(
+                ctx.CLIENT() != null ? ProgramExecutionSide.CLIENT : ProgramExecutionSide.SERVER
+        );
+        trackNode(declaration, ctx);
+        return declaration;
+    }
+
+    @Override
+    public ASTNode visitPlayerDeclaration(SFMLParser.PlayerDeclarationContext ctx) {
+        String alias = ctx.identifier(0).getText();
+        String playerName = ctx.identifier(1).getText();
+        String normalized = alias.toLowerCase(Locale.ROOT);
+        if (PLAYER_DEFINITIONS.putIfAbsent(normalized, playerName) != null) {
+            throw new IllegalArgumentException("Duplicate player alias: " + alias);
+        }
+        ProgramPlayerDeclaration declaration = new ProgramPlayerDeclaration(alias, playerName);
+        DECLARATION_NODES.add(declaration);
+        trackNode(declaration, ctx);
+        return declaration;
+    }
+
+    @Override
+    public ASTNode visitPatternDeclaration(SFMLParser.PatternDeclarationContext ctx) {
+        String alias = ctx.identifier().getText();
+        SFMValuePattern pattern = ((PatternHolder) visit(ctx.valuePattern())).pattern();
+        String normalized = alias.toLowerCase(Locale.ROOT);
+        if (PATTERN_DEFINITIONS.putIfAbsent(normalized, pattern) != null) {
+            throw new IllegalArgumentException("Duplicate pattern alias: " + alias);
+        }
+        ProgramPatternDeclaration declaration = new ProgramPatternDeclaration(alias, pattern);
+        DECLARATION_NODES.add(declaration);
+        trackNode(declaration, ctx);
+        return declaration;
+    }
+
+    @Override
+    public ASTNode visitGuidValuePattern(SFMLParser.GuidValuePatternContext ctx) {
+        return new PatternHolder(SFMValuePattern.GUID);
+    }
+
+    @Override
+    public ASTNode visitStringValuePattern(SFMLParser.StringValuePatternContext ctx) {
+        return new PatternHolder(SFMValuePattern.STRING);
+    }
+
+    @Override
+    public ASTNode visitLiteralValuePattern(SFMLParser.LiteralValuePatternContext ctx) {
+        return new PatternHolder(new SFMValuePattern.LiteralPattern(SFMValue.of(visitString(ctx.string()).value())));
+    }
+
+    @Override
+    public ASTNode visitAliasValuePattern(SFMLParser.AliasValuePatternContext ctx) {
+        return new PatternHolder(resolvePattern(ctx.identifier().getText()));
+    }
+
+    @Override
+    public ASTNode visitObjectValuePattern(SFMLParser.ObjectValuePatternContext ctx) {
+        LinkedHashMap<String, SFMValuePattern> fields = new LinkedHashMap<>();
+        for (SFMLParser.PatternFieldContext fieldContext : ctx.patternField()) {
+            PatternFieldDefinition field = (PatternFieldDefinition) visit(fieldContext);
+            if (fields.putIfAbsent(field.name(), field.pattern()) != null) {
+                throw new IllegalArgumentException("Duplicate object pattern field: " + field.name());
+            }
+        }
+        return new PatternHolder(new SFMValuePattern.ObjectPattern(fields));
+    }
+
+    @Override
+    public ASTNode visitLiteralPatternField(SFMLParser.LiteralPatternFieldContext ctx) {
+        PatternFieldDefinition field = new PatternFieldDefinition(
+                ctx.identifier().getText(),
+                new SFMValuePattern.LiteralPattern(SFMValue.of(visitString(ctx.string()).value()))
+        );
+        trackNode(field, ctx);
+        return field;
+    }
+
+    @Override
+    public ASTNode visitLikePatternField(SFMLParser.LikePatternFieldContext ctx) {
+        String patternName = ctx.identifier(1).getText();
+        PatternFieldDefinition field = new PatternFieldDefinition(
+                ctx.identifier(0).getText(),
+                resolvePattern(patternName)
+        );
+        trackNode(field, ctx);
+        return field;
+    }
+
+    @Override
+    public ASTNode visitAliasPatternField(SFMLParser.AliasPatternFieldContext ctx) {
+        String name = ctx.identifier().getText();
+        PatternFieldDefinition field = new PatternFieldDefinition(name, resolvePattern(name));
+        trackNode(field, ctx);
+        return field;
     }
 
     @Override
@@ -211,6 +333,38 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
         trackNode(timerTrigger, ctx);
         return timerTrigger;
+    }
+
+    @Override
+    public ASTNode visitFrameTrigger(SFMLParser.FrameTriggerContext ctx) {
+        List<Label> labels = ctx.frameLabels().label().stream()
+                .map(this::visit)
+                .map(Label.class::cast)
+                .toList();
+        FrameTrigger trigger = new FrameTrigger(labels, ctx.identifier().getText(), visitBlock(ctx.block()));
+        trackNode(trigger, ctx);
+        return trigger;
+    }
+
+    @Override
+    public ASTNode visitRenderImageStatement(SFMLParser.RenderImageStatementContext ctx) {
+        String image = visitString(ctx.string()).value();
+        RenderImageStatement statement = new RenderImageStatement(
+                new ResourceLocation(image), ctx.identifier().getText()
+        );
+        trackNode(statement, ctx);
+        return statement;
+    }
+
+    @Override
+    public BoolExpr visitBooleanFrameModulo(SFMLParser.BooleanFrameModuloContext ctx) {
+        BoolExpr condition = new BoolFrameModulo(
+                visitNumber(ctx.number(0)).value(),
+                visitComparisonOp(ctx.comparisonOp()),
+                visitNumber(ctx.number(1)).value()
+        );
+        trackNode(condition, ctx);
+        return condition;
     }
 
     @Override
@@ -249,61 +403,63 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
 
     @Override
     public ASTNode visitIntervalSpace(SFMLParser.IntervalSpaceContext ctx) {
-
-        TerminalNode firstNumber = ctx.NUMBER(0);
-        int ticks;
-        if (firstNumber == null) {
-            ticks = 1;
-        } else {
-            ticks = Integer.parseInt(firstNumber.getText());
-        }
-        if (ctx.SECONDS() != null || ctx.SECOND() != null) {
-            ticks *= 20;
-        }
-
-        Interval.IntervalAlignment alignment = Interval.IntervalAlignment.LOCAL;
-        if (ctx.GLOBAL() != null) {
-            alignment = Interval.IntervalAlignment.GLOBAL;
-        }
-
-        int offset = 0;
-        TerminalNode secondNumber = ctx.NUMBER(1);
-        if (secondNumber != null) {
-            offset = Integer.parseInt(secondNumber.getText());
-            if (ctx.SECONDS() != null || ctx.SECOND() != null) {
-                offset *= 20;
-            }
-        }
-
-        Interval interval = new Interval(ticks, alignment, offset);
+        Interval interval = buildInterval(
+                ctx.period == null ? null : ctx.period.getText(),
+                ctx.legacyOffset == null ? null : ctx.legacyOffset.getText(),
+                ctx.newOffset == null ? null : ctx.newOffset.getText(),
+                ctx.unit,
+                ctx.offsetUnit,
+                ctx.GLOBAL() == null ? Interval.IntervalAlignment.LOCAL : Interval.IntervalAlignment.GLOBAL
+        );
         trackNode(interval, ctx);
         return interval;
     }
 
     @Override
     public ASTNode visitIntervalNoSpace(SFMLParser.IntervalNoSpaceContext ctx) {
-
-        String firstNumber = ctx.NUMBER_WITH_G_SUFFIX().getText();
-        String front = firstNumber.substring(0, firstNumber.length() - 1);
-        int ticks = Integer.parseInt(front);
-        if (ctx.SECONDS() != null || ctx.SECOND() != null) {
-            ticks *= 20;
-        }
-
-        Interval.IntervalAlignment alignment = Interval.IntervalAlignment.GLOBAL;
-
-        int offset = 0;
-        TerminalNode secondNumber = ctx.NUMBER();
-        if (secondNumber != null) {
-            offset = Integer.parseInt(secondNumber.getText());
-            if (ctx.SECONDS() != null || ctx.SECOND() != null) {
-                offset *= 20;
-            }
-        }
-
-        Interval interval = new Interval(ticks, alignment, offset);
+        String suffixedPeriod = ctx.period.getText();
+        Interval interval = buildInterval(
+                suffixedPeriod.substring(0, suffixedPeriod.length() - 1),
+                ctx.legacyOffset == null ? null : ctx.legacyOffset.getText(),
+                ctx.newOffset == null ? null : ctx.newOffset.getText(),
+                ctx.unit,
+                ctx.offsetUnit,
+                Interval.IntervalAlignment.GLOBAL
+        );
         trackNode(interval, ctx);
         return interval;
+    }
+
+    private static Interval buildInterval(
+            @Nullable String periodText,
+            @Nullable String legacyOffsetText,
+            @Nullable String newOffsetText,
+            SFMLParser.TimeUnitContext unit,
+            @Nullable SFMLParser.TimeUnitContext offsetUnit,
+            Interval.IntervalAlignment alignment
+    ) {
+        if (legacyOffsetText != null && newOffsetText != null) {
+            throw new IllegalArgumentException("Use either legacy + offset or OFFSET BY, not both");
+        }
+        int ticks = intervalTicks(periodText == null ? "1" : periodText, unit);
+        int offset = legacyOffsetText != null
+                     ? intervalTicks(legacyOffsetText, unit)
+                     : newOffsetText != null
+                       ? intervalTicks(newOffsetText, Objects.requireNonNull(offsetUnit))
+                       : 0;
+        return new Interval(ticks, alignment, offset, legacyOffsetText != null);
+    }
+
+    private static int intervalTicks(String number, SFMLParser.TimeUnitContext unit) {
+        int value = Integer.parseInt(number);
+        if (unit.SECOND() == null && unit.SECONDS() == null) {
+            return value;
+        }
+        try {
+            return Math.multiplyExact(value, 20);
+        } catch (ArithmeticException overflow) {
+            throw new IllegalArgumentException("Interval exceeds supported tick count", overflow);
+        }
     }
 
     @Override
@@ -313,9 +469,165 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         var matchers = visitInputResourceLimits(ctx.inputResourceLimits());
         var exclusions = visitResourceExclusion(ctx.resourceExclusion());
         var each = ctx.EACH() != null;
-        InputStatement inputStatement = new InputStatement(labelAccess, matchers.withExclusions(exclusions), each);
+        ProgramInputSelection selection = ctx.inputSelection() == null
+                                          ? ProgramInputSelection.ANY
+                                          : (ProgramInputSelection) visit(ctx.inputSelection());
+        String bindingName = ctx.inputBinding() == null
+                             ? null
+                             : ctx.inputBinding().identifier().getText();
+        InputStatement inputStatement = new InputStatement(
+                labelAccess,
+                matchers.withExclusions(exclusions),
+                each,
+                selection,
+                bindingName
+        );
         trackNode(inputStatement, ctx);
         return inputStatement;
+    }
+
+    @Override
+    public ASTNode visitCapabilityInputSelection(SFMLParser.CapabilityInputSelectionContext ctx) {
+        ProgramInputSelection selection = new ProgramInputSelection.CapabilitySelection(ctx.qualifiedId().getText());
+        trackNode(selection, ctx);
+        return selection;
+    }
+
+    @Override
+    public ASTNode visitPatternInputSelection(SFMLParser.PatternInputSelectionContext ctx) {
+        String alias = ctx.identifier().getText();
+        ProgramInputSelection selection = new ProgramInputSelection.PatternSelection(alias, resolvePattern(alias));
+        trackNode(selection, ctx);
+        return selection;
+    }
+
+    @Override
+    public ASTNode visitLetValueStatement(SFMLParser.LetValueStatementContext ctx) {
+        LetStatement statement = new LetStatement(
+                ctx.identifier().getText(),
+                (ProgramValueExpression) visit(ctx.valueExpression())
+        );
+        trackNode(statement, ctx);
+        return statement;
+    }
+
+    @Override
+    public ASTNode visitInvokeTextValueExpression(SFMLParser.InvokeTextValueExpressionContext ctx) {
+        TextReadValueExpression expression = new TextReadValueExpression(
+                invokeActionId(ctx.invokeActionId()),
+                ctx.identifier().getText()
+        );
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    @Override
+    public ASTNode visitClientJsonValueExpression(SFMLParser.ClientJsonValueExpressionContext ctx) {
+        var expression = new ClientValueExpression.JsonLiteral(
+                ca.teamdman.sfm.common.value.SFMValueSchema.decodeActionJson(visitString(ctx.string()).value()));
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    @Override
+    public ASTNode visitClientInvokeValueExpression(SFMLParser.ClientInvokeValueExpressionContext ctx) {
+        var expression = new ClientValueExpression.Invoke(new ResourceLocation(invokeActionId(ctx.invokeActionId())),
+                ctx.identifier().getText());
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    private String invokeActionId(SFMLParser.InvokeActionIdContext ctx) {
+        if (ctx.qualifiedId() != null) return ctx.qualifiedId().getText();
+        String literal = visitString(ctx.string()).value();
+        int separator = literal.indexOf(':');
+        if (separator <= 0 || separator == literal.length() - 1) {
+            throw new IllegalArgumentException("INVOKE action IDs require an explicit namespace and path");
+        }
+        return new ResourceLocation(literal).toString();
+    }
+
+    @Override
+    public ASTNode visitClientFieldValueExpression(SFMLParser.ClientFieldValueExpressionContext ctx) {
+        var expression = new ClientValueExpression.Field(visitString(ctx.string()).value(), ctx.identifier().getText());
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    @Override
+    public ASTNode visitBooleanClientValueEquals(SFMLParser.BooleanClientValueEqualsContext ctx) {
+        var condition = new BoolClientValueEquals(ctx.identifier().getText(),
+                ca.teamdman.sfm.common.value.SFMValueSchema.decodeActionJson(visitString(ctx.string()).value()));
+        trackNode(condition, ctx);
+        return condition;
+    }
+
+    @Override
+    public ASTNode visitObjectConstructionValueExpression(SFMLParser.ObjectConstructionValueExpressionContext ctx) {
+        String alias = ctx.identifier().getText();
+        SFMValuePattern pattern = resolvePattern(alias);
+        if (!(pattern instanceof SFMValuePattern.ObjectPattern objectPattern)) {
+            throw new IllegalArgumentException("Object construction requires an object pattern alias: " + alias);
+        }
+        LinkedHashMap<String, ObjectFieldValueExpression> fields = new LinkedHashMap<>();
+        for (SFMLParser.ConstructionFieldContext fieldContext : ctx.constructionField()) {
+            String fieldName = fieldContext.identifier().getText();
+            ObjectFieldValueExpression value = (ObjectFieldValueExpression) visit(fieldContext.fieldValueExpression());
+            if (fields.putIfAbsent(fieldName, value) != null) {
+                throw new IllegalArgumentException("Duplicate object construction field: " + fieldName);
+            }
+        }
+        ObjectConstructionValueExpression expression = new ObjectConstructionValueExpression(alias, objectPattern, fields);
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    @Override
+    public ASTNode visitNewGuidFieldValue(SFMLParser.NewGuidFieldValueContext ctx) {
+        ObjectFieldValueExpression expression = new ObjectFieldValueExpression.NewGuid();
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    @Override
+    public ASTNode visitLiteralFieldValue(SFMLParser.LiteralFieldValueContext ctx) {
+        ObjectFieldValueExpression expression = new ObjectFieldValueExpression.Literal(
+                SFMValue.of(visitString(ctx.string()).value())
+        );
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    @Override
+    public ASTNode visitVariableFieldValue(SFMLParser.VariableFieldValueContext ctx) {
+        ObjectFieldValueExpression expression = new ObjectFieldValueExpression.Variable(ctx.identifier().getText());
+        trackNode(expression, ctx);
+        return expression;
+    }
+
+    @Override
+    public ASTNode visitCreateStatement(SFMLParser.CreateStatementContext ctx) {
+        String carrierId = ctx.qualifiedId().getText();
+        CreateInputStatement statement = new CreateInputStatement(carrierId, ctx.identifier().getText());
+        ResourceIdentifier<?, ?, ?> packetResource = ResourceIdentifier.fromString(carrierId);
+        packetResource.assertValid();
+        USED_RESOURCES.add(packetResource);
+        trackNode(statement, ctx);
+        return statement;
+    }
+
+    @Override
+    public ASTNode visitBroadcastStatement(SFMLParser.BroadcastStatementContext ctx) {
+        String playerAlias = ctx.identifier().getText();
+        if (!PLAYER_DEFINITIONS.containsKey(playerAlias.toLowerCase(Locale.ROOT))) {
+            throw new IllegalArgumentException("Unknown player alias: " + playerAlias);
+        }
+        BroadcastStatement statement = new BroadcastStatement(
+                playerAlias,
+                ctx.qualifiedId() == null ? null : new net.minecraft.resources.ResourceLocation(ctx.qualifiedId().getText())
+        );
+        trackNode(statement, ctx);
+        return statement;
     }
 
     @Override
@@ -732,10 +1044,9 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
                 .map(this::visit)
                 .map(Label.class::cast)
                 .collect(Collectors.toSet());
-        if (labels.isEmpty()) {
-            labels = USED_LABELS;
-        }
-        ForgetStatement rtn = new ForgetStatement(labels);
+        ForgetStatement rtn = labels.isEmpty()
+                              ? ForgetStatement.allInputsStatement()
+                              : new ForgetStatement(labels);
         trackNode(rtn, ctx);
         return rtn;
     }
@@ -860,6 +1171,18 @@ public class ASTBuilder extends SFMLBaseVisitor<ASTNode> {
         Block block = new Block(statements);
         trackNode(block, ctx);
         return block;
+    }
+
+    private SFMValuePattern resolvePattern(String name) {
+        return new ProgramDefinitions(PATTERN_DEFINITIONS, PLAYER_DEFINITIONS)
+                .pattern(name)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown pattern alias: " + name));
+    }
+
+    private record PatternHolder(SFMValuePattern pattern) implements ASTNode {
+        private PatternHolder {
+            Objects.requireNonNull(pattern);
+        }
     }
 
     /// Tracks an {@link ASTNode} and its {@link ParserRuleContext} for later retrieval for editor context actions.

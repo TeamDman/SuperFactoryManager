@@ -46,6 +46,8 @@ public final class ActivePuppet {
 
     public boolean gameTestStartRequested;
 
+    public String gameTestName;
+
     public volatile MultipleTestTracker gameTestTracker;
 
     public volatile BlockPos gameTestOrigin;
@@ -56,6 +58,10 @@ public final class ActivePuppet {
     public volatile AABB gameTestBounds;
 
     public volatile Throwable gameTestStartFailure;
+
+    public boolean integratedServerPublishRequested;
+
+    public volatile Throwable integratedServerPublishFailure;
 
     public int nextFigureNumber = 1;
 

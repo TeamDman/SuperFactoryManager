@@ -7,6 +7,7 @@ use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
 use facet::Facet;
 use figue as args;
+use std::path::PathBuf;
 
 /// Arguments for launching the Forge client and running selected SFM game puppet definitions.
 #[derive(Facet, Debug, Clone)]
@@ -14,6 +15,10 @@ pub struct RunGameTestPreviewArgs {
     /// Build and launch options.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
+
+    /// SFM checkout containing platform/cli/sfm to build with its existing lockfile; defaults to the launched checkout.
+    #[facet(default, args::named)]
+    pub control_cli_source_root: Option<PathBuf>,
 
     /// Puppet selector. Supports unqualified names, `*`, `?`, and comma-separated selectors.
     #[facet(args::named)]
@@ -58,6 +63,7 @@ impl RunGameTestPreviewArgs {
             &self.variant,
             self.mute,
             self.keep_open,
+            self.control_cli_source_root,
             cancellation_token,
         )
     }
@@ -82,6 +88,7 @@ pub(crate) fn invoke_game_puppet(
     variant: &str,
     mute: bool,
     keep_open: Option<Option<String>>,
+    control_cli_source_root: Option<PathBuf>,
     cancellation_token: CancellationToken,
 ) -> eyre::Result<()> {
     invoke_game_puppet_with_hotswap(
@@ -94,6 +101,7 @@ pub(crate) fn invoke_game_puppet(
         mute,
         keep_open,
         None,
+        control_cli_source_root,
         cancellation_token,
     )
 }
@@ -114,6 +122,7 @@ pub(crate) fn invoke_game_puppet_with_hotswap(
     mute: bool,
     keep_open: Option<Option<String>>,
     client_hotswap_port: Option<u16>,
+    control_cli_source_root: Option<PathBuf>,
     cancellation_token: CancellationToken,
 ) -> eyre::Result<()> {
     let puppet_filter = puppet.trim();
@@ -129,6 +138,7 @@ pub(crate) fn invoke_game_puppet_with_hotswap(
         RunKind::GameTestPreview,
         RunOptions {
             client_hotswap_port,
+            control_cli_source_root,
             game_puppet_filter: Some(puppet_filter.to_string()),
             game_puppet_game_test,
             game_puppet_viewport_selection: viewport_selection,

@@ -7,8 +7,13 @@ import java.util.Objects;
 public record Interval(
         int ticks,
         IntervalAlignment alignment,
-        int offset
+        int offset,
+        boolean legacyOffsetSyntax
 ) implements ASTNode {
+    public Interval(int ticks, IntervalAlignment alignment, int offset) {
+        this(ticks, alignment, offset, false);
+    }
+
     public boolean shouldTick(ProgramContext context) {
         return switch (alignment) {
             case LOCAL -> context.getManager().getTick() % ticks == offset;
@@ -18,7 +23,10 @@ public record Interval(
 
     @Override
     public String toString() {
-        return ticks + " TICKS";
+        return ticks
+               + (alignment == IntervalAlignment.GLOBAL ? " GLOBAL" : "")
+               + (ticks == 1 ? " TICK" : " TICKS")
+               + (offset == 0 ? "" : " OFFSET BY " + offset + (offset == 1 ? " TICK" : " TICKS"));
     }
 
     public enum IntervalAlignment {

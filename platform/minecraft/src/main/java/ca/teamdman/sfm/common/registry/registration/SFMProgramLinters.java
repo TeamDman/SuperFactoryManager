@@ -73,6 +73,12 @@ public class SFMProgramLinters {
             NoSlotStatementProgramLinter::new
     );
 
+    public static final SFMRegistryObject<IProgramLinter, LegacyIntervalOffsetProgramLinter>
+            LEGACY_INTERVAL_OFFSET = REGISTERER.register(
+            "legacy_interval_offset",
+            LegacyIntervalOffsetProgramLinter::new
+    );
+
     static {
         if (SFMModCompat.isMekanismLoaded()) {
             SFMMekanismCompat.registerProgramLinters(REGISTERER);

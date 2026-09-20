@@ -30,7 +30,9 @@ public class SFMBlockTagsDatagen extends MCVersionAgnosticBlockTagsDataGen {
                 .add(SFMBlocks.TUNNELLED_FANCY_CABLE.get())
                 .add(SFMBlocks.TUNNELLED_FANCY_CABLE_FACADE.get())
                 .add(SFMBlocks.MANAGER.get())
+                .add(SFMBlocks.CLIENT_MANAGER.get())
                 .add(SFMBlocks.TUNNELLED_MANAGER.get())
+                .add(SFMBlocks.TOUCH_DISPLAY.get())
                 .add(SFMBlocks.PRINTING_PRESS.get());
         tag(BlockTags.MINEABLE_WITH_AXE)
                 .add(SFMBlocks.PRINTING_PRESS.get());

@@ -100,12 +100,19 @@ public class SimulateExploreAllPathsProgramBehaviour implements ProgramBehaviour
             ProgramContext context,
             @SuppressWarnings("unused") Trigger trigger
     ) {
-        context.getInputs().forEach(inputStatement -> onInputStatementDropped(context, inputStatement));
+        context.getInputs().stream()
+                .flatMap(inputSource -> inputSource.inputStatement().stream())
+                .forEach(inputStatement -> onInputStatementDropped(context, inputStatement));
     }
 
     @Override
     public ProgramBehaviour fork() {
         return new SimulateExploreAllPathsProgramBehaviour(this.seenPaths, this.currentPath, this.triggerPathCount);
+    }
+
+    @Override
+    public boolean allowsRuntimeMaterialization() {
+        return false;
     }
 
     public ExecutionPath getCurrentPath() {

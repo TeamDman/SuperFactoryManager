@@ -26,6 +26,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
     protected void registerStatesAndModels() {
 
         registerManager();
+        registerClientManager();
         registerTunnelledManager();
         registerTestBarrelTank();
         registerCableVariants(
@@ -50,6 +51,7 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
 
         );
         registerPrintingPress();
+        registerTouchDisplay();
         registerWaterTank();
         registerTestBarrel();
         registerBuffer();
@@ -107,6 +109,57 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         simpleBlock(SFMBlocks.PRINTING_PRESS.get(), models().getExistingFile(modLoc("block/printing_press")));
     }
 
+    private void registerTouchDisplay() {
+
+        // The model's top is the display face; rotate it to the block's FACING direction.
+        ModelFile displayModel = models().cubeBottomTop(
+                SFMBlocks.TOUCH_DISPLAY.getPath(),
+                modLoc("block/manager_side"),
+                modLoc("block/manager_bot"),
+                modLoc("block/buffer_unknown")
+        ).texture("particle", "#top");
+
+        getVariantBuilder(SFMBlocks.TOUCH_DISPLAY.get())
+                .forAllStates(state -> {
+                    Direction facing = state.getValue(BlockStateProperties.FACING);
+                    int x;
+                    int y;
+
+                    switch (facing) {
+                        case DOWN -> {
+                            x = 180;
+                            y = 0;
+                        }
+                        case NORTH -> {
+                            x = 90;
+                            y = 0;
+                        }
+                        case SOUTH -> {
+                            x = 90;
+                            y = 180;
+                        }
+                        case WEST -> {
+                            x = 90;
+                            y = 270;
+                        }
+                        case EAST -> {
+                            x = 90;
+                            y = 90;
+                        }
+                        default -> { // up
+                            x = 0;
+                            y = 0;
+                        }
+                    }
+
+                    return ConfiguredModel.builder()
+                            .modelFile(displayModel)
+                            .rotationX(x)
+                            .rotationY(y)
+                            .build();
+                });
+    }
+
     private void registerTestBarrelTank() {
 
         simpleBlock(
@@ -135,6 +188,18 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
                 SFMBlocks.MANAGER.get(), models().cubeBottomTop(
                         SFMBlocks.MANAGER.getPath(),
                         modLoc("block/manager_side"),
+                        modLoc("block/manager_bot"),
+                        modLoc("block/manager_top")
+                ).texture("particle", "#top")
+        );
+    }
+
+    private void registerClientManager() {
+        // Cyan body and familiar manager face make the logical execution side visible in-world.
+        simpleBlock(
+                SFMBlocks.CLIENT_MANAGER.get(), models().cubeBottomTop(
+                        SFMBlocks.CLIENT_MANAGER.getPath(),
+                        mcLoc("block/cyan_concrete"),
                         modLoc("block/manager_bot"),
                         modLoc("block/manager_top")
                 ).texture("particle", "#top")
@@ -275,9 +340,13 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         getVariantBuilder(SFMBlocks.BUFFER_BLOCK.get())
                 .forAllStates(state -> {
                     BufferBlock.ContainedResource containedResource = state.getValue(BufferBlock.CONTAINED_RESOURCE);
+                    // The image buffer uses the existing neutral texture until it has dedicated art.
+                    String texture = containedResource == BufferBlock.ContainedResource.Image
+                                     ? "unknown"
+                                     : containedResource.getSerializedName();
                     ModelFile modelFile = models().cubeAll(
                             SFMBlocks.BUFFER_BLOCK.getPath() + "_" + containedResource.getSerializedName(),
-                            modLoc("block/buffer_" + containedResource.getSerializedName())
+                            modLoc("block/buffer_" + texture)
                     );
                     return ConfiguredModel.builder().modelFile(modelFile).build();
                 });

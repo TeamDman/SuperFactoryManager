@@ -3,6 +3,7 @@ package ca.teamdman.sfm.client.control;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
+import ca.teamdman.sfm.client.action.SFMClientActionStructuredResult;
 import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
 import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMExplorerRuntime;
@@ -73,7 +74,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /** Authenticated loopback Vox service used by the short-lived {@code sfm.exe} client. */
 public final class SFMClientControlServer implements AutoCloseable, SfmControlHandler {
-    static final int PROTOCOL_VERSION = 1;
+    static final int PROTOCOL_VERSION = 2;
     static final int MAX_ACTION_TOKENS = 128;
     static final int MAX_ACTION_TOKEN_BYTES = 4096;
     static final int MAX_FEEDBACK_ENTRIES = 64;
@@ -297,7 +298,12 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
                 snapshot.screenClass(),
                 snapshot.worldPresent(),
                 snapshot.worldLabel(),
-                List.of("instance.describe", "client-action.invoke", "explorer.control.v1"),
+                List.of(
+                        "instance.describe",
+                        "client-action.invoke",
+                        "client-action.structured-result.v1",
+                        "explorer.control.v1"
+                ),
                 request.requestId()
         )));
     }
@@ -324,9 +330,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
             ));
         }
         for (String token : request.actionTokens()) {
-            if (token.isEmpty()
-                    || token.getBytes(StandardCharsets.UTF_8).length > MAX_ACTION_TOKEN_BYTES
-                    || token.indexOf('\0') >= 0) {
+            if (!isValidActionToken(token)) {
                 return completedError(error(
                         SfmControlErrorCode.INVALID_REQUEST,
                         "action token is invalid",
@@ -704,6 +708,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
     ) {
         Screen origin = minecraft.screen;
         List<String> feedback = new ArrayList<>();
+        AtomicReference<SFMClientActionStructuredResult> structuredResult = new AtomicReference<>();
         int result;
         try {
             result = SFMClientActionExecutor.execute(
@@ -712,6 +717,11 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
                     component -> {
                         if (feedback.size() < MAX_FEEDBACK_ENTRIES) {
                             feedback.add(component.getString());
+                        }
+                    },
+                    value -> {
+                        if (!structuredResult.compareAndSet(null, value)) {
+                            throw new IllegalStateException("A client action may publish at most one structured result");
                         }
                     }
             );
@@ -734,6 +744,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
         SFMScreenMultiplexer workspace = resultingScreen instanceof SFMScreenMultiplexer multiplexer
                 ? multiplexer
                 : null;
+        SFMClientActionStructuredResult structured = structuredResult.get();
         return VoxResult.success(new SfmControlInvokeClientActionResult(
                 instanceId,
                 processId,
@@ -741,6 +752,9 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
                 canonicalAction,
                 result,
                 feedback,
+                structured != null,
+                structured == null ? "" : structured.schemaId(),
+                structured == null ? "" : structured.json(),
                 resultingScreen != null,
                 resultingScreen == null ? "" : resultingScreen.getClass().getName(),
                 workspace != null,
@@ -888,6 +902,14 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
                 || token.indexOf('"') >= 0
                 || token.indexOf('\\') >= 0;
         return requiresQuoting ? StringArgumentType.escapeIfRequired(token) : token;
+    }
+
+    static boolean isValidActionToken(String token) {
+        return token != null
+               && !token.isEmpty()
+               && token.indexOf('\0') < 0
+               && token.getBytes(StandardCharsets.UTF_8).length <= MAX_ACTION_TOKEN_BYTES
+               && escapeCommandToken(token).getBytes(StandardCharsets.UTF_8).length <= MAX_ACTION_TOKEN_BYTES;
     }
 
     private static Thread daemonThread(Runnable runnable, String name) {

@@ -1,18 +1,24 @@
 package ca.teamdman.sfm.client;
 
 import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
+import ca.teamdman.sfm.client.action.SFMClientProgramConsentActions;
+import ca.teamdman.sfm.client.action.SFMClientProgramReadActions;
 import ca.teamdman.sfm.client.action.SFMDeveloperActions;
 import ca.teamdman.sfm.client.action.SFMDocumentHistoryActions;
 import ca.teamdman.sfm.client.action.SFMExplorerActions;
 import ca.teamdman.sfm.client.action.SFMOverlayActions;
+import ca.teamdman.sfm.client.action.SFMPacketActions;
 import ca.teamdman.sfm.client.action.SFMReviewActions;
 import ca.teamdman.sfm.client.action.SFMRouteComparisonActions;
 import ca.teamdman.sfm.client.action.SFMSpatialActions;
 import ca.teamdman.sfm.client.action.SFMSymbolActions;
+import ca.teamdman.sfm.client.action.SFMTerminalDisplayActions;
+import ca.teamdman.sfm.client.action.SFMTooltipModeActions;
 import ca.teamdman.sfm.client.action.SFMTrajectoryActions;
 import ca.teamdman.sfm.client.action.SFMWorkspaceCounterfactualActions;
 import ca.teamdman.sfm.client.action.SFMWorkspaceLifecycleActions;
 import ca.teamdman.sfm.client.command.SFMCommandHistoryService;
+import ca.teamdman.sfm.client.net.SFMMultiplayerClientRuntime;
 import ca.teamdman.sfm.client.registry.SFMClientActions;
 import ca.teamdman.sfm.client.registry.SFMClientScreenTypes;
 import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituationRegistrations;
@@ -52,6 +58,11 @@ public final class SFMClientRegistrations {
         SFMCommandPaletteActions.register(bus);
         SFMExplorerActions.register(bus);
         SFMOverlayActions.register(bus);
+        SFMTooltipModeActions.register(bus);
+        SFMPacketActions.register(bus);
+        SFMClientProgramConsentActions.register(bus);
+        SFMClientProgramReadActions.register(bus);
+        SFMTerminalDisplayActions.register(bus);
         SFMSymbolActions.register(bus);
         SFMSpatialActions.register(bus);
         SFMTrajectoryActions.register(bus);
@@ -64,6 +75,7 @@ public final class SFMClientRegistrations {
         SFMDeveloperActions.register(bus);
 
         bus.addListener((FMLClientSetupEvent event) -> {
+            SFMMultiplayerClientRuntime.initialize();
             SFMMenuScreens.register();
             SFMCommandHistoryService.initializeDefault();
             SFMClientActions.commandTree();

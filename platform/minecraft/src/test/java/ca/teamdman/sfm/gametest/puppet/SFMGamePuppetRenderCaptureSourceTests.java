@@ -40,4 +40,27 @@ class SFMGamePuppetRenderCaptureSourceTests {
         int copy = runtime.indexOf("queueCaptionedScreenshot(state)", gate);
         assertTrue(prepare >= 0 && gate > prepare && copy > gate);
     }
+
+    @Test
+    void gameTestBoundsAreCapturedBeforeCleanupAndResetBetweenFixtureRuns() throws Exception {
+        Path cursor = Path.of("").toAbsolutePath();
+        Path relative = Path.of("platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet");
+        while (cursor != null && !Files.isDirectory(cursor.resolve(relative))) cursor = cursor.getParent();
+        assertNotNull(cursor);
+        Path root = cursor.resolve(relative);
+        String harness = Files.readString(root.resolve("SFMGamePuppetHarness.java"));
+        String runtime = Files.readString(root.resolve("SFMGamePuppetMinecraftRuntime.java"));
+
+        int info = harness.indexOf("active.gameTestInfo = info;");
+        int bounds = harness.indexOf("active.gameTestBounds = info.getStructureBounds();", info);
+        int tracker = harness.indexOf("active.gameTestTracker = new MultipleTestTracker(started);", bounds);
+        assertTrue(info >= 0 && bounds > info && tracker > bounds);
+
+        int resetBounds = runtime.indexOf("active.gameTestBounds = null;");
+        int resetName = runtime.indexOf("active.gameTestName = null;", resetBounds);
+        int cachedBounds = runtime.indexOf("AABB bounds = active.gameTestBounds != null");
+        int liveFallback = runtime.indexOf("gameTestInfo.getStructureBounds();", cachedBounds);
+        assertTrue(resetBounds >= 0 && resetName > resetBounds);
+        assertTrue(cachedBounds >= 0 && liveFallback > cachedBounds);
+    }
 }

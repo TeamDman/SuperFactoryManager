@@ -3,14 +3,28 @@ package ca.teamdman.sfm.gametest.puppet;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceAxis;
 import ca.teamdman.sfm.client.terminal.SFMTerminalInteractionPuppetProbe;
+import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 
 import java.util.List;
 
 public interface ISFMGamePuppetRuntime {
     boolean createFreshFlatWorld();
+
+    /** Publishes the owned integrated server to LAN and waits for the live state transition. */
+    boolean publishIntegratedServerToLan();
+
+    /** Starts one GameTest and returns once its tracker and structure are available. */
+    boolean startGameTest(String testName);
+
+    /** Starts one puppet-owned GameTest definition that is not part of ordinary test discovery. */
+    boolean startGameTest(SFMGameTestDefinition testDefinition);
+
+    /** Waits for the GameTest previously started by this puppet. */
+    boolean waitForGameTest(String testName);
 
     boolean runGameTest(String testName);
 
@@ -24,6 +38,15 @@ public interface ISFMGamePuppetRuntime {
     void positionForBlockUse(BlockPos localTarget);
 
     void useBlock(BlockPos localTarget);
+
+    /** Aim at one point on the visible Touch Display face without OS pointer input. */
+    void positionForTouchDisplayFace(BlockPos localTarget, Direction face, double u, double v);
+
+    /** Send a normal client gameplay use packet with the specified face hit. */
+    void pressTouchDisplayFace(BlockPos localTarget, Direction face, double u, double v);
+
+    /** Resolve a fixture-local position using the active GameTest origin. */
+    BlockPos absoluteGameTestPos(BlockPos localTarget);
 
     boolean isScreen(Class<?> expectedType);
 

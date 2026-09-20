@@ -10,6 +10,7 @@ use crate::jar_build::SourceCatalogCommand;
 use crate::jar_build::SourceCatalogQuery;
 use facet::Facet;
 use figue as args;
+use std::path::PathBuf;
 
 /// Discover and run SFM game-puppet definitions.
 #[derive(Facet, Debug)]
@@ -39,6 +40,9 @@ pub struct PuppetRunArgs {
     /// Build and launch options.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
+    /// SFM checkout containing platform/cli/sfm to build with its existing lockfile; defaults to the launched checkout.
+    #[facet(default, args::named)]
+    pub control_cli_source_root: Option<PathBuf>,
     /// Puppet selector. Supports unqualified names, `*`, `?`, and comma-separated selectors.
     #[facet(args::positional)]
     pub puppet: String,
@@ -94,6 +98,7 @@ impl PuppetArgs {
                 &args.variant,
                 args.mute,
                 args.keep_open,
+                args.control_cli_source_root,
                 cancellation_token,
             ),
             PuppetCommand::List(args) => SourceCatalogCommand::new(

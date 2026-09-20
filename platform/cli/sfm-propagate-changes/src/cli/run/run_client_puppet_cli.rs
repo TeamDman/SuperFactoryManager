@@ -8,6 +8,7 @@ use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
 use facet::Facet;
 use figue as args;
+use std::path::PathBuf;
 
 /// Arguments for launching the Forge client and running SFM game tests.
 #[derive(Facet, Debug, Clone)]
@@ -15,6 +16,10 @@ pub struct RunClientPuppetArgs {
     /// Build and launch options.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
+
+    /// SFM checkout containing platform/cli/sfm to build with its existing lockfile; defaults to the launched checkout.
+    #[facet(default, args::named)]
+    pub control_cli_source_root: Option<PathBuf>,
 
     /// Run only SFM game tests matching this selector. Supports unqualified names, `*`, `?`, and comma-separated selectors.
     #[facet(default, args::named)]
@@ -35,11 +40,13 @@ impl RunClientPuppetArgs {
     /// Returns an error if planning, building, launching, or game-test validation fails.
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         let filter = self.filter.clone();
+        let control_cli_source_root = self.control_cli_source_root.clone();
         let client_puppet_keep_open = ClientPuppetKeepOpen::from_cli(self.keep_open.clone())?;
         RunCommand::with_run_options(
             self.into_options(BuildMode::Build)?,
             RunKind::ClientPuppet,
             RunOptions {
+                control_cli_source_root,
                 game_test_filter: filter,
                 game_test_bisect: None,
                 client_puppet_keep_open,

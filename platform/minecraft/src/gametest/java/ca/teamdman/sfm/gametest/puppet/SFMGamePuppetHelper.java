@@ -5,6 +5,8 @@ import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceAxis;
 import ca.teamdman.sfm.client.screen.workspace.diagnostic.SFMSizeDisplayWorkspace;
+import ca.teamdman.sfm.common.block.TouchDisplaySurface;
+import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.puppet.action.*;
 import net.minecraft.client.gui.screens.Overlay;
 import net.minecraft.client.gui.screens.Screen;
@@ -15,6 +17,7 @@ import net.minecraft.network.chat.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import ca.teamdman.sfm.client.explorer.SFMPath;
 import java.nio.file.Path;
 
@@ -33,11 +36,47 @@ public final class SFMGamePuppetHelper {
         add(new CreateFreshWorldPuppetAction());
     }
 
+    /** Publishes the current integrated world to LAN through the real server API. */
+    public void publishIntegratedServerToLan() {
+        add(new PublishIntegratedServerToLanPuppetAction());
+    }
+
+    /** Starts a GameTest without waiting for its terminal condition. */
+    public void startGameTest(String testName) {
+        requireGameTestName(testName);
+        add(new StartGameTestPuppetAction(testName));
+    }
+
+    /** Starts a puppet-owned fixture without enrolling it in ordinary GameTest discovery. */
+    public void startGameTest(SFMGameTestDefinition testDefinition) {
+        add(new StartGameTestDefinitionPuppetAction(Objects.requireNonNull(testDefinition, "testDefinition")));
+    }
+
+    /** Waits for the GameTest previously started by this puppet. */
+    public void waitForGameTest(String testName) {
+        requireGameTestName(testName);
+        add(new WaitForGameTestPuppetAction(testName));
+    }
+
+    /** Waits until a fixture request has traversed the production server-to-client packet path. */
+    public void waitForPacketObservation(String fixtureId) {
+        add(new WaitForPacketFixtureObservationPuppetAction(fixtureId));
+    }
+
+    /** Runs the Slice D deterministic ACK and duplicate-response worker in the real terminal. */
+    public void invokePacketLanguageWorkerThroughTerminal() {
+        add(new InvokePacketLanguageWorkerThroughTerminalPuppetAction());
+    }
+
     public void runGameTest(String testName) {
+        requireGameTestName(testName);
+        add(new RunGameTestPuppetAction(testName));
+    }
+
+    private static void requireGameTestName(String testName) {
         if (testName == null || testName.isBlank()) {
             throw new IllegalArgumentException("Game puppet GameTest name must not be blank");
         }
-        add(new RunGameTestPuppetAction(testName));
     }
 
     public void captureOrbit(
@@ -368,6 +407,21 @@ public final class SFMGamePuppetHelper {
         add(new ca.teamdman.sfm.gametest.puppet.action.ExploreReviewInteractivelyPuppetAction());
     }
 
+    /** Wait for bounded file requests to inspect and press a real in-world Touch Display fixture. */
+    public void exploreTouchDisplayInteractively(AtomicReference<TouchDisplaySurface.UV> requestedTouch) {
+        add(new ExploreTouchDisplayInteractivelyPuppetAction(requestedTouch));
+    }
+
+    /** Separate opt-in consent UI journey; never part of the ambient GameTest suite. */
+    public void exploreClientProgramConsentInteractively(AtomicReference<TouchDisplaySurface.UV> requestedTouch) {
+        add(new ExploreTouchDisplayInteractivelyPuppetAction(requestedTouch, true));
+    }
+
+    /** Real authoring controls and transport, with synthetic keys confined to this puppet's run directory. */
+    public void exploreClientProgramSigningInteractively(java.util.concurrent.atomic.AtomicBoolean proofComplete) {
+        add(new ExploreClientProgramSigningPuppetAction(proofComplete));
+    }
+
     public void exactReleaseReviewJourney(boolean resume) {
         add(new ca.teamdman.sfm.gametest.puppet.action.ExactReleaseReviewJourneyPuppetAction(resume));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
@@ -666,6 +720,34 @@ public final class SFMGamePuppetHelper {
     public void executeTerminal(String command) {
         add(new ExecuteTerminalPuppetAction(command));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Runs the deterministic packet echo through the Rust-owned terminal PTY. */
+    public void invokePacketEchoThroughTerminal() {
+        add(new InvokePacketEchoThroughTerminalPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Proves LAN publication disables the external CLI packet-send boundary. */
+    public void invokePacketLanDisabledThroughTerminal() {
+        add(new InvokePacketLanDisabledThroughTerminalPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Proves locally accepted external CLI sends can still be dropped by world IO. */
+    public void invokePacketLossThroughTerminal() {
+        add(new InvokePacketLossThroughTerminalPuppetAction());
+        add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
+    }
+
+    /** Releases the LAN-negative fixture only after the terminal result was observed. */
+    public void completePacketLanDisabledAttempt() {
+        add(new CompletePacketLanDisabledAttemptPuppetAction());
+    }
+
+    /** Waits nonblockingly for one exact line produced by the Rust terminal PTY. */
+    public void waitForTerminalLine(String line) {
+        add(new WaitForTerminalLinePuppetAction(Objects.requireNonNull(line, "line")));
     }
 
     public void cancelTerminal() {
@@ -1113,6 +1195,10 @@ public final class SFMGamePuppetHelper {
         return isComplete() ? "complete" : actions.get(currentAction).description();
     }
 
+    public void abortCurrentAction() {
+        if (!isComplete()) actions.get(currentAction).abort();
+    }
+
     public void validate() {
         if (actions.isEmpty()) {
             throw new IllegalStateException("SFM game puppet declared no actions");
@@ -1142,6 +1228,22 @@ public final class SFMGamePuppetHelper {
         if (closeAfterCapture) {
             add(new CloseScreenPuppetAction());
         }
+    }
+
+    /** Opt-in normal remote connection controlled by bounded request files. */
+    public void remoteMultiplayerPacketBoundary() {
+        add(new RemoteMultiplayerPacketBoundaryPuppetAction());
+    }
+
+    /** Opt-in real terminal pixels and gameplay press, sharing the ambient fixture's owned worker. */
+    public void exploreTouchDisplayTerminalInteractively(
+            ca.teamdman.sfm.gametest.tests.general.TouchDisplayTerminalVisualControl control) {
+        add(new ExploreTouchDisplayTerminalPuppetAction(Objects.requireNonNull(control)));
+    }
+
+    /** Opt-in file-driven vanilla item rendering and actual hovered Alt+D acceptance. */
+    public void explorePacketInspectionInteractively() {
+        add(new ExplorePacketInspectionPuppetAction());
     }
 
     private void add(SFMPuppetAction action) {

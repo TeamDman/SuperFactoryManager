@@ -12,6 +12,12 @@ public final class SFMWorkspaceScreenTypes {
     private static final SFMDeferredRegister<SFMClientScreenType> REGISTERER =
             SFMClientScreenTypes.createContributor(SFM.MOD_ID);
 
+    public static final SFMRegistryObject<SFMClientScreenType, SFMClientProgramConsentsScreenType> CLIENT_SCRIPT_CONSENTS =
+            REGISTERER.register("client_script_consents", SFMClientProgramConsentsScreenType::new);
+
+    public static final SFMRegistryObject<SFMClientScreenType, SFMTerminalMountsScreenType> TERMINAL_MOUNTS =
+            REGISTERER.register("terminal_mounts", SFMTerminalMountsScreenType::new);
+
     public static final SFMRegistryObject<SFMClientScreenType, SFMTestScreenType> TEST_SCREEN = REGISTERER.register(
             "test_screen",
             SFMTestScreenType::new

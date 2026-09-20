@@ -935,7 +935,7 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         if (remoteService != null) {
             if (!isPrintableKey(keyCode)
                     || (modifiers & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) != 0) {
-                remoteService.sendKey(keyCode, modifiers, true, false);
+                remoteService.sendKey(normalizeTerminalKeyCode(keyCode), modifiers, true, false);
             }
             return true;
         }
@@ -987,9 +987,13 @@ public final class SFMTerminalPanel implements SFMScreenPanel {
         }
         if (!isPrintableKey(keyCode)
                 || (modifiers & (GLFW.GLFW_MOD_CONTROL | GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) != 0) {
-            remoteService.sendKey(keyCode, modifiers, false, false);
+            remoteService.sendKey(normalizeTerminalKeyCode(keyCode), modifiers, false, false);
         }
         return true;
+    }
+
+    private static int normalizeTerminalKeyCode(int keyCode) {
+        return keyCode == GLFW.GLFW_KEY_KP_ENTER ? GLFW.GLFW_KEY_ENTER : keyCode;
     }
 
     @Override

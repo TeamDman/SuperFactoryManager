@@ -27,6 +27,9 @@ public class SFMWellKnownCapabilities {
     public static final SFMBlockCapabilityKind<IRedstoneSignalStorage> REDSTONE_HANDLER
             = new SFMBlockCapabilityKind<>(get(new CapabilityToken<>() {
     }));
+    public static final SFMBlockCapabilityKind<IImageHandler> IMAGE_HANDLER
+            = new SFMBlockCapabilityKind<>(get(new CapabilityToken<>() {
+    }));
 
     public static Stream<SFMBlockCapabilityKind<?>> streamCapabilities() {
         return SFMResourceTypes.registry().stream().map(ResourceType::capabilityKind);

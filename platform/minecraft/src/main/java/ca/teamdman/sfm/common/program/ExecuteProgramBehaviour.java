@@ -6,4 +6,9 @@ public class ExecuteProgramBehaviour implements ProgramBehaviour {
         return this; // this is stateless so this should be fine
     }
 
+    @Override
+    public boolean allowsRuntimeMaterialization() {
+        return true;
+    }
+
 }

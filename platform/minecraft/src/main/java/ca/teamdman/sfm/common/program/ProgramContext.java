@@ -5,11 +5,9 @@ import ca.teamdman.sfm.common.block_network.CableNetworkManager;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.logging.TranslatableLogger;
-import ca.teamdman.sfml.ast.InputStatement;
 import ca.teamdman.sfml.ast.Program;
 import net.minecraft.world.level.Level;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,7 +18,7 @@ public class ProgramContext {
 
     private final CableNetwork NETWORK;
 
-    private final List<InputStatement> INPUTS = new ArrayList<>();
+    private final ProgramExecutionScope EXECUTION_SCOPE;
 
     private final Level LEVEL;
 
@@ -53,6 +51,7 @@ public class ProgramContext {
         this.BEHAVIOUR = executionBehaviour;
         this.LABEL_POSITIONS = labelPositions;
         this.LOGGER = logger;
+        this.EXECUTION_SCOPE = new ProgramExecutionScope();
     }
 
     public ProgramContext(
@@ -73,6 +72,7 @@ public class ProgramContext {
         BEHAVIOUR = executionBehaviour;
         LABEL_POSITIONS = LabelPositionHolder.from(Objects.requireNonNull(manager.getDisk()));
         LOGGER = manager.logger;
+        EXECUTION_SCOPE = new ProgramExecutionScope();
     }
 
     private ProgramContext(ProgramContext other) {
@@ -83,7 +83,7 @@ public class ProgramContext {
         LEVEL = other.LEVEL;
         REDSTONE_PULSES = other.REDSTONE_PULSES;
         BEHAVIOUR = other.BEHAVIOUR.fork();
-        INPUTS.addAll(other.INPUTS);
+        EXECUTION_SCOPE = new ProgramExecutionScope();
         did_something = other.did_something;
         LABEL_POSITIONS = other.LABEL_POSITIONS;
         LOGGER = other.LOGGER;
@@ -120,6 +120,23 @@ public class ProgramContext {
                 behaviour,
                 labelPositionHolder,
                 new TranslatableLogger("simulated" + Objects.hash(program, labelPositionHolder, behaviour))
+        );
+    }
+
+    /** World-free execution context used by focused runtime ownership tests. */
+    static ProgramContext createDetachedTestContext(
+            Program program,
+            ProgramBehaviour behaviour
+    ) {
+        return new ProgramContext(
+                program,
+                null,
+                null,
+                null,
+                0,
+                behaviour,
+                LabelPositionHolder.empty(),
+                new TranslatableLogger("detached-test-" + System.identityHashCode(behaviour))
         );
     }
 
@@ -160,9 +177,10 @@ public class ProgramContext {
     }
 
     /**
-     * Copy the context, used in branch investigation.
+     * Create an isolated context for one trigger execution or simulated path.
      * <p>
-     * This does not fork input statement state.
+     * Runtime inputs, variables, and ephemeral resources are deliberately not
+     * copied from the parent context.
      *
      * @return shallow copy of this context
      */
@@ -178,7 +196,7 @@ public class ProgramContext {
 
     public void free() {
 
-        INPUTS.forEach(InputStatement::freeSlots);
+        EXECUTION_SCOPE.free();
     }
 
 
@@ -192,14 +210,30 @@ public class ProgramContext {
         return LOGGER;
     }
 
-    public void addInput(InputStatement input) {
+    public void addInput(ProgramInputSource input) {
 
-        INPUTS.add(input);
+        EXECUTION_SCOPE.addInput(input);
     }
 
-    public List<InputStatement> getInputs() {
+    public List<ProgramInputSource> getInputs() {
 
-        return INPUTS;
+        return EXECUTION_SCOPE.activeInputs();
+    }
+
+    public void replaceInputs(List<? extends ProgramInputSource> inputs) {
+        EXECUTION_SCOPE.replaceInputs(inputs);
+    }
+
+    public ProgramVariableEnvironment getVariableEnvironment() {
+        return EXECUTION_SCOPE.variables();
+    }
+
+    public ProgramEphemeralResourceOwner getEphemeralResourceOwner() {
+        return EXECUTION_SCOPE.ephemeralResources();
+    }
+
+    public ProgramExecutionScope getExecutionScope() {
+        return EXECUTION_SCOPE;
     }
 
 
@@ -215,7 +249,7 @@ public class ProgramContext {
                "PROGRAM=" + PROGRAM +
                ", MANAGER=" + MANAGER +
                ", NETWORK=" + NETWORK +
-               ", INPUTS=" + INPUTS +
+               ", INPUTS=" + EXECUTION_SCOPE.activeInputs() +
                ", LEVEL=" + LEVEL +
                ", EXECUTION_POLICY=" + BEHAVIOUR +
                ", REDSTONE_PULSES=" + REDSTONE_PULSES +

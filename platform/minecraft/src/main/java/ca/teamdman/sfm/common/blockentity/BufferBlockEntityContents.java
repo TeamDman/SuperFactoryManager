@@ -33,6 +33,10 @@ public class BufferBlockEntityContents {
         this.onChanged = onChanged;
     }
 
+    public void markChanged() {
+        onChanged.run();
+    }
+
     public BufferBlock.ContainedResource lastUsedResource = BufferBlock.ContainedResource.Unknown;
 
     public int getStoredRedstone() {
@@ -46,7 +50,7 @@ public class BufferBlockEntityContents {
     }
 
     /// Restore in place so existing capability handles observe the loaded count.
-    /// Other experimental buffer resource types do not yet have persistence.
+    /// Leaves an occupied resource of another type untouched.
     public void loadRedstone(long amount) {
         var type = SFMResourceTypes.REDSTONE.get();
         Object existing = contents.get(type);

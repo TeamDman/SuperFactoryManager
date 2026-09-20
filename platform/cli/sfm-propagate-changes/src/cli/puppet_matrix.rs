@@ -32,6 +32,9 @@ pub struct PuppetMatrixArgs {
     /// Build and launch options. The branch selector may choose multiple core version worktrees.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
+    /// SFM checkout containing platform/cli/sfm to build with its existing lockfile for every target.
+    #[facet(default, args::named)]
+    pub control_cli_source_root: Option<PathBuf>,
     /// Puppet selector. Supports unqualified names, `*`, `?`, and comma-separated selectors.
     #[facet(args::positional)]
     pub puppet: String,
@@ -157,6 +160,7 @@ impl PuppetMatrixArgs {
                 &self.variant,
                 self.mute,
                 expected_game_test.as_deref(),
+                self.control_cli_source_root.as_deref(),
                 cancellation_token.clone(),
             );
             match result {
@@ -225,6 +229,7 @@ fn run_matrix_target(
     viewport_selection: &str,
     mute: bool,
     expected_game_test: Option<&str>,
+    control_cli_source_root: Option<&Path>,
     cancellation_token: CancellationToken,
 ) -> eyre::Result<PuppetMatrixTarget> {
     let mut target_options = template_options.clone();
@@ -241,6 +246,7 @@ fn run_matrix_target(
         viewport_selection,
         mute,
         None,
+        control_cli_source_root.map(Path::to_path_buf),
         cancellation_token,
     )?;
     collect_target_preview(target, puppet_selection, expected_game_test)

@@ -223,6 +223,76 @@ mod tests {
     }
 
     #[test]
+    fn parses_control_cli_source_root_for_client_launches() {
+        let commands: &[&[&str]] = &[
+            &[
+                "run",
+                "client",
+                "--control-cli-source-root",
+                "baseline-checkout",
+            ],
+            &[
+                "run",
+                "client",
+                "--puppet",
+                "title_screen_capture",
+                "--control-cli-source-root",
+                "baseline-checkout",
+            ],
+            &[
+                "game-test",
+                "run-client",
+                "--control-cli-source-root",
+                "baseline-checkout",
+            ],
+            &[
+                "puppet",
+                "run",
+                "title_screen_capture",
+                "--control-cli-source-root",
+                "baseline-checkout",
+            ],
+            &[
+                "puppet",
+                "matrix",
+                "title_screen_capture",
+                "--control-cli-source-root",
+                "baseline-checkout",
+            ],
+        ];
+        for command in commands {
+            let command = command
+                .iter()
+                .copied()
+                .chain(["--branch", "1.19.2"])
+                .collect::<Vec<_>>();
+            let cli = figue::from_slice::<Cli>(&command)
+                .into_result()
+                .expect("explicit control CLI source root should parse")
+                .get_silent();
+            let source_root = match cli.command {
+                Command::Run(crate::cli::run::RunArgs {
+                    command: RunCommand::Client(args),
+                }) => args.control_cli_source_root,
+                Command::GameTest(crate::cli::game_test::GameTestArgs {
+                    command: crate::cli::game_test::GameTestCommand::RunClient(args),
+                }) => args.control_cli_source_root,
+                Command::Puppet(crate::cli::puppet::PuppetArgs {
+                    command: crate::cli::puppet::PuppetCommand::Run(args),
+                }) => args.control_cli_source_root,
+                Command::Puppet(crate::cli::puppet::PuppetArgs {
+                    command: crate::cli::puppet::PuppetCommand::Matrix(args),
+                }) => args.control_cli_source_root,
+                command => panic!("expected a client launch command, got {command:?}"),
+            };
+            assert_eq!(
+                source_root.as_deref(),
+                Some(std::path::Path::new("baseline-checkout"))
+            );
+        }
+    }
+
+    #[test]
     fn parses_top_level_audit_cli() {
         let cli = figue::from_slice::<Cli>(&["audit", "--branch", "*"])
             .into_result()

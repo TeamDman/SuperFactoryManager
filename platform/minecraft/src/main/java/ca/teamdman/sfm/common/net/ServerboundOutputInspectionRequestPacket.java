@@ -95,12 +95,15 @@ public record ServerboundOutputInspectionRequestPacket(
                         List<Pair<LimitedInputSlot<?, ?, ?>, LabelAccess>> inputSlots = new ArrayList<>();
                         context
                                 .getInputs()
-                                .forEach(inputStatement -> inputStatement.gatherSlots(
-                                        context,
-                                        slot -> inputSlots.add(new Pair<>(
-                                                slot,
-                                                inputStatement.labelAccess()
-                                        ))
+                                .stream()
+                                .forEach(inputSource -> inputSource.inputStatement().ifPresent(inputStatement ->
+                                        inputSource.gatherSlots(
+                                                context,
+                                                slot -> inputSlots.add(new Pair<>(
+                                                        slot,
+                                                        inputStatement.labelAccess()
+                                                ))
+                                        )
                                 ));
                         List<InputStatement> inputStatements = inputSlots.stream()
                                 .map(slot -> SFMASTUtils.getInputStatementForSlot(slot.a, slot.b))

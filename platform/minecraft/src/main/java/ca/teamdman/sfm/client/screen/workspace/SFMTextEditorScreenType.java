@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
 import ca.teamdman.sfm.client.action.SFMClientActionSource;
+import ca.teamdman.sfm.client.inspection.SFMItemInspectionDocument;
 import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
 import ca.teamdman.sfm.client.text_editor.ISFMTextEditorRegistration;
@@ -15,6 +16,8 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
+
+import java.util.Optional;
 
 /** Typed panel scene for the configured or explicitly selected text editor. */
 public final class SFMTextEditorScreenType implements SFMClientScreenType {
@@ -54,13 +57,32 @@ public final class SFMTextEditorScreenType implements SFMClientScreenType {
         if (registration == null) {
             throw new SimpleCommandExceptionType(Component.literal("Unknown text editor: " + editorId)).create();
         }
-        return opener.open(context, new SFMTextEditorPanelRecipe(
-                screenTypeId,
-                editorId,
-                new SFMTextDocumentSource.Literal(""),
-                false,
-                "Text Editor v3"
-        ));
+        var actionContext = context.getSource().context();
+        Optional<SFMItemInspectionDocument.Captured> inspection =
+                SFMItemInspectionDocument.captureHovered(actionContext.originatingHost());
+        return opener.open(context, recipeFor(screenTypeId, editorId, inspection));
+    }
+
+    static SFMTextEditorPanelRecipe recipeFor(
+            ResourceLocation screenTypeId,
+            ResourceLocation editorId,
+            Optional<SFMItemInspectionDocument.Captured> inspection
+    ) {
+        return inspection
+                .map(captured -> new SFMTextEditorPanelRecipe(
+                        screenTypeId,
+                        editorId,
+                        new SFMTextDocumentSource.Literal(captured.content(), captured.language()),
+                        true,
+                        captured.title()
+                ))
+                .orElseGet(() -> new SFMTextEditorPanelRecipe(
+                        screenTypeId,
+                        editorId,
+                        new SFMTextDocumentSource.Literal(""),
+                        false,
+                        "Text Editor v3"
+                ));
     }
 
     private ResourceLocation defaultEditorId() {

@@ -636,8 +636,9 @@ fn execute_run(
     let automation_options_path =
         prepare_client_automation_options(&plan.minecraft_dir, &working_dir, kind, run_options)?;
     let game_puppet_control_cli = prepare_game_puppet_control_cli(
-        plan,
+        &plan.worktree_path,
         kind,
+        run_options.control_cli_source_root.as_deref(),
         dry_run,
         &context.cancellation_token,
     )?;
@@ -734,7 +735,7 @@ fn execute_run(
     apply_game_puppet_control_cli_property(
         &mut properties,
         kind,
-        game_puppet_control_cli.as_deref(),
+        game_puppet_control_cli.as_ref(),
     );
     if let Some(automation_mode) = kind.automation_mode() {
         properties.insert(
@@ -2284,73 +2285,123 @@ fn game_puppet_control_cli_paths(worktree_path: &Path) -> (PathBuf, PathBuf, Pat
     (manifest, target_dir, executable)
 }
 
+fn client_automation_requires_control_cli(kind: RunKind) -> bool {
+    // Ambient client GameTests also use the checkout-local structured terminal
+    // worker. Provision it for run-all as well as filtered runs; keep ordinary
+    // interactive clients and dedicated servers independent of the CLI build.
+    matches!(kind, RunKind::ClientPuppet | RunKind::GameTestPreview)
+}
+
+#[derive(Debug)]
+struct GamePuppetControlCli {
+    executable: PathBuf,
+    /// Only an explicit override changes the source-navigation puppet's default source selection.
+    source_root: Option<PathBuf>,
+}
+
 fn prepare_game_puppet_control_cli(
-    plan: &BuildPlan,
+    worktree_path: &Path,
     kind: RunKind,
+    source_root_override: Option<&Path>,
     dry_run: bool,
     cancellation_token: &CancellationToken,
-) -> eyre::Result<Option<PathBuf>> {
-    if !matches!(kind, RunKind::GameTestPreview) {
+) -> eyre::Result<Option<GamePuppetControlCli>> {
+    if !(client_automation_requires_control_cli(kind)
+        || matches!(kind, RunKind::Client) && source_root_override.is_some())
+    {
         return Ok(None);
     }
-    let (manifest, target_dir, executable) = game_puppet_control_cli_paths(&plan.worktree_path);
+    let requested_root = source_root_override.unwrap_or(worktree_path);
+    eyre::ensure!(
+        !requested_root.as_os_str().is_empty(),
+        "SFM control CLI source root must not be empty"
+    );
+    let source_root = requested_root.canonicalize().wrap_err_with(|| {
+        format!(
+            "Cannot resolve SFM control CLI source root {}",
+            requested_root.display()
+        )
+    })?;
+    let (manifest, target_dir, executable) = game_puppet_control_cli_paths(&source_root);
     if !manifest.is_file() {
         eyre::bail!(
-            "Game-puppet runs require the checkout-local SFM control CLI manifest at {}",
+            "SFM control CLI source root requires the manifest at {}",
             manifest.display()
         );
     }
+    let lockfile = manifest.with_file_name("Cargo.lock");
+    if !lockfile.is_file() {
+        eyre::bail!(
+            "SFM control CLI requires its existing lockfile at {}",
+            lockfile.display()
+        );
+    }
+    let mut prepared = GamePuppetControlCli {
+        executable,
+        source_root: source_root_override.map(|_| source_root.clone()),
+    };
     if dry_run {
-        return Ok(Some(executable));
+        return Ok(Some(prepared));
     }
 
     tracing::info!(
+        source_root = %source_root.display(),
         manifest = %manifest.display(),
-        executable = %executable.display(),
-        "Building checkout-local SFM control CLI for game-puppet automation"
+        executable = %prepared.executable.display(),
+        "Building source-selected SFM control CLI"
     );
     let mut command = Command::new("cargo");
     command
         .arg("build")
         .arg("--locked")
+        .arg("--offline")
         .arg("--manifest-path")
         .arg(&manifest)
         .arg("--bin")
         .arg("sfm")
         .arg("--target-dir")
         .arg(&target_dir)
-        .current_dir(&plan.worktree_path);
+        .current_dir(&source_root);
     let output = run_command_capture_output(cancellation_token, &mut command, "sfm-control-cli")?;
     cancellation_token.bail_if_cancelled()?;
     if !output.status.success() {
         eyre::bail!(
-            "Failed to build checkout-local SFM control CLI at {}: {}{}",
+            "Failed to build SFM control CLI at {}: {}{}",
             manifest.display(),
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
     }
-    let executable = executable.canonicalize().wrap_err_with(|| {
+    prepared.executable = prepared.executable.canonicalize().wrap_err_with(|| {
         format!(
-            "Checkout-local SFM control CLI build did not produce {}",
-            executable.display()
+            "SFM control CLI build did not produce {}",
+            prepared.executable.display()
         )
     })?;
-    Ok(Some(executable))
+    Ok(Some(prepared))
 }
 
 fn apply_game_puppet_control_cli_property(
     properties: &mut BTreeMap<String, String>,
     kind: RunKind,
-    executable: Option<&Path>,
+    control_cli: Option<&GamePuppetControlCli>,
 ) {
-    if !matches!(kind, RunKind::GameTestPreview) {
+    let Some(control_cli) = control_cli else {
+        return;
+    };
+    if !(client_automation_requires_control_cli(kind)
+        || matches!(kind, RunKind::Client) && control_cli.source_root.is_some())
+    {
         return;
     }
-    if let Some(executable) = executable {
+    properties.insert(
+        "sfm.controlCliExecutable".to_string(),
+        control_cli.executable.display().to_string(),
+    );
+    if let Some(source_root) = &control_cli.source_root {
         properties.insert(
-            "sfm.controlCliExecutable".to_string(),
-            executable.display().to_string(),
+            "sfm.controlCliSourceRoot".to_string(),
+            source_root.display().to_string(),
         );
     }
 }
@@ -4652,37 +4703,41 @@ fn escape_html(value: &str) -> String {
 
 #[cfg(test)]
 mod game_puppet_preview_tests {
-    use super::RunKind;
-    use super::apply_game_puppet_control_cli_property;
     use super::ContentHash;
     use super::ContentHashAlgorithm;
+    use super::GamePuppetControlCli;
     use super::GamePuppetPreviewArtifact;
     use super::GamePuppetPreviewCaptureMetadata;
     use super::GamePuppetPreviewCaptureProfile;
+    use super::GamePuppetPreviewDataArtifactMetadata;
     use super::GamePuppetPreviewManifest;
     use super::GamePuppetPreviewManifestArtifact;
     use super::GamePuppetPreviewManifestCapture;
     use super::GamePuppetPreviewManifestTerminalArtifact;
     use super::GamePuppetPreviewSourceIdentity;
     use super::GamePuppetPreviewVariantObservation;
-    use super::GamePuppetPreviewViewportCrop;
     use super::GamePuppetPreviewViewport;
+    use super::GamePuppetPreviewViewportCrop;
+    use super::MAX_GAME_PUPPET_ARTIFACT_BYTES;
+    use super::RunKind;
+    use super::apply_game_puppet_control_cli_property;
     use super::captioned_viewport_geometry;
+    use super::client_automation_requires_control_cli;
     use super::create_game_puppet_preview_run_root;
-    use super::game_puppet_preview_artifact_file_name;
     use super::game_puppet_control_cli_paths;
+    use super::game_puppet_preview_artifact_file_name;
     use super::is_safe_preview_name;
     use super::parse_game_puppet_capture_metadata;
     use super::parse_game_puppet_data_artifact_metadata;
     use super::parse_game_puppet_terminal_artifact_metadata;
+    use super::png_dimensions;
+    use super::prepare_game_puppet_control_cli;
     use super::publish_game_puppet_data_artifacts;
     use super::render_game_puppet_preview_contact_sheet;
     use super::validate_game_puppet_data_artifact_payload;
-    use super::GamePuppetPreviewDataArtifactMetadata;
-    use super::MAX_GAME_PUPPET_ARTIFACT_BYTES;
-    use super::png_dimensions;
-    use std::fs;
+    use crate::cancellation::CancellationToken;
     use std::collections::BTreeMap;
+    use std::fs;
     use std::path::Path;
     use tempfile::tempdir;
 
@@ -4708,25 +4763,161 @@ mod game_puppet_preview_tests {
                 .join("debug")
                 .join(format!("sfm{}", std::env::consts::EXE_SUFFIX))
         );
+        let control_cli = GamePuppetControlCli {
+            executable: executable.clone(),
+            source_root: None,
+        };
 
         let mut properties = BTreeMap::new();
         apply_game_puppet_control_cli_property(
             &mut properties,
             RunKind::GameTestPreview,
-            Some(&executable),
+            Some(&control_cli),
         );
         assert_eq!(
             properties.get("sfm.controlCliExecutable"),
             Some(&executable.display().to_string())
         );
+        assert!(!properties.contains_key("sfm.controlCliSourceRoot"));
 
         let mut ordinary_client_properties = BTreeMap::new();
         apply_game_puppet_control_cli_property(
             &mut ordinary_client_properties,
             RunKind::Client,
-            Some(&executable),
+            Some(&control_cli),
         );
         assert!(ordinary_client_properties.is_empty());
+    }
+
+    #[test]
+    fn ambient_client_tests_provision_and_publish_the_same_control_cli_as_puppets() {
+        let (_, _, executable) = game_puppet_control_cli_paths(Path::new("example-checkout"));
+        let control_cli = GamePuppetControlCli {
+            executable: executable.clone(),
+            source_root: None,
+        };
+        for kind in [RunKind::ClientPuppet, RunKind::GameTestPreview] {
+            assert!(client_automation_requires_control_cli(kind));
+            let mut properties = BTreeMap::new();
+            apply_game_puppet_control_cli_property(&mut properties, kind, Some(&control_cli));
+            assert_eq!(
+                properties.get("sfm.controlCliExecutable"),
+                Some(&executable.display().to_string())
+            );
+            let mut missing = BTreeMap::new();
+            apply_game_puppet_control_cli_property(&mut missing, kind, None);
+            assert!(missing.is_empty());
+        }
+        for kind in [
+            RunKind::Client,
+            RunKind::ClientSmoke,
+            RunKind::Server,
+            RunKind::GameTestServer,
+            RunKind::Data,
+            RunKind::Test,
+        ] {
+            assert!(!client_automation_requires_control_cli(kind));
+            let mut properties = BTreeMap::new();
+            apply_game_puppet_control_cli_property(&mut properties, kind, Some(&control_cli));
+            assert!(properties.is_empty());
+        }
+    }
+
+    #[test]
+    fn control_cli_source_override_dry_run_does_not_need_destination_manifests_or_build() {
+        let directory = tempdir().unwrap();
+        let baseline = directory.path().join("baseline");
+        let destination = directory.path().join("destination");
+        fs::create_dir_all(&destination).unwrap();
+        let (manifest, target, _) = game_puppet_control_cli_paths(&baseline);
+        fs::create_dir_all(manifest.parent().unwrap()).unwrap();
+        // These deliberately cannot build. A dry run must only validate the existing inputs.
+        fs::write(&manifest, "unchanged manifest").unwrap();
+        let lockfile = manifest.with_file_name("Cargo.lock");
+        fs::write(&lockfile, "unchanged lockfile").unwrap();
+        let source_root = baseline.canonicalize().unwrap();
+        let (_, _, expected_executable) = game_puppet_control_cli_paths(&source_root);
+        for kind in [
+            RunKind::Client,
+            RunKind::ClientPuppet,
+            RunKind::GameTestPreview,
+        ] {
+            let prepared = prepare_game_puppet_control_cli(
+                &destination,
+                kind,
+                Some(&baseline),
+                true,
+                &CancellationToken::new(),
+            )
+            .unwrap()
+            .unwrap();
+            assert_eq!(prepared.executable, expected_executable);
+            assert_eq!(prepared.source_root.as_ref(), Some(&source_root));
+            let mut properties = BTreeMap::new();
+            apply_game_puppet_control_cli_property(&mut properties, kind, Some(&prepared));
+            assert_eq!(
+                properties["sfm.controlCliExecutable"],
+                expected_executable.display().to_string()
+            );
+            assert_eq!(
+                properties["sfm.controlCliSourceRoot"],
+                source_root.display().to_string()
+            );
+        }
+        assert!(!target.exists(), "dry run must not start Cargo");
+        assert!(!destination.join("platform").exists());
+        assert_eq!(fs::read_to_string(manifest).unwrap(), "unchanged manifest");
+        assert_eq!(fs::read_to_string(lockfile).unwrap(), "unchanged lockfile");
+        let error = prepare_game_puppet_control_cli(
+            &destination,
+            RunKind::ClientPuppet,
+            None,
+            true,
+            &CancellationToken::new(),
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("Cargo.toml"), "{error}");
+    }
+
+    #[test]
+    fn control_cli_source_override_rejects_missing_inputs_without_fallback() {
+        let directory = tempdir().unwrap();
+        let source = directory.path().join("source");
+        let (manifest, _, _) = game_puppet_control_cli_paths(&source);
+        fs::create_dir_all(manifest.parent().unwrap()).unwrap();
+        fs::write(&manifest, "manifest").unwrap();
+        let error = prepare_game_puppet_control_cli(
+            directory.path(),
+            RunKind::ClientPuppet,
+            Some(&source),
+            true,
+            &CancellationToken::new(),
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains("Cargo.lock"), "{error}");
+        for invalid in [directory.path().join("missing"), std::path::PathBuf::new()] {
+            assert!(
+                prepare_game_puppet_control_cli(
+                    &source,
+                    RunKind::ClientPuppet,
+                    Some(&invalid),
+                    true,
+                    &CancellationToken::new(),
+                )
+                .is_err()
+            );
+        }
+        assert!(
+            prepare_game_puppet_control_cli(
+                directory.path(),
+                RunKind::Client,
+                None,
+                true,
+                &CancellationToken::new(),
+            )
+            .unwrap()
+            .is_none()
+        );
     }
 
     #[test]

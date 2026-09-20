@@ -39,6 +39,14 @@ public final class SFMBlockEntities {
                     .build(null)
     );
 
+    public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<ClientManagerBlockEntity>>
+            CLIENT_MANAGER = REGISTERER.register(
+            "client_manager",
+            () -> BlockEntityType.Builder
+                    .of(ClientManagerBlockEntity::new, SFMBlocks.CLIENT_MANAGER.get())
+                    .build(null)
+    );
+
     public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<BufferBlockEntity>>
             BUFFER = REGISTERER.register(
             "buffer",
@@ -76,6 +84,14 @@ public final class SFMBlockEntities {
             "printing_press",
             () -> BlockEntityType.Builder
                     .of(PrintingPressBlockEntity::new, SFMBlocks.PRINTING_PRESS.get())
+                    .build(null)
+    );
+
+    public static final SFMRegistryObject<BlockEntityType<?>, BlockEntityType<TouchDisplayBlockEntity>>
+            TOUCH_DISPLAY = REGISTERER.register(
+            "touch_display",
+            () -> BlockEntityType.Builder
+                    .of(TouchDisplayBlockEntity::new, SFMBlocks.TOUCH_DISPLAY.get())
                     .build(null)
     );
 

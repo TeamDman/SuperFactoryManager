@@ -9,6 +9,7 @@ import ca.teamdman.sfm.common.capability.IRedstoneSignalStorage;
 import ca.teamdman.sfm.common.capability.RedstoneSignalStorage;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityDiscovery;
 import ca.teamdman.sfm.common.capability.SFMWellKnownCapabilities;
+import ca.teamdman.sfm.common.image.SFMImageSnapshot;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.program.ExecuteProgramBehaviour;
 import ca.teamdman.sfm.common.program.IProgramHooks;
@@ -18,6 +19,8 @@ import ca.teamdman.sfm.common.program.linting.ProblemTracker;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
+import ca.teamdman.sfm.common.resourcetype.SFMImageStack;
+import ca.teamdman.sfm.common.value.SFMValue;
 import ca.teamdman.sfm.gametest.SFMGameTestDefinition;
 import ca.teamdman.sfm.gametest.SFMGameTestGenerator;
 import ca.teamdman.sfm.gametest.SFMGameTestGeneratorBase;
@@ -34,6 +37,9 @@ import net.minecraft.world.level.block.ComparatorBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.ComparatorBlockEntity;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -60,6 +66,7 @@ public class BufferRedstoneGameTestGenerator extends SFMGameTestGeneratorBase {
         add(tests, "resource_switch", this::resourceSwitch);
         add(tests, "label_cleanup", this::labelCleanup);
         add(tests, "persistence", this::persistence);
+        add(tests, "image_reload_comparator", this::imageReloadComparator);
         add(tests, "load_bounds", this::loadBounds);
         add(tests, "removal", this::removal);
         add(tests, "world_rejection", this::worldRejection);
@@ -282,6 +289,63 @@ public class BufferRedstoneGameTestGenerator extends SFMGameTestGeneratorBase {
             helper.assertTrue(restored.saveWithFullMetadata().getInt("redstone") == 0, "Empty reload retained saved count");
             helper.succeed();
         });
+    }
+
+    private void imageReloadComparator(SFMGameTestHelper helper) {
+        var context = setup(helper);
+        var buffer = helper.getBlockEntity(COUNTER, BufferBlockEntity.class);
+        var images = buffer.getContents().getCapability(SFMResourceTypes.IMAGE.get()).unwrap();
+        var cached = networkStorage(helper, context);
+        var image = imageFixture();
+        helper.assertTrue(images.insertImage(image, false).isEmpty(), "Image persistence fixture was rejected");
+        var savedImage = buffer.saveWithFullMetadata();
+        var savedRedstone = new CompoundTag();
+        savedRedstone.putInt("redstone", 9);
+        buffer.load(savedRedstone);
+        helper.assertTrue(images.getImage().isEmpty() && cached.getStoredAmount() == 9,
+                "Image-to-redstone reload did not update the retained handlers");
+        helper.runAfterDelay(4, () -> {
+            assertCount(helper, context, "counter", 9);
+            assertComparator(helper, 9);
+            buffer.load(savedImage);
+            helper.assertTrue(cached.getStoredAmount() == 0 && images.getImage().equals(image),
+                    "Redstone-to-image reload did not update the retained handlers");
+        });
+        helper.runAfterDelay(8, () -> {
+            assertCount(helper, context, "counter", 0);
+            assertComparator(helper, 0);
+            helper.assertTrue(buffer.getContents().getCapability(SFMResourceTypes.IMAGE.get()).unwrap() == images,
+                    "Cross-resource reload orphaned the image handler");
+            buffer.load(savedRedstone);
+            helper.assertTrue(images.getImage().isEmpty() && networkStorage(helper, context) == cached,
+                    "Cross-resource reload orphaned the network redstone handler or retained the image");
+        });
+        helper.runAfterDelay(12, () -> {
+            assertCount(helper, context, "counter", 9);
+            assertComparator(helper, 9);
+            var malformedImage = savedImage.copy();
+            malformedImage.putString("image_interaction_state", "{");
+            buffer.load(malformedImage);
+            helper.assertTrue(cached.getStoredAmount() == 0 && images.getImage().isEmpty(),
+                    "Malformed image reload retained a persisted resource");
+        });
+        helper.runAfterDelay(16, () -> {
+            assertCount(helper, context, "counter", 0);
+            assertComparator(helper, 0);
+            helper.succeed();
+        });
+    }
+
+    private static SFMImageStack imageFixture() {
+        var pixels = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
+        pixels.setRGB(0, 0, 0xFFFF0000);
+        try {
+            var output = new ByteArrayOutputStream();
+            if (!ImageIO.write(pixels, "png", output)) throw new IllegalStateException("No PNG writer is available");
+            return SFMImageStack.of(SFMImageSnapshot.fromPng(output.toByteArray()), SFMValue.of("comparator"));
+        } catch (IOException failure) {
+            throw new IllegalStateException("Could not encode buffer image fixture", failure);
+        }
     }
 
     private void resourceSwitch(SFMGameTestHelper helper) {

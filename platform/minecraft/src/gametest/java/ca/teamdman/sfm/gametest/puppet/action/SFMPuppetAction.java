@@ -7,4 +7,7 @@ public interface SFMPuppetAction {
 
     boolean tick(ISFMGamePuppetRuntime runtime);
 
+    /** Best-effort cleanup before a failed or timed-out puppet leaves its world. */
+    default void abort() { }
+
 }

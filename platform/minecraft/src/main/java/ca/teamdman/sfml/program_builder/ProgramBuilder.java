@@ -12,6 +12,7 @@ import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfm.common.util.SFMTranslationUtils;
 import ca.teamdman.sfml.ast.ASTBuilder;
 import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfml.ast.ProgramExecutionSide;
 import ca.teamdman.sfml.ast.ResourceIdentifier;
 import net.minecraft.ResourceLocationException;
 import net.minecraft.network.chat.contents.TranslatableContents;
@@ -21,7 +22,9 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.WeakHashMap;
 
@@ -58,7 +61,8 @@ public class ProgramBuilder {
     );
 
     /// Reduce duplication of effort compiling the same program over and over again
-    private static final WeakHashMap<String, CachedProgramBuildResult> cache = new WeakHashMap<>();
+    private static final WeakHashMap<String, Map<ProgramExecutionSide, CachedProgramBuildResult>> cache =
+            new WeakHashMap<>();
 
     private record CachedProgramBuildResult(
             int serverConfigRevision,
@@ -72,6 +76,9 @@ public class ProgramBuilder {
     /// Indicates that the resulting program may be mutated in naughty ways that we don't want interfering with our cache.
     private boolean useCache = true;
 
+    /** Null means a portable syntax-only build; an actual manager supplies its logical host. */
+    private @Nullable ProgramExecutionSide executionSide;
+
     public ProgramBuilder(@Nullable String programString) {
 
         if (programString == null) {
@@ -84,7 +91,9 @@ public class ProgramBuilder {
     /// If so, mutating the program object is a disallowed behaviour.
     public static boolean isMutationAllowed(Program program) {
 
-        return cache.values().stream().noneMatch(cached -> cached.result().program() == program);
+        return cache.values().stream()
+                .flatMap(bySide -> bySide.values().stream())
+                .noneMatch(cached -> cached.result().program() == program);
     }
 
     public static void clearCache() {
@@ -99,12 +108,18 @@ public class ProgramBuilder {
         return this;
     }
 
+    public ProgramBuilder forExecutionSide(ProgramExecutionSide side) {
+        this.executionSide = Objects.requireNonNull(side, "side");
+        return this;
+    }
+
     public ProgramBuildResult build(
     ) {
 
         int serverConfigRevision = SFMConfig.SERVER_CONFIG.getRevision();
         if (useCache) {
-            @Nullable CachedProgramBuildResult cached = cache.get(programString);
+            Map<ProgramExecutionSide, CachedProgramBuildResult> bySide = cache.get(programString);
+            @Nullable CachedProgramBuildResult cached = bySide == null ? null : bySide.get(executionSide);
             if (cached != null) {
                 if (cached.serverConfigRevision() != serverConfigRevision) {
                     SFM.LOGGER.debug(
@@ -145,6 +160,9 @@ public class ProgramBuilder {
         if (errors.isEmpty()) {
             try {
                 program = builder.visitProgram(context);
+                if (executionSide != null) {
+                    program.assertCompatibleWith(executionSide);
+                }
                 // Make sure all referenced resources are valid during compilation instead of waiting for the program to tick
                 checkResourceTypes(program, errors);
             } catch (ResourceLocationException | IllegalArgumentException | AssertionError e) {
@@ -179,7 +197,8 @@ public class ProgramBuilder {
 
         // We don't cache results with errors because the server config can change, and it affects the outcome.
         if (useCache && errors.isEmpty()) {
-            cache.put(programString, new CachedProgramBuildResult(serverConfigRevision, programBuildResult));
+            cache.computeIfAbsent(programString, ignored -> new HashMap<>())
+                    .put(executionSide, new CachedProgramBuildResult(serverConfigRevision, programBuildResult));
         }
 
         return programBuildResult;

@@ -44,10 +44,7 @@ public final class TitleScreenOutputStatementSourceNavigationGamePuppet {
         System.setProperty(SFMSymbolServerSupervisor.EXECUTABLE_PROPERTY, symbolWorker.toString());
         boolean autoScale = Minecraft.getInstance().options.guiScale().get() == 0;
         if (autoScale) {
-            Path controlCliRoot = branchRoot.resolve("platform/cli/sfm");
-            Path controlCli = controlCliRoot.resolve("target/release/sfm.exe");
-            requireCurrentRustExecutable(controlCliRoot, controlCli, "control CLI");
-            System.setProperty(SFMExternalCliPuppetProcess.EXECUTABLE_PROPERTY, controlCli.toString());
+            configureControlCli(branchRoot);
         }
         List<Path> directories = List.of(
                 sourceRoot.resolve("main"),
@@ -103,6 +100,40 @@ public final class TitleScreenOutputStatementSourceNavigationGamePuppet {
                         ).withStyle(ChatFormatting.BLACK))
         );
         puppet.closeScreenNaturally();
+    }
+
+    private static void configureControlCli(Path branchRoot) {
+        String configuredRoot = System.getProperty("sfm.controlCliSourceRoot", "").trim();
+        Path controlCliRoot = branchRoot.resolve("platform/cli/sfm");
+        Path controlCli = controlCliRoot.resolve("target/release/sfm.exe");
+        if (!configuredRoot.isEmpty()) {
+            Path sourceRoot = configuredPath(configuredRoot);
+            String configuredExecutable = System.getProperty(SFMExternalCliPuppetProcess.EXECUTABLE_PROPERTY, "").trim();
+            if (!sourceRoot.isAbsolute() || configuredExecutable.isEmpty()) {
+                throw new IllegalStateException("An explicit control CLI source root requires an absolute root and executable");
+            }
+            controlCliRoot = sourceRoot.resolve("platform/cli/sfm");
+            controlCli = configuredPath(configuredExecutable);
+            if (!controlCli.isAbsolute()) {
+                throw new IllegalStateException("The source-selected control CLI executable must be absolute");
+            }
+            try {
+                controlCli = controlCli.toRealPath();
+                if (!controlCli.startsWith(controlCliRoot.resolve("target").toRealPath())) {
+                    throw new IllegalStateException("The control CLI executable must belong to its configured source root");
+                }
+            } catch (IOException failure) {
+                throw new IllegalStateException("Could not resolve the source-selected control CLI", failure);
+            }
+        }
+        requireCurrentRustExecutable(controlCliRoot, controlCli, "control CLI");
+        System.setProperty(SFMExternalCliPuppetProcess.EXECUTABLE_PROPERTY, controlCli.toString());
+    }
+
+    private static Path configuredPath(String configured) {
+        if (configured.startsWith("\\\\?\\UNC\\")) return Path.of("\\\\" + configured.substring(8));
+        if (configured.startsWith("\\\\?\\")) return Path.of(configured.substring(4));
+        return Path.of(configured);
     }
 
     private static void requireCurrentRustExecutable(Path cliRoot, Path executable, String label) {

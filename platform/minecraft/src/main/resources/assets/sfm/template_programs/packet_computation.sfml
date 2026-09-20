@@ -1,0 +1,36 @@
+NAME "Packet computation"
+
+-- Replace TeamDman with your integrated single-player name.
+-- Update the reply fields to the loaded inventory used as your worker mailbox.
+LET me BE PLAYER OF TeamDman
+LET JobId BE LIKE GUID
+LET Request BE LIKE OBJECT WITH FIELD type OF "Request"
+    AND FIELD prompt LIKE STRING
+    AND FIELD JobId
+LET Ack BE LIKE OBJECT WITH FIELD type OF "Ack"
+    AND FIELD JobId LIKE GUID
+LET Response BE LIKE OBJECT WITH FIELD type OF "Response"
+    AND FIELD JobId LIKE GUID
+    AND FIELD text LIKE STRING
+
+EVERY 20 TICKS DO
+    INPUT WITH CAPABILITY sfm:text FROM source AS userinput
+    LET userinputstring BE STRING OF INVOKE sfm:text/read WITH userinput
+    LET request BE Request WITH FIELD prompt OF userinputstring
+        AND FIELD JobId OF NEW GUID
+        AND FIELD reply_dimension OF "minecraft:overworld"
+        AND FIELD reply_x OF "0"
+        AND FIELD reply_y OF "64"
+        AND FIELD reply_z OF "0"
+    CREATE INPUT sfm:packet WITH request
+    BROADCAST TO me
+    OUTPUT TO requestarchive
+END
+
+EVERY 20 TICKS DO
+    INPUT LIKE Ack FROM inbox
+    OUTPUT TO acknowledgements
+    FORGET
+    INPUT LIKE Response FROM inbox AS response
+    OUTPUT TO responses
+END

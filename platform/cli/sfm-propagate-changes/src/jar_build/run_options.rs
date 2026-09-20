@@ -1,10 +1,12 @@
 use facet::Facet;
 use std::fmt;
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
 #[derive(Clone, Debug, Default)]
 pub struct RunOptions {
+    pub control_cli_source_root: Option<PathBuf>,
     pub game_test_filter: Option<String>,
     pub game_puppet_filter: Option<String>,
     pub game_puppet_game_test: Option<String>,

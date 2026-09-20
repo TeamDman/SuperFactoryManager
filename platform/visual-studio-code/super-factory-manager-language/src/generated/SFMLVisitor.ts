@@ -1,10 +1,30 @@
-// Generated from ./syntaxes/SFML.g4 by ANTLR 4.9.0-SNAPSHOT
+// Generated from syntaxes/SFML.g4 by ANTLR 4.9.0-SNAPSHOT
 
 
 import { ParseTreeVisitor } from "antlr4ts/tree/ParseTreeVisitor";
 
 import { ResourceContext } from "./SFMLParser";
 import { StringResourceContext } from "./SFMLParser";
+import { LiteralPatternFieldContext } from "./SFMLParser";
+import { LikePatternFieldContext } from "./SFMLParser";
+import { AliasPatternFieldContext } from "./SFMLParser";
+import { EachSideContext } from "./SFMLParser";
+import { ListedSidesContext } from "./SFMLParser";
+import { CapabilityInputSelectionContext } from "./SFMLParser";
+import { PatternInputSelectionContext } from "./SFMLParser";
+import { QuantityRetentionLimitContext } from "./SFMLParser";
+import { RetentionLimitContext } from "./SFMLParser";
+import { QuantityLimitContext } from "./SFMLParser";
+import { IntervalSpaceContext } from "./SFMLParser";
+import { IntervalNoSpaceContext } from "./SFMLParser";
+import { NewGuidFieldValueContext } from "./SFMLParser";
+import { LiteralFieldValueContext } from "./SFMLParser";
+import { VariableFieldValueContext } from "./SFMLParser";
+import { InvokeTextValueExpressionContext } from "./SFMLParser";
+import { ObjectConstructionValueExpressionContext } from "./SFMLParser";
+import { ClientJsonValueExpressionContext } from "./SFMLParser";
+import { ClientInvokeValueExpressionContext } from "./SFMLParser";
+import { ClientFieldValueExpressionContext } from "./SFMLParser";
 import { BooleanTrueContext } from "./SFMLParser";
 import { BooleanFalseContext } from "./SFMLParser";
 import { BooleanParenContext } from "./SFMLParser";
@@ -13,13 +33,16 @@ import { BooleanConjunctionContext } from "./SFMLParser";
 import { BooleanDisjunctionContext } from "./SFMLParser";
 import { BooleanHasContext } from "./SFMLParser";
 import { BooleanRedstoneContext } from "./SFMLParser";
-import { EachSideContext } from "./SFMLParser";
-import { ListedSidesContext } from "./SFMLParser";
-import { QuantityRetentionLimitContext } from "./SFMLParser";
-import { RetentionLimitContext } from "./SFMLParser";
-import { QuantityLimitContext } from "./SFMLParser";
+import { BooleanFrameModuloContext } from "./SFMLParser";
+import { BooleanClientValueEqualsContext } from "./SFMLParser";
+import { GuidValuePatternContext } from "./SFMLParser";
+import { StringValuePatternContext } from "./SFMLParser";
+import { LiteralValuePatternContext } from "./SFMLParser";
+import { ObjectValuePatternContext } from "./SFMLParser";
+import { AliasValuePatternContext } from "./SFMLParser";
 import { TimerTriggerContext } from "./SFMLParser";
 import { PulseTriggerContext } from "./SFMLParser";
+import { FrameTriggerContext } from "./SFMLParser";
 import { RawLabelContext } from "./SFMLParser";
 import { StringLabelContext } from "./SFMLParser";
 import { WithParenContext } from "./SFMLParser";
@@ -27,16 +50,31 @@ import { WithNegationContext } from "./SFMLParser";
 import { WithConjunctionContext } from "./SFMLParser";
 import { WithDisjunctionContext } from "./SFMLParser";
 import { WithTagContext } from "./SFMLParser";
-import { IntervalSpaceContext } from "./SFMLParser";
-import { IntervalNoSpaceContext } from "./SFMLParser";
+import { PlayerDeclarationContext } from "./SFMLParser";
+import { PatternDeclarationContext } from "./SFMLParser";
 import { ProgramContext } from "./SFMLParser";
+import { ExecutionSideDeclarationContext } from "./SFMLParser";
 import { NameContext } from "./SFMLParser";
+import { DeclarationContext } from "./SFMLParser";
+import { ValuePatternContext } from "./SFMLParser";
+import { PatternFieldContext } from "./SFMLParser";
 import { TriggerContext } from "./SFMLParser";
+import { FrameLabelsContext } from "./SFMLParser";
 import { IntervalContext } from "./SFMLParser";
+import { TimeUnitContext } from "./SFMLParser";
 import { BlockContext } from "./SFMLParser";
 import { StatementContext } from "./SFMLParser";
+import { RenderImageStatementContext } from "./SFMLParser";
+import { LetValueStatementContext } from "./SFMLParser";
+import { ValueExpressionContext } from "./SFMLParser";
+import { ConstructionFieldContext } from "./SFMLParser";
+import { FieldValueExpressionContext } from "./SFMLParser";
+import { CreateStatementContext } from "./SFMLParser";
+import { BroadcastStatementContext } from "./SFMLParser";
 import { ForgetStatementContext } from "./SFMLParser";
 import { InputStatementContext } from "./SFMLParser";
+import { InputSelectionContext } from "./SFMLParser";
+import { InputBindingContext } from "./SFMLParser";
 import { OutputStatementContext } from "./SFMLParser";
 import { InputResourceLimitsContext } from "./SFMLParser";
 import { OutputResourceLimitsContext } from "./SFMLParser";
@@ -52,6 +90,8 @@ import { ResourceIdDisjunctionContext } from "./SFMLParser";
 import { WithContext } from "./SFMLParser";
 import { WithClauseContext } from "./SFMLParser";
 import { TagMatcherContext } from "./SFMLParser";
+import { QualifiedIdContext } from "./SFMLParser";
+import { InvokeActionIdContext } from "./SFMLParser";
 import { SidequalifierContext } from "./SFMLParser";
 import { SideContext } from "./SFMLParser";
 import { SlotqualifierContext } from "./SFMLParser";
@@ -64,6 +104,7 @@ import { SetOpContext } from "./SFMLParser";
 import { LabelAccessContext } from "./SFMLParser";
 import { RoundrobinContext } from "./SFMLParser";
 import { LabelContext } from "./SFMLParser";
+import { EmptyslotsContext } from "./SFMLParser";
 import { IdentifierContext } from "./SFMLParser";
 import { StringContext } from "./SFMLParser";
 import { NumberContext } from "./SFMLParser";
@@ -92,6 +133,166 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitStringResource?: (ctx: StringResourceContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `LiteralPatternField`
+	 * labeled alternative in `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitLiteralPatternField?: (ctx: LiteralPatternFieldContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `LikePatternField`
+	 * labeled alternative in `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitLikePatternField?: (ctx: LikePatternFieldContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `AliasPatternField`
+	 * labeled alternative in `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitAliasPatternField?: (ctx: AliasPatternFieldContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `EachSide`
+	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitEachSide?: (ctx: EachSideContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `ListedSides`
+	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitListedSides?: (ctx: ListedSidesContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `CapabilityInputSelection`
+	 * labeled alternative in `SFMLParser.inputSelection`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitCapabilityInputSelection?: (ctx: CapabilityInputSelectionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `PatternInputSelection`
+	 * labeled alternative in `SFMLParser.inputSelection`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitPatternInputSelection?: (ctx: PatternInputSelectionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `QuantityRetentionLimit`
+	 * labeled alternative in `SFMLParser.limit`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitQuantityRetentionLimit?: (ctx: QuantityRetentionLimitContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `RetentionLimit`
+	 * labeled alternative in `SFMLParser.limit`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitRetentionLimit?: (ctx: RetentionLimitContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `QuantityLimit`
+	 * labeled alternative in `SFMLParser.limit`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitQuantityLimit?: (ctx: QuantityLimitContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `IntervalSpace`
+	 * labeled alternative in `SFMLParser.interval`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitIntervalSpace?: (ctx: IntervalSpaceContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `IntervalNoSpace`
+	 * labeled alternative in `SFMLParser.interval`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitIntervalNoSpace?: (ctx: IntervalNoSpaceContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `NewGuidFieldValue`
+	 * labeled alternative in `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitNewGuidFieldValue?: (ctx: NewGuidFieldValueContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `LiteralFieldValue`
+	 * labeled alternative in `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitLiteralFieldValue?: (ctx: LiteralFieldValueContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `VariableFieldValue`
+	 * labeled alternative in `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitVariableFieldValue?: (ctx: VariableFieldValueContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `InvokeTextValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitInvokeTextValueExpression?: (ctx: InvokeTextValueExpressionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `ObjectConstructionValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitObjectConstructionValueExpression?: (ctx: ObjectConstructionValueExpressionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `ClientJsonValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitClientJsonValueExpression?: (ctx: ClientJsonValueExpressionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `ClientInvokeValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitClientInvokeValueExpression?: (ctx: ClientInvokeValueExpressionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `ClientFieldValueExpression`
+	 * labeled alternative in `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitClientFieldValueExpression?: (ctx: ClientFieldValueExpressionContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by the `BooleanTrue`
@@ -158,44 +359,60 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	visitBooleanRedstone?: (ctx: BooleanRedstoneContext) => Result;
 
 	/**
-	 * Visit a parse tree produced by the `EachSide`
-	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * Visit a parse tree produced by the `BooleanFrameModulo`
+	 * labeled alternative in `SFMLParser.boolexpr`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	visitEachSide?: (ctx: EachSideContext) => Result;
+	visitBooleanFrameModulo?: (ctx: BooleanFrameModuloContext) => Result;
 
 	/**
-	 * Visit a parse tree produced by the `ListedSides`
-	 * labeled alternative in `SFMLParser.sidequalifier`.
+	 * Visit a parse tree produced by the `BooleanClientValueEquals`
+	 * labeled alternative in `SFMLParser.boolexpr`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	visitListedSides?: (ctx: ListedSidesContext) => Result;
+	visitBooleanClientValueEquals?: (ctx: BooleanClientValueEqualsContext) => Result;
 
 	/**
-	 * Visit a parse tree produced by the `QuantityRetentionLimit`
-	 * labeled alternative in `SFMLParser.limit`.
+	 * Visit a parse tree produced by the `GuidValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	visitQuantityRetentionLimit?: (ctx: QuantityRetentionLimitContext) => Result;
+	visitGuidValuePattern?: (ctx: GuidValuePatternContext) => Result;
 
 	/**
-	 * Visit a parse tree produced by the `RetentionLimit`
-	 * labeled alternative in `SFMLParser.limit`.
+	 * Visit a parse tree produced by the `StringValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	visitRetentionLimit?: (ctx: RetentionLimitContext) => Result;
+	visitStringValuePattern?: (ctx: StringValuePatternContext) => Result;
 
 	/**
-	 * Visit a parse tree produced by the `QuantityLimit`
-	 * labeled alternative in `SFMLParser.limit`.
+	 * Visit a parse tree produced by the `LiteralValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	visitQuantityLimit?: (ctx: QuantityLimitContext) => Result;
+	visitLiteralValuePattern?: (ctx: LiteralValuePatternContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `ObjectValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitObjectValuePattern?: (ctx: ObjectValuePatternContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `AliasValuePattern`
+	 * labeled alternative in `SFMLParser.valuePattern`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitAliasValuePattern?: (ctx: AliasValuePatternContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by the `TimerTrigger`
@@ -212,6 +429,14 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitPulseTrigger?: (ctx: PulseTriggerContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by the `FrameTrigger`
+	 * labeled alternative in `SFMLParser.trigger`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitFrameTrigger?: (ctx: FrameTriggerContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by the `RawLabel`
@@ -270,20 +495,20 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	visitWithTag?: (ctx: WithTagContext) => Result;
 
 	/**
-	 * Visit a parse tree produced by the `IntervalSpace`
-	 * labeled alternative in `SFMLParser.interval`.
+	 * Visit a parse tree produced by the `PlayerDeclaration`
+	 * labeled alternative in `SFMLParser.declaration`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	visitIntervalSpace?: (ctx: IntervalSpaceContext) => Result;
+	visitPlayerDeclaration?: (ctx: PlayerDeclarationContext) => Result;
 
 	/**
-	 * Visit a parse tree produced by the `IntervalNoSpace`
-	 * labeled alternative in `SFMLParser.interval`.
+	 * Visit a parse tree produced by the `PatternDeclaration`
+	 * labeled alternative in `SFMLParser.declaration`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	visitIntervalNoSpace?: (ctx: IntervalNoSpaceContext) => Result;
+	visitPatternDeclaration?: (ctx: PatternDeclarationContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `SFMLParser.program`.
@@ -293,11 +518,39 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	visitProgram?: (ctx: ProgramContext) => Result;
 
 	/**
+	 * Visit a parse tree produced by `SFMLParser.executionSideDeclaration`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitExecutionSideDeclaration?: (ctx: ExecutionSideDeclarationContext) => Result;
+
+	/**
 	 * Visit a parse tree produced by `SFMLParser.name`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	visitName?: (ctx: NameContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.declaration`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitDeclaration?: (ctx: DeclarationContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.valuePattern`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitValuePattern?: (ctx: ValuePatternContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.patternField`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitPatternField?: (ctx: PatternFieldContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `SFMLParser.trigger`.
@@ -307,11 +560,25 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	visitTrigger?: (ctx: TriggerContext) => Result;
 
 	/**
+	 * Visit a parse tree produced by `SFMLParser.frameLabels`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitFrameLabels?: (ctx: FrameLabelsContext) => Result;
+
+	/**
 	 * Visit a parse tree produced by `SFMLParser.interval`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	visitInterval?: (ctx: IntervalContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.timeUnit`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitTimeUnit?: (ctx: TimeUnitContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `SFMLParser.block`.
@@ -328,6 +595,55 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	visitStatement?: (ctx: StatementContext) => Result;
 
 	/**
+	 * Visit a parse tree produced by `SFMLParser.renderImageStatement`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitRenderImageStatement?: (ctx: RenderImageStatementContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.letValueStatement`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitLetValueStatement?: (ctx: LetValueStatementContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.valueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitValueExpression?: (ctx: ValueExpressionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.constructionField`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitConstructionField?: (ctx: ConstructionFieldContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.fieldValueExpression`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitFieldValueExpression?: (ctx: FieldValueExpressionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.createStatement`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitCreateStatement?: (ctx: CreateStatementContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.broadcastStatement`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitBroadcastStatement?: (ctx: BroadcastStatementContext) => Result;
+
+	/**
 	 * Visit a parse tree produced by `SFMLParser.forgetStatement`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -340,6 +656,20 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitInputStatement?: (ctx: InputStatementContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.inputSelection`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitInputSelection?: (ctx: InputSelectionContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.inputBinding`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitInputBinding?: (ctx: InputBindingContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `SFMLParser.outputStatement`.
@@ -447,6 +777,20 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	visitTagMatcher?: (ctx: TagMatcherContext) => Result;
 
 	/**
+	 * Visit a parse tree produced by `SFMLParser.qualifiedId`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitQualifiedId?: (ctx: QualifiedIdContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.invokeActionId`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitInvokeActionId?: (ctx: InvokeActionIdContext) => Result;
+
+	/**
 	 * Visit a parse tree produced by `SFMLParser.sidequalifier`.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -529,6 +873,13 @@ export interface SFMLVisitor<Result> extends ParseTreeVisitor<Result> {
 	 * @return the visitor result
 	 */
 	visitLabel?: (ctx: LabelContext) => Result;
+
+	/**
+	 * Visit a parse tree produced by `SFMLParser.emptyslots`.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	visitEmptyslots?: (ctx: EmptyslotsContext) => Result;
 
 	/**
 	 * Visit a parse tree produced by `SFMLParser.identifier`.

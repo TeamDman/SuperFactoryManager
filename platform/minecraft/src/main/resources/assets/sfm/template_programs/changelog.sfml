@@ -22,6 +22,33 @@ NAME "Changelog"
 -- Add compact Explorer row summaries with review/source identities, clickable canonical-command copying and explicit selected-text copying
 -- Collapse empty Explorer search rows, expose every input-diagnostics panel direction in F3 and keep the FPS overlay visible above workspaces
 -- Color every source byte in wholly added or deleted structured split files while retaining independent syntax highlighting
+-- Control more-info tooltip presentation with expand, compact and reset actions; keep configured-key behaviour as the default and support file-driven tests without physical key injection
+-- Replace or clear persisted buffer images on reload without orphaning cached handlers or erasing occupied nonpersisted resources
+-- Craft Client Managers with a comparator-centered manager recipe and Touch Displays with glass, iron bars, cable and redstone
+-- Allow quoted static action IDs in INVOKE and STRING OF INVOKE so registry paths can contain SFML keywords without changing inventory syntax
+-- Create or connect an owned terminal session to a Touch Display, with separate raster and touch-input permissions and explicit teardown
+-- Add separate negotiated multiplayer packet transport with default-deny operator grants for exact players, inventory targets, inbox channels and server-manager publishers
+-- Review and explicitly sign the acknowledged Client Manager revision with protected local keys, a cosmetic signing pad or accessible confirmation; saving alone never signs
+-- Review scoped Client Manager signer trust separately from exact-program consent; explicit denials and policy still take precedence, and stop-all removes signer rules
+-- Preserve Client Manager signing revisions and independent author attestations through saves and reloads; require matching network protocol 1.4.0
+-- Review exact Client Manager source, bindings, capability history, approval expiry and denial cooldown in the client_script_consents panel, with persistent revocation and stop-all controls
+-- Report local packet-send rate limits and enforce shared server quotas with private-world owner and spectator checks
+-- Add a separate Client Manager for consented EVERY FRAME display programs, with label-gun targets, bounded pure animation, and cached unchanged frames
+-- Let Client Managers invoke approved typed actions and inspect results with JSON, INVOKE and FIELD bindings, independently of drawing permission
+-- Let Client Managers read approved block states and addressed inbox values, with cached results, explicit delivery gaps and cleanup while displays are hidden
+-- Support bounded live Touch Display rasters with approved writers, unchanged-frame caching, visibility suspension and automatic unload cleanup
+-- Turn a Touch Display main-hand press into one server-validated, stackable touch packet in its rear inventory, with normalized face coordinates and an explicit delivery-failure notice
+-- Add a six-direction Touch Display that shows a static server-selected image on its outward face with an atomic, persistent interaction-state revision
+-- Let data packets carry finite floating-point values with codec-v2 writing while preserving codec-v1 packet reads
+-- Treat keypad Enter like normal Enter in the integrated terminal
+-- Give data packets a spiral-notebook icon and reveal their pretty-printed value while the more-info key is held
+-- Make Alt+D open a read-only tooltip, item ID, item data, and packet-value snapshot when hovering any container item
+-- Add packet-computation SFML for structural aliases and patterns, copied text reads, lazy packet creation, player broadcast, and ordinary ACK/Response routing
+-- Add a complete packet-computation template and a deterministic in-game terminal worker journey using the source-matched sfm CLI
+-- Keep dedicated servers from initializing client-action contributors and exclude integrated-client-only packet GameTests before class loading
+-- List bounded, session-aware packet observations and attempt exact-address packet sends through versioned structured client-action and sfm CLI results
+-- Allow private integrated-world packet responses to insert one data packet into an exact loaded inventory address without opening a menu
+-- Add the stackable sfm:packet generic data carrier and its bounded, versioned value codec
 -- Remove human review comments through a stale-safe writable confirmation, refreshing surviving review Explorers without disturbing shared evidence
 -- Reveal raw, inline and split generated review surfaces at their exact originating Explorer rows
 -- Separate compact raw text patches from complete source-interposed inline text diffs

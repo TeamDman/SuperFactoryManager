@@ -4,6 +4,8 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientAction;
 import ca.teamdman.sfm.client.action.SFMClientActionCommandTree;
 import ca.teamdman.sfm.client.action.SFMClientActionDispatcherCompiler;
+import ca.teamdman.sfm.client.action.SFMClientActionDescriptor;
+import ca.teamdman.sfm.client.action.SFMClientProgramActionDispatcher;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegisterBuilder;
 import ca.teamdman.sfm.common.registry.SFMRegistryWrapper;
@@ -19,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class SFMClientActions {
     public static final ResourceKey<Registry<SFMClientAction<?>>> REGISTRY_ID =
@@ -51,6 +54,21 @@ public final class SFMClientActions {
 
     public static SFMRegistryWrapper<SFMClientAction<?>> registry() {
         return REGISTRY_CREATOR.registry();
+    }
+
+    /** Lookup for program adapters; registration alone does not grant machine access. */
+    public static Optional<SFMClientActionDescriptor> programmaticDescriptor(ResourceLocation actionId) {
+        SFMClientAction<?> action = registry().get(Objects.requireNonNull(actionId));
+        return action == null ? Optional.empty()
+                : action.programmaticDescriptor().filter(descriptor -> descriptor.actionId().equals(actionId));
+    }
+
+    public static Optional<SFMClientProgramActionDispatcher.Binding> programmaticBinding(ResourceLocation actionId) {
+        SFMClientAction<?> action = registry().get(Objects.requireNonNull(actionId));
+        if (action == null) return Optional.empty();
+        return action.programmaticDescriptor().filter(descriptor -> descriptor.actionId().equals(actionId))
+                .flatMap(descriptor -> action.programmaticHandler()
+                        .map(handler -> new SFMClientProgramActionDispatcher.Binding(descriptor, handler)));
     }
 
     public static synchronized SFMClientActionCommandTree commandTree() {

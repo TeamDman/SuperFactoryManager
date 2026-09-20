@@ -7,9 +7,27 @@ grammar SFML;
     public INCLUDE_UNUSED: boolean = false; // we want syntax highlighting to not break on unexpected tokens
 }
 
-program : name? trigger* EOF;
+program : executionSideDeclaration? name? declaration* trigger* EOF;
+
+executionSideDeclaration : (CLIENT | SERVER) BTW;
 
 name: NAME string ;
+
+declaration : LET identifier BE PLAYER OF identifier #PlayerDeclaration
+            | LET identifier BE LIKE valuePattern     #PatternDeclaration
+            ;
+
+valuePattern : GUID                                                   #GuidValuePattern
+             | STRING_TYPE                                            #StringValuePattern
+             | string                                                 #LiteralValuePattern
+             | OBJECT WITH FIELD patternField (AND FIELD patternField)* #ObjectValuePattern
+             | identifier                                             #AliasValuePattern
+             ;
+
+patternField : identifier OF string          #LiteralPatternField
+             | identifier LIKE identifier    #LikePatternField
+             | identifier                    #AliasPatternField
+             ;
 
 //
 // TRIGGERS
@@ -17,10 +35,14 @@ name: NAME string ;
 
 trigger : EVERY interval DO block END           #TimerTrigger
         | EVERY REDSTONE PULSE DO block END     #PulseTrigger
+        | EVERY FRAME FOR frameLabels AS identifier DO block END #FrameTrigger
         ;
 
-interval: NUMBER? GLOBAL? (PLUS NUMBER)? (TICKS | TICK | SECONDS | SECOND)      # IntervalSpace
-        | NUMBER_WITH_G_SUFFIX (PLUS NUMBER)? (TICKS | TICK | SECONDS | SECOND) # IntervalNoSpace;
+frameLabels : label (COMMA label)*;
+
+interval: period=NUMBER? GLOBAL? (PLUS legacyOffset=NUMBER)? unit=timeUnit (OFFSET BY newOffset=NUMBER offsetUnit=timeUnit)?      # IntervalSpace
+        | period=NUMBER_WITH_G_SUFFIX (PLUS legacyOffset=NUMBER)? unit=timeUnit (OFFSET BY newOffset=NUMBER offsetUnit=timeUnit)? # IntervalNoSpace;
+timeUnit: TICKS | TICK | SECONDS | SECOND;
 
 //
 // BLOCK STATEMENT
@@ -31,13 +53,38 @@ statement       : inputStatement
                 | outputStatement
                 | ifStatement
                 | forgetStatement
+                | letValueStatement
+                | createStatement
+                | broadcastStatement
+                | renderImageStatement
                 ;
+
+renderImageStatement : RENDER IMAGE string TO identifier;
+
+letValueStatement : LET identifier BE valueExpression;
+valueExpression : STRING_TYPE OF INVOKE invokeActionId WITH identifier                      #InvokeTextValueExpression
+                | identifier WITH FIELD constructionField (AND FIELD constructionField)*    #ObjectConstructionValueExpression
+                | JSON string                                                               #ClientJsonValueExpression
+                | INVOKE invokeActionId WITH identifier                                      #ClientInvokeValueExpression
+                | FIELD string OF identifier                                                 #ClientFieldValueExpression
+                ;
+constructionField : identifier OF fieldValueExpression;
+fieldValueExpression : NEW GUID #NewGuidFieldValue
+                     | string   #LiteralFieldValue
+                     | identifier #VariableFieldValue
+                     ;
+createStatement : CREATE INPUT qualifiedId WITH identifier;
+broadcastStatement : BROADCAST TO identifier (CHANNEL qualifiedId)?;
 
 // IO STATEMENT
 forgetStatement : FORGET label? (COMMA label)* COMMA?;
-inputStatement  : INPUT inputResourceLimits? resourceExclusion? FROM EACH? labelAccess
-                | FROM EACH? labelAccess INPUT inputResourceLimits? resourceExclusion?
+inputStatement  : INPUT inputSelection? inputResourceLimits? resourceExclusion? FROM EACH? labelAccess inputBinding?
+                | FROM EACH? labelAccess INPUT inputSelection? inputResourceLimits? resourceExclusion? inputBinding?
                 ;
+inputSelection  : WITH CAPABILITY qualifiedId #CapabilityInputSelection
+                | LIKE identifier             #PatternInputSelection
+                ;
+inputBinding    : AS identifier;
 outputStatement : OUTPUT outputResourceLimits? resourceExclusion? TO emptyslots? EACH? labelAccess
                 | TO emptyslots? EACH? labelAccess OUTPUT outputResourceLimits? resourceExclusion?
                 ;
@@ -82,6 +129,10 @@ tagMatcher  : identifier COLON identifier (SLASH identifier)*
             | identifier (SLASH identifier)*
             ;
 
+qualifiedId : identifier COLON identifier (SLASH identifier)*;
+// Action IDs are static literals; quotes allow resource paths containing keywords or punctuation.
+invokeActionId : qualifiedId | string;
+
 
 sidequalifier   : EACH SIDE                  #EachSide
                 | side (COMMA side)* SIDE    #ListedSides
@@ -114,6 +165,8 @@ boolexpr        : TRUE                              #BooleanTrue
                 | boolexpr OR boolexpr              #BooleanDisjunction
                 | setOp? labelAccess HAS comparisonOp number resourceIdDisjunction? with? (EXCEPT resourceIdList)?  #BooleanHas
                 | REDSTONE (comparisonOp number)?   #BooleanRedstone
+                | FRAME MOD number comparisonOp number #BooleanFrameModulo
+                | identifier (EQ | EQ_SYMBOL) JSON string #BooleanClientValueEquals
                 ;
 
 comparisonOp    : GT
@@ -151,7 +204,10 @@ label           : (identifier)  #RawLabel
 
 emptyslots      : EMPTY (SLOTS | SLOT) IN ;
 
-identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK) ;
+identifier : (IDENTIFIER | REDSTONE | GLOBAL | SECOND | SECONDS | TOP | BOTTOM | LEFT | RIGHT | FRONT | BACK
+           | LET | BE | PLAYER | OF | LIKE | OBJECT | FIELD | GUID | STRING_TYPE | INVOKE | CAPABILITY
+           | AS | CREATE | BROADCAST | CHANNEL | NEW | CLIENT | SERVER | BTW | OFFSET
+           | FRAME | FOR | MOD | RENDER | IMAGE | JSON) ;
 
 // GENERAL
 string: STRING ;
@@ -243,6 +299,12 @@ SECONDS : S E C O N D S ;
 SECOND  : S E C O N D ;
 GLOBAL  : (G L O B A L) | G;
 PLUS    : '+' | P L U S;
+OFFSET  : O F F S E T;
+FRAME   : F R A M E ;
+FOR     : F O R ;
+MOD     : M O D ;
+RENDER  : R E N D E R ;
+IMAGE   : I M A G E ;
 
 // REDSTONE TRIGGER
 REDSTONE        : R E D S T O N E ;
@@ -252,6 +314,26 @@ PULSE           : P U L S E;
 DO              : D O ;
 END             : E N D ;
 NAME            : N A M E ;
+LET             : L E T ;
+BE              : B E ;
+PLAYER          : P L A Y E R ;
+OF              : O F ;
+LIKE            : L I K E ;
+OBJECT          : O B J E C T ;
+FIELD           : F I E L D ;
+GUID            : G U I D ;
+STRING_TYPE     : S T R I N G ;
+INVOKE          : I N V O K E ;
+CAPABILITY      : C A P A B I L I T Y ;
+AS              : A S ;
+CREATE          : C R E A T E ;
+BROADCAST       : B R O A D C A S T ;
+CHANNEL         : C H A N N E L ;
+NEW             : N E W ;
+CLIENT          : C L I E N T ;
+SERVER          : S E R V E R ;
+BTW             : B T W ;
+JSON            : J S O N ;
 
 // GENERAL SYMBOLS
 // used by triggers and as a set operator

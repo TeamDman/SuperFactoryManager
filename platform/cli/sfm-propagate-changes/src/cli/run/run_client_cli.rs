@@ -7,6 +7,7 @@ use crate::jar_build::RunKind;
 use crate::jar_build::RunOptions;
 use facet::Facet;
 use figue as args;
+use std::path::PathBuf;
 
 /// Arguments for launching the Forge client userdev run config.
 #[derive(Facet, Debug, Clone)]
@@ -18,6 +19,9 @@ pub struct RunClientArgs {
     /// Build and launch options.
     #[facet(flatten)]
     pub options: JarBuildOptionsArgs,
+    /// SFM checkout containing platform/cli/sfm to build with its existing lockfile. Also enables the worker in an interactive client.
+    #[facet(default, args::named)]
+    pub control_cli_source_root: Option<PathBuf>,
     /// Open the SFM text editor when the client first reaches the title screen.
     #[facet(default, args::named)]
     pub text_editor: bool,
@@ -66,6 +70,7 @@ impl RunClientArgs {
     pub fn invoke(self, cancellation_token: CancellationToken) -> eyre::Result<()> {
         let Self {
             options,
+            control_cli_source_root,
             text_editor,
             input_diag,
             title_screen,
@@ -98,6 +103,7 @@ impl RunClientArgs {
                 mute,
                 keep_open,
                 client_hotswap_port,
+                control_cli_source_root,
                 cancellation_token,
             );
         }
@@ -111,6 +117,7 @@ impl RunClientArgs {
                 || height.is_some()
                 || keep_open.is_some()
                 || game_test.is_some()
+                || control_cli_source_root.is_some()
             {
                 eyre::bail!("--smoke cannot be combined with interactive or puppet-only flags.");
             }
@@ -141,6 +148,7 @@ impl RunClientArgs {
             RunKind::Client,
             RunOptions {
                 client_title_screen: title_screen,
+                control_cli_source_root,
                 client_solo: solo,
                 client_hotswap_port,
                 ..RunOptions::default()

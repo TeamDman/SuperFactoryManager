@@ -21,6 +21,9 @@ public class SFMItems {
     public static final SFMRegistryObject<Item, BlockItem> MANAGER
             = register("manager", SFMBlocks.MANAGER);
 
+    public static final SFMRegistryObject<Item, BlockItem> CLIENT_MANAGER
+            = register("client_manager", SFMBlocks.CLIENT_MANAGER);
+
     public static final SFMRegistryObject<Item, BlockItem> TUNNELLED_MANAGER
             = register(
             "tunnelled_manager",
@@ -62,6 +65,9 @@ public class SFMItems {
             PrintingPressBlockItem::new
     );
 
+    public static final SFMRegistryObject<Item, BlockItem> TOUCH_DISPLAY
+            = register("touch_display", SFMBlocks.TOUCH_DISPLAY);
+
     public static final SFMRegistryObject<Item, BlockItem> WATER_TANK
             = register(
             "water_tank",
@@ -89,6 +95,9 @@ public class SFMItems {
 
     public static final SFMRegistryObject<Item, FormItem> FORM
             = REGISTRY.register("form", FormItem::new);
+
+    public static final SFMRegistryObject<Item, PacketItem> PACKET
+            = REGISTRY.register("packet", PacketItem::new);
 
     public static final SFMRegistryObject<Item, ExperienceShardItem> EXPERIENCE_SHARD
             = REGISTRY.register(
