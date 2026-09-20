@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfm.common.program.signature.ProgramSignatureDescriptor;
 import io.netty.buffer.Unpooled;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -25,7 +26,13 @@ public final class ClientManagerProgramProjection {
 
     /** Only source and normalized labels reach clients; unrelated item metadata stays server-side. */
     public static Optional<CompoundTag> project(CompoundTag raw) {
-        String source = raw.getString("sfm:program");
+        String source;
+        try {
+            source = new String(ProgramSignatureDescriptor.normalizedSourceBytes(raw.getString("sfm:program")),
+                    StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException invalidSource) {
+            return Optional.empty();
+        }
         if (source.length() > Program.MAX_PROGRAM_LENGTH
             || source.getBytes(StandardCharsets.UTF_8).length > MAX_SOURCE_BYTES) return Optional.empty();
         if (raw.contains("sfm:labels") && !raw.contains("sfm:labels", Tag.TAG_COMPOUND)) return Optional.empty();

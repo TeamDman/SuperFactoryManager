@@ -31,7 +31,18 @@ struct StructuredJsonCliOutput {
     text: String,
 }
 
+struct SilentCliOutput;
+
 impl CliOutput {
+    /// A streaming command already wrote its complete protocol output.
+    #[must_use]
+    pub(crate) fn silent(exit_code: u8) -> Self {
+        Self {
+            value: Box::new(SilentCliOutput),
+            exit_code,
+        }
+    }
+
     #[must_use]
     pub fn facet<T>(value: T) -> Self
     where
@@ -83,6 +94,9 @@ impl CliOutput {
             OutputFormat::Json
         });
         let rendered = self.value.render(format, terminal)?;
+        if rendered.is_empty() {
+            return Ok(());
+        }
         let mut stdout = std::io::stdout().lock();
         std::io::Write::write_all(&mut stdout, rendered.as_bytes())
             .wrap_err("failed to write command output")?;
@@ -91,6 +105,12 @@ impl CliOutput {
                 .wrap_err("failed to terminate command output")?;
         }
         Ok(())
+    }
+}
+
+impl CliOutputValue for SilentCliOutput {
+    fn render(&self, _format: OutputFormat, _stdout_is_terminal: bool) -> eyre::Result<String> {
+        Ok(String::new())
     }
 }
 
@@ -151,5 +171,16 @@ mod tests {
     #[test]
     fn structured_packet_output_rejects_invalid_json() {
         assert!(CliOutput::structured_json("not-json".to_owned(), "text".to_owned(), 0).is_err());
+    }
+
+    #[test]
+    fn streaming_output_has_no_pretty_or_csv_footer() {
+        for format in [OutputFormat::Text, OutputFormat::Json, OutputFormat::Csv] {
+            assert_eq!(
+                SilentCliOutput.render(format, true).expect("silent output"),
+                ""
+            );
+        }
+        assert_eq!(CliOutput::silent(1).exit_code(), 1);
     }
 }

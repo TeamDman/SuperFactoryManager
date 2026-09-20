@@ -63,6 +63,17 @@ class ClientManagerProgramProjectionTests {
         assertTrue(ClientManagerProgramProjection.project(raw).isEmpty());
     }
 
+    @Test
+    void sourceProjectionNormalizesOnlyLineEndingsAndRejectsMalformedUnicode() {
+        CompoundTag raw = new CompoundTag();
+        raw.putString("sfm:program", "CLIENT BTW\r\n-- comments  \rNAME \"name\"\n");
+        assertEquals("CLIENT BTW\n-- comments  \nNAME \"name\"\n",
+                ClientManagerProgramProjection.project(raw).orElseThrow().getString("sfm:program"));
+        assertTrue(raw.getString("sfm:program").contains("\r"), "Projection must not mutate the original disk");
+        raw.putString("sfm:program", "\ud800");
+        assertTrue(ClientManagerProgramProjection.project(raw).isEmpty());
+    }
+
     private static ByteArrayTag volume(int count, int extension) {
         FriendlyByteBuf buffer = new FriendlyByteBuf(Unpooled.buffer());
         try {

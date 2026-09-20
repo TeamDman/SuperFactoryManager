@@ -27,6 +27,7 @@ public final class SFMClientProgramConsentAction implements SFMClientAction<SFMC
             "status", SFMValueSchema.Field.required(SFMValueSchema.string(1, 64)),
             "consent", SFMValueSchema.Field.required(SFMValueSchema.string(0, 32)),
             "effective", SFMValueSchema.Field.required(SFMValueSchema.string(0, 32)),
+            "authority", SFMValueSchema.Field.required(SFMValueSchema.string(0, 32)),
             "blockers", SFMValueSchema.Field.required(SFMValueSchema.array(SFMValueSchema.string(1, 128), 0, 16)),
             "changed", SFMValueSchema.Field.required(SFMValueSchema.bool()),
             "saved", SFMValueSchema.Field.required(SFMValueSchema.bool())), false);
@@ -84,6 +85,7 @@ public final class SFMClientProgramConsentAction implements SFMClientAction<SFMC
         return SFMValue.object(Map.of("status", SFMValue.of(status),
                 "consent", SFMValue.of(evaluation == null ? "" : evaluation.consent().name().toLowerCase(Locale.ROOT)),
                 "effective", SFMValue.of(evaluation == null ? "" : evaluation.effective().name().toLowerCase(Locale.ROOT)),
+                "authority", SFMValue.of(evaluation == null ? "" : evaluation.authority().name().toLowerCase(Locale.ROOT)),
                 "blockers", SFMValue.array(evaluation == null ? List.of() : evaluation.policyBlockers().stream().map(SFMValue::of).toList()),
                 "changed", SFMValue.of(changed), "saved", SFMValue.of(saved)));
     }

@@ -19,15 +19,25 @@ public final class ClientProgramConsentService {
     private final ClientProgramConsentGate gate;
     private final Set<ClientProgramIdentity> durable = new HashSet<>();
     private final LongSupplier clock;
+    private final ClientProgramSignerAuthority signerAuthority;
     private String diagnostic;
 
     public ClientProgramConsentService(Path destination, LongSupplier clock) {
+        this(destination, clock, ClientProgramSignerAuthority.NONE);
+    }
+
+    public ClientProgramConsentService(Path destination, LongSupplier clock, ClientProgramSignerAuthority signerAuthority) {
         this.destination = Objects.requireNonNull(destination);
         this.clock = Objects.requireNonNull(clock);
+        this.signerAuthority = Objects.requireNonNull(signerAuthority);
         var loaded = ClientProgramConsentStore.load(destination, clock);
-        gate = new ClientProgramConsentGate(loaded.store());
+        // A lost exact denial/revocation/stop must not fall through to a still-valid signer file.
+        // Explicit Resume clears signer rules before removing this recovery stop.
+        if (!loaded.diagnostics().isEmpty()) loaded.store().setStoppedAll(true);
+        gate = new ClientProgramConsentGate(loaded.store(), signerAuthority::permits);
         loaded.store().snapshots().forEach(snapshot -> durable.add(snapshot.identity()));
         diagnostic = String.join("; ", loaded.diagnostics());
+        if (!loaded.diagnostics().isEmpty()) diagnostic += "; client programs remain stopped until explicit recovery";
     }
 
     public ClientProgramConsentGate gate() { return gate; }
@@ -52,6 +62,10 @@ public final class ClientProgramConsentService {
     public synchronized Result request(ClientProgramIdentity identity, ResourceLocation capability) {
         Result invalid = validate(identity, capability);
         if (invalid != null) return invalid;
+        // Do not turn an already-authorized signer's harmless status/request call into an exact pending override.
+        if (gate.evaluate(identity, capability, (id, cap) -> List.of()).allowed()) {
+            return new Result(Status.OK, false, durable.contains(identity), "Capability is already authorized");
+        }
         var requested = gate.request(identity, capability);
         if (!requested.created()) return new Result(Status.OK, false, durable.contains(identity), requested.state().name());
         durable.add(identity);
@@ -94,6 +108,8 @@ public final class ClientProgramConsentService {
     }
 
     public synchronized Result forget(ClientProgramIdentity identity) {
+        try { signerAuthority.revokeAtLocation(identity); }
+        catch (IOException | RuntimeException failure) { return signerFailure(); }
         boolean changed = store().forget(identity);
         durable.remove(identity);
         return save(changed, "Program forgotten");
@@ -101,16 +117,33 @@ public final class ClientProgramConsentService {
 
     public synchronized Result stopAll() {
         store().setStoppedAll(true);
-        return save(true, "All client programs stopped; approvals revoked");
+        Result stopped = save(true, "All client programs stopped; approvals revoked");
+        if (!stopped.successful()) return stopped;
+        try { signerAuthority.revokeAll(); }
+        catch (IOException | RuntimeException failure) { return signerFailure(); }
+        return stopped;
     }
 
     /** Explicit resume removes only the policy stop. It does not approve any capability. */
     public synchronized Result resume() {
+        // Clear any old signer rules before removing a durable stop, including after a failed previous clear/restart.
+        if (store().stoppedAll()) {
+            try { signerAuthority.revokeAll(); }
+            catch (IOException | RuntimeException failure) { return signerFailure(); }
+        }
         store().setStoppedAll(false);
         return save(true, "Client program review resumed; no approvals restored");
     }
 
     public synchronized Result retrySave() { return save(false, "Consent decisions saved"); }
+
+    private Result signerFailure() {
+        store().setStoppedAll(true);
+        Result stopped = save(true, "Client programs stopped");
+        return error(Status.PERSISTENCE_FAILED, stopped.successful()
+                ? "Signer revocation was not saved. Client programs remain durably stopped; retry before resuming"
+                : "Signer revocation and stop were not saved. Restart may restore previous authority; retry before restarting");
+    }
 
     private @Nullable Result validate(ClientProgramIdentity identity, ResourceLocation capability) {
         if (!identity.requestedCapabilities().contains(capability)) {

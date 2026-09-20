@@ -113,6 +113,8 @@ public record ClientProgramActionManifest(Set<ResourceLocation> capabilities,
     }
 
     private static SFMValueSchema fieldSchema(SFMValueSchema source, String name) {
+        // Arbitrary inbox payloads retain their open shape. Runtime FIELD returns null for non-objects or absent keys.
+        if (source instanceof SFMValueSchema.AnySchema) return SFMValueSchema.any();
         if (source instanceof SFMValueSchema.LiteralSchema literal) {
             if (!(literal.expected() instanceof SFMValue.ObjectValue object) || !object.fields().containsKey(name)) {
                 throw new IllegalArgumentException("Field is absent from client value: " + name);

@@ -2,10 +2,14 @@ package ca.teamdman.sfm.common.blockentity;
 
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
+import ca.teamdman.sfm.common.net.SFMServerClientManagerSigningTransport;
+import ca.teamdman.sfm.common.program.signature.*;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
@@ -16,16 +20,17 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 /** Holds a client visual program; it never creates a server ProgramContext or server ticker. */
 public final class ClientManagerBlockEntity extends BlockEntity {
     private static final String DISK_TAG = "disk";
     private static final String WORLD_ID_TAG = "world_id";
+    public static final String SIGNING_TAG = "client_program_signing";
     private ItemStack disk = ItemStack.EMPTY;
     private @Nullable UUID worldId;
     private long clientSnapshotRevision;
+    private @Nullable ClientManagerSigningState signingState;
 
     public ClientManagerBlockEntity(BlockPos pos, BlockState state) {
         super(SFMBlockEntities.CLIENT_MANAGER.get(), pos, state);
@@ -37,6 +42,25 @@ public final class ClientManagerBlockEntity extends BlockEntity {
 
     public String storedSource() {
         return disk.isEmpty() ? "" : DiskItem.getProgramStringReadOnly(disk);
+    }
+
+    public List<ProgramAttestation> attestations() {
+        var snapshot = signingSnapshot();
+        return snapshot == null ? List.of() : snapshot.history();
+    }
+
+    public @Nullable UUID signingIncarnation() {
+        var snapshot = signingSnapshot();
+        return snapshot == null ? null : snapshot.incarnation();
+    }
+
+    public long signingRevision() {
+        var snapshot = signingSnapshot();
+        return snapshot == null ? -1 : snapshot.revision();
+    }
+
+    public @Nullable ClientManagerSigningSnapshot signingSnapshot() {
+        return signingState == null ? null : signingState.snapshot();
     }
 
     public LabelPositionHolder labels() {
@@ -63,18 +87,82 @@ public final class ClientManagerBlockEntity extends BlockEntity {
         if (!sourceFitsSyncBudget(value)) {
             throw new IllegalArgumentException("Client Manager program exceeds its sync budget");
         }
-        disk = value.copy();
-        if (!disk.isEmpty()) disk.setCount(1);
+        ItemStack replacement = value.copy();
+        ClientManagerSigningBody body = signingBody(replacement);
+        if (!replacement.isEmpty()) {
+            replacement.setCount(1);
+            replacement.getOrCreateTag().putString("sfm:program", body.source());
+        }
+        if (signingState == null) signingState = new ClientManagerSigningState(UUID.randomUUID(), body);
+        else signingState.replaceBody(body);
+        invalidateSigningChallenges();
+        disk = replacement;
         clientSnapshotRevision++;
         changedAndSync();
     }
 
     public ItemStack removeDisk() {
         ItemStack removed = disk;
+        if (signingState == null) signingState = new ClientManagerSigningState(UUID.randomUUID(), emptyBody());
+        else signingState.replaceBody(emptyBody());
+        invalidateSigningChallenges();
         disk = ItemStack.EMPTY;
         clientSnapshotRevision++;
         changedAndSync();
         return removed;
+    }
+
+    /** Called only after the server transport's authorization and aggregate admission checks. */
+    public ClientManagerSigningState.Review reviewForSigning(ClientManagerSigningSession session, UUID player,
+                                                              Collection<ResourceLocation> capabilities, long tick) {
+        if (!serverSigningAvailable()) return unavailableReview();
+        return signingState.review(session, player, capabilities, tick, signingAddress());
+    }
+
+    /** The acknowledgement is issued from the exact source committed below on the same server thread. */
+    public ClientManagerSigningState.Review saveForSigning(ClientManagerSigningSession session, UUID player,
+                                                            UUID incarnation, long revision, String source,
+                                                            Collection<ResourceLocation> capabilities, long tick) {
+        if (!serverSigningAvailable()) return unavailableReview();
+        var review = signingState.save(session, player, incarnation, revision, source, capabilities, tick, signingAddress());
+        if (review.status() == ClientManagerSigningState.Status.SAVED) {
+            disk.getOrCreateTag().putString("sfm:program", signingState.snapshot().body().source());
+            clientSnapshotRevision++;
+            changedAndSync();
+        }
+        return review;
+    }
+
+    public ClientManagerSigningState.Status submitSignature(ClientManagerSigningSession session, UUID player,
+                                                              UUID incarnation, long revision, UUID challenge,
+                                                              byte[] attestation, long tick) {
+        if (!serverSigningAvailable()) return ClientManagerSigningState.Status.UNAVAILABLE;
+        var result = signingState.submitEncoded(session, player, incarnation, revision, challenge, attestation,
+                tick, signingAddress());
+        if (result == ClientManagerSigningState.Status.SIGNED) {
+            // Metadata changes invalidate the client compiler/trust cache, not the acknowledged body revision.
+            clientSnapshotRevision++;
+            changedAndSync();
+        }
+        return result;
+    }
+
+    private boolean serverSigningAvailable() {
+        return level != null && !level.isClientSide() && !isRemoved() && !disk.isEmpty() && signingState != null;
+    }
+
+    private static ClientManagerSigningState.Review unavailableReview() {
+        return new ClientManagerSigningState.Review(ClientManagerSigningState.Status.UNAVAILABLE, Optional.empty());
+    }
+
+    private String signingAddress() {
+        return Objects.requireNonNull(level).dimension().location() + "/" + worldPosition.asLong();
+    }
+
+    private void invalidateSigningChallenges() {
+        if (level instanceof ServerLevel server && signingState != null) {
+            SFMServerClientManagerSigningTransport.invalidate(server.getServer(), signingState.snapshot().incarnation());
+        }
     }
 
     public void changedAndSync() {
@@ -91,6 +179,8 @@ public final class ClientManagerBlockEntity extends BlockEntity {
         if (level.isClientSide()) {
             ClientManagerLoadedRegistry.add(level, this);
         } else if (level instanceof ServerLevel serverLevel) {
+            // Old saves acquire an incarnation durably even when the disk is never edited again.
+            setChanged();
             UUID persisted = ClientManagerWorldIdentitySavedData.forLevel(serverLevel);
             if (!persisted.equals(worldId)) {
                 worldId = persisted;
@@ -103,6 +193,7 @@ public final class ClientManagerBlockEntity extends BlockEntity {
     @Override
     public void setRemoved() {
         if (level != null && level.isClientSide()) ClientManagerLoadedRegistry.remove(level, this);
+        invalidateSigningChallenges();
         super.setRemoved();
     }
 
@@ -111,14 +202,36 @@ public final class ClientManagerBlockEntity extends BlockEntity {
         super.saveAdditional(tag);
         if (!disk.isEmpty()) tag.put(DISK_TAG, disk.save(new CompoundTag()));
         if (worldId != null) tag.putUUID(WORLD_ID_TAG, worldId);
+        if (signingState != null) tag.putByteArray(SIGNING_TAG,
+                ClientManagerSigningCodec.encodeMetadata(ClientManagerSigningMetadata.from(signingState.snapshot())));
     }
 
     @Override
     public void load(CompoundTag tag) {
+        if (level != null && level.isClientSide()) {
+            handleUpdateTag(tag);
+            return;
+        }
         super.load(tag);
         ItemStack restored = tag.contains(DISK_TAG) ? ItemStack.of(tag.getCompound(DISK_TAG)) : ItemStack.EMPTY;
         disk = restored.getItem() == SFMItems.DISK.get() ? restored : ItemStack.EMPTY;
         if (!disk.isEmpty()) disk.setCount(1);
+        signingState = null;
+        try {
+            ClientManagerSigningBody body = signingBody(disk);
+            if (!disk.isEmpty()) disk.getOrCreateTag().putString("sfm:program", body.source());
+            if (tag.contains(SIGNING_TAG, Tag.TAG_BYTE_ARRAY)) {
+                try {
+                    signingState = ClientManagerSigningCodec.decodeMetadata(tag.getByteArray(SIGNING_TAG))
+                            .restoreServerState(body);
+                } catch (IllegalArgumentException malformed) {
+                    // Corrupt public metadata never preserves old authority or a reusable challenge identity.
+                }
+            }
+            if (signingState == null) signingState = new ClientManagerSigningState(UUID.randomUUID(), body);
+        } catch (IllegalArgumentException oversizedLegacyDisk) {
+            // Preserve the full disk on the server, but publish no executable/signable projection.
+        }
         worldId = tag.hasUUID(WORLD_ID_TAG) ? tag.getUUID(WORLD_ID_TAG) : null;
         clientSnapshotRevision++;
     }
@@ -135,6 +248,10 @@ public final class ClientManagerBlockEntity extends BlockEntity {
             projectedDisk.setTag(projection);
             update.put(DISK_TAG, projectedDisk.save(new CompoundTag()));
         });
+        if (signingState != null && update.contains(DISK_TAG)) {
+            update.putByteArray(SIGNING_TAG,
+                    ClientManagerSigningCodec.encodeMetadata(ClientManagerSigningMetadata.from(signingState.snapshot())));
+        }
         return update;
     }
 
@@ -142,6 +259,15 @@ public final class ClientManagerBlockEntity extends BlockEntity {
         if (candidate.isEmpty()) return true;
         return ClientManagerProgramProjection.project(candidate.getTag() == null
                 ? new CompoundTag() : candidate.getTag()).isPresent();
+    }
+
+    private static ClientManagerSigningBody emptyBody() {
+        return new ClientManagerSigningBody("", Map.of());
+    }
+
+    private static ClientManagerSigningBody signingBody(ItemStack candidate) {
+        return candidate.isEmpty() ? emptyBody() : ClientManagerSigningBody.fromDiskTag(
+                candidate.getTag() == null ? new CompoundTag() : candidate.getTag());
     }
 
     @Override
@@ -170,6 +296,22 @@ public final class ClientManagerBlockEntity extends BlockEntity {
                 projected.put(DISK_TAG, projectedItem);
             });
         }
-        load(projected);
+        // Do not use server restore semantics here: a mismatched projection must not repair/advance
+        // purported server evidence or generate a client-side incarnation.
+        disk = projected.contains(DISK_TAG) ? ItemStack.of(projected.getCompound(DISK_TAG)) : ItemStack.EMPTY;
+        worldId = projected.hasUUID(WORLD_ID_TAG) ? projected.getUUID(WORLD_ID_TAG) : null;
+        signingState = null;
+        if (!disk.isEmpty() && tag.contains(SIGNING_TAG, Tag.TAG_BYTE_ARRAY)) {
+            try {
+                var body = signingBody(disk);
+                var metadata = ClientManagerSigningCodec.decodeMetadata(tag.getByteArray(SIGNING_TAG));
+                if (metadata.matchesBody(body)) {
+                    signingState = new ClientManagerSigningState(metadata.incarnation(), metadata.revision(), body, metadata.history());
+                }
+            } catch (IllegalArgumentException invalidMetadata) {
+                // The program may still be reviewed for exact-source consent, but has no signer authority.
+            }
+        }
+        clientSnapshotRevision++;
     }
 }

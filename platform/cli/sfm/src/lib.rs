@@ -5,6 +5,7 @@ pub mod explorer;
 pub mod output;
 pub mod protocol;
 pub mod spatial;
+pub mod terminal_worker;
 
 use crate::cli::Cli;
 

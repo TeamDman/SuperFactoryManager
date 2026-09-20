@@ -187,6 +187,34 @@ class ClientProgramInvocationTests {
         return "\"" + SFMValueSchema.canonicalActionJson(value).replace("\"", "\\\"") + "\"";
     }
 
+    @Test
+    void arbitraryInboxPayloadFieldsAreNullSafeWithoutWideningLiteralActionTargets() {
+        var action = new SFMClientProgramReadAction(true, (caller, input) -> SFMValue.nullValue());
+        var descriptor = action.programmaticDescriptor().orElseThrow();
+        String body = "LET request BE JSON \"{\\\"channel\\\":\\\"sfm:fixture\\\",\\\"mode\\\":\\\"latest\\\"}\"\n"
+                + "LET response BE INVOKE sfm:client_inbox/read WITH request\n"
+                + "LET result BE FIELD \"result\" OF response\n"
+                + "LET payload BE FIELD \"value\" OF result\n"
+                + "LET amount BE FIELD \"amount\" OF payload\n"
+                + "LET nested BE FIELD \"nested\" OF amount\n";
+        Program program = parse(body);
+        SFMClientProgramActionDispatcher.Lookup lookup = id -> id.equals(SFMClientProgramReadAction.INBOX)
+                ? Optional.of(new SFMClientProgramActionDispatcher.Binding(descriptor, action.programmaticHandler().orElseThrow())) : Optional.empty();
+        var manifest = ClientProgramActionManifest.compile(program, lookup);
+        assertEquals(Set.of(EXECUTE, ClientProgramInboxReadSurface.READ), manifest.capabilities());
+        for (SFMValue payload : List.of(SFMValue.nullValue(), SFMValue.of(4), SFMValue.array(List.of()),
+                SFMValue.object(Map.of()), SFMValue.object(Map.of("amount", SFMValue.of(32))))) {
+            var response = SFMValue.object(Map.of("status", SFMValue.of("ok"), "result",
+                    SFMValue.object(Map.of("value", payload))));
+            var evaluated = ClientFrameEvaluator.evaluate((FrameTrigger) program.triggers().get(0), 0,
+                    (id, input) -> response, false);
+            assertEquals(ClientProgramActionManifest.field(payload, "amount"), evaluated.values().get("amount"));
+            assertEquals(SFMValue.nullValue(), evaluated.values().get("nested"));
+        }
+        assertThrows(IllegalArgumentException.class, () -> ClientProgramActionManifest.compile(
+                parse(body + "LET changed BE INVOKE sfm:client_inbox/read WITH payload"), lookup));
+    }
+
     private static String request() { return "LET request BE JSON " + quoted(INPUT); }
     private static String body() {
         return request() + "\nLET response BE INVOKE sfm:packet/send WITH request\n"

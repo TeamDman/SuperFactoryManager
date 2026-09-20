@@ -14,7 +14,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 public class SFMPackets {
-    public static final String SFM_CHANNEL_VERSION="1.2.0";
+    // Acknowledged Client Manager signing adds message types unknown to older peers.
+    public static final String SFM_CHANNEL_VERSION="1.3.0";
     public static final SimpleChannel SFM_CHANNEL = NetworkRegistry.newSimpleChannel(
             SFMResourceLocation.fromSFMPath("manager"),
             SFM_CHANNEL_VERSION::toString,
@@ -85,6 +86,9 @@ public class SFMPackets {
         registerPacket(new ServerboundPacketInsertionPacket.Daddy());
         registerPacket(new ClientboundClientInboxValuePacket.Daddy());
         registerPacket(new ServerboundClientInboxSubscriptionPacket.Daddy());
+        registerPacket(new ServerboundClientManagerSigningRequestPacket.Daddy());
+        registerPacket(new ServerboundClientManagerSignaturePacket.Daddy());
+        registerPacket(new ClientboundClientManagerSigningResponsePacket.Daddy());
     }
 
     public static void sendToServer(

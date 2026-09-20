@@ -55,11 +55,29 @@ class SFMClientProgramConsentActionTests {
         var output = action.query(id, input(EXECUTE.toString()));
         assertEquals("approved", field(output, "consent"));
         assertEquals("blocked_by_policy", field(output, "effective"));
+        assertEquals("none", field(output, "authority"));
         assertTrue(action.programmaticDescriptor().orElseThrow().checkResult(output).isEmpty());
         service.stopAll();
         var noCustomPolicy = new SFMClientProgramConsentAction(false, () -> service, (program, cap) -> List.of());
         assertEquals("blocked_by_policy", field(noCustomPolicy.query(id, input(EXECUTE.toString())), "effective"));
         assertTrue(new SFMClientProgramConsentControlAction().programmaticDescriptor().isEmpty());
         assertTrue(new SFMClientProgramConsentControlAction().programmaticHandler().isEmpty());
+    }
+
+    @Test void statusReportsSignerAuthorityWithoutInventingAnExactApproval() {
+        ClientProgramSignerAuthority signer = new ClientProgramSignerAuthority() {
+            public boolean permits(ClientProgramIdentity id, ResourceLocation capability) { return true; }
+            public void revokeAll() { }
+            public void revokeAtLocation(ClientProgramIdentity id) { }
+        };
+        var service = new ClientProgramConsentService(directory.resolve("consents.bin"), () -> 1000, signer);
+        var id = identity("source");
+        service.observe(id, "source", "", Map.of());
+        var action = new SFMClientProgramConsentAction(true, () -> service, (program, capability) -> List.of());
+        var result = action.query(id, input(EXECUTE.toString()));
+        assertEquals("absent", field(result, "consent"));
+        assertEquals("allowed", field(result, "effective"));
+        assertEquals("trusted_signer", field(result, "authority"));
+        assertTrue(action.programmaticDescriptor().orElseThrow().checkResult(result).isEmpty());
     }
 }

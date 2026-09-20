@@ -14,12 +14,13 @@ import java.util.*;
 
 /** Explicit review only: discovery and program requests never open this panel or its confirmation. */
 public final class ClientProgramConsentsPanel implements SFMScreenPanel {
-    public enum Control { PREVIOUS, NEXT, CAPABILITY, VIEW, LIFETIME, RETRY, REVIEW, DENY, REVOKE, FORGET, STOP_ALL, RESUME, SAVE }
+    public enum Control { PREVIOUS, NEXT, CAPABILITY, VIEW, LIFETIME, RETRY, REVIEW, DENY, REVOKE, FORGET, STOP_ALL, RESUME, SAVE, SIGNER, TRUST_SIGNER, UNTRUST_SIGNER }
     private static final ResourceLocation USAGE = new ResourceLocation("sfm", "default");
     private static final long DAY = 86_400_000L;
     private static final Long[] LIFETIMES = {DAY, 365 * DAY, null};
     private static final Long[] RETRIES = {null, 60_000L, DAY};
     private final ClientProgramConsentService service;
+    private final ClientProgramSignerTrustService signers;
     private final SFMPanelWidgetHost widgets = new SFMPanelWidgetHost();
     private final Map<Control, SFMPanelActionButton> controls = new EnumMap<>(Control.class);
     private final Map<Control, SFMScreenPanelBounds> controlBounds = new EnumMap<>(Control.class);
@@ -29,6 +30,9 @@ public final class ClientProgramConsentsPanel implements SFMScreenPanel {
     private int capabilityIndex;
     private int lifetimeIndex = 1;
     private int retryIndex;
+    private ClientProgramIdentity signerIdentity;
+    private List<String> signerChoices = List.of();
+    private int signerIndex;
     private ClientProgramConsentReview.View view = ClientProgramConsentReview.View.SCOPE;
     private int scroll;
     private int visibleLines = 1;
@@ -37,9 +41,13 @@ public final class ClientProgramConsentsPanel implements SFMScreenPanel {
     private List<FormattedCharSequence> wrappedLines = List.of();
     private int wrappedWidth = -1;
 
-    public ClientProgramConsentsPanel() { this(ClientProgramConsentRuntime.service()); }
+    public ClientProgramConsentsPanel() { this(ClientProgramConsentRuntime.service(), ClientProgramSignerTrustRuntime.service()); }
     public ClientProgramConsentsPanel(ClientProgramConsentService service) {
+        this(service, null);
+    }
+    public ClientProgramConsentsPanel(ClientProgramConsentService service, ClientProgramSignerTrustService signers) {
         this.service = Objects.requireNonNull(service);
+        this.signers = signers;
         List<SFMPanelActionButton> ordered = new ArrayList<>();
         for (Control control : Control.values()) {
             String operation = control.name().toLowerCase(Locale.ROOT);
@@ -102,6 +110,9 @@ public final class ClientProgramConsentsPanel implements SFMScreenPanel {
         if (control == Control.CAPABILITY) { capabilityIndex = (capabilityIndex + 1) % capabilities.size(); return true; }
         ResourceLocation capability = capabilities.get(Math.floorMod(capabilityIndex, capabilities.size()));
         switch (control) {
+            case SIGNER -> selectSigner(identity);
+            case TRUST_SIGNER -> trustSigner(identity);
+            case UNTRUST_SIGNER -> untrustSigner(identity);
             case REVIEW -> review(identity, capability);
             case DENY -> {
                 if (service.gate().state(identity, capability) == ClientProgramConsentGate.ConsentState.APPROVED) {
@@ -121,6 +132,66 @@ public final class ClientProgramConsentsPanel implements SFMScreenPanel {
             default -> { return false; }
         }
         return true;
+    }
+
+    private void selectSigner(ClientProgramIdentity identity) {
+        if (signers == null) { message = "Signer review is unavailable in this panel."; return; }
+        try {
+            var choices = new TreeSet<>(signers.currentSigners(identity));
+            signers.snapshot().stream().filter(grant -> sameScope(grant, identity))
+                    .map(ClientProgramSignerTrustGrant::fingerprint).forEach(choices::add);
+            var next = List.copyOf(choices);
+            signerIndex = identity.equals(signerIdentity) && next.equals(signerChoices) && !next.isEmpty()
+                    ? (signerIndex + 1) % next.size() : 0;
+            signerIdentity = identity;
+            signerChoices = next;
+            message = next.isEmpty() ? "No current signatures or stored signer rules at this scope." : "Review the full fingerprint and scope below.";
+        } catch (RuntimeException invalid) { message = "Current signature evidence is unavailable."; }
+    }
+
+    private Optional<String> selectedSigner(ClientProgramIdentity identity) {
+        return identity.equals(signerIdentity) && !signerChoices.isEmpty()
+                ? Optional.of(signerChoices.get(Math.floorMod(signerIndex, signerChoices.size()))) : Optional.empty();
+    }
+
+    private void trustSigner(ClientProgramIdentity identity) {
+        var selectedSigner = selectedSigner(identity);
+        if (signers == null || selectedSigner.isEmpty()) { message = "Use Signer to select a current author first."; return; }
+        String fingerprint = selectedSigner.orElseThrow();
+        Long duration = LIFETIMES[lifetimeIndex];
+        String details = fingerprint + ". Only at " + identity.dimension() + " " + identity.managerPosition().toShortString()
+                + ", this world, runtime and exact label bindings. Capability ceiling: " + capabilities(identity)
+                + ". This also permits FUTURE source revisions signed by this author within that ceiling. "
+                + (duration == null ? "No expiry. " : "Lifetime: " + duration / DAY + " day(s). ")
+                + "Existing exact denials, revocations and policy blocks still apply.";
+        confirm("Trust this author at this exact scope?", details, () -> {
+            try {
+                signers.trustCurrent(identity, fingerprint, future(duration));
+                message = "Scoped signer rule saved. Exact decisions still take precedence.";
+            } catch (Exception failure) {
+                message = "Signer rule not granted: " + (failure.getMessage() == null ? "review is stale" : failure.getMessage());
+            }
+        });
+    }
+
+    private void untrustSigner(ClientProgramIdentity identity) {
+        var selectedSigner = selectedSigner(identity);
+        if (signers == null || selectedSigner.isEmpty()) { message = "Select the signer rule to remove first."; return; }
+        try {
+            for (var grant : signers.snapshot()) {
+                if (sameScope(grant, identity) && grant.fingerprint().equals(selectedSigner.orElseThrow())) signers.untrust(grant);
+            }
+            message = "Signer rule removed. Separate exact-program approvals are unchanged.";
+        } catch (Exception failure) {
+            service.stopAll();
+            message = "Signer removal was not saved. Client programs stopped; retry saving before restarting.";
+        }
+    }
+
+    private static boolean sameScope(ClientProgramSignerTrustGrant grant, ClientProgramIdentity identity) {
+        return grant.world().equals(identity.world()) && grant.dimension().equals(identity.dimension())
+                && grant.managerPosition().equals(identity.managerPosition()) && grant.runtime().equals(identity.runtimeRevision())
+                && grant.bindingSha256().equals(identity.bindingSha256());
     }
 
     private void review(ClientProgramIdentity identity, ResourceLocation capability) {
@@ -198,6 +269,19 @@ public final class ClientProgramConsentsPanel implements SFMScreenPanel {
             var evaluation = service.gate().evaluate(identity, capability, (id, cap) -> runtimeBlockers(id));
             nextLines.add("Capability: " + capability);
             nextLines.add("Consent: " + evaluation.consent() + " / effective: " + evaluation.effective());
+            nextLines.add("Authority: " + evaluation.authority());
+            selectedSigner(identity).ifPresent(fingerprint -> {
+                nextLines.add("Selected signer: " + fingerprint);
+                nextLines.add("Signer rule scope: exact world, location, runtime and label bindings.");
+                nextLines.add("Capability ceiling: " + capabilities(identity));
+                nextLines.add("Trust can authorize future revisions by this author; exact denials still win.");
+                if (signers != null) signers.snapshot().stream().filter(grant -> sameScope(grant, identity)
+                        && grant.fingerprint().equals(fingerprint)).forEach(grant -> {
+                    nextLines.add("Stored ceiling: " + grant.allowedCapabilities().stream().sorted().toList());
+                    nextLines.add("Stored expiry: " + (grant.expiresAt() == null ? "none" : java.time.Instant.ofEpochMilli(grant.expiresAt())));
+                });
+            });
+            if (signers != null && !signers.diagnostic().isBlank()) nextLines.add("Signer storage: " + signers.diagnostic());
             if (!evaluation.policyBlockers().isEmpty()) nextLines.add("Blockers: " + evaluation.policyBlockers());
             nextLines.add("Manager: " + identity.dimension() + " " + identity.managerPosition().toShortString());
             nextLines.add("View: " + view + " | scroll to read all text");
@@ -238,6 +322,7 @@ public final class ClientProgramConsentsPanel implements SFMScreenPanel {
             case RETRY -> switch (retryIndex) { case 0 -> "Deny: never ask"; case 1 -> "Deny: 1 minute"; default -> "Deny: 1 day"; };
             case REVIEW -> "Review approval"; case DENY -> "Deny"; case REVOKE -> "Revoke";
             case FORGET -> "Forget program"; case STOP_ALL -> "Stop all"; case RESUME -> "Resume review"; case SAVE -> "Retry save";
+            case SIGNER -> "Next signer"; case TRUST_SIGNER -> "Trust signer"; case UNTRUST_SIGNER -> "Remove signer";
         };
     }
 }

@@ -6,6 +6,7 @@ import net.minecraft.resources.ResourceLocation;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.function.BiPredicate;
 
 /** A UI-free, default-deny gate. A caller must explicitly present any request to the player. */
 public final class ClientProgramConsentGate {
@@ -15,12 +16,19 @@ public final class ClientProgramConsentGate {
     public enum ConsentState { ABSENT, PENDING, APPROVED, DENIED }
     public enum EffectiveState { ALLOWED, AWAITING_CONSENT, DENIED_BY_USER, BLOCKED_BY_POLICY }
     public enum Decision { APPROVE, DENY }
+    public enum Authority { NONE, EXACT_PROGRAM, TRUSTED_SIGNER }
 
     public record RequestResult(ConsentState state, boolean created) {}
 
-    public record Evaluation(ConsentState consent, EffectiveState effective, List<String> policyBlockers) {
+    public record Evaluation(ConsentState consent, EffectiveState effective, List<String> policyBlockers, Authority authority) {
         public Evaluation {
             policyBlockers = List.copyOf(policyBlockers);
+            Objects.requireNonNull(authority);
+        }
+
+        public Evaluation(ConsentState consent, EffectiveState effective, List<String> policyBlockers) {
+            this(consent, effective, policyBlockers, effective == EffectiveState.ALLOWED && consent == ConsentState.APPROVED
+                    ? Authority.EXACT_PROGRAM : Authority.NONE);
         }
 
         public boolean allowed() {
@@ -35,13 +43,21 @@ public final class ClientProgramConsentGate {
     }
 
     private final ClientProgramConsentStore store;
+    private final BiPredicate<ClientProgramIdentity, ResourceLocation> signerAuthority;
 
     public ClientProgramConsentGate() {
         this(new ClientProgramConsentStore());
     }
 
     public ClientProgramConsentGate(ClientProgramConsentStore store) {
+        this(store, (identity, capability) -> false);
+    }
+
+    /** The resolver is client-owned and must verify live source, manifest, location and public attestations. */
+    public ClientProgramConsentGate(ClientProgramConsentStore store,
+                                   BiPredicate<ClientProgramIdentity, ResourceLocation> signerAuthority) {
         this.store = Objects.requireNonNull(store);
+        this.signerAuthority = Objects.requireNonNull(signerAuthority);
     }
 
     public ClientProgramConsentStore store() {
@@ -86,6 +102,16 @@ public final class ClientProgramConsentGate {
                     case DENIED -> EffectiveState.DENIED_BY_USER;
                     case ABSENT, PENDING -> EffectiveState.AWAITING_CONSENT;
                 };
+        if (effective == EffectiveState.AWAITING_CONSENT && !store.hasRecordedDecision(identity, capability)) {
+            try {
+                if (signerAuthority.test(identity, capability)) {
+                    return new Evaluation(consent, EffectiveState.ALLOWED, blockers, Authority.TRUSTED_SIGNER);
+                }
+            } catch (RuntimeException invalidAuthority) {
+                return new Evaluation(consent, EffectiveState.BLOCKED_BY_POLICY,
+                        List.of("signer_authority_unavailable"));
+            }
+        }
         return new Evaluation(consent, effective, blockers);
     }
 

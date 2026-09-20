@@ -108,6 +108,13 @@ public final class ClientProgramConsentStore {
         return decision == null ? ClientProgramConsentGate.ConsentState.ABSENT : decision.stateAt(now());
     }
 
+    /** Even an expired or revoked exact decision must not silently fall back to signer authority. */
+    public synchronized boolean hasRecordedDecision(ClientProgramIdentity identity, ResourceLocation capability) {
+        checkCapability(identity, capability);
+        Entry entry = entries.get(identity);
+        return entry != null && entry.decisions.containsKey(capability);
+    }
+
     public synchronized ClientProgramConsentGate.RequestResult request(ClientProgramIdentity identity,
                                                                       ResourceLocation capability) {
         var state = state(identity, capability);
@@ -146,7 +153,7 @@ public final class ClientProgramConsentStore {
 
     public synchronized void revokeAll() {
         for (var record : entries.entrySet()) {
-            for (ResourceLocation capability : List.copyOf(record.getValue().decisions.keySet())) {
+            for (ResourceLocation capability : record.getKey().requestedCapabilities()) {
                 revoke(record.getKey(), capability);
             }
         }
@@ -241,8 +248,9 @@ public final class ClientProgramConsentStore {
 
     public static LoadResult load(Path path, LongSupplier clock) {
         ClientProgramConsentStore store = new ClientProgramConsentStore(clock);
-        if (!Files.exists(path)) return new LoadResult(store, List.of());
-        try (InputStream input = Files.newInputStream(path)) {
+        // Only proven absence is a fresh store. Unknown/access-denied must become diagnosed load failure.
+        if (Files.notExists(path, LinkOption.NOFOLLOW_LINKS)) return new LoadResult(store, List.of());
+        try (InputStream input = Files.newInputStream(path, LinkOption.NOFOLLOW_LINKS)) {
             byte[] bytes = input.readNBytes(MAX_FILE_BYTES + 1);
             if (bytes.length > MAX_FILE_BYTES) throw new IOException("Consent store exceeds its byte budget");
             try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(bytes))) {

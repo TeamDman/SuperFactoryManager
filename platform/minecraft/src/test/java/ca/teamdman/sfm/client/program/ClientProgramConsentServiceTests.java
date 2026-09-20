@@ -91,4 +91,17 @@ class ClientProgramConsentServiceTests {
                 service.observe(identity("extra"), "extra", "", Map.of()).status());
         assertFalse(Files.exists(directory.resolve("consents.bin")));
     }
+
+    @Test
+    void onlyKnownAbsenceIsCleanWhileAnUnreadableStoreRequiresExplicitRecovery() throws Exception {
+        var fresh = new ClientProgramConsentService(directory.resolve("absent.bin"), now::get);
+        assertTrue(fresh.diagnostic().isEmpty());
+        assertFalse(fresh.store().stoppedAll());
+        Path notAFile = Files.createDirectory(directory.resolve("consent-directory"));
+        var unavailable = new ClientProgramConsentService(notAFile, now::get);
+        assertFalse(unavailable.diagnostic().isEmpty());
+        assertTrue(unavailable.store().stoppedAll());
+        assertFalse(unavailable.resume().successful(), "An unwritable consent destination cannot clear the recovery stop");
+        assertTrue(unavailable.store().stoppedAll());
+    }
 }

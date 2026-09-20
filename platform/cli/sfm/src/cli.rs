@@ -48,6 +48,8 @@ pub enum Command {
     Spatial(SpatialArgs),
     /// Invoke one registered SFM client action in a selected game.
     Invoke(InvokeArgs),
+    /// Run a bounded structured terminal worker without opening a window.
+    Terminal(TerminalArgs),
 }
 
 impl Command {
@@ -58,9 +60,38 @@ impl Command {
             Self::Packet(args) => args.invoke().await,
             Self::Spatial(args) => args.invoke().await,
             Self::Invoke(args) => args.invoke().await,
+            Self::Terminal(args) => args.invoke(),
         }
     }
 }
+
+#[derive(Debug, Facet)]
+pub struct TerminalArgs {
+    #[facet(args::subcommand)]
+    pub command: TerminalCommand,
+}
+
+impl TerminalArgs {
+    fn invoke(self) -> eyre::Result<CliOutput> {
+        match self.command {
+            TerminalCommand::Worker(_) => crate::terminal_worker::invoke(),
+        }
+    }
+}
+
+#[derive(Debug, Facet)]
+#[repr(u8)]
+pub enum TerminalCommand {
+    /// Exchange version-1 JSON Lines on stdin/stdout, with ready, ack, render and bye records.
+    /// Accept {"version":1,"type":"touch","id":1,"u":0.5,"v":0.5} or {"version":1,"type":"quit","id":2}.
+    /// Input lines are limited to 1024 bytes and 4096 commands.
+    /// UV coordinates must be finite numbers in 0..1. No prompts or shell commands are interpreted.
+    /// Output is always compact JSON Lines, regardless of --output-format.
+    Worker(TerminalWorkerArgs),
+}
+
+#[derive(Debug, Facet)]
+pub struct TerminalWorkerArgs {}
 
 #[derive(Debug, Facet)]
 pub struct InstanceArgs {
@@ -1324,6 +1355,29 @@ mod tests {
             "expected help for {arguments:?}: {error:?}"
         );
         error.help_text().expect("help text").to_owned()
+    }
+
+    #[test]
+    fn terminal_worker_has_a_bounded_json_lines_help_contract() {
+        let parsed = parse(&["terminal", "worker"]);
+        assert!(matches!(
+            parsed.command,
+            Command::Terminal(TerminalArgs {
+                command: TerminalCommand::Worker(_)
+            })
+        ));
+        let text = help(&["terminal", "worker", "--help"]);
+        for witness in [
+            "JSON Lines",
+            "1024",
+            "4096",
+            "finite",
+            "No prompts",
+            "--output-format",
+        ] {
+            assert!(text.contains(witness), "missing help contract: {witness}");
+        }
+        parse_fails(&["terminal", "worker", "--shell", "anything"]);
     }
 
     fn explorer_result(
