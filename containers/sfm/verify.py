@@ -32,8 +32,9 @@ for puppet, expected_captures in expected.items():
     if observed_puppets != {puppet}:
         raise SystemExit(f"Unexpected screenshot set for {puppet}: {observed_puppets}")
     capture_names = {capture["capture"] for capture in captures}
-    if not expected_captures <= capture_names:
-        raise SystemExit(f"Missing captures for {puppet}: {expected_captures - capture_names}")
+    if capture_names != expected_captures or len(captures) != len(expected_captures):
+        raise SystemExit(f"Expected exactly {len(expected_captures)} distinct captures for {puppet}; "
+                         f"found {len(captures)} entries with names {sorted(capture_names)}")
     seen = set()
     for capture in captures:
         path = (root / capture["path"]).resolve()

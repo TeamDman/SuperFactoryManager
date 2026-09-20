@@ -108,6 +108,24 @@ class VerifyEvidenceTests(unittest.TestCase):
         path.write_text(json.dumps(manifest), encoding="utf-8")
         self.verify(False)
 
+    def test_extra_capture_fails(self):
+        path = self.title / "previews/preview-manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        extra = dict(manifest["captures"][0], capture="unexpected", path="unexpected.png")
+        manifest["captures"].append(extra)
+        (path.parent / extra["path"]).write_bytes(fixture_png())
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        self.verify(False)
+
+    def test_duplicate_capture_name_with_distinct_path_fails(self):
+        path = self.title / "previews/preview-manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        duplicate = dict(manifest["captures"][0], path="duplicate.png")
+        manifest["captures"].append(duplicate)
+        (path.parent / duplicate["path"]).write_bytes(fixture_png())
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+        self.verify(False)
+
 
 if __name__ == "__main__":
     unittest.main()

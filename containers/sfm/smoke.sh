@@ -7,7 +7,15 @@ if [[ $# -gt 2 ]]; then
     echo 'Usage: smoke.sh [image] [artifact-directory]' >&2
     exit 2
 fi
-mkdir -p "$artifacts"
+mkdir -p -- "$artifacts"
+# Reusing output would merge a failed run with an older successful receipt.
+shopt -s nullglob dotglob
+existing_artifacts=("$artifacts"/*)
+shopt -u nullglob dotglob
+if (( ${#existing_artifacts[@]} != 0 )); then
+    echo "Artifact directory is not empty: $artifacts. Choose a fresh or empty directory." >&2
+    exit 2
+fi
 container=
 
 cleanup() {

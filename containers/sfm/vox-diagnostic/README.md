@@ -1,9 +1,21 @@
 # Vox credit retirement diagnostic
 
-This is a review experiment for the source already pinned by the SFM toolchain
-lock. The diagnostic workflow applies `credit-candidate.patch` only inside a new
-temporary checkout at that exact commit. SFM builds do not use this patch, and no
-dependency declaration, lockfile, or published artifact is changed.
+This review experiment always fetches the recorded original Facet baseline,
+`f2afdece6c79e64085d2f8c047e22fe16b2c8c54`, independently of SFM's current
+toolchain lock. That immutable revision contained the failing Vox Java runtime;
+its recorded packaged artifact hash was
+`blake3:4d1e88353f941be926fdf84f1dd8da9bd594b60f`.
+
+SFM now pins the repaired revision, so selecting diagnostic source from the
+current lock would no longer reproduce the baseline failure and would apply the
+candidate patch twice. The helper records both its fixed baseline and the current
+SFM lock identity in the receipt, while the fetched Git commit must match the
+baseline exactly.
+
+The workflow applies `credit-candidate.patch` only inside a fresh temporary
+baseline checkout. It compiles diagnostic classes there and produces logs and
+receipts. It never supplies classes or JARs to SFM builds, writes to their cache,
+or changes a dependency declaration, lockfile, or published artifact.
 
 ## Observed failure and reduction
 
@@ -61,7 +73,7 @@ no-op would need a separate review.
 ## Validation contract
 
 Pushes to the diagnostic branch and the default manual mode (`reduced`) compile
-fresh, untouched pinned sources and run only two deterministic probe inputs once:
+fresh, untouched original baseline sources and run only two deterministic probe inputs once:
 credit before local Close must pass; the same credit after Close must fail with
 `message for unknown channel 1:1` from `VoxConnection.processInboundChannel`.
 The receipt records both real exit codes and `baseline-failure-reproduced` only
@@ -71,7 +83,7 @@ proves the reduced baseline bug; its success does not mean the runtime is fixed.
 It does not run or retry the full original test.
 
 The explicit manual `full` mode runs the full comparison once. The original job
-uses untouched pinned sources and remains failed when that test fails. The
+uses untouched original baseline sources and remains failed when that test fails. The
 candidate job applies only the proposed `VoxConnection.java` change, checks that
 the original test source is unchanged, and runs the same test plus each retained
 probe variant once. There are no retries or allowed failures.

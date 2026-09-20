@@ -1,4 +1,4 @@
-"""Diagnose the unchanged locked Vox Java test, without rebuilding Rust or SFM."""
+"""Replay the recorded original Vox Java failure without rebuilding Rust or SFM."""
 import argparse
 import hashlib
 import json
@@ -9,12 +9,19 @@ import subprocess
 import sys
 
 
+# This review baseline deliberately remains independent of SFM's current lock.
+# SFM now consumes the repaired revision, but replay needs the original inputs.
+BASELINE_REMOTE = "https://github.com/TeamDman/facet"
+BASELINE_REVISION = "f2afdece6c79e64085d2f8c047e22fe16b2c8c54"
+BASELINE_ARTIFACT_HASH = "blake3:4d1e88353f941be926fdf84f1dd8da9bd594b60f"
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("workspace", "scratch", "artifacts", "java-home"):
         parser.add_argument("--" + name, type=Path, required=True)
     parser.add_argument("--candidate", action="store_true",
-                        help="Apply the review candidate only to the disposable pinned source")
+                        help="Apply the review candidate only to the disposable original baseline")
     parser.add_argument("--reduced-only", action="store_true",
                         help="Reproduce baseline active/closed credit ordering without the full test")
     args = parser.parse_args()
@@ -58,18 +65,18 @@ def main():
         if len(candidates) != 1:
             raise RuntimeError("Expected exactly one locked vox-java/main artifact")
         artifact = candidates[0]
-        source = artifact["source_git"]
-        revision = source["commit"]
-        remote = source["remote_url"]
+        revision = BASELINE_REVISION
+        remote = BASELINE_REMOTE
         if not re.fullmatch(r"[0-9a-f]{40}", revision):
-            raise RuntimeError("Locked Vox source must name an immutable Git commit")
-        if remote.rstrip("/") != "https://github.com/TeamDman/facet":
-            raise RuntimeError("Diagnostic is restricted to the existing locked Facet repository")
+            raise RuntimeError("Recorded Vox baseline must name an immutable Git commit")
         receipt.update({"source_revision": revision, "source_remote": remote,
-                        "locked_artifact_hash": artifact["hash"],
+                        "recorded_baseline_artifact_hash": BASELINE_ARTIFACT_HASH,
+                        "current_sfm_locked_source_revision": artifact["source_git"]["commit"],
+                        "current_sfm_locked_artifact_hash": artifact["hash"],
                         "sfm_lock_sha256": hashlib.sha256(lock_bytes).hexdigest(),
                         "locale": {key: os.environ.get(key) for key in ("LANG", "LC_ALL")}})
-        # Transient materialization of the already-locked source; no developer clone or lock edits.
+        # The SFM lock above is evidence only. Fetch the immutable review baseline
+        # into fresh scratch, never a developer checkout or the SFM build cache.
         required(["git", "init", "source"], "git-init.log", 15)
         checkout = scratch / "source"
         required(["git", "remote", "add", "origin", remote], "git-remote.log", 15, cwd=checkout)
@@ -79,7 +86,7 @@ def main():
                  "git-checkout.log", 30, cwd=checkout)
         actual = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=checkout, text=True).strip()
         if actual != revision:
-            raise RuntimeError("Fetched source revision differs from the SFM lock")
+            raise RuntimeError("Fetched source revision differs from the recorded baseline")
 
         if args.candidate:
             patch = workspace / "containers/sfm/vox-diagnostic/credit-candidate.patch"

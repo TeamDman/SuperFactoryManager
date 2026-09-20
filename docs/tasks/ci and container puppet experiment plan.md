@@ -193,9 +193,13 @@ recorded without claiming a passing build.
 both real puppets during Docker image preparation, generating three title and
 eight world captures. The final check failed because it read the CLI progress
 log instead of the raw JVM console. `run.sh` now preserves the fresh per-puppet
-JVM log; the verifier requires exactly one successful completion and rejects
-failure markers. Nine focused verifier regressions pass, including misleading
-wrapper output, duplicate completion, missing images and failing process exits.
+JVM log; the verifier requires exactly one successful completion and exactly
+three title/eight world captures, and rejects failure markers. Eleven focused
+verifier regressions pass, including misleading wrapper output, duplicate
+completion, extra/duplicate captures, missing images and failing process exits.
+The host wrapper refuses nonempty artifact destinations without deleting their
+contents; a stub-Docker regression checks both rejection and fresh destinations.
+These evidence tests run in the workflow alongside the graphics probe.
 The next run must repeat both puppets after disabling networking and applying
 all runtime restrictions; preparation screenshots alone do not satisfy that.
 

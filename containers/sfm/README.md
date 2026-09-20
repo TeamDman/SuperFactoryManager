@@ -67,6 +67,7 @@ the pinned source recipe would otherwise mistake for unresolved dependencies.
 The Java launcher still records its own options notice in the game logs.
 [Java launcher options](https://docs.oracle.com/en/java/javase/17/docs/specs/man/java.html#using-the-jdk_java_options-launcher-environment-variable).
 
+The smoke script requires a new or empty output directory and refuses to merge with or delete earlier results.
 Evidence is copied to `build/container-smoke` even when the game fails:
 
 - `glxinfo.txt` and `isolation.txt`: actual renderer and runtime assertions.

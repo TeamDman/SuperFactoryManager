@@ -40,6 +40,11 @@ jobs:
             --file containers/sfm/Dockerfile --tag sfm-graphics:local . \
             2>&1 | tee build/graphics-probe/image-build.log
 
+      - name: Test fixture evidence validation
+        run: |
+          python3 -B -m unittest discover -s containers/sfm -p test_verify.py -v
+          bash containers/sfm/test_smoke.sh
+
       - name: Verify software OpenGL inside the restricted container
         timeout-minutes: 3
         run: |

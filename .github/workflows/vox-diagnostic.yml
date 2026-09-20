@@ -91,7 +91,7 @@ jobs:
             2>&1 | tee build/vox-diagnostic/jdk-install.log
           echo "SFM_DIAGNOSTIC_JAVA_HOME=$RUNNER_TEMP/vox-diagnostic-jdk" >> "$GITHUB_ENV"
 
-      - name: Compile locked Java sources and run the original test once
+      - name: Compile recorded baseline sources and run the original test once
         timeout-minutes: 10
         run: |
           python3 containers/sfm/vox-diagnostic.py \
