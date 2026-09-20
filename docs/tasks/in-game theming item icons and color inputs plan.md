@@ -12,6 +12,31 @@ layer should own syntax styles and programmatically drawn UI colours.
 This plan is client-local presentation work. Theme data must never change SFML
 program semantics, server state, action ids, file paths, or review decisions.
 
+## Contextual rule-authoring refinement — 2026-09-06
+
+[Contextual ItemStack preview rule authoring](contextual%20itemstack%20preview%20rule%20authoring%20plan.md)
+owns IPR-01–IPR-35/IPR-T0–T5 (including IPR-T3a), the authorized optional ER-S4 first slice of lazy-explorer
+X-8e. From a file icon, offer specific rule continuations for suffix, exact name,
+basename and prefixes, alongside a generic rule-add command with typed operator
+solicitation. Flatten explanations/inspection into individual contextual actions;
+the generic Customize icon shortcut is no longer the intended main entry point.
+IPR-T3a reuses captured entry details to export a user-shareable rule-generation
+prompt with the current operator/command contract and explicit destination theme.
+It omits the ItemStack catalogue; copying or obtaining a suggested command never
+changes preferences until the user explicitly submits a validated rule.
+
+The existing theme/picker UI remains available. IPR-G3/T4 now store versioned
+typed rules in the same TOML authority, preserve prior mappings/unrelated
+fields, and expose exact theme identity/revision, inherited vs user rules,
+reset, draft-only preview, atomic save/reload and stale-revision rejection.
+Completion alone never writes a preference. IPR-T0–T5/T3a are complete under
+ER-S4 of [Release review overnight readiness](release%20review%20overnight%20readiness%20plan.md):
+live authoring at GUI 2/4, separate-JVM theme hash equality, reset/legacy-map
+compatibility and protected-user-theme checks passed. The
+[rule guide](../contextual%20itemstack%20preview%20rules%20guide.md) explains the
+actual context-menu/picker/prompt flow. Broader asynchronous provider/cache work
+is still future work; this is not blanket completion of all theming ideas.
+
 ## Integration checkpoint — 2026-07-22
 
 Canonical `1.19.2` now contains the independently developed runtime-theme,

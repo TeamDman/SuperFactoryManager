@@ -34,6 +34,14 @@ public interface SFMPacketDaddy<T extends SFMPacket> {
             Supplier<NetworkEvent.Context> contextSupplier
     ) {
         SFMPacketHandlingContext context = new SFMPacketHandlingContext(contextSupplier);
+        if (!context.hasExpectedDirection(getPacketDirection())) {
+            SFM.LOGGER.warn(
+                    "Rejected {} received in the wrong network direction",
+                    getPacketClass().getSimpleName()
+            );
+            context.finish();
+            return;
+        }
         context.enqueueAndFinish(() -> {
             try {
                 handle(msg, context);

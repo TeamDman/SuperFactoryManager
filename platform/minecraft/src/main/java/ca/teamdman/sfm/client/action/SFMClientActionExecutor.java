@@ -23,6 +23,48 @@ public final class SFMClientActionExecutor {
             SFMClientActionContext context,
             Consumer<Component> feedback
     ) throws CommandSyntaxException {
-        return SFMClientActions.commandTree().execute(command, new SFMClientActionSource(context, feedback));
+        return execute(SFMClientActions.commandTree(), command, context, feedback, ignored -> {
+        });
+    }
+
+    public static int execute(
+            String command,
+            SFMClientActionContext context,
+            Consumer<Component> feedback,
+            Consumer<SFMClientActionStructuredResult> structuredResult
+    ) throws CommandSyntaxException {
+        return execute(SFMClientActions.commandTree(), command, context, feedback, structuredResult);
+    }
+
+    /**
+     * Executes against an explicit registered-action surface while preserving
+     * the same provenance scope as the global dispatcher.
+     */
+    public static int execute(
+            SFMClientActionCommandTree commandTree,
+            String command,
+            SFMClientActionContext context,
+            Consumer<Component> feedback
+    ) throws CommandSyntaxException {
+        return execute(commandTree, command, context, feedback, ignored -> {
+        });
+    }
+
+    public static int execute(
+            SFMClientActionCommandTree commandTree,
+            String command,
+            SFMClientActionContext context,
+            Consumer<Component> feedback,
+            Consumer<SFMClientActionStructuredResult> structuredResult
+    ) throws CommandSyntaxException {
+        java.util.Objects.requireNonNull(commandTree, "commandTree");
+        if (SFMClientActionInvocationTrace.current().isPresent()) {
+            return commandTree.execute(command, new SFMClientActionSource(context, feedback, structuredResult));
+        }
+        try (SFMClientActionInvocationTrace.Scope traceScope = SFMClientActionInvocationTrace.activate(
+                new SFMClientActionInvocationTrace.RegisteredActionProvenance(command)
+        )) {
+            return commandTree.execute(command, new SFMClientActionSource(context, feedback, structuredResult));
+        }
     }
 }

@@ -10,7 +10,11 @@ import java.util.Set;
 public final class SFMFileExplorerModel {
     public record VisibleEntry(SFMFileExplorerEntry entry, int depth) {}
 
-    public record OpenIntent(String sourceName, SFMFileExplorerEntry entry) {}
+    public record OpenIntent(String sourceName, SFMFileExplorerEntry entry, boolean focusPreview) {
+        public OpenIntent(String sourceName, SFMFileExplorerEntry entry) {
+            this(sourceName, entry, false);
+        }
+    }
 
     private SFMFileExplorerSource source;
     private final Set<String> expandedPaths = new HashSet<>();

@@ -47,28 +47,30 @@ class SFMWorkspacePanelIntentTests {
     }
 
     @Test
-    void linearDispatcherAppliesSideAndCloseButRejectsTabsExplicitly() {
+    void dispatcherAppliesStackOpenSideMoveAndClose() {
         SFMScreenPanel left = new SFMTestScreenPanel("left");
         SFMScreenPanel right = new SFMTestScreenPanel("right");
         SFMWorkspaceLayout layout = SFMWorkspaceLayout.sideBySide(left, right);
         SFMWorkspacePanelId source = layout.focusedPanel();
 
-        assertEquals(
-                SFMWorkspacePanelIntentResult.UNSUPPORTED,
-                SFMWorkspacePanelIntentDispatcher.apply(
-                        layout,
-                        source,
-                        new SFMWorkspacePanelIntent.OpenAsTab(new SFMTestScreenPanel("tab"))
-                ).result()
-        );
-        SFMWorkspacePanelIntentDispatcher.Outcome opened = SFMWorkspacePanelIntentDispatcher.apply(
+        SFMWorkspacePanelIntentDispatcher.Outcome tab = SFMWorkspacePanelIntentDispatcher.apply(
                 layout,
                 source,
+                new SFMWorkspacePanelIntent.OpenAsTab(new SFMTestScreenPanel("tab"))
+        );
+        assertEquals(SFMWorkspacePanelIntentResult.APPLIED, tab.result());
+        assertEquals(3, layout.panels().size());
+        assertEquals(2, layout.slotEntries(source).size());
+
+        SFMWorkspacePanelId sideSource = layout.focusedPanel();
+        SFMWorkspacePanelIntentDispatcher.Outcome opened = SFMWorkspacePanelIntentDispatcher.apply(
+                layout,
+                sideSource,
                 new SFMWorkspacePanelIntent.OpenToSide(SFMWorkspaceSide.RIGHT, new SFMTestScreenPanel("side"))
         );
         assertEquals(SFMWorkspacePanelIntentResult.APPLIED, opened.result());
         assertEquals(opened.inserted(), layout.focusedPanel());
-        assertEquals(3, layout.panels().size());
+        assertEquals(4, layout.panels().size());
 
         SFMWorkspacePanelIntentDispatcher.Outcome closed = SFMWorkspacePanelIntentDispatcher.apply(
                 layout,
@@ -77,8 +79,8 @@ class SFMWorkspacePanelIntentTests {
         );
         assertEquals(SFMWorkspacePanelIntentResult.APPLIED, closed.result());
         assertEquals(opened.inserted(), closed.removed());
-        assertEquals(2, layout.panels().size());
-        assertEquals(source, layout.focusedPanel());
+        assertEquals(3, layout.panels().size());
+        assertEquals(layout.visiblePanels().get(1).id(), layout.focusedPanel());
         assertEquals(
                 SFMWorkspacePanelIntentResult.UNAVAILABLE,
                 SFMWorkspacePanelIntentDispatcher.apply(
@@ -87,6 +89,52 @@ class SFMWorkspacePanelIntentTests {
                         new SFMWorkspacePanelIntent.Close()
                 ).result()
         );
+    }
+
+    @Test
+    void dispatcherMovesAnExactEntryIntoAnExactDestinationPane() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.sideBySide(
+                new SFMTestScreenPanel("left"),
+                new SFMTestScreenPanel("right")
+        );
+        SFMWorkspacePanelId source = layout.visiblePanels().get(0).id();
+        SFMWorkspacePanelId destination = layout.visiblePanels().get(1).id();
+
+        SFMWorkspacePanelIntentDispatcher.Outcome outcome =
+                SFMWorkspacePanelIntentDispatcher.apply(
+                        layout,
+                        source,
+                        new SFMWorkspacePanelIntent.MoveToStack(destination)
+                );
+
+        assertEquals(SFMWorkspacePanelIntentResult.APPLIED, outcome.result());
+        assertEquals(1, layout.visiblePanels().size());
+        assertEquals(2, layout.slotEntries(source).size());
+        assertEquals(layout.stackId(source), layout.stackId(destination));
+        assertEquals(source, layout.focusedPanel());
+    }
+
+    @Test
+    void movingBetweenEntriesAlreadyInOnePaneIsANonDestructiveNoOp() {
+        SFMWorkspaceLayout layout = SFMWorkspaceLayout.single(new SFMTestScreenPanel("first"));
+        SFMWorkspacePanelId first = layout.focusedPanel();
+        SFMWorkspacePanelId second = layout.pushToFocusedStack(
+                new SFMTestScreenPanel("second"),
+                SFMWorkspacePanelMetadata.ordinary()
+        );
+        long revision = layout.mutationRevision();
+
+        SFMWorkspacePanelIntentDispatcher.Outcome outcome =
+                SFMWorkspacePanelIntentDispatcher.apply(
+                        layout,
+                        first,
+                        new SFMWorkspacePanelIntent.MoveToStack(second)
+                );
+
+        assertEquals(SFMWorkspacePanelIntentResult.UNAVAILABLE, outcome.result());
+        assertEquals(2, layout.allPanels().size());
+        assertEquals(revision, layout.mutationRevision());
+        assertEquals(layout.stackId(first), layout.stackId(second));
     }
 
 }

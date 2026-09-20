@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.registry;
 
 import ca.teamdman.sfm.client.render.PrintingPressBlockEntityRenderer;
+import ca.teamdman.sfm.client.render.TouchDisplayBlockEntityRenderer;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.util.SFMDist;
@@ -12,6 +13,10 @@ public class SFMBlockEntityRenderers {
         event.registerBlockEntityRenderer(
                 SFMBlockEntities.PRINTING_PRESS.get(),
                 PrintingPressBlockEntityRenderer::new
+        );
+        event.registerBlockEntityRenderer(
+                SFMBlockEntities.TOUCH_DISPLAY.get(),
+                TouchDisplayBlockEntityRenderer::new
         );
     }
 }

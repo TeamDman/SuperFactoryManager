@@ -1,34 +1,124 @@
 package ca.teamdman.sfm.client.handler;
 
+import ca.teamdman.sfm.client.history.SFMDocumentHistoryInputRouting;
+import ca.teamdman.sfm.client.history.document.SFMDocumentHistoryContract;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingEngine;
+import ca.teamdman.sfm.client.keybinding.SFMKeyBindingMatchResult;
 import ca.teamdman.sfm.client.keybinding.SFMKeyBindingService;
 import ca.teamdman.sfm.client.keybinding.SFMKeyInputEvent;
 import ca.teamdman.sfm.client.keybinding.SFMKeyModifier;
+import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextSnapshot;
+import ca.teamdman.sfm.client.keybinding.SFMKeyboardUsageContextProvider;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMDist;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraftforge.client.event.InputEvent;
+import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.event.TickEvent;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
- * Adapts Forge's ordered raw keyboard callback to the replayable SFM matcher.
- * Unlike polling a {@code KeyMapping} once per tick, this seam preserves
- * press/release order and multiple transitions occurring during one tick.
+ * Matches dynamic bindings at Forge's cancellable pre-screen boundary.
+ * Raw input remains a compatibility path for explicit-global relationships
+ * while no GUI is open.
  */
 public final class SFMDynamicKeyBindingHandler {
-    private static long eventSequence;
     private static long clientTick;
     private static boolean windowFocused = true;
+    private static final Set<Integer> PRESSED_KEYS = new HashSet<>();
+    private static final Set<Integer> CONSUMED_KEYS = new HashSet<>();
+    private static final Set<Integer> CHARACTER_SUPPRESSION_KEYS = new HashSet<>();
+    private static final ThreadLocal<ScreenEventMarker> SCREEN_EVENT = new ThreadLocal<>();
+    private static @Nullable Screen activeInputScreen;
 
     private SFMDynamicKeyBindingHandler() {
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
+    @MCVersionDependentBehaviour
+    public static void onScreenKeyPressed(ScreenEvent.KeyPressed.Pre event) {
+        markScreenEvent(event.getKeyCode(), event.getScanCode(), false, event.getModifiers());
+        if (acceptScreenPress(
+                event.getScreen(),
+                event.getKeyCode(),
+                event.getScanCode(),
+                event.getModifiers())) {
+            event.setCanceled(true);
+        }
+    }
+
+    /**
+     * Mixin ingress for Vanilla's screenshot/fullscreen press paths, which
+     * return before Forge emits ScreenEvent/InputEvent on Minecraft 1.19.2.
+     */
+    @MCVersionDependentBehaviour
+    public static boolean onPreVanillaReservedKeyPressed(
+            @Nullable Screen screen,
+            int keyCode,
+            int scanCode,
+            int modifiers
+    ) {
+        return acceptScreenPress(screen, keyCode, scanCode, modifiers);
+    }
+
+    @SFMSubscribeEvent(value = SFMDist.CLIENT, receiveCanceled = true)
+    @MCVersionDependentBehaviour
+    public static void onScreenKeyReleased(ScreenEvent.KeyReleased.Pre event) {
+        markScreenEvent(event.getKeyCode(), event.getScanCode(), true, event.getModifiers());
+        synchronizeScreen(event.getScreen());
+        boolean consumed = CONSUMED_KEYS.contains(event.getKeyCode());
+        recordDocumentInput(
+                event.getScreen(),
+                SFMDocumentHistoryContract.RawEventKind.KEY_UP,
+                "forge-screen-key",
+                journalKeyCode(event.getKeyCode(), event.getScanCode()),
+                Optional.empty(),
+                event.getModifiers(),
+                consumed,
+                !consumed
+        );
+        PRESSED_KEYS.remove(event.getKeyCode());
+        CHARACTER_SUPPRESSION_KEYS.remove(event.getKeyCode());
+        if (CONSUMED_KEYS.remove(event.getKeyCode())) event.setCanceled(true);
+    }
+
+    @SFMSubscribeEvent(value = SFMDist.CLIENT, receiveCanceled = true)
+    @MCVersionDependentBehaviour
+    public static void onScreenCharacterTyped(ScreenEvent.CharacterTyped.Pre event) {
+        synchronizeScreen(event.getScreen());
+        boolean consumed = !CHARACTER_SUPPRESSION_KEYS.isEmpty();
+        String text = Character.toString(event.getCodePoint());
+        recordDocumentInput(
+                event.getScreen(),
+                SFMDocumentHistoryContract.RawEventKind.CHARACTER,
+                "forge-screen-character",
+                String.format("U+%04X", (int) event.getCodePoint()),
+                Optional.of(text),
+                event.getModifiers(),
+                consumed,
+                !consumed
+        );
+        if (consumed) event.setCanceled(true);
+    }
+
+    @SFMSubscribeEvent(value = SFMDist.CLIENT)
     public static void onKey(InputEvent.Key event) {
+        if (consumeScreenEvent(
+                event.getKey(),
+                event.getScanCode(),
+                event.getAction() == GLFW.GLFW_RELEASE,
+                event.getModifiers())) return;
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen != null) return;
+        synchronizeScreen(null);
         SFMKeyInputEvent.Type type = switch (event.getAction()) {
             case GLFW.GLFW_PRESS -> SFMKeyInputEvent.Type.PRESS;
             case GLFW.GLFW_RELEASE -> SFMKeyInputEvent.Type.RELEASE;
@@ -36,13 +126,23 @@ public final class SFMDynamicKeyBindingHandler {
             default -> null;
         };
         if (type == null) return;
-        SFMKeyBindingService.INSTANCE.accept(new SFMKeyInputEvent(
-                ++eventSequence,
-                clientTick,
+        if (type == SFMKeyInputEvent.Type.PRESS && !PRESSED_KEYS.add(event.getKey())) return;
+        if (type == SFMKeyInputEvent.Type.RELEASE) {
+            PRESSED_KEYS.remove(event.getKey());
+            CONSUMED_KEYS.remove(event.getKey());
+            CHARACTER_SUPPRESSION_KEYS.remove(event.getKey());
+        }
+        SFMKeyBindingMatchResult match = SFMKeyBindingService.INSTANCE.acceptKey(
                 event.getKey(),
                 type,
-                modifiers(event.getModifiers())
-        ));
+                modifiers(event.getModifiers()),
+                SFMKeyboardUsageContextSnapshot.global(
+                        null,
+                        () -> Minecraft.getInstance().screen == null));
+        if (type == SFMKeyInputEvent.Type.PRESS && match.consumed()) {
+            CONSUMED_KEYS.add(event.getKey());
+            CHARACTER_SUPPRESSION_KEYS.add(event.getKey());
+        }
     }
 
     @SFMSubscribeEvent(value = SFMDist.CLIENT)
@@ -50,13 +150,130 @@ public final class SFMDynamicKeyBindingHandler {
         if (event.phase != TickEvent.Phase.END) return;
         long window = Minecraft.getInstance().getWindow().getWindow();
         boolean focused = GLFW.glfwGetWindowAttrib(window, GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
+        if (windowFocused != focused) {
+            recordDocumentInput(
+                    Minecraft.getInstance().screen,
+                    SFMDocumentHistoryContract.RawEventKind.FOCUS,
+                    "glfw-window-focus",
+                    focused ? "gain" : "loss",
+                    Optional.empty(),
+                    0,
+                    false,
+                    true
+            );
+        }
         if (windowFocused && !focused) resetForFocusLoss();
         windowFocused = focused;
         SFMKeyBindingService.INSTANCE.advanceTime(++clientTick);
     }
 
     public static void resetForFocusLoss() {
+        PRESSED_KEYS.clear();
+        CONSUMED_KEYS.clear();
+        CHARACTER_SUPPRESSION_KEYS.clear();
         SFMKeyBindingService.INSTANCE.reset(SFMKeyBindingEngine.ResetReason.FOCUS_LOST);
+    }
+
+    static SFMKeyboardUsageContextSnapshot contextFor(@Nullable Screen screen) {
+        if (screen instanceof SFMKeyboardUsageContextProvider provider) {
+            return provider.keyboardUsageContextSnapshot();
+        }
+        return SFMKeyboardUsageContextSnapshot.global(
+                screen,
+                () -> Minecraft.getInstance().screen == screen);
+    }
+
+    private static boolean acceptScreenPress(
+            @Nullable Screen screen,
+            int keyCode,
+            int scanCode,
+            int modifierMask
+    ) {
+        synchronizeScreen(screen);
+        boolean firstPress = PRESSED_KEYS.add(keyCode);
+        if (CONSUMED_KEYS.contains(keyCode)) {
+            recordDocumentInput(
+                    screen,
+                    SFMDocumentHistoryContract.RawEventKind.KEY_REPEAT,
+                    "forge-screen-key",
+                    journalKeyCode(keyCode, scanCode),
+                    Optional.empty(),
+                    modifierMask,
+                    true,
+                    false
+            );
+            return true;
+        }
+        if (!firstPress) {
+            recordDocumentInput(
+                    screen,
+                    SFMDocumentHistoryContract.RawEventKind.KEY_REPEAT,
+                    "forge-screen-key",
+                    journalKeyCode(keyCode, scanCode),
+                    Optional.empty(),
+                    modifierMask,
+                    false,
+                    true
+            );
+            return false;
+        }
+        final SFMKeyBindingMatchResult[] observed = new SFMKeyBindingMatchResult[1];
+        SFMKeyBindingMatchResult match = SFMKeyBindingService.INSTANCE.acceptKey(
+                keyCode,
+                SFMKeyInputEvent.Type.PRESS,
+                modifiers(modifierMask),
+                contextFor(screen),
+                result -> {
+                    observed[0] = result;
+                    recordDocumentInput(
+                            screen,
+                            SFMDocumentHistoryContract.RawEventKind.KEY_DOWN,
+                            "forge-screen-key",
+                            journalKeyCode(keyCode, scanCode),
+                            Optional.empty(),
+                            modifierMask,
+                            result.consumed(),
+                            !result.consumed()
+                    );
+                });
+        if (observed[0] == null) {
+            // Dispatch can be suspended during keybinding capture. The raw
+            // event still belongs to the document journal.
+            recordDocumentInput(
+                    screen,
+                    SFMDocumentHistoryContract.RawEventKind.KEY_DOWN,
+                    "forge-screen-key",
+                    journalKeyCode(keyCode, scanCode),
+                    Optional.empty(),
+                    modifierMask,
+                    false,
+                    true
+            );
+        }
+        if (!match.consumed()) return false;
+        CONSUMED_KEYS.add(keyCode);
+        CHARACTER_SUPPRESSION_KEYS.add(keyCode);
+        return true;
+    }
+
+    private static void synchronizeScreen(@Nullable Screen screen) {
+        if (activeInputScreen == screen) return;
+        activeInputScreen = screen;
+        SFMKeyBindingService.INSTANCE.reset(SFMKeyBindingEngine.ResetReason.CONTEXT_CHANGED);
+    }
+
+    private static void markScreenEvent(int keyCode, int scanCode, boolean release, int modifiers) {
+        SCREEN_EVENT.set(new ScreenEventMarker(keyCode, scanCode, release, modifiers));
+    }
+
+    private static boolean consumeScreenEvent(int keyCode, int scanCode, boolean release, int modifiers) {
+        ScreenEventMarker marker = SCREEN_EVENT.get();
+        SCREEN_EVENT.remove();
+        return marker != null
+                && marker.keyCode == keyCode
+                && marker.scanCode == scanCode
+                && marker.release == release
+                && marker.modifiers == modifiers;
     }
 
     private static Set<SFMKeyModifier> modifiers(int mask) {
@@ -66,5 +283,35 @@ public final class SFMDynamicKeyBindingHandler {
         if ((mask & GLFW.GLFW_MOD_SHIFT) != 0) result.add(SFMKeyModifier.SHIFT);
         if ((mask & GLFW.GLFW_MOD_SUPER) != 0) result.add(SFMKeyModifier.SUPER);
         return result;
+    }
+
+    private static void recordDocumentInput(
+            @Nullable Screen screen,
+            SFMDocumentHistoryContract.RawEventKind kind,
+            String source,
+            String code,
+            Optional<String> text,
+            int modifiers,
+            boolean consumed,
+            boolean delivered
+    ) {
+        if (screen == null) return;
+        SFMDocumentHistoryInputRouting.resolve(screen).ifPresent(target -> target.recordDocumentRawInput(
+                clientTick,
+                kind,
+                source,
+                code,
+                text,
+                modifiers,
+                consumed,
+                delivered
+        ));
+    }
+
+    static String journalKeyCode(int keyCode, int scanCode) {
+        return "key=" + keyCode + ",scan=" + scanCode;
+    }
+
+    private record ScreenEventMarker(int keyCode, int scanCode, boolean release, int modifiers) {
     }
 }

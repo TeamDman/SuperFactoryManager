@@ -6,8 +6,15 @@ import java.lang.reflect.Method;
 public record SFMDiscoveredGamePuppet(
         String puppetName,
         Method method,
-        SFMGamePuppetViewportProfile viewportProfile
+        SFMGamePuppetViewportProfile viewportProfile,
+        int timeoutTicks
 ) {
+    public SFMDiscoveredGamePuppet {
+        if (timeoutTicks <= 0) {
+            throw new IllegalArgumentException("Game puppet timeoutTicks must be positive");
+        }
+    }
+
     public void declare(SFMGamePuppetHelper helper) {
         try {
             method.invoke(null, helper);

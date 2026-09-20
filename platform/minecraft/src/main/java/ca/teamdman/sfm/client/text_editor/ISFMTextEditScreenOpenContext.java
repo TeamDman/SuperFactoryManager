@@ -6,6 +6,7 @@ import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 
 public interface ISFMTextEditScreenOpenContext {
@@ -44,6 +45,16 @@ public interface ISFMTextEditScreenOpenContext {
         return false;
     }
 
+    /** Whether the editor must present the document without allowing edits. */
+    default boolean readOnly() {
+        return false;
+    }
+
+    /** Concrete document metadata when this editor was opened from a typed panel document. */
+    default Optional<SFMTextDocumentSnapshot> documentSnapshot() {
+        return Optional.empty();
+    }
+
     default void onTryClose(
             String latestContent,
             Runnable finalizeClose
@@ -75,10 +86,50 @@ public interface ISFMTextEditScreenOpenContext {
     }
 
     default void onSaveAndClose(String latestContent) {
-
-        saveWriter().accept(latestContent);
-        SFMScreenChangeHelpers.popScreen();
+        if (saveDocument(latestContent).saved()) SFMScreenChangeHelpers.popScreen();
     }
+
+    /**
+     * Typed save-and-close seam used by editors that need to render a rejected
+     * save diagnostic. Full-screen contexts retain their historical callback
+     * behavior; panel contexts override this to close only their own entry.
+     */
+    default SFMTextDocumentSaveResult trySaveAndClose(String latestContent) {
+        onSaveAndClose(latestContent);
+        return SFMTextDocumentSaveResult.success();
+    }
+
+    default SFMTextDocumentSaveResult saveDocument(String latestContent) {
+        try {
+            saveWriter().accept(latestContent);
+            return SFMTextDocumentSaveResult.success();
+        } catch (RuntimeException failure) {
+            String detail = failure.getMessage() == null
+                    ? failure.getClass().getSimpleName()
+                    : failure.getMessage();
+            return SFMTextDocumentSaveResult.rejected(
+                    net.minecraft.network.chat.Component.literal(detail)
+            );
+        }
+    }
+
+    default boolean asynchronousSave() { return false; }
+
+    default java.util.concurrent.CompletableFuture<SFMTextDocumentSaveResult> saveDocumentAsync(String content) {
+        return java.util.concurrent.CompletableFuture.completedFuture(saveDocument(content));
+    }
+
+    /** Whether Save-and-close may hand an accepted async operation to durable host feedback. */
+    default boolean detachSaveAndCloseAfterSubmission() { return false; }
+
+    /** Called on the client thread only after durable async success. */
+    default void documentSaved(String submittedText) { }
+
+    default void finishAsyncSaveClose() { SFMScreenChangeHelpers.popScreen(); }
+
+    default boolean saveHostIsCurrent() { return true; }
+
+    default boolean cancelPendingSave() { return false; }
 
     Consumer<String> saveWriter();
 

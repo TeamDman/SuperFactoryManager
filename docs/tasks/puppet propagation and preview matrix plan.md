@@ -2,7 +2,7 @@
 
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
-**Last updated:** 2026-07-16
+**Last updated:** 2026-08-23
 
 ## How to update this plan
 
@@ -108,6 +108,26 @@ documentation.
   publication workflow. It already specifies datagen, GameTest, unit-test,
   jar, Prism/dedicated-server, tagging, GitHub, CurseForge, Modrinth, and
   milestone-cleanup steps.
+
+### Viewport/control-surface extension recorded 2026-08-23
+
+The completed Phase 3.3 proves definition-owned **recommended evidence
+variants** and one-process matrix expansion. It does not imply that the finite
+matrix is also the complete set of exact viewports a responsive puppet may
+accept. The
+[puppet control surface and rich command arguments plan](puppet%20control%20surface%20and%20rich%20command%20arguments%20plan.md)
+owns PV-1/PV-2, which separate a versioned support constraint from finite
+declared/preferred evidence cells, audit all definitions, and prove the exact
+reported `2000x2000@4` ordinary-document-history run. This plan continues to
+own process launch, manifests, copied artifacts, and matrix composition.
+
+That extension also owns the development-only in-game puppet catalog and run
+journey. A live interactive run must produce the same viewport/artifact
+identity fields as a Rust-CLI bootstrap run, while retaining origin-specific
+lifecycle semantics: CLI bootstrap may complete/exit its process, whereas an
+interactive title-screen run restores the client and remains usable. Neither
+surface may invent a second artifact schema or silently widen a puppet's
+support claim.
 
 ## Confirmed constraints
 

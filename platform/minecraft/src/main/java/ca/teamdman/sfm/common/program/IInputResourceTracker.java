@@ -6,6 +6,18 @@ import ca.teamdman.sfml.ast.ResourceLimit;
 import net.minecraft.core.BlockPos;
 
 public interface IInputResourceTracker {
+    /**
+     * Create a transactional view for read-only resource observation.
+     *
+     * <p>The returned tracker begins from this tracker's current state, but
+     * retention and transfer progress recorded on it must not affect this
+     * tracker. One observation statement shares one such view across all slot
+     * handles that share this tracker.</p>
+     */
+    default IInputResourceTracker forkForObservation() {
+        return new ObservationInputResourceTracker(this);
+    }
+
     ResourceLimit getResourceLimit();
 
     ResourceIdSet getExclusions();

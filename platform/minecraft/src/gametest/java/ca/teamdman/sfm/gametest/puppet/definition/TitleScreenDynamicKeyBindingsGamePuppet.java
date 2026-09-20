@@ -6,7 +6,9 @@ import ca.teamdman.sfm.gametest.puppet.SFMGamePuppetHelper;
 import ca.teamdman.sfm.gametest.puppet.action.ShowDynamicKeyBindingPuppetAction;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.LoadingOverlay;
+import net.minecraft.client.gui.screens.controls.ControlsScreen;
 import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
 
 @SFMGamePuppet
 public final class TitleScreenDynamicKeyBindingsGamePuppet {
@@ -16,6 +18,13 @@ public final class TitleScreenDynamicKeyBindingsGamePuppet {
     public static void run(SFMGamePuppetHelper puppet) {
         puppet.waitForOverlayToNotBePresent(LoadingOverlay.class);
         puppet.waitTicks(20);
+        puppet.openCommandPalette();
+        puppet.executeCommandPaletteAndWaitForScreen(
+                "sfm action invoke sfm:minecraft/screen/open ControlsScreen",
+                ControlsScreen.class
+        );
+        puppet.capture("minecraft-controls-screen", caption("Minecraft Controls remains available as a separately named action."));
+        puppet.closeScreenNaturally();
         puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.SETUP);
         puppet.openCommandPalette();
         puppet.executeCommandPaletteAndWaitForScreen(
@@ -29,8 +38,15 @@ public final class TitleScreenDynamicKeyBindingsGamePuppet {
         puppet.capture("dynamic-bindings-palette-b", caption("The stable row cycles to the second shortcut after one second without reordering."));
         puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.DETAILS);
         puppet.capture("dynamic-bindings-details", caption("Action details shows availability, command drafts, every shortcut, and edit, disable, remove, and add controls."));
+        puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.RECORDING);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_H, GLFW.GLFW_MOD_CONTROL);
+        puppet.capture("dynamic-bindings-recording", caption("Recording a physical Ctrl+H sequence renders the captured stroke as an editable pink keycap."));
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.capture("dynamic-bindings-recording-cancelled", caption("Three Escapes within the capture window cancel recording without saving a binding."));
         puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.ACTIVATE_FIRST);
-        puppet.capture("dynamic-bindings-first-activation", caption("Ctrl+H invokes Manage SFM shortcuts through the shared contextual Brigadier executor."));
+        puppet.capture("dynamic-bindings-first-activation", caption("Ctrl+H invokes SFM Key Binds through the shared contextual Brigadier executor."));
         puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.ACTIVATE_SECOND);
         puppet.capture("dynamic-bindings-second-activation", caption("Ctrl+K Ctrl+H invokes the same manager action through that executor."));
         puppet.showDynamicKeyBindings(ShowDynamicKeyBindingPuppetAction.View.INCOMPLETE);

@@ -8,7 +8,11 @@
     "StructureTemplateManagerMixin"
   ],
   "client": [
-     "MouseHandlerMixin"
+    "EditBoxAccessor",
+    "MouseHandlerMixin",
+    "MouseHandlerInvoker",
+    "KeyboardHandlerMixin",
+    "KeyboardHandlerInvoker"
   ],
   "server": [],
   "injectors": {

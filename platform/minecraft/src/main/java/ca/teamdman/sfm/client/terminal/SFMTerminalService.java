@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.client.terminal;
 
-/** Portable service seam. A Vox implementation can replace the Java-local service later. */
+/** Portable service seam shared by the explicit Java REPL and Rust terminal scene. */
 public interface SFMTerminalService {
     SFMTerminalSession openSession();
 

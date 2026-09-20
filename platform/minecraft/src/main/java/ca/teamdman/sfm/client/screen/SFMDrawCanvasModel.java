@@ -1,15 +1,24 @@
 package ca.teamdman.sfm.client.screen;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 public class SFMDrawCanvasModel {
     public static final int PRIMARY_CURSOR_COLOR = 0xFFE6EDF3;
     public static final int SECONDARY_CURSOR_COLOR = 0xFF7DD3FC;
 
-    private final List<CanvasGlyph> glyphs = new ArrayList<>();
+    private final GlyphList glyphs = new GlyphList();
     private List<CanvasCursor> cursors = new ArrayList<>();
     private int focusedCursorIndex;
+    private long contentRevision;
+    private CachedDocumentIndex cachedDocumentIndex;
+    private long documentIndexBuildCount;
+    private long lastDocumentIndexBuildNanos;
 
     public SFMDrawCanvasModel() {
         ensureCursors();
@@ -17,6 +26,48 @@ public class SFMDrawCanvasModel {
 
     public List<CanvasGlyph> glyphs() {
         return glyphs;
+    }
+
+    public long contentRevision() {
+        return contentRevision;
+    }
+
+    /** Commit a prevalidated immutable geometry transaction with one revision change. */
+    public void replaceGlyphs(List<CanvasGlyph> replacement) {
+        List<CanvasGlyph> checked = List.copyOf(replacement);
+        glyphs.beginBulkChange();
+        try { glyphs.clear(); glyphs.addAll(checked); }
+        finally { glyphs.endBulkChange(); }
+    }
+
+    public SFMDrawCanvasDocumentIndex documentIndex(int spaceWidth, int lineHeight) {
+        int safeSpaceWidth = Math.max(1, spaceWidth);
+        int safeLineHeight = Math.max(1, lineHeight);
+        CachedDocumentIndex cached = cachedDocumentIndex;
+        if (cached == null
+                || cached.contentRevision() != contentRevision
+                || cached.spaceWidth() != safeSpaceWidth
+                || cached.lineHeight() != safeLineHeight) {
+            long started = System.nanoTime();
+            cached = new CachedDocumentIndex(
+                    contentRevision,
+                    safeSpaceWidth,
+                    safeLineHeight,
+                    SFMDrawCanvasDocumentIndex.build(glyphs, safeSpaceWidth, safeLineHeight)
+            );
+            cachedDocumentIndex = cached;
+            lastDocumentIndexBuildNanos = Math.max(0L, System.nanoTime() - started);
+            documentIndexBuildCount++;
+        }
+        return cached.index();
+    }
+
+    public long documentIndexBuildCount() {
+        return documentIndexBuildCount;
+    }
+
+    public long lastDocumentIndexBuildNanos() {
+        return lastDocumentIndexBuildNanos;
     }
 
     public List<CanvasCursor> cursors() {
@@ -91,6 +142,20 @@ public class SFMDrawCanvasModel {
         ensureCursors();
         cursors.add(new CanvasCursor(cursorCanvasX, cursorCanvasY, nextCursorColor(), true));
         focusedCursorIndex = cursors.size() - 1;
+        collapseDuplicateCursors();
+    }
+
+    /** Replaces the complete cursor/selection projection in one deterministic operation. */
+    public void replaceCursors(List<CursorPosition> positions) {
+        Objects.requireNonNull(positions, "positions");
+        cursors = new ArrayList<>();
+        for (CursorPosition position : positions) {
+            Objects.requireNonNull(position, "cursor position");
+            int color = cursors.isEmpty() ? PRIMARY_CURSOR_COLOR : nextCursorColor();
+            cursors.add(new CanvasCursor(position.x(), position.y(), color, true));
+        }
+        focusedCursorIndex = 0;
+        ensureCursors();
         collapseDuplicateCursors();
     }
 
@@ -218,9 +283,11 @@ public class SFMDrawCanvasModel {
             double insertionX = insertionXForCursor(cursor, lineHeight);
             cursor.set(insertionX, lineY);
             shiftLineContentAndCursorsAtOrAfter(lineY, insertionX, width, cursor);
-            if (!" ".equals(text)) {
-                glyphs.add(new CanvasGlyph(text, cursor.x(), cursor.y(), width));
-            }
+            // Spatial gaps still project as inferred spaces, but an explicitly
+            // entered space must remain an addressable document glyph. Without
+            // it, trailing spaces disappear until a later visible glyph reveals
+            // the gap, which makes saves and immutable undo revisions lossy.
+            glyphs.add(new CanvasGlyph(text, cursor.x(), cursor.y(), width));
             cursor.move(width, 0.0D);
         }
         collapseDuplicateCursors();
@@ -242,6 +309,43 @@ public class SFMDrawCanvasModel {
                 String glyphText = Character.toString(c);
                 typeGlyph(glyphText, glyphWidthReader.width(glyphText), lineHeight);
             }
+        }
+    }
+
+    /** Linear cold-load path used when replacing the complete document. */
+    public void replaceText(
+            String text,
+            GlyphWidthReader glyphWidthReader,
+            int lineHeight
+    ) {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(glyphWidthReader, "glyphWidthReader");
+        int safeLineHeight = Math.max(1, lineHeight);
+        glyphs.beginBulkChange();
+        try {
+            glyphs.clear();
+            glyphs.ensureCapacity(text.codePointCount(0, text.length()));
+            double x = 0.0D;
+            double y = 0.0D;
+            for (int offset = 0; offset < text.length(); ) {
+                int codePoint = text.codePointAt(offset);
+                offset += Character.charCount(codePoint);
+                if (codePoint == '\r') continue;
+                if (codePoint == '\n') {
+                    x = 0.0D;
+                    y += safeLineHeight;
+                    continue;
+                }
+                String glyphText = new String(Character.toChars(codePoint));
+                int width = glyphWidthReader.width(glyphText);
+                glyphs.add(new CanvasGlyph(glyphText, x, y, width));
+                x += width;
+            }
+            cursors = new ArrayList<>();
+            cursors.add(new CanvasCursor(x, y, PRIMARY_CURSOR_COLOR, true));
+            focusedCursorIndex = 0;
+        } finally {
+            glyphs.endBulkChange();
         }
     }
 
@@ -282,9 +386,7 @@ public class SFMDrawCanvasModel {
             int spaceWidth,
             int lineHeight
     ) {
-        return SFMDrawCanvasSyntaxHighlightingHelper
-                .projectCanvasDocument(glyphs, spaceWidth, lineHeight)
-                .text();
+        return documentIndex(spaceWidth, lineHeight).projection().text();
     }
 
     public void backspace() {
@@ -304,11 +406,7 @@ public class SFMDrawCanvasModel {
 
     public void deleteLeft(int lineHeight) {
         List<CanvasCursor> active = activeCursorsSnapshot();
-        if (active.size() <= 1) {
-            applyToActiveCursors(() -> deleteLeftFocused(lineHeight));
-            return;
-        }
-        deleteNearestGlyphsTransactionally(active, false);
+        deleteDirectionalTransactionally(active, false, lineHeight);
     }
 
     public void deleteNearestAndMoveRight() {
@@ -317,19 +415,15 @@ public class SFMDrawCanvasModel {
 
     public void deleteNearestAndMoveRight(int lineHeight) {
         List<CanvasCursor> active = activeCursorsSnapshot();
-        if (active.size() <= 1) {
-            applyToActiveCursors(() -> deleteNearestAndMoveRightFocused(lineHeight));
-            return;
-        }
-        deleteNearestGlyphsTransactionally(active, true);
+        deleteDirectionalTransactionally(active, true, lineHeight);
     }
 
     public void deleteLeftWord(int lineHeight) {
-        deleteNearestWordTransactionally(false);
+        deleteNearestWordTransactionally(false, lineHeight);
     }
 
     public void deleteRightWord(int lineHeight) {
-        deleteNearestWordTransactionally(true);
+        deleteNearestWordTransactionally(true, lineHeight);
     }
 
     public void moveCursorLeft() {
@@ -482,70 +576,6 @@ public class SFMDrawCanvasModel {
         collapseDuplicateCursors();
     }
 
-    private void deleteLeftFocused(int lineHeight) {
-        if (glyphs.isEmpty()) {
-            return;
-        }
-        if (glyphsOnVisualLine(cursorCanvasY(), lineHeight).isEmpty()) {
-            if (deleteBlankLineBeforeCursor(lineHeight)) {
-                return;
-            }
-            CanvasGlyph previousLineLast = rightMostGlyphOnPreviousLine(cursorCanvasY());
-            if (previousLineLast != null) {
-                deleteTargetsTransactionally(List.of(new CursorTarget(focusedCursor(), previousLineLast)), false);
-            }
-            return;
-        }
-        CanvasGlyph deleted = nearestGlyph();
-        if (deleted != null) {
-            deleteTargetsTransactionally(List.of(new CursorTarget(focusedCursor(), deleted)), false);
-        }
-    }
-
-    private boolean deleteBlankLineBeforeCursor(int lineHeight) {
-        int safeLineHeight = Math.max(1, lineHeight);
-        Double previousY = previousGlyphRow(cursorCanvasY());
-        Double nextY = nextGlyphRow(cursorCanvasY());
-        if (previousY == null || nextY == null) {
-            return false;
-        }
-        if (cursorCanvasY() - previousY < safeLineHeight || nextY - cursorCanvasY() < safeLineHeight) {
-            return false;
-        }
-
-        double originalCursorY = cursorCanvasY();
-        moveGlyphRowsAtOrBelow(originalCursorY, -safeLineHeight);
-        for (CanvasCursor cursor : cursors) {
-            if (cursor != focusedCursor() && cursor.y() >= originalCursorY) {
-                cursor.setY(cursor.y() - safeLineHeight);
-            }
-        }
-        if (originalCursorY - previousY > safeLineHeight) {
-            focusedCursor().setY(originalCursorY - safeLineHeight);
-        } else {
-            moveCursorToEndOfLine(glyphsOnLine(previousY));
-        }
-        collapseDuplicateCursors();
-        return true;
-    }
-
-    private void moveGlyphRowsAtOrBelow(
-            double y,
-            double deltaY
-    ) {
-        List<CanvasGlyph> movedGlyphs = new ArrayList<>();
-        for (CanvasGlyph glyph : glyphs) {
-            movedGlyphs.add(new CanvasGlyph(
-                    glyph.text(),
-                    glyph.x(),
-                    glyph.y() >= y ? glyph.y() + deltaY : glyph.y(),
-                    glyph.width()
-            ));
-        }
-        glyphs.clear();
-        glyphs.addAll(movedGlyphs);
-    }
-
     private double visualLineYForCursor(
             CanvasCursor cursor,
             int lineHeight
@@ -615,37 +645,6 @@ public class SFMDrawCanvasModel {
             }
         }
         return removedWidth;
-    }
-
-    private void deleteNearestAndMoveRightFocused(int lineHeight) {
-        if (glyphs.isEmpty()) {
-            return;
-        }
-        if (deleteBlankLineAfterCursor(lineHeight)) {
-            return;
-        }
-        CanvasGlyph deleted = nearestGlyph();
-        if (deleted == null) {
-            return;
-        }
-        deleteTargetsTransactionally(List.of(new CursorTarget(focusedCursor(), deleted)), true);
-    }
-
-    private boolean deleteBlankLineAfterCursor(int lineHeight) {
-        int safeLineHeight = Math.max(1, lineHeight);
-        double currentY = currentOrPreviousGlyphRow(cursorCanvasY());
-        Double nextY = nextGlyphRow(currentY);
-        if (nextY == null || nextY - currentY <= safeLineHeight) {
-            return false;
-        }
-        moveGlyphRowsAtOrBelow(currentY + safeLineHeight * 2.0D, -safeLineHeight);
-        for (CanvasCursor cursor : cursors) {
-            if (cursor != focusedCursor() && cursor.y() >= currentY + safeLineHeight * 2.0D) {
-                cursor.setY(cursor.y() - safeLineHeight);
-            }
-        }
-        collapseDuplicateCursors();
-        return true;
     }
 
     private void moveCursorLeftFocused(
@@ -730,10 +729,13 @@ public class SFMDrawCanvasModel {
             int lineHeight,
             int spaceWidth
     ) {
+        List<CanvasGlyph> line = glyphsOnLine(cursor.y());
         CanvasGlyph target = glyphAt(cursor, lineHeight);
-        if (target == null) {
-            target = rightMostGlyphBefore(glyphsOnLine(cursor.y()), cursor.x());
+        if (target != null && Double.compare(cursor.x(), target.x()) == 0) {
+            target = previousGlyph(line, target);
         }
+        if (target == null) target = rightMostGlyphBefore(line, cursor.x());
+        target = skipWhitespace(line, target, -1);
         if (target == null) {
             return leftTarget(cursor, lineHeight, spaceWidth);
         }
@@ -758,10 +760,10 @@ public class SFMDrawCanvasModel {
             int lineHeight,
             int spaceWidth
     ) {
+        List<CanvasGlyph> line = glyphsOnLine(cursor.y());
         CanvasGlyph target = glyphAt(cursor, lineHeight);
-        if (target == null) {
-            target = leftMostGlyphAtOrAfter(glyphsOnLine(cursor.y()), cursor.x());
-        }
+        if (target == null) target = leftMostGlyphAtOrAfter(line, cursor.x());
+        target = skipWhitespace(line, target, 1);
         if (target == null) {
             return rightTarget(cursor, spaceWidth);
         }
@@ -961,19 +963,120 @@ public class SFMDrawCanvasModel {
         return lineStartX == null ? java.util.OptionalDouble.empty() : java.util.OptionalDouble.of(lineStartX);
     }
 
-    private void deleteNearestGlyphsTransactionally(
+    private void deleteDirectionalTransactionally(
             List<CanvasCursor> active,
-            boolean moveRight
+            boolean deleteForward,
+            int lineHeight
     ) {
+        int safeLineHeight = Math.max(1, lineHeight);
+        // Ctrl+A and occurrence selection use one in-glyph cursor per selected glyph. Preserve
+        // that established selection contract while treating ordinary cursors as insertion
+        // points with directional Backspace/Delete semantics.
+        List<CanvasGlyph> selected = selectedGlyphs(safeLineHeight);
+        if (active.size() > 1 && selected.size() == glyphs.size()) {
+            List<CursorTarget> selectedTargets = new ArrayList<>(selected.size());
+            for (CanvasGlyph glyph : selected) {
+                CanvasCursor cursor = uniqueCursorInGlyphBounds(glyph, safeLineHeight);
+                if (cursor != null && cursor.active()) {
+                    selectedTargets.add(new CursorTarget(cursor, glyph));
+                }
+            }
+            deleteTargetsTransactionally(selectedTargets, deleteForward);
+            return;
+        }
+
         List<CursorTarget> cursorTargets = new ArrayList<>();
+        List<Double> lineBreakRows = new ArrayList<>();
         for (CanvasCursor cursor : active) {
-            CanvasGlyph target = nearestGlyph(cursor);
-            if (target == null) {
+            List<CanvasGlyph> line = glyphsOnVisualLine(cursor.y(), safeLineHeight);
+            double lineY = line.isEmpty() ? cursor.y() : line.get(0).y();
+            CanvasGlyph containing = glyphContainingX(line, cursor.x());
+            double insertionX = containing == null ? cursor.x() : containing.x();
+            CanvasGlyph target = deleteForward
+                                 ? leftMostGlyphAtOrAfter(line, insertionX)
+                                 : rightMostGlyphBefore(line, insertionX);
+            if (target != null) {
+                cursorTargets.add(new CursorTarget(cursor, target));
                 continue;
             }
-            cursorTargets.add(new CursorTarget(cursor, target));
+
+            Double lineBreakRow = deleteForward
+                                  ? lineBreakAfter(lineY, safeLineHeight)
+                                  : lineBreakBefore(lineY);
+            if (lineBreakRow != null && !lineBreakRows.contains(lineBreakRow)) {
+                lineBreakRows.add(lineBreakRow);
+            }
         }
-        deleteTargetsTransactionally(cursorTargets, moveRight);
+        deleteTargetsTransactionally(cursorTargets, deleteForward);
+        lineBreakRows.sort(Comparator.reverseOrder());
+        for (double lineBreakRow : lineBreakRows) {
+            removeLineBreak(lineBreakRow, safeLineHeight);
+        }
+        collapseDuplicateCursors();
+    }
+
+    private Double lineBreakBefore(double lineY) {
+        return previousGlyphRow(lineY) == null ? null : lineY;
+    }
+
+    private Double lineBreakAfter(
+            double lineY,
+            int lineHeight
+    ) {
+        Double nextY = nextGlyphRow(lineY);
+        return nextY == null ? null : lineY + lineHeight;
+    }
+
+    /**
+     * Removes the logical newline immediately before {@code lowerLineY}.
+     *
+     * <p>Rows are the document's newline authority: an empty line is represented by a gap between
+     * glyph rows (or by a cursor on a trailing row). Removing one newline therefore shifts every
+     * later row up once. Content on the immediately lower row is appended to the upper row while
+     * preserving its indentation, which gives Backspace-at-line-start and Delete-at-line-end their
+     * normal text-editor join semantics.</p>
+     */
+    private void removeLineBreak(
+            double lowerLineY,
+            int lineHeight
+    ) {
+        double upperLineY = lowerLineY - lineHeight;
+        List<CanvasGlyph> upperLine = glyphsOnLine(upperLineY);
+        boolean lowerLineHasContent = !glyphsOnLine(lowerLineY).isEmpty();
+        double upperLineEndX = upperLine.isEmpty()
+                               ? 0.0D
+                               : upperLine.get(upperLine.size() - 1).x()
+                                 + upperLine.get(upperLine.size() - 1).width();
+
+        List<CanvasGlyph> movedGlyphs = new ArrayList<>(glyphs.size());
+        for (CanvasGlyph glyph : glyphs) {
+            if (Double.compare(glyph.y(), lowerLineY) == 0) {
+                movedGlyphs.add(new CanvasGlyph(
+                        glyph.text(),
+                        glyph.x() + upperLineEndX,
+                        upperLineY,
+                        glyph.width()
+                ));
+            } else if (glyph.y() > lowerLineY) {
+                movedGlyphs.add(new CanvasGlyph(
+                        glyph.text(),
+                        glyph.x(),
+                        glyph.y() - lineHeight,
+                        glyph.width()
+                ));
+            } else {
+                movedGlyphs.add(glyph);
+            }
+        }
+        replaceGlyphs(movedGlyphs);
+
+        for (CanvasCursor cursor : cursors) {
+            if (Double.compare(cursor.y(), lowerLineY) == 0) {
+                cursor.set(lowerLineHasContent ? cursor.x() + upperLineEndX : upperLineEndX, upperLineY);
+            } else if (cursor.y() > lowerLineY) {
+                cursor.setY(cursor.y() - lineHeight);
+            }
+        }
     }
 
     private void deleteTargetsTransactionally(
@@ -994,11 +1097,6 @@ public class SFMDrawCanvasModel {
                     cursorTarget.cursor().set(right.x(), right.y());
                     continue;
                 }
-                CanvasGlyph nextLineFirst = firstGlyphOnNextLine(target.y(), targets);
-                if (nextLineFirst != null) {
-                    cursorTarget.cursor().set(nextLineFirst.x(), nextLineFirst.y());
-                    continue;
-                }
             }
             cursorTarget.cursor().set(target.x(), target.y());
         }
@@ -1008,15 +1106,11 @@ public class SFMDrawCanvasModel {
         collapseDuplicateCursors();
     }
 
-    private void deleteNearestWordTransactionally(boolean moveRight) {
+    private void deleteNearestWordTransactionally(boolean moveRight, int lineHeight) {
         List<WordCursorTarget> wordTargets = new ArrayList<>();
         List<CanvasGlyph> targets = new ArrayList<>();
         for (CanvasCursor cursor : activeCursorsSnapshot()) {
-            CanvasGlyph nearest = nearestGlyph(cursor);
-            if (nearest == null) {
-                continue;
-            }
-            List<CanvasGlyph> run = contiguousGlyphRun(nearest);
+            List<CanvasGlyph> run = directionalWordDeletionRun(cursor, moveRight, lineHeight);
             if (run.isEmpty()) {
                 continue;
             }
@@ -1551,20 +1645,96 @@ public class SFMDrawCanvasModel {
         if (targetIndex == -1) {
             return List.of();
         }
-        boolean word = isWordGlyph(target);
+        GlyphClass glyphClass = glyphClass(target);
         int start = targetIndex;
         while (start > 0
-               && isWordGlyph(line.get(start - 1)) == word
+               && belongsToSameContiguousRun(line.get(start - 1), line.get(start), glyphClass)
                && glyphsTouch(line.get(start - 1), line.get(start))) {
             start--;
         }
         int end = targetIndex;
         while (end < line.size() - 1
-               && isWordGlyph(line.get(end + 1)) == word
+               && belongsToSameContiguousRun(line.get(end), line.get(end + 1), glyphClass)
                && glyphsTouch(line.get(end), line.get(end + 1))) {
             end++;
         }
         return new ArrayList<>(line.subList(start, end + 1));
+    }
+
+    private boolean belongsToSameContiguousRun(
+            CanvasGlyph left,
+            CanvasGlyph right,
+            GlyphClass expectedClass
+    ) {
+        if (expectedClass == GlyphClass.NAVIGATION_SEPARATOR) {
+            return false;
+        }
+        return glyphClass(left) == expectedClass && glyphClass(right) == expectedClass;
+    }
+
+    /**
+     * Chooses the directional Ctrl+Backspace/Delete unit. Explicit whitespace
+     * glyphs are document content, but they are a bridge to the adjacent word
+     * or punctuation run rather than a one-character "word" of their own.
+     */
+    private List<CanvasGlyph> directionalWordDeletionRun(
+            CanvasCursor cursor,
+            boolean moveRight,
+            int lineHeight
+    ) {
+        List<CanvasGlyph> line = glyphsOnLine(cursor.y());
+        if (line.isEmpty()) {
+            CanvasGlyph nearest = nearestGlyph(cursor);
+            if (nearest == null) return List.of();
+            line = glyphsOnLine(nearest.y());
+        }
+
+        CanvasGlyph target;
+        if (moveRight) {
+            target = glyphAt(cursor, lineHeight);
+            if (target == null) target = leftMostGlyphAtOrAfter(line, cursor.x());
+        } else {
+            target = glyphAt(cursor, lineHeight);
+            if (target != null && Double.compare(cursor.x(), target.x()) == 0) {
+                target = previousGlyph(line, target);
+            }
+            if (target == null) target = rightMostGlyphBefore(line, cursor.x());
+        }
+        if (target == null) return List.of();
+
+        ArrayList<CanvasGlyph> selected = new ArrayList<>();
+        List<CanvasGlyph> firstRun = contiguousGlyphRun(target);
+        selected.addAll(firstRun);
+        if (glyphClass(target) != GlyphClass.WHITESPACE) return selected;
+
+        CanvasGlyph adjacent = moveRight
+                               ? nextGlyph(line, firstRun.get(firstRun.size() - 1))
+                               : previousGlyph(line, firstRun.get(0));
+        if (adjacent != null) {
+            for (CanvasGlyph glyph : contiguousGlyphRun(adjacent)) {
+                if (!selected.contains(glyph)) selected.add(glyph);
+            }
+        }
+        selected.sort(Comparator.comparingDouble(CanvasGlyph::x));
+        return selected;
+    }
+
+    private CanvasGlyph skipWhitespace(List<CanvasGlyph> line, CanvasGlyph target, int direction) {
+        CanvasGlyph current = target;
+        while (current != null && glyphClass(current) == GlyphClass.WHITESPACE) {
+            current = direction < 0 ? previousGlyph(line, current) : nextGlyph(line, current);
+        }
+        return current;
+    }
+
+    private CanvasGlyph previousGlyph(List<CanvasGlyph> line, CanvasGlyph glyph) {
+        int index = line.indexOf(glyph);
+        return index > 0 ? line.get(index - 1) : null;
+    }
+
+    private CanvasGlyph nextGlyph(List<CanvasGlyph> line, CanvasGlyph glyph) {
+        int index = line.indexOf(glyph);
+        return index >= 0 && index + 1 < line.size() ? line.get(index + 1) : null;
     }
 
     private boolean glyphsTouch(
@@ -1574,12 +1744,22 @@ public class SFMDrawCanvasModel {
         return Double.compare(left.x() + left.width(), right.x()) == 0;
     }
 
-    private boolean isWordGlyph(CanvasGlyph glyph) {
+    private GlyphClass glyphClass(CanvasGlyph glyph) {
         if (glyph.text().isEmpty()) {
-            return false;
+            return GlyphClass.PUNCTUATION;
         }
         int codePoint = glyph.text().codePointAt(0);
-        return Character.isLetterOrDigit(codePoint) || codePoint == '_';
+        if (Character.isWhitespace(codePoint)) return GlyphClass.WHITESPACE;
+        if (Character.isLetterOrDigit(codePoint) || codePoint == '_') return GlyphClass.WORD;
+        if (codePoint == ':' || codePoint == '/' || codePoint == '-') return GlyphClass.NAVIGATION_SEPARATOR;
+        return GlyphClass.PUNCTUATION;
+    }
+
+    private enum GlyphClass {
+        WORD,
+        WHITESPACE,
+        NAVIGATION_SEPARATOR,
+        PUNCTUATION
     }
 
     private Double previousGlyphRow(double y) {
@@ -1704,6 +1884,14 @@ public class SFMDrawCanvasModel {
     ) {
     }
 
+    private record CachedDocumentIndex(
+            long contentRevision,
+            int spaceWidth,
+            int lineHeight,
+            SFMDrawCanvasDocumentIndex index
+    ) {
+    }
+
     private record CursorTarget(
             CanvasCursor cursor,
             CanvasGlyph target
@@ -1801,11 +1989,138 @@ public class SFMDrawCanvasModel {
         }
     }
 
+    public record CursorPosition(double x, double y) {
+        public CursorPosition {
+            if (!Double.isFinite(x) || !Double.isFinite(y)) {
+                throw new IllegalArgumentException("Cursor coordinates must be finite");
+            }
+        }
+    }
+
     private interface CursorOperation {
         void apply();
     }
 
     public interface GlyphWidthReader {
         int width(String text);
+    }
+
+    /** ArrayList-compatible legacy surface that also invalidates derived state. */
+    private final class GlyphList extends ArrayList<CanvasGlyph> {
+        private int bulkDepth;
+        private boolean bulkChanged;
+
+        private void beginBulkChange() {
+            bulkDepth++;
+        }
+
+        private void endBulkChange() {
+            if (bulkDepth <= 0) throw new IllegalStateException("Unbalanced glyph bulk change");
+            bulkDepth--;
+            if (bulkDepth == 0 && bulkChanged) {
+                bulkChanged = false;
+                markContentChanged();
+            }
+        }
+
+        private void changed() {
+            if (bulkDepth > 0) bulkChanged = true;
+            else markContentChanged();
+        }
+
+        @Override
+        public boolean add(CanvasGlyph glyph) {
+            boolean changed = super.add(glyph);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public void add(int index, CanvasGlyph element) {
+            super.add(index, element);
+            changed();
+        }
+
+        @Override
+        public boolean addAll(Collection<? extends CanvasGlyph> values) {
+            boolean changed = super.addAll(values);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public boolean addAll(int index, Collection<? extends CanvasGlyph> values) {
+            boolean changed = super.addAll(index, values);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public CanvasGlyph remove(int index) {
+            CanvasGlyph removed = super.remove(index);
+            changed();
+            return removed;
+        }
+
+        @Override
+        public boolean remove(Object value) {
+            boolean changed = super.remove(value);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public boolean removeAll(Collection<?> values) {
+            boolean changed = super.removeAll(values);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public boolean retainAll(Collection<?> values) {
+            boolean changed = super.retainAll(values);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public boolean removeIf(Predicate<? super CanvasGlyph> filter) {
+            boolean changed = super.removeIf(filter);
+            if (changed) changed();
+            return changed;
+        }
+
+        @Override
+        public void clear() {
+            if (isEmpty()) return;
+            super.clear();
+            changed();
+        }
+
+        @Override
+        public CanvasGlyph set(int index, CanvasGlyph element) {
+            CanvasGlyph previous = super.set(index, element);
+            if (previous != element) changed();
+            return previous;
+        }
+
+        @Override
+        public void replaceAll(UnaryOperator<CanvasGlyph> operator) {
+            if (isEmpty()) return;
+            super.replaceAll(operator);
+            changed();
+        }
+
+        @Override
+        public void sort(Comparator<? super CanvasGlyph> comparator) {
+            if (size() <= 1) return;
+            super.sort(comparator);
+            changed();
+        }
+    }
+
+    private void markContentChanged() {
+        contentRevision = contentRevision == Long.MAX_VALUE ? contentRevision : contentRevision + 1;
+        cachedDocumentIndex = null;
     }
 }

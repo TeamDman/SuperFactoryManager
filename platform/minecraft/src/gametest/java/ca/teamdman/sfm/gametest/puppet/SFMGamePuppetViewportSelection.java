@@ -29,7 +29,7 @@ public record SFMGamePuppetViewportSelection(Kind kind, SFMGamePuppetViewportVar
         }
         if (kind == Kind.PREFERRED) return List.of(profile.preferred());
         if (kind == Kind.EXACT) {
-            boolean sizeSupported = profile.requestedSizes().stream().anyMatch(size -> size[0] == exact.width() && size[1] == exact.height());
+            boolean sizeSupported = profile.acceptedExactSizes().stream().anyMatch(size -> size[0] == exact.width() && size[1] == exact.height());
             if (!sizeSupported) throw new IllegalArgumentException("Viewport " + exact.id() + " is not supported by profile " + profile);
             return List.of(exact);
         }

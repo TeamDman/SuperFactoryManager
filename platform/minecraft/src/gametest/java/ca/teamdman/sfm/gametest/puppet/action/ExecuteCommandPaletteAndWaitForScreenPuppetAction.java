@@ -9,6 +9,7 @@ public final class ExecuteCommandPaletteAndWaitForScreenPuppetAction implements 
     private final String command;
     private final Class<?> expectedScreen;
     private boolean requested;
+    private boolean inputSet;
     private int ticks;
 
     public ExecuteCommandPaletteAndWaitForScreenPuppetAction(
@@ -37,8 +38,16 @@ public final class ExecuteCommandPaletteAndWaitForScreenPuppetAction implements 
                 }
                 return false;
             }
-            requested = true;
-            runtime.executeCommandPalette(command);
+            if (!inputSet) {
+                inputSet = true;
+                runtime.setCommandPaletteInput(command);
+                return false;
+            }
+            if (!requested) {
+                if (++ticks <= SFMGamePuppetHelper.COMMAND_PALETTE_OBSERVATION_TICKS) return false;
+                requested = true;
+                runtime.submitCommandPalette();
+            }
             if (runtime.isScreen(expectedScreen)) return true;
         }
         if (++ticks > SFMGamePuppetHelper.SCREEN_TIMEOUT_TICKS) {

@@ -415,7 +415,7 @@ public class OutputStatement implements IOStatement {
     }
 
     /**
-     * Input slots are freed when the input statement falls out of scope, see: {@link InputStatement#freeSlots()}
+     * Input slots are freed when their source falls out of scope, see: {@link ProgramInputSource#free()}
      * <p/>
      * Output slots are freed immediately once done in this method.
      */
@@ -437,11 +437,11 @@ public class OutputStatement implements IOStatement {
              INPUT SLOTS
            ################ */
 
-        // gather the input slots from all the input statements, +27 to hopefully avoid resizing
+        // gather the input slots from all active input sources, +27 to hopefully avoid resizing
         //noinspection rawtypes
         ArrayDeque<LimitedInputSlot> inputSlots = new ArrayDeque<>(lastInputCapacity + 27);
-        for (var inputStatement : context.getInputs()) {
-            inputStatement.gatherSlots(context, inputSlots::add);
+        for (var inputSource : context.getInputs()) {
+            inputSource.gatherSlots(context, inputSlots::add);
         }
 
         // Update allocation hint
@@ -697,6 +697,16 @@ public class OutputStatement implements IOStatement {
     ) {
 
         report.append("Slot: ").append(slot.getSlot()).append("\n");
+        if (slot instanceof LimitedInputSlot<?, ?, ?> inputSlot && inputSlot.isGeneratedSource()) {
+            report.append("Source: ").append(inputSlot.getGeneratedSourceDescription()).append("\n");
+            report
+                    .append("Capability: ")
+                    .append(slot.getHandler())
+                    .append(" (")
+                    .append(slot.getHandler().getClass().getName())
+                    .append(")\n");
+            return;
+        }
         report.append("Position: ").append(slot.getPos()).append("\n");
         report.append("Direction: ").append(slot.getDirection()).append("\n");
         report

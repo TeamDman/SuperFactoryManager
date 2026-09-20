@@ -1,0 +1,89 @@
+{
+  "schema": "sfm.vox-terminal-push-delivery-evidence.v1",
+  "captured_at": "2026-08-03",
+  "branch": "1.19.2",
+  "revisions": {
+    "facet": "4d62d2cfb211f48f89ca4a06c466ca8fe452ca03",
+    "teamy_terminal": "7117b00"
+  },
+  "facet_package": {
+    "coordinate": "org.facet:vox-java:0.10.0-rc.5",
+    "blake3_20_hex": "14d192241617c123a37b37434b7f0bfbf681eb3e"
+  },
+  "runs": [
+    {
+      "name": "normal",
+      "command": "sfm-propagate-changes.exe puppet run sfm:title_screen_rust_terminal --branch 1.19.2 --artifact-source G:\\Programming\\Repos\\fv\\vox\\java\\target --wait-for-build-lock --width 1280 --height 720 --variant 1280x720@auto",
+      "result": "passed",
+      "failed_actions": 0,
+      "steady_snapshot_calls": 0,
+      "steady_polls_started": 0,
+      "subscriptions_started": 2,
+      "subscription_channels_closed": 1,
+      "subscription_events_received": 397,
+      "subscription_events_accepted": 397,
+      "subscription_events_rejected": 0,
+      "java_frames_delivered": 393,
+      "java_frames_superseded": 4,
+      "producer_mutations": 155,
+      "producer_renders_started": 34,
+      "producer_renders_completed": 34,
+      "producer_pre_render_coalesced": 119,
+      "producer_credit_blocked_sends": 28,
+      "producer_frames_pushed": 34,
+      "producer_pending_depth": 0,
+      "producer_pending_depth_max": 1,
+      "producer_mutation_to_send_us": 2559,
+      "producer_credit_wait_us": 0
+    },
+    {
+      "name": "gui_scale_7",
+      "command": "sfm-propagate-changes.exe puppet run sfm:title_screen_rust_terminal --branch 1.19.2 --artifact-source G:\\Programming\\Repos\\fv\\vox\\java\\target --wait-for-build-lock --width 3840 --height 2130 --variant 3840x2130@7",
+      "result": "passed",
+      "failed_actions": 0,
+      "steady_snapshot_calls": 0,
+      "steady_polls_started": 0,
+      "subscriptions_started": 2,
+      "subscription_channels_closed": 1,
+      "subscription_events_received": 399,
+      "subscription_events_accepted": 399,
+      "subscription_events_rejected": 0,
+      "java_frames_delivered": 397,
+      "java_frames_superseded": 2,
+      "producer_mutations": 159,
+      "producer_renders_started": 32,
+      "producer_renders_completed": 32,
+      "producer_pre_render_coalesced": 125,
+      "producer_credit_blocked_sends": 26,
+      "producer_frames_pushed": 32,
+      "producer_pending_depth": 0,
+      "producer_pending_depth_max": 1,
+      "producer_mutation_to_send_us": 4321,
+      "producer_credit_wait_us": 0,
+      "latest_terminal_sequence": 160,
+      "latest_frame_sequence": 32
+    }
+  ],
+  "covered_behaviors": [
+    "idle without periodic snapshot polling",
+    "output without further Java input",
+    "intermediate and final long-output states",
+    "latest-only slow-receiver backpressure",
+    "Ctrl+C interruption",
+    "resize",
+    "alternate-screen restoration",
+    "mouse click, drag, and wheel",
+    "RPC cancellation",
+    "channel drop",
+    "server restart and fresh full resynchronization",
+    "stale connection/session epoch rejection",
+    "two-session isolation",
+    "triple-Escape close"
+  ],
+  "artifacts": {
+    "normal_cli_log": "D:\\OneDrive\\Documents\\2026-07-25 minecraft terminal and guides\\artifacts\\push-subscription-normal-evidence.ndjson",
+    "gui_scale_7_cli_log": "D:\\OneDrive\\Documents\\2026-07-25 minecraft terminal and guides\\artifacts\\push-subscription-gui7-evidence.ndjson",
+    "latest_machine_readable_runtime_evidence": "platform/minecraft/runGameTestPreview/terminal-content/title_screen_rust_terminal__push-delivery.txt",
+    "latest_console_log": "platform/minecraft/build/sfm-toolchain/run/runGameTestPreview/console.log"
+  }
+}

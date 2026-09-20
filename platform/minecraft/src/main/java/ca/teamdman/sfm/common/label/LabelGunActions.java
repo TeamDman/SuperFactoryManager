@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.label;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.blockentity.ClientManagerBlockEntity;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.util.BlockPosSet;
 import net.minecraft.core.BlockPos;
@@ -133,6 +134,25 @@ public final class LabelGunActions {
         LabelPositionHolder labels = LabelPositionHolder.from(disk).toOwned();
         manager.getReferencedLabels().forEach(labels::addReferencedLabel);
         labels.save(gunStack);
+        return LabelGunActionResult.successful();
+    }
+
+    public static LabelGunActionResult push(ItemStack gunStack, ClientManagerBlockEntity manager) {
+        ItemStack disk = manager.disk();
+        if (disk.isEmpty()) return LabelGunActionResult.failure("no_disk");
+        LabelPositionHolder.from(gunStack).toOwned().save(disk);
+        try {
+            manager.setDisk(disk);
+        } catch (IllegalArgumentException tooLarge) {
+            return LabelGunActionResult.failure("client_manager_program_or_labels_too_large");
+        }
+        return LabelGunActionResult.successful();
+    }
+
+    public static LabelGunActionResult pull(ItemStack gunStack, ClientManagerBlockEntity manager) {
+        ItemStack disk = manager.disk();
+        if (disk.isEmpty()) return LabelGunActionResult.failure("no_disk");
+        LabelPositionHolder.from(disk).toOwned().save(gunStack);
         return LabelGunActionResult.successful();
     }
 

@@ -8,12 +8,12 @@ import net.minecraft.network.chat.Component;
 public final class OpenKeyBindingScreenAction implements SFMClientAction<SFMClientActionContext> {
     @Override
     public Component title() {
-        return Component.literal("Manage SFM shortcuts");
+        return Component.literal("Open SFM Key Binds");
     }
 
     @Override
     public Component description() {
-        return Component.literal("Add, disable, edit, or remove dynamic shortcuts for client actions");
+        return Component.literal("Open SFM's key-bind editor for client actions");
     }
 
     @Override

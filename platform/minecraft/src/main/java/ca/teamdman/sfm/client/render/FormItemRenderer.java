@@ -1,6 +1,6 @@
 package ca.teamdman.sfm.client.render;
 
-import ca.teamdman.sfm.client.registry.SFMKeyMappings;
+import ca.teamdman.sfm.client.tooltip.SFMTooltipModeService;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.item.FormItem;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
@@ -56,7 +56,7 @@ public class FormItemRenderer extends BlockEntityWithoutLevelRenderer {
 //            poseStack.mulPose(Vector3f.YP.rotationDegrees(-65));
         }
 
-        if (SFMKeyMappings.isKeyDown(SFMKeyMappings.MORE_INFO_TOOLTIP_KEY)) {
+        if (SFMTooltipModeService.INSTANCE.isExpanded()) {
             poseStack.pushPose();
             poseStack.translate(0, 0.5f, 0.3f);
             poseStack.scale(0.5f, 0.5f, 0.5f);

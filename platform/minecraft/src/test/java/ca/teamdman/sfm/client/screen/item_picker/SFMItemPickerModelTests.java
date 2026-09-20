@@ -158,6 +158,26 @@ public class SFMItemPickerModelTests {
         assertEquals(SFMItemPickerModel.ViewMode.DENSE_ICONS, panel.model().viewMode());
     }
 
+    @Test public void panelSearchUsesSharedEditingAndGridKeepsDirectionalNavigation() {
+        var panel = new SFMItemPickerPanel(ITEMS, new SFMItemIcon(id("minecraft:chest"), PAPER, "Chest"),
+                ignored -> {}, () -> {});
+        panel.setQueryForAutomation("minecraft:chest");
+        panel.keyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_F, 0, org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL);
+        panel.keyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_BACKSPACE, 0, org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL);
+        assertEquals("minecraft:", panel.model().query());
+        panel.keyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_A, 0, org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL);
+        for (char c : "paper".toCharArray()) panel.charTyped(c, 0);
+        assertEquals("paper", panel.model().query());
+        panel.keyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_HOME, 0, 0);
+        panel.charTyped('x', 0);
+        assertEquals("xpaper", panel.model().query());
+        panel.keyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_Z, 0, org.lwjgl.glfw.GLFW.GLFW_MOD_CONTROL);
+        assertEquals("paper", panel.model().query());
+        panel.keyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_DOWN, 0, 0);
+        panel.keyPressed(org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT, 0, 0);
+        assertEquals("paper", panel.model().query());
+    }
+
     @Test
     public void navigationUsesTheDenseLayoutsIndependentColumnCount() {
         SFMItemPickerModel model = model("sfm:disk");

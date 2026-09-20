@@ -19,7 +19,8 @@ final class SFMGamePuppetViewportController {
     private SFMGamePuppetViewportObservation previous;
     private int stableTicks;
     private int ticks;
-    private boolean requestedChange;
+    private boolean requestedSize;
+    private boolean requestedScale;
 
     SFMGamePuppetViewportController(SFMGamePuppetViewportVariant requested) {
         this.requested = requested;
@@ -28,11 +29,16 @@ final class SFMGamePuppetViewportController {
     boolean tick(Minecraft minecraft, ActivePuppet active) {
         if (original == null) {
             SFMGamePuppetViewportObservation observation = observe(minecraft);
-            original = new SFMGamePuppetViewportVariant(observation.windowWidth(), observation.windowHeight(), minecraft.options.guiScale().get());
+            // A minimized, locked, or not-yet-presented GLFW window may briefly report 0x0.
+            // That is not a restorable viewport, but it must not prevent the puppet from
+            // requesting its deterministic size and continuing without touching the OS cursor.
+            if (observation.windowWidth() >= 320 && observation.windowHeight() >= 320) {
+                original = new SFMGamePuppetViewportVariant(
+                        observation.windowWidth(), observation.windowHeight(), minecraft.options.guiScale().get());
+            }
         }
-        if (!requestedChange) {
-            requestedChange = true;
-            minecraft.options.guiScale().set(requested.guiScale());
+        if (!requestedSize) {
+            requestedSize = true;
             GLFW.glfwSetWindowSize(minecraft.getWindow().getWindow(), requested.width(), requested.height());
             minecraft.resizeDisplay();
             SFM.LOGGER.info("SFM_GAME_PUPPET_VIEWPORT_REQUESTED puppet={} variant={} requested_width={} requested_height={} requested_gui_scale={}",
@@ -41,6 +47,18 @@ final class SFMGamePuppetViewportController {
         }
         SFMGamePuppetViewportObservation observation = observe(minecraft);
         active.viewportObservation = observation;
+        if (!requestedScale) {
+            if (observation.windowWidth() != requested.width() || observation.windowHeight() != requested.height()) {
+                failIfTimedOut(observation);
+                return false;
+            }
+            requestedScale = true;
+            minecraft.options.guiScale().set(requested.guiScale());
+            minecraft.resizeDisplay();
+            previous = null;
+            stableTicks = 0;
+            return false;
+        }
         if (requested.guiScale() > 0 && observation.effectiveGuiScale() != requested.guiScale()) {
             throw new IllegalStateException("Explicit GUI scale " + requested.guiScale() + " was clamped to " + observation.effectiveGuiScale());
         }
@@ -52,8 +70,14 @@ final class SFMGamePuppetViewportController {
                     active.definition.puppetName(), requested.id(), observation.windowWidth(), observation.windowHeight(), observation.framebufferWidth(), observation.framebufferHeight(), requested.requestedScaleName(), observation.effectiveGuiScale(), observation.logicalWidth(), observation.logicalHeight());
             return true;
         }
-        if (++ticks > TIMEOUT_TICKS) throw new IllegalStateException("Viewport " + requested.id() + " did not stabilize; last observation=" + observation);
+        failIfTimedOut(observation);
         return false;
+    }
+
+    private void failIfTimedOut(SFMGamePuppetViewportObservation observation) {
+        if (++ticks > TIMEOUT_TICKS) {
+            throw new IllegalStateException("Viewport " + requested.id() + " did not stabilize; last observation=" + observation);
+        }
     }
 
     static void requestRestore(Minecraft minecraft) {

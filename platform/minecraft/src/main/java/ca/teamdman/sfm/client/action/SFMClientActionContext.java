@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.client.action;
 
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import net.minecraft.ChatFormatting;
@@ -11,7 +13,8 @@ import java.util.function.BooleanSupplier;
 
 public record SFMClientActionContext(
         @Nullable Object originatingHost,
-        BooleanSupplier originatingHostIsCurrent
+        BooleanSupplier originatingHostIsCurrent,
+        @Nullable SFMWorkspacePanelId originatingPanelId
 ) {
     @SFMLocalizationDatagen
     public static final LocalizationEntry ORIGINATING_HOST_CHANGED = new LocalizationEntry(
@@ -27,7 +30,10 @@ public record SFMClientActionContext(
             @Nullable Object originatingHost,
             BooleanSupplier originatingHostIsCurrent
     ) {
-        return new SFMClientActionContext(originatingHost, originatingHostIsCurrent);
+        SFMWorkspacePanelId panelId = originatingHost instanceof SFMScreenMultiplexer workspace
+                ? workspace.focusedPanelId()
+                : null;
+        return new SFMClientActionContext(originatingHost, originatingHostIsCurrent, panelId);
     }
 
     public <T> SFMClientActionAvailability<T> requireOriginatingHost(

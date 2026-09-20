@@ -4,6 +4,8 @@ import ca.teamdman.sfm.client.screen.SFMDrawCanvasModel;
 import ca.teamdman.sfm.client.screen.SFMDrawCanvasSyntaxHighlightingHelper;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -74,15 +76,16 @@ public class SFMDrawCanvasModelTests {
     }
 
     @Test
-    public void typingSpaceAdvancesCursorWithoutCreatingGlyph() {
+    public void typingSpaceCreatesAnAddressableGlyph() {
         SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
 
         canvas.typeText("a b", ignored -> 1, 9);
 
-        assertEquals(2, canvas.glyphs().size());
+        assertEquals(3, canvas.glyphs().size());
         assertEquals("a", canvas.glyphs().get(0).text());
-        assertEquals("b", canvas.glyphs().get(1).text());
-        assertEquals(2, canvas.glyphs().get(1).x());
+        assertEquals(" ", canvas.glyphs().get(1).text());
+        assertEquals("b", canvas.glyphs().get(2).text());
+        assertEquals(2, canvas.glyphs().get(2).x());
         assertEquals("a b", SFMDrawCanvasSyntaxHighlightingHelper.projectCanvasDocument(canvas.glyphs(), 1, 9).text());
     }
 
@@ -311,6 +314,41 @@ public class SFMDrawCanvasModelTests {
         assertEquals("""
                 abc|def
                 """, toFixture(canvas));
+    }
+
+    @Test
+    public void ctrlBackspaceConsumesTrailingExplicitWhitespaceAndThePreviousWord() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("hello  ", ignored -> 1, 1);
+
+        canvas.deleteLeftWord(1);
+
+        assertEquals("", canvas.projectedText(1, 1));
+        assertEquals(0.0D, canvas.cursorCanvasX());
+    }
+
+    @Test
+    public void ctrlDeleteConsumesLeadingExplicitWhitespaceAndTheNextWord() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("  hello", ignored -> 1, 1);
+        canvas.setCursor(0, 0);
+
+        canvas.deleteRightWord(1);
+
+        assertEquals("", canvas.projectedText(1, 1));
+        assertEquals(0.0D, canvas.cursorCanvasX());
+    }
+
+    @Test
+    public void ctrlDeleteAcrossInterstitialExplicitWhitespaceConsumesTheFollowingWord() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("hello  world", ignored -> 1, 1);
+        canvas.setCursor(5, 0);
+
+        canvas.deleteRightWord(1);
+
+        assertEquals("hello", canvas.projectedText(1, 1));
+        assertEquals(5.0D, canvas.cursorCanvasX());
     }
 
     @Test
@@ -558,7 +596,7 @@ public class SFMDrawCanvasModelTests {
     }
 
     @Test
-    public void backspaceFromBlankLineDeletesPreviousLineLastGlyph() {
+    public void backspaceFromEmptyTrailingLineJoinsPreviousLine() {
         SFMDrawCanvasModel canvas = fromFixture("""
                 abc
                 def
@@ -569,7 +607,7 @@ public class SFMDrawCanvasModelTests {
 
         assertEquals("""
                 abc
-                de|
+                def|
                 """, toFixture(canvas));
     }
 
@@ -617,6 +655,50 @@ public class SFMDrawCanvasModelTests {
     }
 
     @Test
+    public void backspaceFromEmptyTrailingLineJoinsPreviousLineWithoutDeletingItsLastGlyph() {
+        SFMDrawCanvasModel canvas = fromFixture("""
+                abc
+                |
+                """);
+
+        canvas.deleteLeft(1);
+
+        assertEquals("""
+                abc|
+                """, toFixture(canvas));
+    }
+
+    @Test
+    public void backspaceFromSecondEmptyTrailingLineRemovesOnlyOneLineBreak() {
+        SFMDrawCanvasModel canvas = fromFixture("""
+                abc
+
+                |
+                """);
+
+        canvas.deleteLeft(1);
+
+        assertEquals("""
+                abc
+                |
+                """, toFixture(canvas));
+    }
+
+    @Test
+    public void backspaceAtStartOfNonEmptyLineJoinsItToPreviousLine() {
+        SFMDrawCanvasModel canvas = fromFixture("""
+                abc
+                |def
+                """);
+
+        canvas.deleteLeft(1);
+
+        assertEquals("""
+                abc|def
+                """, toFixture(canvas));
+    }
+
+    @Test
     public void backspaceWithinLineDeletesGlyphToLeft() {
         SFMDrawCanvasModel canvas = fromFixture("""
                 abc
@@ -627,7 +709,7 @@ public class SFMDrawCanvasModelTests {
 
         assertEquals("""
                 abc
-                de|
+                d|f
                 """, toFixture(canvas));
     }
 
@@ -642,8 +724,34 @@ public class SFMDrawCanvasModelTests {
         assertEquals(2, canvas.glyphs().size());
         assertEquals(0, canvas.glyphs().get(0).x());
         assertEquals(3, canvas.glyphs().get(1).x());
-        assertEquals(3, canvas.cursorCanvasX());
+        assertEquals(0, canvas.cursorCanvasX());
         assertEquals(0, canvas.cursorCanvasY());
+    }
+
+    @Test
+    public void backspaceAtDocumentStartDoesNotDeleteRightGlyph() {
+        SFMDrawCanvasModel canvas = fromFixture("""
+                |abc
+                """);
+
+        canvas.deleteLeft();
+
+        assertEquals("""
+                |abc
+                """, toFixture(canvas));
+    }
+
+    @Test
+    public void deleteAtDocumentEndDoesNotDeleteLeftGlyph() {
+        SFMDrawCanvasModel canvas = fromFixture("""
+                abc|
+                """);
+
+        canvas.deleteNearestAndMoveRight();
+
+        assertEquals("""
+                abc|
+                """, toFixture(canvas));
     }
 
     @Test
@@ -706,6 +814,20 @@ public class SFMDrawCanvasModelTests {
     }
 
     @Test
+    public void deleteAtEndOfLineJoinsNextNonEmptyLine() {
+        SFMDrawCanvasModel canvas = fromFixture("""
+                abc|
+                def
+                """);
+
+        canvas.deleteNearestAndMoveRight(1);
+
+        assertEquals("""
+                abc|def
+                """, toFixture(canvas));
+    }
+
+    @Test
     public void repeatedDeleteDeletesRepeatedlyToTheRight() {
         SFMDrawCanvasModel canvas = fromFixture("""
                 |abc
@@ -721,7 +843,7 @@ public class SFMDrawCanvasModelTests {
     }
 
     @Test
-    public void deleteMovesToNextLineWhenDeletedLineIsExtinguished() {
+    public void deleteKeepsEmptyLineWhenItsLastGlyphIsExtinguished() {
         SFMDrawCanvasModel canvas = fromFixture("""
                 abc
                   |d
@@ -732,9 +854,41 @@ public class SFMDrawCanvasModelTests {
 
         assertEquals("""
                 abc
-
-                |ef
+                  |
+                ef
                 """, toFixture(canvas));
+    }
+
+    @Test
+    public void multiCursorBackspaceJoinsAdjacentLineBoundariesTransactionally() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.replaceText("ab\ncd\nef", ignored -> 1, 1);
+        canvas.replaceCursors(List.of(
+                new SFMDrawCanvasModel.CursorPosition(0, 1),
+                new SFMDrawCanvasModel.CursorPosition(0, 2)
+        ));
+
+        canvas.deleteLeft(1);
+
+        assertEquals("abcdef", canvas.projectedText(1, 1));
+        assertTrue(hasCursorAt(canvas, 2, 0));
+        assertTrue(hasCursorAt(canvas, 4, 0));
+    }
+
+    @Test
+    public void multiCursorDeleteJoinsAdjacentLineBoundariesTransactionally() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.replaceText("ab\ncd\nef", ignored -> 1, 1);
+        canvas.replaceCursors(List.of(
+                new SFMDrawCanvasModel.CursorPosition(2, 0),
+                new SFMDrawCanvasModel.CursorPosition(2, 1)
+        ));
+
+        canvas.deleteNearestAndMoveRight(1);
+
+        assertEquals("abcdef", canvas.projectedText(1, 1));
+        assertTrue(hasCursorAt(canvas, 2, 0));
+        assertTrue(hasCursorAt(canvas, 4, 0));
     }
 
     @Test
@@ -786,6 +940,69 @@ public class SFMDrawCanvasModelTests {
         assertEquals("""
                 abc,.;|def
                 """, toFixture(canvas));
+    }
+
+    @Test
+    public void controlRightTreatsActionAndPathSeparatorsAsIndividualStops() {
+        SFMDrawCanvasModel canvas = fromFixture("""
+                |sfm:panel/open-right
+                """);
+
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm|:panel/open-right\n", toFixture(canvas));
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm:|panel/open-right\n", toFixture(canvas));
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm:panel|/open-right\n", toFixture(canvas));
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm:panel/|open-right\n", toFixture(canvas));
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm:panel/open|-right\n", toFixture(canvas));
+        canvas.moveCursorRightWord(1, 1);
+        assertEquals("sfm:panel/open-|right\n", toFixture(canvas));
+    }
+
+    @Test
+    public void controlLeftKeepsUnderscoresInsideOneWordRun() {
+        SFMDrawCanvasModel canvas = fromFixture("""
+                alpha/foo_bar|
+                """);
+
+        canvas.moveCursorLeftWord(1, 1);
+
+        assertEquals("alpha/|foo_bar\n", toFixture(canvas));
+    }
+
+    @Test
+    public void controlLeftSkipsTrailingExplicitWhitespaceToThePreviousWordStart() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("hello  ", ignored -> 1, 1);
+
+        canvas.moveCursorLeftWord(1, 1);
+
+        assertEquals(0.0D, canvas.cursorCanvasX());
+    }
+
+    @Test
+    public void controlLeftFromTheNextWordStartSkipsInterstitialWhitespace() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("hello  world", ignored -> 1, 1);
+        canvas.setCursor(7, 0);
+
+        canvas.moveCursorLeftWord(1, 1);
+
+        assertEquals(0.0D, canvas.cursorCanvasX());
+    }
+
+    @Test
+    public void controlRightSkipsLeadingExplicitWhitespaceToTheNextWordEnd() {
+        SFMDrawCanvasModel canvas = new SFMDrawCanvasModel();
+        canvas.typeText("  hello", ignored -> 1, 1);
+        canvas.setCursor(0, 0);
+
+        canvas.moveCursorRightWord(1, 1);
+
+        assertEquals(7.0D, canvas.cursorCanvasX());
     }
 
     @Test

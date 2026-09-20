@@ -1,9 +1,22 @@
-# Draw editor layers, commands, and canvas workspace plan
+# Text Editor v3 layers, commands, and canvas workspace plan
 
 **Plan status:** Active
 **Primary implementation root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`
 **Reference-only worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`
-**Last updated:** 2026-07-21
+**Last updated:** 2026-09-06 (linked bounded editor match-selection checkpoint verified)
+
+**September 6 refinement:**
+[Explorer find, selection, compact hierarchy, and review freshness](explorer%20find%20selection%20compact%20hierarchy%20and%20review%20freshness%20plan.md)
+captures EFR-02/18–22 and EF-1/EF-2/EF-7/EF-8: shared competent single-line
+editing, Alt+J add-next and Ctrl+Shift+Alt+J select-highlights, case/whole-word/
+regex options and explicit dot-all. Shared text match evidence projects through
+actual glyph/canvas geometry, including irregular spacing and multiline regions;
+it does not replace the 2D domain with a fixed line grid. X-9 remains the shared
+selection adapter. Live/pinned review targets are coordinated through EF-11/EF-12.
+EF-7 is now verified: ordinary V3 buffers expose exact next/all occurrence
+selection, shared bounded matching and atomic replacement through existing undo.
+The linked task records geometry/size limits and real typing/undo evidence; it
+does not claim an editor Find bar or unlimited persistent canvas geometry.
 
 ## How to update this plan
 
@@ -22,6 +35,99 @@ Keep one current implementation focus. Work from 1.19.2, commit a coherent
 baseline slice, and use `sfm-propagate-changes.exe git merge` for normal
 Minecraft-version branches. The feature worktrees above are evidence to
 inspect, not branches to merge or edit.
+
+## Product-direction correction — Text Editor v3 and panel composition (2026-08-02)
+
+The former Draw name is retired as a product identity. The canvas/layer editor
+is Text Editor v3, selected through the text-editor registry and usable as a
+panel component as well as a full-screen compatibility host. The old title
+screen SFM Dev chooser and the Draw screen's fixed SFML/G4 button are not
+supported entry points.
+
+The grammar document is opened explicitly through the shared panel action:
+
+```text
+sfm:panel/open sfm:grammar
+```
+
+The general editor entry point is:
+
+```text
+sfm:panel/open sfm:text_editor [editor-id]
+```
+
+An omitted editor id selects the configured default; an explicit id selects a
+registered implementation such as v3. The editor contract must be a reusable
+focusable widget/panel with a full-screen adapter, not a screen-only API. The
+G4 document remains read-only and is not implicitly inserted into the primary
+program layer. Detailed implementation and acceptance criteria live in
+P-4 of the release plan.
+
+**Implementation checkpoint — 2026-08-02:** The fixed SFML/G4 entry point and
+its reachable insertion behavior have been removed. Grammar now opens through
+the panel scene above, while `sfm:panel/open sfm:text_editor [editor-id]`
+selects a registered editor and hosts Text Editor v3 through the shared panel
+contract. Review source leaves use the same read-only panel path. The former
+`SFMDrawCanvasScreen` remains as the internal compatibility implementation
+base for the public `SFMTextEditorV3Screen` identity; no Draw registration or
+player-facing Draw title remains.
+
+## Shared selection substrate relationship — 2026-08-12
+
+`typed selections relations and lazy explorers plan.md` is authoritative for
+typed content paths, live named selections, immutable selection revisions,
+set algebra, and explorer-backed selection destinations. Text Editor v3 remains
+authoritative for ordered operational cursors: primary cursor identity,
+anchor/head direction, insertion order, caret affinity, and editor undo/redo.
+
+Plan item X-9 adds an adapter rather than replacing either model. A set of
+editor cursor ranges can be projected into a shared selection for pickers,
+comments, explorers, and cross-document actions; a compatible shared selection
+can be imported as editor ranges. Projection records document identity and
+revision. It never reorders cursors, invents a primary cursor, collapses
+overlapping operational ranges without an explicit editor rule, or makes
+navigation row focus clobber semantic selection. Review/comment conversion
+also preserves pinned snapshot/hash semantics owned by the global-comment
+plan. X-1 through X-7 therefore introduce no editor persistence migration.
+
+## Temporal undo-tree relationship — 2026-08-21
+
+The [snapshot/episode plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md)
+owns immutable ActionIntent/ActionEvaluation/ActionOutcome/StateRevision
+history, exact versus recomputed evaluation, named heads, branch projection,
+and the live History Graph. Selection plan X-3a owns non-destructive shared
+selection-history topology. Text Editor v3 continues to own operational cursor
+order, document mutation semantics, save projection, and editor-focused undo
+availability.
+
+Ctrl+Z in a focused writable editor submits the registered history undo action
+against that document's explicit/focused history selector. It moves the
+document head; it does not erase the departed child or implicitly rewind the
+whole workspace/game. A subsequent edit creates another child. Ctrl+Shift+Z or
+redo selects the sole child when unambiguous and otherwise invokes the shared
+constrained command-palette child chooser. The containing episode records these
+head movements and actions so the History Graph can update live.
+
+Every editor action that resolves contextual state publishes both intent and
+witness. For example, select-all-occurrences retains the seed/query/order and
+the concrete ordered ranges. Historical checkout, frozen-witness execution, and
+query re-evaluation remain distinguishable. Editor source opened from the real
+checkout stays read-only; TE-S1's explicit branch-backed overlay supplies the
+first writable/replayable document.
+
+The first proof is snapshot/episode TE-S1. It must use the ordinary Text Editor
+v3 panel and registered actions rather than a chamber-only editor executor.
+
+## Spatial semantic interaction relationship — 2026-08-17
+
+`spatial semantic surfaces outlinks and capability presenters plan.md` owns the
+classification of a rendered canvas point into geometric/textual/semantic
+regions, registered outlinks, source-navigation coverage, and destination
+framing. This editor plan remains authoritative for glyph storage, canonical
+canvas coordinates, camera transforms, layers, cursors, editing, and save
+projection. The spatial plan must adapt `SFMDrawCanvasDocumentIndex` and the
+existing context projections; it must not replace the canvas model or reduce
+the user's 2D hit to an identifier string before providers run.
 
 ## Purpose
 

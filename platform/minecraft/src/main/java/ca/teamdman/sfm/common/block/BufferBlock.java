@@ -8,7 +8,9 @@ import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
 import ca.teamdman.sfm.common.registry.registration.SFMBlocks;
 import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
 import ca.teamdman.sfm.common.resourcetype.ResourceType;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.Level;
@@ -38,6 +40,32 @@ public class BufferBlock extends BaseEntityBlock {
     );
 
     public final BufferBlockTier tier;
+
+    @SuppressWarnings("deprecation")
+    @MCVersionDependentBehaviour
+    @Override
+    public boolean hasAnalogOutputSignal(BlockState state) {
+        return true;
+    }
+
+    @SuppressWarnings("deprecation")
+    @MCVersionDependentBehaviour
+    @Override
+    public int getAnalogOutputSignal(BlockState state, Level level, BlockPos pos) {
+        return level.getBlockEntity(pos) instanceof BufferBlockEntity buffer
+               ? Mth.clamp(buffer.getContents().getStoredRedstone(), 0, 15)
+               : 0;
+    }
+
+    @SuppressWarnings("deprecation")
+    @MCVersionDependentBehaviour
+    @Override
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState next, boolean moved) {
+        super.onRemove(state, level, pos, next, moved);
+        if (!state.is(next.getBlock())) {
+            level.updateNeighbourForOutputSignal(pos, this);
+        }
+    }
 
     public BufferBlock(
             Properties pProperties,
@@ -98,6 +126,7 @@ public class BufferBlock extends BaseEntityBlock {
         Energy,
         Chemical,
         Redstone,
+        Image,
         Unknown;
 
         @Override
@@ -109,6 +138,7 @@ public class BufferBlock extends BaseEntityBlock {
                 case Energy -> "energy";
                 case Chemical -> "chemical";
                 case Redstone -> "redstone";
+                case Image -> "image";
                 case Unknown -> "unknown";
             };
         }
@@ -124,6 +154,8 @@ public class BufferBlock extends BaseEntityBlock {
                 return Energy;
             } else if (name.equals("redstone")) {
                 return Redstone;
+            } else if (name.equals("image")) {
+                return Image;
             } else if (SFMModCompat.isMekanismLoaded()) {
                 if (name.equals("gas") || name.equals("infusion") || name.equals("pigment") || name.equals("slurry")) {
                     return Chemical;

@@ -1,0 +1,650 @@
+package ca.teamdman.sfm.client.explorer;
+
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.action.OpenPanelAction;
+import ca.teamdman.sfm.client.action.SFMClientActionContext;
+import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
+import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionEngine;
+import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionRequest;
+import ca.teamdman.sfm.client.explorer.action.SFMExplorerActionResult;
+import ca.teamdman.sfm.client.explorer.action.SFMExplorerPathPolicy;
+import ca.teamdman.sfm.client.explorer.action.SFMExplorerRepository;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerIoCounter;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolverRegistry;
+import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerSession;
+import ca.teamdman.sfm.client.explorer.lazy.SFMFilesystemExplorerResolver;
+import ca.teamdman.sfm.client.explorer.lazy.SFMGatedExplorerResolver;
+import ca.teamdman.sfm.client.explorer.lazy.SFMItemRegistryExplorerResolver;
+import ca.teamdman.sfm.client.explorer.lazy.SFMLazyExplorerLoader;
+import ca.teamdman.sfm.client.explorer.lazy.SFMMountingExplorerResolver;
+import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextRequest;
+import ca.teamdman.sfm.client.explorer.lazy.SFMResolverTextResult;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewExplorerRuntime;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewFileMountProvider;
+import ca.teamdman.sfm.client.review.release_review.SFMReleaseReviewRuntime;
+import ca.teamdman.sfm.client.screen.explorer.SFMExplorerPanel;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
+import ca.teamdman.sfm.client.symbol.SFMSymbolReferenceExplorerResolver;
+import ca.teamdman.sfm.client.symbol.SFMSymbolReferenceResultRepository;
+import ca.teamdman.sfm.client.symbol.SFMSymbolServerProtocol;
+import ca.teamdman.sfm.client.symbol.SFMUsageAtPositionResult;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
+
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicLong;
+
+/**
+ * Process-wide authority for live explorer sessions.
+ *
+ * <p>Panels are projections of this state. Command-palette actions and Vox
+ * requests both submit the same typed requests to the same transaction engine;
+ * resolver work is delegated to daemon workers and never performed by render.</p>
+ */
+public final class SFMExplorerRuntime implements AutoCloseable {
+    public static final int DEFAULT_PAGE_SIZE = 128;
+
+    public record ExplorerEvidence(
+            SFMExplorerSession.Snapshot session,
+            SFMExplorerProjection.Result projection,
+            boolean focused,
+            List<SFMExplorerSession.RequestObservation> activeRequests,
+            List<SFMExplorerSession.RequestObservation> recentRequests
+    ) {
+        public ExplorerEvidence {
+            Objects.requireNonNull(session, "session");
+            Objects.requireNonNull(projection, "projection");
+            activeRequests = List.copyOf(activeRequests);
+            recentRequests = List.copyOf(recentRequests);
+        }
+    }
+
+    public record Evidence(
+            long explorerRegistryGeneration,
+            long selectionRepositoryGeneration,
+            long childRelationRevision,
+            long childRelationStatusGeneration,
+            List<ExplorerEvidence> explorers,
+            SFMExplorerIoCounter.Snapshot filesystemIo
+    ) {
+        public Evidence {
+            explorers = List.copyOf(explorers);
+            Objects.requireNonNull(filesystemIo, "filesystemIo");
+        }
+    }
+
+    public record ReferenceExplorer(
+            SFMSymbolReferenceResultRepository.StoredResult storedResult,
+            SFMExplorerPanel panel
+    ) {
+        public ReferenceExplorer {
+            Objects.requireNonNull(storedResult, "storedResult");
+            Objects.requireNonNull(panel, "panel");
+        }
+    }
+
+    public record ReferenceLeafNavigation(
+            SFMSymbolReferenceResultRepository.LeafLookup leaf,
+            SFMScreenMultiplexer workspace,
+            SFMWorkspacePanelId sourcePanelId
+    ) {
+        public ReferenceLeafNavigation {
+            Objects.requireNonNull(leaf, "leaf");
+            Objects.requireNonNull(workspace, "workspace");
+            Objects.requireNonNull(sourcePanelId, "sourcePanelId");
+        }
+    }
+
+    private record ReferenceOrigin(SFMScreenMultiplexer workspace, SFMWorkspacePanelId sourcePanelId) {
+    }
+
+    private static volatile SFMExplorerRuntime instance;
+
+    private final ExecutorService resolverExecutor;
+    private final SFMSelectionRepository selections;
+    private final SFMChildRelationRepository relations;
+    private final SFMExplorerResolverRegistry resolvers;
+    private final SFMFilesystemExplorerResolver filesystem;
+    private final SFMMountingExplorerResolver mountedFilesystem;
+    private final SFMGatedExplorerResolver gatedFilesystem;
+    private final SFMExplorerIoCounter filesystemIo;
+    private final SFMLazyExplorerLoader loader;
+    private final SFMExplorerRepository explorers;
+    private final SFMExplorerActionEngine actions;
+    private final SFMSymbolReferenceResultRepository symbolReferenceResults;
+    private final SFMSymbolReferenceExplorerResolver symbolReferenceResolver;
+    private final Map<SFMSymbolReferenceResultRepository.ResultId, ReferenceOrigin> referenceOrigins =
+            new TreeMap<>(java.util.Comparator.comparing(SFMSymbolReferenceResultRepository.ResultId::value));
+    private final AtomicLong nextExplorerId = new AtomicLong(1);
+    private final Map<SFMExplorerId, SFMExplorerPanel> panels = new TreeMap<>(
+            java.util.Comparator.comparing(SFMExplorerId::value)
+    );
+    private boolean closed;
+    private final Map<SFMExplorerId, Runnable> projectionDisposers = new java.util.HashMap<>();
+
+    private SFMExplorerRuntime(Minecraft minecraft) {
+        Objects.requireNonNull(minecraft, "minecraft");
+        resolverExecutor = Executors.newFixedThreadPool(2, resolverThreadFactory());
+        selections = new SFMSelectionRepository();
+        relations = new SFMChildRelationRepository();
+        resolvers = new SFMExplorerResolverRegistry();
+        filesystemIo = new SFMExplorerIoCounter();
+        Path gameDirectory = minecraft.gameDirectory.toPath().toAbsolutePath().normalize();
+        filesystem = new SFMFilesystemExplorerResolver(
+                List.of(gameDirectory),
+                resolverExecutor,
+                filesystemIo,
+                DEFAULT_PAGE_SIZE
+        );
+        SFMReleaseReviewExplorerRuntime releaseReviewExplorer = SFMReleaseReviewExplorerRuntime.get();
+        mountedFilesystem = new SFMMountingExplorerResolver(
+                filesystem,
+                List.of(new SFMReleaseReviewFileMountProvider(
+                        SFMReleaseReviewRuntime.get(),
+                        releaseReviewExplorer
+                ))
+        );
+        gatedFilesystem = new SFMGatedExplorerResolver(mountedFilesystem);
+        resolvers.register(gatedFilesystem);
+        resolvers.register(releaseReviewExplorer);
+        resolvers.register(SFMItemRegistryExplorerResolver.minecraft(
+                resolverExecutor,
+                DEFAULT_PAGE_SIZE
+        ));
+        symbolReferenceResults = new SFMSymbolReferenceResultRepository();
+        symbolReferenceResolver = new SFMSymbolReferenceExplorerResolver(
+                symbolReferenceResults,
+                resolverExecutor,
+                DEFAULT_PAGE_SIZE
+        );
+        resolvers.register(symbolReferenceResolver);
+        loader = new SFMLazyExplorerLoader(resolvers, relations, minecraft::execute);
+        explorers = new SFMExplorerRepository();
+        actions = new SFMExplorerActionEngine(
+                explorers,
+                this::createExplorer,
+                this::authorizeRootIfRequired,
+                this::locationAuthorityIncompatibility
+        );
+    }
+
+    public static SFMExplorerRuntime get() {
+        SFMExplorerRuntime current = instance;
+        if (current != null) return current;
+        synchronized (SFMExplorerRuntime.class) {
+            if (instance == null) instance = new SFMExplorerRuntime(Minecraft.getInstance());
+            return instance;
+        }
+    }
+
+    public SFMExplorerActionResult execute(SFMExplorerActionRequest request) {
+        ensureOpen();
+        Objects.requireNonNull(request, "request");
+        return actions.execute(request);
+    }
+
+    /** Refresh an already-known parent after our own file creation; never scan for new roots. */
+    public void fileCreated(Path file) {
+        ensureOpen();
+        Path parent = file.toAbsolutePath().normalize().getParent();
+        if (parent == null) return;
+        SFMPath path = SFMPath.fromNative(parent);
+        for (var explorer : explorers.explorersInStableOrder()) {
+            if (!explorer.session().snapshot().roots().stream().anyMatch(root ->
+                    root.kind() == SFMPath.Kind.FILE
+                            && parent.startsWith(root.toNativePath().toAbsolutePath().normalize()))) continue;
+            var result = execute(new SFMExplorerActionRequest(
+                    SFMEntitySelector.exact(SFMEntitySelector.Domain.EXPLORER, explorer.id().value()),
+                    new SFMExplorerActionRequest.NodeRefresh(path, DEFAULT_PAGE_SIZE), SFMExplorerActionRequest.IfNoMatch.FAIL));
+            // A never-expanded parent is intentionally unknown and needs no invalidation.
+            if (result.status() == SFMExplorerActionResult.Status.SUCCEEDED) break;
+        }
+    }
+
+    /** Refreshes every materialized mount for one backing file after its mounted authority changes. */
+    public void mountedFileChanged(SFMPath path) {
+        ensureOpen();
+        Objects.requireNonNull(path, "path");
+        if (path.kind() != SFMPath.Kind.FILE) return;
+        Set<SFMPath> materializedParents = relations.snapshot().pageStates().keySet();
+        for (var explorer : explorers.explorersInStableOrder()) {
+            if (!materializedParents.contains(path)) continue;
+            if (explorer.session().snapshot().roots().stream().noneMatch(root ->
+                    SFMPathHierarchy.contains(root, path))) continue;
+            execute(new SFMExplorerActionRequest(
+                    SFMEntitySelector.exact(SFMEntitySelector.Domain.EXPLORER, explorer.id().value()),
+                    new SFMExplorerActionRequest.NodeRefresh(path, DEFAULT_PAGE_SIZE),
+                    SFMExplorerActionRequest.IfNoMatch.FAIL
+            ));
+        }
+    }
+
+    /** Purely prepares and captures an action so bounded transports can validate before publication. */
+    public SFMExplorerActionEngine.PreparedAction prepare(SFMExplorerActionRequest request) {
+        ensureOpen();
+        return actions.prepare(Objects.requireNonNull(request, "request"));
+    }
+
+    /** Executes one semantic transaction, then hosts any created session normally. */
+    public SFMExplorerActionResult executeAndOpen(
+            SFMExplorerActionRequest request,
+            SFMClientActionContext actionContext
+    ) {
+        return publishAndOpen(prepare(request), actionContext);
+    }
+
+    /** Publishes one prepared transaction, then hosts any explorer it created. */
+    public SFMExplorerActionResult publishAndOpen(
+            SFMExplorerActionEngine.PreparedAction prepared,
+            SFMClientActionContext actionContext
+    ) {
+        Objects.requireNonNull(prepared, "prepared");
+        Objects.requireNonNull(actionContext, "actionContext");
+        SFMExplorerActionResult result = actions.publish(prepared);
+        for (SFMExplorerActionResult.TargetResult target : result.targets()) {
+            if (target.outcome() != SFMExplorerActionResult.TargetOutcome.CREATED) continue;
+            OpenPanelAction.Direction direction = actionContext.originatingHost() instanceof SFMScreenMultiplexer
+                    ? OpenPanelAction.Direction.RIGHT
+                    : OpenPanelAction.Direction.FOCUSED;
+            int opened = OpenPanelAction.openPanel(
+                    actionContext,
+                    panel(target.explorerId()),
+                    direction
+            );
+            if (opened == 0) {
+                closeExplorer(target.explorerId());
+                throw new IllegalStateException("The created explorer could not be opened in the panel workspace");
+            }
+        }
+        return result;
+    }
+
+    /** Creates a registered explorer for the explicit panel scene action. */
+    public synchronized SFMScreenPanel openScene(SFMPath initialRoot) {
+        return openScene(new SFMPathExpression.Literal(Objects.requireNonNull(initialRoot, "initialRoot")));
+    }
+
+    /** Creates a registered explorer from one complete, authority-preflighted location capture. */
+    public synchronized SFMScreenPanel openScene(SFMPathExpression initialLocation) {
+        ensureOpen();
+        Objects.requireNonNull(initialLocation, "initialLocation");
+        SFMPathExpressionResolution resolution = SFMPathExpressionResolver.resolve(
+                initialLocation,
+                selections,
+                relations
+        );
+        if (!resolution.complete()) {
+            String diagnostics = resolution.diagnostics().stream()
+                    .map(diagnostic -> diagnostic.code() + ": " + diagnostic.message())
+                    .collect(java.util.stream.Collectors.joining("; "));
+            throw new IllegalArgumentException(
+                    "Explorer location did not resolve completely"
+                            + (diagnostics.isEmpty() ? "" : ": " + diagnostics)
+            );
+        }
+        if (resolution.paths().isEmpty()) {
+            throw new IllegalArgumentException("Explorer location resolved to no roots");
+        }
+        // Resolve and validate every member before publishing any session. A
+        // failed heterogeneous expression therefore cannot partially grant or
+        // display roots.
+        resolution.paths().forEach(this::preflightRoot);
+        resolution.paths().forEach(this::authorizeRoot);
+        SFMExplorerRepository.Explorer explorer = createExplorer(initialLocation, resolution.paths());
+        explorers.register(explorer, true);
+        resolution.paths().forEach(loader::openRoot);
+        return panel(explorer.id());
+    }
+
+    /**
+     * Opens a resolver-backed scene whose visible address is intentionally
+     * distinct from the roots that provide its rows.
+     *
+     * <p>This is the generic projection seam used by file-backed lenses such
+     * as release reviews: the location bar remains the canonical backing file,
+     * while a contributed resolver owns the lazily materialized view.</p>
+     */
+    public synchronized SFMScreenPanel openProjectedScene(
+            SFMPathExpression displayLocation,
+            Set<SFMPath> projectionRoots,
+            boolean expandRoots
+    ) {
+        ensureOpen();
+        Objects.requireNonNull(displayLocation, "displayLocation");
+        Set<SFMPath> roots = Set.copyOf(Objects.requireNonNull(projectionRoots, "projectionRoots"));
+        if (roots.isEmpty()) throw new IllegalArgumentException("A projected explorer requires at least one root");
+        roots.forEach(this::preflightRoot);
+        roots.forEach(this::authorizeRoot);
+        SFMExplorerRepository.Explorer explorer = createExplorer(displayLocation, roots);
+        explorers.register(explorer, true);
+        roots.forEach(root -> loader.openRoot(root).whenComplete((entry, failure) -> {
+            if (failure != null || !expandRoots) return;
+            explorer.session().initializeRootChildren(root, loader, DEFAULT_PAGE_SIZE);
+        }));
+        return panel(explorer.id());
+    }
+
+    public synchronized SFMExplorerPanel panel(SFMExplorerId id) {
+        ensureOpen();
+        SFMExplorerRepository.Explorer explorer = explorers.find(Objects.requireNonNull(id, "id"))
+                .orElseThrow(() -> new IllegalArgumentException("Unknown explorer: " + id.value()));
+        return panels.computeIfAbsent(id, ignored -> new SFMExplorerPanel(
+                explorer.session(),
+                explorer.loader(),
+                this::submitPanelAction,
+                () -> focusExplorer(id),
+                () -> closeExplorer(id)
+        ));
+    }
+
+    /** Publishes one immutable references result and opens its stable contributed root. */
+    public synchronized ReferenceExplorer publishReferenceResult(
+            SFMUsageAtPositionResult result,
+            SFMSymbolServerProtocol.ServerHello hello,
+            SFMScreenMultiplexer workspace,
+            SFMWorkspacePanelId sourcePanelId
+    ) {
+        ensureOpen();
+        Objects.requireNonNull(workspace, "workspace");
+        Objects.requireNonNull(sourcePanelId, "sourcePanelId");
+        SFMSymbolReferenceResultRepository.StoredResult stored = symbolReferenceResults.append(result, hello);
+        SFMExplorerPanel panel = (SFMExplorerPanel) openScene(stored.rootPath());
+        referenceOrigins.put(stored.id(), new ReferenceOrigin(workspace, sourcePanelId));
+        return new ReferenceExplorer(stored, panel);
+    }
+
+    /** Resolves an exact persistent reference leaf back to its originating editor stack. */
+    public synchronized Optional<ReferenceLeafNavigation> referenceLeafNavigation(SFMPath path) {
+        ensureOpen();
+        Optional<SFMSymbolReferenceResultRepository.LeafLookup> leaf = symbolReferenceResolver.lookupLeaf(path);
+        if (leaf.isEmpty()) return Optional.empty();
+        ReferenceOrigin origin = referenceOrigins.get(leaf.orElseThrow().resultId());
+        if (origin == null) return Optional.empty();
+        return Optional.of(new ReferenceLeafNavigation(
+                leaf.orElseThrow(),
+                origin.workspace(),
+                origin.sourcePanelId()
+        ));
+    }
+
+    public SFMExplorerRepository repository() {
+        return explorers;
+    }
+
+    public SFMSelectionRepository selections() {
+        return selections;
+    }
+
+    public SFMChildRelationRepository relations() {
+        return relations;
+    }
+
+    public SFMExplorerIoCounter filesystemIo() {
+        return filesystemIo;
+    }
+
+    /** Dispatches one immutable bounded text request to the path's registered resolver. */
+    public CompletableFuture<SFMResolverTextResult> readText(SFMResolverTextRequest request) {
+        ensureOpen();
+        Objects.requireNonNull(request, "request");
+        return resolvers.find(request.path().scheme())
+                .map(resolver -> resolver.readText(request))
+                .orElseGet(() -> CompletableFuture.completedFuture(SFMResolverTextResult.failure(
+                        request,
+                        SFMResolverTextResult.Status.UNSUPPORTED_RESOLVER,
+                        request.expectedResolverGeneration(),
+                        "No explorer resolver is registered for scheme `" + request.path().scheme() + "`"
+                )));
+    }
+
+    /** Deepest explicit filesystem grant that already contains this path. */
+    public Optional<SFMPath> authorizedFilesystemRootFor(SFMPath path) {
+        ensureOpen();
+        Objects.requireNonNull(path, "path");
+        if (path.kind() != SFMPath.Kind.FILE) return Optional.empty();
+        Path nativePath = path.toNativePath().toAbsolutePath().normalize();
+        return filesystem.explicitRoots().stream()
+                .filter(root -> nativePath.startsWith(root.toNativePath().toAbsolutePath().normalize()))
+                .max(java.util.Comparator.comparingInt(root -> root.toNativePath().getNameCount()));
+    }
+
+    /**
+     * Grants one exact read-only source root advertised by the supervised local
+     * toolchain worker. Callers must first validate the worker's resolver/root
+     * identity; this method never infers a parent or broadens the supplied root.
+     */
+    public boolean authorizeManagedReadOnlyRoot(SFMPath root) {
+        ensureOpen();
+        Objects.requireNonNull(root, "root");
+        if (root.kind() != SFMPath.Kind.FILE) return false;
+        filesystem.authorizeRoot(root.toNativePath());
+        return filesystem.explicitRoots().stream().anyMatch(root::equals);
+    }
+
+    public Optional<Long> resolverGeneration(String scheme) {
+        ensureOpen();
+        Objects.requireNonNull(scheme, "scheme");
+        return resolvers.find(scheme).map(ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver::generation);
+    }
+
+    public synchronized boolean supportsTextRead(String scheme) {
+        ensureOpen();
+        return resolvers.find(scheme).map(ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver::supportsTextRead).orElse(false);
+    }
+
+    /**
+     * Installs one contributed resolver without replacing an authority that is
+     * already live for the same scheme.
+     *
+     * <p>Feature-owned, in-memory scenes use this seam so their ordinary
+     * explorer panels still share the process-wide lazy loader and registered
+     * semantic actions. Re-registering the same resolver instance is
+     * idempotent; a competing resolver fails closed.</p>
+     */
+    public synchronized boolean registerResolverIfAbsent(
+            ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver resolver
+    ) {
+        ensureOpen();
+        Objects.requireNonNull(resolver, "resolver");
+        Optional<ca.teamdman.sfm.client.explorer.lazy.SFMExplorerResolver> existing =
+                resolvers.find(resolver.scheme());
+        if (existing.isPresent()) {
+            if (existing.orElseThrow() != resolver) {
+                throw new IllegalArgumentException(
+                        "A different explorer resolver is already registered for scheme `"
+                                + resolver.scheme() + "`"
+                );
+            }
+            return false;
+        }
+        resolvers.register(resolver);
+        return true;
+    }
+
+    public SFMGatedExplorerResolver.Gate armFilesystemPublicationGate(SFMPath parent) {
+        return gatedFilesystem.armNext(parent);
+    }
+
+    public Evidence evidence() {
+        SFMExplorerRepository.StateSnapshot registry = explorers.stateSnapshot();
+        ArrayList<ExplorerEvidence> explorerEvidence = new ArrayList<>();
+        for (Map.Entry<SFMExplorerId, SFMExplorerRepository.Explorer> entry : registry.explorers().entrySet()) {
+            SFMExplorerSession.Snapshot session = entry.getValue().session().snapshot();
+            explorerEvidence.add(new ExplorerEvidence(
+                    session,
+                    SFMExplorerProjection.project(session, relations.snapshot(), loader.entrySnapshot()),
+                    registry.focused().equals(Optional.of(entry.getKey())),
+                    entry.getValue().session().activeRequestEvidence(),
+                    entry.getValue().session().recentRequestEvidence()
+            ));
+        }
+        SFMChildRelationRepository.Snapshot relation = relations.snapshot();
+        return new Evidence(
+                registry.generation(),
+                selections.stateSnapshot().generation(),
+                relation.relation().id(),
+                relation.statusGeneration(),
+                explorerEvidence,
+                filesystemIo.snapshot()
+        );
+    }
+
+    /**
+     * Disposes every live explorer while keeping the process-wide resolver
+     * authority available for a subsequent workspace or viewport journey.
+     */
+    public synchronized void closeAllExplorers() {
+        ensureOpen();
+        closeAllExplorersLocked();
+    }
+
+    @Override
+    public synchronized void close() {
+        if (closed) return;
+        closeAllExplorersLocked();
+        closed = true;
+        resolverExecutor.shutdownNow();
+    }
+
+    private void closeAllExplorersLocked() {
+        for (SFMExplorerRepository.Explorer explorer : explorers.explorersInStableOrder()) {
+            SFMExplorerPanel panel = panels.remove(explorer.id());
+            if (panel != null) panel.closed();
+            explorer.session().close();
+            explorers.unregister(explorer.id());
+            disposeProjection(explorer.id());
+        }
+        panels.clear();
+    }
+
+    private SFMExplorerRepository.Explorer createExplorer(SFMPath initialRoot) {
+        return createExplorer(new SFMPathExpression.Literal(initialRoot), Set.of(initialRoot));
+    }
+
+    private SFMExplorerRepository.Explorer createExplorer(
+            SFMPathExpression initialLocation,
+            Set<SFMPath> initialRoots
+    ) {
+        SFMExplorerId id = new SFMExplorerId("explorer-" + nextExplorerId.getAndIncrement());
+        SFMExplorerSession session = new SFMExplorerSession(id, initialLocation, initialRoots, selections);
+        return new SFMExplorerRepository.Explorer(
+                session,
+                loader,
+                this::pathIncompatibility,
+                DEFAULT_PAGE_SIZE
+        );
+    }
+
+    private Optional<String> pathIncompatibility(SFMPath path) {
+        if (resolvers.find(path.scheme()).isEmpty()) {
+            return Optional.of("No explorer resolver is registered for scheme `" + path.scheme() + "`");
+        }
+        if (path.scheme().equals("registry") && !isItemRegistryPath(path)) {
+            return Optional.of("The current registry resolver accepts only `registry://minecraft/item/` entries");
+        }
+        return Optional.empty();
+    }
+
+    private static boolean isItemRegistryPath(SFMPath path) {
+        if (path.equals(SFMItemRegistryExplorerResolver.ROOT)) return true;
+        return path.kind() == SFMPath.Kind.REGISTRY
+                && path.authority().equals("minecraft")
+                && path.segments().size() >= 3
+                && path.segments().get(0).equals("item");
+    }
+
+    private void authorizeRootIfRequired(SFMExplorerActionRequest.Operation operation) {
+        if (operation instanceof SFMExplorerActionRequest.RootAdd add) authorizeRoot(add.path());
+    }
+
+    private void authorizeRoot(SFMPath path) {
+        Optional<String> incompatibility = pathIncompatibility(path);
+        if (incompatibility.isPresent()) throw new IllegalArgumentException(incompatibility.orElseThrow());
+        if (path.scheme().equals("file")) filesystem.authorizeRoot(path.toNativePath());
+    }
+
+    private void preflightRoot(SFMPath path) {
+        Optional<String> incompatibility = pathIncompatibility(path);
+        if (incompatibility.isPresent()) throw new IllegalArgumentException(incompatibility.orElseThrow());
+    }
+
+    private Optional<String> locationAuthorityIncompatibility(SFMPath path) {
+        return path.scheme().equals("file")
+                ? filesystem.locationIncompatibility(path)
+                : Optional.empty();
+    }
+
+    private void submitPanelAction(String canonicalCommand) {
+        Minecraft minecraft = Minecraft.getInstance();
+        Screen origin = minecraft.screen;
+        try {
+            SFMClientActionExecutor.execute(
+                    canonicalCommand,
+                    SFMClientActionContext.create(origin, () -> minecraft.screen == origin),
+                    component -> SFM.LOGGER.info("SFM_EXPLORER_ACTION_FEEDBACK {}", component.getString())
+            );
+        } catch (CommandSyntaxException | RuntimeException failure) {
+            SFM.LOGGER.error("SFM_EXPLORER_ACTION_FAILED command={}", canonicalCommand, failure);
+        }
+    }
+
+    private synchronized void focusExplorer(SFMExplorerId id) {
+        if (closed || explorers.find(id).isEmpty()) return;
+        if (!explorers.stateSnapshot().focused().equals(Optional.of(id))) explorers.focus(id);
+    }
+
+    private synchronized void closeExplorer(SFMExplorerId id) {
+        panels.remove(id);
+        explorers.unregister(id).ifPresent(explorer -> explorer.session().close());
+        disposeProjection(id);
+    }
+
+    /** Transfers a contributed mount's lifetime to its exact Explorer, including failed attachment. */
+    public synchronized void ownProjection(SFMExplorerId id, Runnable disposer) {
+        ensureOpen();
+        Objects.requireNonNull(disposer, "disposer");
+        if (explorers.find(id).isEmpty()) throw new IllegalArgumentException("Unknown explorer: " + id.value());
+        if (projectionDisposers.putIfAbsent(id, disposer) != null)
+            throw new IllegalStateException("Explorer already owns a projection lease");
+    }
+
+    private void disposeProjection(SFMExplorerId id) {
+        Runnable disposer = projectionDisposers.remove(id);
+        if (disposer != null) disposer.run();
+    }
+
+    /** Removes a newly-created scene that could not be attached to its requested workspace. */
+    public synchronized void discardExplorer(SFMExplorerId id) {
+        ensureOpen();
+        closeExplorer(Objects.requireNonNull(id, "id"));
+    }
+
+    private void ensureOpen() {
+        if (closed) throw new IllegalStateException("Explorer runtime is closed");
+    }
+
+    private static ThreadFactory resolverThreadFactory() {
+        AtomicLong ordinal = new AtomicLong(1);
+        return runnable -> {
+            Thread thread = new Thread(runnable, "sfm-explorer-resolver-" + ordinal.getAndIncrement());
+            thread.setDaemon(true);
+            return thread;
+        };
+    }
+}

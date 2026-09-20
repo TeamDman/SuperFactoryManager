@@ -2,7 +2,13 @@ package ca.teamdman.sfm.gametest.puppet.action;
 
 import ca.teamdman.sfm.gametest.puppet.ISFMGamePuppetRuntime;
 
-public record RunGameTestPuppetAction(String testName) implements SFMPuppetAction {
+public final class RunGameTestPuppetAction implements SFMPuppetAction {
+    private final String testName;
+    private boolean prepared;
+
+    public RunGameTestPuppetAction(String testName) {
+        this.testName = testName;
+    }
     @Override
     public String description() {
 
@@ -11,7 +17,10 @@ public record RunGameTestPuppetAction(String testName) implements SFMPuppetActio
 
     @Override
     public boolean tick(ISFMGamePuppetRuntime runtime) {
-
+        if (!prepared) {
+            runtime.prepareGameTest();
+            prepared = true;
+        }
         return runtime.runGameTest(testName);
     }
 

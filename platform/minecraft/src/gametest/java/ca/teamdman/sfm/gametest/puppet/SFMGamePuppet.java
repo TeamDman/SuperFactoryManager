@@ -19,4 +19,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface SFMGamePuppet {
     SFMGamePuppetViewportProfile viewportProfile() default SFMGamePuppetViewportProfile.CURRENT;
+
+    /** Whole-puppet watchdog; individual actions retain their own timeouts. */
+    int timeoutTicks() default 20 * 2 * 60;
 }

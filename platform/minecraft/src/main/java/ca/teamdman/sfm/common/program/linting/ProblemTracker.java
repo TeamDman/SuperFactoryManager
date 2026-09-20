@@ -14,11 +14,12 @@ public record ProblemTracker(HashSet<TranslatableContents> problems) {
 
     public AddProblemResult add(TranslatableContents problem) {
         int size = problems.size();
-        if (size >= SFMConfig.SERVER_CONFIG.maxDiskProblems.get()) {
+        int maxProblems = SFMConfig.getOrDefault(SFMConfig.SERVER_CONFIG.maxDiskProblems);
+        if (size >= maxProblems) {
             return AddProblemResult.TOO_MANY_PROBLEMS;
         }
         problems.add(problem);
-        if (size < SFMConfig.SERVER_CONFIG.maxDiskProblems.get()) {
+        if (size < maxProblems) {
             return AddProblemResult.SUCCESS;
         }
         // signal to stop collecting problems
@@ -26,7 +27,7 @@ public record ProblemTracker(HashSet<TranslatableContents> problems) {
     }
 
     public boolean isSaturated() {
-        return problems.size() >= SFMConfig.SERVER_CONFIG.maxDiskProblems.get();
+        return problems.size() >= SFMConfig.getOrDefault(SFMConfig.SERVER_CONFIG.maxDiskProblems);
     }
 
     public int size() {

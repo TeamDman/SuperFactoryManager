@@ -145,7 +145,7 @@ public class LabelGunScreen extends Screen {
 
         super.init();
         SFMScreenRenderUtils.enableKeyRepeating();
-        this.labelField = addRenderableWidget(new EditBox(
+        this.labelField = addRenderableWidget(new ca.teamdman.sfm.client.input.SFMSingleLineEditBox(
                 this.font,
                 this.width / 2 - 150,
                 50,

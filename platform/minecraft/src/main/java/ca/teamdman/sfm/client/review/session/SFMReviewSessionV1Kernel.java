@@ -220,7 +220,7 @@ public final class SFMReviewSessionV1Kernel {
         List<Range> result = new ArrayList<>(left); result.addAll(right); return normalize(result);
     }
 
-    private static List<Range> intersection(List<Range> left, List<Range> right) {
+    public static List<Range> intersection(List<Range> left, List<Range> right) {
         List<Range> result = new ArrayList<>();
         for (Range a : left) for (Range b : right) if (a.documentRevisionId().equals(b.documentRevisionId())) {
             int start = Math.max(a.startByte(), b.startByte()); int end = Math.min(a.endByte(), b.endByte());
@@ -229,7 +229,7 @@ public final class SFMReviewSessionV1Kernel {
         return normalize(result);
     }
 
-    private static List<Range> difference(List<Range> include, List<Range> exclude) {
+    public static List<Range> difference(List<Range> include, List<Range> exclude) {
         List<Range> current = normalize(include);
         for (Range cut : normalize(exclude)) {
             List<Range> next = new ArrayList<>();
@@ -246,7 +246,7 @@ public final class SFMReviewSessionV1Kernel {
         return normalize(current);
     }
 
-    private static List<Range> normalize(List<Range> input) {
+    public static List<Range> normalize(List<Range> input) {
         List<Range> sorted = input.stream().filter(range -> range.startByte() < range.endByte())
                 .sorted(Comparator.comparing(Range::documentRevisionId).thenComparingInt(Range::startByte)
                         .thenComparingInt(Range::endByte)).toList();

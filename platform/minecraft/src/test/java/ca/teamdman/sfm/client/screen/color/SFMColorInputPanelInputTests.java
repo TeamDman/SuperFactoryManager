@@ -11,6 +11,25 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SFMColorInputPanelInputTests {
+    @Test void hexFieldUsesSelectionReplacementHomeEndAndUndo() {
+        var panel = new SFMColorInputPanel(new SFMArgbColor(0xFF3366CC), List.of(), ignored -> {}, () -> {});
+        panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0);
+        panel.keyPressed(GLFW.GLFW_KEY_TAB, 0, 0); // HEX
+        assertTrue(panel.keyPressed(GLFW.GLFW_KEY_A, 0, GLFW.GLFW_MOD_CONTROL));
+        for (char c : "#FF112233".toCharArray()) assertTrue(panel.charTyped(c, 0));
+        panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0);
+        assertEquals(0xFF112233, panel.model().current().argb());
+        panel.keyPressed(GLFW.GLFW_KEY_HOME, 0, 0);
+        panel.keyPressed(GLFW.GLFW_KEY_RIGHT, 0, 0);
+        panel.keyPressed(GLFW.GLFW_KEY_RIGHT, 0, GLFW.GLFW_MOD_SHIFT);
+        panel.charTyped('A', 0);
+        panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0);
+        assertEquals(0xAF112233, panel.model().current().argb());
+        panel.keyPressed(GLFW.GLFW_KEY_Z, 0, GLFW.GLFW_MOD_CONTROL);
+        panel.keyPressed(GLFW.GLFW_KEY_ENTER, 0, 0);
+        assertEquals(0xFF112233, panel.model().current().argb());
+    }
+
     @Test
     void puppetScaleConfirmHitTargetIsNotShadowedByCompactControls() {
         SFMArgbColor initial = new SFMArgbColor(0xFF3366CC);

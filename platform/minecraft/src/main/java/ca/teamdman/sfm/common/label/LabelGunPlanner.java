@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.common.label;
 
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.blockentity.ClientManagerBlockEntity;
 import ca.teamdman.sfm.common.item.LabelGunItem;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
@@ -43,6 +44,11 @@ public class LabelGunPlanner {
                     gunLabels,
                     manager
             );
+        }
+
+        if (!msg.isTargetManagerModifierActive()
+            && level.getBlockEntity(msg.pos()) instanceof ClientManagerBlockEntity clientManager) {
+            return new LabelGunClientManagerPushOrPullAction(player, msg, gunStack, clientManager);
         }
 
         var activeLabel = LabelGunItem.getActiveLabel(gunStack);

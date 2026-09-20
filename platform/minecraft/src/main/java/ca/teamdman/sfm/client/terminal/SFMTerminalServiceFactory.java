@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.terminal;
 
+import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.config.SFMConfig;
 
 import java.io.IOException;
@@ -16,7 +17,9 @@ public final class SFMTerminalServiceFactory {
     public static final String DEFAULT_ENDPOINT = "127.0.0.1:63946";
     private static final Duration SERVER_READY_TIMEOUT = Duration.ofSeconds(10);
     private static final Duration SERVER_READY_RETRY = Duration.ofMillis(50);
+    private static final Duration SERVER_STOP_TIMEOUT = Duration.ofSeconds(2);
     private static Process ownedRustServer;
+    private static InetSocketAddress ownedRustServerEndpoint;
 
     private SFMTerminalServiceFactory() {
     }
@@ -26,20 +29,21 @@ public final class SFMTerminalServiceFactory {
         return new SFMJavaLocalTerminalService();
     }
 
-    /** Creates a Rust-preferred terminal with Java-local fallback. */
+    /** Creates the Rust scene; unavailable Vox is represented as a disconnected placeholder. */
     public static SFMTerminalService createRust() {
         InetSocketAddress endpoint = configuredEndpoint().orElseThrow();
-        return createRustOrFallback(endpoint);
+        return createRustOrUnavailable(endpoint);
+    }
+
+    /** Recreates the Rust scene against one already-resolved endpoint, including slim fallback. */
+    public static SFMTerminalService createRustOrUnavailable(InetSocketAddress endpoint) {
+        return instantiateRust(endpoint).orElseGet(() -> new SFMUnavailableTerminalService(endpoint));
     }
 
     /** Creates the optional Rust implementation without making Vox a Java compile-time dependency. */
     public static SFMTerminalService createRust(InetSocketAddress endpoint) {
         return instantiateRust(endpoint).orElseThrow(() -> new IllegalStateException(
                 "Rust/Vox terminal support is not present in this Java-only artifact"));
-    }
-
-    private static SFMTerminalService createRustOrFallback(InetSocketAddress endpoint) {
-        return instantiateRust(endpoint).orElseGet(SFMJavaLocalTerminalService::new);
     }
 
     private static Optional<SFMTerminalService> instantiateRust(InetSocketAddress endpoint) {
@@ -77,11 +81,17 @@ public final class SFMTerminalServiceFactory {
                 }
                 ProcessBuilder processBuilder = new ProcessBuilder(
                         executable.trim(), "serve", endpoint.getHostString() + ":" + endpoint.getPort());
-                processBuilder.redirectOutput(ProcessBuilder.Redirect.DISCARD);
-                processBuilder.redirectError(ProcessBuilder.Redirect.DISCARD);
+                // Keep the owned helper in the launcher's existing console/log
+                // stream.  Discarding these handles hid bind/runtime failures
+                // from both users and headless puppet evidence.
+                processBuilder.redirectOutput(ProcessBuilder.Redirect.INHERIT);
+                processBuilder.redirectError(ProcessBuilder.Redirect.INHERIT);
                 ownedRustServer = processBuilder.start();
+                ownedRustServerEndpoint = endpoint;
                 ownedRustServer.getOutputStream().close();
                 Process server = ownedRustServer;
+                SFM.LOGGER.info("Started owned Teamy Terminal server pid={} endpoint={} executable={}",
+                        server.pid(), endpoint, executable.trim());
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
                     if (server.isAlive()) {
                         server.destroy();
@@ -94,6 +104,8 @@ public final class SFMTerminalServiceFactory {
                 }
                 throw new IOException("Rust terminal server did not become ready at " + endpoint);
             }
+            SFM.LOGGER.info("Owned Teamy Terminal server is ready pid={} endpoint={}",
+                    ownedRustServer == null ? -1L : ownedRustServer.pid(), endpoint);
         }
         return endpoint;
     }
@@ -101,11 +113,28 @@ public final class SFMTerminalServiceFactory {
     /** Stops only a Rust server process started by this factory. */
     public static synchronized void stopOwnedRustServer() {
         Process server = ownedRustServer;
+        InetSocketAddress endpoint = ownedRustServerEndpoint;
         ownedRustServer = null;
+        ownedRustServerEndpoint = null;
         if (server == null || !server.isAlive()) return;
+        SFM.LOGGER.info("Stopping owned Teamy Terminal server pid={}", server.pid());
         server.destroy();
         try {
-            if (!server.waitFor(2, TimeUnit.SECONDS)) server.destroyForcibly();
+            if (!server.waitFor(SERVER_STOP_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
+                server.destroyForcibly();
+                if (!server.waitFor(SERVER_STOP_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
+                    SFM.LOGGER.warn("Owned Teamy Terminal server pid={} did not exit after forced termination",
+                            server.pid());
+                }
+            }
+            // Process exit and listener teardown are not observed atomically on
+            // Windows.  A restart that probes during this gap can adopt the
+            // dying listener and then inherit a refused connection.  Do not
+            // return until the old endpoint has actually stopped accepting.
+            if (endpoint != null && !awaitEndpointUnavailable(endpoint, SERVER_STOP_TIMEOUT)) {
+                SFM.LOGGER.warn("Owned Teamy Terminal endpoint {} still accepts connections after pid={} exited",
+                        endpoint, server.pid());
+            }
         } catch (InterruptedException error) {
             Thread.currentThread().interrupt();
             server.destroyForcibly();
@@ -122,6 +151,22 @@ public final class SFMTerminalServiceFactory {
                 return true;
             } catch (IOException ignored) {
                 if (timeout.isZero()) return false;
+            }
+            Thread.sleep(SERVER_READY_RETRY.toMillis());
+        } while (System.nanoTime() < deadline);
+        return false;
+    }
+
+    /** Waits until a TCP endpoint refuses connections, including the zero-time probe form. */
+    static boolean awaitEndpointUnavailable(InetSocketAddress endpoint, Duration timeout)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + timeout.toNanos();
+        do {
+            try (Socket socket = new Socket()) {
+                socket.connect(endpoint, 200);
+                if (timeout.isZero()) return false;
+            } catch (IOException ignored) {
+                return true;
             }
             Thread.sleep(SERVER_READY_RETRY.toMillis());
         } while (System.nanoTime() < deadline);

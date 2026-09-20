@@ -3,6 +3,7 @@ package ca.teamdman.sfm.gametest;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.event_bus.SFMSubscribeEvent;
 import ca.teamdman.sfm.common.util.SFMAnnotationUtils;
+import ca.teamdman.sfm.common.util.SFMDist;
 import ca.teamdman.sfm.properties.SFMProperties;
 import net.minecraft.gametest.framework.GameTestRegistry;
 import net.minecraft.gametest.framework.TestFunction;
@@ -10,6 +11,7 @@ import net.minecraftforge.event.RegisterGameTestsEvent;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -38,6 +40,7 @@ public class SFMGameTestDiscovery {
     public static Stream<SFMGameTestDefinition> gatherTests() {
 
         Stream<SFMGameTestDefinition> annotatedTests = SFMAnnotationUtils.discoverAnnotations(SFMGameTest.class)
+                .filter(SFMGameTestDiscovery::isCompatibleWithCurrentDist)
                 .map(SFMAnnotationUtils.SFMAnnotationData::tryLoadClass)
                 .map(clazz -> SFMAnnotationUtils.tryConstruct(clazz, SFMGameTestDefinition.class))
                 .peek(sfmGameTestDefinition -> SFM.LOGGER.info(
@@ -48,6 +51,28 @@ public class SFMGameTestDiscovery {
         Stream<SFMGameTestDefinition> generatedTests = gatherGeneratedTests();
 
         return Stream.concat(annotatedTests, generatedTests);
+    }
+
+    private static boolean isCompatibleWithCurrentDist(
+            SFMAnnotationUtils.SFMAnnotationData annotationData
+    ) {
+
+        EnumSet<SFMDist> compatibleDists = annotationData.getEnumSet("value", SFMDist.class);
+        if (compatibleDists.isEmpty()) {
+            compatibleDists = EnumSet.allOf(SFMDist.class);
+        }
+
+        SFMDist currentDist = SFMDist.current();
+        boolean compatible = compatibleDists.contains(currentDist);
+        if (!compatible) {
+            SFM.LOGGER.info(
+                    "Skipping SFM game test on physical side {}: {} (compatible sides: {})",
+                    currentDist,
+                    annotationData.clazz().getClassName(),
+                    compatibleDists
+            );
+        }
+        return compatible;
     }
 
     public static Stream<SFMGameTestDefinition> gatherGeneratedTests() {

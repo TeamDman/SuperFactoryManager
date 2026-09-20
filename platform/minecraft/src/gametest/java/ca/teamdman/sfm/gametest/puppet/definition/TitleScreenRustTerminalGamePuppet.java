@@ -24,8 +24,25 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.waitTicks(10);
+        // The Rust scene must remain a truthful disconnected surface before
+        // the lifecycle action starts a companion server; it must not borrow
+        // the Java-local REPL help or input strip.
         puppet.openCommandPalette();
-        puppet.executeCommandPalette("sfm action invoke sfm:terminal/start-rust-server");
+        puppet.executeCommandPalette("sfm action invoke sfm:panel/open sfm:terminal");
+        puppet.waitTicks(30);
+        puppet.capture("rust-terminal-disconnected", Component.literal("SFM Terminal ")
+                .withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("Rust-authoritative terminal shows an explicit disconnected state.")));
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:terminal/server/start");
+        puppet.openCommandPalette();
+        puppet.executeCommandPalette("sfm action invoke sfm:terminal/server/connect");
+        puppet.executeCommandPalette("sfm action invoke sfm:palette/close");
+        puppet.waitTicks(80);
+        puppet.assertFormerTerminalStartButtonRoutesToTerminal();
+        puppet.capture("rust-terminal-lifecycle-actions", Component.literal("SFM Terminal ")
+                .withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("Lifecycle actions retain the panel and loaded pixels retire Start/Retry hit routing.")));
         puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
         puppet.capture("rust-terminal-escape-guidance", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
@@ -39,6 +56,8 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.capture("rust-terminal-tab-focus-traversal", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Three-Tab focus traversal remains inside the workspace.")));
+        // The selector owns focus after the third Tab; a fourth returns to PTY input.
+        puppet.pressTerminalKey(GLFW.GLFW_KEY_TAB);
         puppet.typeTerminalText("Write-Output alpha beta");
         puppet.pressTerminalKey(GLFW.GLFW_KEY_BACKSPACE, GLFW.GLFW_MOD_CONTROL);
         puppet.typeTerminalText("gamma");
@@ -83,7 +102,7 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.capture("rust-terminal-ctrl-c-interrupt", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
                 .append(Component.literal("Ctrl+C interrupts a running Rust-owned PowerShell command.")));
-        puppet.writeTerminalContent("ctrl-c-interrupt", "❯", "10000");
+        puppet.writeTerminalContent("ctrl-c-interrupt", "❯", "line:10000");
         puppet.executeTerminal("1..100");
         puppet.waitTicks(30);
         puppet.pressTerminalKey(GLFW.GLFW_KEY_HOME);
@@ -122,16 +141,24 @@ public final class TitleScreenRustTerminalGamePuppet {
         puppet.restartRustTerminalServer();
         puppet.waitTicks(30);
         puppet.writeTerminalContent("rust-server-reconnected", "❯", null);
-        puppet.executeTerminal("1..10000 | ForEach-Object { Write-Output $_; Start-Sleep -Milliseconds 1 }");
+        puppet.executeTerminal(" 1..10000 | ForEach-Object { Write-Output $_; Start-Sleep -Milliseconds 1 }");
         puppet.waitTicks(10);
         puppet.cancelTerminal();
         puppet.waitTicks(30);
-        puppet.writeTerminalContent("cancel-rpc", "❯", "10000");
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
-        puppet.pressTerminalKey(GLFW.GLFW_KEY_ESCAPE);
+        // The visible output window is intentionally moving while the command
+        // runs, so assert the stable post-cancellation prompt rather than a
+        // particular number that may have just scrolled out of view.
+        puppet.writeTerminalContent("cancel-rpc", "line:❯", "line:10000");
+        puppet.assertTerminalPushEvidence("push-delivery", true);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ESCAPE, 0);
+        puppet.capture("rust-terminal-triple-escape-chooser", Component.literal("SFM Terminal ")
+                .withStyle(ChatFormatting.GOLD)
+                .append(Component.literal("Three Escape presses open the constrained close palette.")));
+        puppet.pressScreenKey(GLFW.GLFW_KEY_ENTER, 0);
         puppet.capture("rust-terminal-triple-escape-close", Component.literal("SFM Terminal ")
                 .withStyle(ChatFormatting.GOLD)
-                .append(Component.literal("Three-Escape close returns to the underlying screen.")));
+                .append(Component.literal("The palette's selected Close panel action returns to the underlying screen.")));
     }
 }

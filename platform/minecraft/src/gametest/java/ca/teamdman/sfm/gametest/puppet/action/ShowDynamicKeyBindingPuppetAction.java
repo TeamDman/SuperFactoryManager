@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.keybinding.SFMKeyInputEvent;
 import ca.teamdman.sfm.client.keybinding.SFMKeyModifier;
 import ca.teamdman.sfm.client.keybinding.SFMKeySequence;
 import ca.teamdman.sfm.client.keybinding.SFMKeyStroke;
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.SFMCommandDraftScreen;
 import ca.teamdman.sfm.client.screen.SFMKeyBindingDetailsScreen;
@@ -43,14 +44,14 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
         SFMKeyBindingService service = SFMKeyBindingService.INSTANCE;
         if (view != View.RECORDING) service.setDispatchSuspended(false);
         if (view == View.SETUP || view == View.PALETTE) {
-            service.remove("puppet-help-1");
-            service.remove("puppet-help-2");
-            service.remove("puppet-incomplete");
-            service.remove("puppet-conflict");
-            service.put(binding("puppet-help-1", SFMKeySequence.of(
+            service.removeEphemeral("puppet-help-1");
+            service.removeEphemeral("puppet-help-2");
+            service.removeEphemeral("puppet-incomplete");
+            service.removeEphemeral("puppet-conflict");
+            service.putEphemeral(binding("puppet-help-1", SFMKeySequence.of(
                     SFMKeyStroke.of(GLFW.GLFW_KEY_H, SFMKeyModifier.CONTROL)
             )));
-            service.put(binding("puppet-help-2", SFMKeySequence.of(
+            service.putEphemeral(binding("puppet-help-2", SFMKeySequence.of(
                     SFMKeyStroke.of(GLFW.GLFW_KEY_K, SFMKeyModifier.CONTROL),
                     SFMKeyStroke.of(GLFW.GLFW_KEY_H, SFMKeyModifier.CONTROL)
             )));
@@ -65,10 +66,10 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
                 requested = true;
                 Minecraft.getInstance().setScreen(new net.minecraft.client.gui.screens.TitleScreen());
                 if (view == View.ACTIVATE_FIRST) {
-                    service.accept(press(1100, service.currentTick(), GLFW.GLFW_KEY_H));
+                    runtime.pressScreenKey(GLFW.GLFW_KEY_H, GLFW.GLFW_MOD_CONTROL);
                 } else {
-                    service.accept(press(1200, service.currentTick(), GLFW.GLFW_KEY_K));
-                    service.accept(press(1201, service.currentTick(), GLFW.GLFW_KEY_H));
+                    runtime.pressScreenKey(GLFW.GLFW_KEY_K, GLFW.GLFW_MOD_CONTROL);
+                    runtime.pressScreenKey(GLFW.GLFW_KEY_H, GLFW.GLFW_MOD_CONTROL);
                 }
                 return false;
             }
@@ -76,10 +77,11 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
             if (++ticks > 100) throw new IllegalStateException("Shortcut did not invoke manager through contextual executor");
             return false;
         } else if (view == View.INCOMPLETE) {
-            service.put(new SFMKeyBinding(
+            service.putEphemeral(new SFMKeyBinding(
                     "puppet-incomplete",
                     "sfm:echo",
                     "sfm action invoke sfm:echo ",
+                    SFMKeyboardUsageSituations.GLOBAL,
                     SFMKeySequence.of(SFMKeyStroke.of(GLFW.GLFW_KEY_I, SFMKeyModifier.CONTROL)),
                     true
             ));
@@ -103,12 +105,13 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
             }
         } else {
             Screen parent = Minecraft.getInstance().screen;
-            if (view == View.DETAILS_AFTER_REMOVAL) service.remove("puppet-help-1");
+            if (view == View.DETAILS_AFTER_REMOVAL) service.removeEphemeral("puppet-help-1");
             if (view == View.CONFLICT) {
-                service.put(new SFMKeyBinding(
+                service.putEphemeral(new SFMKeyBinding(
                         "puppet-conflict",
                         "sfm:echo",
                         "sfm action invoke sfm:echo conflict",
+                        SFMKeyboardUsageSituations.GLOBAL,
                         SFMKeySequence.of(SFMKeyStroke.of(GLFW.GLFW_KEY_H, SFMKeyModifier.CONTROL)),
                         true
                 ));
@@ -127,18 +130,10 @@ public final class ShowDynamicKeyBindingPuppetAction implements SFMPuppetAction 
                 id,
                 ACTION.toString(),
                 "sfm action invoke " + ACTION,
+                SFMKeyboardUsageSituations.GLOBAL,
                 sequence,
                 true
         );
     }
 
-    private static SFMKeyInputEvent press(long sequence, long tick, int key) {
-        return new SFMKeyInputEvent(
-                sequence,
-                tick,
-                key,
-                SFMKeyInputEvent.Type.PRESS,
-                Set.of(SFMKeyModifier.CONTROL)
-        );
-    }
 }

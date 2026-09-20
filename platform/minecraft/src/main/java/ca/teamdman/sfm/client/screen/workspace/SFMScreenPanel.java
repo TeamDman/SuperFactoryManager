@@ -1,8 +1,12 @@
 package ca.teamdman.sfm.client.screen.workspace;
 
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+
+import java.util.Optional;
 
 
 /**
@@ -16,8 +20,38 @@ import net.minecraft.network.chat.Component;
 public interface SFMScreenPanel {
     Component title();
 
+    /** Deepest contextual keybinding situation when no child widget owns focus. */
+    default ResourceLocation keyboardUsageSituationId() {
+        return SFMKeyboardUsageSituations.DEFAULT;
+    }
+
     default Component narration() {
         return title();
+    }
+
+    /** Current data-loss posture used by pane-level close preflight. */
+    default SFMPanelCloseState closeState() {
+        return SFMPanelCloseState.cleanEditable();
+    }
+
+    /**
+     * Optional Minecraft-like child surface hosted by this panel.
+     *
+     * <p>The workspace remains the only real {@code Screen}; this host gives
+     * embedded controls one ordered focus, rendering, narration, and event
+     * path without pretending that each panel owns a full screen.</p>
+     */
+    default Optional<SFMPanelWidgetHost> widgetHost() {
+        return Optional.empty();
+    }
+
+    /**
+     * True when every panel-level input path has been represented as a child.
+     * This prevents an unhandled child event from being retried against legacy
+     * callbacks and delivered twice.
+     */
+    default boolean widgetHostOwnsInput() {
+        return false;
     }
 
     default void opened(
@@ -34,6 +68,15 @@ public interface SFMScreenPanel {
     }
 
     default void tick() {
+    }
+
+    /**
+     * Describes a tooltip for the current pointer without painting it.
+     * The workspace renders the returned tooltip after all panel scissors and
+     * sibling panels have finished.
+     */
+    default Optional<SFMPanelTooltip> tooltipAt(double mouseX, double mouseY) {
+        return Optional.empty();
     }
 
     void render(

@@ -103,10 +103,11 @@ If we have a concept of virtual desktop-like things, then does that mean we have
 
 # In-game code review workspace and window manager plan
 
-**Plan status:** Active; multiplexer/explorer foundation integrated, review slice planning in progress
+**Plan status:** Active; multiplexer/explorer foundation and Track 1b pointer-driven divider resizing are complete; Track 1c overlay/declarative-scene state, review-surface, and later relocation/workspace slices remain
 **Primary planning root:** `D:\Repos\Minecraft\SFM\repos2\1.19.2`  
 **Related reference worktrees:** `feat/1.19.2/draw`, `feat/1.19.2/mount`  
-**Last updated:** 2026-07-21
+**Last updated:** 2026-08-24
+**Intent audit:** Passed and post-compaction re-audited 2026-08-23 for divider behavior, explicit focus actions, transient-screen ownership, screen/overlay diagnostics, bounded eager documents, and the complete temporal-history/frontline-overlay/layout-state guidance
 
 ## How to update this plan
 
@@ -122,6 +123,31 @@ the repository propagation workflow for changes intended for core branches.
 
 ## Planning checkpoint
 
+### 2026-08-23 palette, screen ownership, and large-document correction
+
+- Focus traversal is action-addressable rather than inferred from whether Tab
+  completion happened to make progress. `sfm:focus <target>` owns stable focus
+  IDs; Alt+E/Alt+C target the palette's Execute/Cancel controls, and right-click
+  exposes those same actions plus canonical-command copying. Panel content may
+  continue to own Tab without making controls unreachable.
+- Persistent workspaces unwrap any transient palette origin before retaining
+  their previous screen. A command that closes/replaces a palette cannot reset
+  the removed instance, and nested constrained palettes restore their parent
+  identity. This is the lifecycle invariant that prevents Alt+D from replacing
+  the title screen with an undismissable palette/workspace cycle.
+- `sfm:screen/diagnostics` (alias `sfm:overlay/diagnostics`) opens a read-only
+  text snapshot of current screen, focus, logical/framebuffer dimensions,
+  workspace panel IDs/classes/bounds/stacks, previous screen, and all overlay
+  scene entries. It is a general inspection seam, not a bespoke diagnostics
+  screen.
+- Eager path documents retain one 4 MiB bound, including `.sfm-review.json`.
+  Do not raise that limit to accommodate a 30+ MiB persistence file. The
+  authoritative future work is RCS-UX6c in the global review plan: a read-only
+  viewport-backed virtual document with line/byte indexing, camera-derived
+  cancellable range requests, generation/hash guards, bounded LRU chunks,
+  placeholders, bounded syntax, and a >30 MiB natural puppet. Writable virtual
+  documents remain deferred.
+
 No architecture or release-scope decision is accepted merely by creating this
 document. The next planning pass should separate and relate these concerns:
 
@@ -135,10 +161,302 @@ document. The next planning pass should separate and relate these concerns:
 - the smallest coherent release slice, its persistence model, tests, and
   cross-version propagation strategy.
 
+## Authoritative user guidance ledger — 2026-08-16 divider interaction extension
+
+| ID | Active guidance | Required plan consequence | Superseded by |
+| --- | --- | --- | --- |
+| WRESIZE-1 | A user should be able to resize panels by dragging the border/divider between them, with behavior familiar from VS Code. | Track 1b adds explicit divider identities/hit regions, continuous share updates with minimum constraints, pointer capture/cancel, and live resizing. | — |
+| WRESIZE-2 | Hovering a resizable divider must change the OS cursor to communicate horizontal or vertical resizing before the drag begins. | Track 1b adds a version-adapted owned GLFW standard-cursor seam with horizontal/vertical shapes, deterministic reset, and no per-frame cursor allocation. | — |
+| WRESIZE-3 | At the intersection of three or more panels/dividers, one drag should resize both axes and use a crosshair/four-direction resize cursor. | Track 1b hit-tests a set of orthogonal divider identities at one point and captures both deltas; a true linked row/column grid still requires explicit Grid/linked-divider semantics rather than coincidence. | — |
+| WRESIZE-4 | Resizing must preserve the layout model's minimums, proportions, panel identities, stacks, focus, and content state. | Track 1b mutates track shares through one constrained layout operation and proves nested Linear/Stack and three/four-pane cases without rebuilding panels. | — |
+| WRESIZE-5 | Mouse behavior should remain action/automation addressable instead of becoming pointer-only hidden state. | Track 1b exposes divider descriptions and an equivalent registered resize intent carrying explicit divider selector/delta or resulting shares; existing keyboard `panel/resize/...` remains semantically consistent. | — |
+| WRESIZE-6 | `G:\Programming\Repos\vscode` may be used as a local behavior reference. | Track 1b records VS Code's sash/split/grid files as evidence for cursor/hit/linked-resize behavior, but copies neither TypeScript/DOM code nor a dependency. | — |
+
+## Guidance traceability — 2026-08-16 extension
+
+| Guidance | Plan coverage | Evidence when complete |
+| --- | --- | --- |
+| WRESIZE-1, WRESIZE-2 | Track 1b geometry/cursor/host lanes | Divider hit tests, horizontal/vertical cursor lifecycle, continuous drag/share/minimum tests, cancel/focus/lifecycle proof, and live pointer artifacts |
+| WRESIZE-3, WRESIZE-4 | Track 1b pure layout lane | T-junction and four-pane intersection fixtures, orthogonal delta application, explicit linkage rules, stable panel/stack/focus identities, and responsive resize screenshots |
+| WRESIZE-5 | Track 1b action/automation contract | Action-registry/completion tests, explicit divider/result identity, keyboard/pointer semantic parity, and machine-readable before/during/after shares/bounds |
+| WRESIZE-6 | Track 1b source evidence | References to local VS Code `sash.ts`, `splitview.ts`, and `gridview.ts`, with an original SFM implementation and license/dependency non-adoption note |
+
+## Intent audit evidence — 2026-08-16 divider interaction extension
+
+- **Pass 1 — extraction:** Preserved border dragging, VS Code-like behavior,
+  horizontal/vertical cursor changes, intersections of three or more panels,
+  simultaneous two-axis resize, and the crosshair/four-direction visual cue as
+  distinct WRESIZE requirements. Kept this separate from the earlier Alt+drag
+  relocation and explorer-node drag proposals.
+- **Pass 2 — traceability:** Mapped every id to Track 1b and inspected the
+  current foundation. `SFMWorkspaceLayout` already has normalized n-ary Linear
+  shares/minimums and directional five-percent resize; `SFMScreenMultiplexer`
+  routes mouse events only into panels and exposes no divider hover/drag; the
+  earlier algebra deliberately leaves Grid/divider dragging/linking deferred.
+  Local VS Code sources provide `Sash`, SplitView constraints, orthogonal
+  sashes, linked sashes, and GridView linked width/height nodes as behavioral
+  evidence.
+- **Pass 3 — adversarial omission:** Checked that a coincident line does not
+  silently become permanently linked, a T-junction can still capture both
+  actual dividers under the pointer, minimums cannot produce negative bounds,
+  resize does not recreate panel content or alter stack selection, the OS
+  cursor cannot remain stuck after focus/screen loss, pointer capture does not
+  leak clicks into child panels, and automation can reproduce the result
+  without screen-coordinate `SendInput`.
+- **Fresh-agent resumption check:** A new agent can start Track 1b from the
+  existing Linear/share/minimum and keyboard-resize foundation, freeze
+  DividerId/geometry/delta/cursor interfaces, run the three disjoint lanes,
+  and integrate one two-/three-/four-pane puppet without beginning relocation,
+  explorer drag, virtual workspaces, or review-surface work.
+- **Known source limitation:** None. Current SFM layout/host source, the earlier
+  layout-algebra checkpoint, the complete user requirement, and local VS Code
+  source were available. Exact GLFW cursor shape availability across later
+  Minecraft/LWJGL versions remains an adapter concern with crosshair fallback.
+
 The versioned snapshot, episode, raw-event, action-trace, replay, calculator
 environment, and future amalgamation contracts are owned by the separate
 [snapshot episodes and deterministic action environments plan](snapshot%20episodes%20and%20deterministic%20action%20environments%20plan.md).
 This workspace is a consumer of those models rather than their only host.
+
+## Temporal history and overlay guidance ledger — 2026-08-21
+
+| ID | Active guidance | Required consequence | Coverage |
+| --- | --- | --- | --- |
+| WOVER-1 | The frontline action history should be openable from the command palette and update while actions occur. | Snapshot/episode 2.8 registers `sfm:episode/history` as ordinary panel content with incremental subscription; Track 7 records/routs actions without child-panel coupling. | Track 7 + snapshot 2.8/TE-S1 |
+| WOVER-2 | The same kind of history/FPS/diagnostic information should eventually remain visible while the user plays, instead of requiring a full-screen consuming `Screen`. | Track 1c introduces an SFM-owned non-pausing overlay layer distinct from the multiplexer screen, Forge modal GUI layers, and Minecraft's loading overlay. | Track 1c |
+| WOVER-3 | Overlay rendering and overlay interaction have different input expectations. | Every overlay has `PASSIVE` or `INTERACTIVE` input mode, explicit focus, hit bounds, cursor policy, narration, and Escape/focus-loss behavior. Passive overlays never consume gameplay input. | Track 1c |
+| WOVER-4 | Layout and overlay behavior must remain expressible as typed actions so command palette, puppets, `sfm.exe`, and agents have parity. | Visibility, focus, placement, z-order, and preset operations target explicit set-valued selectors through the client-action dispatcher; pointer gestures emit equivalent intents. | Track 1c + Track 7 |
+| WOVER-5 | “Show FPS overlay” and “move that overlay” are separate composable operations; do not register one show action for every corner. | Visibility actions preserve current/default placement. Placement uses a general `SFMPlacement`; F3 choice sessions offer ordinary action drafts. | Track 1c |
+| WOVER-6 | Position needs a general addressable model rather than feature-specific top-left/top-right enums. | `SFMPlacement` names a reference-frame selector, reference/content normalized anchors, logical offsets, optional size constraints, clipping/safe-area policy, and z-order. Common corners are values/presets, not action kinds. | Track 1c contract |
+| WOVER-7 | Layout presets should be durable, but restoring one should not require replaying every historical manipulation. | Authoritative current UI is a versioned declarative scene graph. Actions mutate and are recorded against it; a preset serializes canonical state plus optional provenance. | Track 1c persistence |
+| WOVER-8 | Showing an overlay should normally reuse its last persisted or registered intrinsic placement. | Visibility/show resolves explicit instance state, then user preset, then scene default. History may explain the state but is not scanned as the persistence mechanism. | Track 1c persistence/UI |
+| WOVER-9 | The undo/action history must show non-linear branches and projected alternatives without claiming arbitrary live-world effects can be rewound. | The History Graph consumes snapshot/episode effect classes and projection statuses. Workspace/UI layout is restorable; external barriers remain visible. | Track 7 + snapshot 0.5/1.5/2.8 |
+
+### Confirmed frontline design
+
+The first usable surface is a normal split panel, not a new overlay dependency:
+
+```text
+sfm action invoke sfm:panel/open/right sfm:episode/history
+```
+
+It can sit beside Text Editor V3 or an explorer inside the existing
+multiplexer, remain unfocused while following the active episode head, and use
+the existing panel resize/stack/focus machinery. This is TE-S1's UI because it
+is implementable on the proven host and directly supports the editing chamber.
+
+Track 1c then adapts the same panel content into an SFM overlay so it can appear
+over an active world without pausing or replacing the global screen. This is a
+host/lifecycle/input extension, not a second History Graph implementation.
+
+No general textual layout DSL is required for Track 1c. The canonical contract
+is a typed, versioned scene graph plus typed actions and deterministic
+serialization. A human-editable textual projection/parser may follow once that
+model is stable; command palette, CLI, puppet, and agent automation already use
+the action surface in the meantime.
+
+### UI state and placement contract
+
+The working state shape is:
+
+```text
+SFMClientSceneState {
+  workspace_set?,
+  overlays: Map<OverlayInstanceId, SFMOverlayState>,
+  focus,
+  schema_version
+}
+
+SFMOverlayState {
+  scene_recipe,
+  visible,
+  placement,
+  input_mode: PASSIVE | INTERACTIVE,
+  z_order,
+  persisted_state
+}
+
+SFMPlacement {
+  reference_frame_selector,
+  reference_anchor_uv,
+  content_anchor_uv,
+  logical_offset,
+  optional_size_constraints,
+  safe_area_and_clipping_policy
+}
+```
+
+Normalized anchors are finite `[0,1]` values; offsets and constraints use
+Minecraft logical GUI units. For example, top-right is reference anchor `(1,0)`
+plus content anchor `(1,0)`, not a unique positioning API. Reference frames may
+initially be the GUI safe viewport or one exact panel/overlay; adding world/entity
+frames requires a later projection/authority contract.
+
+Provisional canonical actions are hierarchical and selector-explicit:
+
+```text
+sfm:overlay/visibility/set <overlay-selector> <true|false>
+sfm:overlay/visibility/toggle <overlay-selector>
+sfm:overlay/placement/set <overlay-selector> <placement>
+sfm:overlay/input-mode/set <overlay-selector> <passive|interactive>
+sfm:overlay/focus <overlay-selector>
+sfm:ui/layout/preset/save <name>
+sfm:ui/layout/preset/load <name>
+```
+
+F3 may present `show/toggle FPS`, `show/toggle size display`, and `show/toggle
+history` through its constrained command-palette choice session. Repositioning
+is discoverable context/action work performed separately.
+
+### Intent-audit evidence — 2026-08-21
+
+- **Pass 1 — extraction:** Preserved live history visibility, non-linear undo
+  branches, active-game overlays, screen-versus-overlay input differences,
+  tiling/layout programmability, action/CLI/agent parity, FPS and size-display
+  examples, visibility/position separation, generalized coordinates, previous
+  placement, and preset persistence as independent requirements.
+- **Pass 2 — traceability:** Routed history semantics to snapshot/episode and
+  Track 7, retained `SFMWorkspaceLayout` as tiled-layout authority, and added
+  Track 1c for the genuinely missing overlay/declarative-scene host. Every
+  WOVER id maps to a task and live/pure proof.
+- **Pass 3 — adversarial omission:** Explicitly avoided treating Forge modal
+  GUI layers or Minecraft's loading overlay as the desired HUD surface, replaying
+  action history to restore a preset, coupling show with position, consuming
+  gameplay input from passive overlays, introducing a premature CSS-like DSL,
+  or claiming live-world rewind from UI-state history.
+- **Known source limitation:** None. The full source messages, current layout
+  plan/algebra, `SFMWorkspaceLayout`, `SFMScreenMultiplexer`, and Track 7 design
+  were available.
+
+## User-testing checkpoint — 2026-08-02
+
+The release plan's P-1/P-2/P-3 items are the executable work breakdown. This
+document owns the panel-state and composition laws those items consume.
+
+### Superseded review surface
+
+`sfm:review/open_bundle` and the managed bundle-review implementation are to be
+deleted, including the Rust producer and dedicated repository-review workspace.
+They were a completed experiment that proved real repository bytes could reach
+the comment kernel, but the managed inbox and fixed bundle workspace are not
+the desired product. Preserve the independent review-session/comment model and
+record the synchronous completion incident as a palette-wide audit requirement.
+
+`sfm:developer/open_source_review` and
+`sfm:developer/open_comment_review` are temporary migration witnesses only.
+Their fixture shells and action ids must disappear after the panel/explorer
+review story has equivalent passing puppets. The review-session/comment kernel,
+stores, selectors, persistence, editing components, styles, and useful visual
+behavior survive the migration.
+
+**Migration completed — 2026-08-02:** The legacy review action ids, ledger and
+comment workspaces, and fixture-only puppets are deleted. The shared review
+explorer projections now provide changes, comments, and hashtags through the
+panel workspace; the review-session/comment kernel remains in place.
+
+### Canonical action hierarchy
+
+Action ids use slash-separated concepts. The panel family is
+`panel/open[/<direction>]`, `panel/close`,
+`panel/move/<direction>`, `panel/scale/{set|increase|decrease|clear}`,
+`panel/rotate/content/{left|right}`, and
+`panel/rotate/scale/{left|right}`. Do not introduce flattened forms such as
+`rotate_content_right`. The unpublished `workspace/open_to_side` action is
+replaced after its call sites and puppets migrate; it is not a permanent alias.
+
+`sfm:panel/open sfm:terminal` is the sole terminal-opening action.
+`sfm:terminal/open` is retired. `sfm:terminal/server/start` and
+`sfm:terminal/server/connect` manage lifecycle only and never implicitly open
+or replace a panel. The Java-local `sfm:repl/open` action remains separate.
+
+Scene ids and scene arguments remain typed children of this action family. At
+minimum the registry exposes `sfm:size_display`, `sfm:terminal`,
+`sfm:explorer/changes`, `sfm:explorer/comments`, and
+`sfm:explorer/comments/hashtags`. The command palette must distinguish a
+missing scene or scene argument from an executable action and must not insert a
+separator after reporting no candidates.
+
+### Normative panel-state model
+
+- A **slot** owns one visible layout region and an ordered stack of entries.
+- A **panel entry** owns stable identity, scene/content state, optional GUI
+  scale override, and provenance/role metadata.
+- The **visible entry**, **focused slot**, and **focused child component** are
+  independent state.
+- Pushing an entry makes it visible. It moves slot focus only when the invoking
+  operation explicitly requests focus.
+- Moving an entry removes the visible entry from its source stack and pushes
+  that same identity and state onto the neighboring destination stack. The
+  destination slot is created when absent; an emptied source slot collapses.
+  Moving never creates a second entry or aliases panel state.
+- Content and scale rotations operate only across the currently visible entry
+  in each slot. Hidden entries remain unchanged in their owning stacks.
+- Explorer previews carry `explorer-preview(owner=<explorer-id>)`. Only a slot
+  carrying that ownership is eligible for later previews from that explorer.
+- Closing the visible entry reveals the next entry; closing the final entry
+  collapses the slot and repairs focus deterministically.
+
+### Normative keyboard traversal
+
+Plain `Tab` is sent to the focused child. `Ctrl+number` focuses the numbered
+visible slot without rotating its stack. `Ctrl+Tab` visits each panel entry in
+visible slot order; entering another entry in the same slot makes that entry
+visible while the slot stays focused. `Ctrl+Shift+Tab` is the exact inverse.
+The required transition witness is:
+
+```text
+[>1, [2,3], 4]
+[1, >[2,3], 4]
+[1, >[3,2], 4]
+[1, [3,2], >4]
+```
+
+Terminal/editor-specific Tab behavior therefore remains available without
+removing keyboard access to the surrounding workspace.
+
+### Normative explorer-open behavior
+
+For a selected file, Space and `Ctrl+Enter` find the most recent preview slot
+owned by that explorer; if no such slot exists, create one to the right. Each
+open pushes a new typed preview entry into that slot—“clobber” means changing
+the visible entry, not deleting the prior entry. Space keeps explorer focus;
+`Ctrl+Enter` focuses the preview. A selected directory uses Space to
+expand/collapse. Terminals and unrelated panels are never eligible preview
+targets.
+
+### Scale and rotation behavior
+
+GUI scale is an optional per-entry view setting. In equal-sized slots, a
+size-display entry at scale 2 must report more logical width/height than one at
+scale 4. Content and scale are independently rotatable fields: rotating
+content preserves region geometry and scale assignments, while rotating scale
+preserves geometry and content. Binding both operations to one key composes the
+transformations. Each rotation includes only the currently visible entry from
+each slot; hidden entries remain unchanged in their owning stacks.
+
+Slots with stacks show compact numbered boxes in the bottom-right corner and
+identify the visible entry. Entries with scale overrides show `gui scale N`.
+Automation exposes slot order, stack order, visible entry, focus, ownership,
+dimensions, and effective scale as structured/text artifacts in addition to
+screenshots.
+
+### Review explorer composition
+
+The change explorer is parameterized by independent before/after selectors and
+projects `file → revision lane → before|after`. Its default lane set is every
+maintained Minecraft-version worktree known to the SFM toolchain, ordered
+oldest to newest; an optional lane filter can narrow the view. It unifies those
+branches rather than opening one fixed two-pane diff. Both leaves remain
+present for every participating file/lane; an absent added/deleted side is a
+typed tombstone rather than a missing tree node. An unresolved selector keeps
+its lane visible with a diagnostic placeholder while resolved lanes remain
+usable. Comment and
+hashtag explorers project the existing comment-session kernel as
+`comment → file → region` and `hashtag → file → region`. Opening any leaf uses
+the explorer-owned preview behavior above. Before/after leaves present one
+immutable source revision with applicable comment styles; diff colors are
+produced through `#removed`/`#added` comments rather than a special-purpose
+diff panel.
 
 ## Current integrated baseline (2026-07-21)
 
@@ -159,65 +477,35 @@ merging the first integration branch are retained as coordination history;
 future tracks branch from the current reviewed baseline and return through a
 fresh explicitly named integration step when concurrent work requires it.
 
-## Immediate next step
+## Current execution order
 
-### [~] 0.1 Establish vocabulary, ownership boundaries, and the first release slice
+The earlier “Open Review Workspace” first slice was completed as the historical
+managed-bundle experiment recorded below and is no longer current direction.
+The global comment/session plan now owns durable selectors, relocation,
+approval, and colorization. Execute the numbered release-plan batches in order:
 
-Before implementation, inspect the existing audit, Arborium/JavaParser, Draw,
-mount, console/palette, editor, and Minecraft screen/overlay seams. Turn that
-evidence into explicit design choices for:
+1. P-1 removes the bundle experiment, audits completion latency, establishes
+   hierarchical panel actions, and corrects terminal presentation;
+2. P-2 implements slot stacks, focus traversal, explorer-owned previews,
+   per-entry scale, rotations, and observable badges; and
+3. P-3 composes multi-lane changes and comment/hashtag explorers over the
+   preserved comment-session kernel.
 
-1. what artifact stores reviewed state and how it survives new commits;
-2. the granularity and identity of a reviewable unit across edits;
-3. which operations live outside Minecraft versus in the in-game workspace;
-4. whether panels host full `Screen` instances or narrower panel/content
-   interfaces adapted from screens; and
-5. which one end-to-end workflow proves enough value to belong in the next
-   release.
+The historical track records below remain evidence about code already present;
+they are not instructions to restore deleted bundle or `workspace/open_to_side`
+surfaces.
 
-#### Working first release slice
+For the temporal-history trajectory added on 2026-08-21, the execution order is:
 
-The recommended slice is **Open Review Workspace**:
+1. snapshot/episode TE-S1 proves the live History Graph as ordinary split-panel
+   content, non-destructive undo branching, and the numbering chamber;
+2. selection X-3a supplies shared parent/child history navigation instead of a
+   linear redo stack; and
+3. Track 1c adapts the proven view to passive/interactive gameplay overlays and
+   adds declarative scene/preset persistence.
 
-1. open the workspace from the command palette;
-2. select before and after source snapshots;
-3. browse files through the existing explorer;
-4. open a changed source file as code-oriented comparison panels;
-5. view line/range fallback operations plus any available AST-aware
-   annotations without replacing code presentation with a generic AST tree;
-6. mark a source range or comparison operation human reviewed;
-7. independently mark it human approved while showing audit approval as a
-   separate read-only dimension; and
-8. close and reopen the same snapshot pair with the decisions restored.
-
-The first implementation may use deterministic fixtures and a line/range
-comparison while the Rust structured comparator is developed. A
-`SourceComparison` provider boundary allows the viewer to consume richer
-file-add/delete/rename, symbol-rename, body-change, formatting-only, and
-ambiguous/unknown operations later.
-
-#### Accepted review-presentation direction (2026-07-21)
-
-Canvas geometry is an interaction and presentation mechanism, not the durable
-identity of reviewed source. A dragged rectangle may select visible glyphs or
-source ranges and may be restored as a highlight, but persisting screen-space
-coordinates is insufficient: wrapping, font scale, panel resizing, formatting,
-and later edits can all move the same source.
-
-The durable review artifact should instead identify the compared source
-snapshots and store approved/reviewed source anchors. Candidate anchors include
-exact byte or character ranges with surrounding-content hashes, stable glyph
-ids within a document snapshot, structured comparison-operation ids, and AST
-nodes where the parser can identify them conservatively. The renderer derives
-rectangles and canvas adornments from those anchors when it presents the
-document. A thumbs-up operation over a rectangle therefore resolves the current
-selection to durable source anchors before recording approval.
-
-This permits a patch-like or structured sidecar artifact containing reviewed or
-approved segments without requiring annotations to be embedded in the source
-file or a textual diff. The exact schema, relocation behavior after edits, and
-distinction between human reviewed, human approved, and audit approved remain
-part of this task's release-slice decision.
+Track 1c is not a prerequisite for TE-S1. Whole-workspace counterfactual replay
+and externally visible effects remain later snapshot/episode 2.9 work.
 
 ## Parallel experiment tracks
 
@@ -363,6 +651,191 @@ is rejected from this track in favor of intentional `SFMScreenPanel` content.
 `Stack`, `Grid`, persistence, divider dragging/linking, and the Track 3 adapter
 remain later capabilities or integration work rather than blockers to this
 checkpoint.
+
+### [x] Track 1b — Pointer-driven divider resizing and cursor affordances
+
+This follow-up completes WRESIZE-1 through WRESIZE-6 without implementing
+Alt+drag relocation, explorer root/node drag, virtual workspaces, or arbitrary
+vanilla `Screen` embedding.
+
+**Verified starting point:** `SFMWorkspaceLayout` already stores normalized
+n-ary horizontal/vertical `LinearNode` tracks with positive shares and minimums,
+allocates stable panel bounds, and supports discrete directional resize by a
+five-percent step. `SFMScreenMultiplexer` currently forwards mouse movement,
+click, drag, release, and scroll to panel content; it has no first-class divider
+identity, divider hit region, pointer capture, continuous share mutation, or OS
+cursor ownership. The accepted algebra reserves `Grid`/linked dividers and says
+coincident geometry alone does not create semantic linkage.
+
+**Work — pure divider model:** Derive stable `DividerId` values from layout
+node identity/path plus axis and adjacent track identities. Expose each divider's
+logical/physical hit rectangle, movement interval, adjacent minima/current
+shares, and optional explicit link group. Add a pure constrained operation that
+applies a pixel/logical delta (or final share pair) without recreating panels,
+then normalizes shares deterministically. Resize all divider ids captured at a
+pointer intersection in one logical transaction: x affects vertical dividers,
+y affects horizontal dividers. At a T-junction or nested three-panel layout,
+only dividers whose real hit regions contain the pointer participate. Persisted
+cross-branch synchronization requires explicit Grid/linked ids; visual
+coincidence is not enough.
+
+**Work — host gesture and cursor lifecycle:** Hit-test dividers before child
+panel dispatch. Hovering one axis selects horizontal/vertical standard resize
+cursor; hovering an orthogonal set selects the best available resize-all cursor
+or a documented crosshair fallback. Create standard cursor handles once per
+Minecraft window/lifecycle, restore the prior/default cursor on exit, and
+destroy owned handles safely. Mouse-down captures exact divider ids, starting
+shares/bounds, pointer, workspace generation, and button. Drag applies deltas
+continuously even if the pointer leaves the original narrow hit region;
+release commits, Escape/screen close/focus loss/layout replacement cancels or
+ends according to a tested policy. Captured divider gestures consume input so
+child panels do not also click/drag.
+
+**Work — semantic action and observability:** Add an internal typed
+`ResizeDividers` intent and a registered hierarchical action that can select
+divider ids and set/adjust shares or deltas without ambient pointer coordinates.
+Keep `sfm:panel/resize/{left|right|above|below}` as the keyboard-friendly
+panel-relative operation; both paths call the same constrained share model.
+Describe dividers, links, hit bounds, shares/minima, active hover/capture, and
+before/during/after panel bounds in structured puppet artifacts.
+
+**Local behavior references:** Inspect, cite, and behaviorally adapt—without
+copying or depending on—the following VS Code sources:
+
+- `G:\Programming\Repos\vscode\src\vs\base\browser\ui\sash\sash.ts`
+- `G:\Programming\Repos\vscode\src\vs\base\browser\ui\splitview\splitview.ts`
+- `G:\Programming\Repos\vscode\src\vs\base\browser\ui\grid\gridview.ts`
+
+Relevant concepts include orientation-specific cursor state, enlarged hit
+areas, drag start/change/end, minimum/maximum constraints, orthogonal boundary
+sashes, linked sashes, and linked width/height nodes. SFM remains an original
+Minecraft/LWJGL implementation over its own layout/action model.
+
+**Validation:** Pure tests cover two panels, unequal shares, minima/clamping,
+reverse drag, viewport/GUI-scale conversion, nested same/orthogonal splits,
+T-junctions, four-pane intersections, explicit versus coincident links,
+stacks/hidden entries, focus/identity preservation, deterministic serialization,
+cancel, and layout mutation during capture. Host tests cover hover entry/exit,
+horizontal/vertical/intersection cursor shape, no per-frame handle creation,
+screen/focus lifecycle reset, pointer capture outside bounds, child-event
+suppression, registered-action parity, and keyboard resize regression.
+
+Add a self-contained puppet with two-, three-, and four-pane layouts. It pauses
+on each cursor/drag state, writes machine-readable divider/share/bounds data,
+and captures before/during/after images at representative GUI scales. The
+three/four-pane case must visibly resize both axes from one intersection drag.
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMWorkspaceDividerTests --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMScreenMultiplexerDividerInteractionTests --wait-for-build-lock
+sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
+sfm-propagate-changes.exe puppet run title_screen_workspace_divider_resize --branch 1.19.2 --variant declared --wait-for-build-lock
+```
+
+**Completion criteria:** Every resizable border advertises itself before drag;
+horizontal/vertical and intersection cursor states are correct and never stick;
+one intersection gesture resizes every explicitly hit orthogonal divider while
+respecting minima; panels/stacks/focus/content identities survive; keyboard,
+pointer, action, and automation paths agree; and artifacts make the share/bounds
+transition verifiable without computer vision.
+
+**Completion evidence (2026-08-16):** Java commit `2c013aa66` plus acceptance
+revision `776c2c4f8` add stable divider/link identities, constrained share
+mutation, orthogonal intersection capture, cached GLFW cursor ownership,
+pointer/action parity, child-event suppression, cancellation, and structured
+before/during/after evidence. Pure/host integration tests, canonical compile,
+and the full Java suite passed. The declared Auto plus GUI scales 1 through 8
+`title_screen_workspace_divider_resize` matrix passed at
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/`
+`sfm-title_screen-20260816-185618-484`. Its 27 machine layout reports per scale
+prove the expected horizontal/intersection cursors, 1/2/3 captured dividers,
+exact 36 / `(24,36)` / `(24,36,36)` deltas, stable focus and identities,
+respected minimums, continuously visible during-drag geometry, and distinct
+committed bounds. The fresh Auto four-pane intersection-hover and committed-
+resize frames were visually inspected. Alt+drag relocation, explorer drag, and
+virtual workspaces remain deferred.
+
+**2026-08-17 goal reconciliation:** XLAY-6 and WRESIZE-1 through WRESIZE-6 are
+also marked complete in the contextual plan's 35-requirement acceptance
+ledger. Their independent DIV matrix remains the authoritative live proof; the
+completed source-navigation SRC run does not authorize Alt+drag relocation,
+explorer-node drag, or later workspace slices.
+
+**Parallel topology:** Once `DividerId`, geometry, delta, and cursor-adapter
+interfaces are frozen, a pure layout/test lane, a GLFW cursor-lifecycle lane,
+and a puppet/artifact lane may proceed in parallel. One integration owner alone
+edits `SFMScreenMultiplexer`, central action registration, shared layout wiring,
+plan/changelog bookkeeping, and final live proof.
+
+### [ ] Track 1c — Non-pausing SFM overlay host and declarative scene state
+
+**Work — contract and state:**
+
+- Introduce versioned `SFMClientSceneState`, `SFMOverlayInstanceId`,
+  `SFMOverlayState`, `SFMPlacement`, input mode, focus, z-order, and scene-recipe
+  DTOs. Keep them independent from transient Minecraft widgets, rectangles,
+  GLFW handles, and Java object identity.
+- Extend the existing panel-content boundary or add one narrow adapter so the
+  same History Graph/FPS/size-display content can render in a multiplexer leaf
+  and in an overlay. Do not duplicate application state per host.
+- Render overlays through a version-adapted SFM HUD seam distinct from
+  `Minecraft.overlay` loading state and Forge's full-screen modal GUI-layer
+  stack. Dedicated-server loading must not touch client classes.
+- Keep the active world ticking. `PASSIVE` overlays render/narrate according to
+  policy but never consume pointer/keyboard/gameplay input. `INTERACTIVE` mode
+  has explicit focus acquisition/release, hit routing, cursor ownership,
+  narration, Escape, screen transition, focus-loss, and stale-instance rules.
+
+**Work — actions, placement, and persistence:**
+
+- Register the WOVER-4 action families with explicit set-valued overlay
+  selectors and typed results. Pointer drag/resize produces the same placement
+  intent/result as command invocation; no hidden direct state mutation remains.
+- Implement finite normalized reference/content anchors, logical offsets,
+  bounded size constraints, safe-area/clipping policy, and deterministic
+  viewport-resize behavior. Corners/centres are convenience values.
+- Separate visibility, placement, input mode, focus, z-order, and content state.
+  Showing resolves existing instance → saved preset → scene default and never
+  resets placement merely because visibility changed.
+- Serialize one canonical versioned scene/layout snapshot atomically with
+  unknown-scene placeholders and validation for duplicate ids, invalid
+  selectors/anchors, cycles/references, non-finite geometry, and unsupported
+  scene-state versions. Store optional action/revision provenance, but load the
+  state directly instead of replaying history.
+- Make F3 choices ordinary constrained command-palette drafts for history, FPS,
+  and size overlays. Preserve existing panel actions; an overlay is a new host,
+  not a rename that silently changes panel behavior.
+- Expose structured scene state through the local `sfm.exe` invocation path so
+  puppets and later agents can show/move/focus/save/load with exact instance and
+  game targeting.
+
+**Validation:**
+
+```pwsh
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMOverlay --wait-for-build-lock
+sfm-propagate-changes.exe test run --branch 1.19.2 --filter SFMWorkspace --wait-for-build-lock
+sfm-propagate-changes.exe run compile --branch 1.19.2
+```
+
+Pure tests cover placement anchors/offsets, viewport/GUI-scale changes,
+selector set semantics, visibility-position independence, action/pointer parity,
+preset canonical round trip/malformed recovery, unknown scene placeholders,
+and no replay requirement. Host tests prove passive input transparency,
+interactive focus/cursor release, z-order/hit routing, world tick continuity,
+screen/modal transitions, stale ids, and dedicated-server class isolation.
+
+A self-orchestrating in-world puppet walks while passive FPS and History Graph
+overlays update, proves movement keys still reach gameplay, enters interactive
+history mode, moves it via the registered placement action, exits focus, hides
+and re-shows it at the retained position, saves/loads a preset, and invokes the
+same operations once through `sfm.exe`. Screenshots and structured artifacts
+record world tick, focus, bounds, placement, z-order, input consumption, action
+ids, and persisted scene state.
+
+**Completion criteria:** A reusable panel view can be shown non-pausing over
+gameplay, passive/interactive behavior is predictable, every state change is
+action-addressable, visibility never smuggles positioning, and a versioned
+layout preset restores directly without replaying its creation history.
 
 ### [x] Track 2 — Native file drag-and-drop feasibility
 
@@ -1087,6 +1560,32 @@ Use “read lock” only as user-facing shorthand if desired; internally this is
 interaction/input ownership lease, not a Java read/write lock. Human viewing is
 allowed while human mutation input is gated.
 
+#### Live temporal History Graph integration
+
+The snapshot/episode plan owns ActionIntent, ActionEvaluation, ActionOutcome,
+StateRevision, immutable parent/child history, head movement, exact/frozen/
+recomputed policies, effect classes, and lazy projection status. Track 7 owns
+their live projection into the multiplexer and input/observation envelope.
+
+Register `sfm:episode/history` as reusable panel content. It subscribes to an
+active/selected episode and renders branch lanes with state, intent/evaluation,
+and outcome nodes; current/named/pinned heads; materialized versus projected
+children; and conflict/cancel/unknown/external-barrier states. It may follow the
+mutation head without taking focus. Inspection has a separate cursor from the
+mutation head; only explicit checkout/undo/redo/fork/recompute actions move or
+extend history.
+
+Ctrl+Z is routed by the focused undo domain. An editor-local undo moves that
+document's history head and is recorded in the containing episode; it does not
+silently rewind workspace layout, terminal sessions, or live-world effects.
+Redo with more than one child invokes the shared constrained command-palette
+choice rather than truncating or guessing a branch.
+
+TE-S1 proves the History Graph as an ordinary split panel beside Text Editor V3.
+Track 1c later hosts the same content as a passive/interactive gameplay overlay;
+no duplicate history model, branch store, or renderer-specific action surface
+is permitted.
+
 #### Reusable timeline-panel direction
 
 Add a generic timeline host to the composable panel surface. It accepts one
@@ -1160,6 +1659,10 @@ Tracks 1 + 3 ───────────> multiplexer + explorer + source 
 Track 1 multiplexer/input router ──> Track 7 observation + ownership envelope
 Snapshot/episode plan ─────────────> Track 7 recording/replay interchange
 Normal calculator panel ───────────> first Track 7 proving application
+
+Track 1 + Track 7 History Graph ───> Track 1c reusable overlay adapter
+Typed action/selector system ──────> Track 1c placement/focus/preset actions
+Snapshot/episode effect model ─────> Track 1c honest projected/barrier display
 ```
 
 Tracks 1 and 3 are intentionally parallel: Track 3 targets a normal `Screen`
@@ -1178,14 +1681,19 @@ Track 7 belongs above the multiplexer routing seam and below application
 panels. It can begin independently of semantic source comparison and Vox; the
 Episode Inspector consumes its recordings.
 
-### Active Track 6 real-repository slice — 2026-07-22
+Track 1c follows the split-panel TE-S1 History Graph proof. Its placement/state
+model may be designed and pure-tested in parallel, but live overlay integration
+waits for one reusable History Graph content seam and remains independent from
+terminal sharing, Codex, release review, or branch-merge semantics.
 
-Track 6 now advances from its frozen comparison fixture to the portable
-[`repository review bundle v1`](../architecture/repository-review-bundle-v1.md).
-The host prepares immutable before/after repository snapshots and comparison
-operations; Minecraft opens a named bundle from its managed inbox. The first
-observable slice uses real SFM revisions `d07bef66c` and `8e9946d9f` and must
-show:
+### Historical Track 6 real-repository bundle slice — 2026-07-22 (superseded)
+
+Track 6 advanced from its frozen comparison fixture to the now-superseded
+`repository-review-bundle-v1` contract.
+The host prepared immutable before/after repository snapshots and comparison
+operations; Minecraft opened a named bundle from its managed inbox. The first
+observable slice used real SFM revisions `d07bef66c` and `8e9946d9f` and
+showed:
 
 1. command-palette selection of **Open review session**;
 2. the real changed-file tree with themed ItemStack identities;
@@ -1193,28 +1701,28 @@ show:
 4. creation of a literal review comment through the global comment kernel;
 5. closing and reopening the deterministic session with that comment restored.
 
-The bundle producer, loader/session lifecycle, and workspace are independent
-feature tracks sharing one frozen fixture. The coordinator owns their merge
+The bundle producer, loader/session lifecycle, and workspace were independent
+feature tracks sharing one frozen fixture. The coordinator owned their merge
 order and final puppet. Semantic Java correspondence, structural selectors,
 comment migration to a third snapshot, AST refactoring operations, and release
-coverage remain subsequent slices; the baseline comparison may be textual but
-must already expose stable UTF-8 byte selections.
+coverage were subsequent slices; the baseline comparison exposed stable UTF-8
+byte selections.
 
 #### Track 6 real-repository result — 2026-07-22
 
-Track 6 now consumes a real, immutable repository-review bundle rather than the
-comparison fixture. The integrated surface opens a named managed-inbox bundle
-from the command palette, displays ItemStack file identities and changed-file
-search, renders responsive before/after source, makes a nonempty after-side
-UTF-8 selection, persists a literal comment through the shared review kernel,
-and restores it after close/reopen. Six inspected 1200x720 frames cover open,
+Track 6 consumed a real, immutable repository-review bundle rather than the
+comparison fixture. The integrated surface opened a named managed-inbox bundle
+from the command palette, displayed ItemStack file identities and changed-file
+search, rendered responsive before/after source, made a nonempty after-side
+UTF-8 selection, persisted a literal comment through the shared review kernel,
+and restored it after close/reopen. Six inspected 1200x720 frames covered open,
 browse, search, selection, comment creation, and restored session state.
 
-This slice deliberately keeps comparison production textual. The next Track 6
-work is structural Java correspondence, durable selector suggestions and
-migration to a third snapshot, followed by coverage/jump-list policy. It must
-reuse this bundle/session seam rather than teaching the presentation layer to
-read Git or inventing a second comment authority.
+This slice deliberately kept comparison production textual. The bundle seam is
+now removed by release-plan P-1.2. Subsequent structural correspondence,
+durable selector, migration, coverage, and jump-list work reuses the preserved
+comment/session authority while explicit revision selectors supply the source
+documents; it must not recreate the managed inbox or a second comment model.
 
 ### Responsive evidence and composition wave — completed 2026-07-22
 
@@ -1370,8 +1878,9 @@ The size-display puppet supplies full, half, equal-thirds, and nested allocation
 proof. Together they completed 30 scenarios and 210 captures in one Minecraft
 process; the browsable contact sheet is the generated
 `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/index.html`.
-The next Track 6 slice remains structural correspondence and durable selector
-migration; it was not started by this wave.
+At that checkpoint, structural correspondence and durable selector migration
+had not started. Current P-3 work reaches those capabilities through explicit
+revision selectors and the comment/session model, not the deleted bundle seam.
 
 #### Size-display redesign — 2026-07-25
 
@@ -1830,3 +2339,96 @@ surfaces through `cargo run -- ...`. A track with deliberately older or locally
 modified Rust CLI sources therefore uses its local CLI for validation without
 installing it globally, reports the incompatibility here, and waits for an
 accepted canonical CLI update before changing the shared epoch.
+
+## 2026-08-23 pane/tab review-workbench ownership addendum
+
+The natural release-review test clarified the public vocabulary and mouse
+contract now tracked as RUX-4 through RUX-6 in
+`docs/tasks/global comment selection and review sessions plan.md`:
+
+- a **pane** is one visible split leaf/area;
+- a **panel entry/tab** is one stacked content entry in that pane;
+- `sfm:panel/close` closes one exact entry;
+- hierarchical `sfm:pane/close` closes the pane only after count/dirty-state
+  preflight and confirmation when required; and
+- the existing bottom-right numbered stack boxes become real left-click focus,
+  middle-click close, and right-click constrained-action targets with stable
+  captured entry identities, tooltips, narration, and contextual help.
+
+This plan owns the generic workspace/layout/action mechanics. The global review
+plan owns stable review-presentation identity, preview deduplication, and the
+release-review puppet that proves repeated before/after browsing alternates
+existing entries instead of accumulating an unbounded stack.
+
+The follow-up RCS-UX6b gesture keeps panel content and workspace management
+separate without inventing inaccessible state mutation. Middle-click within
+ordinary panel content opens the exact panel-entry action surface. A middle
+drag crossing the fixed threshold previews another pane and releases through
+`sfm:panel/entry/move/to <source-session> <destination-session>`, preserving
+the moved entry identity while stacking it in the destination pane. Invalid
+drops, Escape, and focus loss cancel. The numbered stack boxes keep the prior
+left-focus/middle-close/right-context contract because their hit regions take
+precedence over the panel-wide gesture.
+
+The same slice adds ordinary workspace defaults for Alt+D (one untitled
+default Text Editor) and Ctrl+Shift+E (one generic Explorer whose omitted
+location resolves to the current Minecraft instance filesystem), and treats the
+complete hovered Explorer panel as its primary wheel surface. These shortcuts
+and pointer gestures remain registry/action-backed so command palette, puppet,
+CLI, and later remapping surfaces can reproduce them.
+
+## 2026-08-24 workspace acceptance correction
+
+The latest manual release-review pass clarified and completed these generic
+workspace responsibilities:
+
+- `sfm:input_diagnostics` is ordinary panel content and F3 presents its typed
+  open/close choice; raw GLFW callbacks are chained and reference-counted so
+  opening or closing the panel cannot steal another owner permanently;
+- built-in overlay scene migration adds a hidden passive `sfm:fps` entry while
+  preserving every persisted overlay's visibility, placement, input mode, and
+  z-order. The ordinary selector-based visibility action controls it, and F3
+  exposes that exact action as `Toggle FPS overlay`;
+- generic Explorer panels own a visible draggable scrollbar and immediate
+  whole-panel wheel handling. Projection caches invalidate only when roots,
+  settings, manual order, child relations, or entries change—not when a cursor
+  or scroll offset changes;
+- the Explorer address bar's right-click surface targets the exact explorer and
+  exposes canonical copy/edit actions;
+- ItemStack rendering composes each panel's current pose into model-view state,
+  fixing icons in translated/right split panes without panel-specific offsets;
+- old title-screen developer text-editor/input-diagnostic actions delegate to
+  canonical panel opening, while `sfm:minecraft/screen/open` owns typed vanilla
+  Title, Controls, and Key Binds transitions; and
+- structured-diff context projection treats stale or differently normalized
+  text as fallible evidence, rebasing compatible Unicode coordinates and
+  omitting incompatible ranges instead of throwing on the render thread.
+
+The canonical 1.19.2 datagen, compile, and complete Java suite pass after these
+changes (`1,628` passed, `0` failed, one expected opt-in worker integration test
+aborted). No dependency or lockfile changed. Live visual acceptance is still
+required for transformed ItemStacks, F3/input/FPS affordances, scrollbar feel,
+and the exact structured-diff right-click journey.
+
+Focused visual evidence now includes palette/lifecycle run
+`sfm-title_screen-20260824-005628-617` and release-review run
+`sfm-title_screen-20260824-005852-534`. The latter's `3840x2130@auto` split
+capture visibly proves transformed right-pane ItemStacks while its complete
+mouse review/comment/reopen journey exits successfully. Maintainer interaction
+acceptance remains distinct from this automated visual evidence.
+
+## 2026-08-24 middle-button ownership correction
+
+RUX-41 in `docs/tasks/global comment selection and review sessions plan.md`
+records that the panel-move layer regressed Text Editor v3 middle-drag panning.
+The workspace owns the generic arbitration fix: decide one pointer owner before
+mutation from pane chrome/content, panel type, button, modifier, and drag
+threshold. Text-editor content retains ordinary middle-drag pan. Panel movement
+starts from pane chrome or numbered stack affordances, or through one explicit
+discoverable modified drag; a non-drag middle click may still open the panel
+entry action surface. Escape, focus loss, and invalid drops cancel the chosen
+owner without dispatching another gesture.
+
+Tests must exercise panning and panel movement in the same split workspace and
+prove that neither produces duplicate actions. The review plan owns the natural
+large-source workflow that exposed the regression.

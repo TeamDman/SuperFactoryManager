@@ -38,6 +38,9 @@ public class SFMResourceTypes {
     public static final SFMRegistryObject<ResourceType<?, ?, ?>, RedstoneResourceType> REDSTONE
             = REGISTERER.register("redstone", RedstoneResourceType::new);
 
+    public static final SFMRegistryObject<ResourceType<?, ?, ?>, ImageResourceType> IMAGE
+            = REGISTERER.register("image", ImageResourceType::new);
+
     private static final Object2ObjectOpenHashMap<ResourceLocation, ResourceType<?, ?, ?>> DEFERRED_TYPES_BY_ID
             = new Object2ObjectOpenHashMap<>();
 

@@ -24,6 +24,7 @@ public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
     @Override
     protected void registerModels() {
         justParent(SFMItems.MANAGER, SFMBlocks.MANAGER);
+        justParent(SFMItems.CLIENT_MANAGER, SFMBlocks.CLIENT_MANAGER);
         justParent(SFMItems.TUNNELLED_MANAGER, SFMBlocks.TUNNELLED_MANAGER);
         justParent(SFMItems.CABLE, SFMBlocks.CABLE);
         justParent(SFMItems.FANCY_CABLE, SFMBlocks.FANCY_CABLE, "_core");
@@ -37,6 +38,7 @@ public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
         justParent(SFMItems.TUNNELLED_FANCY_CABLE, SFMBlocks.TUNNELLED_FANCY_CABLE, "_core");
 
         justParent(SFMItems.PRINTING_PRESS, SFMBlocks.PRINTING_PRESS);
+        justParent(SFMItems.TOUCH_DISPLAY, SFMBlocks.TOUCH_DISPLAY);
         justParent(SFMItems.WATER_TANK, SFMBlocks.WATER_TANK, "_active");
         justParent(SFMItems.BUFFER, SFMBlocks.BUFFER_BLOCK, "_item");
         basicItem(SFMItems.DISK);
@@ -44,6 +46,7 @@ public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
         basicItem(SFMItems.EXPERIENCE_GOOP);
         basicItem(SFMItems.EXPERIENCE_SHARD);
         basicItem(SFMItems.NETWORK_TOOL);
+        basicItem(SFMItems.PACKET);
 
         // force custom renderer
         getBuilder(SFMItems.FORM)

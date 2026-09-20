@@ -3,12 +3,20 @@ package ca.teamdman.sfm.common.blockentity;
 import ca.teamdman.sfm.common.block.BufferBlock;
 import ca.teamdman.sfm.common.block.BufferBlockTier;
 import ca.teamdman.sfm.common.capability.BufferBlockCapabilityProvider;
+import ca.teamdman.sfm.common.capability.IImageHandler;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityKind;
 import ca.teamdman.sfm.common.capability.SFMBlockCapabilityResult;
+import ca.teamdman.sfm.common.image.SFMImageSnapshotCodec;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
+import ca.teamdman.sfm.common.registry.registration.SFMResourceTypes;
+import ca.teamdman.sfm.common.resourcetype.SFMImageStack;
 import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
+import ca.teamdman.sfm.common.value.SFMValue;
+import ca.teamdman.sfm.common.value.SFMValueJsonCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -19,8 +27,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 public class BufferBlockEntity extends BlockEntity {
+    private static final String IMAGE_TAG = "image_snapshot";
+    private static final String IMAGE_STATE_TAG = "image_interaction_state";
+    private static final String IMAGE_STATE_CODEC_TAG = "image_state_codec";
     private final BufferBlockEntityContents contents;
     private final ArrayList<LazyOptional<?>> toInvalidate = new ArrayList<>();
 
@@ -32,7 +44,63 @@ public class BufferBlockEntity extends BlockEntity {
         BufferBlockTier tier = pBlockState.getBlock() instanceof BufferBlock bufferBlock
                                ? bufferBlock.tier
                                : BufferBlockTier.Unit;
-        this.contents = new BufferBlockEntityContents(tier);
+        this.contents = new BufferBlockEntityContents(tier, this::setChanged);
+    }
+
+    /** Redstone and complete image/state resources are durable; other resources remain transient. */
+    @MCVersionDependentBehaviour
+    @Override
+    public void load(CompoundTag tag) {
+        super.load(tag);
+        // Clear the old image before restoring redstone so persisted resources
+        // can replace each other without replacing cached capability handlers.
+        // Occupied nonpersisted handlers remain protected by resource exclusion.
+        imageHandler().ifPresent(handler -> handler.extractImage(false));
+        contents.loadRedstone(tag.getLong("redstone"));
+        // Redstone wins if malformed NBT supplies both persisted resource types.
+        loadImage(tag);
+        // Also refresh comparators when NBT is applied to an existing block.
+        setChanged();
+    }
+
+    private void loadImage(CompoundTag tag) {
+        if (!tag.contains(IMAGE_TAG, Tag.TAG_COMPOUND)
+            || !tag.contains(IMAGE_STATE_TAG, Tag.TAG_STRING)
+            || !tag.contains(IMAGE_STATE_CODEC_TAG, Tag.TAG_INT)) {
+            return;
+        }
+        SFMImageSnapshotCodec.fromTag(tag.getCompound(IMAGE_TAG)).ifPresent(snapshot -> {
+            try {
+                SFMValue state = SFMValueJsonCodec.decode(
+                        tag.getString(IMAGE_STATE_TAG), tag.getInt(IMAGE_STATE_CODEC_TAG)
+                );
+                imageHandler().ifPresent(handler ->
+                        handler.insertImage(SFMImageStack.of(snapshot, state), false)
+                );
+            } catch (IllegalArgumentException ignored) {
+                // Malformed persisted resources are not loaded or partially inserted.
+            }
+        });
+    }
+
+    @MCVersionDependentBehaviour
+    @Override
+    protected void saveAdditional(CompoundTag tag) {
+        super.saveAdditional(tag);
+        tag.putInt("redstone", contents.getStoredRedstone());
+        imageHandler().ifPresent(handler -> {
+            SFMImageStack image = handler.getImage();
+            image.snapshot().ifPresent(snapshot -> {
+                tag.put(IMAGE_TAG, SFMImageSnapshotCodec.toTag(snapshot));
+                tag.putString(IMAGE_STATE_TAG, SFMValueJsonCodec.encode(image.interactionState()));
+                tag.putInt(IMAGE_STATE_CODEC_TAG, SFMValueJsonCodec.VERSION);
+            });
+        });
+    }
+
+    private Optional<IImageHandler> imageHandler() {
+        SFMBlockCapabilityResult<IImageHandler> capability = contents.getCapability(SFMResourceTypes.IMAGE.get());
+        return capability.isPresent() ? Optional.of(capability.unwrap()) : Optional.empty();
     }
 
     @Override

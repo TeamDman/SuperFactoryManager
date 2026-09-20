@@ -1,0 +1,300 @@
+package ca.teamdman.sfm.client.symbol;
+
+import java.time.Duration;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
+
+/**
+ * Coordinates reference queries independently per editor origin while sharing
+ * the supervised provider and request-id domain with definition lookups.
+ */
+public final class SFMUsageQueryCoordinator implements AutoCloseable {
+    public record Handle(
+            String originId,
+            SFMUsageAtPositionRequest request,
+            CompletableFuture<SFMUsageAtPositionResult> result,
+            Runnable cancellation
+    ) implements AutoCloseable {
+        public Handle {
+            if (originId == null || originId.isBlank()) throw new IllegalArgumentException("originId is blank");
+            Objects.requireNonNull(request, "request");
+            Objects.requireNonNull(result, "result");
+            Objects.requireNonNull(cancellation, "cancellation");
+        }
+
+        public void cancel() {
+            cancellation.run();
+        }
+
+        @Override public void close() {
+            cancel();
+        }
+    }
+
+    public record Telemetry(
+            long submitted,
+            long completed,
+            long cancelled,
+            long timedOut,
+            long staleResponses,
+            long mismatchedResponses,
+            long failed,
+            int active,
+            long warmSampleCount,
+            long warmMedianNanos,
+            long warmP95Nanos,
+            long warmMaximumNanos
+    ) {
+    }
+
+    public static final class NoProviderException extends IllegalStateException {
+        public NoProviderException() {
+            super("No available SFM symbol-reference provider");
+        }
+    }
+
+    public static final class StaleResponseException extends IllegalStateException {
+        public StaleResponseException() {
+            super("Reference response belongs to a superseded editor context");
+        }
+    }
+
+    public static final class MismatchedResponseException extends IllegalStateException {
+        public MismatchedResponseException() {
+            super("Reference response identity does not match its request");
+        }
+    }
+
+    private static final int MAXIMUM_LATENCY_SAMPLES = 64;
+    private final SFMSymbolReferenceProvider provider;
+    private final ScheduledExecutorService scheduler;
+    private final LongSupplier nanoTime;
+    private final LongSupplier requestIds;
+    private final Object lock = new Object();
+    private final Map<String, Pending> active = new HashMap<>();
+    private final Map<String, Long> generations = new HashMap<>();
+    private final ArrayDeque<Long> warmLatencyNanos = new ArrayDeque<>();
+    private long submitted;
+    private long completed;
+    private long cancelled;
+    private long timedOut;
+    private long staleResponses;
+    private long mismatchedResponses;
+    private long failed;
+    private boolean closed;
+
+    public SFMUsageQueryCoordinator(
+            SFMSymbolReferenceProvider provider,
+            ScheduledExecutorService scheduler
+    ) {
+        this(provider, scheduler, System::nanoTime, localRequestIds());
+    }
+
+    SFMUsageQueryCoordinator(
+            SFMSymbolReferenceProvider provider,
+            ScheduledExecutorService scheduler,
+            LongSupplier nanoTime,
+            LongSupplier requestIds
+    ) {
+        this.provider = Objects.requireNonNull(provider, "provider");
+        this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
+        this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime");
+        this.requestIds = Objects.requireNonNull(requestIds, "requestIds");
+    }
+
+    public Handle submit(String originId, SFMUsageAtPositionRequest template, Duration timeout) {
+        if (originId == null || originId.isBlank()) throw new IllegalArgumentException("originId is blank");
+        Objects.requireNonNull(template, "template");
+        Objects.requireNonNull(timeout, "timeout");
+        if (timeout.isZero() || timeout.isNegative()) throw new IllegalArgumentException("timeout must be positive");
+
+        Pending previous;
+        Pending pending;
+        synchronized (lock) {
+            if (closed) throw new IllegalStateException("Usage query coordinator is closed");
+            if (!provider.available()) throw new NoProviderException();
+            long requestId = requestIds.getAsLong();
+            if (requestId <= 0) throw new IllegalStateException("Usage request id source returned a non-positive value");
+            long generation = increment(generations.getOrDefault(originId, 0L));
+            generations.put(originId, generation);
+            SFMUsageAtPositionRequest request = withIdentity(template, requestId, generation);
+            SFMSymbolReferenceProvider.ReferenceQuery providerQuery = provider.query(request);
+            pending = new Pending(originId, request, providerQuery, nanoTime.getAsLong());
+            previous = active.put(originId, pending);
+            submitted = increment(submitted);
+        }
+
+        if (previous != null) previous.cancel(new StaleResponseException(), CancellationKind.STALE);
+        Pending captured = pending;
+        ScheduledFuture<?> timeoutTask = scheduler.schedule(
+                () -> captured.cancel(
+                        new TimeoutException("Reference query exceeded " + timeout.toMillis() + " ms"),
+                        CancellationKind.TIMEOUT
+                ),
+                timeout.toNanos(),
+                TimeUnit.NANOSECONDS
+        );
+        pending.timeoutTask = timeoutTask;
+        pending.providerQuery.result().whenComplete((result, failure) -> complete(pending, result, failure));
+        return new Handle(originId, pending.request, pending.result,
+                () -> pending.cancel(new java.util.concurrent.CancellationException(
+                        "Reference query cancelled"), CancellationKind.EXPLICIT));
+    }
+
+    public Telemetry telemetry() {
+        synchronized (lock) {
+            List<Long> samples = new ArrayList<>(warmLatencyNanos);
+            samples.sort(Long::compare);
+            return new Telemetry(
+                    submitted, completed, cancelled, timedOut, staleResponses,
+                    mismatchedResponses, failed, active.size(), samples.size(),
+                    percentile(samples, 0.50), percentile(samples, 0.95),
+                    samples.isEmpty() ? 0 : samples.get(samples.size() - 1)
+            );
+        }
+    }
+
+    @Override
+    public void close() {
+        List<Pending> stopping;
+        synchronized (lock) {
+            if (closed) return;
+            closed = true;
+            stopping = List.copyOf(active.values());
+            active.clear();
+        }
+        stopping.forEach(pending -> pending.cancel(
+                new java.util.concurrent.CancellationException("Reference provider is stopping"),
+                CancellationKind.SHUTDOWN
+        ));
+    }
+
+    private void complete(Pending pending, SFMUsageAtPositionResult result, Throwable failure) {
+        if (!pending.finished.compareAndSet(false, true)) {
+            if (failure == null) synchronized (lock) { staleResponses = increment(staleResponses); }
+            return;
+        }
+        cancelTimer(pending);
+        Throwable completionFailure = null;
+        synchronized (lock) {
+            if (active.get(pending.originId) != pending) {
+                staleResponses = increment(staleResponses);
+                completionFailure = new StaleResponseException();
+            } else {
+                active.remove(pending.originId);
+            }
+            if (completionFailure == null && failure != null) {
+                failed = increment(failed);
+                completionFailure = unwrap(failure);
+            }
+            if (completionFailure == null && (result == null || !result.matches(pending.request))) {
+                mismatchedResponses = increment(mismatchedResponses);
+                completionFailure = new MismatchedResponseException();
+            }
+            if (completionFailure == null) {
+                long latency = Math.max(0, nanoTime.getAsLong() - pending.startedNanos);
+                warmLatencyNanos.addLast(latency);
+                while (warmLatencyNanos.size() > MAXIMUM_LATENCY_SAMPLES) warmLatencyNanos.removeFirst();
+                completed = increment(completed);
+            }
+        }
+        if (completionFailure == null) pending.result.complete(result);
+        else pending.result.completeExceptionally(completionFailure);
+    }
+
+    private enum CancellationKind { EXPLICIT, STALE, TIMEOUT, SHUTDOWN }
+
+    private final class Pending {
+        private final String originId;
+        private final SFMUsageAtPositionRequest request;
+        private final SFMSymbolReferenceProvider.ReferenceQuery providerQuery;
+        private final CompletableFuture<SFMUsageAtPositionResult> result = new CompletableFuture<>();
+        private final long startedNanos;
+        private final AtomicBoolean finished = new AtomicBoolean();
+        private volatile ScheduledFuture<?> timeoutTask;
+
+        private Pending(
+                String originId,
+                SFMUsageAtPositionRequest request,
+                SFMSymbolReferenceProvider.ReferenceQuery providerQuery,
+                long startedNanos
+        ) {
+            this.originId = originId;
+            this.request = request;
+            this.providerQuery = providerQuery;
+            this.startedNanos = startedNanos;
+        }
+
+        private void cancel(Throwable reason, CancellationKind kind) {
+            if (!finished.compareAndSet(false, true)) return;
+            cancelTimer(this);
+            providerQuery.cancel();
+            synchronized (lock) {
+                active.remove(originId, this);
+                switch (kind) {
+                    case EXPLICIT -> cancelled = increment(cancelled);
+                    case STALE -> staleResponses = increment(staleResponses);
+                    case TIMEOUT -> timedOut = increment(timedOut);
+                    case SHUTDOWN -> { }
+                }
+            }
+            result.completeExceptionally(reason);
+        }
+    }
+
+    private static SFMUsageAtPositionRequest withIdentity(
+            SFMUsageAtPositionRequest template,
+            long requestId,
+            long requestGeneration
+    ) {
+        return new SFMUsageAtPositionRequest(
+                SFMUsageAtPositionRequest.SCHEMA,
+                requestId,
+                requestGeneration,
+                template.workspace(),
+                template.document(),
+                template.position()
+        );
+    }
+
+    private static void cancelTimer(Pending pending) {
+        ScheduledFuture<?> task = pending.timeoutTask;
+        if (task != null) task.cancel(false);
+    }
+
+    private static long percentile(List<Long> sorted, double percentile) {
+        if (sorted.isEmpty()) return 0;
+        int index = (int) Math.ceil(percentile * sorted.size()) - 1;
+        return sorted.get(Math.max(0, Math.min(sorted.size() - 1, index)));
+    }
+
+    private static Throwable unwrap(Throwable failure) {
+        Throwable current = failure;
+        while ((current instanceof java.util.concurrent.CompletionException
+                || current instanceof java.util.concurrent.ExecutionException)
+                && current.getCause() != null) current = current.getCause();
+        return current;
+    }
+
+    private static long increment(long value) {
+        if (value == Long.MAX_VALUE) throw new IllegalStateException("Usage identity counter exhausted");
+        return value + 1;
+    }
+
+    private static LongSupplier localRequestIds() {
+        AtomicLong sequence = new AtomicLong();
+        return () -> sequence.updateAndGet(SFMUsageQueryCoordinator::increment);
+    }
+}

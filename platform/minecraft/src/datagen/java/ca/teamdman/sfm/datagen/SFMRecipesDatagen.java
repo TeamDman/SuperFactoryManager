@@ -154,6 +154,28 @@ public class SFMRecipesDatagen extends MCVersionAgnosticRecipeDataGen {
                 .pattern("ABA")
                 .save(writer);
 
+        beginShaped(SFMBlocks.CLIENT_MANAGER.get(), 1)
+                .define('A', Tags.Items.CHESTS)
+                .define('B', SFMBlocks.CABLE.get())
+                .define('C', Items.COMPARATOR)
+                .unlockedBy("has_comparator", RecipeProvider.has(Items.COMPARATOR))
+                .unlockedBy("has_cable", RecipeProvider.has(SFMItems.CABLE.get()))
+                .pattern("ABA")
+                .pattern("BCB")
+                .pattern("ABA")
+                .save(writer);
+
+        beginShaped(SFMBlocks.TOUCH_DISPLAY.get(), 1)
+                .define('I', Items.IRON_BARS)
+                .define('G', Tags.Items.GLASS)
+                .define('C', SFMBlocks.CABLE.get())
+                .define('R', Items.REDSTONE)
+                .unlockedBy("has_cable", RecipeProvider.has(SFMItems.CABLE.get()))
+                .pattern("IGI")
+                .pattern("GCG")
+                .pattern("IRI")
+                .save(writer);
+
         beginShaped(SFMBlocks.TUNNELLED_MANAGER.get(), 1)
                 .define('A', Tags.Items.FENCES)
                 .define('B', SFMBlocks.MANAGER.get())

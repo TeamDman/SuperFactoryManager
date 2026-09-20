@@ -6,7 +6,7 @@ import net.minecraftforge.common.util.INBTSerializable;
 
 /// A container for storing "redstone units", which CAN exceed 15.
 public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerializable<IntTag> {
-    public int value = 0;
+    private int value;
     private final int maxValue;
 
     public RedstoneSignalStorage(int signal, int maxValue) {
@@ -23,8 +23,9 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
             return 0; // accept nothing
         }
         int accept = Mth.clamp(amount, 0, this.maxValue - this.value);
-        if (!simulate) {
+        if (!simulate && accept > 0) {
             this.value += accept;
+            onContentsChanged();
         }
         return accept;
     }
@@ -38,8 +39,9 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
             return 0; // extract nothing
         }
         int extract = Mth.clamp(amount, 0, this.value);
-        if (!simulate) {
+        if (!simulate && extract > 0) {
             this.value -= extract;
+            onContentsChanged();
         }
         return extract;
     }
@@ -64,9 +66,12 @@ public class RedstoneSignalStorage implements IRedstoneSignalStorage, INBTSerial
         return true;
     }
 
+    protected void onContentsChanged() {
+    }
+
     @Override
     public void deserializeNBT(IntTag nbt) {
-        this.value = nbt.getAsInt();
+        this.value = Mth.clamp(nbt.getAsInt(), 0, this.maxValue);
     }
 
     @Override

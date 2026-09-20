@@ -20,6 +20,19 @@ public interface SFMClientAction<T> {
         return Optional.empty();
     }
 
+    /**
+     * Machine callers are denied by default. Human Brigadier/palette behavior
+     * is independent of this opt-in contract.
+     */
+    default Optional<SFMClientActionDescriptor> programmaticDescriptor() {
+        return Optional.empty();
+    }
+
+    /** Invoked only through the principal-aware dispatcher, never the human command adapter. */
+    default Optional<SFMClientActionProgrammaticHandler> programmaticHandler() {
+        return Optional.empty();
+    }
+
     SFMClientActionRequirement<T> requirement();
 
     default boolean isPinnable() {

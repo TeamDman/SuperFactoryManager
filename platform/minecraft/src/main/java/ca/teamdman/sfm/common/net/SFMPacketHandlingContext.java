@@ -4,14 +4,17 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
+import ca.teamdman.sfm.common.util.MCVersionDependentBehaviour;
 import ca.teamdman.sfm.common.util.SFMEntityUtils;
 import ca.teamdman.sfml.ast.Program;
+import ca.teamdman.sfml.ast.ProgramExecutionSide;
 import ca.teamdman.sfml.program_builder.ProgramBuilder;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.NetworkEvent;
+import net.minecraftforge.network.NetworkDirection;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.function.BiConsumer;
@@ -28,6 +31,21 @@ public class SFMPacketHandlingContext {
     public @Nullable ServerPlayer sender() {
 
         return inner.getSender();
+    }
+
+    /** Local transport identity, never serialized or accepted from a peer. */
+    @MCVersionDependentBehaviour
+    public Object networkConnectionIdentity() {
+        return inner.getNetworkManager();
+    }
+
+    @MCVersionDependentBehaviour
+    public boolean hasExpectedDirection(SFMPacketDaddy.PacketDirection expected) {
+        NetworkDirection actual = inner.getDirection();
+        return switch (expected) {
+            case SERVERBOUND -> actual == NetworkDirection.PLAY_TO_SERVER;
+            case CLIENTBOUND -> actual == NetworkDirection.PLAY_TO_CLIENT;
+        };
     }
 
     public void finish() {
@@ -146,6 +164,7 @@ public class SFMPacketHandlingContext {
         //todo: localize
 
         new ProgramBuilder(programString)
+                .forExecutionSide(ProgramExecutionSide.SERVER)
                 .useCache(!willMutateProgram)
                 .build()
                 .caseSuccess((program, metadata) -> callback.accept(

@@ -1,8 +1,10 @@
 package ca.teamdman.sfm.gametest.puppet;
 
+import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelId;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTestInfo;
 import net.minecraft.gametest.framework.MultipleTestTracker;
+import net.minecraft.world.phys.AABB;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +19,26 @@ public final class ActivePuppet {
     public final String worldId;
 
     public final Map<String, PuppetCaptureState> captures = new HashMap<>();
+    public final Map<SFMWorkspacePanelId, TerminalPresentationProgress> terminalPresentations =
+            new HashMap<>();
+    public final Map<SFMWorkspacePanelId, Integer> terminalPresentationUiSelections =
+            new HashMap<>();
+
+    public record TerminalPresentationProgress(
+            String generation,
+            long fullResyncFrames,
+            String sessionId,
+            String connectionEpoch,
+            String sessionEpoch,
+            long terminalSequence,
+            long frameSequence,
+            int panelWidth,
+            int panelHeight,
+            int columns,
+            int rows,
+            int fontPixelSize
+    ) {
+    }
 
     public boolean worldCreationStarted;
 
@@ -24,17 +46,28 @@ public final class ActivePuppet {
 
     public boolean gameTestStartRequested;
 
+    public String gameTestName;
+
     public volatile MultipleTestTracker gameTestTracker;
 
     public volatile BlockPos gameTestOrigin;
 
     public volatile GameTestInfo gameTestInfo;
 
+    /** Captured while the structure block still exists; successful tests may remove it. */
+    public volatile AABB gameTestBounds;
+
     public volatile Throwable gameTestStartFailure;
+
+    public boolean integratedServerPublishRequested;
+
+    public volatile Throwable integratedServerPublishFailure;
 
     public int nextFigureNumber = 1;
 
     public int totalActionTicks;
+
+    public String terminalPropertiesWaitState = "";
 
     public boolean failureRecorded;
 

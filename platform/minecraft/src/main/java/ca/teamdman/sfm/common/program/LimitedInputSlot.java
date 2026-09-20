@@ -11,11 +11,13 @@ public class LimitedInputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, IT
 
     public CAP handler;
 
-    public BlockPos pos;
+    public @Nullable BlockPos pos;
 
-    public Label label;
+    public @Nullable Label label;
 
-    public Direction direction;
+    public @Nullable Direction direction;
+
+    private @Nullable String generatedSourceDescription;
 
     public int slot;
 
@@ -39,6 +41,17 @@ public class LimitedInputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, IT
     ) {
 
         this.init(handler, label, pos, direction, slot, tracker, stackCache, type);
+    }
+
+    public LimitedInputSlot(
+            String generatedSourceDescription,
+            int slot,
+            CAP handler,
+            IInputResourceTracker tracker,
+            STACK stackCache,
+            ResourceType<STACK, ITEM, CAP> type
+    ) {
+        this.initGenerated(handler, generatedSourceDescription, slot, tracker, stackCache, type);
     }
 
     public boolean isDone() {
@@ -118,14 +131,45 @@ public class LimitedInputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, IT
         this.pos = pos;
         this.label = label;
         this.direction = direction;
+        this.generatedSourceDescription = null;
         this.freed = false;
         this.type = type;
+    }
+
+    public void initGenerated(
+            CAP handler,
+            String generatedSourceDescription,
+            int slot,
+            IInputResourceTracker tracker,
+            STACK stackCache,
+            ResourceType<STACK, ITEM, CAP> type
+    ) {
+        this.done = false;
+        this.stackInSlotCache = stackCache;
+        this.handler = handler;
+        this.tracker = tracker;
+        this.slot = slot;
+        this.pos = null;
+        this.label = null;
+        this.direction = null;
+        this.generatedSourceDescription = generatedSourceDescription;
+        this.freed = false;
+        this.type = type;
+    }
+
+    public boolean isGeneratedSource() {
+        return generatedSourceDescription != null;
+    }
+
+    public @Nullable String getGeneratedSourceDescription() {
+        return generatedSourceDescription;
     }
 
     @Override
     public String toString() {
 
         return "LimitedInputSlot{"
+               + (generatedSourceDescription == null ? "" : "source=" + generatedSourceDescription + ", ")
                + "label=" + label
                + ", pos=" + pos
                + ", direction=" + direction
@@ -149,19 +193,19 @@ public class LimitedInputSlot<STACK, ITEM, CAP> implements LimitedSlot<STACK, IT
     }
 
     @Override
-    public BlockPos getPos() {
+    public @Nullable BlockPos getPos() {
 
         return pos;
     }
 
     @Override
-    public Label getLabel() {
+    public @Nullable Label getLabel() {
 
         return label;
     }
 
     @Override
-    public Direction getDirection() {
+    public @Nullable Direction getDirection() {
 
         return direction;
     }

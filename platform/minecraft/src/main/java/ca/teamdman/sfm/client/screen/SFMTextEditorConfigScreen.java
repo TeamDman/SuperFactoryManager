@@ -34,9 +34,9 @@ public class SFMTextEditorConfigScreen extends Screen {
     );
 
     @SFMLocalizationDatagen
-    public static final LocalizationEntry PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_DRAW = new LocalizationEntry(
-            "gui.sfm.program_editor_config.preferred_editor.draw",
-            "Draw"
+    public static final LocalizationEntry PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_V3 = new LocalizationEntry(
+            "gui.sfm.program_editor_config.preferred_editor.v3",
+            "Text Editor v3"
     );
 
     @SFMLocalizationDatagen
@@ -100,7 +100,7 @@ public class SFMTextEditorConfigScreen extends Screen {
 
     private Button preferredEditorV2Button;
 
-    private Button preferredEditorDrawButton;
+    private Button preferredEditorV3Button;
 
     public SFMTextEditorConfigScreen(
             ISFMTextEditScreen parent,
@@ -276,14 +276,14 @@ public class SFMTextEditorConfigScreen extends Screen {
                             updateButtonStates();
                         })
                         .build();
-        preferredEditorDrawButton =
+        preferredEditorV3Button =
                 new SFMButtonBuilder()
                         .setPosition(x + 2 * (buttonWidth + buttonSpacing), y + 2 * spacing)
                         .setSize(buttonWidth, buttonHeight)
-                        .setText(PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_DRAW)
+                        .setText(PROGRAM_EDITOR_CONFIG_PREFERRED_EDITOR_V3)
                         .setOnPress(button -> {
                             //noinspection OptionalGetWithoutIsPresent
-                            config.preferredEditor.set(SFMTextEditors.DRAW.getId().get().location().toString());
+                            config.preferredEditor.set(SFMTextEditors.V3.getId().get().location().toString());
                             updateButtonStates();
                         })
                         .build();
@@ -291,7 +291,7 @@ public class SFMTextEditorConfigScreen extends Screen {
             // This behaviour is not ready for release.
             this.addRenderableWidget(preferredEditorV1Button);
             this.addRenderableWidget(preferredEditorV2Button);
-            this.addRenderableWidget(preferredEditorDrawButton);
+            this.addRenderableWidget(preferredEditorV3Button);
         }
 
 
@@ -325,7 +325,7 @@ public class SFMTextEditorConfigScreen extends Screen {
         //noinspection OptionalGetWithoutIsPresent
         preferredEditorV2Button.active = !currentEditor.equals(SFMTextEditors.V2.getId().get().location().toString());
         //noinspection OptionalGetWithoutIsPresent
-        preferredEditorDrawButton.active = !currentEditor.equals(SFMTextEditors.DRAW.getId().get().location().toString());
+        preferredEditorV3Button.active = !currentEditor.equals(SFMTextEditors.V3.getId().get().location().toString());
     }
 
 }

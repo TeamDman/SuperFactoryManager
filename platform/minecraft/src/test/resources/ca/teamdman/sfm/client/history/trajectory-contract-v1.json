@@ -1,0 +1,83 @@
+{
+  "schema": "sfm.trajectory-machine/1",
+  "history_schema": "sfm.history-graph/1",
+  "actual_history_head": "head-document",
+  "committed_fork": {
+    "parent": "state-a",
+    "children": [
+      "state-b",
+      "state-c"
+    ],
+    "redo_status": "ambiguous"
+  },
+  "plans": [
+    {
+      "id": "plan-1",
+      "parent_plan_revision": null,
+      "start_state": "state-c",
+      "result": "found",
+      "selected_route": "route-1",
+      "optimality": "minimum-cost-under-declared-graph-and-policy",
+      "generator": {
+        "id": "numbering-actions",
+        "revision": "v1",
+        "finite": true
+      },
+      "cost_policy": "semantic-first@v1",
+      "heuristic": {
+        "id": "zero",
+        "revision": "v1",
+        "admissible": true
+      },
+      "open_candidates": [
+        "state-projected"
+      ],
+      "closed_candidates": [
+        "state-c"
+      ]
+    },
+    {
+      "id": "plan-2",
+      "parent_plan_revision": "plan-1",
+      "start_state": "state-c",
+      "result": "budget-exhausted",
+      "selected_route": null,
+      "optimality": "none"
+    }
+  ],
+  "selected_trajectory_revision": "plan-1",
+  "instruction_pointer": {
+    "plan_revision": "plan-1",
+    "route": "route-1",
+    "next_step_index": 0,
+    "expected_parent_state": "state-c"
+  },
+  "projection_frontier": {
+    "plan_revision": "plan-1",
+    "expanded": 2,
+    "generated": 4,
+    "states": [
+      "state-projected"
+    ]
+  },
+  "pure_projected_suffix": [
+    {
+      "parent": "state-c",
+      "child": "state-projected",
+      "effect_class": "pure",
+      "committed": false
+    }
+  ],
+  "external_barrier": {
+    "parent": "state-projected",
+    "effect_class": "external-irreversible",
+    "projection_status": "external-barrier",
+    "committed": false
+  },
+  "supervision": {
+    "revision": "supervision-v1",
+    "status": "supervision-ready",
+    "approval_requirement": "human",
+    "approval": null
+  }
+}

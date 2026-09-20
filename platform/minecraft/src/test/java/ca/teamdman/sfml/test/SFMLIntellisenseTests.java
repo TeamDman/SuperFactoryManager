@@ -28,6 +28,24 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class SFMLIntellisenseTests {
 
+    @Test
+    public void packetLanguageStatementStartersAreCompletionCandidates() {
+        Set<Integer> candidates = candidateTokensAtEnd("""
+                EVERY 20 TICKS DO
+                """);
+        assertTrue(candidates.contains(SFMLLexer.INPUT));
+        assertTrue(candidates.contains(SFMLLexer.LET));
+        assertTrue(candidates.contains(SFMLLexer.CREATE));
+        assertTrue(candidates.contains(SFMLLexer.BROADCAST));
+    }
+
+    @Test
+    public void packetLanguageDeclarationsAreCompletionCandidates() {
+        Set<Integer> candidates = candidateTokensAtEnd("");
+        assertTrue(candidates.contains(SFMLLexer.LET));
+        assertTrue(candidates.contains(SFMLLexer.EVERY));
+    }
+
     private static final String SIMPLE_PROGRAM_STRING = """
             NAME "hello"
             EVERY 20 TICKS DO
@@ -566,6 +584,18 @@ public class SFMLIntellisenseTests {
         tokens.fill();
 
         return tokens.size();
+    }
+
+    private static Set<Integer> candidateTokensAtEnd(String source) {
+        ProgramBuildResult result = new ProgramBuilder(source).build();
+        CommonTokenStream tokens = result.metadata().tokens();
+        tokens.fill();
+        CodeCompletionCore core = new CodeCompletionCore(
+                result.metadata().parser(),
+                Set.of(SFMLParser.RULE_resourceId, SFMLParser.RULE_label),
+                Set.of(SFMLLexer.WS)
+        );
+        return core.collectCandidates(tokens.size() - 1, null).tokens.keySet();
     }
 
 }

@@ -15,6 +15,7 @@ import net.minecraftforge.network.NetworkHooks;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.DataOutput;
 import java.time.Duration;
@@ -37,8 +38,32 @@ public record Program(
 
         Set<String> referencedLabels,
 
-        Set<ResourceIdentifier<?, ?, ?>> referencedResources
+        Set<ResourceIdentifier<?, ?, ?>> referencedResources,
+
+        ProgramDefinitions definitions,
+
+        @Nullable ProgramExecutionSideDeclaration executionSideDeclaration
 ) implements Statement {
+    public Program(
+            ASTBuilder astBuilder,
+            String name,
+            List<Trigger> triggers,
+            Set<String> referencedLabels,
+            Set<ResourceIdentifier<?, ?, ?>> referencedResources,
+            ProgramDefinitions definitions
+    ) {
+        this(astBuilder, name, triggers, referencedLabels, referencedResources, definitions, null);
+    }
+
+    public Program(
+            ASTBuilder astBuilder,
+            String name,
+            List<Trigger> triggers,
+            Set<String> referencedLabels,
+            Set<ResourceIdentifier<?, ?, ?>> referencedResources
+    ) {
+        this(astBuilder, name, triggers, referencedLabels, referencedResources, ProgramDefinitions.EMPTY, null);
+    }
     /**
      * This comes from {@link java.io.DataOutputStream#writeUTF(String, DataOutput)}
      * and {@link NetworkHooks#openScreen(ServerPlayer, MenuProvider, Consumer)}
@@ -143,6 +168,8 @@ public record Program(
      */
     public boolean tick(ManagerBlockEntity manager) {
 
+        assertCompatibleWith(ProgramExecutionSide.SERVER);
+
         var context = new ProgramContext(this, manager, new ExecuteProgramBehaviour());
 
         // log if there are unprocessed redstone pulses
@@ -153,11 +180,16 @@ public record Program(
         }
 
 
-        tick(context);
-
-        manager.clearRedstonePulseQueue();
-
-        return context.didSomething();
+        try {
+            tick(context);
+            return context.didSomething();
+        } finally {
+            try {
+                context.free();
+            } finally {
+                manager.clearRedstonePulseQueue();
+            }
+        }
     }
 
     @Override
@@ -172,6 +204,19 @@ public record Program(
         LimitedInputSlotObjectPool.checkInvariant();
         LimitedOutputSlotObjectPool.checkInvariant();
 
+        try {
+            tickTriggers(context);
+        } finally {
+            LimitedInputSlotObjectPool.checkInvariant();
+            LimitedOutputSlotObjectPool.checkInvariant();
+        }
+
+        if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {
+            simulation.onProgramFinished(context, this);
+        }
+    }
+
+    private void tickTriggers(ProgramContext context) {
         for (Trigger trigger : triggers) {
             // Only process triggers that should tick
             if (!trigger.shouldTick(context)) {
@@ -204,8 +249,7 @@ public record Program(
                     int numPossibleStates = (int) Math.max(1, Math.pow(2, conditionCount));
                     for (int i = 0; i < numPossibleStates; i++) {
                         ProgramContext forkedContext = context.fork();
-                        trigger.tick(forkedContext);
-                        forkedContext.free();
+                        tickTriggerAndFree(trigger, forkedContext);
                         ((SimulateExploreAllPathsProgramBehaviour) forkedContext.getBehaviour()).terminatePathAndBeginAnew();
                     }
                 } else {
@@ -218,8 +262,7 @@ public record Program(
                 simulation.prepareNextTrigger();
             } else {
                 ProgramContext forkedContext = context.fork();
-                trigger.tick(forkedContext);
-                forkedContext.free();
+                tickTriggerAndFree(trigger, forkedContext);
             }
 
             // End stopwatch
@@ -232,11 +275,28 @@ public record Program(
             )));
         }
 
-        LimitedInputSlotObjectPool.checkInvariant();
-        LimitedOutputSlotObjectPool.checkInvariant();
+    }
 
-        if (context.getBehaviour() instanceof SimulateExploreAllPathsProgramBehaviour simulation) {
-            simulation.onProgramFinished(context, this);
+    private static void tickTriggerAndFree(
+            Trigger trigger,
+            ProgramContext forkedContext
+    ) {
+        Throwable triggerFailure = null;
+        try {
+            trigger.tick(forkedContext);
+        } catch (RuntimeException | Error failure) {
+            triggerFailure = failure;
+            throw failure;
+        } finally {
+            try {
+                forkedContext.free();
+            } catch (RuntimeException | Error cleanupFailure) {
+                if (triggerFailure != null) {
+                    triggerFailure.addSuppressed(cleanupFailure);
+                } else {
+                    throw cleanupFailure;
+                }
+            }
         }
     }
 
@@ -255,11 +315,58 @@ public record Program(
     public String toString() {
 
         var rtn = new StringBuilder();
+        if (executionSideDeclaration != null) {
+            rtn.append(executionSideDeclaration).append("\n");
+        }
         rtn.append("NAME \"").append(name).append("\"\n");
+        rtn.append(definitions.toSource());
         for (Trigger trigger : triggers) {
             rtn.append(trigger).append("\n");
         }
         return rtn.toString();
+    }
+
+    public void assertCompatibleWith(ProgramExecutionSide host) {
+        if (executionSideDeclaration != null && executionSideDeclaration.side() != host) {
+            throw new IllegalArgumentException(
+                    "Program asserts " + executionSideDeclaration.side()
+                    + " BTW but is hosted by a " + host + " Manager"
+            );
+        }
+        if (host == ProgramExecutionSide.SERVER && triggers.stream().anyMatch(FrameTrigger.class::isInstance)) {
+            throw new IllegalArgumentException("EVERY FRAME requires a Client Manager");
+        }
+        if (host == ProgramExecutionSide.SERVER && triggers.stream()
+                .filter(trigger -> !(trigger instanceof FrameTrigger))
+                .anyMatch(trigger -> containsClientOnlyOperation(trigger.getBlock()))) {
+            throw new IllegalArgumentException("Client-only frame operations require a Client Manager");
+        }
+    }
+
+    private static boolean containsClientOnlyOperation(Block block) {
+        for (Statement statement : block.statements()) {
+            if (statement instanceof RenderImageStatement) return true;
+            if (statement instanceof LetStatement let && let.expression() instanceof ClientValueExpression) return true;
+            if (statement instanceof IfStatement branch) {
+                if (containsFrameCondition(branch.condition())
+                    || containsClientOnlyOperation(branch.trueBlock())
+                    || containsClientOnlyOperation(branch.falseBlock())) return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean containsFrameCondition(BoolExpr condition) {
+        if (condition instanceof BoolFrameModulo || condition instanceof BoolClientValueEquals) return true;
+        if (condition instanceof BoolParen parenthesized) return containsFrameCondition(parenthesized.inner());
+        if (condition instanceof BoolNegation negated) return containsFrameCondition(negated.inner());
+        if (condition instanceof BoolConjunction both) {
+            return containsFrameCondition(both.left()) || containsFrameCondition(both.right());
+        }
+        if (condition instanceof BoolDisjunction either) {
+            return containsFrameCondition(either.left()) || containsFrameCondition(either.right());
+        }
+        return false;
     }
 
     public void replaceOutputStatement(

@@ -33,7 +33,6 @@ import java.util.List;
 public final class SFMGamePuppetHarness {
     public static final String WORLD_ID_PREFIX = "sfm_game_puppet_";
     public static final String WORLD_NAME_PREFIX = "SFM Game Puppet: ";
-    public static final int ACTION_TIMEOUT_TICKS = 20 * 60;
     public static final int SCREENSHOT_TIMEOUT_TICKS = 20 * 20;
     public static final int CAPTION_HORIZONTAL_PADDING = 12;
     public static final int CAPTION_VERTICAL_PADDING = 10;
@@ -41,12 +40,15 @@ public final class SFMGamePuppetHarness {
     private static boolean initialized;
     private static boolean awaitingTitleScreen;
     private static boolean completed;
+    private static boolean completionReported;
     private static int nextPuppetIndex;
     private static int failedPuppetCount;
-    private static int finalWorldHoldTicksRemaining = -1;
+    private static long finalWorldHoldTicksRemaining = -1;
     private static int exitTicksRemaining = -1;
-    private static boolean pauseOnLostFocusCaptured;
+    private static boolean runtimeOptionsCaptured;
     private static boolean pauseOnLostFocusBeforeAutomation;
+    private static boolean vsyncBeforeAutomation;
+    private static int framerateLimitBeforeAutomation;
     private static List<SFMDiscoveredGamePuppet> selectedPuppets = List.of();
     private static List<PuppetExecution> selectedExecutions = new ArrayList<>();
     private static SFMGamePuppetViewportSelection viewportSelection;
@@ -131,10 +133,11 @@ public final class SFMGamePuppetHarness {
             returnToTitle(minecraft);
             return;
         }
-        if (++active.totalActionTicks > ACTION_TIMEOUT_TICKS) {
+        int timeoutTicks = active.definition.timeoutTicks();
+        if (++active.totalActionTicks > timeoutTicks) {
             failActivePuppet(
                     active,
-                    new IllegalStateException("Timed out after " + ACTION_TIMEOUT_TICKS + " client ticks")
+                    new IllegalStateException("Timed out after " + timeoutTicks + " client ticks")
             );
             returnToTitle(minecraft);
             return;
@@ -156,6 +159,7 @@ public final class SFMGamePuppetHarness {
         if (activePuppet != null || awaitingTitleScreen || completed) {
             return;
         }
+        SFMGamePuppetRenderHarness.clear();
         if (nextPuppetIndex >= selectedExecutions.size()) {
             finishRun();
             return;
@@ -192,6 +196,19 @@ public final class SFMGamePuppetHarness {
         }
 
         int keepOpenSeconds = SFMProperties.clientRunKeepOpenSeconds(0);
+        // Completion describes assertions, not how long the user inspects the final scene.
+        // Report it exactly once, before either kind of hold; ordinary shutdown while
+        // holding must not turn a finished run into a missing-completion failure.
+        reportCompletion();
+        if (keepOpenSeconds != 0) {
+            SFMGamePuppetViewportObservation viewport = active.viewportObservation;
+            SFM.LOGGER.info(
+                    "SFM_GAME_PUPPET_VIEWPORT_RETAINED keep_open_seconds={} variant={} actual_width={} actual_height={} framebuffer_width={} framebuffer_height={} requested_gui_scale={} effective_gui_scale={} logical_width={} logical_height={}",
+                    keepOpenSeconds, active.viewportVariant.id(), viewport.windowWidth(), viewport.windowHeight(),
+                    viewport.framebufferWidth(), viewport.framebufferHeight(), active.viewportVariant.requestedScaleName(),
+                    viewport.effectiveGuiScale(), viewport.logicalWidth(), viewport.logicalHeight()
+            );
+        }
         if (keepOpenSeconds < 0) {
             activePuppet = null;
             completed = true;
@@ -201,7 +218,7 @@ public final class SFMGamePuppetHarness {
         }
         if (keepOpenSeconds > 0) {
             activePuppet = null;
-            finalWorldHoldTicksRemaining = keepOpenSeconds * 20;
+            finalWorldHoldTicksRemaining = keepOpenSeconds * 20L;
             SFM.LOGGER.info("SFM_GAME_PUPPET_FINAL_WORLD_HOLD_PENDING seconds={}", keepOpenSeconds);
             return;
         }
@@ -216,6 +233,7 @@ public final class SFMGamePuppetHarness {
     private static void expandNumericVariantsAfterAutoProbe(Minecraft minecraft, ActivePuppet active) {
         if (viewportSelection.kind() != SFMGamePuppetViewportSelection.Kind.DECLARED
             || active.definition.viewportProfile() == SFMGamePuppetViewportProfile.CURRENT
+            || active.definition.viewportProfile() == SFMGamePuppetViewportProfile.FIXED_1280X720_AUTO
             || active.viewportVariant.guiScale() != 0) return;
         int maximumScale = SFMGamePuppetViewportController.maximumScale(minecraft);
         List<PuppetExecution> numeric = new ArrayList<>();
@@ -239,14 +257,11 @@ public final class SFMGamePuppetHarness {
         if (completed) {
             return;
         }
+        SFMGamePuppetRenderHarness.clear();
         completed = true;
         SFMGamePuppetViewportController.requestRestore(Minecraft.getInstance());
         restoreRuntimeOptions(Minecraft.getInstance());
-        SFM.LOGGER.info(
-                "SFM_GAME_PUPPET_COMPLETE failed={} total={}",
-                failedPuppetCount,
-                selectedExecutions.size()
-        );
+        reportCompletion();
         int titleExitSeconds = SFMProperties.clientRunTitleExitSeconds(25);
         if (titleExitSeconds < 0) {
             SFM.LOGGER.info("SFM_GAME_PUPPET_KEEP_TITLE_OPEN");
@@ -254,6 +269,13 @@ public final class SFMGamePuppetHarness {
         }
         exitTicksRemaining = titleExitSeconds * 20;
         SFM.LOGGER.info("SFM_GAME_PUPPET_EXIT_PENDING seconds={}", titleExitSeconds);
+    }
+
+    private static void reportCompletion() {
+        if (completionReported) return;
+        completionReported = true;
+        SFM.LOGGER.info("SFM_GAME_PUPPET_COMPLETE failed={} total={}",
+                failedPuppetCount, selectedExecutions.size());
     }
 
     private static void tickAutoExit() {
@@ -286,9 +308,15 @@ public final class SFMGamePuppetHarness {
         if (active.failureRecorded) {
             return;
         }
+        SFMGamePuppetRenderHarness.clear();
         active.failureRecorded = true;
         active.success = false;
         failedPuppetCount++;
+        try {
+            active.helper.abortCurrentAction();
+        } catch (Throwable cleanupFailure) {
+            if (cleanupFailure != throwable) throwable.addSuppressed(cleanupFailure);
+        }
         SFM.LOGGER.error(
                 "SFM_GAME_PUPPET_FAILED puppet={} action={} error={}",
                 active.definition.puppetName(),
@@ -299,21 +327,37 @@ public final class SFMGamePuppetHarness {
     }
 
     private static void keepRuntimeUnpaused(Minecraft minecraft) {
-        if (!pauseOnLostFocusCaptured) {
-            pauseOnLostFocusCaptured = true;
+        if (!runtimeOptionsCaptured) {
+            runtimeOptionsCaptured = true;
             pauseOnLostFocusBeforeAutomation = minecraft.options.pauseOnLostFocus;
+            vsyncBeforeAutomation = minecraft.options.enableVsync().get();
+            framerateLimitBeforeAutomation = minecraft.options.framerateLimit().get();
+            SFM.LOGGER.info(
+                    "SFM_GAME_PUPPET_RUNTIME_OPTIONS_CAPTURED pause_on_lost_focus={} vsync={} max_fps={}",
+                    pauseOnLostFocusBeforeAutomation,
+                    vsyncBeforeAutomation,
+                    framerateLimitBeforeAutomation
+            );
         }
         if (minecraft.options.pauseOnLostFocus) {
             minecraft.options.pauseOnLostFocus = false;
         }
+        if (minecraft.options.enableVsync().get()) {
+            minecraft.options.enableVsync().set(false);
+        }
+        if (minecraft.options.framerateLimit().get() != 260) {
+            minecraft.options.framerateLimit().set(260);
+        }
     }
 
     private static void restoreRuntimeOptions(Minecraft minecraft) {
-        if (!pauseOnLostFocusCaptured) {
+        if (!runtimeOptionsCaptured) {
             return;
         }
         minecraft.options.pauseOnLostFocus = pauseOnLostFocusBeforeAutomation;
-        pauseOnLostFocusCaptured = false;
+        minecraft.options.enableVsync().set(vsyncBeforeAutomation);
+        minecraft.options.framerateLimit().set(framerateLimitBeforeAutomation);
+        runtimeOptionsCaptured = false;
     }
 
     public static boolean isAutomationActive() {
@@ -347,9 +391,22 @@ public final class SFMGamePuppetHarness {
             if (matches.size() != 1) {
                 throw new IllegalStateException("Expected exactly one SFM GameTest named " + testName + ", found " + matches.size());
             }
+            startGameTest(active, server, matches.get(0));
+        } catch (Throwable throwable) {
+            active.gameTestStartFailure = throwable;
+        }
+    }
+
+    public static void startGameTest(
+            ActivePuppet active,
+            MinecraftServer server,
+            SFMGameTestDefinition definition
+    ) {
+        try {
+            String testName = definition.testName();
             ServerLevel level = server.overworld();
             configureWorld(server, level);
-            TestFunction test = matches.get(0).intoTestFunction();
+            TestFunction test = definition.intoTestFunction();
             BlockPos startPos = new BlockPos(0, level.getMinBuildHeight() + 4, 0);
             GameTestTicker.SINGLETON.clear();
             GameTestRunner.clearMarkers(level);
@@ -368,6 +425,7 @@ public final class SFMGamePuppetHarness {
             GameTestInfo info = new ArrayList<>(started).get(0);
             active.gameTestOrigin = info.getStructureBlockPos();
             active.gameTestInfo = info;
+            active.gameTestBounds = info.getStructureBounds();
             active.gameTestTracker = new MultipleTestTracker(started);
             active.gameTestTracker.addFailureListener(failed -> SFM.LOGGER.error(
                     "SFM_GAME_PUPPET_GAME_TEST_FAILED puppet={} test={} error={}",

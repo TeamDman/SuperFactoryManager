@@ -452,11 +452,11 @@ pixels and does not draw content. A policy transition preserves panel/model
 identity, focus where still visible, scroll/selection state, and active Stack
 choice. It is a layout transaction, not reconstruction of the review session.
 
-`SFMRepositoryReviewPanel` is currently an acknowledged counterexample: it is
-one leaf that manually allocates changed-files, before, and after rectangles.
-The responsive review wave will split those into model-sharing leaves and use
-this group boundary. Do not generalize its current arithmetic into another
-container API.
+The former fixed review workspace was an acknowledged counterexample: it was
+one leaf that manually allocated changed-files, before, and after rectangles.
+The panel/explorer review design replaces that special case with model-sharing
+leaves and this group boundary. Do not generalize the former arithmetic into
+another container API.
 
 ## Relationship to Track 3
 

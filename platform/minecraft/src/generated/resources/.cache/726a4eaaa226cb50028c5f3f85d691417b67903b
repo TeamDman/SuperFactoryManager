@@ -1,6 +1,7 @@
-// 1.19.4	2026-01-28T20:00:11.4621253	Item Models: sfm
+// 1.19.4	2026-09-20T04:13:15.8031467	Item Models: sfm
 c30f68ac136d6a8ae24eee7845de7afb19597988 assets/sfm/models/item/buffer.json
 8518af52bb22ef1d984719f3534ff29e08cca857 assets/sfm/models/item/cable.json
+f596ee152738b601264209fc18652b73fb536d0b assets/sfm/models/item/client_manager.json
 bee75adb2bb431a6b671015aa9bac0d68a98f5fb assets/sfm/models/item/disk.json
 3b5be3966b540f1e99a3d6fd8836ad39bf937e96 assets/sfm/models/item/fancy_cable.json
 2c8c32d785bfc59bf23083eff8838054ee580570 assets/sfm/models/item/form.json
@@ -8,7 +9,9 @@ a74b029bcf88d674c6a4c4eaece9426cfd9c4533 assets/sfm/models/item/form_base.json
 a70b1032681b30f1066fdfb8b28870e87e51c261 assets/sfm/models/item/labelgun.json
 e945e739059a159bb1d4de5af118d412b50aae6c assets/sfm/models/item/manager.json
 d35a3dbb1180878d85e94f3f00812e5f34a4b2da assets/sfm/models/item/network_tool.json
+e1976933fa6bff6dcbc7d886da696fb134a7b4ef assets/sfm/models/item/packet.json
 cd81e93f92577f247bb4bd12e01494d83e0733ce assets/sfm/models/item/printing_press.json
+828db30b4248bce09b3f735b064fea8a0cb1b844 assets/sfm/models/item/touch_display.json
 8d90463a71d47caeb291325ebcf624e889b069c8 assets/sfm/models/item/tough_cable.json
 1bcd55df1fd3c6689055b8ba86acc6c516260e47 assets/sfm/models/item/tough_fancy_cable.json
 b2158bde74ffb9a7d67e930adb42dca4aa08453e assets/sfm/models/item/tunnelled_cable.json

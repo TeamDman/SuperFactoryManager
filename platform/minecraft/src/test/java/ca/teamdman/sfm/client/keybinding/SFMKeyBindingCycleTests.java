@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.keybinding;
 
+import ca.teamdman.sfm.client.registry.SFMKeyboardUsageSituations;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -25,6 +26,7 @@ class SFMKeyBindingCycleTests {
                 id,
                 "sfm:help",
                 "sfm action invoke sfm:help",
+                SFMKeyboardUsageSituations.GLOBAL,
                 SFMKeySequence.of(SFMKeyStroke.of(keyCode)),
                 enabled
         );

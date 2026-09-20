@@ -13,6 +13,8 @@ import java.util.Objects;
 
 public class SFMClientTextEditorConfig {
     public final ForgeConfigSpec.BooleanValue showLineNumbers;
+    public final ForgeConfigSpec.BooleanValue canvasWheelZooms;
+    public final ForgeConfigSpec.BooleanValue canvasMiddlePans;
 
     public final ForgeConfigSpec.EnumValue<SFMTextEditorIntellisenseLevel> intellisenseLevel;
 
@@ -21,6 +23,10 @@ public class SFMClientTextEditorConfig {
     SFMClientTextEditorConfig(ForgeConfigSpec.Builder builder) {
 
         showLineNumbers = builder.define("showLineNumbers", false);
+        canvasWheelZooms = builder.comment("Default for newly opened v3 editors; existing editors keep their own setting.")
+                .define("canvasWheelZooms", true);
+        canvasMiddlePans = builder.comment("Middle pans and right opens actions; false swaps the two buttons in new v3 editors.")
+                .define("canvasMiddlePans", true);
         intellisenseLevel = builder.defineEnum("intellisenseLevel", SFMTextEditorIntellisenseLevel.OFF);
         preferredEditor = builder.define("preferredEditor", "sfm:v1");
     }

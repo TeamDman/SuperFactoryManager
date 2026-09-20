@@ -25,6 +25,9 @@ public class SFMBlocks {
             =
             REGISTERER.register("manager", ManagerBlock::new);
 
+    public static final SFMRegistryObject<Block, ClientManagerBlock> CLIENT_MANAGER
+            = REGISTERER.register("client_manager", ClientManagerBlock::new);
+
     public static final SFMRegistryObject<Block, BufferBlock> BUFFER_BLOCK =
             REGISTERER.register(
                     "buffer", () -> new BufferBlock(
@@ -43,6 +46,10 @@ public class SFMBlocks {
     public static final SFMRegistryObject<Block, PrintingPressBlock> PRINTING_PRESS
             =
             REGISTERER.register("printing_press", PrintingPressBlock::new);
+
+    public static final SFMRegistryObject<Block, TouchDisplayBlock> TOUCH_DISPLAY
+            =
+            REGISTERER.register("touch_display", TouchDisplayBlock::new);
 
     public static final SFMRegistryObject<Block, WaterTankBlock> WATER_TANK
             =

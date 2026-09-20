@@ -6,6 +6,7 @@ import ca.teamdman.sfm.client.presentation.SFMResolvedItemIcon;
 import ca.teamdman.sfm.client.screen.workspace.SFMFileDropTarget;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanel;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenPanelBounds;
+import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspacePanelContext;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.ChatFormatting;
@@ -36,6 +37,7 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
     private final SFMFileExplorerModel model;
     private final SFMFilePresentationRegistry presentations;
     private final Consumer<SFMFileExplorerModel.OpenIntent> openIntentConsumer;
+    private final boolean recipeBacked;
     private SFMFileExplorerLayout layout = SFMFileExplorerLayout.calculate(0, 0, 1, 1);
     private @Nullable SFMWorkspacePanelContext hostContext;
     private int firstVisibleRow;
@@ -48,7 +50,7 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
             SFMFileExplorerSource source,
             Consumer<SFMFileExplorerModel.OpenIntent> openIntentConsumer
     ) {
-        this(source, openIntentConsumer, SFMFilePresentationRegistry.createDefault());
+        this(source, openIntentConsumer, SFMFilePresentationRegistry.createDefault(), false);
     }
 
     public SFMFileExplorerPanel(
@@ -56,9 +58,19 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
             Consumer<SFMFileExplorerModel.OpenIntent> openIntentConsumer,
             SFMFilePresentationRegistry presentations
     ) {
+        this(source, openIntentConsumer, presentations, false);
+    }
+
+    SFMFileExplorerPanel(
+            SFMFileExplorerSource source,
+            Consumer<SFMFileExplorerModel.OpenIntent> openIntentConsumer,
+            SFMFilePresentationRegistry presentations,
+            boolean recipeBacked
+    ) {
         this.model = new SFMFileExplorerModel(source);
         this.openIntentConsumer = openIntentConsumer;
         this.presentations = java.util.Objects.requireNonNull(presentations, "presentations");
+        this.recipeBacked = recipeBacked;
     }
 
     @Override
@@ -126,8 +138,9 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
             case GLFW.GLFW_KEY_END -> model.selectLast();
             case GLFW.GLFW_KEY_RIGHT -> model.expandSelection();
             case GLFW.GLFW_KEY_LEFT -> model.collapseSelectionOrSelectParent();
-            case GLFW.GLFW_KEY_SPACE -> model.toggleSelection();
-            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> activateSelection();
+            case GLFW.GLFW_KEY_SPACE -> activateSelection(false);
+            case GLFW.GLFW_KEY_ENTER, GLFW.GLFW_KEY_KP_ENTER -> activateSelection(
+                    (modifiers & GLFW.GLFW_MOD_CONTROL) != 0);
             default -> { return false; }
         }
         keepSelectionVisible();
@@ -143,9 +156,9 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
         SFMFileExplorerEntry selected = model.visibleEntries().get(index).entry();
         long clickTime = Util.getMillis();
         if (!selected.directory() && presentations.isTextLike(selected)) {
-            activateSelection();
+            activateSelection(false);
         } else if (lastClickIndex == index && clickTime - lastClickTime <= 300L) {
-            activateSelection();
+            activateSelection(false);
         }
         lastClickIndex = index;
         lastClickTime = clickTime;
@@ -165,9 +178,18 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
         statusMessage = result.message();
         if (!result.accepted()) return;
         model.replaceSource(result.replacement());
+        updateReopenRecipe(result.replacement());
         firstVisibleRow = 0;
         lastClickIndex = -1;
         keepSelectionVisible();
+    }
+
+    private void updateReopenRecipe(SFMFileExplorerSource replacement) {
+        if (!recipeBacked || hostContext == null
+                || !(hostContext.host() instanceof SFMScreenMultiplexer workspace)) return;
+        workspace.setPanelReopenRecipe(
+                hostContext.panelId(),
+                SFMFileExplorerPanelRecipe.from(replacement).orElse(null));
     }
 
     @Override
@@ -258,7 +280,7 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
         );
     }
 
-    private void activateSelection() {
+    private void activateSelection(boolean focusPreview) {
         model.selection().map(SFMFileExplorerModel.VisibleEntry::entry).ifPresent(entry -> {
             if (!entry.directory() && !presentations.isTextLike(entry)) {
                 statusMessage = "Preview unavailable: " + entry.path() + " is not text-like";
@@ -266,7 +288,8 @@ public final class SFMFileExplorerPanel implements SFMScreenPanel, SFMFileDropTa
             }
             model.activateSelection().ifPresent(intent -> {
                 statusMessage = "Open requested: " + intent.entry().path() + " (read-only)";
-                openIntentConsumer.accept(intent);
+                openIntentConsumer.accept(new SFMFileExplorerModel.OpenIntent(
+                        intent.sourceName(), intent.entry(), focusPreview));
             });
         });
     }
