@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Review and explicitly sign the acknowledged Client Manager revision with protected local keys, a cosmetic signing pad or accessible confirmation; saving alone never signs
 -- Review scoped Client Manager signer trust separately from exact-program consent; explicit denials and policy still take precedence, and stop-all removes signer rules
 -- Preserve Client Manager signing revisions and independent author attestations through saves and reloads; require matching network protocol 1.3.0
 -- Review exact Client Manager source, bindings, capability history, approval expiry and denial cooldown in the client_script_consents panel, with persistent revocation and stop-all controls

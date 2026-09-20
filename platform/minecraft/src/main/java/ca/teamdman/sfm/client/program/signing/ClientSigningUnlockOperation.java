@@ -19,7 +19,9 @@ public final class ClientSigningUnlockOperation implements ClientProgramSigningC
         if (passphrase == null) throw new IllegalStateException("Passphrase already consumed");
         char[] captured = passphrase;
         passphrase = null;
-        ClientSigningKeyStore.UnlockedSigner signer = new ClientSigningKeyStore(file).unlock(captured);
+        ClientSigningKeyStore.UnlockedSigner signer;
+        try { signer = new ClientSigningKeyStore(file).unlock(captured); }
+        finally { Arrays.fill(captured, '\0'); }
         return new ClientProgramSigningController.Signer() {
             public ProgramAttestation sign(ProgramSignatureDescriptor descriptor) throws Exception { return signer.sign(descriptor); }
             public void close() { signer.close(); }

@@ -14,7 +14,7 @@ import java.util.*;
 
 /** Explicit review only: discovery and program requests never open this panel or its confirmation. */
 public final class ClientProgramConsentsPanel implements SFMScreenPanel {
-    public enum Control { PREVIOUS, NEXT, CAPABILITY, VIEW, LIFETIME, RETRY, REVIEW, DENY, REVOKE, FORGET, STOP_ALL, RESUME, SAVE, SIGNER, TRUST_SIGNER, UNTRUST_SIGNER }
+    public enum Control { PREVIOUS, NEXT, CAPABILITY, VIEW, LIFETIME, RETRY, REVIEW, DENY, REVOKE, FORGET, STOP_ALL, RESUME, SAVE, SIGNER, TRUST_SIGNER, UNTRUST_SIGNER, SIGN_REVIEW }
     private static final ResourceLocation USAGE = new ResourceLocation("sfm", "default");
     private static final long DAY = 86_400_000L;
     private static final Long[] LIFETIMES = {DAY, 365 * DAY, null};
@@ -110,6 +110,10 @@ public final class ClientProgramConsentsPanel implements SFMScreenPanel {
         if (control == Control.CAPABILITY) { capabilityIndex = (capabilityIndex + 1) % capabilities.size(); return true; }
         ResourceLocation capability = capabilities.get(Math.floorMod(capabilityIndex, capabilities.size()));
         switch (control) {
+            case SIGN_REVIEW -> message = ca.teamdman.sfm.client.program.signing.ClientProgramSigningRuntime.open(identity,
+                    ClientProgramConsentReview.previous(service.store(), record.orElseThrow())
+                            .flatMap(ClientProgramConsentStore.Snapshot::evidence)
+                            .map(ClientProgramConsentStore.Evidence::source).orElse(""));
             case SIGNER -> selectSigner(identity);
             case TRUST_SIGNER -> trustSigner(identity);
             case UNTRUST_SIGNER -> untrustSigner(identity);
@@ -323,6 +327,7 @@ public final class ClientProgramConsentsPanel implements SFMScreenPanel {
             case REVIEW -> "Review approval"; case DENY -> "Deny"; case REVOKE -> "Revoke";
             case FORGET -> "Forget program"; case STOP_ALL -> "Stop all"; case RESUME -> "Resume review"; case SAVE -> "Retry save";
             case SIGNER -> "Next signer"; case TRUST_SIGNER -> "Trust signer"; case UNTRUST_SIGNER -> "Remove signer";
+            case SIGN_REVIEW -> "Review signing";
         };
     }
 }

@@ -417,6 +417,11 @@ public final class SFMGamePuppetHelper {
         add(new ExploreTouchDisplayInteractivelyPuppetAction(requestedTouch, true));
     }
 
+    /** Real authoring controls and transport, with synthetic keys confined to this puppet's run directory. */
+    public void exploreClientProgramSigningInteractively(java.util.concurrent.atomic.AtomicBoolean proofComplete) {
+        add(new ExploreClientProgramSigningPuppetAction(proofComplete));
+    }
+
     public void exactReleaseReviewJourney(boolean resume) {
         add(new ca.teamdman.sfm.gametest.puppet.action.ExactReleaseReviewJourneyPuppetAction(resume));
         add(new WaitTicksPuppetAction(RENDER_SETTLE_TICKS));
