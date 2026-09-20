@@ -23,6 +23,7 @@ implementation, container implementation, and integration/validation.
 | U5 | Determine how graphics work in Docker or potentially Kubernetes. | Tasks 3 and 4: Xvfb/Mesa experiment with screenshot evidence; document Kubernetes translation and its untested status. |
 | U6 | Existing game puppet manipulation and screenshot capture is likely the fixture. | Task 3: use the existing puppet; require its result and screenshot, not merely a successful process start. |
 | U7 | The user identified the existing 1.19.2 source checkout. | Task 1: confirmed `TeamDman/SuperFactoryManager`, branch `1.19.2`. Refer to this machine-varying path as `<existing-1.19.2-checkout>` in public notes. |
+| U8 | Continue on GitHub Actions if useful; Podman may be started locally. Update SFM to the new Vox build and publish it to the appropriate Teamy branch. | Task 2: publish a narrow Java-only Facet fix, pin exact source/hash, retain independent hosted verification and preserve busy integration work. |
 
 ## Intent audit evidence
 
@@ -43,8 +44,9 @@ Gradle. Its commands own compilation, JUnit, packaging, game launches and
 puppets. Minecraft targets Java 17. Follow
 `docs/tasks/goal execution and testing readiness guidelines.md`.
 
-Project dependencies and lockfiles stay frozen. Deterministic restoration of
-their pinned inputs is allowed. Container base images and OS graphics/build
+Project dependencies and lockfiles stay frozen except for the explicitly
+authorized Vox Java fix. Deterministic restoration of pinned inputs is allowed.
+Container base images and OS graphics/build
 packages are new infrastructure inputs for this experiment; they do not change
 the mod's dependency graph. No credentials, developer caches, Docker socket,
 host display, or user home should be exposed to a game worker.
@@ -69,6 +71,27 @@ list`, and `podman system connection list`.
 
 ## [~] 2. Build and deliver a mod artifact from the feature branch
 
+**Current checkpoint:** The latest native Linux and Windows runs compiled all
+SFM Java source sets. Linux then exposed Windows-only paths in ten test classes;
+Windows exposed CRLF conversion of canonical replay JSON. Test fixtures now use
+native absolute paths/URIs, and the JSON fixtures explicitly use LF. The one
+native Windows case-insensitive containment test is scoped to Windows. No
+production path validation or assertion was weakened.
+
+The Vox Java fix is published at
+`4a079ac1c8a8bb8a914811ef55945bc1d9a9fef3` on
+`TeamDman/facet` / `teamy/vox-java-late-credit` ([PR #2](https://github.com/TeamDman/facet/pull/2)).
+The user-suggested `teamy-main` belongs to the older Roam repository and does not
+contain this Java runtime. The new branch starts at SFM's exact previous pin and
+leaves `teamy/terminal-selection-paste` unchanged. The canonical locked
+`vox-xtask package-java` recipe passed with the historical Java compiler, full
+Java suite, 19 deterministic regressions, repeat-JAR equality and dependency
+checks. The resulting artifact hash is
+`blake3:2be34a7d38bbd4a455d2a933c856c9462630f47a`.
+Only the Vox artifact hash, derived expected hash, source commit, branch and
+portable source-root reference changed in SFM's lock. Rust pins and all other
+dependencies remain unchanged. Fresh hosted builds will verify this exact pin.
+
 **Completion notes:** Initial experiment commit `f7dc28338` pushed successfully.
 GitHub started [run 35460447959](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35460447959)
 from the feature branch without a default-branch merge. The workflow passed
@@ -81,6 +104,76 @@ Commit `bd6aff529` adds UTF-8 locale after `10967aefc` introduced a checksum-pin
 JBR 17.0.6 build compiler and independent puppet JVMs. Current Java 17 remains
 the explicit mod compiler/game runtime. [Run 35461041230](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35461041230)
 tests these fixes; the intervening superseded run was cancelled by concurrency.
+
+That second run finished: graphics and the Linux path tests passed. The UTF-8
+container failure was resolved, but both the native and container source builds
+failed in the same pinned Vox Java test. The historical compiler alone does not
+resolve it; artifact hash reproducibility has not yet been reached. No mod JAR
+was produced. An independent [Windows run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35461257226)
+uses the same source and explicit separation between the historical dependency
+compiler and current Java 17 mod runtime. Its dedicated branch avoids cancelling
+other experiments when the diagnostic changes.
+
+The Windows run finished with a distinct infrastructure failure. The CLI and all
+five path tests passed. Vox's canonical recipe passed its Java suite, duplicate
+JAR byte comparison and Java smoke test, then rejected the startup banner emitted
+by global `JAVA_TOOL_OPTIONS` as an unresolved dependency. Its `jdeps` check
+requires empty stdout and stderr. The fix scopes UTF-8 to `JDK_JAVAC_OPTIONS`
+instead; the container's JVM tuning must likewise avoid affecting `jdeps` during
+preparation. These environment fixes do not change the dependency graph. A fresh
+build attempt will validate both fixes and the next actual layer.
+
+The [focused Linux diagnostic](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35461627486)
+compiled the unchanged 181 pinned Java source files and ran the original test
+once. JVM exception logging captured `message for unknown channel 1:1` in
+`VoxConnection.processInboundChannel` before connection shutdown. The first
+40-item transfer is affected. Late receiver credit is a hypothesis supported by
+the transfer roles and deterministic driver probe; the original trace does not
+record the message body. A review-only patch and probe are being tested in
+disposable checkouts through a separate workflow. They are not SFM build inputs.
+
+The [candidate comparison](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35462115154)
+at `e8318d2f0` passed on Linux: the candidate ran the unchanged original test once
+and all 19 deterministic variants passed. The unchanged baseline also passed
+once in this comparison, so the original source-test failure is timing-sensitive,
+not guaranteed on every run. Local reduced sequences distinguish active sender
+credit (passes both) from identical credit after sender Close (unknown-channel
+failure in the baseline, passes with the candidate). The candidate follows the
+pinned Rust driver's absent-credit behavior while preserving Java's accepted-lane,
+message-direction and numeric validation. No source tests are retried to obtain
+a green result, and no candidate JAR is supplied to SFM.
+
+The [reduced Linux run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35462297128)
+at `06e8fe9ce` compiled untouched pinned source and the probe in a fresh directory.
+It ran only the closest passing and failing inputs: active credit exited 0;
+identical credit after local Close exited 1 with the exact unknown-channel error
+from `processInboundChannel`. Its receipt is `baseline-failure-reproduced`, with
+zero full original-test runs. This positive diagnostic result records a confirmed
+bug reproduction; it is not a passing dependency build.
+
+The user subsequently authorized publishing the Vox Java fix and updating SFM to
+that build. The mutable boundary is limited to Vox Java source/test changes in
+`TeamDman/facet` and its source commit, branch, cache identity and exact artifact
+hash/derived checks in `platform/minecraft/sfm-toolchain.lock.json`. Other project
+dependencies and Cargo declarations/locks remain frozen. The user suggested
+`teamy-main`; inspection found that branch in the older `TeamDman/roam` repository,
+which has no Java runtime. SFM actually pins Facet's
+`teamy/terminal-selection-paste` at `f2afdece6`. A separate
+`teamy/vox-java-late-credit` worktree starts at that exact published commit so
+the fix cannot absorb or overwrite unrelated newer work.
+
+The next hosted runs at `859b6cbf4` passed dependency preparation. Windows compiled
+SFM, then two canonical replay JSON tests failed because checkout converted their
+LF fixture to CRLF. A narrow `.gitattributes` rule preserves the canonical bytes.
+Docker compiled and packaged the mod JAR and executed both real graphical
+puppets during preparation. Its final verifier looked in the wrapper console
+instead of the authoritative child-process log. The raw completion marker must
+be checked in that child log, with fresh copies per puppet. Offline restricted
+execution is still a separate, pending check.
+
+**Remaining acceptance:** Verify the published Vox source/hash on fresh Linux
+and Windows runners, then pass the full canonical JUnit and packaging jobs.
+No source-test bypass, arbitrary cached JAR, or hash relaxation is accepted.
 
 **Work:** Add a push/PR workflow with least permissions, explicit 1.19.2 scope,
 fresh-checkout tooling, bounded jobs, preserved failure diagnostics, and mod
@@ -96,6 +189,16 @@ recorded without claiming a passing build.
 
 ## [~] 3. Run a graphical puppet inside a restricted Docker worker
 
+**Current checkpoint:** Run `35462847488` built the distributable mod and ran
+both real puppets during Docker image preparation, generating three title and
+eight world captures. The final check failed because it read the CLI progress
+log instead of the raw JVM console. `run.sh` now preserves the fresh per-puppet
+JVM log; the verifier requires exactly one successful completion and rejects
+failure markers. Nine focused verifier regressions pass, including misleading
+wrapper output, duplicate completion, missing images and failing process exits.
+The next run must repeat both puppets after disabling networking and applying
+all runtime restrictions; preparation screenshots alone do not satisfy that.
+
 **Completion notes:** `containers/sfm/` contains a two-stage image, independent
 graphics probe, offline runtime wrapper and screenshot verifier. Static Bash
 syntax checks pass. The independent graphics job passed in run `35460447959`:
@@ -109,7 +212,9 @@ without changing the lockfile. Five regression tests cover cached artifacts,
 source-build outputs and optional paths; all five passed via `cargo test --locked
 json_path::tests --lib`. The title and orbit fixtures now run in separate fresh
 clients because discovery sorts puppets alphabetically and the title capture
-requires the initial loading overlay. Full Minecraft execution is pending.
+requires the initial loading overlay. The second run passed the graphics
+restrictions again but stopped at Vox source preparation. The third run advanced
+through both real game launches as recorded in the current checkpoint above.
 
 Required `check-all.ps1` results: dependency policy, formatting, all-feature
 Clippy with denied warnings, and build pass. Outside the sandbox, 739 unit tests
@@ -133,7 +238,7 @@ output from the actual game. Verify runtime settings with container inspection.
 operation under the stated restrictions, or records the first actual failing
 layer without substituting a desktop-only test.
 
-## [ ] 4. Review isolation and provide reproducible handoff
+## [~] 4. Review isolation and provide reproducible handoff
 
 **Work:** Document exact tested commands, evidence and limitations. Describe a
 Discord broker/job boundary and Kubernetes translation, with ephemeral jobs,
@@ -163,7 +268,30 @@ and identify the remaining production decisions.
 - Target: `ci/1.19.2-container-puppet`, base `707f53f4a`.
 - Tooling source changes: portable serialized-path conversion in `jar_build/json_path.rs`.
 - Installer: `platform/cli/sfm-propagate-changes/install.ps1` completed successfully with locked offline acquisition. Installed command reports `10967aefc`; SHA-256 `95095EB678494595B6B40C7E37A1B155F2AB17EA713931235A111035ED82D5EF`. Its source subtree `d3785ff480719c67f1574efa5bfede644e653d93` is identical at `bd6aff529`. No user installer step is required. CI builds its own executable from each event revision.
-- Dependency posture: frozen project dependencies; new container infrastructure as scoped above.
+- Dependency posture: mutable only for the explicitly authorized Vox Java update
+  described above; all other project dependencies remain frozen.
 - New developer/reference clones: none.
 - Process preflight: no local game launch or process termination is planned; hosted workers own their test processes.
-- Final process state, exact test commands, artifact evidence and remote run URL: pending validation.
+- Tool freshness was rechecked after diagnostic commit `e8318d2f0`: the installed
+  version/hash and current Rust subtree still match the values above.
+- Dependency declarations and lockfiles: only the five Vox source/hash fields
+  described in Task 2 changed. The canonical source build generated the new JAR;
+  the busy checkout's artifact cache was not overwritten.
+- Original checkout: still clean on `1.19.2` at `707f53f4a` when rechecked after
+  the candidate diagnostic was prepared.
+- Cache rehydration: hosted runners acquired checked-in locked dependencies;
+  diagnostics materialized only the exact pinned Facet commit in disposable
+  source directories. Their candidate source is never a mod-build input.
+- Process state: no local Minecraft instance was launched. Hosted jobs own and
+  clean up their test processes. New combined verification is pending.
+- Exact manual graphics check: from the worktree root on a Linux Docker host,
+  use the two commands under `containers/sfm/README.md` / "Run the independent
+  graphics probe". Expect `GRAPHICS_PROBE_PASSED renderer=llvmpipe`.
+- Exact full fixture commands: `docker build --build-arg
+  SFM_SOURCE_REVISION="$(git rev-parse HEAD)" -f containers/sfm/Dockerfile
+  -t sfm-ci:local .`, then `bash containers/sfm/smoke.sh sfm-ci:local
+  build/container-smoke`. Preparation has reached both real game puppets;
+  fresh offline execution remains the acceptance check.
+- Runtime limitation: this workstation has no running Linux container engine;
+  the proven graphics test ran on GitHub-hosted Linux. Discord and Kubernetes
+  remain design handoffs, not deployed services.

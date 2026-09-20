@@ -63,7 +63,7 @@ class SFMReleaseReviewCreateRuntimeTests {
                     "toolchain-test.exe",
                     "--output-format", "json",
                     "review", "session", "create-ledger",
-                    "--file", "docs\\reviews\\4.34.0-to-candidate.sfm-review.json",
+                    "--file", Path.of("docs", "reviews", "4.34.0-to-candidate.sfm-review.json").toString(),
                     "--branch", "1.19.2",
                     "--before", "4.34.0-1.19.2",
                     "--candidate", "HEAD",

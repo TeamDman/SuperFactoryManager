@@ -33,6 +33,7 @@ import sun.misc.Unsafe;
 
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -54,8 +55,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMJumpToDefinitionActionTests {
+    private static final Path FIXTURE_ROOT = Path.of("build", "symbol-navigation-fixtures")
+            .toAbsolutePath().normalize();
     private static final SFMContextOriginId DOCUMENT_ORIGIN =
             new SFMContextOriginId("sfm:text-editor", "panel-under-test", "document");
+
+    static Path fixturePath(String relative) {
+        return FIXTURE_ROOT.resolve(relative);
+    }
+
+    static String fixtureAddress(String relative) {
+        return fixturePath(relative).toUri().toString();
+    }
 
     @Test
     void canonicalActionExposesDirectLookupAndExactSelectionRoutes() {
@@ -341,7 +352,7 @@ class SFMJumpToDefinitionActionTests {
     void changedResolverAddressRejectsWithoutBlamingTheCursor() {
         String text = "class Use { Target value; }\n";
         AtomicReference<SFMContextContribution> currentContribution = new AtomicReference<>(
-                addressedContribution(text, "file:///D:/workspace/src/Use.java", 12, 1));
+                addressedContribution(text, fixtureAddress("workspace/src/Use.java"), 12, 1));
         SFMScreenMultiplexer workspace = uninitializedWorkspace();
         CompletableFuture<SFMDefinitionLookupService.Lookup> pending = new CompletableFuture<>();
         AtomicInteger navigations = new AtomicInteger();
@@ -354,7 +365,7 @@ class SFMJumpToDefinitionActionTests {
                 feedback::add
         ));
         currentContribution.set(addressedContribution(
-                text, "file:///D:/workspace/src/Replaced.java", 12, 2));
+                text, fixtureAddress("workspace/src/Replaced.java"), 12, 2));
         pending.complete(successfulLookup());
 
         assertEquals(0, navigations.get());
@@ -650,7 +661,7 @@ class SFMJumpToDefinitionActionTests {
             long generation
     ) {
         SFMPath path = SFMPath.parse(address);
-        SFMPath root = SFMPath.parse("file:///D:/workspace/src/");
+        SFMPath root = SFMPath.parse(fixtureAddress("workspace/src"));
         SFMTextDocumentSnapshot baseline = new SFMTextDocumentSnapshot(
                 SFMTextDocumentSnapshot.State.READY,
                 text,
@@ -735,7 +746,7 @@ class SFMJumpToDefinitionActionTests {
                 new SFMSymbolServerProtocol.WorkspaceMetadata(
                         workspace,
                         List.of(new SFMSymbolServerProtocol.SourceRootMapping(
-                                "D:\\workspace\\src", "main", "main", "src"))
+                                fixturePath("workspace/src").toString(), "main", "main", "src"))
                 ),
                 "{}"
         );
@@ -814,7 +825,7 @@ class SFMJumpToDefinitionActionTests {
                         "blake3:classpath", "arborium", "blake3:index"
                 ),
                 new SFMDefinitionResult.DocumentIdentity(
-                        "file:///D:/workspace/src/Use.java", "main", "Use.java", "Use.java", "main",
+                        fixtureAddress("workspace/src/Use.java"), "main", "Use.java", "Use.java", "main",
                         "sha256:0000000000000000000000000000000000000000000000000000000000000000",
                         Optional.empty()
                 ),

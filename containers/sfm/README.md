@@ -70,16 +70,19 @@ The Java launcher still records its own options notice in the game logs.
 Evidence is copied to `build/container-smoke` even when the game fails:
 
 - `glxinfo.txt` and `isolation.txt`: actual renderer and runtime assertions.
-- `title_screen_capture/` and `game_test_orbit_capture/`: separate `console.log`,
-  `game-logs/`, `exit-code.txt`, and `previews/` with the existing SFM HTML preview,
-  manifest, and screenshots.
+- `title_screen_capture/` and `game_test_orbit_capture/`: separate CLI
+  `console.log`, raw JVM `game-console.log`, `game-logs/`, `exit-code.txt`, and
+  `previews/` with the existing SFM HTML preview, manifest, and screenshots.
+  Completion is verified against the raw JVM log; the CLI reports only progress
+  when its output is piped.
 - `docker.log`: container launch and failure diagnostics.
 - `verification.json`, `exit-code.txt`, and `source-revision.txt`: result and input.
 - `docker-inspect.json`: the container configuration and final process status.
 
 Game-instance descriptors and the home directory are excluded because they can
 contain authentication tokens. A failed image build has no runtime container to
-inspect; its build log is the evidence in that case. A downloaded dependency that
+inspect; failed fixture preparation prints bounded log tails and the capture
+inventory into its build log. A downloaded dependency that
 cannot reproduce the locked hash must fail rather than use a host-only cache.
 
 ## Isolation boundary

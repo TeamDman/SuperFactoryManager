@@ -23,6 +23,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static ca.teamdman.sfm.client.symbol.SFMJumpToDefinitionActionTests.fixturePath;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -392,7 +393,7 @@ class SFMFindReferencesControllerTests {
                 new SFMSymbolServerProtocol.WorkspaceMetadata(
                         workspace,
                         List.of(new SFMSymbolServerProtocol.SourceRootMapping(
-                                "D:\\workspace\\src", "main", "main", "src"))),
+                                fixturePath("workspace/src").toString(), "main", "main", "src"))),
                 "{}"
         );
     }

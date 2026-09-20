@@ -20,6 +20,43 @@ collect_artifacts() {
     local status=$?
     trap - EXIT
     printf '%s\n' "$status" > "$artifacts/exit-code.txt"
+    if [[ "$status" != 0 ]]; then
+        # A failed Docker RUN has no container to copy from. Keep bounded,
+        # relevant evidence in the BuildKit log as well as in runtime artifacts.
+        python3 - "$artifacts" <<'PY' || true
+from collections import deque
+import json
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+print('SFM container fixture failed; captured evidence follows:', flush=True)
+for puppet in ('title_screen_capture', 'game_test_orbit_capture'):
+    run = root / puppet
+    if not run.is_dir():
+        continue
+    for name in ('exit-code.txt', 'console.log', 'game-console.log', 'game-logs/latest.log'):
+        path = run / name
+        print(f'--- {puppet}/{name} (last 80 lines) ---', flush=True)
+        if path.is_file():
+            with path.open(encoding='utf-8', errors='replace') as stream:
+                print(''.join(deque(stream, maxlen=80)), flush=True)
+        else:
+            print('(not produced)', flush=True)
+    manifest = run / 'previews/preview-manifest.json'
+    print(f'--- {puppet}/previews/preview-manifest.json capture inventory ---', flush=True)
+    if manifest.is_file():
+        try:
+            for capture in json.loads(manifest.read_text(encoding='utf-8')).get('captures', []):
+                # Print metadata only; do not follow arbitrary manifest paths.
+                print(json.dumps({key: capture.get(key) for key in
+                                  ('puppet', 'capture', 'path', 'width', 'height')}), flush=True)
+        except (ValueError, TypeError, AttributeError) as error:
+            print(f'Could not summarize manifest: {error}', flush=True)
+    else:
+        print('(not produced)', flush=True)
+PY
+    fi
     exit "$status"
 }
 trap collect_artifacts EXIT
@@ -53,9 +90,15 @@ grep -qi llvmpipe /workspace/container-artifacts/glxinfo.txt
 
 previews=/workspace/platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview
 game_dir=/workspace/platform/minecraft/runGameTestPreview
+game_console=/workspace/platform/minecraft/build/sfm-toolchain/run/runGameTestPreview/console.log
 current_artifacts=
 snapshot_current() {
     if [[ -z "$current_artifacts" ]]; then return; fi
+    # With non-TTY stdout the canonical CLI records raw JVM output here,
+    # separately from its own console. Preserve it before the next launch.
+    if [[ -f "$game_console" ]]; then
+        cp "$game_console" "$current_artifacts/game-console.log"
+    fi
     if [[ -d "$previews" ]]; then
         mkdir -p "$current_artifacts/previews"
         cp -a "$previews/." "$current_artifacts/previews/"
@@ -73,6 +116,7 @@ for puppet in title_screen_capture game_test_orbit_capture; do
     mkdir -p "$current_artifacts"
     # Both the manifest and screenshots must belong to this invocation.
     rm -rf "$previews" "$game_dir"
+    rm -f "$game_console"
     options=(--branch ci-container --java-home /opt/java --width 1280 --height 720
              --variant preferred --require-portable-artifacts)
     if [[ "$puppet" == game_test_orbit_capture ]]; then

@@ -14,6 +14,38 @@ The delivery output is a downloadable Actions artifact named
 including diagnostics from failed jobs. Retention is 14 days. The workflow uses
 read-only repository permissions and needs no mod publishing or Discord secrets.
 
+`workflows/windows-ci.yml` runs the same canonical compile, JUnit and JAR checks
+on Windows. Its mod artifact is named `sfm-1.19.2-windows-<commit>`.
+`workflows/vox-diagnostic.yml` is a separate dependency investigation, triggered
+only by its diagnostic branch or a manual run. It does not supply artifacts to
+the SFM build.
+
+## Observed experiment results
+
+The workflows are under development. Docker has built the mod and completed both
+puppets during image preparation, producing all 11 captures. The fresh offline
+run and complete native JUnit/package jobs remain the acceptance checks.
+
+| Evidence | Result |
+| --- | --- |
+| [First feature-branch run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35460447959) | Push trigger, Linux CLI and restricted software graphics passed; dependency preparation failed |
+| [Second Linux/Docker run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35461041230) | UTF-8 container compilation fixed; both builds stopped in the pinned Vox Java test; graphics passed again |
+| [Focused Vox diagnostic](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35461627486) | Captured `message for unknown channel 1:1` before the connection closes |
+| [Vox candidate comparison](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35462115154) | Candidate passed the original test and 19 reduced cases; unchanged baseline also passed on this run, confirming the full-test failure is timing-sensitive |
+| [Reduced Linux reproduction](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35462297128) | Identical credit passes before sender Close and reproduces the exact unknown-channel failure after Close in unchanged pinned code |
+| [First Windows build](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35461257226) | Vox suite and deterministic JAR passed; a global Java-options banner incorrectly failed the dependency check |
+| [Third Linux/Docker run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35462847488) | Linux compiled SFM then found Windows-specific JUnit fixtures; Docker built the mod and completed both puppets, but the verifier read CLI progress instead of the raw game log |
+| [Second Windows run](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35462847520) | Mod compilation passed; two canonical replay tests found Git's CRLF conversion of their byte-exact JSON fixture |
+
+With the user's authorization, SFM now pins `org.facet:vox-java:0.10.0-rc.5`
+to Facet revision `4a079ac1c8a8bb8a914811ef55945bc1d9a9fef3`, published on
+`teamy/vox-java-late-credit` in [Facet PR #2](https://github.com/TeamDman/facet/pull/2).
+Its full canonical package recipe passed locally, including 19 regression cases,
+with content hash `blake3:2be34a7d38bbd4a455d2a933c856c9462630f47a`.
+All other project dependencies remain unchanged. Source tests and artifact hashes
+are enforced. The [diagnostic](../containers/sfm/vox-diagnostic/README.md)
+retains the original pinned reproduction and candidate comparison.
+
 ## Worktrees and feature branches
 
 A worktree is a local checkout. GitHub receives its branch and commits through

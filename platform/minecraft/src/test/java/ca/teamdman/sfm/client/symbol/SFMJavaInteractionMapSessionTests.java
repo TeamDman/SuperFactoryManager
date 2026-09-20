@@ -11,6 +11,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMJavaInteractionMapSessionTests {
+    private static final Path FIXTURE_ROOT = Path.of("").toAbsolutePath().getRoot()
+            .resolve("sfm-interaction-session-fixture");
+    private static final Path SOURCE_ROOT = FIXTURE_ROOT.resolve("workspace/source");
+    private static final Path SOURCE_FILE = SOURCE_ROOT.resolve("A.java");
+
     @Test
     void ordinaryNonJavaPathsDoNotRequestJavaWorkEvenWithFileAuthority() {
         FakeLookupService service = new FakeLookupService();
@@ -30,8 +36,8 @@ class SFMJavaInteractionMapSessionTests {
         long generation = 0;
         for (String name : List.of("options.txt", "Cargo.lock", "README.md", "config.json",
                 "sample.rs", "program.sfml", "Fake.java.txt", "changes.diff")) {
-            var path = SFMPath.parse("file:///D:/workspace/" + name);
-            var baseline = SFMTextDocumentSnapshot.pinned(path, SFMPath.parse("file:///D:/workspace/"),
+            var path = SFMPath.fromNative(FIXTURE_ROOT.resolve("workspace").resolve(name));
+            var baseline = SFMTextDocumentSnapshot.pinned(path, SFMPath.fromNative(FIXTURE_ROOT.resolve("workspace")),
                     "text", SFMTextDocumentSnapshot.literal("text").sha256().orElseThrow(), Optional.empty(), Optional.empty());
             var context = contribution(baseline, "text", ++generation);
             assertEquals(Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_LANGUAGE_NOT_JAVA),
@@ -44,12 +50,12 @@ class SFMJavaInteractionMapSessionTests {
 
     @Test
     void declaredSourceLanguageSurvivesNativeMaterializationAndOverridesMisleadingFileNames() {
-        var root = SFMPath.parse("file:///D:/materialized/");
-        var path = SFMPath.parse("file:///D:/materialized/opaque-snapshot");
+        var root = SFMPath.fromNative(FIXTURE_ROOT.resolve("materialized"));
+        var path = SFMPath.fromNative(FIXTURE_ROOT.resolve("materialized/opaque-snapshot"));
         var java = SFMTextDocumentSnapshot.pinned(path, root, "class A {}", SFMTextDocumentSnapshot.literal("class A {}").sha256().orElseThrow(),
                 Optional.empty(), Optional.empty(), Optional.empty(), SFMTextDocumentLanguage.java());
         assertTrue(SFMJavaInteractionMapSession.structurallyUnavailable(contribution(java, java.text(), 1)).isEmpty());
-        var diff = SFMTextDocumentSnapshot.pinned(SFMPath.parse("file:///D:/materialized/NotSource.java"), root,
+        var diff = SFMTextDocumentSnapshot.pinned(SFMPath.fromNative(FIXTURE_ROOT.resolve("materialized/NotSource.java")), root,
                 "class A {}", java.sha256().orElseThrow(), Optional.empty(), Optional.empty(), Optional.empty(),
                 SFMTextDocumentLanguage.diff());
         assertEquals(Optional.of(SFMDefinitionContextAdapter.DiagnosticCode.DOCUMENT_LANGUAGE_NOT_JAVA),
@@ -67,7 +73,7 @@ class SFMJavaInteractionMapSessionTests {
     void switchingAwayFromJavaCancelsPendingWorkAndRejectsItsLatePublication() {
         var service = new FakeLookupService();
         var session = new SFMJavaInteractionMapSession(service);
-        var request = SFMJavaInteractionMapProtocolTests.request();
+        var request = request();
         session.refresh(contribution(request.document().text(), 3), 3, request.document().contentHash());
         session.refresh(pathlessContribution("non-java scratch", 4), 4, SFMDefinitionRequest.sha256("non-java scratch"));
         assertEquals(1, service.cancellations.get());
@@ -84,9 +90,9 @@ class SFMJavaInteractionMapSessionTests {
         var evidence = SFMJavaInteractionMapSession.requestEvidence(context);
         assertEquals("java", evidence.language());
         assertEquals("file", evidence.addressScheme());
-        assertEquals(SFMDefinitionRequest.sha256("file:///D:/workspace/source/A.java"), evidence.documentId());
+        assertEquals(SFMDefinitionRequest.sha256(SOURCE_FILE.toUri().toString()), evidence.documentId());
         assertEquals(SFMDefinitionRequest.sha256("class A {}"), evidence.contentHash());
-        assertFalse(evidence.toString().contains("D:/workspace"));
+        assertFalse(evidence.toString().contains("sfm-interaction-session-fixture"));
         assertFalse(evidence.toString().contains("class A"));
         session.refresh(context, 7, SFMDefinitionRequest.sha256("class A {}"));
         assertEquals(1, service.results.size());
@@ -113,7 +119,7 @@ class SFMJavaInteractionMapSessionTests {
     void onlyTheLatestExactDocumentGenerationCanPublish() {
         FakeLookupService service = new FakeLookupService();
         SFMJavaInteractionMapSession session = new SFMJavaInteractionMapSession(service);
-        SFMJavaInteractionMap.Request firstRequest = SFMJavaInteractionMapProtocolTests.request();
+        SFMJavaInteractionMap.Request firstRequest = request();
         SFMJavaInteractionMap.Request secondRequest = new SFMJavaInteractionMap.Request(
                 18,
                 4,
@@ -144,7 +150,7 @@ class SFMJavaInteractionMapSessionTests {
     void aMismatchedPublicationFailsClosed() {
         FakeLookupService service = new FakeLookupService();
         SFMJavaInteractionMapSession session = new SFMJavaInteractionMapSession(service);
-        SFMJavaInteractionMap.Request request = SFMJavaInteractionMapProtocolTests.request();
+        SFMJavaInteractionMap.Request request = request();
         SFMContextContribution contribution = contribution(request.document().text(), 3);
 
         session.refresh(contribution, 99, request.document().contentHash());
@@ -155,7 +161,7 @@ class SFMJavaInteractionMapSessionTests {
 
     @Test
     void invalidRequestDiagnosticsBecomeActionableWithoutRetainingPrivatePaths() {
-        SFMJavaInteractionMap.Request request = SFMJavaInteractionMapProtocolTests.request();
+        SFMJavaInteractionMap.Request request = request();
         JsonObject json = SFMJavaInteractionMapProtocolTests.resultJson(request);
         json.addProperty("outcome", "invalid-request");
         JsonObject diagnostic = new JsonObject();
@@ -179,6 +185,25 @@ class SFMJavaInteractionMapSessionTests {
         assertEquals("verify-negotiated-root-or-refresh-index", summary.nextAction());
         assertFalse(summary.toString().contains("SecretProject"));
         assertFalse(summary.toString().contains("String.java"));
+    }
+
+    private static SFMJavaInteractionMap.Request request() {
+        SFMJavaInteractionMap.Request fixture = SFMJavaInteractionMapProtocolTests.request();
+        SFMDefinitionRequest.Document document = fixture.document();
+        return new SFMJavaInteractionMap.Request(
+                fixture.requestId(),
+                fixture.requestGeneration(),
+                fixture.workspace(),
+                SFMDefinitionRequest.Document.sha256(
+                        SOURCE_FILE.toUri().toString(),
+                        document.rootId(),
+                        document.rootRelativePath(),
+                        document.reportPath(),
+                        document.sourceSet(),
+                        document.text(),
+                        document.diskContentHash()
+                )
+        );
     }
 
     private static SFMContextContribution contribution(String text, long generation) {
@@ -216,8 +241,8 @@ class SFMJavaInteractionMapSessionTests {
                 literal.state(),
                 literal.text(),
                 literal.mutationCapability(),
-                Optional.of(SFMPath.parse("file:///D:/workspace/source/A.java")),
-                Optional.of(SFMPath.parse("file:///D:/workspace/source/")),
+                Optional.of(SFMPath.fromNative(SOURCE_FILE)),
+                Optional.of(SFMPath.fromNative(SOURCE_ROOT)),
                 literal.sha256(),
                 literal.byteLength(),
                 literal.lastModified(),
@@ -242,7 +267,7 @@ class SFMJavaInteractionMapSessionTests {
                 new SFMSymbolServerProtocol.WorkspaceMetadata(
                         request.workspace(),
                         List.of(new SFMSymbolServerProtocol.SourceRootMapping(
-                                "D:\\workspace\\source",
+                                SOURCE_ROOT.toString(),
                                 root.id(),
                                 root.sourceSet(),
                                 root.path()

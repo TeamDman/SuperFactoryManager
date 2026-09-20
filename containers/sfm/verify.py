@@ -17,8 +17,13 @@ for puppet, expected_captures in expected.items():
     run = artifacts / puppet
     if (run / "exit-code.txt").read_text().strip() != "0":
         raise SystemExit(f"Puppet process failed: {puppet}")
-    log = (run / "console.log").read_text(encoding="utf-8", errors="replace")
-    if not re.search(r"SFM_GAME_PUPPET_COMPLETE failed=0 total=1\b", log):
+    # CLI stdout reports build/launch progress. The raw JVM markers are in the
+    # canonical run log, which run.sh snapshots before each subsequent launch.
+    log = (run / "game-console.log").read_text(encoding="utf-8", errors="replace")
+    completions = re.findall(r"SFM_GAME_PUPPET_COMPLETE(?=\s)[^\r\n]*", log)
+    if (len(completions) != 1
+            or not re.fullmatch(r"SFM_GAME_PUPPET_COMPLETE failed=0 total=1\s*", completions[0])
+            or "SFM_GAME_PUPPET_FAILED" in log):
         raise SystemExit(f"Missing single-puppet successful completion marker: {puppet}")
     root = (run / "previews").resolve()
     manifest = json.loads((root / "preview-manifest.json").read_text(encoding="utf-8"))
