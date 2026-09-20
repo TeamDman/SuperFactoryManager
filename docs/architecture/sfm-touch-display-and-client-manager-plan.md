@@ -6,7 +6,7 @@ Last updated: 20 September 2026.
 
 Intent audit: passed 17 September 2026 against the available user discussion and the pasted historical messages; some earlier assistant replies are unavailable except as pasted excerpts.
 
-Current focus: release checkpoint and target-preserving propagation readiness. The final unfiltered Java suite passed 2,494 tests, with zero failures and 5 explicitly optional aborts. All 237 required dedicated-server and 252 required integrated-client GameTests passed again after the image reload fix. The in-place image-buffer regression passed after reproducing the defect. All 8 packet-inspection and all 5 final terminal world-rendering requests passed. Physical Shift acceptance remains unresolved. The 36-request remote multiplayer proof is committed in `7979f4e48`; the complete 97-request editor/save/signing journey is committed in `db09e33e1`. P0 through P10 have baseline feature evidence; cross-target/release acceptance remains required. Phase checkpoints do not end the full goal.
+Current focus: R1 is complete with G40's semantic tooltip actions. The final unfiltered Java suite passed 2,511 tests with zero failures and 5 optional aborts; all 237 dedicated and 252 integrated GameTests passed. The final 11-step file puppet proved expanded/compact hover, reset, item inspection and owned-state cleanup. Native physical Shift is not a required human acceptance boundary. Next is target-preserving canonical integration and propagation (R2). P0 through P10 have baseline feature evidence; cross-target/release acceptance remains required. Phase checkpoints do not end the full goal.
 
 Implementation branch: `feat/1.19.2/packet-computation`.
 Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`; finite-value/touch-schema checkpoint: `1a8cd9b84`.
@@ -31,6 +31,14 @@ This plan distils the available user discussion and the historical messages past
 | 1. Extraction | Re-read the available user messages and the pasted historical user/assistant exchanges from first in-world screen idea through the later click-flow correction, then the 17 September full-goal clarification. | Added G32–G38 and separated the user's choices from superseded assistant proposals below. |
 | 2. Traceability | Matched every active guidance entry to a contract, task, test, non-goal or open gate. | Corrected the static-fixture-first order, labelled-target proof, terminal follow-up and P0 test filter. The new full-goal instruction covers P1–P10, including P8G and P10; no calendar estimate or checkpoint is a completion condition. |
 | 3. Adversarial review | Rechecked later user corrections against earlier assistant recommendations after those repairs. | Fixed-point UV, server-side `EVERY FRAME`, hard-coded sharing modes, exact visual/frame correlation, solid-block power derivation and a signing-stroke threshold remain superseded. The new authority to choose reversible details does not waive feature tests, security checks or unrelated repository permissions. |
+
+20 September amendment audit: extraction records the new tooltip decoupling
+request as G40. Traceability maps it to R1, the companion P03 contract, shared
+tooltip consumers, registered actions, ambient GameTest and file-puppet proof.
+The adversarial pass preserves configured-key behaviour as the default and
+replaces the required human check, rather than claiming simulated native input.
+The original guidance ledger remains in force; no operating-system automation
+or dependency change is authorised by this amendment.
 
 Evidence labels in this document mean:
 
@@ -81,6 +89,7 @@ Evidence labels in this document mean:
 | G37 | Confirmed | Pursue one goal to complete the entire remaining plan after P0, including later P8G multiplayer and P10 in-world terminal integration. Passing a phase checkpoint is progress, not a stopping point. | Full-goal scope; P1–P10; overall acceptance |
 | G38 | Confirmed | Resolve in-scope design questions with best judgment during implementation, favouring testable reversible choices; refine with the user after observing working behaviour instead of waiting on hypotheses. | O1–O13; completion notes; validation |
 | G39 | Confirmed on 19 September 2026 | Activate the separately negotiated multiplayer transport with default-deny, operator-owned grants for exact players, inventory targets, inbox channels and server-manager publishers. Preserve the legacy private-world gates. | P8G; operator policy persistence; remote transport acceptance |
+| G40 | Confirmed on 20 September 2026 | Decouple the tooltip's alternate presentation decision from configured-key polling. Add command-palette actions that tests can actuate, so native physical Shift verification is not a required human acceptance boundary. | R1; companion P03; semantic mode, action and file-puppet tests |
 
 Earlier proposals that later user choices superseded must not become implementation requirements: `sfm:touch/1` and scaled-integer UV, unique click sequence/frame generation, nesting the position/UV fields, server-manager frame triggers, permanent shared/private/published block modes, solid-block redstone inference, a minimum scribble-length requirement, and the claim that 26.1.2 `Identifier` implies Yarn mappings. Existing structured action-result schema IDs using `/1` also remain unchanged; `sfm:touch@1` does not trigger a global schema migration.
 
@@ -184,7 +193,7 @@ Evidence: historical-message extraction, ledger traceability and adversarial omi
 
 ### [x] P0. Freeze the packet baseline and test seam — G21, G22, G26, G30
 
-Completion notes: completed 17 September 2026 on `feat/1.19.2/packet-computation`. Reconciled the pre-existing packet-polish work without dropping it and committed the tested source as `43cfe001f` (starting from `4a99b69465e36b9f619f3380fe3f978166398afe`). Keypad Enter press/release parity, the spiral-notebook item texture, compact/expanded packet tooltip, generic read-only Alt+D hovered-item inspection and `sfm.controlCliExecutable` override are recorded in the companion packet plan. The installed `sfm-propagate-changes.exe` was usable and unchanged; no competing game/build process was present at preflight. Dependencies and lockfiles stayed frozen. The physical Shift-hover, art and exact Alt+D hover transition remain manual acceptance before propagation or release, not claims of automated proof.
+Completion notes: completed 17 September 2026 on `feat/1.19.2/packet-computation`. Reconciled the pre-existing packet-polish work without dropping it and committed the tested source as `43cfe001f` (starting from `4a99b69465e36b9f619f3380fe3f978166398afe`). Keypad Enter press/release parity, the spiral-notebook item texture, compact/expanded packet tooltip, generic read-only Alt+D hovered-item inspection and `sfm.controlCliExecutable` override are recorded in the companion packet plan. The installed `sfm-propagate-changes.exe` was usable and unchanged; no competing game/build process was present at preflight. Dependencies and lockfiles stayed frozen. At that checkpoint, physical Shift-hover, art and exact Alt+D hover acceptance remained open. The 20 September file puppet proved art and Alt+D; G40 replaces the physical Shift gate with registered semantic actions and actual rendered hover.
 
 Dependencies: R0 approval.
 
@@ -510,7 +519,7 @@ Evidence: baseline model, ambient and world-rendering results above. Session cre
 
 Release work remains explicit even though P0–P10 have baseline feature proofs:
 
-- [!] R1. Close baseline release regressions and packet-polish visual acceptance. The reload regression, packet inspector and final-source unit/server/client suites now pass. The exact remaining blocker is physical Shift acceptance: native polling is not exercised by file input. Unblock with a passing human check or explicit approval to document it as a manual follow-up; the async choice remains unanswered.
+- [x] R1. Close baseline release regressions and packet-polish visual acceptance. G40 replaces the physical Shift gate with a shared semantic mode and registered expand/compact/reset actions. Final unit, ambient client, dedicated-server and file-puppet validation passed, including actual rendered expanded/compact hover and cleanup.
 - [ ] R2. Integrate canonical 1.19.2 and propagate the adjacent version chain. Preserve destination dependency declarations, lockfiles and target adapters. Review nondependency feature metadata separately, then compile and exercise the supported renderer/network surfaces.
 - [~] R3. Finish operational readiness and manual handoff. The baseline installation, hashes, compile smoke and process cleanup passed below. Repeat the relevant freshness and target checks after propagation changes; this baseline checkpoint is not final multi-version acceptance.
 
@@ -552,11 +561,11 @@ normally; runtime fixtures verified owned helper cleanup. No test window is
 left open.
 
 The copyable handoff is in `docs/touch display and client manager testing.md`,
-including an ordinary client launch and a known-packet command for the
-physical-key check. Remaining limits are the unresolved physical Shift gate,
+including an ordinary client launch and a known-packet command. G40 supersedes
+the physical-key gate with semantic action acceptance. Remaining limits are
 the recorded tooling JDK/cache snapshot failure and unstarted canonical/version
-propagation. R2 is the next implementation work once R1's acceptance gate is
-resolved. The full goal remains active and incomplete.
+propagation. R1's action acceptance passed; R2 is the next implementation work.
+The full goal remains incomplete.
 
 Full baseline unit evidence: `sfm-propagate-changes.exe test run --branch feat/1.19.2/packet-computation --wait-for-build-lock --log-file platform/minecraft/build/touch-display-final-unit-tests.log --log-filter info` passed 2,489 tests with zero failures, zero skips and 5 optional aborts (2,494 found), exit 0. This includes 66 multiplayer, 49 terminal, 4 quoted-action grammar and 4 visual-control tests, including the absolute metadata-path guard. The previous aggregate run exposed a source-span test that equated original text with canonical formatting; the corrected regression now proves source mapping for both quoted and unquoted action IDs. Final `run compile` passed all four Java source sets. `run data` also passed with no tracked generated changes. Unfiltered runtime suites, remaining visual acceptance and target propagation are separate checks.
 
@@ -570,7 +579,7 @@ Repaired aggregate runtime evidence: `game-test run-server --branch feat/1.19.2/
 
 The image reload regression reproduced the concrete failure on 20 September: `game-test run-server --filter sfm:touch_display_image_transfer` exited 1 with `Image reload retained the old image or interaction state` (`image-buffer-reload-red.log`). The test keeps the same capability handle through replacement, omitted and malformed image data, and an occupied ordinary-item buffer. The production fix clears only the current image through its existing handler before restoring persisted data; it never replaces the contents object or erases an occupied nonpersisted resource. The same focused GameTest then passed 1/1, exit 0 (`image-buffer-reload-green.log`). This also compiled the new packet-inspection puppet; its runtime acceptance remains separate.
 
-Packet polish acceptance remains separate from the display circuit. `puppet run sfm:in_world_packet_inspection --branch feat/1.19.2/packet-computation --variant 1280x720@auto --wait-for-build-lock --log-file platform/minecraft/build/packet-inspection-puppet.log --log-filter info` passed all 8 file-driven requests, exit 0. Actual vanilla rendered hover and keyboard-handler Alt+D ingress opened immutable read-only packet and ordinary-item documents; the no-hover background opened a blank writable editor. Figures 1 and 2 were visually inspected for the item, compact tooltip and readable document. Artifacts: `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-in_world_pac-20260920-001217-374/`. Client PID 16332 exited normally after owned-screen, pointer and preference cleanup. This client-only disposable container does not claim server-inventory evidence. Physical Shift is polled through native GLFW and cannot be proven by an injected game key callback. The user has been asked whether to keep that physical check as a pre-propagation gate or explicitly document it as a manual follow-up. No OS input automation is authorised or used.
+Packet polish acceptance remains separate from the display circuit. `puppet run sfm:in_world_packet_inspection --branch feat/1.19.2/packet-computation --variant 1280x720@auto --wait-for-build-lock --log-file platform/minecraft/build/packet-inspection-puppet.log --log-filter info` passed all 8 file-driven requests, exit 0. Actual vanilla rendered hover and keyboard-handler Alt+D ingress opened immutable read-only packet and ordinary-item documents; the no-hover background opened a blank writable editor. Figures 1 and 2 were visually inspected for the item, compact tooltip and readable document. Artifacts: `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-in_world_pac-20260920-001217-374/`. Client PID 16332 exited normally after owned-screen, pointer and preference cleanup. This client-only disposable container does not claim server-inventory evidence. Physical Shift is polled through native GLFW and cannot be proven by an injected game key callback. G40 superseded the proposed physical-key gate with registered tooltip-mode actions and automated acceptance. Native Shift polling is not claimed by the puppet and is not a release gate. No OS input automation is authorised or used.
 
 Propagation preflight on 19 September: all 10 canonical version worktrees were clean, with no active merge. Canonical `1.19.2` at `707f53f4a` and feature checkpoint `bd7ddf050` had 14 canonical-only and 25 feature-only commits. Their merge is not a fast-forward. A read-only committed-snapshot preview found conflicts in the puppet Minecraft runtime, one generated-resource cache file, `SFM.java`, both buffer entity classes and the changelog. Preserve canonical redstone/buffer work while adding the feature.
 
@@ -619,7 +628,70 @@ stayed unchanged. Do not import those manifests automatically under the
 frozen posture. Before that hop, establish whether the existing baseline-built
 worker can provide the required target support without adding declarations,
 or request a narrow dependency amendment. A clean Git merge is not dependency
-approval. The inventory and preview do not waive R1's physical-key gate.
+approval. The inventory and preview do not replace R1's acceptance evidence.
+
+R1 semantic tooltip amendment (20 September): `AUTO` follows the existing
+configured key; `EXPANDED` and `COMPACT` bypass physical polling. The registered
+human/palette/CLI actions are `sfm:tooltip/more_info/expand`,
+`sfm:tooltip/more_info/compact` and `sfm:tooltip/more_info/reset` (to `AUTO`).
+The mode is transient and resets after leaving a real player session;
+null-player connection transitions preserve it. No client-program permission is
+added. Packet, disk, label-gun and form presentation share the same decision.
+The ambient tooltip GameTest must invoke registered actions and read actual
+item tooltips in one client task, restoring the prior mode in `finally` without
+opening or replacing a screen. The opt-in file puppet must capture actual
+expanded and compact hover, exercise reset and restore its prior mode even on
+abort. Pure tests separately prove configured-key adaptation and lazy polling.
+No result is labelled as physical-key injection evidence.
+
+Regression evidence: before implementation, `test run --branch
+feat/1.19.2/packet-computation --filter PacketInspectionPuppetSourceTests
+--log-file platform/minecraft/build/tooltip-mode-puppet-red.log --log-filter
+info` passed the existing 4 guards and failed the new action-path guard, exit 1.
+The final unfiltered unit run, `tooltip-mode-final-unit.log`, passed 2,511
+tests with zero failures or skips and 5 optional aborts (2,516 found), exit 0.
+This includes 16 tooltip service/action/compatibility tests and 5 packet-puppet
+guards. The real null-player Forge logout event preserves each override;
+leaving a player session resets without polling. The deprecated raw-key
+predicate retains its physical semantics. A failed puppet request restores
+owned state before publishing its error and terminating the journey.
+
+The unfiltered integrated run, `tooltip-mode-final-client-tests.log`, passed
+all 252 required GameTests, exit 0. `packet_item_tooltip` passed through the
+registered actions and production packet/disk tooltip paths without owning a
+screen. The existing ambient terminal circuit also passed. The client saved
+and exited normally. The unfiltered dedicated-server run,
+`tooltip-mode-final-server-tests.log`, passed all 237 required tests on its
+first attempt, exit 0. Discovery explicitly skipped `PacketItemTooltipGameTest`
+before class loading. Server PID 9012 saved and exited normally.
+
+Final visual evidence: `puppet run sfm:in_world_packet_inspection --branch
+feat/1.19.2/packet-computation --variant 1280x720@auto --log-file
+platform/minecraft/build/tooltip-mode-final-packet-puppet.log --log-filter
+info` passed all 11 numbered requests, driven by
+`platform/minecraft/Run-PacketInspectionPuppet.ps1`. Both driver and canonical
+launcher exited 0. Figures 2 and 3 were visually inspected: full pretty packet
+JSON in expanded mode, no payload and an accurate palette hint in compact
+mode. Reset returned `AUTO`; final observation reports no screen, zero failed
+requests and `tooltip_mode_restored: true`. Actual Alt+D inspection and immutable
+documents still passed. Artifacts:
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-in_world_pac-20260920-030346-853/`.
+Client PID 19884 saved and exited normally; no OS input automation was used.
+
+G40 operational checkpoint: this is Java, GameTest, generated localization and
+documentation work only. `run data` passed (`tooltip-mode-datagen.log`); all
+four Java source sets compiled in the validation runs. No CLI or generated
+protocol source, dependency declaration or lockfile changed. The installed
+launcher remains 0.1.1 at `bc4689326` and its SHA-256 is unchanged from the
+baseline above; the worker hash is also unchanged. User must run install
+script: no. All launched game/server sessions exited; sequential final runs
+acquired the branch lock without a waiting override. The testing guide includes
+the three actions, ordinary client launch and repeatable puppet command.
+
+Non-blocking harness diagnostic follow-up: if writing an already-failed
+request's error response also fails, the write exception can mask the original
+operation error. Owned-state cleanup has already run and the journey still
+fails; this does not weaken tooltip acceptance or require manual input.
 
 Read-only adapter map for R2, not target acceptance:
 
@@ -655,7 +727,7 @@ Update `platform/minecraft/src/main/resources/assets/sfm/template_programs/chang
 
 | Surface | Baseline feature evidence | Remaining acceptance |
 | --- | --- | --- |
-| Minecraft 1.19.2 | 2,494 unit tests, 237 dedicated and 252 integrated GameTests passed; separate file-driven visual proofs passed. | Physical Shift gate, canonical integration and operational checkpoint. |
+| Minecraft 1.19.2 | 2,511 unit tests, 237 dedicated and 252 integrated GameTests passed after G40; final 11-step file-driven tooltip/inspection proof passed. | Canonical integration and post-integration operational checkpoint. |
 | Minecraft 1.19.4, 1.20, 1.20.1 | Not yet propagated; next adjacent targets. | Preserve target dependency files, compile and relevant runtime regression tests at each hop. |
 | Minecraft 1.20.2, 1.20.3, 1.20.4 | Not yet propagated; loader/API adapters require review. | Preserve target adapters and dependencies, compile and focused renderer/network tests. |
 | Minecraft 1.21.0 | Not yet propagated; component and loader APIs require review. | Compile and focused component, renderer and network tests. |

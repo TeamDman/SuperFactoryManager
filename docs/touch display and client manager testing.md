@@ -47,17 +47,34 @@ Wait for its fresh control directory and `ready.json`, then run:
 ./platform/minecraft/Run-PacketInspectionPuppet.ps1 -ControlDirectory '<fresh control directory>'
 ```
 
-Its 8 requests cover the rendered packet and compact tooltip, immutable read-only
-packet and ordinary-item documents, and the blank writable no-hover fallback.
+Its 11 requests cover the rendered packet, expanded and compact tooltips,
+immutable read-only packet and ordinary-item documents, and the blank writable
+no-hover fallback. The tooltip steps use the real command palette and restore
+the previous mode during cleanup, including aborts.
 Screenshots remain in the canonical preview artifacts. The container is a
 disposable client-only fixture, not a server inventory test.
 
-Physical Shift requires a separate manual check: hover a data packet, hold the
-configured more-info key, and confirm the expanded pretty-printed value appears.
-Injected key callbacks cannot prove native GLFW key polling. The puppet reports
-that limitation explicitly.
+Tooltip mode is separate from key polling. These no-argument palette actions
+can also be invoked through `sfm.exe`:
 
-For this 1.19.2-only manual check, launch an ordinary client:
+```text
+sfm action invoke sfm:tooltip/more_info/expand
+sfm action invoke sfm:tooltip/more_info/compact
+sfm action invoke sfm:tooltip/more_info/reset
+```
+
+Expand always shows more information. Compact always hides it, even while the
+configured key is held. Reset follows the configured key again. Overrides are
+not saved and reset when leaving a real player session; null-player connection
+transitions preserve the override. Packet, disk, label-gun and form presentation
+share this mode. They do not simulate or change any physical key state.
+
+The ambient `sfm:packet_item_tooltip` GameTest invokes the same registered
+actions without opening a screen. It reads production item tooltips and
+restores the previous mode within one client task. Native Shift polling is
+not claimed by this test or puppet, and is not a required manual boundary.
+
+For optional hands-on use in 1.19.2, launch an ordinary client:
 
 ```pwsh
 sfm-propagate-changes.exe run client --branch feat/1.19.2/packet-computation --wait-for-build-lock
@@ -69,9 +86,10 @@ Open a disposable world with cheats enabled and create a known packet:
 /give @s sfm:packet{"sfm:packet_codec":2,"sfm:packet_value":'{"status":"hello"}'} 1
 ```
 
-Hover it in your inventory. The compact tooltip should show the more-info key
-reminder; holding that key should show the formatted `status` value. Release it
-to restore the compact tooltip. This command uses pre-component item NBT and
+Hover it in your inventory. In automatic mode, the compact tooltip shows the
+more-info key reminder; holding that key shows the formatted `status` value.
+The actions above select the same presentation without holding a key.
+This command uses pre-component item NBT and
 must be adapted before documenting the same check for newer targets.
 
 ## Consent and signing review

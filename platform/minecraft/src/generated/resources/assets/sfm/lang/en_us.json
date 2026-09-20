@@ -38,6 +38,7 @@
   "gui.jei.category.sfm.falling_anvil.consumed": "Gets consumed",
   "gui.jei.category.sfm.falling_anvil.not_consumed": "Not consumed",
   "gui.jei.category.sfm.printing_press": "Printing Press",
+  "gui.sfm.advanced.tooltip.compact_hint": "Compact mode. Expand or reset via the palette.",
   "gui.sfm.advanced.tooltip.hint": "Hold %s to know more.",
   "gui.sfm.client_action.clipboard.copy_action.copied": "Copied action command: %s",
   "gui.sfm.client_action.clipboard.copy_action.description": "Copy a canonical SFM action invocation to the clipboard",

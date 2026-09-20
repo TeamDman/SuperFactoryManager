@@ -1,7 +1,9 @@
 package ca.teamdman.sfm.gametest.puppet.action;
 
 import ca.teamdman.sfm.client.screen.text_editor.SFMTextEditorPanel;
+import ca.teamdman.sfm.client.screen.SFMCommandPaletteScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
+import ca.teamdman.sfm.client.tooltip.SFMTooltipModeService;
 import ca.teamdman.sfm.common.config.SFMConfig;
 import ca.teamdman.sfm.common.item.PacketItem;
 import ca.teamdman.sfm.common.util.SFMItemUtils;
@@ -39,13 +41,14 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Actual vanilla slot rendering and Alt+D ingress, driven only by bounded files.
- * Virtual callbacks do not change native key state: physical Shift is NOT proven.
+ * Actual vanilla slot rendering, semantic tooltip actions and Alt+D ingress, driven only by bounded files.
+ * Native key polling is not simulated: tooltip modes are actuated through the real command palette.
  * The disposable local container is not server inventory or network evidence.
  */
 public final class ExplorePacketInspectionPuppetAction implements SFMPuppetAction {
-    private static final List<String> OPERATIONS = List.of("hover_packet", "inspect_packet", "prove_snapshot",
-            "hover_ordinary", "inspect_ordinary", "hover_empty", "inspect_empty", "finish");
+    private static final List<String> OPERATIONS = List.of("hover_packet", "expand_packet", "compact_packet",
+            "inspect_packet", "prove_snapshot", "hover_ordinary", "inspect_ordinary", "hover_empty",
+            "inspect_empty", "reset_tooltip", "finish");
     private static final SFMValue PACKET_VALUE = SFMValue.object(Map.of(
             "JobId", SFMValue.of("packet-inspection"), "type", SFMValue.of("Response")));
     private final Path directory = Minecraft.getInstance().gameDirectory.toPath().toAbsolutePath().normalize()
@@ -54,11 +57,14 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
     private final JsonArray witnesses = new JsonArray();
     private ContainerScreen fixture;
     private SFMScreenMultiplexer ownedWorkspace;
+    private SFMCommandPaletteScreen ownedPalette;
+    private SFMTooltipModeService.Mode previousTooltipMode;
     private ItemStack packetSnapshot, ordinarySnapshot;
     private String capturedPacketText, previousEditor;
     private SFMGamePuppetPointer.Position originalPointer;
     private CompletableFuture<JsonObject> read;
     private CompletableFuture<Void> write;
+    private RuntimeException terminalFailure;
     private JsonObject request, response;
     private int sequence = 1, completed, failedRequests;
     private long nextPoll, frame, started;
@@ -86,6 +92,7 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
             if (!write.isDone()) return false;
             write.join();
             write = null;
+            if (terminalFailure != null) throw terminalFailure;
             if (finished) return true;
         }
         if (request != null) {
@@ -106,7 +113,7 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
                 verify(operation);
                 String capture = "packet-inspection-step-" + String.format(Locale.ROOT, "%04d", sequence);
                 if (!runtime.captureWithHud(capture, Component.literal("Packet inspection: " + operation
-                        + " (physical Shift not proven)"))) return false;
+                        + " (semantic tooltip actions)"))) return false;
                 witnesses.add(operation);
                 completed++;
                 finished = operation.equals("finish");
@@ -119,7 +126,12 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
                 failedRequests++;
                 response.addProperty("status", "error");
                 response.addProperty("error", failure.toString());
+                response.add("failure_observation", observation());
+                // A rejected request stops the file driver. Restore now, not at the puppet timeout.
+                try { cleanup(); }
+                catch (RuntimeException cleanupFailure) { failure.addSuppressed(cleanupFailure); }
                 response.add("observation", observation());
+                terminalFailure = failure;
                 writeResponse();
             }
             return false;
@@ -150,6 +162,7 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
                 && minecraft.player.containerMenu.getCarried().isEmpty(), "An existing player menu cannot be borrowed by this fixture");
         originalPointer = SFMGamePuppetPointer.current();
         previousEditor = SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.get();
+        previousTooltipMode = SFMTooltipModeService.INSTANCE.mode();
         SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.set("sfm:text_editor_v3");
         packetSnapshot = PacketItem.create(PACKET_VALUE);
         packetSnapshot.setCount(3);
@@ -171,6 +184,17 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
                 targetX = fixture.getGuiLeft() + (operation.equals("hover_empty") ? 4 : slot.x + 8);
                 targetY = fixture.getGuiTop() + (operation.equals("hover_empty") ? 4 : slot.y + 8);
                 SFMGamePuppetPointer.moveVirtual(fixture, targetX, targetY);
+                if (operation.equals("hover_packet")) {
+                    tooltipAction(runtime, "sfm action invoke sfm:tooltip/more_info/compact", SFMTooltipModeService.Mode.COMPACT);
+                }
+            }
+            case "expand_packet" -> {
+                requireHover(0);
+                tooltipAction(runtime, "sfm action invoke sfm:tooltip/more_info/expand", SFMTooltipModeService.Mode.EXPANDED);
+            }
+            case "compact_packet" -> {
+                requireHover(0);
+                tooltipAction(runtime, "sfm action invoke sfm:tooltip/more_info/compact", SFMTooltipModeService.Mode.COMPACT);
             }
             case "inspect_packet", "inspect_ordinary", "inspect_empty" -> {
                 requireHover(operation.equals("inspect_packet") ? 0 : operation.equals("inspect_ordinary") ? 1 : -1);
@@ -200,6 +224,10 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
                 require(editor().currentText().equals(capturedPacketText), "Read-only inspection accepted character input");
                 backspace();
             }
+            case "reset_tooltip" -> {
+                if (ownedWorkspace != null && Minecraft.getInstance().screen == ownedWorkspace) runtime.closeScreenNaturally();
+                tooltipAction(runtime, "sfm action invoke sfm:tooltip/more_info/reset", SFMTooltipModeService.Mode.AUTO);
+            }
             case "finish" -> {
                 require(failedRequests == 0, "A failed request prevents acceptance; rerun the puppet");
                 cleanup();
@@ -210,12 +238,19 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
 
     private void verify(String operation) {
         switch (operation) {
-            case "hover_packet" -> {
+            case "hover_packet", "compact_packet" -> {
                 requireHover(0);
-                require(!SFMItemUtils.isClientAndMoreInfoKeyPressed(), "Release the real more-info key for the compact hover capture");
-                String tooltip = String.join("\n", contents.getItem(0).getTooltipLines(
-                        Minecraft.getInstance().player, TooltipFlag.Default.NORMAL).stream().map(Component::getString).toList());
+                require(SFMTooltipModeService.INSTANCE.mode() == SFMTooltipModeService.Mode.COMPACT
+                        && !SFMItemUtils.isClientAndMoreInfoRequested(), "Compact action did not select compact presentation");
+                String tooltip = tooltipText();
                 require(tooltip.contains("Contains packet data") && !tooltip.contains("JobId"), "Compact tooltip leaked packet contents");
+            }
+            case "expand_packet" -> {
+                requireHover(0);
+                require(SFMTooltipModeService.INSTANCE.mode() == SFMTooltipModeService.Mode.EXPANDED
+                        && SFMItemUtils.isClientAndMoreInfoRequested(), "Expand action did not select expanded presentation");
+                require(tooltipText().contains(SFMValueJsonCodec.encodePretty(PACKET_VALUE)),
+                        "Expanded production tooltip omitted the complete pretty packet value");
             }
             case "hover_ordinary" -> requireHover(1);
             case "hover_empty" -> requireHover(-1);
@@ -225,12 +260,35 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
             }
             case "inspect_ordinary" -> requireDocument(editor(), ordinarySnapshot, false);
             case "inspect_empty" -> require(!editor().isReadOnly() && editor().currentText().isEmpty(), "Blank fallback changed before capture");
+            case "reset_tooltip" -> {
+                require(Minecraft.getInstance().screen == fixture, "Reset action changed the host screen");
+                require(SFMTooltipModeService.INSTANCE.mode() == SFMTooltipModeService.Mode.AUTO,
+                        "Reset did not restore configured-key mode");
+            }
             case "finish" -> {
                 require(Minecraft.getInstance().screen == null, "Owned fixture screens did not close");
                 require(SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.get().equals(previousEditor), "Editor preference was not restored");
+                require(SFMTooltipModeService.INSTANCE.mode() == previousTooltipMode, "Tooltip mode was not restored");
             }
             default -> throw new IllegalArgumentException("Unsupported packet inspection operation");
         }
+    }
+
+    private void tooltipAction(ISFMGamePuppetRuntime runtime, String command, SFMTooltipModeService.Mode expected) {
+        require(Minecraft.getInstance().screen == fixture, "Tooltip action requires the owned container");
+        require(runtime.openCommandPalette(), "Registered command palette did not open");
+        ownedPalette = (SFMCommandPaletteScreen) Minecraft.getInstance().screen;
+        runtime.executeCommandPalette(command);
+        require(SFMTooltipModeService.INSTANCE.mode() == expected, "Registered tooltip action did not execute: " + command);
+        runtime.closeScreenNaturally();
+        require(Minecraft.getInstance().screen == fixture, "Palette close did not return to the hovered container");
+        ownedPalette = null;
+        SFMGamePuppetPointer.moveVirtual(fixture, targetX, targetY);
+    }
+
+    private String tooltipText() {
+        return String.join("\n", contents.getItem(0).getTooltipLines(
+                Minecraft.getInstance().player, TooltipFlag.Default.NORMAL).stream().map(Component::getString).toList());
     }
 
     private void requireHover(int slotIndex) {
@@ -292,7 +350,10 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
         result.addProperty("process_id", ProcessHandle.current().pid());
         result.addProperty("screen", minecraft.screen == null ? "none" : minecraft.screen.getClass().getName());
         result.addProperty("physical_shift_proven", false);
-        result.addProperty("more_info_key_polled_down", SFMItemUtils.isClientAndMoreInfoKeyPressed());
+        result.addProperty("tooltip_mode", SFMTooltipModeService.INSTANCE.mode().name());
+        result.addProperty("more_info_requested", SFMItemUtils.isClientAndMoreInfoRequested());
+        result.addProperty("tooltip_mode_restored", previousTooltipMode != null
+                && SFMTooltipModeService.INSTANCE.mode() == previousTooltipMode);
         result.addProperty("fixture_scope", "disposable client-only container; no server inventory claim");
         result.addProperty("failed_requests", failedRequests);
         result.add("witnesses", witnesses.deepCopy());
@@ -301,6 +362,12 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
             result.addProperty("hovered_slot", slot == null ? -1 : slot.index);
             result.addProperty("pointer_x", SFMGamePuppetPointer.current().cachedLogicalX());
             result.addProperty("pointer_y", SFMGamePuppetPointer.current().cachedLogicalY());
+            if (slot != null && slot.hasItem()) {
+                JsonArray lines = new JsonArray();
+                slot.getItem().getTooltipLines(minecraft.player, TooltipFlag.Default.NORMAL)
+                        .forEach(line -> lines.add(line.getString()));
+                result.add("tooltip_lines", lines);
+            }
         }
         if (ownedWorkspace != null && minecraft.screen == ownedWorkspace) {
             ownedWorkspace.panels().stream().filter(SFMTextEditorPanel.class::isInstance)
@@ -316,6 +383,7 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
     private void cleanup() {
         var minecraft = Minecraft.getInstance();
         try {
+            if (ownedPalette != null && minecraft.screen == ownedPalette) ownedPalette.onClose();
             if (ownedWorkspace != null && minecraft.screen == ownedWorkspace) ownedWorkspace.onClose();
             if (fixture != null && minecraft.screen == fixture) {
                 if (originalPointer != null) SFMGamePuppetPointer.moveVirtual(fixture,
@@ -325,6 +393,7 @@ public final class ExplorePacketInspectionPuppetAction implements SFMPuppetActio
             }
         } finally {
             if (previousEditor != null) SFMConfig.CLIENT_TEXT_EDITOR_CONFIG.preferredEditor.set(previousEditor);
+            if (previousTooltipMode != null) SFMTooltipModeService.INSTANCE.setMode(previousTooltipMode);
         }
     }
 

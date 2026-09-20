@@ -7,6 +7,7 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Control more-info tooltip presentation with expand, compact and reset actions; keep configured-key behaviour as the default and support file-driven tests without physical key injection
 -- Replace or clear persisted buffer images on reload without orphaning cached handlers or erasing occupied nonpersisted resources
 -- Craft Client Managers with a comparator-centered manager recipe and Touch Displays with glass, iron bars, cable and redstone
 -- Allow quoted static action IDs in INVOKE and STRING OF INVOKE so registry paths can contain SFML keywords without changing inventory syntax

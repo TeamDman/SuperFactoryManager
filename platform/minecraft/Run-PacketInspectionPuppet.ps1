@@ -1,15 +1,16 @@
 <#
 File-only driver for sfm:in_world_packet_inspection. Use the fresh directory
-reported by ready.json. This proves rendered item art and hovered Alt+D, not
-physical Shift polling. Requests contain only a fixed operation name.
+reported by ready.json. This proves rendered item art, alternate tooltip mode
+through registered palette actions, and hovered Alt+D. Requests contain only
+a fixed operation name; they do not simulate native key polling.
 #>
 [CmdletBinding()]
 param([Parameter(Mandatory = $true)][string]$ControlDirectory)
 $ErrorActionPreference = 'Stop'
 $controlRoot = (Resolve-Path -LiteralPath $ControlDirectory).Path
 $ready = Get-Content -LiteralPath (Join-Path $controlRoot 'ready.json') -Raw | ConvertFrom-Json
-$operations = @('hover_packet', 'inspect_packet', 'prove_snapshot', 'hover_ordinary',
-    'inspect_ordinary', 'hover_empty', 'inspect_empty', 'finish')
+$operations = @('hover_packet', 'expand_packet', 'compact_packet', 'inspect_packet', 'prove_snapshot',
+    'hover_ordinary', 'inspect_ordinary', 'hover_empty', 'inspect_empty', 'reset_tooltip', 'finish')
 if ($ready.schema -ne 'sfm:packet_inspection_puppet@1' -or
     [IO.Path]::GetFullPath($ready.control_directory) -ne [IO.Path]::GetFullPath($controlRoot) -or
     ($ready.required_operations_in_order -join ',') -ne ($operations -join ',') -or
@@ -45,6 +46,19 @@ foreach ($operation in $operations) {
         throw 'The response does not establish the bounded packet-inspection evidence contract.'
     }
     if ($operation -eq 'inspect_packet') { $packetText = $response.observation.document }
+    if ($operation -in @('hover_packet', 'compact_packet') -and
+        ($response.observation.tooltip_mode -ne 'COMPACT' -or $response.observation.more_info_requested -ne $false -or
+        ($response.observation.tooltip_lines -join "`n") -match 'JobId')) {
+        throw 'Compact tooltip action did not hide the packet value.'
+    }
+    if ($operation -eq 'expand_packet' -and
+        ($response.observation.tooltip_mode -ne 'EXPANDED' -or $response.observation.more_info_requested -ne $true -or
+        ($response.observation.tooltip_lines -join "`n") -notmatch '"JobId": "packet-inspection"')) {
+        throw 'Expanded tooltip action did not reveal the packet value.'
+    }
+    if ($operation -eq 'reset_tooltip' -and $response.observation.tooltip_mode -ne 'AUTO') {
+        throw 'Tooltip reset action did not restore configured-key mode.'
+    }
     if ($operation -eq 'prove_snapshot' -and $response.observation.document -cne $packetText) {
         throw 'The captured packet document changed after fixture mutation or editing input.'
     }
@@ -58,8 +72,8 @@ foreach ($operation in $operations) {
     Write-Host ("Capture: {0}" -f $response.capture_name)
     $packetStep++
 }
-if ($response.observation.screen -ne 'none' -or
+if ($response.observation.screen -ne 'none' -or $response.observation.tooltip_mode_restored -ne $true -or
     ($response.observation.witnesses -join ',') -ne ($operations -join ',')) {
     throw 'The fixture did not complete every acceptance step and owned-screen cleanup.'
 }
-Write-Host 'Packet file journey complete. Inspect the art and editor screenshots and wait for canonical puppet success. Physical Shift remains unproven.'
+Write-Host 'Packet file journey complete: tooltip expand/compact/reset, item inspection and owned-state restoration passed. Wait for canonical puppet success.'

@@ -260,7 +260,7 @@ public class LabelGunItem extends Item {
             TooltipFlag detail
     ) {
 
-        if (SFMItemUtils.isClientAndMoreInfoKeyPressed()) {
+        if (SFMItemUtils.isClientAndMoreInfoRequested()) {
             Options options = Minecraft.getInstance().options;
             lines.add(
                     LABEL_GUN_ITEM_TOOLTIP_TOGGLE_LABEL_REMINDER.getComponent(

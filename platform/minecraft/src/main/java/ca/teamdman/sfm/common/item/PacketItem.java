@@ -84,7 +84,7 @@ public class PacketItem extends Item {
             List<Component> lines,
             TooltipFlag detail
     ) {
-        appendTooltipLines(stack, lines, SFMItemUtils.isClientAndMoreInfoKeyPressed());
+        appendTooltipLines(stack, lines, SFMItemUtils.isClientAndMoreInfoRequested());
     }
 
     /** Renders the tooltip for a supplied more-info state without polling physical keyboard input. */

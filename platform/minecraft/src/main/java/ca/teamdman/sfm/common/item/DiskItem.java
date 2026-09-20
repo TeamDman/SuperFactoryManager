@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.common.item;
 
-import ca.teamdman.sfm.client.registry.SFMKeyMappings;
 import ca.teamdman.sfm.client.screen.SFMScreenChangeHelpers;
 import ca.teamdman.sfm.client.text_editor.SFMTextEditScreenDiskOpenContext;
 import ca.teamdman.sfm.client.text_styling.ProgramSyntaxHighlightingHelper;
@@ -13,7 +12,6 @@ import ca.teamdman.sfm.common.program.linting.ProgramLinter;
 import ca.teamdman.sfm.common.registry.registration.SFMCreativeTabs;
 import ca.teamdman.sfm.common.registry.registration.SFMItems;
 import ca.teamdman.sfm.common.registry.registration.SFMPackets;
-import ca.teamdman.sfm.common.util.SFMEnvironmentUtils;
 import ca.teamdman.sfm.common.util.SFMItemUtils;
 import ca.teamdman.sfm.common.util.SFMTranslationUtils;
 import ca.teamdman.sfml.ast.Program;
@@ -296,10 +294,7 @@ public class DiskItem extends Item {
     @Override
     public Component getName(ItemStack stack) {
 
-        if (SFMEnvironmentUtils.isClient()) {
-            if (SFMKeyMappings.isKeyDown(SFMKeyMappings.MORE_INFO_TOOLTIP_KEY))
-                return super.getName(stack);
-        }
+        if (SFMItemUtils.isClientAndMoreInfoRequested()) return super.getName(stack);
         var name = getProgramName(stack);
         if (name.isEmpty()) return super.getName(stack);
         return Component.literal(name).withStyle(ChatFormatting.AQUA);
@@ -314,7 +309,7 @@ public class DiskItem extends Item {
     ) {
 
         var program = getProgramString(stack);
-        if (SFMItemUtils.isClientAndMoreInfoKeyPressed() && !program.isEmpty()) {
+        if (SFMItemUtils.isClientAndMoreInfoRequested() && !program.isEmpty()) {
             lines.add(SFMItemUtils.getRainbow(getName(stack).getString().length()));
             lines.addAll(ProgramSyntaxHighlightingHelper.withSyntaxHighlighting(program, false));
         } else {

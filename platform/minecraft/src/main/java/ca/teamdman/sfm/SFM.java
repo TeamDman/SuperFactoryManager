@@ -10,6 +10,7 @@ import ca.teamdman.sfm.client.registry.SFMTextEditors;
 import ca.teamdman.sfm.client.action.SFMCommandPaletteActions;
 import ca.teamdman.sfm.client.action.SFMExplorerActions;
 import ca.teamdman.sfm.client.action.SFMOverlayActions;
+import ca.teamdman.sfm.client.action.SFMTooltipModeActions;
 import ca.teamdman.sfm.client.action.SFMPacketActions;
 import ca.teamdman.sfm.client.action.SFMClientProgramConsentActions;
 import ca.teamdman.sfm.client.action.SFMClientProgramReadActions;
@@ -108,6 +109,7 @@ public class SFM {
             SFMCommandPaletteActions.register(bus);
             SFMExplorerActions.register(bus);
             SFMOverlayActions.register(bus);
+            SFMTooltipModeActions.register(bus);
             SFMPacketActions.register(bus);
             SFMClientProgramConsentActions.register(bus);
             SFMClientProgramReadActions.register(bus);

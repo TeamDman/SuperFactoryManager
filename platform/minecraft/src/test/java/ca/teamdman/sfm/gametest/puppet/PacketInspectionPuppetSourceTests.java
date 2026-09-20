@@ -9,6 +9,27 @@ import static org.junit.jupiter.api.Assertions.*;
 
 /** Guard evidence boundaries; real input/render acceptance belongs to the opt-in file puppet. */
 class PacketInspectionPuppetSourceTests {
+    @Test void alternateTooltipUsesRegisteredActionsAndRestoresThePreviousMode() throws Exception {
+        String action = action();
+        assertTrue(action.contains("sfm action invoke sfm:tooltip/more_info/expand"),
+                "Expanded hover must exercise the registered semantic action, not physical-key injection");
+        assertTrue(action.contains("sfm action invoke sfm:tooltip/more_info/compact"));
+        assertTrue(action.contains("sfm action invoke sfm:tooltip/more_info/reset"));
+        assertTrue(action.contains("previousTooltipMode = SFMTooltipModeService.INSTANCE.mode()"));
+        assertTrue(action.contains("setMode(previousTooltipMode)"));
+        assertTrue(action.contains("\"expand_packet\""));
+        assertTrue(action.contains("\"compact_packet\""));
+        assertTrue(action.contains("\"reset_tooltip\""));
+        assertFalse(action.contains("Release the real more-info key"));
+        assertFalse(action.contains("appendTooltipLines("));
+        String failedRequest = action.substring(action.indexOf("catch (RuntimeException failure)"),
+                action.indexOf("if (read == null)"));
+        assertTrue(failedRequest.contains("try { cleanup(); }"));
+        assertTrue(failedRequest.contains("terminalFailure = failure"));
+        assertTrue(action.contains("if (terminalFailure != null) throw terminalFailure"),
+                "A failed request must terminate after its diagnostic is written, not leak the override until timeout");
+    }
+
     @Test void hoverUsesVanillaRenderingAfterTheVirtualCallback() throws Exception {
         String action = action();
         assertTrue(action.contains("new ContainerScreen(ChestMenu.threeRows("));
@@ -31,13 +52,16 @@ class PacketInspectionPuppetSourceTests {
         assertFalse(action.contains("captureHovered("));
         assertFalse(action.contains("recipeFor("));
         assertFalse(action.contains("SFMItemInspectionDocument.capture("));
-        assertFalse(action.contains("executeCommandPalette("));
+        String inspection = action.substring(action.indexOf("case \"inspect_packet\", \"inspect_ordinary\", \"inspect_empty\""),
+                action.indexOf("case \"prove_snapshot\""));
+        assertFalse(inspection.contains("executeCommandPalette("));
     }
 
     @Test void acceptanceRequiresSnapshotOrdinaryAndWritablePositiveControl() throws Exception {
         String action = action();
-        assertTrue(action.contains("\"hover_packet\", \"inspect_packet\", \"prove_snapshot\""));
-        assertTrue(action.contains("\"hover_ordinary\", \"inspect_ordinary\", \"hover_empty\", \"inspect_empty\", \"finish\""));
+        assertTrue(action.contains("\"hover_packet\", \"expand_packet\", \"compact_packet\""));
+        assertTrue(action.contains("\"inspect_packet\", \"prove_snapshot\", \"hover_ordinary\", \"inspect_ordinary\", \"hover_empty\""));
+        assertTrue(action.contains("\"inspect_empty\", \"reset_tooltip\", \"finish\""));
         assertTrue(action.contains("OPERATIONS.get(completed).equals(operation)"));
         assertTrue(action.contains("require(failedRequests == 0"));
         assertTrue(action.contains("TagParser.parseTag("));

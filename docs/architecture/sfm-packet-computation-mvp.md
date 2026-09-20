@@ -1,6 +1,6 @@
 # SFM packet computation: single-player MVP
 
-**Status:** Slices A through D and interaction-polish implementation complete; file-driven art and Alt+D acceptance passed; physical Shift acceptance pending
+**Status:** Slices A through D and interaction-polish implementation complete; file-driven art, Alt+D and semantic tooltip action acceptance passed
 **Implementation branch:** `feat/1.19.2/packet-computation`  
 **Implementation baseline:** `1be4b3cff9387f0b2870bc281017b3589f0119ef`  
 **Design-inspection baseline:** `53b9b302117289c945def6ed73297f2997901559`
@@ -602,7 +602,7 @@ stacking, or the disabled WIP clipboard keybinding.
 | --- | --- | --- | --- |
 | P01 | Keypad Enter parity | Normalize keypad Enter to Enter for both remote-key press and release; retain all other GLFW key codes. | Focused regression first failed with 335 instead of 257, then passed after normalization. |
 | P02 | Recognizable carrier art | Source the 16×16 transparent packet texture from the reviewed spiral-notebook concept and let item datagen reference `sfm:item/packet`. | Source and final-size textures visually inspected; datagen points the registered model at the SFM texture. The file-driven inventory screenshot was inspected on 20 September. |
-| P03 | Progressive packet tooltip | Compact hover states only that data is present and reminds the player of the existing more-info key; expanded hover shows complete pretty JSON; missing/invalid data fails closed. | Formatter/codec tests pass. A client-only GameTest exercises the registered item's compact and expanded rendering through a deterministic seam; physical Shift-hover still needs manual acceptance. |
+| P03 | Progressive packet tooltip | Default mode follows the configured more-info key. Registered actions can force expanded or compact presentation and reset to key mode. Expanded hover shows complete pretty JSON; missing/invalid data fails closed. | The final unit suite, real-tooltip ambient GameTest and 11-step file puppet passed on 20 September. Expanded and compact captures were visually checked. Native physical Shift is not a required manual boundary. |
 | P04 | Generic Alt+D item inspection | Opening the default text editor over a non-empty container slot produces an immutable read-only document with tooltip, ID, count, pretty stack SNBT, and decoded packet JSON when applicable. With no hovered item, the editor remains blank and writable. | Generic document and contextual editor-recipe tests pass. The eight-request file puppet passed actual vanilla rendered hover and Alt+D ingress on 20 September, including immutable snapshots and the no-hover writable fallback. |
 
 Interaction-polish evidence on 16 September 2026:
@@ -617,8 +617,9 @@ Interaction-polish evidence on 16 September 2026:
   dedicated-server equivalent matched only the server-compatible carrier test
   and passed 1/1. An exact client-only tooltip run on 17 September exposed that
   setting a `KeyMapping` down does not simulate the physical GLFW key poll used
-  by production. The test now drives a deterministic tooltip-rendering seam;
-  physical Shift-hover remains a manual acceptance check.
+  by production. That checkpoint used a deterministic tooltip-rendering seam
+  and retained physical Shift-hover as a manual check; the 20 September
+  semantic-mode amendment below supersedes that boundary.
 - That server check caught a direct `LocalPlayer` reference in the shared screen
   type before test discovery. Moving the player lookup behind the client-only
   inspection helper restored the distribution boundary; the rerun passed.
@@ -647,11 +648,36 @@ File-driven inventory acceptance on 20 September 2026:
 - Actual mouse callbacks and vanilla rendered hover selected the packet and ordinary paper. Alt+D entered through Minecraft's keyboard handler and opened the real editor. The packet document included the visible tooltip, item ID, count, complete SNBT and pretty JSON. It stayed unchanged after source-item mutation and edit attempts. No-hover container background opened a blank writable editor.
 - Figures 1 and 2 were visually inspected for the rendered item, compact tooltip and read-only document. Artifacts: `platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-in_world_pac-20260920-001217-374/`. The fixture restored its editor preference and pointer and closed only its owned screens. Client PID 16332 exited normally.
 
-Physical Shift-hover remains a manual acceptance gate before propagation or
-release. The file puppet explicitly records `physical_shift_proven: false`:
-Minecraft polls native GLFW state for this key, which callback injection does
-not simulate. The user has been asked whether to retain that gate or document
-it as a manual follow-up. No operating-system input automation was used.
+The user superseded the physical Shift gate on 20 September: decouple tooltip
+presentation from physical input, and actuate it through command-palette
+actions. The shared mode is `AUTO`, `EXPANDED` or `COMPACT`; only `AUTO` polls
+the existing configured key. The no-argument actions are
+`sfm:tooltip/more_info/expand`, `sfm:tooltip/more_info/compact` and
+`sfm:tooltip/more_info/reset`. They change transient client presentation only,
+not packet data or any key state. Leaving a real player session restores `AUTO`;
+null-player connection transitions preserve the override.
+
+The ambient client GameTest must invoke those registered actions and read the
+real packet and disk tooltips in one client task, restoring the previous mode
+in `finally`. The opt-in file puppet must capture expanded and compact hover,
+execute reset and restore its prior mode. It may continue reporting
+`physical_shift_proven: false` honestly; native input simulation is no longer
+a release or propagation requirement.
+
+Final semantic-mode evidence on 20 September: the unfiltered unit suite passed
+2,511 tests with zero failures and 5 optional aborts; all 252 integrated and 237
+dedicated GameTests passed. The dedicated server excluded the client-only
+tooltip test before class loading. Logs: `tooltip-mode-final-unit.log`,
+`tooltip-mode-final-client-tests.log` and `tooltip-mode-final-server-tests.log`
+under `platform/minecraft/build/`.
+
+The final file puppet passed all 11 requests, including actual palette-driven
+expanded/compact hover, reset, existing Alt+D inspection and restoration of
+the previous mode. Figures 2 and 3 were visually checked. Artifacts:
+`platform/minecraft/build/sfm-toolchain/artifacts/game-test-preview/runs/sfm-in_world_pac-20260920-030346-853/`.
+Driver and launcher exited 0; client PID 19884 exited normally. No native-key
+injection or manual key release was required. CLI sources and dependency
+declarations remain unchanged; no installer step is needed.
 
 ## Exclusions
 
