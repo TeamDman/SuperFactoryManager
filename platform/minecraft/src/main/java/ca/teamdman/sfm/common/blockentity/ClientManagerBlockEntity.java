@@ -1,5 +1,7 @@
 package ca.teamdman.sfm.common.blockentity;
 
+import ca.teamdman.sfm.common.block.ClientManagerBlock;
+import ca.teamdman.sfm.common.containermenu.ClientManagerContainerMenu;
 import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.net.SFMServerClientManagerSigningTransport;
@@ -14,7 +16,12 @@ import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.MenuProvider;
+import net.minecraft.world.entity.player.Inventory;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
@@ -23,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 /** Holds a client visual program; it never creates a server ProgramContext or server ticker. */
-public final class ClientManagerBlockEntity extends BlockEntity {
+public final class ClientManagerBlockEntity extends BlockEntity implements MenuProvider {
     private static final String DISK_TAG = "disk";
     private static final String WORLD_ID_TAG = "world_id";
     public static final String SIGNING_TAG = "client_program_signing";
@@ -36,8 +43,23 @@ public final class ClientManagerBlockEntity extends BlockEntity {
         super(SFMBlockEntities.CLIENT_MANAGER.get(), pos, state);
     }
 
+    @Override
+    public Component getDisplayName() {
+        return ClientManagerBlock.NAME.getComponent();
+    }
+
+    @Override
+    public @Nullable AbstractContainerMenu createMenu(int windowId, Inventory inventory, Player player) {
+        return new ClientManagerContainerMenu(windowId, inventory, this);
+    }
+
     public ItemStack disk() {
         return disk.copy();
+    }
+
+    /** Returns whether this disk can be admitted to the bounded client projection. */
+    public boolean acceptsDisk(ItemStack value) {
+        return value.isEmpty() || sourceFitsSyncBudget(value);
     }
 
     public String storedSource() {

@@ -1,12 +1,12 @@
 # Touch Display and Client Manager: living implementation plan
 
-Plan status: paused after the completed 1.19.4 checkpoint, by G41. Baseline feature evidence covers static Touch Display interaction, the consented Client Manager frame runtime, typed invocation, bounded raster rendering, consent review, explicit author signing, exact-grant remote multiplayer and in-world terminal integration. Later-target propagation and aggregate multi-version release acceptance remain unfinished.
+Plan status: active, resumed for the Client Manager GUI and synchronization slice requested after the completed 1.19.4 checkpoint. Baseline feature evidence covers static Touch Display interaction, the consented Client Manager frame runtime, typed invocation, bounded raster rendering, consent review, explicit author signing, exact-grant remote multiplayer and in-world terminal integration. Later-target propagation and aggregate multi-version release acceptance remain unfinished.
 
 Last updated: 20 September 2026.
 
 Intent audit: passed 17 September 2026 against the available user discussion and the pasted historical messages; some earlier assistant replies are unavailable except as pasted excerpts.
 
-Current focus: none. The 1.19.4 merge is committed as `f2f47ca45`, its visual journeys and final compile passed, and the post-commit audit found no new adapter defect. Stop before 1.20; resume feature iteration or later propagation only on user direction. G41 narrows the current execution scope without waiving unfinished targets. Canonical integration remains `93aed7de4`; its 2,530 unit tests, 339 dedicated and 354 integrated GameTests, and 11-step file puppet passed. Preserve the recorded intermittent anvil test and inherited tooling snapshot failures below. Native physical Shift is not a required human acceptance boundary.
+Current focus: none; P11 Client Manager menu, screen and projection-safe synchronization is complete. The 1.19.4 merge is committed as `f2f47ca45`, its visual journeys and final compile passed, and the post-commit audit found no new adapter defect. Stop before 1.20; resume feature iteration or later propagation only on user direction. G41 narrows the current execution scope without waiving unfinished targets. Canonical integration remains `93aed7de4`; its 2,530 unit tests, 339 dedicated and 354 integrated GameTests, and 11-step file puppet passed. Preserve the recorded intermittent anvil test and inherited tooling snapshot failures below. Native physical Shift is not a required human acceptance boundary.
 
 Implementation branch: `feat/1.19.2/packet-computation`.
 Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`; finite-value/touch-schema checkpoint: `1a8cd9b84`.
@@ -47,6 +47,15 @@ documentation and a local merge commit. Adversarial review preserves the
 already-merged canonical 1.19.2 history, the feature worktree and all later
 target HEADs. The broader goal remains incomplete; this instruction does not
 authorise a push or the next version hop.
+
+20 September GUI-synchronization amendment: extraction records the user's
+request to make right-click open a dedicated Client Manager GUI while keeping
+client-side program knowledge available without opening that GUI. Traceability
+adds P11 for the menu/screen, server-authoritative disk operations and
+projection-safe slot updates. The adversarial pass preserves the existing
+bounded block-entity projection as the always-on synchronization path; opening
+a menu must not become a prerequisite for client program discovery or a route
+for arbitrary server-only disk metadata.
 
 Evidence labels in this document mean:
 
@@ -99,6 +108,7 @@ Evidence labels in this document mean:
 | G39 | Confirmed on 19 September 2026 | Activate the separately negotiated multiplayer transport with default-deny, operator-owned grants for exact players, inventory targets, inbox channels and server-manager publishers. Preserve the legacy private-world gates. | P8G; operator policy persistence; remote transport acceptance |
 | G40 | Confirmed on 20 September 2026 | Decouple the tooltip's alternate presentation decision from configured-key polling. Add command-palette actions that tests can actuate, so native physical Shift verification is not a required human acceptance boundary. | R1; companion P03; semantic mode, action and file-puppet tests |
 | G41 | Confirmed on 20 September 2026 | Finish the already-started 1.19.4 work, then postpone propagation to 1.20 and later while feature iteration resumes. Preserve the feature worktree and existing canonical integration; do not push. | Current R2/R3 checkpoint; target acceptance matrix; final handoff. Narrows the current execution order of G37, without declaring later targets complete. |
+| G42 | Confirmed on 20 September 2026 | Right-clicking a Client Manager should open its own GUI. The GUI must remain server-authoritative and cooperate with the existing client projection so clients know Client Manager programs even when no GUI is open. | P11; client projection and menu synchronization acceptance |
 
 Earlier proposals that later user choices superseded must not become implementation requirements: `sfm:touch/1` and scaled-integer UV, unique click sequence/frame generation, nesting the position/UV fields, server-manager frame triggers, permanent shared/private/published block modes, solid-block redstone inference, a minimum scribble-length requirement, and the claim that 26.1.2 `Identifier` implies Yarn mappings. Existing structured action-result schema IDs using `/1` also remain unchanged; `sfm:touch@1` does not trigger a global schema migration.
 
@@ -523,6 +533,45 @@ Validate: `sfm-propagate-changes.exe game-test run-client --branch feat/1.19.2/p
 Done when: this full-feature goal proves terminal raster on the block face and one authorised touch-to-desktop event, with bounded process ownership, structured I/O, session selection and teardown; the earlier touch packet circuit remains independently testable.
 
 Evidence: baseline model, ambient and world-rendering results above. Session creation/connect-existing controls preserve separate raster/input grants; model tests prove input ownership and multi-mount cleanup. This journey does not claim remote screen sharing or arbitrary external PTY attachment.
+
+### [x] P11. Client Manager menu, screen and projection-safe synchronization — G42
+
+Dependencies: P6B and the existing bounded `ClientManagerProgramProjection`.
+
+Work: open a dedicated `ClientManagerContainerMenu` from a Client Manager
+right-click and register a distinct `ClientManagerScreen`. Keep disk mutation
+server-authoritative and validate the one-disk slot against the existing sync
+budget. Routine menu slot updates expose only the bounded program/label
+projection; explicit disk extraction may return the full server-owned disk to
+the player who requested it. Preserve block-entity update packets as the
+always-on client knowledge path so a client can discover and render a program
+without opening the menu. Add a focused GameTest for menu construction and
+projection filtering, then run compile and data generation.
+
+Validation completed:
+
+```pwsh
+sfm-propagate-changes.exe run compile --branch 1.19.2 --wait-for-build-lock
+sfm-propagate-changes.exe run data --branch 1.19.2 --wait-for-build-lock
+sfm-propagate-changes.exe game-test run-server --branch 1.19.2 --filter client_manager_signing
+sfm-propagate-changes.exe game-test run-client --branch 1.19.2 --filter client_manager_menu
+```
+
+Evidence: compile completed with 0 errors; data generation completed with 0
+errors; the dedicated `client_manager_signing` test passed with no player
+assumption; and the integrated-client `client_manager_menu` test passed. The
+client test constructed the registered menu from the always-on block projection,
+verified that the routine slot contained only the bounded program/labels data,
+and confirmed that synchronization did not open or replace the current screen.
+The right-click path now calls `NetworkHooks.openScreen` with the dedicated
+menu's block position payload, and `SFMMenuScreens` registers the distinct
+`ClientManagerScreen`, which renders the disk slot, player inventory and a
+synchronized-program summary. Block-entity update tags remain the independent
+program-discovery path when no menu is open. The file-driven
+`sfm:client_manager_menu` puppet also performed a real in-game block use,
+waited for `ClientManagerScreen`, captured the rendered GUI, and closed it with
+zero puppet failures; its durable preview is under the generated
+`game-test-preview/runs/` artifact directory.
 
 ## Cross-cutting validation and propagation
 

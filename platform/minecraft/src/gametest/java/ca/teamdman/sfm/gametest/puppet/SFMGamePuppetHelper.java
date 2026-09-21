@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.gametest.puppet;
 
 import ca.teamdman.sfm.client.screen.ManagerScreen;
+import ca.teamdman.sfm.client.screen.ClientManagerScreen;
 import ca.teamdman.sfm.client.screen.file_explorer.SFMFileExplorerSnapshot;
 import ca.teamdman.sfm.client.screen.text_editor.ISFMTextEditScreen;
 import ca.teamdman.sfm.client.screen.workspace.SFMWorkspaceAxis;
@@ -121,6 +122,11 @@ public final class SFMGamePuppetHelper {
 
     public void captureManagerAt(String captureName, BlockPos localTarget, Component caption) {
         captureBlockScreen(captureName, localTarget, ManagerScreen.class, false, caption);
+    }
+
+    /** Opens and captures the dedicated Client Manager screen through the file puppet path. */
+    public void captureClientManagerAt(String captureName, BlockPos localTarget, Component caption) {
+        captureBlockScreen(captureName, localTarget, ClientManagerScreen.class, true, caption);
     }
 
     public void captureManagerProgramEditor(String captureName, Component caption) {

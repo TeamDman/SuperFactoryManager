@@ -114,9 +114,9 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         // The model's top is the display face; rotate it to the block's FACING direction.
         ModelFile displayModel = models().cubeBottomTop(
                 SFMBlocks.TOUCH_DISPLAY.getPath(),
-                modLoc("block/manager_side"),
-                modLoc("block/manager_bot"),
-                modLoc("block/buffer_unknown")
+                modLoc("block/touch_display_side"),
+                modLoc("block/touch_display_bottom"),
+                modLoc("block/touch_display_face")
         ).texture("particle", "#top");
 
         getVariantBuilder(SFMBlocks.TOUCH_DISPLAY.get())
@@ -199,9 +199,9 @@ public class SFMBlockStatesAndModelsDatagen extends MCVersionAgnosticBlockStates
         simpleBlock(
                 SFMBlocks.CLIENT_MANAGER.get(), models().cubeBottomTop(
                         SFMBlocks.CLIENT_MANAGER.getPath(),
-                        mcLoc("block/cyan_concrete"),
-                        modLoc("block/manager_bot"),
-                        modLoc("block/manager_top")
+                        modLoc("block/client_manager_side"),
+                        modLoc("block/client_manager_bottom"),
+                        modLoc("block/client_manager_top")
                 ).texture("particle", "#top")
         );
     }

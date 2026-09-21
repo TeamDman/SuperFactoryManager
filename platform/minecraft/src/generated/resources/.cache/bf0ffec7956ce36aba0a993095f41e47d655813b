@@ -1,4 +1,4 @@
-// 1.19.2	2026-09-19T13:54:01.9855849	Block States: sfm
+// 1.19.2	2026-09-20T16:12:51.1229042	Block States: sfm
 2fcc3d9961109b2934a22f2e0b60d1eb502314a1 assets/sfm/blockstates/buffer.json
 f303dc233cde263e111cfdb2e2cbc48b93521724 assets/sfm/blockstates/cable.json
 f303dc233cde263e111cfdb2e2cbc48b93521724 assets/sfm/blockstates/cable_facade.json
@@ -28,12 +28,12 @@ f3c25839c6554e631061f91277bc687aebc38fd7 assets/sfm/blockstates/water_tank.json
 343fbedad0cce9788889cd55b2e62acd9e92a39b assets/sfm/models/block/buffer_redstone.json
 8db51bbc41602c77c9fe7e119f90935e28626565 assets/sfm/models/block/buffer_unknown.json
 a76567fd4e65d191d69cf166b98776786d47a8e2 assets/sfm/models/block/cable.json
-7a6ca88ca377a3b3ae8f54129ce08f0c8f78d33d assets/sfm/models/block/client_manager.json
+71805b56a4ad0630f65cae4e4950e7dca61513ce assets/sfm/models/block/client_manager.json
 7b8c954b87699a007b3d7aa3558bf7892b838975 assets/sfm/models/block/fancy_cable_connection.json
 7ba1003f6a1c077779c8e51166e1d134874844a8 assets/sfm/models/block/fancy_cable_core.json
 953313d31931040aa2bd9a8742d4a54a2c632b8d assets/sfm/models/block/manager.json
 369e3217e52fc9f71d3e4a83b9175bb4e36dbac0 assets/sfm/models/block/test_barrel_tank.json
-2a0bedd6c5160007d784862cb6de41b768ab2c4f assets/sfm/models/block/touch_display.json
+6c117be37a692d4e83c19e2e7e2b6b923155ba31 assets/sfm/models/block/touch_display.json
 0c2ab96c6a619b233e9434e6f3b30645fdee3101 assets/sfm/models/block/tough_cable.json
 1fd24759910aa18ca9cf5fefc8a94f46dd94596c assets/sfm/models/block/tough_fancy_cable_connection.json
 d7818b3c3d38b92f5e69e9dba30a81623221f2a0 assets/sfm/models/block/tough_fancy_cable_core.json

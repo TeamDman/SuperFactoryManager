@@ -1,7 +1,6 @@
 package ca.teamdman.sfm.common.block;
 
 import ca.teamdman.sfm.common.blockentity.ClientManagerBlockEntity;
-import ca.teamdman.sfm.common.item.DiskItem;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
@@ -21,6 +20,8 @@ import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.Material;
 import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.Nullable;
 
 /** The client visual runtime has its own block and no server-side program ticker. */
@@ -29,11 +30,6 @@ public final class ClientManagerBlock extends BaseEntityBlock {
     public static final LocalizationEntry NAME = new LocalizationEntry(
             () -> SFMBlocks.CLIENT_MANAGER.get().getDescriptionId(), () -> "Client Manager"
     );
-    @SFMLocalizationDatagen
-    public static final LocalizationEntry PROGRAM_TOO_LARGE = new LocalizationEntry(
-            "sfm.client_manager.program_too_large", "This program is too large for a Client Manager"
-    );
-
     public ClientManagerBlock() {
         super(BlockBehaviour.Properties.of(Material.METAL).strength(2.0F, 6.0F).sound(SoundType.METAL));
     }
@@ -57,28 +53,13 @@ public final class ClientManagerBlock extends BaseEntityBlock {
     ) {
         if (hand != InteractionHand.MAIN_HAND || player.isSpectator()) return InteractionResult.CONSUME;
         if (!(level.getBlockEntity(pos) instanceof ClientManagerBlockEntity manager)) return InteractionResult.CONSUME;
-        ItemStack held = player.getItemInHand(hand);
         if (level.isClientSide()) return InteractionResult.SUCCESS;
-
-        if (held.getItem() instanceof DiskItem && manager.disk().isEmpty()) {
-            ItemStack inserted = held.copy();
-            inserted.setCount(1);
-            try {
-                manager.setDisk(inserted);
-            } catch (IllegalArgumentException tooLarge) {
-                player.displayClientMessage(PROGRAM_TOO_LARGE.getComponent(), true);
-                return InteractionResult.CONSUME;
-            }
-            if (!player.getAbilities().instabuild) held.shrink(1);
-        } else if (held.isEmpty() && !manager.disk().isEmpty()) {
-            ItemStack removed = manager.removeDisk();
-            if (!player.getInventory().add(removed)) {
-                player.drop(removed, false);
-            }
+        if (player instanceof ServerPlayer serverPlayer) {
+            NetworkHooks.openScreen(serverPlayer, manager,
+                    buf -> ca.teamdman.sfm.common.containermenu.ClientManagerContainerMenu.encode(manager, buf));
+            return InteractionResult.CONSUME;
         }
-        // The no-screen interaction deliberately cannot start a visual program.
-        // Only client-local consent approval can enable its render scheduler.
-        return InteractionResult.CONSUME;
+        return InteractionResult.PASS;
     }
 
     @Override

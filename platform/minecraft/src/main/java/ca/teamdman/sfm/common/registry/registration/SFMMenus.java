@@ -4,7 +4,9 @@ package ca.teamdman.sfm.common.registry.registration;
 import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.ClientRayCastHelpers;
 import ca.teamdman.sfm.common.blockentity.ManagerBlockEntity;
+import ca.teamdman.sfm.common.blockentity.ClientManagerBlockEntity;
 import ca.teamdman.sfm.common.blockentity.TestBarrelTankBlockEntity;
+import ca.teamdman.sfm.common.containermenu.ClientManagerContainerMenu;
 import ca.teamdman.sfm.common.containermenu.ManagerContainerMenu;
 import ca.teamdman.sfm.common.containermenu.TestBarrelTankContainerMenu;
 import ca.teamdman.sfm.common.registry.SFMDeferredRegister;
@@ -65,6 +67,33 @@ public class SFMMenus {
                             }
                         }
                     })
+    );
+
+    public static final SFMRegistryObject<MenuType<?>, MenuType<ClientManagerContainerMenu>> CLIENT_MANAGER = MENU_TYPES.register(
+            "client_manager",
+            () -> IForgeMenuType.create(
+                    new IContainerFactory<>() {
+                        @Override
+                        public ClientManagerContainerMenu create(
+                                int windowId,
+                                Inventory inv,
+                                FriendlyByteBuf data
+                        ) {
+                            return new ClientManagerContainerMenu(windowId, inv, data);
+                        }
+
+                        @Override
+                        public ClientManagerContainerMenu create(int windowId, Inventory inv) {
+                            if (SFMEnvironmentUtils.isClient()) {
+                                BlockEntity be = ClientRayCastHelpers.getLookBlockEntity();
+                                if (be instanceof ClientManagerBlockEntity manager) {
+                                    return new ClientManagerContainerMenu(windowId, inv, manager);
+                                }
+                            }
+                            return IContainerFactory.super.create(windowId, inv);
+                        }
+                    }
+            )
     );
 
     public static final SFMRegistryObject<MenuType<?>, MenuType<TestBarrelTankContainerMenu>> TEST_BARREL_TANK = MENU_TYPES.register(
