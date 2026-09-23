@@ -44,6 +44,7 @@ jobs:
         run: |
           python3 -B -m unittest discover -s containers/sfm -p test_verify.py -v
           bash containers/sfm/test_smoke.sh
+          bash containers/sfm/test_junit_diagnostics.sh
 
       - name: Verify software OpenGL inside the restricted container
         timeout-minutes: 3
@@ -153,6 +154,24 @@ jobs:
       - name: Run Java unit tests
         timeout-minutes: 15
         run: |
+          diagnostics_pid=''
+          stop_diagnostics() {
+            local status=$?
+            trap - EXIT
+            if [[ -n "$diagnostics_pid" ]]; then
+              if jobs -pr | grep -Fxq -- "$diagnostics_pid"; then
+                kill "$diagnostics_pid" 2>/dev/null || true
+              fi
+              wait "$diagnostics_pid" 2>/dev/null || true
+            fi
+            exit "$status"
+          }
+          trap stop_diagnostics EXIT
+          trap 'exit 130' INT
+          trap 'exit 143' TERM
+          bash containers/sfm/junit-diagnostics.sh build/ci/junit-diagnostics \
+            > build/ci/junit-diagnostics-watchdog.log 2>&1 &
+          diagnostics_pid=$!
           "$SFM_CI_CLI" --log-filter info --log-file build/ci/test.ndjson \
             test run --branch sfm-ci-checkout --java-home "$JAVA_HOME" \
             --require-portable-artifacts \
