@@ -136,6 +136,9 @@ public final class SFMLazyExplorerLoader {
         private final RequestEvidence evidence;
         private final SFMExplorerCancellationToken cancellation;
         private final CompletableFuture<LoadResult> completion;
+        // Guarded by this handle. Claim the result before releasing the monitor,
+        // but notify callbacks outside it: callbacks may acquire a session lock.
+        private boolean completionClaimed;
 
         private LoadHandle(
                 SFMChildRelationRepository.RefreshTicket ticket,
@@ -157,18 +160,25 @@ public final class SFMLazyExplorerLoader {
             return completion;
         }
 
-        public synchronized boolean cancel() {
-            if (completion.isDone()) return false;
-            boolean tokenChanged = cancellation.cancel();
-            boolean relationChanged = relations.cancel(ticket);
-            completion.complete(new LoadResult(
-                    evidence,
-                    LoadDisposition.CANCELLED,
-                    relations.snapshot(),
-                    Optional.empty(),
-                    Optional.of("request cancelled")
-            ));
-            return tokenChanged || relationChanged;
+        public boolean cancel() {
+            LoadResult result;
+            boolean changed;
+            synchronized (this) {
+                if (completionClaimed || completion.isDone()) return false;
+                boolean tokenChanged = cancellation.cancel();
+                boolean relationChanged = relations.cancel(ticket);
+                result = new LoadResult(
+                        evidence,
+                        LoadDisposition.CANCELLED,
+                        relations.snapshot(),
+                        Optional.empty(),
+                        Optional.of("request cancelled")
+                );
+                completionClaimed = true;
+                changed = tokenChanged || relationChanged;
+            }
+            completion.complete(result);
+            return changed;
         }
     }
 
@@ -648,14 +658,13 @@ public final class SFMLazyExplorerLoader {
             resolverCompletion.completeExceptionally(failure);
         }
         resolverCompletion.whenComplete((page, failure) -> schedulePublication(handle, () -> {
+            LoadResult result;
             synchronized (handle) {
-                if (completion.isDone()) return;
+                if (handle.completionClaimed || completion.isDone()) return;
                 Throwable cause = unwrap(failure);
                 if (cause != null) {
-                    completeFailure(handle, cause);
-                    return;
-                }
-                try {
+                    result = failureResultLocked(handle, cause);
+                } else try {
                     handle.cancellation.throwIfCancelled();
                     validatePage(request, page, resolver);
                     ArrayList<SFMChildEdge> edges = new ArrayList<>();
@@ -684,17 +693,19 @@ public final class SFMLazyExplorerLoader {
                             entryGeneration++;
                         }
                     }
-                    completion.complete(new LoadResult(
+                    result = new LoadResult(
                             evidence,
                             disposition,
                             published.snapshot(),
                             Optional.of(page),
                             Optional.empty()
-                    ));
+                    );
                 } catch (Throwable validationFailure) {
-                    completeFailure(handle, validationFailure);
+                    result = failureResultLocked(handle, validationFailure);
                 }
+                handle.completionClaimed = true;
             }
+            completion.complete(result);
         }));
         return handle;
     }
@@ -711,46 +722,52 @@ public final class SFMLazyExplorerLoader {
     }
 
     private void completeFailure(LoadHandle handle, Throwable failure) {
+        LoadResult result;
         synchronized (handle) {
-            if (handle.completion.isDone()) return;
-            Throwable cause = unwrap(failure);
-            if (cause instanceof CancellationException || handle.cancellation.isCancelled()) {
-                relations.cancel(handle.ticket);
-                handle.completion.complete(new LoadResult(
-                        handle.evidence,
-                        LoadDisposition.CANCELLED,
-                        relations.snapshot(),
-                        Optional.empty(),
-                        Optional.of("request cancelled")
-                ));
-                return;
-            }
-            if (cause instanceof SFMExplorerResolver.StaleGenerationException) {
-                relations.cancel(handle.ticket);
-                handle.completion.complete(new LoadResult(
-                        handle.evidence,
-                        LoadDisposition.STALE,
-                        relations.snapshot(),
-                        Optional.empty(),
-                        Optional.of(cause.getMessage())
-                ));
-                return;
-            }
-            String diagnostic = cause == null
-                    ? "resolver failed without an exception"
-                    : cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage());
-            SFMChildRelationRepository.PublishResult failed = relations.fail(handle.ticket, diagnostic);
-            LoadDisposition disposition = failed.disposition() == SFMChildRelationRepository.PublishDisposition.STALE
-                    ? LoadDisposition.STALE
-                    : LoadDisposition.FAILED;
-            handle.completion.complete(new LoadResult(
-                    handle.evidence,
-                    disposition,
-                    failed.snapshot(),
-                    Optional.empty(),
-                    Optional.of(diagnostic)
-            ));
+            if (handle.completionClaimed || handle.completion.isDone()) return;
+            result = failureResultLocked(handle, failure);
+            handle.completionClaimed = true;
         }
+        handle.completion.complete(result);
+    }
+
+    /** Selects the terminal relation state while the caller holds the handle monitor. */
+    private LoadResult failureResultLocked(LoadHandle handle, Throwable failure) {
+        Throwable cause = unwrap(failure);
+        if (cause instanceof CancellationException || handle.cancellation.isCancelled()) {
+            relations.cancel(handle.ticket);
+            return new LoadResult(
+                    handle.evidence,
+                    LoadDisposition.CANCELLED,
+                    relations.snapshot(),
+                    Optional.empty(),
+                    Optional.of("request cancelled")
+            );
+        }
+        if (cause instanceof SFMExplorerResolver.StaleGenerationException) {
+            relations.cancel(handle.ticket);
+            return new LoadResult(
+                    handle.evidence,
+                    LoadDisposition.STALE,
+                    relations.snapshot(),
+                    Optional.empty(),
+                    Optional.of(cause.getMessage())
+            );
+        }
+        String diagnostic = cause == null
+                ? "resolver failed without an exception"
+                : cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage());
+        SFMChildRelationRepository.PublishResult failed = relations.fail(handle.ticket, diagnostic);
+        LoadDisposition disposition = failed.disposition() == SFMChildRelationRepository.PublishDisposition.STALE
+                ? LoadDisposition.STALE
+                : LoadDisposition.FAILED;
+        return new LoadResult(
+                handle.evidence,
+                disposition,
+                failed.snapshot(),
+                Optional.empty(),
+                Optional.of(diagnostic)
+        );
     }
 
     private void publishFilterDomain(
