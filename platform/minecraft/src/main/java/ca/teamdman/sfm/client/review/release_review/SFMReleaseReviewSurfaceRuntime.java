@@ -234,8 +234,14 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
         if (reviewGeneration <= 0) throw new IllegalArgumentException("Review generation must be positive");
         cancellation.throwIfCancelled();
         String cacheKey = cacheKey(recipe);
-        CompletableFuture<GeneratedDocument> existing = cache.get(cacheKey);
-        if (existing != null) {
+        CompletableFuture<GeneratedDocument> existing;
+        while ((existing = cache.get(cacheKey)) != null) {
+            // A document callback can finish before the failed future's eviction
+            // callback runs. Never reuse that already-failed cache entry.
+            if (existing.isCompletedExceptionally()) {
+                cache.remove(cacheKey, existing);
+                continue;
+            }
             cacheHits.incrementAndGet();
             return existing;
         }
@@ -355,8 +361,13 @@ public final class SFMReleaseReviewSurfaceRuntime implements AutoCloseable {
                         "review.surface.transport-failed", "Review-surface process invocation failed", failure));
             }
         }, executor);
-        CompletableFuture<GeneratedDocument> raced = cache.putIfAbsent(cacheKey, created);
-        if (raced != null) {
+        while (true) {
+            CompletableFuture<GeneratedDocument> raced = cache.putIfAbsent(cacheKey, created);
+            if (raced == null) break;
+            if (raced.isCompletedExceptionally()) {
+                cache.remove(cacheKey, raced);
+                continue;
+            }
             created.cancel(false);
             cacheHits.incrementAndGet();
             return raced;

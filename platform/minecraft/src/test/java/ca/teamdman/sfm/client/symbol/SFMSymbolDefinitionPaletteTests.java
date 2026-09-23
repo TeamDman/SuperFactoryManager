@@ -33,6 +33,8 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 
+import static ca.teamdman.sfm.client.symbol.SFMJumpToDefinitionActionTests.fixtureAddress;
+import static ca.teamdman.sfm.client.symbol.SFMJumpToDefinitionActionTests.fixturePath;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -76,8 +78,8 @@ class SFMSymbolDefinitionPaletteTests {
 
     @Test
     void existingImmutableTargetIsFocusedAtExactRangeWithoutOpeningOrReplacing() {
-        SFMPath root = SFMPath.parse("file:///D:/workspace/src");
-        SFMPath target = SFMPath.parse("file:///D:/workspace/src/Target.java");
+        SFMPath root = SFMPath.parse(fixtureAddress("workspace/src"));
+        SFMPath target = SFMPath.parse(fixtureAddress("workspace/src/Target.java"));
         String text = "class Target {}\n";
         SFMDefinitionResult.Definition definition = SFMJumpToDefinitionActionTests.definition(
                 "example.Target", "Target.java", 6, "Target");
@@ -104,8 +106,8 @@ class SFMSymbolDefinitionPaletteTests {
 
     @Test
     void existingDeferredEditorAtomicallyPublishesTheNewExactRangeWithoutOpeningDuplicate() throws Exception {
-        SFMPath root = SFMPath.parse("file:///D:/workspace/src");
-        SFMPath target = SFMPath.parse("file:///D:/workspace/src/Target.java");
+        SFMPath root = SFMPath.parse(fixtureAddress("workspace/src"));
+        SFMPath target = SFMPath.parse(fixtureAddress("workspace/src/Target.java"));
         String text = "class Target {}\n";
         SFMTextDocumentRange originalRange = new SFMTextDocumentRange(
                 SFMTextDocumentRange.positionAtByteOffset(text, 0),
@@ -148,11 +150,11 @@ class SFMSymbolDefinitionPaletteTests {
 
     @Test
     void unseenDefinitionOpensAsATabInTheOriginatingPanelStack() {
-        SFMPath root = SFMPath.parse("file:///D:/workspace/src");
+        SFMPath root = SFMPath.parse(fixtureAddress("workspace/src"));
         SFMWorkspacePanelId sourcePanelId = new SFMWorkspacePanelId(1);
         TrackingDocumentPanel source = new TrackingDocumentPanel(snapshot(
                 "class Source {}\n",
-                SFMPath.parse("file:///D:/workspace/src/Source.java"),
+                SFMPath.parse(fixtureAddress("workspace/src/Source.java")),
                 root
         ));
         TrackingWorkspace workspace = new TrackingWorkspace(sourcePanelId, source);
@@ -211,22 +213,22 @@ class SFMSymbolDefinitionPaletteTests {
                 fileSpan.startByte(), fileSpan.endByte(), fileSpan.startLine(), fileSpan.startColumn(),
                 fileSpan.endLine(), fileSpan.endColumn()
         );
-        SFMPath authorizedRoot = SFMPath.parse("file:///D:/workspace/src");
+        SFMPath authorizedRoot = SFMPath.parse(fixtureAddress("workspace/src"));
 
         SFMPath target = SFMDefinitionNavigation.resolveTarget(
                 SFMPath.parse(workspaceSpan.address()), workspaceSpan, authorizedRoot);
 
-        assertEquals(SFMPath.parse("file:///D:/workspace/src/Target.java"), target);
+        assertEquals(SFMPath.parse(fixtureAddress("workspace/src/Target.java")), target);
     }
 
     @Test
     void definitionReadReusesOriginatingDocumentAuthorityWithoutGrantingWorkerRoot() {
-        SFMPath documentRoot = SFMPath.parse("file:///D:/workspace");
-        SFMPath analysisRoot = SFMPath.parse("file:///D:/workspace/src");
-        SFMPath target = SFMPath.parse("file:///D:/workspace/src/Target.java");
+        SFMPath documentRoot = SFMPath.parse(fixtureAddress("workspace"));
+        SFMPath analysisRoot = SFMPath.parse(fixtureAddress("workspace/src"));
+        SFMPath target = SFMPath.parse(fixtureAddress("workspace/src/Target.java"));
         TrackingDocumentPanel source = new TrackingDocumentPanel(snapshot(
                 "class Source {}\n",
-                SFMPath.parse("file:///D:/workspace/src/Source.java"),
+                SFMPath.parse(fixtureAddress("workspace/src/Source.java")),
                 documentRoot
         ));
 
@@ -236,18 +238,18 @@ class SFMSymbolDefinitionPaletteTests {
         );
         assertTrue(SFMDefinitionNavigation.sourceReadAuthority(
                 source,
-                SFMPath.parse("file:///D:/other/src"),
-                SFMPath.parse("file:///D:/other/src/Target.java")
+                SFMPath.parse(fixtureAddress("other/src")),
+                SFMPath.parse(fixtureAddress("other/src/Target.java"))
         ).isEmpty());
     }
 
     @Test
     void definitionReadUsesTheIntersectionOfNarrowResolverAndWorkerRoots() {
-        SFMPath analysisRoot = SFMPath.parse("file:///D:/workspace/src");
-        SFMPath packageGrant = SFMPath.parse("file:///D:/workspace/src/example");
+        SFMPath analysisRoot = SFMPath.parse(fixtureAddress("workspace/src"));
+        SFMPath packageGrant = SFMPath.parse(fixtureAddress("workspace/src/example"));
         TrackingDocumentPanel source = new TrackingDocumentPanel(snapshot(
                 "class Source {}\n",
-                SFMPath.parse("file:///D:/workspace/src/example/Source.java"),
+                SFMPath.parse(fixtureAddress("workspace/src/example/Source.java")),
                 packageGrant
         ));
 
@@ -256,13 +258,13 @@ class SFMSymbolDefinitionPaletteTests {
                 SFMDefinitionNavigation.sourceReadAuthority(
                         source,
                         analysisRoot,
-                        SFMPath.parse("file:///D:/workspace/src/example/Target.java")
+                        SFMPath.parse(fixtureAddress("workspace/src/example/Target.java"))
                 )
         );
         assertTrue(SFMDefinitionNavigation.sourceReadAuthority(
                 source,
                 analysisRoot,
-                SFMPath.parse("file:///D:/workspace/src/other/Target.java")
+                SFMPath.parse(fixtureAddress("workspace/src/other/Target.java"))
         ).isEmpty(), "the worker root must not broaden the originating resolver grant");
     }
 
@@ -283,10 +285,10 @@ class SFMSymbolDefinitionPaletteTests {
                 fileSpan.startByte(), fileSpan.endByte(), fileSpan.startLine(), fileSpan.startColumn(),
                 fileSpan.endLine(), fileSpan.endColumn()
         );
-        SFMPath managedRoot = SFMPath.parse("file:///D:/managed/forge");
+        SFMPath managedRoot = SFMPath.parse(fixtureAddress("managed/forge"));
 
         assertEquals(
-                SFMPath.parse("file:///D:/managed/forge/net/minecraftforge/ForgeType.java"),
+                SFMPath.parse(fixtureAddress("managed/forge/net/minecraftforge/ForgeType.java")),
                 SFMDefinitionNavigation.resolveTarget(
                         SFMPath.parse(dependencySpan.address()), dependencySpan, managedRoot)
         );
@@ -294,10 +296,10 @@ class SFMSymbolDefinitionPaletteTests {
 
     @Test
     void dependencyNavigationRetainsExactSemanticRootWhenPhysicalSourceTreeIsShared() {
-        SFMPath sharedRoot = SFMPath.parse("file:///D:/managed/forge/combined-deobfuscated.filetree");
+        SFMPath sharedRoot = SFMPath.parse(fixtureAddress("managed/forge/combined-deobfuscated.filetree"));
         SFMPath target = SFMPath.parse(
-                "file:///D:/managed/forge/combined-deobfuscated.filetree/"
-                        + "net/minecraft/network/chat/contents/TranslatableContents.java"
+                fixtureAddress("managed/forge/combined-deobfuscated.filetree/"
+                        + "net/minecraft/network/chat/contents/TranslatableContents.java")
         );
         String text = "class TranslatableContents {}\n";
         SFMDefinitionResult.SymbolIdentity symbol = new SFMDefinitionResult.SymbolIdentity(
@@ -392,7 +394,7 @@ class SFMSymbolDefinitionPaletteTests {
     void targetOutsideWorkerRootFailsBeforeAnyPanelMutation() {
         SFMDefinitionResult.Definition outside = SFMJumpToDefinitionActionTests.definitionAtAddress(
                 "example.Target",
-                "file:///D:/outside/Target.java",
+                fixtureAddress("outside/Target.java"),
                 "Target.java",
                 6,
                 "Target"
@@ -435,8 +437,8 @@ class SFMSymbolDefinitionPaletteTests {
 
     @Test
     void staleExistingPanelIsNotReusableAndTheAsynchronousSourceRetainsTheExactWitness() {
-        SFMPath root = SFMPath.parse("file:///D:/workspace/src");
-        SFMPath target = SFMPath.parse("file:///D:/workspace/src/Target.java");
+        SFMPath root = SFMPath.parse(fixtureAddress("workspace/src"));
+        SFMPath target = SFMPath.parse(fixtureAddress("workspace/src/Target.java"));
         String staleText = "class Target {}\n// stale panel\n";
         SFMDefinitionResult.Definition definition = SFMJumpToDefinitionActionTests.definition(
                 "example.Target", "Target.java", 6, "Target");
@@ -503,7 +505,7 @@ class SFMSymbolDefinitionPaletteTests {
                 new SFMSymbolServerProtocol.WorkspaceMetadata(
                         workspace,
                         List.of(new SFMSymbolServerProtocol.SourceRootMapping(
-                                "D:\\workspace\\src", "main", "main", "src"))
+                                fixturePath("workspace/src").toString(), "main", "main", "src"))
                 ),
                 "{}"
         );
@@ -526,15 +528,15 @@ class SFMSymbolDefinitionPaletteTests {
                         workspace,
                         List.of(
                                 new SFMSymbolServerProtocol.SourceRootMapping(
-                                        "D:\\workspace\\src", "main", "main", "src"),
+                                        fixturePath("workspace/src").toString(), "main", "main", "src"),
                                 new SFMSymbolServerProtocol.SourceRootMapping(
-                                        "D:\\cache\\jdk\\tree", "jdk-java-17-abc123",
+                                        fixturePath("cache/jdk/tree").toString(), "jdk-java-17-abc123",
                                         "jdk:java-17", "jdk/java-17/abc123")
                         ),
                         List.of(),
                         List.of(new SFMSymbolServerProtocol.ManagedSourceRootMapping(
                                 "jdk-source", "jdk-source", "jdk/java-17/abc123",
-                                "D:\\cache\\jdk\\tree", "jdk-java-17-abc123", "jdk:java-17",
+                                fixturePath("cache/jdk/tree").toString(), "jdk-java-17-abc123", "jdk:java-17",
                                 Optional.of("jdk/java-17/abc123"), Optional.empty()))
                 ),
                 "{}"
@@ -543,7 +545,7 @@ class SFMSymbolDefinitionPaletteTests {
 
     private static SFMSymbolServerProtocol.ServerHello helloWithSharedDependencyRoots() {
         SFMSymbolServerProtocol.ServerHello base = hello();
-        String shared = "D:\\managed\\forge\\combined-deobfuscated.filetree";
+        String shared = fixturePath("managed/forge/combined-deobfuscated.filetree").toString();
         return new SFMSymbolServerProtocol.ServerHello(
                 SFMSymbolServerProtocol.PROTOCOL_SCHEMA,
                 "sfm-symbol-server",

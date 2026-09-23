@@ -74,7 +74,7 @@ class SFMSymbolServerNavigationProviderTests {
         FakeSession mismatched = new FakeSession(0, frame -> {
             if (kind(frame).equals("hello")) {
                 JsonObject response = JsonParser.parseString(
-                        SFMSymbolServerProtocolTests.helloEnvelope(7, "D:/workspace/source", null, null)
+                        SFMSymbolServerProtocolTests.helloEnvelope(7, SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(), null, null)
                 ).getAsJsonObject();
                 response.getAsJsonObject("hello").addProperty("protocol_schema", "wrong");
                 mismatchedRef.get().send(response.toString());
@@ -102,7 +102,7 @@ class SFMSymbolServerNavigationProviderTests {
             String kind = kind(frame);
             if (kind.equals("hello")) {
                 sessionRef.get().send(SFMSymbolServerProtocolTests.helloEnvelope(
-                        7, "D:/workspace/source", null, null));
+                        7, SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(), null, null));
             } else if (kind.equals("definition")) {
                 requests.add(SFMDefinitionJsonCodec.decodeRequest(frame.get("request").toString()));
                 if (requests.size() == 2) {
@@ -135,7 +135,7 @@ class SFMSymbolServerNavigationProviderTests {
         FakeSession session = new FakeSession(1, frame -> {
             switch (kind(frame)) {
                 case "hello" -> sessionRef.get().send(SFMSymbolServerProtocolTests.helloEnvelope(
-                        7, "D:/workspace/source", null, null));
+                        7, SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(), null, null));
                 case "definition" -> {
                     definition.set(SFMDefinitionJsonCodec.decodeRequest(frame.get("request").toString()));
                     sendMixedResultsWhenReady(sessionRef.get(), definition.get(), usage.get());
@@ -232,7 +232,7 @@ class SFMSymbolServerNavigationProviderTests {
         FakeSession first = new FakeSession(0, frame -> {
             if (kind(frame).equals("hello")) {
                 firstRef.get().send(SFMSymbolServerProtocolTests.helloEnvelope(
-                        7, "D:/workspace/source", null, null));
+                        7, SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(), null, null));
             } else if (kind(frame).equals("definition")) {
                 firstRef.get().crash();
             }
@@ -319,7 +319,7 @@ class SFMSymbolServerNavigationProviderTests {
         FakeSession session = new FakeSession(0, frame -> {
             if (kind(frame).equals("hello")) {
                 sessionRef.get().send(SFMSymbolServerProtocolTests.helloEnvelope(
-                        7, "D:/workspace/source", null, null));
+                        7, SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(), null, null));
             } else if (kind(frame).equals("definition")) {
                 captured.set(SFMDefinitionJsonCodec.decodeRequest(frame.get("request").toString()));
             }
@@ -386,7 +386,7 @@ class SFMSymbolServerNavigationProviderTests {
         FakeSession session = new FakeSession(fragmentSize, frame -> {
             switch (kind(frame)) {
                 case "hello" -> reference.get().send(SFMSymbolServerProtocolTests.helloEnvelope(
-                        generation, "D:/workspace/source", null, null));
+                        generation, SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(), null, null));
                 case "definition" -> {
                     if (answerDefinitions) {
                         SFMDefinitionRequest request = SFMDefinitionJsonCodec.decodeRequest(
@@ -471,7 +471,7 @@ class SFMSymbolServerNavigationProviderTests {
 
     private static String workspaceAck(long generation, long cancelled) {
         JsonObject hello = JsonParser.parseString(SFMSymbolServerProtocolTests.helloEnvelope(
-                generation, "D:/workspace/source", null, null)).getAsJsonObject()
+                generation, SFMSymbolServerProtocolTests.fixturePath("workspace/source").toString(), null, null)).getAsJsonObject()
                 .getAsJsonObject("hello");
         JsonObject update = new JsonObject();
         update.add("workspace", hello.getAsJsonObject("workspace"));

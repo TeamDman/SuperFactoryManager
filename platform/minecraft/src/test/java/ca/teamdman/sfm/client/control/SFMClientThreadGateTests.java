@@ -51,8 +51,8 @@ class SFMClientThreadGateTests {
             clientThread.start();
             clientThread.join(Duration.ofSeconds(5).toMillis());
 
-            assertEquals(1, result.get(5, TimeUnit.SECONDS));
             observed.get(5, TimeUnit.SECONDS);
+            assertEquals(1, result.get(5, TimeUnit.SECONDS));
             assertEquals(1, calls.get());
             assertEquals("test-minecraft-client", workThread.get());
             assertEquals("test-control-worker", completionThread.get());

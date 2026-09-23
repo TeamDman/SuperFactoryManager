@@ -293,6 +293,7 @@ class SFMSyntaxServerHighlightProviderTests {
                 failure(supervisor.submit(request(21, 1, "class InvalidSchema {}" )).result())
         );
         assertEquals(1, supervisor.telemetry().protocolFailures());
+        await(() -> malformed.terminated.get());
         assertTrue(malformed.terminated.get());
         assertEquals(0, supervisor.telemetry().completed());
     }
@@ -398,6 +399,7 @@ class SFMSyntaxServerHighlightProviderTests {
                 failureWithin(supervisor.start(Duration.ofSeconds(1)))
         );
         assertEquals(1, supervisor.telemetry().transportFailures());
+        await(() -> silent.terminated.get());
         assertTrue(silent.terminated.get());
     }
 

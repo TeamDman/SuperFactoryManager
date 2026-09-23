@@ -7,6 +7,9 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Prevent Explorer refresh completion from deadlocking with closing or cancelling a session
+-- Retry failed release-review surface generation instead of reusing a failed cached result
+-- Prevent late Vox channel credit from disconnecting otherwise healthy game-control and terminal connections
 -- Repair release-branch rendering, input and identifier adapters through 26.1.2, and keep client GUI registrations out of dedicated-server startup
 -- Add real Just Dire Things and Mekanism GameTests demonstrating one-FE-gap downstream starvation and label-order/retention controls without changing production energy transfers
 -- Double the AE2/Mekanism fixture's netherite scrap pattern input without increasing its declared output, allowing for partial batches stranded across factories

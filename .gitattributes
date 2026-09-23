@@ -5,6 +5,9 @@
 **/src/generated/**/*.json text eol=lf
 docs/architecture/evidence/*.json text eol=lf
 
+# Canonical replay fixtures are compared byte-for-byte with the LF-only codec.
+platform/minecraft/src/test/resources/ca/teamdman/sfm/client/history/replay/*.json text eol=lf
+
 # This checked-in parser fixture deliberately exercises CRLF coordinates while
 # keeping the repository blob normalized for whitespace review.
 platform/cli/sfm-propagate-changes/tests/java_analysis/scenarios/definition_at_position_unicode_crlf/source/**/*.java text eol=crlf

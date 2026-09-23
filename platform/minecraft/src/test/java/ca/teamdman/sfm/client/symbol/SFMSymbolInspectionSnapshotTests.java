@@ -27,6 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMSymbolInspectionSnapshotTests {
+    private static final Path SOURCE_ROOT = Path.of("").toAbsolutePath().getRoot()
+            .resolve("sfm-symbol-inspection-fixture/src");
+    private static final Path SOURCE_FILE = SOURCE_ROOT.resolve("p/Use.java");
+
     @Test
     void unavailableBranchRetainsTruthfulReplayInputsWithoutInventingAVersion() {
         Fixture fixture = fixture("class A {}\n", 0, 6);
@@ -55,7 +59,7 @@ class SFMSymbolInspectionSnapshotTests {
         assertEquals("Missing", snapshot.region().selectedText());
         assertEquals("java-identifier", snapshot.region().semanticKind());
         assertEquals(fixture.document().currentSha256(), snapshot.document().currentSha256());
-        assertEquals("file:///D:/repo/src/p/Use.java", snapshot.document().address().orElseThrow());
+        assertEquals(SOURCE_FILE.toUri().toString(), snapshot.document().address().orElseThrow());
         assertEquals("p/Use.java", snapshot.document().rootRelativePath().orElseThrow());
         assertTrue(snapshot.replayCommand().contains("--source-path 'p/Use.java'"));
         assertTrue(snapshot.replayCommand().contains("--line 2 --column 5 --branch '1.19.2'"));
@@ -86,7 +90,7 @@ class SFMSymbolInspectionSnapshotTests {
                 fixture.document().currentSha256(),
                 fixture.point(),
                 new SFMSymbolInspectionSnapshot.DocumentEvidence(
-                        Optional.of("file:///D:/repo/src/p/Use.java"),
+                        Optional.of(SOURCE_FILE.toUri().toString()),
                         Optional.of("file"),
                         Optional.of("main-java"),
                         Optional.of("p/Use.java"),
@@ -259,7 +263,7 @@ class SFMSymbolInspectionSnapshotTests {
         return new SFMSymbolInspectionSnapshot.Outlink(
                 id,
                 relation,
-                Optional.of("file:///D:/repo/src/p/A.java"),
+                Optional.of(SOURCE_ROOT.resolve("p/A.java").toUri().toString()),
                 "sfm:java-symbol-index",
                 9,
                 "resolved",
@@ -271,8 +275,8 @@ class SFMSymbolInspectionSnapshotTests {
     }
 
     private static Fixture fixture(String text, int line, int column) {
-        SFMPath root = SFMPath.fromNative(Path.of("D:/repo/src"));
-        SFMPath path = SFMPath.fromNative(Path.of("D:/repo/src/p/Use.java"));
+        SFMPath root = SFMPath.fromNative(SOURCE_ROOT);
+        SFMPath path = SFMPath.fromNative(SOURCE_FILE);
         SFMTextDocumentSnapshot baseline = new SFMTextDocumentSnapshot(
                 SFMTextDocumentSnapshot.State.READY,
                 text,
