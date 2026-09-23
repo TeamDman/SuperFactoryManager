@@ -1,9 +1,9 @@
 # CI and container puppet experiment
 
-**Plan status:** Complete
+**Plan status:** CI and offline capture experiment complete; external control smoke planned
 **Primary implementation root:** branch `ci/1.19.2-container-puppet`, based on `707f53f4a`
-**Last updated:** 2026-09-19
-**Intent audit:** Passed against U1-U8, including the authorized Vox update
+**Last updated:** 2026-09-23
+**Intent audit:** Passed against U1-U9, including the authorized Vox update and local Podman capture question
 
 ## How to update this plan
 
@@ -24,13 +24,14 @@ implementation, container implementation, and integration/validation.
 | U6 | Existing game puppet manipulation and screenshot capture is likely the fixture. | Task 3: use the existing puppet; require its result and screenshot, not merely a successful process start. |
 | U7 | The user identified the existing 1.19.2 source checkout. | Task 1: confirmed `TeamDman/SuperFactoryManager`, branch `1.19.2`. Refer to this machine-varying path as `<existing-1.19.2-checkout>` in public notes. |
 | U8 | Continue on GitHub Actions if useful; Podman may be started locally. Update SFM to the new Vox build and publish it to the appropriate Teamy branch. | Task 2: publish a narrow Java-only Facet fix, pin exact source/hash, retain independent hosted verification and preserve busy integration work. |
+| U9 | Verify whether local Podman can run the game and produce puppet-captured images. | Task 3: inspect the local Podman smoke receipt, raw game logs, PNGs, graphics diagnostics and runtime isolation. |
 
 ## Intent audit evidence
 
-- Extraction: reread the initial request and recorded build verification, branch/worktree constraints, uncertain local Docker installation, Discord isolation purpose, graphics/Kubernetes question, existing puppet, and source checkout as U1-U7.
-- Traceability: every requirement maps to a task and evidence; Docker images and workflow plumbing are reversible implementation choices within the requested experiment.
-- Adversarial omission: preserved the future nature of the help bot and possible Kubernetes deployment; neither is represented as already deployed. The busy checkout remains outside the implementation working directory.
-- Source limitation: none.
+- Extraction: reread the initial request and follow-ups as U1-U9, including the explicit local Podman capture question and authorization for the new Vox Java build. The separate coordination request asks for a bounded external-control next slice and an integration-needs report.
+- Traceability: U1-U8 have hosted workflow, artifact, local or container evidence in Tasks 1-4; U9 has a saved local Podman receipt, raw game logs and 11 PNGs in Task 3. Task 5 scopes the next authenticated control smoke without claiming it is implemented.
+- Adversarial omission: the local smoke used an earlier source revision; current-head hosted checks are separate evidence. Neither a local control client, Discord broker nor Kubernetes job has been exercised. The busy checkout remains outside this implementation worktree.
+- Source limitation: the busy checkout's exact JBRSDK17 pin is known from a separate workstream; this branch's hosted jobs select Java explicitly and do not validate that no-override pin.
 
 ## Foundation and constraints
 
@@ -38,6 +39,14 @@ The original checkout was clean at `707f53f4a`; its origin and remote default
 branch are `TeamDman/SuperFactoryManager` and `1.19.2`. There is no checked-in
 Actions workflow at the base. GitHub Actions is enabled. The isolated worktree
 uses branch `ci/1.19.2-container-puppet`.
+
+The canonical `1.19.2` checkout has since advanced and contains active work,
+including an exact Windows-x64 JBRSDK17 17.0.14 b1367.22 pin. Do not copy its
+uncommitted files or merge this experiment into it as part of the control smoke.
+The feature branch's Linux, Windows and container workflows pass explicit
+`--java-home` paths; their green results do not validate that canonical
+no-override Java selection path. Reconcile the pin only at an authorized
+integration boundary.
 
 `docs/AGENTS.md` requires the Rust `sfm-propagate-changes` tool rather than
 Gradle. Its commands own compilation, JUnit, packaging, game launches and
@@ -64,6 +73,11 @@ application records. WSL reports uninstalled. Podman CLI 6.0.2 is installed but
 has no machine or connection; its server connection fails. Therefore use
 GitHub-hosted Linux Docker for the experiment without requiring a host reboot
 or changing OS virtualization configuration.
+
+**Later local update (2026-09-23):** Podman was installed and its WSL machine
+started. A locally built image completed the restricted game/puppet smoke in
+Task 3. The original runtime survey above is retained as historical context,
+not the current machine state.
 
 **Validation:** `git status --short --branch`, `git worktree list`, `gh auth
 status`, `gh workflow list`, `wsl --status`, `podman version`, `podman machine
@@ -189,6 +203,21 @@ instead of the authoritative child-process log. The raw completion marker must
 be checked in that child log, with fresh copies per puppet. Offline restricted
 execution is still a separate, pending check.
 
+**Current-head acceptance (2026-09-23):** Five subsequent commits added a local
+Podman smoke path, tightened CI worker termination and JUnit stall diagnostics,
+and fixed client-gate/explorer completion races. At `5dbbaeae9`, [Linux PR
+run 35910210143](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35910210143)
+and [Linux push run 35910203076](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35910203076)
+each passed native build/test/package, graphics isolation, and the full offline
+game. Their JUnit reports each show 2,081 passed, zero failed, one skipped and
+six optional aborts. [Windows PR run 35910210189](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35910210189)
+and [Windows push run 35910203095](https://github.com/TeamDman/SuperFactoryManager/actions/runs/35910203095)
+each passed build/test/package with 2,082 passed, zero failed, zero skipped and
+six optional aborts. Both full-game jobs uploaded 11 verified PNGs. All eight
+checks on [draft PR #617](https://github.com/TeamDman/SuperFactoryManager/pull/617)
+are green; the PR remains open and unmerged. [Facet draft PR
+#2](https://github.com/TeamDman/facet/pull/2) likewise remains open and unmerged.
+
 **Acceptance complete:** Both operating systems independently rebuilt the exact
 published Vox pin, passed canonical JUnit and packaged the mod. No source-test
 bypass, arbitrary cached JAR or hash relaxation was used.
@@ -222,6 +251,28 @@ The first orbit image has incomplete geometry; later views show the full SFM
 fixture. This is an observed capture-readiness limitation for the future bot,
 not evidence of a production screenshot-quality guarantee. An external Vox
 control smoke test and the Discord broker remain future integration work.
+
+**Local Podman acceptance (2026-09-23):** After the user's Podman installation,
+the local smoke built an image from source `01b239124` and ran both puppets in
+separate restricted containers. The saved receipt at
+`build/podman-smoke-20260923-02/verification.json` reports success and three
+title plus eight orbit PNGs. Raw game logs show
+`SFM_GAME_PUPPET_COMPLETE failed=0 total=1` for each puppet; the orbit log also
+shows `move_1_stack_direct passed! (910ms)`. The 11 PNGs exist on disk, and a
+later orbit frame visibly contains the full fixture. `glxinfo.txt` reports
+Mesa llvmpipe OpenGL 4.5. `podman-inspect.json` reports exit 0, no OOM kill,
+network `none`, read-only root, UID 10001, 8 GiB memory, four CPUs, 512 PIDs
+and no-new-privileges; `isolation.txt` confirms no capabilities and seccomp
+filtering. The disposable containers and volumes were removed after the run.
+This proves local Podman can run the game and produce puppet screenshots at
+that recorded source revision; the later head is validated by hosted Docker,
+not by this local receipt.
+
+**Local networking check:** A disposable Podman container on its default
+network fetched `https://example.com` with HTTP 200. With `--network none`, DNS
+resolution timed out and a direct-IP connection to `1.1.1.1:80` failed
+immediately. These are observed live probes, not a separate saved artifact;
+the game worker's saved inspection independently records `NetworkMode:none`.
 
 **Earlier checkpoint:** Run `35462847488` built the distributable mod and ran
 both real puppets during Docker image preparation, generating three title and
@@ -293,6 +344,15 @@ not deployed. Future worker work includes external Vox-control verification,
 capture readiness, broker/input/output boundaries, storage quotas and stronger
 sandboxing for arbitrary executable inputs.
 
+The 2026-09-23 handoff distinguishes a completed offline screenshot fixture
+from a live control session. The existing CLI discovers per-instance descriptors
+under its local application-data directory and authenticates to the game's
+random loopback control port. A companion CLI must share the game's network
+namespace and descriptor directory; a published host port cannot reach that
+loopback listener by itself. The current smoke wrapper launches puppets
+synchronously and exits, so it does not yet provide a bounded readiness window
+for an external control command.
+
 **Work:** Document exact tested commands, evidence and limitations. Describe a
 Discord broker/job boundary and Kubernetes translation, with ephemeral jobs,
 resource limits, private loopback puppet control, separate bot credentials,
@@ -306,6 +366,40 @@ process state. Do not publish release artifacts or deploy Discord/Kubernetes.
 **Completion criteria:** A fresh operator can repeat the verified experiment
 and identify the remaining production decisions.
 
+## [ ] 5. Exercise authenticated control inside one disposable game worker
+
+**Scope:** One local Podman control smoke using the existing `sfm` CLI and one
+trusted offline game image. This is the next bounded container/help-bot slice,
+not Discord deployment. Use a single worker and keep the CLI in that worker's
+network namespace with access to the same ephemeral instance-descriptor
+directory. Preserve `--network none`, nonroot execution, read-only root,
+resource/time bounds and no host credentials or game-control port publication.
+
+**Work:** First establish a deterministic point where the game is live and the
+control descriptor has appeared; the current synchronous puppet wrapper may
+need a narrow readiness barrier or test-only live window. Then invoke `sfm
+instance list` and one allowlisted client action through the authenticated
+loopback channel while the game runs. Wait for a visually ready capture rather
+than treating the first orbit frame as a finished result. Return only a bounded
+redacted receipt and selected screenshot; remove the container, writable state
+and descriptor on exit or timeout. Do not broaden the control API unless this
+smoke demonstrates a specific gap.
+
+**Validation:** First repeat the existing baseline from Git Bash with
+`SFM_CONTAINER_ENGINE=podman bash containers/sfm/smoke.sh sfm-ci:local
+<fresh-artifact-directory>` after
+building the current image per `containers/sfm/README.md`. For the new smoke,
+require one live descriptor and responsive authenticated discovery, a successful
+allowlisted control result, a nonempty late/ready screenshot, and inspection of
+the same isolation settings. Verify a missing/invalid descriptor or token fails
+without exposing credentials in logs. Once the local version passes, run it in
+hosted Docker CI at an exact source revision; record both receipts separately.
+
+**Completion criteria:** A reproducible command and evidence show that the
+external CLI can control a running offline game and select a ready capture
+inside the disposable worker. A precise first failing layer is acceptable
+evidence if the existing game or CLI lifecycle needs a separate API change.
+
 ## Risks and acceptance boundaries
 
 | Risk | Guardrail |
@@ -315,29 +409,37 @@ and identify the remaining production decisions.
 | Game can execute terminal commands | No broker credentials or host access; finite disposable worker; stronger VM boundary for hostile workloads. |
 | Cold build exhausts runner or time | Stage caches and record per-layer diagnostics with bounded jobs. |
 | Branch workflow or credential permissions prevent remote execution | Record exact GitHub error; complete concrete local files before requesting any required account action. |
+| A green explicit-Java CI run is mistaken for canonical JBR pin validation | Keep the Java-selection paths distinct; reconcile the canonical lock at authorized integration and test its no-override path there. |
+| The live control CLI cannot see the game's loopback port or descriptor | Run it in the same worker network namespace and ephemeral descriptor directory; prove authenticated discovery before any bot wiring. |
+| The first captured frame is visually incomplete | Check capture readiness and select a later verified frame before returning help output. |
 
 ## Operational readiness
 
-- Target: `ci/1.19.2-container-puppet`, base `707f53f4a`.
+- Target: `ci/1.19.2-container-puppet`, base `707f53f4a`; current verified
+  implementation head `5dbbaeae9` (before this plan update).
 - Tooling source changes: portable serialized-path conversion in `jar_build/json_path.rs`.
 - Installer: `platform/cli/sfm-propagate-changes/install.ps1` completed successfully with locked offline acquisition. Installed command reports `10967aefc`; SHA-256 `95095EB678494595B6B40C7E37A1B155F2AB17EA713931235A111035ED82D5EF`. Its source subtree `d3785ff480719c67f1574efa5bfede644e653d93` is identical at `d7e22e73e`. User install required: no. CI builds its own executable from each event revision.
 - Dependency posture: mutable only for the explicitly authorized Vox Java update
   described above; all other project dependencies remain frozen.
 - New developer/reference clones: none.
-- Process preflight: no local game launch or process termination is planned; hosted workers own their test processes.
+- Process preflight: the local Podman smoke launched two containerized clients
+  and completed cleanup. The next control smoke will launch one disposable
+  containerized game worker.
 - Tool freshness was rechecked after diagnostic commit `e8318d2f0`: the installed
   version/hash and current Rust subtree still match the values above.
 - Dependency declarations and lockfiles: only the five Vox source/hash fields
   described in Task 2 changed. The canonical source build generated the new JAR;
   the busy checkout's artifact cache was not overwritten.
-- Original checkout: still clean on `1.19.2` at `707f53f4a` when rechecked after
-  the candidate diagnostic was prepared.
+- Original checkout: clean at `707f53f4a` during the initial survey, now busy
+  with separate canonical work including a validated JBRSDK17 pin; no files
+  from it were copied into this isolated branch.
 - Cache rehydration: hosted runners acquired checked-in locked dependencies;
   diagnostics materialized only the exact pinned Facet commit in disposable
   source directories. Their candidate source is never a mod-build input.
-- Process state: no local Minecraft instance was launched. The successful hosted
-  jobs finished and own/clean up their workers and test processes. No task-owned
-  local Minecraft, Cargo or helper process remains running.
+- Process state: local Minecraft ran only inside disposable Podman containers.
+  The containers and anonymous volumes were removed after the smoke; a later
+  `podman ps -a` showed no retained containers. Hosted jobs also finished and
+  cleaned up their workers.
 - Exact manual graphics check: from the worktree root on a Linux Docker host,
   use the two commands under `containers/sfm/README.md` / "Run the independent
   graphics probe". Expect `GRAPHICS_PROBE_PASSED renderer=llvmpipe`.
@@ -347,6 +449,14 @@ and identify the remaining production decisions.
   build/container-smoke`. Use a fresh artifact directory on each run. Expect
   `passed: true`, three title captures, eight orbit captures, two successful
   raw JVM completion markers, and the stated restrictions in Docker inspection.
-- Runtime scope: the experiment ran on GitHub-hosted Linux Docker; no local
-  container engine was required or configured. Discord and Kubernetes
-  remain design handoffs, not deployed services.
+- Exact local Podman fixture commands from Git Bash: `podman build --ignorefile
+  containers/sfm/Dockerfile.dockerignore --build-arg
+  SFM_SOURCE_REVISION="$(git rev-parse HEAD)" -f containers/sfm/Dockerfile
+  -t sfm-ci:local .`, then `SFM_CONTAINER_ENGINE=podman bash
+  containers/sfm/smoke.sh sfm-ci:local build/container-smoke-podman` with a
+  fresh destination. This uses the explicit empty `notmpcopyup` temporary
+  mounts documented in `containers/sfm/README.md`.
+- Runtime scope: GitHub-hosted Linux Docker and local Podman both ran the game
+  and captured screenshots. The local receipt covers `01b239124`; the hosted
+  green checks cover `5dbbaeae9`. Authenticated external control, Discord and
+  Kubernetes remain untested integration work, not deployed services.
