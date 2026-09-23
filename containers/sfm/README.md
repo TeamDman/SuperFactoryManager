@@ -18,6 +18,16 @@ The raw game logs report both puppet completions and
 manifest checks and decoded during artifact inspection. Runtime inspection
 confirmed the restrictions below, exit 0 and no OOM kill.
 
+Local Podman 6.0.2 on a rootless WSL machine also passed at source
+`01b2391247f8e67df2c94984b8e0f9acdfbc3931` on 2026-09-23. A default-network
+container resolved DNS and fetched HTTPS; `--network none` blocked DNS and
+direct-IP egress. The isolated graphics probe reported Mesa llvmpipe and OpenGL
+4.5. The disposable offline game worker passed both puppets, produced three
+title and eight orbit PNGs, and logged `move_1_stack_direct passed!`. Its
+verification receipt passed, its process exited 0 without an OOM kill, and
+Podman removed the container and anonymous workspace volume. The settled title
+and final orbit screenshots were also visually inspected.
+
 The first orbit image catches incomplete geometry while later views show the
 complete fixture. A help worker needs a visual-readiness check before selecting
 an image to return. This experiment proves game execution and screenshot capture;
@@ -33,6 +43,20 @@ docker run --rm --network none --read-only --cap-drop ALL \
   --security-opt no-new-privileges:true --pids-limit 128 --memory 1g --cpus 2 \
   --tmpfs /tmp:rw,exec,nosuid,nodev,size=128m,mode=1777 \
   --tmpfs /home/sfm:rw,nosuid,nodev,size=16m,uid=10001,gid=10001,mode=700 \
+  sfm-graphics:local
+```
+
+With Podman, use its explicit ignore file and empty temporary mounts:
+
+```bash
+podman build --ignorefile containers/sfm/Dockerfile.dockerignore \
+  --target graphics-probe -f containers/sfm/Dockerfile -t sfm-graphics:local .
+podman run --rm --network none --read-only --read-only-tmpfs=false \
+  --cap-drop ALL --security-opt no-new-privileges:true \
+  --pids-limit 128 --memory 1g --cpus 2 \
+  --tmpfs /dev/shm:rw,nosuid,nodev,noexec,size=256m,mode=1777,notmpcopyup \
+  --tmpfs /tmp:rw,exec,nosuid,nodev,size=128m,mode=1777,notmpcopyup \
+  --tmpfs /home/sfm:rw,nosuid,nodev,size=16m,mode=1777,notmpcopyup \
   sfm-graphics:local
 ```
 
@@ -54,6 +78,30 @@ docker build --build-arg SFM_SOURCE_REVISION="$(git rev-parse HEAD)" \
   -f containers/sfm/Dockerfile -t sfm-ci:local .
 bash containers/sfm/smoke.sh sfm-ci:local build/container-smoke
 ```
+
+Docker is the default engine. To use a running Linux Podman backend, build with
+the explicit ignore file and select Podman for the same runtime checks:
+
+```bash
+podman build --ignorefile containers/sfm/Dockerfile.dockerignore \
+  --build-arg SFM_SOURCE_REVISION="$(git rev-parse HEAD)" \
+  -f containers/sfm/Dockerfile -t sfm-ci:local .
+SFM_CONTAINER_ENGINE=podman bash containers/sfm/smoke.sh sfm-ci:local build/container-smoke-podman
+```
+
+Podman mode disables its automatic writable temporary mounts and explicitly adds
+the bounded shared-memory mount. Its 128 MiB home tmpfs uses sticky permissions
+(`mode=1777`) because the remote mount parser rejects `uid`/`gid` options;
+Docker retains its UID-owned `mode=700` home. Network, privilege, resource,
+timeout, and completion requirements stay enabled. The selected backend must support those
+restrictions. [Podman build ignore files](https://docs.podman.io/en/latest/markdown/podman-build.1.html#containerignore-dockerignore),
+[Podman read-only mounts](https://docs.podman.io/en/latest/markdown/podman-create.1.html#read-only-tmpfs).
+
+Podman uses `notmpcopyup` for `/tmp`, `/home/sfm`, and `/dev/shm` so those bounded
+temporary mounts start empty. Its default copy-up filled the 512 MiB `/tmp` mount
+with source-build leftovers from the image, causing `crun: write: No space left
+on device` before startup despite ample free host disk space.
+[Podman tmpfs copy-up](https://docs.podman.io/en/latest/markdown/podman-create.1.html#tmpfs-fs).
 
 The image prepares public dependencies and builds with the canonical Rust
 `sfm-propagate-changes` tool. It runs `title_screen_capture` and
@@ -102,9 +150,9 @@ Evidence is copied to `build/container-smoke` even when the game fails:
   `previews/` with the existing SFM HTML preview, manifest, and screenshots.
   Completion is verified against the raw JVM log; the CLI reports only progress
   when its output is piped.
-- `docker.log`: container launch and failure diagnostics.
+- `docker.log` (or `podman.log`): container launch and failure diagnostics.
 - `verification.json`, `exit-code.txt`, and `source-revision.txt`: result and input.
-- `docker-inspect.json`: the container configuration and final process status.
+- `docker-inspect.json` (or `podman-inspect.json`): container configuration and final process status.
 
 Game-instance descriptors and the home directory are excluded because they can
 contain authentication tokens. A failed image build has no runtime container to
@@ -115,7 +163,7 @@ cannot reproduce the locked hash must fail rather than use a host-only cache.
 ## Isolation boundary
 
 The smoke script runs as UID 10001 with no Linux capabilities, no privilege
-escalation, Docker's seccomp filter, no external network interfaces, a read-only
+escalation, the engine's seccomp filter, no external network interfaces, a read-only
 root filesystem, and explicit CPU, memory, PID, and wall-time limits. It exposes
 no ports and mounts neither host directories nor the Docker socket. A fresh
 anonymous volume receives the image's prepared workspace; it is removed with the
