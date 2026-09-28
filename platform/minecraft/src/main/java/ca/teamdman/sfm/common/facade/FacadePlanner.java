@@ -81,16 +81,12 @@ public class FacadePlanner {
                 )),
                 renderBlock.defaultBlockState()
         );
-        FacadeTransparency facadeTransparency = renderBlockState.isSolidRender()
-                                                ? FacadeTransparency.OPAQUE
-                                                : FacadeTransparency.TRANSLUCENT;
         return new ApplyFacadesFacadePlan(
                 new FacadeData(
                         renderBlockState,
                         msg.hitResult().getDirection(),
                         FacadeTextureMode.FILL
                 ),
-                facadeTransparency,
                 getPositions(level, msg, hitPos, hitBlock)
         );
     }
@@ -119,7 +115,7 @@ public class FacadePlanner {
                             .filter(cablePos -> {
                                 if (
                                         level.getBlockEntity(cablePos) instanceof IFacadeBlockEntity otherFacadeBlockEntity
-                                        && otherFacadeBlockEntity.getClass().equals(existingFacadeBlockEntityClass)
+                                                && otherFacadeBlockEntity.getClass().equals(existingFacadeBlockEntityClass)
                                 ) {
                                     return Objects.equals(otherFacadeBlockEntity.getFacadeData(), existingFacadeData);
                                 } else {
@@ -155,7 +151,7 @@ public class FacadePlanner {
                                             }
                                             if (
                                                     level.getBlockEntity(neighbour) instanceof IFacadeBlockEntity otherCableFacadeBlockEntity
-                                                    && otherCableFacadeBlockEntity.getClass().equals(existingFacadeBlockEntityClass)
+                                                            && otherCableFacadeBlockEntity.getClass().equals(existingFacadeBlockEntityClass)
                                             ) {
                                                 FacadeData otherFacadeData = otherCableFacadeBlockEntity.getFacadeData();
                                                 return Objects.equals(otherFacadeData, existingFacadeData);

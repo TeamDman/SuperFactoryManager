@@ -1,6 +1,5 @@
 package ca.teamdman.sfm.common.block;
 
-import ca.teamdman.sfm.common.facade.FacadeTransparency;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import ca.teamdman.sfm.common.registry.registration.SFMBlockEntities;
@@ -14,7 +13,6 @@ import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.LightBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.Nullable;
@@ -30,13 +28,7 @@ public class ToughFancyCableFacadeBlock extends FancyCableFacadeBlock implements
     );
 
     public ToughFancyCableFacadeBlock(Properties properties) {
-
         super(properties);
-        registerDefaultState(
-                defaultBlockState()
-                        .setValue(FacadeTransparency.FACADE_TRANSPARENCY_PROPERTY, FacadeTransparency.TRANSLUCENT)
-                        .setValue(LightBlock.LEVEL, 0)
-        );
     }
 
     @Override

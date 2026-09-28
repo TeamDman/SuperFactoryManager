@@ -75,7 +75,7 @@ public class FancyCableBlock extends CableBlock implements IFacadableBlock, Simp
 
     public FancyCableBlock(Properties properties) {
 
-        super(properties);
+        super(properties.noOcclusion());
         registerDefaultState(
                 defaultBlockState()
                         .setValue(WATERLOGGED, false)

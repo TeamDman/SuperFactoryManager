@@ -9,3 +9,9 @@ ca/teamdman/sfm/common/resourcetype/GasResourceType.java
 ca/teamdman/sfm/common/resourcetype/InfuseResourceType.java
 ca/teamdman/sfm/common/resourcetype/PigmentResourceType.java
 ca/teamdman/sfm/common/resourcetype/SlurryResourceType.java
+
+ca/teamdman/sfm/common/compat/SFMMekanismCompat.java
+ca/teamdman/sfm/common/resourcetype/ChemicalResourceType.java
+ca/teamdman/sfm/common/program/linting/compat/mekanism/MekanismSidednessProgramLinter.java
+
+ca/teamdman/sfm/common/capability/CauldronBlockCapabilityProvider.java
