@@ -4,6 +4,7 @@ use super::SymbolIndexCommand;
 use super::SymbolListArgs;
 use super::SymbolListUsagesArgs;
 use super::SymbolMoveArgs;
+use super::SymbolProjectListArgs;
 use super::SymbolRenameArgs;
 use super::SymbolServeArgs;
 use super::SymbolShowDefinitionArgs;
@@ -58,6 +59,8 @@ pub enum SymbolCommand {
     ListUsages(SymbolListUsagesArgs),
     /// Enumerate symbols, optionally filtering exact selectors with `*` and `?`.
     List(SymbolListArgs),
+    /// Enumerate projected Java declarations in one generated Gradle root.
+    ProjectList(SymbolProjectListArgs),
     /// Inspect or refresh the immutable dependency symbol index.
     Index(SymbolIndexArgs),
     /// Serve framed definition-at-position requests over stdin/stdout.
@@ -91,6 +94,7 @@ impl SymbolCommand {
             Self::ShowDefinition(args) => args.invoke_in(cancellation_token, invocation_dir),
             Self::ListUsages(args) => args.invoke_in(cancellation_token, invocation_dir),
             Self::List(args) => args.invoke_in(cancellation_token, invocation_dir),
+            Self::ProjectList(args) => args.invoke_in(cancellation_token, invocation_dir),
             Self::Index(args) => args.invoke_in(cancellation_token, invocation_dir),
             Self::Serve(args) => args.invoke_in(cancellation_token, invocation_dir),
             Self::Rename(args) => args.invoke(),

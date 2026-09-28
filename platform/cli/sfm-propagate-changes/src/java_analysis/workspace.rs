@@ -13,6 +13,7 @@ use crate::cli::jar::BranchSelector;
 use crate::java_source_catalog::CatalogJavaSourceRootKind;
 use crate::java_source_catalog::JAVA_SOURCE_CATALOG;
 use crate::java_source_catalog::JavaSourceCatalog;
+use crate::java_source_catalog::JavaSourceRootDeclaration;
 use crate::toolchain_lockfile_schema::read_current;
 use crate::toolchain_lockfile_schema::read_profile_source_excludes;
 use eyre::Context as _;
@@ -129,6 +130,100 @@ impl JavaSourceWorkspace {
                 .then(left.source_set.cmp(&right.source_set))
         });
         Ok(workspace)
+    }
+
+    /// Collect Java sources from one generated standalone Gradle
+    /// root without selecting a version branch or resolving dependencies.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the projection manifest, Java toolchain, or
+    /// projected source roots cannot be read.
+    pub fn resolve_generated_project(project_root: &Path) -> eyre::Result<Self> {
+        let project_root = dunce::canonicalize(project_root).wrap_err_with(|| {
+            format!(
+                "Failed to resolve generated project root {}",
+                project_root.display()
+            )
+        })?;
+        let manifest_path = project_root.join(".sfm-source-projection-manifest.json");
+        let manifest_text = std::fs::read_to_string(&manifest_path).wrap_err_with(|| {
+            format!(
+                "Failed to read generated project manifest {}",
+                manifest_path.display()
+            )
+        })?;
+        let manifest =
+            crate::source_projection::provenance::ProjectionProvenance::from_json(&manifest_text)
+                .wrap_err_with(|| {
+                format!(
+                    "Invalid generated project manifest {}",
+                    manifest_path.display()
+                )
+            })?;
+        eyre::ensure!(
+            project_root.join("settings.gradle").is_file(),
+            "Generated project root {} has no settings.gradle",
+            project_root.display(),
+        );
+        let minecraft_version = manifest.minecraft_version;
+        let java_release = read_java_release(&project_root, &minecraft_version)?;
+        let catalog = JAVA_SOURCE_CATALOG;
+        catalog.validate()?;
+
+        let mut exclusions = Vec::new();
+        let mut excludes_by_set = BTreeMap::new();
+        // The project has already applied feature projection. Only its
+        // version-specific source exclusions still constrain this inventory.
+        for source_set in catalog.source_sets {
+            let excludes =
+                read_version_source_excludes(&project_root, &minecraft_version, source_set.id)?;
+            exclusions.extend(excludes.iter().map(|path| JavaSourceExclusionOutput {
+                source_set: source_set.id.to_owned(),
+                path: path.clone(),
+                origin: "version-source-excludes".to_owned(),
+            }));
+            excludes_by_set.insert(source_set.id.to_owned(), excludes);
+        }
+        let mut roots = Vec::new();
+        let mut root_authorities = Vec::new();
+        let mut files = Vec::new();
+        collect_catalog_roots_with_resolver(
+            catalog,
+            &project_root,
+            &excludes_by_set,
+            &mut roots,
+            &mut root_authorities,
+            &mut files,
+            |declaration| {
+                if declaration.id == "generated-antlr-main" {
+                    project_root.join("build/generated-src/antlr/main")
+                } else {
+                    declaration.resolve(&project_root)
+                }
+            },
+        )?;
+        deduplicate_files(&mut files)?;
+        root_authorities.sort_by(|left, right| left.root_id.cmp(&right.root_id));
+        let context = context(
+            &format!("project:{}", manifest.target_id),
+            &minecraft_version,
+            &java_release,
+            roots,
+            declared_source_set_outputs(catalog),
+            exclusions,
+            JavaClasspathMode::Isolated,
+            fingerprint(["isolated"]),
+            &files,
+        );
+        Ok(Self {
+            context,
+            root_authorities,
+            files,
+            diagnostics: Vec::new(),
+            classpath_entries: Vec::new(),
+            jdk_sources: JdkSourceDomainState::Disabled,
+        })
     }
 
     #[must_use]
@@ -396,9 +491,29 @@ fn collect_catalog_roots(
     root_authorities: &mut Vec<JavaSourceRootAuthority>,
     files: &mut Vec<JavaSourceFile>,
 ) -> eyre::Result<()> {
+    collect_catalog_roots_with_resolver(
+        catalog,
+        worktree,
+        excludes_by_set,
+        roots,
+        root_authorities,
+        files,
+        |declaration| declaration.resolve(minecraft_dir),
+    )
+}
+
+fn collect_catalog_roots_with_resolver(
+    catalog: JavaSourceCatalog,
+    report_base: &Path,
+    excludes_by_set: &BTreeMap<String, Vec<String>>,
+    roots: &mut Vec<JavaSourceRootOutput>,
+    root_authorities: &mut Vec<JavaSourceRootAuthority>,
+    files: &mut Vec<JavaSourceFile>,
+    resolve_root: impl Fn(JavaSourceRootDeclaration) -> PathBuf,
+) -> eyre::Result<()> {
     for declaration in catalog.roots {
-        let root = declaration.resolve(minecraft_dir);
-        let report_root_path = worktree_relative(worktree, &root);
+        let root = resolve_root(*declaration);
+        let report_root_path = worktree_relative(report_base, &root);
         root_authorities.push(JavaSourceRootAuthority {
             root_id: declaration.id.to_owned(),
             source_set: declaration.source_set.to_owned(),
@@ -422,7 +537,7 @@ fn collect_catalog_roots(
             .map_or(&[][..], Vec::as_slice);
         collect_files(
             &root,
-            worktree,
+            report_base,
             declaration.id,
             declaration.source_set,
             excludes,
@@ -852,6 +967,101 @@ fn fingerprint(values: impl IntoIterator<Item = impl AsRef<str>>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::java_analysis::JavaSymbolGlob;
+    use crate::java_analysis::JavaSymbolIndex;
+    use crate::source_projection::provenance::ProjectionProvenance;
+
+    #[test]
+    fn generated_project_workspace_lists_projected_symbols_without_branch_context() {
+        let temporary = tempfile::tempdir().expect("temporary generated project");
+        let project_root = temporary.path().join("mc-version/1.21.0");
+        let main_root = project_root.join("src/main/java/example");
+        let test_root = project_root.join("src/test/java/example");
+        let antlr_root = project_root.join("build/generated-src/antlr/main/example");
+        let toolchain_root = project_root.join("gradle/java-toolchain/1.21");
+        std::fs::create_dir_all(&main_root).expect("main source root");
+        std::fs::create_dir_all(&test_root).expect("test source root");
+        std::fs::create_dir_all(&antlr_root).expect("generated ANTLR source root");
+        std::fs::create_dir_all(&toolchain_root).expect("Java toolchain directory");
+        std::fs::write(
+            project_root.join("settings.gradle"),
+            "rootProject.name = 'sfm'\n",
+        )
+        .expect("Gradle settings");
+        let provenance =
+            ProjectionProvenance::new("1.21.0", "1.21", "released-4.34.0", "blake3:test");
+        std::fs::write(
+            project_root.join(".sfm-source-projection-manifest.json"),
+            provenance.to_json().expect("projection manifest JSON"),
+        )
+        .expect("projection manifest");
+        std::fs::write(
+            toolchain_root.join("java-toolchain.gradle"),
+            "JavaLanguageVersion.of(21)\n",
+        )
+        .expect("Java release declaration");
+        std::fs::write(
+            main_root.join("Example.java"),
+            "package example; public class Example { public int value; }",
+        )
+        .expect("main Java source");
+        std::fs::write(
+            main_root.join("Skip.java"),
+            "package example; public class Skip {}",
+        )
+        .expect("excluded Java source");
+        std::fs::write(
+            test_root.join("ExampleTest.java"),
+            "package example; public class ExampleTest {}",
+        )
+        .expect("test Java source");
+        std::fs::write(
+            antlr_root.join("GeneratedLexer.java"),
+            "package example; public class GeneratedLexer {}",
+        )
+        .expect("generated ANTLR Java source");
+        let excludes_path = project_root.join("gradle/source-excludes/1.21/main-java.txt");
+        std::fs::create_dir_all(excludes_path.parent().expect("excludes parent"))
+            .expect("source excludes directory");
+        std::fs::write(excludes_path, "example/Skip.java\n").expect("version source excludes");
+
+        let workspace = JavaSourceWorkspace::resolve_generated_project(&project_root)
+            .expect("generated workspace");
+        assert_eq!(workspace.context.branch, "project:1.21.0");
+        assert_eq!(workspace.context.minecraft_version, "1.21");
+        assert_eq!(workspace.context.java_release, "21");
+        assert_eq!(
+            workspace.context.classpath_mode,
+            JavaClasspathMode::Isolated
+        );
+        assert!(workspace.classpath_entries.is_empty());
+        assert!(workspace.context.source_roots.iter().any(|root| {
+            root.id == "generated-antlr-main"
+                && root.path == "build/generated-src/antlr/main"
+                && root.exists
+        }));
+        assert_eq!(workspace.files.len(), 3);
+        assert_eq!(
+            workspace
+                .files
+                .iter()
+                .map(|file| file.report_path.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "build/generated-src/antlr/main/example/GeneratedLexer.java",
+                "src/main/java/example/Example.java",
+                "src/test/java/example/ExampleTest.java",
+            ]
+        );
+        let report = JavaSymbolIndex::build_definitions(&workspace)
+            .expect("projected Java declarations")
+            .list(&JavaSymbolGlob::new(Some("example.Example".to_owned())));
+        assert_eq!(report.definitions.len(), 1);
+        assert_eq!(
+            report.definitions[0].symbol.canonical_selector(),
+            "example.Example"
+        );
+    }
 
     #[test]
     fn java_analysis_workspace_visibility_is_directed() {
