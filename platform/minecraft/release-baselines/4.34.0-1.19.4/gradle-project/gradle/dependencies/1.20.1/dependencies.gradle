@@ -1,0 +1,66 @@
+dependencies {
+    // Specify the version of Minecraft to use.
+    // Any artifact can be supplied so long as it has a "userdev" classifier artifact and is a compatible patcher artifact.
+    // The "userdev" classifier will be requested and setup by ForgeGradle.
+    // If the group id is "net.minecraft" and the artifact id is one of ["client", "server", "joined"],
+    // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
+    minecraft "net.neoforged:forge:${minecraft_version}-${neo_version}"
+
+    // Apply Mixin AP
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    // Example mod dependency with JEI - using fg.deobf() ensures the dependency is remapped to your development mappings
+    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
+    // compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
+    // compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge-api:${jei_version}")
+    // runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
+
+    // Example mod dependency using a mod jar from ./libs with a flat dir repository
+    // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
+    // The group id is ignored when searching -- in this case, it is "blank"
+    // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
+
+    // For more info:
+    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
+    antlr 'org.antlr:antlr4:4.9.1'
+    testImplementation 'com.github.javaparser:javaparser-symbol-solver-core:3.26.4'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+
+    // https://github.com/ollama4j/ollama4j
+//    jarJar(implementation("io.github.ollama4j:ollama4j")) {
+//        version {
+//            strictly "[1.0.100]"
+//        }
+//    }
+
+    // add benchmarking dependencies
+    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    testImplementation 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+    testImplementation 'org.openjdk.jmh:jmh-generator-bytecode:1.37'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+
+    runtimeOnly fg.deobf("curse.maven:the-one-probe-245211:4629624") //TheOneProbe - 1.20.1-10.0.1
+
+    runtimeOnly fg.deobf("curse.maven:ftb-chunks-314906:5378090") //ftb-chunks-forge-2001.3.1.jar
+    runtimeOnly fg.deobf("curse.maven:architectury-api-419699:5137938") //[Forge 1.20(.1)] v9.2.14
+    runtimeOnly fg.deobf("curse.maven:ftb-library-forge-404465:5364190") //ftb-library-forge-2001.2.2.jar
+    runtimeOnly fg.deobf("curse.maven:ftb-ranks-forge-314905:4596742") //ftb-ranks-forge-2001.1.3.jar
+    runtimeOnly fg.deobf("curse.maven:ftb-teams-forge-404468:5267190") //ftb-teams-forge-2001.3.0.jar
+
+    // These are for testing BiggerReactors to deduce problems with capabilities not being invalidated.
+    // The power plug for the reactor was not working in programs after logging out and in on a server.
+    // These are commented out because they cause problems with runData.
+//    runtimeOnly fg.deobf("curse.maven:bigger-reactors-407780:4883087") //biggerreactors-1.20.1-0.6.0-beta.10.4.jar
+//    runtimeOnly fg.deobf("curse.maven:phosphophyllite-412551:5122727") //phosphophyllite-1.20.1-0.7.0-alpha.0.1.jar
+//    runtimeOnly fg.deobf("curse.maven:quartz-552262:5122746") //quartz-1.20.1-0.2.0-alpha.0.1.jar
+
+
+    compileOnly fg.deobf('mezz.jei:jei-1.20.1-forge:15.12.3.54')
+    runtimeOnly fg.deobf('mezz.jei:jei-1.20.1-forge:15.12.3.54')
+
+    implementation fg.deobf("curse.maven:mekanism-268560:4807067") //Mekanism-1.20.1-10.4.2.16.jar
+    implementation "mekanism:Mekanism:1.20.1-10.4.2.16:api"
+}

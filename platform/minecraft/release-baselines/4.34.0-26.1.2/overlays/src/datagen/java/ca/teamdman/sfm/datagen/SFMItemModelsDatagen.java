@@ -1,0 +1,84 @@
+package ca.teamdman.sfm.datagen;
+
+import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.common.registry.SFMRegistryObject;
+import ca.teamdman.sfm.common.registry.registration.SFMItems;
+import ca.teamdman.sfm.datagen.version_plumbing.MCVersionAgnosticItemModelsDataGen;
+import net.minecraft.client.data.models.ItemModelGenerators;
+import net.minecraft.client.data.models.model.ModelTemplates;
+import net.minecraft.data.PackOutput;
+import net.minecraft.world.item.Item;
+
+public class SFMItemModelsDatagen extends MCVersionAgnosticItemModelsDataGen {
+    public SFMItemModelsDatagen(
+            PackOutput output
+    ) {
+        super(output, SFM.MOD_ID);
+    }
+
+
+    @Override
+    protected void populate(ItemModelGenerators itemModels) {
+//        justParent(SFMItems.MANAGER, SFMBlocks.MANAGER);
+//        justParent(SFMItems.TUNNELLED_MANAGER, SFMBlocks.TUNNELLED_MANAGER);
+//        justParent(SFMItems.CABLE, SFMBlocks.CABLE);
+//        justParent(SFMItems.FANCY_CABLE, SFMBlocks.FANCY_CABLE, "_core");
+//
+//        // Tough cable models
+//        justParent(SFMItems.TOUGH_CABLE, SFMBlocks.TOUGH_CABLE);
+//        justParent(SFMItems.TOUGH_FANCY_CABLE, SFMBlocks.TOUGH_FANCY_CABLE, "_core");
+//
+//        // Tunnelled cable models
+//        justParent(SFMItems.TUNNELLED_CABLE, SFMBlocks.TUNNELLED_CABLE);
+//        justParent(SFMItems.TUNNELLED_FANCY_CABLE, SFMBlocks.TUNNELLED_FANCY_CABLE, "_core");
+//
+//        justParent(SFMItems.PRINTING_PRESS, SFMBlocks.PRINTING_PRESS);
+//        justParent(SFMItems.WATER_TANK, SFMBlocks.WATER_TANK, "_active");
+//        justParent(SFMItems.BUFFER, SFMBlocks.BUFFER_BLOCK, "_item");
+        basicItem(itemModels, SFMItems.DISK);
+        basicItem(itemModels, SFMItems.LABEL_GUN);
+        basicItem(itemModels, SFMItems.EXPERIENCE_GOOP);
+        basicItem(itemModels, SFMItems.EXPERIENCE_SHARD);
+        basicItem(itemModels, SFMItems.NETWORK_TOOL);
+
+        // force custom renderer
+        basicItem(itemModels, SFMItems.FORM);
+//        getBuilder(SFMItems.FORM)
+//                .parent(new ModelFile.UncheckedModelFile("builtin/entity"))
+//                .guiLight(BlockModel.GuiLight.FRONT);
+//        getBuilder("form_base")
+//                .parent(new ModelFile.UncheckedModelFile("item/generated"))
+//                .texture("layer0", modLoc("item/form"));
+    }
+
+/*    @SuppressWarnings({"OptionalGetWithoutIsPresent", "SameParameterValue"})
+    private ItemModelBuilder getBuilder(SFMRegistryObject<Item, ? extends Item> item) {
+        ResourceKey<? extends Item> resourceKey = item.getId().get();
+        return getBuilder(resourceKey.identifier()().toString());
+    }
+
+    private void justParent(
+            SFMRegistryObject<Item, ? extends Item> item,
+            SFMRegistryObject<Block, ? extends Block> block
+    ) {
+        justParent(item, block, "");
+    }
+
+    private void justParent(
+            SFMRegistryObject<Item,? extends Item> item,
+            SFMRegistryObject<Block, ? extends Block> block,
+            String extra
+    ) {
+        withExistingParent(
+                block.getPath(),
+                SFM.MOD_ID + ":block/" + item.getPath() + extra
+        );
+    }*/
+
+    private void basicItem(
+            ItemModelGenerators itemModels,
+            SFMRegistryObject<Item, ? extends Item> item
+    ) {
+        itemModels.generateFlatItem(item.get(), ModelTemplates.FLAT_ITEM);
+    }
+}

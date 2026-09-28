@@ -1,0 +1,36 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "R": {
+      "item": "minecraft:redstone_block"
+    },
+    "a": {
+      "tag": "forge:dyes/red"
+    },
+    "b": {
+      "tag": "forge:dyes/green"
+    },
+    "c": {
+      "tag": "forge:dyes/blue"
+    },
+    "d": {
+      "item": "minecraft:repeater"
+    },
+    "e": {
+      "item": "minecraft:redstone"
+    },
+    "p": {
+      "item": "minecraft:paper"
+    }
+  },
+  "pattern": [
+    "pbp",
+    "aRc",
+    "ede"
+  ],
+  "result": {
+    "item": "sfm:disk"
+  },
+  "show_notification": true
+}

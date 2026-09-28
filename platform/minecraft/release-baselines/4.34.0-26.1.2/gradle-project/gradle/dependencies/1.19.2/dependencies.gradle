@@ -1,0 +1,167 @@
+dependencies {
+    // Specify the version of Minecraft to use.
+    // Any artifact can be supplied so long as it has a "userdev" classifier artifact and is a compatible patcher artifact.
+    // The "userdev" classifier will be requested and setup by ForgeGradle.
+    // If the group id is "net.minecraft" and the artifact id is one of ["client", "server", "joined"],
+    // then special handling is done to allow a setup of a vanilla dependency without the use of an external repository.
+    //noinspection VulnerableLibrariesLocal
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${neo_version}"
+
+    // Apply Mixin AP
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+
+    // Example mod dependency with JEI - using fg.deobf() ensures the dependency is remapped to your development mappings
+    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
+    // compileOnly fg.deobf("mezz.jei:jei-${mc_version}-common-api:${jei_version}")
+    // compileOnly fg.deobf("mezz.jei:jei-${mc_version}-forge-api:${jei_version}")
+    // runtimeOnly fg.deobf("mezz.jei:jei-${mc_version}-forge:${jei_version}")
+
+    // Example mod dependency using a mod jar from ./libs with a flat dir repository
+    // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
+    // The group id is ignored when searching -- in this case, it is "blank"
+    // implementation fg.deobf("blank:coolmod-${mc_version}:${coolmod_version}")
+
+    // For more info:
+    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
+    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+
+    antlr 'org.antlr:antlr4:4.9.1'
+    testImplementation 'com.github.javaparser:javaparser-symbol-solver-core:3.26.4'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+
+    // https://github.com/ollama4j/ollama4j
+//    jarJar(implementation("io.github.ollama4j:ollama4j")) {
+//        version {
+//            strictly "[1.0.100]"
+//        }
+//    }
+
+    // add benchmarking dependencies
+    testImplementation 'org.openjdk.jmh:jmh-core:1.37'
+    testImplementation 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+    testImplementation 'org.openjdk.jmh:jmh-generator-bytecode:1.37'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+
+    runtimeOnly fg.deobf("curse.maven:the-one-probe-245211:3927520") //TheOneProbe - 1.19-6.2.1
+
+    compileOnly fg.deobf('mezz.jei:jei-1.19.2-forge:11.6.0.1018')
+    runtimeOnly fg.deobf('mezz.jei:jei-1.19.2-forge:11.6.0.1018')
+//    runtimeOnly fg.deobf("curse.maven:jei-238222:3944627") //jei-1.19.2-forge-11.2.0.256.jar
+
+
+    runtimeOnly fg.deobf("curse.maven:powah-633483:4729361") // [FORGE 1.19.2] v4.0.11
+    runtimeOnly fg.deobf("curse.maven:cloth-config-348521:4973444") // [Forge 1.19-1.19.2] v8.3.115
+
+    runtimeOnly fg.deobf("curse.maven:ato-405593:4046926") // alltheores-2.0.2-1.19.2-43.1.3.jar
+
+    // https://www.curseforge.com/minecraft/mc-mods/tool-kit/files/3933949
+    runtimeOnly fg.deobf("curse.maven:tool-kit-324888:3933949")
+
+    runtimeOnly fg.deobf("curse.maven:ftb-library-404465:4661834") // ftb-library-forge-1902.4.1-build.236.jar
+    runtimeOnly fg.deobf("curse.maven:architectury-api-419699:5137942") // [Forge 1.19.2] v6.6.92
+
+//    https://www.curseforge.com/minecraft/mc-mods/ex-pattern-provider/files/5250574
+    runtimeOnly fg.deobf("curse.maven:ex-pattern-provider-892005:5250574") // ExtendedAE-1.19-0.2.2-forge.jar
+
+
+    // was causing issues on runServer when joining
+//    runtimeOnly fg.deobf("curse.maven:toast-control-271740:4028343") // ToastControl-1.19.2-7.0.0.jar
+//    runtimeOnly fg.deobf("curse.maven:placebo-283644:5180198") // Placebo-1.19.2-7.4.0.jar
+
+
+def runningRunData = gradle.startParameter.taskNames.any { it.toLowerCase().contains('rundata') }
+if (!runningRunData) {
+    // Mouse Tweaks crashes in datagen (accesses Minecraft instance during mod init).
+    // Avoid adding it to the classpath when running `runData`.
+    runtimeOnly fg.deobf("curse.maven:mouse-tweaks-60089:3871353") // [1.19+] Mouse Tweaks 2.23 Forge
+}
+
+    runtimeOnly fg.deobf("curse.maven:inventory-essentials-368825:4751198")
+    // inventoryessentials-forge-1.19.2-5.4.0.jar
+    runtimeOnly fg.deobf("curse.maven:balm-531761:4751735") // balm-forge-1.19.2-4.6.0.jar
+
+    runtimeOnly fg.deobf("curse.maven:construction-wand-399558:4455719") // constructionwand-1.19.2-2.10.jar
+    runtimeOnly fg.deobf("curse.maven:worldedit-225608:3922622") // WorldEdit 7.2.12 (Forge/Fabric for MC 1.19.2)
+
+    // disable because the seed recipes don't work in phyto without additional scripts
+//    runtimeOnly fg.deobf("curse.maven:mystical-agriculture-246640:5225677") // MysticalAgriculture-1.19.2-6.0.14.jar
+//    runtimeOnly fg.deobf("curse.maven:cucumber-272335:4773184") // Cucumber-1.19.2-6.0.10.jar
+
+    gametestImplementation fg.deobf("com.teamcofh:cofh_core:1.19.2-10.2.0.+")
+    runtimeOnly fg.deobf("com.teamcofh:cofh_core:1.19.2-10.2.0.+")
+
+    gametestImplementation fg.deobf("com.teamcofh:thermal_core:1.19.2-10.2.0.+")
+    runtimeOnly fg.deobf("com.teamcofh:thermal_core:1.19.2-10.2.0.+")
+
+    gametestImplementation fg.deobf("com.teamcofh:thermal_expansion:1.19.2-10.2.0.+")
+    runtimeOnly fg.deobf("com.teamcofh:thermal_expansion:1.19.2-10.2.0.+")
+
+    implementation fg.deobf("appeng:appliedenergistics2-forge:12.9.9")
+    compileOnly fg.deobf("appeng:appliedenergistics2-forge:12.9.9:api")
+
+
+    // don't use cursemaven for CoFH since the maven gives better IDE inspections
+//    // https://legacy.curseforge.com/minecraft/mc-mods/thermal-foundation/files/4382373
+//    // thermal_foundation-1.19.2-10.2.0.47.jar
+//    gametestImplementation fg.deobf("curse.maven:thermal-foundation-222880:4382373")
+//    runtimeOnly fg.deobf("curse.maven:thermal-foundation-222880:4382373")
+//
+//    // https://legacy.curseforge.com/minecraft/mc-mods/thermal-expansion/files/4382371
+//    // thermal_expansion-1.19.2-10.2.0.21.jar
+//    gametestImplementation fg.deobf("curse.maven:thermal-expansion-69163:4382371")
+//    runtimeOnly fg.deobf("curse.maven:thermal-expansion-69163:4382371")
+//
+//    // https://legacy.curseforge.com/minecraft/mc-mods/cofh-core/files
+//    // cofh_core-1.19.2-10.2.1.40.jar
+//    gametestImplementation fg.deobf("curse.maven:cofh-core-69162:4385216")
+//    runtimeOnly fg.deobf("curse.maven:cofh-core-69162:4385216")
+
+    runtimeOnly fg.deobf("curse.maven:titanium-287342:4152837") //titanium-1.19.2-3.7.1-24.jar
+    runtimeOnly fg.deobf("curse.maven:patchouli-306770:4031402") //Patchouli-1.19.2-77.jar
+    runtimeOnly fg.deobf("curse.maven:industrial-foregoing-266515:4459182")// industrial-foregoing-1.19.2-3.3.2.3-5.jar
+    gametestImplementation fg.deobf("curse.maven:industrial-foregoing-266515:4459182")
+    gametestImplementation fg.deobf("curse.maven:titanium-287342:4152837") //titanium-1.19.2-3.7.1-24.jar
+    gametestImplementation fg.deobf("curse.maven:patchouli-306770:4031402") //Patchouli-1.19.2-77.jar
+
+    implementation fg.deobf("curse.maven:mekanism-268560:4644795") //Mekanism-1.19.2-10.3.9.13.jar
+    implementation "mekanism:Mekanism:1.19.2-10.3.8.477:api"
+
+    // https://legacy.curseforge.com/minecraft/mc-mods/sophisticated-core/files/4503931
+    // sophisticatedcore-1.19.2-0.5.51.251.jar
+    gametestImplementation fg.deobf("curse.maven:sophisticated-core-618298:4503931")
+    runtimeOnly fg.deobf("curse.maven:sophisticated-core-618298:4503931")
+
+    // https://www.curseforge.com/minecraft/mc-mods/sophisticated-storage/files/4503929
+    // sophisticatedstorage-1.19.2-0.6.29.335.jar
+    gametestImplementation fg.deobf("curse.maven:sophisticated-storage-619320:4503929")
+    runtimeOnly fg.deobf("curse.maven:sophisticated-storage-619320:4503929")
+
+    runtimeOnly fg.deobf("curse.maven:extreme-sound-muffler-363363:4821189")
+    // Extreme sound muffler 3.39 - Forge 1.19.2
+
+    implementation fg.deobf("curse.maven:botania-225643:5608807") // Botania-1.19.2-440.2-FORGE.jar
+    implementation fg.deobf("curse.maven:ars-nouveau-401955:5171729") // ars_nouveau-1.19.2-3.23.0.jar
+    implementation fg.deobf("curse.maven:curios-309927:5494603") // curios-forge-1.19.2-5.1.6.3.jar
+
+    implementation fg.deobf("curse.maven:flux-networks-248020:4620438") // Flux-Networks-1.19.2-7.1.4
+    implementation fg.deobf("curse.maven:project-e-226410:4860858") // ProjectE-1.19.2-PE1.1.0.jar
+
+
+    implementation fg.deobf("curse.maven:dank-storage-335673:4395369") // dankstorage-1.19.2-5.1.6.jar
+
+    runtimeOnly fg.deobf("curse.maven:tinkers-construct-74072:6044827") // Tinkers' Construct 3.8.5.58 for 1.19.2
+    runtimeOnly fg.deobf("curse.maven:mantle-74924:6044700") // Mantle 1.10.48 for 1.19.2
+
+    runtimeOnly fg.deobf("curse.maven:sodium-394468:3957319")// Sodium 0.4.4+mc1.19.2
+
+//    runtimeOnly fg.deobf("curse.maven:borderless-window-378979:3906414")// Borderless Window 1.19.3 // doesn't work :P
+
+    runtimeOnly fg.deobf("curse.maven:quark-243121:4812006")// Quark-3.4-418.jar
+    runtimeOnly fg.deobf("curse.maven:AutoRegLib-250363:4100299")// AutoRegLib-1.8.2-55.jar
+
+    runtimeOnly fg.deobf("curse.maven:ok-zoomer-631278:4081277")// okzoomer-forge-1.19-2.1.1.jar
+
+
+
+}

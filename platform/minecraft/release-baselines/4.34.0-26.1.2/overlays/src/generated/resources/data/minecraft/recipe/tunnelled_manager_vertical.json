@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "B": "#c:dyes/black",
+    "C": "#minecraft:signs",
+    "L": "#c:dyes/blue",
+    "S": "#c:rods/wooden"
+  },
+  "pattern": [
+    " LC",
+    " SB",
+    "S  "
+  ],
+  "result": {
+    "id": "sfm:labelgun"
+  }
+}

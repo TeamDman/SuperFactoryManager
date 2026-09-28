@@ -1,0 +1,33 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "a": {
+      "item": "minecraft:anvil"
+    },
+    "g": {
+      "item": "minecraft:iron_bars"
+    },
+    "i": {
+      "tag": "c:dyes/black"
+    },
+    "p": {
+      "item": "minecraft:light_weighted_pressure_plate"
+    },
+    "s": {
+      "item": "minecraft:stone"
+    },
+    "x": {
+      "item": "minecraft:piston"
+    }
+  },
+  "pattern": [
+    "pip",
+    "sas",
+    "gxg"
+  ],
+  "result": {
+    "count": 1,
+    "id": "sfm:printing_press"
+  }
+}
