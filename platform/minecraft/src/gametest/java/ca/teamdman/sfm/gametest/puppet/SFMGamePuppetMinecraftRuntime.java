@@ -96,6 +96,11 @@ final class SFMGamePuppetMinecraftRuntime implements ISFMGamePuppetRuntime {
     }
 
     @Override
+    public String puppetWorldId() {
+        return active.worldId;
+    }
+
+    @Override
     @MCVersionDependentBehaviour
     public boolean createFreshFlatWorld() {
 

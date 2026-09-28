@@ -37,6 +37,16 @@ public final class SFMGamePuppetHelper {
         add(new CreateFreshWorldPuppetAction());
     }
 
+    /** Leaves the puppet-owned save and loads it again through vanilla world opening. */
+    public void rejoinCurrentWorld() {
+        add(new RejoinCurrentWorldPuppetAction());
+    }
+
+    /** Recharges real Mekanism cubes after rejoin and compares direct versus tunnelled delivery. */
+    public void assertMekanismTunnelEnergyAfterRejoin() {
+        add(new AssertMekanismTunnelEnergyAfterRejoinPuppetAction());
+    }
+
     /** Publishes the current integrated world to LAN through the real server API. */
     public void publishIntegratedServerToLan() {
         add(new PublishIntegratedServerToLanPuppetAction());

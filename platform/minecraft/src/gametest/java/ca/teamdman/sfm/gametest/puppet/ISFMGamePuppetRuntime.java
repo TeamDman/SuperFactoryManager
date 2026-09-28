@@ -14,6 +14,9 @@ import java.util.List;
 public interface ISFMGamePuppetRuntime {
     boolean createFreshFlatWorld();
 
+    /** Identifier of this puppet's disposable save, for an actual leave/rejoin probe. */
+    String puppetWorldId();
+
     /** Publishes the owned integrated server to LAN and waits for the live state transition. */
     boolean publishIntegratedServerToLan();
 

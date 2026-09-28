@@ -22,3 +22,5 @@ idea . # open intellij in the cwd
 Changes are generally performed on the 1.19.2 branch and changes get forward propagate by daisy chaining git merges from the the old branches into the new ones.
 
 You may ping me on [Discord](https://discord.gg/5mbUY3mu6m) if you have any questions.
+
+If you are reporting a bug rather than contributing code, the [issue-reporting guide](REPORTING_ISSUES.md) explains which environment details and small comparison tests help us reproduce it.

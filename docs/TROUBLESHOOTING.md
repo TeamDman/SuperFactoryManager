@@ -1,5 +1,7 @@
 # Troubleshooting
 
+For players reporting a problem, see [Reporting an SFM problem](REPORTING_ISSUES.md). The notes below are primarily for development-environment troubleshooting.
+
 ## Problem 1 - Catch type is not a subclass of Throwable in exception handler 47
 
 Story: I had this problem on 2024-11-14.
