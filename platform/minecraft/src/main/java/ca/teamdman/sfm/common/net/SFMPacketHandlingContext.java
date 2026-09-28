@@ -112,6 +112,21 @@ public class SFMPacketHandlingContext {
             return;
         }
 
+        if (!menu.stillValid(sender)) {
+            SFM.LOGGER.warn(
+                    "Invalid packet received from {}: menu is no longer valid",
+                    sender.getName().getString()
+            );
+            return;
+        }
+        if (menu instanceof ManagerContainerMenu managerMenu && !managerMenu.MANAGER_POSITION.equals(pos)) {
+            SFM.LOGGER.warn(
+                    "Invalid packet received from {}: target does not match open manager",
+                    sender.getName().getString()
+            );
+            return;
+        }
+
         var level = SFMEntityUtils.getLevel(sender);
         //noinspection ConstantValue
         if (level == null) {
