@@ -72,9 +72,9 @@
     }
   ],
   "presets": [
-    {"id":"current-development-pilot","targets":["1.19.2"],"enabled_features":["echo_action","touch_display_terminal_mount"],"identity":"blake3:6a5df91a9c4d96f9d680d80a848990f5c1a468c324cedef209fd1d7bc1085885"},
-    {"id":"current-development-no-echo","targets":["1.19.2"],"enabled_features":["touch_display_terminal_mount"],"identity":"blake3:777b92b08d76fb8b7df1bfa0d269cde36b0b3d2120ded783882e946db99bb6d8"},
-    {"id":"current-development-no-touch-terminal","targets":["1.19.2"],"enabled_features":["echo_action"],"identity":"blake3:c450f372535b519822c398c41fd88c4e0c3bcc334d81d2e6c2f9254d795088e3"},
+    {"id":"current-development-pilot","targets":["1.19.2"],"enabled_features":["echo_action","touch_display_terminal_mount"],"canonical_project_fixture_provenance_sha256":"538e540e5e4b37a99a598ca7844843e9735efd5762ae92aed8733a1739ad5816","identity":"blake3:51144bbbb04556faa905363a2b6f2430dcbf93088d5a3c8b3441a95e75cf11aa"},
+    {"id":"current-development-no-echo","targets":["1.19.2"],"enabled_features":["touch_display_terminal_mount"],"canonical_project_fixture_provenance_sha256":"538e540e5e4b37a99a598ca7844843e9735efd5762ae92aed8733a1739ad5816","identity":"blake3:f4e21c8a763ad8b6ee5a841f07ef59aad777f989e9e8b9ac175fbedd827daeeb"},
+    {"id":"current-development-no-touch-terminal","targets":["1.19.2"],"enabled_features":["echo_action"],"canonical_project_fixture_provenance_sha256":"538e540e5e4b37a99a598ca7844843e9735efd5762ae92aed8733a1739ad5816","identity":"blake3:0f0b347cc418b69d90c04e6b9c756f138130c6f605ea7221fe41cb539fb0ec21"},
     {
       "id":"current-development-head-1.19.4",
       "targets":["1.19.4"],

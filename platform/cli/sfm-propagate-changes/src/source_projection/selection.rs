@@ -1,11 +1,13 @@
 //! Resolve a validated target and preset to concrete source-selection rules.
 
-use std::collections::{BTreeMap, BTreeSet};
-
-use eyre::{Result, ensure};
-
 use super::context::ProjectionContext;
-use super::manifest::{PathEffectKind, ReleaseBaselineBinding, SourceProjectionManifest};
+use super::manifest::PathEffectKind;
+use super::manifest::ReleaseBaselineBinding;
+use super::manifest::SourceProjectionManifest;
+use eyre::Result;
+use eyre::ensure;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 /// Paths here are canonical generated paths with the `src/` prefix. Explicit
 /// file inputs are repository-relative paths declared in the feature manifest.
@@ -15,6 +17,7 @@ pub struct ProjectionSelection {
     pub excluded_paths: BTreeSet<String>,
     pub explicit_inputs: BTreeMap<String, String>,
     pub release_baseline: Option<ReleaseBaselineBinding>,
+    pub canonical_project_fixture_provenance_sha256: Option<String>,
 }
 
 /// Resolve all feature effects for one target without reading any files.
@@ -105,14 +108,18 @@ pub fn select(
         excluded_paths,
         explicit_inputs,
         release_baseline: preset.release_baseline_for(target_id).cloned(),
+        canonical_project_fixture_provenance_sha256: preset
+            .canonical_project_fixture_provenance_sha256
+            .clone(),
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::super::manifest::{
-        PathEffect, ProjectionFeature, ProjectionPreset, ProjectionTarget,
-    };
+    use super::super::manifest::PathEffect;
+    use super::super::manifest::ProjectionFeature;
+    use super::super::manifest::ProjectionPreset;
+    use super::super::manifest::ProjectionTarget;
     use super::*;
 
     fn manifest() -> SourceProjectionManifest {
@@ -155,6 +162,7 @@ mod tests {
                 targets: vec!["1.19.2".to_owned(), "26.1.2".to_owned()],
                 enabled_features: vec![],
                 release_baselines: vec![],
+                canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
             }],
         };

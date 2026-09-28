@@ -1,0 +1,7 @@
+package example;
+
+final class Malformed {
+    void incomplete( {
+        int value = ;
+    }
+

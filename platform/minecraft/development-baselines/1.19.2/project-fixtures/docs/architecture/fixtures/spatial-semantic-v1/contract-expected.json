@@ -1,0 +1,182 @@
+{
+  "domain": {
+    "schema": "sfm.region-domain/1",
+    "id": "canvas:fixture:layout-1",
+    "kind": "canvas",
+    "dimensions": 2,
+    "coordinate_kinds": ["x", "y"],
+    "authority": "sfm:java_canvas",
+    "snapshot_identity": "blake3:layout-1"
+  },
+  "region": {
+    "schema": "sfm.region/1",
+    "id": "region:fixture:cafe",
+    "domain_id": "canvas:fixture:layout-1",
+    "representation": "rectangle",
+    "bounds": [
+      {"start_inclusive": 16.0, "end_exclusive": 48.0},
+      {"start_inclusive": 24.0, "end_exclusive": 33.0}
+    ],
+    "edge_policy": "half-open",
+    "semantic_kind": "java-field-reference",
+    "provenance": "sfm:rust_java_semantics@semantic-3|sfm:java_canvas@layout-4",
+    "projection_ids": ["projection:fixture:utf8-to-canvas"]
+  },
+  "projection": {
+    "schema": "sfm.region-projection/1",
+    "id": "projection:fixture:utf8-to-canvas",
+    "from_domain_id": "utf8:fixture:document-2",
+    "to_domain_id": "canvas:fixture:layout-1",
+    "loss": "one-to-many",
+    "completeness": "complete",
+    "transform": "sfm:glyph_layout_v1",
+    "fingerprint": "blake3:projection-1",
+    "authority": "sfm:java_canvas"
+  },
+  "outlink": {
+    "schema": "sfm.outlink/1",
+    "id": "outlink:fixture:cafe-definition",
+    "source_region_id": "region:fixture:cafe",
+    "destination_region_id": "java-syntax:fixture:field-cafe",
+    "relation_kind": "definition",
+    "intent": "navigate",
+    "provider_id": "sfm:java_symbols",
+    "provider_generation": 3,
+    "reason": "Resolved field declaration",
+    "confidence": "resolved",
+    "completeness": "complete",
+    "recommended_projection": "start",
+    "action_drafts": [
+      {"action_id": "sfm:symbol/definition/open", "arguments": ["java-field:example.SpatialFixture#café"]}
+    ],
+    "provenance": "sfm:rust_java_semantics@semantic-3"
+  },
+  "probe": {
+    "schema": "sfm.interaction-probe-result/1",
+    "query_domain_id": "canvas:fixture:layout-1",
+    "query_point": [20.0, 28.0],
+    "requested_intent": "navigate",
+    "certified_region": {
+      "schema": "sfm.region/1",
+      "id": "region:fixture:cafe",
+      "domain_id": "canvas:fixture:layout-1",
+      "representation": "rectangle",
+      "bounds": [
+        {"start_inclusive": 16.0, "end_exclusive": 48.0},
+        {"start_inclusive": 24.0, "end_exclusive": 33.0}
+      ],
+      "edge_policy": "half-open",
+      "semantic_kind": "java-field-reference",
+      "provenance": "sfm:rust_java_semantics@semantic-3|sfm:java_canvas@layout-4",
+      "projection_ids": ["projection:fixture:utf8-to-canvas"]
+    },
+    "classification": {"status": "actionable"},
+    "outlinks": [
+      {
+        "schema": "sfm.outlink/1",
+        "id": "outlink:fixture:cafe-definition",
+        "source_region_id": "region:fixture:cafe",
+        "destination_region_id": "java-syntax:fixture:field-cafe",
+        "relation_kind": "definition",
+        "intent": "navigate",
+        "provider_id": "sfm:java_symbols",
+        "provider_generation": 3,
+        "reason": "Resolved field declaration",
+        "confidence": "resolved",
+        "completeness": "complete",
+        "recommended_projection": "start",
+        "action_drafts": [
+          {"action_id": "sfm:symbol/definition/open", "arguments": ["java-field:example.SpatialFixture#café"]}
+        ],
+        "provenance": "sfm:rust_java_semantics@semantic-3"
+      }
+    ],
+    "action_drafts": [],
+    "provider_evidence": [
+      {"provider_id": "sfm:java_symbols", "priority": 100, "outcome": "matched"}
+    ],
+    "workspace_generation": 1,
+    "document_generation": 2,
+    "semantic_generation": 3,
+    "layout_generation": 4
+  },
+  "coverage_request": {
+    "schema": "sfm.spatial-coverage-request/1",
+    "request_id": "coverage:fixture:1",
+    "scope": "document",
+    "selector": "focused",
+    "profile": "sfm:strict_java_navigation",
+    "layout_matrix": "sfm:auto_1_through_8",
+    "seed": 0,
+    "budget": 100000,
+    "artifact_destination": "auto",
+    "snapshot": {
+      "workspace_fingerprint": "blake3:workspace-1",
+      "workspace_generation": 1,
+      "document_address": "file:///source/example/SpatialFixture.java",
+      "document_hash": "sha256:document-2",
+      "document_generation": 2,
+      "semantic_fingerprint": "blake3:semantic-3",
+      "semantic_generation": 3,
+      "layout_fingerprint": "blake3:layout-4",
+      "layout_generation": 4
+    }
+  },
+  "coverage_report": {
+    "schema": "sfm.spatial-coverage-report/1",
+    "request_id": "coverage:fixture:1",
+    "policy": "exhaustive",
+    "policy_version": "1",
+    "seed": 0,
+    "budget": 100000,
+    "sample_sequence": [0, 1, 2, 3],
+    "dimensions": [
+      {"id": "classification", "covered": 4, "total": 4},
+      {"id": "navigation", "covered": 4, "total": 4},
+      {"id": "real-gesture", "covered": 4, "total": 4},
+      {"id": "branch-boundary", "covered": 4, "total": 4},
+      {"id": "reciprocity", "covered": 1, "total": 1}
+    ],
+    "files": [
+      {
+        "address": "file:///source/example/SpatialFixture.java",
+        "source_set": "main",
+        "content_hash": "sha256:document-2",
+        "state": "covered"
+      },
+      {
+        "address": "file:///source/example/Malformed.java",
+        "source_set": "main",
+        "content_hash": "sha256:malformed",
+        "state": "parse-failed",
+        "diagnostic": "Deliberate recovery fixture"
+      }
+    ],
+    "semantic_query_count": 4,
+    "certified_region_reuse": 12,
+    "cache_hits": 3,
+    "subdivisions": 0,
+    "fallback_probes": 0,
+    "artifact_paths": ["coverage/report.json", "coverage/heatmap.png", "coverage/framing.json"]
+  },
+  "framing_observation": {
+    "schema": "sfm.navigation-framing-observation/1",
+    "pane_id": "panel:focused",
+    "document_address": "file:///source/example/SpatialFixture.java",
+    "document_hash": "sha256:document-2",
+    "destination_region_id": "java-syntax:fixture:field-cafe",
+    "landmark_projection": "start",
+    "document_bounds": {"left": 0.0, "top": 0.0, "right": 600.0, "bottom": 400.0},
+    "line_bounds": {"left": 0.0, "top": 72.0, "right": 160.0, "bottom": 81.0},
+    "destination_bounds": {"left": 64.0, "top": 72.0, "right": 96.0, "bottom": 81.0},
+    "viewport_bounds": {"left": 0.0, "top": 0.0, "right": 320.0, "bottom": 180.0},
+    "inset": 8.0,
+    "previous_camera": {"x": 240.0, "y": 120.0, "zoom": 1.0},
+    "chosen_camera": {"x": 0.0, "y": 0.0, "zoom": 1.0},
+    "visible_intersection": {"left": 0.0, "top": 0.0, "right": 320.0, "bottom": 180.0},
+    "document_left_visible": true,
+    "line_left_visible": true,
+    "document_top_visible": true,
+    "landmark_visible": true
+  }
+}

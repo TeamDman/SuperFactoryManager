@@ -7,7 +7,8 @@
 
 use eyre::WrapErr;
 use facet::Facet;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 
 pub const SCHEMA_VERSION: u32 = 1;
 
@@ -97,6 +98,10 @@ pub struct ProjectionPreset {
     /// committed-development presets bind each target to an exact-path import.
     #[facet(default)]
     pub release_baselines: Vec<ReleaseBaselineBinding>,
+    /// Pinned project-root fixtures for the canonical 1.19.2 development
+    /// source. Release and imported-development presets use other inputs.
+    #[facet(default)]
+    pub canonical_project_fixture_provenance_sha256: Option<String>,
     /// Manifest-definition fingerprint, `blake3:<hex>`. Source/output hashes
     /// belong to the separate provenance manifest.
     pub identity: String,
@@ -214,6 +219,17 @@ impl SourceProjectionManifest {
                 &format!("preset `{}` feature", preset.id),
             )?;
             validate_release_baselines(preset)?;
+            if let Some(digest) = &preset.canonical_project_fixture_provenance_sha256 {
+                if !preset.release_baselines.is_empty()
+                    || preset.targets.len() != 1
+                    || preset.targets[0] != "1.19.2"
+                {
+                    eyre::bail!(
+                        "canonical project fixtures require a standalone 1.19.2 development preset"
+                    );
+                }
+                validate_lower_hex(digest, 64, "canonical project fixture provenance SHA-256")?;
+            }
 
             let active: BTreeSet<_> = preset.enabled_features.iter().map(String::as_str).collect();
             for target in &preset.targets {
@@ -483,6 +499,10 @@ impl SourceProjectionManifest {
                 hash_part(&mut hasher, &dependency.dependency_id);
                 hash_part(&mut hasher, &dependency.component_id);
             }
+        }
+        if let Some(digest) = &preset.canonical_project_fixture_provenance_sha256 {
+            hash_part(&mut hasher, "canonical_project_fixtures");
+            hash_part(&mut hasher, digest);
         }
         if !preset.release_baselines.is_empty() {
             let mut baselines = preset.release_baselines.iter().collect::<Vec<_>>();
@@ -825,6 +845,7 @@ mod tests {
                 targets: vec!["1.19.2".into()],
                 enabled_features: vec!["touch_display".into()],
                 release_baselines: vec![],
+                canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
             }],
         };
@@ -854,6 +875,41 @@ mod tests {
     #[test]
     fn accepts_well_formed_manifest() {
         sample().validate().unwrap();
+    }
+
+    #[test]
+    fn canonical_fixture_hash_is_bound_and_rejected_on_release_presets() {
+        let mut manifest = sample();
+        let old_identity = manifest.presets[0].identity.clone();
+        manifest.presets[0].canonical_project_fixture_provenance_sha256 = Some("c".repeat(64));
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        assert_ne!(manifest.presets[0].identity, old_identity);
+        manifest.validate().unwrap();
+        let json = manifest.to_json().unwrap();
+        assert_eq!(
+            SourceProjectionManifest::from_json(&json).unwrap(),
+            manifest
+        );
+
+        manifest.presets[0].canonical_project_fixture_provenance_sha256 = Some("short".into());
+        assert!(manifest.validate().is_err());
+
+        manifest.presets[0].canonical_project_fixture_provenance_sha256 = Some("c".repeat(64));
+        manifest.presets[0]
+            .release_baselines
+            .push(release_binding("1.19.2"));
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("canonical project fixtures require")
+        );
     }
 
     #[test]

@@ -4,22 +4,28 @@
 //! import is read from an exact committed Git tree, never from the current
 //! checkout, and is stored separately from source and Gradle imports.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-use std::path::{Component, Path, PathBuf};
-use std::process::Command;
-
-use eyre::{Result, WrapErr, ensure};
-use facet::Facet;
-use sha1::{Digest as _, Sha1};
-use walkdir::WalkDir;
-
 use super::development_baseline::DevelopmentHeadSpec;
 use super::provenance::sha256;
-use super::release_baseline::{
-    GitBlobHasher, ImportFile, git_text, insert_import_file, stage_and_install_imports,
-};
+use super::release_baseline::GitBlobHasher;
+use super::release_baseline::ImportFile;
+use super::release_baseline::git_text;
+use super::release_baseline::insert_import_file;
+use super::release_baseline::stage_and_install_imports;
 use super::sync::ProjectedArtifact;
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::ensure;
+use facet::Facet;
+use sha1::Digest as _;
+use sha1::Sha1;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::fs;
+use std::path::Component;
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::Command;
+use walkdir::WalkDir;
 
 const SCHEMA: &str = "sfm:development-project-fixtures@1";
 const MAX_FIXTURE_BYTES: u64 = 8 * 1024 * 1024;
@@ -575,9 +581,8 @@ fn verify_unix_mode(path: &Path, expected: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::process::Stdio;
-
     use super::*;
+    use std::process::Stdio;
 
     fn git(root: &Path, args: &[&str]) -> String {
         let output = Command::new("git")
@@ -658,6 +663,19 @@ mod tests {
         let root = temp.path();
         let spec = fixture_repo(root);
         let report = materialize_development_project_fixtures(root, &spec, 2).unwrap();
+        assert!(
+            collect_verified_development_project_fixtures(root, &spec, &"0".repeat(64)).is_err()
+        );
+        let mut wrong_identity = spec.clone();
+        wrong_identity.canonical_commit = wrong_identity.target_commit.clone();
+        assert!(
+            collect_verified_development_project_fixtures(
+                root,
+                &wrong_identity,
+                &report.provenance_sha256
+            )
+            .is_err()
+        );
         let import = root.join(&report.project_fixtures_path);
         fs::write(import.join("examples/01.sfm"), b"edited\n").unwrap();
         assert!(

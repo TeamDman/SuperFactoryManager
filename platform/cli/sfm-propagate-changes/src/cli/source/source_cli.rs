@@ -1,44 +1,52 @@
 //! Explicit, fail-closed source-projection commands.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-use std::path::{Component, Path, PathBuf};
-use std::process::Command as ProcessCommand;
-use std::thread;
-use std::time::Duration;
-
-use eyre::{Result, WrapErr, ensure};
-use facet::Facet;
-use figue::{self as args};
-
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::jdk::resolve_exact_java_for_minecraft_dir;
-use crate::source_projection::development_baseline::{
-    DevelopmentHeadSpec, compare_committed_source_heads, materialize_committed_source_import,
-};
+use crate::source_projection::development_baseline::CANONICAL_COMMIT;
+use crate::source_projection::development_baseline::DevelopmentHeadSpec;
+use crate::source_projection::development_baseline::compare_committed_source_heads;
+use crate::source_projection::development_baseline::materialize_committed_source_import;
+use crate::source_projection::development_fixtures::collect_verified_development_project_fixtures;
 use crate::source_projection::development_fixtures::materialize_development_project_fixtures;
-use crate::source_projection::development_gradle::{
-    apply_post_baseline_gradle_sources, materialize_development_gradle_inputs,
-};
-use crate::source_projection::inputs::{
-    apply_explicit_inputs, collect_projected_inputs_with_allowlist,
-};
+use crate::source_projection::development_gradle::apply_post_baseline_gradle_sources;
+use crate::source_projection::development_gradle::materialize_development_gradle_inputs;
+use crate::source_projection::inputs::apply_explicit_inputs;
+use crate::source_projection::inputs::collect_projected_inputs_with_allowlist;
 use crate::source_projection::manifest::SourceProjectionManifest;
-use crate::source_projection::project_layout::{
-    collect_gradle_project_inputs, collect_gradle_project_inputs_for_target,
-};
+use crate::source_projection::project_layout::collect_gradle_project_inputs;
+use crate::source_projection::project_layout::collect_gradle_project_inputs_for_target;
 use crate::source_projection::provenance::sha256;
-use crate::source_projection::release_apply::{apply_release_baseline, release_source_paths};
-use crate::source_projection::release_baseline::{
-    ImportFile, collect_tagged_gradle_tree, insert_import_file,
-    materialize_released_4_34_0_imports, preflight_imports, read_pinned_blob,
-};
-use crate::source_projection::selection::{ProjectionSelection, select};
-use crate::source_projection::sync::{
-    MANIFEST_FILE, ProjectedArtifact, ProjectionIdentity, SyncMode, sync_projection,
-};
+use crate::source_projection::release_apply::apply_release_baseline;
+use crate::source_projection::release_apply::release_source_paths;
+use crate::source_projection::release_baseline::ImportFile;
+use crate::source_projection::release_baseline::collect_tagged_gradle_tree;
+use crate::source_projection::release_baseline::insert_import_file;
+use crate::source_projection::release_baseline::materialize_released_4_34_0_imports;
+use crate::source_projection::release_baseline::preflight_imports;
+use crate::source_projection::release_baseline::read_pinned_blob;
+use crate::source_projection::selection::ProjectionSelection;
+use crate::source_projection::selection::select;
+use crate::source_projection::sync::MANIFEST_FILE;
+use crate::source_projection::sync::ProjectedArtifact;
+use crate::source_projection::sync::ProjectionIdentity;
+use crate::source_projection::sync::SyncMode;
+use crate::source_projection::sync::sync_projection;
 use crate::terminal_output::stdout_line;
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::ensure;
+use facet::Facet;
+use figue::{self as args};
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::fs;
+use std::path::Component;
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::Command as ProcessCommand;
+use std::thread;
+use std::time::Duration;
 
 #[derive(Debug, Facet)]
 pub struct SourceArgs {
@@ -903,6 +911,25 @@ impl SourceProjectArgs {
         if let Some(binding) = &selection.release_baseline {
             apply_release_baseline(repo_root, binding, &selection.context, &mut artifacts)?;
         }
+        if let Some(hash) = &selection.canonical_project_fixture_provenance_sha256 {
+            ensure!(
+                selection.release_baseline.is_none(),
+                "canonical project fixtures cannot be applied to a release baseline"
+            );
+            let spec = DevelopmentHeadSpec {
+                target_id: self.target.clone(),
+                canonical_commit: CANONICAL_COMMIT.to_owned(),
+                target_commit: CANONICAL_COMMIT.to_owned(),
+            };
+            for (path, artifact) in
+                collect_verified_development_project_fixtures(repo_root, &spec, hash)?
+            {
+                ensure!(
+                    artifacts.insert(path.clone(), artifact).is_none(),
+                    "canonical project fixture output '{path}' collides with a source artifact"
+                );
+            }
+        }
         Ok((primary_root, artifacts))
     }
 
@@ -1035,11 +1062,12 @@ fn source_path(repo_root: &Path, relative: &Path) -> Result<PathBuf> {
 
 #[cfg(test)]
 mod tests {
-    use std::process::Command as TestCommand;
-
     use super::*;
-    use crate::cli::{Cli, Command};
-    use crate::source_projection::manifest::{ProjectionPreset, ProjectionTarget};
+    use crate::cli::Cli;
+    use crate::cli::Command;
+    use crate::source_projection::manifest::ProjectionPreset;
+    use crate::source_projection::manifest::ProjectionTarget;
+    use std::process::Command as TestCommand;
 
     fn git_test(root: &Path, args: &[&str]) -> String {
         let output = TestCommand::new("git")
@@ -1657,6 +1685,7 @@ mod tests {
                 targets: vec!["1.19.2".to_owned()],
                 enabled_features: vec![],
                 release_baselines: vec![],
+                canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
             }],
         };
