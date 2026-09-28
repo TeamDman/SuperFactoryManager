@@ -62,6 +62,7 @@ pub fn release_source_paths(
         .ok_or_else(|| eyre::eyre!("release import manifest contains no target"))?;
     let (paths, _) = validate_target_report(target, import_prefix(binding.kind))?;
     validate_post_baseline_test_sources(binding, target)?;
+    validate_post_baseline_canonical_sources(binding, target)?;
     Ok(paths)
 }
 
@@ -91,6 +92,7 @@ pub fn apply_release_baseline(
     let (release_paths, explicit_inputs) =
         validate_target_report(target, import_prefix(binding.kind))?;
     validate_post_baseline_test_sources(binding, target)?;
+    validate_post_baseline_canonical_sources(binding, target)?;
 
     let mut pending = artifacts.clone();
     let masked_development_files = pending
@@ -98,6 +100,78 @@ pub fn apply_release_baseline(
         .filter(|path| path.starts_with("src/") && !release_paths.contains(*path))
         .count();
     pending.retain(|path, _| !path.starts_with("src/") || release_paths.contains(path));
+    let canonical_sources = capture_post_baseline_canonical_sources(binding, &pending)?;
+    let (pinned_tag_fallback_files, verified_template_drift) =
+        apply_unchanged_sources(repo_root, binding, context, target, &mut pending)?;
+    apply_explicit_inputs(repo_root, &mut pending, &explicit_inputs, context)?;
+    for path in &release_paths {
+        let record = &target.paths[path];
+        let artifact = pending
+            .get_mut(path)
+            .ok_or_else(|| eyre::eyre!("release source `{path}` was not produced"))?;
+        let expected = record
+            .release_sha256
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("release source `{path}` has no declared SHA-256"))?;
+        ensure!(
+            sha256(&artifact.source_bytes) == expected || verified_template_drift.contains(path),
+            "release source `{path}` differs from the pinned tag SHA-256"
+        );
+        if record.release_overlay_path.is_some() {
+            artifact.overlay = Some(match binding.kind {
+                BaselineKind::ReleaseTag => format!("release-{}", target.release_tag),
+                BaselineKind::DevelopmentHead => {
+                    format!("development-head-{}", target.target_id)
+                }
+            });
+        }
+    }
+    apply_post_baseline_canonical_sources(binding, &canonical_sources, &mut pending)?;
+
+    if binding.kind == BaselineKind::DevelopmentHead {
+        let spec = DevelopmentHeadSpec {
+            target_id: binding.target_id.clone(),
+            canonical_commit: binding
+                .canonical_commit
+                .clone()
+                .ok_or_else(|| eyre::eyre!("development canonical commit is missing"))?,
+            target_commit: binding.tag_commit.clone(),
+        };
+        let fixtures = collect_verified_development_project_fixtures(
+            repo_root,
+            &spec,
+            binding
+                .project_fixture_provenance_sha256
+                .as_deref()
+                .ok_or_else(|| eyre::eyre!("development fixture provenance hash is missing"))?,
+        )?;
+        for (path, artifact) in fixtures {
+            ensure!(
+                pending.insert(path.clone(), artifact).is_none(),
+                "development fixture output '{path}' collides with a source artifact"
+            );
+        }
+    }
+
+    apply_post_baseline_test_sources(repo_root, binding, context, &mut pending)?;
+
+    let result = ReleaseApplyReport {
+        retained_source_files: release_paths.len(),
+        masked_development_files,
+        overlaid_release_files: explicit_inputs.len() - canonical_sources.len(),
+        pinned_tag_fallback_files,
+    };
+    *artifacts = pending;
+    Ok(result)
+}
+
+fn apply_unchanged_sources(
+    repo_root: &Path,
+    binding: &ReleaseBaselineBinding,
+    context: &ProjectionContext,
+    target: &ReleaseBaselineTargetReport,
+    pending: &mut BTreeMap<String, ProjectedArtifact>,
+) -> Result<(usize, BTreeSet<String>)> {
     let mut pinned_tag_fallback_files = 0;
     let mut verified_template_drift = BTreeSet::new();
     for (path, record) in &target.paths {
@@ -165,80 +239,113 @@ pub fn apply_release_baseline(
             .ok_or_else(|| eyre::eyre!("release source `{path}` has no pinned Git blob OID"))?;
         let bytes = read_pinned_blob(repo_root, &target.tag_commit, path, oid, expected)?;
         let mut artifact = ProjectedArtifact {
-            // Logical provenance path: these bytes come from the pinned Git
-            // tree, not a physical file beneath this path in the worktree.
-            source_path: format!(
-                "platform/minecraft/release-baselines/{}/tag-tree/{path}",
-                target.release_tag
-            ),
+            // For an Unchanged release record, `src/...` is the logical source
+            // path within the preset's pinned tag snapshot, not necessarily
+            // today's primary worktree. The Git blob and source SHA-256 above
+            // verify those historical bytes. Keeping that logical provenance
+            // also leaves checked-in release manifests stable as source evolves.
+            source_path: path.clone(),
             source_bytes: bytes.clone(),
             output_bytes: bytes,
-            overlay: Some(format!("release-{}-pinned-tag", target.release_tag)),
+            overlay: None,
         };
         render_java_artifact(path, &mut artifact, context)?;
         pending.insert(path.clone(), artifact);
         pinned_tag_fallback_files += 1;
     }
 
-    apply_explicit_inputs(repo_root, &mut pending, &explicit_inputs, context)?;
-    for path in &release_paths {
-        let record = &target.paths[path];
-        let artifact = pending
-            .get_mut(path)
-            .ok_or_else(|| eyre::eyre!("release source `{path}` was not produced"))?;
-        let expected = record
-            .release_sha256
-            .as_deref()
-            .ok_or_else(|| eyre::eyre!("release source `{path}` has no declared SHA-256"))?;
+    Ok((pinned_tag_fallback_files, verified_template_drift))
+}
+
+fn validate_post_baseline_canonical_sources(
+    binding: &ReleaseBaselineBinding,
+    target: &ReleaseBaselineTargetReport,
+) -> Result<()> {
+    ensure!(
+        binding.kind == BaselineKind::DevelopmentHead
+            || binding.post_baseline_canonical_sources.is_empty(),
+        "release-tag binding cannot select post-baseline canonical sources"
+    );
+    let mut casefold = BTreeSet::new();
+    for (path, selected) in &binding.post_baseline_canonical_sources {
+        validate_repo_path(path, "src/main/java/")?;
         ensure!(
-            sha256(&artifact.source_bytes) == expected || verified_template_drift.contains(path),
-            "release source `{path}` differs from the pinned tag SHA-256"
+            has_exact_extension(path, "java"),
+            "post-baseline canonical source '{path}' must be Java"
         );
-        if record.release_overlay_path.is_some() {
-            artifact.overlay = Some(match binding.kind {
-                BaselineKind::ReleaseTag => format!("release-{}", target.release_tag),
-                BaselineKind::DevelopmentHead => {
-                    format!("development-head-{}", target.target_id)
-                }
-            });
-        }
+        ensure!(
+            casefold.insert(path.to_ascii_lowercase()),
+            "case-colliding post-baseline canonical source '{path}'"
+        );
+        ensure!(
+            is_lower_hex(&selected.source_sha256, 64) && is_lower_hex(&selected.output_sha256, 64),
+            "post-baseline canonical source '{path}' needs source and output SHA-256"
+        );
+        let record = target.paths.get(path).ok_or_else(|| {
+            eyre::eyre!("post-baseline canonical source '{path}' is absent from pinned membership")
+        })?;
+        ensure!(
+            record.classification == BaselinePathClass::Changed,
+            "post-baseline canonical source '{path}' must replace a changed pinned source"
+        );
     }
+    Ok(())
+}
 
-    if binding.kind == BaselineKind::DevelopmentHead {
-        let spec = DevelopmentHeadSpec {
-            target_id: binding.target_id.clone(),
-            canonical_commit: binding
-                .canonical_commit
-                .clone()
-                .ok_or_else(|| eyre::eyre!("development canonical commit is missing"))?,
-            target_commit: binding.tag_commit.clone(),
-        };
-        let fixtures = collect_verified_development_project_fixtures(
-            repo_root,
-            &spec,
-            binding
-                .project_fixture_provenance_sha256
-                .as_deref()
-                .ok_or_else(|| eyre::eyre!("development fixture provenance hash is missing"))?,
-        )?;
-        for (path, artifact) in fixtures {
-            ensure!(
-                pending.insert(path.clone(), artifact).is_none(),
-                "development fixture output '{path}' collides with a source artifact"
-            );
-        }
+fn capture_post_baseline_canonical_sources(
+    binding: &ReleaseBaselineBinding,
+    artifacts: &BTreeMap<String, ProjectedArtifact>,
+) -> Result<BTreeMap<String, ProjectedArtifact>> {
+    let mut selected = BTreeMap::new();
+    for path in binding.post_baseline_canonical_sources.keys() {
+        let artifact = artifacts.get(path).ok_or_else(|| {
+            eyre::eyre!("post-baseline canonical source '{path}' is missing from primary inputs")
+        })?;
+        ensure!(
+            artifact.source_path == *path && artifact.overlay.is_none(),
+            "post-baseline canonical source '{path}' is not a primary source input"
+        );
+        selected.insert(path.clone(), artifact.clone());
     }
+    Ok(selected)
+}
 
-    apply_post_baseline_test_sources(repo_root, binding, context, &mut pending)?;
+fn apply_post_baseline_canonical_sources(
+    binding: &ReleaseBaselineBinding,
+    canonical_sources: &BTreeMap<String, ProjectedArtifact>,
+    artifacts: &mut BTreeMap<String, ProjectedArtifact>,
+) -> Result<()> {
+    let mut replacements = Vec::new();
+    for (path, selected) in &binding.post_baseline_canonical_sources {
+        let canonical = canonical_sources.get(path).ok_or_else(|| {
+            eyre::eyre!("post-baseline canonical source '{path}' was not captured")
+        })?;
+        ensure!(
+            sha256(&canonical.source_bytes) == format!("sha256:{}", selected.source_sha256),
+            "post-baseline canonical source '{path}' differs from its pinned SHA-256"
+        );
+        ensure!(
+            sha256(&canonical.output_bytes) == format!("sha256:{}", selected.output_sha256),
+            "post-baseline canonical output '{path}' differs from its pinned SHA-256"
+        );
+        let imported = artifacts.get(path).ok_or_else(|| {
+            eyre::eyre!("post-baseline canonical source '{path}' has no verified imported overlay")
+        })?;
+        ensure!(
+            canonical.output_bytes == imported.output_bytes,
+            "post-baseline canonical output '{path}' differs from verified imported overlay"
+        );
+        replacements.push((path.clone(), canonical.clone()));
+    }
+    artifacts.extend(replacements);
+    Ok(())
+}
 
-    let result = ReleaseApplyReport {
-        retained_source_files: release_paths.len(),
-        masked_development_files,
-        overlaid_release_files: explicit_inputs.len(),
-        pinned_tag_fallback_files,
-    };
-    *artifacts = pending;
-    Ok(result)
+fn has_exact_extension(path: &str, expected: &str) -> bool {
+    Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        == Some(expected)
 }
 
 fn rendered_java_matches_pinned(
@@ -247,7 +354,7 @@ fn rendered_java_matches_pinned(
     pinned_source: &[u8],
     context: &ProjectionContext,
 ) -> Result<bool> {
-    if !path.ends_with(".java") {
+    if !has_exact_extension(path, "java") {
         return Ok(false);
     }
     let mut pinned = ProjectedArtifact {
@@ -273,7 +380,7 @@ fn validate_post_baseline_test_sources(
     for (path, digest) in &binding.post_baseline_test_sources {
         validate_repo_path(path, "src/test/java/")?;
         ensure!(
-            path.ends_with(".java"),
+            has_exact_extension(path, "java"),
             "post-baseline test source '{path}' must be Java"
         );
         ensure!(
@@ -386,15 +493,7 @@ fn read_pinned_report(
     let json = std::str::from_utf8(&bytes).wrap_err("release import manifest is not UTF-8")?;
     let report: ReleaseBaselineReport =
         facet_json::from_str(json).wrap_err("cannot parse release import manifest")?;
-    let expected_schema = match binding.kind {
-        BaselineKind::ReleaseTag => REPORT_SCHEMA,
-        BaselineKind::DevelopmentHead => DEVELOPMENT_SOURCE_SCHEMA,
-    };
-    ensure!(
-        report.schema == expected_schema,
-        "unsupported pinned import schema '{}': expected {expected_schema}",
-        report.schema
-    );
+    validate_report_schema(binding.kind, &report)?;
     ensure!(
         report.canonical_source_root == SOURCE_ROOT,
         "release import must describe {SOURCE_ROOT}"
@@ -438,30 +537,53 @@ fn read_pinned_report(
         "pinned import manifest path does not match its target label"
     );
     if binding.kind == BaselineKind::DevelopmentHead {
-        ensure!(
-            target.release_tag == binding.target_id,
-            "development import target label does not match its pinned target"
-        );
-        let import_root = manifest_path
-            .parent()
-            .ok_or_else(|| eyre::eyre!("development import manifest has no parent"))?
-            .join("gradle-project");
-        verify_development_gradle_inputs(
-            &root,
-            binding
-                .canonical_commit
-                .as_deref()
-                .ok_or_else(|| eyre::eyre!("development canonical commit is missing"))?,
-            &binding.tag_commit,
-            &import_root,
-            binding
-                .gradle_provenance_sha256
-                .as_deref()
-                .ok_or_else(|| eyre::eyre!("development Gradle provenance hash is missing"))?,
-            &BTreeMap::new(),
-        )?;
+        verify_development_gradle_binding(&root, &manifest_path, binding, target)?;
     }
     Ok(report)
+}
+
+fn validate_report_schema(kind: BaselineKind, report: &ReleaseBaselineReport) -> Result<()> {
+    let expected_schema = match kind {
+        BaselineKind::ReleaseTag => REPORT_SCHEMA,
+        BaselineKind::DevelopmentHead => DEVELOPMENT_SOURCE_SCHEMA,
+    };
+    ensure!(
+        report.schema == expected_schema,
+        "unsupported pinned import schema '{}': expected {expected_schema}",
+        report.schema
+    );
+    Ok(())
+}
+
+fn verify_development_gradle_binding(
+    root: &Path,
+    manifest_path: &Path,
+    binding: &ReleaseBaselineBinding,
+    target: &ReleaseBaselineTargetReport,
+) -> Result<()> {
+    ensure!(
+        target.release_tag == binding.target_id,
+        "development import target label does not match its pinned target"
+    );
+    let import_root = manifest_path
+        .parent()
+        .ok_or_else(|| eyre::eyre!("development import manifest has no parent"))?
+        .join("gradle-project");
+    verify_development_gradle_inputs(
+        root,
+        binding
+            .canonical_commit
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("development canonical commit is missing"))?,
+        &binding.tag_commit,
+        &import_root,
+        binding
+            .gradle_provenance_sha256
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("development Gradle provenance hash is missing"))?,
+        &BTreeMap::new(),
+    )?;
+    Ok(())
 }
 
 fn validate_target_report(
@@ -647,6 +769,9 @@ fn validate_repo_path(path: &str, required_prefix: &str) -> Result<()> {
 mod tests {
     use super::*;
     use crate::source_projection::inputs::collect_projected_inputs_with_allowlist;
+    use crate::source_projection::manifest::CanonicalSourceSelection;
+    use crate::source_projection::provenance::ProjectedFileProvenance;
+    use crate::source_projection::provenance::ProjectionProvenance;
     use std::process::Command;
     use tempfile::TempDir;
 
@@ -751,6 +876,7 @@ mod tests {
             project_fixture_provenance_sha256: None,
             post_baseline_test_sources: BTreeMap::new(),
             post_baseline_gradle_sources: BTreeMap::new(),
+            post_baseline_canonical_sources: BTreeMap::new(),
         }
     }
 
@@ -950,6 +1076,196 @@ mod tests {
     }
 
     #[test]
+    fn canonical_main_source_selection_requires_changed_development_membership() {
+        let path = "src/main/java/example/VersionAdapter.java";
+        let mut target = report(
+            &"a".repeat(40),
+            BTreeMap::from([(
+                path.to_owned(),
+                record(
+                    BaselinePathClass::Changed,
+                    Some(b"class Old {}\n"),
+                    Some(b"class Canonical {}\n"),
+                    Some("platform/minecraft/release-baselines/4.34.0-1.19.2/overlays/src/main/java/example/VersionAdapter.java"),
+                ),
+            )]),
+        )
+        .targets
+        .remove(0);
+        let root = tempfile::tempdir().unwrap();
+        let mut binding = write_report(root.path(), &report(&"a".repeat(40), target.paths.clone()));
+        binding.post_baseline_canonical_sources.insert(
+            path.to_owned(),
+            CanonicalSourceSelection {
+                source_sha256: "a".repeat(64),
+                output_sha256: "b".repeat(64),
+            },
+        );
+        assert!(validate_post_baseline_canonical_sources(&binding, &target).is_err());
+        binding.kind = BaselineKind::DevelopmentHead;
+        validate_post_baseline_canonical_sources(&binding, &target).unwrap();
+
+        target.paths.get_mut(path).unwrap().classification = BaselinePathClass::Unchanged;
+        assert!(validate_post_baseline_canonical_sources(&binding, &target).is_err());
+        target.paths.remove(path);
+        assert!(validate_post_baseline_canonical_sources(&binding, &target).is_err());
+    }
+
+    #[test]
+    fn canonical_main_source_selection_is_primary_hash_bound_and_keeps_provenance() {
+        let path = "src/main/java/example/VersionAdapter.java";
+        let mut rendering_context = context();
+        rendering_context
+            .features
+            .insert("disabled".to_owned(), false);
+        let mut canonical = artifact(
+            path,
+            b"class VersionAdapter {}\n{% if features.disabled %}\nclass NeverRendered {}\n{% endif %}\n",
+        );
+        render_java_artifact(path, &mut canonical, &rendering_context).unwrap();
+        let mut imported = artifact(path, b"class VersionAdapter {}\n");
+        render_java_artifact(path, &mut imported, &rendering_context).unwrap();
+        imported.source_path = "platform/minecraft/development-baselines/1.19.2/overlays/src/main/java/example/VersionAdapter.java".to_owned();
+        imported.overlay = Some("development-head-1.19.2".to_owned());
+        let mut binding = write_report(
+            tempfile::tempdir().unwrap().path(),
+            &report(&"a".repeat(40), BTreeMap::new()),
+        );
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.post_baseline_canonical_sources.insert(
+            path.to_owned(),
+            CanonicalSourceSelection {
+                source_sha256: sha256(&canonical.source_bytes)
+                    .trim_start_matches("sha256:")
+                    .to_owned(),
+                output_sha256: sha256(&canonical.output_bytes)
+                    .trim_start_matches("sha256:")
+                    .to_owned(),
+            },
+        );
+        let primary = BTreeMap::from([(path.to_owned(), canonical.clone())]);
+        let captured = capture_post_baseline_canonical_sources(&binding, &primary).unwrap();
+        let mut artifacts = BTreeMap::from([(path.to_owned(), imported)]);
+        apply_post_baseline_canonical_sources(&binding, &captured, &mut artifacts).unwrap();
+        assert_eq!(artifacts[path], canonical);
+        assert_eq!(artifacts[path].source_path, path);
+        assert_eq!(artifacts[path].overlay, None);
+
+        let mut drifted = artifact(path, b"class ChangedVersionAdapter {}\n");
+        render_java_artifact(path, &mut drifted, &rendering_context).unwrap();
+        let drifted_source_sha256 = sha256(&drifted.source_bytes)
+            .trim_start_matches("sha256:")
+            .to_owned();
+        let drifted_output_sha256 = sha256(&drifted.output_bytes)
+            .trim_start_matches("sha256:")
+            .to_owned();
+        let selection = binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap();
+        selection.source_sha256 = drifted_source_sha256;
+        selection.output_sha256 = drifted_output_sha256;
+        let previous = artifacts.clone();
+        let error = apply_post_baseline_canonical_sources(
+            &binding,
+            &BTreeMap::from([(path.to_owned(), drifted)]),
+            &mut artifacts,
+        )
+        .unwrap_err();
+        assert!(format!("{error:?}").contains("differs from verified imported overlay"));
+        assert_eq!(artifacts, previous);
+
+        let selection = binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap();
+        selection.source_sha256 = sha256(&canonical.source_bytes)
+            .trim_start_matches("sha256:")
+            .to_owned();
+        selection.output_sha256 = sha256(&canonical.output_bytes)
+            .trim_start_matches("sha256:")
+            .to_owned();
+
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .output_sha256 = "f".repeat(64);
+        assert!(
+            apply_post_baseline_canonical_sources(&binding, &captured, &mut artifacts).is_err()
+        );
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .output_sha256 = sha256(&canonical.output_bytes)
+            .trim_start_matches("sha256:")
+            .to_owned();
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .source_sha256 = "f".repeat(64);
+        assert!(
+            apply_post_baseline_canonical_sources(&binding, &captured, &mut artifacts).is_err()
+        );
+
+        let mut non_primary = primary;
+        non_primary.get_mut(path).unwrap().overlay = Some("feature".to_owned());
+        assert!(capture_post_baseline_canonical_sources(&binding, &non_primary).is_err());
+    }
+
+    #[test]
+    fn canonical_source_replacements_are_atomic_when_later_output_drifts() {
+        let first_path = "src/main/java/example/First.java";
+        let second_path = "src/main/java/example/Second.java";
+        let mut first = artifact(first_path, b"class First {}\n");
+        let mut second = artifact(second_path, b"class ChangedSecond {}\n");
+        let mut imported_first = artifact(first_path, b"class First {}\n");
+        let mut imported_second = artifact(second_path, b"class Second {}\n");
+        for (path, artifact) in [
+            (first_path, &mut first),
+            (second_path, &mut second),
+            (first_path, &mut imported_first),
+            (second_path, &mut imported_second),
+        ] {
+            render_java_artifact(path, artifact, &context()).unwrap();
+        }
+        let mut binding = write_report(
+            tempfile::tempdir().unwrap().path(),
+            &report(&"a".repeat(40), BTreeMap::new()),
+        );
+        binding.kind = BaselineKind::DevelopmentHead;
+        for (path, artifact) in [(first_path, &first), (second_path, &second)] {
+            binding.post_baseline_canonical_sources.insert(
+                path.to_owned(),
+                CanonicalSourceSelection {
+                    source_sha256: sha256(&artifact.source_bytes)
+                        .trim_start_matches("sha256:")
+                        .to_owned(),
+                    output_sha256: sha256(&artifact.output_bytes)
+                        .trim_start_matches("sha256:")
+                        .to_owned(),
+                },
+            );
+        }
+        let canonical_sources = BTreeMap::from([
+            (first_path.to_owned(), first),
+            (second_path.to_owned(), second),
+        ]);
+        let mut artifacts = BTreeMap::from([
+            (first_path.to_owned(), imported_first),
+            (second_path.to_owned(), imported_second),
+        ]);
+        let previous = artifacts.clone();
+        let error =
+            apply_post_baseline_canonical_sources(&binding, &canonical_sources, &mut artifacts)
+                .unwrap_err();
+        assert!(format!("{error:?}").contains("differs from verified imported overlay"));
+        assert_eq!(artifacts, previous);
+    }
+
+    #[test]
     fn post_baseline_test_patch_is_content_bound_and_atomic_on_drift() {
         let root = tempfile::tempdir().unwrap();
         let path = "src/test/java/example/PortableTest.java";
@@ -1048,19 +1364,49 @@ mod tests {
             BTreeMap::from([("src/Same.java".to_owned(), pinned)]),
         );
         let binding = write_report(root.path(), &report);
-        let mut artifacts = BTreeMap::from([(
-            "src/Same.java".to_owned(),
-            artifact("src/Same.java", b"class Development {}\n"),
-        )]);
+        let path = "src/Same.java";
+        let mut before = ProjectionProvenance::new(
+            "1.19.2",
+            "1.19.2",
+            "released-4.34.0",
+            "blake3:historical-preset",
+        );
+        let mut old_artifact = artifact(path, b"class Same {}\n");
+        render_java_artifact(path, &mut old_artifact, &context()).unwrap();
+        before.files.insert(
+            path.to_owned(),
+            ProjectedFileProvenance {
+                source_path: path.to_owned(),
+                source_sha256: sha256(&old_artifact.source_bytes),
+                overlay: None,
+                output_sha256: sha256(&old_artifact.output_bytes),
+            },
+        );
+        let old_manifest_bytes = before.to_json().unwrap();
+        let mut artifacts =
+            BTreeMap::from([(path.to_owned(), artifact(path, b"class Development {}\n"))]);
         let result =
             apply_release_baseline(root.path(), &binding, &context(), &mut artifacts).unwrap();
         assert_eq!(result.pinned_tag_fallback_files, 1);
-        assert_eq!(artifacts["src/Same.java"].source_bytes, b"class Same {}\n");
-        assert!(artifacts["src/Same.java"].source_path.contains("tag-tree"));
-        assert!(
-            artifacts["src/Same.java"]
-                .output_bytes
-                .starts_with(b"// GENERATED")
+        assert_eq!(artifacts[path].source_bytes, b"class Same {}\n");
+        assert_eq!(artifacts[path].source_path, path);
+        assert_eq!(artifacts[path].overlay, None);
+        assert!(artifacts[path].output_bytes.starts_with(b"// GENERATED"));
+        let mut after = ProjectionProvenance::new(
+            "1.19.2",
+            "1.19.2",
+            "released-4.34.0",
+            "blake3:historical-preset",
         );
+        after.files.insert(
+            path.to_owned(),
+            ProjectedFileProvenance {
+                source_path: artifacts[path].source_path.clone(),
+                source_sha256: sha256(&artifacts[path].source_bytes),
+                overlay: artifacts[path].overlay.clone(),
+                output_sha256: sha256(&artifacts[path].output_bytes),
+            },
+        );
+        assert_eq!(after.to_json().unwrap(), old_manifest_bytes);
     }
 }

@@ -89,72 +89,72 @@
       "targets":["1.20"],
       "enabled_features":[],
       "release_baselines":[
-        {"target_id":"1.20","tag_commit":"6bf4845761d06560fc5e0e36018b5d583589004d","import_manifest":"platform/minecraft/development-baselines/1.20/import.json","import_manifest_sha256":"8935d12da979ddc65f659026fd166947e41f785cd9c2fd887c97a6a0cd6e2b7d","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"31ac040e602dff91cf72a34053d623ba072a52a5c3b3e6535d056d27d350114a","project_fixture_provenance_sha256":"0f57b5ae6c987728b208fa2bd45dad4350acde7125f69d6b3b1630c403c8c8ff"}
+        {"target_id":"1.20","tag_commit":"6bf4845761d06560fc5e0e36018b5d583589004d","import_manifest":"platform/minecraft/development-baselines/1.20/import.json","import_manifest_sha256":"8935d12da979ddc65f659026fd166947e41f785cd9c2fd887c97a6a0cd6e2b7d","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"31ac040e602dff91cf72a34053d623ba072a52a5c3b3e6535d056d27d350114a","project_fixture_provenance_sha256":"0f57b5ae6c987728b208fa2bd45dad4350acde7125f69d6b3b1630c403c8c8ff","post_baseline_canonical_sources":{"src/main/java/ca/teamdman/sfm/common/util/SFMEntityUtils.java":{"source_sha256":"df76a7d21006f94a05c05e5e4a2930b72dc5be8b005a2029860e86bdc61d5fa5","output_sha256":"c61af722a93d819a60d88e2ebbc26c2520f06e6fd0a76b743380f6e43cf4b2eb"}}}
       ],
-      "identity":"blake3:0ced4bd6a75723fb31161b60cf77c2d3645de4fc221b569249421653bb9312d1"
+      "identity":"blake3:d8ed473e3f611be370ed64d23f5ed1705f8ceb7904d0a785b8dc0a2f2ae7103f"
     },
     {
       "id":"current-development-head-1.20.1",
       "targets":["1.20.1"],
       "enabled_features":[],
       "release_baselines":[
-        {"target_id":"1.20.1","tag_commit":"faa040ce14dd825f2dd9716ea59508bf46278c06","import_manifest":"platform/minecraft/development-baselines/1.20.1/import.json","import_manifest_sha256":"002752ac4b567514e455fc0b7bae18e750304ba0113afeffcdbb288f1594eb66","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"d7f303bfc880d1afc576b69370996a4dc14e57034b9bbb504846545fa55296f6","project_fixture_provenance_sha256":"35aca408c417e792d2454ceb3ac1642f39d315aeb4803fdbd24a45a4a5149360"}
+        {"target_id":"1.20.1","tag_commit":"faa040ce14dd825f2dd9716ea59508bf46278c06","import_manifest":"platform/minecraft/development-baselines/1.20.1/import.json","import_manifest_sha256":"002752ac4b567514e455fc0b7bae18e750304ba0113afeffcdbb288f1594eb66","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"d7f303bfc880d1afc576b69370996a4dc14e57034b9bbb504846545fa55296f6","project_fixture_provenance_sha256":"35aca408c417e792d2454ceb3ac1642f39d315aeb4803fdbd24a45a4a5149360","post_baseline_canonical_sources":{"src/main/java/ca/teamdman/sfm/common/util/SFMEntityUtils.java":{"source_sha256":"df76a7d21006f94a05c05e5e4a2930b72dc5be8b005a2029860e86bdc61d5fa5","output_sha256":"c61af722a93d819a60d88e2ebbc26c2520f06e6fd0a76b743380f6e43cf4b2eb"}}}
       ],
-      "identity":"blake3:a846545629e12b3534ce904ec934fa51dc3fc2d7ffe0ca62e71d2970990182f2"
+      "identity":"blake3:1c8463fed0797ed829373a7096c85c4c821a17dcfc208ed3c7b89de087b5fea3"
     },
     {
       "id":"current-development-head-1.20.2",
       "targets":["1.20.2"],
       "enabled_features":[],
       "release_baselines":[
-        {"target_id":"1.20.2","tag_commit":"a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9","import_manifest":"platform/minecraft/development-baselines/1.20.2/import.json","import_manifest_sha256":"dd2b762682f390620a06fd7396242071150b9c1ef85f8b7f265f30687b68d709","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"7ee9569e85096dbba7f4a9f6efa7bdca323aabb8d8b12159be08c928089574b0","project_fixture_provenance_sha256":"f5c37ebe3d9d1182dbf7e52e4bbf4037527e8153f1fa089342fe6d94d84ebf10"}
+        {"target_id":"1.20.2","tag_commit":"a829fb4db2ae06eddd2defb22e33f0b45a4b3ff9","import_manifest":"platform/minecraft/development-baselines/1.20.2/import.json","import_manifest_sha256":"dd2b762682f390620a06fd7396242071150b9c1ef85f8b7f265f30687b68d709","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"7ee9569e85096dbba7f4a9f6efa7bdca323aabb8d8b12159be08c928089574b0","project_fixture_provenance_sha256":"f5c37ebe3d9d1182dbf7e52e4bbf4037527e8153f1fa089342fe6d94d84ebf10","post_baseline_canonical_sources":{"src/main/java/ca/teamdman/sfm/common/util/SFMEntityUtils.java":{"source_sha256":"df76a7d21006f94a05c05e5e4a2930b72dc5be8b005a2029860e86bdc61d5fa5","output_sha256":"c61af722a93d819a60d88e2ebbc26c2520f06e6fd0a76b743380f6e43cf4b2eb"}}}
       ],
-      "identity":"blake3:dc7c6eaf90e2d1d38099ca42eb86f298e690b9657b2fa0c63d1e4ccadb847186"
+      "identity":"blake3:e5b03bd255920751b34be891a00d27188d69c4a3f45f87abf1952aa7425baa29"
     },
     {
       "id":"current-development-head-1.20.3",
       "targets":["1.20.3"],
       "enabled_features":[],
       "release_baselines":[
-        {"target_id":"1.20.3","tag_commit":"704aa69edad5376d8d6cfb0b0ef7845af077e647","import_manifest":"platform/minecraft/development-baselines/1.20.3/import.json","import_manifest_sha256":"9594ba23fee14d9bfccd1e32c8fa5998988fd7cfdcf8440836831f37a45b5d36","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"290831f9795d81f569a15488afabedfa16d489a34a8bfc674564ef63db4b72a0","project_fixture_provenance_sha256":"5d21611c0b46d63f0b8454c0d833ebd0675a3ae3292a56a2a73c14fb34aa204a"}
+        {"target_id":"1.20.3","tag_commit":"704aa69edad5376d8d6cfb0b0ef7845af077e647","import_manifest":"platform/minecraft/development-baselines/1.20.3/import.json","import_manifest_sha256":"9594ba23fee14d9bfccd1e32c8fa5998988fd7cfdcf8440836831f37a45b5d36","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"290831f9795d81f569a15488afabedfa16d489a34a8bfc674564ef63db4b72a0","project_fixture_provenance_sha256":"5d21611c0b46d63f0b8454c0d833ebd0675a3ae3292a56a2a73c14fb34aa204a","post_baseline_canonical_sources":{"src/main/java/ca/teamdman/sfm/common/util/SFMEntityUtils.java":{"source_sha256":"df76a7d21006f94a05c05e5e4a2930b72dc5be8b005a2029860e86bdc61d5fa5","output_sha256":"c61af722a93d819a60d88e2ebbc26c2520f06e6fd0a76b743380f6e43cf4b2eb"}}}
       ],
-      "identity":"blake3:98800d74ccf0b61cec79406edbe94a3ca27bfbb5fe276ee42998d956e5b6d7cd"
+      "identity":"blake3:aed2fe4b03b799f68131832e86924f4b98cfdc81ad39ce01bf2c739961e972de"
     },
     {
       "id":"current-development-head-1.20.4",
       "targets":["1.20.4"],
       "enabled_features":[],
       "release_baselines":[
-        {"target_id":"1.20.4","tag_commit":"11d3ed07d654ff801329f17cf1eb81c2b347eecd","import_manifest":"platform/minecraft/development-baselines/1.20.4/import.json","import_manifest_sha256":"7db96a9f21eeeb9f040fee44fc94d7219994b23f677288d2fd6c77b3a6a9b273","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"5b383a459dfcd09d9e8e14dbe83878dd27c44808a5a851949f40e3b184368abe","project_fixture_provenance_sha256":"88026da7bff976d83274ad8816970a617efbdf75c72f9fe3f16b4caa93dc5d59"}
+        {"target_id":"1.20.4","tag_commit":"11d3ed07d654ff801329f17cf1eb81c2b347eecd","import_manifest":"platform/minecraft/development-baselines/1.20.4/import.json","import_manifest_sha256":"7db96a9f21eeeb9f040fee44fc94d7219994b23f677288d2fd6c77b3a6a9b273","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"5b383a459dfcd09d9e8e14dbe83878dd27c44808a5a851949f40e3b184368abe","project_fixture_provenance_sha256":"88026da7bff976d83274ad8816970a617efbdf75c72f9fe3f16b4caa93dc5d59","post_baseline_canonical_sources":{"src/main/java/ca/teamdman/sfm/common/util/SFMEntityUtils.java":{"source_sha256":"df76a7d21006f94a05c05e5e4a2930b72dc5be8b005a2029860e86bdc61d5fa5","output_sha256":"c61af722a93d819a60d88e2ebbc26c2520f06e6fd0a76b743380f6e43cf4b2eb"}}}
       ],
-      "identity":"blake3:0199055b5d782c8d28b3669e797aaeb5f31e5ac2aa174c0869e87e587cdec98f"
+      "identity":"blake3:ed3165d7896299b61d7bb091233526d2da6945c9a039b9d4cd0ac01cdec02048"
     },
     {
       "id":"current-development-head-1.21.0",
       "targets":["1.21.0"],
       "enabled_features":[],
       "release_baselines":[
-        {"target_id":"1.21.0","tag_commit":"43068d610b1c053c6569be486439769eec2ae9ef","import_manifest":"platform/minecraft/development-baselines/1.21.0/import.json","import_manifest_sha256":"bb9219c92fbe59bcc6882fce026976fab84b598cd177d655040bfa2d1f13320f","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"4db09a12c35c16b43009549adf59da26e4e254696f2f4f60454b0b9674baea84","project_fixture_provenance_sha256":"5a7f96844841e7c9b4c38d2444d9c95e29ad31f903c510cde8e8dc96fbd08b7c"}
+        {"target_id":"1.21.0","tag_commit":"43068d610b1c053c6569be486439769eec2ae9ef","import_manifest":"platform/minecraft/development-baselines/1.21.0/import.json","import_manifest_sha256":"bb9219c92fbe59bcc6882fce026976fab84b598cd177d655040bfa2d1f13320f","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"4db09a12c35c16b43009549adf59da26e4e254696f2f4f60454b0b9674baea84","project_fixture_provenance_sha256":"5a7f96844841e7c9b4c38d2444d9c95e29ad31f903c510cde8e8dc96fbd08b7c","post_baseline_canonical_sources":{"src/main/java/ca/teamdman/sfm/common/util/SFMEntityUtils.java":{"source_sha256":"df76a7d21006f94a05c05e5e4a2930b72dc5be8b005a2029860e86bdc61d5fa5","output_sha256":"c61af722a93d819a60d88e2ebbc26c2520f06e6fd0a76b743380f6e43cf4b2eb"}}}
       ],
-      "identity":"blake3:3eee1b79ae1e5f607234d91a4dd7c79240c3da50f4ad905a91abd432b5a26979"
+      "identity":"blake3:f011763c77e59afdd60a4bd2209693be4bbfb4aa42e7c3dae9715812e0947004"
     },
     {
       "id":"current-development-head-1.21.1",
       "targets":["1.21.1"],
       "enabled_features":[],
       "release_baselines":[
-        {"target_id":"1.21.1","tag_commit":"7524ab5512878b773e212600c9578b2bc4db4717","import_manifest":"platform/minecraft/development-baselines/1.21.1/import.json","import_manifest_sha256":"0af9ea57cb02fef13b853e669a616e1f85d9b678beb71694d1d6b738c2e48f25","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"f122430e041b2960b34dde4cbe8419be24a38d26586f34991c3027013978e56e","project_fixture_provenance_sha256":"635b8ef8995585c27489b4ed2978e76a6190e3099a3ad92f9f05e175544ae147"}
+        {"target_id":"1.21.1","tag_commit":"7524ab5512878b773e212600c9578b2bc4db4717","import_manifest":"platform/minecraft/development-baselines/1.21.1/import.json","import_manifest_sha256":"0af9ea57cb02fef13b853e669a616e1f85d9b678beb71694d1d6b738c2e48f25","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"f122430e041b2960b34dde4cbe8419be24a38d26586f34991c3027013978e56e","project_fixture_provenance_sha256":"635b8ef8995585c27489b4ed2978e76a6190e3099a3ad92f9f05e175544ae147","post_baseline_canonical_sources":{"src/main/java/ca/teamdman/sfm/common/util/SFMEntityUtils.java":{"source_sha256":"df76a7d21006f94a05c05e5e4a2930b72dc5be8b005a2029860e86bdc61d5fa5","output_sha256":"c61af722a93d819a60d88e2ebbc26c2520f06e6fd0a76b743380f6e43cf4b2eb"}}}
       ],
-      "identity":"blake3:25f4585ae972b5902a8eb1eac354339911365835daf5014ff549eff0baceeab8"
+      "identity":"blake3:7f2bf6453436eb3801507b3491478bda5e5f3ebd8ff9999d87aafd80bdac63da"
     },
     {
       "id":"current-development-head-26.1.2",
       "targets":["26.1.2"],
       "enabled_features":[],
       "release_baselines":[
-        {"target_id":"26.1.2","tag_commit":"6bd27f03863ddd041344cbc3da51b01a7b3c3e1f","import_manifest":"platform/minecraft/development-baselines/26.1.2/import.json","import_manifest_sha256":"34c0ebe46339a31a811c95dcefb2fa984b48aa60bbb435f68dec4044e9f49059","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"c1b5746025f4ae4fc46a70416efd4e99637e8da16fda29b6cf908767451b1f82","project_fixture_provenance_sha256":"2c0b442c0b1609a624e07211f40e49bd1aea4ecc72ca37fa2aac7ffb38c0ca30","post_baseline_gradle_sources":{"gradle/lockfile-features.gradle":"6a4411713d0dc807fd8e7f441aedcc6c9d6f817ffc1f1f9d6df63863fa968368"}}
+        {"target_id":"26.1.2","tag_commit":"6bd27f03863ddd041344cbc3da51b01a7b3c3e1f","import_manifest":"platform/minecraft/development-baselines/26.1.2/import.json","import_manifest_sha256":"34c0ebe46339a31a811c95dcefb2fa984b48aa60bbb435f68dec4044e9f49059","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"c1b5746025f4ae4fc46a70416efd4e99637e8da16fda29b6cf908767451b1f82","project_fixture_provenance_sha256":"2c0b442c0b1609a624e07211f40e49bd1aea4ecc72ca37fa2aac7ffb38c0ca30","post_baseline_gradle_sources":{"gradle/lockfile-features.gradle":"6a4411713d0dc807fd8e7f441aedcc6c9d6f817ffc1f1f9d6df63863fa968368"},"post_baseline_canonical_sources":{"src/main/java/ca/teamdman/sfm/common/util/SFMEntityUtils.java":{"source_sha256":"df76a7d21006f94a05c05e5e4a2930b72dc5be8b005a2029860e86bdc61d5fa5","output_sha256":"7f037dd11967fdff96d7aede67a9a8a9dea469186a7183ef1e9f7b9346346331"}}}
       ],
-      "identity":"blake3:424755714588590448bf4604424b64cfc0a06c778dd4578592341b588a94c9cd"
+      "identity":"blake3:2eaf93adc7a528f99a9d6dbddc294f04cdf70c7468078d83e97de21af9365d1e"
     },
     {
       "id":"released-4.34.0",

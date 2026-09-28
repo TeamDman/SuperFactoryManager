@@ -21,7 +21,9 @@ pub struct ProjectionProvenance {
 
 #[derive(Debug, Facet)]
 pub struct ProjectedFileProvenance {
-    /// Path relative to the primary or selected overlay source root.
+    /// Logical path in the selected source snapshot. For a release-tag fallback,
+    /// `src/...` belongs to the verified pinned tag, not necessarily the current
+    /// primary worktree.
     pub source_path: String,
     pub source_sha256: String,
     /// Name of the selected overlay, if this file overrides a shared source.

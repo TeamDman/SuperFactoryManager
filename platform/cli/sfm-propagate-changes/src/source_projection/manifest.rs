@@ -139,9 +139,21 @@ pub struct ReleaseBaselineBinding {
     pub post_baseline_test_sources: BTreeMap<String, String>,
     /// Exact development-only Gradle inputs allowed to replace verified
     /// imports. Keys are `gradle/... .gradle` project paths; values are bare
-    /// SHA-256 digests of files in development-overlays/<target_id>/.
+    /// SHA-256 digests of files in `development-overlays/<target_id>/`.
     #[facet(default)]
     pub post_baseline_gradle_sources: BTreeMap<String, String>,
+    /// Development-only main Java files selected from the primary source tree
+    /// in place of a verified committed-head overlay.
+    #[facet(default)]
+    pub post_baseline_canonical_sources: BTreeMap<String, CanonicalSourceSelection>,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub struct CanonicalSourceSelection {
+    /// SHA-256 of the authored primary Java file, without the `sha256:` prefix.
+    pub source_sha256: String,
+    /// SHA-256 of the rendered Java file, including its generated banner.
+    pub output_sha256: String,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Facet, PartialEq)]
@@ -504,61 +516,7 @@ impl SourceProjectionManifest {
             hash_part(&mut hasher, "canonical_project_fixtures");
             hash_part(&mut hasher, digest);
         }
-        if !preset.release_baselines.is_empty() {
-            let mut baselines = preset.release_baselines.iter().collect::<Vec<_>>();
-            baselines.sort_by_key(|baseline| &baseline.target_id);
-            hash_part(&mut hasher, "release_baselines");
-            hash_part(&mut hasher, &baselines.len().to_string());
-            for baseline in baselines {
-                hash_part(&mut hasher, &baseline.target_id);
-                hash_part(&mut hasher, &baseline.tag_commit);
-                hash_part(&mut hasher, &baseline.import_manifest);
-                hash_part(&mut hasher, &baseline.import_manifest_sha256);
-                if baseline.kind == BaselineKind::DevelopmentHead {
-                    hash_part(&mut hasher, "development_head");
-                    hash_part(
-                        &mut hasher,
-                        baseline.canonical_commit.as_deref().unwrap_or_default(),
-                    );
-                    hash_part(
-                        &mut hasher,
-                        baseline
-                            .gradle_provenance_sha256
-                            .as_deref()
-                            .unwrap_or_default(),
-                    );
-                    hash_part(
-                        &mut hasher,
-                        baseline
-                            .project_fixture_provenance_sha256
-                            .as_deref()
-                            .unwrap_or_default(),
-                    );
-                    if !baseline.post_baseline_test_sources.is_empty() {
-                        hash_part(&mut hasher, "post_baseline_test_sources");
-                        hash_part(
-                            &mut hasher,
-                            &baseline.post_baseline_test_sources.len().to_string(),
-                        );
-                        for (path, digest) in &baseline.post_baseline_test_sources {
-                            hash_part(&mut hasher, path);
-                            hash_part(&mut hasher, digest);
-                        }
-                    }
-                    if !baseline.post_baseline_gradle_sources.is_empty() {
-                        hash_part(&mut hasher, "post_baseline_gradle_sources");
-                        hash_part(
-                            &mut hasher,
-                            &baseline.post_baseline_gradle_sources.len().to_string(),
-                        );
-                        for (path, digest) in &baseline.post_baseline_gradle_sources {
-                            hash_part(&mut hasher, path);
-                            hash_part(&mut hasher, digest);
-                        }
-                    }
-                }
-            }
-        }
+        hash_release_baselines(&mut hasher, preset);
         Ok(format!("blake3:{}", hasher.finalize().to_hex()))
     }
 }
@@ -571,6 +529,76 @@ impl ProjectionPreset {
         self.release_baselines
             .iter()
             .find(|baseline| baseline.target_id == target_id)
+    }
+}
+
+fn hash_release_baselines(hasher: &mut blake3::Hasher, preset: &ProjectionPreset) {
+    if !preset.release_baselines.is_empty() {
+        let mut baselines = preset.release_baselines.iter().collect::<Vec<_>>();
+        baselines.sort_by_key(|baseline| &baseline.target_id);
+        hash_part(hasher, "release_baselines");
+        hash_part(hasher, &baselines.len().to_string());
+        for baseline in baselines {
+            hash_part(hasher, &baseline.target_id);
+            hash_part(hasher, &baseline.tag_commit);
+            hash_part(hasher, &baseline.import_manifest);
+            hash_part(hasher, &baseline.import_manifest_sha256);
+            if baseline.kind == BaselineKind::DevelopmentHead {
+                hash_part(hasher, "development_head");
+                hash_part(
+                    hasher,
+                    baseline.canonical_commit.as_deref().unwrap_or_default(),
+                );
+                hash_part(
+                    hasher,
+                    baseline
+                        .gradle_provenance_sha256
+                        .as_deref()
+                        .unwrap_or_default(),
+                );
+                hash_part(
+                    hasher,
+                    baseline
+                        .project_fixture_provenance_sha256
+                        .as_deref()
+                        .unwrap_or_default(),
+                );
+                if !baseline.post_baseline_test_sources.is_empty() {
+                    hash_part(hasher, "post_baseline_test_sources");
+                    hash_part(
+                        hasher,
+                        &baseline.post_baseline_test_sources.len().to_string(),
+                    );
+                    for (path, digest) in &baseline.post_baseline_test_sources {
+                        hash_part(hasher, path);
+                        hash_part(hasher, digest);
+                    }
+                }
+                if !baseline.post_baseline_gradle_sources.is_empty() {
+                    hash_part(hasher, "post_baseline_gradle_sources");
+                    hash_part(
+                        hasher,
+                        &baseline.post_baseline_gradle_sources.len().to_string(),
+                    );
+                    for (path, digest) in &baseline.post_baseline_gradle_sources {
+                        hash_part(hasher, path);
+                        hash_part(hasher, digest);
+                    }
+                }
+                if !baseline.post_baseline_canonical_sources.is_empty() {
+                    hash_part(hasher, "post_baseline_canonical_sources");
+                    hash_part(
+                        hasher,
+                        &baseline.post_baseline_canonical_sources.len().to_string(),
+                    );
+                    for (path, selected) in &baseline.post_baseline_canonical_sources {
+                        hash_part(hasher, path);
+                        hash_part(hasher, &selected.source_sha256);
+                        hash_part(hasher, &selected.output_sha256);
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -613,70 +641,12 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                     || baseline.project_fixture_provenance_sha256.is_some()
                     || !baseline.post_baseline_test_sources.is_empty()
                     || !baseline.post_baseline_gradle_sources.is_empty()
+                    || !baseline.post_baseline_canonical_sources.is_empty()
                 {
                     eyre::bail!("release import cannot declare development-head identities");
                 }
             }
-            BaselineKind::DevelopmentHead => {
-                if baseline.import_manifest
-                    != format!(
-                        "platform/minecraft/development-baselines/{}/import.json",
-                        baseline.target_id
-                    )
-                {
-                    eyre::bail!(
-                        "development import manifest path must match target `{}`",
-                        baseline.target_id
-                    );
-                }
-                validate_lower_hex(
-                    baseline.canonical_commit.as_deref().unwrap_or_default(),
-                    40,
-                    "development canonical commit",
-                )?;
-                validate_lower_hex(
-                    baseline
-                        .gradle_provenance_sha256
-                        .as_deref()
-                        .unwrap_or_default(),
-                    64,
-                    "development Gradle provenance SHA-256",
-                )?;
-                validate_lower_hex(
-                    baseline
-                        .project_fixture_provenance_sha256
-                        .as_deref()
-                        .unwrap_or_default(),
-                    64,
-                    "development project fixture provenance SHA-256",
-                )?;
-                let mut test_paths = BTreeSet::new();
-                for (path, digest) in &baseline.post_baseline_test_sources {
-                    validate_path(path, "post-baseline test source")?;
-                    if !path.starts_with("src/test/java/") || !path.ends_with(".java") {
-                        eyre::bail!(
-                            "post-baseline test source `{path}` must be a src/test/java/... .java path"
-                        );
-                    }
-                    if !test_paths.insert(path.to_ascii_lowercase()) {
-                        eyre::bail!("case-colliding post-baseline test source `{path}`");
-                    }
-                    validate_lower_hex(digest, 64, "post-baseline test source SHA-256")?;
-                }
-                let mut gradle_paths = BTreeSet::new();
-                for (path, digest) in &baseline.post_baseline_gradle_sources {
-                    validate_path(path, "post-baseline Gradle source")?;
-                    if !path.starts_with("gradle/") || !path.ends_with(".gradle") {
-                        eyre::bail!(
-                            "post-baseline Gradle source `{path}` must be a gradle/... .gradle path"
-                        );
-                    }
-                    if !gradle_paths.insert(path.to_ascii_lowercase()) {
-                        eyre::bail!("case-colliding post-baseline Gradle source `{path}`");
-                    }
-                    validate_lower_hex(digest, 64, "post-baseline Gradle source SHA-256")?;
-                }
-            }
+            BaselineKind::DevelopmentHead => validate_development_binding(baseline)?,
         }
         if !seen_manifests.insert(baseline.import_manifest.to_ascii_lowercase()) {
             eyre::bail!(
@@ -698,6 +668,92 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
         );
     }
     Ok(())
+}
+
+fn validate_development_binding(baseline: &ReleaseBaselineBinding) -> eyre::Result<()> {
+    if baseline.import_manifest
+        != format!(
+            "platform/minecraft/development-baselines/{}/import.json",
+            baseline.target_id
+        )
+    {
+        eyre::bail!(
+            "development import manifest path must match target `{}`",
+            baseline.target_id
+        );
+    }
+    validate_lower_hex(
+        baseline.canonical_commit.as_deref().unwrap_or_default(),
+        40,
+        "development canonical commit",
+    )?;
+    validate_lower_hex(
+        baseline
+            .gradle_provenance_sha256
+            .as_deref()
+            .unwrap_or_default(),
+        64,
+        "development Gradle provenance SHA-256",
+    )?;
+    validate_lower_hex(
+        baseline
+            .project_fixture_provenance_sha256
+            .as_deref()
+            .unwrap_or_default(),
+        64,
+        "development project fixture provenance SHA-256",
+    )?;
+    let mut test_paths = BTreeSet::new();
+    for (path, digest) in &baseline.post_baseline_test_sources {
+        validate_path(path, "post-baseline test source")?;
+        if !path.starts_with("src/test/java/") || !has_exact_extension(path, "java") {
+            eyre::bail!(
+                "post-baseline test source `{path}` must be a src/test/java/... .java path"
+            );
+        }
+        if !test_paths.insert(path.to_ascii_lowercase()) {
+            eyre::bail!("case-colliding post-baseline test source `{path}`");
+        }
+        validate_lower_hex(digest, 64, "post-baseline test source SHA-256")?;
+    }
+    let mut gradle_paths = BTreeSet::new();
+    for (path, digest) in &baseline.post_baseline_gradle_sources {
+        validate_path(path, "post-baseline Gradle source")?;
+        if !path.starts_with("gradle/") || !has_exact_extension(path, "gradle") {
+            eyre::bail!("post-baseline Gradle source `{path}` must be a gradle/... .gradle path");
+        }
+        if !gradle_paths.insert(path.to_ascii_lowercase()) {
+            eyre::bail!("case-colliding post-baseline Gradle source `{path}`");
+        }
+        validate_lower_hex(digest, 64, "post-baseline Gradle source SHA-256")?;
+    }
+    validate_post_baseline_canonical_sources(baseline)?;
+    Ok(())
+}
+
+fn validate_post_baseline_canonical_sources(baseline: &ReleaseBaselineBinding) -> eyre::Result<()> {
+    let mut paths = BTreeSet::new();
+    for (path, selected) in &baseline.post_baseline_canonical_sources {
+        validate_path(path, "post-baseline canonical source")?;
+        if !path.starts_with("src/main/java/") || !has_exact_extension(path, "java") {
+            eyre::bail!(
+                "post-baseline canonical source `{path}` must be a src/main/java/... .java path"
+            );
+        }
+        if !paths.insert(path.to_ascii_lowercase()) {
+            eyre::bail!("case-colliding post-baseline canonical source `{path}`");
+        }
+        validate_lower_hex(&selected.source_sha256, 64, "canonical source SHA-256")?;
+        validate_lower_hex(&selected.output_sha256, 64, "canonical output SHA-256")?;
+    }
+    Ok(())
+}
+
+fn has_exact_extension(path: &str, expected: &str) -> bool {
+    std::path::Path::new(path)
+        .extension()
+        .and_then(|extension| extension.to_str())
+        == Some(expected)
 }
 
 fn validate_lower_hex(value: &str, expected_len: usize, description: &str) -> eyre::Result<()> {
@@ -869,6 +925,7 @@ mod tests {
             project_fixture_provenance_sha256: None,
             post_baseline_test_sources: BTreeMap::new(),
             post_baseline_gradle_sources: BTreeMap::new(),
+            post_baseline_canonical_sources: BTreeMap::new(),
         }
     }
 
@@ -1031,6 +1088,106 @@ mod tests {
             pinned_identity
         );
         assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn canonical_main_source_selection_is_development_only_and_identity_bound() {
+        let path = "src/main/java/example/VersionAdapter.java";
+        let mut manifest = sample();
+        let mut binding = release_binding("1.19.2");
+        binding.post_baseline_canonical_sources.insert(
+            path.to_owned(),
+            CanonicalSourceSelection {
+                source_sha256: "a".repeat(64),
+                output_sha256: "b".repeat(64),
+            },
+        );
+        manifest.presets[0].release_baselines.push(binding);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("release import cannot declare development-head identities")
+        );
+
+        let binding = &mut manifest.presets[0].release_baselines[0];
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.import_manifest =
+            "platform/minecraft/development-baselines/1.19.2/import.json".to_owned();
+        binding.canonical_commit = Some("c".repeat(40));
+        binding.gradle_provenance_sha256 = Some("d".repeat(64));
+        binding.project_fixture_provenance_sha256 = Some("e".repeat(64));
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest.validate().unwrap();
+        let pinned_identity = manifest.presets[0].identity.clone();
+        assert_eq!(
+            SourceProjectionManifest::from_json(&manifest.to_json().unwrap()).unwrap(),
+            manifest
+        );
+
+        manifest.presets[0].release_baselines[0]
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .output_sha256 = "f".repeat(64);
+        assert_ne!(
+            manifest
+                .compute_preset_identity(&manifest.presets[0])
+                .unwrap(),
+            pinned_identity
+        );
+        assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn canonical_main_source_selection_rejects_wrong_paths_and_digests() {
+        let mut binding = release_binding("1.19.2");
+        for path in [
+            "src/test/java/example/VersionAdapter.java",
+            "src/main/java/../VersionAdapter.java",
+            "src/main/java/example/VersionAdapter.JAVA",
+        ] {
+            binding.post_baseline_canonical_sources = BTreeMap::from([(
+                path.to_owned(),
+                CanonicalSourceSelection {
+                    source_sha256: "a".repeat(64),
+                    output_sha256: "b".repeat(64),
+                },
+            )]);
+            assert!(validate_post_baseline_canonical_sources(&binding).is_err());
+        }
+        binding.post_baseline_canonical_sources = BTreeMap::from([
+            (
+                "src/main/java/example/VersionAdapter.java".to_owned(),
+                CanonicalSourceSelection {
+                    source_sha256: "a".repeat(64),
+                    output_sha256: "b".repeat(64),
+                },
+            ),
+            (
+                "src/main/java/example/versionadapter.java".to_owned(),
+                CanonicalSourceSelection {
+                    source_sha256: "a".repeat(64),
+                    output_sha256: "b".repeat(64),
+                },
+            ),
+        ]);
+        assert!(validate_post_baseline_canonical_sources(&binding).is_err());
+        binding
+            .post_baseline_canonical_sources
+            .remove("src/main/java/example/versionadapter.java");
+        binding
+            .post_baseline_canonical_sources
+            .get_mut("src/main/java/example/VersionAdapter.java")
+            .unwrap()
+            .source_sha256 = "bad".to_owned();
+        assert!(validate_post_baseline_canonical_sources(&binding).is_err());
     }
 
     #[test]
