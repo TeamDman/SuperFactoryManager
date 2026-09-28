@@ -14,6 +14,7 @@ use sha1::{Digest as _, Sha1};
 use walkdir::WalkDir;
 
 use super::development_baseline::DevelopmentHeadSpec;
+use super::manifest::{BaselineKind, ReleaseBaselineBinding};
 use super::provenance::sha256;
 use super::release_baseline::{
     GitBlobHasher, collect_tagged_gradle_tree, git_text, insert_import_file,
@@ -366,6 +367,104 @@ pub fn verify_development_gradle_inputs(
     Ok(())
 }
 
+/// Replace explicitly bound Gradle inputs only after the complete imported
+/// development Gradle tree and its projected artifacts pass provenance checks.
+/// Overlay bytes live outside the immutable import and are pinned by the
+/// development preset's definition identity.
+///
+/// # Errors
+///
+/// Rejects release bindings, altered imports or overlays, unsafe paths, and
+/// overlay paths absent from the pinned Gradle project. The artifact map is
+/// unchanged on failure.
+pub fn apply_post_baseline_gradle_sources(
+    repo_root: &Path,
+    binding: &ReleaseBaselineBinding,
+    artifacts: &mut BTreeMap<String, ProjectedArtifact>,
+) -> Result<()> {
+    if binding.post_baseline_gradle_sources.is_empty() {
+        return Ok(());
+    }
+    ensure!(
+        binding.kind == BaselineKind::DevelopmentHead,
+        "release-tag binding cannot apply post-baseline Gradle sources"
+    );
+    validate_target_id(&binding.target_id)?;
+    let root = repository_directory(repo_root)?;
+    let import_root = root.join(format!(
+        "platform/minecraft/development-baselines/{}/gradle-project",
+        binding.target_id
+    ));
+    verify_development_gradle_inputs(
+        &root,
+        binding
+            .canonical_commit
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("development canonical commit is missing"))?,
+        &binding.tag_commit,
+        &import_root,
+        binding
+            .gradle_provenance_sha256
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("development Gradle provenance hash is missing"))?,
+        artifacts,
+    )?;
+
+    let mut pending = artifacts.clone();
+    for (path, expected_hash) in &binding.post_baseline_gradle_sources {
+        validate_gradle_path(path)?;
+        ensure!(
+            path.starts_with("gradle/") && path.ends_with(".gradle"),
+            "post-baseline Gradle source '{path}' must be a gradle/... .gradle path"
+        );
+        ensure!(
+            is_lower_hex(expected_hash, 64),
+            "post-baseline Gradle source '{path}' needs a bare lowercase SHA-256"
+        );
+        let overlay_path = root.join(format!(
+            "platform/minecraft/development-overlays/{}/{path}",
+            binding.target_id
+        ));
+        ensure_real_directory_chain(
+            &root,
+            overlay_path
+                .parent()
+                .ok_or_else(|| eyre::eyre!("post-baseline Gradle source has no parent"))?,
+        )?;
+        let metadata = fs::symlink_metadata(&overlay_path).wrap_err_with(|| {
+            format!(
+                "missing post-baseline Gradle source '{}'",
+                overlay_path.display()
+            )
+        })?;
+        ensure!(
+            metadata.is_file() && !metadata.file_type().is_symlink(),
+            "post-baseline Gradle source '{path}' must be a real file"
+        );
+        ensure!(
+            metadata.len() <= MAX_BLOB_BYTES,
+            "post-baseline Gradle source '{path}' is too large"
+        );
+        let bytes = fs::read(&overlay_path)?;
+        ensure!(
+            sha256(&bytes) == format!("sha256:{expected_hash}"),
+            "post-baseline Gradle source '{path}' differs from its pinned SHA-256"
+        );
+        let artifact = pending.get_mut(path).ok_or_else(|| {
+            eyre::eyre!("post-baseline Gradle source '{path}' is absent from the pinned import")
+        })?;
+        artifact.source_path = format!(
+            "platform/minecraft/development-overlays/{}/{path}",
+            binding.target_id
+        );
+        artifact.source_bytes = bytes.clone();
+        artifact.output_bytes = bytes;
+        artifact.overlay = Some("development-gradle-portability".to_owned());
+    }
+    *artifacts = pending;
+    Ok(())
+}
+
 fn validate_inventory(files: &BTreeMap<String, DevelopmentGradleFile>) -> Result<()> {
     ensure!(!files.is_empty(), "development Gradle provenance is empty");
     let mut casefold = BTreeSet::new();
@@ -570,6 +669,7 @@ fn verify_unix_mode(path: &Path, expected: &str) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::source_projection::manifest::SourceProjectionManifest;
     use crate::source_projection::project_layout::collect_gradle_project_inputs;
 
     fn current_repository() -> PathBuf {
@@ -580,9 +680,10 @@ mod tests {
             .to_path_buf()
     }
 
-    fn copy_import_into_temp(temp: &Path) -> Result<PathBuf> {
-        let original = current_repository().join(DEVELOPMENT_1194_GRADLE_PROJECT);
-        let copied = temp.join(DEVELOPMENT_1194_GRADLE_PROJECT);
+    fn copy_import_into_temp(temp: &Path, target: &str) -> Result<PathBuf> {
+        let relative = format!("platform/minecraft/development-baselines/{target}");
+        let original = current_repository().join(&relative).join("gradle-project");
+        let copied = temp.join(&relative).join("gradle-project");
         for entry in WalkDir::new(&original).follow_links(false) {
             let entry = entry?;
             let relative = entry.path().strip_prefix(&original)?;
@@ -593,8 +694,10 @@ mod tests {
                 fs::copy(entry.path(), destination)?;
             }
         }
-        let original_provenance = current_repository().join(DEVELOPMENT_1194_GRADLE_PROVENANCE);
-        let copied_provenance = temp.join(DEVELOPMENT_1194_GRADLE_PROVENANCE);
+        let original_provenance = current_repository()
+            .join(&relative)
+            .join("gradle-provenance.json");
+        let copied_provenance = temp.join(relative).join("gradle-provenance.json");
         fs::copy(original_provenance, copied_provenance)?;
         Ok(copied)
     }
@@ -602,7 +705,7 @@ mod tests {
     #[test]
     fn pinned_import_rejects_content_and_path_drift() {
         let temp = tempfile::tempdir().unwrap();
-        let import_root = copy_import_into_temp(temp.path()).unwrap();
+        let import_root = copy_import_into_temp(temp.path(), "1.19.4").unwrap();
         let expected =
             sha256(&fs::read(temp.path().join(DEVELOPMENT_1194_GRADLE_PROVENANCE)).unwrap());
         let expected = expected.strip_prefix("sha256:").unwrap();
@@ -698,5 +801,78 @@ mod tests {
         )
         .unwrap();
         eprintln!("{report:#?}");
+    }
+
+    #[test]
+    fn pinned_2612_gradle_overlay_applies_only_after_verified_import() {
+        let root = current_repository();
+        let manifest = SourceProjectionManifest::from_json(
+            &fs::read_to_string(root.join("platform/minecraft/source-projection.json")).unwrap(),
+        )
+        .unwrap();
+        let binding = manifest
+            .preset("current-development-head-26.1.2")
+            .unwrap()
+            .release_baseline_for("26.1.2")
+            .unwrap();
+        let import_root =
+            root.join("platform/minecraft/development-baselines/26.1.2/gradle-project");
+        let mut artifacts = collect_gradle_project_inputs(&import_root).unwrap();
+        let imported = artifacts["gradle/lockfile-features.gradle"].clone();
+
+        apply_post_baseline_gradle_sources(&root, binding, &mut artifacts).unwrap();
+        let overlaid = &artifacts["gradle/lockfile-features.gradle"];
+        assert_ne!(overlaid.output_bytes, imported.output_bytes);
+        assert_eq!(
+            overlaid.source_path,
+            "platform/minecraft/development-overlays/26.1.2/gradle/lockfile-features.gradle"
+        );
+        assert_eq!(
+            overlaid.overlay.as_deref(),
+            Some("development-gradle-portability")
+        );
+        assert_eq!(
+            artifacts["build.gradle"].output_bytes,
+            fs::read(import_root.join("build.gradle")).unwrap()
+        );
+
+        let mut wrong_hash = binding.clone();
+        wrong_hash
+            .post_baseline_gradle_sources
+            .insert("gradle/lockfile-features.gradle".to_owned(), "0".repeat(64));
+        let mut unchanged = collect_gradle_project_inputs(&import_root).unwrap();
+        let original = unchanged.clone();
+        let error =
+            apply_post_baseline_gradle_sources(&root, &wrong_hash, &mut unchanged).unwrap_err();
+        assert!(format!("{error:?}").contains("pinned SHA-256"));
+        assert_eq!(unchanged, original);
+    }
+
+    #[test]
+    fn pinned_2612_gradle_overlay_rejects_import_drift() {
+        let root = current_repository();
+        let manifest = SourceProjectionManifest::from_json(
+            &fs::read_to_string(root.join("platform/minecraft/source-projection.json")).unwrap(),
+        )
+        .unwrap();
+        let binding = manifest
+            .preset("current-development-head-26.1.2")
+            .unwrap()
+            .release_baseline_for("26.1.2")
+            .unwrap();
+        let temp = tempfile::tempdir().unwrap();
+        let import_root = copy_import_into_temp(temp.path(), "26.1.2").unwrap();
+        let mut artifacts = collect_gradle_project_inputs(&import_root).unwrap();
+        let original = artifacts.clone();
+        fs::write(
+            import_root.join("gradle/lockfile-features.gradle"),
+            b"drift\n",
+        )
+        .unwrap();
+
+        let error =
+            apply_post_baseline_gradle_sources(temp.path(), binding, &mut artifacts).unwrap_err();
+        assert!(format!("{error:?}").contains("pinned blob/hash"));
+        assert_eq!(artifacts, original);
     }
 }

@@ -132,6 +132,11 @@ pub struct ReleaseBaselineBinding {
     /// project paths; values are bare SHA-256 digests of authored input bytes.
     #[facet(default)]
     pub post_baseline_test_sources: BTreeMap<String, String>,
+    /// Exact development-only Gradle inputs allowed to replace verified
+    /// imports. Keys are `gradle/... .gradle` project paths; values are bare
+    /// SHA-256 digests of files in development-overlays/<target_id>/.
+    #[facet(default)]
+    pub post_baseline_gradle_sources: BTreeMap<String, String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Facet, PartialEq)]
@@ -520,6 +525,17 @@ impl SourceProjectionManifest {
                             hash_part(&mut hasher, digest);
                         }
                     }
+                    if !baseline.post_baseline_gradle_sources.is_empty() {
+                        hash_part(&mut hasher, "post_baseline_gradle_sources");
+                        hash_part(
+                            &mut hasher,
+                            &baseline.post_baseline_gradle_sources.len().to_string(),
+                        );
+                        for (path, digest) in &baseline.post_baseline_gradle_sources {
+                            hash_part(&mut hasher, path);
+                            hash_part(&mut hasher, digest);
+                        }
+                    }
                 }
             }
         }
@@ -576,6 +592,7 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                     || baseline.gradle_provenance_sha256.is_some()
                     || baseline.project_fixture_provenance_sha256.is_some()
                     || !baseline.post_baseline_test_sources.is_empty()
+                    || !baseline.post_baseline_gradle_sources.is_empty()
                 {
                     eyre::bail!("release import cannot declare development-head identities");
                 }
@@ -625,6 +642,19 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                         eyre::bail!("case-colliding post-baseline test source `{path}`");
                     }
                     validate_lower_hex(digest, 64, "post-baseline test source SHA-256")?;
+                }
+                let mut gradle_paths = BTreeSet::new();
+                for (path, digest) in &baseline.post_baseline_gradle_sources {
+                    validate_path(path, "post-baseline Gradle source")?;
+                    if !path.starts_with("gradle/") || !path.ends_with(".gradle") {
+                        eyre::bail!(
+                            "post-baseline Gradle source `{path}` must be a gradle/... .gradle path"
+                        );
+                    }
+                    if !gradle_paths.insert(path.to_ascii_lowercase()) {
+                        eyre::bail!("case-colliding post-baseline Gradle source `{path}`");
+                    }
+                    validate_lower_hex(digest, 64, "post-baseline Gradle source SHA-256")?;
                 }
             }
         }
@@ -817,6 +847,7 @@ mod tests {
             gradle_provenance_sha256: None,
             project_fixture_provenance_sha256: None,
             post_baseline_test_sources: BTreeMap::new(),
+            post_baseline_gradle_sources: BTreeMap::new(),
         }
     }
 
@@ -980,6 +1011,89 @@ mod tests {
                 "b".repeat(64),
             ),
         ]);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn post_baseline_gradle_sources_are_development_only_and_content_bound() {
+        let path = "gradle/lockfile-features.gradle";
+        let mut manifest = sample();
+        let mut binding = release_binding("1.19.2");
+        binding
+            .post_baseline_gradle_sources
+            .insert(path.to_owned(), "a".repeat(64));
+        manifest.presets[0].release_baselines.push(binding);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("release import cannot declare development-head identities")
+        );
+
+        let binding = &mut manifest.presets[0].release_baselines[0];
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.import_manifest =
+            "platform/minecraft/development-baselines/1.19.2/import.json".to_owned();
+        binding.canonical_commit = Some("c".repeat(40));
+        binding.gradle_provenance_sha256 = Some("d".repeat(64));
+        binding.project_fixture_provenance_sha256 = Some("e".repeat(64));
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest.validate().unwrap();
+        let pinned_identity = manifest.presets[0].identity.clone();
+        assert_eq!(
+            SourceProjectionManifest::from_json(&manifest.to_json().unwrap()).unwrap(),
+            manifest
+        );
+
+        manifest.presets[0].release_baselines[0]
+            .post_baseline_gradle_sources
+            .insert(path.to_owned(), "f".repeat(64));
+        assert_ne!(
+            manifest
+                .compute_preset_identity(&manifest.presets[0])
+                .unwrap(),
+            pinned_identity
+        );
+        assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn post_baseline_gradle_sources_reject_unsafe_paths_and_digests() {
+        let mut manifest = sample();
+        let mut binding = release_binding("1.19.2");
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.import_manifest =
+            "platform/minecraft/development-baselines/1.19.2/import.json".to_owned();
+        binding.canonical_commit = Some("c".repeat(40));
+        binding.gradle_provenance_sha256 = Some("d".repeat(64));
+        binding.project_fixture_provenance_sha256 = Some("e".repeat(64));
+        manifest.presets[0].release_baselines.push(binding);
+        for path in [
+            "build.gradle",
+            "gradle/../build.gradle",
+            "gradle/CON.gradle",
+            "gradle/source-excludes/1.19.2/main-java.txt",
+        ] {
+            manifest.presets[0].release_baselines[0].post_baseline_gradle_sources =
+                BTreeMap::from([(path.to_owned(), "a".repeat(64))]);
+            manifest.presets[0].identity = manifest
+                .compute_preset_identity(&manifest.presets[0])
+                .unwrap();
+            assert!(manifest.validate().is_err(), "accepted {path}");
+        }
+        manifest.presets[0].release_baselines[0].post_baseline_gradle_sources = BTreeMap::from([(
+            "gradle/lockfile-features.gradle".to_owned(),
+            "not-a-sha256".to_owned(),
+        )]);
         manifest.presets[0].identity = manifest
             .compute_preset_identity(&manifest.presets[0])
             .unwrap();

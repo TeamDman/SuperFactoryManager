@@ -197,6 +197,7 @@ mod tests {
                 gradle_provenance_sha256: None,
                 project_fixture_provenance_sha256: None,
                 post_baseline_test_sources: BTreeMap::new(),
+                post_baseline_gradle_sources: BTreeMap::new(),
             });
         manifest.presets[0].identity = manifest
             .compute_preset_identity(&manifest.presets[0])

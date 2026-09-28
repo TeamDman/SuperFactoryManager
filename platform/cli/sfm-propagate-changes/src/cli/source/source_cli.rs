@@ -18,7 +18,9 @@ use crate::source_projection::development_baseline::{
     DevelopmentHeadSpec, compare_committed_source_heads, materialize_committed_source_import,
 };
 use crate::source_projection::development_fixtures::materialize_development_project_fixtures;
-use crate::source_projection::development_gradle::materialize_development_gradle_inputs;
+use crate::source_projection::development_gradle::{
+    apply_post_baseline_gradle_sources, materialize_development_gradle_inputs,
+};
 use crate::source_projection::inputs::{
     apply_explicit_inputs, collect_projected_inputs_with_allowlist,
 };
@@ -944,7 +946,7 @@ impl SourceProjectArgs {
                 .collect::<Result<Vec<_>>>()?;
             (gradle_root, gradle_overlays)
         };
-        if gradle_overlays.is_empty() {
+        let mut artifacts = if gradle_overlays.is_empty() {
             collect_gradle_project_inputs(&gradle_root)
         } else {
             collect_gradle_project_inputs_for_target(
@@ -953,7 +955,11 @@ impl SourceProjectArgs {
                 target_id,
                 minecraft_version,
             )
+        }?;
+        if let Some(binding) = &selection.release_baseline {
+            apply_post_baseline_gradle_sources(repo_root, binding, &mut artifacts)?;
         }
+        Ok(artifacts)
     }
 }
 

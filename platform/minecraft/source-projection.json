@@ -152,9 +152,9 @@
       "targets":["26.1.2"],
       "enabled_features":[],
       "release_baselines":[
-        {"target_id":"26.1.2","tag_commit":"6bd27f03863ddd041344cbc3da51b01a7b3c3e1f","import_manifest":"platform/minecraft/development-baselines/26.1.2/import.json","import_manifest_sha256":"34c0ebe46339a31a811c95dcefb2fa984b48aa60bbb435f68dec4044e9f49059","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"c1b5746025f4ae4fc46a70416efd4e99637e8da16fda29b6cf908767451b1f82","project_fixture_provenance_sha256":"2c0b442c0b1609a624e07211f40e49bd1aea4ecc72ca37fa2aac7ffb38c0ca30"}
+        {"target_id":"26.1.2","tag_commit":"6bd27f03863ddd041344cbc3da51b01a7b3c3e1f","import_manifest":"platform/minecraft/development-baselines/26.1.2/import.json","import_manifest_sha256":"34c0ebe46339a31a811c95dcefb2fa984b48aa60bbb435f68dec4044e9f49059","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"c1b5746025f4ae4fc46a70416efd4e99637e8da16fda29b6cf908767451b1f82","project_fixture_provenance_sha256":"2c0b442c0b1609a624e07211f40e49bd1aea4ecc72ca37fa2aac7ffb38c0ca30","post_baseline_gradle_sources":{"gradle/lockfile-features.gradle":"6a4411713d0dc807fd8e7f441aedcc6c9d6f817ffc1f1f9d6df63863fa968368"}}
       ],
-      "identity":"blake3:590ed12c72ce06ffd999455aab9a5a84faaa46672e2004f92a277b103c136e1f"
+      "identity":"blake3:424755714588590448bf4604424b64cfc0a06c778dd4578592341b588a94c9cd"
     },
     {
       "id":"released-4.34.0",
