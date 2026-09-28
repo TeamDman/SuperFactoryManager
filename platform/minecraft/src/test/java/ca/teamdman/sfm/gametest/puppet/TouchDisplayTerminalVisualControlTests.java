@@ -21,17 +21,26 @@ class TouchDisplayTerminalVisualControlTests {
     private static Class<?> control;
 
     @BeforeAll static void loadPureControl() throws Exception {
-        Path root = Path.of("").toAbsolutePath();
-        Path relative = Path.of("platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest");
-        while (root != null && !Files.isDirectory(root.resolve(relative))) root = root.getParent();
-        assertNotNull(root);
-        sourceRoot = root.resolve(relative);
+        sourceRoot = gameTestSourceRoot();
+        assertNotNull(sourceRoot);
         var compiler = ToolProvider.getSystemJavaCompiler();
         assertNotNull(compiler);
         assertEquals(0, compiler.run(null, null, null, "--release", "17", "-proc:none", "-d", classes.toString(),
                 sourceRoot.resolve("tests/general/TouchDisplayTerminalVisualControl.java").toString()));
         loader = new URLClassLoader(new java.net.URL[]{classes.toUri().toURL()}, TouchDisplayTerminalVisualControlTests.class.getClassLoader());
         control = loader.loadClass("ca.teamdman.sfm.gametest.tests.general.TouchDisplayTerminalVisualControl");
+    }
+
+    private static Path gameTestSourceRoot() {
+        Path cursor = Path.of("").toAbsolutePath();
+        Path direct = Path.of("src/gametest/java/ca/teamdman/sfm/gametest");
+        Path nested = Path.of("platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest");
+        while (cursor != null) {
+            if (Files.isDirectory(cursor.resolve(direct))) return cursor.resolve(direct);
+            if (Files.isDirectory(cursor.resolve(nested))) return cursor.resolve(nested);
+            cursor = cursor.getParent();
+        }
+        return null;
     }
 
     @AfterAll static void closeLoader() throws Exception { if (loader != null) loader.close(); }

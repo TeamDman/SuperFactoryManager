@@ -57,6 +57,7 @@ pub fn release_source_paths(
         .first()
         .ok_or_else(|| eyre::eyre!("release import manifest contains no target"))?;
     let (paths, _) = validate_target_report(target, import_prefix(binding.kind))?;
+    validate_post_baseline_test_sources(binding, target)?;
     Ok(paths)
 }
 
@@ -85,6 +86,7 @@ pub fn apply_release_baseline(
         .ok_or_else(|| eyre::eyre!("release import manifest contains no target"))?;
     let (release_paths, explicit_inputs) =
         validate_target_report(target, import_prefix(binding.kind))?;
+    validate_post_baseline_test_sources(binding, target)?;
 
     let mut pending = artifacts.clone();
     let masked_development_files = pending
@@ -102,6 +104,28 @@ pub fn apply_release_baseline(
             .release_sha256
             .as_deref()
             .ok_or_else(|| eyre::eyre!("release source `{path}` has no declared SHA-256"))?;
+        if binding.post_baseline_test_sources.contains_key(path) {
+            ensure!(
+                pending.contains_key(path),
+                "post-baseline test source '{path}' is missing from canonical inputs"
+            );
+            let oid = record.release_blob_oid.as_deref().ok_or_else(|| {
+                eyre::eyre!("post-baseline test source '{path}' has no pinned Git blob ID")
+            })?;
+            let bytes = read_pinned_blob(repo_root, &target.tag_commit, path, oid, expected)?;
+            let mut pinned = ProjectedArtifact {
+                source_path: format!(
+                    "platform/minecraft/development-baselines/{}/committed-tree/{path}",
+                    target.target_id
+                ),
+                source_bytes: bytes.clone(),
+                output_bytes: bytes,
+                overlay: Some("development-head-pinned-test".to_owned()),
+            };
+            render_java_artifact(path, &mut pinned, context)?;
+            pending.insert(path.clone(), pinned);
+            continue;
+        }
         if pending
             .get(path)
             .is_some_and(|artifact| sha256(&artifact.source_bytes) == expected)
@@ -201,6 +225,8 @@ pub fn apply_release_baseline(
         }
     }
 
+    apply_post_baseline_test_sources(repo_root, binding, context, &mut pending)?;
+
     let result = ReleaseApplyReport {
         retained_source_files: release_paths.len(),
         masked_development_files,
@@ -228,6 +254,75 @@ fn rendered_java_matches_pinned(
     };
     render_java_artifact(path, &mut pinned, context)?;
     Ok(current.output_bytes == pinned.output_bytes)
+}
+
+fn validate_post_baseline_test_sources(
+    binding: &ReleaseBaselineBinding,
+    target: &ReleaseBaselineTargetReport,
+) -> Result<()> {
+    ensure!(
+        binding.kind == BaselineKind::DevelopmentHead
+            || binding.post_baseline_test_sources.is_empty(),
+        "release-tag binding cannot declare post-baseline test sources"
+    );
+    let mut casefold = BTreeSet::new();
+    for (path, digest) in &binding.post_baseline_test_sources {
+        validate_repo_path(path, "src/test/java/")?;
+        ensure!(
+            path.ends_with(".java"),
+            "post-baseline test source '{path}' must be Java"
+        );
+        ensure!(
+            is_lower_hex(digest, 64),
+            "post-baseline test source '{path}' needs a bare lowercase SHA-256"
+        );
+        ensure!(
+            casefold.insert(path.to_ascii_lowercase()),
+            "case-colliding post-baseline test source '{path}'"
+        );
+        let record = target.paths.get(path).ok_or_else(|| {
+            eyre::eyre!("post-baseline test source '{path}' is absent from pinned membership")
+        })?;
+        ensure!(
+            record.classification == BaselinePathClass::Unchanged,
+            "post-baseline test source '{path}' must have an unchanged pinned baseline"
+        );
+    }
+    Ok(())
+}
+
+fn apply_post_baseline_test_sources(
+    repo_root: &Path,
+    binding: &ReleaseBaselineBinding,
+    context: &ProjectionContext,
+    artifacts: &mut BTreeMap<String, ProjectedArtifact>,
+) -> Result<()> {
+    if binding.post_baseline_test_sources.is_empty() {
+        return Ok(());
+    }
+    ensure!(
+        binding.kind == BaselineKind::DevelopmentHead,
+        "release-tag binding cannot apply post-baseline test sources"
+    );
+    let inputs = binding
+        .post_baseline_test_sources
+        .keys()
+        .map(|path| (path.clone(), format!("platform/minecraft/{path}")))
+        .collect::<BTreeMap<_, _>>();
+    let mut pending = artifacts.clone();
+    apply_explicit_inputs(repo_root, &mut pending, &inputs, context)?;
+    for (path, expected_hash) in &binding.post_baseline_test_sources {
+        let artifact = pending
+            .get_mut(path)
+            .ok_or_else(|| eyre::eyre!("missing post-baseline test source '{path}'"))?;
+        ensure!(
+            sha256(&artifact.source_bytes) == format!("sha256:{expected_hash}"),
+            "post-baseline test source '{path}' differs from its pinned SHA-256"
+        );
+        artifact.overlay = Some("development-test-portability".to_owned());
+    }
+    *artifacts = pending;
+    Ok(())
 }
 
 fn import_prefix(kind: BaselineKind) -> &'static str {
@@ -652,6 +747,7 @@ mod tests {
             canonical_commit: None,
             gradle_provenance_sha256: None,
             project_fixture_provenance_sha256: None,
+            post_baseline_test_sources: BTreeMap::new(),
         }
     }
 
@@ -811,6 +907,89 @@ mod tests {
         );
         let binding = write_report(root.path(), &report);
         assert!(apply_release_baseline(root.path(), &binding, &context(), &mut artifacts).is_err());
+        assert_eq!(artifacts, original);
+    }
+
+    #[test]
+    fn post_baseline_test_binding_requires_development_and_unchanged_membership() {
+        let path = "src/test/java/example/PortableTest.java";
+        let mut target = report(
+            &"a".repeat(40),
+            BTreeMap::from([(
+                path.to_owned(),
+                record(
+                    BaselinePathClass::Unchanged,
+                    Some(b"class PortableTest {}\n"),
+                    Some(b"class PortableTest {}\n"),
+                    None,
+                ),
+            )]),
+        )
+        .targets
+        .remove(0);
+        let root = tempfile::tempdir().unwrap();
+        let mut binding = write_report(root.path(), &report(&"a".repeat(40), target.paths.clone()));
+        binding
+            .post_baseline_test_sources
+            .insert(path.to_owned(), "b".repeat(64));
+        assert!(validate_post_baseline_test_sources(&binding, &target).is_err());
+        binding.kind = BaselineKind::DevelopmentHead;
+        validate_post_baseline_test_sources(&binding, &target).unwrap();
+
+        target.paths.get_mut(path).unwrap().classification = BaselinePathClass::Changed;
+        assert!(validate_post_baseline_test_sources(&binding, &target).is_err());
+        target.paths.get_mut(path).unwrap().classification = BaselinePathClass::Unchanged;
+        binding.post_baseline_test_sources = BTreeMap::from([(
+            "src/main/java/example/PortableTest.java".to_owned(),
+            "b".repeat(64),
+        )]);
+        assert!(validate_post_baseline_test_sources(&binding, &target).is_err());
+    }
+
+    #[test]
+    fn post_baseline_test_patch_is_content_bound_and_atomic_on_drift() {
+        let root = tempfile::tempdir().unwrap();
+        let path = "src/test/java/example/PortableTest.java";
+        let source = root.path().join(format!("platform/minecraft/{path}"));
+        fs::create_dir_all(source.parent().unwrap()).unwrap();
+        let patched = b"class PortableTest { void portable() {} }\n";
+        fs::write(&source, patched).unwrap();
+        let mut binding = write_report(
+            root.path(),
+            &report(
+                &"a".repeat(40),
+                BTreeMap::from([(
+                    path.to_owned(),
+                    record(
+                        BaselinePathClass::Unchanged,
+                        Some(b"class PortableTest {}\n"),
+                        Some(b"class PortableTest {}\n"),
+                        None,
+                    ),
+                )]),
+            ),
+        );
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.post_baseline_test_sources = BTreeMap::from([(
+            path.to_owned(),
+            sha256(patched).trim_start_matches("sha256:").to_owned(),
+        )]);
+        let mut artifacts =
+            BTreeMap::from([(path.to_owned(), artifact(path, b"class PortableTest {}\n"))]);
+        apply_post_baseline_test_sources(root.path(), &binding, &context(), &mut artifacts)
+            .unwrap();
+        assert_eq!(artifacts[path].source_bytes, patched);
+        assert!(artifacts[path].output_bytes.starts_with(b"// GENERATED"));
+        assert_eq!(
+            artifacts[path].overlay.as_deref(),
+            Some("development-test-portability")
+        );
+        let original = artifacts.clone();
+        fs::write(&source, b"class PortableTest { void changed() {} }\n").unwrap();
+        assert!(
+            apply_post_baseline_test_sources(root.path(), &binding, &context(), &mut artifacts)
+                .is_err()
+        );
         assert_eq!(artifacts, original);
     }
 

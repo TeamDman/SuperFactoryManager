@@ -18,11 +18,8 @@ class SFMGamePuppetReviewViewportContractTests {
 
     @Test
     void reviewSquareWitnessIsExplicitAndDoesNotBroadenOtherPuppets() throws Exception {
-        Path root = Path.of("").toAbsolutePath();
-        Path relative = Path.of("platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet");
-        while (root != null && !Files.isDirectory(root.resolve(relative))) root = root.getParent();
-        assertNotNull(root);
-        Path source = root.resolve(relative);
+        Path source = gameTestPuppetSourceRoot();
+        assertNotNull(source);
         var compiler = ToolProvider.getSystemJavaCompiler();
         assertNotNull(compiler, "The test runtime must use the configured JDK");
         assertEquals(0, compiler.run(null, null, null, "--release", "17", "-proc:none", "-d", classes.toString(),
@@ -54,5 +51,17 @@ class SFMGamePuppetReviewViewportContractTests {
         }
         assertTrue(Files.readString(source.resolve("definition/TitleScreenExploratoryReviewGamePuppet.java"))
                 .contains("viewportProfile = SFMGamePuppetViewportProfile.REVIEW_READINESS"));
+    }
+
+    private static Path gameTestPuppetSourceRoot() {
+        Path cursor = Path.of("").toAbsolutePath();
+        Path direct = Path.of("src/gametest/java/ca/teamdman/sfm/gametest/puppet");
+        Path nested = Path.of("platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet");
+        while (cursor != null) {
+            if (Files.isDirectory(cursor.resolve(direct))) return cursor.resolve(direct);
+            if (Files.isDirectory(cursor.resolve(nested))) return cursor.resolve(nested);
+            cursor = cursor.getParent();
+        }
+        return null;
     }
 }

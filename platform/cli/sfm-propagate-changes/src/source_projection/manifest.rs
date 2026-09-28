@@ -127,6 +127,11 @@ pub struct ReleaseBaselineBinding {
     /// Release-tag presets do not import these development-only test inputs.
     #[facet(default)]
     pub project_fixture_provenance_sha256: Option<String>,
+    /// Exact canonical test-source bytes allowed to replace pinned development
+    /// outputs after the baseline has been verified. Keys are `src/test/java/...`
+    /// project paths; values are bare SHA-256 digests of authored input bytes.
+    #[facet(default)]
+    pub post_baseline_test_sources: BTreeMap<String, String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Facet, PartialEq)]
@@ -504,6 +509,17 @@ impl SourceProjectionManifest {
                             .as_deref()
                             .unwrap_or_default(),
                     );
+                    if !baseline.post_baseline_test_sources.is_empty() {
+                        hash_part(&mut hasher, "post_baseline_test_sources");
+                        hash_part(
+                            &mut hasher,
+                            &baseline.post_baseline_test_sources.len().to_string(),
+                        );
+                        for (path, digest) in &baseline.post_baseline_test_sources {
+                            hash_part(&mut hasher, path);
+                            hash_part(&mut hasher, digest);
+                        }
+                    }
                 }
             }
         }
@@ -559,6 +575,7 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                 if baseline.canonical_commit.is_some()
                     || baseline.gradle_provenance_sha256.is_some()
                     || baseline.project_fixture_provenance_sha256.is_some()
+                    || !baseline.post_baseline_test_sources.is_empty()
                 {
                     eyre::bail!("release import cannot declare development-head identities");
                 }
@@ -596,6 +613,19 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                     64,
                     "development project fixture provenance SHA-256",
                 )?;
+                let mut test_paths = BTreeSet::new();
+                for (path, digest) in &baseline.post_baseline_test_sources {
+                    validate_path(path, "post-baseline test source")?;
+                    if !path.starts_with("src/test/java/") || !path.ends_with(".java") {
+                        eyre::bail!(
+                            "post-baseline test source `{path}` must be a src/test/java/... .java path"
+                        );
+                    }
+                    if !test_paths.insert(path.to_ascii_lowercase()) {
+                        eyre::bail!("case-colliding post-baseline test source `{path}`");
+                    }
+                    validate_lower_hex(digest, 64, "post-baseline test source SHA-256")?;
+                }
             }
         }
         if !seen_manifests.insert(baseline.import_manifest.to_ascii_lowercase()) {
@@ -786,6 +816,7 @@ mod tests {
             canonical_commit: None,
             gradle_provenance_sha256: None,
             project_fixture_provenance_sha256: None,
+            post_baseline_test_sources: BTreeMap::new(),
         }
     }
 
@@ -867,6 +898,91 @@ mod tests {
         assert!(manifest.validate().is_err());
         manifest.presets[0].release_baselines[0].gradle_provenance_sha256 = Some("d".repeat(64));
         manifest.presets[0].release_baselines[0].project_fixture_provenance_sha256 = None;
+        assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn post_baseline_test_sources_are_development_only_and_content_bound() {
+        let path = "src/test/java/example/PortableTest.java";
+        let mut manifest = sample();
+        let mut binding = release_binding("1.19.2");
+        binding
+            .post_baseline_test_sources
+            .insert(path.to_owned(), "a".repeat(64));
+        manifest.presets[0].release_baselines.push(binding);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("release import cannot declare development-head identities")
+        );
+
+        let binding = &mut manifest.presets[0].release_baselines[0];
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.import_manifest =
+            "platform/minecraft/development-baselines/1.19.2/import.json".to_owned();
+        binding.canonical_commit = Some("c".repeat(40));
+        binding.gradle_provenance_sha256 = Some("d".repeat(64));
+        binding.project_fixture_provenance_sha256 = Some("e".repeat(64));
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest.validate().unwrap();
+        let pinned_identity = manifest.presets[0].identity.clone();
+
+        manifest.presets[0].release_baselines[0]
+            .post_baseline_test_sources
+            .insert(path.to_owned(), "f".repeat(64));
+        assert_ne!(
+            manifest
+                .compute_preset_identity(&manifest.presets[0])
+                .unwrap(),
+            pinned_identity
+        );
+        assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn post_baseline_test_sources_reject_non_test_unsafe_and_case_colliding_paths() {
+        let mut manifest = sample();
+        let mut binding = release_binding("1.19.2");
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.import_manifest =
+            "platform/minecraft/development-baselines/1.19.2/import.json".to_owned();
+        binding.canonical_commit = Some("c".repeat(40));
+        binding.gradle_provenance_sha256 = Some("d".repeat(64));
+        binding.project_fixture_provenance_sha256 = Some("e".repeat(64));
+        manifest.presets[0].release_baselines.push(binding);
+        for path in [
+            "src/main/java/example/Portable.java",
+            "src/test/java/../Portable.java",
+            "src/test/java/CON.java",
+            "src/test/java/example/Portable.txt",
+        ] {
+            manifest.presets[0].release_baselines[0].post_baseline_test_sources =
+                BTreeMap::from([(path.to_owned(), "a".repeat(64))]);
+            manifest.presets[0].identity = manifest
+                .compute_preset_identity(&manifest.presets[0])
+                .unwrap();
+            assert!(manifest.validate().is_err(), "accepted {path}");
+        }
+        manifest.presets[0].release_baselines[0].post_baseline_test_sources = BTreeMap::from([
+            (
+                "src/test/java/example/Portable.java".to_owned(),
+                "a".repeat(64),
+            ),
+            (
+                "src/test/java/example/portable.java".to_owned(),
+                "b".repeat(64),
+            ),
+        ]);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
         assert!(manifest.validate().is_err());
     }
 
