@@ -1,0 +1,18 @@
+// 1.20.1	2026-01-30T20:48:58.9636555	Loot Tables
+9f6c8c2140b2281a6edecdc0afdfacdccbb85434 data/sfm/loot_tables/blocks/buffer.json
+fcec751c1a6e008d7633b04719895015490db326 data/sfm/loot_tables/blocks/cable.json
+087e37f9677f5bdcac395b01dea7174da55945c6 data/sfm/loot_tables/blocks/cable_facade.json
+0025325248ce252f161fcd3529eeb3112005a448 data/sfm/loot_tables/blocks/fancy_cable.json
+9502c28ce835365a0f7db63328ef96ebe3b3c52b data/sfm/loot_tables/blocks/fancy_cable_facade.json
+aa082e25ab01e59b1beeb59ccd0e37aaf0bb234b data/sfm/loot_tables/blocks/manager.json
+eee68a04f5fd1b42be3b6fd2bb7023df83fc5168 data/sfm/loot_tables/blocks/printing_press.json
+acde9722dfd692b8bf980dd49b22e62f2ba5c9e4 data/sfm/loot_tables/blocks/tough_cable.json
+c863cb7c05133a60e09afaf21b645c0630de9727 data/sfm/loot_tables/blocks/tough_cable_facade.json
+9f1a7048d517af001098c8bce7118c914c4b4031 data/sfm/loot_tables/blocks/tough_fancy_cable.json
+8ce778470f0ba327e9b4c947740bf13300b3de55 data/sfm/loot_tables/blocks/tough_fancy_cable_facade.json
+86ca10c85e781c897aa601432097fcec3685217c data/sfm/loot_tables/blocks/tunnelled_cable.json
+898b555f656afec2c722d13854818ba700365c12 data/sfm/loot_tables/blocks/tunnelled_cable_facade.json
+8d575004e0fe331556559d34896721c82b2e6784 data/sfm/loot_tables/blocks/tunnelled_fancy_cable.json
+e063ff2fb0281bd84e0087382e9c9442d18a417b data/sfm/loot_tables/blocks/tunnelled_fancy_cable_facade.json
+9796526f8009e78065bbc5bc3872fd55219c0778 data/sfm/loot_tables/blocks/tunnelled_manager.json
+3bc28bff0dd9d74ae24a73da670bc902dd7cbd30 data/sfm/loot_tables/blocks/water_tank.json

@@ -1,0 +1,17 @@
+{
+  "required": false,
+  "minVersion": "0.8.3",
+  "package": "ca.teamdman.sfm.mixins",
+  "refmap": "sfm.refmap.json",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "StructureTemplateManagerMixin"
+  ],
+  "client": [
+     "MouseHandlerMixin"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

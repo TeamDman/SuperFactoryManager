@@ -1,0 +1,129 @@
+import groovy.json.JsonSlurper
+
+if (project.ext.has('sfmLockfileFeaturesConfigured')) {
+    throw new GradleException("lockfile-features.gradle must not be applied more than once")
+}
+
+def sfmLockfilePath = file('sfm-toolchain.lock.json')
+if (!sfmLockfilePath.isFile()) {
+    throw new GradleException("Missing toolchain lockfile: ${sfmLockfilePath}")
+}
+def sfmLockfile = new JsonSlurper().parse(sfmLockfilePath)
+if (!(sfmLockfile.schema_version in [3, 4])) {
+    throw new GradleException(
+            "Gradle feature projection requires schema version 3 or 4, got ${sfmLockfile.schema_version}")
+}
+
+def sfmFeatures = (sfmLockfile.features ?: []) as List
+def sfmProfiles = (sfmLockfile.profiles ?: []) as List
+def sfmFeatureById = [:]
+sfmFeatures.each { feature ->
+    String id = feature.id.toString()
+    if (sfmFeatureById.containsKey(id)) {
+        throw new GradleException("Duplicate lockfile feature id: ${id}")
+    }
+    sfmFeatureById[id] = feature
+}
+
+def sfmProfileName = (findProperty('sfmProfile') ?: 'gradle').toString()
+def sfmProfile = sfmProfiles.find { it.id.toString() == sfmProfileName }
+if (!sfmProfiles.isEmpty() && sfmProfile == null) {
+    throw new GradleException("Unknown lockfile profile '${sfmProfileName}'")
+}
+
+def sfmRequestedFeatureValue = findProperty('sfmFeatures')
+def sfmRequestedFeatures = sfmRequestedFeatureValue == null
+        ? ((sfmProfile?.features ?: []) as List).collect { it.toString() }
+        : sfmRequestedFeatureValue.toString().split(',')
+                .collect { it.trim() }
+                .findAll { it }
+
+def sfmActiveFeatureIds = new LinkedHashSet<String>()
+def sfmVisitingFeatureIds = new LinkedHashSet<String>()
+def sfmVisitFeature
+sfmVisitFeature = { String id ->
+    if (sfmActiveFeatureIds.contains(id)) return
+    if (!sfmVisitingFeatureIds.add(id)) {
+        throw new GradleException("Cyclic lockfile feature requirement involving '${id}'")
+    }
+    def feature = sfmFeatureById[id]
+    if (feature == null) {
+        throw new GradleException("Unknown lockfile feature '${id}'")
+    }
+    (feature.requires ?: []).each { required -> sfmVisitFeature(required.toString()) }
+    sfmVisitingFeatureIds.remove(id)
+    sfmActiveFeatureIds.add(id)
+}
+sfmRequestedFeatures.each { sfmVisitFeature(it) }
+
+def sfmFeatureOwners = [:].withDefault { [] }
+sfmFeatures.each { feature ->
+    (feature.components ?: []).each { component ->
+        def key = "${component.dependency_id}/${component.component_id}"
+        sfmFeatureOwners[key] << feature.id.toString()
+    }
+}
+
+def sfmEffectiveDependencies = sfmLockfile.dependencies.collect { dependency ->
+    def components = dependency.components.findAll { component ->
+        def owners = sfmFeatureOwners["${dependency.id}/${component.id}"]
+        owners.isEmpty() || owners.any { sfmActiveFeatureIds.contains(it) }
+    }
+    if (components.isEmpty()) {
+        if (dependency.role.toString() == 'platform') {
+            throw new GradleException(
+                    "Profile '${sfmProfileName}' disables all components of platform dependency '${dependency.id}'")
+        }
+        return null
+    }
+    def projected = new LinkedHashMap(dependency)
+    projected.components = components
+    projected
+}.findAll { it != null }
+
+// A feature's source exclusions describe files owned by that feature. They are
+// excluded only while the feature is disabled, so the explicit Rust profile
+// restores the same Java source boundary as the full Rust toolchain.
+def sfmFeatureSourceExcludes = [main: [], test: [], gametest: []]
+sfmFeatures.findAll { !sfmActiveFeatureIds.contains(it.id.toString()) }.each { feature ->
+    (feature.source_excludes ?: []).each { exclusion ->
+        def sourceSet = exclusion.source_set.toString()
+        def target = [
+                'main-java': 'main',
+                'test-java': 'test',
+                'gametest-java': 'gametest'
+        ][sourceSet]
+        if (target == null) {
+            throw new GradleException(
+                    "Feature '${feature.id}' declares unsupported source set '${sourceSet}'")
+        }
+        sfmFeatureSourceExcludes[target] << exclusion.path.toString()
+    }
+}
+sfmFeatureSourceExcludes.each { _, paths -> paths.unique().sort() }
+
+def sfmSourceBuildArtifacts = []
+sfmEffectiveDependencies.each { dependency ->
+    dependency.components.each { component ->
+        def acquisition = component.declaration.acquisition
+        if (acquisition['source-build'] != null) {
+            def artifactId = acquisition['source-build'].artifact_id.toString()
+            def artifact = sfmLockfile.artifacts.find { it.id.toString() == artifactId }
+            if (artifact == null) {
+                throw new GradleException(
+                        "Source-build acquisition ${dependency.id}/${component.id} references missing artifact '${artifactId}'")
+            }
+            sfmSourceBuildArtifacts << artifact
+        }
+    }
+}
+
+ext.sfmLockfile = sfmLockfile
+ext.sfmLockfileProfile = sfmProfileName
+ext.sfmActiveFeatureIds = sfmActiveFeatureIds.asImmutable()
+ext.sfmEffectiveDependencies = sfmEffectiveDependencies.asImmutable()
+ext.sfmFeatureSourceExcludes = sfmFeatureSourceExcludes.collectEntries { key, value ->
+    [(key): value.asImmutable()]
+}.asImmutable()
+ext.sfmSourceBuildArtifacts = sfmSourceBuildArtifacts.asImmutable()
+ext.sfmLockfileFeaturesConfigured = true

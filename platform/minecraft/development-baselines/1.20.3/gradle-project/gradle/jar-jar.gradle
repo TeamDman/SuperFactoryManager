@@ -1,0 +1,41 @@
+if (project.ext.has('sfmJarJarConfigured')) {
+    throw new GradleException("jar-jar.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmPluginsConfigured')) {
+    throw new GradleException("jar-jar.gradle requires versioned-plugins.gradle to be applied first")
+}
+
+if (!project.ext.has('sfmArchiveNameConfigured')) {
+    throw new GradleException("jar-jar.gradle requires archive-name.gradle to be applied first")
+}
+
+if (!project.ext.has('sfmProjectedDependencies')) {
+    throw new GradleException("jar-jar.gradle requires dependencies-from-lock.gradle")
+}
+
+def sfmUsesBundledJar = project.sfmProjectedDependencies.any {
+    it.configuration == 'jarJar'
+}
+
+if (sfmUsesBundledJar) {
+    tasks.named('jar').configure {
+        archiveClassifier.set('slim')
+    }
+
+    tasks.named('jarJar').configure {
+        archiveClassifier.set('')
+    }
+
+    if (project.plugins.hasPlugin('net.minecraftforge.gradle')) {
+        tasks.named('jarJar').configure {
+            finalizedBy tasks.named('reobfJarJar')
+        }
+    }
+
+    ext.sfmPublishedJarTask = tasks.named('jarJar')
+} else {
+    ext.sfmPublishedJarTask = tasks.named('jar')
+}
+
+ext.sfmJarJarConfigured = true

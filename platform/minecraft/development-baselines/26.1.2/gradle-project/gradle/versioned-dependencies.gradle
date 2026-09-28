@@ -1,0 +1,16 @@
+if (project.ext.has('sfmDependenciesConfigured')) {
+    throw new GradleException("versioned-dependencies.gradle must not be applied more than once")
+}
+
+if (!project.ext.has('sfmConfigurationsConfigured')) {
+    throw new GradleException("versioned-dependencies.gradle requires versioned-configurations.gradle to be applied first")
+}
+
+if (!project.ext.has('sfmRepositoriesConfigured')) {
+    throw new GradleException("versioned-dependencies.gradle requires repositories.gradle to be applied first")
+}
+
+apply from: file('gradle/dependencies-from-lock.gradle')
+
+ext.sfmDependenciesVersion = project.minecraft_version.toString()
+ext.sfmDependenciesConfigured = true

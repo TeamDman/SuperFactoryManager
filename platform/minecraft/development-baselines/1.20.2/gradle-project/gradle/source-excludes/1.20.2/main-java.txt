@@ -1,0 +1,11 @@
+# Paths are relative to src/main/java.
+# CC:Tweaked has no compatible 1.20.2 Forge release.
+ca/teamdman/sfm/common/compat/computercraft/**
+ca/teamdman/sfm/client/jei/**
+ca/teamdman/sfm/common/block/BatteryBlock.java
+ca/teamdman/sfm/common/blockentity/BatteryBlockEntity.java
+ca/teamdman/sfm/common/capability/ae2/EnergyAcceptorBlockCapabilityProvider.java
+ca/teamdman/sfm/common/capability/ae2/InterfaceCapabilityProvider.java
+ca/teamdman/sfm/common/compat/SFMMekanismCompat.java
+ca/teamdman/sfm/common/program/linting/compat/mekanism
+ca/teamdman/sfm/common/resourcetype/exclude/**

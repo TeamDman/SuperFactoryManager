@@ -1,0 +1,36 @@
+package ca.teamdman.sfm.client.text_editor.action;
+
+import ca.teamdman.sfm.client.text_editor.Cursor;
+import ca.teamdman.sfm.client.text_editor.TextEditContext;
+import it.unimi.dsi.fastutil.ints.Int2IntFunction;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.ArrayDeque;
+
+public class MoveCursorHeadsLeftOneCharacter implements ITextEditAction {
+    @Override
+    public boolean matches(
+            TextEditContext context,
+            KeyboardImpulse impulse
+    ) {
+        return impulse.event().key() == GLFW.GLFW_KEY_LEFT && impulse.event().hasShiftDown() && !impulse.event().hasControlDown() && !impulse.event().hasAltDown();
+    }
+
+    @Override
+    public void apply(
+            TextEditContext context,
+            KeyboardImpulse impulse
+    ) {
+        ArrayDeque<Cursor> cursors = context.multiCursor().cursors();
+        ArrayDeque<Cursor> newCursors = new ArrayDeque<>();
+        Int2IntFunction lineLengths = context.lineLengths();
+        for (Cursor cursor : cursors) {
+            var head = cursor.head();
+            head = head.moveLeftOneCharacter(lineLengths);
+            var tail = cursor.tail();
+            newCursors.add(new Cursor(tail, head));
+        }
+        cursors.clear();
+        cursors.addAll(newCursors);
+    }
+}
