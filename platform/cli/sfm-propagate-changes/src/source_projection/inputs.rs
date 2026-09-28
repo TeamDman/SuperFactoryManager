@@ -1,15 +1,19 @@
 //! Collect one deterministic source tree before the guarded sync stage writes it.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-use std::path::{Component, Path, PathBuf};
-
-use eyre::{Result, WrapErr, bail, ensure};
-use walkdir::WalkDir;
-
 use super::context::ProjectionContext;
 use super::render_java_source;
 use super::sync::ProjectedArtifact;
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::bail;
+use eyre::ensure;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::fs;
+use std::path::Component;
+use std::path::Path;
+use std::path::PathBuf;
+use walkdir::WalkDir;
 
 const UTF8_BOM: &[u8] = b"\xEF\xBB\xBF";
 const GENERATED_BANNER: &str =

@@ -18,9 +18,13 @@ pub mod release_baseline;
 pub mod selection;
 pub mod sync;
 
-use context::{ProjectionContext, to_liquid_object};
-use directive_scanner::{ScannedSource, scan};
-use eyre::{Result, WrapErr, ensure};
+use context::ProjectionContext;
+use context::to_liquid_object;
+use directive_scanner::ScannedSource;
+use directive_scanner::scan;
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::ensure;
 
 /// Render one primary Java source file for a validated target and preset.
 ///
@@ -66,9 +70,8 @@ pub fn render_java_source(source: &str, context: &ProjectionContext) -> Result<S
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
-
     use super::*;
+    use std::collections::BTreeMap;
 
     fn context() -> ProjectionContext {
         ProjectionContext {

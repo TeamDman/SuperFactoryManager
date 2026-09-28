@@ -3,15 +3,27 @@
 //! This compares exact tagged Git blobs with the current primary source files.
 //! It does not generate sources, modify a target root, or assert JAR parity.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-use std::io::{BufRead, BufReader, Read, Write};
-use std::path::{Component, Path, PathBuf};
-use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
-
-use eyre::{Result, WrapErr, ensure};
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::ensure;
 use facet::Facet;
-use sha2::{Digest, Sha256};
+use sha2::Digest;
+use sha2::Sha256;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::fs;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::io::Read;
+use std::io::Write;
+use std::path::Component;
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::Child;
+use std::process::ChildStdin;
+use std::process::ChildStdout;
+use std::process::Command;
+use std::process::Stdio;
 use walkdir::WalkDir;
 
 const PROJECT_SOURCE_PREFIX: &str = "platform/minecraft/src/";

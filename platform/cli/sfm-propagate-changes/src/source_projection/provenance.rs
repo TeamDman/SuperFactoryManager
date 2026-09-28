@@ -1,9 +1,9 @@
 //! Reproducible provenance for a generated Minecraft source root.
 
-use std::collections::BTreeMap;
-
 use facet::Facet;
-use sha2::{Digest, Sha256};
+use sha2::Digest;
+use sha2::Sha256;
+use std::collections::BTreeMap;
 
 /// The manifest travels with one target/preset output, so two feature sets
 /// cannot accidentally claim the same generated files as their own.

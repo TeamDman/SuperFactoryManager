@@ -4,25 +4,29 @@
 //! published-JAR parity have separate gates. The whole artifact map is swapped
 //! only after sources, overlays, and fixtures pass validation.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-use std::path::Path;
-
-use eyre::{Result, WrapErr, ensure};
-
 use super::context::ProjectionContext;
 use super::development_baseline::DEVELOPMENT_SOURCE_SCHEMA;
 use super::development_baseline::DevelopmentHeadSpec;
 use super::development_fixtures::collect_verified_development_project_fixtures;
 use super::development_gradle::verify_development_gradle_inputs;
-use super::inputs::{apply_explicit_inputs, render_java_artifact};
-use super::manifest::{BaselineKind, ReleaseBaselineBinding};
+use super::inputs::apply_explicit_inputs;
+use super::inputs::render_java_artifact;
+use super::manifest::BaselineKind;
+use super::manifest::ReleaseBaselineBinding;
 use super::provenance::sha256;
-use super::release_baseline::{
-    BaselinePathClass, BaselinePathRecord, ReleaseBaselineReport, ReleaseBaselineTargetReport,
-    read_pinned_blob,
-};
+use super::release_baseline::BaselinePathClass;
+use super::release_baseline::BaselinePathRecord;
+use super::release_baseline::ReleaseBaselineReport;
+use super::release_baseline::ReleaseBaselineTargetReport;
+use super::release_baseline::read_pinned_blob;
 use super::sync::ProjectedArtifact;
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::ensure;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::fs;
+use std::path::Path;
 
 const REPORT_SCHEMA: &str = "sfm:release-baseline-comparison@1";
 const SOURCE_ROOT: &str = "platform/minecraft/src";
@@ -641,12 +645,10 @@ fn validate_repo_path(path: &str, required_prefix: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::process::Command;
-
-    use tempfile::TempDir;
-
     use super::*;
     use crate::source_projection::inputs::collect_projected_inputs_with_allowlist;
+    use std::process::Command;
+    use tempfile::TempDir;
 
     fn artifact(path: &str, bytes: &[u8]) -> ProjectedArtifact {
         ProjectedArtifact {

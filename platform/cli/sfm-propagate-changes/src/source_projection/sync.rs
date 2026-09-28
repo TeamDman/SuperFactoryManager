@@ -1,13 +1,19 @@
 //! Deterministic, fail-closed writes for one projected source root.
 
-use std::collections::{BTreeMap, BTreeSet};
+use super::provenance::ProjectedFileProvenance;
+use super::provenance::ProjectionProvenance;
+use super::provenance::sha256;
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::bail;
+use eyre::ensure;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fs;
 use std::io::ErrorKind;
-use std::path::{Component, Path, PathBuf};
-
-use eyre::{Result, WrapErr, bail, ensure};
-
-use super::provenance::{ProjectedFileProvenance, ProjectionProvenance, sha256};
+use std::path::Component;
+use std::path::Path;
+use std::path::PathBuf;
 
 /// Kept inside each projected root. A different preset must use a different root.
 pub const MANIFEST_FILE: &str = ".sfm-source-projection-manifest.json";

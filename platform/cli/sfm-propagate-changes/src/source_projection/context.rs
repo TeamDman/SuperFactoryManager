@@ -4,12 +4,13 @@
 //! object values needed by the controlled source directives; there is no
 //! serialization through JSON or Serde at this boundary.
 
-use std::collections::BTreeMap;
-
-use eyre::{Result, eyre};
+use eyre::Result;
+use eyre::eyre;
 use facet::Facet;
-use facet_value::{Value as FacetValue, ValueType};
+use facet_value::Value as FacetValue;
+use facet_value::ValueType;
 use liquid::model::Value as LiquidValue;
+use std::collections::BTreeMap;
 
 /// Values available to a source projection. Absent feature and target keys
 /// remain absent, rather than being silently treated as false.

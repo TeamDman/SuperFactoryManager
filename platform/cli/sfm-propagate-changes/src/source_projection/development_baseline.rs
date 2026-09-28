@@ -1,17 +1,25 @@
 //! Pinned committed-development source imports. These are distinct from the
 //! immutable release-tag imports, but use the same exact-path record format.
 
-use std::collections::{BTreeMap, BTreeSet};
+use super::release_baseline::BaselinePathClass;
+use super::release_baseline::BaselinePathRecord;
+use super::release_baseline::GitBlobHasher;
+use super::release_baseline::ImportFile;
+use super::release_baseline::ReleaseBaselineReport;
+use super::release_baseline::ReleaseBaselineTargetReport;
+use super::release_baseline::collect_release_tree;
+use super::release_baseline::git_text;
+use super::release_baseline::hash_canonical_tree;
+use super::release_baseline::insert_import_file;
+use super::release_baseline::sha256_hex;
+use super::release_baseline::stage_and_install_imports;
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::ensure;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
-
-use eyre::{Result, WrapErr, ensure};
-
-use super::release_baseline::{
-    BaselinePathClass, BaselinePathRecord, GitBlobHasher, ImportFile, ReleaseBaselineReport,
-    ReleaseBaselineTargetReport, collect_release_tree, git_text, hash_canonical_tree,
-    insert_import_file, sha256_hex, stage_and_install_imports,
-};
 
 pub const DEVELOPMENT_SOURCE_SCHEMA: &str = "sfm:development-head-comparison@1";
 pub const CANONICAL_COMMIT: &str = "b046574be908e40d647858dedc872ab9c4305170";
@@ -237,9 +245,8 @@ fn validate_spec(spec: &DevelopmentHeadSpec) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use std::process::Command;
-
     use super::*;
+    use std::process::Command;
 
     fn git(root: &Path, args: &[&str]) -> String {
         let output = Command::new("git")

@@ -4,23 +4,29 @@
 //! provenance file records the original Git mode and blob identity for every
 //! file, so source sync can verify it without access to the old branch ref.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-use std::path::{Component, Path, PathBuf};
-
-use eyre::{Result, WrapErr, ensure};
-use facet::Facet;
-use sha1::{Digest as _, Sha1};
-use walkdir::WalkDir;
-
 use super::development_baseline::DevelopmentHeadSpec;
-use super::manifest::{BaselineKind, ReleaseBaselineBinding};
+use super::manifest::BaselineKind;
+use super::manifest::ReleaseBaselineBinding;
 use super::provenance::sha256;
-use super::release_baseline::{
-    GitBlobHasher, collect_tagged_gradle_tree, git_text, insert_import_file,
-    stage_and_install_imports,
-};
+use super::release_baseline::GitBlobHasher;
+use super::release_baseline::collect_tagged_gradle_tree;
+use super::release_baseline::git_text;
+use super::release_baseline::insert_import_file;
+use super::release_baseline::stage_and_install_imports;
 use super::sync::ProjectedArtifact;
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::ensure;
+use facet::Facet;
+use sha1::Digest as _;
+use sha1::Sha1;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::fs;
+use std::path::Component;
+use std::path::Path;
+use std::path::PathBuf;
+use walkdir::WalkDir;
 
 pub const DEVELOPMENT_1194_CANONICAL_COMMIT: &str = "b046574be908e40d647858dedc872ab9c4305170";
 pub const DEVELOPMENT_1194_TARGET_COMMIT: &str = "2e3b561c15d663fb89fd353ccc2af67eeb0c2053";

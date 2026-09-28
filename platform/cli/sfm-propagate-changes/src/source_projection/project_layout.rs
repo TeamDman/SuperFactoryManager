@@ -1,14 +1,17 @@
 //! Collect the ordinary Gradle files a projected project needs to stand alone.
 //! The sync layer restores the executable bit on projected Unix `gradlew`.
 
-use std::collections::{BTreeMap, BTreeSet};
-use std::fs;
-use std::path::{Component, Path, PathBuf};
-
-use eyre::{Result, WrapErr, ensure};
-use walkdir::WalkDir;
-
 use super::sync::ProjectedArtifact;
+use eyre::Result;
+use eyre::WrapErr;
+use eyre::ensure;
+use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::fs;
+use std::path::Component;
+use std::path::Path;
+use std::path::PathBuf;
+use walkdir::WalkDir;
 
 const ROOT_FILES: &[&str] = &[
     "build.gradle",
@@ -443,7 +446,6 @@ fn insert(
 #[cfg(test)]
 mod tests {
     use super::*;
-
     use crate::source_projection::context::ProjectionContext;
     use crate::source_projection::inputs::collect_projected_inputs;
 
