@@ -3,6 +3,9 @@
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::process::Command as ProcessCommand;
+use std::thread;
+use std::time::Duration;
 
 use eyre::{Result, WrapErr, ensure};
 use facet::Facet;
@@ -10,6 +13,7 @@ use figue::{self as args};
 
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::jdk::resolve_exact_java_for_minecraft_dir;
 use crate::source_projection::inputs::{
     apply_explicit_inputs, collect_projected_inputs_with_allowlist,
 };
@@ -17,11 +21,12 @@ use crate::source_projection::manifest::SourceProjectionManifest;
 use crate::source_projection::project_layout::{
     collect_gradle_project_inputs, collect_gradle_project_inputs_for_target,
 };
+use crate::source_projection::provenance::sha256;
 use crate::source_projection::release_apply::{apply_release_baseline, release_source_paths};
 use crate::source_projection::release_baseline::materialize_released_4_34_0_imports;
 use crate::source_projection::selection::{ProjectionSelection, select};
 use crate::source_projection::sync::{
-    ProjectedArtifact, ProjectionIdentity, SyncMode, sync_projection,
+    MANIFEST_FILE, ProjectedArtifact, ProjectionIdentity, SyncMode, sync_projection,
 };
 use crate::terminal_output::stdout_line;
 
@@ -46,6 +51,10 @@ pub enum SourceCommand {
     Sync(SourceProjectArgs),
     /// Accept contributor edits only after authored inputs render to identical output bytes.
     Reconcile(SourceProjectArgs),
+    /// Build a caller-owned development projection without changing checked-in release roots.
+    Build(SourceGradleArgs),
+    /// Run a caller-owned development projection, retaining its saves and configuration.
+    Run(SourceGradleArgs),
 }
 
 #[derive(Debug, Facet)]
@@ -88,7 +97,7 @@ pub struct SourceProjectArgs {
     /// Version-appropriate Gradle project inputs relative to the repository root.
     #[facet(default, args::named)]
     pub gradle_project_root: Option<PathBuf>,
-    /// Generated project root; required to avoid an accidental checked-in sync.
+    /// Generated project root; build/run require an absolute path outside this repository.
     #[facet(args::named)]
     pub output_root: PathBuf,
     /// Ordered source overlay as NAME=PATH, with PATH relative to the repository root.
@@ -97,6 +106,47 @@ pub struct SourceProjectArgs {
     /// Ordered Gradle-project overlay as NAME=PATH, relative to the repository root.
     #[facet(default, args::named)]
     pub gradle_overlay: Vec<String>,
+}
+
+#[derive(Debug, Facet)]
+pub struct SourceGradleArgs {
+    /// Projection selection and the caller-owned output root.
+    #[facet(flatten)]
+    pub project: SourceProjectArgs,
+    /// Explicit JDK home; otherwise use the exact JDK selected by the projected lockfile.
+    #[facet(default, args::named)]
+    pub java_home: Option<PathBuf>,
+    /// Gradle task to execute. Defaults to `jar` for build or `runClient` for run.
+    #[facet(default, args::named)]
+    pub task: Option<String>,
+    /// Optional declared Gradle source/dependency profile, such as rust-toolchain.
+    #[facet(default, args::named)]
+    pub gradle_profile: Option<String>,
+    /// Require Gradle to use already-cached dependencies and Minecraft assets.
+    #[facet(default = false, args::named)]
+    pub offline: bool,
+}
+
+#[derive(Clone, Copy)]
+enum SourceGradleMode {
+    Build,
+    Run,
+}
+
+impl SourceGradleMode {
+    const fn default_task(self) -> &'static str {
+        match self {
+            Self::Build => "jar",
+            Self::Run => "runClient",
+        }
+    }
+
+    const fn verb(self) -> &'static str {
+        match self {
+            Self::Build => "build",
+            Self::Run => "run",
+        }
+    }
 }
 
 impl SourceArgs {
@@ -111,6 +161,12 @@ impl SourceArgs {
         let (args, mode) = match self.command {
             SourceCommand::PresetIdentity(args) => return args.invoke_in(invocation_dir),
             SourceCommand::ImportRelease(args) => return args.invoke_in(invocation_dir),
+            SourceCommand::Build(args) => {
+                return args.invoke_in(cancellation, invocation_dir, SourceGradleMode::Build);
+            }
+            SourceCommand::Run(args) => {
+                return args.invoke_in(cancellation, invocation_dir, SourceGradleMode::Run);
+            }
             SourceCommand::DryRun(args) => (args, SyncMode::DryRun),
             SourceCommand::Check(args) => (args, SyncMode::Check),
             SourceCommand::Sync(args) => (args, SyncMode::Apply),
@@ -118,6 +174,326 @@ impl SourceArgs {
         };
         args.invoke_in(cancellation, invocation_dir, mode)
     }
+}
+
+impl SourceGradleArgs {
+    fn invoke_in(
+        self,
+        cancellation: &CancellationToken,
+        invocation_dir: &Path,
+        mode: SourceGradleMode,
+    ) -> Result<CliOutput> {
+        cancellation.bail_if_cancelled()?;
+        let Self {
+            mut project,
+            java_home,
+            task,
+            gradle_profile,
+            offline,
+        } = self;
+        let repo_root = resolve_repository_root(project.repo_root.clone(), invocation_dir)?;
+        let manifest_path = source_path(
+            &repo_root,
+            project
+                .manifest
+                .as_deref()
+                .unwrap_or(Path::new("platform/minecraft/source-projection.json")),
+        )?;
+        let manifest_text = fs::read_to_string(&manifest_path)
+            .wrap_err_with(|| format!("cannot read '{}'", manifest_path.display()))?;
+        let manifest = SourceProjectionManifest::from_json(&manifest_text)?;
+        let java_major = u32::from(manifest.target(&project.target)?.java_major);
+        let output_root = development_output_root(&repo_root, &project.output_root)?;
+        let task = task.unwrap_or_else(|| mode.default_task().to_owned());
+        validate_gradle_task(&task)?;
+        if let Some(profile) = &gradle_profile {
+            validate_gradle_profile(profile)?;
+        }
+
+        project.output_root.clone_from(&output_root);
+        project.invoke_in(cancellation, invocation_dir, SyncMode::Apply)?;
+        cancellation.bail_if_cancelled()?;
+        let development_version = development_mod_version(&output_root)?;
+
+        let explicit_java_home = java_home.map(|path| {
+            if path.is_absolute() {
+                path
+            } else {
+                invocation_dir.join(path)
+            }
+        });
+        let resolved_java = resolve_exact_java_for_minecraft_dir(
+            &output_root,
+            java_major,
+            explicit_java_home.as_deref(),
+        )?;
+        let home = resolved_java.home.as_deref().ok_or_else(|| {
+            eyre::eyre!(
+                "selected Java {} has no JDK home; specify --java-home for this Gradle run",
+                resolved_java.executable.display()
+            )
+        })?;
+        stdout_line(format!(
+            "source {} project retained at {} (mod version {})",
+            mode.verb(),
+            output_root.display(),
+            development_version
+        ))?;
+        run_project_gradle(
+            &output_root,
+            &task,
+            &development_version,
+            home,
+            gradle_profile.as_deref(),
+            offline,
+            cancellation,
+        )?;
+        if matches!(mode, SourceGradleMode::Build) {
+            report_build_artifacts(&output_root, &task, &development_version)?;
+        }
+        Ok(CliOutput::none())
+    }
+}
+
+fn development_output_root(repo_root: &Path, output_root: &Path) -> Result<PathBuf> {
+    ensure!(
+        !output_root
+            .components()
+            .any(|part| matches!(part, Component::ParentDir)),
+        "development output root cannot contain parent traversal"
+    );
+    let candidate = if output_root.is_absolute() {
+        output_root.to_path_buf()
+    } else {
+        repo_root.join(output_root)
+    };
+    let mut cursor = PathBuf::new();
+    for component in candidate.components() {
+        cursor.push(component);
+        match fs::symlink_metadata(&cursor) {
+            Ok(metadata) => ensure!(
+                !metadata.file_type().is_symlink(),
+                "development output root traverses a symlink: '{}'",
+                cursor.display()
+            ),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
+            Err(error) => {
+                return Err(error).wrap_err_with(|| {
+                    format!(
+                        "cannot inspect development output root '{}'",
+                        cursor.display()
+                    )
+                });
+            }
+        }
+    }
+    let authored_root = repo_root.join("platform/minecraft");
+    ensure!(
+        !paths_overlap(&candidate, &authored_root),
+        "development output root must be outside authored and checked-in Minecraft roots '{}'",
+        authored_root.display()
+    );
+    ensure!(
+        !paths_overlap(&candidate, &repo_root.join(".git")),
+        "development output root cannot overlap repository Git state"
+    );
+    ensure!(
+        !path_is_prefix(&candidate, repo_root),
+        "development output root cannot be the repository root or an ancestor"
+    );
+    ensure!(
+        !path_is_prefix(repo_root, &candidate),
+        "development output root must be outside the repository so temporary projections cannot be committed accidentally"
+    );
+    Ok(candidate)
+}
+
+fn paths_overlap(left: &Path, right: &Path) -> bool {
+    path_is_prefix(left, right) || path_is_prefix(right, left)
+}
+
+fn path_is_prefix(prefix: &Path, path: &Path) -> bool {
+    fn components(path: &Path) -> Vec<String> {
+        path.components()
+            .map(|component| {
+                let value = component.as_os_str().to_string_lossy().into_owned();
+                if cfg!(windows) {
+                    value.to_ascii_lowercase()
+                } else {
+                    value
+                }
+            })
+            .collect()
+    }
+    components(path).starts_with(&components(prefix))
+}
+
+fn validate_gradle_task(task: &str) -> Result<()> {
+    let name = task.strip_prefix(':').unwrap_or(task);
+    ensure!(
+        !name.is_empty()
+            && name.split(':').all(|segment| {
+                segment
+                    .as_bytes()
+                    .first()
+                    .is_some_and(u8::is_ascii_alphanumeric)
+                    && segment
+                        .bytes()
+                        .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-'))
+            }),
+        "Gradle task must be one task path containing only letters, digits, '_', '-' and ':'"
+    );
+    Ok(())
+}
+
+fn validate_gradle_profile(profile: &str) -> Result<()> {
+    ensure!(
+        !profile.is_empty()
+            && profile.len() <= 64
+            && profile.as_bytes()[0].is_ascii_alphanumeric()
+            && profile
+                .bytes()
+                .all(|byte| { byte.is_ascii_alphanumeric() || matches!(byte, b'_' | b'-' | b'.') }),
+        "Gradle profile must be a nonempty ID of at most 64 letters, digits, '_', '-' or '.'"
+    );
+    Ok(())
+}
+
+fn run_project_gradle(
+    project_root: &Path,
+    task: &str,
+    development_version: &str,
+    java_home: &Path,
+    gradle_profile: Option<&str>,
+    offline: bool,
+    cancellation: &CancellationToken,
+) -> Result<()> {
+    let wrapper = project_root.join(if cfg!(windows) {
+        "gradlew.bat"
+    } else {
+        "gradlew"
+    });
+    ensure!(wrapper.is_file(), "projected Gradle wrapper is missing");
+    let mut command = ProcessCommand::new(&wrapper);
+    command
+        .current_dir(project_root)
+        .arg("--no-daemon")
+        .arg(format!("-Pmod_version={development_version}"));
+    if offline {
+        command.arg("--offline");
+    }
+    if let Some(profile) = gradle_profile {
+        command.arg(format!("-PsfmProfile={profile}"));
+    }
+    let mut child = command
+        .arg(task)
+        .env("JAVA_HOME", java_home)
+        .spawn()
+        .wrap_err_with(|| format!("cannot start projected Gradle task '{task}'"))?;
+    loop {
+        if let Some(status) = child
+            .try_wait()
+            .wrap_err("cannot wait for projected Gradle")?
+        {
+            ensure!(
+                status.success(),
+                "projected Gradle task '{task}' failed with status {status}; project retained at '{}'",
+                project_root.display()
+            );
+            return Ok(());
+        }
+        if cancellation.is_cancelled() {
+            let _ = child.kill();
+            let _ = child.wait();
+            eyre::bail!(
+                "projected Gradle task '{task}' was cancelled; project retained at '{}'",
+                project_root.display()
+            );
+        }
+        thread::sleep(Duration::from_millis(200));
+    }
+}
+
+fn development_mod_version(project_root: &Path) -> Result<String> {
+    let base = gradle_property(project_root, "mod_version")?;
+    ensure!(
+        base.len() <= 64
+            && base
+                .bytes()
+                .all(|byte| { byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-') }),
+        "projected mod_version is not safe to use in a development artifact name"
+    );
+    let provenance = fs::read(project_root.join(MANIFEST_FILE))
+        .wrap_err("cannot read projected provenance for development version")?;
+    let digest = sha256(&provenance);
+    let short = digest
+        .strip_prefix("sha256:")
+        .and_then(|hex| hex.get(..12))
+        .ok_or_else(|| eyre::eyre!("invalid projected provenance digest"))?;
+    Ok(format!("{base}-dev.{short}"))
+}
+
+fn gradle_property(project_root: &Path, name: &str) -> Result<String> {
+    let properties = fs::read_to_string(project_root.join("gradle.properties"))
+        .wrap_err("cannot read projected gradle.properties")?;
+    let values = properties
+        .lines()
+        .filter_map(|line| {
+            let line = line.trim();
+            if line.starts_with('#') || line.starts_with('!') {
+                return None;
+            }
+            let (key, value) = line.split_once('=')?;
+            (key.trim() == name).then(|| value.trim())
+        })
+        .collect::<Vec<_>>();
+    ensure!(
+        values.len() == 1 && !values[0].is_empty(),
+        "projected gradle.properties needs exactly one nonempty '{name}'"
+    );
+    Ok(values[0].to_owned())
+}
+
+fn report_build_artifacts(project_root: &Path, task: &str, version: &str) -> Result<()> {
+    let libs = project_root.join("build/libs");
+    let name = gradle_property(project_root, "mod_name")?;
+    let minecraft = gradle_property(project_root, "minecraft_version")?;
+    let prefix = format!("{name}-MC{minecraft}-{version}");
+    let mut jars = if libs.is_dir() {
+        fs::read_dir(&libs)?
+            .map(|entry| {
+                let entry = entry?;
+                let path = entry.path();
+                let file_name = entry.file_name();
+                let file_name = file_name.to_string_lossy();
+                let matches = (file_name == format!("{prefix}.jar")
+                    || file_name.starts_with(&format!("{prefix}-")) && file_name.ends_with(".jar"))
+                    && !file_name.ends_with("-sources.jar")
+                    && !file_name.ends_with("-javadoc.jar")
+                    && path.is_file();
+                Ok(matches.then_some(path))
+            })
+            .collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+    jars.sort();
+    if !jars.is_empty() {
+        for jar in jars {
+            stdout_line(format!("built JAR: {}", jar.display()))?;
+        }
+    } else if task == "jar" {
+        eyre::bail!(
+            "projected jar task succeeded but no non-source JAR for '{prefix}' exists under '{}'",
+            libs.display()
+        );
+    } else {
+        stdout_line(format!("build outputs retained under {}", libs.display()))?;
+    }
+    Ok(())
 }
 
 impl SourceImportReleaseArgs {
@@ -421,6 +797,170 @@ mod tests {
             .expect("release import command should parse")
             .get_silent();
         assert!(matches!(importer.command, Command::Source(_)));
+        for verb in ["build", "run"] {
+            let parsed = figue::from_slice::<Cli>(&[
+                "source",
+                verb,
+                "--repo-root",
+                ".",
+                "--target",
+                "1.19.2",
+                "--preset",
+                "current-development-pilot",
+                "--output-root",
+                "source-projections/1.19.2",
+            ])
+            .into_result()
+            .expect("development command should parse")
+            .get_silent();
+            assert!(matches!(parsed.command, Command::Source(_)));
+        }
+        let parsed = figue::from_slice::<Cli>(&[
+            "source",
+            "build",
+            "--repo-root",
+            ".",
+            "--target",
+            "1.19.2",
+            "--preset",
+            "current-development-pilot",
+            "--output-root",
+            "C:/scratch/projected",
+            "--gradle-profile",
+            "rust-toolchain",
+            "--offline",
+        ])
+        .into_result()
+        .expect("development build options should parse")
+        .get_silent();
+        let Command::Source(SourceArgs {
+            command: SourceCommand::Build(build),
+        }) = parsed.command
+        else {
+            panic!("expected source build command");
+        };
+        assert_eq!(build.gradle_profile.as_deref(), Some("rust-toolchain"));
+        assert!(build.offline);
+    }
+
+    #[test]
+    fn development_root_rejects_checked_in_and_authored_roots() {
+        let repo = tempfile::tempdir().unwrap();
+        let scratch = repo.path().parent().unwrap().join("source-projections/dev");
+        assert_eq!(
+            development_output_root(repo.path(), &scratch).unwrap(),
+            scratch
+        );
+        for forbidden in [
+            ".",
+            "source-projections/dev",
+            "platform/minecraft",
+            "platform/minecraft/src",
+            "platform/minecraft/mc-version/1.19.2",
+            "platform/minecraft/release-baselines/4.34.0-1.19.2",
+            ".git/objects",
+            "../outside",
+        ] {
+            let _ = development_output_root(repo.path(), Path::new(forbidden)).unwrap_err();
+        }
+    }
+
+    #[test]
+    fn gradle_task_is_one_safe_task_path() {
+        for valid in ["jar", "runClient", ":subproject:reobfJar"] {
+            validate_gradle_task(valid).unwrap();
+        }
+        for invalid in ["", ":", "foo::bar", "--offline", "jar clean", "../jar"] {
+            let _ = validate_gradle_task(invalid).unwrap_err();
+        }
+        validate_gradle_profile("rust-toolchain").unwrap();
+        for invalid in ["", "rust toolchain", "../release", "--help"] {
+            let _ = validate_gradle_profile(invalid).unwrap_err();
+        }
+    }
+
+    #[test]
+    fn projected_gradle_task_uses_child_java_home_and_retains_project() {
+        let project = tempfile::tempdir().unwrap();
+        let wrapper = project.path().join(if cfg!(windows) {
+            "gradlew.bat"
+        } else {
+            "gradlew"
+        });
+        #[cfg(windows)]
+        fs::write(
+            &wrapper,
+            b"@echo off\r\necho %JAVA_HOME%>invocation.txt\r\necho %1 %2 %3 %4>>invocation.txt\r\nexit /b 0\r\n",
+        )
+        .unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt as _;
+            fs::write(
+                &wrapper,
+                b"#!/bin/sh\nprintf '%s\\n' \"$JAVA_HOME\" > invocation.txt\nprintf '%s %s %s %s\\n' \"$1\" \"$2\" \"$3\" \"$4\" >> invocation.txt\n",
+            )
+            .unwrap();
+            fs::set_permissions(&wrapper, fs::Permissions::from_mode(0o755)).unwrap();
+        }
+        let java_home = project.path().join("fake-jdk");
+        run_project_gradle(
+            project.path(),
+            "jar",
+            "4.34.0-dev.abcdef012345",
+            &java_home,
+            Some("rust-toolchain"),
+            false,
+            &CancellationToken::new(),
+        )
+        .unwrap();
+        let invocation = fs::read_to_string(project.path().join("invocation.txt")).unwrap();
+        assert!(invocation.contains("fake-jdk"));
+        assert!(invocation.contains("--no-daemon"), "{invocation:?}");
+        assert!(
+            invocation.contains("-Pmod_version=4.34.0-dev.abcdef012345"),
+            "{invocation:?}"
+        );
+        assert!(invocation.contains("jar"), "{invocation:?}");
+        assert!(
+            invocation.contains("-PsfmProfile=rust-toolchain"),
+            "{invocation:?}"
+        );
+        assert!(project.path().is_dir());
+    }
+
+    #[test]
+    fn development_version_changes_with_projected_content_and_never_equals_release() {
+        let project = tempfile::tempdir().unwrap();
+        fs::write(
+            project.path().join("gradle.properties"),
+            b"mod_name=SFM\nminecraft_version=1.19.2\nmod_version=4.34.0\n",
+        )
+        .unwrap();
+        fs::write(project.path().join(MANIFEST_FILE), b"first projection").unwrap();
+        let first = development_mod_version(project.path()).unwrap();
+        assert!(first.starts_with("4.34.0-dev."));
+        assert_ne!(first, "4.34.0");
+        assert_eq!(first, development_mod_version(project.path()).unwrap());
+        fs::write(project.path().join(MANIFEST_FILE), b"second projection").unwrap();
+        assert_ne!(first, development_mod_version(project.path()).unwrap());
+
+        fs::create_dir_all(project.path().join("build/libs")).unwrap();
+        let jar = project
+            .path()
+            .join("build/libs")
+            .join(format!("SFM-MC1.19.2-{first}.jar"));
+        fs::write(&jar, b"jar").unwrap();
+        report_build_artifacts(project.path(), "jar", &first).unwrap();
+        fs::remove_file(&jar).unwrap();
+        let _ = report_build_artifacts(project.path(), "jar", &first).unwrap_err();
+
+        let slim = project
+            .path()
+            .join("build/libs")
+            .join(format!("SFM-MC1.19.2-{first}-slim.jar"));
+        fs::write(&slim, b"jar").unwrap();
+        report_build_artifacts(project.path(), "jar", &first).unwrap();
     }
 
     #[test]

@@ -1058,8 +1058,8 @@ mod tests {
             .to_string();
         assert!(error.contains("is missing"), "{error}");
 
-        let report = sync_projection(&destination, &identity, &wanted, SyncMode::Reconcile)
-            .unwrap();
+        let report =
+            sync_projection(&destination, &identity, &wanted, SyncMode::Reconcile).unwrap();
         assert!(report.manifest_changed);
         assert!(report.created.is_empty() && report.updated.is_empty());
         assert!(!stale.exists());
