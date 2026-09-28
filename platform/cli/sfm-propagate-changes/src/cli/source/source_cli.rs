@@ -269,6 +269,7 @@ impl SourceGradleArgs {
         if let Some(profile) = &gradle_profile {
             validate_gradle_profile(profile)?;
         }
+        let test_exit_override = game_test_exit_override(&repo_root, &project.target, &task);
 
         project.output_root.clone_from(&output_root);
         project.invoke_in(cancellation, invocation_dir, SyncMode::Apply)?;
@@ -306,6 +307,7 @@ impl SourceGradleArgs {
             home,
             gradle_profile.as_deref(),
             offline,
+            test_exit_override.as_deref(),
             cancellation,
         )?;
         if matches!(mode, SourceGradleMode::Build) {
@@ -419,6 +421,16 @@ fn validate_gradle_profile(profile: &str) -> Result<()> {
     Ok(())
 }
 
+fn game_test_exit_override(repo_root: &Path, target: &str, task: &str) -> Option<PathBuf> {
+    if task == "runGameTestServer" && matches!(target, "1.19.2" | "1.19.4") {
+        Some(repo_root.join(
+            "platform/cli/sfm-propagate-changes/gradle/forge-game-test-no-force-exit.init.gradle",
+        ))
+    } else {
+        None
+    }
+}
+
 fn run_project_gradle(
     project_root: &Path,
     task: &str,
@@ -426,6 +438,7 @@ fn run_project_gradle(
     java_home: &Path,
     gradle_profile: Option<&str>,
     offline: bool,
+    init_script: Option<&Path>,
     cancellation: &CancellationToken,
 ) -> Result<()> {
     let wrapper = project_root.join(if cfg!(windows) {
@@ -444,6 +457,14 @@ fn run_project_gradle(
     }
     if let Some(profile) = gradle_profile {
         command.arg(format!("-PsfmProfile={profile}"));
+    }
+    if let Some(script) = init_script {
+        ensure!(script.is_file(), "GameTest Gradle init script is missing");
+        // Windows fs::canonicalize yields a \\?\ path that cmd.exe splits when it
+        // launches gradlew.bat. Gradle then sees only a stray backslash as the script.
+        let script =
+            dunce::canonicalize(script).wrap_err("cannot resolve GameTest Gradle init script")?;
+        command.arg("--init-script").arg(script);
     }
     let mut child = command
         .arg(task)
@@ -1450,6 +1471,24 @@ mod tests {
     }
 
     #[test]
+    fn only_legacy_forge_game_test_runs_get_the_exit_override() {
+        let repo = Path::new("repo");
+        let script = Path::new(
+            "repo/platform/cli/sfm-propagate-changes/gradle/forge-game-test-no-force-exit.init.gradle",
+        );
+        for target in ["1.19.2", "1.19.4"] {
+            assert_eq!(
+                game_test_exit_override(repo, target, "runGameTestServer").as_deref(),
+                Some(script)
+            );
+        }
+        for target in ["1.20", "1.21.1", "26.1.2"] {
+            assert!(game_test_exit_override(repo, target, "runGameTestServer").is_none());
+        }
+        assert!(game_test_exit_override(repo, "1.19.4", "jar").is_none());
+    }
+
+    #[test]
     fn projected_gradle_task_uses_child_java_home_and_retains_project() {
         let project = tempfile::tempdir().unwrap();
         let wrapper = project.path().join(if cfg!(windows) {
@@ -1460,7 +1499,7 @@ mod tests {
         #[cfg(windows)]
         fs::write(
             &wrapper,
-            b"@echo off\r\necho %JAVA_HOME%>invocation.txt\r\necho %1 %2 %3 %4>>invocation.txt\r\nexit /b 0\r\n",
+            b"@echo off\r\necho %JAVA_HOME%>invocation.txt\r\necho %1 %2 %3 %4 %5 %6>>invocation.txt\r\nexit /b 0\r\n",
         )
         .unwrap();
         #[cfg(unix)]
@@ -1468,7 +1507,7 @@ mod tests {
             use std::os::unix::fs::PermissionsExt as _;
             fs::write(
                 &wrapper,
-                b"#!/bin/sh\nprintf '%s\\n' \"$JAVA_HOME\" > invocation.txt\nprintf '%s %s %s %s\\n' \"$1\" \"$2\" \"$3\" \"$4\" >> invocation.txt\n",
+                b"#!/bin/sh\nprintf '%s\\n' \"$JAVA_HOME\" > invocation.txt\nprintf '%s %s %s %s %s %s\\n' \"$1\" \"$2\" \"$3\" \"$4\" \"$5\" \"$6\" >> invocation.txt\n",
             )
             .unwrap();
             fs::set_permissions(&wrapper, fs::Permissions::from_mode(0o755)).unwrap();
@@ -1481,6 +1520,7 @@ mod tests {
             &java_home,
             Some("rust-toolchain"),
             false,
+            None,
             &CancellationToken::new(),
         )
         .unwrap();
@@ -1497,6 +1537,25 @@ mod tests {
             "{invocation:?}"
         );
         assert!(project.path().is_dir());
+
+        let init_script = project.path().join("test.init.gradle");
+        fs::write(&init_script, b"// Test-only Gradle script\n").unwrap();
+        run_project_gradle(
+            project.path(),
+            "runGameTestServer",
+            "4.34.0-dev.abcdef012345",
+            &java_home,
+            None,
+            true,
+            Some(&init_script),
+            &CancellationToken::new(),
+        )
+        .unwrap();
+        let invocation = fs::read_to_string(project.path().join("invocation.txt")).unwrap();
+        assert!(invocation.contains("--init-script"), "{invocation:?}");
+        assert!(invocation.contains("test.init.gradle"), "{invocation:?}");
+        assert!(invocation.contains("--offline"), "{invocation:?}");
+        assert!(invocation.contains("runGameTestServer"), "{invocation:?}");
     }
 
     #[test]

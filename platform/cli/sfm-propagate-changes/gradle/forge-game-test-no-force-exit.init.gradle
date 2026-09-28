@@ -1,0 +1,10 @@
+// ForgeGradle 1.19.x otherwise terminates the Gradle daemon when GameTestServer exits.
+// This changes only a test run, not the projected or released Gradle project.
+gradle.projectsEvaluated {
+    def minecraft = gradle.rootProject.extensions.findByName('minecraft')
+    def run = minecraft?.runs?.findByName('gameTestServer')
+    if (run == null) {
+        throw new GradleException('SFM GameTest override requires a ForgeGradle gameTestServer run')
+    }
+    run.forceExit = false
+}
