@@ -1,14 +1,14 @@
 # Touch Display and Client Manager: living implementation plan
 
-Plan status: active, resumed for the Client Manager GUI and synchronization slice requested after the completed 1.19.4 checkpoint. Baseline feature evidence covers static Touch Display interaction, the consented Client Manager frame runtime, typed invocation, bounded raster rendering, consent review, explicit author signing, exact-grant remote multiplayer and in-world terminal integration. Later-target propagation and aggregate multi-version release acceptance remain unfinished.
+Plan status: active as the Touch Display and Client Manager feature contract. P1 through P11 have their recorded proofs; P12 and P13 code and focused tests are in place, but live JEI-hover and seamless-panel visual acceptance remain open. Later-target propagation and aggregate multi-version release acceptance remain unfinished. The separate Codex-assisted factory workflow and single-branch source-projection goal do not replace these gates.
 
-Last updated: 20 September 2026.
+Last updated: 23 September 2026.
 
 Intent audit: passed 17 September 2026 against the available user discussion and the pasted historical messages; some earlier assistant replies are unavailable except as pasted excerpts.
 
-Current focus: none; P11 Client Manager menu, screen and projection-safe synchronization is complete. The 1.19.4 merge is committed as `f2f47ca45`, its visual journeys and final compile passed, and the post-commit audit found no new adapter defect. Stop before 1.20; resume feature iteration or later propagation only on user direction. G41 narrows the current execution scope without waiving unfinished targets. Canonical integration remains `93aed7de4`; its 2,530 unit tests, 339 dedicated and 354 integrated GameTests, and 11-step file puppet passed. Preserve the recorded intermittent anvil test and inherited tooling snapshot failures below. Native physical Shift is not a required human acceptance boundary.
+Current feature focus: preserve P1 through P13 and close any new regressions on canonical 1.19.2. The 1.19.4 merge is committed as `f2f47ca45`; its visual journeys and final compile passed. R2 and R3 remain open for later-target propagation and operational acceptance. Stop before 1.20 unless the user directs that hop. The agent workflow in `docs/tasks/codex-assisted-factory-workflows-plan.md` is a new, dependent track, not evidence that R2 or R3 is complete. Canonical integration remains `93aed7de4`; its 2,530 unit tests, 339 dedicated and 354 integrated GameTests, and 11-step file puppet passed. Rerun relevant checks after later source changes. Preserve the recorded intermittent anvil test and inherited tooling snapshot failures below. Native physical Shift is not a required human acceptance boundary.
 
-Implementation branch: `feat/1.19.2/packet-computation`.
+Historical implementation branch: `feat/1.19.2/packet-computation`. Canonical 1.19.2 now contains the integrated feature; make further baseline changes there while preserving the feature worktree.
 Starting baseline inspected: `4a99b69465e36b9f619f3380fe3f978166398afe`. Validated packet checkpoint: `43cfe001f`; finite-value/touch-schema checkpoint: `1a8cd9b84`.
 Companion contract: `docs/architecture/sfm-packet-computation-mvp.md`. That document remains authoritative for the existing packet-computation slices A–D. This plan builds on them and does not redefine their completed behaviour by implication.
 
@@ -56,6 +56,25 @@ projection-safe slot updates. The adversarial pass preserves the existing
 bounded block-entity projection as the always-on synchronization path; opening
 a menu must not become a prerequisite for client program discovery or a route
 for arbitrary server-only disk metadata.
+
+20 September presentation-polish amendment: extraction records the user's
+request for Client Manager hover tooltips, JEI-aware Alt+D item inspection,
+bounded synchronized source text, JSON-compatible SNBT escaping, tooltip
+localization/style evidence, and full-face furnace-style Touch Display
+placement/rendering. Traceability adds P12 and P13. The adversarial pass
+preserves the existing item-inspection document markers for puppet
+compatibility, adds richer tooltip evidence without treating JEI as a server
+authority, and changes only the Touch Display's visual/hit geometry and
+placement default.
+
+23 September trajectory amendment: extraction records the user's instruction
+to retain this feature track while pursuing Codex-assisted factory workflows.
+Traceability keeps P1 through P13 and R2/R3 in this plan, while the new plan
+owns Rust app-server integration, `sfm.exe` manager/network tools, the agent
+challenge, Explorer and operator views. Adversarial review checked that a new
+goal statement cannot silently complete release gates or lift G41's hold on
+propagation beyond 1.19.4. The existing app goal objective has not been
+rewritten by this document.
 
 Evidence labels in this document mean:
 
@@ -109,6 +128,10 @@ Evidence labels in this document mean:
 | G40 | Confirmed on 20 September 2026 | Decouple the tooltip's alternate presentation decision from configured-key polling. Add command-palette actions that tests can actuate, so native physical Shift verification is not a required human acceptance boundary. | R1; companion P03; semantic mode, action and file-puppet tests |
 | G41 | Confirmed on 20 September 2026 | Finish the already-started 1.19.4 work, then postpone propagation to 1.20 and later while feature iteration resumes. Preserve the feature worktree and existing canonical integration; do not push. | Current R2/R3 checkpoint; target acceptance matrix; final handoff. Narrows the current execution order of G37, without declaring later targets complete. |
 | G42 | Confirmed on 20 September 2026 | Right-clicking a Client Manager should open its own GUI. The GUI must remain server-authoritative and cooperate with the existing client projection so clients know Client Manager programs even when no GUI is open. | P11; client projection and menu synchronization acceptance |
+| G43 | Confirmed on 20 September 2026 | Client Manager item slots must render normal Minecraft tooltips, and synchronized status/source text must remain within the GUI bounds. | P12; Client Manager screen acceptance |
+| G44 | Confirmed on 20 September 2026 | Alt+D item inspection must resolve JEI's hovered ingredient as well as container slots. Inspection output must preserve tooltip localization keys, localized text and chat formatting metadata; SNBT strings must escape control newlines and use JSON-oriented editor highlighting. | P12; item inspection acceptance |
+| G45 | Confirmed on 20 September 2026 | Touch Display faces must be opaque and tile edge-to-edge. Placement should use furnace-style player-facing orientation rather than blindly copying the support face. | P13; Touch Display geometry and asset acceptance |
+| G46 | Confirmed on 23 September 2026 | Keep the Touch Display and Client Manager track visible while the newer Codex-assisted workflow becomes the current implementation trajectory; do not lose or imply completion of its remaining release work. | This plan's R2/R3 and support matrix; the separate Codex-assisted workflow plan; revised goal proposal |
 
 Earlier proposals that later user choices superseded must not become implementation requirements: `sfm:touch/1` and scaled-integer UV, unique click sequence/frame generation, nesting the position/UV fields, server-manager frame triggers, permanent shared/private/published block modes, solid-block redstone inference, a minimum scribble-length requirement, and the claim that 26.1.2 `Identifier` implies Yarn mappings. Existing structured action-result schema IDs using `/1` also remain unchanged; `sfm:touch@1` does not trigger a global schema migration.
 
@@ -572,6 +595,78 @@ program-discovery path when no menu is open. The file-driven
 waited for `ClientManagerScreen`, captured the rendered GUI, and closed it with
 zero puppet failures; its durable preview is under the generated
 `game-test-preview/runs/` artifact directory.
+
+### [~] P12. Item inspection and Client Manager presentation polish — G43, G44
+
+Dependencies: P11, the existing semantic tooltip mode and item-inspection
+workspace action.
+
+Work: give Client Manager the same explicit tooltip pass as the established
+container screens; clip or ellipsize synchronized source text by measured
+font width; resolve Alt+D from either a hovered container slot or JEI's
+ingredient-list overlay; preserve both localized tooltip text and the raw
+component/translation/style JSON in the inspection document; escape SNBT
+control characters and request JSON-oriented editor highlighting while
+retaining the existing inspection markers used by tests and puppets.
+
+Acceptance: a projected disk and a player-inventory item show their normal
+Minecraft tooltip on the Client Manager screen; a JEI ingredient opens the
+same read-only inspection document; localized and unlocalized tooltip
+sections retain translation/style evidence; multiline NBT remains one
+parseable escaped string; no inspection action opens a second screen before
+the workspace action takes over.
+
+Implementation evidence: `ClientManagerScreen` now owns the explicit tooltip
+pass used by the other SFM container screens and measures the synchronized
+source line against the actual font width before ellipsizing it. JEI's
+`IIngredientListOverlay` is retained through `SFMJEIPlugin` and is consulted
+when no vanilla slot is hovered, so the existing Alt+D text-editor action can
+reuse the same inspection capture path. The inspector itself now has no direct
+JEI class link: JEI registers an optional hover supplier only while its runtime
+is available, then clears it, so worlds without JEI can still inspect items.
+Inspection documents now retain the
+localized component text and one-line serialized component JSON (including
+translation/style metadata), quote SNBT strings through explicit control
+character escaping for every JSON control character, and use a bounded
+item-inspection lexical highlighter.
+
+Validation: `sfm-propagate-changes.exe run compile --branch 1.19.2
+--wait-for-build-lock` completed successfully. The focused
+`SFMItemInspectionDocumentTests` run passed 6/6 after the optional-JEI and
+control-character regressions; the focused
+`SFMLocalLexicalStylesTests` run passed 3/3. The existing client-manager menu
+GameTest remains the runtime GUI projection evidence. Live JEI ingredient hover
+and Alt+D opening its document are still unproved because the test harness does
+not load JEI's visual overlay; retain that as P12's remaining acceptance.
+
+### [~] P13. Touch Display surface and placement polish — G45
+
+Dependencies: the existing Touch Display block entity renderer and
+server-side `TouchDisplaySurface` UV contract.
+
+Work: make the rendered image cover the complete outward face and keep the
+hit-test domain aligned with that geometry; replace transparent face artwork
+with an opaque, original-dimension texture; use furnace-style player-facing
+placement for the block's default orientation while preserving explicit
+state-driven six-face rendering and packet mapping.
+
+Acceptance: adjacent displays form a seamless panel with no corner alpha or
+one-pixel bezel gap, a click at every face edge maps to `[0,1]` UVs, and a
+normal side placement faces the player in the same way as a furnace.
+
+Implementation evidence: the renderer and hit-test now share a complete
+8/16-face image domain, the placement state uses the player's opposite
+horizontal direction, and all three bundled Touch Display textures are
+opaque at their original dimensions (`16x16`, `16x64`, and `16x16`).
+
+Validation: the focused `TouchDisplaySurfaceTests` run passed 5/5, including
+all exact image edges and all six face bases. Asset inspection found zero
+non-opaque pixels in the face, side, and bottom textures. The placement rule
+is the vanilla furnace rule. After widening the image, the dedicated-server
+`sfm:touch_display_press_server` and integrated-client
+`sfm:touch_display_press` fixtures both passed with hit coordinates derived
+from `TouchDisplaySurface.HALF_IMAGE_SIZE`. No separate visual placement or
+multi-block tiling proof was added; retain that as P13's remaining acceptance.
 
 ## Cross-cutting validation and propagation
 
@@ -1053,7 +1148,7 @@ Update `platform/minecraft/src/main/resources/assets/sfm/template_programs/chang
 | O6. Decorative signature strokes | Persisting a scribble offers novelty but creates privacy/data obligations. | Ephemeral drawing; signature cryptography ignores it. |
 | O7. Exact visibility test | Render-selected/front-facing is cheaper than exact occlusion. | Use conservative eligibility and measure false positives before expanding. |
 | O8. Exact rendered-frame click correlation | Server semantic revision can lag or differ from a client-only animation. | `sfm:touch@1` reports server state only; version and constrain a client report if a later use case needs exact local-frame identity. |
-| O9. UV convention — resolved for P3 | Face rotation and hit rounding affect what a press reports. | U increases viewer-left to viewer-right and V viewer-top to viewer-bottom. `TouchDisplaySurface` defines a basis for all six faces; the image inset spans local ±7/16, both edges are inclusive, and at most 1e-5 face/edge float error is clamped. Other faces, inside hits and farther coordinates fail. |
+| O9. UV convention — resolved for P3, widened in P13 | Face rotation and hit rounding affect what a press reports. | U increases viewer-left to viewer-right and V viewer-top to viewer-bottom. `TouchDisplaySurface` defines a basis for all six faces; the current full-face image spans local ±8/16, both edges are inclusive, and at most 1e-5 face/edge float error is clamped. Other faces, inside hits and farther coordinates fail. P3 originally used an inset ±7/16 domain; P13 widened the renderer and hit test together. |
 | O10. Content revision lifecycle — resolved for P3 | Click correlation needs a stable server-owned content generation. | Start at 0; increment on each changed atomic image/state commit, persist and synchronize it, leave it unchanged for identical content, and reject a change at `Long.MAX_VALUE`. Breaking/replacing the block starts a new entity at 0; copying saved entity NBT retains its revision. Malformed content loads a safe fallback without reusing a lower revision. |
 | O11. Computed action IDs — resolved in P8C | Static manifests cannot infer the capability of an arbitrary runtime action ID. | Only literal quoted or unquoted action IDs are accepted; computed IDs remain prohibited. |
 | O12. Label binding — resolved in P6B | Missing, duplicate or competing Touch Display labels could create nondeterministic writers. | Existing label-gun bindings enter exact consent identity; competing writers are rejected and diagnosed. |

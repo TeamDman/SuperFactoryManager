@@ -7,6 +7,9 @@ NAME "Changelog"
 -- https://github.com/TeamDman/SuperFactoryManager/issues/new
 
 ---- 4.35.0 PRE ----
+-- Keep Client Manager item tooltips inside its GUI; let Alt+D inspect JEI-hovered items and preserve tooltip formatting and escaped SNBT strings
+-- Fill Touch Display faces edge to edge for seamless panels and orient placed displays toward the player like a furnace
+-- Enable file-driven client control from the command palette without relaunch; list actions, show specific help and inspect bounded game logs through sfm CLI
 -- Repair release-branch rendering, input and identifier adapters through 26.1.2, and keep client GUI registrations out of dedicated-server startup
 -- Add real Just Dire Things and Mekanism GameTests demonstrating one-FE-gap downstream starvation and label-order/retention controls without changing production energy transfers
 -- Double the AE2/Mekanism fixture's netherite scrap pattern input without increasing its declared output, allowing for partial batches stranded across factories
