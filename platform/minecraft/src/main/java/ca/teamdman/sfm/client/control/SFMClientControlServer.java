@@ -4,6 +4,10 @@ import ca.teamdman.sfm.SFM;
 import ca.teamdman.sfm.client.action.SFMClientActionContext;
 import ca.teamdman.sfm.client.action.SFMClientActionExecutor;
 import ca.teamdman.sfm.client.action.SFMClientActionStructuredResult;
+import ca.teamdman.sfm.common.net.ClientboundManagerShowPacket;
+import ca.teamdman.sfm.common.net.ClientManagerShowResponses;
+import ca.teamdman.sfm.common.net.ServerboundManagerShowPacket;
+import ca.teamdman.sfm.common.registry.registration.SFMPackets;
 import ca.teamdman.sfm.client.explorer.SFMEntitySelector;
 import ca.teamdman.sfm.client.explorer.SFMExplorerId;
 import ca.teamdman.sfm.client.explorer.SFMExplorerRuntime;
@@ -14,11 +18,15 @@ import ca.teamdman.sfm.client.explorer.lazy.SFMExplorerProjection;
 import ca.teamdman.sfm.client.screen.workspace.SFMScreenMultiplexer;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.SharedConstants;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.core.BlockPos;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraftforge.fml.ModList;
 import org.facet.vox.CallContext;
 import org.facet.vox.ConnectionOptions;
@@ -69,8 +77,10 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 /** Authenticated loopback Vox service used by the short-lived {@code sfm.exe} client. */
 public final class SFMClientControlServer implements AutoCloseable, SfmControlHandler {
@@ -96,6 +106,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
     private final ThreadPoolExecutor controlExecutor;
     private final Set<VoxConnection> connections = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private final SFMClientThreadGate clientThreadGate;
+    private final SFMManagerShowPending managerShowPending = new SFMManagerShowPending();
     private final AtomicBoolean closed = new AtomicBoolean();
     private final String instanceId = UUID.randomUUID().toString();
     private final long processId = ProcessHandle.current().pid();
@@ -106,6 +117,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
     private final String sfmVersion;
     private final String minecraftVersion;
     private final AtomicReference<ClientSnapshot> clientSnapshot = new AtomicReference<>(ClientSnapshot.initial());
+    private SFMClientControlFileBridge fileBridge;
     private volatile SfmControlLifecycle lifecycle = SfmControlLifecycle.STARTING;
 
     private SFMClientControlServer(Minecraft minecraft) throws IOException {
@@ -149,6 +161,7 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
             server.publishDescriptor();
             server.lifecycle = SfmControlLifecycle.READY;
             server.observeClientTick();
+            ClientManagerShowResponses.setReceiver(server::acceptManagerShowResponse);
             SFM.LOGGER.info(
                     "SFM_CLIENT_CONTROL_READY instance={} pid={} endpoint={}:{} descriptor={}",
                     server.instanceId,
@@ -184,6 +197,56 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
                 worldPresent,
                 worldPresent ? minecraft.level.dimension().location().toString() : ""
         ));
+        SFMClientControlFileBridge bridge = fileBridge;
+        if (bridge != null) bridge.poll();
+    }
+
+    /** Enables the bounded request-file bridge for this already-running client. */
+    synchronized Path enableFileControl() throws IOException {
+        if (fileBridge == null) {
+            Path root = minecraft.gameDirectory.toPath().resolve("sfm-control").resolve(instanceId);
+            fileBridge = SFMClientControlFileBridge.open(root, this::executeFileAction);
+            SFM.LOGGER.info("SFM_CLIENT_CONTROL_FILE_BRIDGE_READY directory={}", root);
+        }
+        return fileBridge.directory();
+    }
+
+    private JsonObject executeFileAction(String command) {
+        Screen origin = minecraft.screen;
+        List<String> feedback = new ArrayList<>();
+        AtomicReference<SFMClientActionStructuredResult> structuredResult = new AtomicReference<>();
+        JsonObject result = new JsonObject();
+        try {
+            int resultCode = SFMClientActionExecutor.execute(
+                    command,
+                    SFMClientActionContext.create(origin, () -> minecraft.screen == origin),
+                    component -> {
+                        if (feedback.size() < MAX_FEEDBACK_ENTRIES) feedback.add(component.getString());
+                    },
+                    value -> {
+                        if (!structuredResult.compareAndSet(null, value)) {
+                            throw new IllegalStateException("A client action may publish at most one structured result");
+                        }
+                    }
+            );
+            result.addProperty("result_code", resultCode);
+            JsonArray messages = new JsonArray();
+            feedback.forEach(messages::add);
+            result.add("feedback", messages);
+            SFMClientActionStructuredResult structured = structuredResult.get();
+            if (structured != null) {
+                result.addProperty("structured_result_schema", structured.schemaId());
+                try {
+                    result.add("structured_result", com.google.gson.JsonParser.parseString(structured.json()));
+                } catch (RuntimeException malformed) {
+                    result.addProperty("structured_result_json", structured.json());
+                }
+            }
+        } catch (Exception failure) {
+            result.addProperty("result_code", 0);
+            result.addProperty("error", failure.getMessage() == null ? failure.toString() : failure.getMessage());
+        }
+        return result;
     }
 
     private void acceptLoop() {
@@ -302,6 +365,9 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
                         "instance.describe",
                         "client-action.invoke",
                         "client-action.structured-result.v1",
+                        "client-action.list.v1",
+                        "client-logs.tail.v1",
+                        "client-control.files.v1",
                         "explorer.control.v1"
                 ),
                 request.requestId()
@@ -343,12 +409,119 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
         String canonicalAction = request.actionTokens().stream()
                 .map(SFMClientControlServer::escapeCommandToken)
                 .collect(java.util.stream.Collectors.joining(" ", "sfm action invoke ", ""));
+        if (request.actionTokens().get(0).equals("sfm:manager/show")) {
+            return invokeManagerShow(context, request, canonicalAction);
+        }
         CompletableFuture<VoxResult<SfmControlInvokeClientActionResult, SfmControlError>> action =
                 clientThreadGate.submit(() -> executeClientAction(canonicalAction, request.requestId()));
         context.cancellation().thenRun(() -> action.cancel(false));
         return action.handle((result, failure) -> failure == null
                 ? result
                 : VoxResult.applicationError(mapClientThreadFailure(failure, request.requestId())));
+    }
+
+    private record ManagerShowTarget(ResourceLocation dimension, BlockPos position) { }
+
+    private CompletableFuture<VoxResult<SfmControlInvokeClientActionResult, SfmControlError>> invokeManagerShow(
+            CallContext context, SfmControlInvokeClientActionRequest request, String canonicalAction
+    ) {
+        ManagerShowTarget target;
+        try {
+            if (request.actionTokens().size() != 5) throw new IllegalArgumentException("Manager show requires dimension x y z");
+            String rawDimension = request.actionTokens().get(1);
+            ResourceLocation dimension = new ResourceLocation(rawDimension);
+            if (rawDimension.indexOf(':') <= 0 || !dimension.toString().equals(rawDimension)
+                || rawDimension.length() > 256) throw new IllegalArgumentException("Manager dimension must be explicit and canonical");
+            target = new ManagerShowTarget(dimension, ServerboundManagerShowPacket.requireWireRepresentable(
+                    new BlockPos(Integer.parseInt(request.actionTokens().get(2)),
+                            Integer.parseInt(request.actionTokens().get(3)),
+                            Integer.parseInt(request.actionTokens().get(4)))));
+        } catch (RuntimeException invalid) {
+            return completedError(error(SfmControlErrorCode.INVALID_REQUEST,
+                    "Invalid exact manager target: " + invalid.getMessage(), false, request.requestId()));
+        }
+
+        CompletableFuture<CompletableFuture<ClientboundManagerShowPacket>> handoff =
+                clientThreadGate.submit(() -> beginManagerShow(target));
+        CompletableFuture<ClientboundManagerShowPacket> reply = handoff.thenCompose(Function.identity());
+        context.cancellation().thenRun(() -> {
+            handoff.cancel(false);
+            handoff.thenAccept(pending -> pending.cancel(false));
+            reply.cancel(false);
+        });
+        return reply.thenApplyAsync(packet -> VoxResult.<SfmControlInvokeClientActionResult, SfmControlError>success(
+                managerShowResult(packet, request.requestId(), canonicalAction)), controlExecutor)
+                .handle((result, failure) -> failure == null ? result
+                        : VoxResult.applicationError(mapClientThreadFailure(failure, request.requestId())));
+    }
+
+    private CompletableFuture<ClientboundManagerShowPacket> beginManagerShow(ManagerShowTarget target) {
+        LocalPlayer player = minecraft.player;
+        Object connection = minecraft.getConnection();
+        if (player == null || connection == null || minecraft.level == null) {
+            throw new SFMManagerShowPending.UnavailableException();
+        }
+        UUID requestId = UUID.randomUUID();
+        CompletableFuture<ClientboundManagerShowPacket> pending = managerShowPending.register(
+                requestId, player.getUUID(), player, connection,
+                minecraft.level.dimension().location(), target.dimension(), target.position());
+        try {
+            SFMPackets.sendToServer(new ServerboundManagerShowPacket(
+                    requestId, target.dimension(), target.position()));
+        } catch (RuntimeException failure) {
+            pending.cancel(false);
+            throw failure;
+        }
+        return pending;
+    }
+
+    private void acceptManagerShowResponse(ClientboundManagerShowPacket packet) {
+        LocalPlayer player = minecraft.player;
+        managerShowPending.receive(packet,
+                player == null ? null : player.getUUID(),
+                player, minecraft.getConnection(),
+                minecraft.level == null ? null : minecraft.level.dimension().location());
+    }
+
+    private SfmControlInvokeClientActionResult managerShowResult(
+            ClientboundManagerShowPacket packet, String requestId, String canonicalAction
+    ) {
+        JsonObject json = new JsonObject();
+        json.addProperty("schema", "sfm.manager.show/1");
+        json.addProperty("status", packet.status().name().toLowerCase(java.util.Locale.ROOT));
+        json.addProperty("dimension", packet.dimension().toString());
+        json.addProperty("x", packet.position().getX());
+        json.addProperty("y", packet.position().getY());
+        json.addProperty("z", packet.position().getZ());
+        if (packet.status() == ClientboundManagerShowPacket.Status.ALLOWED) {
+            json.addProperty("program", packet.program());
+            JsonObject labels = new JsonObject();
+            packet.labels().forEach((name, positions) -> {
+                JsonArray entries = new JsonArray();
+                positions.forEach(pos -> {
+                    JsonObject item = new JsonObject();
+                    item.addProperty("x", pos.getX());
+                    item.addProperty("y", pos.getY());
+                    item.addProperty("z", pos.getZ());
+                    entries.add(item);
+                });
+                labels.add(name, entries);
+            });
+            json.add("labels", labels);
+        }
+        SFMClientActionStructuredResult structured = SFMClientActionStructuredResult.of("sfm.manager.show/1", json);
+        ClientSnapshot snapshot = clientSnapshot.get();
+        boolean allowed = packet.status() == ClientboundManagerShowPacket.Status.ALLOWED;
+        return new SfmControlInvokeClientActionResult(
+                instanceId, processId, requestId, canonicalAction, managerShowResultCode(packet.status()),
+                List.of(allowed ? "Manager observed" : "Manager show denied: " + packet.status().name().toLowerCase(java.util.Locale.ROOT)),
+                true, structured.schemaId(), structured.json(),
+                snapshot.screenPresent(), snapshot.screenClass(), false, 0);
+    }
+
+    /** Keep the custom manager query aligned with Brigadier's positive-success convention. */
+    static int managerShowResultCode(ClientboundManagerShowPacket.Status status) {
+        return status == ClientboundManagerShowPacket.Status.ALLOWED ? 1 : 0;
     }
 
     @Override
@@ -767,6 +940,15 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
         if (cause instanceof SFMClientThreadGate.CapacityExceededException) {
             return error(SfmControlErrorCode.CAPACITY_EXCEEDED, cause.getMessage(), true, requestId);
         }
+        if (cause instanceof SFMManagerShowPending.CapacityExceededException) {
+            return error(SfmControlErrorCode.CAPACITY_EXCEEDED, cause.getMessage(), true, requestId);
+        }
+        if (cause instanceof SFMManagerShowPending.UnavailableException) {
+            return error(SfmControlErrorCode.CLIENT_UNAVAILABLE, cause.getMessage(), true, requestId);
+        }
+        if (cause instanceof TimeoutException) {
+            return error(SfmControlErrorCode.ACTION_FAILED, "Manager show server reply timed out", true, requestId);
+        }
         if (cause instanceof SFMClientThreadGate.ClientUnavailableException) {
             return error(SfmControlErrorCode.CLIENT_UNAVAILABLE, cause.getMessage(), true, requestId);
         }
@@ -940,6 +1122,8 @@ public final class SFMClientControlServer implements AutoCloseable, SfmControlHa
         }
         connections.forEach(VoxConnection::close);
         connections.clear();
+        ClientManagerShowResponses.setReceiver(ignored -> { });
+        managerShowPending.close();
         clientThreadGate.close();
         connectionsExecutor.shutdownNow();
         controlExecutor.shutdown();

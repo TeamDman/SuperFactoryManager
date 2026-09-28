@@ -14,8 +14,8 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 public class SFMPackets {
-    // The separately negotiated multiplayer boundary adds message types unknown to older peers.
-    public static final String SFM_CHANNEL_VERSION="1.4.0";
+    // The multiplayer and manager-show boundaries add message types unknown to older peers.
+    public static final String SFM_CHANNEL_VERSION="1.5.0";
     public static final SimpleChannel SFM_CHANNEL = NetworkRegistry.newSimpleChannel(
             SFMResourceLocation.fromSFMPath("manager"),
             SFM_CHANNEL_VERSION::toString,
@@ -91,6 +91,8 @@ public class SFMPackets {
         registerPacket(new ClientboundClientManagerSigningResponsePacket.Daddy());
         registerPacket(new ca.teamdman.sfm.common.net.multiplayer.ServerboundMultiplayerPacket.Daddy());
         registerPacket(new ca.teamdman.sfm.common.net.multiplayer.ClientboundMultiplayerPacket.Daddy());
+        registerPacket(new ServerboundManagerShowPacket.Daddy());
+        registerPacket(new ClientboundManagerShowPacket.Daddy());
     }
 
     public static void sendToServer(

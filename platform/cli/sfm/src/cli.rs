@@ -48,6 +48,12 @@ pub enum Command {
     Spatial(SpatialArgs),
     /// Invoke one registered SFM client action in a selected game.
     Invoke(InvokeArgs),
+    /// Use the canonical action command family.
+    Action(ActionArgs),
+    /// Read recent Java SFM log records from a selected game.
+    Logs(LogsArgs),
+    /// Read an exact manager through the operator-authorized server query.
+    Manager(ManagerArgs),
     /// Run a bounded structured terminal worker without opening a window.
     Terminal(TerminalArgs),
 }
@@ -60,8 +66,189 @@ impl Command {
             Self::Packet(args) => args.invoke().await,
             Self::Spatial(args) => args.invoke().await,
             Self::Invoke(args) => args.invoke().await,
+            Self::Action(args) => args.invoke().await,
+            Self::Logs(args) => args.invoke().await,
+            Self::Manager(args) => args.invoke().await,
             Self::Terminal(args) => args.invoke(),
         }
+    }
+}
+
+#[derive(Debug, Facet)]
+pub struct ManagerArgs {
+    #[facet(args::subcommand)]
+    pub command: ManagerCommand,
+}
+
+impl ManagerArgs {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        match self.command {
+            ManagerCommand::Show(args) => args.invoke().await,
+        }
+    }
+}
+
+#[derive(Debug, Facet)]
+#[repr(u8)]
+pub enum ManagerCommand {
+    /// Read the program and labels of one loaded manager in the exact dimension and position.
+    Show(ManagerShowArgs),
+}
+
+#[derive(Debug, Facet)]
+pub struct ManagerShowArgs {
+    /// Exact dimension resource location, such as minecraft:overworld.
+    #[facet(args::positional)]
+    pub dimension: String,
+    #[facet(args::positional)]
+    pub x: i32,
+    #[facet(args::positional)]
+    pub y: i32,
+    #[facet(args::positional)]
+    pub z: i32,
+    #[facet(default, flatten)]
+    pub target: TargetArgs,
+}
+
+impl ManagerShowArgs {
+    fn action_tokens(&self) -> eyre::Result<Vec<String>> {
+        validate_packet_dimension(&self.dimension).map_err(|_| {
+            eyre::eyre!("manager dimension must be an explicit valid resource location")
+        })?;
+        let tokens = vec![
+            "sfm:manager/show".to_owned(),
+            self.dimension.clone(),
+            self.x.to_string(),
+            self.y.to_string(),
+            self.z.to_string(),
+        ];
+        validate_action_tokens(&tokens)?;
+        Ok(tokens)
+    }
+
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        let tokens = self.action_tokens()?;
+        invoke_structured_action(self.target, tokens, "sfm.manager.show/1", "manager show").await
+    }
+}
+
+#[derive(Debug, Facet)]
+pub struct ActionArgs {
+    #[facet(args::subcommand)]
+    pub command: ActionCommand,
+}
+
+impl ActionArgs {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        self.command.invoke().await
+    }
+}
+
+#[derive(Debug, Facet)]
+#[repr(u8)]
+pub enum ActionCommand {
+    /// Invoke one registered action using the canonical spelling.
+    Invoke(InvokeArgs),
+    /// List registered actions and their presentation metadata.
+    List(ActionListArgs),
+    /// Open or return help for one action.
+    Help(ActionHelpArgs),
+}
+
+impl ActionCommand {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        match self {
+            Self::Invoke(args) => args.invoke().await,
+            Self::List(args) => args.invoke().await,
+            Self::Help(args) => args.invoke().await,
+        }
+    }
+}
+
+#[derive(Debug, Facet)]
+pub struct ActionListArgs {
+    /// Either `available` (the default) or `all`.
+    #[facet(default, args::positional)]
+    pub mode: Option<String>,
+    #[facet(default, flatten)]
+    pub target: TargetArgs,
+}
+
+impl ActionListArgs {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        let mode = self.mode.unwrap_or_else(|| "available".to_owned());
+        eyre::ensure!(
+            matches!(mode.as_str(), "available" | "all"),
+            "action list mode must be available or all"
+        );
+        invoke_structured_action(
+            self.target,
+            vec!["sfm:action/list".to_owned(), mode],
+            "sfm.action-list/1",
+            "action list",
+        )
+        .await
+    }
+}
+
+#[derive(Debug, Facet)]
+pub struct ActionHelpArgs {
+    #[facet(args::positional)]
+    pub action_id: String,
+    #[facet(default, flatten)]
+    pub target: TargetArgs,
+}
+
+impl ActionHelpArgs {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        validate_action_tokens(&["sfm:help".to_owned(), self.action_id.clone()])?;
+        invoke_structured_action(
+            self.target,
+            vec!["sfm:help".to_owned(), self.action_id],
+            "sfm.action-help/1",
+            "action help",
+        )
+        .await
+    }
+}
+
+#[derive(Debug, Facet)]
+pub struct LogsArgs {
+    /// Number of records to return, from 1 through 200 (default 100).
+    #[facet(default, args::named)]
+    pub tail: Option<u16>,
+    /// Minimum Log4j severity, such as error, warn, or info.
+    #[facet(default, args::named)]
+    pub log_filter: Option<String>,
+    #[facet(default, flatten)]
+    pub target: TargetArgs,
+}
+
+impl LogsArgs {
+    async fn invoke(self) -> eyre::Result<CliOutput> {
+        let tail = self.tail.unwrap_or(100);
+        eyre::ensure!(
+            (1..=200).contains(&tail),
+            "--tail must be between 1 and 200"
+        );
+        let filter = self
+            .log_filter
+            .unwrap_or_else(|| "info".to_owned())
+            .to_ascii_lowercase();
+        eyre::ensure!(
+            matches!(
+                filter.as_str(),
+                "trace" | "debug" | "info" | "warn" | "error" | "fatal" | "all"
+            ),
+            "--log-filter must be a Log4j level"
+        );
+        invoke_structured_action(
+            self.target,
+            vec!["sfm:logs".to_owned(), tail.to_string(), filter],
+            "sfm.logs/1",
+            "logs",
+        )
+        .await
     }
 }
 
@@ -1050,6 +1237,58 @@ async fn invoke_packet_action(
     CliOutput::structured_json(result.structured_result_json, text, 0)
 }
 
+async fn invoke_structured_action(
+    target: TargetArgs,
+    action: Vec<String>,
+    expected_schema: &str,
+    label: &str,
+) -> eyre::Result<CliOutput> {
+    validate_action_tokens(&action)?;
+    let snapshot = discover_instances().await?;
+    let selected = select_instance(
+        &snapshot,
+        target.instance_pid,
+        target.instance_id.as_deref(),
+    )?;
+    eyre::ensure!(
+        selected
+            .description
+            .capabilities
+            .iter()
+            .any(|capability| capability == STRUCTURED_ACTION_RESULT_CAPABILITY),
+        "selected instance does not advertise {STRUCTURED_ACTION_RESULT_CAPABILITY}"
+    );
+    let result = invoke_client_action(&selected, action).await?;
+    eyre::ensure!(
+        result.structured_result_present,
+        "{label} action returned no structured result"
+    );
+    eyre::ensure!(
+        result.structured_result_schema == expected_schema,
+        "{label} action returned schema {}, expected {expected_schema}",
+        result.structured_result_schema
+    );
+    let feedback = if result.feedback.is_empty() {
+        "(none)".to_owned()
+    } else {
+        result.feedback.join("\n- ")
+    };
+    let text = format!(
+        "{label}\nschema: {expected_schema}\ninstance-id: {}\nresult-code: {}\nfeedback:\n- {feedback}\npayload: {}",
+        result.instance_id, result.result_code, result.structured_result_json
+    );
+    CliOutput::structured_json(
+        result.structured_result_json,
+        text,
+        structured_action_exit_code(result.result_code),
+    )
+}
+
+/// Client actions and manager observation use Brigadier's positive-success result code.
+const fn structured_action_exit_code(result_code: i32) -> u8 {
+    if result_code > 0 { 0 } else { 1 }
+}
+
 fn validate_packet_action_payload(schema: &str, json: &str) -> eyre::Result<String> {
     match schema {
         PACKET_LIST_SCHEMA => {
@@ -1334,6 +1573,14 @@ mod tests {
     use super::*;
     use figue::ToArgs as _;
 
+    #[test]
+    fn structured_action_exit_code_follows_brigadier_success() {
+        assert_eq!(structured_action_exit_code(1), 0);
+        assert_eq!(structured_action_exit_code(2), 0);
+        assert_eq!(structured_action_exit_code(0), 1);
+        assert_eq!(structured_action_exit_code(-1), 1);
+    }
+
     fn parse(arguments: &[&str]) -> Cli {
         figue::from_slice::<Cli>(arguments)
             .into_result()
@@ -1419,6 +1666,88 @@ mod tests {
                 command: InstanceCommand::List(_)
             })
         ));
+    }
+
+    #[test]
+    fn canonical_action_family_and_logs_parse() {
+        let parsed = parse(&["action", "invoke", "sfm:echo", "hello"]);
+        let Command::Action(ActionArgs {
+            command: ActionCommand::Invoke(invoke),
+        }) = parsed.command
+        else {
+            panic!("expected canonical action invoke");
+        };
+        assert_eq!(invoke.action, ["sfm:echo", "hello"]);
+
+        let parsed = parse(&["action", "invoke", "sfm:help", "sfm:echo"]);
+        let Command::Action(ActionArgs {
+            command: ActionCommand::Invoke(help),
+        }) = parsed.command
+        else {
+            panic!("expected canonical action-specific help invocation");
+        };
+        assert_eq!(help.action, ["sfm:help", "sfm:echo"]);
+
+        let parsed = parse(&["action", "list", "all", "--instance-pid", "42"]);
+        let Command::Action(ActionArgs {
+            command: ActionCommand::List(list),
+        }) = parsed.command
+        else {
+            panic!("expected canonical action list");
+        };
+        assert_eq!(list.mode.as_deref(), Some("all"));
+        assert_eq!(list.target.instance_pid, Some(42));
+
+        let parsed = parse(&["logs", "--tail", "100", "--log-filter", "error"]);
+        let Command::Logs(logs) = parsed.command else {
+            panic!("expected logs command");
+        };
+        assert_eq!(logs.tail, Some(100));
+        assert_eq!(logs.log_filter.as_deref(), Some("error"));
+    }
+
+    #[test]
+    fn manager_show_cli_builds_an_exact_address_query() {
+        let parsed = parse(&[
+            "manager",
+            "show",
+            "--instance-id",
+            "game-1",
+            "--",
+            "minecraft:overworld",
+            "-12",
+            "64",
+            "7",
+        ]);
+        let Command::Manager(ManagerArgs {
+            command: ManagerCommand::Show(show),
+        }) = parsed.command
+        else {
+            panic!("expected manager show command");
+        };
+        assert_eq!(show.target.instance_id.as_deref(), Some("game-1"));
+        assert_eq!(
+            show.action_tokens().expect("exact manager query tokens"),
+            ["sfm:manager/show", "minecraft:overworld", "-12", "64", "7"]
+        );
+
+        parse_fails(&["manager", "show", "minecraft:overworld", "1", "2"]);
+        parse_fails(&[
+            "manager",
+            "show",
+            "minecraft:overworld",
+            "1",
+            "not-an-integer",
+            "3",
+        ]);
+        let invalid_dimension = parse(&["manager", "show", "Overworld", "1", "2", "3"]);
+        let Command::Manager(ManagerArgs {
+            command: ManagerCommand::Show(show),
+        }) = invalid_dimension.command
+        else {
+            panic!("expected manager show command");
+        };
+        assert!(show.action_tokens().is_err());
     }
 
     #[test]

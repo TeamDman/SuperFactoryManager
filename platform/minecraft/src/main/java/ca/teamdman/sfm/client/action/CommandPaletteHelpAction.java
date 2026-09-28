@@ -6,7 +6,13 @@ import ca.teamdman.sfm.common.label.LabelPositionHolder;
 import ca.teamdman.sfm.common.localization.LocalizationEntry;
 import ca.teamdman.sfm.common.localization.SFMLocalizationDatagen;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+
+import ca.teamdman.sfm.client.registry.SFMClientActions;
+import com.google.gson.JsonObject;
 
 public final class CommandPaletteHelpAction implements SFMClientAction<SFMClientActionContext> {
     @SFMLocalizationDatagen
@@ -55,12 +61,43 @@ public final class CommandPaletteHelpAction implements SFMClientAction<SFMClient
     }
 
     @Override
+    public void configureCommandNode(
+            com.mojang.brigadier.builder.LiteralArgumentBuilder<SFMClientActionSource> node
+    ) {
+        node.executes(this::invoke);
+        node.then(RequiredArgumentBuilder.<SFMClientActionSource, String>argument(
+                        "action_id", StringArgumentType.word()).executes(this::invoke));
+    }
+
+    @Override
     public int execute(
             SFMClientActionContext target,
             CommandContext<SFMClientActionSource> context
     ) {
+        String text = HELP_TEXT;
+        String actionId = null;
+        try { actionId = StringArgumentType.getString(context, "action_id"); } catch (IllegalArgumentException ignored) { }
+        if (actionId != null) {
+            ResourceLocation id = ResourceLocation.tryParse(actionId);
+            SFMClientAction<?> action = id == null ? null : SFMClientActions.registry().get(id);
+            if (action == null) throw new IllegalArgumentException("Unknown SFM client action: " + actionId);
+            text = "SFM Client Action\n\n"
+                    + "id: " + id + "\n"
+                    + "title: " + action.title().getString() + "\n"
+                    + "description: " + action.description().getString() + "\n"
+                    + "programmatic: " + action.programmaticDescriptor().isPresent() + "\n";
+            JsonObject result = new JsonObject();
+            result.addProperty("schema", "sfm.action-help/1");
+            result.addProperty("id", id.toString());
+            result.addProperty("title", action.title().getString());
+            result.addProperty("description", action.description().getString());
+            result.addProperty("programmatic", action.programmaticDescriptor().isPresent());
+            context.getSource().publishStructuredResult(SFMClientActionStructuredResult.of(
+                    "sfm.action-help/1", result));
+            context.getSource().sendFeedback(Component.literal("help: " + id));
+        }
         SFMScreenChangeHelpers.showProgramEditScreen(new SFMTextEditScreenOverlayOpenContext(
-                HELP_TEXT,
+                text,
                 LabelPositionHolder.empty(),
                 ignored -> {
                 }

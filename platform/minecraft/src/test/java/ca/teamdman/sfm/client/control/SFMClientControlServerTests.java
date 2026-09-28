@@ -1,5 +1,6 @@
 package ca.teamdman.sfm.client.control;
 
+import ca.teamdman.sfm.common.net.ClientboundManagerShowPacket;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -7,6 +8,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SFMClientControlServerTests {
+    @Test
+    void managerShowUsesPositiveSuccessResultCode() {
+        for (ClientboundManagerShowPacket.Status status : ClientboundManagerShowPacket.Status.values()) {
+            assertEquals(status == ClientboundManagerShowPacket.Status.ALLOWED ? 1 : 0,
+                    SFMClientControlServer.managerShowResultCode(status));
+        }
+    }
+
     @Test
     void registeredActionIdsRemainLiteralTokens() {
         assertEquals("sfm:panel/open", SFMClientControlServer.escapeCommandToken("sfm:panel/open"));

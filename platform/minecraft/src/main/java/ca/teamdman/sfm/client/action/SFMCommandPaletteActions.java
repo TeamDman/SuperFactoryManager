@@ -32,6 +32,21 @@ public final class SFMCommandPaletteActions {
             EchoAction::new
     );
 
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMClientControlEnableAction> ENABLE_FILE_CONTROL = REGISTERER.register(
+            "control/files/enable",
+            SFMClientControlEnableAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMClientControlActionListAction> LIST_ACTIONS = REGISTERER.register(
+            "action/list",
+            SFMClientControlActionListAction::new
+    );
+
+    public static final SFMRegistryObject<SFMClientAction<?>, SFMClientControlLogsAction> READ_LOGS = REGISTERER.register(
+            "logs",
+            SFMClientControlLogsAction::new
+    );
+
     public static final SFMRegistryObject<SFMClientAction<?>, OpenPanelAction> OPEN_PANEL = REGISTERER.register(
             "panel/open",
             () -> new OpenPanelAction(OpenPanelAction.Direction.FOCUSED)
