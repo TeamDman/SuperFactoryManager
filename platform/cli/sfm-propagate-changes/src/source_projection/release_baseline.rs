@@ -394,13 +394,13 @@ fn prepare_gradle_import(
 }
 
 #[derive(Debug)]
-struct ImportFile {
+pub(crate) struct ImportFile {
     bytes: Vec<u8>,
     #[cfg(unix)]
     git_mode: String,
 }
 
-fn insert_import_file(
+pub(crate) fn insert_import_file(
     desired: &mut BTreeMap<String, ImportFile>,
     path: &str,
     bytes: Vec<u8>,
@@ -430,13 +430,17 @@ fn insert_import_file(
 fn validate_import_path(path: &str) -> Result<()> {
     validate_project_relative_path(path)?;
     ensure!(
-        path.starts_with("platform/minecraft/release-baselines/"),
-        "release import path is outside release-baselines: '{path}'"
+        path.starts_with("platform/minecraft/release-baselines/")
+            || path.starts_with("platform/minecraft/development-baselines/"),
+        "pinned import path is outside the baseline roots: '{path}'"
     );
     Ok(())
 }
 
-fn collect_tagged_gradle_tree(root: &Path, commit: &str) -> Result<BTreeMap<String, GitTreeEntry>> {
+pub(crate) fn collect_tagged_gradle_tree(
+    root: &Path,
+    commit: &str,
+) -> Result<BTreeMap<String, GitTreeEntry>> {
     let output = git_stdout(
         root,
         &["ls-tree", "-r", "-z", commit, "--", "platform/minecraft"],
@@ -490,7 +494,7 @@ fn collect_tagged_gradle_tree(root: &Path, commit: &str) -> Result<BTreeMap<Stri
     Ok(files)
 }
 
-fn stage_and_install_imports(
+pub(crate) fn stage_and_install_imports(
     root: &Path,
     desired: &BTreeMap<String, ImportFile>,
 ) -> Result<BTreeMap<String, bool>> {
@@ -610,52 +614,56 @@ fn preflight_imports(
 }
 
 fn scan_existing_import_paths(root: &Path) -> Result<BTreeMap<String, String>> {
-    let imports_root = root.join("platform/minecraft/release-baselines");
-    let metadata = match fs::symlink_metadata(&imports_root) {
-        Ok(metadata) => metadata,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(BTreeMap::new()),
-        Err(error) => return Err(error).wrap_err("cannot inspect release-baselines root"),
-    };
-    ensure!(
-        metadata.is_dir() && !metadata.file_type().is_symlink(),
-        "release-baselines root must be a real directory"
-    );
     let mut paths = BTreeMap::new();
-    for entry in WalkDir::new(&imports_root)
-        .follow_links(false)
-        .sort_by_file_name()
-    {
-        let entry = entry.wrap_err("cannot walk release-baselines root")?;
-        if entry.path() == imports_root {
-            continue;
-        }
+    for import_dir in ["release-baselines", "development-baselines"] {
+        let imports_root = root.join("platform/minecraft").join(import_dir);
+        let metadata = match fs::symlink_metadata(&imports_root) {
+            Ok(metadata) => metadata,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(error) => {
+                return Err(error).wrap_err_with(|| format!("cannot inspect {import_dir} root"));
+            }
+        };
         ensure!(
-            !entry.file_type().is_symlink(),
-            "release-baselines contains a symlink: '{}'",
-            entry.path().display()
+            metadata.is_dir() && !metadata.file_type().is_symlink(),
+            "{import_dir} root must be a real directory"
         );
-        ensure!(
-            entry.file_type().is_file() || entry.file_type().is_dir(),
-            "release-baselines contains an unsupported filesystem entry"
-        );
-        let relative = entry.path().strip_prefix(root)?;
-        let path = relative
-            .components()
-            .map(|component| match component {
-                Component::Normal(part) => part
-                    .to_str()
-                    .map(str::to_owned)
-                    .ok_or_else(|| eyre::eyre!("release import path is not UTF-8")),
-                _ => Err(eyre::eyre!("release import path is not relative")),
-            })
-            .collect::<Result<Vec<_>>>()?
-            .join("/");
-        validate_import_path(&path)?;
-        if let Some(previous) = paths.insert(path.to_ascii_lowercase(), path.clone()) {
+        for entry in WalkDir::new(&imports_root)
+            .follow_links(false)
+            .sort_by_file_name()
+        {
+            let entry = entry.wrap_err_with(|| format!("cannot walk {import_dir} root"))?;
+            if entry.path() == imports_root {
+                continue;
+            }
             ensure!(
-                previous == path,
-                "case-colliding existing release imports '{previous}' and '{path}'"
+                !entry.file_type().is_symlink(),
+                "{import_dir} contains a symlink: '{}'",
+                entry.path().display()
             );
+            ensure!(
+                entry.file_type().is_file() || entry.file_type().is_dir(),
+                "{import_dir} contains an unsupported filesystem entry"
+            );
+            let relative = entry.path().strip_prefix(root)?;
+            let path = relative
+                .components()
+                .map(|component| match component {
+                    Component::Normal(part) => part
+                        .to_str()
+                        .map(str::to_owned)
+                        .ok_or_else(|| eyre::eyre!("import path is not UTF-8")),
+                    _ => Err(eyre::eyre!("import path is not relative")),
+                })
+                .collect::<Result<Vec<_>>>()?
+                .join("/");
+            validate_import_path(&path)?;
+            if let Some(previous) = paths.insert(path.to_ascii_lowercase(), path.clone()) {
+                ensure!(
+                    previous == path,
+                    "case-colliding existing imports '{previous}' and '{path}'"
+                );
+            }
         }
     }
     Ok(paths)
@@ -956,9 +964,9 @@ fn compare_one_target(
 }
 
 #[derive(Debug)]
-struct GitTreeEntry {
-    mode: String,
-    oid: String,
+pub(crate) struct GitTreeEntry {
+    pub(crate) mode: String,
+    pub(crate) oid: String,
 }
 
 struct ParsedTreeEntry {
@@ -986,7 +994,10 @@ fn parse_tree_entry(record: &[u8]) -> Result<ParsedTreeEntry> {
     })
 }
 
-fn collect_release_tree(root: &Path, commit: &str) -> Result<BTreeMap<String, GitTreeEntry>> {
+pub(crate) fn collect_release_tree(
+    root: &Path,
+    commit: &str,
+) -> Result<BTreeMap<String, GitTreeEntry>> {
     let output = git_stdout(
         root,
         &[
@@ -1166,7 +1177,7 @@ fn validate_sha1(value: &str, label: &str) -> Result<()> {
     Ok(())
 }
 
-fn git_text(root: &Path, args: &[&str]) -> Result<String> {
+pub(crate) fn git_text(root: &Path, args: &[&str]) -> Result<String> {
     let output = git_stdout(root, args)?;
     Ok(String::from_utf8(output)
         .wrap_err("Git output is not UTF-8")?
@@ -1190,12 +1201,12 @@ fn git_stdout(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
     Ok(output.stdout)
 }
 
-fn sha256_hex(bytes: &[u8]) -> String {
+pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     format!("sha256:{digest:x}")
 }
 
-fn hash_canonical_tree(files: &BTreeMap<String, String>) -> String {
+pub(crate) fn hash_canonical_tree(files: &BTreeMap<String, String>) -> String {
     let mut hasher = Sha256::new();
     hasher.update(b"sfm:canonical-working-source@1\0");
     for (path, hash) in files {
@@ -1207,7 +1218,7 @@ fn hash_canonical_tree(files: &BTreeMap<String, String>) -> String {
     format!("sha256:{:x}", hasher.finalize())
 }
 
-struct GitBlobHasher {
+pub(crate) struct GitBlobHasher {
     child: Child,
     stdin: Option<ChildStdin>,
     stdout: Option<BufReader<ChildStdout>>,
@@ -1216,7 +1227,7 @@ struct GitBlobHasher {
 }
 
 impl GitBlobHasher {
-    fn start(root: &Path) -> Result<Self> {
+    pub(crate) fn start(root: &Path) -> Result<Self> {
         let mut child = Command::new("git")
             .current_dir(root)
             .env("GIT_OPTIONAL_LOCKS", "0")
@@ -1243,7 +1254,7 @@ impl GitBlobHasher {
         })
     }
 
-    fn hash(&mut self, oid: &str) -> Result<String> {
+    pub(crate) fn hash(&mut self, oid: &str) -> Result<String> {
         if let Some(hash) = self.cache.get(oid) {
             return Ok(hash.clone());
         }
@@ -1252,7 +1263,7 @@ impl GitBlobHasher {
         Ok(hash)
     }
 
-    fn read(&mut self, oid: &str) -> Result<Vec<u8>> {
+    pub(crate) fn read(&mut self, oid: &str) -> Result<Vec<u8>> {
         validate_sha1(oid, "release blob ID")?;
         let stdin = self
             .stdin
@@ -1291,7 +1302,7 @@ impl GitBlobHasher {
         Ok(bytes)
     }
 
-    fn finish(&mut self) -> Result<()> {
+    pub(crate) fn finish(&mut self) -> Result<()> {
         self.stdin.take();
         self.stdout.take();
         let status = self.child.wait()?;

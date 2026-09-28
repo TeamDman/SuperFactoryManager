@@ -93,8 +93,8 @@ pub struct ProjectionPreset {
     pub targets: Vec<String>,
     /// Disabled features are absent from this set.
     pub enabled_features: Vec<String>,
-    /// An empty list selects ordinary development sources. A released-source
-    /// preset binds every target to a separate exact-path import manifest.
+    /// An empty list selects ordinary development sources. Pinned release or
+    /// committed-development presets bind each target to an exact-path import.
     #[facet(default)]
     pub release_baselines: Vec<ReleaseBaselineBinding>,
     /// Manifest-definition fingerprint, `blake3:<hex>`. Source/output hashes
@@ -108,11 +108,30 @@ pub struct ProjectionPreset {
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
 pub struct ReleaseBaselineBinding {
     pub target_id: String,
-    /// Resolved `git rev-parse <tag>^{commit}` SHA-1, never an unfixed tag name.
+    /// Exact target commit. For release tags this is the resolved tag commit;
+    /// for a development import it is the pinned version-branch HEAD.
     pub tag_commit: String,
-    /// Repository-relative manifest path under `platform/minecraft/release-baselines/`.
+    /// Repository-relative pinned import manifest.
     pub import_manifest: String,
     pub import_manifest_sha256: String,
+    /// Existing release bindings omit this field and retain their old identity.
+    #[facet(default)]
+    pub kind: BaselineKind,
+    /// The committed primary-source snapshot compared with a development HEAD.
+    #[facet(default)]
+    pub canonical_commit: Option<String>,
+    /// Hash of the separately pinned Gradle-input provenance document.
+    #[facet(default)]
+    pub gradle_provenance_sha256: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, Facet, PartialEq)]
+#[facet(rename_all = "snake_case")]
+#[repr(u8)]
+pub enum BaselineKind {
+    #[default]
+    ReleaseTag,
+    DevelopmentHead,
 }
 
 impl SourceProjectionManifest {
@@ -461,6 +480,20 @@ impl SourceProjectionManifest {
                 hash_part(&mut hasher, &baseline.tag_commit);
                 hash_part(&mut hasher, &baseline.import_manifest);
                 hash_part(&mut hasher, &baseline.import_manifest_sha256);
+                if baseline.kind == BaselineKind::DevelopmentHead {
+                    hash_part(&mut hasher, "development_head");
+                    hash_part(
+                        &mut hasher,
+                        baseline.canonical_commit.as_deref().unwrap_or_default(),
+                    );
+                    hash_part(
+                        &mut hasher,
+                        baseline
+                            .gradle_provenance_sha256
+                            .as_deref()
+                            .unwrap_or_default(),
+                    );
+                }
             }
         }
         Ok(format!("blake3:{}", hasher.finalize().to_hex()))
@@ -500,15 +533,50 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
             );
         }
         validate_lower_hex(&baseline.tag_commit, 40, "release tag commit")?;
-        validate_path(&baseline.import_manifest, "release import manifest")?;
-        if !baseline
-            .import_manifest
-            .starts_with("platform/minecraft/release-baselines/")
-        {
-            eyre::bail!(
-                "release import manifest `{}` must be under platform/minecraft/release-baselines/",
-                baseline.import_manifest
-            );
+        validate_path(&baseline.import_manifest, "pinned import manifest")?;
+        match baseline.kind {
+            BaselineKind::ReleaseTag => {
+                if !baseline
+                    .import_manifest
+                    .starts_with("platform/minecraft/release-baselines/")
+                {
+                    eyre::bail!(
+                        "release import manifest `{}` must be under platform/minecraft/release-baselines/",
+                        baseline.import_manifest
+                    );
+                }
+                if baseline.canonical_commit.is_some()
+                    || baseline.gradle_provenance_sha256.is_some()
+                {
+                    eyre::bail!("release import cannot declare development-head identities");
+                }
+            }
+            BaselineKind::DevelopmentHead => {
+                if baseline.import_manifest
+                    != format!(
+                        "platform/minecraft/development-baselines/{}/import.json",
+                        baseline.target_id
+                    )
+                {
+                    eyre::bail!(
+                        "development import manifest path must match target `{}`",
+                        baseline.target_id
+                    );
+                }
+                validate_lower_hex(
+                    baseline.canonical_commit.as_deref().unwrap_or_default(),
+                    40,
+                    "development canonical commit",
+                )?;
+                validate_lower_hex(
+                    baseline
+                        .gradle_provenance_sha256
+                        .as_deref()
+                        .unwrap_or_default(),
+                    64,
+                    "development Gradle provenance SHA-256",
+                )?;
+            }
         }
         if !seen_manifests.insert(baseline.import_manifest.to_ascii_lowercase()) {
             eyre::bail!(
@@ -694,6 +762,9 @@ mod tests {
                 "platform/minecraft/release-baselines/released-4.34.0/{target_id}/import.json"
             ),
             import_manifest_sha256: "b".repeat(64),
+            kind: BaselineKind::ReleaseTag,
+            canonical_commit: None,
+            gradle_provenance_sha256: None,
         }
     }
 
@@ -745,6 +816,33 @@ mod tests {
                 .to_string()
                 .contains("identity mismatch")
         );
+    }
+
+    #[test]
+    fn development_head_binding_requires_both_pinned_commits_and_gradle_hash() {
+        let mut manifest = sample();
+        let mut binding = release_binding("1.19.2");
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.import_manifest =
+            "platform/minecraft/development-baselines/1.19.2/import.json".to_owned();
+        binding.canonical_commit = Some("c".repeat(40));
+        binding.gradle_provenance_sha256 = Some("d".repeat(64));
+        manifest.presets[0].release_baselines.push(binding);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest.validate().unwrap();
+        let json = manifest.to_json().unwrap();
+        assert_eq!(
+            SourceProjectionManifest::from_json(&json).unwrap(),
+            manifest
+        );
+
+        manifest.presets[0].release_baselines[0].canonical_commit = None;
+        assert!(manifest.validate().is_err());
+        manifest.presets[0].release_baselines[0].canonical_commit = Some("c".repeat(40));
+        manifest.presets[0].release_baselines[0].gradle_provenance_sha256 = None;
+        assert!(manifest.validate().is_err());
     }
 
     #[test]

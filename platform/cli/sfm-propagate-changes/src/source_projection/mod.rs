@@ -5,6 +5,8 @@
 //! represented as a small Liquid skeleton with its Java chunks as values.
 
 pub mod context;
+pub mod development_baseline;
+pub mod development_gradle;
 mod directive_scanner;
 pub mod inputs;
 pub mod manifest;

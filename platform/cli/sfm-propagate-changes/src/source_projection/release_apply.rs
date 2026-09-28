@@ -11,8 +11,10 @@ use std::path::Path;
 use eyre::{Result, WrapErr, ensure};
 
 use super::context::ProjectionContext;
+use super::development_baseline::DEVELOPMENT_SOURCE_SCHEMA;
+use super::development_gradle::verify_development_gradle_inputs;
 use super::inputs::{apply_explicit_inputs, render_java_artifact};
-use super::manifest::ReleaseBaselineBinding;
+use super::manifest::{BaselineKind, ReleaseBaselineBinding};
 use super::provenance::sha256;
 use super::release_baseline::{
     BaselinePathClass, BaselinePathRecord, ReleaseBaselineReport, ReleaseBaselineTargetReport,
@@ -23,6 +25,7 @@ use super::sync::ProjectedArtifact;
 const REPORT_SCHEMA: &str = "sfm:release-baseline-comparison@1";
 const SOURCE_ROOT: &str = "platform/minecraft/src";
 const RELEASE_IMPORT_PREFIX: &str = "platform/minecraft/release-baselines/";
+const DEVELOPMENT_IMPORT_PREFIX: &str = "platform/minecraft/development-baselines/";
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ReleaseApplyReport {
@@ -51,7 +54,7 @@ pub fn release_source_paths(
         .targets
         .first()
         .ok_or_else(|| eyre::eyre!("release import manifest contains no target"))?;
-    let (paths, _) = validate_target_report(target)?;
+    let (paths, _) = validate_target_report(target, import_prefix(binding.kind))?;
     Ok(paths)
 }
 
@@ -78,7 +81,8 @@ pub fn apply_release_baseline(
         .targets
         .first()
         .ok_or_else(|| eyre::eyre!("release import manifest contains no target"))?;
-    let (release_paths, explicit_inputs) = validate_target_report(target)?;
+    let (release_paths, explicit_inputs) =
+        validate_target_report(target, import_prefix(binding.kind))?;
 
     let mut pending = artifacts.clone();
     let masked_development_files = pending
@@ -101,6 +105,10 @@ pub fn apply_release_baseline(
         {
             continue;
         }
+        ensure!(
+            binding.kind == BaselineKind::ReleaseTag,
+            "committed-development source '{path}' changed from its pinned canonical snapshot"
+        );
         // A common file may evolve on the development branch years after the
         // release. The exact tagged blob remains the immutable source of truth.
         let oid = record
@@ -139,7 +147,12 @@ pub fn apply_release_baseline(
             "release source `{path}` differs from the pinned tag SHA-256"
         );
         if record.release_overlay_path.is_some() {
-            artifact.overlay = Some(format!("release-{}", target.release_tag));
+            artifact.overlay = Some(match binding.kind {
+                BaselineKind::ReleaseTag => format!("release-{}", target.release_tag),
+                BaselineKind::DevelopmentHead => {
+                    format!("development-head-{}", target.target_id)
+                }
+            });
         }
     }
 
@@ -151,6 +164,13 @@ pub fn apply_release_baseline(
     };
     *artifacts = pending;
     Ok(result)
+}
+
+fn import_prefix(kind: BaselineKind) -> &'static str {
+    match kind {
+        BaselineKind::ReleaseTag => RELEASE_IMPORT_PREFIX,
+        BaselineKind::DevelopmentHead => DEVELOPMENT_IMPORT_PREFIX,
+    }
 }
 
 fn read_pinned_report(
@@ -165,7 +185,8 @@ fn read_pinned_report(
         is_lower_hex(&binding.tag_commit, 40),
         "release tag commit must be 40 lowercase hexadecimal characters"
     );
-    validate_repo_path(&binding.import_manifest, RELEASE_IMPORT_PREFIX)?;
+    let prefix = import_prefix(binding.kind);
+    validate_repo_path(&binding.import_manifest, prefix)?;
     let root = fs::canonicalize(repo_root)
         .wrap_err_with(|| format!("cannot resolve repository root '{}'", repo_root.display()))?;
     ensure!(root.is_dir(), "repository root must be a directory");
@@ -202,9 +223,13 @@ fn read_pinned_report(
     let json = std::str::from_utf8(&bytes).wrap_err("release import manifest is not UTF-8")?;
     let report: ReleaseBaselineReport =
         facet_json::from_str(json).wrap_err("cannot parse release import manifest")?;
+    let expected_schema = match binding.kind {
+        BaselineKind::ReleaseTag => REPORT_SCHEMA,
+        BaselineKind::DevelopmentHead => DEVELOPMENT_SOURCE_SCHEMA,
+    };
     ensure!(
-        report.schema == REPORT_SCHEMA,
-        "unsupported release import schema '{}': expected {REPORT_SCHEMA}",
+        report.schema == expected_schema,
+        "unsupported pinned import schema '{}': expected {expected_schema}",
         report.schema
     );
     ensure!(
@@ -215,6 +240,12 @@ fn read_pinned_report(
         is_lower_hex(&report.canonical_head, 40) && is_sha256(&report.canonical_source_sha256),
         "release import has invalid canonical source identity"
     );
+    if binding.kind == BaselineKind::DevelopmentHead {
+        ensure!(
+            binding.canonical_commit.as_deref() == Some(report.canonical_head.as_str()),
+            "development import canonical commit does not match its pinned binding"
+        );
+    }
     ensure!(
         !report.jar_parity_proven,
         "source comparison cannot claim JAR parity"
@@ -240,15 +271,39 @@ fn read_pinned_report(
         target.release_tag
     );
     ensure!(
-        binding.import_manifest
-            == format!("{RELEASE_IMPORT_PREFIX}{}/import.json", target.release_tag),
-        "release import manifest path does not match its tag label"
+        binding.import_manifest == format!("{prefix}{}/import.json", target.release_tag),
+        "pinned import manifest path does not match its target label"
     );
+    if binding.kind == BaselineKind::DevelopmentHead {
+        ensure!(
+            target.release_tag == binding.target_id,
+            "development import target label does not match its pinned target"
+        );
+        let import_root = manifest_path
+            .parent()
+            .ok_or_else(|| eyre::eyre!("development import manifest has no parent"))?
+            .join("gradle-project");
+        verify_development_gradle_inputs(
+            &root,
+            binding
+                .canonical_commit
+                .as_deref()
+                .ok_or_else(|| eyre::eyre!("development canonical commit is missing"))?,
+            &binding.tag_commit,
+            &import_root,
+            binding
+                .gradle_provenance_sha256
+                .as_deref()
+                .ok_or_else(|| eyre::eyre!("development Gradle provenance hash is missing"))?,
+            &BTreeMap::new(),
+        )?;
+    }
     Ok(report)
 }
 
 fn validate_target_report(
     target: &ReleaseBaselineTargetReport,
+    import_prefix: &str,
 ) -> Result<(BTreeSet<String>, BTreeMap<String, String>)> {
     let mut membership = BTreeSet::new();
     let mut overlays = BTreeMap::new();
@@ -278,7 +333,13 @@ fn validate_target_report(
                 3
             }
         };
-        validate_record(path, record, expected_category, &target.release_tag)?;
+        validate_record(
+            path,
+            record,
+            expected_category,
+            &target.release_tag,
+            import_prefix,
+        )?;
         if expected_category == 3 {
             continue;
         }
@@ -305,6 +366,7 @@ fn validate_record(
     record: &BaselinePathRecord,
     category: usize,
     release_tag: &str,
+    import_prefix: &str,
 ) -> Result<()> {
     if category == 3 {
         ensure!(
@@ -353,9 +415,9 @@ fn validate_record(
             let overlay = record.release_overlay_path.as_deref().ok_or_else(|| {
                 eyre::eyre!("divergent release path `{path}` has no overlay path")
             })?;
-            validate_repo_path(overlay, RELEASE_IMPORT_PREFIX)?;
+            validate_repo_path(overlay, import_prefix)?;
             ensure!(
-                overlay == format!("{RELEASE_IMPORT_PREFIX}{release_tag}/overlays/{path}"),
+                overlay == format!("{import_prefix}{release_tag}/overlays/{path}"),
                 "release overlay `{overlay}` does not mirror `{path}` under its tag"
             );
             if category == 1 {
@@ -501,6 +563,9 @@ mod tests {
             tag_commit: report.targets[0].tag_commit.clone(),
             import_manifest: relative.to_owned(),
             import_manifest_sha256: sha256(&bytes).trim_start_matches("sha256:").to_owned(),
+            kind: super::super::manifest::BaselineKind::ReleaseTag,
+            canonical_commit: None,
+            gradle_provenance_sha256: None,
         }
     }
 

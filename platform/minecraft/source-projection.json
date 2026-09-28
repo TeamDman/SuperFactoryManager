@@ -37,6 +37,15 @@
     {"id":"current-development-pilot","targets":["1.19.2"],"enabled_features":["echo_action"],"identity":"blake3:c9cc25c2091093786c5dd22169e8892f68a45dc3f951315f67e8f77d89ff2bef"},
     {"id":"current-development-no-echo","targets":["1.19.2"],"enabled_features":[],"identity":"blake3:356aad1ea19125279bb4f2cf03c299cbc70743e83da440f3a66bf3ae190555df"},
     {
+      "id":"current-development-head-1.19.4",
+      "targets":["1.19.4"],
+      "enabled_features":[],
+      "release_baselines":[
+        {"target_id":"1.19.4","tag_commit":"2e3b561c15d663fb89fd353ccc2af67eeb0c2053","import_manifest":"platform/minecraft/development-baselines/1.19.4/import.json","import_manifest_sha256":"91cc665798cd78022c4c703c260f190d1ef3eb7bd6411964acd6fdd44155f2fb","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"7438bdb10fd4e86b2d4ff320d9bc60d942dc6d2595941cba919497adf1d1e8cd"}
+      ],
+      "identity":"blake3:58a605e1cc1529e8ae85f171eb7478d8059053fcd870fc26f50ba61446567cd4"
+    },
+    {
       "id":"released-4.34.0",
       "targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],
       "enabled_features":[],

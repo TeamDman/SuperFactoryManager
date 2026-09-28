@@ -192,6 +192,9 @@ mod tests {
                     "platform/minecraft/release-baselines/released-4.34.0/1.19.2/import.json"
                         .to_owned(),
                 import_manifest_sha256: "b".repeat(64),
+                kind: super::super::manifest::BaselineKind::ReleaseTag,
+                canonical_commit: None,
+                gradle_provenance_sha256: None,
             });
         manifest.presets[0].identity = manifest
             .compute_preset_identity(&manifest.presets[0])
