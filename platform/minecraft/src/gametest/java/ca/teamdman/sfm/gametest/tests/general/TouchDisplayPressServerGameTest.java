@@ -36,7 +36,6 @@ import java.util.UUID;
 @SFMGameTest(SFMDist.DEDICATED_SERVER)
 public class TouchDisplayPressServerGameTest extends SFMGameTestDefinition {
     protected static final BlockPos DISPLAY = new BlockPos(2, 2, 2);
-    private static final double INSET = 7.0 / 16.0;
 
     @Override
     public String template() {
@@ -193,8 +192,8 @@ public class TouchDisplayPressServerGameTest extends SFMGameTestDefinition {
 
     protected static BlockHitResult hit(BlockPos position, Direction face, double u, double v) {
         TouchDisplaySurface.Basis basis = TouchDisplaySurface.basis(face);
-        double right = (u - 0.5) * 2 * INSET;
-        double up = (0.5 - v) * 2 * INSET;
+        double right = (u - 0.5) * 2 * TouchDisplaySurface.HALF_IMAGE_SIZE;
+        double up = (0.5 - v) * 2 * TouchDisplaySurface.HALF_IMAGE_SIZE;
         return new BlockHitResult(new Vec3(
                 position.getX() + 0.5 + face.getStepX() * 0.5 + basis.rightX() * right + basis.upX() * up,
                 position.getY() + 0.5 + face.getStepY() * 0.5 + basis.rightY() * right + basis.upY() * up,

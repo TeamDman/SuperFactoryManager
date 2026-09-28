@@ -170,7 +170,11 @@ public class TouchDisplayBlock extends BaseEntityBlock {
 
     @Override
     public @Nullable BlockState getStateForPlacement(BlockPlaceContext context) {
-        return defaultBlockState().setValue(FACING, context.getClickedFace());
+        // Match furnace placement: the horizontal front faces the player,
+        // rather than inheriting the support block's clicked face. This keeps
+        // a side placement usable immediately while explicit block states can
+        // still target any of the six render faces.
+        return defaultBlockState().setValue(FACING, context.getHorizontalDirection().getOpposite());
     }
 
     @Override

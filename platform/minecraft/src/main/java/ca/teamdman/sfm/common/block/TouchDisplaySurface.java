@@ -11,8 +11,8 @@ import java.util.Optional;
 
 /** Geometry shared by the Touch Display renderer and its server-side hit mapping. */
 public final class TouchDisplaySurface {
-    /** The image spans local coordinates 1/16 through 15/16 on both axes. */
-    public static final float HALF_IMAGE_SIZE = 7F / 16F;
+    /** The image covers the complete outward block face for seamless panels. */
+    public static final float HALF_IMAGE_SIZE = 8F / 16F;
     private static final double IMAGE_SIZE = 2.0 * HALF_IMAGE_SIZE;
     /** The vanilla use packet transmits block-relative hit coordinates as floats. */
     private static final double HIT_TOLERANCE = 1.0e-5;
@@ -40,7 +40,7 @@ public final class TouchDisplaySurface {
     }
 
     /**
-     * Maps a server-received vanilla block hit to the visible inset image.
+     * Maps a server-received vanilla block hit to the visible full-face image.
      * Image edges are inclusive. Float-rounding within {@link #HIT_TOLERANCE}
      * of an edge is clamped; farther hits, other faces, and inside hits fail.
      * The caller must still rely on Minecraft's normal reach/world checks.

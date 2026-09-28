@@ -14,7 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /** The same top-left UV contract must hold for every world-facing display. */
 class TouchDisplaySurfaceTests {
     private static final BlockPos POSITION = new BlockPos(12, 64, -7);
-    private static final double INSET = 7.0 / 16.0;
+    private static final double INSET = 8.0 / 16.0;
 
     @Test
     void eachFaceHasAnExplicitRightAndUpBasis() {
