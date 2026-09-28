@@ -98,6 +98,11 @@ public record SFMTextDocumentLanguage(String id, Highlighting highlighting) {
         return remote("json");
     }
 
+    /** Mixed YAML/JSON/SNBT inspection documents use the bounded local lexer. */
+    public static SFMTextDocumentLanguage itemInspection() {
+        return new SFMTextDocumentLanguage("sfm-item-inspection", Highlighting.LOCAL_LEXICAL);
+    }
+
     private static SFMTextDocumentLanguage remote(String id) {
         return new SFMTextDocumentLanguage(id, Highlighting.REMOTE_WORKER);
     }

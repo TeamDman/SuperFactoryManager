@@ -32,6 +32,19 @@ public final class ClientManagerScreen extends AbstractContainerScreen<ClientMan
         super(menu, inventory, title);
     }
 
+    /**
+     * Keep the tooltip pass explicit, matching the other SFM container screens.
+     * AbstractContainerScreen's normal render path does not guarantee the item
+     * tooltip after custom label/background work on every supported 1.19.2
+     * client, so the dedicated screen owns the pass here.
+     */
+    @Override
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
+        this.renderBackground(poseStack);
+        super.render(poseStack, mouseX, mouseY, partialTicks);
+        this.renderTooltip(poseStack, mouseX, mouseY);
+    }
+
     @Override
     protected void renderLabels(PoseStack poseStack, int mouseX, int mouseY) {
         super.renderLabels(poseStack, mouseX, mouseY);
@@ -51,9 +64,19 @@ public final class ClientManagerScreen extends AbstractContainerScreen<ClientMan
         );
         if (!source.isBlank()) {
             String firstLine = source.replace('\n', ' ').replace('\r', ' ');
-            if (firstLine.length() > 34) firstLine = firstLine.substring(0, 31) + "...";
+            int maximumWidth = Math.max(0, this.imageWidth - 16);
+            String ellipsis = "...";
+            if (this.font.width(firstLine) > maximumWidth) {
+                int textWidth = Math.max(0, maximumWidth - this.font.width(ellipsis));
+                firstLine = this.font.plainSubstrByWidth(firstLine, textWidth) + ellipsis;
+            }
             SFMFontUtils.draw(poseStack, this.font, firstLine, 8, 32, 0x404040, false);
         }
+    }
+
+    @Override
+    protected void renderTooltip(PoseStack poseStack, int mouseX, int mouseY) {
+        super.renderTooltip(poseStack, mouseX, mouseY);
     }
 
     @Override

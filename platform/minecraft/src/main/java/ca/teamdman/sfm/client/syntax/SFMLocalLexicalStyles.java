@@ -7,7 +7,7 @@ import java.util.*;
 /** Bounded, dependency-free lexical colouring; deliberately not a semantic parser. */
 public final class SFMLocalLexicalStyles {
     public static final int MAX_CHARACTERS = 262144;
-    private static final Set<String> LANGUAGES = Set.of("gradle", "groovy", "markdown", "json", "json5", "toml", "properties", "cfg", "ini");
+    private static final Set<String> LANGUAGES = Set.of("gradle", "groovy", "markdown", "json", "json5", "toml", "properties", "cfg", "ini", "sfm-item-inspection");
     private static final Set<String> KEYWORDS = Set.of("def", "class", "import", "plugins", "dependencies", "repositories", "tasks", "true", "false", "null", "if", "else", "return", "for", "in", "new", "extends", "apply", "buildscript", "allprojects", "subprojects");
     private SFMLocalLexicalStyles() {}
     public static boolean supports(String language) { return LANGUAGES.contains(language); }
@@ -23,6 +23,7 @@ public final class SFMLocalLexicalStyles {
         }
         var spans=new ArrayList<FormattingSpan>();
         boolean markdown=language.equals("markdown");
+        boolean itemInspection=language.equals("sfm-item-inspection");
         for (int i=0; i<text.length();) {
             int start=i; char c=text.charAt(i);
             ChatFormatting colour=null;
@@ -53,6 +54,12 @@ public final class SFMLocalLexicalStyles {
             } else if (c=='#' || c=='/' && i+1<text.length() && text.charAt(i+1)=='/') {
                 while (i<text.length() && text.charAt(i)!='\n') i++;
                 colour=ChatFormatting.DARK_GRAY;
+            } else if (itemInspection && (Character.isJavaIdentifierStart(c) || c == '-')) {
+                i++;
+                while (i<text.length() && (Character.isJavaIdentifierPart(text.charAt(i)) || text.charAt(i) == '-' || text.charAt(i) == '(' || text.charAt(i) == ')' )) i++;
+                int next = i;
+                while (next < text.length() && (text.charAt(next) == ' ' || text.charAt(next) == '\t')) next++;
+                if (next < text.length() && text.charAt(next) == ':') colour = ChatFormatting.AQUA;
             } else if (Character.isJavaIdentifierStart(c)) {
                 i++; while (i<text.length() && Character.isJavaIdentifierPart(text.charAt(i))) i++;
                 if (KEYWORDS.contains(text.substring(start,i))) colour=ChatFormatting.LIGHT_PURPLE;

@@ -8,6 +8,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.Tag;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.Slot;
@@ -19,19 +20,35 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 /** Creates a stable, read-only snapshot of the item under a container cursor. */
 public final class SFMItemInspectionDocument {
     private static final int MAX_PRETTY_NBT_DEPTH = 64;
+    @Nullable
+    private static volatile Supplier<Optional<ItemStack>> hoveredIngredientSource;
 
     private SFMItemInspectionDocument() {
     }
 
+    /** JEI registers this client-only source while its runtime is available. */
+    public static void setHoveredIngredientSource(@Nullable Supplier<Optional<ItemStack>> source) {
+        hoveredIngredientSource = source;
+    }
+
     public static Optional<ItemStack> hoveredStack(@Nullable Object host) {
-        if (!(host instanceof AbstractContainerScreen<?> screen)) return Optional.empty();
-        Slot slot = screen.hoveredSlot;
-        if (slot == null || slot.getItem().isEmpty()) return Optional.empty();
-        return Optional.of(slot.getItem().copy());
+        if (host instanceof AbstractContainerScreen<?> screen) {
+            Slot slot = screen.hoveredSlot;
+            if (slot != null && !slot.getItem().isEmpty()) return Optional.of(slot.getItem().copy());
+        }
+        // Optional overlays are registered at runtime. This class must not
+        // link JEI classes when a player opens the inspector without JEI.
+        return hoveredIngredient(hoveredIngredientSource);
+    }
+
+    static Optional<ItemStack> hoveredIngredient(@Nullable Supplier<Optional<ItemStack>> source) {
+        if (source == null) return Optional.empty();
+        return source.get().filter(stack -> !stack.isEmpty()).map(ItemStack::copy);
     }
 
     public static Optional<Captured> captureHovered(@Nullable Object host) {
@@ -42,15 +59,12 @@ public final class SFMItemInspectionDocument {
         ItemStack snapshot = stack.copy();
         ResourceLocation registeredId = ForgeRegistries.ITEMS.getKey(snapshot.getItem());
         String itemId = registeredId == null ? "unregistered" : registeredId.toString();
-        List<String> tooltip;
+        List<Component> tooltipComponents;
         try {
-            tooltip = snapshot.getTooltipLines(player, TooltipFlag.Default.NORMAL)
-                    .stream()
-                    .map(line -> oneLine(line.getString()))
-                    .toList();
+            tooltipComponents = snapshot.getTooltipLines(player, TooltipFlag.Default.NORMAL);
         } catch (RuntimeException tooltipFailure) {
-            tooltip = List.of("Unavailable: " + tooltipFailure.getClass().getSimpleName()
-                              + ": " + oneLine(String.valueOf(tooltipFailure.getMessage())));
+            tooltipComponents = List.of(Component.literal("Unavailable: " + tooltipFailure.getClass().getSimpleName()
+                    + ": " + oneLine(String.valueOf(tooltipFailure.getMessage()))));
         }
 
         @Nullable String packetValue = null;
@@ -62,11 +76,45 @@ public final class SFMItemInspectionDocument {
 
         String displayName = oneLine(snapshot.getHoverName().getString());
         String stackData = prettyTag(snapshot.save(new CompoundTag()));
+        List<String> localizedTooltip = tooltipComponents.stream()
+                .map(Component::getString)
+                .map(SFMItemInspectionDocument::oneLine)
+                .toList();
+        List<String> unlocalizedTooltip = tooltipComponents.stream()
+                .map(component -> oneLine(Component.Serializer.toJson(component)))
+                .toList();
         return new Captured(
                 "Item: " + displayName,
-                render(displayName, itemId, snapshot.getCount(), tooltip, stackData, packetValue),
-                SFMTextDocumentLanguage.plainText()
+                renderWithTooltipComponents(displayName, itemId, snapshot.getCount(), localizedTooltip,
+                        unlocalizedTooltip, stackData, packetValue),
+                SFMTextDocumentLanguage.itemInspection()
         );
+    }
+
+    static String renderWithTooltipComponents(
+            String displayName,
+            String itemId,
+            int count,
+            List<String> localizedTooltip,
+            List<String> unlocalizedTooltip,
+            String stackData,
+            @Nullable String packetValue
+    ) {
+        StringBuilder document = new StringBuilder(render(
+                displayName, itemId, count, localizedTooltip, stackData, packetValue));
+        document.append("\ntooltip (unlocalized):\n");
+        if (unlocalizedTooltip.isEmpty()) {
+            document.append("  (empty)\n");
+        } else {
+            unlocalizedTooltip.forEach(line -> document.append("  - ").append(oneLine(line)).append('\n'));
+        }
+        document.append("\ntooltip (localized):\n");
+        if (localizedTooltip.isEmpty()) {
+            document.append("  (empty)\n");
+        } else {
+            localizedTooltip.forEach(line -> document.append("  - ").append(oneLine(line)).append('\n'));
+        }
+        return document.toString();
     }
 
     static String render(
@@ -139,6 +187,14 @@ public final class SFMItemInspectionDocument {
             output.append(']');
             return;
         }
+        if (tag instanceof net.minecraft.nbt.StringTag string) {
+            // StringTag#toString delegates to Mojang's SNBT escaping, which
+            // has differed across supported mappings for control newlines.
+            // Explicitly quote the decoded value so the editor always sees a
+            // single JSON/SNBT string token.
+            output.append(quote(string.getAsString()));
+            return;
+        }
         output.append(tag);
     }
 
@@ -147,12 +203,29 @@ public final class SFMItemInspectionDocument {
     }
 
     private static String quote(String value) {
-        return '"' + value
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t") + '"';
+        StringBuilder quoted = new StringBuilder(value.length() + 2).append('"');
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            switch (character) {
+                case '\\' -> quoted.append("\\\\");
+                case '"' -> quoted.append("\\\"");
+                case '\b' -> quoted.append("\\b");
+                case '\f' -> quoted.append("\\f");
+                case '\n' -> quoted.append("\\n");
+                case '\r' -> quoted.append("\\r");
+                case '\t' -> quoted.append("\\t");
+                default -> {
+                    if (character < 0x20) {
+                        quoted.append("\\u00")
+                                .append(Character.forDigit(character >>> 4, 16))
+                                .append(Character.forDigit(character & 0xf, 16));
+                    } else {
+                        quoted.append(character);
+                    }
+                }
+            }
+        }
+        return quoted.append('"').toString();
     }
 
     private static String oneLine(String value) {

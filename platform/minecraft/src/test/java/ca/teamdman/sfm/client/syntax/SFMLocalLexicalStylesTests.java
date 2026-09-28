@@ -18,4 +18,16 @@ class SFMLocalLexicalStylesTests {
         assertTrue(SFMLocalLexicalStyles.highlight("gradle","x".repeat(SFMLocalLexicalStyles.MAX_CHARACTERS+1)).isEmpty());
         assertTrue(SFMLocalLexicalStyles.highlight("unknown","def x = 1").isEmpty());
     }
+
+    @Test void itemInspectionColoursMetadataKeysAndJsonStrings() {
+        String text = "schema: sfm.item-inspection/1\nitem-id: sfm:packet\nmessage: \"first\\nsecond\"\n";
+        var spans = SFMLocalLexicalStyles.highlight("sfm-item-inspection", text);
+        byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
+        var tokens = spans.stream()
+                .map(s -> new String(bytes, s.startByte(), s.endByte() - s.startByte(), StandardCharsets.UTF_8))
+                .toList();
+        assertTrue(tokens.contains("schema"));
+        assertTrue(tokens.contains("item-id"));
+        assertTrue(tokens.contains("\"first\\nsecond\""));
+    }
 }

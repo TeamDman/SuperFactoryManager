@@ -1,6 +1,7 @@
 package ca.teamdman.sfm.client.jei;
 
 import ca.teamdman.sfm.SFM;
+import ca.teamdman.sfm.client.inspection.SFMItemInspectionDocument;
 import ca.teamdman.sfm.client.screen.ManagerScreen;
 import ca.teamdman.sfm.client.screen.SFMWidgetUtils;
 import ca.teamdman.sfm.common.recipe.PrintingPressRecipe;
@@ -14,6 +15,8 @@ import mezz.jei.api.registration.IGuiHandlerRegistration;
 import mezz.jei.api.registration.IRecipeCatalystRegistration;
 import mezz.jei.api.registration.IRecipeCategoryRegistration;
 import mezz.jei.api.registration.IRecipeRegistration;
+import mezz.jei.api.runtime.IJeiRuntime;
+import mezz.jei.api.constants.VanillaTypes;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.resources.ResourceLocation;
@@ -23,9 +26,32 @@ import net.minecraft.world.level.block.Blocks;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @JeiPlugin
 public class SFMJEIPlugin implements IModPlugin {
+    private static volatile IJeiRuntime runtime;
+
+    /** Returns the ingredient currently under JEI's mouse overlay, if JEI is ready. */
+    public static Optional<ItemStack> hoveredItemStack() {
+        IJeiRuntime current = runtime;
+        if (current == null) return Optional.empty();
+        ItemStack stack = current.getIngredientListOverlay().getIngredientUnderMouse(VanillaTypes.ITEM_STACK);
+        return stack == null || stack.isEmpty() ? Optional.empty() : Optional.of(stack.copy());
+    }
+
+    @Override
+    public void onRuntimeAvailable(IJeiRuntime runtime) {
+        SFMJEIPlugin.runtime = runtime;
+        SFMItemInspectionDocument.setHoveredIngredientSource(SFMJEIPlugin::hoveredItemStack);
+    }
+
+    @Override
+    public void onRuntimeUnavailable() {
+        runtime = null;
+        SFMItemInspectionDocument.setHoveredIngredientSource(null);
+    }
+
     @Override
     public ResourceLocation getPluginUid() {
         return SFMResourceLocation.fromSFMPath(SFM.MOD_ID);

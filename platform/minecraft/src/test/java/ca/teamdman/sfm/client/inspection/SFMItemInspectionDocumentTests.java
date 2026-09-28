@@ -1,8 +1,12 @@
 package ca.teamdman.sfm.client.inspection;
 
+import net.minecraft.SharedConstants;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.StringTag;
+import net.minecraft.server.Bootstrap;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -62,5 +66,48 @@ class SFMItemInspectionDocumentTests {
                 + "}",
                 SFMItemInspectionDocument.prettyTag(root)
         );
+    }
+
+    @Test
+    void stringTagControlNewlinesRemainEscapedInsideOneSnbtToken() {
+        CompoundTag root = new CompoundTag();
+        root.putString("message", "first\nsecond\r\tthird");
+        root.putString("other-controls", "a\b\f\u0000b");
+
+        String pretty = SFMItemInspectionDocument.prettyTag(root);
+
+        assertTrue(pretty.contains("\"message\": \"first\\nsecond\\r\\tthird\""));
+        assertTrue(pretty.contains("\"other-controls\": \"a\\b\\f\\u0000b\""));
+        assertTrue(!pretty.contains("first\nsecond"), "SNBT string leaked a literal line break");
+    }
+
+    @Test
+    void tooltipComponentEvidenceKeepsLocalizedAndRawSections() {
+        String document = SFMItemInspectionDocument.renderWithTooltipComponents(
+                "Example Item",
+                "test:example",
+                1,
+                List.of("Localized line"),
+                List.of("{\"translate\":\"item.test.example\",\"color\":\"gold\"}"),
+                "{}",
+                null
+        );
+
+        assertTrue(document.contains("tooltip (unlocalized):\n  - {\"translate\":\"item.test.example\",\"color\":\"gold\"}"));
+        assertTrue(document.contains("tooltip (localized):\n  - Localized line"));
+    }
+
+    @Test
+    void optionalIngredientOverlayIsAbsentUntilRegistered() {
+        SharedConstants.tryDetectVersion();
+        Bootstrap.bootStrap();
+        assertTrue(SFMItemInspectionDocument.hoveredStack(null).isEmpty());
+        assertTrue(SFMItemInspectionDocument.hoveredIngredient(null).isEmpty());
+
+        ItemStack original = new ItemStack(Items.APPLE);
+        ItemStack captured = SFMItemInspectionDocument.hoveredIngredient(() -> java.util.Optional.of(original))
+                .orElseThrow();
+        assertEquals(Items.APPLE, captured.getItem());
+        assertTrue(captured != original, "Inspection should snapshot the optional overlay item");
     }
 }
