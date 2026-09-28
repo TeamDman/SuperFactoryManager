@@ -136,7 +136,7 @@ pub(crate) fn resolve_exact_java_for_minecraft_dir(
     resolve_java_for_lockfile(None, Some(&pins), required_major, &cache_root, false)
 }
 
-fn host_jbrsdk_platform() -> Option<&'static str> {
+pub(crate) fn host_jbrsdk_platform() -> Option<&'static str> {
     match (std::env::consts::OS, std::env::consts::ARCH) {
         ("windows", "x86_64") => Some("windows-x64"),
         ("windows", "aarch64") => Some("windows-aarch64"),

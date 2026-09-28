@@ -140,6 +140,35 @@ impl JavaSourceWorkspace {
     /// Returns an error when the projection manifest, Java toolchain, or
     /// projected source roots cannot be read.
     pub fn resolve_generated_project(project_root: &Path) -> eyre::Result<Self> {
+        Self::resolve_generated_project_with_java_home(project_root, None)
+    }
+
+    /// Resolve a generated project using an explicitly selected exact-major
+    /// JDK when requested by the caller.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the generated root or Java sources cannot be read.
+    pub fn resolve_generated_project_with_java_home(
+        project_root: &Path,
+        java_home: Option<&Path>,
+    ) -> eyre::Result<Self> {
+        let source_cache_root = &crate::paths::CACHE_DIR.0;
+        let jdk_cache_root = source_cache_root.join("minecraft-toolchain").join("jbrsdk");
+        Self::resolve_generated_project_with_cache(
+            project_root,
+            &jdk_cache_root,
+            source_cache_root,
+            java_home,
+        )
+    }
+
+    pub(crate) fn resolve_generated_project_with_cache(
+        project_root: &Path,
+        jdk_cache_root: &Path,
+        source_cache_root: &Path,
+        java_home: Option<&Path>,
+    ) -> eyre::Result<Self> {
         let project_root = dunce::canonicalize(project_root).wrap_err_with(|| {
             format!(
                 "Failed to resolve generated project root {}",
@@ -216,14 +245,25 @@ impl JavaSourceWorkspace {
             fingerprint(["isolated"]),
             &files,
         );
-        Ok(Self {
+        let mut workspace = Self {
             context,
             root_authorities,
             files,
             diagnostics: Vec::new(),
             classpath_entries: Vec::new(),
             jdk_sources: JdkSourceDomainState::Disabled,
-        })
+        };
+        let jdk_sources = JdkSourceDomainState::resolve_generated_project(
+            &java_release,
+            &project_root,
+            jdk_cache_root,
+            source_cache_root,
+            java_home,
+        )?;
+        jdk_sources.apply_to_context(&mut workspace.context);
+        workspace.diagnostics.extend(jdk_sources.diagnostics());
+        workspace.jdk_sources = jdk_sources;
+        Ok(workspace)
     }
 
     #[must_use]
@@ -970,6 +1010,15 @@ mod tests {
     use crate::java_analysis::JavaSymbolGlob;
     use crate::java_analysis::JavaSymbolIndex;
     use crate::source_projection::provenance::ProjectionProvenance;
+    use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
+    use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
+    use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
+    use sha2::Digest as _;
+    use sha2::Sha512;
+    use std::io::Cursor;
+    use std::io::Write as _;
+    use zip::ZipWriter;
+    use zip::write::SimpleFileOptions;
 
     #[test]
     fn generated_project_workspace_lists_projected_symbols_without_branch_context() {
@@ -1061,6 +1110,225 @@ mod tests {
             report.definitions[0].symbol.canonical_selector(),
             "example.Example"
         );
+    }
+
+    #[test]
+    fn generated_project_workspace_reports_unavailable_jdk_sources() {
+        let temporary = tempfile::tempdir().expect("temporary generated project");
+        let project_root = temporary.path().join("mc-version/1.21.0");
+        let main_root = project_root.join("src/main/java/example");
+        let toolchain_root = project_root.join("gradle/java-toolchain/1.21");
+        std::fs::create_dir_all(&main_root).expect("main source root");
+        std::fs::create_dir_all(&toolchain_root).expect("Java toolchain directory");
+        std::fs::write(
+            project_root.join("settings.gradle"),
+            "rootProject.name = 'sfm'\n",
+        )
+        .expect("Gradle settings");
+        let provenance =
+            ProjectionProvenance::new("1.21.0", "1.21", "released-4.34.0", "blake3:test");
+        std::fs::write(
+            project_root.join(".sfm-source-projection-manifest.json"),
+            provenance.to_json().expect("projection manifest JSON"),
+        )
+        .expect("projection manifest");
+        std::fs::write(
+            toolchain_root.join("java-toolchain.gradle"),
+            "JavaLanguageVersion.of(21)\n",
+        )
+        .expect("Java release declaration");
+        std::fs::write(
+            main_root.join("Example.java"),
+            "package example; public class Example { String name; }",
+        )
+        .expect("main Java source");
+
+        let workspace = JavaSourceWorkspace::resolve_generated_project(&project_root)
+            .expect("generated workspace remains usable without cached JDK sources");
+        assert!(
+            workspace
+                .context
+                .source_roots
+                .iter()
+                .any(|root| { root.kind == JavaSourceRootKind::Jdk && !root.exists })
+        );
+        assert!(
+            workspace
+                .diagnostics
+                .iter()
+                .any(|diagnostic| { diagnostic.code == "java.jdk-source-unavailable" })
+        );
+    }
+
+    #[test]
+    fn generated_project_workspace_resolves_string_from_exact_cached_jdk_pin() {
+        let temporary = tempfile::tempdir().expect("temporary generated project");
+        let (project_root, jdk_cache_root, source_cache_root) =
+            pinned_project_fixture(&temporary, true);
+        let workspace = JavaSourceWorkspace::resolve_generated_project_with_cache(
+            &project_root,
+            &jdk_cache_root,
+            &source_cache_root,
+            None,
+        )
+        .expect("generated workspace with cached pinned JDK");
+
+        assert!(workspace.diagnostics.is_empty());
+        assert!(workspace.classpath_entries.is_empty());
+        assert!(workspace.context.source_roots.iter().any(|root| {
+            root.kind == JavaSourceRootKind::Jdk && root.exists && root.source_set == "jdk:java-21"
+        }));
+        assert!(workspace.is_visible("main", "jdk:java-21"));
+        let report = JavaSymbolIndex::build_definitions(&workspace)
+            .expect("project and JDK declarations")
+            .list(&JavaSymbolGlob::new(Some("java.lang.String".to_owned())));
+        assert_eq!(report.definitions.len(), 1);
+        assert_eq!(
+            report.definitions[0].symbol.canonical_selector(),
+            "java.lang.String"
+        );
+        assert!(
+            report.definitions[0]
+                .identifier_span
+                .path
+                .starts_with("jdk/java-21/")
+        );
+    }
+
+    #[test]
+    fn generated_project_workspace_missing_cached_pin_does_not_use_ambient_jdk() {
+        let temporary = tempfile::tempdir().expect("temporary generated project");
+        let (project_root, jdk_cache_root, source_cache_root) =
+            pinned_project_fixture(&temporary, false);
+        let workspace = JavaSourceWorkspace::resolve_generated_project_with_cache(
+            &project_root,
+            &jdk_cache_root,
+            &source_cache_root,
+            None,
+        )
+        .expect("generated workspace remains usable without cached SDK");
+
+        assert!(
+            workspace
+                .context
+                .source_roots
+                .iter()
+                .any(|root| { root.kind == JavaSourceRootKind::Jdk && !root.exists })
+        );
+        assert!(workspace.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "java.jdk-source-unavailable"
+                && diagnostic
+                    .message
+                    .contains("offline mode forbids downloading")
+        }));
+        let report = JavaSymbolIndex::build_definitions(&workspace)
+            .expect("project declarations still indexed")
+            .list(&JavaSymbolGlob::new(Some("java.lang.String".to_owned())));
+        assert!(report.definitions.is_empty());
+    }
+
+    fn pinned_project_fixture(
+        temporary: &tempfile::TempDir,
+        cache_archive: bool,
+    ) -> (PathBuf, PathBuf, PathBuf) {
+        let project_root = temporary.path().join("mc-version/1.21.0");
+        let main_root = project_root.join("src/main/java/example");
+        let toolchain_root = project_root.join("gradle/java-toolchain/1.21");
+        std::fs::create_dir_all(&main_root).expect("main source root");
+        std::fs::create_dir_all(&toolchain_root).expect("Java toolchain directory");
+        std::fs::write(
+            project_root.join("settings.gradle"),
+            "rootProject.name = 'sfm'\n",
+        )
+        .expect("Gradle settings");
+        let provenance =
+            ProjectionProvenance::new("1.21.0", "1.21", "released-4.34.0", "blake3:test");
+        std::fs::write(
+            project_root.join(".sfm-source-projection-manifest.json"),
+            provenance.to_json().expect("projection manifest JSON"),
+        )
+        .expect("projection manifest");
+        std::fs::write(
+            toolchain_root.join("java-toolchain.gradle"),
+            "JavaLanguageVersion.of(21)\n",
+        )
+        .expect("Java release declaration");
+        std::fs::write(
+            main_root.join("Example.java"),
+            "package example; public class Example { String name; }",
+        )
+        .expect("main Java source");
+
+        let source_zip = fixture_zip(&[(
+            "java.base/java/lang/String.java",
+            b"package java.lang; public final class String {}",
+        )]);
+        let platform = crate::jdk::host_jbrsdk_platform().expect("supported test platform");
+        let java_name = if platform.starts_with("windows-") {
+            "java.exe"
+        } else {
+            "java"
+        };
+        let javac_name = if platform.starts_with("windows-") {
+            "javac.exe"
+        } else {
+            "javac"
+        };
+        let sdk_java = format!("sdk/bin/{java_name}");
+        let sdk_javac = format!("sdk/bin/{javac_name}");
+        let sdk_zip = fixture_zip(&[
+            (sdk_java.as_str(), b"java"),
+            (sdk_javac.as_str(), b"javac"),
+            ("sdk/lib/src.zip", source_zip.as_slice()),
+        ]);
+        let digest = format!("{:x}", Sha512::digest(&sdk_zip));
+        let version = "21.0.8";
+        let build = "b999.1";
+        let pin = JdkPinV4 {
+            major: 21,
+            vendor: "JetBrains".to_owned(),
+            version: version.to_owned(),
+            build: build.to_owned(),
+            flavor: "jbrsdk".to_owned(),
+            artifacts: vec![JdkArtifactV4 {
+                platform: platform.to_owned(),
+                url: format!(
+                    "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-{version}-{platform}-{build}.zip"
+                ),
+                sha512: digest.clone(),
+            }],
+        };
+        let mut lockfile: ArtifactLockfileV4 = facet_json::from_str(include_str!(
+            "../../../../minecraft/sfm-toolchain.lock.json"
+        ))
+        .expect("checked-in v4 lockfile");
+        lockfile.jdk_pins = Some(vec![pin]);
+        std::fs::write(
+            project_root.join("sfm-toolchain.lock.json"),
+            lockfile.to_canonical_json().expect("fixture lockfile JSON"),
+        )
+        .expect("fixture lockfile");
+
+        let jdk_cache_root = temporary.path().join("jdk-cache");
+        if cache_archive {
+            let archive_dir = jdk_cache_root.join("archives");
+            std::fs::create_dir_all(&archive_dir).expect("archive cache");
+            std::fs::write(archive_dir.join(format!("{digest}.zip")), sdk_zip)
+                .expect("cached pinned SDK ZIP");
+        }
+        let source_cache_root = temporary.path().join("source-cache");
+        (project_root, jdk_cache_root, source_cache_root)
+    }
+
+    fn fixture_zip(entries: &[(&str, &[u8])]) -> Vec<u8> {
+        let mut writer = ZipWriter::new(Cursor::new(Vec::new()));
+        for (name, contents) in entries {
+            writer
+                .start_file(*name, SimpleFileOptions::default())
+                .expect("ZIP entry");
+            writer.write_all(contents).expect("ZIP content");
+        }
+        writer.finish().expect("ZIP archive").into_inner()
     }
 
     #[test]

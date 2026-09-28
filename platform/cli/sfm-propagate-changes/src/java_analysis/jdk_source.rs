@@ -21,9 +21,18 @@ use crate::artifact_lock::ArtifactLock;
 use crate::cancellation::CancellationToken;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
+use crate::jdk::JdkSource;
+use crate::jdk::ResolvedJava;
+use crate::jdk::host_jbrsdk_platform;
+use crate::jdk::resolve_exact_java;
+use crate::jdk::resolve_exact_java_for_minecraft_dir;
+use crate::jdk::select_jdk_source;
+use crate::jdk_artifact_cache::acquire_pinned_jbrsdk_zip;
 use crate::paths::CACHE_DIR;
 use crate::source_archive::extract_zip_atomically;
 use crate::source_cache::SourceCacheLayout;
+use crate::toolchain_lockfile_schema::ToolchainLockfileDocument;
+use crate::toolchain_lockfile_schema::parse_document;
 use eyre::Context as _;
 use facet::Facet;
 use rayon::prelude::*;
@@ -103,6 +112,41 @@ impl JdkSourceDomainState {
                     span: None,
                 },
             },
+        }
+    }
+
+    /// Follow the generated project's lockfile JDK selection. Pinned SDKs
+    /// must already be cached; older lockfiles use exact-major installed-JDK
+    /// selection without claiming support for source run on those schemas.
+    pub(crate) fn resolve_generated_project(
+        java_release: &str,
+        project_root: &Path,
+        jdk_cache_root: &Path,
+        source_cache_root: &Path,
+        java_home: Option<&Path>,
+    ) -> eyre::Result<Self> {
+        match JdkSourceDomain::resolve_generated_project(
+            java_release,
+            project_root,
+            jdk_cache_root,
+            source_cache_root,
+            java_home,
+        ) {
+            Ok(domain) => Ok(Self::Ready(Arc::new(domain))),
+            Err(error) if java_home.is_some() => {
+                Err(error).wrap_err("explicit generated-project --java-home could not be used")
+            }
+            Err(error) => Ok(Self::Unavailable {
+                java_release: java_release.to_owned(),
+                diagnostic: JavaAnalysisDiagnosticOutput {
+                    code: "java.jdk-source-unavailable".to_owned(),
+                    severity: DiagnosticSeverity::Warning,
+                    message: format!(
+                        "Generated project JDK source domain for Java {java_release} is unavailable: {error:#}"
+                    ),
+                    span: None,
+                },
+            }),
         }
     }
 
@@ -298,10 +342,136 @@ impl JdkSourceDomain {
             minecraft_version,
             minecraft_dir,
         )?;
-        let archive = provider.source_archive;
-        let source_hash = provider.source_hash;
+        Self::from_archive(
+            java_release,
+            &provider.identity,
+            &provider.source_archive,
+            provider.source_hash,
+            &CACHE_DIR.0,
+        )
+    }
+
+    fn resolve_generated_project(
+        java_release: &str,
+        project_root: &Path,
+        jdk_cache_root: &Path,
+        source_cache_root: &Path,
+        java_home: Option<&Path>,
+    ) -> eyre::Result<Self> {
+        Self::resolve_generated_project_with_java_selection(
+            java_release,
+            project_root,
+            jdk_cache_root,
+            source_cache_root,
+            java_home,
+            |root, major, explicit_home| match explicit_home {
+                Some(home) => resolve_exact_java_for_minecraft_dir(root, major, Some(home)),
+                None => resolve_exact_java(major),
+            },
+        )
+    }
+
+    fn resolve_generated_project_with_java_selection(
+        java_release: &str,
+        project_root: &Path,
+        jdk_cache_root: &Path,
+        source_cache_root: &Path,
+        java_home: Option<&Path>,
+        select_java: impl FnOnce(&Path, u32, Option<&Path>) -> eyre::Result<ResolvedJava>,
+    ) -> eyre::Result<Self> {
+        let expected_release = java_release
+            .parse::<u32>()
+            .wrap_err_with(|| format!("invalid Java release `{java_release}`"))?;
+        let lockfile_path = project_root.join("sfm-toolchain.lock.json");
+        let lockfile_text = std::fs::read_to_string(&lockfile_path).wrap_err_with(|| {
+            format!(
+                "failed to read generated project lockfile {}",
+                lockfile_path.display()
+            )
+        })?;
+        let pins = match parse_document(&lockfile_text)? {
+            ToolchainLockfileDocument::V4(lockfile) => lockfile.jdk_pins,
+            ToolchainLockfileDocument::V1(_)
+            | ToolchainLockfileDocument::V2 { .. }
+            | ToolchainLockfileDocument::V3(_) => None,
+        };
+        let selected_java = if java_home.is_some() || pins.is_none() {
+            Some(select_java(project_root, expected_release, java_home)?)
+        } else {
+            None
+        };
+        let (home, selection_identity) = if let Some(java) = selected_java {
+            eyre::ensure!(
+                java.major_version == expected_release,
+                "generated project requires Java {expected_release}, but selected Java {}",
+                java.major_version
+            );
+            let home = java.home.ok_or_else(|| {
+                eyre::eyre!(
+                    "exact Java {expected_release} selected for generated project has no JDK home"
+                )
+            })?;
+            (
+                home,
+                format!(
+                    "installed-selection={}\nversion={}",
+                    java.selection, java.version_output
+                ),
+            )
+        } else if let Some(pins) = pins {
+            let platform = host_jbrsdk_platform().unwrap_or("unsupported-host");
+            let JdkSource::Pinned { pin, artifact } =
+                select_jdk_source(None, Some(&pins), expected_release, platform)?
+            else {
+                eyre::bail!("generated project did not select an exact JDK pin");
+            };
+            let home = acquire_pinned_jbrsdk_zip(pin, artifact, jdk_cache_root, true)?;
+            (
+                home,
+                format!(
+                    "pin-version={}\npin-build={}\nartifact={}",
+                    pin.version, pin.build, artifact.sha512
+                ),
+            )
+        } else {
+            eyre::bail!("generated project did not select a Java provider");
+        };
+        let home = canonical_existing(&home)?;
+        let source_archive = [home.join("lib").join("src.zip"), home.join("src.zip")]
+            .into_iter()
+            .find(|candidate| candidate.is_file())
+            .ok_or_else(|| {
+                eyre::eyre!(
+                    "project-selected Java {expected_release} SDK at {} has no src.zip",
+                    home.display()
+                )
+            })?;
+        let source_archive = canonical_existing(&source_archive)?;
+        let source_hash = ContentHash::from_path(&source_archive, ContentHashAlgorithm::Blake3)?;
+        let lockfile_hash = ContentHash::from_path(&lockfile_path, ContentHashAlgorithm::Blake3)?;
+        let provider_material = format!(
+            "project-lockfile={lockfile_hash}\njava-release={expected_release}\n{selection_identity}\nsrc.zip={source_hash}"
+        );
+        let provider_identity =
+            blake3::hash(provider_material.as_bytes()).to_hex()[..16].to_owned();
+        Self::from_archive(
+            java_release,
+            &provider_identity,
+            &source_archive,
+            source_hash,
+            source_cache_root,
+        )
+    }
+
+    fn from_archive(
+        java_release: &str,
+        provider_identity: &str,
+        archive: &Path,
+        source_hash: ContentHash,
+        source_cache_root: &Path,
+    ) -> eyre::Result<Self> {
         let portable = SourceCacheLayout::jdk(java_release, source_hash, JAVA_PARSER_FINGERPRINT);
-        let canonical_tree = local_cache_path(&portable.tree);
+        let canonical_tree = local_cache_path(&portable.tree, source_cache_root);
         if !canonical_tree.is_dir() {
             let parent = canonical_tree.parent().ok_or_else(|| {
                 eyre::eyre!(
@@ -321,12 +491,11 @@ impl JdkSourceDomain {
                 format!("JDK Java {java_release} source extraction"),
             )?;
             if !canonical_tree.is_dir() {
-                extract_zip_atomically(&archive, &canonical_tree)?;
+                extract_zip_atomically(archive, &canonical_tree)?;
             }
         }
         let identity = format!(
-            "{JDK_SOURCE_INDEX_FORMAT}:java-{java_release}:provider-{}:source-{}:parser-{}",
-            provider.identity, source_hash, JAVA_PARSER_FINGERPRINT
+            "{JDK_SOURCE_INDEX_FORMAT}:java-{java_release}:provider-{provider_identity}:source-{source_hash}:parser-{JAVA_PARSER_FINGERPRINT}"
         );
         Self::from_tree(java_release, identity, portable.tree, &canonical_tree)
     }
@@ -911,10 +1080,10 @@ fn inventory(root: &Path) -> eyre::Result<BTreeMap<String, Vec<String>>> {
     Ok(inventory)
 }
 
-fn local_cache_path(portable: &Path) -> PathBuf {
+fn local_cache_path(portable: &Path, cache_root: &Path) -> PathBuf {
     portable.strip_prefix(Path::new("$sfm-cache")).map_or_else(
         |_| portable.to_path_buf(),
-        |relative| CACHE_DIR.0.join(relative),
+        |relative| cache_root.join(relative),
     )
 }
 
@@ -959,6 +1128,10 @@ fn collect_syntax_type_names(file: &JavaSyntaxFile, node: Node<'_>, names: &mut 
 mod tests {
     use super::*;
     use crate::java_analysis::JavaClasspathMode;
+    use std::io::Cursor;
+    use std::io::Write as _;
+    use zip::ZipWriter;
+    use zip::write::SimpleFileOptions;
 
     fn context() -> JavaAnalysisContextOutput {
         JavaAnalysisContextOutput {
@@ -1005,6 +1178,193 @@ mod tests {
                 .visible_source_sets
                 .contains(&"jdk:java-17".to_owned())
         );
+    }
+
+    #[test]
+    fn generated_legacy_release_lockfile_uses_selected_exact_jdk_home() {
+        assert_unpinned_lockfile_uses_selected_home(include_str!(
+            "../../../../minecraft/release-baselines/4.34.0-1.21.0/gradle-project/sfm-toolchain.lock.json"
+        ));
+    }
+
+    #[test]
+    fn generated_v3_lockfile_uses_selected_exact_jdk_home() {
+        let v3 = crate::toolchain_lockfile_schema::read_current(include_str!(
+            "../../../../minecraft/sfm-toolchain.lock.json"
+        ))
+        .expect("checked-in lockfile's v3 dependency view");
+        let encoded = facet_json::to_string(&v3).expect("v3 lockfile JSON");
+        assert_unpinned_lockfile_uses_selected_home(&encoded);
+    }
+
+    fn assert_unpinned_lockfile_uses_selected_home(lockfile: &str) {
+        let temporary = tempfile::tempdir().expect("temporary generated project");
+        let project_root = temporary.path().join("generated-project");
+        let selected_home = temporary.path().join("selected-jdk");
+        std::fs::create_dir_all(&project_root).expect("project root");
+        std::fs::create_dir_all(selected_home.join("lib")).expect("selected JDK lib");
+        std::fs::write(project_root.join("sfm-toolchain.lock.json"), lockfile)
+            .expect("project lockfile");
+        write_string_source_zip(&selected_home);
+
+        let domain = JdkSourceDomain::resolve_generated_project_with_java_selection(
+            "21",
+            &project_root,
+            &temporary.path().join("unused-jdk-cache"),
+            &temporary.path().join("source-cache"),
+            None,
+            |selected_root, major, explicit_home| {
+                assert_eq!(selected_root, project_root);
+                assert_eq!(major, 21);
+                assert!(explicit_home.is_none());
+                Ok(ResolvedJava {
+                    executable: selected_home.join("bin/java"),
+                    home: Some(selected_home.clone()),
+                    version_output: "openjdk version \"21.0.8\"".to_owned(),
+                    major_version: 21,
+                    selection: "exact-major-installed".to_owned(),
+                    pin_url: None,
+                    pin_sha512: None,
+                })
+            },
+        )
+        .expect("unpinned project JDK source domain");
+        assert!(domain.inventory.contains_key("java.lang.String"));
+        assert_eq!(domain.source_set, "jdk:java-21");
+    }
+
+    #[test]
+    fn generated_legacy_release_without_src_zip_reports_selected_home() {
+        let temporary = tempfile::tempdir().expect("temporary generated project");
+        let project_root = temporary.path().join("generated-project");
+        let selected_home = temporary.path().join("selected-jdk");
+        std::fs::create_dir_all(&project_root).expect("project root");
+        std::fs::create_dir_all(&selected_home).expect("selected JDK home");
+        std::fs::write(
+            project_root.join("sfm-toolchain.lock.json"),
+            include_str!(
+                "../../../../minecraft/release-baselines/4.34.0-1.21.0/gradle-project/sfm-toolchain.lock.json"
+            ),
+        )
+        .expect("real release lockfile");
+        let error = JdkSourceDomain::resolve_generated_project_with_java_selection(
+            "21",
+            &project_root,
+            &temporary.path().join("unused-jdk-cache"),
+            &temporary.path().join("source-cache"),
+            None,
+            |_, _, explicit_home| {
+                assert!(explicit_home.is_none());
+                Ok(ResolvedJava {
+                    executable: selected_home.join("bin/java"),
+                    home: Some(selected_home.clone()),
+                    version_output: "openjdk version \"21.0.8\"".to_owned(),
+                    major_version: 21,
+                    selection: "exact-major-installed".to_owned(),
+                    pin_url: None,
+                    pin_sha512: None,
+                })
+            },
+        )
+        .expect_err("selected JDK without sources");
+        assert!(error.to_string().contains("has no src.zip"));
+    }
+
+    #[test]
+    fn generated_project_explicit_java_home_overrides_pinned_cache() {
+        let temporary = tempfile::tempdir().expect("temporary generated project");
+        let project_root = temporary.path().join("generated-project");
+        let selected_home = temporary.path().join("selected-jdk");
+        std::fs::create_dir_all(&project_root).expect("project root");
+        std::fs::create_dir_all(selected_home.join("lib")).expect("selected JDK lib");
+        std::fs::write(
+            project_root.join("sfm-toolchain.lock.json"),
+            include_str!("../../../../minecraft/sfm-toolchain.lock.json"),
+        )
+        .expect("pinned project lockfile");
+        write_string_source_zip(&selected_home);
+
+        let domain = JdkSourceDomain::resolve_generated_project_with_java_selection(
+            "17",
+            &project_root,
+            &temporary.path().join("empty-jdk-cache"),
+            &temporary.path().join("source-cache"),
+            Some(&selected_home),
+            |root, major, explicit_home| {
+                assert_eq!(root, project_root);
+                assert_eq!(major, 17);
+                assert_eq!(explicit_home, Some(selected_home.as_path()));
+                Ok(ResolvedJava {
+                    executable: selected_home.join("bin/java"),
+                    home: Some(selected_home.clone()),
+                    version_output: "openjdk version \"17.0.14\"".to_owned(),
+                    major_version: 17,
+                    selection: "explicit".to_owned(),
+                    pin_url: None,
+                    pin_sha512: None,
+                })
+            },
+        )
+        .expect("explicit JDK source domain");
+        assert!(domain.inventory.contains_key("java.lang.String"));
+        assert_eq!(domain.source_set, "jdk:java-17");
+    }
+
+    #[test]
+    fn generated_project_explicit_java_home_requires_exact_major() {
+        let temporary = tempfile::tempdir().expect("temporary generated project");
+        let project_root = temporary.path().join("generated-project");
+        let selected_home = temporary.path().join("wrong-major-jdk");
+        std::fs::create_dir_all(&project_root).expect("project root");
+        std::fs::write(
+            project_root.join("sfm-toolchain.lock.json"),
+            include_str!("../../../../minecraft/sfm-toolchain.lock.json"),
+        )
+        .expect("pinned project lockfile");
+
+        let error = JdkSourceDomain::resolve_generated_project_with_java_selection(
+            "17",
+            &project_root,
+            &temporary.path().join("empty-jdk-cache"),
+            &temporary.path().join("source-cache"),
+            Some(&selected_home),
+            |_, _, explicit_home| {
+                assert_eq!(explicit_home, Some(selected_home.as_path()));
+                Ok(ResolvedJava {
+                    executable: selected_home.join("bin/java"),
+                    home: Some(selected_home.clone()),
+                    version_output: "openjdk version \"21.0.8\"".to_owned(),
+                    major_version: 21,
+                    selection: "explicit".to_owned(),
+                    pin_url: None,
+                    pin_sha512: None,
+                })
+            },
+        )
+        .expect_err("wrong major must fail before source lookup");
+        assert!(
+            error
+                .to_string()
+                .contains("requires Java 17, but selected Java 21")
+        );
+    }
+
+    fn write_string_source_zip(selected_home: &Path) {
+        let mut source_zip = ZipWriter::new(Cursor::new(Vec::new()));
+        source_zip
+            .start_file(
+                "java.base/java/lang/String.java",
+                SimpleFileOptions::default(),
+            )
+            .expect("JDK source ZIP entry");
+        source_zip
+            .write_all(b"package java.lang; public final class String {}")
+            .expect("JDK source ZIP content");
+        std::fs::write(
+            selected_home.join("lib/src.zip"),
+            source_zip.finish().expect("JDK source ZIP").into_inner(),
+        )
+        .expect("selected source archive");
     }
 
     #[test]
