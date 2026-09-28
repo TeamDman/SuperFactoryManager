@@ -1,5 +1,4 @@
 use crate::branch_targets::WorktreeTarget;
-use crate::jdk::resolve_exact_java;
 use crate::prism::meta::PrismLoaderSelection;
 use crate::prism::meta::resolve_loader_component;
 use crate::prism::meta::resolve_lwjgl_component;
@@ -78,6 +77,7 @@ struct LastBuildLoaderToolchainPlan {
 pub fn instance_plan_for_target(
     target: &WorktreeTarget,
     loader_selection: PrismLoaderSelection,
+    java_home: Option<&Path>,
 ) -> eyre::Result<PrismInstancePlan> {
     let plan = read_last_build_plan(target.worktree_path.as_path())?;
     let loader = resolve_loader_component(
@@ -86,7 +86,15 @@ pub fn instance_plan_for_target(
         loader_selection,
     )?;
     let lwjgl = resolve_lwjgl_component(&plan.minecraft_version)?;
-    let runtime_java = resolve_exact_java(plan.java_release)?;
+    let runtime_java = crate::jdk::resolve_exact_java_for_minecraft_dir(
+        &target
+            .worktree_path
+            .as_path()
+            .join("platform")
+            .join("minecraft"),
+        plan.java_release,
+        java_home,
+    )?;
     Ok(PrismInstancePlan {
         branch: plan.branch_name,
         minecraft_version: plan.minecraft_version,
@@ -110,7 +118,7 @@ pub fn loader_report_for_target(
     target: &WorktreeTarget,
     loader_selection: PrismLoaderSelection,
 ) -> eyre::Result<PrismLoaderReport> {
-    let plan = instance_plan_for_target(target, loader_selection)?;
+    let plan = instance_plan_for_target(target, loader_selection, None)?;
     Ok(PrismLoaderReport {
         branch: plan.branch,
         minecraft_version: plan.minecraft_version,

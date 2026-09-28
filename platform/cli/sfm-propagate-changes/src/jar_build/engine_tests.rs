@@ -11,6 +11,28 @@ fn interactive_and_puppet_hotswap_release_the_build_lock() {
         assert!(!super::releases_build_cache_lock_before_launch(kind, &enabled));
     }
 }
+
+#[test]
+fn java_cache_identity_changes_with_verified_archive_digest() {
+    let mut java = JavaPlan {
+        executable: std::path::PathBuf::from("jdk/bin/java"),
+        home: Some(std::path::PathBuf::from("jdk")),
+        version_output: "openjdk version \"17.0.14\"".to_owned(),
+        major_version: 17,
+        selection: "lockfile-pin".to_owned(),
+        pin_url: Some("https://example.invalid/jbrsdk.zip".to_owned()),
+        pin_sha512: Some("a".repeat(128)),
+    };
+    let first = java.cache_identity();
+    java.home = Some(std::path::PathBuf::from("another-jdk-cache-home"));
+    assert_eq!(first, java.cache_identity());
+    java.pin_sha512 = Some("b".repeat(128));
+    assert_ne!(first, java.cache_identity());
+    java.pin_sha512 = None;
+    assert_ne!(first, java.cache_identity());
+    java.selection = "legacy-discovery".to_owned();
+    assert_eq!(java.cache_identity(), java.version_output);
+}
 use super::ArtifactAuditSeverity;
 use super::ArtifactId;
 use super::ArtifactLockEntry;
@@ -2807,6 +2829,9 @@ fn facet_json_serializes_plan_without_embedded_lockfile() {
             home: None,
             version_output: "openjdk version \"17\"".to_string(),
             major_version: 17,
+            selection: "legacy-discovery".to_string(),
+            pin_url: None,
+            pin_sha512: None,
         },
         java_release: 17,
         refresh: false,
@@ -3555,6 +3580,9 @@ fn minimal_plan_for_paths() -> BuildPlan {
             home: None,
             version_output: "openjdk version \"17\"".to_string(),
             major_version: 17,
+            selection: "legacy-discovery".to_string(),
+            pin_url: None,
+            pin_sha512: None,
         },
         java_release: 17,
         refresh: false,

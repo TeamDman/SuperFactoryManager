@@ -3,7 +3,7 @@
     "branch": "1.19.2",
     "classpath_fingerprint": "blake3:160568f5211e3f054937a7a976e15487dfde23ef146d2f19cda274989034589a",
     "classpath_mode": "isolated",
-    "index_fingerprint": "blake3:ebded5b6d30e4f141e34b5979a255deb42139cabf65294645e6a892e72f93c33",
+    "index_fingerprint": "blake3:ce1ed41823066abc30f113d61091573acfd8261e30ae99299aed10e471e239cb",
     "java_release": "17",
     "jdk": "java-17",
     "minecraft_version": "1.19.2",
@@ -19,9 +19,9 @@
       },
       {
         "exists": true,
-        "id": "jdk-java-17-5d37c7c5f17836ce",
+        "id": "jdk-java-17-6c27d8e0fe4f9bbd",
         "kind": "jdk",
-        "path": "$sfm-cache/sources/jdk/17-2bc7ef5f44f1bad1/e9b1e8371a9b394577207c1b12eb8edea34bdabb/arborium-java-2.18.1-37cdda9748951a30/tree",
+        "path": "$scenario-jdk/java-17",
         "source_set": "jdk:java-17"
       }
     ],

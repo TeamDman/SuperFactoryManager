@@ -6,6 +6,7 @@ use crate::toolchain_lockfile_schema::version::v2_migration::MigrationDiagnostic
 use crate::toolchain_lockfile_schema::version::v3::ArtifactLockfileV3;
 use crate::toolchain_lockfile_schema::version::v3::SCHEMA_VERSION as V3_SCHEMA_VERSION;
 use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
+use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
 use crate::toolchain_lockfile_schema::version::v4::SCHEMA_VERSION as V4_SCHEMA_VERSION;
 use eyre::Context;
 
@@ -143,6 +144,18 @@ pub(crate) fn read_current(input: &str) -> eyre::Result<ArtifactLockfileV3> {
     }
 }
 
+/// Read v4-only exact JDK pins without projecting them through the v3
+/// dependency view. An absent catalog preserves legacy JDK discovery.
+pub(crate) fn read_jdk_pins(input: &str) -> eyre::Result<Option<Vec<JdkPinV4>>> {
+    match parse_document(input)? {
+        ToolchainLockfileDocument::V4(lockfile) => Ok(lockfile.jdk_pins),
+        ToolchainLockfileDocument::V3(_) => Ok(None),
+        ToolchainLockfileDocument::V1(_) | ToolchainLockfileDocument::V2 { .. } => eyre::bail!(
+            "JDK pins require schema version 3 or 4; migrate the toolchain lockfile first"
+        ),
+    }
+}
+
 pub(crate) fn read_profile_source_excludes(
     input: &str,
     profile_id: &str,
@@ -209,6 +222,11 @@ mod tests {
     fn checked_in_v4_defaults_rust_commands_to_the_full_profile() {
         let input = include_str!("../../../../minecraft/sfm-toolchain.lock.json");
         let lockfile = read_current(input).expect("checked-in v4 lockfile should project");
+        let pins = read_jdk_pins(input).unwrap().expect("1.19.2 pins JBRSDK17");
+        assert_eq!(pins.len(), 1);
+        assert_eq!(pins[0].major, 17);
+        assert_eq!(pins[0].artifacts.len(), 1);
+        assert_eq!(pins[0].artifacts[0].platform, "windows-x64");
         assert!(lockfile.dependencies.iter().any(|dependency| {
             dependency.id == "vox-java"
                 && dependency

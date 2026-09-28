@@ -359,6 +359,7 @@ pub(super) fn get_instances_dir() -> eyre::Result<()> {
 pub(super) fn sync_clients(
     branch: BranchSelector,
     loader_selection: PrismLoaderSelection,
+    java_home: Option<&Path>,
 ) -> eyre::Result<()> {
     let prism_instances_root = get_instances_dir_path()?;
     let query = branch.into_query()?;
@@ -375,7 +376,8 @@ pub(super) fn sync_clients(
         let mc_version = version.to_string();
         let instance_dir = prism_instances_root.join(format!("sfm-{mc_version}"));
         let mods_dir = resolve_client_mods_dir(&instance_dir, &mc_version)?;
-        let instance_plan = crate::prism::instance_plan_for_target(&target, loader_selection)?;
+        let instance_plan =
+            crate::prism::instance_plan_for_target(&target, loader_selection, java_home)?;
 
         if instance_dir.exists() {
             existing += 1;

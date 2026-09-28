@@ -1817,7 +1817,7 @@ fn execute_project_compile(context: &ExecutionContext<'_>) -> eyre::Result<()> {
             "javac-main",
             &main_fingerprint_paths,
             &[
-                context.plan.java.version_output.clone(),
+                context.plan.java.cache_identity(),
                 context.plan.java_release.to_string(),
                 format!("{:?}", context.plan.loader_toolchain.kind),
             ],
@@ -2221,7 +2221,7 @@ fn compile_optional_java_source_set(
             &format!("javac-{source_set}"),
             &fingerprint_paths,
             &[
-                context.plan.java.version_output.clone(),
+                context.plan.java.cache_identity(),
                 context.plan.java_release.to_string(),
                 source_set.to_string(),
                 upstream_fingerprint.to_string(),

@@ -116,11 +116,14 @@ fn create_plan_for_target(
         fs::create_dir_all(&minecraft_libraries_dir)?;
     };
     cancellation_token.bail_if_cancelled()?;
-    let v3_lockfile = {
+    let (v3_lockfile, jdk_pins) = {
         let input = fs::read_to_string(&lockfile_path)
             .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
-        crate::toolchain_lockfile_schema::read_current(&input)
-            .wrap_err_with(|| format!("Failed to load schema v3 lockfile {}", lockfile_path.display()))?
+        let dependencies = crate::toolchain_lockfile_schema::read_current(&input)
+            .wrap_err_with(|| format!("Failed to load schema v3 lockfile {}", lockfile_path.display()))?;
+        let jdk_pins = crate::toolchain_lockfile_schema::read_jdk_pins(&input)
+            .wrap_err_with(|| format!("Failed to read JDK pins from {}", lockfile_path.display()))?;
+        (dependencies, jdk_pins)
     };
     let existing_lockfile = {
         let _span = tracing::debug_span!("plan_project_v3_artifact_lockfile", refresh = options.refresh).entered();
@@ -192,13 +195,21 @@ fn create_plan_for_target(
         let required_java = required_java_runtime_major(&loader_toolchain, java_release);
 
         let java = {
-            let jdk_resolution =
-                crate::jdk::resolve_java(options.java_home.as_deref(), required_java)?;
+            let jdk_resolution = crate::jdk::resolve_java_for_lockfile(
+                options.java_home.as_deref(),
+                jdk_pins.as_deref(),
+                required_java,
+                &common_cache_dir.join("jbrsdk"),
+                false,
+            )?;
             JavaPlan {
                 executable: jdk_resolution.executable,
                 home: jdk_resolution.home,
                 version_output: jdk_resolution.version_output,
                 major_version: jdk_resolution.major_version,
+                selection: jdk_resolution.selection,
+                pin_url: jdk_resolution.pin_url,
+                pin_sha512: jdk_resolution.pin_sha512,
             }
         };
         (java_release, java)

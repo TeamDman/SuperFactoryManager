@@ -20,6 +20,8 @@ pub(crate) struct ArtifactLockfileV4 {
     pub(crate) platform: PlatformV3,
     pub(crate) policy: LockfilePolicyV3,
     pub(crate) repositories: Vec<RepositoryV3>,
+    #[facet(default, skip_serializing_if = Option::is_none)]
+    pub(crate) jdk_pins: Option<Vec<JdkPinV4>>,
     pub(crate) features: Vec<FeatureV4>,
     pub(crate) profiles: Vec<ProfileV4>,
     pub(crate) dependencies: Vec<DependencyV3>,
@@ -57,6 +59,25 @@ pub(crate) struct ProfileV4 {
     pub(crate) features: Vec<String>,
 }
 
+/// Exact SDK releases are independent of Maven and Minecraft artifact records.
+/// A missing catalog preserves the legacy installed-JDK selection policy.
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub(crate) struct JdkPinV4 {
+    pub(crate) major: u32,
+    pub(crate) vendor: String,
+    pub(crate) version: String,
+    pub(crate) build: String,
+    pub(crate) flavor: String,
+    pub(crate) artifacts: Vec<JdkArtifactV4>,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub(crate) struct JdkArtifactV4 {
+    pub(crate) platform: String,
+    pub(crate) url: String,
+    pub(crate) sha512: String,
+}
+
 impl ArtifactLockfileV4 {
     pub(crate) fn from_v3(lockfile: ArtifactLockfileV3) -> Self {
         Self {
@@ -64,6 +85,7 @@ impl ArtifactLockfileV4 {
             platform: lockfile.platform,
             policy: lockfile.policy,
             repositories: lockfile.repositories,
+            jdk_pins: None,
             features: Vec::new(),
             profiles: vec![
                 ProfileV4 {
@@ -99,6 +121,7 @@ impl ArtifactLockfileV4 {
 
         let base = self.as_v3(self.dependencies.clone(), self.artifacts.clone());
         base.validate()?;
+        validate_jdk_pins(self.jdk_pins.as_deref())?;
 
         let feature_ids = unique_ids(
             self.features.iter().map(|feature| feature.id.as_str()),
@@ -344,6 +367,16 @@ impl ArtifactLockfileV4 {
         self.dependencies = base.dependencies;
         self.artifacts = base.artifacts;
         self.repositories = base.repositories;
+        if let Some(pins) = &mut self.jdk_pins {
+            pins.sort_by_key(|pin| pin.major);
+            for pin in pins {
+                pin.artifacts
+                    .sort_by(|left, right| left.platform.cmp(&right.platform));
+                for artifact in &mut pin.artifacts {
+                    artifact.sha512.make_ascii_lowercase();
+                }
+            }
+        }
         self.features.sort_by(|left, right| left.id.cmp(&right.id));
         for feature in &mut self.features {
             feature.requires.sort();
@@ -430,12 +463,141 @@ fn validate_strings(values: &[String], kind: &str) -> eyre::Result<()> {
     Ok(())
 }
 
+fn validate_jdk_pins(pins: Option<&[JdkPinV4]>) -> eyre::Result<()> {
+    let Some(pins) = pins else {
+        return Ok(());
+    };
+    if pins.is_empty() {
+        eyre::bail!("jdk_pins must contain at least one SDK pin when present");
+    }
+
+    let mut majors = BTreeSet::new();
+    for pin in pins {
+        if !majors.insert(pin.major) {
+            eyre::bail!("duplicate JDK pin for Java {}", pin.major);
+        }
+        if pin.major == 0
+            || pin.version.split('.').count() < 3
+            || !pin
+                .version
+                .split('.')
+                .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
+            || pin
+                .version
+                .split('.')
+                .next()
+                .and_then(|part| part.parse::<u32>().ok())
+                != Some(pin.major)
+        {
+            eyre::bail!(
+                "JDK pin for Java {} has an invalid version `{}`",
+                pin.major,
+                pin.version
+            );
+        }
+        let Some((family, revision)) = pin
+            .build
+            .strip_prefix('b')
+            .and_then(|build| build.split_once('.'))
+        else {
+            eyre::bail!(
+                "JDK pin for Java {} has an invalid build `{}`",
+                pin.major,
+                pin.build
+            );
+        };
+        if family.is_empty()
+            || revision.is_empty()
+            || !family.bytes().all(|byte| byte.is_ascii_digit())
+            || !revision.bytes().all(|byte| byte.is_ascii_digit())
+        {
+            eyre::bail!(
+                "JDK pin for Java {} has an invalid build `{}`",
+                pin.major,
+                pin.build
+            );
+        }
+        if pin.vendor != "JetBrains" || pin.flavor != "jbrsdk" {
+            eyre::bail!(
+                "JDK pin for Java {} must select the JetBrains jbrsdk flavor",
+                pin.major
+            );
+        }
+        if pin.artifacts.is_empty() {
+            eyre::bail!("JDK pin for Java {} has no platform artifacts", pin.major);
+        }
+
+        let mut platforms = BTreeSet::new();
+        for artifact in &pin.artifacts {
+            if artifact.platform.is_empty()
+                || !artifact
+                    .platform
+                    .bytes()
+                    .all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
+                || !platforms.insert(artifact.platform.as_str())
+            {
+                eyre::bail!(
+                    "JDK pin for Java {} has an invalid or duplicate platform `{}`",
+                    pin.major,
+                    artifact.platform
+                );
+            }
+            validate_jdk_artifact_url(pin, artifact)?;
+            if artifact.sha512.len() != 128
+                || !artifact.sha512.bytes().all(|byte| byte.is_ascii_hexdigit())
+            {
+                eyre::bail!(
+                    "JDK pin for Java {} platform `{}` needs a 128-character SHA-512 digest",
+                    pin.major,
+                    artifact.platform
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_jdk_artifact_url(pin: &JdkPinV4, artifact: &JdkArtifactV4) -> eyre::Result<()> {
+    let root = "https://cache-redirector.jetbrains.com/intellij-jbr/";
+    let name = format!("jbrsdk-{}-{}-{}", pin.version, artifact.platform, pin.build);
+    let tar_url = format!("{root}{name}.tar.gz");
+    eyre::ensure!(
+        artifact.url != tar_url,
+        "only ZIP artifacts are supported for JDK pins"
+    );
+    if artifact.url != format!("{root}{name}.zip") {
+        eyre::bail!(
+            "JDK pin for Java {} platform `{}` has a URL that does not match its exact SDK identity",
+            pin.major,
+            artifact.platform
+        );
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     const CHECKED_IN_LOCKFILE: &str =
         include_str!("../../../../../minecraft/sfm-toolchain.lock.json");
+
+    fn fixture_pin(major: u32, version: &str, build: &str) -> JdkPinV4 {
+        JdkPinV4 {
+            major,
+            vendor: "JetBrains".to_owned(),
+            version: version.to_owned(),
+            build: build.to_owned(),
+            flavor: "jbrsdk".to_owned(),
+            artifacts: vec![JdkArtifactV4 {
+                platform: "windows-x64".to_owned(),
+                url: format!(
+                    "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-{version}-windows-x64-{build}.zip"
+                ),
+                sha512: "a".repeat(128),
+            }],
+        }
+    }
 
     #[test]
     fn v3_migration_creates_compatible_entry_point_profiles() {
@@ -454,6 +616,7 @@ mod tests {
         };
         let migrated = ArtifactLockfileV4::from_v3(v3);
         assert_eq!(migrated.schema_version, SCHEMA_VERSION);
+        assert!(migrated.jdk_pins.is_none());
         assert!(migrated.features.is_empty());
         assert_eq!(migrated.profiles.len(), 2);
         let _ = migrated.effective_lockfile("gradle").unwrap_err();
@@ -537,6 +700,127 @@ mod tests {
                 .effective_source_excludes("rust-toolchain")
                 .expect("Rust exclusions should project")
                 .is_empty()
+        );
+    }
+
+    #[test]
+    fn old_v4_without_jdk_pins_round_trips_without_adding_a_catalog() {
+        let mut lockfile: ArtifactLockfileV4 =
+            facet_json::from_str(CHECKED_IN_LOCKFILE).expect("checked-in v4 lockfile should parse");
+        lockfile.jdk_pins = None;
+        assert!(lockfile.jdk_pins.is_none());
+        let output = lockfile.to_canonical_json().expect("canonical v4 JSON");
+        assert!(!output.contains("\"jdk_pins\""));
+        let reparsed: ArtifactLockfileV4 = facet_json::from_str(&output).unwrap();
+        assert!(reparsed.jdk_pins.is_none());
+        assert_eq!(reparsed.dependencies, lockfile.dependencies);
+        assert_eq!(reparsed.artifacts, lockfile.artifacts);
+    }
+
+    #[test]
+    fn jdk_pins_round_trip_with_canonical_order_and_untouched_dependencies() {
+        let mut lockfile: ArtifactLockfileV4 = facet_json::from_str(CHECKED_IN_LOCKFILE).unwrap();
+        let original_dependencies = lockfile.dependencies.clone();
+        let original_artifacts = lockfile.artifacts.clone();
+        let mut java17 = fixture_pin(17, "17.0.14", "b1367.22");
+        java17.artifacts.push(JdkArtifactV4 {
+            platform: "linux-x64".to_owned(),
+            url: "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-17.0.14-linux-x64-b1367.22.zip".to_owned(),
+            sha512: "B".repeat(128),
+        });
+        lockfile.jdk_pins = Some(vec![fixture_pin(21, "21.0.11", "b1163.116"), java17]);
+
+        let output = lockfile.to_canonical_json().expect("valid pinned v4 JSON");
+        let reparsed: ArtifactLockfileV4 = facet_json::from_str(&output).unwrap();
+        reparsed.validate().unwrap();
+        let pins = reparsed.jdk_pins.unwrap();
+        assert_eq!(
+            pins.iter().map(|pin| pin.major).collect::<Vec<_>>(),
+            vec![17, 21]
+        );
+        assert_eq!(pins[0].artifacts[0].platform, "linux-x64");
+        assert_eq!(pins[0].artifacts[0].sha512, "b".repeat(128));
+        assert_eq!(reparsed.dependencies, original_dependencies);
+        assert_eq!(reparsed.artifacts, original_artifacts);
+    }
+
+    #[test]
+    fn jdk_pin_validation_rejects_ambiguous_and_incomplete_catalogs() {
+        let mut lockfile: ArtifactLockfileV4 = facet_json::from_str(CHECKED_IN_LOCKFILE).unwrap();
+        assert!(lockfile.validate().is_ok());
+
+        lockfile.jdk_pins = Some(Vec::new());
+        assert!(
+            lockfile
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("at least one")
+        );
+
+        let pin = fixture_pin(17, "17.0.14", "b1367.22");
+        lockfile.jdk_pins = Some(vec![pin.clone(), pin.clone()]);
+        assert!(
+            lockfile
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("duplicate JDK pin")
+        );
+
+        let mut invalid = pin.clone();
+        invalid.artifacts.push(invalid.artifacts[0].clone());
+        lockfile.jdk_pins = Some(vec![invalid]);
+        assert!(
+            lockfile
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("duplicate platform")
+        );
+
+        let mut invalid = pin.clone();
+        invalid.artifacts[0].sha512 = "a".repeat(127);
+        lockfile.jdk_pins = Some(vec![invalid]);
+        assert!(
+            lockfile
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("SHA-512")
+        );
+
+        let mut invalid = pin.clone();
+        invalid.artifacts[0].url = invalid.artifacts[0].url.replace(".zip", ".tar.gz");
+        lockfile.jdk_pins = Some(vec![invalid]);
+        assert!(
+            lockfile
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("only ZIP artifacts are supported")
+        );
+
+        let mut invalid = pin.clone();
+        invalid.artifacts[0].url = invalid.artifacts[0].url.replace("jbrsdk-", "jbr-");
+        lockfile.jdk_pins = Some(vec![invalid]);
+        assert!(
+            lockfile
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("exact SDK identity")
+        );
+
+        let mut invalid = pin;
+        invalid.version = "21.0.11".to_owned();
+        lockfile.jdk_pins = Some(vec![invalid]);
+        assert!(
+            lockfile
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("invalid version")
         );
     }
 }

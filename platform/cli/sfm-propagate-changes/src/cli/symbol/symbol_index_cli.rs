@@ -389,6 +389,29 @@ fn resolve_index_context_from_analysis(
     })
 }
 
+/// Resolve the exact index identity and source inputs used by a CLI scenario.
+///
+/// This shares the production projection and performs no acquisition or
+/// publication. The caller supplies its scoped cache home explicitly.
+///
+/// # Errors
+///
+/// Returns an error if the branch, dependency projection, or source preflight
+/// cannot be resolved from the supplied scenario inputs.
+pub fn scenario_dependency_index_inputs(
+    branch: &BranchSelector,
+    analysis_context: &crate::java_analysis::JavaAnalysisContextOutput,
+    cache_home: CacheHome,
+) -> eyre::Result<(
+    DependencySymbolIndexIdentity,
+    Vec<DependencySymbolIndexSourceInput>,
+)> {
+    let resolved = resolve_index_context_from_analysis(branch, analysis_context, cache_home)?;
+    let preflight = preflight_resolved_index_sources(&resolved, &SourceProviderFilter::default())?;
+    let inputs = source_inputs(&resolved.identity, &preflight)?;
+    Ok((resolved.identity, inputs))
+}
+
 #[derive(Clone, Copy)]
 pub(super) enum DependencySymbolQuery<'a> {
     Definition(&'a JavaSymbolSelector),

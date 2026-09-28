@@ -53,6 +53,22 @@
       "url": "https://maven.covers1624.net"
     }
   ],
+  "jdk_pins": [
+    {
+      "major": 17,
+      "vendor": "JetBrains",
+      "version": "17.0.14",
+      "build": "b1367.22",
+      "flavor": "jbrsdk",
+      "artifacts": [
+        {
+          "platform": "windows-x64",
+          "url": "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-17.0.14-windows-x64-b1367.22.zip",
+          "sha512": "3b5101101a46778c5b1cc572adef03bffceb338284d4e03d2fe70a72fb52fb2e1ee1d2e1c0b548c86e9092f776d3ca910669326531d1a5f8ab4521ad1b6d868c"
+        }
+      ]
+    }
+  ],
   "features": [
     {
       "id": "rust",

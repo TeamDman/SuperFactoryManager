@@ -289,6 +289,9 @@ impl JdkSourceDomain {
         minecraft_version: &str,
         minecraft_dir: &Path,
     ) -> eyre::Result<Self> {
+        if let Some(fixture) = super::current_scenario_fixture() {
+            return Self::from_scenario_tree(java_release, &fixture.jdk_source_tree);
+        }
         let provider = BranchJdkSourceProvider::resolve(
             java_release,
             branch,
@@ -326,6 +329,41 @@ impl JdkSourceDomain {
             provider.identity, source_hash, JAVA_PARSER_FINGERPRINT
         );
         Self::from_tree(java_release, identity, portable.tree, &canonical_tree)
+    }
+
+    fn from_scenario_tree(java_release: &str, tree: &Path) -> eyre::Result<Self> {
+        let mut paths = WalkDir::new(tree)
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()?
+            .into_iter()
+            .filter(|entry| {
+                entry.file_type().is_file()
+                    && entry
+                        .path()
+                        .extension()
+                        .is_some_and(|extension| extension == "java")
+            })
+            .map(walkdir::DirEntry::into_path)
+            .collect::<Vec<_>>();
+        paths.sort();
+        let mut hasher = blake3::Hasher::new();
+        for path in paths {
+            let relative = path.strip_prefix(tree)?;
+            hasher.update(relative.to_string_lossy().replace('\\', "/").as_bytes());
+            hasher.update(&[0]);
+            hasher.update(&std::fs::read(&path)?);
+            hasher.update(&[0]);
+        }
+        let identity = format!(
+            "{JDK_SOURCE_INDEX_FORMAT}:java-{java_release}:scenario-source-{}:parser-{JAVA_PARSER_FINGERPRINT}",
+            hasher.finalize().to_hex()
+        );
+        Self::from_tree(
+            java_release,
+            identity,
+            PathBuf::from(format!("$scenario-jdk/java-{java_release}")),
+            tree,
+        )
     }
 
     fn from_tree(

@@ -1105,7 +1105,7 @@ fn execute_junit_tests(
         "javac-test-upstream",
         &upstream_fingerprint_paths,
         &[
-            plan.java.version_output.clone(),
+            plan.java.cache_identity(),
             plan.java_release.to_string(),
             format!("{:?}", plan.loader_toolchain.kind),
         ],
@@ -1313,7 +1313,7 @@ fn compile_junit_event_runner(
             console_launcher.to_path_buf(),
         ],
         &[
-            context.plan.java.version_output.clone(),
+            context.plan.java.cache_identity(),
             context.plan.java_release.to_string(),
         ],
     )?;

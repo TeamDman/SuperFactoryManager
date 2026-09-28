@@ -1599,6 +1599,15 @@ fn print_plan_summary(plan: &BuildPlan) {
         format!("Gradle jar:   {}", plan.gradle_output_jar.display()),
         format!("Rust jar:     {}", plan.rust_output_jar.display()),
         format!("Java:         {}", plan.java.executable.display()),
+        format!("Java source:  {}", plan.java.selection),
+        format!(
+            "Java pin:     {}",
+            plan.java.pin_url.as_deref().unwrap_or("none")
+        ),
+        format!(
+            "Java SHA512:  {}",
+            plan.java.pin_sha512.as_deref().unwrap_or("none")
+        ),
         format!("Java release: {}", plan.java_release),
         format!("Common cache: {}", plan.common_cache_dir.display()),
         format!(

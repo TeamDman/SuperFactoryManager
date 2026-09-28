@@ -27,6 +27,9 @@ impl CacheHome {
     ///
     /// This function will return an error if the cache directory cannot be determined.
     pub fn resolve() -> eyre::Result<CacheHome> {
+        if let Some(fixture) = crate::java_analysis::current_scenario_fixture() {
+            return Ok(fixture.cache_home);
+        }
         if let Ok(override_dir) = std::env::var(super::APP_CACHE_ENV_VAR) {
             return Ok(CacheHome(PathBuf::from(override_dir)));
         }

@@ -310,9 +310,11 @@ mod tests {
     use crate::branch_targets::WorktreePath;
     use crate::jar_build::hash::ContentHash;
     use crate::jar_build::hash::ContentHashAlgorithm;
+    use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
+    use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
 
     #[test]
-    fn editing_preserves_schema_four_profiles_and_inactive_components() {
+    fn editing_preserves_schema_four_profiles_inactive_components_and_jdk_pins() {
         let input = include_str!("../../../minecraft/sfm-toolchain.lock.json");
         let ToolchainLockfileDocument::V4(mut original) = parse_document(input).unwrap() else {
             panic!("expected schema-4 fixture");
@@ -324,6 +326,18 @@ mod tests {
             .unwrap()
             .features
             .clear();
+        original.jdk_pins = Some(vec![JdkPinV4 {
+            major: 17,
+            vendor: "JetBrains".to_owned(),
+            version: "17.0.14".to_owned(),
+            build: "b1367.22".to_owned(),
+            flavor: "jbrsdk".to_owned(),
+            artifacts: vec![JdkArtifactV4 {
+                platform: "windows-x64".to_owned(),
+                url: "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-17.0.14-windows-x64-b1367.22.zip".to_owned(),
+                sha512: "a".repeat(128),
+            }],
+        }]);
         let input = original.to_canonical_json().unwrap();
         let mut inventory = fixture(CacheHome(PathBuf::from("unused-cache")));
         inventory.lockfile = read_editable(&input).unwrap();
@@ -342,6 +356,7 @@ mod tests {
         };
         assert_eq!(updated.features, original.features);
         assert_eq!(updated.profiles, original.profiles);
+        assert_eq!(updated.jdk_pins, original.jdk_pins);
         assert_eq!(updated.artifacts, original.artifacts);
         assert_eq!(updated.dependencies.len(), original.dependencies.len());
         assert_eq!(

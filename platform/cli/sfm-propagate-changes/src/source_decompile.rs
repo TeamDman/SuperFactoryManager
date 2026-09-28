@@ -4,10 +4,12 @@ use crate::dependency_inventory::AcquisitionStatus;
 use crate::dependency_inventory::DependencyInventory;
 use crate::jar_build::hash::ContentHash;
 use crate::jar_build::hash::ContentHashAlgorithm;
-use crate::jdk::resolve_java;
+use crate::jdk::ResolvedJava;
+use crate::jdk::resolve_java_for_lockfile;
 use crate::payload_fetcher::PayloadFetcher;
 use crate::payload_fetcher::write_payload_atomically;
 use crate::source_cache::SourceCacheLayout;
+use crate::toolchain_lockfile_schema::read_jdk_pins;
 use crate::toolchain_lockfile_schema::version::v3::ArtifactV3;
 use crate::toolchain_lockfile_schema::version::v3::DecompileSourceDeclarationV3;
 use crate::toolchain_lockfile_schema::version::v3::DecompileSourceDerivedChecksV3;
@@ -47,7 +49,7 @@ pub(crate) fn derive_locked_decompile_provider(
     provider_id: &str,
     roots: Vec<String>,
 ) -> eyre::Result<DecompileSourceProviderV3> {
-    let runtime = VineflowerRunner.prepare()?;
+    let runtime = VineflowerRunner.prepare(inventory)?;
     Ok(derive_locked_decompile_provider_with_runtime(
         inventory,
         binary,
@@ -121,7 +123,7 @@ fn acquire_with_runner(
         })?;
     let tree = inventory.local_path(&provider.derived_checks.tree_cache_path);
     let _lock = acquire_source_lock(&tree)?;
-    let prepared = runner.prepare()?;
+    let prepared = runner.prepare(inventory)?;
     let fingerprint =
         decompile_fingerprint(binary.hash, decompiler.hash, &prepared.runtime_identity);
     if fingerprint != provider.derived_checks.fingerprint {
@@ -323,8 +325,15 @@ struct PreparedDecompiler {
     runtime_identity: String,
 }
 
+fn decompile_runtime_identity(java: &ResolvedJava) -> String {
+    match java.pin_sha512.as_deref() {
+        Some(digest) => format!("{}\nlockfile-jbrsdk-sha512={digest}", java.version_output),
+        None => java.version_output.clone(),
+    }
+}
+
 trait DecompileRunner {
-    fn prepare(&self) -> eyre::Result<PreparedDecompiler>;
+    fn prepare(&self, inventory: &DependencyInventory) -> eyre::Result<PreparedDecompiler>;
 
     fn run(
         &self,
@@ -339,11 +348,29 @@ trait DecompileRunner {
 struct VineflowerRunner;
 
 impl DecompileRunner for VineflowerRunner {
-    fn prepare(&self) -> eyre::Result<PreparedDecompiler> {
-        let java = resolve_java(None, REQUIRED_JAVA_MAJOR)?;
+    fn prepare(&self, inventory: &DependencyInventory) -> eyre::Result<PreparedDecompiler> {
+        let pins = read_jdk_pins(&inventory.original_input).wrap_err_with(|| {
+            format!(
+                "Failed to read JDK pins from {}",
+                inventory.lockfile_path.display()
+            )
+        })?;
+        let cache_root = inventory
+            .cache_home
+            .0
+            .join("minecraft-toolchain")
+            .join("jbrsdk");
+        let java = resolve_java_for_lockfile(
+            None,
+            pins.as_deref(),
+            REQUIRED_JAVA_MAJOR,
+            &cache_root,
+            false,
+        )?;
+        let runtime_identity = decompile_runtime_identity(&java);
         Ok(PreparedDecompiler {
             executable: java.executable,
-            runtime_identity: java.version_output,
+            runtime_identity,
         })
     }
 
@@ -406,6 +433,9 @@ mod tests {
     use crate::paths::CacheHome;
     use crate::toolchain_lockfile_schema::read_current;
     use crate::toolchain_lockfile_schema::version::v3::ArtifactProvenanceV3;
+    use crate::toolchain_lockfile_schema::version::v4::ArtifactLockfileV4;
+    use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
+    use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
     use std::cell::Cell;
 
     struct NeverFetcher;
@@ -425,7 +455,7 @@ mod tests {
     }
 
     impl DecompileRunner for FixtureRunner {
-        fn prepare(&self) -> eyre::Result<PreparedDecompiler> {
+        fn prepare(&self, _inventory: &DependencyInventory) -> eyre::Result<PreparedDecompiler> {
             Ok(PreparedDecompiler {
                 executable: PathBuf::from("fixture-java"),
                 runtime_identity: "fixture Java 17".to_owned(),
@@ -449,6 +479,31 @@ mod tests {
     }
 
     #[test]
+    fn runtime_identity_preserves_legacy_cache_and_adds_only_pinned_bytes() {
+        let version = "openjdk version \"17.0.14\"";
+        let mut java = ResolvedJava {
+            executable: PathBuf::from("first-home/bin/java"),
+            home: Some(PathBuf::from("first-home")),
+            version_output: version.to_owned(),
+            major_version: 17,
+            selection: "legacy-discovery".to_owned(),
+            pin_url: None,
+            pin_sha512: None,
+        };
+        assert_eq!(decompile_runtime_identity(&java), version);
+        java.pin_sha512 = Some("a".repeat(128));
+        let first = decompile_runtime_identity(&java);
+        java.home = Some(PathBuf::from("second-home"));
+        java.executable = PathBuf::from("second-home/bin/java");
+        assert_eq!(first, decompile_runtime_identity(&java));
+        java.pin_sha512 = Some("b".repeat(128));
+        assert_ne!(first, decompile_runtime_identity(&java));
+        java.pin_sha512 = Some("a".repeat(128));
+        java.version_output.push_str(" changed");
+        assert_ne!(first, decompile_runtime_identity(&java));
+    }
+
+    #[test]
     fn fingerprint_includes_every_deterministic_input() {
         let binary = ContentHash::from_bytes(b"binary", ContentHashAlgorithm::Blake3);
         let decompiler = ContentHash::from_bytes(b"decompiler", ContentHashAlgorithm::Blake3);
@@ -468,6 +523,39 @@ mod tests {
                 decompiler,
                 "Java 17.0.1"
             )
+        );
+    }
+
+    #[test]
+    fn decompiler_respects_the_inventory_jdk_catalog_without_ambient_fallback() {
+        let cache = tempfile::tempdir().expect("temporary cache");
+        let (mut inventory, _) = fixture(CacheHome(cache.path().to_path_buf()));
+        let mut document = ArtifactLockfileV4::from_v3(
+            read_current(&inventory.original_input).expect("v3 fixture"),
+        );
+        document.jdk_pins = Some(vec![JdkPinV4 {
+            major: 21,
+            vendor: "JetBrains".to_owned(),
+            version: "21.0.11".to_owned(),
+            build: "b1163.116".to_owned(),
+            flavor: "jbrsdk".to_owned(),
+            artifacts: vec![JdkArtifactV4 {
+                platform: "windows-x64".to_owned(),
+                url: "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-21.0.11-windows-x64-b1163.116.zip".to_owned(),
+                sha512: "a".repeat(128),
+            }],
+        }]);
+        inventory.original_input = document.to_canonical_json().expect("v4 lockfile");
+
+        let error = VineflowerRunner
+            .prepare(&inventory)
+            .err()
+            .expect("a v4 catalog without Java 17 must fail closed");
+        assert!(
+            error
+                .to_string()
+                .contains("No exact JBRSDK pin for Java 17"),
+            "{error:#}"
         );
     }
 

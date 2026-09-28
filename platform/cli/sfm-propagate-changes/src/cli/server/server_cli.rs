@@ -5,7 +5,9 @@ use super::ServerRemoveArgs;
 use crate::branch_targets::MinecraftVersion;
 use crate::branch_targets::select_required_minecraft_versions;
 use crate::cli::jar::BranchSelector;
+use crate::jdk::ResolvedJava;
 use crate::jdk::resolve_exact_java;
+use crate::jdk::resolve_java;
 use crate::paths::APP_HOME;
 use crate::worktree::parse_version;
 use eyre::Context;
@@ -53,7 +55,7 @@ pub enum ServerCommand {
     Remove(ServerRemoveArgs),
     /// List tracked server directories matching a glob pattern
     List(ServerListArgs),
-    /// Launch tracked servers by running each `run.bat` and waiting for successful exit
+    /// Launch tracked servers with exact-major Java; local discovery is unpinned unless `--java-home` is supplied
     Launch(ServerLaunchArgs),
 }
 
@@ -161,7 +163,7 @@ pub(super) fn list_servers(glob_pattern: &str, branch: BranchSelector) -> eyre::
     Ok(())
 }
 
-pub(super) fn launch_servers(branch: BranchSelector) -> eyre::Result<()> {
+pub(super) fn launch_servers(branch: BranchSelector, java_home: Option<&Path>) -> eyre::Result<()> {
     let mut targets = load_server_targets()?;
 
     if targets.is_empty() {
@@ -185,13 +187,16 @@ pub(super) fn launch_servers(branch: BranchSelector) -> eyre::Result<()> {
             );
         }
 
-        let java = resolve_exact_java(required_server_java_release(&target.mc_version)?)?;
+        let java =
+            resolve_server_java(java_home, required_server_java_release(&target.mc_version)?)?;
         let path = prepend_java_to_path(&java.executable)?;
         info!(
             path = %target.path.display(),
             mc_version = %target.mc_version,
             java = %java.executable.display(),
-            "Launching server"
+            java_selection = %java.selection,
+            lockfile_associated = false,
+            "Launching tracked server"
         );
         let status = if cfg!(windows) {
             let mut command = Command::new("cmd");
@@ -232,6 +237,42 @@ pub(super) fn launch_servers(branch: BranchSelector) -> eyre::Result<()> {
     }
 
     info!("All selected servers exited successfully.");
+    Ok(())
+}
+
+#[derive(Debug, Eq, PartialEq)]
+enum ServerJavaSource<'a> {
+    ExplicitHome(&'a Path),
+    UnpinnedLocalDiscovery,
+}
+
+fn server_java_source(java_home: Option<&Path>) -> ServerJavaSource<'_> {
+    java_home.map_or(
+        ServerJavaSource::UnpinnedLocalDiscovery,
+        ServerJavaSource::ExplicitHome,
+    )
+}
+
+fn resolve_server_java(
+    java_home: Option<&Path>,
+    required_major: u32,
+) -> eyre::Result<ResolvedJava> {
+    let java = match server_java_source(java_home) {
+        ServerJavaSource::ExplicitHome(home) => resolve_java(Some(home), required_major)?,
+        ServerJavaSource::UnpinnedLocalDiscovery => resolve_exact_java(required_major)?,
+    };
+    ensure_exact_server_java_major(&java, required_major)?;
+    Ok(java)
+}
+
+fn ensure_exact_server_java_major(java: &ResolvedJava, required_major: u32) -> eyre::Result<()> {
+    if java.major_version != required_major {
+        eyre::bail!(
+            "Tracked server requires Java {required_major} exactly, but selected Java {} at {}",
+            java.major_version,
+            java.executable.display()
+        );
+    }
     Ok(())
 }
 
@@ -392,7 +433,13 @@ pub(super) fn normalize_for_match(path: &Path) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::ServerJavaSource;
+    use super::ensure_exact_server_java_major;
     use super::required_server_java_release;
+    use super::server_java_source;
+    use crate::jdk::ResolvedJava;
+    use std::path::Path;
+    use std::path::PathBuf;
 
     #[test]
     fn server_java_release_tracks_minecraft_lines() {
@@ -400,5 +447,38 @@ mod tests {
         assert_eq!(required_server_java_release("1.21").unwrap(), 21);
         assert_eq!(required_server_java_release("1.21.1").unwrap(), 21);
         assert_eq!(required_server_java_release("26.1.2").unwrap(), 25);
+    }
+
+    #[test]
+    fn standalone_server_source_never_infers_a_branch_pin() {
+        assert_eq!(
+            server_java_source(None),
+            ServerJavaSource::UnpinnedLocalDiscovery
+        );
+        assert_eq!(
+            server_java_source(Some(Path::new("test-jdk"))),
+            ServerJavaSource::ExplicitHome(Path::new("test-jdk"))
+        );
+    }
+
+    #[test]
+    fn explicit_server_java_home_must_match_each_target_major_exactly() {
+        let java = ResolvedJava {
+            executable: PathBuf::from("test-jdk/bin/java"),
+            home: Some(PathBuf::from("test-jdk")),
+            version_output: "openjdk version \"21.0.9\"".to_owned(),
+            major_version: 21,
+            selection: "explicit-java-home".to_owned(),
+            pin_url: None,
+            pin_sha512: None,
+        };
+
+        ensure_exact_server_java_major(&java, 21).expect("Java 21 target accepts Java 21");
+        let error = ensure_exact_server_java_major(&java, 17)
+            .expect_err("Java 17 target rejects a newer explicit Java home");
+        assert!(error.to_string().contains("requires Java 17 exactly"));
+        let error = ensure_exact_server_java_major(&java, 25)
+            .expect_err("Java 25 target rejects an older explicit Java home");
+        assert!(error.to_string().contains("requires Java 25 exactly"));
     }
 }

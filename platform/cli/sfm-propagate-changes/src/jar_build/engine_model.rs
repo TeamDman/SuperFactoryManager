@@ -371,6 +371,23 @@ struct JavaPlan {
     home: Option<PathBuf>,
     version_output: String,
     major_version: u32,
+    selection: String,
+    pin_url: Option<String>,
+    pin_sha512: Option<String>,
+}
+
+impl JavaPlan {
+    /// Include the authenticated SDK bytes in Java-dependent cache keys. A
+    /// different JBRSDK archive can report the same `java -version` string.
+    fn cache_identity(&self) -> String {
+        match self.pin_sha512.as_deref() {
+            Some(digest) => format!("{}\nlockfile-jbrsdk-sha512={digest}", self.version_output),
+            None if self.selection == "explicit-java-home" => {
+                format!("{}\nexplicit-java-home={:?}", self.version_output, self.home)
+            }
+            None => self.version_output.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Facet)]

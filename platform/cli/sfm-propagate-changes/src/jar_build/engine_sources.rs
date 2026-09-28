@@ -250,7 +250,7 @@ fn run_antlr(
         "antlr-main",
         &fingerprint_paths,
         &[
-            context.plan.java.version_output.clone(),
+            context.plan.java.cache_identity(),
             "-visitor -Xexact-output-dir".to_string(),
         ],
     )?;

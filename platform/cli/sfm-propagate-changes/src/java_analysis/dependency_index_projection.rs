@@ -581,11 +581,12 @@ mod tests {
     use crate::paths::CacheHome;
     use crate::toolchain_lockfile_schema::read_current;
     use std::path::PathBuf;
+    use std::sync::LazyLock;
 
     #[test]
     fn dependency_index_projection_inputs_derive_real_branch_and_lock_semantics() {
-        let mut inventory = fixture("real-inputs", "replaced below");
-        inventory.original_input = checked_in_lockfile().to_owned();
+        let mut inventory = fixture("real-inputs", " ");
+        inventory.original_input = synthetic_unpinned_lockfile().to_owned();
 
         let inputs = derive_dependency_symbol_index_projection_inputs(
             &inventory,
@@ -623,7 +624,7 @@ mod tests {
 
     #[test]
     fn dependency_index_projection_inputs_explicitly_use_no_features_for_v3() {
-        let mut inventory = fixture("v3-inputs", "replaced below");
+        let mut inventory = fixture("v3-inputs", " ");
         inventory.original_input =
             facet_json::to_string_pretty(&inventory.lockfile).expect("v3 lockfile JSON");
 
@@ -638,8 +639,8 @@ mod tests {
 
     #[test]
     fn dependency_index_projection_inputs_reject_stale_parser_context() {
-        let mut inventory = fixture("stale-parser", "replaced below");
-        inventory.original_input = checked_in_lockfile().to_owned();
+        let mut inventory = fixture("stale-parser", " ");
+        inventory.original_input = synthetic_unpinned_lockfile().to_owned();
 
         let error = derive_dependency_symbol_index_projection_inputs(
             &inventory,
@@ -652,7 +653,7 @@ mod tests {
 
     #[test]
     fn dependency_index_projection_covers_every_effective_component_and_preferred_provider() {
-        let inventory = fixture("first", "raw formatting one");
+        let inventory = fixture("first", "\n");
         let projection = project(&inventory);
         let locked_artifact_sources =
             derive_locked_loader_artifact_sources(&inventory).expect("locked artifact sources");
@@ -734,8 +735,8 @@ mod tests {
 
     #[test]
     fn dependency_index_projection_is_deterministic_under_lock_collection_reordering() {
-        let first = fixture("first", "raw formatting one");
-        let mut reordered = fixture("second", "raw formatting two");
+        let first = fixture("first", "\n");
+        let mut reordered = fixture("second", " \n");
         reordered.lockfile.repositories.reverse();
         reordered.lockfile.dependencies.reverse();
         reordered.lockfile.artifacts.reverse();
@@ -748,16 +749,17 @@ mod tests {
 
     #[test]
     fn dependency_index_projection_omits_raw_and_machine_path_inputs() {
-        let first = fixture("first-location", "RAW-LOCK-TEXT-FIRST");
-        let mut relocated = fixture("second-location", "RAW-LOCK-TEXT-SECOND");
+        let first = fixture("first-location", "\n  ");
+        let mut relocated = fixture("second-location", " \n ");
         relocate_omitted_cache_paths(&mut relocated);
+
+        assert_ne!(first.original_input, relocated.original_input);
 
         let first_projection = project(&first);
         let relocated_projection = project(&relocated);
         assert_eq!(first_projection, relocated_projection);
         let json = facet_json::to_string(&first_projection).expect("projection JSON");
         for forbidden in [
-            "RAW-LOCK-TEXT-FIRST",
             "first-location",
             "$sfm-cache",
             "tree_cache_path",
@@ -770,10 +772,10 @@ mod tests {
 
     #[test]
     fn dependency_index_projection_changes_for_artifact_provider_and_preference_semantics() {
-        let baseline_inventory = fixture("baseline", "raw");
+        let baseline_inventory = fixture("baseline", " ");
         let baseline = project(&baseline_inventory);
 
-        let mut artifact_changed = fixture("artifact", "raw");
+        let mut artifact_changed = fixture("artifact", " ");
         let replacement_hash =
             ContentHash::from_bytes(b"different artifact", ContentHashAlgorithm::Blake3);
         let component = &mut artifact_changed.lockfile.dependencies[0].components[0];
@@ -788,11 +790,11 @@ mod tests {
             .hash = replacement_hash;
         assert_ne!(baseline, project(&artifact_changed));
 
-        let mut provider_changed = fixture("provider", "raw");
+        let mut provider_changed = fixture("provider", " ");
         mutate_first_preferred_provider_semantics(&mut provider_changed);
         assert_ne!(baseline, project(&provider_changed));
 
-        let mut preference_changed = fixture("preference", "raw");
+        let mut preference_changed = fixture("preference", " ");
         let providers = preference_changed
             .lockfile
             .dependencies
@@ -806,7 +808,7 @@ mod tests {
 
     #[test]
     fn dependency_index_provider_projection_includes_semantics_but_not_materialization() {
-        let inventory = fixture("provider", "raw");
+        let inventory = fixture("provider", " ");
         let mut observed_kinds = Vec::new();
         for dependency in inventory.dependencies() {
             for component in &dependency.components {
@@ -859,8 +861,8 @@ mod tests {
         }
     }
 
-    fn fixture(location: &str, original_input: &str) -> DependencyInventory {
-        let input = checked_in_lockfile();
+    fn fixture(location: &str, json_whitespace: &str) -> DependencyInventory {
+        let input = synthetic_unpinned_lockfile();
         DependencyInventory {
             target: WorktreeTarget {
                 branch: BranchName::from("1.19.2"),
@@ -874,13 +876,23 @@ mod tests {
                 r"D:\synthetic\{location}\sfm-toolchain.lock.json"
             )),
             cache_home: CacheHome(PathBuf::from(format!(r"D:\synthetic\{location}\cache"))),
-            original_input: original_input.to_owned(),
+            original_input: format!("{json_whitespace}{input}"),
             lockfile: read_current(input).expect("effective lock fixture"),
         }
     }
 
-    fn checked_in_lockfile() -> &'static str {
-        include_str!("../../../../minecraft/sfm-toolchain.lock.json")
+    fn synthetic_unpinned_lockfile() -> &'static str {
+        static INPUT: LazyLock<String> = LazyLock::new(|| {
+            let mut lockfile: ArtifactLockfileV4 = facet_json::from_str(include_str!(
+                "../../../../minecraft/sfm-toolchain.lock.json"
+            ))
+            .expect("checked-in v4 lockfile should parse");
+            lockfile.jdk_pins = None;
+            lockfile
+                .to_canonical_json()
+                .expect("synthetic unpinned v4 lockfile")
+        });
+        INPUT.as_str()
     }
 
     fn analysis_context(parser_fingerprint: &str) -> JavaAnalysisContextOutput {

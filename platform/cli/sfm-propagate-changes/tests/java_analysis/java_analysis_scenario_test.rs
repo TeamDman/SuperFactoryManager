@@ -5,18 +5,41 @@ use sfm_propagate_changes::cancellation::CancellationToken;
 use sfm_propagate_changes::cli::Cli;
 use sfm_propagate_changes::cli::jar::BranchSelector;
 use sfm_propagate_changes::cli::output::OutputFormat;
+use sfm_propagate_changes::cli::symbol::scenario_dependency_index_inputs;
+use sfm_propagate_changes::java_analysis::DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA;
 use sfm_propagate_changes::java_analysis::DefinitionAtPositionEngine;
 use sfm_propagate_changes::java_analysis::DefinitionAtPositionEngineLimits;
 use sfm_propagate_changes::java_analysis::DefinitionAtPositionOutcome;
 use sfm_propagate_changes::java_analysis::DefinitionDocumentInput;
+use sfm_propagate_changes::java_analysis::DependencyJavaSymbolIndexStreamHeader;
+use sfm_propagate_changes::java_analysis::DependencySymbolIndexCompleteness;
+use sfm_propagate_changes::java_analysis::DependencySymbolIndexCounts;
+use sfm_propagate_changes::java_analysis::DependencySymbolIndexCreationMetadata;
+use sfm_propagate_changes::java_analysis::DependencySymbolIndexInputStatus;
+use sfm_propagate_changes::java_analysis::DependencySymbolIndexManifest;
+use sfm_propagate_changes::java_analysis::DependencySymbolIndexProbeStatus;
+use sfm_propagate_changes::java_analysis::DependencySymbolIndexSourceInput;
+use sfm_propagate_changes::java_analysis::DependencySymbolIndexStore;
+use sfm_propagate_changes::java_analysis::JavaAnalysisContextOutput;
+use sfm_propagate_changes::java_analysis::JavaAnalysisScenarioFixture;
 use sfm_propagate_changes::java_analysis::JavaClasspathMode;
 use sfm_propagate_changes::java_analysis::JavaInteractionClassificationStatus;
 use sfm_propagate_changes::java_analysis::JavaInteractionMapOutcome;
 use sfm_propagate_changes::java_analysis::JavaInteractionMapRequest;
+use sfm_propagate_changes::java_analysis::JavaSourceSpanOutput;
 use sfm_propagate_changes::java_analysis::JavaSourceWorkspace;
+use sfm_propagate_changes::java_analysis::JavaSymbolDefinitionOutput;
+use sfm_propagate_changes::java_analysis::JavaSymbolIdentityOutput;
+use sfm_propagate_changes::java_analysis::JavaSymbolKind;
+use sfm_propagate_changes::java_analysis::JavaSymbolUsageOutput;
+use sfm_propagate_changes::java_analysis::JavaUsageKind;
+use sfm_propagate_changes::java_analysis::ResolutionConfidence;
 use sfm_propagate_changes::java_analysis::SymbolCommandOutcome;
 use sfm_propagate_changes::java_analysis::SymbolServerWorkspaceOutput;
 use sfm_propagate_changes::java_analysis::blake3_content_hash;
+use sfm_propagate_changes::java_analysis::scan_java_analysis_scenario_index;
+use sfm_propagate_changes::java_analysis::with_java_analysis_scenario_fixture;
+use sfm_propagate_changes::paths::CacheHome;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
@@ -76,6 +99,117 @@ fn java_analysis_scenarios() -> eyre::Result<()> {
         );
     }
     Ok(())
+}
+
+#[test]
+fn java_analysis_scenario_cache_is_thread_scoped() -> eyre::Result<()> {
+    let jdk_source_tree =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/java_analysis/jdk_sources");
+    let first = tempfile::tempdir()?;
+    let second = tempfile::tempdir()?;
+    let first_path = first.path().to_path_buf();
+    let second_path = second.path().to_path_buf();
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
+    let threads = [first_path.clone(), second_path.clone()]
+        .into_iter()
+        .map(|cache_path| {
+            let jdk_source_tree = jdk_source_tree.clone();
+            let barrier = barrier.clone();
+            std::thread::spawn(move || {
+                with_java_analysis_scenario_fixture(
+                    JavaAnalysisScenarioFixture {
+                        jdk_source_tree,
+                        cache_home: CacheHome(cache_path.clone()),
+                    },
+                    || -> eyre::Result<()> {
+                        barrier.wait();
+                        eyre::ensure!(CacheHome::resolve()?.0 == cache_path);
+                        let workspace = JavaSourceWorkspace::resolve(
+                            BranchSelector::from("1.19.2".to_owned()),
+                            &[Path::new(env!("CARGO_MANIFEST_DIR"))
+                                .join("tests/java_analysis/scenarios/definition_at_position_jdk_object/source")],
+                            JavaClasspathMode::Isolated,
+                            Path::new(env!("CARGO_MANIFEST_DIR")),
+                        )?;
+                        eyre::ensure!(workspace.context.source_roots.iter().any(|root| {
+                            root.path == "$scenario-jdk/java-17"
+                        }));
+                        Ok(())
+                    },
+                )
+            })
+        })
+        .collect::<Vec<_>>();
+    for thread in threads {
+        thread.join().expect("scenario fixture thread")?;
+    }
+    eyre::ensure!(first_path != second_path);
+    Ok(())
+}
+
+#[test]
+fn partial_index_identity_is_stable_across_isolated_cache_locations() -> eyre::Result<()> {
+    with_partial_index_context(|branch, context, first_cache| {
+        let second_cache = tempfile::tempdir()?;
+        let (first, _) = scenario_dependency_index_inputs(branch, context, first_cache.clone())?;
+        let (second, _) = scenario_dependency_index_inputs(
+            branch,
+            context,
+            CacheHome(second_cache.path().to_path_buf()),
+        )?;
+        first.validate()?;
+        second.validate()?;
+        eyre::ensure!(
+            first == second,
+            "cache location changed the Partial index identity"
+        );
+        Ok(())
+    })
+}
+
+#[test]
+fn partial_index_identity_changes_when_java_release_changes() -> eyre::Result<()> {
+    with_partial_index_context(|branch, context, cache_home| {
+        let (original, _) = scenario_dependency_index_inputs(branch, context, cache_home.clone())?;
+        eyre::ensure!(
+            context.java_release == "17",
+            "the 1.19.2 fixture must use Java 17"
+        );
+        let mut changed = context.clone();
+        changed.java_release = "21".to_owned();
+        let (other_release, _) = scenario_dependency_index_inputs(branch, &changed, cache_home)?;
+        original.validate()?;
+        other_release.validate()?;
+        eyre::ensure!(
+            original.digest != other_release.digest,
+            "changing the semantic Java release did not change the Partial index identity"
+        );
+        Ok(())
+    })
+}
+
+fn with_partial_index_context<T>(
+    test: impl FnOnce(&BranchSelector, &JavaAnalysisContextOutput, CacheHome) -> eyre::Result<T>,
+) -> eyre::Result<T> {
+    let scenario = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/java_analysis/scenarios/usage_at_position_partial_index");
+    let branch = BranchSelector::from("1.19.2".to_owned());
+    let cache_directory = tempfile::tempdir()?;
+    let cache_home = CacheHome(cache_directory.path().to_path_buf());
+    let fixture = JavaAnalysisScenarioFixture {
+        jdk_source_tree: Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/java_analysis/jdk_sources"),
+        cache_home: cache_home.clone(),
+    };
+    with_java_analysis_scenario_fixture(fixture, || {
+        let workspace = JavaSourceWorkspace::resolve(
+            branch.clone(),
+            &[scenario.join("source")],
+            JavaClasspathMode::Branch,
+            &scenario,
+        )?;
+        test(&branch, &workspace.context, cache_home)
+    })
 }
 
 #[test]
@@ -287,7 +421,28 @@ fn run_scenario(scenario: &Path) -> eyre::Result<()> {
     verify_snapshot_git_policy(scenario)?;
 
     let before = scenario_files(scenario)?;
-    let (rendered, actual_exit_code) = invoke_production_cli(&argv, scenario)?;
+    let cache_directory = tempfile::tempdir()?;
+    let cache_home = CacheHome(cache_directory.path().to_path_buf());
+    let fixture = JavaAnalysisScenarioFixture {
+        jdk_source_tree: Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("tests/java_analysis/jdk_sources"),
+        cache_home: cache_home.clone(),
+    };
+    let (rendered, actual_exit_code) = with_java_analysis_scenario_fixture(fixture, || {
+        let partial_identity = if is_partial_index_scenario(scenario) {
+            Some(publish_partial_index_fixture(scenario, &cache_home)?)
+        } else {
+            None
+        };
+        let (rendered, status) = invoke_production_cli(&argv, scenario)?;
+        assert_scenario_inputs(
+            scenario,
+            &rendered,
+            &cache_home,
+            partial_identity.as_deref(),
+        )?;
+        Ok::<_, eyre::Report>((rendered, status))
+    })?;
     let after = scenario_files(scenario)?;
     if before != after {
         let changed = before
@@ -305,7 +460,7 @@ fn run_scenario(scenario: &Path) -> eyre::Result<()> {
                 .join(", ")
         );
     }
-    let actual = canonicalize_json(&rendered)
+    let actual = canonicalize_scenario_json(&rendered, scenario)
         .wrap_err_with(|| format!("scenario output was not valid JSON: {}", scenario.display()))?;
     let actual_path = scenario.join(ACTUAL_FILE);
     write_atomically(&actual_path, actual.as_bytes())?;
@@ -352,6 +507,280 @@ fn run_scenario(scenario: &Path) -> eyre::Result<()> {
             "snapshot differs from expected output"
         ));
     }
+    Ok(())
+}
+
+fn is_partial_index_scenario(scenario: &Path) -> bool {
+    scenario
+        .file_name()
+        .is_some_and(|name| name == "usage_at_position_partial_index")
+}
+
+fn publish_partial_index_fixture(scenario: &Path, cache_home: &CacheHome) -> eyre::Result<String> {
+    let branch = BranchSelector::from("1.19.2".to_owned());
+    let workspace = JavaSourceWorkspace::resolve(
+        branch.clone(),
+        &[scenario.join("source")],
+        JavaClasspathMode::Branch,
+        scenario,
+    )?;
+    let (identity, mut source_inputs) =
+        scenario_dependency_index_inputs(&branch, &workspace.context, cache_home.clone())?;
+    let first = source_inputs
+        .first_mut()
+        .ok_or_else(|| eyre::eyre!("partial-index scenario has no dependency source inputs"))?;
+    first.status = DependencySymbolIndexInputStatus::Unavailable;
+    source_inputs.push(DependencySymbolIndexSourceInput {
+        dependency: "scenario".to_owned(),
+        component: "partial".to_owned(),
+        provider: "fixture".to_owned(),
+        portable_origin: "dependency/scenario/partial/fixture".to_owned(),
+        fingerprint: "fixture:Indexed.java".to_owned(),
+        status: DependencySymbolIndexInputStatus::Ready,
+    });
+
+    let indexed_source = fs::read_to_string(scenario.join("Indexed.java"))?;
+    let first_name = indexed_source
+        .find("Indexed")
+        .ok_or_else(|| eyre::eyre!("dependency fixture lacks its type declaration"))?;
+    let second_name = indexed_source
+        .rfind("Indexed")
+        .ok_or_else(|| eyre::eyre!("dependency fixture lacks its type usage"))?;
+    let declaration_start = indexed_source
+        .find("public final class")
+        .ok_or_else(|| eyre::eyre!("dependency fixture lacks its class declaration"))?;
+    let declaration_end = indexed_source
+        .rfind('}')
+        .ok_or_else(|| eyre::eyre!("dependency fixture lacks its closing brace"))?
+        + 1;
+    eyre::ensure!(first_name != second_name);
+    let span = |start: usize, end: usize| -> JavaSourceSpanOutput {
+        let position = |offset: usize| {
+            let prefix = &indexed_source[..offset];
+            (
+                1 + prefix.bytes().filter(|byte| *byte == b'\n').count() as u64,
+                1 + prefix
+                    .rsplit('\n')
+                    .next()
+                    .unwrap_or_default()
+                    .chars()
+                    .count() as u64,
+            )
+        };
+        let (start_line, start_column) = position(start);
+        let (end_line, end_column) = position(end);
+        JavaSourceSpanOutput {
+            path: "dependency/scenario/Indexed.java".to_owned(),
+            source_set: "dependency:scenario:partial".to_owned(),
+            source_hash: blake3_content_hash(&indexed_source),
+            start_byte: start as u64,
+            end_byte: end as u64,
+            start_line,
+            start_column,
+            end_line,
+            end_column,
+        }
+    };
+    let symbol = JavaSymbolIdentityOutput {
+        kind: JavaSymbolKind::Class,
+        owner: "fixture".to_owned(),
+        name: "Indexed".to_owned(),
+        descriptor: None,
+        qualified_name: "fixture.Indexed".to_owned(),
+    };
+    let definition = JavaSymbolDefinitionOutput {
+        symbol: symbol.clone(),
+        identifier_span: span(first_name, first_name + "Indexed".len()),
+        declaration_span: span(declaration_start, declaration_end),
+        confidence: ResolutionConfidence::Resolved,
+    };
+    let usage = JavaSymbolUsageOutput {
+        target: symbol,
+        kind: JavaUsageKind::TypeReference,
+        span: span(second_name, second_name + "Indexed".len()),
+        confidence: ResolutionConfidence::Resolved,
+    };
+
+    let mut payload = tempfile::NamedTempFile::new_in(&cache_home.0)?;
+    writeln!(
+        payload,
+        "{}",
+        facet_json::to_string(&DependencyJavaSymbolIndexStreamHeader::new(
+            identity.clone()
+        ))?
+    )?;
+    writeln!(
+        payload,
+        "definition\tclass\tfixture\tIndexed\t\tfixture.Indexed\tdependency:scenario:partial\t{}",
+        facet_json::to_string(&definition)?
+    )?;
+    writeln!(
+        payload,
+        "usage\tclass\tfixture\tIndexed\t\tfixture.Indexed\t\t{}",
+        facet_json::to_string(&usage)?
+    )?;
+    payload.flush()?;
+    let manifest = DependencySymbolIndexManifest::for_prepared_payload(
+        identity.clone(),
+        DependencySymbolIndexCreationMetadata {
+            created_at_utc: "2026-09-23T00:00:00Z".to_owned(),
+            producer: "java-analysis-scenario-fixture".to_owned(),
+            refresh_duration_ms: 0,
+        },
+        source_inputs,
+        DependencySymbolIndexCounts {
+            source_files: 1,
+            definitions: 1,
+            usages: 1,
+            diagnostics: 0,
+        },
+        DependencySymbolIndexCompleteness::Partial,
+        DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA,
+        payload.path(),
+    )?;
+    let store = DependencySymbolIndexStore::new(cache_home.clone());
+    store.publish_prepared(&manifest, payload.path())?;
+    let probe = store.probe(&identity)?;
+    eyre::ensure!(
+        probe.status == DependencySymbolIndexProbeStatus::Partial && probe.loadable,
+        "partial-index fixture did not publish a loadable Partial entry"
+    );
+    let (loaded_manifest, loaded_payload) =
+        store.validated_payload(&identity, DEPENDENCY_JAVA_SYMBOL_INDEX_STREAM_SCHEMA)?;
+    let decoded =
+        scan_java_analysis_scenario_index(&loaded_payload, &identity, &loaded_manifest.counts)?;
+    eyre::ensure!(
+        decoded.definitions.len() == 1
+            && decoded.definitions[0].symbol.qualified_name == "fixture.Indexed"
+            && decoded.usages.len() == 1
+            && decoded.usages[0].target.qualified_name == "fixture.Indexed"
+            && decoded.usages[0].span.source_hash == blake3_content_hash(&indexed_source),
+        "Partial index definition and usage did not decode from the published stream"
+    );
+    Ok(identity.digest)
+}
+
+fn assert_scenario_inputs(
+    scenario: &Path,
+    rendered: &str,
+    cache_home: &CacheHome,
+    partial_identity: Option<&str>,
+) -> eyre::Result<()> {
+    let CanonicalJson::Object(output) = parse_json(rendered)? else {
+        bail!("scenario CLI output is not an object");
+    };
+    if let Some(CanonicalJson::Object(context)) = output.get("context") {
+        let Some(CanonicalJson::Array(roots)) = context.get("source_roots") else {
+            bail!("scenario context has no source roots");
+        };
+        eyre::ensure!(
+            roots.iter().any(|root| {
+                matches!(root, CanonicalJson::Object(fields)
+                    if fields.get("kind") == Some(&CanonicalJson::String("jdk".to_owned()))
+                        && fields.get("path") == Some(&CanonicalJson::String("$scenario-jdk/java-17".to_owned())))
+            }),
+            "scenario context did not use the fixed JDK corpus"
+        );
+    }
+    if let Some(CanonicalJson::Object(index)) = output.get("dependency_index") {
+        let Some(CanonicalJson::String(path)) = index.get("path") else {
+            bail!("scenario dependency index has no concrete path");
+        };
+        eyre::ensure!(
+            Path::new(path).starts_with(&cache_home.0),
+            "scenario dependency index escaped its isolated cache"
+        );
+    }
+    if let Some(identity) = partial_identity {
+        let Some(CanonicalJson::Object(index)) = output.get("dependency_index") else {
+            bail!("partial-index scenario returned no dependency index");
+        };
+        eyre::ensure!(
+            index.get("status") == Some(&CanonicalJson::String("partial".to_owned()))
+                && index.get("expected_identity")
+                    == Some(&CanonicalJson::String(identity.to_owned()))
+                && index.get("reason")
+                    == Some(&CanonicalJson::String(
+                        "manifest and payload are valid but dependency coverage is partial"
+                            .to_owned(),
+                    )),
+            "CLI did not load the published Partial index identity"
+        );
+        let Some(CanonicalJson::Object(context)) = output.get("context") else {
+            bail!("partial-index scenario has no context");
+        };
+        let Some(CanonicalJson::Array(source_sets)) = context.get("source_sets") else {
+            bail!("partial-index scenario has no source sets");
+        };
+        eyre::ensure!(
+            source_sets.iter().any(|source_set| {
+                matches!(source_set, CanonicalJson::Object(fields)
+                    if fields.get("id") == Some(&CanonicalJson::String("dependency:scenario:partial".to_owned())))
+            }),
+            "CLI did not use the Partial payload's dependency definition"
+        );
+        let Some(CanonicalJson::Array(actions)) = output.get("recovery_actions") else {
+            bail!("partial-index scenario returned no recovery actions");
+        };
+        eyre::ensure!(
+            actions.iter().any(|action| {
+                matches!(action, CanonicalJson::Object(fields)
+                    if fields.get("kind") == Some(&CanonicalJson::String("refresh-dependency-index".to_owned()))
+                        && fields.get("command") == Some(&CanonicalJson::String("sfm-propagate-changes.exe symbol index refresh --branch 1.19.2".to_owned())))
+            }),
+            "partial-index scenario omitted its refresh recovery action"
+        );
+    }
+    assert_fixed_jdk_source_span(scenario, &output)
+}
+
+fn assert_fixed_jdk_source_span(
+    scenario: &Path,
+    output: &BTreeMap<String, CanonicalJson>,
+) -> eyre::Result<()> {
+    let Some(name) = scenario.file_name().and_then(|name| name.to_str()) else {
+        return Ok(());
+    };
+    let class_name = match name {
+        "definition_at_position_jdk_object" => "Object",
+        "definition_at_position_jdk_string" => "String",
+        "definition_at_position_jdk_string_builder" => "StringBuilder",
+        _ => return Ok(()),
+    };
+    let Some(CanonicalJson::Array(definitions)) = output.get("definitions") else {
+        bail!("JDK scenario returned no definitions");
+    };
+    let Some(CanonicalJson::Object(definition)) = definitions.first() else {
+        bail!("JDK scenario returned no definition");
+    };
+    let Some(CanonicalJson::Object(declaration)) = definition.get("declaration_span") else {
+        bail!("JDK definition has no declaration span");
+    };
+    let Some(CanonicalJson::Object(identifier)) = definition.get("identifier_span") else {
+        bail!("JDK definition has no identifier span");
+    };
+    let path = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/java_analysis/jdk_sources/java.base/java/lang")
+        .join(format!("{class_name}.java"));
+    let source = fs::read_to_string(path)?;
+    let byte = |span: &BTreeMap<String, CanonicalJson>, key: &str| -> eyre::Result<usize> {
+        let Some(CanonicalJson::Number(value)) = span.get(key) else {
+            bail!("JDK span has no {key}");
+        };
+        Ok(value.parse()?)
+    };
+    eyre::ensure!(
+        declaration.get("source_hash")
+            == Some(&CanonicalJson::String(blake3_content_hash(&source)))
+            && declaration.get("resolver_id")
+                == Some(&CanonicalJson::String("jdk-source".to_owned()))
+            && source
+                .get(byte(declaration, "start_byte")?..byte(declaration, "end_byte")?)
+                .is_some_and(|text| text.contains(class_name))
+            && source.get(byte(identifier, "start_byte")?..byte(identifier, "end_byte")?)
+                == Some(class_name),
+        "JDK definition span does not address the fixed source bytes"
+    );
     Ok(())
 }
 
@@ -626,7 +1055,37 @@ enum CanonicalJson {
 
 fn canonicalize_json(input: &str) -> eyre::Result<String> {
     let mut value = parse_json(input)?;
-    normalize_dependency_index_paths(&mut value)?;
+    canonicalize_value(&mut value)
+}
+
+fn canonicalize_scenario_json(input: &str, scenario: &Path) -> eyre::Result<String> {
+    let mut value = parse_json(input)?;
+    if is_partial_index_scenario(scenario) {
+        // The Partial scenario checks an authenticated index and its refresh
+        // recovery action above. Source-acquisition hints come from the local
+        // preflight, so their provider list can vary and their command embeds
+        // the absolute Cargo test executable. They are outside this fixture's
+        // index payload; leave identity, status, source spans and refresh intact.
+        if let CanonicalJson::Object(output) = &mut value {
+            if let Some(CanonicalJson::Object(index)) = output.get_mut("dependency_index") {
+                index.insert(
+                    "acquisition_commands".to_owned(),
+                    CanonicalJson::Array(Vec::new()),
+                );
+            }
+            if let Some(CanonicalJson::Array(actions)) = output.get_mut("recovery_actions") {
+                actions.retain(|action| {
+                    !matches!(action, CanonicalJson::Object(fields)
+                        if fields.get("kind") == Some(&CanonicalJson::String("acquire-dependency-sources".to_owned())))
+                });
+            }
+        }
+    }
+    canonicalize_value(&mut value)
+}
+
+fn canonicalize_value(value: &mut CanonicalJson) -> eyre::Result<String> {
+    normalize_dependency_index_paths(value)?;
     let mut output = String::new();
     value.write_pretty(&mut output, 0);
     output.push('\n');

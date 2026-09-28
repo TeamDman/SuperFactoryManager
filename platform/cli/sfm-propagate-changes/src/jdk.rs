@@ -1,7 +1,10 @@
+use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
+use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
 use eyre::Context;
 use rayon::prelude::*;
 use std::cmp::Ordering;
 use std::collections::BTreeSet;
+use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
@@ -26,6 +29,163 @@ pub(crate) struct ResolvedJava {
     pub(crate) home: Option<PathBuf>,
     pub(crate) version_output: String,
     pub(crate) major_version: u32,
+    pub(crate) selection: String,
+    pub(crate) pin_url: Option<String>,
+    pub(crate) pin_sha512: Option<String>,
+}
+
+/// Selection policy only. A pinned artifact must be checksum-verified and
+/// installed before it can become a [`ResolvedJava`].
+#[derive(Clone, Copy, Debug)]
+pub(crate) enum JdkSource<'a> {
+    Explicit(&'a Path),
+    Pinned {
+        pin: &'a JdkPinV4,
+        artifact: &'a JdkArtifactV4,
+    },
+    LegacyDiscovery,
+}
+
+/// The presence of a catalog opts a lockfile into exact-major pinning.
+/// An explicit Java home always remains the user's deliberate override.
+pub(crate) fn select_jdk_source<'a>(
+    explicit_java_home: Option<&'a Path>,
+    pins: Option<&'a [JdkPinV4]>,
+    required_major: u32,
+    platform: &str,
+) -> eyre::Result<JdkSource<'a>> {
+    if let Some(home) = explicit_java_home {
+        return Ok(JdkSource::Explicit(home));
+    }
+    let Some(pins) = pins else {
+        return Ok(JdkSource::LegacyDiscovery);
+    };
+    let pin = pins
+        .iter()
+        .find(|pin| pin.major == required_major)
+        .ok_or_else(|| eyre::eyre!("No exact JBRSDK pin for Java {required_major}; choose --java-home explicitly or add a verified pin"))?;
+    let artifact = pin
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.platform == platform)
+        .ok_or_else(|| eyre::eyre!(
+            "No Java {} JBRSDK artifact is pinned for platform `{platform}`; choose --java-home explicitly or add a verified platform artifact",
+            required_major
+        ))?;
+    Ok(JdkSource::Pinned { pin, artifact })
+}
+
+/// Resolve the exact locked SDK when a v4 catalog is present. The cache is
+/// caller-owned so tests and future offline entry points can use the same
+/// policy without changing process-global environment variables.
+pub(crate) fn resolve_java_for_lockfile(
+    explicit_java_home: Option<&Path>,
+    pins: Option<&[JdkPinV4]>,
+    required_major: u32,
+    cache_root: &Path,
+    offline: bool,
+) -> eyre::Result<ResolvedJava> {
+    let platform = host_jbrsdk_platform().unwrap_or("unsupported-host");
+    match select_jdk_source(explicit_java_home, pins, required_major, platform)? {
+        JdkSource::Explicit(home) => resolve_java(Some(home), required_major),
+        JdkSource::LegacyDiscovery => resolve_java(None, required_major),
+        JdkSource::Pinned { pin, artifact } => {
+            let home = crate::jdk_artifact_cache::acquire_pinned_jbrsdk_zip(
+                pin, artifact, cache_root, offline,
+            )?;
+            let jdk = JdkInstallation::from_home(&home, "exact JBRSDK lockfile pin".to_owned())?;
+            verify_pinned_runtime(&jdk, pin)?;
+            let mut resolved = jdk.into_resolved_java();
+            "lockfile-pin".clone_into(&mut resolved.selection);
+            resolved.pin_url = Some(artifact.url.clone());
+            resolved.pin_sha512 = Some(artifact.sha512.to_ascii_lowercase());
+            Ok(resolved)
+        }
+    }
+}
+
+/// Prism historically requires an exact Java major even on unpinned targets.
+/// Preserve that rule while using the same exact SDK catalog when present.
+pub(crate) fn resolve_exact_java_for_minecraft_dir(
+    minecraft_dir: &Path,
+    required_major: u32,
+    explicit_java_home: Option<&Path>,
+) -> eyre::Result<ResolvedJava> {
+    if let Some(home) = explicit_java_home {
+        let resolved = resolve_java(Some(home), required_major)?;
+        if resolved.major_version != required_major {
+            eyre::bail!(
+                "Java {} is required for this Prism runtime, but --java-home resolved Java {}",
+                required_major,
+                resolved.major_version
+            );
+        }
+        return Ok(resolved);
+    }
+    let lockfile_path = minecraft_dir.join("sfm-toolchain.lock.json");
+    let input = fs::read_to_string(&lockfile_path)
+        .wrap_err_with(|| format!("Failed to read {}", lockfile_path.display()))?;
+    let pins = crate::toolchain_lockfile_schema::read_jdk_pins(&input)?;
+    let Some(pins) = pins else {
+        return resolve_exact_java(required_major);
+    };
+    let cache_root = crate::paths::CACHE_DIR
+        .0
+        .join("minecraft-toolchain")
+        .join("jbrsdk");
+    resolve_java_for_lockfile(None, Some(&pins), required_major, &cache_root, false)
+}
+
+fn host_jbrsdk_platform() -> Option<&'static str> {
+    match (std::env::consts::OS, std::env::consts::ARCH) {
+        ("windows", "x86_64") => Some("windows-x64"),
+        ("windows", "aarch64") => Some("windows-aarch64"),
+        ("linux", "x86_64") => Some("linux-x64"),
+        ("linux", "aarch64") => Some("linux-aarch64"),
+        ("macos", "x86_64") => Some("osx-x64"),
+        ("macos", "aarch64") => Some("osx-aarch64"),
+        _ => None,
+    }
+}
+
+fn verify_pinned_runtime(jdk: &JdkInstallation, pin: &JdkPinV4) -> eyre::Result<()> {
+    if jdk.major_version != pin.major || !pinned_runtime_identity_matches(&jdk.version_output, pin)
+    {
+        eyre::bail!(
+            "Checksum-verified JBRSDK {} {} reports a different runtime identity: {}",
+            pin.version,
+            pin.build,
+            jdk.version_output
+        );
+    }
+    let javac = jdk.javac_executable.clone();
+    let output = Command::new(&javac)
+        .arg("-version")
+        .output()
+        .wrap_err_with(|| format!("Failed to run {} -version", javac.display()))?;
+    let compiler_version = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    if !output.status.success() || compiler_version != format!("javac {}", pin.version) {
+        eyre::bail!(
+            "Checksum-verified JBRSDK {} has a mismatched compiler: {}",
+            pin.version,
+            compiler_version
+        );
+    }
+    Ok(())
+}
+
+fn pinned_runtime_identity_matches(version_output: &str, pin: &JdkPinV4) -> bool {
+    let reported_version = version_output.split('"').nth(1);
+    let reported_build = version_output
+        .split_whitespace()
+        .filter_map(|token| token.strip_prefix("JBR-"))
+        .filter_map(|token| token.split_once('+'))
+        .filter(|(version, _)| *version == pin.version)
+        .filter_map(|(_, rest)| rest.split_once('-'))
+        .map(|(_, rest)| rest.split('-').next().unwrap_or_default())
+        .next();
+    reported_version == Some(pin.version.as_str())
+        && reported_build == Some(pin.build.trim_start_matches('b'))
 }
 
 #[instrument]
@@ -60,7 +220,9 @@ pub(crate) fn resolve_java(
     if let Some(home) = explicit_java_home {
         let jdk = JdkInstallation::from_home(home, "--java-home".to_string())?;
         ensure_jdk_meets_requirement(&jdk, required_major)?;
-        return Ok(jdk.into_resolved_java());
+        let mut resolved = jdk.into_resolved_java();
+        "explicit-java-home".clone_into(&mut resolved.selection);
+        return Ok(resolved);
     }
 
     let jdks = list_jdks()?;
@@ -360,6 +522,9 @@ impl JdkInstallation {
             home: self.home,
             version_output: self.version_output,
             major_version: self.major_version,
+            selection: "legacy-discovery".to_owned(),
+            pin_url: None,
+            pin_sha512: None,
         }
     }
 }
@@ -385,10 +550,15 @@ fn canonicalize_existing(path: &Path) -> eyre::Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::JdkInstallation;
+    use super::JdkSource;
     use super::parse_java_major_version;
     use super::push_child_directories;
     use super::select_jdk;
+    use super::select_jdk_source;
+    use crate::toolchain_lockfile_schema::version::v4::JdkArtifactV4;
+    use crate::toolchain_lockfile_schema::version::v4::JdkPinV4;
     use std::fs;
+    use std::path::Path;
     use std::path::PathBuf;
 
     #[test]
@@ -477,6 +647,80 @@ mod tests {
         push_child_directories(&mut output, root_path, "test root");
 
         assert_eq!(output, vec![(jdk_home, "test root".to_string())]);
+    }
+
+    #[test]
+    fn pinned_policy_selects_exact_major_and_platform_without_floating() {
+        let pins = vec![fake_pin(17), fake_pin(21), fake_pin(25)];
+        let JdkSource::Pinned { pin, artifact } =
+            select_jdk_source(None, Some(&pins), 21, "windows-x64").unwrap()
+        else {
+            panic!("expected the exact Java 21 pin");
+        };
+        assert_eq!(pin.major, 21);
+        assert_eq!(artifact.platform, "windows-x64");
+        assert!(
+            select_jdk_source(None, Some(&pins), 22, "windows-x64")
+                .unwrap_err()
+                .to_string()
+                .contains("No exact JBRSDK pin for Java 22")
+        );
+        assert!(
+            select_jdk_source(None, Some(&pins), 21, "linux-x64")
+                .unwrap_err()
+                .to_string()
+                .contains("No Java 21 JBRSDK artifact is pinned for platform `linux-x64`")
+        );
+    }
+
+    #[test]
+    fn explicit_java_home_precedes_pins_and_missing_catalog_uses_legacy_selection() {
+        let pins = vec![fake_pin(17)];
+        let explicit = Path::new("explicit-jdk");
+        let JdkSource::Explicit(selected) =
+            select_jdk_source(Some(explicit), Some(&pins), 25, "unsupported-platform").unwrap()
+        else {
+            panic!("expected the user's explicit Java home");
+        };
+        assert_eq!(selected, explicit);
+        assert!(matches!(
+            select_jdk_source(None, None, 17, "unsupported-platform").unwrap(),
+            JdkSource::LegacyDiscovery
+        ));
+    }
+
+    #[test]
+    fn pinned_runtime_identity_rejects_different_patch_and_build() {
+        let mut pin = fake_pin(17);
+        pin.version = "17.0.14".to_owned();
+        pin.build = "b1367.22".to_owned();
+        let version = "openjdk version \"17.0.14\" 2025-01-21\nOpenJDK Runtime Environment JBR-17.0.14+1-1367.22-nomod";
+        assert!(super::pinned_runtime_identity_matches(version, &pin));
+        assert!(!super::pinned_runtime_identity_matches(
+            &version.replace("1367.22", "1367.21"),
+            &pin
+        ));
+        assert!(!super::pinned_runtime_identity_matches(
+            &version.replace("17.0.14", "17.0.13"),
+            &pin
+        ));
+    }
+
+    fn fake_pin(major: u32) -> JdkPinV4 {
+        JdkPinV4 {
+            major,
+            vendor: "JetBrains".to_owned(),
+            version: format!("{major}.0.1"),
+            build: "b1.1".to_owned(),
+            flavor: "jbrsdk".to_owned(),
+            artifacts: vec![JdkArtifactV4 {
+                platform: "windows-x64".to_owned(),
+                url: format!(
+                    "https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk-{major}.0.1-windows-x64-b1.1.tar.gz"
+                ),
+                sha512: "a".repeat(128),
+            }],
+        }
     }
 
     fn fake_jdk(name: &str, major_version: u32, is_jbr: bool) -> JdkInstallation {
