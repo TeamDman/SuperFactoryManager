@@ -315,9 +315,11 @@ impl SourceGradleArgs {
             &task,
             &development_version,
             home,
-            gradle_profile.as_deref(),
-            offline,
-            test_exit_override.as_deref(),
+            &GradleRunOptions {
+                profile: gradle_profile.as_deref(),
+                offline,
+                init_script: test_exit_override.as_deref(),
+            },
             cancellation,
         )?;
         if matches!(mode, SourceGradleMode::Build) {
@@ -432,13 +434,17 @@ fn validate_gradle_profile(profile: &str) -> Result<()> {
 }
 
 fn game_test_exit_override(repo_root: &Path, target: &str, task: &str) -> Option<PathBuf> {
-    if task == "runGameTestServer" && matches!(target, "1.19.2" | "1.19.4") {
-        Some(repo_root.join(
+    (task == "runGameTestServer" && matches!(target, "1.19.2" | "1.19.4")).then(|| {
+        repo_root.join(
             "platform/cli/sfm-propagate-changes/gradle/forge-game-test-no-force-exit.init.gradle",
-        ))
-    } else {
-        None
-    }
+        )
+    })
+}
+
+struct GradleRunOptions<'a> {
+    profile: Option<&'a str>,
+    offline: bool,
+    init_script: Option<&'a Path>,
 }
 
 fn run_project_gradle(
@@ -446,9 +452,7 @@ fn run_project_gradle(
     task: &str,
     development_version: &str,
     java_home: &Path,
-    gradle_profile: Option<&str>,
-    offline: bool,
-    init_script: Option<&Path>,
+    options: &GradleRunOptions<'_>,
     cancellation: &CancellationToken,
 ) -> Result<()> {
     let wrapper = project_root.join(if cfg!(windows) {
@@ -462,13 +466,13 @@ fn run_project_gradle(
         .current_dir(project_root)
         .arg("--no-daemon")
         .arg(format!("-Pmod_version={development_version}"));
-    if offline {
+    if options.offline {
         command.arg("--offline");
     }
-    if let Some(profile) = gradle_profile {
+    if let Some(profile) = options.profile {
         command.arg(format!("-PsfmProfile={profile}"));
     }
-    if let Some(script) = init_script {
+    if let Some(script) = options.init_script {
         ensure!(script.is_file(), "GameTest Gradle init script is missing");
         // Windows fs::canonicalize yields a \\?\ path that cmd.exe splits when it
         // launches gradlew.bat. Gradle then sees only a stray backslash as the script.
@@ -1552,9 +1556,11 @@ mod tests {
             "jar",
             "4.34.0-dev.abcdef012345",
             &java_home,
-            Some("rust-toolchain"),
-            false,
-            None,
+            &GradleRunOptions {
+                profile: Some("rust-toolchain"),
+                offline: false,
+                init_script: None,
+            },
             &CancellationToken::new(),
         )
         .unwrap();
@@ -1579,9 +1585,11 @@ mod tests {
             "runGameTestServer",
             "4.34.0-dev.abcdef012345",
             &java_home,
-            None,
-            true,
-            Some(&init_script),
+            &GradleRunOptions {
+                profile: None,
+                offline: true,
+                init_script: Some(&init_script),
+            },
             &CancellationToken::new(),
         )
         .unwrap();

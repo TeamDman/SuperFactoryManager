@@ -93,6 +93,10 @@ pub struct DevelopmentGradleImportReport {
 ///
 /// Rejects missing commits, changed tree membership or modes, unexpected
 /// branch differences, corrupt Git blobs, or conflicting existing imports.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the import preflight and staged write remain one reviewable transaction"
+)]
 pub fn materialize_development_gradle_inputs(
     repo_root: &Path,
     spec: &DevelopmentHeadSpec,
@@ -229,6 +233,10 @@ pub fn materialize_development_gradle_inputs(
 ///
 /// Rejects a wrong target or location, changed provenance, missing or extra
 /// paths, symlinks, content/hash/mode mismatches, or changed artifact bytes.
+#[expect(
+    clippy::too_many_lines,
+    reason = "all Gradle input provenance checks must pass before accepting any artifact"
+)]
 pub fn verify_development_gradle_inputs(
     repo_root: &Path,
     canonical_commit: &str,
@@ -463,7 +471,7 @@ pub fn apply_post_baseline_gradle_sources(
             "platform/minecraft/development-overlays/{}/{path}",
             binding.target_id
         );
-        artifact.source_bytes = bytes.clone();
+        artifact.source_bytes.clone_from(&bytes);
         artifact.output_bytes = bytes;
         artifact.overlay = Some("development-gradle-portability".to_owned());
     }
