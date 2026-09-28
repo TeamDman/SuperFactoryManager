@@ -1,0 +1,33 @@
+NAME "Fluids and other resource types"
+
+EVERY 20 TICKS DO
+    -- the default resource type is sfm:item
+    INPUT stone FROM a
+    -- is the same as
+    INPUT sfm:item:*:stone FROM a
+
+    -- so if you want to move all fluids, you gotta do
+    INPUT fluid:: from a
+    OUTPUT fluid:: to b
+    -- this expands to INPUT sfm:fluid:*:* FROM a
+
+    -- these are equivalent
+    INPUT fluid::water FROM a
+    INPUT sfm:fluid:*:water FROM a
+
+    INPUT iron_ingot FROM a
+    INPUT sfm:item:*:iron_ingot FROM a
+
+    -- older versions used to default to "minecraft" for items
+    INPUT iron_ingot FROM a
+    INPUT sfm:item:minecraft:iron_ingot FROM a
+    -- this is no longer the case, since there isn't usually name conflicts
+    -- if there are, you can just manually specify the mod id if you care
+    INPUT totally_not_minecraft:iron_ingot FROM a
+END
+
+-- the following resource types are supported
+-- (this example is generated so it's always up to date)
+EVERY 20 TICKS DO
+    $REPLACE_RESOURCE_TYPES_HERE$
+END

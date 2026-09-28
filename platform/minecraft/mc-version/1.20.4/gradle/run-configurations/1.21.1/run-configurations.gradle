@@ -1,0 +1,77 @@
+// Default run configurations.
+// These can be tweaked, removed, or duplicated as needed.
+def sfmGameTestSelection = project.sfmGameTestSelection
+
+runs {
+    // applies to all the run configs below
+    configureEach {
+        // Recommended logging data for a userdev environment
+        // The markers can be added/remove as needed separated by commas.
+        // "SCAN": For mods scan.
+        // "REGISTRIES": For firing of registry events.
+        // "REGISTRYDUMP": For getting the contents of all registries.
+        systemProperty 'forge.logging.markers', 'REGISTRIES'
+
+        // Recommended logging level for the console
+        // You can set various levels here.
+        // Please read: https://stackoverflow.com/questions/2031163/when-to-use-the-different-log-levels
+        systemProperty 'forge.logging.console.level', 'debug'
+
+        // fix annoying dependency mixin problems
+        // systemProperty 'mixin.env.remapRefMap', 'true'
+        // systemProperty 'mixin.env.refMapRemappingFile', "${buildDir}/createSrgToMcp/output.srg"
+
+        // Enable JetBrains runtime hotswap support
+        jvmArguments '-XX:+IgnoreUnrecognizedVMOptions', '-XX:+AllowRedefinitionToAddDeleteMethods'
+
+        modSource project.sourceSets.main
+    }
+
+    client {
+        modSource project.sourceSets.gametest
+        // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+    }
+
+    client_teamy {
+//        https://discord.com/channels/313125603924639766/1232440595738529913/1246122881516048445
+        runType 'client'
+
+        modSource project.sourceSets.gametest
+        // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+
+        // THIS CAN CAUSE PROBLEMS! DISABLE AND REGEN RUNS IF ENCOUNTERING WEIRD ISSUES!
+        // Plays nice with: https://github.com/JetBrains/JetBrainsRuntime/releases/tag/jbr-release-17.0.14b1367.22
+        // Causes problems with: jbrsdk_jcef-17.0.6-x64-b469
+        jvmArguments '-XX:+AllowEnhancedClassRedefinition', '-XX:+IgnoreUnrecognizedVMOptions', '-XX:+AllowRedefinitionToAddDeleteMethods'
+
+        arguments '--username', 'TeamDman', '--uuid', '83f1df8b-0ba3-4de0-8a26-e51a1fd74318', '--width', '1708', '--height', '960'
+    }
+
+    server {
+        modSource project.sourceSets.gametest
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        argument '--nogui'
+    }
+
+    // This run config launches GameTestServer and runs all registered gametests, then exits.
+    // By default, the server will crash when no gametests are provided.
+    // The gametest system is also enabled by default for other run configs under the /test command.
+    gameTestServer {
+        modSource project.sourceSets.gametest
+        systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+        if (sfmGameTestSelection) {
+            systemProperty 'sfm.gametestSelection', sfmGameTestSelection
+        }
+    }
+
+    data {
+        modSource project.sourceSets.datagen
+        // example of overriding the workingDirectory set in configureEach above, uncomment if you want to use it
+        // workingDirectory project.file('run-data')
+
+        // Specify the modid for data generation, where to output the resulting resource, and where to look for existing resources.
+        arguments.addAll '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+    }
+}

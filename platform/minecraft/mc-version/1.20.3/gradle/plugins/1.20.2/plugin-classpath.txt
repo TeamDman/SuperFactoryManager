@@ -1,0 +1,2 @@
+# External plugin marker coordinates.
+net.neoforged.gradle.userdev:net.neoforged.gradle.userdev.gradle.plugin:7.0.57

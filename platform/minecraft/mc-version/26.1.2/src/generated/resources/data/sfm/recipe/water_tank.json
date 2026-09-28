@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "b": "minecraft:water_bucket",
+    "g": "minecraft:iron_bars",
+    "p": "minecraft:light_weighted_pressure_plate"
+  },
+  "pattern": [
+    "gbg",
+    "gpg",
+    "gbg"
+  ],
+  "result": {
+    "id": "sfm:water_tank"
+  }
+}

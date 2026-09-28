@@ -1,0 +1,12 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url = 'https://maven.minecraftforge.net/' }
+        maven { url = 'https://maven.parchmentmc.org' }
+    }
+}
+
+// IDEA uses the Gradle root project name when importing this project.
+rootProject.name = "sfm-${settingsDir.parentFile.parentFile.name}"
+// GENERATED layout override; tagged settings source is unchanged.
+rootProject.name = 'sfm-1.19.2'

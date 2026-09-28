@@ -1,0 +1,2 @@
+# Paths are relative to src/test/java.
+ca/teamdman/sfm/package-info.java

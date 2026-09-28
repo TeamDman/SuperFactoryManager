@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "A": {
+      "tag": "c:fences"
+    },
+    "B": {
+      "item": "sfm:manager"
+    }
+  },
+  "pattern": [
+    "A A",
+    "ABA",
+    "A A"
+  ],
+  "result": {
+    "count": 1,
+    "id": "sfm:tunnelled_manager"
+  }
+}

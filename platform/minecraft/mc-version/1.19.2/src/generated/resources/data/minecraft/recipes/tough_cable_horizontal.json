@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "key": {
+    "A": {
+      "item": "minecraft:obsidian"
+    },
+    "B": {
+      "item": "sfm:cable"
+    }
+  },
+  "pattern": [
+    "AAA",
+    " B ",
+    "AAA"
+  ],
+  "result": {
+    "item": "sfm:tough_cable"
+  }
+}

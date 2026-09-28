@@ -1,0 +1,7 @@
+{
+  "parent": "minecraft:block/cube_all",
+  "textures": {
+    "all": "sfm:block/test_barrel_tank",
+    "particle": "#all"
+  }
+}

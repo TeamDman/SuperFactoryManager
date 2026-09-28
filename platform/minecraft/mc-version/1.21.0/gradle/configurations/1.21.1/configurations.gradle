@@ -1,0 +1,9 @@
+def extendConfigurations = { Configuration base, Configuration... configurations ->
+    configurations.each { it.extendsFrom(base) }
+}
+
+configurations {
+    extendConfigurations(implementation, gametestImplementation, testImplementation, datagenImplementation)
+    extendConfigurations(compileOnly, gametestCompileOnly, testCompileOnly, datagenCompileOnly)
+    extendConfigurations(runtimeOnly, gametestRuntimeOnly, testRuntimeOnly, datagenRuntimeOnly)
+}

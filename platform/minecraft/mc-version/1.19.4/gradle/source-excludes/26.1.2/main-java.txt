@@ -1,0 +1,9 @@
+# Paths are relative to src/main/java.
+ca/teamdman/sfm/common/resourcetype/exclude/**
+ca/teamdman/sfm/common/capability/ae2/InterfaceCapabilityProvider.java
+ca/teamdman/sfm/common/block/BatteryBlock.java
+ca/teamdman/sfm/common/blockentity/BatteryBlockEntity.java
+ca/teamdman/sfm/common/resourcetype/GasResourceType.java
+ca/teamdman/sfm/common/resourcetype/InfuseResourceType.java
+ca/teamdman/sfm/common/resourcetype/PigmentResourceType.java
+ca/teamdman/sfm/common/resourcetype/SlurryResourceType.java
