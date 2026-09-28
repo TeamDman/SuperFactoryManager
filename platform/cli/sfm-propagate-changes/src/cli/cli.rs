@@ -99,6 +99,8 @@ pub enum Command {
     Puppet(super::puppet::PuppetArgs),
     /// Discover and run Java `JUnit` tests
     Test(super::test::TestArgs),
+    /// Inspect Java tests, game tests, or puppets in a generated project.
+    ProjectCatalog(super::project_catalog::ProjectCatalogArgs),
     /// Navigate and refactor Java symbols.
     Symbol(super::symbol::SymbolArgs),
     /// Highlight exact source text or run the reusable syntax worker.
@@ -149,6 +151,9 @@ impl Command {
             Command::GameTest(args) => legacy_output(args.invoke(cancellation_token)),
             Command::Puppet(args) => legacy_output(args.invoke(cancellation_token)),
             Command::Test(args) => legacy_output(args.invoke(cancellation_token)),
+            Command::ProjectCatalog(args) => {
+                legacy_output(args.invoke(cancellation_token, invocation_dir))
+            }
             Command::Symbol(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::Syntax(args) => args.invoke(&cancellation_token),
             Command::Source(args) => args.invoke_in(&cancellation_token, invocation_dir),

@@ -17,6 +17,7 @@ pub mod jdk;
 pub mod loader;
 pub mod modrinth;
 pub mod output;
+pub mod project_catalog;
 pub mod puppet;
 mod puppet_artifacts;
 mod puppet_matrix;

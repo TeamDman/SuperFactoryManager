@@ -208,6 +208,18 @@ pub(crate) fn invoke_source_catalog(
     Ok(())
 }
 
+/// # Errors
+///
+/// Returns an error when a generated project root or its static catalog cannot be read.
+pub(crate) fn invoke_project_source_catalog(
+    project_root: &Path,
+    query: &SourceCatalogQuery,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<()> {
+    cancellation_token.bail_if_cancelled()?;
+    print_static_java_catalog_for_project(project_root, query)
+}
+
 #[tracing::instrument(
     level = "info",
     skip_all,

@@ -14,6 +14,7 @@ const JUNIT_ANNOTATIONS: &[&str] = &[
     "org.junit.jupiter.api.TestFactory",
     "org.junit.jupiter.api.TestTemplate",
 ];
+const PROJECTION_MANIFEST_NAME: &str = ".sfm-source-projection-manifest.json";
 
 #[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
 struct StaticJavaCatalogEntry {
@@ -32,6 +33,21 @@ fn print_static_java_catalog_for_target(
 ) -> eyre::Result<()> {
     let (minecraft_dir, minecraft_version) = static_catalog_target_parts(target)?;
     let entries = static_java_catalog(&minecraft_dir, minecraft_version, query.category)?;
+    print_static_java_catalog_entries(entries, query)
+}
+
+fn print_static_java_catalog_for_project(
+    project_root: &Path,
+    query: &SourceCatalogQuery,
+) -> eyre::Result<()> {
+    let entries = static_java_catalog_for_project(project_root, query.category)?;
+    print_static_java_catalog_entries(entries, query)
+}
+
+fn print_static_java_catalog_entries(
+    entries: Vec<StaticJavaCatalogEntry>,
+    query: &SourceCatalogQuery,
+) -> eyre::Result<()> {
     match &query.action {
         SourceCatalogAction::List => {
             for entry in entries {
@@ -52,6 +68,25 @@ fn print_static_java_catalog_for_target(
         }
     }
     Ok(())
+}
+
+fn static_java_catalog_for_project(
+    project_root: &Path,
+    category: SourceCatalogCategory,
+) -> eyre::Result<Vec<StaticJavaCatalogEntry>> {
+    let project_root = dunce::canonicalize(project_root)
+        .wrap_err_with(|| format!("Failed to resolve generated project root {}", project_root.display()))?;
+    let manifest_path = project_root.join(PROJECTION_MANIFEST_NAME);
+    let manifest_text = fs::read_to_string(&manifest_path)
+        .wrap_err_with(|| format!("Failed to read generated project manifest {}", manifest_path.display()))?;
+    let manifest = crate::source_projection::provenance::ProjectionProvenance::from_json(&manifest_text)
+        .wrap_err_with(|| format!("Invalid generated project manifest {}", manifest_path.display()))?;
+    eyre::ensure!(
+        project_root.join("settings.gradle").is_file(),
+        "Generated project root {} has no settings.gradle",
+        project_root.display(),
+    );
+    static_java_catalog(&project_root, &manifest.minecraft_version, category)
 }
 
 fn validate_static_puppet_selection_for_target(
@@ -526,10 +561,49 @@ fn format_static_catalog_entry(entry: &StaticJavaCatalogEntry) -> String {
 mod static_java_catalog_tests {
     use super::SourceCatalogCategory;
     use super::static_java_catalog;
+    use super::static_java_catalog_for_project;
     use super::snake_case;
     use super::wildcard_matches;
+    use crate::source_projection::provenance::ProjectionProvenance;
     use std::fs;
     use tempfile::tempdir;
+
+    #[test]
+    fn generated_project_catalog_uses_its_manifest_version_and_project_sources() {
+        let temporary = tempdir().expect("temporary generated project should be created");
+        let project_root = temporary.path().join("mc-version/1.21.0");
+        let source_root = project_root.join("src/test/java/example");
+        fs::create_dir_all(&source_root).expect("generated test source root should be created");
+        fs::write(project_root.join("settings.gradle"), "rootProject.name = 'sfm-1.21.0'\n")
+            .expect("generated Gradle settings should be written");
+        let provenance =
+            ProjectionProvenance::new("1.21.0", "1.21", "released-4.34.0", "blake3:test");
+        fs::write(
+            project_root.join(super::PROJECTION_MANIFEST_NAME),
+            provenance.to_json().expect("provenance should serialize"),
+        )
+        .expect("generated project manifest should be written");
+        for name in ["IncludedTests", "ExcludedTests"] {
+            fs::write(
+                source_root.join(format!("{name}.java")),
+                format!(
+                    "package example;\nimport org.junit.jupiter.api.Test;\npublic class {name} {{ @Test void works() {{}} }}\n"
+                ),
+            )
+            .expect("generated test source should be written");
+        }
+        let excludes_path = project_root.join("gradle/source-excludes/1.21/test-java.txt");
+        fs::create_dir_all(excludes_path.parent().expect("excludes parent should exist"))
+            .expect("generated excludes directory should be created");
+        fs::write(excludes_path, "example/ExcludedTests.java\n")
+            .expect("generated version excludes should be written");
+
+        let entries = static_java_catalog_for_project(&project_root, SourceCatalogCategory::Test)
+            .expect("generated project catalog should parse");
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].id, "example.IncludedTests#works");
+        assert!(entries[0].source_path.starts_with(&project_root));
+    }
 
     #[test]
     fn snake_case_matches_runtime_conventions() {
