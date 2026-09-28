@@ -1,0 +1,15 @@
+name "ATO"
+
+every 20 ticks do
+    input from coal top side
+    input from alum top side
+    output coal to furn bottom side
+    output 2 alltheores:raw_aluminum to each furn top side
+end
+
+every 20 ticks do
+    -- when not using quotes, "*" gets replaced by ".*" for convenience
+    -- then the identifiers are treated as regular expressions
+    input *:*ingot* from furn
+    output to out
+end

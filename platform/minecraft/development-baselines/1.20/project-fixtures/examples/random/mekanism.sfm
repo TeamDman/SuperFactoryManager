@@ -1,0 +1,19 @@
+every 20 ticks do
+    input gas:mekanism:* from a bottom side
+    output gas:mekanism:* to b bottom side
+end
+---
+every 20 ticks do
+    input infusion:mekanism:* from a bottom side
+    output infusion:mekanism:* to b bottom side
+end
+---
+every 20 ticks do
+    input pigment:mekanism:* from a bottom side
+    output pigment:mekanism:* to b bottom side
+end
+---
+every 20 ticks do
+    input slurry:alltheores:* from a bottom side
+    output slurry:*:* to b bottom side
+end

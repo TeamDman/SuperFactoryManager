@@ -1,0 +1,63 @@
+name "retention"
+
+every 20 ticks do
+    -- move all items except 1 from "a" to "b"
+    input retain 1 from a
+    output to b
+end
+
+
+every 20 ticks do
+    -- move 25 items except 1 from "a" to "b"
+    input 25 retain 1 from a
+    output to b
+end
+
+
+every 20 ticks do
+    -- move 25 red_sand items except 1 from "a" to "b"
+    input 25 retain 1 red_sand from a
+    output to b
+end
+
+
+every 20 ticks do
+    -- move 20 red sand and all coal
+    -- but leave 1 red sand
+    input
+        20 retain 1 red_sand,
+        retain 1 coal
+    from a
+
+    output to b
+end
+
+
+every 20 ticks do
+    input from a
+    output retain 1 to b
+    -- only output until "b" has 1 item
+end
+
+every 20 ticks do
+    input from a
+    output 5 retain 20 red_sand to b
+    -- accept 5 red sand at once, with "a" max of 20 in "b"
+end
+
+
+every 20 ticks do
+    input
+        15 retain 5 iron_ingot,
+        12 retain 3 stone
+    from "a" top side
+
+    output
+        2 iron_ingot,
+        64 retain 10 stone
+    to b
+
+    -- moves all but 5 iron ingots to "b", 15 at a time
+    -- moves up to 10 stone to "b", ensuring "a" keeps 3 stone
+    -- "b" can accept up to 64 stone but "a" can only provide 12 at a time
+end

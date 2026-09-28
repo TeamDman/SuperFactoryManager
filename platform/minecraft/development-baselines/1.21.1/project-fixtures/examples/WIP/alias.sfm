@@ -1,0 +1,10 @@
+-- not yet implemented.
+
+name "alias"
+
+every 20 ticks do
+    INPUT FROM a BOTTOM SIDE SLOTS 0 AS ax
+    IF ax has gt 10 iron THEN
+        
+    END
+end

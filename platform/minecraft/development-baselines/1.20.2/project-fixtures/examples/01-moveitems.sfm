@@ -1,0 +1,73 @@
+name "move items" -- name declaration is optional
+
+-- use two dashes for a comment
+-- keywords are case insensitive
+
+-- more than one trigger can be used in a program
+every 20 ticks do
+    -- each trigger block can contain multiple statements
+    INPUT FROM a
+    OUTPUT TO b
+    -- "a" and "b" are inventory labels
+    -- use a label gun to identify them in world
+end
+
+
+
+-- The previous trigger will move all items, but for instructional
+-- purposes, more triggers will be included here
+every 20 ticks do
+    INPUT 1 from a -- only extract 1 item at a time
+    OUTPUT to b
+end
+
+
+
+every 20 ticks do
+    input from a
+    output 1 to b   -- only insert 1 item at a time
+                    -- if multiple inventories are labelled "b",
+                    -- only one will receive an item
+end
+
+
+every 20 ticks do
+    input from a
+    output 1 to each b -- every "b" inventory will receive 1 item
+end
+
+
+
+every 20 ticks do
+    input 1 from each a -- each "a" inventory will only have 1 item removed,
+                        -- instead of 1 item total being moved
+    output to b
+end
+
+every 20 ticks do
+    input iron_ingot from a -- only move iron ingots, "minecraft:" namespace is assumed
+    output to b
+end
+
+every 20 ticks do
+    input thaumcraft:iron_nugget from a -- only move thaumcraft iron nuggets
+    output to b
+end
+
+every 20 ticks do
+    input "redstone" from a -- redstone is a keyword for future use, so must be surrounded in quotes
+    output to b
+end
+
+every 20 ticks do
+    input "minecraft:redstone" from a -- redstone is a keyword, so must be surrounded in quotes
+    output to b
+end
+
+every 20 ticks do
+    if a has gt 0 "redstone" then -- again, redstone must be in quotes
+        input from a
+        output to b
+    end
+end
+

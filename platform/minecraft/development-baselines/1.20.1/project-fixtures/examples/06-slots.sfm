@@ -1,0 +1,7 @@
+name "slots"
+
+every 20 ticks do
+    -- multiple slots can be specified, comma separated, also supporting ranges
+    input from a top side slots 0,1,3-4, 5
+    output to a slots 2
+end

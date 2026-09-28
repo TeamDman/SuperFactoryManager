@@ -1,0 +1,89 @@
+{
+  "schema": "sfm:development-project-fixtures@1",
+  "target_id": "1.21.1",
+  "canonical_commit": "b046574be908e40d647858dedc872ab9c4305170",
+  "target_commit": "7524ab5512878b773e212600c9578b2bc4db4717",
+  "file_count": 16,
+  "files": {
+    "docs/architecture/fixtures/repository-review-bundle-v1.json": {
+      "git_mode": "100644",
+      "blob_oid": "a0319b4ac08b458d489422b798312531705c80a1",
+      "sha256": "sha256:0cb1ba0eb03406f3ca7a89011ab8b54c000ec2dc9e66ed2bca914bac6d40e8fb"
+    },
+    "docs/architecture/fixtures/review-comment-session-v1.json": {
+      "git_mode": "100644",
+      "blob_oid": "18ff6b056835f3e837c33e42ae90955f5b3c71ea",
+      "sha256": "sha256:738e0214a1760ffe436803b7633a269859e811a3a39cfbcf51c825063be43944"
+    },
+    "examples/01-moveitems.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "ec1d6d2b4d96c22a044aa0cb8319b5b9576f03fc",
+      "sha256": "sha256:7858798e5853d27b558e362569130924c3167da0989876dd8423d61b530f0140"
+    },
+    "examples/02-retention.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "3bc0bd64b896a499e2c6e2b2118554292b3d3466",
+      "sha256": "sha256:727baba084840dc6c5da26652fa01bd0c0829037e62a6c5a6c73d943845ec9cc"
+    },
+    "examples/03-conditions.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "0adf7b283f55fd732a143d1801bef7a40d2cba46",
+      "sha256": "sha256:67a361d7a4716be536dcbbbc2f78e3205986de738f4a0722fd56b9af93bd515d"
+    },
+    "examples/04-smelting.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "fc0fec91c05a3af0d7a63997b8b1d298753c93dd",
+      "sha256": "sha256:b9faa808b2b80ca0f75e2df9d359be129376672196becaeebb268e1c67b922fd"
+    },
+    "examples/05-each.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "82381b8d7d31acb6f38ecd7b4e963bbd57921b19",
+      "sha256": "sha256:8865b59d1300123fa8c223a6126aed2bc0085b5720c8f371e325fcd6855c4ad6"
+    },
+    "examples/06-slots.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "ae9c9361b0ac2bbb3f4dcf38f7021e687b76809e",
+      "sha256": "sha256:133049f0a815eabbf7f21306b5255aa942c5d138c1d27986e9594d427242a3cf"
+    },
+    "examples/07-redstone.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "9ec3f7fdb48efc3f8bc47899307cb905c9964355",
+      "sha256": "sha256:e2f86b33c34b2651c9e31a38e4e75ed0e1090645cb31965bc3e93bbbaaca8c38"
+    },
+    "examples/08-fluids.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "0f3c07c40ffdaf4d45621afdb227fb9ab0def2e5",
+      "sha256": "sha256:10bef0fb00229e2102b544c1a5329ad448827189f4bea4c00d69d05f99dcf0ab"
+    },
+    "examples/README.md": {
+      "git_mode": "100644",
+      "blob_oid": "31a7e060795bcca51194cfc8c2eb7fd696a52b42",
+      "sha256": "sha256:a8e03e0cf9bbaa40df87016468ca77227874c628699f8c9a8b775324bb058897"
+    },
+    "examples/WIP/alias.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "c6f655eb58d388d42c2f84691c0460efbc46a29e",
+      "sha256": "sha256:561151cc23790915b751b4c2195b91e8ad2460071c04ae9d5953d380bac8beaf"
+    },
+    "examples/random/alltheores.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "ffee8147d95467029676e96385ee830a2a9fff4a",
+      "sha256": "sha256:a61f162fa7524f36462c9d3538376dce2c373a23bd6be0144e740f6100ae9650"
+    },
+    "examples/random/forgeenergy.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "7db401f800e7e2df86be6a0d769322daa6c67edd",
+      "sha256": "sha256:e2638174abf5195da22e1fd25bd4284194c7e00022937cf374cdecd9dc39d9ca"
+    },
+    "examples/random/mekanism.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "26d4c6f490747b0ad050ff54ca1461ac162f9055",
+      "sha256": "sha256:6d273d95a6fbd438cc6743ade07131b3da47ff9e1abc9992751f47af8f292b88"
+    },
+    "examples/random/patterns.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "49eb35280a34205f5f3ce0f9d70cb421ed23d3f3",
+      "sha256": "sha256:ea67fc6deb05b422e3611f905b391f3e55a93349ad2177cfbc6a1a974a353cbb"
+    }
+  }
+}
