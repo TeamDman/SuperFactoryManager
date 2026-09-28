@@ -43,6 +43,7 @@ pub mod source_cache;
 pub(crate) mod source_decompile;
 pub mod source_git;
 pub(crate) mod source_maven;
+pub mod source_projection;
 pub(crate) mod source_provider;
 pub mod state;
 pub mod syntax_highlight;

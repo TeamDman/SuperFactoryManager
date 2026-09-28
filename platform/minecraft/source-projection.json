@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {"id":"1.19.2","template_key":"mc_1_19_2","minecraft_version":"1.19.2","loader":"forge","java_major":17,"project_dir":"platform/minecraft/mc-version/1.19.2"},
+    {"id":"1.19.4","template_key":"mc_1_19_4","minecraft_version":"1.19.4","loader":"forge","java_major":17,"project_dir":"platform/minecraft/mc-version/1.19.4"},
+    {"id":"1.20","template_key":"mc_1_20","minecraft_version":"1.20","loader":"forge","java_major":17,"project_dir":"platform/minecraft/mc-version/1.20"},
+    {"id":"1.20.1","template_key":"mc_1_20_1","minecraft_version":"1.20.1","loader":"neoforge","java_major":17,"project_dir":"platform/minecraft/mc-version/1.20.1"},
+    {"id":"1.20.2","template_key":"mc_1_20_2","minecraft_version":"1.20.2","loader":"neoforge","java_major":17,"project_dir":"platform/minecraft/mc-version/1.20.2"},
+    {"id":"1.20.3","template_key":"mc_1_20_3","minecraft_version":"1.20.3","loader":"neoforge","java_major":17,"project_dir":"platform/minecraft/mc-version/1.20.3"},
+    {"id":"1.20.4","template_key":"mc_1_20_4","minecraft_version":"1.20.4","loader":"neoforge","java_major":17,"project_dir":"platform/minecraft/mc-version/1.20.4"},
+    {"id":"1.21.0","template_key":"mc_1_21_0","minecraft_version":"1.21","loader":"neoforge","java_major":21,"project_dir":"platform/minecraft/mc-version/1.21.0"},
+    {"id":"1.21.1","template_key":"mc_1_21_1","minecraft_version":"1.21.1","loader":"neoforge","java_major":21,"project_dir":"platform/minecraft/mc-version/1.21.1"},
+    {"id":"26.1.2","template_key":"mc_26_1_2","minecraft_version":"26.1.2","loader":"neoforge","java_major":25,"project_dir":"platform/minecraft/mc-version/26.1.2"}
+  ],
+  "features": [],
+  "presets": [
+    {"id":"current-development-pilot","targets":["1.19.2"],"enabled_features":[],"identity":"blake3:383266258af8669f2da788660ad823f1855019b45ae948ccf715dc876df4e627"},
+    {
+      "id":"released-4.34.0",
+      "targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],
+      "enabled_features":[],
+      "release_baselines":[
+        {"target_id":"1.19.2","tag_commit":"31135b8e86801b862d5cb2283c7c5878b7cc5bb4","import_manifest":"platform/minecraft/release-baselines/4.34.0-1.19.2/import.json","import_manifest_sha256":"9d60f8f85774a851f27f654fc7154cbf12a4f327a2311b4d11f7af265a8b9879"},
+        {"target_id":"1.19.4","tag_commit":"23785b63e3e1fe35e5be6a6d89b6638ee0ff0daa","import_manifest":"platform/minecraft/release-baselines/4.34.0-1.19.4/import.json","import_manifest_sha256":"56c9e5619f5682d035830bf0590f252739714ca4b6ea07055242e118c32b7f2a"},
+        {"target_id":"1.20","tag_commit":"3df18123a19535fd0e5d1dc81aa302105c3fd2f6","import_manifest":"platform/minecraft/release-baselines/4.34.0-1.20/import.json","import_manifest_sha256":"0d3cd2e70dc3910db8af7c8f7ca5ac8acbe30d8fd7858c727d1df74152954d89"},
+        {"target_id":"1.20.1","tag_commit":"bb5babf12f467235b3a44ad5098666ee3ed171ec","import_manifest":"platform/minecraft/release-baselines/4.34.0-1.20.1/import.json","import_manifest_sha256":"f1825a3c4b6e0161100cdaec1e57c1a65f1abcda8f5a6bbce92bc7e1cb6f30c8"},
+        {"target_id":"1.20.2","tag_commit":"cfbbafaeda4a006ae32743a92de330711983056b","import_manifest":"platform/minecraft/release-baselines/4.34.0-1.20.2/import.json","import_manifest_sha256":"6d1128187e0af653e83783d4c497a92e41d622fbe54c172708859160f41bc860"},
+        {"target_id":"1.20.3","tag_commit":"1b7f9605da0ef13c7601daf3786545868dfc3c78","import_manifest":"platform/minecraft/release-baselines/4.34.0-1.20.3/import.json","import_manifest_sha256":"6edf366867a8a650cbfa102c9b7bb14092416f4d22e8f447b6349072210849b3"},
+        {"target_id":"1.20.4","tag_commit":"a637581b5e1078d7cc0ca68333add568e3e387ff","import_manifest":"platform/minecraft/release-baselines/4.34.0-1.20.4/import.json","import_manifest_sha256":"1e0a35267c2d8da82349a49bef68883087af2267aa4e55a3a158be2df437a5c6"},
+        {"target_id":"1.21.0","tag_commit":"6bfab8a21e7a5bbeb0bb136bf4e5b26f6ce03e25","import_manifest":"platform/minecraft/release-baselines/4.34.0-1.21.0/import.json","import_manifest_sha256":"266ee5f5a560987b3098cd7700bbe8fc9d3b95fc420adb528cb340b1309449ff"},
+        {"target_id":"1.21.1","tag_commit":"f5366c79c823ff52712130e69dd9c8166c70bd14","import_manifest":"platform/minecraft/release-baselines/4.34.0-1.21.1/import.json","import_manifest_sha256":"788a870bd9954337562e616a87d8872b4fd72fdd3928fb83abf130ee041b65d5"},
+        {"target_id":"26.1.2","tag_commit":"fe32b29453b13b4f3050ad441677c7eb79e80814","import_manifest":"platform/minecraft/release-baselines/4.34.0-26.1.2/import.json","import_manifest_sha256":"ed0e0098700c911015f6801940885fcb9a8a40556e338587ab7b2bbbd2b0e164"}
+      ],
+      "identity":"blake3:1cd6a9078deb867e527f16b11644b3c07e3d916bffa3edfe4aacb0b40c72f7bd"
+    }
+  ]
+}

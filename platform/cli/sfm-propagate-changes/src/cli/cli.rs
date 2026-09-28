@@ -103,6 +103,8 @@ pub enum Command {
     Symbol(super::symbol::SymbolArgs),
     /// Highlight exact source text or run the reusable syntax worker.
     Syntax(super::syntax::SyntaxArgs),
+    /// Project version- and feature-specific Minecraft sources.
+    Source(super::source::SourceArgs),
     /// Inspect portable, resumable release-review sessions.
     Review(super::review::ReviewArgs),
     /// Repo root related commands
@@ -149,6 +151,7 @@ impl Command {
             Command::Test(args) => legacy_output(args.invoke(cancellation_token)),
             Command::Symbol(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::Syntax(args) => args.invoke(&cancellation_token),
+            Command::Source(args) => args.invoke_in(&cancellation_token, invocation_dir),
             Command::Review(args) => {
                 args.invoke_with_cancellation(invocation_dir, &cancellation_token)
             }

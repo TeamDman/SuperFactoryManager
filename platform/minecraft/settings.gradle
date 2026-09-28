@@ -6,5 +6,10 @@ pluginManagement {
     }
 }
 
-// IDEA uses the Gradle root project name when importing this project.
-rootProject.name = "sfm-${settingsDir.parentFile.parentFile.name}"
+// The version checkout keeps this project under platform/minecraft; a source
+// projection instead places it under mc-version/<version>. Both layouts must
+// retain the same Gradle project name for IDE imports and artifact naming.
+def sfmVersionLabel = settingsDir.name == 'minecraft'
+        ? settingsDir.parentFile.parentFile.name
+        : settingsDir.name
+rootProject.name = "sfm-${sfmVersionLabel}"

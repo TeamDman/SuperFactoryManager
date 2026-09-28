@@ -24,6 +24,7 @@ pub mod repo_root;
 pub mod review;
 pub mod run;
 pub mod server;
+pub mod source;
 pub mod symbol;
 pub mod syntax;
 pub mod test;
