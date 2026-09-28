@@ -74,13 +74,15 @@ struct AppliedFile {
 /// An existing manifest owns only the paths it lists. A new output path that
 /// collides with an unowned file is never adopted, even if its bytes match.
 /// Files removed from the desired set are reported as stale and never deleted.
+/// A maintainer can delete such a file explicitly, then use `Reconcile` to
+/// remove its provenance entry without deleting or overwriting anything else.
 /// This operation is not a concurrency protocol for editors that write during
 /// the final filesystem replacement window.
 ///
 /// # Errors
 ///
-/// Rejects unsafe paths, different manifest identities, edited or missing
-/// generated files, stale outputs, unowned collisions, and failed I/O. No
+/// Rejects unsafe paths, different manifest identities, edited generated
+/// files, unexpected missing outputs, stale outputs, unowned collisions, and failed I/O. No
 /// destination file is changed until all input and ownership checks pass.
 pub fn sync_projection(
     destination_root: &Path,
@@ -255,6 +257,12 @@ fn inspect(
             inspect_output_parents(root, path)?;
             let actual = read_regular_file_if_present(&destination)?;
             let Some(actual) = actual else {
+                if reconcile && !artifacts.contains_key(path) {
+                    // The maintainer has explicitly removed a no-longer-
+                    // projected file. Reconciliation only updates ownership;
+                    // it never performs the deletion itself.
+                    continue;
+                }
                 bail!("previously generated file '{path}' is missing; reconcile before sync");
             };
             let matches_previous = sha256(&actual) == provenance.output_sha256;
@@ -1025,6 +1033,37 @@ mod tests {
             "{collision_error}"
         );
         assert_eq!(fs::read(collision).unwrap(), b"already here\n");
+    }
+
+    #[test]
+    fn reconciliation_accepts_explicit_removal_of_a_stale_owned_file() {
+        let temporary = tempfile::tempdir().unwrap();
+        let destination = temporary.path().join("generated");
+        let identity = identity("released-4.34.0");
+        let mut original = files("first\n");
+        original.insert("src/main/java/Old.java".to_owned(), artifact("old\n"));
+        sync_projection(&destination, &identity, &original, SyncMode::Apply).unwrap();
+        let stale = destination.join("src/main/java/Old.java");
+        let wanted = files("first\n");
+
+        let error = sync_projection(&destination, &identity, &wanted, SyncMode::Reconcile)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("stale generated files"), "{error}");
+        assert_eq!(fs::read(&stale).unwrap(), b"old\n");
+
+        fs::remove_file(&stale).unwrap();
+        let error = sync_projection(&destination, &identity, &wanted, SyncMode::Apply)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("is missing"), "{error}");
+
+        let report = sync_projection(&destination, &identity, &wanted, SyncMode::Reconcile)
+            .unwrap();
+        assert!(report.manifest_changed);
+        assert!(report.created.is_empty() && report.updated.is_empty());
+        assert!(!stale.exists());
+        sync_projection(&destination, &identity, &wanted, SyncMode::Check).unwrap();
     }
 
     #[test]
