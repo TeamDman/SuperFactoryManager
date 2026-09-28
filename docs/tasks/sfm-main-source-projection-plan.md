@@ -72,6 +72,23 @@ M3 is the first meaningful proof, not a substitute for M5. Each phase records ex
 
 For every supported version, compare its 4.34.0 tag with the generated `released-4.34.0` project. Catalogue changes to JAR entries and contents, registrations, assets, commands, config, network codecs, saves, public Java API and gameplay. Mark each difference as guarded, intentionally retained for compatibility/safety, or unresolved. A source diff or successful compile alone does not prove behaviour parity. Keep a current-feature preset distinct, so the unreleased Touch Display and Client Manager work is not deleted to obtain release compatibility. After the next release, a new immutable released preset becomes the checked-in output baseline.
 
+The old release tags use toolchain lockfile schema v2 while current 1.19.2 development uses v4. Record dependency resolution, wrapper/plugin versions and packaging rules from each tag; source flags alone cannot make a newer build release-equivalent. The existing `sfm-propagate-changes jar compare` command can compare normalized JAR entry names and content hashes, ignoring only the manifest implementation timestamp unless strict mode is selected. Use it as one measure, not as a substitute for gameplay and save compatibility tests.
+
+| Minecraft branch | Commits since its 4.34.0 tag at audit | Gradle/JDK pilot role |
+| --- | ---: | --- |
+| 1.19.2 | 524 | ForgeGradle, Gradle 7.5, Java 17; first baseline |
+| 1.19.4 | 597 | Matrix |
+| 1.20 | 448 | Matrix |
+| 1.20.1 | 523 | Matrix |
+| 1.20.2 | 597 | Matrix |
+| 1.20.3 | 670 | Matrix |
+| 1.20.4 | 744 | Matrix |
+| 1.21.0 | 821 | Matrix; Gradle property and fragments use `1.21`, not branch spelling |
+| 1.21.1 | 899 | Intermediate Java 21 / Gradle 8.14.3 gate |
+| 26.1.2 | 979 | NeoGradle userdev, Gradle 9.5, Java 25; second pilot boundary |
+
+At the 4.34.0 tag baseline, 548 logical main-Java paths exist across the matrix: 222 are byte-identical in all ten versions, 298 exist in all ten but differ, and 28 are version-specific. This calls for a content-hash inventory and explicit overlays before attempting broad template consolidation. Use resolved `minecraft_version` and loader identity from each generated project's own configuration; do not infer filenames or loader from branch spelling or the mere presence of a property.
+
 Plain Gradle builds the checked-in release projection. Rust build/run may select a development preset in temporary output without a checked-in sync. Until release parity is evidenced, the generated baseline is labelled a candidate rather than advertised as release-compatible.
 
 ## Risks and controls
@@ -101,3 +118,4 @@ Plain Gradle builds the checked-in release projection. Rust build/run may select
 - 2026-09-28: Read-only audits found current 1.19.2 HEAD `7cc64ea9`, extensive uncommitted work, release tag `4.34.0-1.19.2`, existing whole-file feature profiles, hard-coded Java source roots and no implemented reverse refactoring. This exploratory worktree was created without changing the original checkout.
 - 2026-09-28: Liquid and Facet source audit found that Cloud-Terrastodon's current `ct pick` uses Serde-backed Liquid conversion, but SFM can build a direct `Facet` → `facet-value` → Liquid adapter. No prototype or build evidence yet.
 - 2026-09-28: Liquid's delimiters are hardcoded. Chosen prototype direction is an all-`.java`, full-line directive scanner with opaque Java chunks, so existing Java `{{` is not interpreted as Liquid.
+- 2026-09-28: Ten release tags and branch heads audited; all tags are ancestors. Selected 1.19.2 and 26.1.2 as the outer Gradle/JDK pilot, with 1.21.1 as an intermediate gate. Release lockfile/schema and build drift require more than Java flags.
