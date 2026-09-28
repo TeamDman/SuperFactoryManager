@@ -150,6 +150,153 @@ impl SymbolWorkspaceArgs {
     }
 }
 
+/// Read-only symbol queries may inspect a branch or a generated project.
+/// Mutation and long-running server commands retain their branch-only args.
+#[derive(Facet, Clone, Debug)]
+pub struct SymbolQueryWorkspaceArgs {
+    /// Branch selector providing the SFM/Minecraft/Java context.
+    #[facet(default, args::named)]
+    pub branch: Option<BranchSelector>,
+    /// Generated standalone Gradle project root, without branch resolution.
+    #[facet(default, args::named)]
+    pub project_root: Option<PathBuf>,
+    /// Override a branch Java source root. Repeat for multiple roots.
+    #[facet(default, args::named)]
+    pub source_root: Vec<PathBuf>,
+    /// Use the branch classpath or an isolated source-only classpath.
+    #[facet(default, args::named)]
+    pub classpath_mode: Option<JavaClasspathMode>,
+    /// Explicit exact-major JDK home for a generated project.
+    #[facet(default, args::named)]
+    pub java_home: Option<PathBuf>,
+}
+
+pub struct ResolvedSymbolQueryWorkspace {
+    pub workspace: JavaSourceWorkspace,
+    pub branch: BranchSelector,
+    pub generated_project: bool,
+}
+
+pub(super) fn project_jdk_diagnostics(
+    resolved: &ResolvedSymbolQueryWorkspace,
+) -> Vec<crate::java_analysis::JavaAnalysisDiagnosticOutput> {
+    if !resolved.generated_project {
+        return Vec::new();
+    }
+    resolved
+        .workspace
+        .diagnostics
+        .iter()
+        .filter(|diagnostic| diagnostic.code == "java.jdk-source-unavailable")
+        .cloned()
+        .collect()
+}
+
+pub(super) fn append_project_jdk_diagnostics(
+    diagnostics: &mut Vec<crate::java_analysis::JavaAnalysisDiagnosticOutput>,
+    project_diagnostics: Vec<crate::java_analysis::JavaAnalysisDiagnosticOutput>,
+) {
+    if project_diagnostics.is_empty() {
+        return;
+    }
+    diagnostics.extend(project_diagnostics);
+    diagnostics.sort();
+    diagnostics.dedup();
+}
+
+impl SymbolQueryWorkspaceArgs {
+    /// # Errors
+    ///
+    /// Returns an error for ambiguous or incompatible workspace selectors.
+    pub fn validate(&self) -> eyre::Result<()> {
+        match (&self.branch, &self.project_root) {
+            (Some(_), None) => {
+                if self.java_home.is_some() {
+                    eyre::bail!("--java-home requires --project-root");
+                }
+                if !self.source_root.is_empty() && self.classpath_mode.is_none() {
+                    eyre::bail!("--source-root requires explicit --classpath-mode branch|isolated");
+                }
+                if self.source_root.is_empty()
+                    && matches!(self.classpath_mode, Some(JavaClasspathMode::Isolated))
+                {
+                    eyre::bail!("--classpath-mode isolated requires at least one --source-root");
+                }
+            }
+            (None, Some(project_root)) => {
+                if project_root.as_os_str().is_empty() {
+                    eyre::bail!("--project-root cannot be empty");
+                }
+                if !self.source_root.is_empty() || self.classpath_mode.is_some() {
+                    eyre::bail!(
+                        "--project-root cannot be combined with --source-root or --classpath-mode"
+                    );
+                }
+            }
+            (Some(_), Some(_)) => {
+                eyre::bail!("choose exactly one of --branch or --project-root");
+            }
+            (None, None) => {
+                eyre::bail!("provide exactly one of --branch or --project-root");
+            }
+        }
+        Ok(())
+    }
+
+    /// Resolve a query workspace without acquiring project dependencies.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the selected workspace cannot be read.
+    pub fn resolve(self, invocation_dir: &Path) -> eyre::Result<ResolvedSymbolQueryWorkspace> {
+        self.validate()?;
+        if let Some(branch) = self.branch {
+            let mode = self.classpath_mode.unwrap_or(JavaClasspathMode::Branch);
+            let workspace = JavaSourceWorkspace::resolve(
+                branch.clone(),
+                &self.source_root,
+                mode,
+                invocation_dir,
+            )?;
+            return Ok(ResolvedSymbolQueryWorkspace {
+                workspace,
+                branch,
+                generated_project: false,
+            });
+        }
+        let project_root = self
+            .project_root
+            .ok_or_else(|| eyre::eyre!("--project-root is required"))?;
+        let project_root = resolve_invocation_path(project_root, invocation_dir);
+        let java_home = self
+            .java_home
+            .map(|home| resolve_invocation_path(home, invocation_dir));
+        let workspace = JavaSourceWorkspace::resolve_generated_project_with_java_home(
+            &project_root,
+            java_home.as_deref(),
+        )?;
+        eyre::ensure!(
+            workspace.context.classpath_mode == JavaClasspathMode::Isolated
+                && workspace.classpath_entries.is_empty(),
+            "generated-project symbol query must remain isolated from branch dependencies"
+        );
+        let branch = BranchSelector(workspace.context.branch.clone());
+        Ok(ResolvedSymbolQueryWorkspace {
+            workspace,
+            branch,
+            generated_project: true,
+        })
+    }
+}
+
+fn resolve_invocation_path(path: PathBuf, invocation_dir: &Path) -> PathBuf {
+    if path.is_absolute() {
+        path
+    } else {
+        invocation_dir.join(path)
+    }
+}
+
 pub(super) struct ParsedMutationRequest {
     pub selector: JavaSymbolSelector,
     pub destination: String,
@@ -466,9 +613,111 @@ mod tests {
     }
 
     #[test]
-    fn symbol_cli_requires_branch() {
-        figue::from_slice::<Cli>(&["symbol", "show-definition", "example.A"])
+    fn read_only_queries_require_one_workspace_selector() {
+        let absent = parse(&["symbol", "show-definition", "example.A"]);
+        let CliCommand::Symbol(SymbolArgs {
+            command: SymbolCommand::ShowDefinition(absent),
+        }) = absent.command
+        else {
+            panic!("expected show-definition command");
+        };
+        assert!(absent.workspace.validate().is_err());
+
+        let project = parse(&[
+            "symbol",
+            "list",
+            "example.*",
+            "--project-root",
+            "generated-project",
+        ]);
+        let CliCommand::Symbol(SymbolArgs {
+            command: SymbolCommand::List(project),
+        }) = project.command
+        else {
+            panic!("expected list command");
+        };
+        assert_eq!(
+            project.workspace.project_root.as_deref(),
+            Some(Path::new("generated-project"))
+        );
+        project.workspace.validate().unwrap();
+
+        let both = parse(&[
+            "symbol",
+            "list",
+            "--branch",
+            "1.19.2",
+            "--project-root",
+            "generated-project",
+        ]);
+        let CliCommand::Symbol(SymbolArgs {
+            command: SymbolCommand::List(both),
+        }) = both.command
+        else {
+            panic!("expected list command");
+        };
+        assert!(both.workspace.validate().is_err());
+
+        figue::from_slice::<Cli>(&["symbol", "rename", "example.A", "NewName"])
             .into_result()
-            .unwrap_err();
+            .expect_err("mutation command still requires --branch");
+    }
+
+    #[test]
+    fn generated_project_query_options_are_isolated_from_branch_options() {
+        for (command, selector) in [
+            ("list", "example.*"),
+            ("show-definition", "example.A"),
+            ("list-usages", "example.A"),
+        ] {
+            let args = [
+                "symbol",
+                command,
+                selector,
+                "--project-root",
+                "generated-project",
+            ];
+            let cli = parse(&args);
+            let workspace = match cli.command {
+                CliCommand::Symbol(SymbolArgs {
+                    command: SymbolCommand::List(args),
+                }) => args.workspace,
+                CliCommand::Symbol(SymbolArgs {
+                    command: SymbolCommand::ShowDefinition(args),
+                }) => args.workspace,
+                CliCommand::Symbol(SymbolArgs {
+                    command: SymbolCommand::ListUsages(args),
+                }) => args.workspace,
+                _ => panic!("expected read-only symbol query"),
+            };
+            workspace.validate().unwrap();
+            assert!(workspace.branch.is_none());
+            assert_eq!(
+                workspace.project_root,
+                Some(PathBuf::from("generated-project"))
+            );
+        }
+
+        let base = SymbolQueryWorkspaceArgs {
+            branch: None,
+            project_root: Some(PathBuf::from("generated-project")),
+            source_root: Vec::new(),
+            classpath_mode: None,
+            java_home: Some(PathBuf::from("selected-jdk")),
+        };
+        base.validate().unwrap();
+        let mut conflicting = base.clone();
+        conflicting.source_root.push(PathBuf::from("custom-source"));
+        assert!(conflicting.validate().is_err());
+        let mut conflicting = base.clone();
+        conflicting.classpath_mode = Some(JavaClasspathMode::Branch);
+        assert!(conflicting.validate().is_err());
+        let mut conflicting = base;
+        conflicting.project_root = None;
+        conflicting.branch = Some(BranchSelector("1.19.2".to_owned()));
+        assert!(
+            conflicting.validate().is_err(),
+            "--java-home is project-only"
+        );
     }
 }

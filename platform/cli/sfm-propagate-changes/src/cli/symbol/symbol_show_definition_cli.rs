@@ -1,4 +1,4 @@
-use super::SymbolWorkspaceArgs;
+use super::SymbolQueryWorkspaceArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::java_analysis::DefinitionAtPositionEngine;
@@ -32,7 +32,7 @@ pub struct SymbolShowDefinitionArgs {
     #[facet(default, args::named)]
     pub column: Option<u64>,
     #[facet(flatten)]
-    pub workspace: SymbolWorkspaceArgs,
+    pub workspace: SymbolQueryWorkspaceArgs,
 }
 
 #[derive(Debug)]
@@ -61,14 +61,20 @@ impl SymbolShowDefinitionArgs {
     ///
     /// Returns an error when selector parsing, workspace resolution, parsing,
     /// or indexing fails.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "selector and location queries share a fail-closed generated-project workspace"
+    )]
     pub fn invoke_in(
         self,
         cancellation_token: &CancellationToken,
         invocation_dir: &Path,
     ) -> eyre::Result<CliOutput> {
         let input = self.input()?;
-        let branch = self.workspace.branch.clone();
-        let workspace = self.workspace.resolve(invocation_dir)?;
+        let resolved = self.workspace.resolve(invocation_dir)?;
+        let project_diagnostics = super::project_jdk_diagnostics(&resolved);
+        let branch = resolved.branch;
+        let workspace = resolved.workspace;
         match input {
             SymbolShowDefinitionInput::Selector(selector) => {
                 let (index, dependency_index) = super::build_query_index(
@@ -82,6 +88,7 @@ impl SymbolShowDefinitionArgs {
                 if let Some(dependency_index) = dependency_index {
                     report = report.with_dependency_index(dependency_index);
                 }
+                super::append_project_jdk_diagnostics(&mut report.diagnostics, project_diagnostics);
                 let exit_code = report.status();
                 Ok(CliOutput::facet_with_csv_and_status(
                     report,
@@ -154,7 +161,8 @@ impl SymbolShowDefinitionArgs {
                     dependency_source_roots,
                     DefinitionAtPositionEngineLimits::default(),
                 )?;
-                let report = engine.analyze(&request, cancellation_token)?;
+                let mut report = engine.analyze(&request, cancellation_token)?;
+                super::append_project_jdk_diagnostics(&mut report.diagnostics, project_diagnostics);
                 let exit_code = report.status();
                 Ok(CliOutput::facet_with_csv_and_status(
                     report,
