@@ -6,6 +6,7 @@
 
 pub mod context;
 pub mod development_baseline;
+pub mod development_fixtures;
 pub mod development_gradle;
 mod directive_scanner;
 pub mod inputs;

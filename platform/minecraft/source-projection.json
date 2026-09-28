@@ -31,19 +31,58 @@
       ],
       "resource_effects": [],
       "dependency_effects": []
+    },
+    {
+      "id": "touch_display_terminal_mount",
+      "supported_targets": ["1.19.2","1.19.4"],
+      "requires": [],
+      "source_effects": [
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/action/SFMTerminalDisplayAction.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMTerminalDisplayAction.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/action/SFMTerminalDisplayActions.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMTerminalDisplayActions.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/action/SFMTerminalMountsControlAction.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/SFMTerminalMountsControlAction.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTerminalMountsScreenType.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMTerminalMountsScreenType.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBinding.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBinding.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBroker.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBroker.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalCleanup.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalCleanup.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueue.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueue.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalMountsPanel.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalMountsPanel.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalRasterTarget.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalRasterTarget.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalRuntime.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalRuntime.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransport.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransport.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocol.java","kind":"Include","input_path":"platform/minecraft/src/main/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocol.java"},
+        {"output_path":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ExploreTouchDisplayTerminalPuppetAction.java","kind":"Include","input_path":"platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/action/ExploreTouchDisplayTerminalPuppetAction.java"},
+        {"output_path":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/InWorldTouchDisplayTerminalGamePuppet.java","kind":"Include","input_path":"platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/puppet/definition/InWorldTouchDisplayTerminalGamePuppet.java"},
+        {"output_path":"src/gametest/java/ca/teamdman/sfm/gametest/tests/general/OwnedTouchDisplayTerminalFixture.java","kind":"Include","input_path":"platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/OwnedTouchDisplayTerminalFixture.java"},
+        {"output_path":"src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayTerminalIntegrationGameTest.java","kind":"Include","input_path":"platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayTerminalIntegrationGameTest.java"},
+        {"output_path":"src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayTerminalVisualControl.java","kind":"Include","input_path":"platform/minecraft/src/gametest/java/ca/teamdman/sfm/gametest/tests/general/TouchDisplayTerminalVisualControl.java"},
+        {"output_path":"src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalActionTests.java","kind":"Include","input_path":"platform/minecraft/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalActionTests.java"},
+        {"output_path":"src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java","kind":"Include","input_path":"platform/minecraft/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalBrokerTests.java"},
+        {"output_path":"src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalCleanupTests.java","kind":"Include","input_path":"platform/minecraft/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalCleanupTests.java"},
+        {"output_path":"src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueueTests.java","kind":"Include","input_path":"platform/minecraft/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalInputQueueTests.java"},
+        {"output_path":"src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java","kind":"Include","input_path":"platform/minecraft/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalServiceTransportTests.java"},
+        {"output_path":"src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocolTests.java","kind":"Include","input_path":"platform/minecraft/src/test/java/ca/teamdman/sfm/client/terminal/TouchDisplayTerminalWorkerProtocolTests.java"},
+        {"output_path":"src/test/java/ca/teamdman/sfm/gametest/puppet/TouchDisplayTerminalVisualControlTests.java","kind":"Include","input_path":"platform/minecraft/src/test/java/ca/teamdman/sfm/gametest/puppet/TouchDisplayTerminalVisualControlTests.java"},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/SFMClientRegistrations.java","kind":"Template","input_path":null},
+        {"output_path":"src/main/java/ca/teamdman/sfm/client/screen/workspace/SFMWorkspaceScreenTypes.java","kind":"Template","input_path":null},
+        {"output_path":"src/gametest/java/ca/teamdman/sfm/gametest/puppet/SFMGamePuppetHelper.java","kind":"Template","input_path":null},
+        {"output_path":"src/test/java/ca/teamdman/sfm/client/tooltip/SFMTooltipModeSourceTests.java","kind":"Template","input_path":null}
+      ],
+      "resource_effects": [],
+      "dependency_effects": []
     }
   ],
   "presets": [
-    {"id":"current-development-pilot","targets":["1.19.2"],"enabled_features":["echo_action"],"identity":"blake3:c9cc25c2091093786c5dd22169e8892f68a45dc3f951315f67e8f77d89ff2bef"},
-    {"id":"current-development-no-echo","targets":["1.19.2"],"enabled_features":[],"identity":"blake3:356aad1ea19125279bb4f2cf03c299cbc70743e83da440f3a66bf3ae190555df"},
+    {"id":"current-development-pilot","targets":["1.19.2"],"enabled_features":["echo_action","touch_display_terminal_mount"],"identity":"blake3:6a5df91a9c4d96f9d680d80a848990f5c1a468c324cedef209fd1d7bc1085885"},
+    {"id":"current-development-no-echo","targets":["1.19.2"],"enabled_features":["touch_display_terminal_mount"],"identity":"blake3:777b92b08d76fb8b7df1bfa0d269cde36b0b3d2120ded783882e946db99bb6d8"},
+    {"id":"current-development-no-touch-terminal","targets":["1.19.2"],"enabled_features":["echo_action"],"identity":"blake3:c450f372535b519822c398c41fd88c4e0c3bcc334d81d2e6c2f9254d795088e3"},
     {
       "id":"current-development-head-1.19.4",
       "targets":["1.19.4"],
-      "enabled_features":[],
+      "enabled_features":["touch_display_terminal_mount"],
       "release_baselines":[
-        {"target_id":"1.19.4","tag_commit":"2e3b561c15d663fb89fd353ccc2af67eeb0c2053","import_manifest":"platform/minecraft/development-baselines/1.19.4/import.json","import_manifest_sha256":"91cc665798cd78022c4c703c260f190d1ef3eb7bd6411964acd6fdd44155f2fb","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"7438bdb10fd4e86b2d4ff320d9bc60d942dc6d2595941cba919497adf1d1e8cd"}
+        {"target_id":"1.19.4","tag_commit":"2e3b561c15d663fb89fd353ccc2af67eeb0c2053","import_manifest":"platform/minecraft/development-baselines/1.19.4/import.json","import_manifest_sha256":"91cc665798cd78022c4c703c260f190d1ef3eb7bd6411964acd6fdd44155f2fb","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"7438bdb10fd4e86b2d4ff320d9bc60d942dc6d2595941cba919497adf1d1e8cd","project_fixture_provenance_sha256":"2ba218b46144fe1acee360c86170348d81290a8601d8550513d93b53bea158af"}
       ],
-      "identity":"blake3:58a605e1cc1529e8ae85f171eb7478d8059053fcd870fc26f50ba61446567cd4"
+      "identity":"blake3:6b2f9c259c4282fc59c2faa2f917c8ac7d8ccfd98932c034ee4fe50a41ccc9a6"
     },
     {
       "id":"released-4.34.0",

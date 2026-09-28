@@ -123,6 +123,10 @@ pub struct ReleaseBaselineBinding {
     /// Hash of the separately pinned Gradle-input provenance document.
     #[facet(default)]
     pub gradle_provenance_sha256: Option<String>,
+    /// Hash of the exact project-root examples and test fixtures import.
+    /// Release-tag presets do not import these development-only test inputs.
+    #[facet(default)]
+    pub project_fixture_provenance_sha256: Option<String>,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, Facet, PartialEq)]
@@ -493,6 +497,13 @@ impl SourceProjectionManifest {
                             .as_deref()
                             .unwrap_or_default(),
                     );
+                    hash_part(
+                        &mut hasher,
+                        baseline
+                            .project_fixture_provenance_sha256
+                            .as_deref()
+                            .unwrap_or_default(),
+                    );
                 }
             }
         }
@@ -547,6 +558,7 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                 }
                 if baseline.canonical_commit.is_some()
                     || baseline.gradle_provenance_sha256.is_some()
+                    || baseline.project_fixture_provenance_sha256.is_some()
                 {
                     eyre::bail!("release import cannot declare development-head identities");
                 }
@@ -575,6 +587,14 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                         .unwrap_or_default(),
                     64,
                     "development Gradle provenance SHA-256",
+                )?;
+                validate_lower_hex(
+                    baseline
+                        .project_fixture_provenance_sha256
+                        .as_deref()
+                        .unwrap_or_default(),
+                    64,
+                    "development project fixture provenance SHA-256",
                 )?;
             }
         }
@@ -765,6 +785,7 @@ mod tests {
             kind: BaselineKind::ReleaseTag,
             canonical_commit: None,
             gradle_provenance_sha256: None,
+            project_fixture_provenance_sha256: None,
         }
     }
 
@@ -819,7 +840,7 @@ mod tests {
     }
 
     #[test]
-    fn development_head_binding_requires_both_pinned_commits_and_gradle_hash() {
+    fn development_head_binding_requires_pinned_commits_gradle_and_fixture_hashes() {
         let mut manifest = sample();
         let mut binding = release_binding("1.19.2");
         binding.kind = BaselineKind::DevelopmentHead;
@@ -827,6 +848,7 @@ mod tests {
             "platform/minecraft/development-baselines/1.19.2/import.json".to_owned();
         binding.canonical_commit = Some("c".repeat(40));
         binding.gradle_provenance_sha256 = Some("d".repeat(64));
+        binding.project_fixture_provenance_sha256 = Some("e".repeat(64));
         manifest.presets[0].release_baselines.push(binding);
         manifest.presets[0].identity = manifest
             .compute_preset_identity(&manifest.presets[0])
@@ -842,6 +864,9 @@ mod tests {
         assert!(manifest.validate().is_err());
         manifest.presets[0].release_baselines[0].canonical_commit = Some("c".repeat(40));
         manifest.presets[0].release_baselines[0].gradle_provenance_sha256 = None;
+        assert!(manifest.validate().is_err());
+        manifest.presets[0].release_baselines[0].gradle_provenance_sha256 = Some("d".repeat(64));
+        manifest.presets[0].release_baselines[0].project_fixture_provenance_sha256 = None;
         assert!(manifest.validate().is_err());
     }
 

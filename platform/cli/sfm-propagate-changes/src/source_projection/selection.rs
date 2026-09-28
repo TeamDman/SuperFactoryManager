@@ -195,6 +195,7 @@ mod tests {
                 kind: super::super::manifest::BaselineKind::ReleaseTag,
                 canonical_commit: None,
                 gradle_provenance_sha256: None,
+                project_fixture_provenance_sha256: None,
             });
         manifest.presets[0].identity = manifest
             .compute_preset_identity(&manifest.presets[0])

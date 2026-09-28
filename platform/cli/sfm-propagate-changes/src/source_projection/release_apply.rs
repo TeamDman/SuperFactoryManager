@@ -1,8 +1,8 @@
-//! Apply a pinned release path mask and divergent-file overlays before sync.
+//! Apply a pinned source path mask and divergent-file overlays before sync.
 //!
-//! This is deliberately source-only. Tagged Gradle inputs and published-JAR
-//! parity have separate gates. The whole artifact map is swapped only after
-//! the report, every retained source and every overlay pass validation.
+//! Development projections also add pinned test fixtures. Gradle inputs and
+//! published-JAR parity have separate gates. The whole artifact map is swapped
+//! only after sources, overlays, and fixtures pass validation.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -12,6 +12,8 @@ use eyre::{Result, WrapErr, ensure};
 
 use super::context::ProjectionContext;
 use super::development_baseline::DEVELOPMENT_SOURCE_SCHEMA;
+use super::development_baseline::DevelopmentHeadSpec;
+use super::development_fixtures::collect_verified_development_project_fixtures;
 use super::development_gradle::verify_development_gradle_inputs;
 use super::inputs::{apply_explicit_inputs, render_java_artifact};
 use super::manifest::{BaselineKind, ReleaseBaselineBinding};
@@ -60,9 +62,9 @@ pub fn release_source_paths(
 
 /// Apply one pinned release source mask to already-collected artifacts.
 ///
-/// Only `src/...` entries are filtered. Non-source project inputs are left
-/// alone for the separate Gradle release-input selector. Source Java overlays
-/// pass through the same renderer and generated banner as ordinary inputs.
+/// Only `src/...` entries are filtered. Development fixtures are then added as
+/// verified non-source inputs; Gradle inputs use a separate selector. Source
+/// Java overlays pass through the same renderer and banner as ordinary inputs.
 ///
 /// # Errors
 ///
@@ -91,6 +93,7 @@ pub fn apply_release_baseline(
         .count();
     pending.retain(|path, _| !path.starts_with("src/") || release_paths.contains(path));
     let mut pinned_tag_fallback_files = 0;
+    let mut verified_template_drift = BTreeSet::new();
     for (path, record) in &target.paths {
         if record.classification != BaselinePathClass::Unchanged {
             continue;
@@ -105,10 +108,27 @@ pub fn apply_release_baseline(
         {
             continue;
         }
-        ensure!(
-            binding.kind == BaselineKind::ReleaseTag,
-            "committed-development source '{path}' changed from its pinned canonical snapshot"
-        );
+        if binding.kind == BaselineKind::DevelopmentHead {
+            // Canonical Java may gain Liquid-only guards after a development
+            // head was imported. Accept that drift only when the selected
+            // output remains byte-identical to the pinned committed source.
+            // This does not let a semantic canonical edit silently change a
+            // version snapshot; it must be imported/reviewed explicitly.
+            let oid = record.release_blob_oid.as_deref().ok_or_else(|| {
+                eyre::eyre!("development source `{path}` has no pinned Git blob OID")
+            })?;
+            let bytes = read_pinned_blob(repo_root, &target.tag_commit, path, oid, expected)?;
+            ensure!(
+                pending
+                    .get(path)
+                    .map(|artifact| rendered_java_matches_pinned(path, artifact, &bytes, context))
+                    .transpose()?
+                    .unwrap_or(false),
+                "committed-development source '{path}' changed from its pinned canonical snapshot"
+            );
+            verified_template_drift.insert(path.clone());
+            continue;
+        }
         // A common file may evolve on the development branch years after the
         // release. The exact tagged blob remains the immutable source of truth.
         let oid = record
@@ -143,7 +163,7 @@ pub fn apply_release_baseline(
             .as_deref()
             .ok_or_else(|| eyre::eyre!("release source `{path}` has no declared SHA-256"))?;
         ensure!(
-            sha256(&artifact.source_bytes) == expected,
+            sha256(&artifact.source_bytes) == expected || verified_template_drift.contains(path),
             "release source `{path}` differs from the pinned tag SHA-256"
         );
         if record.release_overlay_path.is_some() {
@@ -156,6 +176,31 @@ pub fn apply_release_baseline(
         }
     }
 
+    if binding.kind == BaselineKind::DevelopmentHead {
+        let spec = DevelopmentHeadSpec {
+            target_id: binding.target_id.clone(),
+            canonical_commit: binding
+                .canonical_commit
+                .clone()
+                .ok_or_else(|| eyre::eyre!("development canonical commit is missing"))?,
+            target_commit: binding.tag_commit.clone(),
+        };
+        let fixtures = collect_verified_development_project_fixtures(
+            repo_root,
+            &spec,
+            binding
+                .project_fixture_provenance_sha256
+                .as_deref()
+                .ok_or_else(|| eyre::eyre!("development fixture provenance hash is missing"))?,
+        )?;
+        for (path, artifact) in fixtures {
+            ensure!(
+                pending.insert(path.clone(), artifact).is_none(),
+                "development fixture output '{path}' collides with a source artifact"
+            );
+        }
+    }
+
     let result = ReleaseApplyReport {
         retained_source_files: release_paths.len(),
         masked_development_files,
@@ -164,6 +209,25 @@ pub fn apply_release_baseline(
     };
     *artifacts = pending;
     Ok(result)
+}
+
+fn rendered_java_matches_pinned(
+    path: &str,
+    current: &ProjectedArtifact,
+    pinned_source: &[u8],
+    context: &ProjectionContext,
+) -> Result<bool> {
+    if !path.ends_with(".java") {
+        return Ok(false);
+    }
+    let mut pinned = ProjectedArtifact {
+        source_path: format!("pinned-committed-tree/{path}"),
+        source_bytes: pinned_source.to_vec(),
+        output_bytes: pinned_source.to_vec(),
+        overlay: None,
+    };
+    render_java_artifact(path, &mut pinned, context)?;
+    Ok(current.output_bytes == pinned.output_bytes)
 }
 
 fn import_prefix(kind: BaselineKind) -> &'static str {
@@ -507,6 +571,27 @@ mod tests {
         }
     }
 
+    #[test]
+    fn committed_java_accepts_only_template_drift_with_identical_output() {
+        let mut context = context();
+        context
+            .features
+            .insert("touch_display_terminal_mount".to_owned(), true);
+        let path = "src/main/java/Same.java";
+        let pinned = b"class Same {\n    void mount() {}\n}\n";
+        let templated = b"class Same {\n{% if features.touch_display_terminal_mount %}\n    void mount() {}\n{% endif %}\n}\n";
+        let mut current = artifact(path, templated);
+        render_java_artifact(path, &mut current, &context).unwrap();
+        assert!(rendered_java_matches_pinned(path, &current, pinned, &context).unwrap());
+
+        context
+            .features
+            .insert("touch_display_terminal_mount".to_owned(), false);
+        render_java_artifact(path, &mut current, &context).unwrap();
+        assert!(!rendered_java_matches_pinned(path, &current, pinned, &context).unwrap());
+        assert!(!rendered_java_matches_pinned("src/same.txt", &current, pinned, &context).unwrap());
+    }
+
     fn record(
         classification: BaselinePathClass,
         release: Option<&[u8]>,
@@ -566,6 +651,7 @@ mod tests {
             kind: super::super::manifest::BaselineKind::ReleaseTag,
             canonical_commit: None,
             gradle_provenance_sha256: None,
+            project_fixture_provenance_sha256: None,
         }
     }
 

@@ -12,7 +12,9 @@ import ca.teamdman.sfm.client.action.SFMReviewActions;
 import ca.teamdman.sfm.client.action.SFMRouteComparisonActions;
 import ca.teamdman.sfm.client.action.SFMSpatialActions;
 import ca.teamdman.sfm.client.action.SFMSymbolActions;
+{% if features.touch_display_terminal_mount %}
 import ca.teamdman.sfm.client.action.SFMTerminalDisplayActions;
+{% endif %}
 import ca.teamdman.sfm.client.action.SFMTooltipModeActions;
 import ca.teamdman.sfm.client.action.SFMTrajectoryActions;
 import ca.teamdman.sfm.client.action.SFMWorkspaceCounterfactualActions;
@@ -62,7 +64,9 @@ public final class SFMClientRegistrations {
         SFMPacketActions.register(bus);
         SFMClientProgramConsentActions.register(bus);
         SFMClientProgramReadActions.register(bus);
+{% if features.touch_display_terminal_mount %}
         SFMTerminalDisplayActions.register(bus);
+{% endif %}
         SFMSymbolActions.register(bus);
         SFMSpatialActions.register(bus);
         SFMTrajectoryActions.register(bus);

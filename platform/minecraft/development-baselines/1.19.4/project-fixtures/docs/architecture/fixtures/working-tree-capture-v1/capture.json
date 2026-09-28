@@ -1,0 +1,74 @@
+{
+  "schema": "sfm.release-review.working-tree-capture/1",
+  "id": "working-tree:sha256:b4744d1e1c7c092e7a40ce9b30b3909c75094649c9ecb854dba98d2dfc6ba6fc",
+  "observed_head_commit": "1111111111111111111111111111111111111111",
+  "observed_head_tree": "2222222222222222222222222222222222222222",
+  "captured_at_unix_ms": 1788726000000,
+  "consistency": "verified_two_pass",
+  "scope_paths": [
+    "src"
+  ],
+  "excluded_paths": [
+    "src/private"
+  ],
+  "include_untracked": true,
+  "entries": [
+    {
+      "path": "src/Café.java",
+      "kind": "regular_file",
+      "tracked": false,
+      "byte_length": 17,
+      "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "executable": false,
+      "materialization": "utf8",
+      "document_revision_id": "fixture:after:cafe"
+    },
+    {
+      "path": "src/Deleted.java",
+      "kind": "deleted",
+      "tracked": true,
+      "executable": false,
+      "materialization": "unavailable",
+      "diagnostic": "File was removed from disk"
+    },
+    {
+      "path": "src/Raw.bin",
+      "kind": "regular_file",
+      "tracked": true,
+      "byte_length": 2,
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "executable": false,
+      "materialization": "binary",
+      "diagnostic": "Not UTF-8 text"
+    },
+    {
+      "path": "src/Unchanged.java",
+      "kind": "regular_file",
+      "tracked": true,
+      "byte_length": 12,
+      "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "executable": false,
+      "materialization": "unchanged"
+    },
+    {
+      "path": "src/.txt",
+      "kind": "regular_file",
+      "tracked": false,
+      "byte_length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "executable": false,
+      "materialization": "utf8",
+      "document_revision_id": "fixture:after:bmp"
+    },
+    {
+      "path": "src/𐀀.txt",
+      "kind": "regular_file",
+      "tracked": false,
+      "byte_length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "executable": false,
+      "materialization": "utf8",
+      "document_revision_id": "fixture:after:astral"
+    }
+  ]
+}

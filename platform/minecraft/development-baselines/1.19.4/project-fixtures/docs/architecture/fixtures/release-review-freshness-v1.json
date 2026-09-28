@@ -1,0 +1,31 @@
+{
+  "schema": "sfm.release-review-freshness/1",
+  "repository_relationships": [{
+    "schema": "sfm.release-review.ambient-repository-relationship/1",
+    "lane_id": "1.19.2",
+    "repository_id": "sfm",
+    "root_hint": ".",
+    "repository_root": ".",
+    "candidate_commit": "2222222222222222222222222222222222222222",
+    "ambient_head": "2222222222222222222222222222222222222222",
+    "classification": "exact",
+    "candidate_is_ancestor": true,
+    "intervening_commits": [],
+    "permitted_review_evidence_paths": ["docs/reviews/example.sfm-review.json"],
+    "changed_paths": [],
+    "source_affecting_paths": [],
+    "diagnostics": [{"code": "ambient.head-exact", "message": "Ambient HEAD matches the pinned candidate"}],
+    "working_tree": {
+      "schema": "sfm.release-review.working-tree-evidence/1",
+      "checked_at_unix_millis": 1788716534000,
+      "head": "2222222222222222222222222222222222222222",
+      "source_dirty": true,
+      "changes": [{
+        "index_status": "?", "worktree_status": "?",
+        "path": {"utf8": "New.java", "display": "New.java", "bytes_hex": "4e65772e6a617661"},
+        "review_evidence_only": false
+      }],
+      "diagnostics": []
+    }
+  }]
+}

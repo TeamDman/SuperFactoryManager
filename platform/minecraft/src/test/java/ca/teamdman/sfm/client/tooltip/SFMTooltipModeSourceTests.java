@@ -51,8 +51,12 @@ class SFMTooltipModeSourceTests {
                 "SFMTooltipModeActions",
                 "SFMPacketActions",
                 "SFMClientProgramConsentActions",
+{% if features.touch_display_terminal_mount %}
                 "SFMClientProgramReadActions",
                 "SFMTerminalDisplayActions"
+{% else %}
+                "SFMClientProgramReadActions"
+{% endif %}
         )) {
             int action = clientRegistration.indexOf(contributor + ".register(bus)");
             assertTrue(action >= 0 && action < clientSetup, contributor);

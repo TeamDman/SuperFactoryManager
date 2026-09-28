@@ -15,8 +15,10 @@ public final class SFMWorkspaceScreenTypes {
     public static final SFMRegistryObject<SFMClientScreenType, SFMClientProgramConsentsScreenType> CLIENT_SCRIPT_CONSENTS =
             REGISTERER.register("client_script_consents", SFMClientProgramConsentsScreenType::new);
 
+{% if features.touch_display_terminal_mount %}
     public static final SFMRegistryObject<SFMClientScreenType, SFMTerminalMountsScreenType> TERMINAL_MOUNTS =
             REGISTERER.register("terminal_mounts", SFMTerminalMountsScreenType::new);
+{% endif %}
 
     public static final SFMRegistryObject<SFMClientScreenType, SFMTestScreenType> TEST_SCREEN = REGISTERER.register(
             "test_screen",

@@ -566,7 +566,7 @@ pub(crate) fn stage_and_install_imports(
     Ok(installed)
 }
 
-fn preflight_imports(
+pub(crate) fn preflight_imports(
     root: &Path,
     desired: &BTreeMap<String, ImportFile>,
 ) -> Result<BTreeSet<String>> {

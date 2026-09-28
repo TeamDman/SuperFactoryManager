@@ -1251,11 +1251,13 @@ public final class SFMGamePuppetHelper {
         add(new RemoteMultiplayerPacketBoundaryPuppetAction());
     }
 
+{% if features.touch_display_terminal_mount %}
     /** Opt-in real terminal pixels and gameplay press, sharing the ambient fixture's owned worker. */
     public void exploreTouchDisplayTerminalInteractively(
             ca.teamdman.sfm.gametest.tests.general.TouchDisplayTerminalVisualControl control) {
         add(new ExploreTouchDisplayTerminalPuppetAction(Objects.requireNonNull(control)));
     }
+{% endif %}
 
     /** Opt-in file-driven vanilla item rendering and actual hovered Alt+D acceptance. */
     public void explorePacketInspectionInteractively() {

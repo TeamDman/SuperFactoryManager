@@ -1,0 +1,139 @@
+{
+  "schema": "sfm:development-project-fixtures@1",
+  "target_id": "1.19.4",
+  "canonical_commit": "b046574be908e40d647858dedc872ab9c4305170",
+  "target_commit": "2e3b561c15d663fb89fd353ccc2af67eeb0c2053",
+  "file_count": 26,
+  "files": {
+    "docs/architecture/fixtures/release-review-freshness-v1.json": {
+      "git_mode": "100644",
+      "blob_oid": "49e2b48cbd0c1c887e58635d7396895f11e0fb87",
+      "sha256": "sha256:e4463a901127643ecca7a9d7fa8241059cc0e63e7f5bb4c9d1ff0e0eff9881f2"
+    },
+    "docs/architecture/fixtures/release-review-v1.json": {
+      "git_mode": "100644",
+      "blob_oid": "0e8bd1fd8f00b88958f94e8b51ac1d2f45e661f0",
+      "sha256": "sha256:a1a4a1130ec38b9fff683d427155fdc75c7f650a5d21a90e0bd5be1e3eea8499"
+    },
+    "docs/architecture/fixtures/release-review-working-tree-v2.json": {
+      "git_mode": "100644",
+      "blob_oid": "deaf5991cd7093cb3d9d122e663b9a9edb6a0f4d",
+      "sha256": "sha256:506882bdcfbedaef8ebbc90f74db59bcc1f83385de7c2c828bcd7b30c1bf0f6d"
+    },
+    "docs/architecture/fixtures/review-comment-session-v1.json": {
+      "git_mode": "100644",
+      "blob_oid": "18ff6b056835f3e837c33e42ae90955f5b3c71ea",
+      "sha256": "sha256:738e0214a1760ffe436803b7633a269859e811a3a39cfbcf51c825063be43944"
+    },
+    "docs/architecture/fixtures/review-comment-session-v2.json": {
+      "git_mode": "100644",
+      "blob_oid": "01615e4283cbe1b14f0d835c0889f60e819a74ea",
+      "sha256": "sha256:05105a72ed69a67316666ebd3f547e95dcb96b58fe0de8ce3bcb81a605df881a"
+    },
+    "docs/architecture/fixtures/review-live-invalidation/Example.java": {
+      "git_mode": "100644",
+      "blob_oid": "fc25f097703b8a26562ca3cb141f965a70947b77",
+      "sha256": "sha256:ce2eaec696d4aab5ecc874db74e8b9ecc4aed07221a950d1101e72ede864590a"
+    },
+    "docs/architecture/fixtures/spatial-semantic-v1/.gitignore": {
+      "git_mode": "100644",
+      "blob_oid": "28766f7a7698ed327c46e6224e05159efb1b8171",
+      "sha256": "sha256:51942d3716039b346ae5625b124f780cadd166614965e7177a66c60a2990361e"
+    },
+    "docs/architecture/fixtures/spatial-semantic-v1/contract-expected.json": {
+      "git_mode": "100644",
+      "blob_oid": "15ad45c9e560e6c2ee967da4c3f6e22247141aa0",
+      "sha256": "sha256:4d48157674c5d0753a89c81c5a4c6262e3eea6b06c07d295c94a960b4bc4b520"
+    },
+    "docs/architecture/fixtures/spatial-semantic-v1/layout-cases.json": {
+      "git_mode": "100644",
+      "blob_oid": "845112b94476f30d1f23ec634fc1a446f03c7522",
+      "sha256": "sha256:c7c7dbf6734211817871d28566f1d31de00914d3b9e58f782ae098905645dc8c"
+    },
+    "docs/architecture/fixtures/spatial-semantic-v1/source/example/Malformed.java.txt": {
+      "git_mode": "100644",
+      "blob_oid": "5fadb64a30f1671eab9fde18d62b836ca8d151e0",
+      "sha256": "sha256:953c4e7937332aa83263536100157f2fee1fdf0d692c9b5d8f9fb2c6e397e32f"
+    },
+    "docs/architecture/fixtures/spatial-semantic-v1/source/example/SpatialFixture.java": {
+      "git_mode": "100644",
+      "blob_oid": "bf69c25badce81f96c36f2baa99f756b71946b43",
+      "sha256": "sha256:a6425bf1dd1ec2a3ab4b79392c885805bf085bc0d5cf193026d7e5002af095b0"
+    },
+    "docs/architecture/fixtures/working-tree-capture-v1/capture.json": {
+      "git_mode": "100644",
+      "blob_oid": "ed8f0e5c0ad81f4dad780127dc50725483c61f98",
+      "sha256": "sha256:fdfe50d42de1015ca5d6a47428f4ce4ff6b8f5059b462e8dea7bc94859adad0c"
+    },
+    "examples/01-moveitems.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "ec1d6d2b4d96c22a044aa0cb8319b5b9576f03fc",
+      "sha256": "sha256:7858798e5853d27b558e362569130924c3167da0989876dd8423d61b530f0140"
+    },
+    "examples/02-retention.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "3bc0bd64b896a499e2c6e2b2118554292b3d3466",
+      "sha256": "sha256:727baba084840dc6c5da26652fa01bd0c0829037e62a6c5a6c73d943845ec9cc"
+    },
+    "examples/03-conditions.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "0adf7b283f55fd732a143d1801bef7a40d2cba46",
+      "sha256": "sha256:67a361d7a4716be536dcbbbc2f78e3205986de738f4a0722fd56b9af93bd515d"
+    },
+    "examples/04-smelting.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "fc0fec91c05a3af0d7a63997b8b1d298753c93dd",
+      "sha256": "sha256:b9faa808b2b80ca0f75e2df9d359be129376672196becaeebb268e1c67b922fd"
+    },
+    "examples/05-each.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "82381b8d7d31acb6f38ecd7b4e963bbd57921b19",
+      "sha256": "sha256:8865b59d1300123fa8c223a6126aed2bc0085b5720c8f371e325fcd6855c4ad6"
+    },
+    "examples/06-slots.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "ae9c9361b0ac2bbb3f4dcf38f7021e687b76809e",
+      "sha256": "sha256:133049f0a815eabbf7f21306b5255aa942c5d138c1d27986e9594d427242a3cf"
+    },
+    "examples/07-redstone.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "9ec3f7fdb48efc3f8bc47899307cb905c9964355",
+      "sha256": "sha256:e2f86b33c34b2651c9e31a38e4e75ed0e1090645cb31965bc3e93bbbaaca8c38"
+    },
+    "examples/08-fluids.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "0f3c07c40ffdaf4d45621afdb227fb9ab0def2e5",
+      "sha256": "sha256:10bef0fb00229e2102b544c1a5329ad448827189f4bea4c00d69d05f99dcf0ab"
+    },
+    "examples/README.md": {
+      "git_mode": "100644",
+      "blob_oid": "31a7e060795bcca51194cfc8c2eb7fd696a52b42",
+      "sha256": "sha256:a8e03e0cf9bbaa40df87016468ca77227874c628699f8c9a8b775324bb058897"
+    },
+    "examples/WIP/alias.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "c6f655eb58d388d42c2f84691c0460efbc46a29e",
+      "sha256": "sha256:561151cc23790915b751b4c2195b91e8ad2460071c04ae9d5953d380bac8beaf"
+    },
+    "examples/random/alltheores.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "ffee8147d95467029676e96385ee830a2a9fff4a",
+      "sha256": "sha256:a61f162fa7524f36462c9d3538376dce2c373a23bd6be0144e740f6100ae9650"
+    },
+    "examples/random/forgeenergy.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "7db401f800e7e2df86be6a0d769322daa6c67edd",
+      "sha256": "sha256:e2638174abf5195da22e1fd25bd4284194c7e00022937cf374cdecd9dc39d9ca"
+    },
+    "examples/random/mekanism.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "26d4c6f490747b0ad050ff54ca1461ac162f9055",
+      "sha256": "sha256:6d273d95a6fbd438cc6743ade07131b3da47ff9e1abc9992751f47af8f292b88"
+    },
+    "examples/random/patterns.sfm": {
+      "git_mode": "100644",
+      "blob_oid": "49eb35280a34205f5f3ce0f9d70cb421ed23d3f3",
+      "sha256": "sha256:ea67fc6deb05b422e3611f905b391f3e55a93349ad2177cfbc6a1a974a353cbb"
+    }
+  }
+}
