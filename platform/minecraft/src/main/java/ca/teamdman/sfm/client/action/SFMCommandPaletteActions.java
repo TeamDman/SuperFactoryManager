@@ -27,10 +27,12 @@ public final class SFMCommandPaletteActions {
             CommandPaletteHelpAction::new
     );
 
+{% if features.echo_action %}
     public static final SFMRegistryObject<SFMClientAction<?>, EchoAction> ECHO = REGISTERER.register(
             "echo",
             EchoAction::new
     );
+{% endif %}
 
     public static final SFMRegistryObject<SFMClientAction<?>, SFMClientControlEnableAction> ENABLE_FILE_CONTROL = REGISTERER.register(
             "control/files/enable",

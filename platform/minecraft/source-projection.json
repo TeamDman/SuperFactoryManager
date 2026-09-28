@@ -12,9 +12,30 @@
     {"id":"1.21.1","template_key":"mc_1_21_1","minecraft_version":"1.21.1","loader":"neoforge","java_major":21,"project_dir":"platform/minecraft/mc-version/1.21.1"},
     {"id":"26.1.2","template_key":"mc_26_1_2","minecraft_version":"26.1.2","loader":"neoforge","java_major":25,"project_dir":"platform/minecraft/mc-version/26.1.2"}
   ],
-  "features": [],
+  "features": [
+    {
+      "id": "echo_action",
+      "supported_targets": ["1.19.2"],
+      "requires": [],
+      "source_effects": [
+        {
+          "output_path": "src/main/java/ca/teamdman/sfm/client/action/EchoAction.java",
+          "kind": "Include",
+          "input_path": "platform/minecraft/src/main/java/ca/teamdman/sfm/client/action/EchoAction.java"
+        },
+        {
+          "output_path": "src/main/java/ca/teamdman/sfm/client/action/SFMCommandPaletteActions.java",
+          "kind": "Template",
+          "input_path": null
+        }
+      ],
+      "resource_effects": [],
+      "dependency_effects": []
+    }
+  ],
   "presets": [
-    {"id":"current-development-pilot","targets":["1.19.2"],"enabled_features":[],"identity":"blake3:383266258af8669f2da788660ad823f1855019b45ae948ccf715dc876df4e627"},
+    {"id":"current-development-pilot","targets":["1.19.2"],"enabled_features":["echo_action"],"identity":"blake3:c9cc25c2091093786c5dd22169e8892f68a45dc3f951315f67e8f77d89ff2bef"},
+    {"id":"current-development-no-echo","targets":["1.19.2"],"enabled_features":[],"identity":"blake3:356aad1ea19125279bb4f2cf03c299cbc70743e83da440f3a66bf3ae190555df"},
     {
       "id":"released-4.34.0",
       "targets":["1.19.2","1.19.4","1.20","1.20.1","1.20.2","1.20.3","1.20.4","1.21.0","1.21.1","26.1.2"],
