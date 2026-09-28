@@ -1,5 +1,7 @@
 Ahoy!
 
+The single-branch source-projection workflow is experimental. If you are working in a `platform/minecraft/mc-version/<target>` project, follow the [generated-project contributor guide](source-projection-contributor-guide.md): plain Gradle builds work, and you may propose edits to generated Java. Maintainers must reconcile those edits into canonical source before regeneration. The version-branch workflow below remains the production contribution path until the projection is accepted.
+
 I'm pretty stingy with accepting contributions beyond localization changes.
 You are welcome to submit stuff, but **there's no guarantee your submissions will get merged or that they will receive much of a response.**
 
@@ -15,7 +17,7 @@ So for me it's as easy as
 
 ```powershell
 cs # "change source"; opens a fuzzy finder TUI with all the platform/minecraft dirs listed
-1.19.2 # pick the 1.19.2 TUI entry and get Set-Location'd to `D:/Repos/Minecraft/SFM/repos2/1.19.2/platform/minecraft`
+1.19.2 # pick the 1.19.2 TUI entry and enter its platform/minecraft directory
 idea . # open intellij in the cwd
 ```
 

@@ -45,6 +45,12 @@ Use `sfm-propagate-changes symbol project-list <pattern> --project-root <generat
 
 Do not sync development features into the checked-in release roots during ordinary iteration. A release decision advances those roots to a new, immutable preset identity. The exact 4.34.0 tag imports under `platform/minecraft/release-baselines` are pinned evidence and should not be edited to make a build pass.
 
+## Advancing the checked-in release preset
+
+There is no release-preset promotion command yet. Ordinary `source sync` deliberately refuses to replace an existing generated root with a different preset identity, and `source build` creates development-version JARs rather than a publication candidate. Do not bypass those guards by editing the provenance manifest or copying a temporary development projection over `mc-version`.
+
+The planned release path freezes a candidate from reviewed canonical inputs, builds and tests it in separate roots for all ten targets, and records its exact source, JAR and toolchain hashes. After a compatibility review, a guarded promotion must preflight all ten checked-in roots for contributor edits and path collisions, stage their replacement as one recoverable change, then rerun `source check` and production builds. Promotion only updates source projects. Tagging, pushing, uploading JARs, changing the default branch and retiring the old version branches remain separate approvals. Until this path exists and passes its tests, use the existing tag-based release process for production or emergency work.
+
 ## Emergency fixes
 
 The existing version branches and release tags remain available. For an urgent fix that must not include unreleased features, branch from the relevant published release tag, apply only the fix, and validate the normal release path. The source-projection branch does not yet replace that route. Publishing a JAR, making `sfm-main` the default branch, and retiring the old merge workflow each require separate acceptance.

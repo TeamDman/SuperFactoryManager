@@ -1,5 +1,7 @@
 # Release process
 
+This is the existing **version-branch** release and emergency-fix process. The experimental single-branch source projection has not replaced it: its checked-in `mc-version` projects are 4.34.0 baseline candidates, not approved publication artifacts. Do not run the publishing phases on a temporary `source build` JAR or advance the checked-in generated roots by hand. The proposed projection-native candidate, compatibility review and guarded all-version promotion are tracked in [the source-projection plan](tasks/sfm-main-source-projection-plan.md). Changing this process, the default branch or the upload source requires separate acceptance.
+
 The following is a formalization of the steps involved in publishing a new release of Super Factory Manager.
 
 This process is designed to catch the most obvious problems that may arise, ensuring no step is forgotten.
