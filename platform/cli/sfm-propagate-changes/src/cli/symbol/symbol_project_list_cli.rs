@@ -3,6 +3,8 @@ use crate::cli::output::CliOutput;
 use crate::java_analysis::JavaSourceWorkspace;
 use crate::java_analysis::JavaSymbolGlob;
 use crate::java_analysis::JavaSymbolIndex;
+use crate::java_analysis::scan_generated_dependency_type;
+use crate::paths::CacheHome;
 use facet::Facet;
 use figue::{self as args};
 use std::path::Path;
@@ -59,9 +61,30 @@ impl SymbolProjectListArgs {
         });
         let workspace = resolve_workspace(&project_root, java_home.as_deref())?;
         cancellation_token.bail_if_cancelled()?;
-        let index = JavaSymbolIndex::build_definitions(&workspace)?;
+        let mut index = JavaSymbolIndex::build_definitions(&workspace)?;
         cancellation_token.bail_if_cancelled()?;
         let mut report = index.list(&JavaSymbolGlob::new(self.pattern));
+        let mut dependency_incomplete = false;
+        let exact_type = (!report.pattern.contains(['*', '?', ' '])
+            && report.pattern.contains('.'))
+        .then(|| report.pattern.clone());
+        if report.definitions.is_empty()
+            && let Some(qualified_name) = exact_type
+        {
+            let cache_home = CacheHome::resolve()?;
+            let scanned = scan_generated_dependency_type(
+                &project_root,
+                &cache_home.0,
+                &qualified_name,
+                cancellation_token,
+            )?;
+            dependency_incomplete = !scanned.complete;
+            if !scanned.body.definitions.is_empty() {
+                index = JavaSymbolIndex::build_with_dependencies(&workspace, &scanned.body, false)?;
+                report = index.list(&JavaSymbolGlob::new(Some(qualified_name)));
+            }
+            report.diagnostics.extend(scanned.body.diagnostics);
+        }
         // A missing project-selected JDK has no source span, so ordinary
         // symbol-list filtering would hide the reason external types are absent.
         report.diagnostics.extend(
@@ -73,7 +96,11 @@ impl SymbolProjectListArgs {
         );
         report.diagnostics.sort();
         report.diagnostics.dedup();
-        let exit_code = report.status();
+        let exit_code = if dependency_incomplete {
+            5
+        } else {
+            report.status()
+        };
         Ok(CliOutput::facet_with_csv_and_status(
             report,
             |report| Ok(report.to_csv()),

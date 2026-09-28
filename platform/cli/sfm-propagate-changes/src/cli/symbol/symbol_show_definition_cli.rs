@@ -73,23 +73,33 @@ impl SymbolShowDefinitionArgs {
         let input = self.input()?;
         let resolved = self.workspace.resolve(invocation_dir)?;
         let project_diagnostics = super::project_jdk_diagnostics(&resolved);
+        let project_root = resolved.project_root.clone();
         let branch = resolved.branch;
         let workspace = resolved.workspace;
         match input {
             SymbolShowDefinitionInput::Selector(selector) => {
-                let (index, dependency_index) = super::build_query_index(
+                let result = super::build_query_index(
                     &workspace,
                     &branch,
+                    project_root.as_deref(),
                     false,
                     super::DependencySymbolQuery::Definition(&selector),
                     cancellation_token,
                 )?;
-                let mut report = index.definition(&selector);
-                if let Some(dependency_index) = dependency_index {
+                let mut report = result.index.definition(&selector);
+                if let Some(dependency_index) = result.dependency_index {
                     report = report.with_dependency_index(dependency_index);
                 }
                 super::append_project_jdk_diagnostics(&mut report.diagnostics, project_diagnostics);
-                let exit_code = report.status();
+                super::append_project_jdk_diagnostics(
+                    &mut report.diagnostics,
+                    result.project_diagnostics,
+                );
+                let exit_code = if result.project_incomplete {
+                    5
+                } else {
+                    report.status()
+                };
                 Ok(CliOutput::facet_with_csv_and_status(
                     report,
                     |report| Ok(report.to_csv()),

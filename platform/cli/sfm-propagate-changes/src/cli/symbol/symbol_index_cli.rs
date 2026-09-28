@@ -39,6 +39,7 @@ use crate::java_analysis::DependencySymbolIndexProbeStatus;
 use crate::java_analysis::DependencySymbolIndexQueryOutput;
 use crate::java_analysis::DependencySymbolIndexSourceInput;
 use crate::java_analysis::DependencySymbolIndexStore;
+use crate::java_analysis::JavaAnalysisDiagnosticOutput;
 use crate::java_analysis::JavaClasspathMode;
 use crate::java_analysis::JavaSourceWorkspace;
 use crate::java_analysis::JavaSymbolGlob;
@@ -59,6 +60,7 @@ use crate::java_analysis::java_identifier_tokens;
 use crate::java_analysis::java_member_access_tokens;
 use crate::java_analysis::project_dependency_symbol_index_identity_with_locked_sources;
 use crate::java_analysis::scan_dependency_java_symbol_index;
+use crate::java_analysis::scan_generated_dependency_type;
 use crate::paths::CacheHome;
 use crate::payload_fetcher::http_fetcher;
 use crate::toolchain_lockfile_schema::version::v3::DependencyKindV3;
@@ -419,7 +421,33 @@ pub(super) enum DependencySymbolQuery<'a> {
     List(&'a JavaSymbolGlob),
 }
 
+pub(super) struct SymbolQueryIndex {
+    pub index: JavaSymbolIndex,
+    pub dependency_index: Option<DependencySymbolIndexQueryOutput>,
+    pub project_diagnostics: Vec<JavaAnalysisDiagnosticOutput>,
+    pub project_incomplete: bool,
+}
+
 impl DependencySymbolQuery<'_> {
+    fn exact_type_name(self) -> Option<String> {
+        let owner = match self {
+            Self::Definition(JavaSymbolSelector::Type { owner })
+            | Self::Usages(JavaSymbolSelector::Type { owner }) => owner.as_str(),
+            Self::List(pattern) => pattern.pattern(),
+            Self::Definition(_) | Self::Usages(_) => return None,
+        };
+        (owner.contains('.') && !owner.contains(['*', '?', ' '])).then(|| owner.to_owned())
+    }
+
+    fn has_local_match(self, index: &JavaSymbolIndex) -> bool {
+        match self {
+            Self::Definition(selector) | Self::Usages(selector) => {
+                !index.definition(selector).definitions.is_empty()
+            }
+            Self::List(pattern) => !index.list(pattern).definitions.is_empty(),
+        }
+    }
+
     fn requires_live_members(self) -> bool {
         match self {
             Self::Definition(selector) => selector.to_output().kind != JavaSymbolSelectorKind::Type,
@@ -469,12 +497,13 @@ impl DependencySymbolQuery<'_> {
 pub(super) fn build_query_index(
     workspace: &JavaSourceWorkspace,
     branch: &BranchSelector,
+    project_root: Option<&Path>,
     include_usages: bool,
     query: DependencySymbolQuery<'_>,
     cancellation_token: &CancellationToken,
-) -> eyre::Result<(JavaSymbolIndex, Option<DependencySymbolIndexQueryOutput>)> {
+) -> eyre::Result<SymbolQueryIndex> {
     if workspace.context.classpath_mode == JavaClasspathMode::Isolated {
-        let index = if !legacy_definition_pipeline_requested()
+        let mut index = if !legacy_definition_pipeline_requested()
             && !include_usages
             && matches!(query, DependencySymbolQuery::Definition(_))
         {
@@ -484,7 +513,34 @@ pub(super) fn build_query_index(
         } else {
             JavaSymbolIndex::build_definitions(workspace)?
         };
-        return Ok((index, None));
+        let mut project_diagnostics = Vec::new();
+        let mut project_incomplete = false;
+        if let (Some(project_root), Some(owner)) = (project_root, query.exact_type_name())
+            && !query.has_local_match(&index)
+        {
+            let cache_home = CacheHome::resolve()?;
+            let scan = scan_generated_dependency_type(
+                project_root,
+                &cache_home.0,
+                &owner,
+                cancellation_token,
+            )?;
+            project_diagnostics.clone_from(&scan.body.diagnostics);
+            project_incomplete = !scan.complete;
+            if !scan.body.definitions.is_empty() {
+                index = JavaSymbolIndex::build_with_dependencies(
+                    workspace,
+                    &scan.body,
+                    include_usages,
+                )?;
+            }
+        }
+        return Ok(SymbolQueryIndex {
+            index,
+            dependency_index: None,
+            project_diagnostics,
+            project_incomplete,
+        });
     }
 
     let mut timings = LiveQueryTimings::start(workspace.files.len());
@@ -669,7 +725,12 @@ pub(super) fn build_query_index(
         refresh_command: render_refresh_command(branch)?,
         acquisition_commands: acquisition_commands(&preflight, branch)?,
     };
-    Ok((index, Some(evidence)))
+    Ok(SymbolQueryIndex {
+        index,
+        dependency_index: Some(evidence),
+        project_diagnostics: Vec::new(),
+        project_incomplete: false,
+    })
 }
 
 /// Load the immutable dependency declarations needed by a correctness-first

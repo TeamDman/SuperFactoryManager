@@ -37,20 +37,27 @@ impl SymbolListArgs {
         let pattern = JavaSymbolGlob::new(self.pattern);
         let resolved = self.workspace.resolve(invocation_dir)?;
         let project_diagnostics = super::project_jdk_diagnostics(&resolved);
+        let project_root = resolved.project_root.clone();
         let workspace = resolved.workspace;
-        let (index, dependency_index) = super::build_query_index(
+        let result = super::build_query_index(
             &workspace,
             &resolved.branch,
+            project_root.as_deref(),
             false,
             super::DependencySymbolQuery::List(&pattern),
             cancellation_token,
         )?;
-        let mut report = index.list(&pattern);
-        if let Some(dependency_index) = dependency_index {
+        let mut report = result.index.list(&pattern);
+        if let Some(dependency_index) = result.dependency_index {
             report = report.with_dependency_index(dependency_index);
         }
         super::append_project_jdk_diagnostics(&mut report.diagnostics, project_diagnostics);
-        let exit_code = report.status();
+        super::append_project_jdk_diagnostics(&mut report.diagnostics, result.project_diagnostics);
+        let exit_code = if result.project_incomplete {
+            5
+        } else {
+            report.status()
+        };
         Ok(CliOutput::facet_with_csv_and_status(
             report,
             |report| Ok(report.to_csv()),
@@ -65,8 +72,17 @@ mod tests {
     use crate::cli::output::OutputFormat;
     use crate::cli::symbol::SymbolListUsagesArgs;
     use crate::cli::symbol::SymbolShowDefinitionArgs;
+    use crate::jar_build::hash::ContentHash;
+    use crate::jar_build::hash::ContentHashAlgorithm;
+    use crate::java_analysis::JavaAnalysisScenarioFixture;
+    use crate::java_analysis::with_java_analysis_scenario_fixture;
+    use crate::paths::CacheHome;
     use crate::source_projection::provenance::ProjectionProvenance;
+    use std::io::Cursor;
+    use std::io::Write as _;
     use std::path::PathBuf;
+    use zip::ZipWriter;
+    use zip::write::SimpleFileOptions;
 
     fn generated_project_fixture() -> (tempfile::TempDir, SymbolQueryWorkspaceArgs) {
         let temporary = tempfile::tempdir().expect("temporary generated project");
@@ -175,6 +191,81 @@ mod tests {
         assert!(!usage_json.contains("dependency_index"));
         assert!(!project_root.join(".gradle").exists());
         assert!(!project_root.join("build").exists());
+    }
+
+    #[test]
+    fn generated_project_selector_queries_use_pinned_cached_classfiles() {
+        let (temporary, workspace) = generated_project_fixture();
+        let project_root = temporary.path().join("generated-project");
+        std::fs::write(
+            project_root.join("src/main/java/example/Use.java"),
+            "package example; import dep.External; public class Use { External value; }",
+        )
+        .unwrap();
+        let cache_root = temporary.path().join("cache");
+        let jar_path = cache_root.join("minecraft-toolchain/maven/dep/library.jar");
+        std::fs::create_dir_all(jar_path.parent().unwrap()).unwrap();
+        let mut archive = ZipWriter::new(Cursor::new(Vec::new()));
+        archive
+            .start_file("dep/External.class", SimpleFileOptions::default())
+            .unwrap();
+        archive
+            .write_all(&[0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 61, 0, 1, 0, 1])
+            .unwrap();
+        let bytes = archive.finish().unwrap().into_inner();
+        std::fs::write(&jar_path, &bytes).unwrap();
+        let hash = ContentHash::from_bytes(&bytes, ContentHashAlgorithm::Blake3);
+        std::fs::write(
+            project_root.join("sfm-toolchain.lock.json"),
+            format!(
+                r#"{{"schema_version":2,"minecraft_version":"1.19.2","maven_cache_dir":"$sfm-cache/maven","allow_local_artifact_cache":false,"repositories":[],"dependencies":[],"artifacts":[{{"coordinate":"dep:library:1","source":"remote-maven","repository":null,"url":null,"cache_path":"$sfm-cache/maven/dep/library.jar","original_path":null,"source_relative_path":null,"source_git":null,"source_build":null,"hash":"{hash}","weak":null}}]}}"#
+            ),
+        )
+        .unwrap();
+        with_java_analysis_scenario_fixture(
+            JavaAnalysisScenarioFixture {
+                jdk_source_tree: temporary.path().join("unavailable-jdk"),
+                cache_home: CacheHome(cache_root),
+            },
+            || {
+                let definition = SymbolShowDefinitionArgs {
+                    selector: vec!["dep.External".to_owned()],
+                    source_path: None,
+                    source_root_id: None,
+                    line: None,
+                    column: None,
+                    workspace: workspace.clone(),
+                }
+                .invoke_in(&CancellationToken::new(), temporary.path())
+                .unwrap();
+                assert_eq!(definition.exit_code(), 0);
+                let json = definition
+                    .render(Some(OutputFormat::Json), false)
+                    .unwrap()
+                    .unwrap();
+                assert!(json.contains("dep.External"));
+                assert!(json.contains("External.class"));
+
+                let usages = SymbolListUsagesArgs {
+                    selector: vec!["dep.External".to_owned()],
+                    source_path: None,
+                    source_root_id: None,
+                    line: None,
+                    column: None,
+                    workspace,
+                }
+                .invoke_in(&CancellationToken::new(), temporary.path())
+                .unwrap();
+                assert_eq!(usages.exit_code(), 0);
+                let json = usages
+                    .render(Some(OutputFormat::Json), false)
+                    .unwrap()
+                    .unwrap();
+                assert!(json.contains("src/main/java/example/Use.java"));
+                assert!(json.contains("dep.External"));
+                assert!(!project_root.join(".gradle").exists());
+            },
+        );
     }
 
     #[test]

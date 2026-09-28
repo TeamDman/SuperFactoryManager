@@ -175,6 +175,7 @@ pub struct ResolvedSymbolQueryWorkspace {
     pub workspace: JavaSourceWorkspace,
     pub branch: BranchSelector,
     pub generated_project: bool,
+    pub project_root: Option<PathBuf>,
 }
 
 pub(super) fn project_jdk_diagnostics(
@@ -262,6 +263,7 @@ impl SymbolQueryWorkspaceArgs {
                 workspace,
                 branch,
                 generated_project: false,
+                project_root: None,
             });
         }
         let project_root = self
@@ -285,6 +287,7 @@ impl SymbolQueryWorkspaceArgs {
             workspace,
             branch,
             generated_project: true,
+            project_root: Some(project_root),
         })
     }
 }
