@@ -84,7 +84,7 @@ The source-byte audit, entry/resource comparison and checked-in-versus-candidate
 | 1.21.1 | Pass, NeoForge 21.1.206 | Not run | Not run | Not run |
 | 26.1.2 | Pass, NeoForge 26.1.2.72 | Not run | Not run | Not run |
 
-The 1.19.4 dedicated-server witness now records one paired runtime registry-ID snapshot. The next extension should adapt its test-only probe at later API/loader boundaries and add representative transfer and client witnesses. A source or JAR hash match cannot substitute for those runtime checks. None of these open cells authorizes release or default-branch promotion.
+The 1.19.4 and 1.20 dedicated-server witnesses record paired runtime registry-ID snapshots. The next extension needs the 1.20.1 transitional loader and a NeoForge-specific probe for later registry APIs, as well as representative transfer and client witnesses. A source or JAR hash match cannot substitute for those runtime checks. None of these open cells authorizes release or default-branch promotion.
 
 ### Exact 1.19.4 packaged-client title and world witness, 29 September 2026
 
