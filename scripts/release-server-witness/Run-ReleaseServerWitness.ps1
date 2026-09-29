@@ -1,5 +1,5 @@
 <#
-Test-only 1.19.4/1.20/1.20.1/1.20.3/1.20.4 production-JAR registry/save witness.
+Test-only 1.19.2/1.19.4/1.20/1.20.1/1.20.3/1.20.4 production-JAR registry/save witness.
 The input JARs, JDK, installer, and compile classpath are read-only. Every
 server, mod copy, world, log, and result is created below a NEW RunRoot.
 #>
@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory)] [Alias('LoaderCompileJar')] [string] $ForgeSrgJar,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
-    [ValidateSet('1.19.4', '1.20', '1.20.1', '1.20.3', '1.20.4')] [string] $Target = '1.19.4',
+    [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.3', '1.20.4')] [string] $Target = '1.19.4',
     [string] $LauncherCacheRoot = '',
     [Alias('InstalledLoaderRoot')] [string] $InstalledForgeRoot = '',
     [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
@@ -25,6 +25,26 @@ Set-StrictMode -Version Latest
 
 $target = $Target
 $version = switch ($target) {
+    '1.19.2' {
+        @{
+            loader = '43.4.0'
+            loader_brand = 'Forge'
+            loader_id = 'forge'
+            forge_group_path = 'net/minecraftforge'
+            fml_group_path = 'net/minecraftforge'
+            fml_core_artifact = 'fmlcore'
+            fml_language_artifact = 'javafmllanguage'
+            fml_library_version = '1.19.2-43.4.0'
+            event_bus = '6.0.3'
+            installer_sha1 = '3cf86bde9ae968eeac44a6f1b1f88f92f73e67b7'
+            installer_sha256 = '13200fcc4b00959734cd7bb193cb4e5e6ea756635cdc9e61c23ec45ac632880e'
+            srg_sha256 = 'ade8d66611fcbaef14a5238c681b9220383531692e5751e1467418cea3274324'
+            official_sha256 = 'f2c0242a984b8b782cc995e20a59e71bbdb48981873ab31a4531f0d1db3af038'
+            projected_sha256 = '024e9b10463235f10e61cb0e7285f8a082e90800ead8c3f5146b58c51146eccf'
+            probe_source = 'versions/1.19.2/src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
+            resources = 'versions/1.19.2/resources'
+        }
+    }
     '1.19.4' {
         @{
             loader = '45.0.9'
