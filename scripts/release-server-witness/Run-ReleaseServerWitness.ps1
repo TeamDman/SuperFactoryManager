@@ -1,5 +1,5 @@
 <#
-Test-only 1.19.4/1.20/1.20.1/1.20.3 production-JAR registry/save witness.
+Test-only 1.19.4/1.20/1.20.1/1.20.3/1.20.4 production-JAR registry/save witness.
 The input JARs, JDK, installer, and compile classpath are read-only. Every
 server, mod copy, world, log, and result is created below a NEW RunRoot.
 #>
@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory)] [Alias('LoaderCompileJar')] [string] $ForgeSrgJar,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
-    [ValidateSet('1.19.4', '1.20', '1.20.1', '1.20.3')] [string] $Target = '1.19.4',
+    [ValidateSet('1.19.4', '1.20', '1.20.1', '1.20.3', '1.20.4')] [string] $Target = '1.19.4',
     [string] $LauncherCacheRoot = '',
     [Alias('InstalledLoaderRoot')] [string] $InstalledForgeRoot = '',
     [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
@@ -106,6 +106,32 @@ $version = switch ($target) {
             projected_sha256 = '3cd66ed27313c067f3529f94765dfc2a51d36b376bbbf841b0f95c8874389d58'
             probe_source = 'versions/1.20.3/src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
             resources = 'versions/1.20.3/resources'
+        }
+    }
+    '1.20.4' {
+        @{
+            loader = '20.4.231'
+            loader_brand = 'NeoForge'
+            loader_id = 'neoforge'
+            forge_group_path = 'net/neoforged'
+            artifact_module = 'neoforge'
+            artifact_version = '20.4.231'
+            launch_version_flag = '--fml.neoForgeVersion'
+            fml_group_path = 'net/neoforged/fancymodloader'
+            fml_core_artifact = 'loader'
+            fml_language_artifact = 'spi'
+            fml_library_version = '2.0.17'
+            event_bus_path = 'libraries/net/neoforged/bus/7.2.0/bus-7.2.0.jar'
+            compile_extra_paths = @('libraries/com/mojang/datafixerupper/6.0.8/datafixerupper-6.0.8.jar')
+            compile_jar_name = 'raw.jar'
+            compile_jar_kind = 'neoform_joined_1.20.4-20231207.154220'
+            compile_jar_sha256 = 'c062e6791ba0159cc27ba0f3ec8cd33307b73bca22f3f6a6423e76ab02c254de'
+            installer_sha1 = '1626630511c271e0e4dafef9e1513726afa71c61'
+            installer_sha256 = '8002077d9454603611b0bb5fd66a107c2dd2a27942ebe52c39db2a9280eaac18'
+            official_sha256 = 'b83b43fc8ee7cb7863da5f0d039b026675c2f2c68956f99643c83a9736f7a63b'
+            projected_sha256 = '3964a8742211e9cc39b44ee61b4402387382c948ba7c17b1d887c013f764813e'
+            probe_source = 'versions/1.20.3/src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
+            resources = 'versions/1.20.4/resources'
         }
     }
 }
