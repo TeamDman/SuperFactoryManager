@@ -1,13 +1,11 @@
 //! Read-only authoring preview for a tag-independent, commit-frozen release.
 //!
-//! The caller supplies an explicit, reviewed output-to-physical-input map.
-//! Existing `ProjectedArtifact.source_path` values are sometimes logical paths
-//! within a tag or import, not paths in the authored repository. Guessing that
-//! ownership would make a frozen inventory appear stronger than it is. A later
-//! CLI can seed this map from development selection and require review of any
-//! ambiguous owners; this engine never promotes a generated project or writes
-//! an inventory.
+//! The caller may supply a reviewed output-to-physical-input map or seed one
+//! from a current-development selection. `ProjectedArtifact.source_path` may
+//! be logical provenance within an import, so it is never used as an authored
+//! Git path. Neither route writes a project or inventory.
 
+use super::candidate_lock::checked_file;
 use super::context::ProjectionContext;
 use super::frozen_release::FrozenSourceFile;
 use super::frozen_release::FrozenSourceInventory;
@@ -18,12 +16,15 @@ use super::frozen_release::validate_git_commit_root;
 use super::frozen_release::validate_inventory;
 use super::frozen_release::verify_frozen_outputs;
 use super::inputs::render_java_artifact;
+use super::manifest::BaselineKind;
 use super::manifest::FrozenSourceBinding;
 use super::project_layout::append_project_name_override;
+use super::project_layout::validate_target_project;
 use super::promotion::validate_relative_path;
 use super::provenance::sha256;
 use super::release_baseline::frozen_git_command;
 use super::release_version::apply_release_mod_version;
+use super::selection::ProjectionSelection;
 use super::sync::ProjectedArtifact;
 use eyre::Result;
 use eyre::WrapErr;
@@ -35,6 +36,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Write;
 use std::path::Path;
+use std::path::PathBuf;
 use std::process::Stdio;
 
 const MAX_SOURCE_BLOB_BYTES: usize = 128 * 1024 * 1024;
@@ -42,7 +44,7 @@ const MAX_SOURCE_BLOB_BYTES: usize = 128 * 1024 * 1024;
 /// One reviewed project output and its exact authored Git input. This path is
 /// physical repository ownership, not the logical `source_path` recorded in a
 /// prior generated project's provenance manifest.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct FrozenAuthoringInput {
     pub source_repo_path: String,
     pub overlay: Option<String>,
@@ -72,6 +74,287 @@ pub struct FrozenAuthoringPreview {
     pub binding: FrozenSourceBinding,
 }
 
+/// Resolved, ordered input roots used for a current-development projection.
+/// Each root must be inside the same authored Git worktree as `repo_root`.
+#[derive(Debug)]
+pub struct FrozenSelectionRoots {
+    pub primary_src_root: PathBuf,
+    pub source_overlays: Vec<(String, PathBuf)>,
+    pub gradle_project_root: PathBuf,
+    pub gradle_overlays: Vec<(String, PathBuf)>,
+}
+
+/// Require the selected manifest's working bytes to equal the blob at the
+/// authored source commit. A working-tree-only selection must not certify a
+/// frozen inventory whose inputs are attributed to that commit.
+///
+/// # Errors
+///
+/// Rejects an unsafe path, absent or nonregular committed manifest, or any
+/// uncommitted selection-definition change.
+pub fn verify_committed_selection_manifest(
+    repo_root: &Path,
+    source_commit: &str,
+    manifest_repo_path: &str,
+    working_bytes: &[u8],
+) -> Result<()> {
+    ensure!(
+        is_lower_hex(source_commit, 40),
+        "selection manifest verification requires an exact authored commit SHA"
+    );
+    validate_relative_path(manifest_repo_path)?;
+    ensure!(
+        manifest_repo_path.starts_with("platform/minecraft/"),
+        "selection manifest must be an authored Minecraft file"
+    );
+    let root = fs::canonicalize(repo_root).wrap_err("cannot resolve authored repository root")?;
+    validate_git_commit_root(&root, source_commit)?;
+    let tree = read_tree_index(&root, source_commit)?;
+    let entry = tree.get(manifest_repo_path).ok_or_else(|| {
+        eyre::eyre!("authored commit lacks exact selection manifest '{manifest_repo_path}'")
+    })?;
+    let blobs = read_git_blobs(&root, &BTreeSet::from([entry.oid.clone()]))?;
+    ensure!(
+        blobs[&entry.oid] == working_bytes,
+        "selection manifest working bytes differ from exact authored commit"
+    );
+    Ok(())
+}
+
+/// Seed a complete physical-owner map from one selected development target,
+/// then preview it against an exact authored commit. Development output bytes
+/// are a membership witness; the released context, target-settings override,
+/// and release-version rewrite intentionally render a new candidate. A proposed map, when
+/// supplied, must agree on every output and every owner. This lets a reviewer
+/// reject an incomplete or hand-edited inventory before accepting its digest.
+///
+/// # Errors
+///
+/// Rejects missing or ambiguous physical routes, changed working-tree bytes,
+/// uncommitted source drift, incomplete proposed membership, or any ordinary
+/// frozen-preview validation failure.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the explicit commit, target, selection and proposed map are independent review inputs"
+)]
+pub fn preview_frozen_inventory_from_selection(
+    repo_root: &Path,
+    target_id: &str,
+    selection: &ProjectionSelection,
+    roots: &FrozenSelectionRoots,
+    selected_artifacts: &BTreeMap<String, ProjectedArtifact>,
+    source_commit: &str,
+    release_mod_version: &str,
+    proposed_files: Option<&BTreeMap<String, FrozenAuthoringInput>>,
+) -> Result<FrozenAuthoringPreview> {
+    ensure!(
+        selection.frozen_source.is_none() && selection.frozen_source_commit.is_none(),
+        "frozen authoring requires a current-development selection"
+    );
+    ensure!(
+        selection.release_baseline.as_ref().is_none_or(|binding| {
+            binding.kind == BaselineKind::DevelopmentHead && binding.target_id == target_id
+        }),
+        "frozen authoring cannot seed from a release-tag or foreign-target baseline"
+    );
+    let files = derive_physical_owners(repo_root, target_id, selection, roots, selected_artifacts)?;
+    if let Some(proposed) = proposed_files {
+        ensure!(
+            proposed.len() == files.len() && proposed.keys().eq(files.keys()),
+            "proposed frozen inventory output membership differs from selected development output"
+        );
+        ensure!(
+            proposed == &files,
+            "proposed frozen inventory physical owners differ from selected development owners"
+        );
+    }
+    let mut context = selection.context.clone();
+    context.preset = format!("released-{release_mod_version}");
+    let request = FrozenAuthoringRequest {
+        target_id: target_id.to_owned(),
+        source_commit: source_commit.to_owned(),
+        release_mod_version: release_mod_version.to_owned(),
+        context,
+        excluded_paths: selection.excluded_paths.iter().cloned().collect(),
+        explicit_inputs: selection.explicit_inputs.clone(),
+        files,
+    };
+    let (preview, rendered) = preview_frozen_inventory_and_artifacts(repo_root, &request)?;
+    validate_target_project(&rendered, target_id, &selection.context.minecraft_version)?;
+    ensure!(
+        preview.inventory.files.len() == selected_artifacts.len()
+            && preview.inventory.files.keys().eq(selected_artifacts.keys()),
+        "frozen preview omitted selected development output membership"
+    );
+    for (output, artifact) in selected_artifacts {
+        ensure!(
+            preview.inventory.files[output].source_sha256 == sha256(&artifact.source_bytes),
+            "selected source '{output}' differs from its exact authored commit blob"
+        );
+    }
+    Ok(preview)
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "all route candidates and the single-owner byte check are audited together"
+)]
+fn derive_physical_owners(
+    repo_root: &Path,
+    target_id: &str,
+    selection: &ProjectionSelection,
+    roots: &FrozenSelectionRoots,
+    artifacts: &BTreeMap<String, ProjectedArtifact>,
+) -> Result<BTreeMap<String, FrozenAuthoringInput>> {
+    ensure!(
+        !artifacts.is_empty(),
+        "selected development output is empty"
+    );
+    let root = fs::canonicalize(repo_root).wrap_err("cannot resolve authored repository root")?;
+    let roots = FrozenSelectionRoots {
+        primary_src_root: fs::canonicalize(&roots.primary_src_root)
+            .wrap_err("cannot resolve selected primary source root")?,
+        source_overlays: roots
+            .source_overlays
+            .iter()
+            .map(|(name, path)| Ok((name.clone(), fs::canonicalize(path)?)))
+            .collect::<Result<_>>()?,
+        gradle_project_root: fs::canonicalize(&roots.gradle_project_root)
+            .wrap_err("cannot resolve selected Gradle project root")?,
+        gradle_overlays: roots
+            .gradle_overlays
+            .iter()
+            .map(|(name, path)| Ok((name.clone(), fs::canonicalize(path)?)))
+            .collect::<Result<_>>()?,
+    };
+    let mut files = BTreeMap::new();
+    for (output, artifact) in artifacts {
+        validate_relative_path(output)?;
+        let mut candidates = Vec::new();
+        let transform = if output.starts_with("src/")
+            && Path::new(output)
+                .extension()
+                .is_some_and(|extension| extension.eq_ignore_ascii_case("java"))
+        {
+            FrozenTransform::Java
+        } else if output == "settings.gradle" {
+            // The canonical pilot has a dynamic name in its raw settings.
+            // Every frozen candidate needs one final literal target name.
+            FrozenTransform::TargetSettings
+        } else {
+            FrozenTransform::Copy
+        };
+        if let Some(relative) = output.strip_prefix("src/") {
+            candidates.push((None, root_child(&root, &roots.primary_src_root, relative)?));
+            for (name, overlay_root) in &roots.source_overlays {
+                candidates.push((
+                    Some(name.clone()),
+                    root_child(&root, overlay_root, relative)?,
+                ));
+            }
+            if let Some(input) = selection.explicit_inputs.get(output) {
+                candidates.push((Some("feature".to_owned()), input.clone()));
+            }
+            if let Some(binding) = &selection.release_baseline {
+                let target = &binding.target_id;
+                candidates.push((
+                    Some(format!("development-head-{target}")),
+                    format!("platform/minecraft/development-baselines/{target}/overlays/{output}"),
+                ));
+                if let Some(selected) = binding.post_baseline_version_sources.get(output) {
+                    candidates.push((
+                        Some(format!("version-source-{target}")),
+                        selected.source_path.clone(),
+                    ));
+                }
+                if binding.post_baseline_test_sources.contains_key(output) {
+                    candidates.push((
+                        Some("development-test-portability".to_owned()),
+                        format!("platform/minecraft/{output}"),
+                    ));
+                }
+            }
+        } else if output.starts_with("examples/")
+            || output.starts_with("docs/architecture/fixtures/")
+        {
+            candidates.push((
+                Some("development-fixtures".to_owned()),
+                format!(
+                    "platform/minecraft/development-baselines/{target_id}/project-fixtures/{output}"
+                ),
+            ));
+        } else {
+            candidates.push((
+                Some("gradle_project".to_owned()),
+                root_child(&root, &roots.gradle_project_root, output)?,
+            ));
+            for (name, overlay_root) in &roots.gradle_overlays {
+                candidates.push((Some(name.clone()), root_child(&root, overlay_root, output)?));
+            }
+            if let Some(binding) = &selection.release_baseline
+                && binding.post_baseline_gradle_sources.contains_key(output)
+            {
+                candidates.push((
+                    Some("development-gradle-portability".to_owned()),
+                    format!("platform/minecraft/development-overlays/{target_id}/{output}"),
+                ));
+            }
+        }
+        let matching = candidates
+            .into_iter()
+            .filter(|(label, _)| label.as_deref() == artifact.overlay.as_deref())
+            .map(|(_, path)| path)
+            .collect::<Vec<_>>();
+        ensure!(
+            matching.len() == 1,
+            "selected output '{output}' has {} physical owner routes; expected exactly one",
+            matching.len()
+        );
+        let source_repo_path = matching.into_iter().next().unwrap();
+        validate_relative_path(&source_repo_path)?;
+        let source = checked_file(&root, &source_repo_path)?;
+        let bytes = fs::read(&source).wrap_err_with(|| {
+            format!("cannot read physical owner '{source_repo_path}' for '{output}'")
+        })?;
+        ensure!(
+            bytes == artifact.source_bytes,
+            "physical owner '{source_repo_path}' differs from final source bytes for '{output}'"
+        );
+        files.insert(
+            output.clone(),
+            FrozenAuthoringInput {
+                source_repo_path,
+                overlay: artifact.overlay.clone(),
+                transform,
+            },
+        );
+    }
+    Ok(files)
+}
+
+fn root_child(repo_root: &Path, input_root: &Path, relative: &str) -> Result<String> {
+    let suffix = input_root.strip_prefix(repo_root).wrap_err_with(|| {
+        format!(
+            "selected input root '{}' escapes authored repository",
+            input_root.display()
+        )
+    })?;
+    let suffix = suffix
+        .components()
+        .map(|part| match part {
+            std::path::Component::Normal(name) => name
+                .to_str()
+                .map(str::to_owned)
+                .ok_or_else(|| eyre::eyre!("selected input root is not UTF-8")),
+            _ => Err(eyre::eyre!(
+                "selected input root is not a regular relative path"
+            )),
+        })
+        .collect::<Result<Vec<_>>>()?
+        .join("/");
+    Ok(format!("{suffix}/{relative}"))
+}
+
 /// Construct a canonical frozen inventory using only blobs from one exact
 /// authored commit. No generated project, inventory or manifest is written.
 ///
@@ -83,6 +366,13 @@ pub fn preview_frozen_inventory(
     repo_root: &Path,
     request: &FrozenAuthoringRequest,
 ) -> Result<FrozenAuthoringPreview> {
+    preview_frozen_inventory_and_artifacts(repo_root, request).map(|(preview, _)| preview)
+}
+
+fn preview_frozen_inventory_and_artifacts(
+    repo_root: &Path,
+    request: &FrozenAuthoringRequest,
+) -> Result<(FrozenAuthoringPreview, BTreeMap<String, ProjectedArtifact>)> {
     ensure!(
         is_lower_hex(&request.source_commit, 40),
         "frozen authoring requires an exact lowercase authored commit SHA"
@@ -165,7 +455,8 @@ pub fn preview_frozen_inventory(
         excluded_paths: request.excluded_paths.clone(),
         files,
     };
-    finish_preview(request, inventory_path, inventory, &artifacts)
+    let preview = finish_preview(request, inventory_path, inventory, &artifacts)?;
+    Ok((preview, artifacts))
 }
 
 fn finish_preview(
@@ -233,8 +524,8 @@ fn validate_request_paths(request: &FrozenAuthoringRequest) -> Result<()> {
                 "target-settings transform requires settings.gradle"
             ),
             FrozenTransform::Copy => ensure!(
-                !java_output,
-                "Java output '{output}' requires the Java transform"
+                !(output.starts_with("src/") && java_output),
+                "source Java output '{output}' requires the Java transform"
             ),
         }
     }
@@ -388,6 +679,9 @@ fn is_lower_hex(value: &str, length: usize) -> bool {
 #[cfg(test)]
 mod tests {
     use super::super::frozen_release::project_frozen_artifacts;
+    use super::super::manifest::SourceProjectionManifest;
+    use super::super::manifest::VersionSourceSelection;
+    use super::super::selection::select;
     use super::super::sync::ProjectionIdentity;
     use super::super::sync::SyncMode;
     use super::super::sync::sync_projection;
@@ -451,7 +745,7 @@ mod tests {
             "platform/minecraft/src/test/resources/frozen.json",
             b"{\"fixture\":true}\n",
         );
-        for target in ["1.19.4", "1.20"] {
+        for target in ["1.19.2", "1.19.4", "1.20", "1.21.0"] {
             let prefix = format!("platform/minecraft/freeze-fixture/{target}");
             for (path, bytes) in [
                 (EXAMPLE, b"EVERY 20 TICKS DO END\n".as_slice()),
@@ -478,6 +772,26 @@ mod tests {
             ] {
                 write(root.path(), &format!("{prefix}/{path}"), bytes);
             }
+            let minecraft_version = if target == "1.21.0" { "1.21" } else { target };
+            write(
+                root.path(),
+                &format!("{prefix}/gradle.properties"),
+                format!("minecraft_version={minecraft_version}\nmod_version=4.34.0\n").as_bytes(),
+            );
+            if target == "1.19.2" {
+                write(
+                    root.path(),
+                    &format!("{prefix}/settings.gradle"),
+                    b"rootProject.name = \"sfm-${sfmVersionLabel}\"\n",
+                );
+            }
+            write(
+                root.path(),
+                &format!(
+                    "platform/minecraft/development-baselines/{target}/project-fixtures/{EXAMPLE}"
+                ),
+                b"EVERY 20 TICKS DO END\n",
+            );
         }
         git(root.path(), &["add", "--", "platform/minecraft"]);
         git(
@@ -546,7 +860,11 @@ mod tests {
             source_commit: commit.to_owned(),
             release_mod_version: "9.99.99-fixture".to_owned(),
             context: ProjectionContext {
-                minecraft_version: target.to_owned(),
+                minecraft_version: if target == "1.21.0" {
+                    "1.21".to_owned()
+                } else {
+                    target.to_owned()
+                },
                 preset: PRESET.to_owned(),
                 features: BTreeMap::new(),
                 targets: BTreeMap::from([
@@ -570,6 +888,399 @@ mod tests {
             },
             files,
         }
+    }
+
+    fn selected_fixture(
+        root: &Path,
+        commit: &str,
+        target: &str,
+    ) -> (
+        ProjectionSelection,
+        FrozenSelectionRoots,
+        BTreeMap<String, ProjectedArtifact>,
+    ) {
+        let manifest = SourceProjectionManifest::from_json(include_str!(
+            "../../../../minecraft/source-projection.json"
+        ))
+        .unwrap();
+        let preset = if target == "1.19.2" {
+            "current-development-pilot".to_owned()
+        } else {
+            format!("current-development-head-{target}")
+        };
+        let mut selection = select(&manifest, target, &preset).unwrap();
+        // This fixture has only the miniature file set below, while the real
+        // preset includes unrelated feature-selected paths.
+        selection.explicit_inputs.clear();
+        selection.excluded_paths.clear();
+        let roots = FrozenSelectionRoots {
+            primary_src_root: root.join("platform/minecraft/src"),
+            source_overlays: vec![],
+            gradle_project_root: root.join(format!("platform/minecraft/freeze-fixture/{target}")),
+            gradle_overlays: vec![],
+        };
+        let mut artifacts = BTreeMap::new();
+        for (output, input) in request(commit, target).files {
+            let (source, overlay) = if output == EXAMPLE {
+                (
+                    format!(
+                        "platform/minecraft/development-baselines/{target}/project-fixtures/{EXAMPLE}"
+                    ),
+                    Some("development-fixtures".to_owned()),
+                )
+            } else if output == EXTRA {
+                selection
+                    .explicit_inputs
+                    .insert(output.clone(), input.source_repo_path.clone());
+                (input.source_repo_path, Some("feature".to_owned()))
+            } else if output.starts_with("src/") {
+                (input.source_repo_path, None)
+            } else {
+                (input.source_repo_path, Some("gradle_project".to_owned()))
+            };
+            let bytes = fs::read(root.join(source)).unwrap();
+            artifacts.insert(
+                output,
+                ProjectedArtifact {
+                    // Logical provenance intentionally cannot locate the file.
+                    source_path: "logical/import/path".to_owned(),
+                    source_bytes: bytes.clone(),
+                    output_bytes: bytes,
+                    overlay,
+                },
+            );
+        }
+        (selection, roots, artifacts)
+    }
+
+    #[test]
+    fn selection_seed_rejects_uncommitted_manifest_drift() {
+        let (root, _) = setup();
+        let path = "platform/minecraft/source-projection.json";
+        write(root.path(), path, b"{\"selection\":1}\n");
+        git(root.path(), &["add", "--", path]);
+        git(
+            root.path(),
+            &["commit", "--quiet", "-m", "selection definition"],
+        );
+        let commit = git(root.path(), &["rev-parse", "HEAD"]);
+        verify_committed_selection_manifest(root.path(), &commit, path, b"{\"selection\":1}\n")
+            .unwrap();
+        write(root.path(), path, b"{\"selection\":2}\n");
+        let error = verify_committed_selection_manifest(
+            root.path(),
+            &commit,
+            path,
+            &fs::read(root.path().join(path)).unwrap(),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(error.contains("working bytes differ"), "{error}");
+    }
+
+    #[test]
+    fn selection_seed_uses_physical_primary_fixture_and_gradle_owners() {
+        let (root, commit) = setup();
+        for target in ["1.19.2", "1.19.4", "1.20", "1.21.0"] {
+            let (selection, mut roots, mut artifacts) =
+                selected_fixture(root.path(), &commit, target);
+            if target == "1.19.4" {
+                roots
+                    .gradle_overlays
+                    .push(("release-tag".to_owned(), roots.gradle_project_root.clone()));
+                for (output, artifact) in &mut artifacts {
+                    if !output.starts_with("src/") && output != EXAMPLE {
+                        artifact.overlay = Some("release-tag".to_owned());
+                    }
+                }
+            }
+            let preview = preview_frozen_inventory_from_selection(
+                root.path(),
+                target,
+                &selection,
+                &roots,
+                &artifacts,
+                &commit,
+                "9.99.99-fixture",
+                None,
+            )
+            .unwrap();
+            assert_eq!(preview.inventory.files.len(), artifacts.len());
+            assert_eq!(
+                preview.inventory.files[JAVA].source_repo_path,
+                format!("platform/minecraft/{JAVA}")
+            );
+            assert_eq!(
+                preview.inventory.files[EXAMPLE].source_repo_path,
+                format!(
+                    "platform/minecraft/development-baselines/{target}/project-fixtures/{EXAMPLE}"
+                )
+            );
+            assert_eq!(
+                preview.inventory.files["build.gradle"].source_repo_path,
+                format!("platform/minecraft/freeze-fixture/{target}/build.gradle")
+            );
+            if target == "1.19.4" {
+                assert_eq!(
+                    preview.inventory.files["build.gradle"].overlay.as_deref(),
+                    Some("release-tag")
+                );
+            }
+            assert_eq!(
+                preview.inventory.files["settings.gradle"].transform,
+                FrozenTransform::TargetSettings
+            );
+            if target == "1.19.2" {
+                let mut rendered_settings = BTreeMap::from([(
+                    "settings.gradle".to_owned(),
+                    artifacts["settings.gradle"].clone(),
+                )]);
+                append_project_name_override(&mut rendered_settings, target).unwrap();
+                assert_ne!(
+                    artifacts["settings.gradle"].source_bytes,
+                    rendered_settings["settings.gradle"].output_bytes
+                );
+                assert_eq!(
+                    preview.inventory.files["settings.gradle"].output_sha256,
+                    sha256(&rendered_settings["settings.gradle"].output_bytes)
+                );
+            }
+            if target == "1.20" {
+                assert_eq!(
+                    preview.inventory.files[EXTRA].source_repo_path,
+                    format!("platform/minecraft/version-sources/{target}/{EXTRA}")
+                );
+                assert_eq!(
+                    preview.inventory.files[EXTRA].overlay.as_deref(),
+                    Some("feature")
+                );
+            }
+            if target == "1.21.0" {
+                assert_eq!(selection.context.minecraft_version, "1.21");
+                assert_eq!(preview.inventory.context.minecraft_version, "1.21");
+                assert_eq!(preview.inventory.target_id, "1.21.0");
+            }
+        }
+    }
+
+    #[test]
+    fn selection_seed_covers_overlay_feature_and_version_source_routes() {
+        let (root, _) = setup();
+        let root_path = root.path();
+        let overlay_source = format!("platform/minecraft/selection-overlay/{RESOURCE}");
+        write(root_path, &overlay_source, b"selected overlay resource\n");
+        let imported_java =
+            format!("platform/minecraft/development-baselines/1.20/overlays/{JAVA}");
+        write(
+            root_path,
+            &imported_java,
+            b"class Proof { int imported = 1; }\n",
+        );
+        write(
+            root_path,
+            "platform/minecraft/selection-gradle/gradle.properties",
+            b"minecraft_version=1.20\nmod_version=4.34.0\n",
+        );
+        git(root_path, &["add", "--", "platform/minecraft"]);
+        git(root_path, &["commit", "--quiet", "-m", "selected routes"]);
+        let commit = git(root_path, &["rev-parse", "HEAD"]);
+        let (mut selection, mut roots, mut artifacts) =
+            selected_fixture(root_path, &commit, "1.20");
+        roots.source_overlays.push((
+            "chosen".to_owned(),
+            root_path.join("platform/minecraft/selection-overlay/src"),
+        ));
+        roots.gradle_overlays.push((
+            "chosen-gradle".to_owned(),
+            root_path.join("platform/minecraft/selection-gradle"),
+        ));
+        let resource = artifacts.get_mut(RESOURCE).unwrap();
+        resource.source_bytes = fs::read(root_path.join(&overlay_source)).unwrap();
+        resource.overlay = Some("chosen".to_owned());
+        let java = artifacts.get_mut(JAVA).unwrap();
+        java.source_bytes = fs::read(root_path.join(&imported_java)).unwrap();
+        java.overlay = Some("development-head-1.20".to_owned());
+        artifacts.get_mut("gradle.properties").unwrap().overlay = Some("chosen-gradle".to_owned());
+        selection.explicit_inputs.remove(EXTRA);
+        selection
+            .release_baseline
+            .as_mut()
+            .unwrap()
+            .post_baseline_version_sources
+            .insert(
+                EXTRA.to_owned(),
+                VersionSourceSelection {
+                    source_path: format!("platform/minecraft/version-sources/1.20/{EXTRA}"),
+                    source_sha256: String::new(),
+                    output_sha256: String::new(),
+                    imported_output_sha256: None,
+                    required_feature: None,
+                },
+            );
+        artifacts.get_mut(EXTRA).unwrap().overlay = Some("version-source-1.20".to_owned());
+        let preview = preview_frozen_inventory_from_selection(
+            root_path,
+            "1.20",
+            &selection,
+            &roots,
+            &artifacts,
+            &commit,
+            "9.99.99-fixture",
+            None,
+        )
+        .unwrap();
+        assert_eq!(
+            preview.inventory.files[JAVA].source_repo_path,
+            imported_java
+        );
+        assert_eq!(
+            preview.inventory.files[RESOURCE].source_repo_path,
+            overlay_source
+        );
+        assert_eq!(
+            preview.inventory.files[EXTRA].source_repo_path,
+            format!("platform/minecraft/version-sources/1.20/{EXTRA}")
+        );
+        assert_eq!(
+            preview.inventory.files["settings.gradle"].transform,
+            FrozenTransform::TargetSettings
+        );
+    }
+
+    #[test]
+    fn selection_seed_rejects_incomplete_wrong_ambiguous_and_stale_owners() {
+        let (root, commit) = setup();
+        let (mut selection, mut roots, mut artifacts) =
+            selected_fixture(root.path(), &commit, "1.19.4");
+        let mut proposed =
+            derive_physical_owners(root.path(), "1.19.4", &selection, &roots, &artifacts).unwrap();
+        proposed.remove(RESOURCE);
+        let error = preview_frozen_inventory_from_selection(
+            root.path(),
+            "1.19.4",
+            &selection,
+            &roots,
+            &artifacts,
+            &commit,
+            "9.99.99-fixture",
+            Some(&proposed),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(error.contains("membership"), "{error}");
+        proposed =
+            derive_physical_owners(root.path(), "1.19.4", &selection, &roots, &artifacts).unwrap();
+        proposed.get_mut(RESOURCE).unwrap().source_repo_path =
+            format!("platform/minecraft/{TEST_FIXTURE}");
+        let error = preview_frozen_inventory_from_selection(
+            root.path(),
+            "1.19.4",
+            &selection,
+            &roots,
+            &artifacts,
+            &commit,
+            "9.99.99-fixture",
+            Some(&proposed),
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(error.contains("physical owners"), "{error}");
+
+        artifacts.get_mut(RESOURCE).unwrap().overlay = Some("unknown".to_owned());
+        let error = derive_physical_owners(root.path(), "1.19.4", &selection, &roots, &artifacts)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("0 physical owner routes"), "{error}");
+        artifacts.get_mut(RESOURCE).unwrap().overlay = Some("feature".to_owned());
+        selection.explicit_inputs.insert(
+            RESOURCE.to_owned(),
+            format!("platform/minecraft/{RESOURCE}"),
+        );
+        roots
+            .source_overlays
+            .push(("feature".to_owned(), roots.primary_src_root.clone()));
+        let error = derive_physical_owners(root.path(), "1.19.4", &selection, &roots, &artifacts)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("2 physical owner routes"), "{error}");
+        roots.source_overlays.clear();
+        artifacts.get_mut(RESOURCE).unwrap().source_bytes = b"wrong raw bytes".to_vec();
+        let error = derive_physical_owners(root.path(), "1.19.4", &selection, &roots, &artifacts)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("differs from final source bytes"), "{error}");
+
+        artifacts.get_mut(RESOURCE).unwrap().source_bytes = b"uncommitted drift\n".to_vec();
+        write(
+            root.path(),
+            &format!("platform/minecraft/{RESOURCE}"),
+            b"uncommitted drift\n",
+        );
+        let error = preview_frozen_inventory_from_selection(
+            root.path(),
+            "1.19.4",
+            &selection,
+            &roots,
+            &artifacts,
+            &commit,
+            "9.99.99-fixture",
+            None,
+        )
+        .unwrap_err()
+        .to_string();
+        assert!(error.contains("exact authored commit blob"), "{error}");
+        selection.release_baseline.as_mut().unwrap().kind = BaselineKind::ReleaseTag;
+        assert!(
+            preview_frozen_inventory_from_selection(
+                root.path(),
+                "1.19.4",
+                &selection,
+                &roots,
+                &artifacts,
+                &commit,
+                "9.99.99-fixture",
+                None,
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn frozen_fixture_java_is_copied_while_source_java_requires_rendering() {
+        let (root, _) = setup();
+        let output = "docs/architecture/fixtures/review/Example.java";
+        let source = format!("platform/minecraft/freeze-fixture/1.19.4/{output}");
+        let bytes = b"class FixtureExample {}\n";
+        write(root.path(), &source, bytes);
+        git(root.path(), &["add", "--", "platform/minecraft"]);
+        git(root.path(), &["commit", "--quiet", "-m", "Java fixture"]);
+        let commit = git(root.path(), &["rev-parse", "HEAD"]);
+        let mut candidate = request(&commit, "1.19.4");
+        candidate.files.insert(
+            output.to_owned(),
+            FrozenAuthoringInput {
+                source_repo_path: source,
+                overlay: Some("development-fixtures".to_owned()),
+                transform: FrozenTransform::Copy,
+            },
+        );
+        let preview = preview_frozen_inventory(root.path(), &candidate).unwrap();
+        assert_eq!(preview.inventory.files[output].source_sha256, sha256(bytes));
+        assert_eq!(preview.inventory.files[output].output_sha256, sha256(bytes));
+        write(
+            root.path(),
+            &preview.binding.inventory_path,
+            preview.canonical_json.as_bytes(),
+        );
+        let (artifacts, _) =
+            project_frozen_artifacts(root.path(), &preview.binding, &commit, &candidate.context)
+                .unwrap();
+        assert_eq!(artifacts[output].output_bytes, bytes);
+        candidate.files.get_mut(JAVA).unwrap().transform = FrozenTransform::Copy;
+        assert!(preview_frozen_inventory(root.path(), &candidate).is_err());
+        candidate.files.get_mut(JAVA).unwrap().transform = FrozenTransform::Java;
+        candidate.files.get_mut(output).unwrap().transform = FrozenTransform::Java;
+        assert!(preview_frozen_inventory(root.path(), &candidate).is_err());
     }
 
     #[test]

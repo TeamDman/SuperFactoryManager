@@ -278,8 +278,8 @@ pub(crate) fn validate_inventory(
                 "target-settings transform is permitted only for settings.gradle"
             ),
             FrozenTransform::Copy => ensure!(
-                !java_output,
-                "Java frozen output '{path}' requires the Java renderer"
+                !(path.starts_with("src/") && java_output),
+                "source Java frozen output '{path}' requires the Java renderer"
             ),
         }
     }

@@ -22,6 +22,9 @@ use crate::source_projection::development_fixtures::collect_verified_development
 use crate::source_projection::development_fixtures::materialize_development_project_fixtures;
 use crate::source_projection::development_gradle::apply_post_baseline_gradle_sources;
 use crate::source_projection::development_gradle::materialize_development_gradle_inputs;
+use crate::source_projection::frozen_authoring::FrozenSelectionRoots;
+use crate::source_projection::frozen_authoring::preview_frozen_inventory_from_selection;
+use crate::source_projection::frozen_authoring::verify_committed_selection_manifest;
 use crate::source_projection::frozen_release::project_frozen_artifacts;
 use crate::source_projection::frozen_release::verify_frozen_outputs;
 use crate::source_projection::inputs::apply_explicit_inputs;
@@ -50,6 +53,7 @@ use crate::source_projection::sync::ProjectionIdentity;
 use crate::source_projection::sync::SyncMode;
 use crate::source_projection::sync::SyncReport;
 use crate::source_projection::sync::sync_projection;
+use crate::terminal_output::stderr_line;
 use crate::terminal_output::stdout_line;
 use eyre::Result;
 use eyre::WrapErr;
@@ -85,6 +89,8 @@ pub enum SourceCommand {
     ImportDevelopmentFixtures(SourceImportDevelopmentFixturesArgs),
     /// Preview a projection without writing.
     DryRun(SourceProjectArgs),
+    /// Print a canonical commit-frozen inventory seeded from selected development inputs.
+    FrozenInventoryPreview(SourceFrozenInventoryPreviewArgs),
     /// Require an existing projection to match the selected inputs.
     Check(SourceProjectArgs),
     /// Synchronize a generated source root after conflict checks.
@@ -215,6 +221,43 @@ pub struct SourceProjectArgs {
 }
 
 #[derive(Debug, Facet)]
+pub struct SourceFrozenInventoryPreviewArgs {
+    /// Authored Git worktree root containing the selected development inputs.
+    #[facet(args::named)]
+    pub repo_root: PathBuf,
+    /// Stable target ID, for example 1.21.0 (whose Minecraft version is 1.21).
+    #[facet(args::named)]
+    pub target: String,
+    /// Current-development preset whose complete output membership is selected.
+    #[facet(args::named)]
+    pub preset: String,
+    /// Exact lowercase authored source commit containing every selected input.
+    #[facet(args::named)]
+    pub source_commit: String,
+    /// Version of the future released-<version> preset to preview.
+    #[facet(args::named)]
+    pub release_mod_version: String,
+    /// Manifest relative to the repository root.
+    #[facet(default, args::named)]
+    pub manifest: Option<PathBuf>,
+    /// Optional existing inventory to compare byte-for-byte with the preview.
+    #[facet(default, args::named)]
+    pub proposed_inventory: Option<PathBuf>,
+    /// Selected primary source directory relative to the repository root.
+    #[facet(default, args::named)]
+    pub primary_src_root: Option<PathBuf>,
+    /// Ordered source overlay as NAME=PATH.
+    #[facet(default, args::named)]
+    pub overlay: Vec<String>,
+    /// Selected Gradle project directory relative to the repository root.
+    #[facet(default, args::named)]
+    pub gradle_project_root: Option<PathBuf>,
+    /// Ordered Gradle overlay as NAME=PATH.
+    #[facet(default, args::named)]
+    pub gradle_overlay: Vec<String>,
+}
+
+#[derive(Debug, Facet)]
 pub struct SourceGradleArgs {
     /// Projection selection and the caller-owned output root.
     #[facet(flatten)]
@@ -271,6 +314,9 @@ impl SourceArgs {
             SourceCommand::ImportDevelopmentFixtures(args) => {
                 return args.invoke_in(invocation_dir);
             }
+            SourceCommand::FrozenInventoryPreview(args) => {
+                return args.invoke_in(cancellation, invocation_dir);
+            }
             SourceCommand::Build(args) => {
                 return args.invoke_in(cancellation, invocation_dir, SourceGradleMode::Build);
             }
@@ -304,6 +350,168 @@ impl SourceArgs {
             SourceCommand::Reconcile(args) => (args, SyncMode::Reconcile),
         };
         args.invoke_in(cancellation, invocation_dir, mode)
+    }
+}
+
+impl SourceFrozenInventoryPreviewArgs {
+    /// # Errors
+    ///
+    /// Rejects incomplete selection, uncertain physical ownership, uncommitted
+    /// source drift, or a proposed inventory that differs from this preview.
+    pub fn invoke_in(
+        self,
+        cancellation: &CancellationToken,
+        invocation_dir: &Path,
+    ) -> Result<CliOutput> {
+        cancellation.bail_if_cancelled()?;
+        ensure!(
+            self.preset.starts_with("current-development-"),
+            "frozen inventory seeding requires a current-development preset"
+        );
+        let repo_root = resolve_repository_root(self.repo_root.clone(), invocation_dir)?;
+        let manifest_path = source_path(
+            &repo_root,
+            self.manifest
+                .as_deref()
+                .unwrap_or(Path::new("platform/minecraft/source-projection.json")),
+        )?;
+        let manifest_text = fs::read_to_string(&manifest_path)
+            .wrap_err("cannot read source-projection manifest for frozen preview")?;
+        let manifest_repo_path = manifest_path
+            .strip_prefix(&repo_root)
+            .wrap_err("selection manifest escapes authored repository")?
+            .components()
+            .map(|component| match component {
+                Component::Normal(name) => name
+                    .to_str()
+                    .map(str::to_owned)
+                    .ok_or_else(|| eyre::eyre!("selection manifest path is not UTF-8")),
+                _ => Err(eyre::eyre!("selection manifest path is not portable")),
+            })
+            .collect::<Result<Vec<_>>>()?
+            .join("/");
+        verify_committed_selection_manifest(
+            &repo_root,
+            &self.source_commit,
+            &manifest_repo_path,
+            manifest_text.as_bytes(),
+        )?;
+        let manifest = SourceProjectionManifest::from_json(&manifest_text)?;
+        let target = manifest.target(&self.target)?;
+        let selection = select(&manifest, &self.target, &self.preset)?;
+        let project = SourceProjectArgs {
+            repo_root: self.repo_root,
+            target: self.target.clone(),
+            preset: self.preset,
+            manifest: self.manifest,
+            primary_src_root: self.primary_src_root,
+            gradle_project_root: self.gradle_project_root,
+            output_root: PathBuf::new(),
+            overlay: self.overlay,
+            gradle_overlay: self.gradle_overlay,
+        };
+        let roots = project.frozen_selection_roots(&repo_root, &selection)?;
+        let (_, mut artifacts) =
+            project.collect_source_artifacts(&repo_root, &selection, cancellation)?;
+        for (path, artifact) in project.collect_gradle_artifacts(
+            &repo_root,
+            &selection,
+            &target.id,
+            &target.minecraft_version,
+        )? {
+            ensure!(
+                artifacts.insert(path.clone(), artifact).is_none(),
+                "Gradle input '{path}' conflicts with selected source"
+            );
+        }
+        cancellation.bail_if_cancelled()?;
+        let preview = preview_frozen_inventory_from_selection(
+            &repo_root,
+            &target.id,
+            &selection,
+            &roots,
+            &artifacts,
+            &self.source_commit,
+            &self.release_mod_version,
+            None,
+        )?;
+        if let Some(proposed) = self.proposed_inventory {
+            let path = source_path(&repo_root, &proposed)?;
+            let bytes = fs::read(&path).wrap_err("cannot read proposed frozen inventory")?;
+            ensure!(
+                bytes == preview.canonical_json.as_bytes(),
+                "proposed frozen inventory differs from complete selection-derived preview"
+            );
+        }
+        stderr_line(format!(
+            "reviewed binding: {} sha256:{}",
+            preview.binding.inventory_path, preview.binding.inventory_sha256
+        ))?;
+        stdout_line(preview.canonical_json.trim_end_matches('\n'))?;
+        Ok(CliOutput::none())
+    }
+}
+
+impl SourceProjectArgs {
+    fn frozen_selection_roots(
+        &self,
+        repo_root: &Path,
+        selection: &ProjectionSelection,
+    ) -> Result<FrozenSelectionRoots> {
+        let primary_src_root = source_path(
+            repo_root,
+            self.primary_src_root
+                .as_deref()
+                .unwrap_or(Path::new("platform/minecraft/src")),
+        )?;
+        let source_overlays = self
+            .overlay
+            .iter()
+            .map(|spec| {
+                let (name, path) = spec
+                    .split_once('=')
+                    .ok_or_else(|| eyre::eyre!("overlay '{spec}' must use NAME=PATH"))?;
+                Ok((name.to_owned(), source_path(repo_root, Path::new(path))?))
+            })
+            .collect::<Result<Vec<_>>>()?;
+        let (gradle_project_root, gradle_overlays) =
+            if let Some(binding) = &selection.release_baseline {
+                ensure!(
+                    binding.kind == BaselineKind::DevelopmentHead
+                        && self.gradle_project_root.is_none()
+                        && self.gradle_overlay.is_empty(),
+                    "selected development baseline owns its pinned Gradle inputs"
+                );
+                let import_parent = Path::new(&binding.import_manifest)
+                    .parent()
+                    .ok_or_else(|| eyre::eyre!("development import manifest has no parent"))?;
+                let pinned = source_path(repo_root, &import_parent.join("gradle-project"))?;
+                (pinned.clone(), vec![("release-tag".to_owned(), pinned)])
+            } else {
+                let project_root = source_path(
+                    repo_root,
+                    self.gradle_project_root
+                        .as_deref()
+                        .unwrap_or(Path::new("platform/minecraft")),
+                )?;
+                let overlays = self
+                    .gradle_overlay
+                    .iter()
+                    .map(|spec| {
+                        let (name, path) = spec.split_once('=').ok_or_else(|| {
+                            eyre::eyre!("Gradle overlay '{spec}' must use NAME=PATH")
+                        })?;
+                        Ok((name.to_owned(), source_path(repo_root, Path::new(path))?))
+                    })
+                    .collect::<Result<Vec<_>>>()?;
+                (project_root, overlays)
+            };
+        Ok(FrozenSelectionRoots {
+            primary_src_root,
+            source_overlays,
+            gradle_project_root,
+            gradle_overlays,
+        })
     }
 }
 
@@ -1309,6 +1517,38 @@ mod tests {
         let destination = root.join(path);
         fs::create_dir_all(destination.parent().unwrap()).unwrap();
         fs::write(destination, bytes).unwrap();
+    }
+
+    #[test]
+    fn selection_seed_uses_pinned_development_gradle_root_and_label() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = fs::canonicalize(temp.path()).unwrap();
+        fs::create_dir_all(root.join("platform/minecraft/src")).unwrap();
+        let pinned = root.join("platform/minecraft/development-baselines/1.19.4/gradle-project");
+        fs::create_dir_all(&pinned).unwrap();
+        let manifest = SourceProjectionManifest::from_json(include_str!(
+            "../../../../../minecraft/source-projection.json"
+        ))
+        .unwrap();
+        let selection = select(&manifest, "1.19.4", "current-development-head-1.19.4").unwrap();
+        let args = SourceProjectArgs {
+            repo_root: root.clone(),
+            target: "1.19.4".to_owned(),
+            preset: "current-development-head-1.19.4".to_owned(),
+            manifest: None,
+            primary_src_root: None,
+            gradle_project_root: None,
+            output_root: PathBuf::new(),
+            overlay: vec![],
+            gradle_overlay: vec![],
+        };
+        let roots = args.frozen_selection_roots(&root, &selection).unwrap();
+        let pinned = fs::canonicalize(pinned).unwrap();
+        assert_eq!(roots.gradle_project_root, pinned);
+        assert_eq!(
+            roots.gradle_overlays,
+            vec![("release-tag".to_owned(), pinned)]
+        );
     }
 
     #[test]
