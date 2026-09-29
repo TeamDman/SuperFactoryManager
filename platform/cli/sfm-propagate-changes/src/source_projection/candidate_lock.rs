@@ -691,7 +691,12 @@ fn validate_lower_hex(value: &str, length: usize, label: &str) -> Result<()> {
     Ok(())
 }
 
-fn checked_directory(path: &Path) -> Result<PathBuf> {
+/// Resolve an existing absolute directory without traversing reparse points.
+///
+/// # Errors
+///
+/// Rejects missing, relative, traversing or reparse-point paths.
+pub(crate) fn checked_directory(path: &Path) -> Result<PathBuf> {
     ensure!(
         path.is_absolute(),
         "candidate verification root must be absolute"
@@ -734,7 +739,12 @@ fn hash_regular(root: &Path, relative: &str) -> Result<String> {
     Ok(format!("sha256:{:x}", hasher.finalize()))
 }
 
-fn checked_file(root: &Path, relative: &str) -> Result<PathBuf> {
+/// Check one locked file path and every parent below its verified root.
+///
+/// # Errors
+///
+/// Rejects unsafe, missing, nonregular or reparse-point components.
+pub(crate) fn checked_file(root: &Path, relative: &str) -> Result<PathBuf> {
     validate_relative_path(relative)?;
     let parts = relative.split('/').collect::<Vec<_>>();
     let mut path = root.to_path_buf();
@@ -770,7 +780,8 @@ fn is_reparse(metadata: &fs::Metadata) -> bool {
     }
 }
 
-fn is_within(path: &Path, parent: &Path) -> bool {
+/// Compare canonical paths at directory-component boundaries.
+pub(crate) fn is_within(path: &Path, parent: &Path) -> bool {
     let path = path.to_string_lossy().to_lowercase();
     let parent = parent.to_string_lossy().to_lowercase();
     path == parent || path.starts_with(&format!("{parent}{}", std::path::MAIN_SEPARATOR))
@@ -815,7 +826,7 @@ pub(crate) mod tests {
     }
 
     impl Fixture {
-        fn new() -> Self {
+        pub(crate) fn new() -> Self {
             Self::new_with_version("4.35.0", false)
         }
 
@@ -1125,6 +1136,14 @@ pub(crate) mod tests {
 
         pub(crate) fn lock(&self) -> &SourceCandidateLock {
             &self.lock
+        }
+
+        pub(crate) fn repo(&self) -> &Path {
+            &self.repo
+        }
+
+        pub(crate) fn roots(&self) -> &BTreeMap<String, PathBuf> {
+            &self.roots
         }
 
         fn verify(&self) -> Result<CandidateVerificationReport> {

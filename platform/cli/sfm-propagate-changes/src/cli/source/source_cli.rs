@@ -3,6 +3,7 @@
 use super::candidate_lock_cli::CandidateVerifyArgs;
 use super::promotion_cli::PromotionArgs;
 use super::release_inventory_cli::ReleaseInventoryArgs;
+use super::release_package_cli::ReleasePackageArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::jdk::resolve_exact_java_for_minecraft_dir;
@@ -88,6 +89,8 @@ pub enum SourceCommand {
     CandidateVerify(CandidateVerifyArgs),
     /// List the ten exact verified candidate JARs without tagging or publishing.
     ReleaseInventory(ReleaseInventoryArgs),
+    /// Copy the exact verified JARs into a new local candidate package.
+    ReleasePackage(ReleasePackageArgs),
 }
 
 #[derive(Debug, Facet)]
@@ -253,6 +256,9 @@ impl SourceArgs {
                 return args.invoke_in(cancellation, invocation_dir);
             }
             SourceCommand::ReleaseInventory(args) => {
+                return args.invoke_in(cancellation, invocation_dir);
+            }
+            SourceCommand::ReleasePackage(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
             SourceCommand::DryRun(args) => (args, SyncMode::DryRun),

@@ -95,6 +95,34 @@ The old GitHub, CurseForge and Modrinth release commands discover JARs by filena
 
 **Completion criteria met locally:** A real ten-target, source-checked candidate produced an exact, portable inventory; incomplete and stale locks failed closed. The read-only command did not alter release roots, tags or remotes. This does not close M3 behavior parity, SP-02 fresh-checkout builds, future-preset promotion or projection-native publication review.
 
+### [~] M6.2 Package one verified candidate locally
+
+**Status:** Local implementation and validation complete on the exploratory branch; final diff review remains open. This slice creates only a caller-owned local candidate package. It does not accept gameplay compatibility, promote generated roots, create tags, upload assets, change the default branch or retire version branches.
+
+**Authoritative guidance and traceability:**
+
+| ID | Confirmed requirement | Implementation and acceptance |
+| --- | --- | --- |
+| M6P-1 | Consume a frozen, exact ten-target inventory, reviewed lock SHA-256 and ten explicit local roots | Parse the strict `sfm:source_release_inventory@1` document, rerun full `source candidate-verify`, and compare every inventory field with the regenerated report before writing |
+| M6P-2 | Package only locked production JAR paths without shared-directory filename guessing | Copy each lock target's `production_jar_relative_path` into an isolated package; verify every copied SHA-256; write a strict completion manifest last |
+| M6P-3 | A caller-owned output must be new, absolute and separate from the repository and candidate roots | Require an existing safe parent; reject existing paths, traversal, reparse ancestors and root overlap; create files exclusively; leave an incomplete directory intact on failure, with no completion manifest |
+| M6P-4 | Keep publication and repository transitions separately authorized | Add only a `source release-package` command; do not call Git tag, GitHub, CurseForge, Modrinth, promotion Apply or the legacy shared JAR collector |
+| M6P-5 | Do not run heavy Cargo work during the sequential fresh-wrapper Gradle matrix; stop on disk-space errors | Edit and run formatting/static checks first; run focused Cargo tests after the matrix is idle; report any disk-space error without cleanup |
+
+**Intent audit:** Passed 28 September 2026 against the active M6 packaging request and follow-up output-root constraint. Pass 1 extracted the five requirements above, including the no-delete rule. Pass 2 mapped each requirement to the command contract and tests below. Pass 3 checked that local packaging cannot imply compatibility acceptance or publication, and that a failed write preserves the incomplete output for inspection. Known source limitation: none for this scoped request.
+
+**Established foundation:** M6.1 already verifies all ten candidate roots against a portable lock and emits a sorted inventory. The verifier binds committed authored inputs, provenance, owned files and exact production-JAR bytes. Build task, profile and JDK build IDs are reviewed assertions, not process attestations. Normal new-preset promotion Apply remains disabled.
+
+**Concurrency boundary:** Keep the authored checkout, candidate roots and caller-owned output parent quiescent during packaging. Directory publication is not atomic: partial files are visible and retained on failure. The output preflight checks containment and reparse points before and after exclusive directory creation, but it does not pin directory handles against hostile concurrent parent swaps. The copied JAR digests are checked before the completion manifest is written.
+
+**Work:** Add `source release-package` beside `source release-inventory`. Require a frozen inventory file, the candidate lock, its separately reviewed SHA-256, all ten `target=absolute-root` mappings and a fresh absolute output directory. Parse and compare the entire inventory before creating the output. Use the locked relative JAR paths and preserve their validated, case-insensitively unique basenames. Copy only those ten files, verify destination hashes again before completion, and write the inventory copy and completion manifest with exclusive file creation. Write the completion manifest last; a later consumer must validate it and every listed digest. A failure leaves any newly created directory in place for explicit review; the command never removes or overwrites caller data.
+
+**Validation:** Focused fixture tests must reject a wrong lock hash, changed or incomplete inventory, missing or mutated target, and existing, overlapping or reparse-point output before a completion manifest appears. Keep the candidate verifier's existing reparse-JAR regression in the full library gate. An injected failure after one copied JAR must leave a partial directory without that manifest. A successful fixture must contain exactly ten hash-matching locked JARs, the frozen inventory and the completion manifest. Run `cargo test --locked --offline release_package_cli --lib` from `platform/cli/sfm-propagate-changes` only after the wrapper matrix is idle; run formatting and diff checks before that. No Gradle invocation is part of this slice.
+
+**Completion notes so far:** The new CLI route, strict inventory comparison, local-only copy path and seven focused fixture tests are implemented. After the sequential fresh-wrapper Gradle matrix became idle, `cargo test --locked --offline release_package_cli --lib` passed 8/8 tests (including the CLI parse test). The full Rust library suite passed 974 tests with ten ignored and none failed. Library Clippy passed with `-D warnings -A clippy::similar_names`; `cargo fmt --all -- --check` and `git diff --check` passed. The rebuilt `source release-package --help` command exited zero and showed all required inputs. No real release package was created, and final diff review remains pending.
+
+**Completion criteria:** The command has no branch/tag/upload/default-branch path, reads no configured shared JAR directory, creates no output on verification or destination-preflight failure, and cannot mark a partial package complete. Record actual test results here before changing `[~]` to `[x]`.
+
 ### Future release-preset promotion boundary
 
 Ordinary `source sync` intentionally rejects a change to an existing generated root's preset ID or definition identity. A future `released-X` candidate therefore needs an explicit, guarded promotion path; do not treat a new release as an in-place sync of `released-4.34.0`.

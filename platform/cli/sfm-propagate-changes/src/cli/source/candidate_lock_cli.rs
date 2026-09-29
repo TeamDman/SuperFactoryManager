@@ -20,7 +20,7 @@ use std::path::PathBuf;
 
 const MAX_LOCK_BYTES: u64 = 1024 * 1024;
 
-#[derive(Debug, Facet)]
+#[derive(Clone, Debug, Facet)]
 pub struct CandidateVerifyArgs {
     /// Git worktree containing the reviewed source-projection definition.
     #[facet(args::named)]

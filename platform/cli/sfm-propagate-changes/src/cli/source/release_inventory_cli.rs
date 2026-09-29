@@ -29,38 +29,40 @@ pub struct ReleaseInventoryArgs {
     pub candidate: CandidateVerifyArgs,
 }
 
-#[derive(Debug, Facet)]
-struct ReleaseInventory {
-    schema: String,
+#[derive(Debug, Eq, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
+pub(super) struct ReleaseInventory {
+    pub(super) schema: String,
     /// Verification of a local candidate is not permission to publish it.
-    scope: String,
-    lock_sha256: String,
-    source_commit: String,
-    source_manifest_sha256: String,
-    mod_version: String,
-    candidate_preset_id: String,
-    candidate_definition_identity: String,
-    compatibility_evidence_relative_path: String,
-    compatibility_evidence_sha256: String,
-    deterministic_source_check: bool,
+    pub(super) scope: String,
+    pub(super) lock_sha256: String,
+    pub(super) source_commit: String,
+    pub(super) source_manifest_sha256: String,
+    pub(super) mod_version: String,
+    pub(super) candidate_preset_id: String,
+    pub(super) candidate_definition_identity: String,
+    pub(super) compatibility_evidence_relative_path: String,
+    pub(super) compatibility_evidence_sha256: String,
+    pub(super) deterministic_source_check: bool,
     /// Gradle profile and JDK build identity come from the reviewed lock, not process attestation.
-    build_inputs_are_reviewed_assertions: bool,
-    targets: Vec<ReleaseInventoryTarget>,
+    pub(super) build_inputs_are_reviewed_assertions: bool,
+    pub(super) targets: Vec<ReleaseInventoryTarget>,
 }
 
-#[derive(Debug, Facet)]
-struct ReleaseInventoryTarget {
-    target_id: String,
-    minecraft_version: String,
-    loader: String,
-    loader_version: String,
-    gradle_profile: String,
-    production_task: String,
-    jdk_major: u16,
-    jdk_build_id: String,
-    provenance_manifest_sha256: String,
-    production_jar_relative_path: String,
-    production_jar_sha256: String,
+#[derive(Debug, Eq, Facet, PartialEq)]
+#[facet(deny_unknown_fields)]
+pub(super) struct ReleaseInventoryTarget {
+    pub(super) target_id: String,
+    pub(super) minecraft_version: String,
+    pub(super) loader: String,
+    pub(super) loader_version: String,
+    pub(super) gradle_profile: String,
+    pub(super) production_task: String,
+    pub(super) jdk_major: u16,
+    pub(super) jdk_build_id: String,
+    pub(super) provenance_manifest_sha256: String,
+    pub(super) production_jar_relative_path: String,
+    pub(super) production_jar_sha256: String,
 }
 
 impl ReleaseInventoryArgs {
@@ -96,7 +98,7 @@ impl ReleaseInventoryArgs {
 }
 
 impl ReleaseInventory {
-    fn from_verified(
+    pub(super) fn from_verified(
         lock: &SourceCandidateLock,
         report: &CandidateVerificationReport,
     ) -> Result<Self> {
