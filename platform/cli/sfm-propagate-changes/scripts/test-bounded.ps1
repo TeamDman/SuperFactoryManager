@@ -51,6 +51,9 @@ $integrationTargets = @(
     'source_jar_absence_cli_test'
 )
 $fixture = 'cli::source::promotion_cli::tests::real_pinned_tag_inputs_flow_through_fictional_ten_target_immutable_apply'
+$standaloneTests = @(
+    'tests::frozen_stage_rejects_global_log_file_before_logging_initializes'
+)
 
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $projectRoot '..\..\..')).Path
@@ -106,6 +109,12 @@ function Assert-LibraryPartition {
         throw 'The dedicated promotion fixture is missing from the library test list.'
     }
     $coverage[$fixture]++
+    foreach ($test in $standaloneTests) {
+        if (-not $coverage.ContainsKey($test)) {
+            throw "The standalone library test '$test' is missing from the test list."
+        }
+        $coverage[$test]++
+    }
     $bad = @($coverage.GetEnumerator() | Where-Object { $_.Value -ne 1 })
     if ($bad.Count -ne 0) {
         $bad | Select-Object -First 5 | ForEach-Object {
@@ -113,7 +122,7 @@ function Assert-LibraryPartition {
         }
         throw "Library test partition has $($bad.Count) omitted or overlapping tests."
     }
-    Write-Host "Library partition: $($names.Count) listed tests across $($moduleRoots.Count) modules and one dedicated fixture."
+    Write-Host "Library partition: $($names.Count) listed tests across $($moduleRoots.Count) modules, $($standaloneTests.Count) standalone tests and one dedicated fixture."
 }
 
 function Invoke-CargoShard {
@@ -178,6 +187,12 @@ foreach ($target in $integrationTargets) {
     $name = "integration:$target"
     if ($Shard -ne 'all' -and $Shard -ne $name) { continue }
     $cargoArgs = $commonCargoArgs + @('--test', $target, '--', '--test-threads=1')
+    $jobs.Add([pscustomobject]@{ Name = $name; Arguments = $cargoArgs })
+}
+foreach ($test in $standaloneTests) {
+    $name = "unit:$test"
+    if ($Shard -ne 'all' -and $Shard -ne $name) { continue }
+    $cargoArgs = $commonCargoArgs + @('--lib', $test, '--', '--exact', '--test-threads=1')
     $jobs.Add([pscustomobject]@{ Name = $name; Arguments = $cargoArgs })
 }
 if ($Shard -eq 'all' -or $Shard -eq 'fixture') {

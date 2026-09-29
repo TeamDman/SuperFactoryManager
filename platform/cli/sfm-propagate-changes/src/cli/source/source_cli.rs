@@ -1,6 +1,7 @@
 //! Explicit, fail-closed source-projection commands.
 
 use super::candidate_lock_cli::CandidateVerifyArgs;
+use super::frozen_preset_stage_cli::FrozenPresetStageArgs;
 use super::promotion_cli::PromotionArgs;
 use super::release_inventory_cli::ReleaseInventoryArgs;
 use super::release_package_cli::ReleasePackageArgs;
@@ -95,6 +96,8 @@ pub enum SourceCommand {
     FrozenInventoryPreview(SourceFrozenInventoryPreviewArgs),
     /// Preview a complete, commit-frozen ten-target inventory matrix without writing.
     FrozenInventoryMatrixPreview(SourceFrozenInventoryMatrixPreviewArgs),
+    /// Stage a reviewed frozen preset in a clean external candidate checkout.
+    FrozenPresetStage(FrozenPresetStageArgs),
     /// Require an existing projection to match the selected inputs.
     Check(SourceProjectArgs),
     /// Synchronize a generated source root after conflict checks.
@@ -261,9 +264,9 @@ pub struct SourceFrozenInventoryPreviewArgs {
     pub gradle_overlay: Vec<String>,
 }
 
-const FROZEN_MATRIX_SCHEMA: &str = "sfm:frozen_inventory_matrix_preview@1";
-const FROZEN_MATRIX_SCOPE: &str = "read-only authoring preview; no project or inventory writes; no promotion, tag or publication authorization";
-const FROZEN_MATRIX_TARGETS: [&str; 10] = [
+pub(super) const FROZEN_MATRIX_SCHEMA: &str = "sfm:frozen_inventory_matrix_preview@1";
+pub(super) const FROZEN_MATRIX_SCOPE: &str = "read-only authoring preview; no project or inventory writes; no promotion, tag or publication authorization";
+pub(super) const FROZEN_MATRIX_TARGETS: [&str; 10] = [
     "1.19.2", "1.19.4", "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1",
     "26.1.2",
 ];
@@ -287,32 +290,32 @@ pub struct SourceFrozenInventoryMatrixPreviewArgs {
     pub selection: Vec<String>,
 }
 
-#[derive(Debug, Facet)]
+#[derive(Debug, Eq, Facet, PartialEq)]
 #[facet(deny_unknown_fields)]
-struct FrozenInventoryMatrixPreviewReport {
-    schema: String,
-    scope: String,
-    source_commit: String,
+pub(super) struct FrozenInventoryMatrixPreviewReport {
+    pub(super) schema: String,
+    pub(super) scope: String,
+    pub(super) source_commit: String,
     /// Prefixed `sha256:<hex>` digest of the exact committed selection manifest.
-    source_manifest_sha256: String,
-    release_mod_version: String,
-    release_preset_id: String,
-    targets: Vec<FrozenInventoryMatrixTargetPreview>,
+    pub(super) source_manifest_sha256: String,
+    pub(super) release_mod_version: String,
+    pub(super) release_preset_id: String,
+    pub(super) targets: Vec<FrozenInventoryMatrixTargetPreview>,
 }
 
-#[derive(Debug, Facet)]
+#[derive(Debug, Eq, Facet, PartialEq)]
 #[facet(deny_unknown_fields)]
-struct FrozenInventoryMatrixTargetPreview {
-    target_id: String,
-    minecraft_version: String,
-    development_preset_id: String,
-    development_preset_identity: String,
-    enabled_features: Vec<String>,
-    inventory_path: String,
+pub(super) struct FrozenInventoryMatrixTargetPreview {
+    pub(super) target_id: String,
+    pub(super) minecraft_version: String,
+    pub(super) development_preset_id: String,
+    pub(super) development_preset_identity: String,
+    pub(super) enabled_features: Vec<String>,
+    pub(super) inventory_path: String,
     /// Bare lowercase hex, matching `FrozenSourceBinding.inventory_sha256`.
-    inventory_sha256: String,
+    pub(super) inventory_sha256: String,
     /// Exact canonical JSON, including its terminal newline; hash these bytes.
-    canonical_inventory_json: String,
+    pub(super) canonical_inventory_json: String,
 }
 
 #[derive(Debug, Facet)]
@@ -376,6 +379,9 @@ impl SourceArgs {
                 return args.invoke_in(cancellation, invocation_dir);
             }
             SourceCommand::FrozenInventoryMatrixPreview(args) => {
+                return args.invoke_in(cancellation, invocation_dir);
+            }
+            SourceCommand::FrozenPresetStage(args) => {
                 return args.invoke_in(cancellation, invocation_dir);
             }
             SourceCommand::Build(args) => {
@@ -539,6 +545,16 @@ impl SourceFrozenInventoryMatrixPreviewArgs {
         cancellation: &CancellationToken,
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
+        Ok(CliOutput::facet(
+            self.preview_report_in(cancellation, invocation_dir)?,
+        ))
+    }
+
+    pub(super) fn preview_report_in(
+        self,
+        cancellation: &CancellationToken,
+        invocation_dir: &Path,
+    ) -> Result<FrozenInventoryMatrixPreviewReport> {
         cancellation.bail_if_cancelled()?;
         let release_preset_id = released_preset_id(&self.release_mod_version)?;
         let repo_root = resolve_repository_root(self.repo_root, invocation_dir)?;
@@ -588,7 +604,7 @@ impl SourceFrozenInventoryMatrixPreviewArgs {
                 canonical_inventory_json: preview.canonical_json,
             });
         }
-        Ok(CliOutput::facet(FrozenInventoryMatrixPreviewReport {
+        Ok(FrozenInventoryMatrixPreviewReport {
             schema: FROZEN_MATRIX_SCHEMA.to_owned(),
             scope: FROZEN_MATRIX_SCOPE.to_owned(),
             source_commit: self.source_commit,
@@ -596,7 +612,7 @@ impl SourceFrozenInventoryMatrixPreviewArgs {
             release_preset_id,
             release_mod_version: self.release_mod_version,
             targets,
-        }))
+        })
     }
 }
 
@@ -1694,7 +1710,7 @@ fn source_path(repo_root: &Path, relative: &Path) -> Result<PathBuf> {
 }
 
 #[cfg(test)]
-mod tests {
+pub(super) mod tests {
     use super::*;
     use crate::cli::Cli;
     use crate::cli::Command;
@@ -1851,7 +1867,7 @@ mod tests {
         }
     }
 
-    fn frozen_matrix_fixture() -> (
+    pub(crate) fn frozen_matrix_fixture() -> (
         tempfile::TempDir,
         String,
         SourceFrozenInventoryMatrixPreviewArgs,

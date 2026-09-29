@@ -85,6 +85,20 @@ fn version() -> String {
     )
 }
 
+fn reject_stage_log_file_before_logging(cli: &Cli) -> eyre::Result<()> {
+    if cli.global_args.log_file.is_some()
+        && matches!(
+            &cli.command,
+            cli::Command::Source(cli::source::SourceArgs {
+                command: cli::source::SourceCommand::FrozenPresetStage(_),
+            })
+        )
+    {
+        eyre::bail!("source frozen-preset-stage rejects global --log-file before logging starts");
+    }
+    Ok(())
+}
+
 /// Entrypoint for the program.
 ///
 /// # Errors
@@ -119,6 +133,10 @@ pub fn main() -> eyre::Result<std::process::ExitCode> {
     .run()
     .unwrap();
 
+    // Candidate-only staging must not let a global log path write elsewhere
+    // before the command has checked its external checkout boundary.
+    reject_stage_log_file_before_logging(&cli)?;
+
     // Initialize logging
     logging::init_logging(&cli.logging_config()?, &cancellation_token)?;
 
@@ -139,4 +157,39 @@ pub fn main() -> eyre::Result<std::process::ExitCode> {
     let exit_code = output.exit_code();
     output.emit(requested_output_format)?;
     Ok(std::process::ExitCode::from(exit_code))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    fn stage_cli(log_file: Option<PathBuf>) -> Cli {
+        Cli {
+            global_args: cli::global_args::GlobalArgs {
+                log_file,
+                ..Default::default()
+            },
+            command: cli::Command::Source(cli::source::SourceArgs {
+                command: cli::source::SourceCommand::FrozenPresetStage(
+                    cli::source::FrozenPresetStageArgs {
+                        repo_root: PathBuf::from("authored"),
+                        candidate_root: PathBuf::from("candidate"),
+                        preview: PathBuf::from("preview.json"),
+                        preview_sha256: "sha256:reviewed".to_owned(),
+                        apply: false,
+                    },
+                ),
+            }),
+            builtins: figue::FigueBuiltins::default(),
+        }
+    }
+
+    #[test]
+    fn frozen_stage_rejects_global_log_file_before_logging_initializes() {
+        let cli = stage_cli(Some(PathBuf::from("outside-candidate.ndjson")));
+        let error = reject_stage_log_file_before_logging(&cli).unwrap_err();
+        assert!(error.to_string().contains("rejects global --log-file"));
+        assert!(reject_stage_log_file_before_logging(&stage_cli(None)).is_ok());
+    }
 }
