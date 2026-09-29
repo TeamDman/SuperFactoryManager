@@ -306,13 +306,10 @@ enum ApplyHookPoint {
 
 type ApplyHook<'a> = dyn Fn(usize, ApplyHookPoint, &Path) -> Result<()> + 'a;
 
-/// Inspect all ten candidate and checked-in roots, or apply one staged,
-/// rollback-capable filesystem transaction after repeating that inspection.
+/// Inspect all ten candidate and checked-in roots without changing them.
 ///
-/// `Apply` is an explicit release-maintainer operation. It never commits,
-/// tags, pushes, or publishes; Git provides the eventual ten-root history
-/// boundary after the result is reviewed. It is not a concurrency protocol
-/// for editors that write during the final rename window.
+/// Apply is available only through the crate-private, transition-specific
+/// entry points that require an independent pre-apply candidate verifier.
 ///
 /// # Errors
 ///
@@ -320,13 +317,17 @@ type ApplyHook<'a> = dyn Fn(usize, ApplyHookPoint, &Path) -> Result<()> + 'a;
 /// altered checked-in manifests or outputs, unowned collisions, symlinks,
 /// and any candidate that reuses the old preset identity.
 pub fn promote(request: &PromotionRequest, mode: PromotionMode) -> Result<PromotionReport> {
-    run_promotion(request, mode, None, None)
+    ensure!(
+        mode == PromotionMode::DryRun,
+        "source-promotion Apply requires a verified transition-specific entry point"
+    );
+    run_promotion(request, PromotionMode::DryRun, None, None)
 }
 
 /// Apply only a pre-acceptance baseline repair after re-verifying its external
 /// candidate at the last boundary before any checked-in file is installed.
 /// The callback receives the retained transaction stage so it can report the
-/// exact transaction on failure. No normal immutable-preset Apply is exposed.
+/// exact transaction on failure.
 pub(crate) fn promote_repair_with_pre_apply_verification(
     request: &PromotionRequest,
     verify: &dyn Fn(&Path) -> Result<()>,
@@ -337,6 +338,34 @@ pub(crate) fn promote_repair_with_pre_apply_verification(
             PromotionTransition::PreAcceptanceBaselineRepair { .. }
         ),
         "pre-apply candidate verification is reserved for baseline repair"
+    );
+    ensure!(
+        !request.accept_identical_edits,
+        "baseline repair Apply forbids accept_identical_edits"
+    );
+    run_promotion_with_pre_apply_verification(
+        request,
+        PromotionMode::Apply,
+        None,
+        None,
+        Some(verify),
+    )
+}
+
+/// Apply a new immutable preset only after an external candidate was fully
+/// verified and will be verified again after staging, before destination edits.
+/// The CLI owns lock reading, reviewed-hash comparison and acknowledgment.
+pub(crate) fn promote_new_immutable_with_pre_apply_verification(
+    request: &PromotionRequest,
+    verify: &dyn Fn(&Path) -> Result<()>,
+) -> Result<PromotionReport> {
+    ensure!(
+        matches!(request.transition, PromotionTransition::NewImmutablePreset),
+        "verified immutable-preset Apply requires a new immutable transition"
+    );
+    ensure!(
+        !request.accept_identical_edits,
+        "immutable-preset Apply forbids accept_identical_edits"
     );
     run_promotion_with_pre_apply_verification(
         request,
@@ -2059,9 +2088,45 @@ mod tests {
     }
 
     #[test]
+    fn public_apply_rejects_both_transitions_without_writing() {
+        for fixture in [Fixture::new(), Fixture::new_repair()] {
+            let destination = fixture.destination("1.19.2").join(MANIFEST_FILE);
+            let before = fs::read(&destination).unwrap();
+            let error = promote(&fixture.request, PromotionMode::Apply).unwrap_err();
+            assert!(
+                error
+                    .to_string()
+                    .contains("verified transition-specific entry point")
+            );
+            assert_eq!(fs::read(destination).unwrap(), before);
+        }
+    }
+
+    #[test]
+    fn immutable_apply_requires_its_transition_and_rejects_identical_edits() {
+        let repair = Fixture::new_repair();
+        assert!(
+            promote_new_immutable_with_pre_apply_verification(&repair.request, &|_| Ok(()))
+                .unwrap_err()
+                .to_string()
+                .contains("new immutable transition")
+        );
+        let mut immutable = Fixture::new();
+        immutable.request.accept_identical_edits = true;
+        assert!(
+            promote_new_immutable_with_pre_apply_verification(&immutable.request, &|_| Ok(()))
+                .unwrap_err()
+                .to_string()
+                .contains("forbids accept_identical_edits")
+        );
+    }
+
+    #[test]
     fn apply_changes_ten_roots_and_retains_recovery_journal() {
         let fixture = Fixture::new();
-        let report = promote(&fixture.request, PromotionMode::Apply).unwrap();
+        let report =
+            promote_new_immutable_with_pre_apply_verification(&fixture.request, &|_| Ok(()))
+                .unwrap();
         let stage = report.recovery_stage.unwrap();
         assert!(stage.join("journal.json").is_file());
         assert!(stage.join("complete").is_file());
@@ -2794,7 +2859,7 @@ mod tests {
         fixture.request.reviewed_compatibility_evidence_sha256 = sha256(changed);
         promote(&fixture.request, PromotionMode::DryRun).unwrap();
         assert!(
-            promote(&fixture.request, PromotionMode::Apply)
+            promote_new_immutable_with_pre_apply_verification(&fixture.request, &|_| Ok(()))
                 .unwrap_err()
                 .to_string()
                 .contains("committed unchanged in reviewed HEAD")
@@ -3001,7 +3066,8 @@ mod tests {
     #[test]
     fn exact_refmap_repair_applies_only_to_synthetic_ten_root_fixture() {
         let fixture = Fixture::new_repair();
-        let report = promote(&fixture.request, PromotionMode::Apply).unwrap();
+        let report =
+            promote_repair_with_pre_apply_verification(&fixture.request, &|_| Ok(())).unwrap();
         assert!(report.recovery_stage.unwrap().join("complete").is_file());
         for id in REPAIR_TARGETS {
             let root = fixture.destination(id);
