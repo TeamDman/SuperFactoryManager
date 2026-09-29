@@ -9,6 +9,7 @@ param(
     [Parameter(Mandatory)] [string] $PrismRoot,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
+    [ValidateSet('title', 'world')] [string] $CaptureMode = 'title',
     [ValidateRange(30, 600)] [int] $WatchdogSeconds = 300
 )
 
@@ -134,7 +135,7 @@ if ((Get-FileHash -LiteralPath $sfmCopy -Algorithm SHA256).Hash.ToLowerInvariant
     throw 'Scratch SFM JAR hash does not match source'
 }
 $runId = [Guid]::NewGuid().ToString()
-@("run_id=$runId", "sfm_sha256=$expected", 'capture=title') |
+@("run_id=$runId", "sfm_sha256=$expected", "capture=$CaptureMode") |
     Set-Content -LiteralPath (Join-Path $control 'request.properties') -Encoding ascii
 
 $compileClasspath = @(
@@ -143,7 +144,8 @@ $compileClasspath = @(
     (Join-Path $libraryRoot 'net/minecraftforge/forge/1.19.2-43.4.0/forge-1.19.2-43.4.0-universal.jar'),
     (Join-Path $libraryRoot 'net/minecraftforge/fmlcore/1.19.2-43.4.0/fmlcore-1.19.2-43.4.0.jar'),
     (Join-Path $libraryRoot 'net/minecraftforge/javafmllanguage/1.19.2-43.4.0/javafmllanguage-1.19.2-43.4.0.jar'),
-    (Join-Path $libraryRoot 'net/minecraftforge/eventbus/6.0.3/eventbus-6.0.3.jar')
+    (Join-Path $libraryRoot 'net/minecraftforge/eventbus/6.0.3/eventbus-6.0.3.jar'),
+    (Join-Path $libraryRoot 'com/mojang/datafixerupper/5.0.28/datafixerupper-5.0.28.jar')
 )
 foreach ($path in $compileClasspath) { Assert-File $path | Out-Null }
 $javaSource = Assert-File (Join-Path $bridgeRoot 'src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseClientBridge.java')
@@ -230,10 +232,24 @@ try {
         throw "$stage; exit_code=$($process.ExitCode)"
     }
     $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
-    if ($result.run_id -ne $runId -or $result.sfm_sha256 -ne $expected -or $result.status -ne 'passed') {
+    $expectedSchema = if ($CaptureMode -eq 'world') { 'sfm-release-client-world-proof/1' } else { 'sfm-release-client-proof/1' }
+    $expectedScreen = if ($CaptureMode -eq 'world') { 'world' } else { 'title' }
+    $expectedScreenshot = if ($CaptureMode -eq 'world') { 'sfm-release-client-world.png' } else { 'sfm-release-client-title.png' }
+    if ($result.schema -ne $expectedSchema -or $result.run_id -ne $runId -or
+        $result.sfm_sha256 -ne $expected -or $result.status -ne 'passed' -or
+        $result.screen -ne $expectedScreen -or $result.screenshot -ne $expectedScreenshot) {
         throw "Bridge reported failure or unexpected identity: $($result | ConvertTo-Json -Compress)"
     }
-    $screenshot = Assert-File (Join-Path $game 'screenshots/sfm-release-client-title.png')
+    if ($CaptureMode -eq 'world' -and
+        ($result.block_id -ne 'sfm:manager' -or $result.server_block_placed -ne $true -or
+            $result.client_block_synced -ne $true -or $result.ray_hit -ne $true -or
+            $result.rendered_world_frames -lt 30 -or $result.world_id -ne ('sfm_release_probe_' + $runId.Replace('-', '')))) {
+        throw "Bridge world witness is incomplete: $($result | ConvertTo-Json -Compress)"
+    }
+    if ($CaptureMode -eq 'title' -and $result.rendered_title_frames -lt 90) {
+        throw "Bridge title witness is incomplete: $($result | ConvertTo-Json -Compress)"
+    }
+    $screenshot = Assert-File (Join-Path $game "screenshots/$expectedScreenshot")
     $signature = [IO.File]::ReadAllBytes($screenshot)
     if ($signature.Length -lt 24 -or [BitConverter]::ToString($signature, 0, 8) -ne '89-50-4E-47-0D-0A-1A-0A') {
         throw 'Screenshot witness is not a nonempty PNG'
@@ -244,7 +260,9 @@ try {
         ([int] $signature[18] -shl 8) -bor [int] $signature[19])
     $height = (([int] $signature[20] -shl 24) -bor ([int] $signature[21] -shl 16) -bor
         ([int] $signature[22] -shl 8) -bor [int] $signature[23])
-    if ($width -lt 1 -or $height -lt 1) { throw 'Screenshot witness has invalid PNG dimensions' }
+    if ($width -ne 1024 -or $height -ne 768) {
+        throw "Screenshot witness has unexpected PNG dimensions: ${width}x${height}"
+    }
     $sourceHashAfter = (Get-FileHash -LiteralPath $sourceJar -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($sourceHashAfter -ne $expected) { throw 'Original SFM JAR changed during client proof' }
     Write-Host "SFM_RELEASE_PROBE_PASS run_id=$runId sfm_sha256=$expected screenshot=$screenshot"

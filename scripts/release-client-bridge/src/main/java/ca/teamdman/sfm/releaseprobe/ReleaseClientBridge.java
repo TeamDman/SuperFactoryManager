@@ -3,12 +3,30 @@ package ca.teamdman.sfm.releaseprobe;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.server.IntegratedServer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.Difficulty;
+import net.minecraft.world.level.DataPackConfig;
+import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.LevelSettings;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.levelgen.WorldGenSettings;
+import net.minecraft.world.level.levelgen.presets.WorldPreset;
+import net.minecraft.world.level.levelgen.presets.WorldPresets;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraftforge.client.event.RenderLevelStageEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.ModList;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -24,17 +42,31 @@ import java.util.Properties;
 @Mod("sfmreleaseprobe")
 public final class ReleaseClientBridge {
     private static final String CONTROL_PROPERTY = "sfm.releaseProbe.controlDirectory";
-    private static final String SCREENSHOT_NAME = "sfm-release-client-title.png";
+    private static final String TITLE_SCREENSHOT_NAME = "sfm-release-client-title.png";
+    private static final String WORLD_SCREENSHOT_NAME = "sfm-release-client-world.png";
+    private static final ResourceLocation MANAGER_ID = new ResourceLocation("sfm", "manager");
     // Let the title fade-in and its menu widgets settle before taking the witness.
     private static final int TITLE_FRAMES_BEFORE_CAPTURE = 90;
+    private static final int WORLD_FRAMES_BEFORE_CAPTURE = 30;
 
     private final Path controlDirectory;
     private final Path gameDirectory;
     private final String runId;
     private final String expectedSfmSha256;
+    private final String captureMode;
+    private final String worldId;
     private int renderedTitleFrames;
+    private int renderedWorldFrames;
     private boolean renderEventObserved;
     private boolean clientTickObserved;
+    private boolean worldCreationStarted;
+    private boolean worldSetupRequested;
+    private boolean worldRenderObserved;
+    private boolean clientBlockSynced;
+    private boolean rayHit;
+    private volatile boolean serverBlockPlaced;
+    private volatile BlockPos managerPosition;
+    private volatile String worldSetupFailure;
     private boolean captureQueued;
     private boolean resultWritten;
 
@@ -47,10 +79,12 @@ public final class ReleaseClientBridge {
             }
             runId = request.getProperty("run_id", "");
             expectedSfmSha256 = request.getProperty("sfm_sha256", "").toLowerCase();
+            captureMode = request.getProperty("capture", "");
             if (!runId.matches("[0-9a-fA-F-]{36}") || !expectedSfmSha256.matches("[0-9a-f]{64}")
-                    || !"title".equals(request.getProperty("capture", ""))) {
+                    || !("title".equals(captureMode) || "world".equals(captureMode))) {
                 throw new IllegalArgumentException("Invalid release-client request");
             }
+            worldId = "sfm_release_probe_" + runId.replace("-", "");
             gameDirectory = controlDirectory.getParent().resolve("game").toAbsolutePath().normalize();
             if (!Files.isDirectory(gameDirectory) || !Files.isDirectory(gameDirectory.resolve("mods"))) {
                 throw new IllegalArgumentException("Missing isolated game directory");
@@ -74,10 +108,13 @@ public final class ReleaseClientBridge {
             System.out.println("SFM_RELEASE_CLIENT_SCREEN_RENDER_OBSERVED run_id=" + runId
                     + " screen=" + event.getScreen().getClass().getName());
         }
-        if (captureQueued || !(event.getScreen() instanceof TitleScreen)) {
+        if (!(event.getScreen() instanceof TitleScreen)) {
             return;
         }
         renderedTitleFrames++;
+        if (!"title".equals(captureMode) || captureQueued) {
+            return;
+        }
         if (renderedTitleFrames < TITLE_FRAMES_BEFORE_CAPTURE) {
             return;
         }
@@ -88,7 +125,7 @@ public final class ReleaseClientBridge {
         captureQueued = true;
         try {
             Minecraft minecraft = Minecraft.m_91087_();
-            Screenshot.m_92295_(minecraft.f_91069_, SCREENSHOT_NAME, minecraft.m_91385_(),
+            Screenshot.m_92295_(minecraft.f_91069_, TITLE_SCREENSHOT_NAME, minecraft.m_91385_(),
                     message -> System.out.println("SFM_RELEASE_CLIENT_SCREENSHOT_MESSAGE run_id=" + runId
                             + " message=" + message));
             System.out.println("SFM_RELEASE_CLIENT_CAPTURE_QUEUED run_id=" + runId
@@ -105,10 +142,16 @@ public final class ReleaseClientBridge {
             clientTickObserved = true;
             System.out.println("SFM_RELEASE_CLIENT_TICK_OBSERVED run_id=" + runId);
         }
-        if (event.phase != TickEvent.Phase.END || !captureQueued || resultWritten) {
+        if (event.phase != TickEvent.Phase.END || resultWritten) {
             return;
         }
-        Path screenshot = gameDirectory.resolve("screenshots").resolve(SCREENSHOT_NAME);
+        if ("world".equals(captureMode)) {
+            advanceWorldWitness();
+        }
+        if (!captureQueued || resultWritten) {
+            return;
+        }
+        Path screenshot = gameDirectory.resolve("screenshots").resolve(screenshotName());
         try {
             if (!Files.isRegularFile(screenshot) || Files.size(screenshot) == 0) {
                 return;
@@ -118,6 +161,155 @@ public final class ReleaseClientBridge {
             failure.printStackTrace(System.err);
             fail("screenshot_io_error");
         }
+    }
+
+    @SubscribeEvent
+    public void onWorldRendered(RenderLevelStageEvent event) {
+        if (!"world".equals(captureMode) || resultWritten ||
+                event.getStage() != RenderLevelStageEvent.Stage.AFTER_PARTICLES) {
+            return;
+        }
+        if (!worldRenderObserved) {
+            worldRenderObserved = true;
+            System.out.println("SFM_RELEASE_CLIENT_WORLD_RENDER_OBSERVED run_id=" + runId);
+        }
+        Minecraft minecraft = Minecraft.m_91087_();
+        if (!clientBlockSynced || !serverBlockPlaced || minecraft.f_91080_ != null ||
+                !isAimedAtManager(minecraft)) {
+            return;
+        }
+        renderedWorldFrames++;
+        if (captureQueued || renderedWorldFrames < WORLD_FRAMES_BEFORE_CAPTURE) {
+            return;
+        }
+        captureQueued = true;
+        try {
+            Screenshot.m_92295_(minecraft.f_91069_, WORLD_SCREENSHOT_NAME, minecraft.m_91385_(),
+                    message -> System.out.println("SFM_RELEASE_CLIENT_SCREENSHOT_MESSAGE run_id=" + runId
+                            + " message=" + message));
+            System.out.println("SFM_RELEASE_CLIENT_CAPTURE_QUEUED run_id=" + runId
+                    + " rendered_world_frames=" + renderedWorldFrames);
+        } catch (Exception failure) {
+            failure.printStackTrace(System.err);
+            fail("capture_exception");
+        }
+    }
+
+    private void advanceWorldWitness() {
+        Minecraft minecraft = Minecraft.m_91087_();
+        if (!worldCreationStarted) {
+            if (renderedTitleFrames < 2 || !(minecraft.f_91080_ instanceof TitleScreen)) {
+                return;
+            }
+            if (!ModList.get().isLoaded("sfm")) {
+                fail("sfm_mod_not_loaded");
+                return;
+            }
+            try {
+                createScratchWorld(minecraft);
+            } catch (Exception failure) {
+                failure.printStackTrace(System.err);
+                fail("world_creation_exception");
+            }
+            return;
+        }
+        if (worldSetupFailure != null) {
+            fail(worldSetupFailure);
+            return;
+        }
+        IntegratedServer server = minecraft.m_91092_();
+        if (server == null || !server.m_129920_() || minecraft.f_91074_ == null ||
+                minecraft.f_91073_ == null || minecraft.f_91080_ != null) {
+            return;
+        }
+        if (!worldSetupRequested) {
+            worldSetupRequested = true;
+            System.out.println("SFM_RELEASE_CLIENT_WORLD_READY run_id=" + runId + " world_id=" + worldId);
+            server.execute(() -> placeManager(server));
+            return;
+        }
+        BlockPos position = managerPosition;
+        if (!serverBlockPlaced || position == null) {
+            return;
+        }
+        if (!clientBlockSynced) {
+            Block manager = ForgeRegistries.BLOCKS.getValue(MANAGER_ID);
+            if (manager == null || minecraft.f_91073_.m_8055_(position).m_60734_() != manager) {
+                return;
+            }
+            clientBlockSynced = true;
+            System.out.println("SFM_RELEASE_CLIENT_BLOCK_SYNCED run_id=" + runId + " block=sfm:manager"
+                    + " pos=" + position.m_123341_() + "," + position.m_123342_() + "," + position.m_123343_());
+        }
+        if (!rayHit && isAimedAtManager(minecraft)) {
+            rayHit = true;
+            System.out.println("SFM_RELEASE_CLIENT_RAY_HIT_OBSERVED run_id=" + runId + " block=sfm:manager");
+        }
+    }
+
+    private void createScratchWorld(Minecraft minecraft) throws IOException {
+        if (!minecraft.f_91069_.toPath().toRealPath().equals(gameDirectory.toRealPath()) ||
+                minecraft.f_91073_ != null || minecraft.m_91092_() != null) {
+            throw new IllegalStateException("Not at the isolated scratch title screen");
+        }
+        Path savesDirectory = gameDirectory.resolve("saves").normalize();
+        Path save = savesDirectory.resolve(worldId).normalize();
+        if (!save.getParent().equals(savesDirectory) || Files.exists(save)) {
+            throw new IllegalStateException("Scratch world already exists or escapes game directory");
+        }
+        RegistryAccess registryAccess = RegistryAccess.m_206197_();
+        Registry<WorldPreset> presets = registryAccess.m_175515_(Registry.f_235726_);
+        WorldGenSettings worldGenSettings = presets.m_214121_(WorldPresets.f_226438_)
+                .m_203334_().m_226421_(0L, false, false);
+        LevelSettings levelSettings = new LevelSettings(
+                "SFM release bridge " + runId, GameType.CREATIVE, false, Difficulty.PEACEFUL,
+                true, new GameRules(), DataPackConfig.f_45842_);
+        // createFreshLevel may pump client ticks, so mark the one-shot before calling it.
+        worldCreationStarted = true;
+        System.out.println("SFM_RELEASE_CLIENT_WORLD_CREATE_REQUESTED run_id=" + runId
+                + " world_id=" + worldId);
+        minecraft.m_231466_().m_233157_(worldId, levelSettings, registryAccess, worldGenSettings);
+    }
+
+    private void placeManager(IntegratedServer server) {
+        try {
+            if (server.m_6846_().m_11314_().size() != 1) {
+                throw new IllegalStateException("Expected exactly one scratch-world player");
+            }
+            ServerPlayer player = server.m_6846_().m_11314_().get(0);
+            Block manager = ForgeRegistries.BLOCKS.getValue(MANAGER_ID);
+            if (manager == null) {
+                throw new IllegalStateException("Production sfm:manager is not registered");
+            }
+            BlockPos base = player.m_20183_();
+            BlockPos position = base.m_7918_(0, 0, -3);
+            if (!server.m_129783_().m_46597_(position, manager.m_49966_()) ||
+                    server.m_129783_().m_8055_(position).m_60734_() != manager) {
+                throw new IllegalStateException("Server did not place sfm:manager");
+            }
+            player.m_146922_(180F);
+            player.m_146926_(20F);
+            player.m_5616_(180F);
+            player.m_6021_(base.m_123341_() + 0.5, base.m_123342_(), base.m_123343_() + 0.5);
+            managerPosition = position;
+            serverBlockPlaced = true;
+            System.out.println("SFM_RELEASE_CLIENT_SERVER_BLOCK_PLACED run_id=" + runId
+                    + " block=sfm:manager pos=" + position.m_123341_() + ","
+                    + position.m_123342_() + "," + position.m_123343_());
+        } catch (Exception failure) {
+            failure.printStackTrace(System.err);
+            worldSetupFailure = "server_block_placement_failed";
+        }
+    }
+
+    private boolean isAimedAtManager(Minecraft minecraft) {
+        BlockPos position = managerPosition;
+        return position != null && minecraft.f_91077_ instanceof BlockHitResult hit &&
+                hit.m_82425_().equals(position);
+    }
+
+    private String screenshotName() {
+        return "world".equals(captureMode) ? WORLD_SCREENSHOT_NAME : TITLE_SCREENSHOT_NAME;
     }
 
     private void fail(String reason) {
@@ -133,11 +325,24 @@ public final class ReleaseClientBridge {
 
     private void writeResult(String status, String reason) throws IOException {
         resultWritten = true;
-        String json = "{\"schema\":\"sfm-release-client-proof/1\",\"run_id\":\"" + runId
-                + "\",\"status\":\"" + status + "\",\"reason\":\"" + reason
-                + "\",\"sfm_sha256\":\"" + expectedSfmSha256 + "\",\"screen\":\"title\""
-                + ",\"rendered_title_frames\":" + renderedTitleFrames
-                + ",\"screenshot\":\"" + SCREENSHOT_NAME + "\"}\n";
+        String json;
+        if ("world".equals(captureMode)) {
+            json = "{\"schema\":\"sfm-release-client-world-proof/1\",\"run_id\":\"" + runId
+                    + "\",\"status\":\"" + status + "\",\"reason\":\"" + reason
+                    + "\",\"sfm_sha256\":\"" + expectedSfmSha256 + "\",\"screen\":\"world\""
+                    + ",\"world_id\":\"" + worldId + "\",\"block_id\":\"sfm:manager\""
+                    + ",\"server_block_placed\":" + serverBlockPlaced
+                    + ",\"client_block_synced\":" + clientBlockSynced
+                    + ",\"ray_hit\":" + rayHit
+                    + ",\"rendered_world_frames\":" + renderedWorldFrames
+                    + ",\"screenshot\":\"" + WORLD_SCREENSHOT_NAME + "\"}\n";
+        } else {
+            json = "{\"schema\":\"sfm-release-client-proof/1\",\"run_id\":\"" + runId
+                    + "\",\"status\":\"" + status + "\",\"reason\":\"" + reason
+                    + "\",\"sfm_sha256\":\"" + expectedSfmSha256 + "\",\"screen\":\"title\""
+                    + ",\"rendered_title_frames\":" + renderedTitleFrames
+                    + ",\"screenshot\":\"" + TITLE_SCREENSHOT_NAME + "\"}\n";
+        }
         Path staging = controlDirectory.resolve("result.json.staging");
         Files.writeString(staging, json);
         Files.move(staging, controlDirectory.resolve("result.json"), StandardCopyOption.ATOMIC_MOVE);
