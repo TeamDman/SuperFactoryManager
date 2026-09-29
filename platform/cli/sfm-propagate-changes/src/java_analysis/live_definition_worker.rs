@@ -6,6 +6,7 @@ use super::JavaFileFactsInput;
 use super::JavaSourceFile;
 use super::JavaSourceWorkspace;
 use super::JavaSymbolIndex;
+use super::JavaSymbolSelector;
 use super::LiveWorkerScheduler;
 use super::ScheduledShard;
 use super::StableShardKey;
@@ -267,6 +268,7 @@ pub(crate) fn build_live_definition_index_streaming(
 pub(crate) fn build_live_definition_index_in_process(
     workspace: &JavaSourceWorkspace,
     external: &[JavaDependencyResolutionDefinition],
+    selector: &JavaSymbolSelector,
 ) -> eyre::Result<JavaSymbolIndex> {
     let mut files = workspace.files.iter().collect::<Vec<_>>();
     files.sort_by(|left, right| {
@@ -299,7 +301,43 @@ pub(crate) fn build_live_definition_index_in_process(
             None,
         )?)?;
     }
-    linker.seal(files.len())
+    // Isolated generated-project queries have no dependency index. Admit only
+    // the requested JDK owner, using type-only facts unless the request names
+    // a member. This keeps the ordinary one-pass linker contract without
+    // indexing unrelated JDK files or all JDK members for a type lookup.
+    let detail = if matches!(selector, JavaSymbolSelector::Type { .. }) {
+        JavaFileFactDetail::TypesOnly
+    } else {
+        JavaFileFactDetail::Declarations
+    };
+    let jdk_files = workspace
+        .jdk_sources
+        .source_files_for_type(selector.owner())?;
+    for (offset, file) in jdk_files.iter().enumerate() {
+        let sequence = files
+            .len()
+            .checked_add(offset)
+            .ok_or_else(|| eyre::eyre!("live JDK source sequence overflow"))?;
+        let source = std::fs::read_to_string(&file.absolute_path).wrap_err_with(|| {
+            format!("failed to read JDK source {}", file.absolute_path.display())
+        })?;
+        linker.ingest(extract_java_file_facts_from_text_with_detail(
+            JavaFileFactsInput {
+                sequence: u64::try_from(sequence)
+                    .wrap_err("live JDK source sequence does not fit u64")?,
+                report_path: &file.report_path,
+                source_set: &file.source_set,
+                visible_source_sets: visible
+                    .get(&file.source_set)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+            },
+            source,
+            Some(16),
+            detail,
+        )?)?;
+    }
+    linker.seal(files.len() + jdk_files.len())
 }
 
 fn wait_for_start_gate(path: &Path) -> eyre::Result<()> {
@@ -564,6 +602,144 @@ impl SharedWorkerJob {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::java_analysis::JavaAnalysisContextOutput;
+    use crate::java_analysis::JavaClasspathMode;
+    use crate::java_analysis::JavaSourceRootKind;
+    use crate::java_analysis::JavaSourceRootOutput;
+    use crate::java_analysis::JavaSourceSetOutput;
+    use crate::java_analysis::JdkSourceDomainState;
+    use crate::java_analysis::SymbolCommandOutcome;
+
+    fn isolated_workspace_with_jdk(root: &Path) -> JavaSourceWorkspace {
+        let project = root.join("project");
+        let local = project.join("p").join("Local.java");
+        std::fs::create_dir_all(local.parent().unwrap()).unwrap();
+        std::fs::write(&local, "package p; public class Local {}\n").unwrap();
+
+        let jdk_tree = root.join("jdk");
+        let string = jdk_tree
+            .join("java.base")
+            .join("java")
+            .join("lang")
+            .join("String.java");
+        let object = string.with_file_name("Object.java");
+        std::fs::create_dir_all(string.parent().unwrap()).unwrap();
+        std::fs::write(
+            &string,
+            "package java.lang; public final class String { public int length() { return 0; } }\n",
+        )
+        .unwrap();
+        std::fs::write(&object, "package java.lang; public class Object {}\n").unwrap();
+
+        let mut context = JavaAnalysisContextOutput {
+            branch: "fixture".to_owned(),
+            minecraft_version: "fixture".to_owned(),
+            java_release: "21".to_owned(),
+            jdk: "java-21".to_owned(),
+            source_roots: vec![JavaSourceRootOutput {
+                id: "project".to_owned(),
+                source_set: "main".to_owned(),
+                path: "project".to_owned(),
+                kind: JavaSourceRootKind::Custom,
+                exists: true,
+            }],
+            source_sets: vec![JavaSourceSetOutput {
+                id: "main".to_owned(),
+                visible_source_sets: vec!["main".to_owned()],
+            }],
+            source_exclusions: Vec::new(),
+            classpath_mode: JavaClasspathMode::Isolated,
+            classpath_fingerprint: "fixture".to_owned(),
+            parser_fingerprint: "fixture".to_owned(),
+            index_fingerprint: "fixture".to_owned(),
+        };
+        let jdk_sources = JdkSourceDomainState::ready_from_tree("21", &jdk_tree).unwrap();
+        jdk_sources.apply_to_context(&mut context);
+        JavaSourceWorkspace {
+            context,
+            root_authorities: Vec::new(),
+            files: vec![JavaSourceFile {
+                absolute_path: local,
+                root_id: "project".to_owned(),
+                root_relative_path: "p/Local.java".to_owned(),
+                report_path: "project/p/Local.java".to_owned(),
+                source_set: "main".to_owned(),
+                source_override: None,
+            }],
+            diagnostics: Vec::new(),
+            classpath_entries: Vec::new(),
+            jdk_sources,
+        }
+    }
+
+    #[test]
+    fn isolated_definition_loads_only_requested_jdk_type() {
+        let temporary = tempfile::tempdir().unwrap();
+        let workspace = isolated_workspace_with_jdk(temporary.path());
+        let selector = JavaSymbolSelector::Type {
+            owner: "java.lang.String".to_owned(),
+        };
+        let index = build_live_definition_index_in_process(&workspace, &[], &selector).unwrap();
+
+        let report = index.definition(&selector);
+        assert_eq!(report.outcome, SymbolCommandOutcome::Success);
+        assert_eq!(report.definitions.len(), 1);
+        assert_eq!(
+            report.definitions[0].identifier_span.source_set,
+            "jdk:java-21"
+        );
+        assert_eq!(
+            index
+                .definition(&JavaSymbolSelector::Type {
+                    owner: "p.Local".to_owned()
+                })
+                .outcome,
+            SymbolCommandOutcome::Success
+        );
+        assert_eq!(
+            index
+                .definition(&JavaSymbolSelector::Type {
+                    owner: "java.lang.Object".to_owned()
+                })
+                .outcome,
+            SymbolCommandOutcome::NoMatch
+        );
+        assert_eq!(
+            index
+                .definition(&JavaSymbolSelector::Method {
+                    owner: "java.lang.String".to_owned(),
+                    name: "length".to_owned(),
+                    descriptor: "()I".to_owned(),
+                })
+                .outcome,
+            SymbolCommandOutcome::NoMatch
+        );
+    }
+
+    #[test]
+    fn isolated_definition_loads_requested_jdk_members_on_demand() {
+        let temporary = tempfile::tempdir().unwrap();
+        let workspace = isolated_workspace_with_jdk(temporary.path());
+        let selector = JavaSymbolSelector::Method {
+            owner: "java.lang.String".to_owned(),
+            name: "length".to_owned(),
+            descriptor: "()I".to_owned(),
+        };
+        let index = build_live_definition_index_in_process(&workspace, &[], &selector).unwrap();
+
+        assert_eq!(
+            index.definition(&selector).outcome,
+            SymbolCommandOutcome::Success
+        );
+        assert_eq!(
+            index
+                .definition(&JavaSymbolSelector::Type {
+                    owner: "java.lang.Object".to_owned()
+                })
+                .outcome,
+            SymbolCommandOutcome::NoMatch
+        );
+    }
 
     #[test]
     fn worker_output_accepts_schema_only_empty_snapshot() {

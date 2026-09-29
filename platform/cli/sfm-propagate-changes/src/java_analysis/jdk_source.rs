@@ -231,6 +231,19 @@ impl JdkSourceDomainState {
         domain.addressed_source_file(root_id, root_relative_path)
     }
 
+    /// Resolve only the JDK source file declaring a requested type (or its
+    /// enclosing type). A symbol lookup must not admit the entire JDK source
+    /// tree, or even every JDK type referenced by the workspace.
+    pub(crate) fn source_files_for_type(
+        &self,
+        qualified_name: &str,
+    ) -> eyre::Result<Vec<JavaSourceFile>> {
+        match self {
+            Self::Ready(domain) => domain.source_files_for_type(qualified_name),
+            Self::Disabled | Self::Unavailable { .. } => Ok(Vec::new()),
+        }
+    }
+
     pub(crate) fn syntax_files_for_project(
         &self,
         project_files: &[JavaSyntaxFile],
@@ -743,6 +756,16 @@ impl JdkSourceDomain {
             };
             candidate = parent.to_owned();
         }
+    }
+
+    fn source_files_for_type(&self, qualified_name: &str) -> eyre::Result<Vec<JavaSourceFile>> {
+        self.source_entries(qualified_name)
+            .into_iter()
+            .map(|relative| {
+                self.addressed_source_file(&self.root_id, &relative)?
+                    .ok_or_else(|| eyre::eyre!("JDK source inventory did not resolve `{relative}`"))
+            })
+            .collect()
     }
 
     fn enrich_span(&self, span: &mut DefinitionSourceSpanOutput) {

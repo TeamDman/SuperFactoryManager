@@ -514,7 +514,10 @@ pub(super) fn build_query_index(
             && !include_usages
             && matches!(query, DependencySymbolQuery::Definition(_))
         {
-            build_live_definition_index_in_process(workspace, &[])?
+            let DependencySymbolQuery::Definition(selector) = query else {
+                unreachable!("isolated fast path requires a definition selector")
+            };
+            build_live_definition_index_in_process(workspace, &[], selector)?
         } else if include_usages {
             JavaSymbolIndex::build(workspace)?
         } else {
