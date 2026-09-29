@@ -176,6 +176,10 @@ foreach ($hash in @($required.Keys | Sort-Object -CaseSensitive)) {
         Copy-Item -LiteralPath $source -Destination $destination -ErrorAction Stop
         Assert-Object $destination $hash $required[$hash]
     } else {
+        if (-not $AllowDownloadMissing -or -not $expectedMissing.ContainsKey($hash) -or
+            $required[$hash] -ne $expectedMissing[$hash]) {
+            throw "Asset object disappeared or is not approved for download: $hash"
+        }
         Invoke-ExactObjectDownload $hash $required[$hash] $destination
         $downloaded.Add($hash)
     }
