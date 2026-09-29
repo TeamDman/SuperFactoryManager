@@ -1,5 +1,5 @@
 <#
-Test-only, offline Forge 43.4.0 client witness for an unchanged 1.19.2 SFM JAR.
+Test-only, offline Forge client witness for an unchanged SFM production JAR.
 All writes are confined to a new RunRoot; the launcher cache is read-only.
 #>
 [CmdletBinding()]
@@ -9,6 +9,7 @@ param(
     [Parameter(Mandatory)] [string] $PrismRoot,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
+    [ValidateSet('1.19.2', '1.19.4')] [string] $MinecraftVersion = '1.19.2',
     [ValidateSet('title', 'world')] [string] $CaptureMode = 'title',
     [ValidateRange(30, 600)] [int] $WatchdogSeconds = 300
 )
@@ -68,6 +69,18 @@ $javac = Assert-File (Join-Path $JavaHome 'bin/javac.exe')
 $jarTool = Assert-File (Join-Path $JavaHome 'bin/jar.exe')
 $run = [IO.Path]::GetFullPath($RunRoot).TrimEnd('\', '/')
 $bridgeRoot = $PSScriptRoot
+$version = switch ($MinecraftVersion) {
+    '1.19.2' { @{ Forge = '43.4.0'; Mcp = '20220805.130853'; Assets = '1.19'; DataFixer = '5.0.28' } }
+    '1.19.4' { @{ Forge = '45.0.9'; Mcp = '20230314.122934'; Assets = '3'; DataFixer = '6.0.6' } }
+}
+$forgeArtifact = "$MinecraftVersion-$($version.Forge)"
+$mcpArtifact = "$MinecraftVersion-$($version.Mcp)"
+$forgeVersionId = "$MinecraftVersion-forge-$($version.Forge)"
+$bridgeSourceRoot = if ($MinecraftVersion -eq '1.19.4') {
+    Join-Path $bridgeRoot 'src/1.19.4'
+} else {
+    Join-Path $bridgeRoot 'src/main'
+}
 $sourceRoot = [IO.Path]::GetDirectoryName($sourceJar).TrimEnd('\', '/')
 if ($run.Equals($prism, [StringComparison]::OrdinalIgnoreCase) -or
     $run.StartsWith($prism + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or
@@ -85,14 +98,14 @@ if ($sourceHashBefore -ne $expected) { throw 'Original SFM JAR hash does not mat
 
 $libraryRoot = Join-Path $prism 'libraries'
 $assetsRoot = Join-Path $prism 'assets'
-$minecraftMeta = Get-Content -LiteralPath (Assert-File (Join-Path $prism 'meta/net.minecraft/1.19.2.json')) -Raw | ConvertFrom-Json
+$minecraftMeta = Get-Content -LiteralPath (Assert-File (Join-Path $prism "meta/net.minecraft/$MinecraftVersion.json")) -Raw | ConvertFrom-Json
 $lwjglMeta = Get-Content -LiteralPath (Assert-File (Join-Path $prism 'meta/org.lwjgl3/3.3.1.json')) -Raw | ConvertFrom-Json
-$forgeInstaller = Assert-File (Join-Path $libraryRoot 'net/minecraftforge/forge/1.19.2-43.4.0/forge-1.19.2-43.4.0-installer.jar')
+$forgeInstaller = Assert-File (Join-Path $libraryRoot "net/minecraftforge/forge/$forgeArtifact/forge-$forgeArtifact-installer.jar")
 $forgeMeta = Get-ZipText $forgeInstaller 'version.json' | ConvertFrom-Json
-if ($forgeMeta.id -ne '1.19.2-forge-43.4.0' -or $minecraftMeta.mainJar.name -ne 'com.mojang:minecraft:1.19.2:client') {
+if ($forgeMeta.id -ne $forgeVersionId -or $minecraftMeta.mainJar.name -ne "com.mojang:minecraft:${MinecraftVersion}:client") {
     throw 'Unexpected cached Minecraft or Forge version manifest'
 }
-Assert-File (Join-Path $assetsRoot 'indexes/1.19.json') | Out-Null
+Assert-File (Join-Path $assetsRoot "indexes/$($version.Assets).json") | Out-Null
 
 $classpath = [Collections.Generic.List[string]]::new()
 $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -103,12 +116,12 @@ foreach ($lib in @($forgeMeta.libraries) + @($minecraftMeta.libraries) + @($lwjg
 }
 # These artifacts are produced by the cached Forge installer and are not in version.json.
 $extra = @(
-    'net/minecraftforge/forge/1.19.2-43.4.0/forge-1.19.2-43.4.0-client.jar',
-    'net/minecraftforge/forge/1.19.2-43.4.0/forge-1.19.2-43.4.0-universal.jar',
-    'net/minecraftforge/fmlcore/1.19.2-43.4.0/fmlcore-1.19.2-43.4.0.jar',
-    'net/minecraftforge/javafmllanguage/1.19.2-43.4.0/javafmllanguage-1.19.2-43.4.0.jar',
-    'net/minecraftforge/lowcodelanguage/1.19.2-43.4.0/lowcodelanguage-1.19.2-43.4.0.jar',
-    'net/minecraftforge/mclanguage/1.19.2-43.4.0/mclanguage-1.19.2-43.4.0.jar'
+    "net/minecraftforge/forge/$forgeArtifact/forge-$forgeArtifact-client.jar",
+    "net/minecraftforge/forge/$forgeArtifact/forge-$forgeArtifact-universal.jar",
+    "net/minecraftforge/fmlcore/$forgeArtifact/fmlcore-$forgeArtifact.jar",
+    "net/minecraftforge/javafmllanguage/$forgeArtifact/javafmllanguage-$forgeArtifact.jar",
+    "net/minecraftforge/lowcodelanguage/$forgeArtifact/lowcodelanguage-$forgeArtifact.jar",
+    "net/minecraftforge/mclanguage/$forgeArtifact/mclanguage-$forgeArtifact.jar"
 )
 foreach ($relative in $extra) {
     $path = Assert-File (Join-Path $libraryRoot $relative)
@@ -139,20 +152,21 @@ $runId = [Guid]::NewGuid().ToString()
     Set-Content -LiteralPath (Join-Path $control 'request.properties') -Encoding ascii
 
 $compileClasspath = @(
-    (Join-Path $libraryRoot 'net/minecraft/client/1.19.2-20220805.130853/client-1.19.2-20220805.130853-srg.jar'),
-    (Join-Path $libraryRoot 'net/minecraftforge/forge/1.19.2-43.4.0/forge-1.19.2-43.4.0-client.jar'),
-    (Join-Path $libraryRoot 'net/minecraftforge/forge/1.19.2-43.4.0/forge-1.19.2-43.4.0-universal.jar'),
-    (Join-Path $libraryRoot 'net/minecraftforge/fmlcore/1.19.2-43.4.0/fmlcore-1.19.2-43.4.0.jar'),
-    (Join-Path $libraryRoot 'net/minecraftforge/javafmllanguage/1.19.2-43.4.0/javafmllanguage-1.19.2-43.4.0.jar'),
+    (Join-Path $libraryRoot "net/minecraft/client/$mcpArtifact/client-$mcpArtifact-srg.jar"),
+    (Join-Path $libraryRoot "net/minecraftforge/forge/$forgeArtifact/forge-$forgeArtifact-client.jar"),
+    (Join-Path $libraryRoot "net/minecraftforge/forge/$forgeArtifact/forge-$forgeArtifact-universal.jar"),
+    (Join-Path $libraryRoot "net/minecraftforge/fmlcore/$forgeArtifact/fmlcore-$forgeArtifact.jar"),
+    (Join-Path $libraryRoot "net/minecraftforge/javafmllanguage/$forgeArtifact/javafmllanguage-$forgeArtifact.jar"),
     (Join-Path $libraryRoot 'net/minecraftforge/eventbus/6.0.3/eventbus-6.0.3.jar'),
-    (Join-Path $libraryRoot 'com/mojang/datafixerupper/5.0.28/datafixerupper-5.0.28.jar')
+    (Join-Path $libraryRoot "com/mojang/datafixerupper/$($version.DataFixer)/datafixerupper-$($version.DataFixer).jar")
 )
 foreach ($path in $compileClasspath) { Assert-File $path | Out-Null }
-$javaSource = Assert-File (Join-Path $bridgeRoot 'src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseClientBridge.java')
+$javaSource = Assert-File (Join-Path $bridgeSourceRoot 'java/ca/teamdman/sfm/releaseprobe/ReleaseClientBridge.java')
 & $javac -proc:none -source 17 -target 17 -classpath ($compileClasspath -join ';') -d $classes $javaSource
 if ($LASTEXITCODE -ne 0) { throw "Bridge javac failed: $LASTEXITCODE" }
+Assert-File (Join-Path $classes 'ca/teamdman/sfm/releaseprobe/ReleaseClientBridge.class') | Out-Null
 $bridgeJar = Join-Path $mods 'sfmreleaseprobe.jar'
-& $jarTool --create --file $bridgeJar -C $classes . -C (Join-Path $bridgeRoot 'src/main/resources') .
+& $jarTool --create --file $bridgeJar -C $classes . -C (Join-Path $bridgeSourceRoot 'resources') .
 if ($LASTEXITCODE -ne 0) { throw "Bridge jar failed: $LASTEXITCODE" }
 
 # Extract only the pinned Windows x64 LWJGL DLLs into this run's scratch native dir.
@@ -178,17 +192,17 @@ foreach ($arg in @('-Xms512m', '-Xmx2g', '-Dfile.encoding=UTF-8', "-Dsfm.release
 for ($index = 0; $index -lt $templateArgs.Count; $index++) {
     $arg = [string] $templateArgs[$index]
     if ($arg -eq '-p') { $jvm.Add('-p'); $jvm.Add($modulePath); $index++; continue }
-    $jvm.Add($arg.Replace('${library_directory}', $libraryRoot).Replace('${classpath_separator}', ';').Replace('${version_name}', '1.19.2-forge-43.4.0'))
+    $jvm.Add($arg.Replace('${library_directory}', $libraryRoot).Replace('${classpath_separator}', ';').Replace('${version_name}', $forgeVersionId))
 }
 $jvm.Add("-DlegacyClassPath=$($classpath -join ';')")
 $jvm.Add('-cp')
 $jvm.Add($classpath -join ';')
 $jvm.Add('cpw.mods.bootstraplauncher.BootstrapLauncher')
 $jvm.Add('--username'); $jvm.Add('ReleaseProbe')
-$jvm.Add('--version'); $jvm.Add('1.19.2-forge-43.4.0-release-probe')
+$jvm.Add('--version'); $jvm.Add("$forgeVersionId-release-probe")
 $jvm.Add('--gameDir'); $jvm.Add($game)
 $jvm.Add('--assetsDir'); $jvm.Add($assetsRoot)
-$jvm.Add('--assetIndex'); $jvm.Add('1.19')
+$jvm.Add('--assetIndex'); $jvm.Add($version.Assets)
 $jvm.Add('--uuid'); $jvm.Add($runId.Replace('-', ''))
 $jvm.Add('--accessToken'); $jvm.Add('0')
 $jvm.Add('--userType'); $jvm.Add('legacy')
