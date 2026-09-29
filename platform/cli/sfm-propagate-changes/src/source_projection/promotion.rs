@@ -1935,6 +1935,7 @@ mod tests {
                 .into_iter()
                 .map(|id| ProjectionPreset {
                     id: id.to_owned(),
+                    release_mod_version: None,
                     targets: ids.clone(),
                     enabled_features: vec![],
                     target_features: BTreeMap::new(),

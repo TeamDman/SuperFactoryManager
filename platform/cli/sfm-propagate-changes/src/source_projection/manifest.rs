@@ -92,6 +92,10 @@ pub struct DependencyEffect {
 pub struct ProjectionPreset {
     /// A published ID is never edited in place; a changed definition needs a new ID.
     pub id: String,
+    /// Optional release version rendered into each selected project's Gradle
+    /// properties. Legacy presets omit it and retain their existing identity.
+    #[facet(default)]
+    pub release_mod_version: Option<String>,
     pub targets: Vec<String>,
     /// Disabled features are absent from this set.
     pub enabled_features: Vec<String>,
@@ -263,6 +267,13 @@ impl SourceProjectionManifest {
         let mut preset_ids = BTreeSet::new();
         for preset in &self.presets {
             validate_id(&preset.id, "preset")?;
+            if let Some(version) = &preset.release_mod_version {
+                validate_id(version, "release mod version")?;
+                ensure!(
+                    !version.contains("-dev.") && preset.id == format!("released-{version}"),
+                    "release mod version requires a matching released-<version> preset ID without a development suffix"
+                );
+            }
             if !preset_ids.insert(preset.id.as_str()) {
                 eyre::bail!("duplicate preset ID `{}`", preset.id);
             }
@@ -578,6 +589,10 @@ impl SourceProjectionManifest {
         let mut hasher = blake3::Hasher::new();
         hash_part(&mut hasher, "sfm:source-projection-preset@1");
         hash_part(&mut hasher, &preset.id);
+        if let Some(version) = &preset.release_mod_version {
+            hash_part(&mut hasher, "release_mod_version");
+            hash_part(&mut hasher, version);
+        }
         let mut target_ids = preset.targets.iter().collect::<Vec<_>>();
         target_ids.sort();
         hash_part(&mut hasher, "targets");
@@ -1278,6 +1293,7 @@ mod tests {
             }],
             presets: vec![ProjectionPreset {
                 id: "current-development".into(),
+                release_mod_version: None,
                 targets: vec!["1.19.2".into()],
                 enabled_features: vec!["touch_display".into()],
                 target_features: BTreeMap::new(),
@@ -1501,6 +1517,47 @@ mod tests {
             .compute_preset_identity(&manifest.presets[0])
             .unwrap();
         assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn release_mod_version_is_optional_identity_bound_and_matches_preset_id() {
+        let checked_in = SourceProjectionManifest::from_json(include_str!(
+            "../../../../minecraft/source-projection.json"
+        ))
+        .unwrap();
+        let published = checked_in.preset("released-4.34.0").unwrap();
+        assert_eq!(published.release_mod_version, None);
+        assert_eq!(
+            checked_in.compute_preset_identity(published).unwrap(),
+            "blake3:c72d2eb42418abd568df22ed60a4c233cbd8a3a6c06eaf2448c94a25f84e02b6"
+        );
+
+        let mut manifest = sample();
+        manifest.presets[0].id = "released-9.99.99-fixture".to_owned();
+        manifest.presets[0].release_mod_version = Some("9.99.99-fixture".to_owned());
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest.validate().unwrap();
+
+        let mut changed = manifest.clone();
+        changed.presets[0].release_mod_version = Some("9.99.98-fixture".to_owned());
+        assert_ne!(
+            manifest.presets[0].identity,
+            changed
+                .compute_preset_identity(&changed.presets[0])
+                .unwrap()
+        );
+        changed.presets[0].identity = changed
+            .compute_preset_identity(&changed.presets[0])
+            .unwrap();
+        assert!(
+            changed
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("matching released-<version>")
+        );
     }
 
     #[test]

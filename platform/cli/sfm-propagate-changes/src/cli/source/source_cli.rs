@@ -896,12 +896,16 @@ impl SourceProjectArgs {
 
         let (primary_root, mut artifacts) =
             self.collect_source_artifacts(&repo_root, &selection, cancellation)?;
-        for (path, artifact) in self.collect_gradle_artifacts(
+        let mut gradle_artifacts = self.collect_gradle_artifacts(
             &repo_root,
             &selection,
             &target.id,
             &target.minecraft_version,
-        )? {
+        )?;
+        if let Some(version) = &preset.release_mod_version {
+            apply_release_mod_version(&mut gradle_artifacts, version)?;
+        }
+        for (path, artifact) in gradle_artifacts {
             ensure!(
                 artifacts.insert(path.clone(), artifact).is_none(),
                 "Gradle project input '{path}' conflicts with a generated source"
@@ -1056,6 +1060,54 @@ impl SourceProjectArgs {
     }
 }
 
+fn apply_release_mod_version(
+    artifacts: &mut BTreeMap<String, ProjectedArtifact>,
+    version: &str,
+) -> Result<()> {
+    let properties = artifacts
+        .get_mut("gradle.properties")
+        .ok_or_else(|| eyre::eyre!("release projection has no gradle.properties"))?;
+    let text = std::str::from_utf8(&properties.output_bytes)
+        .wrap_err("release Gradle properties are not UTF-8")?;
+    let mut version_range = None;
+    let mut offset = 0;
+    for line in text.split_inclusive('\n') {
+        let line_without_lf = line.strip_suffix('\n').unwrap_or(line);
+        let body = line_without_lf
+            .strip_suffix('\r')
+            .unwrap_or(line_without_lf);
+        let trimmed = body.trim_start();
+        if !trimmed.starts_with('#')
+            && !trimmed.starts_with('!')
+            && let Some((key, old_version)) = body.split_once('=')
+            && key.trim() == "mod_version"
+        {
+            ensure!(
+                key == "mod_version" && old_version == old_version.trim(),
+                "release Gradle mod_version must use one canonical mod_version=<value> line"
+            );
+            ensure!(
+                version_range.is_none(),
+                "release Gradle properties contain multiple mod_version entries"
+            );
+            ensure!(
+                !old_version.trim().is_empty(),
+                "release Gradle properties contain an empty mod_version"
+            );
+            version_range = Some((offset + "mod_version=".len(), offset + body.len()));
+        }
+        offset += line.len();
+    }
+    let (start, end) = version_range
+        .ok_or_else(|| eyre::eyre!("release Gradle properties need one mod_version entry"))?;
+    let mut projected = Vec::with_capacity(properties.output_bytes.len() + version.len());
+    projected.extend_from_slice(&properties.output_bytes[..start]);
+    projected.extend_from_slice(version.as_bytes());
+    projected.extend_from_slice(&properties.output_bytes[end..]);
+    properties.output_bytes = projected;
+    Ok(())
+}
+
 impl SourcePresetIdentityArgs {
     /// # Errors
     ///
@@ -1153,6 +1205,93 @@ mod tests {
         let destination = root.join(path);
         fs::create_dir_all(destination.parent().unwrap()).unwrap();
         fs::write(destination, bytes).unwrap();
+    }
+
+    #[test]
+    fn release_version_changes_only_projected_gradle_property_bytes() {
+        let original = b"# mod_version=ignored\r\nminecraft_version=1.19.2\r\nmod_version=4.34.0\r\nneo_version=1.2.3\r\n";
+        let mut artifacts = BTreeMap::from([(
+            "gradle.properties".to_owned(),
+            ProjectedArtifact {
+                source_path: "gradle.properties".to_owned(),
+                source_bytes: original.to_vec(),
+                output_bytes: original.to_vec(),
+                overlay: Some("release-tag".to_owned()),
+            },
+        )]);
+        apply_release_mod_version(&mut artifacts, "9.99.99-fixture").unwrap();
+        let projected = &artifacts["gradle.properties"];
+        assert_eq!(projected.source_bytes, original);
+        assert_eq!(projected.overlay.as_deref(), Some("release-tag"));
+        assert_eq!(
+            projected.output_bytes,
+            b"# mod_version=ignored\r\nminecraft_version=1.19.2\r\nmod_version=9.99.99-fixture\r\nneo_version=1.2.3\r\n"
+        );
+    }
+
+    #[test]
+    fn release_version_rejects_ambiguous_or_missing_gradle_property_without_mutation() {
+        for original in [
+            b"mod_version=4.34.0\nmod_version=4.34.0\n".as_slice(),
+            b"# mod_version=4.34.0\n".as_slice(),
+            b"mod_version=\n".as_slice(),
+            b" mod_version =4.34.0\n".as_slice(),
+        ] {
+            let mut artifacts = BTreeMap::from([(
+                "gradle.properties".to_owned(),
+                ProjectedArtifact {
+                    source_path: "gradle.properties".to_owned(),
+                    source_bytes: original.to_vec(),
+                    output_bytes: original.to_vec(),
+                    overlay: Some("release-tag".to_owned()),
+                },
+            )]);
+            assert!(apply_release_mod_version(&mut artifacts, "9.99.99-fixture").is_err());
+            assert_eq!(artifacts["gradle.properties"].output_bytes, original);
+        }
+    }
+
+    #[test]
+    fn pinned_release_gradle_inputs_accept_only_preset_scoped_version_rewrite() {
+        let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../..")
+            .canonicalize()
+            .unwrap();
+        let manifest = SourceProjectionManifest::from_json(
+            &fs::read_to_string(repo_root.join("platform/minecraft/source-projection.json"))
+                .unwrap(),
+        )
+        .unwrap();
+        let selection = select(&manifest, "1.19.2", "released-4.34.0").unwrap();
+        let mut args = fixture_args(&repo_root);
+        let mut artifacts = args
+            .collect_gradle_artifacts(&repo_root, &selection, "1.19.2", "1.19.2")
+            .unwrap();
+        let tagged = artifacts["gradle.properties"].source_bytes.clone();
+        assert_eq!(
+            artifacts["gradle.properties"].overlay.as_deref(),
+            Some("release-tag")
+        );
+        assert_eq!(artifacts["gradle.properties"].output_bytes, tagged);
+        apply_release_mod_version(&mut artifacts, "9.99.99-fixture").unwrap();
+        let projected = &artifacts["gradle.properties"];
+        assert_eq!(projected.source_bytes, tagged);
+        assert_eq!(
+            std::str::from_utf8(&projected.output_bytes)
+                .unwrap()
+                .replace("mod_version=9.99.99-fixture", "mod_version=4.34.0")
+                .as_bytes(),
+            tagged
+        );
+
+        args.gradle_overlay
+            .push("manual=platform/minecraft".to_owned());
+        assert!(
+            args.collect_gradle_artifacts(&repo_root, &selection, "1.19.2", "1.19.2")
+                .unwrap_err()
+                .to_string()
+                .contains("manual Gradle overrides are not permitted")
+        );
     }
 
     fn development_import_fixture() -> (tempfile::TempDir, SourceImportDevelopmentArgs) {
@@ -1752,6 +1891,7 @@ mod tests {
             features: vec![],
             presets: vec![ProjectionPreset {
                 id: "released-4.34.0".to_owned(),
+                release_mod_version: None,
                 targets: vec!["1.19.2".to_owned()],
                 enabled_features: vec![],
                 target_features: BTreeMap::new(),

@@ -292,6 +292,7 @@ impl SourceCandidateLock {
             git_file_at_commit(root, &self.source_commit, SOURCE_MANIFEST)? == source_bytes,
             "source commit does not contain the locked source-projection definition"
         );
+        let manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&source_bytes)?)?;
         let root_properties = read_regular(root, ROOT_GRADLE_PROPERTIES)?;
         ensure_committed_current_file(root, ROOT_GRADLE_PROPERTIES, &root_properties)?;
         ensure!(
@@ -299,10 +300,16 @@ impl SourceCandidateLock {
                 == root_properties,
             "source commit does not contain the locked release Gradle properties"
         );
+        let release_version = match &manifest
+            .preset(&self.candidate_preset_id)?
+            .release_mod_version
+        {
+            Some(version) => version.as_str(),
+            None => gradle_property(std::str::from_utf8(&root_properties)?, "mod_version")?,
+        };
         ensure!(
-            gradle_property(std::str::from_utf8(&root_properties)?, "mod_version")?
-                == self.mod_version,
-            "repository mod_version differs from candidate lock"
+            release_version == self.mod_version,
+            "reviewed release mod_version differs from candidate lock"
         );
         let evidence = read_regular(root, &self.compatibility_evidence_relative_path)?;
         ensure!(
@@ -310,7 +317,7 @@ impl SourceCandidateLock {
             "compatibility evidence differs from candidate lock"
         );
         ensure_committed_current_file(root, &self.compatibility_evidence_relative_path, &evidence)?;
-        SourceProjectionManifest::from_json(std::str::from_utf8(&source_bytes)?)
+        Ok(manifest)
     }
 }
 
@@ -835,6 +842,19 @@ pub(crate) mod tests {
         }
 
         fn new_with_version(mod_version: &str, include_refmap: bool) -> Self {
+            Self::new_with_source_version(mod_version, mod_version, include_refmap, false)
+        }
+
+        pub(crate) fn new_with_release_version_override() -> Self {
+            Self::new_with_source_version("9.99.99-fixture", "4.34.0", false, true)
+        }
+
+        fn new_with_source_version(
+            mod_version: &str,
+            source_version: &str,
+            include_refmap: bool,
+            release_override: bool,
+        ) -> Self {
             let temp = tempfile::tempdir().unwrap();
             let repo = temp.path().join("repo");
             fs::create_dir_all(repo.join("platform/minecraft")).unwrap();
@@ -857,6 +877,7 @@ pub(crate) mod tests {
                 features: vec![],
                 presets: vec![ProjectionPreset {
                     id: format!("released-{mod_version}"),
+                    release_mod_version: release_override.then(|| mod_version.to_owned()),
                     targets: TARGETS
                         .iter()
                         .map(|(id, _, _, _)| (*id).to_owned())
@@ -875,7 +896,7 @@ pub(crate) mod tests {
             fs::write(repo.join(SOURCE_MANIFEST), &manifest_json).unwrap();
             fs::write(
                 repo.join(ROOT_GRADLE_PROPERTIES),
-                format!("mod_version={mod_version}\n"),
+                format!("mod_version={source_version}\n"),
             )
             .unwrap();
             fs::create_dir_all(repo.join("platform/minecraft/src/main/java")).unwrap();
@@ -909,7 +930,7 @@ pub(crate) mod tests {
                 fs::write(
                     overlay.join("gradle.properties"),
                     format!(
-                        "minecraft_version={minecraft_version}\nmod_version={mod_version}\nneo_version=1.2.3\n"
+                        "minecraft_version={minecraft_version}\nmod_version={source_version}\nneo_version=1.2.3\n"
                     ),
                 )
                 .unwrap();
@@ -1207,6 +1228,51 @@ pub(crate) mod tests {
         assert!(report.verified_targets.contains_key("1.21.0"));
         assert_eq!(fixture.lock.targets[7].minecraft_version, "1.21");
         fixture.verify_release().unwrap();
+    }
+
+    #[test]
+    fn verifies_fictional_release_version_from_unchanged_synthetic_gradle_inputs() {
+        let fixture = Fixture::new_with_release_version_override();
+        assert_eq!(fixture.lock.mod_version, "9.99.99-fixture");
+        assert_eq!(
+            fs::read_to_string(fixture.repo.join(ROOT_GRADLE_PROPERTIES)).unwrap(),
+            "mod_version=4.34.0\n"
+        );
+        for (target, root) in &fixture.roots {
+            let original = fixture.repo.join(format!(
+                "platform/minecraft/mc-version/{target}/gradle.properties"
+            ));
+            assert!(
+                fs::read_to_string(original)
+                    .unwrap()
+                    .contains("mod_version=4.34.0\n")
+            );
+            assert!(
+                fs::read_to_string(root.join("gradle.properties"))
+                    .unwrap()
+                    .contains("mod_version=9.99.99-fixture\n")
+            );
+            let provenance = ProjectionProvenance::from_json(
+                &fs::read_to_string(root.join(MANIFEST_FILE)).unwrap(),
+            )
+            .unwrap();
+            let gradle = &provenance.files["gradle.properties"];
+            assert_ne!(gradle.source_sha256, gradle.output_sha256);
+        }
+        fixture.verify_release().unwrap();
+        assert!(
+            git(&fixture.repo, &["status", "--porcelain"])
+                .trim()
+                .is_empty()
+        );
+
+        let changed = fixture.roots["1.19.2"].join("gradle.properties");
+        fs::write(
+            changed,
+            "minecraft_version=1.19.2\nmod_version=4.34.0\nneo_version=1.2.3\n",
+        )
+        .unwrap();
+        assert!(fixture.verify().is_err());
     }
 
     #[test]

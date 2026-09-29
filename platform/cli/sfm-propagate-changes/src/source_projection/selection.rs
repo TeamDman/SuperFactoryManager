@@ -167,6 +167,7 @@ mod tests {
             }],
             presets: vec![ProjectionPreset {
                 id: "released-4.34.0".to_owned(),
+                release_mod_version: None,
                 targets: vec!["1.19.2".to_owned(), "26.1.2".to_owned()],
                 enabled_features: vec![],
                 target_features: BTreeMap::new(),
