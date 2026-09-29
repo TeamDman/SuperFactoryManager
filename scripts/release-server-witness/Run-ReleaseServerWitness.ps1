@@ -219,7 +219,8 @@ if ($version.ContainsKey('fixture_source')) {
     if (-not [IO.File]::Exists($fixtureScript)) { throw 'Version-specific fixture script is missing' }
     . $fixtureScript
     $fixture = Get-ReleaseServerFixture1210
-    if ($fixture.queries.Count -ne 6 -or -not $fixture.disk_nbt -or -not $fixture.facade_nbt) {
+    if ($fixture.queries.Count -ne 6 -or -not $fixture.disk_nbt -or -not $fixture.facade_nbt -or
+        -not $fixture.expected_warnings) {
         throw 'Version-specific selected-save fixture is incomplete'
     }
 }
@@ -368,8 +369,9 @@ function Read-SelectedValues($Process, [string] $LogPath, [string] $TranscriptPa
             '(?m)^.*has the following block data: (.+?)\r?$'
         $values[$key] = $match.Groups[1].Value
     }
+    $expectedWarnings = if ($fixture) { $fixture.expected_warnings } else { '[]' }
     if ($values.disk_program -notmatch 'compat-probe' -or $values.derived_name -cne '"compat-probe"' -or
-        $values.labels -notmatch 'legacy' -or $values.errors -cne '[]' -or $values.warnings -cne '[]' -or
+        $values.labels -notmatch 'legacy' -or $values.errors -cne '[]' -or $values.warnings -cne $expectedWarnings -or
         $values.facade -notmatch 'minecraft:stone' -or $values.facade -notmatch 'STRETCH' -or
         $values.facade -notmatch 'north') {
         throw 'Selected six-value fixture did not have the expected non-vacuous shape'

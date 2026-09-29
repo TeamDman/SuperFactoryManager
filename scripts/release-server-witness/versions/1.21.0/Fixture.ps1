@@ -13,5 +13,6 @@ function Get-ReleaseServerFixture1210 {
         queries = $queries
         disk_nbt = '{Items:[{Slot:0b,id:"sfm:disk",count:1,components:{"sfm:program":"NAME \"compat-probe\" EVERY 20 TICKS DO END","sfm:labels":{labels:{legacy:[[I;0,120,0]]}},"sfm:errors":[],"sfm:warnings":[]}}]}'
         facade_nbt = '{"sfm:facade":{block_state:{Name:"minecraft:stone"},texture_mode:"STRETCH",direction:"north"}}'
+        expected_warnings = '[{with: ["legacy"], translate: "program.sfm.warnings.undefined_label"}, {translate: "program.sfm.reminders.push_labels"}]'
     }
 }
