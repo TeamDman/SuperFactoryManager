@@ -10,6 +10,7 @@ pub mod development_baseline;
 pub mod development_fixtures;
 pub mod development_gradle;
 mod directive_scanner;
+pub mod frozen_authoring;
 pub mod frozen_release;
 pub mod inputs;
 pub mod manifest;
@@ -20,6 +21,7 @@ pub mod release_apply;
 pub mod release_baseline;
 pub mod release_jar_absence;
 pub mod release_resources;
+pub mod release_version;
 pub mod selection;
 pub mod sync;
 

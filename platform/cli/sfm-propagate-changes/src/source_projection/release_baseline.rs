@@ -11,6 +11,7 @@ use sha2::Digest;
 use sha2::Sha256;
 use std::collections::BTreeMap;
 use std::collections::BTreeSet;
+use std::env;
 use std::fs;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -771,6 +772,48 @@ pub fn read_pinned_blob_with_mode(
     expected_sha256: &str,
     expected_mode: Option<&str>,
 ) -> Result<Vec<u8>> {
+    read_pinned_blob_with_mode_via(
+        repository_root,
+        tag_commit,
+        project_relative_path,
+        expected_oid,
+        expected_sha256,
+        expected_mode,
+        git_stdout,
+    )
+}
+
+/// The same pinned-blob checks with frozen-release Git isolation. Legacy tag
+/// imports keep their existing read path; only the future frozen route uses
+/// the exact-root safe-directory scope and ignores inherited Git overrides.
+pub(crate) fn read_pinned_blob_with_mode_hardened(
+    repository_root: &Path,
+    tag_commit: &str,
+    project_relative_path: &str,
+    expected_oid: &str,
+    expected_sha256: &str,
+    expected_mode: Option<&str>,
+) -> Result<Vec<u8>> {
+    read_pinned_blob_with_mode_via(
+        repository_root,
+        tag_commit,
+        project_relative_path,
+        expected_oid,
+        expected_sha256,
+        expected_mode,
+        frozen_git_stdout,
+    )
+}
+
+fn read_pinned_blob_with_mode_via(
+    repository_root: &Path,
+    tag_commit: &str,
+    project_relative_path: &str,
+    expected_oid: &str,
+    expected_sha256: &str,
+    expected_mode: Option<&str>,
+    git: fn(&Path, &[&str]) -> Result<Vec<u8>>,
+) -> Result<Vec<u8>> {
     validate_sha1(tag_commit, "tag commit")?;
     validate_sha1(expected_oid, "release blob ID")?;
     validate_project_relative_path(project_relative_path)?;
@@ -783,7 +826,7 @@ pub fn read_pinned_blob_with_mode(
         "expected release SHA-256 is invalid"
     );
     let full_path = format!("platform/minecraft/{project_relative_path}");
-    let tree = git_stdout(
+    let tree = git(
         repository_root,
         &["ls-tree", "-z", tag_commit, "--", &full_path],
     )?;
@@ -819,11 +862,13 @@ pub fn read_pinned_blob_with_mode(
         "tagged path '{project_relative_path}' has blob {}, expected {expected_oid}",
         exact.oid
     );
-    let size = git_text(repository_root, &["cat-file", "-s", expected_oid])?
+    let size = String::from_utf8(git(repository_root, &["cat-file", "-s", expected_oid])?)
+        .wrap_err("pinned blob size is not UTF-8")?
+        .trim()
         .parse::<u64>()
         .wrap_err("invalid pinned blob size")?;
     ensure!(size <= MAX_BLOB_BYTES, "pinned blob is too large");
-    let bytes = git_stdout(repository_root, &["cat-file", "blob", expected_oid])?;
+    let bytes = git(repository_root, &["cat-file", "blob", expected_oid])?;
     ensure!(
         bytes.len() as u64 == size,
         "pinned blob size changed while reading"
@@ -1239,6 +1284,41 @@ fn git_stdout(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
     ensure!(
         output.status.success(),
         "git {} failed: {}",
+        args.join(" "),
+        String::from_utf8_lossy(&output.stderr).trim()
+    );
+    Ok(output.stdout)
+}
+
+/// Build a process-local Git probe that trusts only the exact canonical
+/// worktree root and cannot be redirected by inherited `GIT_*` variables or
+/// repository-local replacement refs. No user Git configuration is written.
+pub(crate) fn frozen_git_command(root: &Path) -> Command {
+    let mut command = Command::new("git");
+    for (key, _) in env::vars_os() {
+        if key.to_string_lossy().starts_with("GIT_") {
+            command.env_remove(key);
+        }
+    }
+    command
+        .arg("-c")
+        .arg(format!("safe.directory={}", root.display()))
+        .arg("-C")
+        .arg(root)
+        .env("GIT_NO_LAZY_FETCH", "1")
+        .env("GIT_NO_REPLACE_OBJECTS", "1")
+        .env("GIT_OPTIONAL_LOCKS", "0");
+    command
+}
+
+fn frozen_git_stdout(root: &Path, args: &[&str]) -> Result<Vec<u8>> {
+    let output = frozen_git_command(root)
+        .args(args)
+        .output()
+        .wrap_err_with(|| format!("cannot run frozen Git {}", args.join(" ")))?;
+    ensure!(
+        output.status.success(),
+        "frozen Git {} failed: {}",
         args.join(" "),
         String::from_utf8_lossy(&output.stderr).trim()
     );

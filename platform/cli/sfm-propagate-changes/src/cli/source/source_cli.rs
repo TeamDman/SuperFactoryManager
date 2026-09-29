@@ -41,6 +41,7 @@ use crate::source_projection::release_baseline::materialize_released_4_34_0_impo
 use crate::source_projection::release_baseline::preflight_imports;
 use crate::source_projection::release_baseline::read_pinned_blob;
 use crate::source_projection::release_resources::apply_post_baseline_resources;
+use crate::source_projection::release_version::apply_release_mod_version;
 use crate::source_projection::selection::ProjectionSelection;
 use crate::source_projection::selection::select;
 use crate::source_projection::sync::MANIFEST_FILE;
@@ -1206,54 +1207,6 @@ fn ensure_follow_primary_root(
             "follow-primary development preset requires platform/minecraft/src as its primary source root"
         );
     }
-    Ok(())
-}
-
-fn apply_release_mod_version(
-    artifacts: &mut BTreeMap<String, ProjectedArtifact>,
-    version: &str,
-) -> Result<()> {
-    let properties = artifacts
-        .get_mut("gradle.properties")
-        .ok_or_else(|| eyre::eyre!("release projection has no gradle.properties"))?;
-    let text = std::str::from_utf8(&properties.output_bytes)
-        .wrap_err("release Gradle properties are not UTF-8")?;
-    let mut version_range = None;
-    let mut offset = 0;
-    for line in text.split_inclusive('\n') {
-        let line_without_lf = line.strip_suffix('\n').unwrap_or(line);
-        let body = line_without_lf
-            .strip_suffix('\r')
-            .unwrap_or(line_without_lf);
-        let trimmed = body.trim_start();
-        if !trimmed.starts_with('#')
-            && !trimmed.starts_with('!')
-            && let Some((key, old_version)) = body.split_once('=')
-            && key.trim() == "mod_version"
-        {
-            ensure!(
-                key == "mod_version" && old_version == old_version.trim(),
-                "release Gradle mod_version must use one canonical mod_version=<value> line"
-            );
-            ensure!(
-                version_range.is_none(),
-                "release Gradle properties contain multiple mod_version entries"
-            );
-            ensure!(
-                !old_version.trim().is_empty(),
-                "release Gradle properties contain an empty mod_version"
-            );
-            version_range = Some((offset + "mod_version=".len(), offset + body.len()));
-        }
-        offset += line.len();
-    }
-    let (start, end) = version_range
-        .ok_or_else(|| eyre::eyre!("release Gradle properties need one mod_version entry"))?;
-    let mut projected = Vec::with_capacity(properties.output_bytes.len() + version.len());
-    projected.extend_from_slice(&properties.output_bytes[..start]);
-    projected.extend_from_slice(version.as_bytes());
-    projected.extend_from_slice(&properties.output_bytes[end..]);
-    properties.output_bytes = projected;
     Ok(())
 }
 

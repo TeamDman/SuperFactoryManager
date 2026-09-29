@@ -11,7 +11,8 @@ use super::manifest::FrozenSourceBinding;
 use super::project_layout::append_project_name_override;
 use super::promotion::validate_relative_path;
 use super::provenance::sha256;
-use super::release_baseline::read_pinned_blob_with_mode;
+use super::release_baseline::frozen_git_command;
+use super::release_baseline::read_pinned_blob_with_mode_hardened;
 use super::sync::ProjectedArtifact;
 use eyre::Result;
 use eyre::WrapErr;
@@ -21,10 +22,9 @@ use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
-const SCHEMA: &str = "sfm:frozen_release_sources@1";
-const MAX_INVENTORY_BYTES: u64 = 8 * 1024 * 1024;
+pub(crate) const SCHEMA: &str = "sfm:frozen_release_sources@1";
+pub(crate) const MAX_INVENTORY_BYTES: u64 = 8 * 1024 * 1024;
 const REQUIRED_BUILD_INPUTS: &[&str] = &[
     "build.gradle",
     "settings.gradle",
@@ -95,7 +95,7 @@ pub fn project_frozen_artifacts(
             .ok_or_else(|| {
                 eyre::eyre!("frozen input '{output_path}' is outside Minecraft sources")
             })?;
-        let bytes = read_pinned_blob_with_mode(
+        let bytes = read_pinned_blob_with_mode_hardened(
             repo_root,
             source_commit,
             relative,
@@ -187,11 +187,8 @@ fn read_inventory(
     Ok(inventory)
 }
 
-fn validate_git_commit_root(root: &Path, source_commit: &str) -> Result<()> {
-    let top = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .env("GIT_OPTIONAL_LOCKS", "0")
+pub(crate) fn validate_git_commit_root(root: &Path, source_commit: &str) -> Result<()> {
+    let top = frozen_git_command(root)
         .args(["rev-parse", "--show-toplevel"])
         .output()
         .wrap_err("cannot inspect frozen source Git repository")?;
@@ -204,10 +201,7 @@ fn validate_git_commit_root(root: &Path, source_commit: &str) -> Result<()> {
         fs::canonicalize(top.trim())? == root,
         "frozen source repository root must be the Git worktree root"
     );
-    let kind = Command::new("git")
-        .arg("-C")
-        .arg(root)
-        .env("GIT_OPTIONAL_LOCKS", "0")
+    let kind = frozen_git_command(root)
         .args(["cat-file", "-t", source_commit])
         .output()
         .wrap_err("cannot inspect frozen source commit")?;
@@ -218,7 +212,7 @@ fn validate_git_commit_root(root: &Path, source_commit: &str) -> Result<()> {
     Ok(())
 }
 
-fn validate_inventory(
+pub(crate) fn validate_inventory(
     inventory: &FrozenSourceInventory,
     binding: &FrozenSourceBinding,
     source_commit: &str,
@@ -363,6 +357,7 @@ mod tests {
         SCHEMA_VERSION, SourceProjectionManifest,
     };
     use std::path::PathBuf;
+    use std::process::Command;
 
     const PRESET: &str = "released-9.99.99-fixture";
     const JAVA: &str = "src/main/java/example/Proof.java";
