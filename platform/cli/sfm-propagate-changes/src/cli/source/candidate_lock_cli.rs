@@ -5,6 +5,8 @@ use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
 use crate::source_projection::candidate_lock::CandidateVerificationReport;
 use crate::source_projection::candidate_lock::SourceCandidateLock;
+use crate::source_projection::manifest::ProjectionPreset;
+use crate::source_projection::manifest::ProjectionTarget;
 use crate::source_projection::manifest::SourceProjectionManifest;
 use crate::source_projection::provenance::sha256;
 use eyre::Result;
@@ -102,12 +104,8 @@ pub(super) fn verify_candidate_in(
     let preset = manifest.preset(&lock.candidate_preset_id)?;
     for target in &lock.targets {
         cancellation.bail_if_cancelled()?;
-        let gradle_overlay = if preset.release_baselines.is_empty() {
-            let declared = manifest.target(&target.target_id)?;
-            vec![format!("target={}", declared.project_dir)]
-        } else {
-            Vec::new()
-        };
+        let declared = manifest.target(&target.target_id)?;
+        let gradle_overlay = candidate_gradle_overlay(preset, declared);
         #[cfg(test)]
         let gradle_overlay = if let Some(overrides) = test_gradle_overlays {
             let relative = overrides.get(&target.target_id).ok_or_else(|| {
@@ -139,6 +137,14 @@ pub(super) fn verify_candidate_in(
         .push_str("sfm:source_candidate_verification@2");
     report.deterministic_source_check = true;
     Ok(report)
+}
+
+fn candidate_gradle_overlay(preset: &ProjectionPreset, target: &ProjectionTarget) -> Vec<String> {
+    if preset.release_baselines.is_empty() && preset.frozen_source_commit.is_none() {
+        vec![format!("target={}", target.project_dir)]
+    } else {
+        Vec::new()
+    }
 }
 
 pub(super) fn resolve_path(path: PathBuf, invocation_dir: &Path) -> PathBuf {
@@ -176,6 +182,56 @@ mod tests {
     use crate::cli::Command;
     use crate::cli::source::SourceArgs;
     use crate::cli::source::SourceCommand;
+    use crate::source_projection::manifest::FrozenSourceBinding;
+
+    fn ordinary_preset() -> ProjectionPreset {
+        ProjectionPreset {
+            id: "released-9.99.99-fixture".to_owned(),
+            release_mod_version: Some("9.99.99".to_owned()),
+            targets: vec!["1.19.2".to_owned()],
+            enabled_features: Vec::new(),
+            target_features: BTreeMap::new(),
+            release_baselines: Vec::new(),
+            frozen_source_commit: None,
+            frozen_sources: Vec::new(),
+            canonical_project_fixture_provenance_sha256: None,
+            identity: String::new(),
+        }
+    }
+
+    fn target() -> ProjectionTarget {
+        ProjectionTarget {
+            id: "1.19.2".to_owned(),
+            template_key: "mc_1_19_2".to_owned(),
+            minecraft_version: "1.19.2".to_owned(),
+            loader: "forge".to_owned(),
+            java_major: 17,
+            project_dir: "platform/minecraft/mc-version/1.19.2".to_owned(),
+        }
+    }
+
+    #[test]
+    fn frozen_candidate_gradle_overlay_is_empty() {
+        let mut preset = ordinary_preset();
+        preset.frozen_source_commit = Some("a".repeat(40));
+        preset.frozen_sources.push(FrozenSourceBinding {
+            target_id: "1.19.2".to_owned(),
+            inventory_path:
+                "platform/minecraft/frozen-releases/released-9.99.99-fixture/1.19.2/inventory.json"
+                    .to_owned(),
+            inventory_sha256: "b".repeat(64),
+        });
+
+        assert!(candidate_gradle_overlay(&preset, &target()).is_empty());
+    }
+
+    #[test]
+    fn ordinary_candidate_gradle_overlay_uses_target_project_dir() {
+        assert_eq!(
+            candidate_gradle_overlay(&ordinary_preset(), &target()),
+            vec!["target=platform/minecraft/mc-version/1.19.2".to_owned()]
+        );
+    }
 
     #[test]
     fn candidate_verify_parses_distinct_portable_lock_and_local_roots() {
