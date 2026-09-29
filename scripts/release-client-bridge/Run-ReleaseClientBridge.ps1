@@ -16,7 +16,7 @@ param(
     [string] $AssetRoot,
     [string] $JoinedCompileJar,
     [switch] $PreflightOnly,
-    [ValidateSet('title', 'world')] [string] $CaptureMode = 'title',
+    [ValidateSet('title', 'world', 'network-roundtrip')] [string] $CaptureMode = 'title',
     [ValidateRange(30, 600)] [int] $WatchdogSeconds = 300
 )
 
@@ -110,6 +110,9 @@ function Get-ZipEntrySha256([string] $Archive, [string] $EntryName) {
 }
 
 $sourceJar = Assert-File $SfmJar
+if ($CaptureMode -eq 'network-roundtrip' -and $MinecraftVersion -notin @('1.19.2', '26.1.2')) {
+    throw 'The network-roundtrip witness is currently validated only for exact 1.19.2 and 26.1.2'
+}
 if ($PreflightOnly -and $MinecraftVersion -notin @('1.20.2', '1.20.3', '1.20.4', '1.21.0')) {
     throw '-PreflightOnly currently applies only to exact 1.20.2–1.20.4 and 1.21.0 client fixtures'
 }
@@ -1014,10 +1017,12 @@ $compileClasspath = if ($neoLatest) {
     @($compileRelative | ForEach-Object { Resolve-CachedPath $_ $libraryRoots })
 }
 $javaSource = Assert-File (Join-Path $bridgeSourceRoot 'java/ca/teamdman/sfm/releaseprobe/ReleaseClientBridge.java')
+$networkSource = Assert-File (Join-Path $bridgeRoot 'src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseClientNetworkProbe.java')
 $javaVersion = if ($neoLatest) { '25' } elseif ($neo1210 -or $neoModern) { '21' } else { '17' }
-& $javac -proc:none -source $javaVersion -target $javaVersion -classpath ($compileClasspath -join ';') -d $classes $javaSource
+& $javac -proc:none -source $javaVersion -target $javaVersion -classpath ($compileClasspath -join ';') -d $classes $javaSource $networkSource
 if ($LASTEXITCODE -ne 0) { throw "Bridge javac failed: $LASTEXITCODE" }
 Assert-File (Join-Path $classes 'ca/teamdman/sfm/releaseprobe/ReleaseClientBridge.class') | Out-Null
+Assert-File (Join-Path $classes 'ca/teamdman/sfm/releaseprobe/ReleaseClientNetworkProbe.class') | Out-Null
 $bridgeJar = Join-Path $mods 'sfmreleaseprobe.jar'
 & $jarTool --create --file $bridgeJar -C $classes . -C $bridgeResourceRoot .
 if ($LASTEXITCODE -ne 0) { throw "Bridge jar failed: $LASTEXITCODE" }
@@ -1113,13 +1118,42 @@ try {
         throw "$stage; exit_code=$($process.ExitCode)"
     }
     $result = Get-Content -LiteralPath $resultPath -Raw | ConvertFrom-Json
-    $expectedSchema = if ($CaptureMode -eq 'world') { 'sfm-release-client-world-proof/1' } else { 'sfm-release-client-proof/1' }
-    $expectedScreen = if ($CaptureMode -eq 'world') { 'world' } else { 'title' }
-    $expectedScreenshot = if ($CaptureMode -eq 'world') { 'sfm-release-client-world.png' } else { 'sfm-release-client-title.png' }
+    $expectedSchema = switch ($CaptureMode) {
+        'world' { 'sfm-release-client-world-proof/1' }
+        'network-roundtrip' { 'sfm-release-client-network-proof/1' }
+        default { 'sfm-release-client-proof/1' }
+    }
     if ($result.schema -ne $expectedSchema -or $result.run_id -ne $runId -or
-        $result.sfm_sha256 -ne $expected -or $result.status -ne 'passed' -or
-        $result.screen -ne $expectedScreen -or $result.screenshot -ne $expectedScreenshot) {
+        $result.sfm_sha256 -ne $expected -or $result.status -ne 'passed') {
         throw "Bridge reported failure or unexpected identity: $($result | ConvertTo-Json -Compress)"
+    }
+    if ($CaptureMode -eq 'network-roundtrip') {
+        if ($result.capture_mode -ne 'network-roundtrip' -or
+            $result.world_id -ne ('sfm_release_probe_' + $runId.Replace('-', '')) -or
+            $result.request_packet -ne 'ServerboundServerConfigRequestPacket' -or
+            $result.request_mode -ne 'SHOW' -or
+            $result.request_sent -isnot [bool] -or $result.request_sent -ne $true -or
+            $result.response_observed -isnot [bool] -or $result.response_observed -ne $true -or
+            $result.codec_roundtrip -isnot [bool] -or $result.codec_roundtrip -ne $true -or
+            $result.request_body_sha256 -cnotmatch '^[0-9a-f]{64}$' -or
+            $result.response_body_sha256 -cnotmatch '^[0-9a-f]{64}$' -or
+            ($result.request_body_bytes -isnot [int] -and $result.request_body_bytes -isnot [long]) -or
+            ($result.response_body_bytes -isnot [int] -and $result.response_body_bytes -isnot [long]) -or
+            $result.request_body_bytes -ne 1 -or $result.response_body_bytes -le 1 -or
+            $result.response_screen -ne 'ca.teamdman.sfm.client.screen.TomlEditScreen') {
+            throw "Bridge network witness is incomplete: $($result | ConvertTo-Json -Compress)"
+        }
+        $serverLog = Assert-File (Join-Path $game 'logs/latest.log')
+        $serverResponses = @(Select-String -LiteralPath $serverLog -SimpleMatch -Pattern 'Sending config to player:').Count
+        if ($serverResponses -ne 1) {
+            throw "Expected exactly one SFM server config response; observed $serverResponses"
+        }
+    } else {
+        $expectedScreen = if ($CaptureMode -eq 'world') { 'world' } else { 'title' }
+        $expectedScreenshot = if ($CaptureMode -eq 'world') { 'sfm-release-client-world.png' } else { 'sfm-release-client-title.png' }
+        if ($result.screen -ne $expectedScreen -or $result.screenshot -ne $expectedScreenshot) {
+            throw "Bridge reported unexpected capture: $($result | ConvertTo-Json -Compress)"
+        }
     }
     if ($CaptureMode -eq 'world' -and
         ($result.block_id -ne 'sfm:manager' -or $result.server_block_placed -ne $true -or
@@ -1130,23 +1164,29 @@ try {
     if ($CaptureMode -eq 'title' -and $result.rendered_title_frames -lt 90) {
         throw "Bridge title witness is incomplete: $($result | ConvertTo-Json -Compress)"
     }
-    $screenshot = Assert-File (Join-Path $game "screenshots/$expectedScreenshot")
-    $signature = [IO.File]::ReadAllBytes($screenshot)
-    if ($signature.Length -lt 24 -or [BitConverter]::ToString($signature, 0, 8) -ne '89-50-4E-47-0D-0A-1A-0A') {
-        throw 'Screenshot witness is not a nonempty PNG'
-    }
-    # PowerShell otherwise performs shifts at the byte width and silently
-    # truncates the 24/16/8-bit terms to zero.
-    $width = (([int] $signature[16] -shl 24) -bor ([int] $signature[17] -shl 16) -bor
-        ([int] $signature[18] -shl 8) -bor [int] $signature[19])
-    $height = (([int] $signature[20] -shl 24) -bor ([int] $signature[21] -shl 16) -bor
-        ([int] $signature[22] -shl 8) -bor [int] $signature[23])
-    if ($width -ne 1024 -or $height -ne 768) {
-        throw "Screenshot witness has unexpected PNG dimensions: ${width}x${height}"
+    if ($CaptureMode -ne 'network-roundtrip') {
+        $screenshot = Assert-File (Join-Path $game "screenshots/$expectedScreenshot")
+        $signature = [IO.File]::ReadAllBytes($screenshot)
+        if ($signature.Length -lt 24 -or [BitConverter]::ToString($signature, 0, 8) -ne '89-50-4E-47-0D-0A-1A-0A') {
+            throw 'Screenshot witness is not a nonempty PNG'
+        }
+        # PowerShell otherwise performs shifts at the byte width and silently
+        # truncates the 24/16/8-bit terms to zero.
+        $width = (([int] $signature[16] -shl 24) -bor ([int] $signature[17] -shl 16) -bor
+            ([int] $signature[18] -shl 8) -bor [int] $signature[19])
+        $height = (([int] $signature[20] -shl 24) -bor ([int] $signature[21] -shl 16) -bor
+            ([int] $signature[22] -shl 8) -bor [int] $signature[23])
+        if ($width -ne 1024 -or $height -ne 768) {
+            throw "Screenshot witness has unexpected PNG dimensions: ${width}x${height}"
+        }
     }
     $sourceHashAfter = (Get-FileHash -LiteralPath $sourceJar -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($sourceHashAfter -ne $expected) { throw 'Original SFM JAR changed during client proof' }
-    Write-Host "SFM_RELEASE_PROBE_PASS run_id=$runId sfm_sha256=$expected screenshot=$screenshot"
+    if ($CaptureMode -eq 'network-roundtrip') {
+        Write-Host "SFM_RELEASE_PROBE_PASS run_id=$runId sfm_sha256=$expected network_roundtrip=true server_config_responses=1"
+    } else {
+        Write-Host "SFM_RELEASE_PROBE_PASS run_id=$runId sfm_sha256=$expected screenshot=$screenshot"
+    }
 } finally {
     if ($null -ne $process) {
         $process.Refresh()
