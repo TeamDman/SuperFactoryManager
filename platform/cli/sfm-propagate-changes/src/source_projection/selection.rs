@@ -41,7 +41,7 @@ pub fn select(
         "preset '{preset_id}' does not support target '{target_id}'"
     );
 
-    let active: BTreeSet<&str> = preset.enabled_features.iter().map(String::as_str).collect();
+    let active = preset.effective_features(target_id);
     let mut features = BTreeMap::new();
     let mut excluded_paths = BTreeSet::new();
     let mut explicit_inputs = BTreeMap::new();
@@ -169,6 +169,7 @@ mod tests {
                 id: "released-4.34.0".to_owned(),
                 targets: vec!["1.19.2".to_owned(), "26.1.2".to_owned()],
                 enabled_features: vec![],
+                target_features: BTreeMap::new(),
                 release_baselines: vec![],
                 canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
@@ -254,6 +255,31 @@ mod tests {
         assert_eq!(
             selected.explicit_inputs["src/main/java/TouchDisplay.java"],
             "platform/minecraft/src/main/java/TouchDisplay.java"
+        );
+    }
+
+    #[test]
+    fn target_feature_is_enabled_only_for_its_selected_target() {
+        let mut manifest = manifest();
+        manifest.presets[0]
+            .target_features
+            .insert("1.19.2".to_owned(), vec!["touch_display".to_owned()]);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        let enabled = select(&manifest, "1.19.2", "released-4.34.0").unwrap();
+        let disabled = select(&manifest, "26.1.2", "released-4.34.0").unwrap();
+        assert!(enabled.context.features["touch_display"]);
+        assert!(
+            !enabled
+                .excluded_paths
+                .contains("src/main/java/TouchDisplay.java")
+        );
+        assert!(!disabled.context.features["touch_display"]);
+        assert!(
+            disabled
+                .excluded_paths
+                .contains("src/main/java/TouchDisplay.java")
         );
     }
 

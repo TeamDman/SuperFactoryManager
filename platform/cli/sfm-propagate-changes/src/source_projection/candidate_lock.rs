@@ -540,7 +540,11 @@ fn ensure_authored_checkout(
         }
     }
     for feature in &manifest.features {
-        if !preset.enabled_features.contains(&feature.id) {
+        if !preset
+            .targets
+            .iter()
+            .any(|target| preset.feature_enabled_for(target, &feature.id))
+        {
             continue;
         }
         for input in feature
@@ -858,6 +862,7 @@ pub(crate) mod tests {
                         .map(|(id, _, _, _)| (*id).to_owned())
                         .collect(),
                     enabled_features: vec![],
+                    target_features: BTreeMap::new(),
                     release_baselines: vec![],
                     canonical_project_fixture_provenance_sha256: None,
                     identity: String::new(),

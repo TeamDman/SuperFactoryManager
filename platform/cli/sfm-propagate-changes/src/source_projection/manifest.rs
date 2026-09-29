@@ -95,6 +95,10 @@ pub struct ProjectionPreset {
     pub targets: Vec<String>,
     /// Disabled features are absent from this set.
     pub enabled_features: Vec<String>,
+    /// Additional features enabled only for the named selected target.
+    /// Empty legacy mappings retain their existing preset identity.
+    #[facet(default)]
+    pub target_features: BTreeMap<String, Vec<String>>,
     /// An empty list selects ordinary development sources. Pinned release or
     /// committed-development presets bind each target to an exact-path import.
     #[facet(default)]
@@ -252,12 +256,36 @@ impl SourceProjectionManifest {
                 &feature_ids,
                 &format!("preset `{}` feature", preset.id),
             )?;
+            for (target_id, features) in &preset.target_features {
+                ensure!(
+                    preset.targets.contains(target_id),
+                    "preset `{}` scopes features to unselected target `{target_id}`",
+                    preset.id
+                );
+                ensure!(
+                    !features.is_empty(),
+                    "preset `{}` has an empty target feature set for `{target_id}`",
+                    preset.id
+                );
+                unique_known_ids(
+                    features,
+                    &feature_ids,
+                    &format!("preset `{}` target `{target_id}` feature", preset.id),
+                )?;
+                for feature in features {
+                    ensure!(
+                        !preset.enabled_features.contains(feature),
+                        "preset `{}` enables feature `{feature}` both globally and for `{target_id}`",
+                        preset.id
+                    );
+                }
+            }
             validate_release_baselines(preset)?;
             for baseline in &preset.release_baselines {
                 for (path, selected) in &baseline.post_baseline_canonical_sources {
                     if let Some(feature_id) = &selected.required_feature {
                         ensure!(
-                            preset.enabled_features.contains(feature_id),
+                            preset.feature_enabled_for(&baseline.target_id, feature_id),
                             "preset `{}` selects changed canonical source `{path}` without enabled feature `{feature_id}`",
                             preset.id
                         );
@@ -287,8 +315,8 @@ impl SourceProjectionManifest {
                 validate_lower_hex(digest, 64, "canonical project fixture provenance SHA-256")?;
             }
 
-            let active: BTreeSet<_> = preset.enabled_features.iter().map(String::as_str).collect();
             for target in &preset.targets {
+                let active = preset.effective_features(target);
                 let mut path_owners: BTreeMap<String, (&str, PathEffectKind)> = BTreeMap::new();
                 for feature_id in &active {
                     let feature = self.feature(feature_id)?;
@@ -508,52 +536,28 @@ impl SourceProjectionManifest {
         hash_part(&mut hasher, "features");
         hash_part(&mut hasher, &feature_ids.len().to_string());
         for id in feature_ids {
-            let feature = self.feature(id)?;
-            hash_part(&mut hasher, "feature");
-            hash_part(&mut hasher, &feature.id);
-            hash_sorted_strings(&mut hasher, "supported_targets", &feature.supported_targets);
-            hash_sorted_strings(&mut hasher, "requires", &feature.requires);
-            let mut effects = feature
-                .source_effects
-                .iter()
-                .map(|effect| ("source", effect))
-                .chain(
-                    feature
-                        .resource_effects
-                        .iter()
-                        .map(|effect| ("resource", effect)),
-                )
-                .collect::<Vec<_>>();
-            effects.sort_by(|(left_category, left), (right_category, right)| {
-                (
-                    *left_category,
-                    &left.output_path,
-                    left.kind.as_str(),
-                    &left.input_path,
-                )
-                    .cmp(&(
-                        *right_category,
-                        &right.output_path,
-                        right.kind.as_str(),
-                        &right.input_path,
-                    ))
-            });
-            hash_part(&mut hasher, "path_effects");
-            hash_part(&mut hasher, &effects.len().to_string());
-            for (category, effect) in effects {
-                hash_part(&mut hasher, category);
-                hash_part(&mut hasher, &effect.output_path);
-                hash_part(&mut hasher, effect.kind.as_str());
-                hash_part(&mut hasher, effect.input_path.as_deref().unwrap_or(""));
+            hash_feature_definition(&mut hasher, self.feature(id)?);
+        }
+        if !preset.target_features.is_empty() {
+            hash_part(&mut hasher, "target_features");
+            hash_part(&mut hasher, &preset.target_features.len().to_string());
+            let mut newly_selected = BTreeSet::new();
+            for (target_id, ids) in &preset.target_features {
+                hash_part(&mut hasher, target_id);
+                let mut sorted = ids.iter().collect::<Vec<_>>();
+                sorted.sort();
+                hash_part(&mut hasher, &sorted.len().to_string());
+                for id in sorted {
+                    hash_part(&mut hasher, id);
+                    if !preset.enabled_features.contains(id) {
+                        newly_selected.insert(id.as_str());
+                    }
+                }
             }
-            let mut dependencies = feature.dependency_effects.iter().collect::<Vec<_>>();
-            dependencies.sort_by_key(|effect| (&effect.dependency_id, &effect.component_id));
-            hash_part(&mut hasher, "dependency_effects");
-            hash_part(&mut hasher, &dependencies.len().to_string());
-            for dependency in dependencies {
-                hash_part(&mut hasher, "dependency");
-                hash_part(&mut hasher, &dependency.dependency_id);
-                hash_part(&mut hasher, &dependency.component_id);
+            hash_part(&mut hasher, "target_feature_definitions");
+            hash_part(&mut hasher, &newly_selected.len().to_string());
+            for id in newly_selected {
+                hash_feature_definition(&mut hasher, self.feature(id)?);
             }
         }
         if let Some(digest) = &preset.canonical_project_fixture_provenance_sha256 {
@@ -565,7 +569,76 @@ impl SourceProjectionManifest {
     }
 }
 
+fn hash_feature_definition(hasher: &mut blake3::Hasher, feature: &ProjectionFeature) {
+    hash_part(hasher, "feature");
+    hash_part(hasher, &feature.id);
+    hash_sorted_strings(hasher, "supported_targets", &feature.supported_targets);
+    hash_sorted_strings(hasher, "requires", &feature.requires);
+    let mut effects = feature
+        .source_effects
+        .iter()
+        .map(|effect| ("source", effect))
+        .chain(
+            feature
+                .resource_effects
+                .iter()
+                .map(|effect| ("resource", effect)),
+        )
+        .collect::<Vec<_>>();
+    effects.sort_by(|(left_category, left), (right_category, right)| {
+        (
+            *left_category,
+            &left.output_path,
+            left.kind.as_str(),
+            &left.input_path,
+        )
+            .cmp(&(
+                *right_category,
+                &right.output_path,
+                right.kind.as_str(),
+                &right.input_path,
+            ))
+    });
+    hash_part(hasher, "path_effects");
+    hash_part(hasher, &effects.len().to_string());
+    for (category, effect) in effects {
+        hash_part(hasher, category);
+        hash_part(hasher, &effect.output_path);
+        hash_part(hasher, effect.kind.as_str());
+        hash_part(hasher, effect.input_path.as_deref().unwrap_or(""));
+    }
+    let mut dependencies = feature.dependency_effects.iter().collect::<Vec<_>>();
+    dependencies.sort_by_key(|effect| (&effect.dependency_id, &effect.component_id));
+    hash_part(hasher, "dependency_effects");
+    hash_part(hasher, &dependencies.len().to_string());
+    for dependency in dependencies {
+        hash_part(hasher, "dependency");
+        hash_part(hasher, &dependency.dependency_id);
+        hash_part(hasher, &dependency.component_id);
+    }
+}
+
 impl ProjectionPreset {
+    /// The exact feature set selected for one target, including global flags.
+    #[must_use]
+    pub fn effective_features(&self, target_id: &str) -> BTreeSet<&str> {
+        self.enabled_features
+            .iter()
+            .chain(self.target_features.get(target_id).into_iter().flatten())
+            .map(String::as_str)
+            .collect()
+    }
+
+    /// Whether a feature is enabled for this target.
+    #[must_use]
+    pub fn feature_enabled_for(&self, target_id: &str, feature_id: &str) -> bool {
+        self.enabled_features.iter().any(|id| id == feature_id)
+            || self
+                .target_features
+                .get(target_id)
+                .is_some_and(|features| features.iter().any(|id| id == feature_id))
+    }
+
     /// Return the pinned release import for one target, or `None` for a
     /// development preset.
     #[must_use]
@@ -1044,6 +1117,7 @@ mod tests {
                 id: "current-development".into(),
                 targets: vec!["1.19.2".into()],
                 enabled_features: vec!["touch_display".into()],
+                target_features: BTreeMap::new(),
                 release_baselines: vec![],
                 canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
@@ -1077,6 +1151,136 @@ mod tests {
     #[test]
     fn accepts_well_formed_manifest() {
         sample().validate().unwrap();
+    }
+
+    #[test]
+    fn target_features_are_scoped_validated_and_bind_feature_definitions() {
+        let mut manifest = sample();
+        manifest.targets.push(ProjectionTarget {
+            id: "26.1.2".into(),
+            template_key: "mc_26_1_2".into(),
+            minecraft_version: "26.1.2".into(),
+            loader: "neoforge".into(),
+            java_major: 25,
+            project_dir: "platform/minecraft/mc-version/26.1.2".into(),
+        });
+        manifest.presets[0].targets.push("26.1.2".into());
+        manifest.presets[0].enabled_features.clear();
+        manifest.presets[0]
+            .target_features
+            .insert("1.19.2".into(), vec!["touch_display".into()]);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest.validate().unwrap();
+        assert!(manifest.presets[0].feature_enabled_for("1.19.2", "touch_display"));
+        assert!(!manifest.presets[0].feature_enabled_for("26.1.2", "touch_display"));
+        let pinned = manifest.presets[0].identity.clone();
+
+        let mut changed = manifest.clone();
+        changed.features[0].source_effects[0].output_path =
+            "src/main/java/ca/teamdman/sfm/Other.java".into();
+        assert_ne!(
+            changed
+                .compute_preset_identity(&changed.presets[0])
+                .unwrap(),
+            pinned
+        );
+        assert!(changed.validate().is_err());
+
+        let mut changed = manifest.clone();
+        changed.presets[0].target_features.remove("1.19.2");
+        assert_ne!(
+            changed
+                .compute_preset_identity(&changed.presets[0])
+                .unwrap(),
+            pinned
+        );
+
+        let mut invalid = manifest.clone();
+        invalid.presets[0]
+            .target_features
+            .insert("missing".into(), vec!["touch_display".into()]);
+        assert!(
+            invalid
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("unselected")
+        );
+
+        let mut invalid = manifest.clone();
+        invalid.presets[0]
+            .target_features
+            .insert("26.1.2".into(), vec!["touch_display".into()]);
+        assert!(
+            invalid
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("unsupported")
+        );
+
+        let mut invalid = manifest.clone();
+        invalid.presets[0]
+            .target_features
+            .insert("1.19.2".into(), vec!["missing".into()]);
+        assert!(
+            invalid
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("unknown ID")
+        );
+
+        let mut invalid = manifest.clone();
+        invalid.presets[0]
+            .enabled_features
+            .push("touch_display".into());
+        assert!(
+            invalid
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("both globally")
+        );
+
+        let mut invalid = manifest.clone();
+        let mut second = invalid.features[0].clone();
+        second.id = "other".into();
+        invalid.features.push(second);
+        invalid.presets[0]
+            .target_features
+            .get_mut("1.19.2")
+            .unwrap()
+            .push("other".into());
+        assert!(
+            invalid
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("conflicting")
+        );
+
+        let mut invalid = manifest.clone();
+        invalid.features.push(ProjectionFeature {
+            id: "dependent".into(),
+            supported_targets: vec!["26.1.2".into()],
+            requires: vec!["touch_display".into()],
+            source_effects: vec![],
+            resource_effects: vec![],
+            dependency_effects: vec![],
+        });
+        invalid.presets[0]
+            .target_features
+            .insert("26.1.2".into(), vec!["dependent".into()]);
+        assert!(
+            invalid
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("without required")
+        );
     }
 
     #[test]

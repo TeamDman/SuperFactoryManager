@@ -85,13 +85,25 @@ fn forbidden_entries(
         preset.targets.iter().any(|target| target == target_id),
         "preset `{preset_id}` does not select target `{target_id}`"
     );
-    let active: BTreeSet<_> = preset.enabled_features.iter().map(String::as_str).collect();
+    let active = preset.effective_features(target_id);
     let mut checked_features = Vec::new();
     let mut rules = Vec::new();
 
     for feature in &manifest.features {
         if active.contains(feature.id.as_str())
             || !feature.supported_targets.iter().any(|id| id == target_id)
+        {
+            continue;
+        }
+        // A Template-only flag changes existing source bytes, but has no
+        // conditional class or resource whose absence a JAR can prove.
+        if feature.dependency_effects.is_empty()
+            && (!feature.source_effects.is_empty() || !feature.resource_effects.is_empty())
+            && feature
+                .source_effects
+                .iter()
+                .chain(&feature.resource_effects)
+                .all(|effect| effect.kind == PathEffectKind::Template)
         {
             continue;
         }
@@ -147,13 +159,15 @@ fn forbidden_entries(
     Ok((checked_features, rules))
 }
 
-/// Verify direct outer-JAR entry absence for every disabled feature supported
-/// by the selected target. The manifest is validated before examining the ZIP.
+/// Verify direct outer-JAR entry absence for disabled features with runtime
+/// Include effects. Template-only flags have no absence entry to inspect.
+/// The manifest is validated before examining the ZIP.
 ///
 /// # Errors
 ///
-/// Fails for a malformed selection or ZIP central directory, a disabled feature without a
-/// derivable runtime Include, or any forbidden top-level, nested, or
+/// Fails for a malformed selection or ZIP central directory, a disabled
+/// non-template-only feature without a derivable runtime Include, or any
+/// forbidden top-level, nested, or
 /// multi-release class/resource entry. The caller owns the reader; no JAR
 /// content is extracted or written. It does not validate compressed payloads.
 pub fn check_jar_reader<R: Read + Seek>(
@@ -200,6 +214,7 @@ mod tests {
     use crate::source_projection::manifest::ProjectionPreset;
     use crate::source_projection::manifest::ProjectionTarget;
     use crate::source_projection::manifest::SCHEMA_VERSION;
+    use std::collections::BTreeMap;
     use std::io::Cursor;
     use std::io::Write;
     use zip::ZipWriter;
@@ -255,6 +270,7 @@ mod tests {
                 id: "released-test".to_owned(),
                 targets: vec!["1.19.2".to_owned()],
                 enabled_features,
+                target_features: BTreeMap::new(),
                 release_baselines: Vec::new(),
                 canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
@@ -334,6 +350,51 @@ mod tests {
         .unwrap();
         assert!(report.checked_features.is_empty());
         assert_eq!(report.forbidden_entry_rules, 0);
+    }
+
+    #[test]
+    fn target_scoped_feature_does_not_forbid_its_entries() {
+        let mut manifest = manifest(Vec::new());
+        manifest.presets[0]
+            .target_features
+            .insert("1.19.2".to_owned(), vec!["echo_action".to_owned()]);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        let report = check_jar_reader(
+            &manifest,
+            "1.19.2",
+            "released-test",
+            jar(&["example/EchoAction.class", "assets/sfm/echo.png"]),
+        )
+        .unwrap();
+        assert!(report.checked_features.is_empty());
+    }
+
+    #[test]
+    fn disabled_template_only_feature_has_no_jar_absence_target() {
+        let mut manifest = manifest(Vec::new());
+        manifest.features.push(ProjectionFeature {
+            id: "regex_overlap_fix".to_owned(),
+            supported_targets: vec!["1.19.2".to_owned()],
+            requires: Vec::new(),
+            source_effects: vec![PathEffect {
+                output_path: "src/main/java/example/Host.java".to_owned(),
+                kind: PathEffectKind::Template,
+                input_path: None,
+            }],
+            resource_effects: Vec::new(),
+            dependency_effects: Vec::new(),
+        });
+        let report = check_jar_reader(
+            &manifest,
+            "1.19.2",
+            "released-test",
+            jar(&["example/Host.class"]),
+        )
+        .unwrap();
+        assert_eq!(report.checked_features, vec!["echo_action"]);
+        assert_eq!(report.forbidden_entry_rules, 2);
     }
 
     #[test]

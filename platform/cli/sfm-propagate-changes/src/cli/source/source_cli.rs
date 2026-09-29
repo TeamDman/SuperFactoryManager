@@ -1754,6 +1754,7 @@ mod tests {
                 id: "released-4.34.0".to_owned(),
                 targets: vec!["1.19.2".to_owned()],
                 enabled_features: vec![],
+                target_features: BTreeMap::new(),
                 release_baselines: vec![],
                 canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
