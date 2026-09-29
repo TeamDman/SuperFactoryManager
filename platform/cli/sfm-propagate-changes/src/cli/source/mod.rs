@@ -4,6 +4,7 @@ mod release_inventory_cli;
 mod release_package_cli;
 mod release_package_verify_cli;
 mod release_plan_cli;
+mod release_provider_plan_cli;
 mod source_cli;
 mod source_trace_cli;
 
@@ -12,5 +13,6 @@ pub use release_inventory_cli::ReleaseInventoryArgs;
 pub use release_package_cli::ReleasePackageArgs;
 pub use release_package_verify_cli::ReleasePackageVerifyArgs;
 pub use release_plan_cli::ReleasePlanArgs;
+pub use release_provider_plan_cli::ReleaseProviderPlanArgs;
 pub use source_cli::*;
 pub use source_trace_cli::SourceTraceArgs;
