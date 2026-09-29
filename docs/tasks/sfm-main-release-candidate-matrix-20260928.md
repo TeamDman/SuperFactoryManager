@@ -74,17 +74,28 @@ The source-byte audit, entry/resource comparison and checked-in-versus-candidate
 | Target | Selected save and reverse load | Runtime `sfm:` registry IDs | Official-versus-candidate transfer | Packaged-client title and world render |
 | --- | --- | --- | --- | --- |
 | 1.19.2 | Pass, Forge 43.4.0 | Pass, 9 categories/71 IDs | Pass, one vanilla-barrel path | Pass, one manager-block view |
-| 1.19.4 | Pass, Forge 45.0.9 | Pass, 10 categories/72 IDs | Not run | Pass, exact Forge 45.0.9 |
-| 1.20 | Pass, Forge 46.0.10 | Pass, 11 categories/73 IDs | Not run | Pass, exact Forge 46.0.10 |
-| 1.20.1 | Pass, NeoForge 47.1.65 | Pass, 11 categories/73 IDs | Not run | Pass, exact NeoForge 47.1.65 |
+| 1.19.4 | Pass, Forge 45.0.9 | Pass, 10 categories/72 IDs | Pass, one vanilla-barrel path | Pass, exact Forge 45.0.9 |
+| 1.20 | Pass, Forge 46.0.10 | Pass, 11 categories/73 IDs | Pass, one vanilla-barrel path | Pass, exact Forge 46.0.10 |
+| 1.20.1 | Pass, NeoForge 47.1.65 | Pass, 11 categories/73 IDs | Pass, one vanilla-barrel path | Pass, exact NeoForge 47.1.65 |
 | 1.20.2 | Pass, NeoForge 20.2.86 | Pass, 10 categories/72 IDs | Pass, one vanilla-barrel path | Pass, exact NeoForge 20.2.86 |
-| 1.20.3 | Pass, NeoForge 20.3.8-beta | Pass, 10 categories/72 IDs | Not run | Pass, exact NeoForge 20.3.8-beta |
-| 1.20.4 | Pass, NeoForge 20.4.231 | Pass, 10 categories/72 IDs | Not run | Pass, exact NeoForge 20.4.231 |
+| 1.20.3 | Pass, NeoForge 20.3.8-beta | Pass, 10 categories/72 IDs | Pass, one vanilla-barrel path | Pass, exact NeoForge 20.3.8-beta |
+| 1.20.4 | Pass, NeoForge 20.4.231 | Pass, 10 categories/72 IDs | Pass, one vanilla-barrel path | Pass, exact NeoForge 20.4.231 |
 | 1.21.0 | Pass, NeoForge 21.0.143 | Pass, 11 categories/84 IDs | Pass, one vanilla-barrel path | Pass, exact NeoForge 21.0.143 |
-| 1.21.1 | Pass, NeoForge 21.1.206 | Pass, 11 categories/84 IDs | Not run | Pass, exact NeoForge 21.1.206 |
+| 1.21.1 | Pass, NeoForge 21.1.206 | Pass, 11 categories/84 IDs | Pass, one vanilla-barrel path | Pass, exact NeoForge 21.1.206 |
 | 26.1.2 | Pass, NeoForge 26.1.2.72 | Pass, 11 categories/83 IDs | Pass, one vanilla-barrel path | Pass, exact NeoForge 26.1.2.72 |
 
-All ten dedicated-server witnesses now record paired runtime registry-ID snapshots. The 1.20.2–26.1.2 witnesses use test-only NeoForge adapters because the old Forge `RegistryManager.ACTIVE` API is absent. The 1.21.0–26.1.2 adapters also check component-backed selected save values. Paired vanilla-barrel transfer has passed on a legacy Forge boundary, a legacy-NBT NeoForge boundary and two component-backed NeoForge boundaries; the other transfer cells remain unrun. A source or JAR hash match cannot substitute for runtime checks. None of these cells authorizes release or default-branch promotion.
+All ten dedicated-server witnesses now record paired runtime registry-ID snapshots. The 1.20.2–26.1.2 witnesses use test-only NeoForge adapters because the old Forge `RegistryManager.ACTIVE` API is absent. The 1.21.0–26.1.2 adapters also check component-backed selected save values. Paired vanilla-barrel transfer now passes on all ten exact loaders, including legacy NBT and component-backed disk boundaries. A source or JAR hash match cannot substitute for runtime checks. These are one-path vanilla comparisons, not modded capability or general gameplay parity; none authorizes release or default-branch promotion.
+
+The six previously unrun transfer cells used fresh four-boot official seed/control, projected candidate and official reverse-load comparisons. Each boot exited zero, reached `Done` and saved. Official and projected observations matched for the same dirt64 barrel transfer, disk program and labels, empty disk errors/warnings and runtime registry IDs; an official JAR then read the candidate-saved world. The report hashes below were independently rechecked, along with their result fields and all four boot records. Official and candidate logs shared Yggdrasil and/or `sfm:buffer` loot-table errors; no candidate-only ERROR/FATAL or disk-space diagnostic appeared. A first 1.19.4 preflight pinned the wrong EventBus library version and failed before launch; its corrected exact Forge 45.0.9 run passed in a new scratch root.
+
+| Newly completed target | Path-free report SHA-256 |
+| --- | --- |
+| 1.19.4 | `5d957573395260d6d17242f8bb0c3d3783090ac4186f8132ccfd1d92dac87d70` |
+| 1.20 | `7398be4e7fc3c270cc8f1041eda935a0ffac836493e75e2c1e9b081a9cb27826` |
+| 1.20.1 | `8cc17f6a1a24cb673f836581852f61b30387ba65af87fc4df0a41b5e232ccb6a` |
+| 1.20.3 | `f5f82e3c2a880baf91d97541714eb7e62c862e81fa2e05c4691a346a39650ae5` |
+| 1.20.4 | `44c3b321feff2c78a23422e325736dce56fad1bcb720ea54c9f825bd4dc52dec` |
+| 1.21.1 | `61b1233252ce4db32ee362eccaa1447a53790d44fd7184092002f2c78e26fee0` |
 
 Two additional exact-loader, test-only command-dispatcher comparisons passed with unchanged official and projected 4.34.0 JARs: Forge 43.4.0 on 1.19.2 and NeoForge 26.1.2.72 on 26.1.2. Each fresh official/projected pair produced the same 14-node `sfm` subtree, including three argument nodes. The retained path-free report SHA-256 values are `d87093015a9cb0314c9af90b2231cf3128e847b7bd862f2696dcac33f5a451d2` and `af1e4628455c97b98f4f0a1dc70a09b873e259c991b0f9ac8a613fa573a7fa0c` respectively. Independent review rehashed both reports against the committed runner and confirmed both boots exited zero. This compares names, node kinds, executable flags, redirects and parser classes, not permission predicates, parser configuration or command effects. The 26.1.2 test-only probe's first packaging attempt hit a sandbox JDK-access denial before server boot; a new scratch run under normal host access passed. No disk-space error occurred.
 
