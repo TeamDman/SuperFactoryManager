@@ -107,6 +107,13 @@ pub struct ProjectionPreset {
     /// committed-development presets bind each target to an exact-path import.
     #[facet(default)]
     pub release_baselines: Vec<ReleaseBaselineBinding>,
+    /// Exact authored Git commit used by an immutable, tag-independent release
+    /// snapshot. Legacy presets omit both frozen fields.
+    #[facet(default)]
+    pub frozen_source_commit: Option<String>,
+    /// One hash-bound, complete output inventory per selected target.
+    #[facet(default)]
+    pub frozen_sources: Vec<FrozenSourceBinding>,
     /// Pinned project-root fixtures for the canonical 1.19.2 development
     /// source. Release and imported-development presets use other inputs.
     #[facet(default)]
@@ -114,6 +121,13 @@ pub struct ProjectionPreset {
     /// Manifest-definition fingerprint, `blake3:<hex>`. Source/output hashes
     /// belong to the separate provenance manifest.
     pub identity: String,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub struct FrozenSourceBinding {
+    pub target_id: String,
+    pub inventory_path: String,
+    pub inventory_sha256: String,
 }
 
 /// Immutable pointer to the exact path mask and divergent/tag-only overlay
@@ -331,9 +345,11 @@ impl SourceProjectionManifest {
                 }
             }
             validate_release_baselines(preset)?;
+            validate_frozen_sources(preset)?;
             self.validate_preset_source_features(preset)?;
             if let Some(digest) = &preset.canonical_project_fixture_provenance_sha256 {
                 if !preset.release_baselines.is_empty()
+                    || !preset.frozen_sources.is_empty()
                     || preset.targets.len() != 1
                     || preset.targets[0] != "1.19.2"
                 {
@@ -657,6 +673,18 @@ impl SourceProjectionManifest {
             hash_part(&mut hasher, digest);
         }
         hash_release_baselines(&mut hasher, preset);
+        if let Some(commit) = &preset.frozen_source_commit {
+            hash_part(&mut hasher, "frozen_source_commit");
+            hash_part(&mut hasher, commit);
+            let mut bindings = preset.frozen_sources.iter().collect::<Vec<_>>();
+            bindings.sort_by_key(|binding| &binding.target_id);
+            hash_part(&mut hasher, &bindings.len().to_string());
+            for binding in bindings {
+                hash_part(&mut hasher, &binding.target_id);
+                hash_part(&mut hasher, &binding.inventory_path);
+                hash_part(&mut hasher, &binding.inventory_sha256);
+            }
+        }
         Ok(format!("blake3:{}", hasher.finalize().to_hex()))
     }
 }
@@ -738,6 +766,13 @@ impl ProjectionPreset {
         self.release_baselines
             .iter()
             .find(|baseline| baseline.target_id == target_id)
+    }
+
+    #[must_use]
+    pub fn frozen_source_for(&self, target_id: &str) -> Option<&FrozenSourceBinding> {
+        self.frozen_sources
+            .iter()
+            .find(|binding| binding.target_id == target_id)
     }
 }
 
@@ -899,6 +934,53 @@ fn hash_post_baseline_version_sources(
             selected.required_feature.as_deref().unwrap_or_default(),
         );
     }
+}
+
+fn validate_frozen_sources(preset: &ProjectionPreset) -> eyre::Result<()> {
+    let Some(commit) = &preset.frozen_source_commit else {
+        ensure!(
+            preset.frozen_sources.is_empty(),
+            "frozen source bindings require an authored source commit"
+        );
+        return Ok(());
+    };
+    validate_lower_hex(commit, 40, "frozen source commit")?;
+    ensure!(
+        preset.release_mod_version.is_some()
+            && preset.id != "released-4.34.0"
+            && preset.release_baselines.is_empty()
+            && preset.canonical_project_fixture_provenance_sha256.is_none(),
+        "frozen sources require a new released-X preset without legacy imports or canonical fixtures"
+    );
+    let mut targets = BTreeSet::new();
+    for binding in &preset.frozen_sources {
+        ensure!(
+            preset.targets.contains(&binding.target_id)
+                && targets.insert(binding.target_id.as_str()),
+            "frozen source target '{}' is missing, repeated or unselected",
+            binding.target_id
+        );
+        let expected = format!(
+            "platform/minecraft/frozen-releases/{}/{}/inventory.json",
+            preset.id, binding.target_id
+        );
+        validate_path(&binding.inventory_path, "frozen source inventory")?;
+        ensure!(
+            binding.inventory_path == expected,
+            "frozen source inventory for '{}' must use '{expected}'",
+            binding.target_id
+        );
+        validate_lower_hex(
+            &binding.inventory_sha256,
+            64,
+            "frozen source inventory SHA-256",
+        )?;
+    }
+    ensure!(
+        targets.len() == preset.targets.len(),
+        "frozen release preset must bind every selected target"
+    );
+    Ok(())
 }
 
 fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
@@ -1339,6 +1421,8 @@ mod tests {
                 enabled_features: vec!["touch_display".into()],
                 target_features: BTreeMap::new(),
                 release_baselines: vec![],
+                frozen_source_commit: None,
+                frozen_sources: vec![],
                 canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
             }],
@@ -1601,6 +1685,59 @@ mod tests {
                 .to_string()
                 .contains("matching released-<version>")
         );
+    }
+
+    #[test]
+    fn frozen_release_requires_exact_target_inventory_and_keeps_legacy_identity() {
+        let checked_in = SourceProjectionManifest::from_json(include_str!(
+            "../../../../minecraft/source-projection.json"
+        ))
+        .unwrap();
+        let legacy = checked_in.preset("released-4.34.0").unwrap();
+        assert_eq!(
+            checked_in.compute_preset_identity(legacy).unwrap(),
+            "blake3:c72d2eb42418abd568df22ed60a4c233cbd8a3a6c06eaf2448c94a25f84e02b6"
+        );
+
+        let mut manifest = sample();
+        manifest.presets[0].id = "released-9.99.99-fixture".to_owned();
+        manifest.presets[0].release_mod_version = Some("9.99.99-fixture".to_owned());
+        manifest.presets[0].frozen_source_commit = Some("a".repeat(40));
+        manifest.presets[0]
+            .frozen_sources
+            .push(FrozenSourceBinding {
+            target_id: "1.19.2".to_owned(),
+            inventory_path:
+                "platform/minecraft/frozen-releases/released-9.99.99-fixture/1.19.2/inventory.json"
+                    .to_owned(),
+            inventory_sha256: "b".repeat(64),
+        });
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest.validate().unwrap();
+
+        let mut missing = manifest.clone();
+        missing.presets[0].frozen_sources.clear();
+        missing.presets[0].identity = missing
+            .compute_preset_identity(&missing.presets[0])
+            .unwrap();
+        assert!(missing.validate().is_err());
+
+        let mut legacy_mutation = manifest.clone();
+        legacy_mutation.presets[0].id = "released-4.34.0".to_owned();
+        legacy_mutation.presets[0].release_mod_version = Some("4.34.0".to_owned());
+        legacy_mutation.presets[0].identity = legacy_mutation
+            .compute_preset_identity(&legacy_mutation.presets[0])
+            .unwrap();
+        assert!(legacy_mutation.validate().is_err());
+
+        let mut wrong_commit = manifest.clone();
+        wrong_commit.presets[0].frozen_source_commit = Some("not-a-commit".to_owned());
+        wrong_commit.presets[0].identity = wrong_commit
+            .compute_preset_identity(&wrong_commit.presets[0])
+            .unwrap();
+        assert!(wrong_commit.validate().is_err());
     }
 
     #[test]

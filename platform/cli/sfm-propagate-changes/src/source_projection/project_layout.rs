@@ -181,7 +181,7 @@ pub fn collect_gradle_project_inputs_for_target(
     Ok(artifacts)
 }
 
-fn append_project_name_override(
+pub(crate) fn append_project_name_override(
     artifacts: &mut BTreeMap<String, ProjectedArtifact>,
     target_id: &str,
 ) -> Result<()> {
@@ -302,7 +302,7 @@ fn collect_gradle_overlay(
     Ok(())
 }
 
-fn validate_target_project(
+pub(crate) fn validate_target_project(
     artifacts: &BTreeMap<String, ProjectedArtifact>,
     target_id: &str,
     minecraft_version: &str,

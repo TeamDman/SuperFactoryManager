@@ -273,6 +273,8 @@ mod tests {
                 enabled_features,
                 target_features: BTreeMap::new(),
                 release_baselines: Vec::new(),
+                frozen_source_commit: None,
+                frozen_sources: vec![],
                 canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
             }],

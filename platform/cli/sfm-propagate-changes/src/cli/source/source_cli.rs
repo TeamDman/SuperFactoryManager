@@ -21,12 +21,15 @@ use crate::source_projection::development_fixtures::collect_verified_development
 use crate::source_projection::development_fixtures::materialize_development_project_fixtures;
 use crate::source_projection::development_gradle::apply_post_baseline_gradle_sources;
 use crate::source_projection::development_gradle::materialize_development_gradle_inputs;
+use crate::source_projection::frozen_release::project_frozen_artifacts;
+use crate::source_projection::frozen_release::verify_frozen_outputs;
 use crate::source_projection::inputs::apply_explicit_inputs;
 use crate::source_projection::inputs::collect_projected_inputs_with_allowlist;
 use crate::source_projection::manifest::BaselineKind;
 use crate::source_projection::manifest::SourceProjectionManifest;
 use crate::source_projection::project_layout::collect_gradle_project_inputs;
 use crate::source_projection::project_layout::collect_gradle_project_inputs_for_target;
+use crate::source_projection::project_layout::validate_target_project;
 use crate::source_projection::provenance::sha256;
 use crate::source_projection::release_apply::apply_release_baseline;
 use crate::source_projection::release_apply::release_source_paths;
@@ -399,8 +402,8 @@ fn development_output_root(repo_root: &Path, output_root: &Path) -> Result<PathB
         cursor.push(component);
         match fs::symlink_metadata(&cursor) {
             Ok(metadata) => ensure!(
-                !metadata.file_type().is_symlink(),
-                "development output root traverses a symlink: '{}'",
+                !is_reparse_point(&metadata),
+                "development output root traverses a symlink or reparse point: '{}'",
                 cursor.display()
             ),
             Err(error) if error.kind() == std::io::ErrorKind::NotFound => break,
@@ -414,22 +417,23 @@ fn development_output_root(repo_root: &Path, output_root: &Path) -> Result<PathB
             }
         }
     }
+    let physical = physical_output_root(&candidate)?;
     let authored_root = repo_root.join("platform/minecraft");
     ensure!(
-        !paths_overlap(&candidate, &authored_root),
+        !paths_overlap(&physical, &authored_root),
         "development output root must be outside authored and checked-in Minecraft roots '{}'",
         authored_root.display()
     );
     ensure!(
-        !paths_overlap(&candidate, &repo_root.join(".git")),
+        !paths_overlap(&physical, &repo_root.join(".git")),
         "development output root cannot overlap repository Git state"
     );
     ensure!(
-        !path_is_prefix(&candidate, repo_root),
+        !path_is_prefix(&physical, repo_root),
         "development output root cannot be the repository root or an ancestor"
     );
     ensure!(
-        !path_is_prefix(repo_root, &candidate),
+        !path_is_prefix(repo_root, &physical),
         "development output root must be outside the repository so temporary projections cannot be committed accidentally"
     );
     Ok(candidate)
@@ -437,6 +441,57 @@ fn development_output_root(repo_root: &Path, output_root: &Path) -> Result<PathB
 
 fn paths_overlap(left: &Path, right: &Path) -> bool {
     path_is_prefix(left, right) || path_is_prefix(right, left)
+}
+
+/// Resolve the existing ancestor before comparing output scope. Windows may
+/// spell the same path with different case or a non-verbatim/extended prefix.
+fn physical_output_root(output_root: &Path) -> Result<PathBuf> {
+    ensure!(
+        output_root.is_absolute()
+            && !output_root
+                .components()
+                .any(|component| matches!(component, Component::ParentDir)),
+        "projection output root must be absolute without parent traversal"
+    );
+    let normalized: PathBuf = output_root.components().collect();
+    let mut cursor = normalized.as_path();
+    let mut missing = Vec::new();
+    loop {
+        match fs::symlink_metadata(cursor) {
+            Ok(_) => break,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                let component = cursor
+                    .file_name()
+                    .ok_or_else(|| eyre::eyre!("projection output has no existing ancestor"))?;
+                missing.push(component.to_os_string());
+                cursor = cursor
+                    .parent()
+                    .ok_or_else(|| eyre::eyre!("projection output has no existing ancestor"))?;
+            }
+            Err(error) => return Err(error).wrap_err("cannot inspect projection output root"),
+        }
+    }
+    let mut physical =
+        fs::canonicalize(cursor).wrap_err("cannot resolve projection output root")?;
+    for component in missing.iter().rev() {
+        physical.push(component);
+    }
+    Ok(physical)
+}
+
+fn is_reparse_point(metadata: &fs::Metadata) -> bool {
+    if metadata.file_type().is_symlink() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::fs::MetadataExt as _;
+        metadata.file_attributes() & 0x0000_0400 != 0
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
 }
 
 fn path_is_prefix(prefix: &Path, path: &Path) -> bool {
@@ -904,23 +959,55 @@ impl SourceProjectArgs {
         let target = manifest.target(&self.target)?;
         let preset = manifest.preset(&self.preset)?;
         let selection = select(&manifest, &self.target, &self.preset)?;
+        ensure!(
+            selection.frozen_source_commit.is_some() == selection.frozen_source.is_some(),
+            "frozen release source commit and target binding must be selected together"
+        );
 
-        let (primary_root, mut artifacts) =
-            self.collect_source_artifacts(&repo_root, &selection, cancellation)?;
-        let mut gradle_artifacts = self.collect_gradle_artifacts(
-            &repo_root,
-            &selection,
-            &target.id,
-            &target.minecraft_version,
-        )?;
-        if let Some(version) = &preset.release_mod_version {
-            apply_release_mod_version(&mut gradle_artifacts, version)?;
-        }
-        for (path, artifact) in gradle_artifacts {
+        let (primary_root, mut artifacts, frozen_inventory) = if let (Some(commit), Some(binding)) =
+            (&selection.frozen_source_commit, &selection.frozen_source)
+        {
             ensure!(
-                artifacts.insert(path.clone(), artifact).is_none(),
-                "Gradle project input '{path}' conflicts with a generated source"
+                self.primary_src_root.is_none()
+                    && self.overlay.is_empty()
+                    && self.gradle_project_root.is_none()
+                    && self.gradle_overlay.is_empty(),
+                "frozen release preset cannot use manual source or Gradle overrides"
             );
+            // This path is only an output-overlap guard. Frozen inputs are
+            // read from Git, so the current authored src tree may be gone.
+            let primary_root = repo_root.join("platform/minecraft/src");
+            let (artifacts, inventory) =
+                project_frozen_artifacts(&repo_root, binding, commit, &selection.context)?;
+            validate_frozen_feature_selection(
+                &inventory.excluded_paths,
+                &selection.explicit_inputs,
+                &artifacts,
+            )?;
+            (primary_root, artifacts, Some(inventory))
+        } else {
+            let (primary_root, mut artifacts) =
+                self.collect_source_artifacts(&repo_root, &selection, cancellation)?;
+            let gradle_artifacts = self.collect_gradle_artifacts(
+                &repo_root,
+                &selection,
+                &target.id,
+                &target.minecraft_version,
+            )?;
+            for (path, artifact) in gradle_artifacts {
+                ensure!(
+                    artifacts.insert(path.clone(), artifact).is_none(),
+                    "Gradle project input '{path}' conflicts with a generated source"
+                );
+            }
+            (primary_root, artifacts, None)
+        };
+        if let Some(version) = &preset.release_mod_version {
+            apply_release_mod_version(&mut artifacts, version)?;
+        }
+        if let Some(inventory) = &frozen_inventory {
+            validate_target_project(&artifacts, &target.id, &target.minecraft_version)?;
+            verify_frozen_outputs(inventory, &artifacts)?;
         }
         cancellation.bail_if_cancelled()?;
 
@@ -929,13 +1016,18 @@ impl SourceProjectArgs {
         } else {
             repo_root.join(self.output_root)
         };
+        let physical = physical_output_root(&output_root)?;
         ensure!(
-            output_root != repo_root && !repo_root.starts_with(&output_root),
+            !path_is_prefix(&physical, &repo_root),
             "generated output cannot be the repository root or one of its ancestors"
         );
         ensure!(
-            !output_root.starts_with(&primary_root),
-            "generated output cannot be inside the primary source root"
+            !paths_overlap(&physical, &primary_root),
+            "generated output cannot overlap the primary source root"
+        );
+        ensure!(
+            !paths_overlap(&physical, &repo_root.join(".git")),
+            "generated output cannot overlap repository Git state"
         );
         let identity = ProjectionIdentity {
             target_id: target.id.clone(),
@@ -1072,6 +1164,30 @@ impl SourceProjectArgs {
     }
 }
 
+fn validate_frozen_feature_selection(
+    excluded_paths: &[String],
+    explicit_inputs: &BTreeMap<String, String>,
+    artifacts: &BTreeMap<String, ProjectedArtifact>,
+) -> Result<()> {
+    for excluded in excluded_paths {
+        ensure!(
+            !artifacts
+                .keys()
+                .any(|path| path.eq_ignore_ascii_case(excluded)),
+            "disabled feature output '{excluded}' is present in frozen release"
+        );
+    }
+    for (path, input) in explicit_inputs {
+        ensure!(
+            artifacts
+                .get(path)
+                .is_some_and(|artifact| &artifact.source_path == input),
+            "enabled feature output '{path}' does not use its declared source '{input}'"
+        );
+    }
+    Ok(())
+}
+
 fn ensure_follow_primary_root(
     repo_root: &Path,
     primary_root: &Path,
@@ -1192,8 +1308,8 @@ fn source_path(repo_root: &Path, relative: &Path) -> Result<PathBuf> {
         let metadata = fs::symlink_metadata(&cursor)
             .wrap_err_with(|| format!("cannot inspect source input '{}'", cursor.display()))?;
         ensure!(
-            !metadata.file_type().is_symlink(),
-            "source input '{}' traverses a symlink",
+            !is_reparse_point(&metadata),
+            "source input '{}' traverses a symlink or reparse point",
             relative.display()
         );
     }
@@ -1962,6 +2078,27 @@ mod tests {
     }
 
     #[test]
+    fn frozen_selection_rejects_case_variant_disabled_feature_output() {
+        let canonical = "src/main/resources/assets/sfm/frozen.txt";
+        let variant = "src/main/resources/assets/sfm/FROZEN.txt";
+        let artifact = ProjectedArtifact {
+            source_path: "platform/minecraft/src/main/resources/assets/sfm/frozen.txt".to_owned(),
+            source_bytes: b"frozen".to_vec(),
+            output_bytes: b"frozen".to_vec(),
+            overlay: None,
+        };
+        let artifacts = BTreeMap::from([(variant.to_owned(), artifact)]);
+        assert!(
+            validate_frozen_feature_selection(
+                &[canonical.to_owned()],
+                &BTreeMap::new(),
+                &artifacts
+            )
+            .is_err()
+        );
+    }
+
+    #[test]
     fn sync_then_check_a_fixture_and_refuse_a_contributor_edit() {
         let repo = tempfile::tempdir().unwrap();
         let minecraft = repo.path().join("platform/minecraft");
@@ -2001,6 +2138,8 @@ mod tests {
                 enabled_features: vec![],
                 target_features: BTreeMap::new(),
                 release_baselines: vec![],
+                frozen_source_commit: None,
+                frozen_sources: vec![],
                 canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
             }],

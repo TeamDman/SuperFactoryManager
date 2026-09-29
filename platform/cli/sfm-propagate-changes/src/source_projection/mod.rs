@@ -10,6 +10,7 @@ pub mod development_baseline;
 pub mod development_fixtures;
 pub mod development_gradle;
 mod directive_scanner;
+pub mod frozen_release;
 pub mod inputs;
 pub mod manifest;
 pub mod project_layout;

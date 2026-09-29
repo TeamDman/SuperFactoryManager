@@ -1,6 +1,7 @@
 //! Resolve a validated target and preset to concrete source-selection rules.
 
 use super::context::ProjectionContext;
+use super::manifest::FrozenSourceBinding;
 use super::manifest::PathEffectKind;
 use super::manifest::ReleaseBaselineBinding;
 use super::manifest::SourceProjectionManifest;
@@ -17,6 +18,8 @@ pub struct ProjectionSelection {
     pub excluded_paths: BTreeSet<String>,
     pub explicit_inputs: BTreeMap<String, String>,
     pub release_baseline: Option<ReleaseBaselineBinding>,
+    pub frozen_source_commit: Option<String>,
+    pub frozen_source: Option<FrozenSourceBinding>,
     pub canonical_project_fixture_provenance_sha256: Option<String>,
 }
 
@@ -108,6 +111,8 @@ pub fn select(
         excluded_paths,
         explicit_inputs,
         release_baseline: preset.release_baseline_for(target_id).cloned(),
+        frozen_source_commit: preset.frozen_source_commit.clone(),
+        frozen_source: preset.frozen_source_for(target_id).cloned(),
         canonical_project_fixture_provenance_sha256: preset
             .canonical_project_fixture_provenance_sha256
             .clone(),
@@ -172,6 +177,8 @@ mod tests {
                 enabled_features: vec![],
                 target_features: BTreeMap::new(),
                 release_baselines: vec![],
+                frozen_source_commit: None,
+                frozen_sources: vec![],
                 canonical_project_fixture_provenance_sha256: None,
                 identity: String::new(),
             }],

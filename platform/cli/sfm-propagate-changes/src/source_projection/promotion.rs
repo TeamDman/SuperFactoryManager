@@ -1943,6 +1943,8 @@ mod tests {
                     enabled_features: vec![],
                     target_features: BTreeMap::new(),
                     release_baselines: vec![],
+                    frozen_source_commit: None,
+                    frozen_sources: vec![],
                     canonical_project_fixture_provenance_sha256: None,
                     identity: String::new(),
                 })

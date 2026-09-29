@@ -746,6 +746,31 @@ pub fn read_pinned_blob(
     expected_oid: &str,
     expected_sha256: &str,
 ) -> Result<Vec<u8>> {
+    read_pinned_blob_with_mode(
+        repository_root,
+        tag_commit,
+        project_relative_path,
+        expected_oid,
+        expected_sha256,
+        None,
+    )
+}
+
+/// Read one exact regular Git blob and, when requested, verify its Git mode.
+/// Existing tag imports keep their historical mode acceptance through the
+/// `read_pinned_blob` wrapper.
+///
+/// # Errors
+///
+/// Rejects missing or moved blobs, non-regular entries, wrong mode or hash.
+pub fn read_pinned_blob_with_mode(
+    repository_root: &Path,
+    tag_commit: &str,
+    project_relative_path: &str,
+    expected_oid: &str,
+    expected_sha256: &str,
+    expected_mode: Option<&str>,
+) -> Result<Vec<u8>> {
     validate_sha1(tag_commit, "tag commit")?;
     validate_sha1(expected_oid, "release blob ID")?;
     validate_project_relative_path(project_relative_path)?;
@@ -782,6 +807,13 @@ pub fn read_pinned_blob(
         exact.kind == "blob" && matches!(exact.mode.as_str(), "100644" | "100755"),
         "tagged path '{project_relative_path}' is not a regular Git blob"
     );
+    if let Some(mode) = expected_mode {
+        ensure!(
+            exact.mode == mode,
+            "pinned path '{project_relative_path}' has Git mode {}, expected {mode}",
+            exact.mode
+        );
+    }
     ensure!(
         exact.oid == expected_oid,
         "tagged path '{project_relative_path}' has blob {}, expected {expected_oid}",

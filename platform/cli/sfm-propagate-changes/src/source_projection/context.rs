@@ -14,7 +14,7 @@ use std::collections::BTreeMap;
 
 /// Values available to a source projection. Absent feature and target keys
 /// remain absent, rather than being silently treated as false.
-#[derive(Debug, Facet)]
+#[derive(Clone, Debug, Facet)]
 pub struct ProjectionContext {
     pub minecraft_version: String,
     pub preset: String,
