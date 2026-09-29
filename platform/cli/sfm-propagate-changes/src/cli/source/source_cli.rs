@@ -391,6 +391,8 @@ impl SourceGradleArgs {
 }
 
 fn development_output_root(repo_root: &Path, output_root: &Path) -> Result<PathBuf> {
+    let physical_repo_root = fs::canonicalize(repo_root)
+        .wrap_err("cannot resolve development projection repository root")?;
     ensure!(
         !output_root
             .components()
@@ -423,22 +425,22 @@ fn development_output_root(repo_root: &Path, output_root: &Path) -> Result<PathB
         }
     }
     let physical = physical_output_root(&candidate)?;
-    let authored_root = repo_root.join("platform/minecraft");
+    let authored_root = physical_repo_root.join("platform/minecraft");
     ensure!(
         !paths_overlap(&physical, &authored_root),
         "development output root must be outside authored and checked-in Minecraft roots '{}'",
         authored_root.display()
     );
     ensure!(
-        !paths_overlap(&physical, &repo_root.join(".git")),
+        !paths_overlap(&physical, &physical_repo_root.join(".git")),
         "development output root cannot overlap repository Git state"
     );
     ensure!(
-        !path_is_prefix(&physical, repo_root),
+        !path_is_prefix(&physical, &physical_repo_root),
         "development output root cannot be the repository root or an ancestor"
     );
     ensure!(
-        !path_is_prefix(repo_root, &physical),
+        !path_is_prefix(&physical_repo_root, &physical),
         "development output root must be outside the repository so temporary projections cannot be committed accidentally"
     );
     Ok(candidate)
