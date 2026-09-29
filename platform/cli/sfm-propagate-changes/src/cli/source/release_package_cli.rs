@@ -38,12 +38,12 @@ use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 
-const INVENTORY_FILE: &str = "release-inventory.json";
-const COMPLETION_FILE: &str = "release-package.json";
-const PACKAGE_SCHEMA: &str = "sfm:source_release_package@1";
+pub(super) const INVENTORY_FILE: &str = "release-inventory.json";
+pub(super) const COMPLETION_FILE: &str = "release-package.json";
+pub(super) const PACKAGE_SCHEMA: &str = "sfm:source_release_package@1";
 const REPORT_SCHEMA: &str = "sfm:source_release_package_report@1";
 const MAX_INVENTORY_BYTES: u64 = 1024 * 1024;
-const PACKAGE_SCOPE: &str =
+pub(super) const PACKAGE_SCOPE: &str =
     "verified-local-candidate-package-only; no promotion, tag or publication";
 
 #[derive(Clone, Debug, Facet)]
@@ -64,29 +64,29 @@ pub struct ReleasePackageArgs {
 
 #[derive(Debug, Facet)]
 #[facet(deny_unknown_fields)]
-struct ReleasePackageManifest {
-    schema: String,
-    scope: String,
-    lock_sha256: String,
-    source_commit: String,
-    source_manifest_sha256: String,
-    mod_version: String,
-    candidate_preset_id: String,
-    candidate_definition_identity: String,
-    inventory_relative_path: String,
-    inventory_sha256: String,
-    build_inputs_are_reviewed_assertions: bool,
-    targets: Vec<ReleasePackageTarget>,
+pub(super) struct ReleasePackageManifest {
+    pub(super) schema: String,
+    pub(super) scope: String,
+    pub(super) lock_sha256: String,
+    pub(super) source_commit: String,
+    pub(super) source_manifest_sha256: String,
+    pub(super) mod_version: String,
+    pub(super) candidate_preset_id: String,
+    pub(super) candidate_definition_identity: String,
+    pub(super) inventory_relative_path: String,
+    pub(super) inventory_sha256: String,
+    pub(super) build_inputs_are_reviewed_assertions: bool,
+    pub(super) targets: Vec<ReleasePackageTarget>,
 }
 
 #[derive(Debug, Facet)]
 #[facet(deny_unknown_fields)]
-struct ReleasePackageTarget {
-    target_id: String,
-    minecraft_version: String,
-    loader: String,
-    file_name: String,
-    sha256: String,
+pub(super) struct ReleasePackageTarget {
+    pub(super) target_id: String,
+    pub(super) minecraft_version: String,
+    pub(super) loader: String,
+    pub(super) file_name: String,
+    pub(super) sha256: String,
 }
 
 #[derive(Debug, Facet)]

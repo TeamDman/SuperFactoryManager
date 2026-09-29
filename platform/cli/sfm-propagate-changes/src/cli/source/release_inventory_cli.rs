@@ -19,7 +19,9 @@ use facet::Facet;
 use std::collections::BTreeMap;
 use std::path::Path;
 
-const INVENTORY_SCHEMA: &str = "sfm:source_release_inventory@1";
+pub(super) const INVENTORY_SCHEMA: &str = "sfm:source_release_inventory@1";
+pub(super) const INVENTORY_SCOPE: &str =
+    "verified-local-candidate-only; no promotion, tag or publication";
 const VERIFIED_SCHEMA: &str = "sfm:source_candidate_verification@2";
 
 #[derive(Debug, Facet)]
@@ -150,7 +152,7 @@ impl ReleaseInventory {
         targets.sort_by(|a, b| a.target_id.cmp(&b.target_id));
         Ok(Self {
             schema: INVENTORY_SCHEMA.to_owned(),
-            scope: "verified-local-candidate-only; no promotion, tag or publication".to_owned(),
+            scope: INVENTORY_SCOPE.to_owned(),
             lock_sha256: report.lock_sha256.clone(),
             source_commit: lock.source_commit.clone(),
             source_manifest_sha256: lock.source_manifest_sha256.clone(),
