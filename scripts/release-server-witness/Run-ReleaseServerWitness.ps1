@@ -1,0 +1,480 @@
+<#
+Test-only 1.19.4 Forge 45.0.9 production-JAR registry/save witness.
+The input JARs, JDK, installer, and compile classpath are read-only. Every
+server, mod copy, world, log, and result is created below a NEW RunRoot.
+#>
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)] [string] $OfficialJar,
+    [Parameter(Mandatory)] [string] $OfficialSha256,
+    [Parameter(Mandatory)] [string] $ProjectedJar,
+    [Parameter(Mandatory)] [string] $ProjectedSha256,
+    [Parameter(Mandatory)] [string] $ForgeInstaller,
+    [Parameter(Mandatory)] [string] $ForgeSrgJar,
+    [Parameter(Mandatory)] [string] $LauncherCacheRoot,
+    [Parameter(Mandatory)] [string] $JavaHome,
+    [Parameter(Mandatory)] [string] $RunRoot,
+    [string] $InstalledForgeRoot = '',
+    [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
+    [ValidateRange(5, 120)] [int] $CommandTimeoutSeconds = 40
+)
+
+$ErrorActionPreference = 'Stop'
+Set-StrictMode -Version Latest
+
+$target = '1.19.4'
+$loaderVersion = '45.0.9'
+$expectedInstallerSha1 = 'b1cdd5fa1cc50fa23a32c9b38fd9d1f8a9a6c5e9'
+$expectedInstallerSha256 = '58e32beb55e0117bba1d34a89ffa74f8130de41b762d2c20ae9adf3a1342b007'
+$diskErrorPattern = '(?i)no space left|not enough space|insufficient disk|disk[ -]full|there is not enough space|ENOSPC'
+$worldName = 'sfm-release-witness-world'
+$probeRoot = $PSScriptRoot
+$probeSource = Join-Path $probeRoot 'src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
+$probeResources = Join-Path $probeRoot 'src/main/resources'
+
+function Assert-File([string] $Path) {
+    if (-not [IO.File]::Exists($Path)) { throw "Missing required input file: $Path" }
+    return [IO.Path]::GetFullPath($Path)
+}
+
+function Assert-Hash([string] $Path, [string] $Algorithm, [string] $Expected) {
+    if ($Expected -notmatch '^[0-9a-fA-F]{40}$' -and $Expected -notmatch '^[0-9a-fA-F]{64}$') {
+        throw "Invalid expected $Algorithm digest"
+    }
+    $actual = (Get-FileHash -LiteralPath $Path -Algorithm $Algorithm).Hash.ToLowerInvariant()
+    if ($actual -cne $Expected.ToLowerInvariant()) {
+        throw "$Algorithm mismatch for an input file: expected=$Expected actual=$actual"
+    }
+    return $actual
+}
+
+function Get-Sha256([string] $Path) {
+    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Test-Within([string] $Child, [string] $Parent) {
+    $parentPath = $Parent.TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    return $Child.Equals($Parent, [StringComparison]::OrdinalIgnoreCase) -or
+        $Child.StartsWith($parentPath, [StringComparison]::OrdinalIgnoreCase)
+}
+
+function Assert-NoDiskError([string] $Text) {
+    if ($Text -match $diskErrorPattern) {
+        throw "DISK_SPACE_ERROR: $($Matches[0]); stop without cleanup or retry."
+    }
+}
+
+function Read-IfExists([string] $Path) {
+    if (-not [IO.File]::Exists($Path)) { return '' }
+    $share = [IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete
+    $stream = [IO.FileStream]::new($Path, [IO.FileMode]::Open, [IO.FileAccess]::Read, $share)
+    try {
+        $reader = [IO.StreamReader]::new($stream, [Text.Encoding]::UTF8, $true, 4096, $true)
+        try { return $reader.ReadToEnd() } finally { $reader.Dispose() }
+    } finally { $stream.Dispose() }
+}
+
+function Wait-ForProcessExit($Process, [int] $TimeoutSeconds, [string] $LogPath) {
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    while (-not $Process.HasExited -and [DateTime]::UtcNow -lt $deadline) {
+        Start-Sleep -Seconds 1
+        $Process.Refresh()
+        Assert-NoDiskError (Read-IfExists $LogPath)
+    }
+    if (-not $Process.HasExited) {
+        Stop-Process -Id $Process.Id -Force
+        throw "Owned process $($Process.Id) exceeded $TimeoutSeconds seconds; scratch logs retained"
+    }
+    Assert-NoDiskError (Read-IfExists $LogPath)
+}
+
+function Wait-ForLog([string] $LogPath, $Process, [string] $Pattern,
+                     [int] $FromCharacter, [int] $TimeoutSeconds) {
+    $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+    while ([DateTime]::UtcNow -lt $deadline) {
+        $wholeLog = Read-IfExists $LogPath
+        Assert-NoDiskError $wholeLog
+        if ($wholeLog.Length -ge $FromCharacter) {
+            $newText = $wholeLog.Substring($FromCharacter)
+            $match = [regex]::Match($newText, $Pattern, [Text.RegularExpressions.RegexOptions]::Multiline)
+            if ($match.Success) { return $match }
+            if ($newText -match '(?i)Unknown or incomplete command|Found no elements matching|Failed to execute command') {
+                throw "Server command failed: $($Matches[0]); see retained log"
+            }
+        }
+        $Process.Refresh()
+        if ($Process.HasExited) { throw "Server exited before expected log response: $Pattern" }
+        Start-Sleep -Milliseconds 500
+    }
+    throw "Timed out waiting for server log response: $Pattern"
+}
+
+function Send-ServerCommand($Process, [string] $LogPath, [string] $TranscriptPath,
+                            [string] $Command, [string] $ResponsePattern) {
+    $before = (Read-IfExists $LogPath).Length
+    [IO.File]::AppendAllText($TranscriptPath, $Command + "`n")
+    $Process.StandardInput.WriteLine($Command)
+    $Process.StandardInput.Flush()
+    return Wait-ForLog $LogPath $Process $ResponsePattern $before $CommandTimeoutSeconds
+}
+
+function Get-WorldFingerprint([string] $WorldDirectory) {
+    $entries = [Collections.Generic.List[string]]::new()
+    Get-ChildItem -LiteralPath $WorldDirectory -Recurse -File | ForEach-Object {
+        $relative = [IO.Path]::GetRelativePath($WorldDirectory, $_.FullName).Replace('\', '/')
+        $entries.Add($relative + "`t" + (Get-Sha256 $_.FullName))
+    }
+    $entries.Sort([StringComparer]::Ordinal)
+    $bytes = [Text.Encoding]::UTF8.GetBytes(($entries -join "`n") + "`n")
+    return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
+}
+
+function New-BootDirectory([string] $Name, [string] $SfmInput, [string] $ExpectedHash,
+                           [string] $WorldSource = '') {
+    $boot = Join-Path $run $Name
+    if ([IO.Directory]::Exists($boot)) { throw "Boot root already exists: $Name" }
+    [IO.Directory]::CreateDirectory($boot) | Out-Null
+    [IO.Directory]::CreateDirectory((Join-Path $boot 'mods')) | Out-Null
+    [IO.File]::WriteAllText((Join-Path $boot 'eula.txt'), "eula=true`n", [Text.UTF8Encoding]::new($false))
+    $properties = @(
+        "level-name=$worldName"
+        'level-type=minecraft\:flat'
+        'online-mode=false'
+        'server-port=0'
+        'enable-rcon=false'
+        'enable-query=false'
+        'spawn-protection=0'
+        'max-players=1'
+        'motd=SFM isolated release witness'
+    ) -join "`n"
+    [IO.File]::WriteAllText((Join-Path $boot 'server.properties'), $properties + "`n", [Text.UTF8Encoding]::new($false))
+    Copy-Item -LiteralPath $SfmInput -Destination (Join-Path $boot 'mods/sfm.jar')
+    Copy-Item -LiteralPath $probeJar -Destination (Join-Path $boot 'mods/sfmreleaseprobe.jar')
+    Assert-Hash (Join-Path $boot 'mods/sfm.jar') SHA256 $ExpectedHash | Out-Null
+    Assert-Hash (Join-Path $boot 'mods/sfmreleaseprobe.jar') SHA256 $probeHash | Out-Null
+    if ($WorldSource) {
+        Copy-Item -LiteralPath $WorldSource -Destination (Join-Path $boot $worldName) -Recurse
+        $sourceFingerprint = Get-WorldFingerprint $WorldSource
+        $copyFingerprint = Get-WorldFingerprint (Join-Path $boot $worldName)
+        if ($copyFingerprint -cne $sourceFingerprint) { throw "World copy fingerprint mismatch for $Name" }
+    }
+    return $boot
+}
+
+function Read-SelectedValues($Process, [string] $LogPath, [string] $TranscriptPath) {
+    $queries = [ordered]@{
+        disk_program = 'data get block 0 120 0 Items[0].tag."sfm:program"'
+        derived_name = 'data get block 0 120 0 Items[0].tag."sfm:name"'
+        labels       = 'data get block 0 120 0 Items[0].tag."sfm:labels"'
+        errors       = 'data get block 0 120 0 Items[0].tag."sfm:errors"'
+        warnings     = 'data get block 0 120 0 Items[0].tag."sfm:warnings"'
+        facade       = 'data get block 2 120 0 "sfm:facade"'
+    }
+    $values = [ordered]@{}
+    foreach ($key in $queries.Keys) {
+        $match = Send-ServerCommand $Process $LogPath $TranscriptPath $queries[$key] `
+            '(?m)^.*has the following block data: (.+?)\r?$'
+        $values[$key] = $match.Groups[1].Value
+    }
+    if ($values.disk_program -notmatch 'compat-probe' -or $values.derived_name -cne '"compat-probe"' -or
+        $values.labels -notmatch 'legacy' -or $values.errors -cne '[]' -or $values.warnings -cne '[]' -or
+        $values.facade -notmatch 'minecraft:stone' -or $values.facade -notmatch 'STRETCH' -or
+        $values.facade -notmatch 'north') {
+        throw 'Selected six-value fixture did not have the expected non-vacuous shape'
+    }
+    return $values
+}
+
+function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $SfmHash,
+                           [bool] $CreateSeed) {
+    $log = Join-Path $BootDirectory 'logs/latest.log'
+    $transcript = Join-Path $BootDirectory 'commands.txt'
+    $snapshot = Join-Path $BootDirectory 'registry-snapshot.json'
+    $stdout = Join-Path $BootDirectory 'java.stdout.log'
+    $stderr = Join-Path $BootDirectory 'java.stderr.log'
+    $start = [Diagnostics.ProcessStartInfo]::new()
+    $start.FileName = $java
+    $start.WorkingDirectory = $BootDirectory
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardInput = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $start.ArgumentList.Add('-Xms512m')
+    $start.ArgumentList.Add('-Xmx2g')
+    $start.ArgumentList.Add('-Dfile.encoding=UTF-8')
+    $start.ArgumentList.Add('-Dsfm.releaseWitness.registrySnapshot=' + $snapshot.Replace('\', '/'))
+    $start.ArgumentList.Add('@' + $launchArgs.Replace('\', '/'))
+    $start.ArgumentList.Add('nogui')
+    $process = [Diagnostics.Process]::new()
+    $process.StartInfo = $start
+    try {
+        if (-not $process.Start()) { throw "Could not start $Role server" }
+        Write-Host "SFM_WITNESS_BOOT role=$Role pid=$($process.Id)"
+        $outTask = $process.StandardOutput.ReadToEndAsync()
+        $errTask = $process.StandardError.ReadToEndAsync()
+        Wait-ForLog $log $process 'Done \([0-9.]+s\)!' 0 $StartupTimeoutSeconds | Out-Null
+        $startupLog = Read-IfExists $log
+        if ($startupLog -notmatch 'Forge mod loading, version 45\.0\.9, for MC 1\.19\.4') {
+            throw "$Role did not log exact Forge 45.0.9 and Minecraft 1.19.4"
+        }
+        $snapshotDeadline = [DateTime]::UtcNow.AddSeconds(30)
+        while (-not [IO.File]::Exists($snapshot) -and [DateTime]::UtcNow -lt $snapshotDeadline) {
+            $currentLog = Read-IfExists $log
+            Assert-NoDiskError $currentLog
+            if ($currentLog.Contains('SFM release registry snapshot failed')) {
+                throw "$Role registry probe failed after Done; see retained server log"
+            }
+            $process.Refresh()
+            if ($process.HasExited) { break }
+            Start-Sleep -Milliseconds 250
+        }
+        if (-not [IO.File]::Exists($snapshot)) { throw "$Role probe did not emit a registry snapshot" }
+        $snapshotText = [IO.File]::ReadAllText($snapshot)
+        $parsed = $snapshotText | ConvertFrom-Json
+        if ($parsed.schema -ne 'sfm:release_registry_snapshot@1' -or $parsed.target -ne $target -or
+            $parsed.loader -ne 'forge-45.0.9') { throw "$Role registry snapshot identity mismatch" }
+
+        if ($CreateSeed) {
+            Send-ServerCommand $process $log $transcript 'forceload add 0 0' `
+                '(?i)marked chunk|forceload|force loaded' | Out-Null
+            Send-ServerCommand $process $log $transcript 'setblock 0 120 0 sfm:manager' `
+                'Changed the block at 0, 120, 0' | Out-Null
+            $diskNbt = '{Items:[{Slot:0b,id:"sfm:disk",Count:1b,tag:{"sfm:program":"NAME \"compat-probe\" EVERY 20 TICKS DO END","sfm:labels":{legacy:[L;120L]},"sfm:errors":[],"sfm:warnings":[]}}]}'
+            Send-ServerCommand $process $log $transcript ("data merge block 0 120 0 " + $diskNbt) `
+                'Modified block data of 0, 120, 0' | Out-Null
+            Send-ServerCommand $process $log $transcript 'setblock 2 120 0 sfm:cable_facade' `
+                'Changed the block at 2, 120, 0' | Out-Null
+            $facadeNbt = '{"sfm:facade":{block_state:{Name:"minecraft:stone"},texture_mode:"STRETCH",direction:"north"}}'
+            Send-ServerCommand $process $log $transcript ("data merge block 2 120 0 " + $facadeNbt) `
+                'Modified block data of 2, 120, 0' | Out-Null
+        }
+        $values = if ($CreateSeed) { $null } else { Read-SelectedValues $process $log $transcript }
+        Send-ServerCommand $process $log $transcript 'save-all flush' 'Saved the game' | Out-Null
+        [IO.File]::AppendAllText($transcript, "stop`n")
+        $process.StandardInput.WriteLine('stop')
+        $process.StandardInput.Flush()
+        Wait-ForProcessExit $process 90 $log
+        $outTask.Wait()
+        $errTask.Wait()
+        [IO.File]::WriteAllText($stdout, $outTask.Result)
+        [IO.File]::WriteAllText($stderr, $errTask.Result)
+        Assert-NoDiskError ($outTask.Result + $errTask.Result)
+        if ($process.ExitCode -ne 0) { throw "$Role server exited $($process.ExitCode)" }
+        if (-not [IO.File]::Exists((Join-Path $BootDirectory "$worldName/level.dat"))) {
+            throw "$Role did not save a level.dat"
+        }
+        return [ordered]@{
+            role = $Role
+            sfm_jar_sha256 = $SfmHash
+            exit_code = $process.ExitCode
+            startup_done = $true
+            exact_loader = $true
+            saved = $true
+            probe_sha256 = $probeHash
+            registry_snapshot_sha256 = Get-Sha256 $snapshot
+            registry_snapshot = $parsed.registries
+            level_dat_sha256 = Get-Sha256 (Join-Path $BootDirectory "$worldName/level.dat")
+            world_fingerprint_sha256 = Get-WorldFingerprint (Join-Path $BootDirectory $worldName)
+            selected_values = $values
+        }
+    } finally {
+        $process.Refresh()
+        if (-not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force
+            Write-Host "SFM_WITNESS_STOPPED_OWNED_PID role=$Role pid=$($process.Id)"
+        }
+        $process.Dispose()
+    }
+}
+
+$official = Assert-File $OfficialJar
+$projected = Assert-File $ProjectedJar
+$installer = Assert-File $ForgeInstaller
+$srg = Assert-File $ForgeSrgJar
+$launcher = [IO.Path]::GetFullPath($LauncherCacheRoot).TrimEnd('\', '/')
+$java = Assert-File (Join-Path $JavaHome 'bin/java.exe')
+$javac = Assert-File (Join-Path $JavaHome 'bin/javac.exe')
+$jarTool = Assert-File (Join-Path $JavaHome 'bin/jar.exe')
+$run = [IO.Path]::GetFullPath($RunRoot).TrimEnd('\', '/')
+$reusedInstall = if ($InstalledForgeRoot) { [IO.Path]::GetFullPath($InstalledForgeRoot).TrimEnd('\', '/') } else { '' }
+if ([IO.Directory]::Exists($run) -or [IO.File]::Exists($run)) {
+    throw 'RunRoot must be a new, absent directory'
+}
+$repoRoot = [IO.Path]::GetFullPath((Join-Path $probeRoot '../..'))
+if (Test-Within $run $repoRoot) { throw 'RunRoot must be outside the repository checkout' }
+$ancestor = [IO.Path]::GetDirectoryName($run)
+while ($ancestor) {
+    if ([IO.File]::Exists((Join-Path $ancestor 'server.properties')) -or
+        [IO.File]::Exists((Join-Path $ancestor 'level.dat'))) {
+        throw 'RunRoot must not be inside an existing game or world directory'
+    }
+    $nextAncestor = [IO.Path]::GetDirectoryName($ancestor)
+    if (-not $nextAncestor -or $nextAncestor -eq $ancestor) { break }
+    $ancestor = $nextAncestor
+}
+foreach ($protected in @($launcher, $JavaHome, [IO.Path]::GetDirectoryName($official),
+                          [IO.Path]::GetDirectoryName($projected), [IO.Path]::GetDirectoryName($installer),
+                          $probeRoot, $reusedInstall)) {
+    if (-not $protected) { continue }
+    if (Test-Within $run ([IO.Path]::GetFullPath($protected))) {
+        throw 'RunRoot must not be inside any input or source directory'
+    }
+}
+Assert-Hash $official SHA256 $OfficialSha256 | Out-Null
+Assert-Hash $projected SHA256 $ProjectedSha256 | Out-Null
+Assert-Hash $installer SHA1 $expectedInstallerSha1 | Out-Null
+Assert-Hash $installer SHA256 $expectedInstallerSha256 | Out-Null
+if ((Get-Item -LiteralPath $srg).Name -ne 'forge-1.19.4-45.0.9-srg.jar') {
+    throw 'Probe compile input is not the exact Forge 45.0.9 SRG JAR'
+}
+$fmlRoot = Join-Path $launcher 'libraries/net/minecraftforge'
+$fml = Assert-File (Join-Path $fmlRoot 'fmlcore/1.19.4-45.0.9/fmlcore-1.19.4-45.0.9.jar')
+$language = Assert-File (Join-Path $fmlRoot 'javafmllanguage/1.19.4-45.0.9/javafmllanguage-1.19.4-45.0.9.jar')
+$eventBus = Assert-File (Join-Path $fmlRoot 'eventbus/6.0.5/eventbus-6.0.5.jar')
+Assert-File $probeSource | Out-Null
+Assert-File (Join-Path $probeResources 'META-INF/mods.toml') | Out-Null
+Assert-File (Join-Path $probeResources 'pack.mcmeta') | Out-Null
+$javaVersionOutput = (& $java -version 2>&1) -join "`n"
+if ($LASTEXITCODE -ne 0 -or $javaVersionOutput -notmatch 'version "17\.') {
+    throw "Expected JDK 17; observed: $javaVersionOutput"
+}
+
+# All inputs and boundaries are checked before creating the scratch root.
+[IO.Directory]::CreateDirectory($run) | Out-Null
+$probeClasses = Join-Path $run 'probe-classes'
+[IO.Directory]::CreateDirectory($probeClasses) | Out-Null
+$compileClasspath = @($srg, $fml, $language, $eventBus) -join ';'
+& $javac -proc:none -source 17 -target 17 -classpath $compileClasspath -d $probeClasses $probeSource
+if ($LASTEXITCODE -ne 0) { throw "Test-only registry probe javac failed: $LASTEXITCODE" }
+$probeJar = Join-Path $run 'sfmreleaseprobe.jar'
+& $jarTool --create --file $probeJar -C $probeClasses . -C $probeResources .
+if ($LASTEXITCODE -ne 0) { throw "Test-only registry probe jar failed: $LASTEXITCODE" }
+$probeHash = Get-Sha256 $probeJar
+
+$install = if ($reusedInstall) { $reusedInstall } else { Join-Path $run 'forge-install' }
+if ($reusedInstall) {
+    if (-not [IO.Directory]::Exists($reusedInstall)) { throw 'InstalledForgeRoot is missing' }
+    Write-Host 'SFM_WITNESS_REUSE_EXACT_INSTALL read_only=true'
+} else {
+    [IO.Directory]::CreateDirectory($install) | Out-Null
+    $installStdout = Join-Path $run 'installer.stdout.log'
+    $installStderr = Join-Path $run 'installer.stderr.log'
+    $installProcess = Start-Process -FilePath $java -ArgumentList @('-jar', ('"' + $installer + '"'),
+        '--installServer', ('"' + $install + '"')) -WorkingDirectory $run -WindowStyle Hidden `
+        -RedirectStandardOutput $installStdout -RedirectStandardError $installStderr -PassThru
+    try {
+        $deadline = [DateTime]::UtcNow.AddMinutes(15)
+        while (-not $installProcess.HasExited -and [DateTime]::UtcNow -lt $deadline) {
+            Start-Sleep -Seconds 2
+            $installProcess.Refresh()
+            Assert-NoDiskError ((Read-IfExists $installStdout) + (Read-IfExists $installStderr))
+        }
+        if (-not $installProcess.HasExited) {
+            Stop-Process -Id $installProcess.Id -Force
+            throw 'Exact Forge installer exceeded 15 minutes; scratch retained'
+        }
+        Assert-NoDiskError ((Read-IfExists $installStdout) + (Read-IfExists $installStderr))
+        if ($installProcess.ExitCode -ne 0) {
+            throw "Exact Forge installer exited $($installProcess.ExitCode); scratch logs retained"
+        }
+    } finally {
+        $installProcess.Refresh()
+        if (-not $installProcess.HasExited) { Stop-Process -Id $installProcess.Id -Force }
+    }
+}
+$winArgs = Assert-File (Join-Path $install 'libraries/net/minecraftforge/forge/1.19.4-45.0.9/win_args.txt')
+$originalArgs = [IO.File]::ReadAllText($winArgs)
+if ($originalArgs -notmatch '--fml\.forgeVersion\s+45\.0\.9' -or
+    $originalArgs -notmatch '--fml\.mcVersion\s+1\.19\.4') {
+    throw 'Installed Forge server arguments have the wrong loader or Minecraft version'
+}
+$libraries = (Join-Path $install 'libraries').Replace('\', '/')
+$argsLines = [Collections.Generic.List[string]]::new()
+foreach ($line in ([IO.File]::ReadAllLines($winArgs))) {
+    if ($line.StartsWith('-p ')) {
+        $argsLines.Add('-p')
+        $argsLines.Add('"' + $line.Substring(3).Replace('libraries/', $libraries + '/') + '"')
+    } elseif ($line.StartsWith('-DlibraryDirectory=libraries')) {
+        $argsLines.Add('"-DlibraryDirectory=' + $libraries + '"')
+    } elseif ($line.Contains('libraries/')) {
+        $argsLines.Add('"' + $line.Replace('libraries/', $libraries + '/') + '"')
+    } else {
+        $argsLines.Add($line)
+    }
+}
+$launchArgs = Join-Path $run 'forge-launch.args'
+[IO.File]::WriteAllLines($launchArgs, $argsLines, [Text.UTF8Encoding]::new($false))
+
+$seed = New-BootDirectory 'official-seed' $official $OfficialSha256
+$seedResult = Invoke-ServerBoot 'official-seed' $seed $OfficialSha256.ToLowerInvariant() $true
+$seedWorld = Join-Path $seed $worldName
+$control = New-BootDirectory 'official-control' $official $OfficialSha256 $seedWorld
+$candidate = New-BootDirectory 'projected-candidate' $projected $ProjectedSha256 $seedWorld
+$seedFingerprint = $seedResult.world_fingerprint_sha256
+if ((Get-WorldFingerprint (Join-Path $control $worldName)) -cne $seedFingerprint -or
+    (Get-WorldFingerprint (Join-Path $candidate $worldName)) -cne $seedFingerprint) {
+    throw 'Official control and projected candidate did not start from byte-identical seed worlds'
+}
+$controlResult = Invoke-ServerBoot 'official-control' $control $OfficialSha256.ToLowerInvariant() $false
+$candidateResult = Invoke-ServerBoot 'projected-candidate' $candidate $ProjectedSha256.ToLowerInvariant() $false
+$reverse = New-BootDirectory 'official-reverse' $official $OfficialSha256 (Join-Path $candidate $worldName)
+if ((Get-WorldFingerprint (Join-Path $reverse $worldName)) -cne $candidateResult.world_fingerprint_sha256) {
+    throw 'Official reverse boot did not start from the candidate-saved world'
+}
+$reverseResult = Invoke-ServerBoot 'official-reverse' $reverse $OfficialSha256.ToLowerInvariant() $false
+
+$registryEqual = $controlResult.registry_snapshot_sha256 -ceq $candidateResult.registry_snapshot_sha256
+$registryReverseEqual = $controlResult.registry_snapshot_sha256 -ceq $reverseResult.registry_snapshot_sha256
+$valuesEqual = $true
+$reverseValuesEqual = $true
+foreach ($key in $controlResult.selected_values.Keys) {
+    if (-not [string]::Equals($controlResult.selected_values[$key], $candidateResult.selected_values[$key],
+                             [StringComparison]::Ordinal)) { $valuesEqual = $false }
+    if (-not [string]::Equals($controlResult.selected_values[$key], $reverseResult.selected_values[$key],
+                             [StringComparison]::Ordinal)) { $reverseValuesEqual = $false }
+}
+$registryDiff = [ordered]@{}
+$left = $controlResult.registry_snapshot
+$right = $candidateResult.registry_snapshot
+foreach ($registryId in (@($left.PSObject.Properties.Name) + @($right.PSObject.Properties.Name) | Sort-Object -Unique)) {
+    $officialIds = @($left.$registryId)
+    $candidateIds = @($right.$registryId)
+    $onlyOfficial = @($officialIds | Where-Object { $candidateIds -cnotcontains $_ })
+    $onlyCandidate = @($candidateIds | Where-Object { $officialIds -cnotcontains $_ })
+    if ($onlyOfficial.Count -gt 0 -or $onlyCandidate.Count -gt 0) {
+        $registryDiff[$registryId] = [ordered]@{ only_official = $onlyOfficial; only_projected = $onlyCandidate }
+    }
+}
+$report = [ordered]@{
+    schema = 'sfm:release_server_witness@1'
+    status = if ($registryEqual -and $registryReverseEqual -and $valuesEqual -and $reverseValuesEqual) { 'PASS' } else { 'FAIL' }
+    runner_script_sha256 = Get-Sha256 $PSCommandPath
+    probe_source_sha256 = Get-Sha256 $probeSource
+    target = $target
+    loader = 'forge-45.0.9'
+    forge_install_mode = if ($reusedInstall) { 'verified_exact_existing_install_read_only' } else { 'scratch_installer' }
+    java_version = $javaVersionOutput
+    java_exe_sha256 = Get-Sha256 $java
+    official_jar_sha256 = $OfficialSha256.ToLowerInvariant()
+    projected_jar_sha256 = $ProjectedSha256.ToLowerInvariant()
+    forge_installer_sha1 = $expectedInstallerSha1
+    forge_installer_sha256 = $expectedInstallerSha256
+    forge_launch_args_sha256 = Get-Sha256 $launchArgs
+    probe_jar_sha256 = $probeHash
+    seed_level_dat_sha256 = $seedResult.level_dat_sha256
+    seed_world_fingerprint_sha256 = $seedFingerprint
+    registry_id_diff = $registryDiff
+    registry_ids_equal = $registryEqual
+    registry_reverse_equal = $registryReverseEqual
+    selected_values_equal = $valuesEqual
+    official_reverse_equal = $reverseValuesEqual
+    boots = @($seedResult, $controlResult, $candidateResult, $reverseResult)
+    scope = 'One test-only auxiliary mod and six selected SFM save values; no transfer, client, or general gameplay parity claim.'
+}
+$reportPath = Join-Path $run 'result.json'
+[IO.File]::WriteAllText($reportPath, ($report | ConvertTo-Json -Depth 15) + "`n", [Text.UTF8Encoding]::new($false))
+Assert-Hash $official SHA256 $OfficialSha256 | Out-Null
+Assert-Hash $projected SHA256 $ProjectedSha256 | Out-Null
+Write-Host "SFM_RELEASE_SERVER_WITNESS status=$($report.status) report_sha256=$(Get-Sha256 $reportPath)"
+if ($report.status -ne 'PASS') { throw 'Official/projected registry or selected-save comparison failed; see result.json' }
