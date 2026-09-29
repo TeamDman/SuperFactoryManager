@@ -1,5 +1,5 @@
 <#
-Test-only 1.19.2/1.19.4/1.20/1.20.1/1.20.3/1.20.4 production-JAR registry/save witness.
+Test-only 1.19.2/1.19.4/1.20/1.20.1/1.20.3/1.20.4/1.21.0 production-JAR registry/save witness.
 The input JARs, JDK, installer, and compile classpath are read-only. Every
 server, mod copy, world, log, and result is created below a NEW RunRoot.
 #>
@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory)] [Alias('LoaderCompileJar')] [string] $ForgeSrgJar,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
-    [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.3', '1.20.4')] [string] $Target = '1.19.4',
+    [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.3', '1.20.4', '1.21.0')] [string] $Target = '1.19.4',
     [string] $LauncherCacheRoot = '',
     [Alias('InstalledLoaderRoot')] [string] $InstalledForgeRoot = '',
     [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
@@ -154,8 +154,39 @@ $version = switch ($target) {
             resources = 'versions/1.20.4/resources'
         }
     }
+    '1.21.0' {
+        @{
+            loader = '21.0.143'
+            loader_brand = 'NeoForge'
+            loader_id = 'neoforge'
+            minecraft = '1.21'
+            forge_group_path = 'net/neoforged'
+            artifact_module = 'neoforge'
+            artifact_version = '21.0.143'
+            launch_version_flag = '--fml.neoForgeVersion'
+            fml_group_path = 'net/neoforged/fancymodloader'
+            fml_core_artifact = 'loader'
+            fml_language_artifact = ''
+            fml_library_version = '4.0.21'
+            event_bus_path = 'libraries/net/neoforged/bus/8.0.1/bus-8.0.1.jar'
+            compile_extra_paths = @('libraries/com/mojang/datafixerupper/8.0.16/datafixerupper-8.0.16.jar')
+            compile_jar_name = 'raw.jar'
+            compile_jar_kind = 'neoform_joined_1.21-20240613.152323'
+            compile_jar_sha256 = '10ee2981219a2e0fe82a18abb6044ab29ffdb3cd60c56c281ee0ce3365584d93'
+            installer_sha1 = 'cd0f2f98cee06ef3d22e27fcf5e80a88bde6cf02'
+            installer_sha256 = '02e511f97bcfd2985937fc205aa95c93588bf3d9939c6ef18100add57d1e8bec'
+            official_sha256 = 'c76399b2456daccd88050ef45d36cac7f5d4bf60535adb2dd0d0ffeab19daa5f'
+            projected_sha256 = 'e233d788e54db4078fa90a8324c4132fc3fbfbe103b78ca03003d51d9a0e947b'
+            probe_source = 'versions/1.21.0/src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
+            resources = 'versions/1.21.0/resources'
+            mod_manifest = 'META-INF/neoforge.mods.toml'
+            fixture_source = 'versions/1.21.0/Fixture.ps1'
+            java_source = '21'
+        }
+    }
 }
 $loaderVersion = $version.loader
+$minecraftVersion = if ($version.ContainsKey('minecraft')) { $version.minecraft } else { $target }
 if (-not $version.ContainsKey('artifact_module')) { $version.artifact_module = 'forge' }
 if (-not $version.ContainsKey('artifact_version')) { $version.artifact_version = "$target-$loaderVersion" }
 if (-not $version.ContainsKey('launch_version_flag')) { $version.launch_version_flag = '--fml.forgeVersion' }
@@ -171,6 +202,8 @@ if (-not $version.ContainsKey('compile_jar_sha256')) { $version.compile_jar_sha2
 if (-not $version.ContainsKey('probe_source')) {
     $version.probe_source = 'src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
 }
+if (-not $version.ContainsKey('mod_manifest')) { $version.mod_manifest = 'META-INF/mods.toml' }
+if (-not $version.ContainsKey('java_source')) { $version.java_source = '17' }
 $loaderIdentity = "$($version.loader_id)-$loaderVersion"
 $expectedInstallerSha1 = $version.installer_sha1
 $expectedInstallerSha256 = $version.installer_sha256
@@ -179,6 +212,17 @@ $worldName = 'sfm-release-witness-world'
 $probeRoot = $PSScriptRoot
 $probeSource = Join-Path $probeRoot $version.probe_source
 $probeResources = Join-Path $probeRoot $version.resources
+$probeManifest = Join-Path $probeResources $version.mod_manifest
+$fixture = $null
+if ($version.ContainsKey('fixture_source')) {
+    $fixtureScript = Join-Path $probeRoot $version.fixture_source
+    if (-not [IO.File]::Exists($fixtureScript)) { throw 'Version-specific fixture script is missing' }
+    . $fixtureScript
+    $fixture = Get-ReleaseServerFixture1210
+    if ($fixture.queries.Count -ne 6 -or -not $fixture.disk_nbt -or -not $fixture.facade_nbt) {
+        throw 'Version-specific selected-save fixture is incomplete'
+    }
+}
 
 function Assert-File([string] $Path) {
     if (-not [IO.File]::Exists($Path)) { throw "Missing required input file: $Path" }
@@ -310,14 +354,14 @@ function New-BootDirectory([string] $Name, [string] $SfmInput, [string] $Expecte
 }
 
 function Read-SelectedValues($Process, [string] $LogPath, [string] $TranscriptPath) {
-    $queries = [ordered]@{
+    $queries = if ($fixture) { $fixture.queries } else { [ordered]@{
         disk_program = 'data get block 0 120 0 Items[0].tag."sfm:program"'
         derived_name = 'data get block 0 120 0 Items[0].tag."sfm:name"'
         labels       = 'data get block 0 120 0 Items[0].tag."sfm:labels"'
         errors       = 'data get block 0 120 0 Items[0].tag."sfm:errors"'
         warnings     = 'data get block 0 120 0 Items[0].tag."sfm:warnings"'
         facade       = 'data get block 2 120 0 "sfm:facade"'
-    }
+    } }
     $values = [ordered]@{}
     foreach ($key in $queries.Keys) {
         $match = Send-ServerCommand $Process $LogPath $TranscriptPath $queries[$key] `
@@ -366,9 +410,9 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
         Wait-ForLog $log $process 'Done \([0-9.]+s\)!' 0 $StartupTimeoutSeconds | Out-Null
         $startupLog = Read-IfExists $log
         $startupIdentity = $version.loader_brand + ' mod loading, version ' + [regex]::Escape($loaderVersion) +
-            ', for MC ' + [regex]::Escape($target)
+            ', for MC ' + [regex]::Escape($minecraftVersion)
         if ($startupLog -notmatch $startupIdentity) {
-            throw "$Role did not log exact $($version.loader_brand) $loaderVersion and Minecraft $target"
+            throw "$Role did not log exact $($version.loader_brand) $loaderVersion and Minecraft $minecraftVersion"
         }
         $snapshotDeadline = [DateTime]::UtcNow.AddSeconds(30)
         while (-not [IO.File]::Exists($snapshot) -and [DateTime]::UtcNow -lt $snapshotDeadline) {
@@ -392,12 +436,12 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
                 '(?i)marked chunk|forceload|force loaded' | Out-Null
             Send-ServerCommand $process $log $transcript 'setblock 0 120 0 sfm:manager' `
                 'Changed the block at 0, 120, 0' | Out-Null
-            $diskNbt = '{Items:[{Slot:0b,id:"sfm:disk",Count:1b,tag:{"sfm:program":"NAME \"compat-probe\" EVERY 20 TICKS DO END","sfm:labels":{legacy:[L;120L]},"sfm:errors":[],"sfm:warnings":[]}}]}'
+            $diskNbt = if ($fixture) { $fixture.disk_nbt } else { '{Items:[{Slot:0b,id:"sfm:disk",Count:1b,tag:{"sfm:program":"NAME \"compat-probe\" EVERY 20 TICKS DO END","sfm:labels":{legacy:[L;120L]},"sfm:errors":[],"sfm:warnings":[]}}]}' }
             Send-ServerCommand $process $log $transcript ("data merge block 0 120 0 " + $diskNbt) `
                 'Modified block data of 0, 120, 0' | Out-Null
             Send-ServerCommand $process $log $transcript 'setblock 2 120 0 sfm:cable_facade' `
                 'Changed the block at 2, 120, 0' | Out-Null
-            $facadeNbt = '{"sfm:facade":{block_state:{Name:"minecraft:stone"},texture_mode:"STRETCH",direction:"north"}}'
+            $facadeNbt = if ($fixture) { $fixture.facade_nbt } else { '{"sfm:facade":{block_state:{Name:"minecraft:stone"},texture_mode:"STRETCH",direction:"north"}}' }
             Send-ServerCommand $process $log $transcript ("data merge block 2 120 0 " + $facadeNbt) `
                 'Modified block data of 2, 120, 0' | Out-Null
         }
@@ -485,18 +529,30 @@ if ((Get-Item -LiteralPath $compileJar).Name -cne $version.compile_jar_name) {
     throw "Probe compile input is not the exact $($version.compile_jar_kind) JAR"
 }
 Assert-Hash $compileJar SHA256 $version.compile_jar_sha256 | Out-Null
-Assert-Hash $java SHA256 '186d651179d34ce21d857597bb88a7b1e244973e64f3a9bec1e9daaffd919e31' | Out-Null
+$expectedJavaSha256 = if ($target -eq '1.21.0') {
+    'cd23f1d9b3ba8f99370503e3f13b057c3ca3b0cb32b926f1a39637a34e11ebc1'
+} else {
+    '186d651179d34ce21d857597bb88a7b1e244973e64f3a9bec1e9daaffd919e31'
+}
+Assert-Hash $java SHA256 $expectedJavaSha256 | Out-Null
 Assert-File $probeSource | Out-Null
-Assert-File (Join-Path $probeResources 'META-INF/mods.toml') | Out-Null
+Assert-File $probeManifest | Out-Null
 Assert-File (Join-Path $probeResources 'pack.mcmeta') | Out-Null
 $javaVersionOutput = (& $java -version 2>&1) -join "`n"
-if ($LASTEXITCODE -ne 0 -or $javaVersionOutput -notmatch 'version "17\.0\.14"' -or
-    $javaVersionOutput -notmatch 'JBR-17\.0\.14\+1-1367\.22') {
+if ($target -eq '1.21.0') {
+    $javaRelease = [IO.File]::ReadAllText((Assert-File (Join-Path $JavaHome 'release')))
+    if ($LASTEXITCODE -ne 0 -or $javaVersionOutput -notmatch 'version "21\.0\.11"' -or
+        $javaRelease -notmatch 'IMPLEMENTOR_VERSION="JBRSDK-21\.0\.11\+1-1163\.116-nomod"') {
+        throw "Expected release-pinned JBRSDK 21.0.11 b1163.116; observed: $javaVersionOutput"
+    }
+} elseif ($LASTEXITCODE -ne 0 -or $javaVersionOutput -notmatch 'version "17\.0\.14"' -or
+        $javaVersionOutput -notmatch 'JBR-17\.0\.14\+1-1367\.22') {
     throw "Expected release-pinned JBRSDK 17.0.14 b1367.22; observed: $javaVersionOutput"
 }
 $javacVersionOutput = (& $javac -version 2>&1) -join "`n"
-if ($LASTEXITCODE -ne 0 -or $javacVersionOutput -notmatch 'javac 17\.0\.14') {
-    throw "Expected JDK 17.0.14 javac; observed: $javacVersionOutput"
+$expectedJavacVersion = if ($target -eq '1.21.0') { '21.0.11' } else { '17.0.14' }
+if ($LASTEXITCODE -ne 0 -or $javacVersionOutput -notmatch ('javac ' + [regex]::Escape($expectedJavacVersion))) {
+    throw "Expected release-pinned javac; observed: $javacVersionOutput"
 }
 
 # Input hashes and boundaries are checked before creating the scratch root.
@@ -539,7 +595,9 @@ $fmlVersion = $version.fml_library_version
 $coreArtifact = $version.fml_core_artifact
 $languageArtifact = $version.fml_language_artifact
 $fml = Assert-File (Join-Path $fmlRoot "$coreArtifact/$fmlVersion/$coreArtifact-$fmlVersion.jar")
-$language = Assert-File (Join-Path $fmlRoot "$languageArtifact/$fmlVersion/$languageArtifact-$fmlVersion.jar")
+$language = if ($languageArtifact) {
+    Assert-File (Join-Path $fmlRoot "$languageArtifact/$fmlVersion/$languageArtifact-$fmlVersion.jar")
+} else { '' }
 $eventBus = Assert-File (Join-Path $classpathRoot $version.event_bus_path)
 $compileExtras = [Collections.Generic.List[string]]::new()
 foreach ($relative in $version.compile_extra_paths) {
@@ -547,8 +605,9 @@ foreach ($relative in $version.compile_extra_paths) {
 }
 $probeClasses = Join-Path $run 'probe-classes'
 [IO.Directory]::CreateDirectory($probeClasses) | Out-Null
-$compileClasspath = (@($compileJar, $fml, $language, $eventBus) + $compileExtras.ToArray()) -join ';'
-& $javac -proc:none -source 17 -target 17 -classpath $compileClasspath -d $probeClasses $probeSource
+$compileClasspath = (@($compileJar, $fml, $language, $eventBus) + $compileExtras.ToArray() |
+    Where-Object { $_ }) -join ';'
+& $javac -proc:none -source $version.java_source -target $version.java_source -classpath $compileClasspath -d $probeClasses $probeSource
 if ($LASTEXITCODE -ne 0) { throw "Test-only registry probe javac failed: $LASTEXITCODE" }
 $probeJar = Join-Path $run 'sfmreleaseprobe.jar'
 & $jarTool --create --file $probeJar -C $probeClasses . -C $probeResources .
@@ -558,7 +617,7 @@ $probeHash = Get-Sha256 $probeJar
 $winArgs = Assert-File (Join-Path $install "libraries/$($version.forge_group_path)/$($version.artifact_module)/$($version.artifact_version)/win_args.txt")
 $originalArgs = [IO.File]::ReadAllText($winArgs)
 if ($originalArgs -notmatch ([regex]::Escape($version.launch_version_flag) + '\s+' + [regex]::Escape($loaderVersion)) -or
-    $originalArgs -notmatch ('--fml\.mcVersion\s+' + [regex]::Escape($target))) {
+    $originalArgs -notmatch ('--fml\.mcVersion\s+' + [regex]::Escape($minecraftVersion))) {
     throw 'Installed server arguments have the wrong loader or Minecraft version'
 }
 $libraries = (Join-Path $install 'libraries').Replace('\', '/')
@@ -626,7 +685,8 @@ $report = [ordered]@{
                  $valuesEqual -and $reverseValuesEqual) { 'PASS' } else { 'FAIL' }
     runner_script_sha256 = Get-Sha256 $PSCommandPath
     probe_source_sha256 = Get-Sha256 $probeSource
-    probe_mods_toml_sha256 = Get-Sha256 (Join-Path $probeResources 'META-INF/mods.toml')
+    probe_mods_toml_sha256 = Get-Sha256 $probeManifest
+    probe_metadata_file = $version.mod_manifest.Replace('\', '/')
     probe_pack_mcmeta_sha256 = Get-Sha256 (Join-Path $probeResources 'pack.mcmeta')
     target = $target
     loader = $loaderIdentity
@@ -652,6 +712,7 @@ $report = [ordered]@{
     boots = @($seedResult, $controlResult, $candidateResult, $reverseResult)
     scope = 'One test-only auxiliary mod and six selected SFM save values; no transfer, client, or general gameplay parity claim.'
 }
+if ($fixture) { $report['selected_fixture_source_sha256'] = Get-Sha256 $fixtureScript }
 if ($version.compile_jar_kind -eq 'forgegradle_srg') {
     # Retain the original field names for previous ForgeGradle/SRG targets.
     $report['forge_install_mode'] = $installMode
