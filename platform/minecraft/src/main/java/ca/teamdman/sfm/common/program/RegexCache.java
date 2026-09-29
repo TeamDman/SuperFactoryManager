@@ -72,7 +72,12 @@ public class RegexCache {
             if (parts.length == 2 && !isRegexPattern(parts[0]) && !isRegexPattern(parts[1])) {
                 String begin = parts[0].toLowerCase(Locale.ROOT);
                 String end = parts[1].toLowerCase(Locale.ROOT);
+{% if features.regex_overlap_fix %}
+                return s -> s.length() >= begin.length() + end.length()
+                            && s.startsWith(begin) && s.endsWith(end);
+{% else %}
                 return s -> s.startsWith(begin) && s.endsWith(end);
+{% endif %}
             }
         }
         // Default case for other regex patterns

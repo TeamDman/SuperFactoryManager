@@ -72,6 +72,24 @@ public class RegexCacheTests {
 
         performCorrectnessTest("Complex regex pattern", ".*[a-z]{3}\\d+.*", "abc123");
     }
+{% if features.regex_overlap_fix %}
+
+    @Test
+    public void wildcardPrefixAndSuffixMustNotOverlap() {
+        String pattern = "ab.*bc";
+        String overlapping = "abc";
+        String nonOverlapping = "abbc";
+
+        assertEquals(
+                Pattern.compile(pattern).asMatchPredicate().test(overlapping),
+                RegexCache.buildPredicate(pattern).test(overlapping)
+        );
+        assertEquals(
+                Pattern.compile(pattern).asMatchPredicate().test(nonOverlapping),
+                RegexCache.buildPredicate(pattern).test(nonOverlapping)
+        );
+    }
+{% endif %}
 
     private Duration measureTime(Runnable runnable) {
 

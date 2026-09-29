@@ -126,7 +126,7 @@ pub fn apply_release_baseline(
             });
         }
     }
-    apply_post_baseline_canonical_sources(binding, &canonical_sources, &mut pending)?;
+    apply_post_baseline_canonical_sources(binding, context, &canonical_sources, &mut pending)?;
 
     if binding.kind == BaselineKind::DevelopmentHead {
         let spec = DevelopmentHeadSpec {
@@ -158,7 +158,11 @@ pub fn apply_release_baseline(
     let result = ReleaseApplyReport {
         retained_source_files: release_paths.len(),
         masked_development_files,
-        overlaid_release_files: explicit_inputs.len() - canonical_sources.len(),
+        overlaid_release_files: explicit_inputs.len()
+            - canonical_sources
+                .keys()
+                .filter(|path| explicit_inputs.contains_key(*path))
+                .count(),
         pinned_tag_fallback_files,
     };
     *artifacts = pending;
@@ -199,6 +203,30 @@ fn apply_unchanged_sources(
                 source_bytes: bytes.clone(),
                 output_bytes: bytes,
                 overlay: Some("development-head-pinned-test".to_owned()),
+            };
+            render_java_artifact(path, &mut pinned, context)?;
+            pending.insert(path.clone(), pinned);
+            continue;
+        }
+        if binding
+            .post_baseline_canonical_sources
+            .get(path)
+            .is_some_and(|selected| selected.imported_output_sha256.is_some())
+        {
+            // A reviewed development change starts from the exact committed
+            // source, even when the primary file has since acquired new code.
+            let oid = record.release_blob_oid.as_deref().ok_or_else(|| {
+                eyre::eyre!("development source `{path}` has no pinned Git blob OID")
+            })?;
+            let bytes = read_pinned_blob(repo_root, &target.tag_commit, path, oid, expected)?;
+            let mut pinned = ProjectedArtifact {
+                source_path: format!(
+                    "platform/minecraft/development-baselines/{}/committed-tree/{path}",
+                    target.target_id
+                ),
+                source_bytes: bytes.clone(),
+                output_bytes: bytes,
+                overlay: Some(format!("development-head-{}", target.target_id)),
             };
             render_java_artifact(path, &mut pinned, context)?;
             pending.insert(path.clone(), pinned);
@@ -285,8 +313,14 @@ fn validate_post_baseline_canonical_sources(
             eyre::eyre!("post-baseline canonical source '{path}' is absent from pinned membership")
         })?;
         ensure!(
-            record.classification == BaselinePathClass::Changed,
-            "post-baseline canonical source '{path}' must replace a changed pinned source"
+            record.classification == BaselinePathClass::Changed
+                || (record.classification == BaselinePathClass::Unchanged
+                    && selected.imported_output_sha256.is_some()),
+            "post-baseline canonical source '{path}' must replace a changed pinned source, or an unchanged source with a reviewed imported output hash"
+        );
+        ensure!(
+            selected.imported_output_sha256.is_some() == selected.required_feature.is_some(),
+            "post-baseline canonical source '{path}' needs both imported output SHA-256 and required feature for a changed output"
         );
     }
     Ok(())
@@ -312,6 +346,7 @@ fn capture_post_baseline_canonical_sources(
 
 fn apply_post_baseline_canonical_sources(
     binding: &ReleaseBaselineBinding,
+    context: &ProjectionContext,
     canonical_sources: &BTreeMap<String, ProjectedArtifact>,
     artifacts: &mut BTreeMap<String, ProjectedArtifact>,
 ) -> Result<()> {
@@ -331,10 +366,27 @@ fn apply_post_baseline_canonical_sources(
         let imported = artifacts.get(path).ok_or_else(|| {
             eyre::eyre!("post-baseline canonical source '{path}' has no verified imported overlay")
         })?;
-        ensure!(
-            canonical.output_bytes == imported.output_bytes,
-            "post-baseline canonical output '{path}' differs from verified imported overlay"
-        );
+        if let (Some(expected_imported), Some(feature)) =
+            (&selected.imported_output_sha256, &selected.required_feature)
+        {
+            ensure!(
+                context.features.get(feature) == Some(&true),
+                "post-baseline canonical change '{path}' requires enabled feature '{feature}'"
+            );
+            ensure!(
+                sha256(&imported.output_bytes) == format!("sha256:{expected_imported}"),
+                "post-baseline canonical change '{path}' differs from reviewed imported output"
+            );
+            ensure!(
+                canonical.output_bytes != imported.output_bytes,
+                "post-baseline canonical change '{path}' did not change its imported output"
+            );
+        } else {
+            ensure!(
+                canonical.output_bytes == imported.output_bytes,
+                "post-baseline canonical output '{path}' differs from verified imported overlay"
+            );
+        }
         replacements.push((path.clone(), canonical.clone()));
     }
     artifacts.extend(replacements);
@@ -1100,6 +1152,8 @@ mod tests {
             CanonicalSourceSelection {
                 source_sha256: "a".repeat(64),
                 output_sha256: "b".repeat(64),
+                imported_output_sha256: None,
+                required_feature: None,
             },
         );
         assert!(validate_post_baseline_canonical_sources(&binding, &target).is_err());
@@ -1142,12 +1196,20 @@ mod tests {
                 output_sha256: sha256(&canonical.output_bytes)
                     .trim_start_matches("sha256:")
                     .to_owned(),
+                imported_output_sha256: None,
+                required_feature: None,
             },
         );
         let primary = BTreeMap::from([(path.to_owned(), canonical.clone())]);
         let captured = capture_post_baseline_canonical_sources(&binding, &primary).unwrap();
         let mut artifacts = BTreeMap::from([(path.to_owned(), imported)]);
-        apply_post_baseline_canonical_sources(&binding, &captured, &mut artifacts).unwrap();
+        apply_post_baseline_canonical_sources(
+            &binding,
+            &rendering_context,
+            &captured,
+            &mut artifacts,
+        )
+        .unwrap();
         assert_eq!(artifacts[path], canonical);
         assert_eq!(artifacts[path].source_path, path);
         assert_eq!(artifacts[path].overlay, None);
@@ -1169,6 +1231,7 @@ mod tests {
         let previous = artifacts.clone();
         let error = apply_post_baseline_canonical_sources(
             &binding,
+            &rendering_context,
             &BTreeMap::from([(path.to_owned(), drifted)]),
             &mut artifacts,
         )
@@ -1193,7 +1256,13 @@ mod tests {
             .unwrap()
             .output_sha256 = "f".repeat(64);
         assert!(
-            apply_post_baseline_canonical_sources(&binding, &captured, &mut artifacts).is_err()
+            apply_post_baseline_canonical_sources(
+                &binding,
+                &rendering_context,
+                &captured,
+                &mut artifacts
+            )
+            .is_err()
         );
         binding
             .post_baseline_canonical_sources
@@ -1208,12 +1277,164 @@ mod tests {
             .unwrap()
             .source_sha256 = "f".repeat(64);
         assert!(
-            apply_post_baseline_canonical_sources(&binding, &captured, &mut artifacts).is_err()
+            apply_post_baseline_canonical_sources(
+                &binding,
+                &rendering_context,
+                &captured,
+                &mut artifacts
+            )
+            .is_err()
         );
 
         let mut non_primary = primary;
         non_primary.get_mut(path).unwrap().overlay = Some("feature".to_owned());
         assert!(capture_post_baseline_canonical_sources(&binding, &non_primary).is_err());
+    }
+
+    #[test]
+    fn changed_canonical_output_requires_pinned_import_and_enabled_feature() {
+        let root = tempfile::tempdir().unwrap();
+        git(root.path(), &["init", "-q"]);
+        let path = "src/main/java/example/RegexCache.java";
+        let source = root.path().join("platform/minecraft").join(path);
+        fs::create_dir_all(source.parent().unwrap()).unwrap();
+        let old_source = b"class RegexCache { boolean match() { return true; } }\n";
+        fs::write(&source, old_source).unwrap();
+        git(
+            root.path(),
+            &[
+                "add",
+                "platform/minecraft/src/main/java/example/RegexCache.java",
+            ],
+        );
+        git(
+            root.path(),
+            &[
+                "-c",
+                "user.name=SFM Test",
+                "-c",
+                "user.email=sfm@example.invalid",
+                "commit",
+                "-qm",
+                "development head",
+            ],
+        );
+        let commit = git(root.path(), &["rev-parse", "HEAD"]);
+        let oid = git(
+            root.path(),
+            &[
+                "rev-parse",
+                "HEAD:platform/minecraft/src/main/java/example/RegexCache.java",
+            ],
+        );
+        let mut pinned_record = record(
+            BaselinePathClass::Unchanged,
+            Some(old_source),
+            Some(old_source),
+            None,
+        );
+        pinned_record.release_blob_oid = Some(oid);
+        let target = report(&commit, BTreeMap::from([(path.to_owned(), pinned_record)]))
+            .targets
+            .remove(0);
+        let mut binding = write_report(root.path(), &report(&commit, target.paths.clone()));
+        binding.kind = BaselineKind::DevelopmentHead;
+        let mut enabled = context();
+        enabled
+            .features
+            .insert("regex_overlap_fix".to_owned(), true);
+        let mut old = artifact(path, old_source);
+        render_java_artifact(path, &mut old, &enabled).unwrap();
+        let mut canonical = artifact(
+            path,
+            b"class RegexCache { boolean match() { return false; } }\n",
+        );
+        render_java_artifact(path, &mut canonical, &enabled).unwrap();
+        binding.post_baseline_canonical_sources.insert(
+            path.to_owned(),
+            CanonicalSourceSelection {
+                source_sha256: sha256(&canonical.source_bytes)
+                    .trim_start_matches("sha256:")
+                    .to_owned(),
+                output_sha256: sha256(&canonical.output_bytes)
+                    .trim_start_matches("sha256:")
+                    .to_owned(),
+                imported_output_sha256: Some(
+                    sha256(&old.output_bytes)
+                        .trim_start_matches("sha256:")
+                        .to_owned(),
+                ),
+                required_feature: Some("regex_overlap_fix".to_owned()),
+            },
+        );
+        validate_post_baseline_canonical_sources(&binding, &target).unwrap();
+        let primary = BTreeMap::from([(path.to_owned(), canonical.clone())]);
+        let mut imported = primary.clone();
+        apply_unchanged_sources(root.path(), &binding, &enabled, &target, &mut imported).unwrap();
+        assert_eq!(imported[path].source_bytes, old_source);
+        assert_eq!(imported[path].output_bytes, old.output_bytes);
+        apply_post_baseline_canonical_sources(&binding, &enabled, &primary, &mut imported).unwrap();
+        assert_eq!(imported[path], canonical);
+
+        let mut prior = BTreeMap::from([(path.to_owned(), old)]);
+        let selected = binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap();
+        selected.imported_output_sha256 = Some("f".repeat(64));
+        let error = apply_post_baseline_canonical_sources(&binding, &enabled, &primary, &mut prior)
+            .unwrap_err();
+        assert!(format!("{error:?}").contains("reviewed imported output"));
+        assert_ne!(prior[path], canonical);
+
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .imported_output_sha256 = Some(
+            sha256(&prior[path].output_bytes)
+                .trim_start_matches("sha256:")
+                .to_owned(),
+        );
+        let mut disabled = context();
+        disabled
+            .features
+            .insert("regex_overlap_fix".to_owned(), false);
+        let error =
+            apply_post_baseline_canonical_sources(&binding, &disabled, &primary, &mut prior)
+                .unwrap_err();
+        assert!(format!("{error:?}").contains("requires enabled feature"));
+        assert_ne!(prior[path], canonical);
+
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .source_sha256 = "f".repeat(64);
+        let error = apply_post_baseline_canonical_sources(&binding, &enabled, &primary, &mut prior)
+            .unwrap_err();
+        assert!(format!("{error:?}").contains("pinned SHA-256"));
+        assert_ne!(prior[path], canonical);
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .source_sha256 = sha256(&canonical.source_bytes)
+            .trim_start_matches("sha256:")
+            .to_owned();
+
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .output_sha256 = "f".repeat(64);
+        let error = apply_post_baseline_canonical_sources(&binding, &enabled, &primary, &mut prior)
+            .unwrap_err();
+        assert!(format!("{error:?}").contains("pinned SHA-256"));
+        assert_ne!(prior[path], canonical);
+
+        binding.kind = BaselineKind::ReleaseTag;
+        assert!(validate_post_baseline_canonical_sources(&binding, &target).is_err());
     }
 
     #[test]
@@ -1247,6 +1468,8 @@ mod tests {
                     output_sha256: sha256(&artifact.output_bytes)
                         .trim_start_matches("sha256:")
                         .to_owned(),
+                    imported_output_sha256: None,
+                    required_feature: None,
                 },
             );
         }
@@ -1259,9 +1482,13 @@ mod tests {
             (second_path.to_owned(), imported_second),
         ]);
         let previous = artifacts.clone();
-        let error =
-            apply_post_baseline_canonical_sources(&binding, &canonical_sources, &mut artifacts)
-                .unwrap_err();
+        let error = apply_post_baseline_canonical_sources(
+            &binding,
+            &context(),
+            &canonical_sources,
+            &mut artifacts,
+        )
+        .unwrap_err();
         assert!(format!("{error:?}").contains("differs from verified imported overlay"));
         assert_eq!(artifacts, previous);
     }

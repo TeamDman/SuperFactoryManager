@@ -69,9 +69,35 @@
       ],
       "resource_effects": [],
       "dependency_effects": []
+    },
+    {
+      "id": "regex_overlap_fix",
+      "supported_targets": ["1.19.2","26.1.2"],
+      "requires": [],
+      "source_effects": [
+        {"output_path":"src/main/java/ca/teamdman/sfm/common/program/RegexCache.java","kind":"Template","input_path":null}
+      ],
+      "resource_effects": [],
+      "dependency_effects": []
     }
   ],
   "presets": [
+    {
+      "id":"current-development-regex-overlap-1.19.2",
+      "targets":["1.19.2"],
+      "enabled_features":["echo_action","touch_display_terminal_mount","regex_overlap_fix"],
+      "canonical_project_fixture_provenance_sha256":"538e540e5e4b37a99a598ca7844843e9735efd5762ae92aed8733a1739ad5816",
+      "identity":"blake3:2e67dfaec524b917e353cb0ebfaa40f209643abbf6937141f69a7a3fe5bc9c18"
+    },
+    {
+      "id":"current-development-regex-overlap-26.1.2",
+      "targets":["26.1.2"],
+      "enabled_features":["regex_overlap_fix"],
+      "release_baselines":[
+        {"target_id":"26.1.2","tag_commit":"6bd27f03863ddd041344cbc3da51b01a7b3c3e1f","import_manifest":"platform/minecraft/development-baselines/26.1.2/import.json","import_manifest_sha256":"34c0ebe46339a31a811c95dcefb2fa984b48aa60bbb435f68dec4044e9f49059","kind":"development_head","canonical_commit":"b046574be908e40d647858dedc872ab9c4305170","gradle_provenance_sha256":"c1b5746025f4ae4fc46a70416efd4e99637e8da16fda29b6cf908767451b1f82","project_fixture_provenance_sha256":"2c0b442c0b1609a624e07211f40e49bd1aea4ecc72ca37fa2aac7ffb38c0ca30","post_baseline_gradle_sources":{"gradle/lockfile-features.gradle":"6a4411713d0dc807fd8e7f441aedcc6c9d6f817ffc1f1f9d6df63863fa968368"},"post_baseline_test_sources":{"src/test/java/ca/teamdman/sfm/test/RegexCacheTests.java":"7bee201ca4ff45e08c1872553fdace745152f6759536539132019f128a1a485c"},"post_baseline_canonical_sources":{"src/main/java/ca/teamdman/sfm/common/program/RegexCache.java":{"source_sha256":"ab9fba5be9bab55cdcdb9bc273478d8f29447d409954a6b4674f9a67ed3f557e","output_sha256":"6dfa04343d411fc94b70d4c5ee09b88bf1a05dc92fd27c2888674e047f6b13f8","imported_output_sha256":"f95c6b0b3ded28387ecd4576a165f35745d947e80bf0dd09f79c36b16420aed7","required_feature":"regex_overlap_fix"},"src/main/java/ca/teamdman/sfm/common/util/SFMEntityUtils.java":{"source_sha256":"df76a7d21006f94a05c05e5e4a2930b72dc5be8b005a2029860e86bdc61d5fa5","output_sha256":"7f037dd11967fdff96d7aede67a9a8a9dea469186a7183ef1e9f7b9346346331"},"src/main/java/ca/teamdman/sfm/common/util/SFMResourceLocation.java":{"source_sha256":"52f70c59df400dac1d37b74f8f873b86cdf9cdb10418bf0763952e4377e20a29","output_sha256":"6c796322ea70e64010dc21d6e30fd509d970e2ef61a77e3d137178ac1b059c95"}}}
+      ],
+      "identity":"blake3:1acefa4cceb8ca1450a557e5745ef009973e384a661e9c3bef6d343f015f1bd4"
+    },
     {"id":"current-development-pilot","targets":["1.19.2"],"enabled_features":["echo_action","touch_display_terminal_mount"],"canonical_project_fixture_provenance_sha256":"538e540e5e4b37a99a598ca7844843e9735efd5762ae92aed8733a1739ad5816","identity":"blake3:51144bbbb04556faa905363a2b6f2430dcbf93088d5a3c8b3441a95e75cf11aa"},
     {"id":"current-development-no-echo","targets":["1.19.2"],"enabled_features":["touch_display_terminal_mount"],"canonical_project_fixture_provenance_sha256":"538e540e5e4b37a99a598ca7844843e9735efd5762ae92aed8733a1739ad5816","identity":"blake3:f4e21c8a763ad8b6ee5a841f07ef59aad777f989e9e8b9ac175fbedd827daeeb"},
     {"id":"current-development-no-touch-terminal","targets":["1.19.2"],"enabled_features":["echo_action"],"canonical_project_fixture_provenance_sha256":"538e540e5e4b37a99a598ca7844843e9735efd5762ae92aed8733a1739ad5816","identity":"blake3:0f0b347cc418b69d90c04e6b9c756f138130c6f605ea7221fe41cb539fb0ec21"},

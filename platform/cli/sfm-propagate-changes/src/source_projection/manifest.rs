@@ -160,6 +160,13 @@ pub struct CanonicalSourceSelection {
     pub source_sha256: String,
     /// SHA-256 of the rendered Java file, including its generated banner.
     pub output_sha256: String,
+    /// SHA-256 of the verified imported Java output before an intentional
+    /// development-only change. Absent for byte-preserving ownership changes.
+    #[facet(default)]
+    pub imported_output_sha256: Option<String>,
+    /// Enabled build-time feature authorizing the output difference above.
+    #[facet(default)]
+    pub required_feature: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
@@ -245,6 +252,28 @@ impl SourceProjectionManifest {
                 &format!("preset `{}` feature", preset.id),
             )?;
             validate_release_baselines(preset)?;
+            for baseline in &preset.release_baselines {
+                for (path, selected) in &baseline.post_baseline_canonical_sources {
+                    if let Some(feature_id) = &selected.required_feature {
+                        ensure!(
+                            preset.enabled_features.contains(feature_id),
+                            "preset `{}` selects changed canonical source `{path}` without enabled feature `{feature_id}`",
+                            preset.id
+                        );
+                        let feature = self.feature(feature_id)?;
+                        ensure!(
+                            feature.supported_targets.contains(&baseline.target_id)
+                                && feature.source_effects.iter().any(|effect| {
+                                    effect.output_path == *path
+                                        && effect.kind == PathEffectKind::Template
+                                }),
+                            "preset `{}` feature `{feature_id}` does not template `{path}` for target `{}`",
+                            preset.id,
+                            baseline.target_id
+                        );
+                    }
+                }
+            }
             if let Some(digest) = &preset.canonical_project_fixture_provenance_sha256 {
                 if !preset.release_baselines.is_empty()
                     || preset.targets.len() != 1
@@ -618,6 +647,14 @@ fn hash_release_baselines(hasher: &mut blake3::Hasher, preset: &ProjectionPreset
                         hash_part(hasher, path);
                         hash_part(hasher, &selected.source_sha256);
                         hash_part(hasher, &selected.output_sha256);
+                        if let Some(imported) = &selected.imported_output_sha256 {
+                            hash_part(hasher, "imported_output_sha256");
+                            hash_part(hasher, imported);
+                        }
+                        if let Some(feature) = &selected.required_feature {
+                            hash_part(hasher, "required_feature");
+                            hash_part(hasher, feature);
+                        }
                     }
                 }
             }
@@ -800,6 +837,20 @@ fn validate_post_baseline_canonical_sources(baseline: &ReleaseBaselineBinding) -
         }
         validate_lower_hex(&selected.source_sha256, 64, "canonical source SHA-256")?;
         validate_lower_hex(&selected.output_sha256, 64, "canonical output SHA-256")?;
+        match (&selected.imported_output_sha256, &selected.required_feature) {
+            (Some(imported), Some(feature)) => {
+                validate_lower_hex(imported, 64, "imported canonical output SHA-256")?;
+                validate_template_key(feature, "required feature")?;
+                ensure!(
+                    imported != &selected.output_sha256,
+                    "changed canonical output must differ from imported output"
+                );
+            }
+            (None, None) => {}
+            _ => eyre::bail!(
+                "changed canonical selection requires both imported output SHA-256 and required feature"
+            ),
+        }
     }
     Ok(())
 }
@@ -1156,6 +1207,8 @@ mod tests {
             CanonicalSourceSelection {
                 source_sha256: "a".repeat(64),
                 output_sha256: "b".repeat(64),
+                imported_output_sha256: None,
+                required_feature: None,
             },
         );
         manifest.presets[0].release_baselines.push(binding);
@@ -1202,6 +1255,107 @@ mod tests {
     }
 
     #[test]
+    fn changed_canonical_selection_requires_a_matching_enabled_feature() {
+        let path = "src/main/java/example/RegexCache.java";
+        let mut manifest = sample();
+        manifest.features[0] = ProjectionFeature {
+            id: "regex_overlap_fix".to_owned(),
+            supported_targets: vec!["1.19.2".to_owned()],
+            requires: vec![],
+            source_effects: vec![PathEffect {
+                output_path: path.to_owned(),
+                kind: PathEffectKind::Template,
+                input_path: None,
+            }],
+            resource_effects: vec![],
+            dependency_effects: vec![],
+        };
+        manifest.presets[0].enabled_features = vec!["regex_overlap_fix".to_owned()];
+        let mut binding = release_binding("1.19.2");
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.import_manifest =
+            "platform/minecraft/development-baselines/1.19.2/import.json".to_owned();
+        binding.canonical_commit = Some("c".repeat(40));
+        binding.gradle_provenance_sha256 = Some("d".repeat(64));
+        binding.project_fixture_provenance_sha256 = Some("e".repeat(64));
+        binding.post_baseline_canonical_sources.insert(
+            path.to_owned(),
+            CanonicalSourceSelection {
+                source_sha256: "a".repeat(64),
+                output_sha256: "b".repeat(64),
+                imported_output_sha256: Some("c".repeat(64)),
+                required_feature: Some("regex_overlap_fix".to_owned()),
+            },
+        );
+        manifest.presets[0].release_baselines.push(binding);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest.validate().unwrap();
+        assert_eq!(
+            SourceProjectionManifest::from_json(&manifest.to_json().unwrap()).unwrap(),
+            manifest
+        );
+
+        let selected = manifest.presets[0].release_baselines[0]
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap();
+        selected.imported_output_sha256 = None;
+        assert!(manifest.validate().is_err());
+        manifest.presets[0].release_baselines[0]
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .imported_output_sha256 = Some("c".repeat(64));
+
+        manifest.presets[0].enabled_features.clear();
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("without enabled feature")
+        );
+        manifest.presets[0].enabled_features = vec!["regex_overlap_fix".to_owned()];
+
+        manifest.features[0].source_effects[0].output_path =
+            "src/main/java/example/Unrelated.java".to_owned();
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("does not template")
+        );
+        manifest.features[0].source_effects[0].output_path = path.to_owned();
+
+        manifest.targets.push(ProjectionTarget {
+            id: "26.1.2".to_owned(),
+            template_key: "mc_26_1_2".to_owned(),
+            minecraft_version: "26.1.2".to_owned(),
+            loader: "neoforge".to_owned(),
+            java_major: 25,
+            project_dir: "platform/minecraft/mc-version/26.1.2".to_owned(),
+        });
+        manifest.features[0].supported_targets = vec!["26.1.2".to_owned()];
+        let error = manifest.validate().unwrap_err().to_string();
+        assert!(error.contains("for target `1.19.2`"), "{error}");
+        manifest.features[0].supported_targets = vec!["1.19.2".to_owned()];
+
+        manifest.presets[0].release_baselines[0].kind = BaselineKind::ReleaseTag;
+        manifest.presets[0].release_baselines[0].import_manifest =
+            "platform/minecraft/release-baselines/released-4.34.0/1.19.2/import.json".to_owned();
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("release import cannot declare development-head identities")
+        );
+    }
+
+    #[test]
     fn canonical_main_source_selection_rejects_wrong_paths_and_digests() {
         let mut binding = release_binding("1.19.2");
         for path in [
@@ -1214,6 +1368,8 @@ mod tests {
                 CanonicalSourceSelection {
                     source_sha256: "a".repeat(64),
                     output_sha256: "b".repeat(64),
+                    imported_output_sha256: None,
+                    required_feature: None,
                 },
             )]);
             assert!(validate_post_baseline_canonical_sources(&binding).is_err());
@@ -1224,6 +1380,8 @@ mod tests {
                 CanonicalSourceSelection {
                     source_sha256: "a".repeat(64),
                     output_sha256: "b".repeat(64),
+                    imported_output_sha256: None,
+                    required_feature: None,
                 },
             ),
             (
@@ -1231,6 +1389,8 @@ mod tests {
                 CanonicalSourceSelection {
                     source_sha256: "a".repeat(64),
                     output_sha256: "b".repeat(64),
+                    imported_output_sha256: None,
+                    required_feature: None,
                 },
             ),
         ]);
