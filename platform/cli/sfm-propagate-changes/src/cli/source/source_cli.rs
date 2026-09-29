@@ -1699,11 +1699,14 @@ mod tests {
     use crate::cli::Cli;
     use crate::cli::Command;
     use crate::cli::output::OutputFormat;
+    use crate::source_projection::frozen_release::FrozenSourceInventory;
+    use crate::source_projection::manifest::FrozenSourceBinding;
     use crate::source_projection::manifest::PathEffect;
     use crate::source_projection::manifest::PathEffectKind;
     use crate::source_projection::manifest::ProjectionFeature;
     use crate::source_projection::manifest::ProjectionPreset;
     use crate::source_projection::manifest::ProjectionTarget;
+    use crate::source_projection::provenance::ProjectionProvenance;
     use std::process::Command as TestCommand;
 
     fn git_test(root: &Path, args: &[&str]) -> String {
@@ -2054,6 +2057,310 @@ mod tests {
                 .exists()
         );
         assert_eq!(git_test(temp.path(), &["status", "--porcelain"]), "");
+    }
+
+    fn fictional_frozen_project_args(
+        repo_root: &Path,
+        target_id: &str,
+        output_root: &Path,
+    ) -> SourceProjectArgs {
+        SourceProjectArgs {
+            repo_root: repo_root.to_path_buf(),
+            target: target_id.to_owned(),
+            preset: "released-9.99.99-fixture".to_owned(),
+            manifest: None,
+            primary_src_root: None,
+            gradle_project_root: None,
+            output_root: output_root.to_path_buf(),
+            overlay: vec![],
+            gradle_overlay: vec![],
+        }
+    }
+
+    #[test]
+    fn frozen_matrix_report_replays_ten_external_roots_from_authored_commit() {
+        let (temp, authored_commit, args) = frozen_matrix_fixture();
+        let repo_root = fs::canonicalize(temp.path()).unwrap();
+        let output = args
+            .invoke_in(&CancellationToken::new(), &repo_root)
+            .unwrap();
+        let json = output
+            .render(Some(OutputFormat::Json), false)
+            .unwrap()
+            .unwrap();
+        let report: FrozenInventoryMatrixPreviewReport = facet_json::from_str(&json).unwrap();
+        assert_eq!(report.source_commit, authored_commit);
+        assert_eq!(report.release_preset_id, "released-9.99.99-fixture");
+        assert_eq!(report.targets.len(), FROZEN_MATRIX_TARGETS.len());
+
+        let manifest_path = "platform/minecraft/source-projection.json";
+        let mut manifest = SourceProjectionManifest::from_json(
+            &fs::read_to_string(repo_root.join(manifest_path)).unwrap(),
+        )
+        .unwrap();
+        let previous_identities = manifest
+            .presets
+            .iter()
+            .map(|preset| (preset.id.clone(), preset.identity.clone()))
+            .collect::<BTreeMap<_, _>>();
+        let expected_features = BTreeMap::from([
+            ("1.19.2".to_owned(), vec!["matrix_probe".to_owned()]),
+            ("26.1.2".to_owned(), vec!["last_target_probe".to_owned()]),
+        ]);
+        let mut target_features = BTreeMap::new();
+        let mut bindings = Vec::new();
+        for (target_id, preview) in FROZEN_MATRIX_TARGETS.into_iter().zip(&report.targets) {
+            assert_eq!(preview.target_id, target_id);
+            assert_eq!(
+                preview.enabled_features,
+                expected_features
+                    .get(target_id)
+                    .cloned()
+                    .unwrap_or_default()
+            );
+            if !preview.enabled_features.is_empty() {
+                target_features.insert(target_id.to_owned(), preview.enabled_features.clone());
+            }
+            let bytes = preview.canonical_inventory_json.as_bytes();
+            assert_eq!(
+                sha256(bytes),
+                format!("sha256:{}", preview.inventory_sha256)
+            );
+            let inventory: FrozenSourceInventory =
+                facet_json::from_str(&preview.canonical_inventory_json).unwrap();
+            assert_eq!(inventory.target_id, target_id);
+            assert_eq!(inventory.source_commit, authored_commit);
+            assert_eq!(inventory.context.preset, report.release_preset_id);
+            assert_eq!(
+                inventory
+                    .context
+                    .features
+                    .iter()
+                    .filter_map(|(feature, enabled)| enabled.then_some(feature.clone()))
+                    .collect::<Vec<_>>(),
+                preview.enabled_features
+            );
+            write_test(&repo_root, &preview.inventory_path, bytes);
+            assert_eq!(
+                fs::read(repo_root.join(&preview.inventory_path))
+                    .unwrap()
+                    .as_slice(),
+                bytes
+            );
+            bindings.push(FrozenSourceBinding {
+                target_id: target_id.to_owned(),
+                inventory_path: preview.inventory_path.clone(),
+                inventory_sha256: preview.inventory_sha256.clone(),
+            });
+            // Represent each pre-existing checked-in project with a tracked file.
+            write_test(
+                &repo_root,
+                &format!("platform/minecraft/mc-version/{target_id}/sentinel.txt"),
+                b"original checked-in project\n",
+            );
+        }
+        assert_eq!(target_features, expected_features);
+        let mut frozen_preset = ProjectionPreset {
+            id: report.release_preset_id.clone(),
+            release_mod_version: Some(report.release_mod_version.clone()),
+            targets: FROZEN_MATRIX_TARGETS
+                .iter()
+                .map(|id| (*id).to_owned())
+                .collect(),
+            enabled_features: vec![],
+            target_features,
+            release_baselines: vec![],
+            frozen_source_commit: Some(authored_commit.clone()),
+            frozen_sources: bindings,
+            canonical_project_fixture_provenance_sha256: None,
+            identity: String::new(),
+        };
+        frozen_preset.identity = manifest.compute_preset_identity(&frozen_preset).unwrap();
+        let frozen_identity = frozen_preset.identity.clone();
+        manifest.presets.push(frozen_preset);
+        let frozen_manifest_bytes = manifest.to_json().unwrap();
+        write_test(&repo_root, manifest_path, frozen_manifest_bytes.as_bytes());
+        git_test(&repo_root, &["add", "--", "platform/minecraft"]);
+        git_test(
+            &repo_root,
+            &["commit", "--quiet", "-m", "fictional frozen preset B"],
+        );
+        let preset_commit = git_test(&repo_root, &["rev-parse", "HEAD"]);
+        assert_ne!(preset_commit, authored_commit);
+        assert_eq!(git_test(&repo_root, &["status", "--porcelain"]), "");
+        let persisted = SourceProjectionManifest::from_json(
+            &fs::read_to_string(repo_root.join(manifest_path)).unwrap(),
+        )
+        .unwrap();
+        for (id, identity) in previous_identities {
+            assert_eq!(persisted.preset(&id).unwrap().identity, identity);
+        }
+        let frozen = persisted.preset(&report.release_preset_id).unwrap();
+        assert!(frozen.enabled_features.is_empty());
+        assert_eq!(frozen.target_features, expected_features);
+        assert_eq!(
+            frozen.frozen_source_commit.as_deref(),
+            Some(authored_commit.as_str())
+        );
+        assert_eq!(frozen.identity, frozen_identity);
+
+        let external = tempfile::tempdir().unwrap();
+        let external_root = fs::canonicalize(external.path()).unwrap();
+        assert!(!external_root.starts_with(&repo_root));
+        let cancellation = CancellationToken::new();
+        for preview in &report.targets {
+            let output_root = external_root.join(&preview.target_id);
+            assert!(!output_root.exists());
+            assert!(!output_root.starts_with(&repo_root));
+            let (_, _, sync) =
+                fictional_frozen_project_args(&repo_root, &preview.target_id, &output_root)
+                    .project_in(&cancellation, &repo_root, SyncMode::Apply)
+                    .unwrap();
+            let inventory: FrozenSourceInventory =
+                facet_json::from_str(&preview.canonical_inventory_json).unwrap();
+            assert_eq!(sync.created.len(), inventory.files.len());
+            assert!(sync.updated.is_empty());
+            assert!(sync.unchanged.is_empty());
+            assert!(sync.manifest_changed);
+            let (_, _, check) =
+                fictional_frozen_project_args(&repo_root, &preview.target_id, &output_root)
+                    .project_in(&cancellation, &repo_root, SyncMode::Check)
+                    .unwrap();
+            assert!(!check.needs_write());
+            assert!(check.created.is_empty() && check.updated.is_empty());
+            assert!(!check.manifest_changed);
+            let provenance = ProjectionProvenance::from_json(
+                &fs::read_to_string(output_root.join(MANIFEST_FILE)).unwrap(),
+            )
+            .unwrap();
+            assert_eq!(provenance.target_id, preview.target_id);
+            assert_eq!(provenance.preset_id, report.release_preset_id);
+            assert_eq!(provenance.preset_definition_identity, frozen_identity);
+            assert_eq!(provenance.files.len(), inventory.files.len());
+            for (path, file) in &inventory.files {
+                assert_eq!(
+                    sha256(&fs::read(output_root.join(path)).unwrap()),
+                    file.output_sha256
+                );
+                assert_eq!(provenance.files[path].source_sha256, file.source_sha256);
+                assert_eq!(provenance.files[path].output_sha256, file.output_sha256);
+            }
+            assert_eq!(
+                fs::read(output_root.join("gradle.properties")).unwrap(),
+                b"minecraft_version=1.19.2\nmod_version=9.99.99-fixture\n"
+            );
+            assert_eq!(
+                fs::read(repo_root.join(format!(
+                    "platform/minecraft/mc-version/{}/sentinel.txt",
+                    preview.target_id
+                )))
+                .unwrap(),
+                b"original checked-in project\n"
+            );
+            git_test(
+                &repo_root,
+                &[
+                    "cat-file",
+                    "-e",
+                    &format!("HEAD:{}", preview.inventory_path),
+                ],
+            );
+        }
+        assert_eq!(
+            git_test(
+                &repo_root,
+                &["status", "--porcelain", "--untracked-files=all"]
+            ),
+            ""
+        );
+
+        let first = &report.targets[0];
+        write_test(&repo_root, &first.inventory_path, b"tampered inventory\n");
+        let bad_inventory_root = external_root.join("tampered-inventory");
+        let error =
+            fictional_frozen_project_args(&repo_root, &first.target_id, &bad_inventory_root)
+                .project_in(&cancellation, &repo_root, SyncMode::Apply)
+                .unwrap_err()
+                .to_string();
+        assert!(error.contains("pinned SHA-256"), "{error}");
+        assert!(!bad_inventory_root.exists());
+        write_test(
+            &repo_root,
+            &first.inventory_path,
+            first.canonical_inventory_json.as_bytes(),
+        );
+
+        let mut wrong_features = manifest.clone();
+        wrong_features
+            .presets
+            .last_mut()
+            .unwrap()
+            .target_features
+            .remove("1.19.2");
+        let identity = wrong_features
+            .compute_preset_identity(wrong_features.presets.last().unwrap())
+            .unwrap();
+        wrong_features.presets.last_mut().unwrap().identity = identity;
+        write_test(
+            &repo_root,
+            manifest_path,
+            wrong_features.to_json().unwrap().as_bytes(),
+        );
+        let bad_features_root = external_root.join("wrong-features");
+        let error = fictional_frozen_project_args(&repo_root, "1.19.2", &bad_features_root)
+            .project_in(&cancellation, &repo_root, SyncMode::Apply)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("enables features or targets not selected"),
+            "{error}"
+        );
+        assert!(!bad_features_root.exists());
+        write_test(&repo_root, manifest_path, frozen_manifest_bytes.as_bytes());
+
+        let mut wrong_commit = manifest.clone();
+        wrong_commit
+            .presets
+            .last_mut()
+            .unwrap()
+            .frozen_source_commit = Some(preset_commit);
+        let identity = wrong_commit
+            .compute_preset_identity(wrong_commit.presets.last().unwrap())
+            .unwrap();
+        wrong_commit.presets.last_mut().unwrap().identity = identity;
+        write_test(
+            &repo_root,
+            manifest_path,
+            wrong_commit.to_json().unwrap().as_bytes(),
+        );
+        let bad_commit_root = external_root.join("wrong-commit");
+        let error = fictional_frozen_project_args(&repo_root, "1.19.2", &bad_commit_root)
+            .project_in(&cancellation, &repo_root, SyncMode::Apply)
+            .unwrap_err()
+            .to_string();
+        assert!(
+            error.contains("inventory identity does not match"),
+            "{error}"
+        );
+        assert!(!bad_commit_root.exists());
+        write_test(&repo_root, manifest_path, frozen_manifest_bytes.as_bytes());
+
+        let edited = external_root.join("1.19.4/src/main/java/example/Proof.java");
+        fs::write(&edited, b"contributor edit\n").unwrap();
+        let error =
+            fictional_frozen_project_args(&repo_root, "1.19.4", &external_root.join("1.19.4"))
+                .project_in(&cancellation, &repo_root, SyncMode::Check)
+                .unwrap_err()
+                .to_string();
+        assert!(error.contains("was edited"), "{error}");
+        assert_eq!(fs::read(&edited).unwrap(), b"contributor edit\n");
+        assert_eq!(
+            git_test(
+                &repo_root,
+                &["status", "--porcelain", "--untracked-files=all"]
+            ),
+            ""
+        );
     }
 
     #[test]
