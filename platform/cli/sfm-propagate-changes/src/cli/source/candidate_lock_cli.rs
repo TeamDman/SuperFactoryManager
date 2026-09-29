@@ -141,7 +141,7 @@ pub(super) fn verify_candidate_in(
     Ok(report)
 }
 
-fn resolve_path(path: PathBuf, invocation_dir: &Path) -> PathBuf {
+pub(super) fn resolve_path(path: PathBuf, invocation_dir: &Path) -> PathBuf {
     if path.is_absolute() {
         path
     } else {
@@ -149,7 +149,7 @@ fn resolve_path(path: PathBuf, invocation_dir: &Path) -> PathBuf {
     }
 }
 
-fn parse_roots(values: &[String]) -> Result<BTreeMap<String, PathBuf>> {
+pub(super) fn parse_roots(values: &[String]) -> Result<BTreeMap<String, PathBuf>> {
     let mut roots = BTreeMap::new();
     for value in values {
         let (target, raw_path) = value
