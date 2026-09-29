@@ -245,11 +245,9 @@ fn preflight_plan(
         candidate_bytes == authored_bytes,
         "candidate and authored selection manifests differ"
     );
+    // Existing checked-in manifests mix compact and pretty JSON. Their exact
+    // reviewed bytes matter here; only the newly staged output is canonicalized.
     let mut manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&candidate_bytes)?)?;
-    ensure!(
-        manifest.to_json()?.as_bytes() == candidate_bytes,
-        "candidate selection manifest is not canonical JSON"
-    );
     let id = &preview.release_preset_id;
     ensure!(
         manifest
@@ -823,6 +821,31 @@ mod tests {
                 .join("platform/minecraft/mc-version")
                 .exists()
         );
+    }
+
+    #[test]
+    fn preflight_accepts_valid_noncanonical_checked_in_manifest() {
+        let fixture = fixture();
+        let noncanonical = [b"\n".as_slice(), fixture.original_manifest.as_slice()].concat();
+        fs::write(
+            fixture.args.candidate_root.join(MANIFEST_PATH),
+            &noncanonical,
+        )
+        .unwrap();
+        fs::write(fixture._authored.path().join(MANIFEST_PATH), &noncanonical).unwrap();
+        let mut preview = fixture.preview;
+        preview.source_manifest_sha256 = sha256(&noncanonical);
+
+        let plan = preflight_plan(
+            &fixture.args.candidate_root,
+            fixture._authored.path(),
+            &preview,
+            &fixture.args.preview_sha256,
+        )
+        .unwrap();
+        assert_eq!(plan.original_manifest_bytes, noncanonical);
+        assert_eq!(plan.report.planned_inventory_paths.len(), 10);
+        assert_ne!(plan.manifest_bytes, noncanonical);
     }
 
     #[test]
