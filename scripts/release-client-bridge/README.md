@@ -11,3 +11,16 @@ The default `-CaptureMode title` waits for 90 rendered title-screen frames so th
 Status: separate hidden-window runs of the unchanged official 4.34.0 and fresh projected 4.34.0 production JARs both reached a fully drawn 1024×768 title screen under exact Forge 43.4.0. The bridge reported success after 90 title frames, and the runner verified each PNG and its original JAR hash. The screenshots differ in the normal rotating splash text; both display the same menu controls and four loaded mods. Offline profile-key and cached-JAR compiler-close diagnostics occurred in both runs without preventing the witness. This establishes only a bounded client startup/rendering comparison, not world or gameplay compatibility.
 
 The same two unchanged JARs also passed separate `world` runs in new scratch roots: both produced a 1024×768 view of the manager block after server placement, client replication, ray targeting, and world rendering. Their animated manager side textures need not produce byte-identical screenshots. Both emitted the same offline profile-key diagnostic and a nonblocking `sfm:blocks/buffer` loot-table parse error. These are bounded client-world/block-rendering witnesses, not evidence of manager programs, resource transfer, or full gameplay parity. `-WindowStyle Hidden` does not by itself prove that GLFW never takes OS focus; the bridge affects only its own isolated client process.
+
+On 29 September 2026, the exact Forge 45.0.9/Minecraft 1.19.4 runtime passed the same four isolated witnesses with unchanged official and projected 4.34.0 JAR hashes. Both title screenshots visibly showed the full menu and four loaded mods. Both world screenshots visibly showed the manager block in a fresh flat save after server placement, client sync, ray targeting, and world rendering. The 1.19.4 adapter aims its own scratch client camera at the placed manager; the initial official-world attempt reached block sync but timed out before ray targeting with the older fixed server-side orientation. The successful runs were:
+
+| JAR | Mode | Rendered frames | Screenshot SHA-256 |
+| --- | --- | ---: | --- |
+| Official | title | 98 | `6dff601068817a9e44fa80a59260a854552b8592d7cd0c69f8e16b38877abb70` |
+| Projected | title | 97 | `be5182f91e25f41ab40b6e4bf77c8332c7ef0f7e4331b1deee73f7c3e333feba` |
+| Official | world | 39 | `618ac70cb4fff434644964eb742e1320ba19c89b6d33d254f5abeaeef3ff4bb3` |
+| Projected | world | 40 | `57769fedde56c26d0e3a736720d8345a88b03122757c4558a355f777a3d13c7c` |
+
+The official input JAR SHA-256 was `09b8c7d2ae6453d39444c61174979d1938d25d4f24282f8396711f329c5b5fba`; the projected input was `4a39e9512a47925639a1ba7126ea903576917b120d43dcedfa66563ebcea9735`. The runner confirmed the same source hashes after every run.
+
+One earlier projected title attempt timed out before bridge readiness during Forge class transformation, without an ERROR/FATAL or disk-space diagnostic; its single fresh-root retry passed. Startup reliability from that first attempt remains inconclusive. Both successful world runs logged the same nonblocking `sfm:blocks/buffer` loot-table parse error, with no candidate-only ERROR/FATAL. This is bounded packaged-client startup and one block-rendering comparison, not broader gameplay or save compatibility.
