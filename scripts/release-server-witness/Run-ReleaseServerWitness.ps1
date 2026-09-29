@@ -1,5 +1,5 @@
 <#
-Test-only 1.19.4/1.20/1.20.1 production-JAR registry/save witness.
+Test-only 1.19.4/1.20/1.20.1/1.20.3 production-JAR registry/save witness.
 The input JARs, JDK, installer, and compile classpath are read-only. Every
 server, mod copy, world, log, and result is created below a NEW RunRoot.
 #>
@@ -9,13 +9,13 @@ param(
     [Parameter(Mandatory)] [string] $OfficialSha256,
     [Parameter(Mandatory)] [string] $ProjectedJar,
     [Parameter(Mandatory)] [string] $ProjectedSha256,
-    [Parameter(Mandatory)] [string] $ForgeInstaller,
-    [Parameter(Mandatory)] [string] $ForgeSrgJar,
+    [Parameter(Mandatory)] [Alias('LoaderInstaller')] [string] $ForgeInstaller,
+    [Parameter(Mandatory)] [Alias('LoaderCompileJar')] [string] $ForgeSrgJar,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
-    [ValidateSet('1.19.4', '1.20', '1.20.1')] [string] $Target = '1.19.4',
+    [ValidateSet('1.19.4', '1.20', '1.20.1', '1.20.3')] [string] $Target = '1.19.4',
     [string] $LauncherCacheRoot = '',
-    [string] $InstalledForgeRoot = '',
+    [Alias('InstalledLoaderRoot')] [string] $InstalledForgeRoot = '',
     [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
     [ValidateRange(5, 120)] [int] $CommandTimeoutSeconds = 40
 )
@@ -82,16 +82,56 @@ $version = switch ($target) {
             resources = 'versions/1.20.1/resources'
         }
     }
+    '1.20.3' {
+        @{
+            loader = '20.3.8-beta'
+            loader_brand = 'NeoForge'
+            loader_id = 'neoforge'
+            forge_group_path = 'net/neoforged'
+            artifact_module = 'neoforge'
+            artifact_version = '20.3.8-beta'
+            launch_version_flag = '--fml.neoForgeVersion'
+            fml_group_path = 'net/neoforged/fancymodloader'
+            fml_core_artifact = 'core'
+            fml_language_artifact = 'language-java'
+            fml_library_version = '1.0.16'
+            event_bus_path = 'libraries/net/neoforged/bus/7.2.0/bus-7.2.0.jar'
+            compile_extra_paths = @('libraries/com/mojang/datafixerupper/6.0.8/datafixerupper-6.0.8.jar')
+            compile_jar_name = 'raw.jar'
+            compile_jar_kind = 'neoform_joined_1.20.3-20231205.165107'
+            compile_jar_sha256 = '61773c57a22655ca25b9ba6057a89111fb6818cc65313d9295ba8fe863b805dd'
+            installer_sha1 = '0819254b3df5039f3bdcd7f80b1a1edb395ba78c'
+            installer_sha256 = 'd59ba6f0c867ddaafe0247ba7ddf527389897806795b9bd543a2c4313695f9d7'
+            official_sha256 = 'e4686d536227e0ead220f56606a5527ec8057504cfc77712a1c892d6d14d82b1'
+            projected_sha256 = '3cd66ed27313c067f3529f94765dfc2a51d36b376bbbf841b0f95c8874389d58'
+            probe_source = 'versions/1.20.3/src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
+            resources = 'versions/1.20.3/resources'
+        }
+    }
 }
 $loaderVersion = $version.loader
-$forgeCoordinate = "$target-$loaderVersion"
+if (-not $version.ContainsKey('artifact_module')) { $version.artifact_module = 'forge' }
+if (-not $version.ContainsKey('artifact_version')) { $version.artifact_version = "$target-$loaderVersion" }
+if (-not $version.ContainsKey('launch_version_flag')) { $version.launch_version_flag = '--fml.forgeVersion' }
+if (-not $version.ContainsKey('event_bus_path')) {
+    $version.event_bus_path = "libraries/net/minecraftforge/eventbus/$($version.event_bus)/eventbus-$($version.event_bus).jar"
+}
+if (-not $version.ContainsKey('compile_extra_paths')) { $version.compile_extra_paths = @() }
+if (-not $version.ContainsKey('compile_jar_name')) {
+    $version.compile_jar_name = "forge-$($version.artifact_version)-srg.jar"
+}
+if (-not $version.ContainsKey('compile_jar_kind')) { $version.compile_jar_kind = 'forgegradle_srg' }
+if (-not $version.ContainsKey('compile_jar_sha256')) { $version.compile_jar_sha256 = $version.srg_sha256 }
+if (-not $version.ContainsKey('probe_source')) {
+    $version.probe_source = 'src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
+}
 $loaderIdentity = "$($version.loader_id)-$loaderVersion"
 $expectedInstallerSha1 = $version.installer_sha1
 $expectedInstallerSha256 = $version.installer_sha256
 $diskErrorPattern = '(?i)no space left|not enough space|insufficient disk|disk[ -]full|there is not enough space|ENOSPC'
 $worldName = 'sfm-release-witness-world'
 $probeRoot = $PSScriptRoot
-$probeSource = Join-Path $probeRoot 'src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
+$probeSource = Join-Path $probeRoot $version.probe_source
 $probeResources = Join-Path $probeRoot $version.resources
 
 function Assert-File([string] $Path) {
@@ -357,7 +397,7 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
 $official = Assert-File $OfficialJar
 $projected = Assert-File $ProjectedJar
 $installer = Assert-File $ForgeInstaller
-$srg = Assert-File $ForgeSrgJar
+$compileJar = Assert-File $ForgeSrgJar
 $launcher = if ($LauncherCacheRoot) { [IO.Path]::GetFullPath($LauncherCacheRoot).TrimEnd('\', '/') } else { '' }
 $java = Assert-File (Join-Path $JavaHome 'bin/java.exe')
 $javac = Assert-File (Join-Path $JavaHome 'bin/javac.exe')
@@ -395,10 +435,10 @@ if ($OfficialSha256.ToLowerInvariant() -cne $version.official_sha256 -or
 }
 Assert-Hash $installer SHA1 $expectedInstallerSha1 | Out-Null
 Assert-Hash $installer SHA256 $expectedInstallerSha256 | Out-Null
-if ((Get-Item -LiteralPath $srg).Name -ne "forge-$forgeCoordinate-srg.jar") {
-    throw "Probe compile input is not the exact Forge $forgeCoordinate SRG JAR"
+if ((Get-Item -LiteralPath $compileJar).Name -cne $version.compile_jar_name) {
+    throw "Probe compile input is not the exact $($version.compile_jar_kind) JAR"
 }
-Assert-Hash $srg SHA256 $version.srg_sha256 | Out-Null
+Assert-Hash $compileJar SHA256 $version.compile_jar_sha256 | Out-Null
 Assert-Hash $java SHA256 '186d651179d34ce21d857597bb88a7b1e244973e64f3a9bec1e9daaffd919e31' | Out-Null
 Assert-File $probeSource | Out-Null
 Assert-File (Join-Path $probeResources 'META-INF/mods.toml') | Out-Null
@@ -416,7 +456,7 @@ if ($LASTEXITCODE -ne 0 -or $javacVersionOutput -notmatch 'javac 17\.0\.14') {
 # Input hashes and boundaries are checked before creating the scratch root.
 [IO.Directory]::CreateDirectory($run) | Out-Null
 
-$install = if ($reusedInstall) { $reusedInstall } else { Join-Path $run 'forge-install' }
+$install = if ($reusedInstall) { $reusedInstall } else { Join-Path $run "$($version.artifact_module)-install" }
 if ($reusedInstall) {
     if (-not [IO.Directory]::Exists($reusedInstall)) { throw 'InstalledForgeRoot is missing' }
     Write-Host 'SFM_WITNESS_REUSE_EXACT_INSTALL read_only=true'
@@ -436,11 +476,11 @@ if ($reusedInstall) {
         }
         if (-not $installProcess.HasExited) {
             Stop-Process -Id $installProcess.Id -Force
-            throw 'Exact Forge installer exceeded 15 minutes; scratch retained'
+            throw 'Exact loader installer exceeded 15 minutes; scratch retained'
         }
         Assert-NoDiskError ((Read-IfExists $installStdout) + (Read-IfExists $installStderr))
         if ($installProcess.ExitCode -ne 0) {
-            throw "Exact Forge installer exited $($installProcess.ExitCode); scratch logs retained"
+            throw "Exact loader installer exited $($installProcess.ExitCode); scratch logs retained"
         }
     } finally {
         $installProcess.Refresh()
@@ -454,10 +494,14 @@ $coreArtifact = $version.fml_core_artifact
 $languageArtifact = $version.fml_language_artifact
 $fml = Assert-File (Join-Path $fmlRoot "$coreArtifact/$fmlVersion/$coreArtifact-$fmlVersion.jar")
 $language = Assert-File (Join-Path $fmlRoot "$languageArtifact/$fmlVersion/$languageArtifact-$fmlVersion.jar")
-$eventBus = Assert-File (Join-Path $classpathRoot "libraries/net/minecraftforge/eventbus/$($version.event_bus)/eventbus-$($version.event_bus).jar")
+$eventBus = Assert-File (Join-Path $classpathRoot $version.event_bus_path)
+$compileExtras = [Collections.Generic.List[string]]::new()
+foreach ($relative in $version.compile_extra_paths) {
+    $compileExtras.Add((Assert-File (Join-Path $classpathRoot $relative)))
+}
 $probeClasses = Join-Path $run 'probe-classes'
 [IO.Directory]::CreateDirectory($probeClasses) | Out-Null
-$compileClasspath = @($srg, $fml, $language, $eventBus) -join ';'
+$compileClasspath = (@($compileJar, $fml, $language, $eventBus) + $compileExtras.ToArray()) -join ';'
 & $javac -proc:none -source 17 -target 17 -classpath $compileClasspath -d $probeClasses $probeSource
 if ($LASTEXITCODE -ne 0) { throw "Test-only registry probe javac failed: $LASTEXITCODE" }
 $probeJar = Join-Path $run 'sfmreleaseprobe.jar'
@@ -465,9 +509,9 @@ $probeJar = Join-Path $run 'sfmreleaseprobe.jar'
 if ($LASTEXITCODE -ne 0) { throw "Test-only registry probe jar failed: $LASTEXITCODE" }
 $probeHash = Get-Sha256 $probeJar
 
-$winArgs = Assert-File (Join-Path $install "libraries/$($version.forge_group_path)/forge/$forgeCoordinate/win_args.txt")
+$winArgs = Assert-File (Join-Path $install "libraries/$($version.forge_group_path)/$($version.artifact_module)/$($version.artifact_version)/win_args.txt")
 $originalArgs = [IO.File]::ReadAllText($winArgs)
-if ($originalArgs -notmatch ('--fml\.forgeVersion\s+' + [regex]::Escape($loaderVersion)) -or
+if ($originalArgs -notmatch ([regex]::Escape($version.launch_version_flag) + '\s+' + [regex]::Escape($loaderVersion)) -or
     $originalArgs -notmatch ('--fml\.mcVersion\s+' + [regex]::Escape($target))) {
     throw 'Installed server arguments have the wrong loader or Minecraft version'
 }
@@ -485,7 +529,7 @@ foreach ($line in ([IO.File]::ReadAllLines($winArgs))) {
         $argsLines.Add($line)
     }
 }
-$launchArgs = Join-Path $run 'forge-launch.args'
+$launchArgs = Join-Path $run "$($version.artifact_module)-launch.args"
 [IO.File]::WriteAllLines($launchArgs, $argsLines, [Text.UTF8Encoding]::new($false))
 
 $seed = New-BootDirectory 'official-seed' $official $OfficialSha256
@@ -529,6 +573,7 @@ foreach ($registryId in (@($left.PSObject.Properties.Name) + @($right.PSObject.P
         $registryDiff[$registryId] = [ordered]@{ only_official = $onlyOfficial; only_projected = $onlyCandidate }
     }
 }
+$installMode = if ($reusedInstall) { 'verified_exact_existing_install_read_only' } else { 'scratch_installer' }
 $report = [ordered]@{
     schema = 'sfm:release_server_witness@1'
     status = if ($registrySeedEqual -and $registryEqual -and $registryReverseEqual -and
@@ -539,15 +584,16 @@ $report = [ordered]@{
     probe_pack_mcmeta_sha256 = Get-Sha256 (Join-Path $probeResources 'pack.mcmeta')
     target = $target
     loader = $loaderIdentity
-    forge_install_mode = if ($reusedInstall) { 'verified_exact_existing_install_read_only' } else { 'scratch_installer' }
+    loader_install_mode = $installMode
     java_version = $javaVersionOutput
     java_exe_sha256 = Get-Sha256 $java
     official_jar_sha256 = $OfficialSha256.ToLowerInvariant()
     projected_jar_sha256 = $ProjectedSha256.ToLowerInvariant()
-    forge_installer_sha1 = $expectedInstallerSha1
-    forge_installer_sha256 = $expectedInstallerSha256
-    forge_srg_sha256 = $version.srg_sha256
-    forge_launch_args_sha256 = Get-Sha256 $launchArgs
+    loader_installer_sha1 = $expectedInstallerSha1
+    loader_installer_sha256 = $expectedInstallerSha256
+    loader_compile_jar_kind = $version.compile_jar_kind
+    loader_compile_jar_sha256 = $version.compile_jar_sha256
+    loader_launch_args_sha256 = Get-Sha256 $launchArgs
     probe_jar_sha256 = $probeHash
     seed_level_dat_sha256 = $seedResult.level_dat_sha256
     seed_world_fingerprint_sha256 = $seedFingerprint
@@ -559,6 +605,14 @@ $report = [ordered]@{
     official_reverse_equal = $reverseValuesEqual
     boots = @($seedResult, $controlResult, $candidateResult, $reverseResult)
     scope = 'One test-only auxiliary mod and six selected SFM save values; no transfer, client, or general gameplay parity claim.'
+}
+if ($version.compile_jar_kind -eq 'forgegradle_srg') {
+    # Retain the original field names for previous ForgeGradle/SRG targets.
+    $report['forge_install_mode'] = $installMode
+    $report['forge_installer_sha1'] = $expectedInstallerSha1
+    $report['forge_installer_sha256'] = $expectedInstallerSha256
+    $report['forge_srg_sha256'] = $version.compile_jar_sha256
+    $report['forge_launch_args_sha256'] = $report.loader_launch_args_sha256
 }
 $reportPath = Join-Path $run 'result.json'
 [IO.File]::WriteAllText($reportPath, ($report | ConvertTo-Json -Depth 15) + "`n", [Text.UTF8Encoding]::new($false))
