@@ -2315,7 +2315,12 @@ mod tests {
         write_test(&repo_root, manifest_path, frozen_manifest_bytes.as_bytes());
 
         let mut missing_target = manifest.clone();
-        missing_target.presets.last_mut().unwrap().frozen_sources.pop();
+        missing_target
+            .presets
+            .last_mut()
+            .unwrap()
+            .frozen_sources
+            .pop();
         write_test(
             &repo_root,
             manifest_path,
