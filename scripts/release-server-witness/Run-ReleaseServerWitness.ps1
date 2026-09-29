@@ -14,6 +14,7 @@ param(
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
     [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21.0', '1.21.1', '26.1.2')] [string] $Target = '1.19.4',
+    [ValidateSet('registry-save', 'vanilla-barrel-transfer')] [string] $Mode = 'registry-save',
     [string] $LauncherCacheRoot = '',
     [Alias('InstalledLoaderRoot')] [string] $InstalledForgeRoot = '',
     [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
@@ -24,6 +25,10 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $target = $Target
+$transferMode = $Mode -eq 'vanilla-barrel-transfer'
+if ($transferMode -and $target -ne '1.21.0') {
+    throw 'The opt-in vanilla-barrel transfer fixture is only validated for exact 1.21.0'
+}
 $version = switch ($target) {
     '1.19.2' {
         @{
@@ -307,7 +312,7 @@ $probeSource = Join-Path $probeRoot $version.probe_source
 $probeResources = Join-Path $probeRoot $version.resources
 $probeManifest = Join-Path $probeResources $version.mod_manifest
 $fixture = $null
-if ($version.ContainsKey('fixture_source')) {
+if ($version.ContainsKey('fixture_source') -and -not $transferMode) {
     $fixtureScript = Join-Path $probeRoot $version.fixture_source
     if (-not [IO.File]::Exists($fixtureScript)) { throw 'Version-specific fixture script is missing' }
     . $fixtureScript
@@ -315,6 +320,20 @@ if ($version.ContainsKey('fixture_source')) {
     if ($fixture.queries.Count -ne 6 -or -not $fixture.disk_nbt -or -not $fixture.facade_nbt -or
         -not $fixture.expected_derived_name -or -not $fixture.expected_warnings) {
         throw 'Version-specific selected-save fixture is incomplete'
+    }
+}
+$transferFixture = $null
+if ($transferMode) {
+    $transferFixtureScript = Join-Path $probeRoot 'versions/1.21.0/TransferFixture.ps1'
+    if (-not [IO.File]::Exists($transferFixtureScript)) { throw 'Transfer fixture script is missing' }
+    . $transferFixtureScript
+    $transferFixture = Get-ReleaseServerTransferFixture1210
+    foreach ($key in @('manager', 'source', 'destination', 'source_nbt',
+                       'disk_nbt', 'expected_program', 'expected_label_a', 'expected_label_b',
+                       'poll_timeout_seconds')) {
+        if (-not $transferFixture.ContainsKey($key) -or -not $transferFixture[$key]) {
+            throw "Transfer fixture is missing $key"
+        }
     }
 }
 
@@ -473,6 +492,75 @@ function Read-SelectedValues($Process, [string] $LogPath, [string] $TranscriptPa
     return $values
 }
 
+function Read-TransferData($Process, [string] $LogPath, [string] $TranscriptPath,
+                           [string] $Command) {
+    $match = Send-ServerCommand $Process $LogPath $TranscriptPath $Command `
+        '(?m)^.*has the following block data: (.+?)\r?$'
+    return $match.Groups[1].Value
+}
+
+function Test-TransferDirt64([string] $Items) {
+    return $Items -cmatch '^\[\{[^{}]+\}\]$' -and
+        $Items -cmatch '(?<!\w)Slot:\s*0b(?!\w)' -and
+        $Items -cmatch '(?<!\w)id:\s*"minecraft:dirt"' -and
+        $Items -cmatch '(?<!\w)count:\s*64(?!\w)'
+}
+
+function Read-TransferPreState($Process, [string] $LogPath, [string] $TranscriptPath,
+                               [string] $Role) {
+    $source = Read-TransferData $Process $LogPath $TranscriptPath `
+        "data get block $($transferFixture.source) Items"
+    $destination = Read-TransferData $Process $LogPath $TranscriptPath `
+        "data get block $($transferFixture.destination) Items"
+    $manager = Read-TransferData $Process $LogPath $TranscriptPath `
+        "data get block $($transferFixture.manager) Items"
+    if (-not (Test-TransferDirt64 $source) -or $destination -cne '[]' -or $manager -cne '[]') {
+        throw "$Role transfer precondition failed: expected dirt64 source, empty destination and inactive manager disk"
+    }
+    return [ordered]@{ source_items = $source; destination_items = $destination; manager_items = $manager }
+}
+
+function Read-TransferFinalState($Process, [string] $LogPath, [string] $TranscriptPath,
+                                 [string] $Role, [bool] $Poll) {
+    $deadline = [DateTime]::UtcNow.AddSeconds($transferFixture.poll_timeout_seconds)
+    do {
+        $source = Read-TransferData $Process $LogPath $TranscriptPath `
+            "data get block $($transferFixture.source) Items"
+        $destination = Read-TransferData $Process $LogPath $TranscriptPath `
+            "data get block $($transferFixture.destination) Items"
+        if ($source -ceq '[]' -and (Test-TransferDirt64 $destination)) { break }
+        if (-not $Poll -or [DateTime]::UtcNow -ge $deadline) {
+            throw "$Role did not show source empty and destination dirt64; scratch logs retained"
+        }
+        Start-Sleep -Seconds 1
+    } while ($true)
+    $manager = $transferFixture.manager
+    $program = Read-TransferData $Process $LogPath $TranscriptPath `
+        "data get block $manager Items[0].components.`"sfm:program`""
+    $labelA = Read-TransferData $Process $LogPath $TranscriptPath `
+        "data get block $manager Items[0].components.`"sfm:labels`".labels.a[0]"
+    $labelB = Read-TransferData $Process $LogPath $TranscriptPath `
+        "data get block $manager Items[0].components.`"sfm:labels`".labels.b[0]"
+    $errors = Read-TransferData $Process $LogPath $TranscriptPath `
+        "data get block $manager Items[0].components.`"sfm:errors`""
+    $warnings = Read-TransferData $Process $LogPath $TranscriptPath `
+        "data get block $manager Items[0].components.`"sfm:warnings`""
+    if ($program -cne $transferFixture.expected_program -or
+        $labelA -cne $transferFixture.expected_label_a -or
+        $labelB -cne $transferFixture.expected_label_b -or $errors -cne '[]') {
+        throw "$Role active transfer disk did not have the exact program, labels and empty errors"
+    }
+    return [ordered]@{
+        source_items = $source
+        destination_items = $destination
+        program = $program
+        label_a = $labelA
+        label_b = $labelB
+        errors = $errors
+        warnings = $warnings
+    }
+}
+
 function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $SfmHash,
                            [bool] $CreateSeed) {
     $log = Join-Path $BootDirectory 'logs/latest.log'
@@ -527,21 +615,50 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
         if ($parsed.schema -ne 'sfm:release_registry_snapshot@1' -or $parsed.target -ne $target -or
             $parsed.loader -ne $loaderIdentity) { throw "$Role registry snapshot identity mismatch" }
 
+        $transferBefore = $null
+        $transferAfter = $null
         if ($CreateSeed) {
             Send-ServerCommand $process $log $transcript 'forceload add 0 0' `
                 '(?i)marked chunk|forceload|force loaded' | Out-Null
+            if ($transferMode) {
+                Send-ServerCommand $process $log $transcript 'forceload add -1 0' `
+                    '(?i)marked chunk|forceload|force loaded' | Out-Null
+            }
             Send-ServerCommand $process $log $transcript 'setblock 0 120 0 sfm:manager' `
                 'Changed the block at 0, 120, 0' | Out-Null
-            $diskNbt = if ($fixture) { $fixture.disk_nbt } else { '{Items:[{Slot:0b,id:"sfm:disk",Count:1b,tag:{"sfm:program":"NAME \"compat-probe\" EVERY 20 TICKS DO END","sfm:labels":{legacy:[L;120L]},"sfm:errors":[],"sfm:warnings":[]}}]}' }
-            Send-ServerCommand $process $log $transcript ("data merge block 0 120 0 " + $diskNbt) `
-                'Modified block data of 0, 120, 0' | Out-Null
-            Send-ServerCommand $process $log $transcript 'setblock 2 120 0 sfm:cable_facade' `
-                'Changed the block at 2, 120, 0' | Out-Null
-            $facadeNbt = if ($fixture) { $fixture.facade_nbt } else { '{"sfm:facade":{block_state:{Name:"minecraft:stone"},texture_mode:"STRETCH",direction:"north"}}' }
-            Send-ServerCommand $process $log $transcript ("data merge block 2 120 0 " + $facadeNbt) `
-                'Modified block data of 2, 120, 0' | Out-Null
+            if ($transferMode) {
+                Send-ServerCommand $process $log $transcript `
+                    "setblock $($transferFixture.source) minecraft:barrel" `
+                    'Changed the block at -1, 120, 0' | Out-Null
+                Send-ServerCommand $process $log $transcript `
+                    "setblock $($transferFixture.destination) minecraft:barrel" `
+                    'Changed the block at 1, 120, 0' | Out-Null
+                Send-ServerCommand $process $log $transcript `
+                    "data merge block $($transferFixture.source) $($transferFixture.source_nbt)" `
+                    'Modified block data of -1, 120, 0' | Out-Null
+                $transferBefore = Read-TransferPreState $process $log $transcript $Role
+            } else {
+                $diskNbt = if ($fixture) { $fixture.disk_nbt } else { '{Items:[{Slot:0b,id:"sfm:disk",Count:1b,tag:{"sfm:program":"NAME \"compat-probe\" EVERY 20 TICKS DO END","sfm:labels":{legacy:[L;120L]},"sfm:errors":[],"sfm:warnings":[]}}]}' }
+                Send-ServerCommand $process $log $transcript ("data merge block 0 120 0 " + $diskNbt) `
+                    'Modified block data of 0, 120, 0' | Out-Null
+                Send-ServerCommand $process $log $transcript 'setblock 2 120 0 sfm:cable_facade' `
+                    'Changed the block at 2, 120, 0' | Out-Null
+                $facadeNbt = if ($fixture) { $fixture.facade_nbt } else { '{"sfm:facade":{block_state:{Name:"minecraft:stone"},texture_mode:"STRETCH",direction:"north"}}' }
+                Send-ServerCommand $process $log $transcript ("data merge block 2 120 0 " + $facadeNbt) `
+                    'Modified block data of 2, 120, 0' | Out-Null
+            }
+        } elseif ($transferMode) {
+            if ($Role -eq 'official-reverse') {
+                $transferAfter = Read-TransferFinalState $process $log $transcript $Role $false
+            } else {
+                $transferBefore = Read-TransferPreState $process $log $transcript $Role
+                Send-ServerCommand $process $log $transcript `
+                    "data merge block $($transferFixture.manager) $($transferFixture.disk_nbt)" `
+                    'Modified block data of 0, 120, 0' | Out-Null
+                $transferAfter = Read-TransferFinalState $process $log $transcript $Role $true
+            }
         }
-        $values = if ($CreateSeed) { $null } else { Read-SelectedValues $process $log $transcript }
+        $values = if ($CreateSeed -or $transferMode) { $null } else { Read-SelectedValues $process $log $transcript }
         Send-ServerCommand $process $log $transcript 'save-all flush' 'Saved the game' | Out-Null
         [IO.File]::AppendAllText($transcript, "stop`n")
         $process.StandardInput.WriteLine('stop')
@@ -556,7 +673,7 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
         if (-not [IO.File]::Exists((Join-Path $BootDirectory "$worldName/level.dat"))) {
             throw "$Role did not save a level.dat"
         }
-        return [ordered]@{
+        $bootResult = [ordered]@{
             role = $Role
             sfm_jar_sha256 = $SfmHash
             exit_code = $process.ExitCode
@@ -568,8 +685,14 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
             registry_snapshot = $parsed.registries
             level_dat_sha256 = Get-Sha256 (Join-Path $BootDirectory "$worldName/level.dat")
             world_fingerprint_sha256 = Get-WorldFingerprint (Join-Path $BootDirectory $worldName)
-            selected_values = $values
         }
+        if ($transferMode) {
+            if ($transferBefore) { $bootResult['transfer_before'] = $transferBefore }
+            if ($transferAfter) { $bootResult['transfer_after'] = $transferAfter }
+        } else {
+            $bootResult['selected_values'] = $values
+        }
+        return $bootResult
     } finally {
         $process.Refresh()
         if (-not $process.HasExited) {
@@ -770,11 +893,27 @@ $registryEqual = $controlResult.registry_snapshot_sha256 -ceq $candidateResult.r
 $registryReverseEqual = $controlResult.registry_snapshot_sha256 -ceq $reverseResult.registry_snapshot_sha256
 $valuesEqual = $true
 $reverseValuesEqual = $true
-foreach ($key in $controlResult.selected_values.Keys) {
-    if (-not [string]::Equals($controlResult.selected_values[$key], $candidateResult.selected_values[$key],
-                             [StringComparison]::Ordinal)) { $valuesEqual = $false }
-    if (-not [string]::Equals($controlResult.selected_values[$key], $reverseResult.selected_values[$key],
-                             [StringComparison]::Ordinal)) { $reverseValuesEqual = $false }
+$transferSeedEqual = $true
+if ($transferMode) {
+    foreach ($key in @('source_items', 'destination_items', 'manager_items')) {
+        if (-not [string]::Equals($seedResult.transfer_before[$key], $controlResult.transfer_before[$key],
+                                 [StringComparison]::Ordinal) -or
+            -not [string]::Equals($seedResult.transfer_before[$key], $candidateResult.transfer_before[$key],
+                                  [StringComparison]::Ordinal)) { $transferSeedEqual = $false }
+    }
+    foreach ($key in @('source_items', 'destination_items', 'program', 'label_a', 'label_b', 'errors', 'warnings')) {
+        if (-not [string]::Equals($controlResult.transfer_after[$key], $candidateResult.transfer_after[$key],
+                                 [StringComparison]::Ordinal)) { $valuesEqual = $false }
+        if (-not [string]::Equals($controlResult.transfer_after[$key], $reverseResult.transfer_after[$key],
+                                 [StringComparison]::Ordinal)) { $reverseValuesEqual = $false }
+    }
+} else {
+    foreach ($key in $controlResult.selected_values.Keys) {
+        if (-not [string]::Equals($controlResult.selected_values[$key], $candidateResult.selected_values[$key],
+                                 [StringComparison]::Ordinal)) { $valuesEqual = $false }
+        if (-not [string]::Equals($controlResult.selected_values[$key], $reverseResult.selected_values[$key],
+                                 [StringComparison]::Ordinal)) { $reverseValuesEqual = $false }
+    }
 }
 $registryDiff = [ordered]@{}
 $left = $controlResult.registry_snapshot
@@ -791,7 +930,7 @@ foreach ($registryId in (@($left.PSObject.Properties.Name) + @($right.PSObject.P
 $installMode = if ($reusedInstall) { 'verified_exact_existing_install_read_only' } else { 'scratch_installer' }
 $report = [ordered]@{
     schema = 'sfm:release_server_witness@1'
-    status = if ($registrySeedEqual -and $registryEqual -and $registryReverseEqual -and
+    status = if ($registrySeedEqual -and $registryEqual -and $registryReverseEqual -and $transferSeedEqual -and
                  $valuesEqual -and $reverseValuesEqual) { 'PASS' } else { 'FAIL' }
     runner_script_sha256 = Get-Sha256 $PSCommandPath
     probe_source_sha256 = Get-Sha256 $probeSource
@@ -823,7 +962,17 @@ $report = [ordered]@{
     boots = @($seedResult, $controlResult, $candidateResult, $reverseResult)
     scope = 'One test-only auxiliary mod and six selected SFM save values; no transfer, client, or general gameplay parity claim.'
 }
-if ($fixture) { $report['selected_fixture_source_sha256'] = Get-Sha256 $fixtureScript }
+if ($fixture -and -not $transferMode) { $report['selected_fixture_source_sha256'] = Get-Sha256 $fixtureScript }
+if ($transferMode) {
+    $report.schema = 'sfm:release_server_transfer_witness@1'
+    $report.Remove('selected_values_equal')
+    $report.Remove('official_reverse_equal')
+    $report['transfer_fixture_source_sha256'] = Get-Sha256 $transferFixtureScript
+    $report['transfer_seed_equal'] = $transferSeedEqual
+    $report['transfer_control_candidate_equal'] = $valuesEqual
+    $report['transfer_reverse_equal'] = $reverseValuesEqual
+    $report.scope = 'One test-only vanilla-barrel dirt64 transfer, exact disk fields and server registry IDs; no other gameplay or client parity claim.'
+}
 if ($version.compile_jar_kind -eq 'forgegradle_srg') {
     # Retain the original field names for previous ForgeGradle/SRG targets.
     $report['forge_install_mode'] = $installMode
@@ -836,5 +985,10 @@ $reportPath = Join-Path $run 'result.json'
 [IO.File]::WriteAllText($reportPath, ($report | ConvertTo-Json -Depth 15) + "`n", [Text.UTF8Encoding]::new($false))
 Assert-Hash $official SHA256 $OfficialSha256 | Out-Null
 Assert-Hash $projected SHA256 $ProjectedSha256 | Out-Null
-Write-Host "SFM_RELEASE_SERVER_WITNESS status=$($report.status) report_sha256=$(Get-Sha256 $reportPath)"
-if ($report.status -ne 'PASS') { throw 'Official/projected registry or selected-save comparison failed; see result.json' }
+if ($transferMode) {
+    Write-Host "SFM_RELEASE_SERVER_TRANSFER_WITNESS status=$($report.status) report_sha256=$(Get-Sha256 $reportPath)"
+    if ($report.status -ne 'PASS') { throw 'Official/projected vanilla-barrel transfer comparison failed; see result.json' }
+} else {
+    Write-Host "SFM_RELEASE_SERVER_WITNESS status=$($report.status) report_sha256=$(Get-Sha256 $reportPath)"
+    if ($report.status -ne 'PASS') { throw 'Official/projected registry or selected-save comparison failed; see result.json' }
+}
