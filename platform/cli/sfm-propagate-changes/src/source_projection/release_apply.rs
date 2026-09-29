@@ -104,7 +104,7 @@ pub fn apply_release_baseline(
         .count();
     pending.retain(|path, _| !path.starts_with("src/") || release_paths.contains(path));
     let canonical_sources = capture_post_baseline_canonical_sources(binding, &pending)?;
-    let (pinned_tag_fallback_files, verified_template_drift) =
+    let (pinned_tag_fallback_files, verified_template_drift, followed_primary) =
         apply_unchanged_sources(repo_root, binding, context, target, &mut pending)?;
     apply_explicit_inputs(repo_root, &mut pending, &explicit_inputs, context)?;
     for path in &release_paths {
@@ -117,7 +117,9 @@ pub fn apply_release_baseline(
             .as_deref()
             .ok_or_else(|| eyre::eyre!("release source `{path}` has no declared SHA-256"))?;
         ensure!(
-            sha256(&artifact.source_bytes) == expected || verified_template_drift.contains(path),
+            sha256(&artifact.source_bytes) == expected
+                || verified_template_drift.contains(path)
+                || followed_primary.contains(path),
             "release source `{path}` differs from the pinned tag SHA-256"
         );
         if record.release_overlay_path.is_some() {
@@ -194,7 +196,7 @@ fn apply_unchanged_sources(
     context: &ProjectionContext,
     target: &ReleaseBaselineTargetReport,
     pending: &mut BTreeMap<String, ProjectedArtifact>,
-) -> Result<(usize, BTreeSet<String>)> {
+) -> Result<(usize, BTreeSet<String>, BTreeSet<String>)> {
     // An unchanged development record has the same pinned blob in the
     // canonical tree. Reading that tree keeps projections independent of
     // target-version branch refs; read_pinned_blob still checks path, pinned
@@ -208,6 +210,7 @@ fn apply_unchanged_sources(
     };
     let mut pinned_tag_fallback_files = 0;
     let mut verified_template_drift = BTreeSet::new();
+    let mut followed_primary = BTreeSet::new();
     for (path, record) in &target.paths {
         if record.classification != BaselinePathClass::Unchanged {
             continue;
@@ -232,6 +235,33 @@ fn apply_unchanged_sources(
             unchanged_commit,
         )? {
             pending.insert(path.clone(), pinned);
+            continue;
+        }
+        if binding.kind == BaselineKind::DevelopmentHead && binding.follow_primary_unchanged {
+            // The SHA-pinned import proves this path was shared at the imported
+            // commit. When the current primary bytes differ, verify that old
+            // Git blob before following the new development source. Divergent
+            // target overlays never enter this branch.
+            let primary = pending.get(path).ok_or_else(|| {
+                eyre::eyre!("follow-primary source `{path}` is missing from primary inputs")
+            })?;
+            let direct_primary = primary.source_path == *path && primary.overlay.is_none();
+            let selected_primary = primary.source_path == format!("platform/minecraft/{path}")
+                && primary.overlay.as_deref() == Some("feature");
+            ensure!(
+                direct_primary || selected_primary,
+                "follow-primary source `{path}` is not owned by the primary tree"
+            );
+            if sha256(&primary.source_bytes) != expected {
+                // Most unchanged paths still match their imported bytes. For
+                // an edited primary source, authenticate its former Git blob
+                // before allowing the new development output to replace it.
+                let oid = record.release_blob_oid.as_deref().ok_or_else(|| {
+                    eyre::eyre!("development source `{path}` has no pinned Git blob OID")
+                })?;
+                read_pinned_blob(repo_root, unchanged_commit, path, oid, expected)?;
+            }
+            followed_primary.insert(path.clone());
             continue;
         }
         if pending
@@ -284,7 +314,11 @@ fn apply_unchanged_sources(
         pinned_tag_fallback_files += 1;
     }
 
-    Ok((pinned_tag_fallback_files, verified_template_drift))
+    Ok((
+        pinned_tag_fallback_files,
+        verified_template_drift,
+        followed_primary,
+    ))
 }
 
 fn selected_unchanged_import(
@@ -1141,6 +1175,7 @@ mod tests {
             import_manifest: relative.to_owned(),
             import_manifest_sha256: sha256(&bytes).trim_start_matches("sha256:").to_owned(),
             kind: super::super::manifest::BaselineKind::ReleaseTag,
+            follow_primary_unchanged: false,
             canonical_commit: None,
             gradle_provenance_sha256: None,
             project_fixture_provenance_sha256: None,
@@ -2180,7 +2215,7 @@ mod tests {
             (reviewed.to_owned(), reviewed_primary),
             (test.to_owned(), artifact(test, b"class NewTest {}\n")),
         ]);
-        let (fallbacks, verified_drift) = apply_unchanged_sources(
+        let (fallbacks, verified_drift, followed_primary) = apply_unchanged_sources(
             root.path(),
             &binding,
             &rendering_context,
@@ -2190,9 +2225,153 @@ mod tests {
         .unwrap();
         assert_eq!(fallbacks, 0);
         assert_eq!(verified_drift, BTreeSet::from([ordinary.to_owned()]));
+        assert!(followed_primary.is_empty());
         assert_eq!(pending[ordinary], templated);
         assert_eq!(pending[reviewed].source_bytes, old_reviewed);
         assert_eq!(pending[test].source_bytes, old_test);
+    }
+
+    #[test]
+    fn development_follow_primary_propagates_semantic_edits_without_adopting_overlays() {
+        let root = tempfile::tempdir().unwrap();
+        git(root.path(), &["init", "-q"]);
+        let shared = "src/main/java/example/Shared.java";
+        let changed = "src/main/java/example/VersionSpecific.java";
+        let canonical_only = "src/main/java/example/NewerOnly.java";
+        let old_shared = b"class Shared { int value = 1; }\n";
+        let new_shared = b"class Shared { int value = 2; }\n";
+        let primary_changed = b"class VersionSpecific { int value = 1; }\n";
+        let target_changed = b"class VersionSpecific { int value = 19; }\n";
+        for (path, bytes) in [
+            (shared, old_shared.as_slice()),
+            (changed, primary_changed.as_slice()),
+            (canonical_only, b"class NewerOnly {}\n".as_slice()),
+        ] {
+            let source = root.path().join("platform/minecraft").join(path);
+            fs::create_dir_all(source.parent().unwrap()).unwrap();
+            fs::write(source, bytes).unwrap();
+            git(root.path(), &["add", &format!("platform/minecraft/{path}")]);
+        }
+        git(
+            root.path(),
+            &[
+                "-c",
+                "user.name=SFM Test",
+                "-c",
+                "user.email=sfm@example.invalid",
+                "commit",
+                "-qm",
+                "canonical",
+            ],
+        );
+        let canonical = git(root.path(), &["rev-parse", "HEAD"]);
+        let mut shared_record = record(
+            BaselinePathClass::Unchanged,
+            Some(old_shared),
+            Some(old_shared),
+            None,
+        );
+        shared_record.release_blob_oid = Some(git(
+            root.path(),
+            &["rev-parse", &format!("HEAD:platform/minecraft/{shared}")],
+        ));
+        let overlay = format!("platform/minecraft/development-baselines/1.19.2/overlays/{changed}");
+        let mut target = report(
+            &"f".repeat(40),
+            BTreeMap::from([
+                (shared.to_owned(), shared_record),
+                (
+                    changed.to_owned(),
+                    record(
+                        BaselinePathClass::Changed,
+                        Some(target_changed),
+                        Some(primary_changed),
+                        Some(&overlay),
+                    ),
+                ),
+                (
+                    canonical_only.to_owned(),
+                    record(
+                        BaselinePathClass::CanonicalOnly,
+                        None,
+                        Some(b"class NewerOnly {}\n"),
+                        None,
+                    ),
+                ),
+            ]),
+        )
+        .targets
+        .remove(0);
+        target.release_tag = "1.19.2".to_owned();
+        let (membership, overlays) =
+            validate_target_report(&target, DEVELOPMENT_IMPORT_PREFIX).unwrap();
+        assert_eq!(
+            membership,
+            BTreeSet::from([shared.to_owned(), changed.to_owned()])
+        );
+        assert_eq!(overlays[changed], overlay);
+
+        let mut binding = write_report(root.path(), &report(&"f".repeat(40), target.paths.clone()));
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.canonical_commit = Some(canonical);
+        let input = BTreeMap::from([
+            (shared.to_owned(), artifact(shared, new_shared)),
+            (changed.to_owned(), artifact(changed, primary_changed)),
+            (
+                canonical_only.to_owned(),
+                artifact(canonical_only, b"class NewerOnly {}\n"),
+            ),
+        ]);
+
+        let mut pinned = input.clone();
+        assert!(
+            apply_unchanged_sources(root.path(), &binding, &context(), &target, &mut pinned,)
+                .is_err()
+        );
+        binding.follow_primary_unchanged = true;
+        let mut followed = input.clone();
+        let (_, _, paths) =
+            apply_unchanged_sources(root.path(), &binding, &context(), &target, &mut followed)
+                .unwrap();
+        assert_eq!(paths, BTreeSet::from([shared.to_owned()]));
+        assert_eq!(
+            followed, input,
+            "divergent and omitted paths remain untouched"
+        );
+
+        let mut selected_primary = input.clone();
+        let selected = selected_primary.get_mut(shared).unwrap();
+        selected.source_path = format!("platform/minecraft/{shared}");
+        selected.overlay = Some("feature".to_owned());
+        let (_, _, selected_paths) = apply_unchanged_sources(
+            root.path(),
+            &binding,
+            &context(),
+            &target,
+            &mut selected_primary,
+        )
+        .unwrap();
+        assert_eq!(selected_paths, BTreeSet::from([shared.to_owned()]));
+
+        let mut missing = input.clone();
+        missing.remove(shared);
+        assert!(
+            apply_unchanged_sources(root.path(), &binding, &context(), &target, &mut missing,)
+                .is_err()
+        );
+        let mut foreign = input.clone();
+        foreign.get_mut(shared).unwrap().overlay = Some("foreign".to_owned());
+        assert!(
+            apply_unchanged_sources(root.path(), &binding, &context(), &target, &mut foreign,)
+                .is_err()
+        );
+        let mut wrong_blob = target.clone();
+        wrong_blob.paths.get_mut(shared).unwrap().release_blob_oid = Some("a".repeat(40));
+        let mut pending = input;
+        assert!(
+            apply_unchanged_sources(root.path(), &binding, &context(), &wrong_blob, &mut pending,)
+                .is_err()
+        );
     }
 
     #[test]

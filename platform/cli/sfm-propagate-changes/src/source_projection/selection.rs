@@ -225,6 +225,7 @@ mod tests {
                         .to_owned(),
                 import_manifest_sha256: "b".repeat(64),
                 kind: super::super::manifest::BaselineKind::ReleaseTag,
+                follow_primary_unchanged: false,
                 canonical_commit: None,
                 gradle_provenance_sha256: None,
                 project_fixture_provenance_sha256: None,

@@ -131,6 +131,11 @@ pub struct ReleaseBaselineBinding {
     /// Existing release bindings omit this field and retain their old identity.
     #[facet(default)]
     pub kind: BaselineKind,
+    /// In development imports only, let historically equal source paths use
+    /// the current primary tree after verifying the pinned comparison. Existing
+    /// imports and all release-tag presets retain pinned ownership by default.
+    #[facet(default)]
+    pub follow_primary_unchanged: bool,
     /// The committed primary-source snapshot compared with a development HEAD.
     #[facet(default)]
     pub canonical_commit: Option<String>,
@@ -758,6 +763,9 @@ fn hash_release_baselines(hasher: &mut blake3::Hasher, preset: &ProjectionPreset
             }
             if baseline.kind == BaselineKind::DevelopmentHead {
                 hash_part(hasher, "development_head");
+                if baseline.follow_primary_unchanged {
+                    hash_part(hasher, "follow_primary_unchanged");
+                }
                 hash_part(
                     hasher,
                     baseline.canonical_commit.as_deref().unwrap_or_default(),
@@ -932,6 +940,7 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                     || baseline.project_fixture_provenance_sha256.is_some()
                     || !baseline.post_baseline_test_sources.is_empty()
                     || !baseline.post_baseline_gradle_sources.is_empty()
+                    || baseline.follow_primary_unchanged
                 {
                     eyre::bail!("release import cannot declare development-head identities");
                 }
@@ -1349,6 +1358,7 @@ mod tests {
             ),
             import_manifest_sha256: "b".repeat(64),
             kind: BaselineKind::ReleaseTag,
+            follow_primary_unchanged: false,
             canonical_commit: None,
             gradle_provenance_sha256: None,
             project_fixture_provenance_sha256: None,
@@ -1837,6 +1847,59 @@ mod tests {
         manifest.presets[0].release_baselines[0].gradle_provenance_sha256 = Some("d".repeat(64));
         manifest.presets[0].release_baselines[0].project_fixture_provenance_sha256 = None;
         assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn follow_primary_unchanged_is_development_only_and_identity_bound() {
+        let mut manifest = sample();
+        let mut binding = release_binding("1.19.2");
+        manifest.presets[0].release_baselines.push(binding.clone());
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        let released_identity = manifest.presets[0].identity.clone();
+        manifest.presets[0].release_baselines[0].follow_primary_unchanged = true;
+        assert_eq!(
+            manifest
+                .compute_preset_identity(&manifest.presets[0])
+                .unwrap(),
+            released_identity,
+            "the development-only field cannot change a release identity"
+        );
+        assert!(
+            manifest
+                .validate()
+                .unwrap_err()
+                .to_string()
+                .contains("release import cannot declare development-head identities")
+        );
+
+        binding.kind = BaselineKind::DevelopmentHead;
+        binding.import_manifest =
+            "platform/minecraft/development-baselines/1.19.2/import.json".to_owned();
+        binding.canonical_commit = Some("c".repeat(40));
+        binding.gradle_provenance_sha256 = Some("d".repeat(64));
+        binding.project_fixture_provenance_sha256 = Some("e".repeat(64));
+        manifest.presets[0].release_baselines[0] = binding;
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        let pinned_identity = manifest.presets[0].identity.clone();
+        manifest.presets[0].release_baselines[0].follow_primary_unchanged = true;
+        assert_ne!(
+            manifest
+                .compute_preset_identity(&manifest.presets[0])
+                .unwrap(),
+            pinned_identity
+        );
+        assert!(
+            manifest.validate().is_err(),
+            "the old identity must fail closed"
+        );
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest.validate().unwrap();
     }
 
     #[test]

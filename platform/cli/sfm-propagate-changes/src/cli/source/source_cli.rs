@@ -23,6 +23,7 @@ use crate::source_projection::development_gradle::apply_post_baseline_gradle_sou
 use crate::source_projection::development_gradle::materialize_development_gradle_inputs;
 use crate::source_projection::inputs::apply_explicit_inputs;
 use crate::source_projection::inputs::collect_projected_inputs_with_allowlist;
+use crate::source_projection::manifest::BaselineKind;
 use crate::source_projection::manifest::SourceProjectionManifest;
 use crate::source_projection::project_layout::collect_gradle_project_inputs;
 use crate::source_projection::project_layout::collect_gradle_project_inputs_for_target;
@@ -958,6 +959,7 @@ impl SourceProjectArgs {
                 .as_deref()
                 .unwrap_or(Path::new("platform/minecraft/src")),
         )?;
+        ensure_follow_primary_root(repo_root, &primary_root, selection)?;
         let overlays = self
             .overlay
             .iter()
@@ -1068,6 +1070,23 @@ impl SourceProjectArgs {
         }
         Ok(artifacts)
     }
+}
+
+fn ensure_follow_primary_root(
+    repo_root: &Path,
+    primary_root: &Path,
+    selection: &ProjectionSelection,
+) -> Result<()> {
+    if selection.release_baseline.as_ref().is_some_and(|binding| {
+        binding.kind == BaselineKind::DevelopmentHead && binding.follow_primary_unchanged
+    }) {
+        let canonical_root = source_path(repo_root, Path::new("platform/minecraft/src"))?;
+        ensure!(
+            primary_root == canonical_root,
+            "follow-primary development preset requires platform/minecraft/src as its primary source root"
+        );
+    }
+    Ok(())
 }
 
 fn apply_release_mod_version(
@@ -1901,6 +1920,31 @@ mod tests {
         let repo = tempfile::tempdir().unwrap();
         let _ = source_path(repo.path(), Path::new("../other")).unwrap_err();
         let _ = source_path(repo.path(), Path::new("C:/other")).unwrap_err();
+    }
+
+    #[test]
+    fn follow_primary_development_rejects_an_alternate_primary_tree() {
+        let repo = tempfile::tempdir().unwrap();
+        fs::create_dir_all(repo.path().join("platform/minecraft/src")).unwrap();
+        fs::create_dir_all(repo.path().join("alternate/src")).unwrap();
+        let repo_root = fs::canonicalize(repo.path()).unwrap();
+        let canonical = source_path(&repo_root, Path::new("platform/minecraft/src")).unwrap();
+        let alternate = source_path(&repo_root, Path::new("alternate/src")).unwrap();
+        let manifest = SourceProjectionManifest::from_json(include_str!(
+            "../../../../../minecraft/source-projection.json"
+        ))
+        .unwrap();
+        let development = select(&manifest, "1.19.4", "current-development-head-1.19.4").unwrap();
+        ensure_follow_primary_root(&repo_root, &canonical, &development).unwrap();
+        assert!(
+            ensure_follow_primary_root(&repo_root, &alternate, &development)
+                .unwrap_err()
+                .to_string()
+                .contains("requires platform/minecraft/src")
+        );
+
+        let release = select(&manifest, "1.19.4", "released-4.34.0").unwrap();
+        ensure_follow_primary_root(&repo_root, &alternate, &release).unwrap();
     }
 
     fn fixture_args(repo_root: &Path) -> SourceProjectArgs {
