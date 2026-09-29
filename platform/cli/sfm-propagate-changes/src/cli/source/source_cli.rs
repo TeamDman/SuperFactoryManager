@@ -2234,6 +2234,7 @@ mod tests {
             )
             .unwrap();
             assert_eq!(provenance.target_id, preview.target_id);
+            assert_eq!(provenance.minecraft_version, preview.minecraft_version);
             assert_eq!(provenance.preset_id, report.release_preset_id);
             assert_eq!(provenance.preset_definition_identity, frozen_identity);
             assert_eq!(provenance.files.len(), inventory.files.len());
@@ -2242,7 +2243,9 @@ mod tests {
                     sha256(&fs::read(output_root.join(path)).unwrap()),
                     file.output_sha256
                 );
+                assert_eq!(provenance.files[path].source_path, file.source_repo_path);
                 assert_eq!(provenance.files[path].source_sha256, file.source_sha256);
+                assert_eq!(provenance.files[path].overlay, file.overlay);
                 assert_eq!(provenance.files[path].output_sha256, file.output_sha256);
             }
             assert_eq!(
@@ -2289,6 +2292,45 @@ mod tests {
             &first.inventory_path,
             first.canonical_inventory_json.as_bytes(),
         );
+
+        let mut wrong_binding = manifest.clone();
+        wrong_binding.presets.last_mut().unwrap().frozen_sources[0].inventory_sha256 =
+            "0".repeat(64);
+        let identity = wrong_binding
+            .compute_preset_identity(wrong_binding.presets.last().unwrap())
+            .unwrap();
+        wrong_binding.presets.last_mut().unwrap().identity = identity;
+        write_test(
+            &repo_root,
+            manifest_path,
+            wrong_binding.to_json().unwrap().as_bytes(),
+        );
+        let bad_binding_root = external_root.join("wrong-binding");
+        let error = fictional_frozen_project_args(&repo_root, "1.19.2", &bad_binding_root)
+            .project_in(&cancellation, &repo_root, SyncMode::Apply)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("pinned SHA-256"), "{error}");
+        assert!(!bad_binding_root.exists());
+        write_test(&repo_root, manifest_path, frozen_manifest_bytes.as_bytes());
+
+        let mut missing_target = manifest.clone();
+        missing_target.presets.last_mut().unwrap().frozen_sources.pop();
+        write_test(
+            &repo_root,
+            manifest_path,
+            facet_json::to_string_pretty(&missing_target)
+                .unwrap()
+                .as_bytes(),
+        );
+        let missing_target_root = external_root.join("missing-target");
+        let error = fictional_frozen_project_args(&repo_root, "1.19.2", &missing_target_root)
+            .project_in(&cancellation, &repo_root, SyncMode::Apply)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("bind every selected target"), "{error}");
+        assert!(!missing_target_root.exists());
+        write_test(&repo_root, manifest_path, frozen_manifest_bytes.as_bytes());
 
         let mut wrong_features = manifest.clone();
         wrong_features
