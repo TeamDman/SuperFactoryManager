@@ -97,6 +97,24 @@ The primary `SFMResourceLocation.java` now uses whole-line Liquid branches for t
 
 `cargo test --locked --offline source_projection:: --lib` passed 153 tests with four ignored. All ten development and all ten checked-in `released-4.34.0` roots passed `source check` with zero created or updated files and `manifest_changed=false`; the release preset identity and release roots remain unchanged. Two retained early-development roots first needed a guarded manifest-only refresh after the canonical source hash changed; eight later versions used fresh external source-only roots. Pinned-JDK development `source build --task compileJava` passed for 1.21.1 (Java 21, task executed, exit 0) and 26.1.2 (Java 25, offline, `compileJava FROM-CACHE`, exit 0). The latter is task-success evidence, not a fresh Java compiler invocation. The sandboxed 1.21.1 wrapper attempt stopped at network access before compilation; the host-cache rerun passed. This is byte-preserving source ownership, not new runtime behavior or gameplay parity. No dependency declaration, lockfile, installed CLI or gameplay-visible content changed in M5.2, and no game/server process was launched.
 
+### [ ] M5 ownership boundary: turn pinned development imports into a maintainable editing workflow
+
+The nine noncanonical development-head imports are an exact, useful migration bridge, but a passing matrix alone does not mean that future edits to the primary 1.19.2 Java tree automatically reach every target. The import manifests bind divergent target blobs to a reviewed historical commit; deliberately absent 1.19.2-only files cannot be copied into later loaders indiscriminately. A read-only count of their `src` path classifications gives the current shape:
+
+| Development target | Byte-identical with pinned canonical source | Divergent target paths | Target-only paths | Canonical-only paths |
+| --- | ---: | ---: | ---: | ---: |
+| 1.19.4 | 2,592 | 145 | 26 | 60 |
+| 1.20 | 982 | 317 | 73 | 1,498 |
+| 1.20.1 | 983 | 316 | 75 | 1,498 |
+| 1.20.2 | 887 | 406 | 80 | 1,504 |
+| 1.20.3 | 877 | 415 | 81 | 1,505 |
+| 1.20.4 | 867 | 428 | 78 | 1,502 |
+| 1.21.0 | 783 | 461 | 131 | 1,553 |
+| 1.21.1 | 777 | 466 | 134 | 1,554 |
+| 26.1.2 | 596 | 622 | 167 | 1,579 |
+
+The counts are source-path classifications, not lines of code or required merge operations. M5 should demonstrate a *new* reviewed change authored once in the primary tree and projected across representative old/new APIs with explicit feature/overlay selection, then test both enabled and disabled output without changing the released roots. Keep divergent implementations separate where consolidation would obscure their APIs. Record remaining overlay ownership and a concrete contributor edit route before claiming the ten-version migration is maintainable, rather than equating imported branch snapshots with an ongoing one-branch workflow.
+
 ### [ ] M5.3 Reusable production registry and save witness
 
 The [runtime parity matrix](sfm-main-release-candidate-matrix-20260928.md) now records selected-save comparisons for seven of ten targets, one paired vanilla transfer, three paired packaged-client title/world views and three paired runtime registry-ID snapshots. The remaining 1.20.3, 1.20.4 and 1.21.0 save cells need version-adapted, test-only NeoForge drivers rather than one-off commands. The 1.19.4 and 1.20 targets passed release-pinned Forge server witnesses and bounded client views. The 1.20 client pair passed after a test-only accessibility-onboarding fixture correction; four result files, screenshot hashes and rendered images were independently checked. Transitional 1.20.1 passed a four-boot selected-save and registry witness under exact NeoForge 47.1.65, including an official reverse load. The 1.19.2 pair already has selected-save evidence but not a registry-ID snapshot, so that adaptation also remains useful.
