@@ -73,7 +73,7 @@ function Assert-LibraryPartition {
         if ($tail.Count -ge 20) { [void]$tail.Dequeue() }
         $tail.Enqueue($line)
         if ($line -match ': test$') {
-            $names.Add($line -replace ': test$', '')
+            $names.Add(($line -replace ': test$', ''))
         }
     }
     $exitCode = $LASTEXITCODE
@@ -150,7 +150,8 @@ function Invoke-CargoShard {
     }
 }
 
-$rg = Get-Command rg.exe -CommandType Application -ErrorAction SilentlyContinue
+$rg = Get-Command rg.exe -CommandType Application -ErrorAction SilentlyContinue |
+    Select-Object -First 1
 if (-not $rg) {
     throw 'rg.exe is unavailable. Run in a host PowerShell session with ripgrep on PATH.'
 }
