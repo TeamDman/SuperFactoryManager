@@ -25,6 +25,8 @@ import java.util.Properties;
 public final class ReleaseClientBridge {
     private static final String CONTROL_PROPERTY = "sfm.releaseProbe.controlDirectory";
     private static final String SCREENSHOT_NAME = "sfm-release-client-title.png";
+    // Let the title fade-in and its menu widgets settle before taking the witness.
+    private static final int TITLE_FRAMES_BEFORE_CAPTURE = 90;
 
     private final Path controlDirectory;
     private final Path gameDirectory;
@@ -76,7 +78,7 @@ public final class ReleaseClientBridge {
             return;
         }
         renderedTitleFrames++;
-        if (renderedTitleFrames < 2) {
+        if (renderedTitleFrames < TITLE_FRAMES_BEFORE_CAPTURE) {
             return;
         }
         if (!ModList.get().isLoaded("sfm")) {

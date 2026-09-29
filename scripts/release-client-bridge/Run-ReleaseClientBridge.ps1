@@ -238,8 +238,12 @@ try {
     if ($signature.Length -lt 24 -or [BitConverter]::ToString($signature, 0, 8) -ne '89-50-4E-47-0D-0A-1A-0A') {
         throw 'Screenshot witness is not a nonempty PNG'
     }
-    $width = ($signature[16] -shl 24) -bor ($signature[17] -shl 16) -bor ($signature[18] -shl 8) -bor $signature[19]
-    $height = ($signature[20] -shl 24) -bor ($signature[21] -shl 16) -bor ($signature[22] -shl 8) -bor $signature[23]
+    # PowerShell otherwise performs shifts at the byte width and silently
+    # truncates the 24/16/8-bit terms to zero.
+    $width = (([int] $signature[16] -shl 24) -bor ([int] $signature[17] -shl 16) -bor
+        ([int] $signature[18] -shl 8) -bor [int] $signature[19])
+    $height = (([int] $signature[20] -shl 24) -bor ([int] $signature[21] -shl 16) -bor
+        ([int] $signature[22] -shl 8) -bor [int] $signature[23])
     if ($width -lt 1 -or $height -lt 1) { throw 'Screenshot witness has invalid PNG dimensions' }
     $sourceHashAfter = (Get-FileHash -LiteralPath $sourceJar -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($sourceHashAfter -ne $expected) { throw 'Original SFM JAR changed during client proof' }

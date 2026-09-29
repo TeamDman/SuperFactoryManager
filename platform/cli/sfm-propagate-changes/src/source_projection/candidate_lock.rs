@@ -396,7 +396,11 @@ fn ensure_closed_candidate_inputs(
             "candidate root contains a reparse point"
         );
         if metadata.is_dir() {
-            if matches!(name.as_str(), "build" | ".gradle" | "run" | "runs" | "logs") {
+            // Gradle's GameTest server writes runtime state here, not project inputs.
+            if matches!(
+                name.as_str(),
+                "build" | ".gradle" | "run" | "runs" | "logs" | "runGameTest"
+            ) {
                 continue;
             }
             ensure!(
@@ -1217,9 +1221,12 @@ mod tests {
     }
 
     #[test]
-    fn rejects_unowned_resource_and_gradle_inputs() {
+    fn accepts_game_test_output_but_rejects_unowned_resource_and_gradle_inputs() {
         let fixture = Fixture::new();
         let candidate = &fixture.roots["1.20.2"];
+        fs::create_dir_all(candidate.join("runGameTest/world")).unwrap();
+        fs::write(candidate.join("runGameTest/world/level.dat"), "runtime\n").unwrap();
+        fixture.verify_release().unwrap();
         fs::create_dir_all(candidate.join("src/main/resources")).unwrap();
         fs::write(candidate.join("src/main/resources/rogue.json"), "{}\n").unwrap();
         assert!(
