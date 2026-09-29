@@ -1,5 +1,5 @@
 <#
-Test-only 1.19.2/1.19.4/1.20/1.20.1/1.20.3/1.20.4/1.21.0 production-JAR registry/save witness.
+Test-only 1.19.2/1.19.4/1.20/1.20.1/1.20.2/1.20.3/1.20.4/1.21.0 production-JAR registry/save witness.
 The input JARs, JDK, installer, and compile classpath are read-only. Every
 server, mod copy, world, log, and result is created below a NEW RunRoot.
 #>
@@ -13,7 +13,7 @@ param(
     [Parameter(Mandatory)] [Alias('LoaderCompileJar')] [string] $ForgeSrgJar,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
-    [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.3', '1.20.4', '1.21.0')] [string] $Target = '1.19.4',
+    [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.20.2', '1.20.3', '1.20.4', '1.21.0')] [string] $Target = '1.19.4',
     [string] $LauncherCacheRoot = '',
     [Alias('InstalledLoaderRoot')] [string] $InstalledForgeRoot = '',
     [ValidateRange(60, 900)] [int] $StartupTimeoutSeconds = 300,
@@ -100,6 +100,32 @@ $version = switch ($target) {
             official_sha256 = '34ee6eab2783b0b3a53450a6700c215e21dc653357862b24be7888e95554ef56'
             projected_sha256 = '6813401aeeeca8f0d1d1608e732f601b94c0eff181ba125f5bfc5dccaa6aabb9'
             resources = 'versions/1.20.1/resources'
+        }
+    }
+    '1.20.2' {
+        @{
+            loader = '20.2.86'
+            loader_brand = 'NeoForge'
+            loader_id = 'neoforge'
+            forge_group_path = 'net/neoforged'
+            artifact_module = 'neoforge'
+            artifact_version = '20.2.86'
+            launch_version_flag = '--fml.neoForgeVersion'
+            fml_group_path = 'net/neoforged/fancymodloader'
+            fml_core_artifact = 'core'
+            fml_language_artifact = 'language-java'
+            fml_library_version = '1.0.16'
+            event_bus_path = 'libraries/net/neoforged/bus/7.2.0/bus-7.2.0.jar'
+            compile_extra_paths = @('libraries/com/mojang/datafixerupper/6.0.8/datafixerupper-6.0.8.jar')
+            compile_jar_name = 'raw.jar'
+            compile_jar_kind = 'neoform_joined_1.20.2-20231019.002635'
+            compile_jar_sha256 = '4ef3f10b2a4464687aa5e19e06586a8f33e68f63caf73ee48ae93c5e7c6f24ab'
+            installer_sha1 = '9546d34c7e966b6dfa952e2d6150e1713e81884c'
+            installer_sha256 = 'c21378ea25e4c1b1eb367f7eda7db48af6965e3e35c2270421f10687faf8d4db'
+            official_sha256 = 'afce7113bc55d12fe92db02f79b95d702e530fb5fd10accba96edcdbcf0186e2'
+            projected_sha256 = '9b5f00d887edd7a72dd35a7e1d2131a17083932793f06649d362053c34f9808d'
+            probe_source = 'versions/1.20.3/src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
+            resources = 'versions/1.20.2/resources'
         }
     }
     '1.20.3' {
