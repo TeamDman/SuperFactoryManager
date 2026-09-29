@@ -15,7 +15,9 @@ public final class ReleaseNetworkProbe {
     private ReleaseNetworkProbe() {}
 
     /** A deterministic, path-free JSON object, suitable for embedding in a release witness snapshot. */
-    public static String captureJson() throws ReflectiveOperationException {
+    public static String captureJson(String target, String loader) throws ReflectiveOperationException {
+        require("1.19.2".equals(target) && "forge-43.4.0".equals(loader),
+                "Network snapshot endpoint identity mismatch");
         Class<?> packets = Class.forName("ca.teamdman.sfm.common.registry.registration.SFMPackets");
         Object channel = packets.getField("SFM_CHANNEL").get(null);
         Class<?> simpleChannel = Class.forName("net.minecraftforge.network.simple.SimpleChannel");
@@ -63,7 +65,11 @@ public final class ReleaseNetworkProbe {
             require(messages.containsKey(i), "Gap in Forge message discriminators");
         }
 
-        StringBuilder json = new StringBuilder("{\"schema\":\"sfm:release_network_snapshot@1\",\"channel\":");
+        StringBuilder json = new StringBuilder("{\"schema\":\"sfm:release_network_snapshot@1\",\"target\":");
+        appendId(json, target);
+        json.append(",\"loader\":");
+        appendId(json, loader);
+        json.append(",\"channel\":");
         appendId(json, channelId);
         json.append(",\"protocolVersion\":");
         appendId(json, protocolVersion);

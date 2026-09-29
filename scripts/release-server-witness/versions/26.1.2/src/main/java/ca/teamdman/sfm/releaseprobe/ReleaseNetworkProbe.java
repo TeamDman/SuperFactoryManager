@@ -16,7 +16,9 @@ public final class ReleaseNetworkProbe {
     private ReleaseNetworkProbe() {}
 
     /** A deterministic, path-free JSON object, suitable for embedding in a release witness snapshot. */
-    public static String captureJson() throws ReflectiveOperationException {
+    public static String captureJson(String target, String loader) throws ReflectiveOperationException {
+        require("26.1.2".equals(target) && "neoforge-26.1.2.72".equals(loader),
+                "Network snapshot endpoint identity mismatch");
         // The release runner compiles the probe against a deliberately small loader classpath.
         // Resolve loader types at runtime so this helper does not enlarge that build surface.
         Class<?> networkRegistry = Class.forName("net.neoforged.neoforge.network.registration.NetworkRegistry");
@@ -68,7 +70,11 @@ public final class ReleaseNetworkProbe {
         }
         require(payloads.size() == EXPECTED_RELEASE_PAYLOADS, "Unexpected NeoForge release payload count");
 
-        StringBuilder json = new StringBuilder("{\"schema\":\"sfm:release_network_snapshot@1\",\"payloads\":[");
+        StringBuilder json = new StringBuilder("{\"schema\":\"sfm:release_network_snapshot@1\",\"target\":");
+        appendId(json, target);
+        json.append(",\"loader\":");
+        appendId(json, loader);
+        json.append(",\"payloads\":[");
         boolean first = true;
         for (String descriptor : payloads.values()) {
             if (!first) json.append(',');
@@ -80,5 +86,10 @@ public final class ReleaseNetworkProbe {
 
     private static void require(boolean condition, String message) {
         if (!condition) throw new IllegalStateException(message);
+    }
+
+    private static void appendId(StringBuilder json, String id) {
+        require(id.matches("[a-z0-9_.:/-]+"), "Unexpected network identity syntax");
+        json.append('"').append(id).append('"');
     }
 }
