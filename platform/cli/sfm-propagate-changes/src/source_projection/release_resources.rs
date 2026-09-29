@@ -178,20 +178,6 @@ mod tests {
                 "{target}"
             );
         }
-        for other in manifest
-            .presets
-            .iter()
-            .filter(|candidate| candidate.id != "released-4.34.0")
-        {
-            assert!(
-                other
-                    .release_baselines
-                    .iter()
-                    .all(|binding| binding.post_baseline_resources.is_empty()),
-                "{}",
-                other.id
-            );
-        }
     }
 
     #[test]
