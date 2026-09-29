@@ -927,7 +927,7 @@ pub(crate) mod tests {
             fs::write(repo.join("docs/compatibility.md"), evidence).unwrap();
             fs::write(
                 repo.join(".gitignore"),
-                "platform/minecraft/src/main/java/Hidden.java\n",
+                "platform/minecraft/src/main/java/Hidden.java\n/platform/minecraft/.sfm-source-promotion-stage-*/\n",
             )
             .unwrap();
             git(&repo, &["init", "-q"]);

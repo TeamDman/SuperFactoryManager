@@ -14,6 +14,7 @@ use crate::source_projection::promotion::ReviewedOperationKind;
 use crate::source_projection::promotion::ReviewedPromotionOperation;
 use crate::source_projection::promotion::TargetPromotionReport;
 use crate::source_projection::promotion::promote;
+use crate::source_projection::promotion::promote_repair_with_pre_apply_verification;
 use crate::source_projection::promotion::validate_relative_path;
 use eyre::Result;
 use eyre::WrapErr;
@@ -37,6 +38,8 @@ const PUBLIC_REPAIR_POLICY: RepairIdentityPolicy = RepairIdentityPolicy {
     refmap_sha256: "sha256:2c94879b9e943b34c562f6966f9e0aa88c1a30b39bc8e17bd18772b66af24523",
     #[cfg(test)]
     synthetic_gradle_overlays: None,
+    #[cfg(test)]
+    synthetic_before_promotion: None,
 };
 
 struct RepairIdentityPolicy<'a> {
@@ -47,6 +50,9 @@ struct RepairIdentityPolicy<'a> {
     /// Real repair verification always follows the release-baseline binding.
     #[cfg(test)]
     synthetic_gradle_overlays: Option<&'a BTreeMap<String, String>>,
+    /// A deterministic test hook between the initial verification and staging.
+    #[cfg(test)]
+    synthetic_before_promotion: Option<&'a dyn Fn() -> Result<()>>,
 }
 
 #[derive(Debug, Facet)]
@@ -230,19 +236,35 @@ impl PromotionArgs {
             ensure_repair_policy(&request, policy)?;
             ensure_external_candidate_lock(&lock_path, &request.repository_root, &roots)?;
             cancellation.bail_if_cancelled()?;
-            let report = verify_candidate_in(
+            require_full_candidate_verification(
                 cancellation,
                 &request.repository_root,
                 &lock,
                 &roots,
-                actual_sha256,
+                actual_sha256.clone(),
                 #[cfg(test)]
                 policy.synthetic_gradle_overlays,
             )?;
-            ensure!(
-                report.deterministic_source_check && report.verified_targets.len() == 10,
-                "repair Apply requires full ten-target deterministic candidate verification"
-            );
+            #[cfg(test)]
+            if let Some(before_promotion) = policy.synthetic_before_promotion {
+                before_promotion()?;
+            }
+            let verify_again = |_stage: &Path| {
+                require_full_candidate_verification(
+                    cancellation,
+                    &request.repository_root,
+                    &lock,
+                    &roots,
+                    actual_sha256.clone(),
+                    #[cfg(test)]
+                    policy.synthetic_gradle_overlays,
+                )
+            };
+            cancellation.bail_if_cancelled()?;
+            let report = promote_repair_with_pre_apply_verification(&request, &verify_again)?;
+            return Ok(CliOutput::facet(PromotionCliReport::from_core(
+                report, mode,
+            )));
         }
         cancellation.bail_if_cancelled()?;
         let report = promote(&request, mode)?;
@@ -278,6 +300,30 @@ impl PromotionArgs {
             }
         }
     }
+}
+
+fn require_full_candidate_verification(
+    cancellation: &CancellationToken,
+    repository_root: &Path,
+    lock: &SourceCandidateLock,
+    roots: &BTreeMap<String, PathBuf>,
+    lock_sha256: String,
+    #[cfg(test)] synthetic_gradle_overlays: Option<&BTreeMap<String, String>>,
+) -> Result<()> {
+    let report = verify_candidate_in(
+        cancellation,
+        repository_root,
+        lock,
+        roots,
+        lock_sha256,
+        #[cfg(test)]
+        synthetic_gradle_overlays,
+    )?;
+    ensure!(
+        report.deterministic_source_check && report.verified_targets.len() == 10,
+        "repair Apply requires full ten-target deterministic candidate verification"
+    );
+    Ok(())
 }
 
 fn ensure_repair_policy(
@@ -432,9 +478,13 @@ fn ensure_external_candidate_lock(
 
 #[cfg(windows)]
 fn path_is_within(path: &Path, parent: &Path) -> bool {
-    let path = path.to_string_lossy().to_lowercase();
-    let parent = parent.to_string_lossy().to_lowercase();
-    path == parent || path.starts_with(&format!("{parent}{}", std::path::MAIN_SEPARATOR))
+    let mut parts = path.components();
+    parent.components().all(|parent_part| {
+        parts.next().is_some_and(|part| {
+            part.as_os_str().to_string_lossy().to_lowercase()
+                == parent_part.as_os_str().to_string_lossy().to_lowercase()
+        })
+    })
 }
 
 #[cfg(not(windows))]
@@ -608,6 +658,28 @@ mod tests {
     use crate::source_projection::candidate_lock::tests::Fixture as CandidateFixture;
     use crate::source_projection::provenance::sha256;
     use crate::source_projection::sync::MANIFEST_FILE;
+    use walkdir::WalkDir;
+
+    fn destination_snapshot(request: &PromotionRequest) -> BTreeMap<String, String> {
+        let mut snapshot = BTreeMap::new();
+        for target in request.candidates.keys() {
+            let root = request
+                .repository_root
+                .join(format!("platform/minecraft/mc-version/{target}"));
+            for entry in WalkDir::new(&root).follow_links(false) {
+                let entry = entry.unwrap();
+                let relative = entry.path().strip_prefix(&root).unwrap();
+                let key = format!("{target}/{}", relative.display());
+                let value = if entry.file_type().is_dir() {
+                    "directory".to_owned()
+                } else {
+                    sha256(&fs::read(entry.path()).unwrap())
+                };
+                snapshot.insert(key, value);
+            }
+        }
+        snapshot
+    }
 
     fn request_json(transition: &str) -> String {
         let candidates = (0..10)
@@ -986,6 +1058,7 @@ mod tests {
             new_definition_identity: &synthetic_new_identity,
             refmap_sha256: &synthetic_refmap_sha256,
             synthetic_gradle_overlays: None,
+            synthetic_before_promotion: None,
         };
         ensure_repair_policy(&request, &policy).unwrap();
         request.candidate_definition_identity = PUBLIC_REPAIR_POLICY.new_definition_identity.into();
@@ -1023,6 +1096,7 @@ mod tests {
             new_definition_identity: &synthetic_new_identity,
             refmap_sha256: &refmap_sha256,
             synthetic_gradle_overlays: Some(&gradle_overlays),
+            synthetic_before_promotion: None,
         };
         let make_args = |digest: String| PromotionArgs {
             request: request_path.clone(),
@@ -1112,6 +1186,59 @@ mod tests {
         }
     }
 
+    #[test]
+    fn repair_apply_rechecks_closed_candidate_inputs_before_destination_changes() {
+        let (fixture, request, refmap_sha256, gradle_overlays) =
+            CandidateFixture::new_repair_for_cli();
+        let scratch = request.repository_root.parent().unwrap();
+        let lock_path = scratch.join("reviewed-candidate-lock.json");
+        let lock_bytes = facet_json::to_string_pretty(fixture.lock()).unwrap();
+        fs::write(&lock_path, &lock_bytes).unwrap();
+        let request_path = scratch.join("reviewed-promotion-request.json");
+        fs::write(&request_path, request_file_json(&request)).unwrap();
+        let candidate_extra = request.candidates["1.19.2"]
+            .project_root
+            .join("unowned-after-initial-verification.txt");
+        let before_destinations = destination_snapshot(&request);
+        let inserted = std::cell::Cell::new(false);
+        let insert_unowned = || -> Result<()> {
+            fs::write(&candidate_extra, b"unowned candidate input\n")?;
+            inserted.set(true);
+            Ok(())
+        };
+        let policy = RepairIdentityPolicy {
+            old_definition_identity: PUBLIC_REPAIR_POLICY.old_definition_identity,
+            new_definition_identity: &request.candidate_definition_identity,
+            refmap_sha256: &refmap_sha256,
+            synthetic_gradle_overlays: Some(&gradle_overlays),
+            synthetic_before_promotion: Some(&insert_unowned),
+        };
+        let args = PromotionArgs {
+            request: request_path,
+            apply: true,
+            ack_pre_acceptance_baseline_repair: true,
+            candidate_lock: Some(lock_path),
+            candidate_lock_sha256: Some(sha256(lock_bytes.as_bytes())),
+        };
+        let error = args
+            .invoke_in_with_policy(&CancellationToken::new(), scratch, &policy)
+            .unwrap_err();
+        let diagnostics = format!("{error:?}");
+        assert!(
+            inserted.get(),
+            "test mutation was not reached: {diagnostics}"
+        );
+        assert!(
+            diagnostics.contains("pre-apply candidate verification failed"),
+            "{diagnostics}"
+        );
+        assert!(
+            diagnostics.contains("unowned candidate project input"),
+            "{diagnostics}"
+        );
+        assert_eq!(destination_snapshot(&request), before_destinations);
+    }
+
     #[cfg(windows)]
     #[test]
     fn external_lock_containment_is_case_insensitive_and_component_bounded() {
@@ -1122,6 +1249,14 @@ mod tests {
         assert!(!path_is_within(
             Path::new(r"C:\Reviewed\Repository\candidate.json"),
             Path::new(r"c:\reviewed\repo")
+        ));
+        assert!(path_is_within(
+            Path::new(r"C:\locks\candidate.json"),
+            Path::new("c:\\")
+        ));
+        assert!(!path_is_within(
+            Path::new(r"D:\locks\candidate.json"),
+            Path::new("c:\\")
         ));
     }
 

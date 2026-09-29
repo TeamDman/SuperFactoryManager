@@ -323,11 +323,47 @@ pub fn promote(request: &PromotionRequest, mode: PromotionMode) -> Result<Promot
     run_promotion(request, mode, None, None)
 }
 
+/// Apply only a pre-acceptance baseline repair after re-verifying its external
+/// candidate at the last boundary before any checked-in file is installed.
+/// The callback receives the retained transaction stage so it can report the
+/// exact transaction on failure. No normal immutable-preset Apply is exposed.
+pub(crate) fn promote_repair_with_pre_apply_verification(
+    request: &PromotionRequest,
+    verify: &dyn Fn(&Path) -> Result<()>,
+) -> Result<PromotionReport> {
+    ensure!(
+        matches!(
+            request.transition,
+            PromotionTransition::PreAcceptanceBaselineRepair { .. }
+        ),
+        "pre-apply candidate verification is reserved for baseline repair"
+    );
+    run_promotion_with_pre_apply_verification(
+        request,
+        PromotionMode::Apply,
+        None,
+        None,
+        Some(verify),
+    )
+}
+
 fn run_promotion(
     request: &PromotionRequest,
     mode: PromotionMode,
     fail_after: Option<usize>,
     hook: Option<&ApplyHook<'_>>,
+) -> Result<PromotionReport> {
+    run_promotion_with_pre_apply_verification(request, mode, fail_after, hook, None)
+}
+
+type PreApplyVerification<'a> = &'a dyn Fn(&Path) -> Result<()>;
+
+fn run_promotion_with_pre_apply_verification(
+    request: &PromotionRequest,
+    mode: PromotionMode,
+    fail_after: Option<usize>,
+    hook: Option<&ApplyHook<'_>>,
+    pre_apply_verify: Option<PreApplyVerification<'_>>,
 ) -> Result<PromotionReport> {
     let first = preflight(request)?;
     if mode == PromotionMode::DryRun {
@@ -377,14 +413,7 @@ fn run_promotion(
     staging_result
         .wrap_err_with(|| format!("promotion stage retained at '{}'", stage.display()))?;
 
-    // No destination changes precede this second, complete ten-target pass.
-    let second = preflight(request)
-        .wrap_err_with(|| format!("promotion stage retained at '{}'", stage.display()))?;
-    ensure!(
-        second == first,
-        "promotion input changed while staging; no checked-in root was written; stage retained at '{}'",
-        stage.display()
-    );
+    verify_before_destination_changes(request, &first, &stage, pre_apply_verify)?;
 
     let expected_files = expected_candidate_files(&repository_root, &first)
         .wrap_err_with(|| format!("promotion stage retained at '{}'", stage.display()))?;
@@ -437,6 +466,31 @@ fn run_promotion(
     let mut report = first.report;
     report.recovery_stage = Some(stage);
     Ok(report)
+}
+
+fn verify_before_destination_changes(
+    request: &PromotionRequest,
+    first: &PromotionPlan,
+    stage: &Path,
+    pre_apply_verify: Option<PreApplyVerification<'_>>,
+) -> Result<()> {
+    // No destination changes precede this second, complete ten-target pass.
+    let second = preflight(request)
+        .wrap_err_with(|| format!("promotion stage retained at '{}'", stage.display()))?;
+    ensure!(
+        second == *first,
+        "promotion input changed while staging; no checked-in root was written; stage retained at '{}'",
+        stage.display()
+    );
+    if let Some(verify) = pre_apply_verify {
+        verify(stage).wrap_err_with(|| {
+            format!(
+                "pre-apply candidate verification failed; no checked-in root was written; promotion stage retained at '{}'",
+                stage.display()
+            )
+        })?;
+    }
+    Ok(())
 }
 
 fn ensure_reviewed_inputs_current(root: &Path, request: &PromotionRequest) -> Result<()> {
