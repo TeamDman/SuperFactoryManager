@@ -1,0 +1,16 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="MPL-2.0"
+
+[[mods]]
+modId="sfmreleaseprobe"
+version="1"
+displayName="SFM release server registry witness"
+description="Test-only registry snapshot for an isolated Minecraft 26.1.2 production server."
+
+[[dependencies.sfmreleaseprobe]]
+modId="sfm"
+type="required"
+versionRange="[4.34.0,4.34.1)"
+ordering="AFTER"
+side="SERVER"
