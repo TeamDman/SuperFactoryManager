@@ -26,8 +26,8 @@ Set-StrictMode -Version Latest
 
 $target = $Target
 $transferMode = $Mode -eq 'vanilla-barrel-transfer'
-if ($transferMode -and $target -notin @('1.20.2', '1.21.0')) {
-    throw 'The opt-in vanilla-barrel transfer fixture is only validated for exact 1.20.2 and 1.21.0'
+if ($transferMode -and $target -notin @('1.20.2', '1.21.0', '26.1.2')) {
+    throw 'The opt-in vanilla-barrel transfer fixture is only validated for exact 1.20.2, 1.21.0 and 26.1.2'
 }
 $version = switch ($target) {
     '1.19.2' {
@@ -327,10 +327,10 @@ if ($transferMode) {
     $transferFixtureScript = Join-Path $probeRoot "versions/$target/TransferFixture.ps1"
     if (-not [IO.File]::Exists($transferFixtureScript)) { throw 'Transfer fixture script is missing' }
     . $transferFixtureScript
-    $transferFixture = if ($target -eq '1.20.2') {
-        Get-ReleaseServerTransferFixture1202
-    } else {
-        Get-ReleaseServerTransferFixture1210
+    $transferFixture = switch ($target) {
+        '1.20.2' { Get-ReleaseServerTransferFixture1202 }
+        '1.21.0' { Get-ReleaseServerTransferFixture1210 }
+        '26.1.2' { Get-ReleaseServerTransferFixture2612 }
     }
     foreach ($key in @('manager', 'source', 'destination', 'source_nbt',
                        'disk_nbt', 'expected_program', 'expected_label_a', 'expected_label_b',
