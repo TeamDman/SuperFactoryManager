@@ -269,6 +269,140 @@ mod tests {
     }
 
     #[test]
+    fn generated_project_exact_member_selectors_use_pinned_cached_classfiles() {
+        let (temporary, workspace) = generated_project_fixture();
+        let project_root = temporary.path().join("generated-project");
+        let cache_root = temporary.path().join("cache");
+        let jar_path = cache_root.join("minecraft-toolchain/maven/dep/library.jar");
+        std::fs::create_dir_all(jar_path.parent().unwrap()).unwrap();
+        let mut archive = ZipWriter::new(Cursor::new(Vec::new()));
+        archive
+            .start_file("dep/External.class", SimpleFileOptions::default())
+            .unwrap();
+        archive.write_all(&member_classfile()).unwrap();
+        let jar = archive.finish().unwrap().into_inner();
+        std::fs::write(&jar_path, &jar).unwrap();
+        let pin = |jar: &[u8]| {
+            let hash = ContentHash::from_bytes(jar, ContentHashAlgorithm::Blake3);
+            std::fs::write(
+                project_root.join("sfm-toolchain.lock.json"),
+                format!(
+                    r#"{{"schema_version":2,"minecraft_version":"1.19.2","maven_cache_dir":"$sfm-cache/maven","allow_local_artifact_cache":false,"repositories":[],"dependencies":[],"artifacts":[{{"coordinate":"dep:library:1","source":"remote-maven","repository":null,"url":null,"cache_path":"$sfm-cache/maven/dep/library.jar","original_path":null,"source_relative_path":null,"source_git":null,"source_build":null,"hash":"{hash}","weak":null}}]}}"#
+                ),
+            )
+            .unwrap();
+        };
+        pin(&jar);
+
+        with_java_analysis_scenario_fixture(
+            JavaAnalysisScenarioFixture {
+                jdk_source_tree: temporary.path().join("unavailable-jdk"),
+                cache_home: CacheHome(cache_root),
+            },
+            || {
+                let definition = |member: &str| {
+                    SymbolShowDefinitionArgs {
+                        selector: vec!["dep.External".to_owned(), member.to_owned()],
+                        source_path: None,
+                        source_root_id: None,
+                        line: None,
+                        column: None,
+                        workspace: workspace.clone(),
+                    }
+                    .invoke_in(&CancellationToken::new(), temporary.path())
+                    .unwrap()
+                };
+                for member in ["VALUE", "get()I", "get(I)I"] {
+                    let found = definition(member);
+                    assert_eq!(found.exit_code(), 0, "{member}");
+                    let json = found
+                        .render(Some(OutputFormat::Json), false)
+                        .unwrap()
+                        .unwrap();
+                    assert!(json.contains(&format!("dep.External.{member}")), "{json}");
+                    assert!(json.contains("External.class"), "{json}");
+                }
+                let missing = definition("get(J)I");
+                assert_eq!(missing.exit_code(), 2);
+                let json = missing
+                    .render(Some(OutputFormat::Json), false)
+                    .unwrap()
+                    .unwrap();
+                assert!(!json.contains("dep.External.get()I"), "{json}");
+                assert!(!json.contains("dep.External.get(I)I"), "{json}");
+
+                std::fs::write(&jar_path, b"stale cached JAR").unwrap();
+                let stale = definition("get()I");
+                assert_eq!(stale.exit_code(), 5);
+                let json = stale
+                    .render(Some(OutputFormat::Json), false)
+                    .unwrap()
+                    .unwrap();
+                assert!(json.contains("java.dependency-artifact-unavailable"));
+                assert!(json.contains("checksum does not match"));
+
+                let mut truncated_class = member_classfile();
+                truncated_class.pop();
+                let mut archive = ZipWriter::new(Cursor::new(Vec::new()));
+                archive
+                    .start_file("dep/External.class", SimpleFileOptions::default())
+                    .unwrap();
+                archive.write_all(&truncated_class).unwrap();
+                let truncated_jar = archive.finish().unwrap().into_inner();
+                std::fs::write(&jar_path, &truncated_jar).unwrap();
+                pin(&truncated_jar);
+                let malformed = definition("get()I");
+                assert_eq!(malformed.exit_code(), 5);
+                let json = malformed
+                    .render(Some(OutputFormat::Json), false)
+                    .unwrap()
+                    .unwrap();
+                assert!(json.contains("selected classfile is invalid"), "{json}");
+            },
+        );
+    }
+
+    fn member_classfile() -> Vec<u8> {
+        let mut bytes = vec![0xca, 0xfe, 0xba, 0xbe, 0, 0, 0, 61];
+        bytes.extend(10_u16.to_be_bytes());
+        for entry in [
+            "dep/External",
+            "java/lang/Object",
+            "VALUE",
+            "I",
+            "get",
+            "()I",
+            "(I)I",
+        ] {
+            bytes.push(1);
+            bytes.extend(u16::try_from(entry.len()).unwrap().to_be_bytes());
+            bytes.extend(entry.as_bytes());
+            if entry == "dep/External" || entry == "java/lang/Object" {
+                bytes.push(7);
+                bytes.extend(
+                    if entry == "dep/External" {
+                        1_u16
+                    } else {
+                        3_u16
+                    }
+                    .to_be_bytes(),
+                );
+            }
+        }
+        // Public abstract class, this/super, zero interfaces.
+        for word in [0x0421_u16, 2, 4, 0] {
+            bytes.extend(word.to_be_bytes());
+        }
+        // One public static field and two abstract method overloads.
+        for word in [
+            1_u16, 0x0009, 5, 6, 0, 2, 0x0401, 7, 8, 0, 0x0401, 7, 9, 0, 0,
+        ] {
+            bytes.extend(word.to_be_bytes());
+        }
+        bytes
+    }
+
+    #[test]
     fn generated_project_location_queries_do_not_acquire_branch_dependencies() {
         let (temporary, workspace) = generated_project_fixture();
         let project_root = temporary.path().join("generated-project");

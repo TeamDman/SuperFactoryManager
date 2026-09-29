@@ -60,7 +60,7 @@ use crate::java_analysis::java_identifier_tokens;
 use crate::java_analysis::java_member_access_tokens;
 use crate::java_analysis::project_dependency_symbol_index_identity_with_locked_sources;
 use crate::java_analysis::scan_dependency_java_symbol_index;
-use crate::java_analysis::scan_generated_dependency_type;
+use crate::java_analysis::scan_generated_dependency_symbol;
 use crate::paths::CacheHome;
 use crate::payload_fetcher::http_fetcher;
 use crate::toolchain_lockfile_schema::version::v3::DependencyKindV3;
@@ -429,14 +429,21 @@ pub(super) struct SymbolQueryIndex {
 }
 
 impl DependencySymbolQuery<'_> {
-    fn exact_type_name(self) -> Option<String> {
-        let owner = match self {
-            Self::Definition(JavaSymbolSelector::Type { owner })
-            | Self::Usages(JavaSymbolSelector::Type { owner }) => owner.as_str(),
-            Self::List(pattern) => pattern.pattern(),
-            Self::Definition(_) | Self::Usages(_) => return None,
-        };
-        (owner.contains('.') && !owner.contains(['*', '?', ' '])).then(|| owner.to_owned())
+    fn exact_generated_selector(self) -> Option<JavaSymbolSelector> {
+        match self {
+            Self::Definition(selector) | Self::Usages(selector) => {
+                let owner = selector.owner();
+                (owner.contains('.') && !owner.contains(['*', '?', ' '])).then(|| selector.clone())
+            }
+            Self::List(pattern) => {
+                let owner = pattern.pattern();
+                (owner.contains('.') && !owner.contains(['*', '?', ' '])).then(|| {
+                    JavaSymbolSelector::Type {
+                        owner: owner.to_owned(),
+                    }
+                })
+            }
+        }
     }
 
     fn has_local_match(self, index: &JavaSymbolIndex) -> bool {
@@ -515,14 +522,15 @@ pub(super) fn build_query_index(
         };
         let mut project_diagnostics = Vec::new();
         let mut project_incomplete = false;
-        if let (Some(project_root), Some(owner)) = (project_root, query.exact_type_name())
+        if let (Some(project_root), Some(selector)) =
+            (project_root, query.exact_generated_selector())
             && !query.has_local_match(&index)
         {
             let cache_home = CacheHome::resolve()?;
-            let scan = scan_generated_dependency_type(
+            let scan = scan_generated_dependency_symbol(
                 project_root,
                 &cache_home.0,
-                &owner,
+                &selector,
                 cancellation_token,
             )?;
             project_diagnostics.clone_from(&scan.body.diagnostics);

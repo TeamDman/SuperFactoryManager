@@ -1,4 +1,4 @@
-//! Bounded, read-only lookup of class declarations in a generated project's
+//! Bounded, read-only lookup of exact class and member declarations in a generated project's
 //! schema-v2 checksum-pinned dependency JARs. No branch context or acquisition
 //! machinery participates in this path. Existing cache path components are
 //! checked for links/reparse points, but this is not a transactional defense
@@ -11,6 +11,7 @@ use super::JavaSourceSpanOutput;
 use super::JavaSymbolDefinitionOutput;
 use super::JavaSymbolIdentityOutput;
 use super::JavaSymbolKind;
+use super::JavaSymbolSelector;
 use super::ResolutionConfidence;
 use crate::cancellation::CancellationToken;
 use crate::jar_build::hash::ContentHash;
@@ -37,16 +38,35 @@ pub(crate) struct GeneratedDependencyTypeScan {
 /// Find one fully-qualified type in checksum-pinned JARs already present in
 /// the application cache. Missing/stale pins produce typed diagnostics; no
 /// cache files are created or repaired.
-#[expect(
-    clippy::too_many_lines,
-    reason = "the bounded cache scan validates each pin before emitting a declaration"
-)]
 pub(crate) fn scan_generated_dependency_type(
     project_root: &Path,
     cache_root: &Path,
     qualified_name: &str,
     cancellation_token: &CancellationToken,
 ) -> eyre::Result<GeneratedDependencyTypeScan> {
+    scan_generated_dependency_symbol(
+        project_root,
+        cache_root,
+        &JavaSymbolSelector::Type {
+            owner: qualified_name.to_owned(),
+        },
+        cancellation_token,
+    )
+}
+
+/// Resolve only an exact type, field, or method selector. In particular, a
+/// method's JVM descriptor is required: overloads are never guessed.
+#[expect(
+    clippy::too_many_lines,
+    reason = "the bounded cache scan validates each pin before emitting a declaration"
+)]
+pub(crate) fn scan_generated_dependency_symbol(
+    project_root: &Path,
+    cache_root: &Path,
+    selector: &JavaSymbolSelector,
+    cancellation_token: &CancellationToken,
+) -> eyre::Result<GeneratedDependencyTypeScan> {
+    let qualified_name = selector.owner();
     let lock_path = project_root.join("sfm-toolchain.lock.json");
     let input = std::fs::read_to_string(&lock_path)
         .wrap_err_with(|| format!("Failed to read {}", lock_path.display()))?;
@@ -158,12 +178,22 @@ pub(crate) fn scan_generated_dependency_type(
             ));
             continue;
         }
-        let Ok(kind) = class_kind(&bytes) else {
+        let selected = match selector {
+            JavaSymbolSelector::Type { .. } => {
+                class_kind(&bytes).map(|kind| vec![class_symbol(qualified_name, kind)])
+            }
+            JavaSymbolSelector::Field { .. } | JavaSymbolSelector::Method { .. } => {
+                class_member_symbols(&bytes, selector).and_then(|mut members| {
+                    members.insert(0, class_symbol(qualified_name, class_kind(&bytes)?));
+                    Ok(members)
+                })
+            }
+        };
+        let Ok(selected) = selected else {
             complete = false;
             diagnostics.push(unavailable(coordinate, "selected classfile is invalid"));
             continue;
         };
-        let name = qualified_name.rsplit('.').next().unwrap_or(qualified_name);
         let span = JavaSourceSpanOutput {
             path: format!("dependency/{}/{entry_name}", artifact.hash.hex()),
             source_set: "dependency:generated-classfile".to_owned(),
@@ -175,18 +205,16 @@ pub(crate) fn scan_generated_dependency_type(
             end_line: 1,
             end_column: 1,
         };
-        definitions.push(JavaSymbolDefinitionOutput {
-            symbol: JavaSymbolIdentityOutput {
-                kind,
-                owner: qualified_name.to_owned(),
-                name: name.to_owned(),
-                descriptor: None,
-                qualified_name: qualified_name.to_owned(),
-            },
-            identifier_span: span.clone(),
-            declaration_span: span,
-            confidence: ResolutionConfidence::Resolved,
-        });
+        definitions.extend(
+            selected
+                .into_iter()
+                .map(|symbol| JavaSymbolDefinitionOutput {
+                    symbol,
+                    identifier_span: span.clone(),
+                    declaration_span: span.clone(),
+                    confidence: ResolutionConfidence::Resolved,
+                }),
+        );
     }
     definitions.sort();
     definitions.dedup();
@@ -196,6 +224,20 @@ pub(crate) fn scan_generated_dependency_type(
         body: DependencyJavaSymbolIndexBody::new(definitions, Vec::new(), diagnostics),
         complete,
     })
+}
+
+fn class_symbol(qualified_name: &str, kind: JavaSymbolKind) -> JavaSymbolIdentityOutput {
+    JavaSymbolIdentityOutput {
+        kind,
+        owner: qualified_name.to_owned(),
+        name: qualified_name
+            .rsplit('.')
+            .next()
+            .unwrap_or(qualified_name)
+            .to_owned(),
+        descriptor: None,
+        qualified_name: qualified_name.to_owned(),
+    }
 }
 
 fn cached_artifact_path(cache_root: &Path, portable: &Path) -> Option<std::path::PathBuf> {
@@ -282,36 +324,8 @@ fn hash_cached_jar(
 }
 
 fn class_kind(bytes: &[u8]) -> eyre::Result<JavaSymbolKind> {
-    eyre::ensure!(
-        bytes.get(..4) == Some(&[0xca, 0xfe, 0xba, 0xbe]),
-        "invalid classfile magic"
-    );
-    let pool_count = usize::from(read_u16(bytes, 8)?);
-    let mut offset = 10;
-    let mut index = 1;
-    while index < pool_count {
-        let tag = *bytes
-            .get(offset)
-            .ok_or_else(|| eyre::eyre!("truncated constant pool"))?;
-        offset += 1;
-        let skip = match tag {
-            1 => 2 + usize::from(read_u16(bytes, offset)?),
-            3 | 4 | 9 | 10 | 11 | 12 | 17 | 18 => 4,
-            5 | 6 => {
-                index += 1;
-                8
-            }
-            7 | 8 | 16 | 19 | 20 => 2,
-            15 => 3,
-            _ => eyre::bail!("unknown classfile constant tag {tag}"),
-        };
-        offset = offset
-            .checked_add(skip)
-            .ok_or_else(|| eyre::eyre!("classfile offset overflow"))?;
-        eyre::ensure!(offset <= bytes.len(), "truncated constant pool entry");
-        index += 1;
-    }
-    let flags = read_u16(bytes, offset)?;
+    let pool = class_constant_pool(bytes)?;
+    let flags = read_u16(bytes, pool.end)?;
     Ok(if flags & 0x2000 != 0 {
         JavaSymbolKind::Annotation
     } else if flags & 0x4000 != 0 {
@@ -321,6 +335,174 @@ fn class_kind(bytes: &[u8]) -> eyre::Result<JavaSymbolKind> {
     } else {
         JavaSymbolKind::Class
     })
+}
+
+struct ClassConstantPool<'a> {
+    end: usize,
+    utf8: Vec<Option<&'a [u8]>>,
+    class_names: Vec<Option<u16>>,
+}
+
+fn class_constant_pool(bytes: &[u8]) -> eyre::Result<ClassConstantPool<'_>> {
+    eyre::ensure!(
+        bytes.get(..4) == Some(&[0xca, 0xfe, 0xba, 0xbe]),
+        "invalid classfile magic"
+    );
+    let pool_count = usize::from(read_u16(bytes, 8)?);
+    eyre::ensure!(pool_count > 0, "invalid constant pool count");
+    let mut utf8 = vec![None; pool_count];
+    let mut class_names = vec![None; pool_count];
+    let mut offset = 10;
+    let mut index = 1;
+    while index < pool_count {
+        let tag = *bytes
+            .get(offset)
+            .ok_or_else(|| eyre::eyre!("truncated constant pool"))?;
+        offset += 1;
+        let skip = match tag {
+            1 => {
+                let length = usize::from(read_u16(bytes, offset)?);
+                let start = offset + 2;
+                let end = start
+                    .checked_add(length)
+                    .ok_or_else(|| eyre::eyre!("classfile offset overflow"))?;
+                utf8[index] = Some(
+                    bytes
+                        .get(start..end)
+                        .ok_or_else(|| eyre::eyre!("truncated constant pool entry"))?,
+                );
+                2 + length
+            }
+            3 | 4 | 9 | 10 | 11 | 12 | 17 | 18 => 4,
+            5 | 6 => {
+                index += 1;
+                8
+            }
+            7 => {
+                class_names[index] = Some(read_u16(bytes, offset)?);
+                2
+            }
+            8 | 16 | 19 | 20 => 2,
+            15 => 3,
+            _ => eyre::bail!("unknown classfile constant tag {tag}"),
+        };
+        offset = offset
+            .checked_add(skip)
+            .ok_or_else(|| eyre::eyre!("classfile offset overflow"))?;
+        eyre::ensure!(offset <= bytes.len(), "truncated constant pool entry");
+        index += 1;
+    }
+    Ok(ClassConstantPool {
+        end: offset,
+        utf8,
+        class_names,
+    })
+}
+
+fn class_member_symbols(
+    bytes: &[u8],
+    selector: &JavaSymbolSelector,
+) -> eyre::Result<Vec<JavaSymbolIdentityOutput>> {
+    let pool = class_constant_pool(bytes)?;
+    let mut cursor = pool.end;
+    let _access_flags = take_u16(bytes, &mut cursor)?;
+    let this_class = usize::from(take_u16(bytes, &mut cursor)?);
+    let _super_class = take_u16(bytes, &mut cursor)?;
+    let internal_name_index = usize::from(
+        pool.class_names
+            .get(this_class)
+            .copied()
+            .flatten()
+            .ok_or_else(|| eyre::eyre!("invalid this_class index"))?,
+    );
+    let expected_internal_name = selector.owner().replace('.', "/");
+    eyre::ensure!(
+        pool_utf8(&pool, internal_name_index)? == expected_internal_name,
+        "classfile owner does not match its JAR entry"
+    );
+    let interfaces = usize::from(take_u16(bytes, &mut cursor)?);
+    advance(bytes, &mut cursor, interfaces * 2)?;
+    let mut selected = Vec::new();
+    for kind in [JavaSymbolKind::Field, JavaSymbolKind::Method] {
+        let count = usize::from(take_u16(bytes, &mut cursor)?);
+        for _ in 0..count {
+            let _access_flags = take_u16(bytes, &mut cursor)?;
+            let name_index = usize::from(take_u16(bytes, &mut cursor)?);
+            let descriptor_index = usize::from(take_u16(bytes, &mut cursor)?);
+            let attributes = usize::from(take_u16(bytes, &mut cursor)?);
+            let name = pool_utf8(&pool, name_index)?;
+            let descriptor = pool_utf8(&pool, descriptor_index)?;
+            let actual_kind = if kind == JavaSymbolKind::Method && name == "<init>" {
+                JavaSymbolKind::Constructor
+            } else {
+                kind
+            };
+            let symbol = JavaSymbolIdentityOutput {
+                kind: actual_kind,
+                owner: selector.owner().to_owned(),
+                name: name.to_owned(),
+                descriptor: (kind == JavaSymbolKind::Method).then(|| descriptor.to_owned()),
+                qualified_name: if kind == JavaSymbolKind::Field {
+                    format!("{}.{name}", selector.owner())
+                } else {
+                    format!("{}.{name}{descriptor}", selector.owner())
+                },
+            };
+            if selector.matches_exact(&symbol) {
+                selected.push(symbol);
+            }
+            skip_attributes(bytes, &mut cursor, attributes)?;
+        }
+    }
+    let class_attributes = usize::from(take_u16(bytes, &mut cursor)?);
+    skip_attributes(bytes, &mut cursor, class_attributes)?;
+    eyre::ensure!(
+        cursor == bytes.len(),
+        "trailing or truncated classfile bytes"
+    );
+    Ok(selected)
+}
+
+fn pool_utf8<'a>(pool: &ClassConstantPool<'a>, index: usize) -> eyre::Result<&'a str> {
+    let bytes = pool
+        .utf8
+        .get(index)
+        .copied()
+        .flatten()
+        .ok_or_else(|| eyre::eyre!("invalid constant-pool UTF-8 index"))?;
+    Ok(std::str::from_utf8(bytes)?)
+}
+
+fn skip_attributes(bytes: &[u8], cursor: &mut usize, count: usize) -> eyre::Result<()> {
+    for _ in 0..count {
+        let _name_index = take_u16(bytes, cursor)?;
+        let length = usize::try_from(take_u32(bytes, cursor)?)?;
+        advance(bytes, cursor, length)?;
+    }
+    Ok(())
+}
+
+fn advance(bytes: &[u8], cursor: &mut usize, length: usize) -> eyre::Result<()> {
+    *cursor = cursor
+        .checked_add(length)
+        .ok_or_else(|| eyre::eyre!("classfile offset overflow"))?;
+    eyre::ensure!(*cursor <= bytes.len(), "truncated classfile");
+    Ok(())
+}
+
+fn take_u16(bytes: &[u8], cursor: &mut usize) -> eyre::Result<u16> {
+    let value = read_u16(bytes, *cursor)?;
+    advance(bytes, cursor, 2)?;
+    Ok(value)
+}
+
+fn take_u32(bytes: &[u8], cursor: &mut usize) -> eyre::Result<u32> {
+    let octets: [u8; 4] = bytes
+        .get(*cursor..cursor.saturating_add(4))
+        .ok_or_else(|| eyre::eyre!("truncated classfile"))?
+        .try_into()?;
+    advance(bytes, cursor, 4)?;
+    Ok(u32::from_be_bytes(octets))
 }
 
 fn read_u16(bytes: &[u8], offset: usize) -> eyre::Result<u16> {
