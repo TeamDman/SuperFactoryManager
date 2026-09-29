@@ -26,8 +26,8 @@ Set-StrictMode -Version Latest
 
 $target = $Target
 $transferMode = $Mode -eq 'vanilla-barrel-transfer'
-if ($transferMode -and $target -ne '1.21.0') {
-    throw 'The opt-in vanilla-barrel transfer fixture is only validated for exact 1.21.0'
+if ($transferMode -and $target -notin @('1.20.2', '1.21.0')) {
+    throw 'The opt-in vanilla-barrel transfer fixture is only validated for exact 1.20.2 and 1.21.0'
 }
 $version = switch ($target) {
     '1.19.2' {
@@ -324,10 +324,14 @@ if ($version.ContainsKey('fixture_source') -and -not $transferMode) {
 }
 $transferFixture = $null
 if ($transferMode) {
-    $transferFixtureScript = Join-Path $probeRoot 'versions/1.21.0/TransferFixture.ps1'
+    $transferFixtureScript = Join-Path $probeRoot "versions/$target/TransferFixture.ps1"
     if (-not [IO.File]::Exists($transferFixtureScript)) { throw 'Transfer fixture script is missing' }
     . $transferFixtureScript
-    $transferFixture = Get-ReleaseServerTransferFixture1210
+    $transferFixture = if ($target -eq '1.20.2') {
+        Get-ReleaseServerTransferFixture1202
+    } else {
+        Get-ReleaseServerTransferFixture1210
+    }
     foreach ($key in @('manager', 'source', 'destination', 'source_nbt',
                        'disk_nbt', 'expected_program', 'expected_label_a', 'expected_label_b',
                        'poll_timeout_seconds')) {
@@ -500,10 +504,15 @@ function Read-TransferData($Process, [string] $LogPath, [string] $TranscriptPath
 }
 
 function Test-TransferDirt64([string] $Items) {
+    $countIs64 = if ($target -eq '1.20.2') {
+        $Items -cmatch '(?<!\w)Count:\s*64b(?!\w)'
+    } else {
+        $Items -cmatch '(?<!\w)count:\s*64(?!\w)'
+    }
     return $Items -cmatch '^\[\{[^{}]+\}\]$' -and
         $Items -cmatch '(?<!\w)Slot:\s*0b(?!\w)' -and
         $Items -cmatch '(?<!\w)id:\s*"minecraft:dirt"' -and
-        $Items -cmatch '(?<!\w)count:\s*64(?!\w)'
+        $countIs64
 }
 
 function Read-TransferPreState($Process, [string] $LogPath, [string] $TranscriptPath,
@@ -535,16 +544,18 @@ function Read-TransferFinalState($Process, [string] $LogPath, [string] $Transcri
         Start-Sleep -Seconds 1
     } while ($true)
     $manager = $transferFixture.manager
+    $itemData = if ($target -eq '1.20.2') { 'tag' } else { 'components' }
+    $labelsPath = if ($target -eq '1.20.2') { '"sfm:labels"' } else { '"sfm:labels".labels' }
     $program = Read-TransferData $Process $LogPath $TranscriptPath `
-        "data get block $manager Items[0].components.`"sfm:program`""
+        "data get block $manager Items[0].$itemData.`"sfm:program`""
     $labelA = Read-TransferData $Process $LogPath $TranscriptPath `
-        "data get block $manager Items[0].components.`"sfm:labels`".labels.a[0]"
+        "data get block $manager Items[0].$itemData.$labelsPath.a[0]"
     $labelB = Read-TransferData $Process $LogPath $TranscriptPath `
-        "data get block $manager Items[0].components.`"sfm:labels`".labels.b[0]"
+        "data get block $manager Items[0].$itemData.$labelsPath.b[0]"
     $errors = Read-TransferData $Process $LogPath $TranscriptPath `
-        "data get block $manager Items[0].components.`"sfm:errors`""
+        "data get block $manager Items[0].$itemData.`"sfm:errors`""
     $warnings = Read-TransferData $Process $LogPath $TranscriptPath `
-        "data get block $manager Items[0].components.`"sfm:warnings`""
+        "data get block $manager Items[0].$itemData.`"sfm:warnings`""
     if ($program -cne $transferFixture.expected_program -or
         $labelA -cne $transferFixture.expected_label_a -or
         $labelB -cne $transferFixture.expected_label_b -or $errors -cne '[]') {
@@ -655,6 +666,10 @@ function Invoke-ServerBoot([string] $Role, [string] $BootDirectory, [string] $Sf
                 Send-ServerCommand $process $log $transcript `
                     "data merge block $($transferFixture.manager) $($transferFixture.disk_nbt)" `
                     'Modified block data of 0, 120, 0' | Out-Null
+                # Retain the server's exact reloaded disk state when a transfer
+                # never starts; the inventory assertions below remain strict.
+                Read-TransferData $process $log $transcript `
+                    "data get block $($transferFixture.manager) Items[0]" | Out-Null
                 $transferAfter = Read-TransferFinalState $process $log $transcript $Role $true
             }
         }
