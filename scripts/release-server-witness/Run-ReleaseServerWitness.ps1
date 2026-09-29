@@ -254,7 +254,14 @@ $version = switch ($target) {
             fml_language_artifact = ''
             fml_library_version = '11.0.13'
             event_bus_path = 'libraries/net/neoforged/bus/8.0.5/bus-8.0.5.jar'
-            compile_extra_paths = @('libraries/com/mojang/datafixerupper/9.0.19/datafixerupper-9.0.19.jar')
+            compile_extra_paths = @(
+                'libraries/net/neoforged/neoforge/26.1.2.72/neoforge-26.1.2.72-universal.jar'
+                'libraries/com/mojang/datafixerupper/9.0.19/datafixerupper-9.0.19.jar'
+            )
+            compile_extra_expected_sha256 = @{
+                'libraries/net/neoforged/neoforge/26.1.2.72/neoforge-26.1.2.72-universal.jar' = 'f225af6c065719b4b147cb414be207501f9be55be5072dcf019970d5c3700b7f'
+                'libraries/com/mojang/datafixerupper/9.0.19/datafixerupper-9.0.19.jar' = '9653a39cf5c4853cc98628d902dcb23ffeb2755122ecc563bde38c8f60c0b61e'
+            }
             compile_jar_name = 'raw.jar'
             compile_jar_kind = 'neoform_joined_26.1.2-1'
             compile_jar_sha256 = '9f37007fdd16c8218110edf1fa91dab10038d62bc62f0c99570f56503f4ac618'
@@ -265,7 +272,7 @@ $version = switch ($target) {
             probe_source = 'versions/26.1.2/src/main/java/ca/teamdman/sfm/releaseprobe/ReleaseServerRegistryProbe.java'
             resources = 'versions/26.1.2/resources'
             mod_manifest = 'META-INF/neoforge.mods.toml'
-            fixture_source = 'versions/1.21.0/Fixture.ps1'
+            fixture_source = 'versions/26.1.2/Fixture.ps1'
             java_source = '25'
         }
     }
@@ -279,6 +286,7 @@ if (-not $version.ContainsKey('event_bus_path')) {
     $version.event_bus_path = "libraries/net/minecraftforge/eventbus/$($version.event_bus)/eventbus-$($version.event_bus).jar"
 }
 if (-not $version.ContainsKey('compile_extra_paths')) { $version.compile_extra_paths = @() }
+if (-not $version.ContainsKey('compile_extra_expected_sha256')) { $version.compile_extra_expected_sha256 = @{} }
 if (-not $version.ContainsKey('compile_jar_name')) {
     $version.compile_jar_name = "forge-$($version.artifact_version)-srg.jar"
 }
@@ -696,8 +704,14 @@ $language = if ($languageArtifact) {
 } else { '' }
 $eventBus = Assert-File (Join-Path $classpathRoot $version.event_bus_path)
 $compileExtras = [Collections.Generic.List[string]]::new()
+$compileExtraHashes = [ordered]@{}
 foreach ($relative in $version.compile_extra_paths) {
-    $compileExtras.Add((Assert-File (Join-Path $classpathRoot $relative)))
+    $extra = Assert-File (Join-Path $classpathRoot $relative)
+    if ($version.compile_extra_expected_sha256.ContainsKey($relative)) {
+        Assert-Hash $extra SHA256 $version.compile_extra_expected_sha256[$relative] | Out-Null
+    }
+    $compileExtras.Add($extra)
+    $compileExtraHashes[$relative] = Get-Sha256 $extra
 }
 $probeClasses = Join-Path $run 'probe-classes'
 [IO.Directory]::CreateDirectory($probeClasses) | Out-Null
@@ -795,6 +809,7 @@ $report = [ordered]@{
     loader_installer_sha256 = $expectedInstallerSha256
     loader_compile_jar_kind = $version.compile_jar_kind
     loader_compile_jar_sha256 = $version.compile_jar_sha256
+    probe_compile_extra_sha256 = $compileExtraHashes
     loader_launch_args_sha256 = Get-Sha256 $launchArgs
     probe_jar_sha256 = $probeHash
     seed_level_dat_sha256 = $seedResult.level_dat_sha256
