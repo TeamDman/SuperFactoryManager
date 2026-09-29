@@ -777,7 +777,7 @@ fn is_within(path: &Path, parent: &Path) -> bool {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::cancellation::CancellationToken;
     use crate::cli::source::CandidateVerifyArgs;
@@ -787,6 +787,11 @@ mod tests {
     use crate::source_projection::manifest::ProjectionPreset;
     use crate::source_projection::manifest::ProjectionTarget;
     use crate::source_projection::manifest::SCHEMA_VERSION;
+    use crate::source_projection::promotion::PromotionCandidate;
+    use crate::source_projection::promotion::PromotionRequest;
+    use crate::source_projection::promotion::PromotionTransition;
+    use crate::source_projection::promotion::ReviewedOperationKind;
+    use crate::source_projection::promotion::ReviewedPromotionOperation;
     use tempfile::TempDir;
 
     const TARGETS: [(&str, &str, &str, u16); 10] = [
@@ -802,7 +807,7 @@ mod tests {
         ("26.1.2", "26.1.2", "neoforge", 25),
     ];
 
-    struct Fixture {
+    pub(crate) struct Fixture {
         _temp: TempDir,
         repo: PathBuf,
         roots: BTreeMap<String, PathBuf>,
@@ -811,6 +816,10 @@ mod tests {
 
     impl Fixture {
         fn new() -> Self {
+            Self::new_with_version("4.35.0", false)
+        }
+
+        fn new_with_version(mod_version: &str, include_refmap: bool) -> Self {
             let temp = tempfile::tempdir().unwrap();
             let repo = temp.path().join("repo");
             fs::create_dir_all(repo.join("platform/minecraft")).unwrap();
@@ -832,7 +841,7 @@ mod tests {
                     .collect(),
                 features: vec![],
                 presets: vec![ProjectionPreset {
-                    id: "released-4.35.0".to_owned(),
+                    id: format!("released-{mod_version}"),
                     targets: TARGETS
                         .iter()
                         .map(|(id, _, _, _)| (*id).to_owned())
@@ -848,13 +857,22 @@ mod tests {
                 .unwrap();
             let manifest_json = facet_json::to_string_pretty(&manifest).unwrap() + "\n";
             fs::write(repo.join(SOURCE_MANIFEST), &manifest_json).unwrap();
-            fs::write(repo.join(ROOT_GRADLE_PROPERTIES), "mod_version=4.35.0\n").unwrap();
+            fs::write(
+                repo.join(ROOT_GRADLE_PROPERTIES),
+                format!("mod_version={mod_version}\n"),
+            )
+            .unwrap();
             fs::create_dir_all(repo.join("platform/minecraft/src/main/java")).unwrap();
             fs::write(
                 repo.join("platform/minecraft/src/main/java/Candidate.java"),
                 "class Candidate {}\n",
             )
             .unwrap();
+            if include_refmap {
+                let refmap = repo.join("platform/minecraft/src/main/resources/sfm.refmap.json");
+                fs::create_dir_all(refmap.parent().unwrap()).unwrap();
+                fs::write(refmap, "{}\n").unwrap();
+            }
             fs::create_dir_all(repo.join("platform/minecraft/gradle/wrapper")).unwrap();
             for (path, bytes) in [
                 ("build.gradle", "// synthetic build\n"),
@@ -875,7 +893,7 @@ mod tests {
                 fs::write(
                     overlay.join("gradle.properties"),
                     format!(
-                        "minecraft_version={minecraft_version}\nmod_version=4.35.0\nneo_version=1.2.3\n"
+                        "minecraft_version={minecraft_version}\nmod_version={mod_version}\nneo_version=1.2.3\n"
                     ),
                 )
                 .unwrap();
@@ -890,6 +908,20 @@ mod tests {
                     "distributionUrl=https://example.invalid/gradle-8.12-bin.zip\n",
                 )
                 .unwrap();
+                if include_refmap {
+                    let synthetic =
+                        repo.join(format!("platform/minecraft/test-gradle-overlays/{id}"));
+                    for path in [
+                        "gradle.properties",
+                        "settings.gradle",
+                        "sfm-toolchain.lock.json",
+                        "gradle/wrapper/gradle-wrapper.properties",
+                    ] {
+                        let output = synthetic.join(path);
+                        fs::create_dir_all(output.parent().unwrap()).unwrap();
+                        fs::write(output, fs::read(overlay.join(path)).unwrap()).unwrap();
+                    }
+                }
             }
             let evidence = b"Reviewed compatibility differences.\n";
             fs::write(repo.join("docs/compatibility.md"), evidence).unwrap();
@@ -916,19 +948,23 @@ mod tests {
                     command: SourceCommand::Sync(SourceProjectArgs {
                         repo_root: repo.clone(),
                         target: id.to_owned(),
-                        preset: "released-4.35.0".to_owned(),
+                        preset: format!("released-{mod_version}"),
                         manifest: None,
                         primary_src_root: None,
                         gradle_project_root: None,
                         output_root: root.clone(),
                         overlay: Vec::new(),
-                        gradle_overlay: vec![format!("target=platform/minecraft/mc-version/{id}")],
+                        gradle_overlay: vec![if include_refmap {
+                            format!("synthetic=platform/minecraft/test-gradle-overlays/{id}")
+                        } else {
+                            format!("target=platform/minecraft/mc-version/{id}")
+                        }],
                     }),
                 }
                 .invoke_in(&CancellationToken::new(), &repo)
                 .unwrap();
                 fs::create_dir_all(root.join("build/libs")).unwrap();
-                let jar_name = format!("SFM-MC{minecraft_version}-4.35.0.jar");
+                let jar_name = format!("SFM-MC{minecraft_version}-{mod_version}.jar");
                 let jar_path = root.join("build/libs").join(&jar_name);
                 let jar_bytes = format!("synthetic JAR for {id}\n");
                 fs::write(&jar_path, &jar_bytes).unwrap();
@@ -952,8 +988,8 @@ mod tests {
                 schema: LOCK_SCHEMA.to_owned(),
                 source_commit,
                 source_manifest_sha256: sha256(manifest_json.as_bytes()),
-                mod_version: "4.35.0".to_owned(),
-                candidate_preset_id: "released-4.35.0".to_owned(),
+                mod_version: mod_version.to_owned(),
+                candidate_preset_id: format!("released-{mod_version}"),
                 candidate_definition_identity: manifest.presets[0].identity.clone(),
                 compatibility_evidence_relative_path: "docs/compatibility.md".to_owned(),
                 compatibility_evidence_sha256: sha256(evidence),
@@ -965,6 +1001,130 @@ mod tests {
                 roots,
                 lock,
             }
+        }
+
+        /// Build the same ten checked-in-root repair shape as the real 4.34.0
+        /// transition, but from tiny source inputs and synthetic production JARs.
+        /// Only test code can access this fixture.
+        pub(crate) fn new_repair_for_cli()
+        -> (Self, PromotionRequest, String, BTreeMap<String, String>) {
+            const REFMAP: &str = "src/main/resources/sfm.refmap.json";
+            const OLD_IDENTITY: &str =
+                "blake3:1cd6a9078deb867e527f16b11644b3c07e3d916bffa3edfe4aacb0b40c72f7bd";
+            const REFMAP_CREATES: [&str; 5] = ["1.20.2", "1.20.3", "1.20.4", "1.21.0", "1.21.1"];
+            let mut fixture = Self::new_with_version("4.34.0", true);
+            let mut candidates = BTreeMap::new();
+            let mut reviewed_operations = Vec::new();
+            let mut gradle_overlays = BTreeMap::new();
+            for (target, _, _, _) in TARGETS {
+                let candidate_root = &fixture.roots[target];
+                let candidate_bytes = fs::read(candidate_root.join(MANIFEST_FILE)).unwrap();
+                let candidate_manifest =
+                    ProjectionProvenance::from_json(std::str::from_utf8(&candidate_bytes).unwrap())
+                        .unwrap();
+                let destination = fixture
+                    .repo
+                    .join(format!("platform/minecraft/mc-version/{target}"));
+                let overlay_relative = format!("platform/minecraft/test-gradle-overlays/{target}");
+                let overlay = fixture.repo.join(&overlay_relative);
+                for path in [
+                    "gradle.properties",
+                    "settings.gradle",
+                    "sfm-toolchain.lock.json",
+                    "gradle/wrapper/gradle-wrapper.properties",
+                ] {
+                    let output = overlay.join(path);
+                    fs::create_dir_all(output.parent().unwrap()).unwrap();
+                    fs::write(output, fs::read(destination.join(path)).unwrap()).unwrap();
+                }
+                gradle_overlays.insert(target.to_owned(), overlay_relative);
+                let mut old_manifest = candidate_manifest;
+                old_manifest.preset_definition_identity = OLD_IDENTITY.to_owned();
+                if REFMAP_CREATES.contains(&target) {
+                    old_manifest.files.remove(REFMAP);
+                    reviewed_operations.push(ReviewedPromotionOperation {
+                        target_id: target.to_owned(),
+                        relative_path: REFMAP.to_owned(),
+                        kind: ReviewedOperationKind::Create,
+                        old_sha256: None,
+                        new_sha256: sha256(&fs::read(candidate_root.join(REFMAP)).unwrap()),
+                    });
+                }
+                for path in old_manifest.files.keys() {
+                    let output = destination.join(path);
+                    fs::create_dir_all(output.parent().unwrap()).unwrap();
+                    fs::write(output, fs::read(candidate_root.join(path)).unwrap()).unwrap();
+                }
+                let old_bytes = old_manifest.to_json().unwrap().into_bytes();
+                fs::write(destination.join(MANIFEST_FILE), &old_bytes).unwrap();
+                reviewed_operations.push(ReviewedPromotionOperation {
+                    target_id: target.to_owned(),
+                    relative_path: MANIFEST_FILE.to_owned(),
+                    kind: ReviewedOperationKind::Manifest,
+                    old_sha256: Some(sha256(&old_bytes)),
+                    new_sha256: sha256(&candidate_bytes),
+                });
+                let locked = fixture
+                    .lock
+                    .targets
+                    .iter()
+                    .find(|locked| locked.target_id == target)
+                    .unwrap();
+                candidates.insert(
+                    target.to_owned(),
+                    PromotionCandidate {
+                        project_root: candidate_root.clone(),
+                        reviewed_manifest_sha256: locked.provenance_manifest_sha256.clone(),
+                        production_jar_relative_path: locked.production_jar_relative_path.clone(),
+                        production_jar_sha256: locked.production_jar_sha256.clone(),
+                        production_task: locked.production_task.clone(),
+                        jdk_major: locked.jdk_major,
+                        jdk_build_id: locked.jdk_build_id.clone(),
+                    },
+                );
+            }
+            git(&fixture.repo, &["add", "."]);
+            git(
+                &fixture.repo,
+                &["commit", "-qm", "checked-in old projection roots"],
+            );
+            fixture.lock.source_commit =
+                git(&fixture.repo, &["rev-parse", "HEAD"]).trim().to_owned();
+            let refmap_sha256 = sha256(
+                &fs::read(
+                    fixture
+                        .repo
+                        .join("platform/minecraft/src/main/resources/sfm.refmap.json"),
+                )
+                .unwrap(),
+            );
+            let request = PromotionRequest {
+                repository_root: fixture.repo.clone(),
+                reviewed_head_commit: fixture.lock.source_commit.clone(),
+                reviewed_source_manifest_sha256: fixture.lock.source_manifest_sha256.clone(),
+                compatibility_evidence_relative_path: fixture
+                    .lock
+                    .compatibility_evidence_relative_path
+                    .clone(),
+                reviewed_compatibility_evidence_sha256: fixture
+                    .lock
+                    .compatibility_evidence_sha256
+                    .clone(),
+                candidates,
+                candidate_preset_id: fixture.lock.candidate_preset_id.clone(),
+                candidate_definition_identity: fixture.lock.candidate_definition_identity.clone(),
+                transition: PromotionTransition::PreAcceptanceBaselineRepair {
+                    expected_old_preset_id: "released-4.34.0".to_owned(),
+                    expected_old_definition_identity: OLD_IDENTITY.to_owned(),
+                    reviewed_operations,
+                },
+                accept_identical_edits: false,
+            };
+            (fixture, request, refmap_sha256, gradle_overlays)
+        }
+
+        pub(crate) fn lock(&self) -> &SourceCandidateLock {
+            &self.lock
         }
 
         fn verify(&self) -> Result<CandidateVerificationReport> {

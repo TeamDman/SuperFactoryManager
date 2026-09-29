@@ -1,7 +1,10 @@
 //! A reviewed JSON boundary for promoting all checked-in Minecraft projects.
 
+use super::candidate_lock_cli::read_candidate_lock;
+use super::candidate_lock_cli::verify_candidate_in;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::source_projection::candidate_lock::SourceCandidateLock;
 use crate::source_projection::promotion::PromotionCandidate;
 use crate::source_projection::promotion::PromotionMode;
 use crate::source_projection::promotion::PromotionReport;
@@ -27,18 +30,42 @@ use std::path::PathBuf;
 const REQUEST_SCHEMA: &str = "sfm:source_promotion_request@2";
 const REPORT_SCHEMA: &str = "sfm:source_promotion_report@1";
 const MAX_REQUEST_BYTES: u64 = 1024 * 1024;
+const REPAIR_PRESET_ID: &str = "released-4.34.0";
+const PUBLIC_REPAIR_POLICY: RepairIdentityPolicy = RepairIdentityPolicy {
+    old_definition_identity: "blake3:1cd6a9078deb867e527f16b11644b3c07e3d916bffa3edfe4aacb0b40c72f7bd",
+    new_definition_identity: "blake3:c72d2eb42418abd568df22ed60a4c233cbd8a3a6c06eaf2448c94a25f84e02b6",
+    refmap_sha256: "sha256:2c94879b9e943b34c562f6966f9e0aa88c1a30b39bc8e17bd18772b66af24523",
+    #[cfg(test)]
+    synthetic_gradle_overlays: None,
+};
+
+struct RepairIdentityPolicy<'a> {
+    old_definition_identity: &'a str,
+    new_definition_identity: &'a str,
+    refmap_sha256: &'a str,
+    /// Only synthetic tests may redirect development-style Gradle inputs.
+    /// Real repair verification always follows the release-baseline binding.
+    #[cfg(test)]
+    synthetic_gradle_overlays: Option<&'a BTreeMap<String, String>>,
+}
 
 #[derive(Debug, Facet)]
 pub struct PromotionArgs {
     /// Reviewed local JSON request containing the ten candidate roots and hashes.
     #[facet(args::named)]
     pub request: PathBuf,
-    /// Reserved for a future accepted candidate lock; currently fails closed.
+    /// Apply only the locked, reviewed 4.34.0 pre-acceptance repair; normal promotion stays disabled.
     #[facet(default = false, args::named)]
     pub apply: bool,
     /// Extra confirmation reserved for a pre-acceptance baseline repair.
     #[facet(default = false, args::named)]
     pub ack_pre_acceptance_baseline_repair: bool,
+    /// External, portable lock for the exact ten-target release candidate.
+    #[facet(default, args::named)]
+    pub candidate_lock: Option<PathBuf>,
+    /// Reviewed SHA-256 of the lock file, including its `sha256:` prefix.
+    #[facet(default, args::named)]
+    pub candidate_lock_sha256: Option<String>,
 }
 
 #[derive(Debug, Facet)]
@@ -137,6 +164,17 @@ impl PromotionArgs {
         cancellation: &CancellationToken,
         invocation_dir: &Path,
     ) -> Result<CliOutput> {
+        self.invoke_in_with_policy(cancellation, invocation_dir, &PUBLIC_REPAIR_POLICY)
+    }
+
+    /// The policy is never selected by command-line input. Tests alone pass a
+    /// synthetic identity while exercising this same read/verify/apply flow.
+    fn invoke_in_with_policy(
+        self,
+        cancellation: &CancellationToken,
+        invocation_dir: &Path,
+        policy: &RepairIdentityPolicy<'_>,
+    ) -> Result<CliOutput> {
         cancellation.bail_if_cancelled()?;
         let request_path = if self.request.is_absolute() {
             self.request.clone()
@@ -173,6 +211,39 @@ impl PromotionArgs {
         let text = String::from_utf8(bytes).wrap_err("promotion request is not UTF-8")?;
         let request = parse_request(&text)?;
         let mode = self.validate_mode(&request.transition)?;
+        if mode == PromotionMode::Apply {
+            let lock_path = self
+                .candidate_lock
+                .as_ref()
+                .expect("validated repair Apply requires a candidate lock");
+            let lock_path = if lock_path.is_absolute() {
+                lock_path.clone()
+            } else {
+                invocation_dir.join(lock_path)
+            };
+            let (lock, actual_sha256) = read_candidate_lock(&lock_path)?;
+            ensure!(
+                Some(&actual_sha256) == self.candidate_lock_sha256.as_ref(),
+                "candidate lock SHA-256 differs from --candidate-lock-sha256"
+            );
+            let roots = bind_repair_candidate_lock(&request, &lock)?;
+            ensure_repair_policy(&request, policy)?;
+            ensure_external_candidate_lock(&lock_path, &request.repository_root, &roots)?;
+            cancellation.bail_if_cancelled()?;
+            let report = verify_candidate_in(
+                cancellation,
+                &request.repository_root,
+                &lock,
+                &roots,
+                actual_sha256,
+                #[cfg(test)]
+                policy.synthetic_gradle_overlays,
+            )?;
+            ensure!(
+                report.deterministic_source_check && report.verified_targets.len() == 10,
+                "repair Apply requires full ten-target deterministic candidate verification"
+            );
+        }
         cancellation.bail_if_cancelled()?;
         let report = promote(&request, mode)?;
         Ok(CliOutput::facet(PromotionCliReport::from_core(
@@ -181,26 +252,194 @@ impl PromotionArgs {
     }
 
     fn validate_mode(&self, transition: &PromotionTransition) -> Result<PromotionMode> {
-        match (
-            self.apply,
-            self.ack_pre_acceptance_baseline_repair,
-            transition,
-        ) {
-            (false, false, _) => Ok(PromotionMode::DryRun),
-            (true, false, PromotionTransition::NewImmutablePreset) => bail!(
-                "source-promotion Apply remains disabled pending joint review of the artifact-bound candidate request, toolchain evidence, compatibility acceptance, and tests"
-            ),
-            (true, false, PromotionTransition::PreAcceptanceBaselineRepair { .. }) => bail!(
-                "pre-acceptance baseline repair requires --ack-pre-acceptance-baseline-repair; repair Apply remains disabled pending joint evidence and test review"
-            ),
-            (true, true, PromotionTransition::PreAcceptanceBaselineRepair { .. }) => bail!(
-                "pre-acceptance baseline repair Apply remains disabled pending joint review of the artifact-bound candidate request, toolchain evidence, compatibility acceptance, and tests"
-            ),
-            _ => bail!(
-                "--ack-pre-acceptance-baseline-repair is valid only with --apply for a pre-acceptance repair"
-            ),
+        if !self.apply {
+            ensure!(
+                !self.ack_pre_acceptance_baseline_repair
+                    && self.candidate_lock.is_none()
+                    && self.candidate_lock_sha256.is_none(),
+                "repair acknowledgement and candidate-lock flags require --apply"
+            );
+            return Ok(PromotionMode::DryRun);
+        }
+        match transition {
+            PromotionTransition::NewImmutablePreset => {
+                bail!("source-promotion Apply remains disabled for new immutable presets")
+            }
+            PromotionTransition::PreAcceptanceBaselineRepair { .. } => {
+                ensure!(
+                    self.ack_pre_acceptance_baseline_repair,
+                    "repair Apply requires --ack-pre-acceptance-baseline-repair"
+                );
+                ensure!(
+                    self.candidate_lock.is_some() && self.candidate_lock_sha256.is_some(),
+                    "repair Apply requires --candidate-lock and --candidate-lock-sha256"
+                );
+                Ok(PromotionMode::Apply)
+            }
         }
     }
+}
+
+fn ensure_repair_policy(
+    request: &PromotionRequest,
+    policy: &RepairIdentityPolicy<'_>,
+) -> Result<()> {
+    let PromotionTransition::PreAcceptanceBaselineRepair {
+        expected_old_preset_id,
+        expected_old_definition_identity,
+        reviewed_operations,
+    } = &request.transition
+    else {
+        bail!("repair Apply requires a pre-acceptance repair transition")
+    };
+    ensure!(
+        request.candidate_preset_id == REPAIR_PRESET_ID
+            && expected_old_preset_id == REPAIR_PRESET_ID,
+        "repair Apply is pinned to the 4.34.0 preset"
+    );
+    ensure!(
+        expected_old_definition_identity == policy.old_definition_identity
+            && request.candidate_definition_identity == policy.new_definition_identity,
+        "repair Apply definition identities differ from the reviewed old/new pair"
+    );
+    let refmaps = reviewed_operations
+        .iter()
+        .filter(|operation| operation.relative_path == "src/main/resources/sfm.refmap.json")
+        .collect::<Vec<_>>();
+    ensure!(
+        refmaps.len() == 5
+            && refmaps.iter().all(|operation| {
+                operation.kind == ReviewedOperationKind::Create
+                    && operation.old_sha256.is_none()
+                    && operation.new_sha256 == policy.refmap_sha256
+            }),
+        "repair Apply requires the reviewed published refmap bytes on five create operations"
+    );
+    Ok(())
+}
+
+/// Make every overlapping request field an exact assertion about the same
+/// reviewed lock. The returned roots are the only roots passed to verification.
+fn bind_repair_candidate_lock(
+    request: &PromotionRequest,
+    lock: &SourceCandidateLock,
+) -> Result<BTreeMap<String, PathBuf>> {
+    ensure!(
+        matches!(
+            request.transition,
+            PromotionTransition::PreAcceptanceBaselineRepair { .. }
+        ),
+        "candidate lock binding is reserved for pre-acceptance baseline repair"
+    );
+    ensure!(
+        !request.accept_identical_edits,
+        "repair Apply forbids accept_identical_edits"
+    );
+    ensure!(
+        request.reviewed_head_commit == lock.source_commit,
+        "candidate lock source commit differs from promotion request"
+    );
+    ensure!(
+        request.reviewed_source_manifest_sha256 == lock.source_manifest_sha256,
+        "candidate lock source manifest differs from promotion request"
+    );
+    ensure!(
+        request.compatibility_evidence_relative_path == lock.compatibility_evidence_relative_path
+            && request.reviewed_compatibility_evidence_sha256 == lock.compatibility_evidence_sha256,
+        "candidate lock compatibility evidence differs from promotion request"
+    );
+    ensure!(
+        request.candidate_preset_id == lock.candidate_preset_id
+            && request.candidate_definition_identity == lock.candidate_definition_identity,
+        "candidate lock preset differs from promotion request"
+    );
+    ensure!(
+        request.candidates.len() == 10 && lock.targets.len() == 10,
+        "repair Apply requires ten request and lock targets"
+    );
+    let mut roots = BTreeMap::new();
+    for locked in &lock.targets {
+        let requested = request.candidates.get(&locked.target_id).ok_or_else(|| {
+            eyre::eyre!(
+                "candidate lock target '{}' is absent from promotion request",
+                locked.target_id
+            )
+        })?;
+        ensure!(
+            requested.reviewed_manifest_sha256 == locked.provenance_manifest_sha256,
+            "candidate provenance manifest differs for '{}'",
+            locked.target_id
+        );
+        ensure!(
+            requested.production_jar_relative_path == locked.production_jar_relative_path
+                && requested.production_jar_sha256 == locked.production_jar_sha256,
+            "candidate production JAR differs for '{}'",
+            locked.target_id
+        );
+        ensure!(
+            requested.production_task == locked.production_task
+                && requested.jdk_major == locked.jdk_major
+                && requested.jdk_build_id == locked.jdk_build_id,
+            "candidate build task or JDK differs for '{}'",
+            locked.target_id
+        );
+        ensure!(
+            roots
+                .insert(locked.target_id.clone(), requested.project_root.clone())
+                .is_none(),
+            "duplicate candidate lock target '{}'",
+            locked.target_id
+        );
+    }
+    ensure!(
+        roots.keys().eq(request.candidates.keys()),
+        "candidate lock target set differs from promotion request"
+    );
+    Ok(roots)
+}
+
+fn ensure_external_candidate_lock(
+    lock_path: &Path,
+    repository_root: &Path,
+    candidate_roots: &BTreeMap<String, PathBuf>,
+) -> Result<()> {
+    let lock_path = fs::canonicalize(lock_path)
+        .wrap_err_with(|| format!("cannot resolve candidate lock '{}'", lock_path.display()))?;
+    let repository_root = fs::canonicalize(repository_root).wrap_err_with(|| {
+        format!(
+            "cannot resolve promotion repository '{}'",
+            repository_root.display()
+        )
+    })?;
+    ensure!(
+        !path_is_within(&lock_path, &repository_root),
+        "repair Apply requires candidate lock outside the source repository"
+    );
+    for (target, root) in candidate_roots {
+        let root = fs::canonicalize(root).wrap_err_with(|| {
+            format!(
+                "cannot resolve candidate root for '{target}' at '{}'",
+                root.display()
+            )
+        })?;
+        ensure!(
+            !path_is_within(&lock_path, &root),
+            "repair Apply requires candidate lock outside candidate root '{target}'"
+        );
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn path_is_within(path: &Path, parent: &Path) -> bool {
+    let path = path.to_string_lossy().to_lowercase();
+    let parent = parent.to_string_lossy().to_lowercase();
+    path == parent || path.starts_with(&format!("{parent}{}", std::path::MAIN_SEPARATOR))
+}
+
+#[cfg(not(windows))]
+fn path_is_within(path: &Path, parent: &Path) -> bool {
+    path.starts_with(parent)
 }
 
 fn parse_request(text: &str) -> Result<PromotionRequest> {
@@ -366,6 +605,9 @@ mod tests {
     use crate::cli::output::OutputFormat;
     use crate::cli::source::SourceArgs;
     use crate::cli::source::SourceCommand;
+    use crate::source_projection::candidate_lock::tests::Fixture as CandidateFixture;
+    use crate::source_projection::provenance::sha256;
+    use crate::source_projection::sync::MANIFEST_FILE;
 
     fn request_json(transition: &str) -> String {
         let candidates = (0..10)
@@ -387,6 +629,68 @@ mod tests {
             format!("sha256:{}", "c".repeat(64)),
             format!("sha256:{}", "e".repeat(64)),
         )
+    }
+
+    fn request_file_json(request: &PromotionRequest) -> String {
+        let PromotionTransition::PreAcceptanceBaselineRepair {
+            expected_old_preset_id,
+            expected_old_definition_identity,
+            reviewed_operations,
+        } = &request.transition
+        else {
+            panic!("expected repair request")
+        };
+        facet_json::to_string_pretty(&PromotionRequestFile {
+            schema: REQUEST_SCHEMA.to_owned(),
+            repository_root: request.repository_root.display().to_string(),
+            reviewed_head_commit: request.reviewed_head_commit.clone(),
+            reviewed_source_manifest_sha256: request.reviewed_source_manifest_sha256.clone(),
+            compatibility_evidence_relative_path: request
+                .compatibility_evidence_relative_path
+                .clone(),
+            reviewed_compatibility_evidence_sha256: request
+                .reviewed_compatibility_evidence_sha256
+                .clone(),
+            candidate_preset_id: request.candidate_preset_id.clone(),
+            candidate_definition_identity: request.candidate_definition_identity.clone(),
+            transition: PromotionTransitionFile {
+                kind: "pre_acceptance_baseline_repair".to_owned(),
+                expected_old_preset_id: Some(expected_old_preset_id.clone()),
+                expected_old_definition_identity: Some(expected_old_definition_identity.clone()),
+                reviewed_operations: Some(
+                    reviewed_operations
+                        .iter()
+                        .map(|operation| ReviewedPromotionOperationFile {
+                            target_id: operation.target_id.clone(),
+                            relative_path: operation.relative_path.clone(),
+                            kind: match operation.kind {
+                                ReviewedOperationKind::Create => "create",
+                                ReviewedOperationKind::Manifest => "manifest",
+                            }
+                            .to_owned(),
+                            old_sha256: operation.old_sha256.clone(),
+                            new_sha256: operation.new_sha256.clone(),
+                        })
+                        .collect(),
+                ),
+            },
+            accept_identical_edits: request.accept_identical_edits,
+            candidates: request
+                .candidates
+                .iter()
+                .map(|(target_id, candidate)| PromotionCandidateFile {
+                    target_id: target_id.clone(),
+                    project_root: candidate.project_root.display().to_string(),
+                    reviewed_manifest_sha256: candidate.reviewed_manifest_sha256.clone(),
+                    production_jar_relative_path: candidate.production_jar_relative_path.clone(),
+                    production_jar_sha256: candidate.production_jar_sha256.clone(),
+                    production_task: candidate.production_task.clone(),
+                    jdk_major: candidate.jdk_major,
+                    jdk_build_id: candidate.jdk_build_id.clone(),
+                })
+                .collect(),
+        })
+        .unwrap()
     }
 
     #[test]
@@ -427,6 +731,10 @@ mod tests {
             "reviewed.json",
             "--apply",
             "--ack-pre-acceptance-baseline-repair",
+            "--candidate-lock",
+            "candidate.json",
+            "--candidate-lock-sha256",
+            "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         ])
         .into_result()
         .unwrap()
@@ -439,6 +747,8 @@ mod tests {
         };
         assert!(args.apply);
         assert!(args.ack_pre_acceptance_baseline_repair);
+        assert_eq!(args.candidate_lock, Some(PathBuf::from("candidate.json")));
+        assert!(args.candidate_lock_sha256.unwrap().starts_with("sha256:"));
     }
 
     #[test]
@@ -589,7 +899,7 @@ mod tests {
     }
 
     #[test]
-    fn repair_apply_fails_closed_even_with_acknowledgement() {
+    fn repair_apply_requires_acknowledgement_and_exact_lock_inputs() {
         let repair = PromotionTransition::PreAcceptanceBaselineRepair {
             expected_old_preset_id: "released-old".to_owned(),
             expected_old_definition_identity: "blake3:old".to_owned(),
@@ -600,6 +910,8 @@ mod tests {
                 request: PathBuf::from("reviewed.json"),
                 apply: true,
                 ack_pre_acceptance_baseline_repair: acknowledged,
+                candidate_lock: None,
+                candidate_lock_sha256: None,
             };
             assert!(args.validate_mode(&repair).is_err());
         }
@@ -607,6 +919,8 @@ mod tests {
             request: PathBuf::from("reviewed.json"),
             apply: false,
             ack_pre_acceptance_baseline_repair: false,
+            candidate_lock: None,
+            candidate_lock_sha256: None,
         };
         assert_eq!(
             dry_run.validate_mode(&repair).unwrap(),
@@ -622,6 +936,8 @@ mod tests {
             request: PathBuf::from("reviewed.json"),
             apply: true,
             ack_pre_acceptance_baseline_repair: false,
+            candidate_lock: None,
+            candidate_lock_sha256: None,
         };
         assert!(
             normal_apply
@@ -637,6 +953,176 @@ mod tests {
                 .validate_mode(&PromotionTransition::NewImmutablePreset)
                 .is_err()
         );
+        let complete_repair = PromotionArgs {
+            request: PathBuf::from("reviewed.json"),
+            apply: true,
+            ack_pre_acceptance_baseline_repair: true,
+            candidate_lock: Some(PathBuf::from("candidate.json")),
+            candidate_lock_sha256: Some(format!("sha256:{}", "a".repeat(64))),
+        };
+        assert_eq!(
+            complete_repair.validate_mode(&repair).unwrap(),
+            PromotionMode::Apply
+        );
+        let incomplete = PromotionArgs {
+            candidate_lock_sha256: None,
+            ..complete_repair
+        };
+        assert!(incomplete.validate_mode(&repair).is_err());
+    }
+
+    #[test]
+    fn public_repair_policy_pins_published_identities_and_refmap_bytes() {
+        let (_, mut request, synthetic_refmap_sha256, _) = CandidateFixture::new_repair_for_cli();
+        assert_ne!(
+            request.candidate_definition_identity,
+            PUBLIC_REPAIR_POLICY.new_definition_identity
+        );
+        assert_ne!(synthetic_refmap_sha256, PUBLIC_REPAIR_POLICY.refmap_sha256);
+        assert!(ensure_repair_policy(&request, &PUBLIC_REPAIR_POLICY).is_err());
+        let synthetic_new_identity = request.candidate_definition_identity.clone();
+        let policy = RepairIdentityPolicy {
+            old_definition_identity: PUBLIC_REPAIR_POLICY.old_definition_identity,
+            new_definition_identity: &synthetic_new_identity,
+            refmap_sha256: &synthetic_refmap_sha256,
+            synthetic_gradle_overlays: None,
+        };
+        ensure_repair_policy(&request, &policy).unwrap();
+        request.candidate_definition_identity = PUBLIC_REPAIR_POLICY.new_definition_identity.into();
+        assert!(ensure_repair_policy(&request, &policy).is_err());
+        request.candidate_definition_identity = synthetic_new_identity.clone();
+        let PromotionTransition::PreAcceptanceBaselineRepair {
+            reviewed_operations,
+            ..
+        } = &mut request.transition
+        else {
+            unreachable!()
+        };
+        reviewed_operations
+            .iter_mut()
+            .find(|operation| operation.kind == ReviewedOperationKind::Create)
+            .unwrap()
+            .new_sha256 = PUBLIC_REPAIR_POLICY.refmap_sha256.into();
+        assert!(ensure_repair_policy(&request, &policy).is_err());
+    }
+
+    #[test]
+    fn synthetic_repair_apply_verifies_exact_lock_and_promotes_ten_temp_roots() {
+        let (fixture, request, refmap_sha256, gradle_overlays) =
+            CandidateFixture::new_repair_for_cli();
+        let scratch = request.repository_root.parent().unwrap();
+        let lock_path = scratch.join("reviewed-candidate-lock.json");
+        let lock_bytes = facet_json::to_string_pretty(fixture.lock()).unwrap();
+        fs::write(&lock_path, &lock_bytes).unwrap();
+        let lock_sha256 = sha256(lock_bytes.as_bytes());
+        let request_path = scratch.join("reviewed-promotion-request.json");
+        fs::write(&request_path, request_file_json(&request)).unwrap();
+        let synthetic_new_identity = request.candidate_definition_identity.clone();
+        let policy = RepairIdentityPolicy {
+            old_definition_identity: PUBLIC_REPAIR_POLICY.old_definition_identity,
+            new_definition_identity: &synthetic_new_identity,
+            refmap_sha256: &refmap_sha256,
+            synthetic_gradle_overlays: Some(&gradle_overlays),
+        };
+        let make_args = |digest: String| PromotionArgs {
+            request: request_path.clone(),
+            apply: true,
+            ack_pre_acceptance_baseline_repair: true,
+            candidate_lock: Some(lock_path.clone()),
+            candidate_lock_sha256: Some(digest),
+        };
+        assert!(
+            make_args(format!("sha256:{}", "0".repeat(64)))
+                .invoke_in_with_policy(&CancellationToken::new(), scratch, &policy)
+                .unwrap_err()
+                .to_string()
+                .contains("candidate lock SHA-256 differs")
+        );
+        assert!(
+            make_args(lock_sha256.clone())
+                .invoke_in_with_policy(&CancellationToken::new(), scratch, &PUBLIC_REPAIR_POLICY)
+                .unwrap_err()
+                .to_string()
+                .contains("definition identities differ")
+        );
+        let mut mismatched = request.clone();
+        mismatched
+            .candidates
+            .get_mut("1.19.2")
+            .unwrap()
+            .jdk_build_id = "JBRSDK-17.0.99".to_owned();
+        fs::write(&request_path, request_file_json(&mismatched)).unwrap();
+        assert!(
+            make_args(lock_sha256.clone())
+                .invoke_in_with_policy(&CancellationToken::new(), scratch, &policy)
+                .unwrap_err()
+                .to_string()
+                .contains("build task or JDK differs")
+        );
+        mismatched = request.clone();
+        mismatched.accept_identical_edits = true;
+        fs::write(&request_path, request_file_json(&mismatched)).unwrap();
+        assert!(
+            make_args(lock_sha256.clone())
+                .invoke_in_with_policy(&CancellationToken::new(), scratch, &policy)
+                .unwrap_err()
+                .to_string()
+                .contains("forbids accept_identical_edits")
+        );
+        fs::write(&request_path, request_file_json(&request)).unwrap();
+        let internal_lock = request.repository_root.join("internal-candidate-lock.json");
+        fs::write(&internal_lock, &lock_bytes).unwrap();
+        let internal_args = PromotionArgs {
+            candidate_lock: Some(internal_lock.clone()),
+            ..make_args(lock_sha256.clone())
+        };
+        assert!(
+            internal_args
+                .invoke_in_with_policy(&CancellationToken::new(), scratch, &policy)
+                .unwrap_err()
+                .to_string()
+                .contains("outside the source repository")
+        );
+        fs::remove_file(internal_lock).unwrap();
+        let refmap = request
+            .repository_root
+            .join("platform/minecraft/mc-version/1.20.2/src/main/resources/sfm.refmap.json");
+        assert!(!refmap.exists());
+        let output = make_args(lock_sha256)
+            .invoke_in_with_policy(&CancellationToken::new(), scratch, &policy)
+            .unwrap();
+        let json = output
+            .render(Some(OutputFormat::Json), false)
+            .unwrap()
+            .unwrap();
+        assert!(json.contains("\"mode\": \"apply\""));
+        assert!(json.contains("\"candidate_preset_id\": \"released-4.34.0\""));
+        assert!(refmap.exists());
+        assert_eq!(sha256(&fs::read(refmap).unwrap()), refmap_sha256);
+        for (target, candidate) in &request.candidates {
+            let promoted = request
+                .repository_root
+                .join(format!("platform/minecraft/mc-version/{target}"))
+                .join(MANIFEST_FILE);
+            assert_eq!(
+                sha256(&fs::read(promoted).unwrap()),
+                candidate.reviewed_manifest_sha256,
+                "candidate manifest was not installed for '{target}'"
+            );
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn external_lock_containment_is_case_insensitive_and_component_bounded() {
+        assert!(path_is_within(
+            Path::new(r"C:\Reviewed\Repo\locks\candidate.json"),
+            Path::new(r"c:\reviewed\repo")
+        ));
+        assert!(!path_is_within(
+            Path::new(r"C:\Reviewed\Repository\candidate.json"),
+            Path::new(r"c:\reviewed\repo")
+        ));
     }
 
     #[test]

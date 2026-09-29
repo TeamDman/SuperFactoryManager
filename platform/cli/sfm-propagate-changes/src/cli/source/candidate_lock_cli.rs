@@ -3,6 +3,7 @@
 use super::source_cli::SourceProjectArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::source_projection::candidate_lock::CandidateVerificationReport;
 use crate::source_projection::candidate_lock::SourceCandidateLock;
 use crate::source_projection::manifest::SourceProjectionManifest;
 use crate::source_projection::provenance::sha256;
@@ -46,57 +47,98 @@ impl CandidateVerifyArgs {
         cancellation.bail_if_cancelled()?;
         let repo_root = resolve_path(self.repo_root, invocation_dir);
         let lock_path = resolve_path(self.lock, invocation_dir);
-        let file = fs::File::open(&lock_path)
-            .wrap_err_with(|| format!("cannot open candidate lock '{}'", lock_path.display()))?;
-        let metadata = file.metadata()?;
-        ensure!(metadata.is_file(), "candidate lock must be a regular file");
-        ensure!(
-            metadata.len() <= MAX_LOCK_BYTES,
-            "candidate lock exceeds the {MAX_LOCK_BYTES}-byte limit"
-        );
-        let mut bytes = Vec::new();
-        file.take(MAX_LOCK_BYTES + 1).read_to_end(&mut bytes)?;
-        ensure!(
-            bytes.len() as u64 <= MAX_LOCK_BYTES,
-            "candidate lock exceeds the {MAX_LOCK_BYTES}-byte limit"
-        );
-        let lock = SourceCandidateLock::from_json(
-            std::str::from_utf8(&bytes).wrap_err("candidate lock is not UTF-8")?,
-        )?;
+        let (lock, lock_sha256) = read_candidate_lock(&lock_path)?;
         let roots = parse_roots(&self.candidate_root)?;
-        cancellation.bail_if_cancelled()?;
-        let mut report = lock.verify_in(&repo_root, &roots, sha256(&bytes))?;
-        let manifest_bytes = fs::read(repo_root.join("platform/minecraft/source-projection.json"))?;
-        let manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&manifest_bytes)?)?;
-        let preset = manifest.preset(&lock.candidate_preset_id)?;
-        for target in &lock.targets {
-            cancellation.bail_if_cancelled()?;
-            let gradle_overlay = if preset.release_baselines.is_empty() {
-                let declared = manifest.target(&target.target_id)?;
-                vec![format!("target={}", declared.project_dir)]
-            } else {
-                Vec::new()
-            };
-            SourceProjectArgs {
-                repo_root: repo_root.clone(),
-                target: target.target_id.clone(),
-                preset: lock.candidate_preset_id.clone(),
-                manifest: None,
-                primary_src_root: None,
-                gradle_project_root: None,
-                output_root: roots[&target.target_id].clone(),
-                overlay: Vec::new(),
-                gradle_overlay,
-            }
-            .check_candidate_in(cancellation, &repo_root)?;
-        }
-        report.schema.clear();
-        report
-            .schema
-            .push_str("sfm:source_candidate_verification@2");
-        report.deterministic_source_check = true;
+        let report = verify_candidate_in(
+            cancellation,
+            &repo_root,
+            &lock,
+            &roots,
+            lock_sha256,
+            #[cfg(test)]
+            None,
+        )?;
         Ok(CliOutput::facet(report))
     }
+}
+
+/// Read and parse one bounded, immutable byte snapshot. The promotion gate
+/// binds this digest to its request and verifies this same parsed snapshot.
+pub(super) fn read_candidate_lock(lock_path: &Path) -> Result<(SourceCandidateLock, String)> {
+    let file = fs::File::open(lock_path)
+        .wrap_err_with(|| format!("cannot open candidate lock '{}'", lock_path.display()))?;
+    let metadata = file.metadata()?;
+    ensure!(metadata.is_file(), "candidate lock must be a regular file");
+    ensure!(
+        metadata.len() <= MAX_LOCK_BYTES,
+        "candidate lock exceeds the {MAX_LOCK_BYTES}-byte limit"
+    );
+    let mut bytes = Vec::new();
+    file.take(MAX_LOCK_BYTES + 1).read_to_end(&mut bytes)?;
+    ensure!(
+        bytes.len() as u64 <= MAX_LOCK_BYTES,
+        "candidate lock exceeds the {MAX_LOCK_BYTES}-byte limit"
+    );
+    let lock = SourceCandidateLock::from_json(
+        std::str::from_utf8(&bytes).wrap_err("candidate lock is not UTF-8")?,
+    )?;
+    Ok((lock, sha256(&bytes)))
+}
+
+/// Full source verification: the core inventory plus deterministic checks of
+/// all ten generated roots. Both CLIs use the same implementation.
+pub(super) fn verify_candidate_in(
+    cancellation: &CancellationToken,
+    repo_root: &Path,
+    lock: &SourceCandidateLock,
+    roots: &BTreeMap<String, PathBuf>,
+    lock_sha256: String,
+    #[cfg(test)] test_gradle_overlays: Option<&BTreeMap<String, String>>,
+) -> Result<CandidateVerificationReport> {
+    cancellation.bail_if_cancelled()?;
+    let mut report = lock.verify_in(repo_root, roots, lock_sha256)?;
+    let manifest_bytes = fs::read(repo_root.join("platform/minecraft/source-projection.json"))?;
+    let manifest = SourceProjectionManifest::from_json(std::str::from_utf8(&manifest_bytes)?)?;
+    let preset = manifest.preset(&lock.candidate_preset_id)?;
+    for target in &lock.targets {
+        cancellation.bail_if_cancelled()?;
+        let gradle_overlay = if preset.release_baselines.is_empty() {
+            let declared = manifest.target(&target.target_id)?;
+            vec![format!("target={}", declared.project_dir)]
+        } else {
+            Vec::new()
+        };
+        #[cfg(test)]
+        let gradle_overlay = if let Some(overrides) = test_gradle_overlays {
+            let relative = overrides.get(&target.target_id).ok_or_else(|| {
+                eyre::eyre!(
+                    "missing synthetic Gradle overlay for '{}'",
+                    target.target_id
+                )
+            })?;
+            vec![format!("synthetic={relative}")]
+        } else {
+            gradle_overlay
+        };
+        SourceProjectArgs {
+            repo_root: repo_root.to_path_buf(),
+            target: target.target_id.clone(),
+            preset: lock.candidate_preset_id.clone(),
+            manifest: None,
+            primary_src_root: None,
+            gradle_project_root: None,
+            output_root: roots[&target.target_id].clone(),
+            overlay: Vec::new(),
+            gradle_overlay,
+        }
+        .check_candidate_in(cancellation, repo_root)?;
+    }
+    report.schema.clear();
+    report
+        .schema
+        .push_str("sfm:source_candidate_verification@2");
+    report.deterministic_source_check = true;
+    Ok(report)
 }
 
 fn resolve_path(path: PathBuf, invocation_dir: &Path) -> PathBuf {
