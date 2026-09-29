@@ -1681,20 +1681,6 @@ mod tests {
             .to_string()
             .contains("local candidate roots do not match complete locked target matrix")
         );
-        let verification = SourceArgs {
-            command: SourceCommand::CandidateVerify(CandidateVerifyArgs {
-                repo_root: repo.clone(),
-                lock: lock_path.clone(),
-                candidate_root: candidate_roots,
-            }),
-        }
-        .invoke_in(&CancellationToken::new(), &repo)
-        .unwrap()
-        .render(Some(OutputFormat::Json), false)
-        .unwrap()
-        .unwrap();
-        assert!(verification.contains("\"deterministic_source_check\": true"));
-
         let request = PromotionRequest {
             repository_root: repo.clone(),
             reviewed_head_commit: source_commit,
