@@ -8,7 +8,8 @@ fixture separately. Use -Shard unit:cli, -Shard integration:java_analysis_scenar
 or -Shard fixture to run just one shard. Ignored tests keep Cargo's default
 behavior and are not run.
 
-rg.exe, git.exe, and cargo.exe must be available to this process and its children.
+PowerShell 7 or later (pwsh.exe), rg.exe, git.exe, and cargo.exe must be
+available to this process and its children.
 If a sandbox hides rg.exe from child processes, run this script in a host
 PowerShell session. The script does not elevate itself or change global Git
 configuration.
@@ -17,6 +18,10 @@ configuration.
 param(
     [string]$Shard = 'all'
 )
+
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    throw 'test-bounded.ps1 requires PowerShell 7 or later (pwsh.exe); Windows PowerShell 5.1 treats native stderr as a terminating error.'
+}
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
@@ -57,24 +62,26 @@ $commonCargoArgs = @(
 
 function Assert-LibraryPartition {
     $listArgs = $commonCargoArgs + @('--lib', '--', '--list')
-    $listing = @(& cargo @listArgs 2>&1)
-    $exitCode = $LASTEXITCODE
-    foreach ($entry in $listing) {
-        if ($entry.ToString() -match $diskErrorPattern) {
-            throw 'Disk-space error while listing library tests. Stop and wait for the user.'
+    # Keep test names for coverage and only a short tail for failure details.
+    $names = [System.Collections.Generic.List[string]]::new()
+    $tail = [System.Collections.Generic.Queue[string]]::new()
+    & cargo @listArgs 2>&1 | ForEach-Object {
+        $line = $_.ToString()
+        if ($line -match $diskErrorPattern) {
+            throw "Disk-space error while listing library tests: $line. Stop and wait for the user."
+        }
+        if ($tail.Count -ge 20) { [void]$tail.Dequeue() }
+        $tail.Enqueue($line)
+        if ($line -match ': test$') {
+            $names.Add($line -replace ': test$', '')
         }
     }
+    $exitCode = $LASTEXITCODE
     if ($exitCode -ne 0) {
-        $listing | Select-Object -Last 20 | ForEach-Object { Write-Host $_ }
+        foreach ($line in $tail) { Write-Host $line }
         throw "Could not list library tests (exit $exitCode)."
     }
 
-    $names = @(
-        $listing |
-            ForEach-Object { $_.ToString() } |
-            Where-Object { $_ -match ': test$' } |
-            ForEach-Object { $_ -replace ': test$', '' }
-    )
     if ($names.Count -eq 0) { throw 'The library test listing is empty.' }
 
     # libtest filters are substrings, so verify this partition against the
