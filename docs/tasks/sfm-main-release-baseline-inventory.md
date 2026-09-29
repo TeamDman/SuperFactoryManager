@@ -4,7 +4,7 @@ This inventory fixes the source inputs against which an `sfm-main` release-compa
 
 - Evidence date: 28 September 2026
 - Scope: the 10 `4.34.0-*` version tags and their corresponding version branches
-- Status: source inventory complete; 1.19.2 official GitHub artifact identity verified; remaining published artifacts and parity tests pending
+- Status at capture: source inventory complete and the 1.19.2 official GitHub artifact identity verified. Later ten-target artifact and runtime evidence is recorded in the [candidate matrix](sfm-main-release-candidate-matrix-20260928.md) and [bounded parity disposition](sfm-main-release-parity-disposition-20260929.md); the checklist below is retained as the original audit plan.
 
 The official [GitHub 4.34.0 release](https://github.com/TeamDman/SuperFactoryManager/releases/tag/4.34.0-26.1.2) lists the 1.19.2 asset `Super.Factory.Manager.SFM.-MC1.19.2-4.34.0.jar` (asset ID 466461227, 1,623,810 bytes, SHA-256 `f2c0242a984b8b782cc995e20a59e71bbdb48981873ab31a4531f0d1db3af038`). A local reference JAR has exactly that size and hash, so it is byte-identical to the GitHub asset by digest. The [CurseForge file page](https://www.curseforge.com/minecraft/mc-mods/super-factory-manager/files/8370233) confirms the separate 1.19.2 Forge publication but does not expose a hash, so byte identity with the CurseForge upload remains unverified. No asset was downloaded for this audit.
 
