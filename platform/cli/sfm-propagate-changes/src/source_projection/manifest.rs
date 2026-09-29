@@ -143,8 +143,9 @@ pub struct ReleaseBaselineBinding {
     /// SHA-256 digests of files in `development-overlays/<target_id>/`.
     #[facet(default)]
     pub post_baseline_gradle_sources: BTreeMap<String, String>,
-    /// Development-only main Java files selected from the primary source tree
-    /// in place of a verified committed-head overlay.
+    /// Reviewed main Java files selected from the primary source tree after
+    /// verifying the pinned development head or release tag. Release-tag
+    /// selections require an enabled feature and both output hashes.
     #[facet(default)]
     pub post_baseline_canonical_sources: BTreeMap<String, CanonicalSourceSelection>,
     /// Release-only resources absent from the pinned tag source tree but
@@ -657,6 +658,29 @@ fn hash_release_baselines(hasher: &mut blake3::Hasher, preset: &ProjectionPreset
                         }
                     }
                 }
+            } else if !baseline.post_baseline_canonical_sources.is_empty() {
+                // Empty release selections retain every published identity.
+                hash_part(hasher, "release_post_baseline_canonical_sources");
+                hash_part(
+                    hasher,
+                    &baseline.post_baseline_canonical_sources.len().to_string(),
+                );
+                for (path, selected) in &baseline.post_baseline_canonical_sources {
+                    hash_part(hasher, path);
+                    hash_part(hasher, &selected.source_sha256);
+                    hash_part(hasher, &selected.output_sha256);
+                    hash_part(
+                        hasher,
+                        selected
+                            .imported_output_sha256
+                            .as_deref()
+                            .unwrap_or_default(),
+                    );
+                    hash_part(
+                        hasher,
+                        selected.required_feature.as_deref().unwrap_or_default(),
+                    );
+                }
             }
         }
     }
@@ -701,10 +725,24 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                     || baseline.project_fixture_provenance_sha256.is_some()
                     || !baseline.post_baseline_test_sources.is_empty()
                     || !baseline.post_baseline_gradle_sources.is_empty()
-                    || !baseline.post_baseline_canonical_sources.is_empty()
                 {
                     eyre::bail!("release import cannot declare development-head identities");
                 }
+                ensure!(
+                    baseline
+                        .post_baseline_canonical_sources
+                        .values()
+                        .all(|selected| {
+                            selected.imported_output_sha256.is_some()
+                                && selected.required_feature.is_some()
+                        }),
+                    "release-tag canonical changes require reviewed imported output and feature gate"
+                );
+                ensure!(
+                    preset.id != "released-4.34.0"
+                        || baseline.post_baseline_canonical_sources.is_empty(),
+                    "published released-4.34.0 cannot gain canonical overrides"
+                );
                 validate_post_baseline_resources(baseline)?;
             }
             BaselineKind::DevelopmentHead => {
@@ -1198,7 +1236,7 @@ mod tests {
     }
 
     #[test]
-    fn canonical_main_source_selection_is_development_only_and_identity_bound() {
+    fn ungated_release_canonical_selection_is_rejected_and_development_is_identity_bound() {
         let path = "src/main/java/example/VersionAdapter.java";
         let mut manifest = sample();
         let mut binding = release_binding("1.19.2");
@@ -1220,7 +1258,7 @@ mod tests {
                 .validate()
                 .unwrap_err()
                 .to_string()
-                .contains("release import cannot declare development-head identities")
+                .contains("release-tag canonical changes require reviewed imported output")
         );
 
         let binding = &mut manifest.presets[0].release_baselines[0];
@@ -1251,6 +1289,78 @@ mod tests {
                 .unwrap(),
             pinned_identity
         );
+        assert!(manifest.validate().is_err());
+    }
+
+    #[test]
+    fn gated_release_canonical_selection_is_identity_bound_and_cannot_change_published_preset() {
+        let path = "src/main/java/example/RegexCache.java";
+        let mut manifest = sample();
+        manifest.features[0].id = "regex_overlap_fix".to_owned();
+        manifest.features[0].source_effects[0] = PathEffect {
+            output_path: path.to_owned(),
+            kind: PathEffectKind::Template,
+            input_path: None,
+        };
+        manifest.presets[0].id = "future-regex-candidate".to_owned();
+        manifest.presets[0].enabled_features = vec!["regex_overlap_fix".to_owned()];
+        let mut binding = release_binding("1.19.2");
+        binding.post_baseline_canonical_sources.insert(
+            path.to_owned(),
+            CanonicalSourceSelection {
+                source_sha256: "a".repeat(64),
+                output_sha256: "b".repeat(64),
+                imported_output_sha256: Some("c".repeat(64)),
+                required_feature: Some("regex_overlap_fix".to_owned()),
+            },
+        );
+        manifest.presets[0].release_baselines.push(binding);
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        manifest.validate().unwrap();
+        let pinned_identity = manifest.presets[0].identity.clone();
+
+        for field in ["source", "output", "imported", "feature", "path"] {
+            let mut changed = manifest.clone();
+            let selected =
+                &mut changed.presets[0].release_baselines[0].post_baseline_canonical_sources;
+            match field {
+                "source" => selected.get_mut(path).unwrap().source_sha256 = "d".repeat(64),
+                "output" => selected.get_mut(path).unwrap().output_sha256 = "d".repeat(64),
+                "imported" => {
+                    selected.get_mut(path).unwrap().imported_output_sha256 = Some("d".repeat(64));
+                }
+                "feature" => {
+                    selected.get_mut(path).unwrap().required_feature = Some("other".to_owned());
+                }
+                "path" => {
+                    let value = selected.remove(path).unwrap();
+                    selected.insert("src/main/java/example/Other.java".to_owned(), value);
+                }
+                _ => unreachable!(),
+            }
+            assert_ne!(
+                changed
+                    .compute_preset_identity(&changed.presets[0])
+                    .unwrap(),
+                pinned_identity,
+                "{field} was not identity-bound"
+            );
+            assert!(changed.validate().is_err(), "{field} drift was accepted");
+        }
+
+        manifest.presets[0].enabled_features.clear();
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
+        assert!(manifest.validate().is_err());
+
+        manifest.presets[0].enabled_features = vec!["regex_overlap_fix".to_owned()];
+        manifest.presets[0].id = "released-4.34.0".to_owned();
+        manifest.presets[0].identity = manifest
+            .compute_preset_identity(&manifest.presets[0])
+            .unwrap();
         assert!(manifest.validate().is_err());
     }
 

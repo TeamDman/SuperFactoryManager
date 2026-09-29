@@ -224,20 +224,30 @@ fn apply_unchanged_sources(
             .get(path)
             .is_some_and(|selected| selected.imported_output_sha256.is_some())
         {
-            // A reviewed development change starts from the exact committed
-            // source, even when the primary file has since acquired new code.
+            // A reviewed change starts from the exact imported source, even
+            // when the primary file has since acquired new code.
             let oid = record.release_blob_oid.as_deref().ok_or_else(|| {
-                eyre::eyre!("development source `{path}` has no pinned Git blob OID")
+                eyre::eyre!("imported source `{path}` has no pinned Git blob OID")
             })?;
             let bytes = read_pinned_blob(repo_root, unchanged_commit, path, oid, expected)?;
-            let mut pinned = ProjectedArtifact {
-                source_path: format!(
-                    "platform/minecraft/development-baselines/{}/committed-tree/{path}",
-                    target.target_id
+            let (source_path, overlay) = match binding.kind {
+                BaselineKind::DevelopmentHead => (
+                    format!(
+                        "platform/minecraft/development-baselines/{}/committed-tree/{path}",
+                        target.target_id
+                    ),
+                    format!("development-head-{}", target.target_id),
                 ),
+                BaselineKind::ReleaseTag => (
+                    path.clone(),
+                    format!("release-{}-pinned", target.release_tag),
+                ),
+            };
+            let mut pinned = ProjectedArtifact {
+                source_path,
                 source_bytes: bytes.clone(),
                 output_bytes: bytes,
-                overlay: Some(format!("development-head-{}", target.target_id)),
+                overlay: Some(overlay),
             };
             render_java_artifact(path, &mut pinned, context)?;
             pending.insert(path.clone(), pinned);
@@ -300,11 +310,6 @@ fn validate_post_baseline_canonical_sources(
     binding: &ReleaseBaselineBinding,
     target: &ReleaseBaselineTargetReport,
 ) -> Result<()> {
-    ensure!(
-        binding.kind == BaselineKind::DevelopmentHead
-            || binding.post_baseline_canonical_sources.is_empty(),
-        "release-tag binding cannot select post-baseline canonical sources"
-    );
     let mut casefold = BTreeSet::new();
     for (path, selected) in &binding.post_baseline_canonical_sources {
         validate_repo_path(path, "src/main/java/")?;
@@ -323,6 +328,14 @@ fn validate_post_baseline_canonical_sources(
         let record = target.paths.get(path).ok_or_else(|| {
             eyre::eyre!("post-baseline canonical source '{path}' is absent from pinned membership")
         })?;
+        if binding.kind == BaselineKind::ReleaseTag {
+            ensure!(
+                record.classification == BaselinePathClass::Unchanged
+                    && selected.imported_output_sha256.is_some()
+                    && selected.required_feature.is_some(),
+                "release-tag canonical source '{path}' requires unchanged membership, reviewed imported output and feature gate"
+            );
+        }
         ensure!(
             record.classification == BaselinePathClass::Changed
                 || (record.classification == BaselinePathClass::Unchanged
@@ -1446,6 +1459,59 @@ mod tests {
         assert_ne!(prior[path], canonical);
 
         binding.kind = BaselineKind::ReleaseTag;
+        binding.canonical_commit = None;
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .output_sha256 = sha256(&canonical.output_bytes)
+            .trim_start_matches("sha256:")
+            .to_owned();
+        validate_post_baseline_canonical_sources(&binding, &target).unwrap();
+        let mut release_imported = primary.clone();
+        apply_unchanged_sources(
+            root.path(),
+            &binding,
+            &enabled,
+            &target,
+            &mut release_imported,
+        )
+        .unwrap();
+        assert_eq!(release_imported[path].source_path, path);
+        assert_eq!(
+            release_imported[path].overlay.as_deref(),
+            Some("release-4.34.0-1.19.2-pinned")
+        );
+        assert_eq!(release_imported[path].source_bytes, old_source);
+        apply_post_baseline_canonical_sources(&binding, &enabled, &primary, &mut release_imported)
+            .unwrap();
+        assert_eq!(release_imported[path], canonical);
+
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .imported_output_sha256 = None;
+        assert!(validate_post_baseline_canonical_sources(&binding, &target).is_err());
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .imported_output_sha256 = Some("f".repeat(64));
+        let mut release_imported = prior.clone();
+        let error = apply_post_baseline_canonical_sources(
+            &binding,
+            &enabled,
+            &primary,
+            &mut release_imported,
+        )
+        .unwrap_err();
+        assert!(format!("{error:?}").contains("reviewed imported output"));
+        binding
+            .post_baseline_canonical_sources
+            .get_mut(path)
+            .unwrap()
+            .required_feature = None;
         assert!(validate_post_baseline_canonical_sources(&binding, &target).is_err());
     }
 
