@@ -26,6 +26,7 @@ use std::path::Component;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::Command;
+use walkdir::WalkDir;
 
 const MATRIX_SIZE: usize = 10;
 const SOURCE_MANIFEST: &str = "platform/minecraft/source-projection.json";
@@ -468,6 +469,7 @@ fn run_promotion_with_pre_apply_verification(
         }
         ensure_reviewed_inputs_current(&repository_root, request)?;
         verify_candidate_files(&expected_files)?;
+        verify_promoted_input_closure(&repository_root, &first)?;
         // Other processes can still change files after these final checks;
         // Apply does not provide atomicity against hostile concurrent writers.
         fs::write(stage.join("complete"), b"all operations installed\n")
@@ -616,6 +618,28 @@ fn verify_candidate_files(expected: &[ExpectedCandidateFile]) -> Result<()> {
             file.relative_path
         );
     }
+    Ok(())
+}
+
+fn verify_promoted_input_closure(root: &Path, plan: &PromotionPlan) -> Result<()> {
+    let mut manifest_count = 0;
+    for operation in &plan.operations {
+        if operation.kind != OperationKind::Manifest {
+            continue;
+        }
+        manifest_count += 1;
+        let manifest_bytes = operation
+            .new_bytes
+            .as_deref()
+            .ok_or_else(|| eyre::eyre!("candidate manifest operation lacks bytes"))?;
+        let manifest = parse_manifest(manifest_bytes)?;
+        let destination_root = root.join(&operation.project_dir);
+        ensure_closed_destination_inputs(&destination_root, &manifest)?;
+    }
+    ensure!(
+        manifest_count == MATRIX_SIZE,
+        "promotion plan lacks a candidate manifest for every target"
+    );
     Ok(())
 }
 
@@ -910,6 +934,7 @@ fn inspect_target(
         candidate,
     } = load_target_manifests(root, target, candidate, request)?;
     check_old_identity(report, &old)?;
+    ensure_closed_destination_inputs(&destination_root, &old)?;
     let mut target_report = TargetPromotionReport {
         old_manifest_sha256: sha256(&old_bytes),
         candidate_manifest_sha256: sha256(&candidate_bytes),
@@ -1032,6 +1057,102 @@ fn inspect_candidate_outputs(
         }
     }
     Ok(())
+}
+
+/// A destination may retain old-owned files until their planned removal, but
+/// must contain no other project inputs. Gradle output directories are skipped
+/// by the same exact root-name rule as candidate verification.
+fn ensure_closed_destination_inputs(root: &Path, ownership: &ProjectionProvenance) -> Result<()> {
+    for entry in fs::read_dir(root)
+        .wrap_err_with(|| format!("cannot inspect checked-in project '{}'", root.display()))?
+    {
+        let entry = entry?;
+        let name = entry
+            .file_name()
+            .into_string()
+            .map_err(|bad| eyre::eyre!("checked-in project has a non-UTF-8 root entry: {bad:?}"))?;
+        let metadata = fs::symlink_metadata(entry.path())?;
+        ensure!(
+            !is_reparse_input(&metadata),
+            "checked-in project input is a reparse point at '{}/{}'",
+            ownership.target_id,
+            name
+        );
+        if metadata.is_dir() {
+            if matches!(
+                name.as_str(),
+                "build" | ".gradle" | "run" | "runs" | "logs" | "runGameTest"
+            ) {
+                continue;
+            }
+            ensure!(
+                name == "src"
+                    || name == "gradle"
+                    || ownership
+                        .files
+                        .keys()
+                        .any(|path| path.starts_with(&format!("{name}/"))),
+                "unowned checked-in project input directory '{}/{}'",
+                ownership.target_id,
+                name
+            );
+            for child in WalkDir::new(entry.path()).follow_links(false) {
+                let child = child.wrap_err("cannot walk checked-in project inputs")?;
+                let metadata = fs::symlink_metadata(child.path())?;
+                let relative = child.path().strip_prefix(root)?;
+                let relative = relative
+                    .to_str()
+                    .ok_or_else(|| eyre::eyre!("checked-in project input path is not UTF-8"))?
+                    .replace('\\', "/");
+                ensure!(
+                    !is_reparse_input(&metadata),
+                    "checked-in project input is a reparse point at '{}/{}'",
+                    ownership.target_id,
+                    relative
+                );
+                if metadata.is_dir() {
+                    continue;
+                }
+                ensure!(
+                    metadata.is_file(),
+                    "checked-in project input is not regular"
+                );
+                validate_relative_path(&relative)?;
+                ensure!(
+                    ownership.files.contains_key(&relative),
+                    "unowned checked-in project input '{}/{}'",
+                    ownership.target_id,
+                    relative
+                );
+            }
+        } else {
+            ensure!(
+                metadata.is_file(),
+                "checked-in project input is not regular"
+            );
+            ensure!(
+                name == MANIFEST_FILE || ownership.files.contains_key(&name),
+                "unowned checked-in project input '{}/{}'",
+                ownership.target_id,
+                name
+            );
+        }
+    }
+    Ok(())
+}
+
+fn is_reparse_input(metadata: &fs::Metadata) -> bool {
+    if metadata.file_type().is_symlink() {
+        return true;
+    }
+    #[cfg(windows)]
+    {
+        metadata.file_attributes() & 0x0000_0400 != 0
+    }
+    #[cfg(not(windows))]
+    {
+        false
+    }
 }
 
 fn validate_transition(
@@ -2253,6 +2374,33 @@ mod tests {
         );
     }
 
+    #[test]
+    fn unowned_input_added_during_apply_blocks_completion_and_survives_rollback() {
+        let fixture = Fixture::new();
+        let destination = fixture.destination("1.19.2");
+        let old_manifest = fs::read(destination.join(MANIFEST_FILE)).unwrap();
+        let extra = destination.join("src/main/java/Injected.java");
+        let hook = |_: usize, point: ApplyHookPoint, installed: &Path| -> Result<()> {
+            if point == ApplyHookPoint::BeforeInstall
+                && installed.ends_with(Path::new("26.1.2").join(MANIFEST_FILE))
+            {
+                fs::create_dir_all(extra.parent().expect("extra input has parent"))?;
+                fs::write(&extra, b"class Injected {}\n")?;
+            }
+            Ok(())
+        };
+
+        let error =
+            run_promotion(&fixture.request, PromotionMode::Apply, None, Some(&hook)).unwrap_err();
+        assert!(format!("{error:?}").contains("unowned checked-in project input"));
+        assert_eq!(fs::read(destination.join("keep.txt")).unwrap(), b"old\n");
+        assert_eq!(
+            fs::read(destination.join(MANIFEST_FILE)).unwrap(),
+            old_manifest
+        );
+        assert_eq!(fs::read(extra).unwrap(), b"class Injected {}\n");
+    }
+
     #[cfg(any(unix, windows))]
     #[test]
     fn symlinked_unchanged_owned_output_blocks_complete_and_survives_rollback() {
@@ -2907,6 +3055,86 @@ mod tests {
                 .to_string()
                 .contains("unowned")
         );
+    }
+
+    #[test]
+    fn rejects_surviving_unowned_java_input() {
+        let fixture = Fixture::new();
+        let extra = fixture
+            .destination("1.19.2")
+            .join("src/main/java/Injected.java");
+        fs::create_dir_all(extra.parent().unwrap()).unwrap();
+        fs::write(&extra, b"class Injected {}\n").unwrap();
+
+        let error = promote(&fixture.request, PromotionMode::DryRun).unwrap_err();
+        assert!(format!("{error:?}").contains("unowned checked-in project input"));
+    }
+
+    #[test]
+    fn rejects_surviving_unowned_resource_input() {
+        let fixture = Fixture::new();
+        let extra = fixture
+            .destination("1.19.2")
+            .join("src/main/resources/assets/sfm/injected.json");
+        fs::create_dir_all(extra.parent().unwrap()).unwrap();
+        fs::write(&extra, b"{}\n").unwrap();
+
+        let error = promote(&fixture.request, PromotionMode::DryRun).unwrap_err();
+        assert!(format!("{error:?}").contains("unowned checked-in project input"));
+    }
+
+    #[test]
+    fn rejects_surviving_unowned_gradle_input() {
+        let fixture = Fixture::new();
+        let extra = fixture.destination("1.19.2").join("gradle/injected.gradle");
+        fs::create_dir_all(extra.parent().unwrap()).unwrap();
+        fs::write(&extra, b"println('injected')\n").unwrap();
+
+        let error = promote(&fixture.request, PromotionMode::DryRun).unwrap_err();
+        assert!(format!("{error:?}").contains("unowned checked-in project input"));
+    }
+
+    #[test]
+    fn rejects_surviving_unowned_root_gradle_script() {
+        let fixture = Fixture::new();
+        let extra = fixture.destination("1.19.2").join("injected.gradle.kts");
+        fs::write(&extra, b"println(\"injected\")\n").unwrap();
+
+        let error = promote(&fixture.request, PromotionMode::DryRun).unwrap_err();
+        assert!(format!("{error:?}").contains("unowned checked-in project input"));
+    }
+
+    #[cfg(any(unix, windows))]
+    #[test]
+    fn rejects_unowned_reparse_input() {
+        let fixture = Fixture::new();
+        let external = fixture._temporary.path().join("external.java");
+        fs::write(&external, b"class External {}\n").unwrap();
+        let extra = fixture
+            .destination("1.19.2")
+            .join("src/main/java/Injected.java");
+        fs::create_dir_all(extra.parent().unwrap()).unwrap();
+        #[cfg(unix)]
+        std::os::unix::fs::symlink(&external, &extra).unwrap();
+        #[cfg(windows)]
+        if std::os::windows::fs::symlink_file(&external, &extra).is_err() {
+            return;
+        }
+
+        let error = promote(&fixture.request, PromotionMode::DryRun).unwrap_err();
+        assert!(format!("{error:?}").contains("reparse point"));
+    }
+
+    #[test]
+    fn allows_runtime_output_directory_during_input_closure_check() {
+        let fixture = Fixture::new();
+        let output = fixture
+            .destination("1.19.2")
+            .join("build/classes/Injected.class");
+        fs::create_dir_all(output.parent().unwrap()).unwrap();
+        fs::write(output, b"test build output\n").unwrap();
+
+        promote(&fixture.request, PromotionMode::DryRun).unwrap();
     }
 
     #[test]
