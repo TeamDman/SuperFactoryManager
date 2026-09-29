@@ -424,9 +424,26 @@ From B, all ten fresh external roots synchronized the fictional preset and passe
 
 The external matrix contains 18,272 generated files. Separate read-only `source check` runs on all ten checked-in `released-4.34.0` roots reported 11,495 unchanged files in total, zero creates/updates and no manifest changes; the authored tree stayed clean. No disk-space error occurred. This proves real-input public staging and source replay, not Java compilation, runtime behaviour, candidate-lock validity or release compatibility.
 
-### [ ] M6.17 Compile the fictional frozen preset without release packaging
+### [x] M6.17 Compile the fictional frozen preset without release packaging
 
 Use the already staged local candidate B and M6.16 external roots only. Run each root's ordinary Gradle `compileJava` under its declared Java major and an explicit, previously validated local JBR/JBRSDK selection, with the existing dependency graph; record the actual compiler path and whether tasks executed or came from cache. Only the 1.19.2 generated lockfile currently pins an exact JDK build, so do not call the other selections lockfile-pinned. Match each project's wrapper distribution; if the sandboxed wrapper cannot read an already cached distribution, invoking that exact local Gradle distribution directly is acceptable evidence when its version is recorded. Use the 1.19.2 `rust-toolchain` profile, and do not force 1.21.1 offline because NeoGradle invalidates a required cached client artifact in that mode. Confirm the fictional `mod_version`, no production JAR, then repeat zero-write `source check` for each target and verify the authored/candidate Git trees and checked-in `released-4.34.0` roots remain unchanged. Run target builds sequentially so disk-space errors can be attributed and stopped immediately for the user. Do not use `source build`, which appends a development version suffix. Do not choose a real release version, build or upload production JARs, create a candidate lock, promote, tag, push, change the default branch or change dependency declarations in this milestone. Compiler success is not gameplay or release-compatibility acceptance.
+
+All ten fictional external roots passed ordinary `compileJava` using the exact Gradle distribution selected by each wrapper. The first nine tasks executed; 26.1.2 returned `FROM-CACHE`, so its selected JBR 25.0.3 ran Gradle but no Java compiler was invoked in that task. Ignored local build logs record the full compiler/daemon paths; the path-free toolchain identities and SHA-256 hashes below preserve the evidence without committing a user's JDK-store location. Only 1.19.2 used `-PsfmProfile=rust-toolchain`. The initial sandboxed 1.19.2 wrapper could not reach its cached distribution, and a fresh 1.20.2 root lacked offline launcher metadata; matching cached Gradle distributions with normal host-cache access resolved those environment-only attempts. 1.21.1 was run online as planned. Neither failure was a source compile or disk-space error.
+
+| Target | Gradle | Selected local Java | `compileJava` | Ignored log SHA-256 |
+| --- | --- | --- | --- | --- |
+| 1.19.2 | 7.5 | JBRSDK 17.0.14 | executed | `9e2d21a5ef9a602861b41243f282d45a688e59e320187746eea9afc5a3aa23d7` |
+| 1.19.4 | 7.5 | JBRSDK 17.0.14 | executed | `114535505782d02489dc010880a841757bc17e6e4ae15a2ce2b7eaa74cad3600` |
+| 1.20 | 8.1.1 | JBRSDK 17.0.14 | executed | `086fb43553cc05ba806d52ee2d60a340aa7b8e5e7099474b7c04fca64c9c2b04` |
+| 1.20.1 | 8.1.1 | JBRSDK 17.0.14 | executed | `1e2ef24b6e4309c889b8cb98417f29cf9c7c457057b610ac36d6e09f212305f5` |
+| 1.20.2 | 8.1.1 | JBRSDK 17.0.14 | executed | `f8908a8735242c9dff990ef97c97eaf16a1a0329186067766b8bd157a2f4b3e3` |
+| 1.20.3 | 8.1.1 | JBRSDK 17.0.14 | executed | `e319993cad18cadeaa0771e0b364cd393574cbd24af8e189bb9bda6aef4abf5a` |
+| 1.20.4 | 8.1.1 | JBRSDK 17.0.14 | executed | `abb33049ad112537b58176a021c48df62ff4593b4fffbe7b7025a2e040677262` |
+| 1.21.0 | 8.8 | JBR 21.0.11 | executed | `a4d8955821ad85893fe12d0d04d0b372a0f228bb034e74f8335c111d0d8b0b63` |
+| 1.21.1 | 8.14.3 | JBR 21.0.11 | executed | `bd93147849955bef120436968b654fad97ab7aa904f1f1c59bd7c458577decb7` |
+| 26.1.2 | 9.5.0 | JBR 25.0.3 | `FROM-CACHE` | `03484ad9324200a37768f8ec8d3c8c172c18f641fe3e9c50ffc9a5ce05bbf214` |
+
+Each root retained exactly one `mod_version=9.99.99-rehearsal`, produced no production JAR, and passed a post-build public `source check` with zero creates/updates and `manifest_changed=false`; the unchanged counts and provenance SHA-256 values are exactly the M6.16 table above (18,272 files total). Separate read-only checks of all ten checked-in `released-4.34.0` roots reported 11,495 unchanged files, zero creates/updates and no manifest changes. The authored tree and candidate B were clean at their recorded commits. No disk-space error occurred. This closes fictional Java compilation only, not a real candidate's JDK lock, packaging, GameTests, compatibility review, release-preset promotion or publication.
 
 ### Future release-preset promotion boundary
 
