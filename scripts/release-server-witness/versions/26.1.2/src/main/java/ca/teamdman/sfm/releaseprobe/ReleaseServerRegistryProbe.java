@@ -1,5 +1,10 @@
 package ca.teamdman.sfm.releaseprobe;
 
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.tree.ArgumentCommandNode;
+import com.mojang.brigadier.tree.CommandNode;
+import com.mojang.brigadier.tree.LiteralCommandNode;
+import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -12,6 +17,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -21,12 +29,13 @@ public final class ReleaseServerRegistryProbe {
     private static final String OUTPUT_PROPERTY = "sfm.releaseWitness.registrySnapshot";
     private static final String TARGET_PROPERTY = "sfm.releaseWitness.target";
     private static final String LOADER_PROPERTY = "sfm.releaseWitness.loader";
+    private static final String COMMAND_OUTPUT_PROPERTY = "sfm.releaseWitness.commandSnapshot";
 
     public ReleaseServerRegistryProbe() {
         NeoForge.EVENT_BUS.addListener(this::onServerStarted);
     }
 
-    private void onServerStarted(ServerStartedEvent ignored) {
+    private void onServerStarted(ServerStartedEvent event) {
         try {
             if (!ModList.get().isLoaded("sfm")) {
                 throw new IllegalStateException("The production SFM mod is not loaded");
@@ -63,9 +72,65 @@ public final class ReleaseServerRegistryProbe {
             String json = toJson(registries, target, loader);
             Files.writeString(output, json + "\n", StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
             System.out.println("SFM_REGISTRY_SNAPSHOT_V1 " + json);
+            String commandOutput = System.getProperty(COMMAND_OUTPUT_PROPERTY, "");
+            if (!commandOutput.isBlank()) {
+                writeCommandSnapshot(event.getServer().getCommands().getDispatcher(), commandOutput, target, loader);
+            }
         } catch (Exception failure) {
             throw new IllegalStateException("SFM release registry snapshot failed", failure);
         }
+    }
+
+    private static void writeCommandSnapshot(CommandDispatcher<CommandSourceStack> dispatcher,
+                                             String configuredPath, String target, String loader) throws Exception {
+        Path output = Path.of(configuredPath).toAbsolutePath().normalize();
+        if (!Files.isDirectory(output.getParent()) || Files.exists(output)) {
+            throw new IllegalStateException("Command snapshot parent is missing or output already exists");
+        }
+        CommandNode<CommandSourceStack> root = dispatcher.getRoot().getChild("sfm");
+        if (!(root instanceof LiteralCommandNode<?>)) {
+            throw new IllegalStateException("Missing literal sfm command root");
+        }
+        StringBuilder json = new StringBuilder("{\"schema\":\"sfm:release_command_snapshot@1\",\"target\":");
+        appendId(json, target);
+        json.append(",\"loader\":");
+        appendId(json, loader);
+        json.append(",\"nodes\":[");
+        appendCommandNode(json, root, "sfm", true);
+        Files.writeString(output, json.append("]}\n").toString(), StandardCharsets.UTF_8,
+                StandardOpenOption.CREATE_NEW);
+        System.out.println("SFM_COMMAND_SNAPSHOT_V1 nodes_written=true");
+    }
+
+    private static void appendCommandNode(StringBuilder json, CommandNode<CommandSourceStack> node,
+                                          String path, boolean first) {
+        if (!first) json.append(',');
+        json.append("{\"path\":");
+        appendCommandValue(json, path);
+        json.append(",\"kind\":");
+        appendCommandValue(json, node instanceof LiteralCommandNode<?> ? "literal" : "argument");
+        json.append(",\"executable\":").append(node.getCommand() != null);
+        json.append(",\"redirected\":").append(node.getRedirect() != null);
+        if (node instanceof ArgumentCommandNode<?, ?> argument) {
+            json.append(",\"argument_type\":");
+            appendCommandValue(json, argument.getType().getClass().getName());
+        }
+        json.append('}');
+        List<CommandNode<CommandSourceStack>> children = new ArrayList<>(node.getChildren());
+        children.sort(Comparator.comparing(CommandNode::getName));
+        for (CommandNode<CommandSourceStack> child : children) {
+            if (!(child instanceof LiteralCommandNode<?>) && !(child instanceof ArgumentCommandNode<?, ?>)) {
+                throw new IllegalStateException("Unknown command node kind");
+            }
+            appendCommandNode(json, child, path + "/" + child.getName(), false);
+        }
+    }
+
+    private static void appendCommandValue(StringBuilder json, String value) {
+        if (!value.matches("[A-Za-z0-9_.$:/-]+")) {
+            throw new IllegalStateException("Unexpected command snapshot value syntax");
+        }
+        json.append('"').append(value).append('"');
     }
 
     private static void captureBuiltInRegistries(TreeMap<String, TreeSet<String>> registries) {
