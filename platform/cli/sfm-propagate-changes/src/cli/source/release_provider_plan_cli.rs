@@ -9,6 +9,7 @@ use super::release_package_verify_cli::ReleasePackageVerifyArgs;
 use super::release_package_verify_cli::VerifiedReleasePackage;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
+use crate::modrinth::ModrinthCreateVersionPayload;
 use crate::source_projection::candidate_lock::checked_directory;
 use crate::source_projection::candidate_lock::checked_file;
 use crate::source_projection::provenance::sha256;
@@ -154,9 +155,8 @@ impl ReleaseProviderPlanArgs {
                     .starts_with(&format!("{}-", verified.manifest.mod_version)),
             "--reviewed-tag does not identify the verified package mod version"
         );
-        let changelog_bytes =
-            read_reviewed_changelog(&self.changelog_file, &self.changelog_sha256)?;
-        ReleaseProviderPlanReport::from_verified(self, verified, changelog_bytes)
+        let changelog = read_reviewed_changelog(&self.changelog_file, &self.changelog_sha256)?;
+        ReleaseProviderPlanReport::from_verified(self, verified, &changelog)
     }
 }
 
@@ -164,7 +164,7 @@ impl ReleaseProviderPlanReport {
     fn from_verified(
         args: ReleaseProviderPlanArgs,
         verified: VerifiedReleasePackage,
-        changelog_utf8_bytes: usize,
+        changelog: &str,
     ) -> Result<Self> {
         let VerifiedReleasePackage {
             completion_manifest_sha256,
@@ -207,19 +207,29 @@ impl ReleaseProviderPlanReport {
             ];
             curseforge_metadata_names.extend(curseforge_loaders);
             curseforge_metadata_names.push(format!("Java {}", source.jdk_major));
+            let display_name = format!(
+                "Super Factory Manager MC{} v{}",
+                source.minecraft_version, manifest.mod_version
+            );
+            let modrinth_game_versions = vec![source.minecraft_version.clone()];
+            let modrinth_payload = ModrinthCreateVersionPayload::for_release(
+                &display_name,
+                &manifest.mod_version,
+                changelog,
+                &modrinth_game_versions,
+                &modrinth_loaders,
+                &args.modrinth_project,
+            );
             targets.push(ReleaseProviderTarget {
                 target_id: source.target_id,
                 minecraft_version: source.minecraft_version.clone(),
                 package_loader: source.loader,
                 file_name: packaged.file_name,
                 sha256: packaged.sha256,
-                display_name: format!(
-                    "Super Factory Manager MC{} v{}",
-                    source.minecraft_version, manifest.mod_version
-                ),
-                modrinth_version_number: manifest.mod_version.clone(),
-                modrinth_game_versions: vec![source.minecraft_version],
-                modrinth_loaders,
+                display_name: modrinth_payload.name,
+                modrinth_version_number: modrinth_payload.version_number,
+                modrinth_game_versions: modrinth_payload.game_versions,
+                modrinth_loaders: modrinth_payload.loaders,
                 curseforge_metadata_names,
                 curseforge_release_type: "release".to_owned(),
                 curseforge_changelog_type: "markdown".to_owned(),
@@ -241,7 +251,7 @@ impl ReleaseProviderPlanReport {
             candidate_preset_id: manifest.candidate_preset_id,
             mod_version: manifest.mod_version.clone(),
             changelog_sha256: args.changelog_sha256,
-            changelog_utf8_bytes,
+            changelog_utf8_bytes: changelog.len(),
             github: GitHubProviderIntent {
                 repository: args.github_repo,
                 reviewed_tag: args.reviewed_tag,
@@ -318,7 +328,7 @@ fn validate_single_mc_marker(file_name: &str, mc_version: &str, mod_version: &st
     Ok(())
 }
 
-fn read_reviewed_changelog(path: &Path, expected_sha256: &str) -> Result<usize> {
+fn read_reviewed_changelog(path: &Path, expected_sha256: &str) -> Result<String> {
     let parent = path
         .parent()
         .ok_or_else(|| eyre::eyre!("--changelog-file needs an absolute parent directory"))?;
@@ -345,7 +355,7 @@ fn read_reviewed_changelog(path: &Path, expected_sha256: &str) -> Result<usize> 
         sha256(&bytes) == expected_sha256,
         "reviewed changelog SHA-256 differs from --changelog-sha256"
     );
-    Ok(bytes.len())
+    Ok(text.to_owned())
 }
 
 #[cfg(test)]
@@ -497,6 +507,10 @@ mod tests {
         assert!(report.curseforge.game_version_ids_require_remote_resolution);
         assert_eq!(report.github.reviewed_tag, args.reviewed_tag);
         assert_eq!(report.modrinth.loader_policy_1201, DUAL_1201_POLICY);
+        assert_eq!(
+            report.changelog_utf8_bytes,
+            fs::read(&args.changelog_file).unwrap().len()
+        );
         for target in &report.targets {
             let locked = fixture
                 .lock()
@@ -507,6 +521,25 @@ mod tests {
             assert_eq!(target.minecraft_version, locked.minecraft_version);
             assert_eq!(target.package_loader, locked.loader);
             assert_eq!(target.sha256, locked.production_jar_sha256);
+            assert_eq!(
+                target.display_name,
+                format!(
+                    "Super Factory Manager MC{} v{}",
+                    locked.minecraft_version,
+                    fixture.lock().mod_version
+                )
+            );
+            assert_eq!(target.modrinth_version_number, fixture.lock().mod_version);
+            assert_eq!(
+                target.modrinth_game_versions,
+                [locked.minecraft_version.clone()]
+            );
+            let expected_loaders = if locked.target_id == "1.20.1" {
+                vec!["forge".to_owned(), "neoforge".to_owned()]
+            } else {
+                vec![locked.loader.clone()]
+            };
+            assert_eq!(target.modrinth_loaders, expected_loaders);
         }
         let transitional = report
             .targets

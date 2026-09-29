@@ -101,18 +101,14 @@ pub(super) fn create_project_version(
     plan: &ModrinthReleasePlan,
     changelog_section: &str,
 ) -> eyre::Result<String> {
-    let payload = ModrinthCreateVersionPayload {
-        name: plan.display_name.clone(),
-        version_number: plan.version_number.clone(),
-        changelog: changelog_section.to_string(),
-        dependencies: Vec::new(),
-        game_versions: plan.game_versions.clone(),
-        version_type: "release".to_string(),
-        loaders: plan.loaders.clone(),
-        featured: false,
-        project_id: project_id.to_string(),
-        file_parts: vec!["file".to_string()],
-    };
+    let payload = ModrinthCreateVersionPayload::for_release(
+        &plan.display_name,
+        &plan.version_number,
+        changelog_section,
+        &plan.game_versions,
+        &plan.loaders,
+        project_id,
+    );
 
     let payload_json = facet_json::to_string(&payload)
         .wrap_err("Failed to encode Modrinth upload metadata JSON")?;
