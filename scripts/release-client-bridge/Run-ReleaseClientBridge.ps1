@@ -9,9 +9,10 @@ param(
     [Parameter(Mandatory)] [string] $PrismRoot,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
-    [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1')] [string] $MinecraftVersion = '1.19.2',
+    [ValidateSet('1.19.2', '1.19.4', '1.20', '1.20.1', '1.21.1')] [string] $MinecraftVersion = '1.19.2',
     [string] $NeoForgeInstaller,
     [string] $NeoForgeLibraryRoot,
+    [string] $JoinedCompileJar,
     [ValidateSet('title', 'world')] [string] $CaptureMode = 'title',
     [ValidateRange(30, 600)] [int] $WatchdogSeconds = 300
 )
@@ -84,17 +85,21 @@ $version = switch ($MinecraftVersion) {
     '1.19.4' { @{ Forge = '45.0.9'; Mcp = '20230314.122934'; Assets = '3'; DataFixer = '6.0.6'; EventBus = '6.0.3'; ForgeGroup = 'net/minecraftforge' } }
     '1.20' { @{ Forge = '46.0.10'; Mcp = '20230608.053357'; Assets = '5'; DataFixer = '6.0.8'; EventBus = '6.0.3'; ForgeGroup = 'net/minecraftforge' } }
     '1.20.1' { @{ Forge = '47.1.65'; Mcp = '20230612.114412'; Assets = '5'; DataFixer = '6.0.8'; EventBus = '6.0.5'; ForgeGroup = 'net/neoforged'; Fml = '47.1.47'; ClientSha1 = '97e1bb8346f4aa0e9e1bbb04e4fd170264bee508'; SrgSha1 = '3c8aa19b710a3a68f721210eb69b74594d13e218'; ExtraSha1 = '8c5a95cbce940cfdb304376ae9fea47968d02587'; InstallerSha256 = 'c0056d398ccc685db87f98939ecd22d54e4a556fcb943cee00df56ed2015b6d9' } }
+    '1.21.1' { @{ Forge = '21.1.206'; Mcp = '20240808.144430'; Assets = '17'; DataFixer = '8.0.16'; EventBus = '8.0.5'; ForgeGroup = 'net/neoforged'; Fml = '4.0.41'; ClientSha1 = 'c84e84858e2a57eead05f5ca55a922af8009dce8'; SrgSha1 = 'a4827225b3c07662ca68b03ea20d11433a0c0488'; ExtraSha1 = 'db5c59932751d66c2f57c1c2de41b48712620975'; InstallerSha256 = '479d540cd2d1cea09d8b8cb63266578db9c58ed174546121a43a4bb4084454be' } }
 }
-$forgeArtifact = "$MinecraftVersion-$($version.Forge)"
-$forgeRelative = "$($version.ForgeGroup)/forge/$forgeArtifact"
+$neoModern = $MinecraftVersion -eq '1.21.1'
+$forgeArtifact = if ($neoModern) { $version.Forge } else { "$MinecraftVersion-$($version.Forge)" }
+$forgeRelative = if ($neoModern) { "net/neoforged/neoforge/$forgeArtifact" } else { "$($version.ForgeGroup)/forge/$forgeArtifact" }
 $mcpArtifact = "$MinecraftVersion-$($version.Mcp)"
-$forgeVersionId = "$MinecraftVersion-forge-$($version.Forge)"
-$bridgeSourceRoot = if ($MinecraftVersion -ne '1.19.2') {
+$forgeVersionId = if ($neoModern) { "neoforge-$($version.Forge)" } else { "$MinecraftVersion-forge-$($version.Forge)" }
+$bridgeSourceRoot = if ($neoModern) {
+    Join-Path $bridgeRoot 'src/1.21.1'
+} elseif ($MinecraftVersion -ne '1.19.2') {
     Join-Path $bridgeRoot 'src/1.19.4'
 } else {
     Join-Path $bridgeRoot 'src/main'
 }
-$bridgeResourceRoot = if ($MinecraftVersion -in @('1.20', '1.20.1')) {
+$bridgeResourceRoot = if ($MinecraftVersion -in @('1.20', '1.20.1', '1.21.1')) {
     Join-Path $bridgeRoot "src/$MinecraftVersion/resources"
 } else {
     Join-Path $bridgeSourceRoot 'resources'
@@ -111,17 +116,23 @@ if ([IO.Directory]::Exists($run) -or [IO.File]::Exists($run)) {
 }
 if ($ExpectedSha256 -notmatch '^[0-9a-fA-F]{64}$') { throw 'ExpectedSha256 must be 64 hex digits' }
 $expected = $ExpectedSha256.ToLowerInvariant()
+if ($neoModern -and $expected -notin @(
+        '4b589e0b310133998f26f0c12c3ee8d367360be1771e0e96c951322cea6c7ad0',
+        '544fc4344a9cf3cd73ab97173a41b97ce1c8e16cdbd3eb8c4389a4b2bcbe344c')) {
+    throw '1.21.1 source JAR is not an exact official/projected 4.34.0 input'
+}
 $sourceHashBefore = (Get-FileHash -LiteralPath $sourceJar -Algorithm SHA256).Hash.ToLowerInvariant()
 if ($sourceHashBefore -ne $expected) { throw 'Original SFM JAR hash does not match expectation' }
 
 $libraryRoot = Join-Path $prism 'libraries'
 $assetsRoot = Join-Path $prism 'assets'
 $minecraftMeta = Get-Content -LiteralPath (Assert-File (Join-Path $prism "meta/net.minecraft/$MinecraftVersion.json")) -Raw | ConvertFrom-Json
-$lwjglMeta = Get-Content -LiteralPath (Assert-File (Join-Path $prism 'meta/org.lwjgl3/3.3.1.json')) -Raw | ConvertFrom-Json
+$lwjglVersion = if ($neoModern) { '3.3.3' } else { '3.3.1' }
+$lwjglMeta = Get-Content -LiteralPath (Assert-File (Join-Path $prism "meta/org.lwjgl3/$lwjglVersion.json")) -Raw | ConvertFrom-Json
 $forgeLibraryRoot = $libraryRoot
-if ($MinecraftVersion -eq '1.20.1') {
+if ($MinecraftVersion -in @('1.20.1', '1.21.1')) {
     if (-not $NeoForgeInstaller -or -not $NeoForgeLibraryRoot) {
-        throw '1.20.1 requires -NeoForgeInstaller and -NeoForgeLibraryRoot (an isolated, complete libraries directory)'
+        throw 'NeoForge client requires -NeoForgeInstaller and -NeoForgeLibraryRoot (an isolated, complete libraries directory)'
     }
     $forgeLibraryRoot = [IO.Path]::GetFullPath($NeoForgeLibraryRoot).TrimEnd('\', '/')
     if (-not [IO.Directory]::Exists($forgeLibraryRoot)) { throw "Missing isolated NeoForge libraries: $forgeLibraryRoot" }
@@ -134,8 +145,38 @@ if ($MinecraftVersion -eq '1.20.1') {
         throw 'Exact NeoForge installer SHA-256 mismatch'
     }
     $forgeProfile = Get-ZipText $forgeInstaller 'install_profile.json' | ConvertFrom-Json
-    $declaredClientSha1 = ([string] $forgeProfile.data.PATCHED_SHA.client).Trim("'")
-    if ($declaredClientSha1 -ne $version.ClientSha1) { throw 'Unexpected installer-declared patched client SHA-1' }
+    if ($neoModern) {
+        if ($forgeProfile.version -ne $forgeVersionId -or $forgeProfile.data.PATCHED.client -ne
+            '[net.neoforged:neoforge:21.1.206:client]') {
+            throw 'Unexpected exact NeoForge 1.21.1 installer client profile'
+        }
+        $receiptPath = Assert-File (Join-Path ([IO.Path]::GetDirectoryName($forgeLibraryRoot)) 'reconstruction.json')
+        $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
+        if ($receipt.schema -ne 'sfm-offline-neoforge-client/1' -or $receipt.minecraft -ne '1.21.1' -or
+            $receipt.loader -ne $forgeVersionId -or $receipt.installer_sha256 -ne $version.InstallerSha256 -or
+            $receipt.vanilla_client_sha1 -ne '30c73b1c5da787909b2f73340419fdf13b9def88' -or
+            $receipt.mojang_mappings_sha1 -ne '2244b6f072256667bcd9a73df124d6c58de77992' -or
+            $receipt.neoform_zip_sha1 -ne '811e2bd86fa2cda2812e5e8e51d718ea8bd6d3f4' -or
+            $receipt.neoform_mappings_sha1 -ne 'c9fe69b8e39fc9ae8a56e6666204505866006cce' -or
+            $receipt.merged_mappings_sha1 -ne '8184d8b290627ae54ab0eb980801bfe011f70175' -or
+            $receipt.slim_client_sha1 -ne 'b4fb33003ee0975bc4511ff09d5d4a268b33fc2b' -or
+            $receipt.extra_client_sha1 -ne $version.ExtraSha1 -or $receipt.srg_client_sha1 -ne $version.SrgSha1 -or
+            $receipt.patched_client_sha1 -ne $version.ClientSha1) {
+            throw 'Exact offline NeoForge 1.21.1 reconstruction receipt mismatch'
+        }
+        $joined = Assert-File $JoinedCompileJar
+        if ((Get-FileHash -LiteralPath $joined -Algorithm SHA256).Hash.ToLowerInvariant() -ne
+            'cef91058da78da95ac888fb9056d258ac29f7dd7712d7450029c56d80f31dda6') {
+            throw 'Exact joined 1.21.1 compile JAR SHA-256 mismatch'
+        }
+        if ((Get-FileHash -LiteralPath $java -Algorithm SHA256).Hash.ToLowerInvariant() -ne
+            'cd23f1d9b3ba8f99370503e3f13b057c3ca3b0cb32b926f1a39637a34e11ebc1') {
+            throw 'Exact JDK 21 Java executable SHA-256 mismatch'
+        }
+    } else {
+        $declaredClientSha1 = ([string] $forgeProfile.data.PATCHED_SHA.client).Trim("'")
+        if ($declaredClientSha1 -ne $version.ClientSha1) { throw 'Unexpected installer-declared patched client SHA-1' }
+    }
 } else {
     $forgeInstaller = Assert-File (Join-Path $libraryRoot "$forgeRelative/forge-$forgeArtifact-installer.jar")
 }
@@ -144,7 +185,13 @@ if ($forgeMeta.id -ne $forgeVersionId -or $minecraftMeta.mainJar.name -ne "com.m
     throw 'Unexpected cached Minecraft or Forge version manifest'
 }
 Assert-File (Join-Path $assetsRoot "indexes/$($version.Assets).json") | Out-Null
-$libraryRoots = if ($MinecraftVersion -eq '1.20.1') { @($forgeLibraryRoot, $libraryRoot) } else { @($libraryRoot) }
+$libraryRoots = if ($neoModern) {
+    @($forgeLibraryRoot)
+} elseif ($MinecraftVersion -eq '1.20.1') {
+    @($forgeLibraryRoot, $libraryRoot)
+} else {
+    @($libraryRoot)
+}
 
 $classpath = [Collections.Generic.List[string]]::new()
 $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -154,7 +201,9 @@ foreach ($lib in @($forgeMeta.libraries) + @($minecraftMeta.libraries) + @($lwjg
     if ($seen.Add($path)) { $classpath.Add($path) }
 }
 # These artifacts are produced by the cached Forge installer and are not in version.json.
-$extra = if ($MinecraftVersion -eq '1.20.1') {
+$extra = if ($neoModern) {
+    @("$forgeRelative/neoforge-$forgeArtifact-client.jar", "$forgeRelative/neoforge-$forgeArtifact-universal.jar")
+} elseif ($MinecraftVersion -eq '1.20.1') {
     @("$forgeRelative/forge-$forgeArtifact-client.jar", "$forgeRelative/forge-$forgeArtifact-universal.jar")
 } else {
     @(
@@ -168,10 +217,21 @@ $extra = if ($MinecraftVersion -eq '1.20.1') {
 }
 foreach ($relative in $extra) {
     $path = Resolve-CachedPath $relative @($forgeLibraryRoot)
+    if ($neoModern) {
+        # FML's production providers resolve client and universal separately
+        # from libraryDirectory. Client joins SRG/extra as Minecraft content;
+        # universal becomes the NeoForge mod. Neither belongs on the initial
+        # legacy classpath or Java -cp as a second JPMS module.
+        continue
+    }
     if ($seen.Add($path)) { $classpath.Add($path) }
 }
-if ($MinecraftVersion -eq '1.20.1') {
+if ($MinecraftVersion -in @('1.20.1', '1.21.1')) {
     $patchedClient = Resolve-CachedPath $extra[0] @($forgeLibraryRoot)
+    if ($neoModern -and ($classpath.Contains($patchedClient) -or
+            $classpath.Contains((Resolve-CachedPath $extra[1] @($forgeLibraryRoot))))) {
+        throw 'NeoForge client/universal must not be on the modern legacy classpath'
+    }
     if ((Get-FileHash -LiteralPath $patchedClient -Algorithm SHA1).Hash.ToLowerInvariant() -ne $version.ClientSha1) {
         throw 'Exact NeoForge patched client SHA-1 mismatch'
     }
@@ -184,6 +244,18 @@ if ($MinecraftVersion -eq '1.20.1') {
             throw "Exact Minecraft $($required.Classifier) SHA-1 mismatch"
         }
         if ($classpath.Contains($path)) { throw "Minecraft $($required.Classifier) must not be on the legacy classpath" }
+    }
+    if ($neoModern) {
+        foreach ($required in @(
+                @{ Relative = "net/neoforged/neoform/$mcpArtifact/neoform-$mcpArtifact.zip"; Sha1 = '811e2bd86fa2cda2812e5e8e51d718ea8bd6d3f4' },
+                @{ Relative = "net/neoforged/neoform/$mcpArtifact/neoform-$mcpArtifact-mappings.txt"; Sha1 = 'c9fe69b8e39fc9ae8a56e6666204505866006cce' },
+                @{ Relative = "net/neoforged/neoform/$mcpArtifact/neoform-$mcpArtifact-mappings-merged.txt"; Sha1 = '8184d8b290627ae54ab0eb980801bfe011f70175' },
+                @{ Relative = "net/minecraft/client/$mcpArtifact/client-$mcpArtifact-slim.jar"; Sha1 = 'b4fb33003ee0975bc4511ff09d5d4a268b33fc2b' })) {
+            $path = Resolve-CachedPath $required.Relative @($forgeLibraryRoot)
+            if ((Get-FileHash -LiteralPath $path -Algorithm SHA1).Hash.ToLowerInvariant() -ne $required.Sha1) {
+                throw "Exact reconstructed $($required.Relative) SHA-1 mismatch"
+            }
+        }
     }
 }
 
@@ -201,7 +273,7 @@ $control = Join-Path $run 'control'
 $classes = Join-Path $run 'bridge-classes'
 $natives = Join-Path $run 'natives'
 foreach ($dir in @($game, $mods, $control, $classes, $natives)) { [IO.Directory]::CreateDirectory($dir) | Out-Null }
-if ($MinecraftVersion -in @('1.20', '1.20.1')) {
+if ($MinecraftVersion -in @('1.20', '1.20.1', '1.21.1')) {
     # A fresh 1.20 game directory otherwise opens the accessibility onboarding
     # screen before the title screen. These options belong only to this run.
     @('onboardAccessibility:false', 'narrator:0', 'pauseOnLostFocus:false', 'tutorialStep:none') |
@@ -216,7 +288,9 @@ $runId = [Guid]::NewGuid().ToString()
 @("run_id=$runId", "sfm_sha256=$expected", "capture=$CaptureMode") |
     Set-Content -LiteralPath (Join-Path $control 'request.properties') -Encoding ascii
 
-$fmlCompile = if ($MinecraftVersion -eq '1.20.1') {
+$fmlCompile = if ($neoModern) {
+    @("net/neoforged/fancymodloader/loader/$($version.Fml)/loader-$($version.Fml).jar")
+} elseif ($MinecraftVersion -eq '1.20.1') {
     @(
         "net/neoforged/fancymodloader/core/$($version.Fml)/core-$($version.Fml).jar",
         "net/neoforged/fancymodloader/language-java/$($version.Fml)/language-java-$($version.Fml).jar"
@@ -227,17 +301,27 @@ $fmlCompile = if ($MinecraftVersion -eq '1.20.1') {
         "net/minecraftforge/javafmllanguage/$forgeArtifact/javafmllanguage-$forgeArtifact.jar"
     )
 }
-$compileRelative = @(
-    "net/minecraft/client/$mcpArtifact/client-$mcpArtifact-srg.jar",
-    "$forgeRelative/forge-$forgeArtifact-client.jar",
-    "$forgeRelative/forge-$forgeArtifact-universal.jar"
-) + $fmlCompile + @(
-    "net/minecraftforge/eventbus/$($version.EventBus)/eventbus-$($version.EventBus).jar",
-    "com/mojang/datafixerupper/$($version.DataFixer)/datafixerupper-$($version.DataFixer).jar"
-)
-$compileClasspath = @($compileRelative | ForEach-Object { Resolve-CachedPath $_ $libraryRoots })
+$compileClasspath = if ($neoModern) {
+    @($joined) + @(@(
+            "net/neoforged/fancymodloader/loader/$($version.Fml)/loader-$($version.Fml).jar",
+            "net/neoforged/bus/$($version.EventBus)/bus-$($version.EventBus).jar",
+            'net/neoforged/mergetool/2.0.0/mergetool-2.0.0-api.jar',
+            "com/mojang/datafixerupper/$($version.DataFixer)/datafixerupper-$($version.DataFixer).jar"
+        ) | ForEach-Object { Resolve-CachedPath $_ $libraryRoots })
+} else {
+    $compileRelative = @(
+        "net/minecraft/client/$mcpArtifact/client-$mcpArtifact-srg.jar",
+        "$forgeRelative/forge-$forgeArtifact-client.jar",
+        "$forgeRelative/forge-$forgeArtifact-universal.jar"
+    ) + $fmlCompile + @(
+        "net/minecraftforge/eventbus/$($version.EventBus)/eventbus-$($version.EventBus).jar",
+        "com/mojang/datafixerupper/$($version.DataFixer)/datafixerupper-$($version.DataFixer).jar"
+    )
+    @($compileRelative | ForEach-Object { Resolve-CachedPath $_ $libraryRoots })
+}
 $javaSource = Assert-File (Join-Path $bridgeSourceRoot 'java/ca/teamdman/sfm/releaseprobe/ReleaseClientBridge.java')
-& $javac -proc:none -source 17 -target 17 -classpath ($compileClasspath -join ';') -d $classes $javaSource
+$javaVersion = if ($neoModern) { '21' } else { '17' }
+& $javac -proc:none -source $javaVersion -target $javaVersion -classpath ($compileClasspath -join ';') -d $classes $javaSource
 if ($LASTEXITCODE -ne 0) { throw "Bridge javac failed: $LASTEXITCODE" }
 Assert-File (Join-Path $classes 'ca/teamdman/sfm/releaseprobe/ReleaseClientBridge.class') | Out-Null
 $bridgeJar = Join-Path $mods 'sfmreleaseprobe.jar'
