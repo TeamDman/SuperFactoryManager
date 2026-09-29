@@ -68,6 +68,13 @@ struct ReleasePackageVerificationReport {
     verified_target_count: usize,
 }
 
+/// Package data returned only after every manifest, inventory and JAR check.
+pub(super) struct VerifiedReleasePackage {
+    pub(super) completion_manifest_sha256: String,
+    pub(super) manifest: ReleasePackageManifest,
+    pub(super) inventory: ReleaseInventory,
+}
+
 impl ReleasePackageVerifyArgs {
     /// Verify a completed package without changing any file or release state.
     ///
@@ -76,6 +83,22 @@ impl ReleasePackageVerifyArgs {
     /// Rejects an unreviewed completion manifest, invalid package contract,
     /// unexpected path, or changed inventory/JAR bytes.
     pub(super) fn invoke_in(self, cancellation: &CancellationToken) -> Result<CliOutput> {
+        let verified = self.verify_in(cancellation)?;
+        Ok(CliOutput::facet(ReleasePackageVerificationReport {
+            schema: REPORT_SCHEMA.to_owned(),
+            scope: REPORT_SCOPE.to_owned(),
+            completion_manifest_sha256: verified.completion_manifest_sha256,
+            inventory_sha256: verified.manifest.inventory_sha256,
+            lock_sha256: verified.manifest.lock_sha256,
+            verified_target_count: verified.manifest.targets.len(),
+        }))
+    }
+
+    /// Return typed package data only after the full read-only verification.
+    pub(super) fn verify_in(
+        self,
+        cancellation: &CancellationToken,
+    ) -> Result<VerifiedReleasePackage> {
         cancellation.bail_if_cancelled()?;
         validate_digest(&self.completion_manifest_sha256)?;
         let root = checked_directory(&self.package_root)?;
@@ -103,14 +126,11 @@ impl ReleasePackageVerifyArgs {
         }
         // Catch a newly added entry during hashing when the package was not quiescent.
         validate_directory_entries(&root, &manifest)?;
-        Ok(CliOutput::facet(ReleasePackageVerificationReport {
-            schema: REPORT_SCHEMA.to_owned(),
-            scope: REPORT_SCOPE.to_owned(),
+        Ok(VerifiedReleasePackage {
             completion_manifest_sha256: self.completion_manifest_sha256,
-            inventory_sha256: manifest.inventory_sha256,
-            lock_sha256: manifest.lock_sha256,
-            verified_target_count: manifest.targets.len(),
-        }))
+            manifest,
+            inventory,
+        })
     }
 }
 

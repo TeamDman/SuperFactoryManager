@@ -5,6 +5,7 @@ use super::promotion_cli::PromotionArgs;
 use super::release_inventory_cli::ReleaseInventoryArgs;
 use super::release_package_cli::ReleasePackageArgs;
 use super::release_package_verify_cli::ReleasePackageVerifyArgs;
+use super::release_plan_cli::ReleasePlanArgs;
 use super::source_trace_cli::SourceTraceArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
@@ -95,6 +96,8 @@ pub enum SourceCommand {
     ReleasePackage(ReleasePackageArgs),
     /// Check a completed local package against its separately reviewed manifest digest.
     ReleasePackageVerify(ReleasePackageVerifyArgs),
+    /// Plan exact verified package assets without tagging or publishing.
+    ReleasePlan(ReleasePlanArgs),
     /// Show one generated file's recorded owner and current edit state.
     Trace(SourceTraceArgs),
 }
@@ -270,6 +273,7 @@ impl SourceArgs {
             SourceCommand::ReleasePackageVerify(args) => {
                 return args.invoke_in(cancellation);
             }
+            SourceCommand::ReleasePlan(args) => return args.invoke_in(cancellation),
             SourceCommand::Trace(args) => return args.invoke_in(),
             SourceCommand::DryRun(args) => (args, SyncMode::DryRun),
             SourceCommand::Check(args) => (args, SyncMode::Check),
