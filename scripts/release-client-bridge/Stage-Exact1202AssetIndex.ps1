@@ -109,10 +109,12 @@ $rawOutput = [IO.Path]::GetFullPath($OutputRoot)
 if ($rawOutput -eq [IO.Path]::GetPathRoot($rawOutput)) { throw 'OutputRoot may not be a volume root' }
 $output = $rawOutput.TrimEnd('\', '/')
 $profileRoot = [Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)
+$checkoutRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..')).TrimEnd('\', '/')
 if ((Test-IsWithinOrSame $output $prism) -or (Test-IsWithinOrSame $prism $output) -or
     (Test-IsWithinOrSame $output $profileRoot) -or
-    (Test-IsWithinOrSame $output $PSScriptRoot)) {
-    throw 'OutputRoot must be isolated from Prism, the user profile and bridge sources'
+    (Test-IsWithinOrSame $output $checkoutRoot) -or
+    (Test-IsWithinOrSame $checkoutRoot $output)) {
+    throw 'OutputRoot must be isolated from Prism, the user profile and repository checkout'
 }
 Assert-NoReparseAncestor $output
 if ($null -ne (Get-Item -LiteralPath $output -Force -ErrorAction SilentlyContinue)) {

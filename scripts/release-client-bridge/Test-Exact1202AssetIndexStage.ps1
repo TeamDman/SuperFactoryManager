@@ -34,11 +34,13 @@ if ($root.Equals($profileRoot, [StringComparison]::OrdinalIgnoreCase) -or
         [StringComparison]::OrdinalIgnoreCase)) {
     throw 'TestRoot must not be inside the user profile'
 }
-$bridgeRoot = [IO.Path]::GetFullPath($PSScriptRoot).TrimEnd('\', '/')
-if ($root.Equals($bridgeRoot, [StringComparison]::OrdinalIgnoreCase) -or
-    $root.StartsWith($bridgeRoot + [IO.Path]::DirectorySeparatorChar,
+$checkoutRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..')).TrimEnd('\', '/')
+if ($root.Equals($checkoutRoot, [StringComparison]::OrdinalIgnoreCase) -or
+    $root.StartsWith($checkoutRoot + [IO.Path]::DirectorySeparatorChar,
+        [StringComparison]::OrdinalIgnoreCase) -or
+    $checkoutRoot.StartsWith($root + [IO.Path]::DirectorySeparatorChar,
         [StringComparison]::OrdinalIgnoreCase)) {
-    throw 'TestRoot must not be inside bridge sources'
+    throw 'TestRoot must be isolated from the repository checkout'
 }
 $ancestor = $root
 while ($ancestor) {
@@ -108,9 +110,16 @@ Assert-True (-not [IO.Directory]::Exists($badOutput)) 'download preflight create
 Assert-Rejected 'output inside Prism' {
     & $stage -PrismRoot $prism -OutputRoot (Join-Path $prism 'new-output') -AllowDownload -PreflightOnly
 } 'isolated from Prism'
-Assert-Rejected 'output inside bridge sources' {
-    & $stage -PrismRoot $prism -OutputRoot (Join-Path $PSScriptRoot 'new-output') -AllowDownload -PreflightOnly
-} 'bridge sources'
+$checkoutOutput = Join-Path $checkoutRoot ('asset-index-test-output-' + [guid]::NewGuid().ToString('N'))
+Assert-True (-not (Test-Path -LiteralPath $checkoutOutput)) 'checkout output candidate already exists'
+Assert-Rejected 'output inside repository checkout' {
+    & $stage -PrismRoot $prism -OutputRoot $checkoutOutput -AllowDownload -PreflightOnly
+} 'repository checkout'
+Assert-True (-not (Test-Path -LiteralPath $checkoutOutput)) 'checkout preflight created output'
+Assert-Rejected 'output above repository checkout' {
+    & $stage -PrismRoot $prism -OutputRoot ([IO.Path]::GetDirectoryName($checkoutRoot)) `
+        -AllowDownload -PreflightOnly
+} 'repository checkout'
 [IO.Directory]::CreateDirectory($badOutput) | Out-Null
 Assert-Rejected 'existing output' {
     & $stage -PrismRoot $prism -OutputRoot $badOutput -AllowDownload -PreflightOnly
