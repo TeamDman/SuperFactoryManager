@@ -148,6 +148,12 @@ $control = Join-Path $run 'control'
 $classes = Join-Path $run 'bridge-classes'
 $natives = Join-Path $run 'natives'
 foreach ($dir in @($game, $mods, $control, $classes, $natives)) { [IO.Directory]::CreateDirectory($dir) | Out-Null }
+if ($MinecraftVersion -eq '1.20') {
+    # A fresh 1.20 game directory otherwise opens the accessibility onboarding
+    # screen before the title screen. These options belong only to this run.
+    @('onboardAccessibility:false', 'narrator:0', 'pauseOnLostFocus:false', 'tutorialStep:none') |
+        Set-Content -LiteralPath (Join-Path $game 'options.txt') -Encoding ascii
+}
 $sfmCopy = Join-Path $mods 'sfm.jar'
 Copy-Item -LiteralPath $sourceJar -Destination $sfmCopy
 if ((Get-FileHash -LiteralPath $sfmCopy -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) {
