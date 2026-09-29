@@ -106,7 +106,7 @@ Commit `bdc8b6757` added a test-only [packaged-client network witness](../../scr
 | Target | Paired packet-body codec and live request/response |
 | --- | --- |
 | 1.19.2 | Pass, Forge 43.4.0/JBRSDK 17.0.14 |
-| 1.19.4 | Bridge enabled; paired live test not run |
+| 1.19.4 | Pass, Forge 45.0.9/JBRSDK 17.0.14 |
 | 1.20 | Bridge enabled; paired live test not run |
 | 1.20.1 | Bridge enabled; paired live test not run |
 | 1.20.2 | Bridge enabled; paired live test not run |
@@ -120,10 +120,12 @@ Commit `bdc8b6757` added a test-only [packaged-client network witness](../../scr
 | --- | --- | --- |
 | 1.19.2 official | `f2c0242a984b8b782cc995e20a59e71bbdb48981873ab31a4531f0d1db3af038` | `667355fcfdfb834d09dbab4a0f1e07f96411afbde2134997445685dd9b974d54` |
 | 1.19.2 projected | `024e9b10463235f10e61cb0e7285f8a082e90800ead8c3f5146b58c51146eccf` | `bd15e2756decc300c03994a1ddec1705442d0a7bcdefa4db0dc1510725b7258d` |
+| 1.19.4 official | `09b8c7d2ae6453d39444c61174979d1938d25d4f24282f8396711f329c5b5fba` | `b75a1860761f5a336a7830941a68b87422cc92dfaab308a13f2f9f88093e54ea` |
+| 1.19.4 projected | `4a39e9512a47925639a1ba7126ea903576917b120d43dcedfa66563ebcea9735` | `1785ccde7c387a840fc5b9fa8d6b58fa49d13e83a2c123830cdf53595b9539e2` |
 | 26.1.2 official | `cace8809600cea007dbe5c73dc04c2f780375547ec0717a1ec8c25d991140bf1` | `77623ee797aeeebed328954c877526da5159f6fbab149f1d089d8cac13921f44` |
 | 26.1.2 projected | `9b2ff101e1158f42bf9218177c1f063375ce58254ff0de629db4dc52ef3c15b6` | `8ff2071e3cb21020e538554de18a36d98252d8d76a46de84ddc957d7b31a4c2e` |
 
-All four packet-body fixtures were equal: one-byte request SHA-256 `6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d`, and 47-byte synthetic response SHA-256 `87985e5f91f6248102406badba3ba6a4e19eefc2caab767c2d5f6518a015ae6a`. These are body hashes, not complete framed-wire captures or the live server's configuration text. This proves only one request/response path at two endpoints, not all 37 registrations, all packet codecs, cross-version protocol compatibility or broad gameplay parity.
+All six packet-body fixtures were equal: one-byte request SHA-256 `6e340b9cffb37a989ca544e6bb780a2c78901d3fb33738768511a30617afa01d`, and 47-byte synthetic response SHA-256 `87985e5f91f6248102406badba3ba6a4e19eefc2caab767c2d5f6518a015ae6a`. The two 1.19.4 runs independently recorded one server response, the expected client screen, and zero disk-space diagnostics; their test-bridge class bytes matched SHA-256 `ed24af1904679b6ae3924ce84fa7ba94c6bb15c515cf86c58a0d1e6f731ae6c7`. These are body hashes, not complete framed-wire captures or the live server's configuration text. This proves only one request/response path at three targets, not all 37 registrations, all packet codecs, cross-version protocol compatibility or broad gameplay parity.
 
 The 1.20.2 packaged-client exact inputs were staged separately from the launcher cache. The NeoForge 20.2.86 installer has SHA-256 `c21378ea25e4c1b1eb367f7eda7db48af6965e3e35c2270421f10687faf8d4db`; the Mojang vanilla client and NeoForm ZIP have SHA-1 `82d1974e75fc984c5ed4b038e764e50958ac61a0` and `ccc76c9cd813988c70b3098c6cfb3bed22395206`. The exact asset index `8` (SHA-1 `21beaec863755c8fd4620b22ed9bdbc6718b3c32`) was downloaded and verified into scratch. Its 3,607 unique objects total 646,330,719 bytes: 3,604 copied from a verified read-only launcher cache and three missing objects fetched only into scratch, each checked against the index's size and SHA-1. The complete stage receipt SHA-256 is `5aa170c8ddeb91ccaae7e5d0868a46188b90bdf9606a8b4b70cc86c5cc8dd178`. The exact installer's five client processors ran twice in separate fresh scratch roots and produced byte-identical patched JARs at SHA-256 `0bebc71df20aadba9d7ee56ad5dbd92c87546d7fd0e29397cb637a1f9fd5dc94` (5,137,753 bytes, 1,448 readable ZIP entries). This is repeatability from verified inputs, not comparison with an independently published patched-client digest. No nearby asset index or loader was substituted, and no disk-space error occurred.
 
