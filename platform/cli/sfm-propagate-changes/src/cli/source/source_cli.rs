@@ -8,6 +8,7 @@ use super::release_package_verify_cli::ReleasePackageVerifyArgs;
 use super::release_plan_cli::ReleasePlanArgs;
 use super::release_provider_plan_cli::ReleaseModrinthRequestPreviewArgs;
 use super::release_provider_plan_cli::ReleaseProviderPlanArgs;
+use super::release_tag_preflight_cli::ReleaseTagPreflightArgs;
 use super::source_trace_cli::SourceTraceArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
@@ -104,6 +105,8 @@ pub enum SourceCommand {
     ReleaseProviderPlan(ReleaseProviderPlanArgs),
     /// Preview exact reviewed Modrinth request metadata and ten packaged JAR identities only.
     ReleaseModrinthRequestPreview(ReleaseModrinthRequestPreviewArgs),
+    /// Check one verified package target against promoted HEAD and its local tag only.
+    ReleaseTagPreflight(ReleaseTagPreflightArgs),
     /// Show one generated file's recorded owner and current edit state.
     Trace(SourceTraceArgs),
 }
@@ -284,6 +287,7 @@ impl SourceArgs {
             SourceCommand::ReleaseModrinthRequestPreview(args) => {
                 return args.invoke_in(cancellation);
             }
+            SourceCommand::ReleaseTagPreflight(args) => return args.invoke_in(cancellation),
             SourceCommand::Trace(args) => return args.invoke_in(),
             SourceCommand::DryRun(args) => (args, SyncMode::DryRun),
             SourceCommand::Check(args) => (args, SyncMode::Check),

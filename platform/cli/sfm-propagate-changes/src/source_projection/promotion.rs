@@ -1062,7 +1062,10 @@ fn inspect_candidate_outputs(
 /// A destination may retain old-owned files until their planned removal, but
 /// must contain no other project inputs. Gradle output directories are skipped
 /// by the same exact root-name rule as candidate verification.
-fn ensure_closed_destination_inputs(root: &Path, ownership: &ProjectionProvenance) -> Result<()> {
+pub(crate) fn ensure_closed_destination_inputs(
+    root: &Path,
+    ownership: &ProjectionProvenance,
+) -> Result<()> {
     for entry in fs::read_dir(root)
         .wrap_err_with(|| format!("cannot inspect checked-in project '{}'", root.display()))?
     {
