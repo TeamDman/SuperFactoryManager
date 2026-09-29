@@ -228,6 +228,7 @@ mod tests {
                 canonical_commit: None,
                 gradle_provenance_sha256: None,
                 project_fixture_provenance_sha256: None,
+                release_project_fixtures: None,
                 post_baseline_test_sources: BTreeMap::new(),
                 post_baseline_gradle_sources: BTreeMap::new(),
                 post_baseline_canonical_sources: BTreeMap::new(),

@@ -7,6 +7,7 @@
 use super::context::ProjectionContext;
 use super::development_baseline::DEVELOPMENT_SOURCE_SCHEMA;
 use super::development_baseline::DevelopmentHeadSpec;
+use super::development_fixtures::collect_pinned_release_examples;
 use super::development_fixtures::collect_verified_development_project_fixtures;
 use super::development_gradle::verify_development_gradle_inputs;
 use super::inputs::apply_explicit_inputs;
@@ -152,6 +153,21 @@ pub fn apply_release_baseline(
             ensure!(
                 pending.insert(path.clone(), artifact).is_none(),
                 "development fixture output '{path}' collides with a source artifact"
+            );
+        }
+    }
+
+    if let Some(expected) = &binding.release_project_fixtures {
+        ensure!(
+            binding.kind == BaselineKind::ReleaseTag,
+            "release project fixtures require a release-tag baseline"
+        );
+        for (path, artifact) in
+            collect_pinned_release_examples(repo_root, &binding.tag_commit, expected)?
+        {
+            ensure!(
+                pending.insert(path.clone(), artifact).is_none(),
+                "release example output '{path}' collides with a source artifact"
             );
         }
     }
@@ -1128,6 +1144,7 @@ mod tests {
             canonical_commit: None,
             gradle_provenance_sha256: None,
             project_fixture_provenance_sha256: None,
+            release_project_fixtures: None,
             post_baseline_test_sources: BTreeMap::new(),
             post_baseline_gradle_sources: BTreeMap::new(),
             post_baseline_canonical_sources: BTreeMap::new(),

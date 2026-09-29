@@ -1,10 +1,12 @@
-//! Pinned project-root test fixtures for standalone development projections.
+//! Pinned project-root test fixtures for standalone projections.
 //!
 //! Only `examples/**` and `docs/architecture/fixtures/**` are eligible. The
-//! import is read from an exact committed Git tree, never from the current
-//! checkout, and is stored separately from source and Gradle imports.
+//! development import is stored separately from source and Gradle imports;
+//! opt-in release examples are read from an exact committed Git tree. Neither
+//! path adopts the current checkout's mutable examples.
 
 use super::development_baseline::DevelopmentHeadSpec;
+use super::manifest::ReleaseProjectFixtures;
 use super::provenance::sha256;
 use super::release_baseline::GitBlobHasher;
 use super::release_baseline::ImportFile;
@@ -260,20 +262,96 @@ pub fn collect_verified_development_project_fixtures(
     Ok(artifacts)
 }
 
+/// Project test examples from an exact release commit, never the working tree.
+/// The expected tree OID closes membership as well as file content, while the
+/// ordinary generated-file manifest owns every emitted project-root path.
+///
+/// # Errors
+///
+/// Rejects a moved commit, stale tree OID, changed file count, unsafe path or
+/// Git mode, or a blob whose bytes do not match its object ID.
+pub fn collect_pinned_release_examples(
+    repo_root: &Path,
+    commit: &str,
+    expected: &ReleaseProjectFixtures,
+) -> Result<BTreeMap<String, ProjectedArtifact>> {
+    ensure!(
+        is_lower_hex(commit, 40),
+        "release fixture commit must be a Git SHA"
+    );
+    ensure!(
+        is_lower_hex(&expected.examples_tree_oid, 40),
+        "release examples tree OID must be a Git SHA"
+    );
+    let root = repository_root(repo_root)?;
+    let resolved = git_text(
+        &root,
+        &["rev-parse", "--verify", &format!("{commit}^{{commit}}")],
+    )?;
+    ensure!(resolved == commit, "release fixture commit moved");
+    let tree_oid = git_text(
+        &root,
+        &["rev-parse", "--verify", &format!("{commit}:examples")],
+    )?;
+    ensure!(
+        tree_oid == expected.examples_tree_oid,
+        "release examples tree differs from the pinned OID"
+    );
+    ensure!(
+        git_text(&root, &["cat-file", "-t", &tree_oid])? == "tree",
+        "release examples path is not a Git tree"
+    );
+    let tree = collect_fixture_tree_at(&root, commit, &["examples"])?;
+    ensure!(
+        tree.len() == expected.file_count,
+        "release examples tree has {} files, expected {}",
+        tree.len(),
+        expected.file_count
+    );
+    let mut artifacts = BTreeMap::new();
+    let mut blobs = GitBlobHasher::start(&root)?;
+    for (path, entry) in tree {
+        ensure!(
+            path.starts_with("examples/"),
+            "non-example release fixture '{path}'"
+        );
+        let bytes = blobs.read(&entry.blob_oid)?;
+        ensure!(
+            bytes.len() as u64 <= MAX_FIXTURE_BYTES,
+            "release fixture '{path}' is too large"
+        );
+        ensure!(
+            git_blob_oid(&bytes) == entry.blob_oid,
+            "release fixture Git blob ID mismatch at '{path}'"
+        );
+        artifacts.insert(
+            path.clone(),
+            ProjectedArtifact {
+                source_path: path.clone(),
+                source_bytes: bytes.clone(),
+                output_bytes: bytes,
+                overlay: Some("release-tag-examples".to_owned()),
+            },
+        );
+    }
+    blobs.finish()?;
+    Ok(artifacts)
+}
+
 fn collect_fixture_tree(root: &Path, commit: &str) -> Result<BTreeMap<String, TreeFile>> {
+    collect_fixture_tree_at(root, commit, &["examples", "docs/architecture/fixtures"])
+}
+
+fn collect_fixture_tree_at(
+    root: &Path,
+    commit: &str,
+    roots: &[&str],
+) -> Result<BTreeMap<String, TreeFile>> {
     let output = Command::new("git")
         .current_dir(root)
         .env("GIT_OPTIONAL_LOCKS", "0")
-        .args([
-            "ls-tree",
-            "-r",
-            "-z",
-            "--full-tree",
-            commit,
-            "--",
-            "examples",
-            "docs/architecture/fixtures",
-        ])
+        .args(["ls-tree", "-r", "-z", "--full-tree", commit, "--"])
+        .args(roots)
         .output()
         .wrap_err("cannot read pinned fixture Git tree")?;
     ensure!(
@@ -655,6 +733,61 @@ mod tests {
         assert!(!artifacts.contains_key("examples/untracked.sfm"));
         let second = materialize_development_project_fixtures(root, &spec, 2).unwrap();
         assert_eq!((second.created_files, second.reused_files), (0, 3));
+    }
+
+    #[test]
+    fn release_examples_use_exact_tag_tree_not_working_tree() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        let spec = fixture_repo(root);
+        let tree_oid = git(
+            root,
+            &["rev-parse", &format!("{}:examples", spec.target_commit)],
+        );
+        let expected = ReleaseProjectFixtures {
+            examples_tree_oid: tree_oid,
+            file_count: 1,
+        };
+        write(root, "examples/01.sfm", b"uncommitted change\n");
+        write(root, "examples/untracked.sfm", b"untracked\n");
+        let artifacts =
+            collect_pinned_release_examples(root, &spec.target_commit, &expected).unwrap();
+        assert_eq!(artifacts.len(), 1);
+        assert_eq!(
+            artifacts["examples/01.sfm"].output_bytes,
+            b"pinned example\n"
+        );
+        assert_eq!(
+            artifacts["examples/01.sfm"].overlay.as_deref(),
+            Some("release-tag-examples")
+        );
+        assert!(!artifacts.contains_key("examples/untracked.sfm"));
+        assert!(!artifacts.contains_key("docs/architecture/fixtures/review.json"));
+    }
+
+    #[test]
+    fn release_examples_reject_stale_tree_or_file_count() {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path();
+        let spec = fixture_repo(root);
+        let tree_oid = git(
+            root,
+            &["rev-parse", &format!("{}:examples", spec.target_commit)],
+        );
+        let mut expected = ReleaseProjectFixtures {
+            examples_tree_oid: "0".repeat(40),
+            file_count: 1,
+        };
+        let error = collect_pinned_release_examples(root, &spec.target_commit, &expected)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("differs from the pinned OID"), "{error}");
+        expected.examples_tree_oid = tree_oid;
+        expected.file_count = 2;
+        let error = collect_pinned_release_examples(root, &spec.target_commit, &expected)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("has 1 files, expected 2"), "{error}");
     }
 
     #[test]

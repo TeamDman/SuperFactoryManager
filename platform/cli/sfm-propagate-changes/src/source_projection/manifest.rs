@@ -141,6 +141,10 @@ pub struct ReleaseBaselineBinding {
     /// Release-tag presets do not import these development-only test inputs.
     #[facet(default)]
     pub project_fixture_provenance_sha256: Option<String>,
+    /// Candidate-only project-root examples from the exact release-tag tree.
+    /// The published 4.34.0 preset remains fixture-free.
+    #[facet(default)]
+    pub release_project_fixtures: Option<ReleaseProjectFixtures>,
     /// Exact canonical test-source bytes allowed to replace pinned development
     /// outputs after the baseline has been verified. Keys are `src/test/java/...`
     /// project paths; values are bare SHA-256 digests of authored input bytes.
@@ -166,6 +170,13 @@ pub struct ReleaseBaselineBinding {
     /// outputs; each declared input is copied only after a SHA-256 check.
     #[facet(default)]
     pub post_baseline_resources: BTreeMap<String, PostBaselineResource>,
+}
+
+#[derive(Clone, Debug, Eq, Facet, PartialEq)]
+pub struct ReleaseProjectFixtures {
+    /// Exact Git tree object at `examples/` in `tag_commit`.
+    pub examples_tree_oid: String,
+    pub file_count: usize,
 }
 
 #[derive(Clone, Debug, Eq, Facet, PartialEq)]
@@ -788,6 +799,11 @@ fn hash_release_baselines(hasher: &mut blake3::Hasher, preset: &ProjectionPreset
                     }
                 }
             }
+            if let Some(fixtures) = &baseline.release_project_fixtures {
+                hash_part(hasher, "release_project_fixtures");
+                hash_part(hasher, &fixtures.examples_tree_oid);
+                hash_part(hasher, &fixtures.file_count.to_string());
+            }
             hash_post_baseline_canonical_sources(hasher, baseline);
             hash_post_baseline_version_sources(hasher, baseline);
         }
@@ -932,15 +948,18 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
                 ensure!(
                     preset.id != "released-4.34.0"
                         || (baseline.post_baseline_canonical_sources.is_empty()
-                            && baseline.post_baseline_version_sources.is_empty()),
-                    "published released-4.34.0 cannot gain source overrides"
+                            && baseline.post_baseline_version_sources.is_empty()
+                            && baseline.release_project_fixtures.is_none()),
+                    "published released-4.34.0 cannot gain source overrides or project fixtures"
                 );
+                validate_release_project_fixtures(baseline.release_project_fixtures.as_ref())?;
                 validate_post_baseline_resources(baseline)?;
             }
             BaselineKind::DevelopmentHead => {
                 ensure!(
-                    baseline.post_baseline_resources.is_empty(),
-                    "development import cannot declare post-baseline release resources"
+                    baseline.post_baseline_resources.is_empty()
+                        && baseline.release_project_fixtures.is_none(),
+                    "development import cannot declare release-only inputs"
                 );
                 validate_development_binding(baseline)?;
             }
@@ -963,6 +982,19 @@ fn validate_release_baselines(preset: &ProjectionPreset) -> eyre::Result<()> {
         eyre::bail!(
             "preset `{}` must bind a release baseline for every selected target",
             preset.id
+        );
+    }
+    Ok(())
+}
+
+fn validate_release_project_fixtures(
+    fixtures: Option<&ReleaseProjectFixtures>,
+) -> eyre::Result<()> {
+    if let Some(fixtures) = fixtures {
+        validate_lower_hex(&fixtures.examples_tree_oid, 40, "release examples tree OID")?;
+        ensure!(
+            (1..=1024).contains(&fixtures.file_count),
+            "release examples file count must be between 1 and 1024"
         );
     }
     Ok(())
@@ -1320,6 +1352,7 @@ mod tests {
             canonical_commit: None,
             gradle_provenance_sha256: None,
             project_fixture_provenance_sha256: None,
+            release_project_fixtures: None,
             post_baseline_test_sources: BTreeMap::new(),
             post_baseline_gradle_sources: BTreeMap::new(),
             post_baseline_canonical_sources: BTreeMap::new(),

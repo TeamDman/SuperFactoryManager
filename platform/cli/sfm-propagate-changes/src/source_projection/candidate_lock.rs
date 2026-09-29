@@ -1498,6 +1498,28 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn declared_project_root_example_is_owned_but_unlisted_neighbor_is_not() {
+        let root = tempfile::tempdir().unwrap();
+        fs::create_dir(root.path().join("examples")).unwrap();
+        fs::write(root.path().join("examples/01.sfm"), b"example\n").unwrap();
+        let owned = BTreeMap::from([(
+            "examples/01.sfm".to_owned(),
+            super::super::provenance::ProjectedFileProvenance {
+                source_path: "examples/01.sfm".to_owned(),
+                source_sha256: sha256(b"example\n"),
+                overlay: Some("release-tag-examples".to_owned()),
+                output_sha256: sha256(b"example\n"),
+            },
+        )]);
+        ensure_closed_candidate_inputs(root.path(), &owned).unwrap();
+        fs::write(root.path().join("examples/unlisted.sfm"), b"unowned\n").unwrap();
+        let error = ensure_closed_candidate_inputs(root.path(), &owned)
+            .unwrap_err()
+            .to_string();
+        assert!(error.contains("unowned candidate project input"), "{error}");
+    }
+
+    #[test]
     fn rejects_reparse_jar_when_symlinks_are_available() {
         let fixture = Fixture::new();
         let candidate = &fixture.roots["1.19.2"];
