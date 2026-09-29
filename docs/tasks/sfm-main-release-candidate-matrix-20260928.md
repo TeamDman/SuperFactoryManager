@@ -106,14 +106,14 @@ Commit `bdc8b6757` added a test-only [packaged-client network witness](../../scr
 | Target | Paired packet-body codec and live request/response |
 | --- | --- |
 | 1.19.2 | Pass, Forge 43.4.0/JBRSDK 17.0.14 |
-| 1.19.4 | Not run |
-| 1.20 | Not run |
-| 1.20.1 | Not run |
-| 1.20.2 | Not run |
-| 1.20.3 | Not run |
-| 1.20.4 | Not run |
-| 1.21.0 | Not run |
-| 1.21.1 | Not run |
+| 1.19.4 | Bridge enabled; paired live test not run |
+| 1.20 | Bridge enabled; paired live test not run |
+| 1.20.1 | Bridge enabled; paired live test not run |
+| 1.20.2 | Bridge enabled; paired live test not run |
+| 1.20.3 | Bridge enabled; paired live test not run |
+| 1.20.4 | Bridge enabled; paired live test not run |
+| 1.21.0 | Bridge enabled; paired live test not run |
+| 1.21.1 | Bridge enabled; paired live test not run |
 | 26.1.2 | Pass, NeoForge 26.1.2.72/JBR 25.0.3 |
 
 | Target and side | Production JAR SHA-256 | Path-free result JSON SHA-256 |

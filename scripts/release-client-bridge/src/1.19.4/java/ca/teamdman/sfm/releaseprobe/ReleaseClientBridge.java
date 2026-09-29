@@ -63,6 +63,9 @@ public final class ReleaseClientBridge {
     private boolean clientBlockSynced;
     private boolean clientAimLogged;
     private boolean rayHit;
+    private boolean networkRequestSent;
+    private boolean networkResponseObserved;
+    private ReleaseClientNetworkProbe.CodecFixture networkCodecFixture;
     private volatile boolean serverBlockPlaced;
     private volatile BlockPos managerPosition;
     private volatile String worldSetupFailure;
@@ -80,7 +83,8 @@ public final class ReleaseClientBridge {
             expectedSfmSha256 = request.getProperty("sfm_sha256", "").toLowerCase();
             captureMode = request.getProperty("capture", "");
             if (!runId.matches("[0-9a-fA-F-]{36}") || !expectedSfmSha256.matches("[0-9a-f]{64}")
-                    || !("title".equals(captureMode) || "world".equals(captureMode))) {
+                    || !("title".equals(captureMode) || "world".equals(captureMode)
+                    || "network-roundtrip".equals(captureMode))) {
                 throw new IllegalArgumentException("Invalid release-client request");
             }
             worldId = "sfm_release_probe_" + runId.replace("-", "");
@@ -146,6 +150,8 @@ public final class ReleaseClientBridge {
         }
         if ("world".equals(captureMode)) {
             advanceWorldWitness();
+        } else if ("network-roundtrip".equals(captureMode)) {
+            advanceNetworkRoundTrip();
         }
         if (!captureQueued || resultWritten) {
             return;
@@ -249,6 +255,53 @@ public final class ReleaseClientBridge {
         }
     }
 
+    private void advanceNetworkRoundTrip() {
+        Minecraft minecraft = Minecraft.m_91087_();
+        if (!worldCreationStarted) {
+            if (renderedTitleFrames < 2 || !(minecraft.f_91080_ instanceof TitleScreen)) {
+                return;
+            }
+            if (!ModList.get().isLoaded("sfm")) {
+                fail("sfm_mod_not_loaded");
+                return;
+            }
+            try {
+                createScratchWorld(minecraft);
+            } catch (Exception failure) {
+                failure.printStackTrace(System.err);
+                fail("world_creation_exception");
+            }
+            return;
+        }
+        if (networkRequestSent) {
+            if (ReleaseClientNetworkProbe.isConfigResponseScreen(minecraft.f_91080_)) {
+                networkResponseObserved = true;
+                try {
+                    writeResult("passed", "none");
+                } catch (IOException failure) {
+                    failure.printStackTrace(System.err);
+                    fail("result_io_error");
+                }
+            }
+            return;
+        }
+        IntegratedServer server = minecraft.m_91092_();
+        if (server == null || !server.m_129920_() || minecraft.f_91074_ == null ||
+                minecraft.f_91073_ == null || minecraft.f_91080_ != null) {
+            return;
+        }
+        networkRequestSent = true;
+        try {
+            networkCodecFixture = ReleaseClientNetworkProbe.captureCodecFixture(null);
+            ReleaseClientNetworkProbe.requestServerConfigShow();
+            System.out.println("SFM_RELEASE_CLIENT_NETWORK_REQUEST_SENT run_id=" + runId
+                    + " packet=ServerboundServerConfigRequestPacket mode=SHOW");
+        } catch (Exception failure) {
+            failure.printStackTrace(System.err);
+            fail("network_request_failed");
+        }
+    }
+
     private void createScratchWorld(Minecraft minecraft) throws IOException {
         if (!minecraft.f_91069_.toPath().toRealPath().equals(gameDirectory.toRealPath()) ||
                 minecraft.f_91073_ != null || minecraft.m_91092_() != null) {
@@ -344,7 +397,23 @@ public final class ReleaseClientBridge {
     private void writeResult(String status, String reason) throws IOException {
         resultWritten = true;
         String json;
-        if ("world".equals(captureMode)) {
+        if ("network-roundtrip".equals(captureMode)) {
+            ReleaseClientNetworkProbe.CodecFixture codec = networkCodecFixture;
+            json = "{\"schema\":\"sfm-release-client-network-proof/1\",\"run_id\":\"" + runId
+                    + "\",\"status\":\"" + status + "\",\"reason\":\"" + reason
+                    + "\",\"sfm_sha256\":\"" + expectedSfmSha256
+                    + "\",\"capture_mode\":\"network-roundtrip\",\"world_id\":\"" + worldId
+                    + "\",\"request_packet\":\"ServerboundServerConfigRequestPacket\""
+                    + ",\"request_mode\":\"SHOW\",\"request_sent\":" + networkRequestSent
+                    + ",\"response_screen\":\"" + (networkResponseObserved
+                    ? ReleaseClientNetworkProbe.RESPONSE_SCREEN : "")
+                    + "\",\"response_observed\":" + networkResponseObserved
+                    + ",\"codec_roundtrip\":" + (codec != null)
+                    + ",\"request_body_sha256\":\"" + (codec == null ? "" : codec.requestSha256())
+                    + "\",\"request_body_bytes\":" + (codec == null ? 0 : codec.requestBytes())
+                    + ",\"response_body_sha256\":\"" + (codec == null ? "" : codec.responseSha256())
+                    + "\",\"response_body_bytes\":" + (codec == null ? 0 : codec.responseBytes()) + "}\n";
+        } else if ("world".equals(captureMode)) {
             json = "{\"schema\":\"sfm-release-client-world-proof/1\",\"run_id\":\"" + runId
                     + "\",\"status\":\"" + status + "\",\"reason\":\"" + reason
                     + "\",\"sfm_sha256\":\"" + expectedSfmSha256 + "\",\"screen\":\"world\""

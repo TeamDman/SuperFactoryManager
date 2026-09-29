@@ -110,9 +110,6 @@ function Get-ZipEntrySha256([string] $Archive, [string] $EntryName) {
 }
 
 $sourceJar = Assert-File $SfmJar
-if ($CaptureMode -eq 'network-roundtrip' -and $MinecraftVersion -notin @('1.19.2', '26.1.2')) {
-    throw 'The network-roundtrip witness is currently validated only for exact 1.19.2 and 26.1.2'
-}
 if ($PreflightOnly -and $MinecraftVersion -notin @('1.20.2', '1.20.3', '1.20.4', '1.21.0')) {
     throw '-PreflightOnly currently applies only to exact 1.20.2–1.20.4 and 1.21.0 client fixtures'
 }
