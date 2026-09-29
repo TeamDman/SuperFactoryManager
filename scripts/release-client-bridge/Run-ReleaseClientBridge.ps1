@@ -83,7 +83,7 @@ $version = switch ($MinecraftVersion) {
     '1.19.2' { @{ Forge = '43.4.0'; Mcp = '20220805.130853'; Assets = '1.19'; DataFixer = '5.0.28'; EventBus = '6.0.3'; ForgeGroup = 'net/minecraftforge' } }
     '1.19.4' { @{ Forge = '45.0.9'; Mcp = '20230314.122934'; Assets = '3'; DataFixer = '6.0.6'; EventBus = '6.0.3'; ForgeGroup = 'net/minecraftforge' } }
     '1.20' { @{ Forge = '46.0.10'; Mcp = '20230608.053357'; Assets = '5'; DataFixer = '6.0.8'; EventBus = '6.0.3'; ForgeGroup = 'net/minecraftforge' } }
-    '1.20.1' { @{ Forge = '47.1.65'; Mcp = '20230612.114412'; Assets = '5'; DataFixer = '6.0.8'; EventBus = '6.0.5'; ForgeGroup = 'net/neoforged'; Fml = '47.1.47'; ClientSha1 = '97e1bb8346f4aa0e9e1bbb04e4fd170264bee508'; InstallerSha256 = 'c0056d398ccc685db87f98939ecd22d54e4a556fcb943cee00df56ed2015b6d9' } }
+    '1.20.1' { @{ Forge = '47.1.65'; Mcp = '20230612.114412'; Assets = '5'; DataFixer = '6.0.8'; EventBus = '6.0.5'; ForgeGroup = 'net/neoforged'; Fml = '47.1.47'; ClientSha1 = '97e1bb8346f4aa0e9e1bbb04e4fd170264bee508'; SrgSha1 = '3c8aa19b710a3a68f721210eb69b74594d13e218'; ExtraSha1 = '8c5a95cbce940cfdb304376ae9fea47968d02587'; InstallerSha256 = 'c0056d398ccc685db87f98939ecd22d54e4a556fcb943cee00df56ed2015b6d9' } }
 }
 $forgeArtifact = "$MinecraftVersion-$($version.Forge)"
 $forgeRelative = "$($version.ForgeGroup)/forge/$forgeArtifact"
@@ -175,6 +175,16 @@ if ($MinecraftVersion -eq '1.20.1') {
     if ((Get-FileHash -LiteralPath $patchedClient -Algorithm SHA1).Hash.ToLowerInvariant() -ne $version.ClientSha1) {
         throw 'Exact NeoForge patched client SHA-1 mismatch'
     }
+    foreach ($required in @(
+            @{ Classifier = 'srg'; Sha1 = $version.SrgSha1 },
+            @{ Classifier = 'extra'; Sha1 = $version.ExtraSha1 })) {
+        $relative = "net/minecraft/client/$mcpArtifact/client-$mcpArtifact-$($required.Classifier).jar"
+        $path = Resolve-CachedPath $relative @($forgeLibraryRoot)
+        if ((Get-FileHash -LiteralPath $path -Algorithm SHA1).Hash.ToLowerInvariant() -ne $required.Sha1) {
+            throw "Exact Minecraft $($required.Classifier) SHA-1 mismatch"
+        }
+        if ($classpath.Contains($path)) { throw "Minecraft $($required.Classifier) must not be on the legacy classpath" }
+    }
 }
 
 $templateArgs = @($forgeMeta.arguments.jvm)
@@ -182,9 +192,6 @@ $moduleArgIndex = [Array]::IndexOf($templateArgs, '-p') + 1
 if ($moduleArgIndex -le 0 -or $moduleArgIndex -ge $templateArgs.Count) { throw 'Missing pinned Forge module path' }
 $modulePath = ([string] $templateArgs[$moduleArgIndex]).Replace('${library_directory}', $forgeLibraryRoot).Replace('${classpath_separator}', ';')
 foreach ($module in $modulePath.Split(';')) { Assert-File $module | Out-Null }
-if ($MinecraftVersion -eq '1.20.1') {
-    throw '1.20.1 direct bootstrap is blocked: the patched client omits Overlay, while a separate SRG client duplicates Minecraft module packages. An exact launcher-provided merged module is required.'
-}
 
 # No run directory is created until every offline input and version boundary is checked.
 [IO.Directory]::CreateDirectory($run) | Out-Null

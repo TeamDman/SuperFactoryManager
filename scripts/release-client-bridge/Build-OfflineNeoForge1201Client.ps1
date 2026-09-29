@@ -7,6 +7,7 @@ param(
     [Parameter(Mandatory)] [string] $Installer,
     [Parameter(Mandatory)] [string] $CachedLibraries,
     [Parameter(Mandatory)] [string] $MinecraftSrg,
+    [Parameter(Mandatory)] [string] $MinecraftExtra,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $OutputRoot,
     [ValidateRange(30, 300)] [int] $WatchdogSeconds = 120
@@ -38,6 +39,7 @@ function Get-LibraryRelative($Library) {
 
 $installerFile = Assert-File $Installer
 $srgFile = Assert-File $MinecraftSrg
+$extraFile = Assert-File $MinecraftExtra
 $java = Assert-File (Join-Path $JavaHome 'bin/java.exe')
 $cachedRoot = [IO.Path]::GetFullPath($CachedLibraries).TrimEnd('\', '/')
 $output = [IO.Path]::GetFullPath($OutputRoot).TrimEnd('\', '/')
@@ -45,7 +47,8 @@ if (-not [IO.Directory]::Exists($cachedRoot)) { throw "Missing cached library ro
 if ([IO.Directory]::Exists($output) -or [IO.File]::Exists($output)) {
     throw "OutputRoot already exists; refusing to reuse: $output"
 }
-foreach ($inputRoot in @($cachedRoot, [IO.Path]::GetDirectoryName($srgFile), [IO.Path]::GetDirectoryName($installerFile))) {
+foreach ($inputRoot in @($cachedRoot, [IO.Path]::GetDirectoryName($srgFile),
+        [IO.Path]::GetDirectoryName($extraFile), [IO.Path]::GetDirectoryName($installerFile))) {
     if ($output.Equals($inputRoot, [StringComparison]::OrdinalIgnoreCase) -or
         $output.StartsWith($inputRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
         throw 'OutputRoot must not be inside any offline input directory'
@@ -58,6 +61,10 @@ if ((Get-FileHash -LiteralPath $installerFile -Algorithm SHA256).Hash.ToLowerInv
 if ((Get-FileHash -LiteralPath $srgFile -Algorithm SHA1).Hash.ToLowerInvariant() -ne
     '3c8aa19b710a3a68f721210eb69b74594d13e218') {
     throw 'Cached 1.20.1 client SRG SHA-1 mismatch'
+}
+if ((Get-FileHash -LiteralPath $extraFile -Algorithm SHA1).Hash.ToLowerInvariant() -ne
+    '8c5a95cbce940cfdb304376ae9fea47968d02587') {
+    throw 'Cached 1.20.1 client extra SHA-1 mismatch'
 }
 
 $zip = [IO.Compression.ZipFile]::OpenRead($installerFile)
@@ -77,6 +84,12 @@ try {
         $source = Assert-File (Join-Path $cachedRoot $relative)
         $libraries[$relative] = $source
     }
+    # FML resolves both processor outputs from libraryDirectory and unions
+    # them with the patched client as one Minecraft module. Do not put either
+    # output on the legacy classpath as a separate module.
+    $mcVersion = '1.20.1-20230612.114412'
+    $libraries["net/minecraft/client/$mcVersion/client-$mcVersion-srg.jar"] = $srgFile
+    $libraries["net/minecraft/client/$mcVersion/client-$mcVersion-extra.jar"] = $extraFile
     $processor = @($profile.processors | Where-Object { $_.jar -eq 'net.minecraftforge:binarypatcher:1.1.1' })
     if ($processor.Count -ne 1 -or ($processor[0].args -join ' ') -ne
         '--clean {MC_SRG} --output {PATCHED} --apply {BINPATCH}') {
