@@ -9,6 +9,7 @@ use super::release_plan_cli::ReleasePlanArgs;
 use super::release_provider_plan_cli::ReleaseModrinthRequestPreviewArgs;
 use super::release_provider_plan_cli::ReleaseProviderPlanArgs;
 use super::release_tag_preflight_cli::ReleaseTagPreflightArgs;
+use super::release_target_plan_cli::ReleaseTargetPlanArgs;
 use super::source_trace_cli::SourceTraceArgs;
 use crate::cancellation::CancellationToken;
 use crate::cli::output::CliOutput;
@@ -111,6 +112,8 @@ pub enum SourceCommand {
     ReleaseModrinthRequestPreview(ReleaseModrinthRequestPreviewArgs),
     /// Check one verified package target against promoted HEAD and its local tag only.
     ReleaseTagPreflight(ReleaseTagPreflightArgs),
+    /// Join one verified package target, promoted local tag state and reviewed provider intent.
+    ReleaseTargetPlan(ReleaseTargetPlanArgs),
     /// Show one generated file's recorded owner and current edit state.
     Trace(SourceTraceArgs),
 }
@@ -292,6 +295,7 @@ impl SourceArgs {
                 return args.invoke_in(cancellation);
             }
             SourceCommand::ReleaseTagPreflight(args) => return args.invoke_in(cancellation),
+            SourceCommand::ReleaseTargetPlan(args) => return args.invoke_in(cancellation),
             SourceCommand::Trace(args) => return args.invoke_in(),
             SourceCommand::DryRun(args) => (args, SyncMode::DryRun),
             SourceCommand::Check(args) => (args, SyncMode::Check),

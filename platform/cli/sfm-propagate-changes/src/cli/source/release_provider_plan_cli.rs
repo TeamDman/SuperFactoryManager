@@ -30,7 +30,7 @@ const PLAN_SCHEMA: &str = "sfm:source_release_provider_plan@1";
 const PLAN_SCOPE: &str = "read-only reviewed-provider-intent for one verified ten-JAR package; no credentials, remote checks, tag, upload, promotion or publication";
 const MODRINTH_PREVIEW_SCHEMA: &str = "sfm:source_release_modrinth_request_preview@1";
 const MODRINTH_PREVIEW_SCOPE: &str = "read-only exact Modrinth request metadata and verified package asset pairs; no credentials, network, tag, upload or publication";
-const MODRINTH_PREVIEW_NOTES_WARNING: &str = "Generated local paths are absent. Each request_metadata_json contains the complete caller-supplied reviewed notes in its changelog field. Notes may contain sensitive data or local paths. Review this output before storing or sharing it.";
+pub(super) const MODRINTH_PREVIEW_NOTES_WARNING: &str = "Generated local paths are absent. Each request_metadata_json contains the complete caller-supplied reviewed notes in its changelog field. Notes may contain sensitive data or local paths. Review this output before storing or sharing it.";
 const MAX_CHANGELOG_BYTES: u64 = 1024 * 1024;
 const DUAL_1201_POLICY: &str = "dual-forge-neoforge";
 const NEOFORGE_ONLY_1201_POLICY: &str = "neoforge-only";
@@ -76,9 +76,9 @@ pub struct ReleaseModrinthRequestPreviewArgs {
     pub provider_plan: ReleaseProviderPlanArgs,
 }
 
-struct ReviewedProviderPlan {
-    report: ReleaseProviderPlanReport,
-    changelog: String,
+pub(super) struct ReviewedProviderPlan {
+    pub(super) report: ReleaseProviderPlanReport,
+    pub(super) changelog: String,
 }
 
 #[derive(Debug, Facet)]
@@ -120,63 +120,63 @@ struct ModrinthRequestPreviewTarget {
     clippy::struct_excessive_bools,
     reason = "independent, machine-readable negative verification and authorization assertions are the report's safety boundary"
 )]
-struct ReleaseProviderPlanReport {
+pub(super) struct ReleaseProviderPlanReport {
     schema: String,
     scope: String,
-    completion_manifest_sha256: String,
-    inventory_sha256: String,
+    pub(super) completion_manifest_sha256: String,
+    pub(super) inventory_sha256: String,
     lock_sha256: String,
-    package_source_commit: String,
+    pub(super) package_source_commit: String,
     reviewed_source_commit_matches_package: bool,
     current_head_checked: bool,
     tag_object_checked: bool,
     remote_project_ownership_checked: bool,
     curseforge_game_version_ids_checked: bool,
     publication_authorized: bool,
-    candidate_preset_id: String,
-    mod_version: String,
-    changelog_sha256: String,
+    pub(super) candidate_preset_id: String,
+    pub(super) mod_version: String,
+    pub(super) changelog_sha256: String,
     changelog_utf8_bytes: usize,
-    github: GitHubProviderIntent,
-    modrinth: ModrinthProviderIntent,
-    curseforge: CurseForgeProviderIntent,
+    pub(super) github: GitHubProviderIntent,
+    pub(super) modrinth: ModrinthProviderIntent,
+    pub(super) curseforge: CurseForgeProviderIntent,
     target_count: usize,
-    targets: Vec<ReleaseProviderTarget>,
+    pub(super) targets: Vec<ReleaseProviderTarget>,
 }
 
 #[derive(Debug, Facet)]
-struct GitHubProviderIntent {
-    repository: String,
-    reviewed_tag: String,
-    release_title: String,
+pub(super) struct GitHubProviderIntent {
+    pub(super) repository: String,
+    pub(super) reviewed_tag: String,
+    pub(super) release_title: String,
 }
 
 #[derive(Debug, Facet)]
-struct ModrinthProviderIntent {
-    project: String,
-    loader_policy_1201: String,
+pub(super) struct ModrinthProviderIntent {
+    pub(super) project: String,
+    pub(super) loader_policy_1201: String,
 }
 
 #[derive(Debug, Facet)]
-struct CurseForgeProviderIntent {
-    project_id: u64,
-    game_version_ids_require_remote_resolution: bool,
+pub(super) struct CurseForgeProviderIntent {
+    pub(super) project_id: u64,
+    pub(super) game_version_ids_require_remote_resolution: bool,
 }
 
 #[derive(Clone, Debug, Facet)]
-struct ReleaseProviderTarget {
-    target_id: String,
-    minecraft_version: String,
-    package_loader: String,
-    file_name: String,
-    sha256: String,
-    display_name: String,
-    modrinth_version_number: String,
-    modrinth_game_versions: Vec<String>,
-    modrinth_loaders: Vec<String>,
-    curseforge_metadata_names: Vec<String>,
-    curseforge_release_type: String,
-    curseforge_changelog_type: String,
+pub(super) struct ReleaseProviderTarget {
+    pub(super) target_id: String,
+    pub(super) minecraft_version: String,
+    pub(super) package_loader: String,
+    pub(super) file_name: String,
+    pub(super) sha256: String,
+    pub(super) display_name: String,
+    pub(super) modrinth_version_number: String,
+    pub(super) modrinth_game_versions: Vec<String>,
+    pub(super) modrinth_loaders: Vec<String>,
+    pub(super) curseforge_metadata_names: Vec<String>,
+    pub(super) curseforge_release_type: String,
+    pub(super) curseforge_changelog_type: String,
 }
 
 impl ReleaseProviderPlanArgs {
@@ -194,7 +194,10 @@ impl ReleaseProviderPlanArgs {
         Ok(self.review_in(cancellation)?.report)
     }
 
-    fn review_in(self, cancellation: &CancellationToken) -> Result<ReviewedProviderPlan> {
+    pub(super) fn review_in(
+        self,
+        cancellation: &CancellationToken,
+    ) -> Result<ReviewedProviderPlan> {
         validate_provider_identity(&self)?;
         let verified = ReleasePackageVerifyArgs {
             package_root: self.package_root.clone(),
@@ -281,7 +284,7 @@ impl ReleaseModrinthRequestPreviewArgs {
     }
 }
 
-fn validate_modrinth_request_mapping(
+pub(super) fn validate_modrinth_request_mapping(
     target: &ReleaseProviderTarget,
     loader_policy_1201: &str,
 ) -> Result<()> {

@@ -54,27 +54,27 @@ pub struct ReleaseTagPreflightArgs {
     clippy::struct_excessive_bools,
     reason = "independent local verification and explicit remote/publication limits belong in the report"
 )]
-struct ReleaseTagPreflightReport {
+pub(super) struct ReleaseTagPreflightReport {
     schema: String,
     scope: String,
-    completion_manifest_sha256: String,
-    inventory_sha256: String,
-    package_source_commit: String,
-    reviewed_release_commit: String,
-    current_head_checked: bool,
-    authored_tree_unchanged_outside_generated_roots: bool,
-    selected_root_provenance_checked: bool,
-    selected_root_commit_tree_checked: bool,
-    target_id: String,
-    minecraft_version: String,
-    loader: String,
-    file_name: String,
-    jar_sha256: String,
-    local_tag: String,
-    local_tag_state: String,
-    local_tag_object_id: Option<String>,
-    remote_tag_checked: bool,
-    publication_authorized: bool,
+    pub(super) completion_manifest_sha256: String,
+    pub(super) inventory_sha256: String,
+    pub(super) package_source_commit: String,
+    pub(super) reviewed_release_commit: String,
+    pub(super) current_head_checked: bool,
+    pub(super) authored_tree_unchanged_outside_generated_roots: bool,
+    pub(super) selected_root_provenance_checked: bool,
+    pub(super) selected_root_commit_tree_checked: bool,
+    pub(super) target_id: String,
+    pub(super) minecraft_version: String,
+    pub(super) loader: String,
+    pub(super) file_name: String,
+    pub(super) jar_sha256: String,
+    pub(super) local_tag: String,
+    pub(super) local_tag_state: String,
+    pub(super) local_tag_object_id: Option<String>,
+    pub(super) remote_tag_checked: bool,
+    pub(super) publication_authorized: bool,
 }
 
 impl ReleaseTagPreflightArgs {
@@ -88,7 +88,10 @@ impl ReleaseTagPreflightArgs {
         Ok(CliOutput::facet(self.preflight_in(cancellation)?))
     }
 
-    fn preflight_in(self, cancellation: &CancellationToken) -> Result<ReleaseTagPreflightReport> {
+    pub(super) fn preflight_in(
+        self,
+        cancellation: &CancellationToken,
+    ) -> Result<ReleaseTagPreflightReport> {
         cancellation.bail_if_cancelled()?;
         ensure_commit(&self.reviewed_release_commit, "reviewed release commit")?;
         let verified = ReleasePackageVerifyArgs {
