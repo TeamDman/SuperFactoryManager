@@ -77,6 +77,8 @@ M1/M2 closure is deliberately narrow. The Rust tests `feature_and_version_direct
 
 M4 read-only trace checkpoint: commit `372ad023c` added `source trace --project-root <absolute-generated-project> --file <project-relative-file>`. Its two focused tests passed, including an edited output and unsafe/unowned/missing paths. A real 1.19.4 `ManagerBlock.java` query returned the `released-4.34.0` identity and matching generated/current SHA-256 values; a `build.gradle` query reported its `release-tag` overlay and matching bytes. The report contains relative file paths and hashes, not the caller's absolute root. `cargo fmt --check` and strict production-library Clippy passed. This improves manual backpropagation; it neither authenticates an arbitrary provenance manifest nor implements symbol rename/move.
 
+The same built command then traced `src/main/java/ca/teamdman/sfm/SFM.java` in every checked-in release root. All ten reported their exact target ID, `released-4.34.0`, a version-specific release overlay, and `generated_file_matches_manifest: true`. This confirms the file-owner query across the matrix; it is not a fresh source check of all files or a mutation/refactoring proof.
+
 ### [x] M5.1 Consolidate one version-dependent Java helper
 
 Commit `3b5f44ff2` makes the primary `SFMEntityUtils.java` the source for all ten development targets. Whole-line Liquid branches select the 1.19.2 and 1.19.4, 1.20 to 1.21.1, and 26.1.2 APIs. A development-only, identity-hashed binding permits this replacement only when its rendered bytes equal the verified imported version. Changing the Java source and its declared hashes together cannot bypass that check. Release-tag sources keep their verified historical snapshot.
