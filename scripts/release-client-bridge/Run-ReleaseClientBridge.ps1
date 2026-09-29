@@ -9,7 +9,7 @@ param(
     [Parameter(Mandatory)] [string] $PrismRoot,
     [Parameter(Mandatory)] [string] $JavaHome,
     [Parameter(Mandatory)] [string] $RunRoot,
-    [ValidateSet('1.19.2', '1.19.4')] [string] $MinecraftVersion = '1.19.2',
+    [ValidateSet('1.19.2', '1.19.4', '1.20')] [string] $MinecraftVersion = '1.19.2',
     [ValidateSet('title', 'world')] [string] $CaptureMode = 'title',
     [ValidateRange(30, 600)] [int] $WatchdogSeconds = 300
 )
@@ -72,14 +72,20 @@ $bridgeRoot = $PSScriptRoot
 $version = switch ($MinecraftVersion) {
     '1.19.2' { @{ Forge = '43.4.0'; Mcp = '20220805.130853'; Assets = '1.19'; DataFixer = '5.0.28' } }
     '1.19.4' { @{ Forge = '45.0.9'; Mcp = '20230314.122934'; Assets = '3'; DataFixer = '6.0.6' } }
+    '1.20' { @{ Forge = '46.0.10'; Mcp = '20230608.053357'; Assets = '5'; DataFixer = '6.0.8' } }
 }
 $forgeArtifact = "$MinecraftVersion-$($version.Forge)"
 $mcpArtifact = "$MinecraftVersion-$($version.Mcp)"
 $forgeVersionId = "$MinecraftVersion-forge-$($version.Forge)"
-$bridgeSourceRoot = if ($MinecraftVersion -eq '1.19.4') {
+$bridgeSourceRoot = if ($MinecraftVersion -ne '1.19.2') {
     Join-Path $bridgeRoot 'src/1.19.4'
 } else {
     Join-Path $bridgeRoot 'src/main'
+}
+$bridgeResourceRoot = if ($MinecraftVersion -eq '1.20') {
+    Join-Path $bridgeRoot 'src/1.20/resources'
+} else {
+    Join-Path $bridgeSourceRoot 'resources'
 }
 $sourceRoot = [IO.Path]::GetDirectoryName($sourceJar).TrimEnd('\', '/')
 if ($run.Equals($prism, [StringComparison]::OrdinalIgnoreCase) -or
@@ -166,7 +172,7 @@ $javaSource = Assert-File (Join-Path $bridgeSourceRoot 'java/ca/teamdman/sfm/rel
 if ($LASTEXITCODE -ne 0) { throw "Bridge javac failed: $LASTEXITCODE" }
 Assert-File (Join-Path $classes 'ca/teamdman/sfm/releaseprobe/ReleaseClientBridge.class') | Out-Null
 $bridgeJar = Join-Path $mods 'sfmreleaseprobe.jar'
-& $jarTool --create --file $bridgeJar -C $classes . -C (Join-Path $bridgeSourceRoot 'resources') .
+& $jarTool --create --file $bridgeJar -C $classes . -C $bridgeResourceRoot .
 if ($LASTEXITCODE -ne 0) { throw "Bridge jar failed: $LASTEXITCODE" }
 
 # Extract only the pinned Windows x64 LWJGL DLLs into this run's scratch native dir.

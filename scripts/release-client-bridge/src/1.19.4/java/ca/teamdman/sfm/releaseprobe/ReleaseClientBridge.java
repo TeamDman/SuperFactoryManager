@@ -36,7 +36,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Properties;
 
-/** Test-only, file-driven witness for an unchanged 1.19.4 production SFM JAR. */
+/** Test-only, file-driven witness for an unchanged Forge production SFM JAR. */
 @Mod("sfmreleaseprobe")
 public final class ReleaseClientBridge {
     private static final String CONTROL_PROPERTY = "sfm.releaseProbe.controlDirectory";
