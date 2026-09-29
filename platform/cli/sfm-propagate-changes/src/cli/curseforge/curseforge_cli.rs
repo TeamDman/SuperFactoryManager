@@ -48,6 +48,8 @@ pub(super) const DEFAULT_AMEND_SAFETY_AGE: &str = "30m";
 pub(super) const POPULAR_DOWNLOAD_THRESHOLD: u64 = 1_000;
 pub(super) const CURSEFORGE_AUTHORS_FILES_URL_PREFIX: &str =
     "https://authors.curseforge.com/#/projects";
+pub(crate) const RELEASE_CHANGELOG_TYPE: &str = "markdown";
+pub(crate) const RELEASE_FILE_TYPE: &str = "release";
 
 pub(super) fn prompt_yes_no(message: &str) -> eyre::Result<bool> {
     stdout_prompt(format!("{message} "))?;
@@ -235,10 +237,10 @@ pub(super) fn build_upload_plans(
         let display_name = format!("Super Factory Manager MC{mc_version} v{mod_version}");
         let metadata = UploadMetadata {
             changelog: changelog_section.to_string(),
-            changelog_type: "markdown".to_string(),
+            changelog_type: RELEASE_CHANGELOG_TYPE.to_string(),
             display_name,
             game_versions: game_version_ids,
-            release_type: "release".to_string(),
+            release_type: RELEASE_FILE_TYPE.to_string(),
         };
 
         plans.push(UploadPlan {
@@ -692,7 +694,7 @@ pub(super) fn sha1_hex(bytes: &[u8]) -> String {
     output
 }
 
-pub(super) fn game_version_names_for_release(mc_version: &str) -> eyre::Result<Vec<String>> {
+pub(crate) fn game_version_names_for_release(mc_version: &str) -> eyre::Result<Vec<String>> {
     let parsed = parse_version(mc_version)
         .ok_or_else(|| eyre::eyre!("Could not parse MC version '{mc_version}'"))?;
 

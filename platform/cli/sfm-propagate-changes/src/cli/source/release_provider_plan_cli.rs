@@ -8,6 +8,10 @@
 use super::release_package_verify_cli::ReleasePackageVerifyArgs;
 use super::release_package_verify_cli::VerifiedReleasePackage;
 use crate::cancellation::CancellationToken;
+use crate::cli::curseforge::RELEASE_CHANGELOG_TYPE;
+use crate::cli::curseforge::RELEASE_FILE_TYPE;
+use crate::cli::curseforge::game_version_names_for_release;
+use crate::cli::github::release_title;
 use crate::cli::output::CliOutput;
 use crate::modrinth::ModrinthCreateVersionPayload;
 use crate::source_projection::candidate_lock::checked_directory;
@@ -191,22 +195,12 @@ impl ReleaseProviderPlanReport {
             } else {
                 vec![source.loader.clone()]
             };
-            let curseforge_loaders = if source.target_id == "1.20.1" {
-                // This is the existing CurseForge publisher's reviewed name
-                // intent, not a claim that remote numeric IDs were resolved.
-                vec!["Forge".to_owned(), "NeoForge".to_owned()]
-            } else if source.loader == "forge" {
-                vec!["Forge".to_owned()]
-            } else {
-                vec!["NeoForge".to_owned()]
-            };
-            let mut curseforge_metadata_names = vec![
-                "Client".to_owned(),
-                "Server".to_owned(),
-                source.minecraft_version.clone(),
-            ];
-            curseforge_metadata_names.extend(curseforge_loaders);
-            curseforge_metadata_names.push(format!("Java {}", source.jdk_major));
+            let curseforge_metadata_names = checked_curseforge_metadata_names(
+                &source.target_id,
+                &source.minecraft_version,
+                &source.loader,
+                source.jdk_major,
+            )?;
             let display_name = format!(
                 "Super Factory Manager MC{} v{}",
                 source.minecraft_version, manifest.mod_version
@@ -231,8 +225,8 @@ impl ReleaseProviderPlanReport {
                 modrinth_game_versions: modrinth_payload.game_versions,
                 modrinth_loaders: modrinth_payload.loaders,
                 curseforge_metadata_names,
-                curseforge_release_type: "release".to_owned(),
-                curseforge_changelog_type: "markdown".to_owned(),
+                curseforge_release_type: RELEASE_FILE_TYPE.to_owned(),
+                curseforge_changelog_type: RELEASE_CHANGELOG_TYPE.to_owned(),
             });
         }
         Ok(Self {
@@ -255,7 +249,7 @@ impl ReleaseProviderPlanReport {
             github: GitHubProviderIntent {
                 repository: args.github_repo,
                 reviewed_tag: args.reviewed_tag,
-                release_title: format!("v{}", manifest.mod_version),
+                release_title: release_title(&manifest.mod_version),
             },
             modrinth: ModrinthProviderIntent {
                 project: args.modrinth_project,
@@ -326,6 +320,43 @@ fn validate_single_mc_marker(file_name: &str, mc_version: &str, mod_version: &st
         "packaged JAR filename-derived Minecraft version differs from typed target mapping"
     );
     Ok(())
+}
+
+fn checked_curseforge_metadata_names(
+    target_id: &str,
+    minecraft_version: &str,
+    package_loader: &str,
+    jdk_major: u16,
+) -> Result<Vec<String>> {
+    // Keep the legacy publisher's exact name selection, but reject a future
+    // divergence from the verified package's typed loader and JDK mapping.
+    // Numeric game-version IDs remain unresolved here by design.
+    let names = game_version_names_for_release(minecraft_version)?;
+    let mut expected = vec![
+        "Client".to_owned(),
+        "Server".to_owned(),
+        minecraft_version.to_owned(),
+    ];
+    if target_id == "1.20.1" {
+        ensure!(
+            package_loader == "neoforge",
+            "transitional CurseForge metadata requires the verified NeoForge package"
+        );
+        expected.extend(["Forge".to_owned(), "NeoForge".to_owned()]);
+    } else {
+        let loader_name = match package_loader {
+            "forge" => "Forge",
+            "neoforge" => "NeoForge",
+            _ => eyre::bail!("unsupported package loader for '{target_id}'"),
+        };
+        expected.push(loader_name.to_owned());
+    }
+    expected.push(format!("Java {jdk_major}"));
+    ensure!(
+        names == expected,
+        "CurseForge metadata names differ from verified target mapping for '{target_id}'"
+    );
+    Ok(names)
 }
 
 fn read_reviewed_changelog(path: &Path, expected_sha256: &str) -> Result<String> {
@@ -506,6 +537,10 @@ mod tests {
         assert!(!report.publication_authorized);
         assert!(report.curseforge.game_version_ids_require_remote_resolution);
         assert_eq!(report.github.reviewed_tag, args.reviewed_tag);
+        assert_eq!(
+            report.github.release_title,
+            format!("v{}", fixture.lock().mod_version)
+        );
         assert_eq!(report.modrinth.loader_policy_1201, DUAL_1201_POLICY);
         assert_eq!(
             report.changelog_utf8_bytes,
@@ -548,11 +583,12 @@ mod tests {
             .unwrap();
         assert_eq!(transitional.package_loader, "neoforge");
         assert_eq!(transitional.modrinth_loaders, ["forge", "neoforge"]);
-        assert!(
-            transitional
-                .curseforge_metadata_names
-                .contains(&"Forge".to_owned())
+        assert_eq!(
+            transitional.curseforge_metadata_names,
+            ["Client", "Server", "1.20.1", "Forge", "NeoForge", "Java 17"]
         );
+        assert_eq!(transitional.curseforge_release_type, "release");
+        assert_eq!(transitional.curseforge_changelog_type, "markdown");
         let mc_121 = report
             .targets
             .iter()
@@ -560,6 +596,19 @@ mod tests {
             .unwrap();
         assert_eq!(mc_121.minecraft_version, "1.21");
         assert_eq!(mc_121.modrinth_game_versions, ["1.21"]);
+        assert_eq!(
+            mc_121.curseforge_metadata_names,
+            ["Client", "Server", "1.21", "NeoForge", "Java 21"]
+        );
+        let modern = report
+            .targets
+            .iter()
+            .find(|target| target.target_id == "26.1.2")
+            .unwrap();
+        assert_eq!(
+            modern.curseforge_metadata_names,
+            ["Client", "Server", "26.1.2", "NeoForge", "Java 25"]
+        );
 
         let output = args
             .clone()
@@ -592,6 +641,15 @@ mod tests {
         );
         args.modrinth_1201_loader_policy = "implicit".to_owned();
         assert_rejected(args);
+    }
+
+    #[test]
+    fn curseforge_name_adapter_rejects_typed_loader_or_jdk_drift() {
+        assert!(checked_curseforge_metadata_names("1.19.2", "1.19.2", "forge", 17).is_ok());
+        assert!(checked_curseforge_metadata_names("1.19.2", "1.19.2", "neoforge", 17).is_err());
+        assert!(checked_curseforge_metadata_names("1.19.2", "1.19.2", "forge", 21).is_err());
+        assert!(checked_curseforge_metadata_names("1.20.1", "1.20.1", "forge", 17).is_err());
+        assert!(checked_curseforge_metadata_names("1.20.1", "1.20.1", "neoforge", 17).is_ok());
     }
 
     #[test]

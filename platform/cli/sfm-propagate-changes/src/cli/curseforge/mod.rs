@@ -13,6 +13,9 @@ mod release;
 
 pub use curseforge_args_cli::*;
 pub use curseforge_auth_cli::*;
+pub(crate) use curseforge_cli::RELEASE_CHANGELOG_TYPE;
+pub(crate) use curseforge_cli::RELEASE_FILE_TYPE;
+pub(crate) use curseforge_cli::game_version_names_for_release;
 pub use curseforge_minecraft_cli::*;
 pub use curseforge_minecraft_version_cli::*;
 pub use curseforge_minecraft_version_list_cli::*;

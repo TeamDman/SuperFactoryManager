@@ -20,6 +20,11 @@ use tracing::info;
 
 const DEFAULT_REPO: &str = "TeamDman/SuperFactoryManager";
 
+/// The title used by the legacy publisher and read-only projection preflight.
+pub(crate) fn release_title(mod_version: &str) -> String {
+    format!("v{mod_version}")
+}
+
 /// Arguments for GitHub commands.
 #[derive(Facet, Debug)]
 pub struct GithubArgs {
@@ -105,7 +110,7 @@ pub(super) fn release_now(
         .join("platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml");
 
     let mod_version = read_mod_version(&gradle_properties)?;
-    let release_title = format!("v{mod_version}");
+    let release_title = release_title(&mod_version);
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
     let branch_query = branch.into_query()?;
     let branch_filter_text = branch_query.to_string();
@@ -186,7 +191,7 @@ pub(super) fn release_amend(
         .join("platform/minecraft/src/main/resources/assets/sfm/template_programs/changelog.sfml");
 
     let mod_version = read_mod_version(&gradle_properties)?;
-    let release_title = format!("v{mod_version}");
+    let release_title = release_title(&mod_version);
     let all_jars = get_ordered_release_jars(&jar_dir, &mod_version)?;
     let branch_query = branch.into_query()?;
     let branch_filter_text = branch_query.to_string();
@@ -609,6 +614,12 @@ where
 #[cfg(test)]
 mod tests {
     use super::parse_mc_version_from_jar_name;
+    use super::release_title;
+
+    #[test]
+    fn legacy_release_title_contract_is_shared_with_projection_preflight() {
+        assert_eq!(release_title("4.34.0"), "v4.34.0");
+    }
 
     #[test]
     fn parses_mc_version_from_release_jar_name() {

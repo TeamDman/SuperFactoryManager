@@ -3,6 +3,7 @@ mod github_release_amend_cli;
 mod github_release_cli;
 mod github_release_now_cli;
 
+pub(crate) use github_cli::release_title;
 pub use github_cli::*;
 pub use github_release_amend_cli::*;
 pub use github_release_cli::*;
